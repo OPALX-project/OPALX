@@ -38,6 +38,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       lfine_m(0),
       nlevel_m(1),
       nBcPoints_m(0),
+      eps_m(1.0e-12),
       verbose_m(false),
       fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
       flag_m(std::ios::out)
@@ -298,9 +299,8 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
     
     this->initResidual_m(rhsNorms, resNorms);
     
-    scalar_t eps = 1.0e-8;
     std::for_each(rhsNorms.begin(), rhsNorms.end(),
-                  [&eps](double& val){ val *= eps; });
+                  [this](double& val){ val *= eps_m; });
     
     nIter_m = 0;
     bIter_m = 0;
@@ -693,9 +693,6 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
     };
 
     if ( matrices ) {
-#ifdef _OPENMP
-        #pragma omp parallel
-#endif
         for (amrex::MFIter mfi(*mglevel_m[lbase_m]->mask, true);
              mfi.isValid(); ++mfi)
         {
@@ -768,9 +765,6 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
         };
 
         if ( matrices ) {
-#ifdef _OPENMP
-            #pragma omp parallel
-#endif
             for (amrex::MFIter mfi(*mglevel_m[lev]->mask, true);
                  mfi.isValid(); ++mfi)
             {
@@ -1612,9 +1606,6 @@ void AmrMultiGrid::amrex2trilinos_m(const lo_t& level,
     if ( mv.is_null() )
         mv = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
 
-#ifdef _OPENMP
-    #pragma omp parallel
-#endif
     for (amrex::MFIter mfi(mf, true); mfi.isValid(); ++mfi) {
         const amrex::Box&          tbx  = mfi.tilebox();
         const amrex::FArrayBox&    fab = mf[mfi];
@@ -1648,9 +1639,6 @@ void AmrMultiGrid::trilinos2amrex_m(const lo_t& level,
 {
     Teuchos::ArrayRCP<const amr::scalar_t> data =  mv->get1dView();
     
-#ifdef _OPENMP
-    #pragma omp parallel
-#endif
     for (amrex::MFIter mfi(mf, true); mfi.isValid(); ++mfi) {
         const amrex::Box&          tbx  = mfi.tilebox();
         amrex::FArrayBox&          fab = mf[mfi];

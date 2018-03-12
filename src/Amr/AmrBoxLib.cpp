@@ -4,17 +4,7 @@
 #include "Structure/FieldSolver.h"
 #include "Solvers/PoissonSolver.h"
 
-#ifdef AMR_YT_DUMP
-    #include "Amr/AmrYtWriter.h"
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    #include "Amr/AmrPythonWriter.h"
-#endif
-
-#ifdef DBG_SCALARFIELD
-    #include "Amr/AmrSliceWriter.h"
-#endif
+#include "Amr/AmrYtWriter.h"
     
 #include "AmrBoxLib_F.h"
 #include <AMReX_MultiFabUtil.H>
@@ -266,13 +256,22 @@ void AmrBoxLib::computeSelfFields() {
     meshScaling_m = Vector_t(1.0, 1.0, gammaz);
     
     // calculate Possion equation (with coefficient: -1/(eps))
-    double tmp = -1.0 / bunch_mp->getdT() / gammaz * scalefactor / Physics::epsilon_0;
+    double tmp = -1.0 / bunch_mp->getdT() / gammaz / Physics::epsilon_0;
     for (int i = 0; i <= finest_level; ++i) {
         this->rho_m[i]->mult(tmp, 0, 1);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields() ",
                                 "NANs at level " + std::to_string(i) + ".");
+    }
+    
+    // find maximum and normalize each level (faster convergence)
+    double l0norm = 1.0;
+    for (int i = 0; i <= finest_level; ++i)
+        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
     
     // charge density is in rho_m
@@ -282,9 +281,13 @@ void AmrBoxLib::computeSelfFields() {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finest_level; ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
+    /* apply scale of electric-field in order to undo the transformation
+     * + undo normalization
+     */
+    for (int i = 0; i <= finest_level; ++i) {
+        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
+        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+    }
     
     
     for (int i = 0; i <= finest_level; ++i) {
@@ -317,51 +320,27 @@ void AmrBoxLib::computeSelfFields() {
     /*
      * dumping only
      */
-
-#ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
-    
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // in seconds
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields() ",
-                            "Dumping only in serial execution.");
-    
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
-
-#ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
-#else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-#endif
-    
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step, scalefactor);
-#endif
+    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+        
+        int nLevel = finest_level + 1;
+        
+        AmrIntArray_t rr(finest_level);
+        for (int i = 0; i < finest_level; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+        
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
+                             nLevel, time, scalefactor);
+        
+        ytWriter.writeBunch(bunch_mp, time, scalefactor);
+    }
 }
 
 
@@ -397,7 +376,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(invGamma * scalefactor, 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(invGamma, 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
@@ -413,14 +392,27 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
     }
     
+    // find maximum and normalize each level (faster convergence)
+    double l0norm = 1.0;
+    for (int i = 0; i <= finest_level; ++i)
+        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
+    }
+    
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     IpplTimings::startTimer(this->amrSolveTimer_m);
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finestLevel(); ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
+    /* apply scale of electric-field in order to undo the transformation
+     * + undo normalization
+     */
+    for (int i = 0; i <= finestLevel(); ++i) {
+        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
+        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+    }
     
     for (int i = 0; i <= finest_level; ++i) {
         if ( this->efield_m[i]->contains_nan(false) )
@@ -453,50 +445,25 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      * dumping only
      */
     
-#ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
     
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // ps
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                            "Dumping only in serial execution.");
-    
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
-    
-#ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
-#else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-#endif
-    
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step, scalefactor);
-#endif
+        AmrIntArray_t rr(finest_level);
+        for (int i = 0; i < finest_level; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+        
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
+                             nLevel, time, scalefactor);
+        
+        ytWriter.writeBunch(bunch_mp, time, scalefactor);
+    }
 }
 
 
@@ -524,11 +491,20 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(-scalefactor / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(-1.0 / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ",
                                 "NANs at level " + std::to_string(i) + ".");
+    }
+    
+    // find maximum and normalize each level (faster convergence)
+    double l0norm = 1.0;
+    for (int i = 0; i <= finest_level; ++i)
+        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
     
     // mesh scaling for solver
@@ -543,9 +519,13 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
     
-    // apply scale of electric-field in order to undo the transformation
-    for (int i = 0; i <= finestLevel(); ++i)
-        this->efield_m[i]->mult(scalefactor, 0, 3);
+    /* apply scale of electric-field in order to undo the transformation
+     * + undo normalization
+     */
+    for (int i = 0; i <= finestLevel(); ++i) {
+        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
+        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+    }
 
     for (int i = 0; i <= finest_level; ++i) {
         if ( this->efield_m[i]->contains_nan(false) )
@@ -573,50 +553,27 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     /*
      * dumping only
      */
-#ifdef AMR_YT_DUMP
-    INFOMSG("*** START DUMPING FIELDS IN YT FORMAT ***" << endl);
-    AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
-    
-    AmrIntArray_t rr(nLevel);
-    for (int i = 0; i < nLevel - 1; ++i)
-        rr[i] = this->MaxRefRatio(i);
-    
-    double time = bunch_mp->getT(); // ps
-    
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-    
-    ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom, time, scalefactor);
-    INFOMSG("*** FINISHED DUMPING FIELDS IN YT FORMAT ***" << endl);
-#endif
-
-#ifdef AMR_PYTHON_DUMP
-    INFOMSG("*** START DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-    AmrPythonWriter pyWriter;
-    pyWriter.writeBunch(bunch_mp, scalefactor);
-    INFOMSG("*** FINISHED DUMPING BUNCH AND GRIDS IN PYTHON FORMAT ***" << endl);
-#endif
-    
-#ifdef DBG_SCALARFIELD
-    if ( Ippl::getNodes() > 1 )
-        throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                            "Dumping only in serial execution.");
-    
-    int step = bunch_mp->getLocalTrackStep();
-    AmrSliceWriter sliceWriter;
-    
-#ifdef AMR_YT_DUMP
-    // make sure we undo only once if AMR_YT_DUMP is also enabled
-#else
-    // we need to undo coefficient when writing charge density
-    for (int i = 0; i <= finest_level; ++i)
-        this->rho_m[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
-#endif
-
-    sliceWriter.writeFields(rho_m, phi_m, efield_m,
-                            AmrIntArray_t(), this->geom, step, scalefactor);
-#endif
+    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+        
+        int nLevel = finest_level + 1;
+        
+        AmrIntArray_t rr(finest_level);
+        for (int i = 0; i < finest_level; ++i)
+            rr[i] = this->MaxRefRatio(i);
+        
+        double time = bunch_mp->getT(); // in seconds
+        
+        // we need to undo coefficient when writing charge density
+        for (int i = 0; i <= finest_level; ++i)
+            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
+        
+        
+        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
+                             nLevel, time, scalefactor);
+        
+        ytWriter.writeBunch(bunch_mp, time, scalefactor);
+    }
 }
 
 

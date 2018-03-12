@@ -10,7 +10,8 @@ MueLuBottomSolver<Level>::MueLuBottomSolver(const bool& rebalance)
       finest_mp(Teuchos::null),
       A_mp(Teuchos::null),
       nSweeps_m(4),
-      rebalance_m(rebalance)
+      rebalance_m(rebalance),
+      setupTimer_m(IpplTimings::getTimer("AMR MG bsolver setup"))
 {
     this->initMueLuList_m();
 }
@@ -35,7 +36,9 @@ void MueLuBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
 
 template <class Level>
 void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
-                                           Level* level_p) {
+                                           Level* level_p)
+{
+    IpplTimings::startTimer(setupTimer_m);
     
     A_mp = MueLu::TpetraCrs_To_XpetraMatrix<scalar_t, lo_t, go_t, node_t>(A);
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
@@ -46,9 +49,6 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 
     const scalar_t* domain = level_p->geom.ProbLo();
     const scalar_t* dx = level_p->cellSize();
-#ifdef _OPENMP
-    #pragma omp parallel
-#endif
     for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true);
          mfi.isValid(); ++mfi)
     {
@@ -101,6 +101,8 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
     finest_mp->Set("Nullspace", xnullspace);
     
     mueluFactory->SetupHierarchy(*hierarchy_mp);
+    
+    IpplTimings::stopTimer(setupTimer_m);
 }
 
 
