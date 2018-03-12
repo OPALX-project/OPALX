@@ -693,6 +693,8 @@ private:
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     
+    const scalar_t eps_m;   ///< rhs scale for convergence
+    
     bool verbose_m;                 ///< If true, a SDDS file is written
     std::string fname_m;            ///< SDDS filename
     std::ios_base::openmode flag_m; ///< std::ios::out or std::ios::app

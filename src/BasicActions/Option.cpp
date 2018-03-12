@@ -84,6 +84,7 @@ namespace {
         VERSION,
 #ifdef ENABLE_AMR
         AMR,
+        AMR_YT_DUMP_FREQ,
 #endif
         MEMORYDUMP,
         SIZE
@@ -112,74 +113,114 @@ Option::Option():
                     ("SEED", "The seed for the random generator, -1 will use time(0) as seed ");
 
     itsAttr[TELL] = Attributes::makeBool
-                    ("TELL", "If true, print the current settings. Must be the last option in the inputfile in order to render correct results", false);
+                    ("TELL", "If true, print the current settings. "
+                     "Must be the last option in the inputfile in "
+                     "order to render correct results", false);
 
     itsAttr[PSDUMPFREQ] = Attributes::makeReal
-                          ("PSDUMPFREQ", "The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0, its default value is 10.");
+                          ("PSDUMPFREQ", "The frequency to dump the phase space, "
+                           "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
+                           psDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal
-                            ("STATDUMPFREQ", "The frequency to dump statistical data (e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, its default value is 10.");
+                            ("STATDUMPFREQ", "The frequency to dump statistical data "
+                             "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
+                             "its default value is 10.", statDumpFreq);
 
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool
-                              ("PSDUMPEACHTURN", "If true, dump phase space after each turn ,only aviable for OPAL-cycl, its default value is false");
+                              ("PSDUMPEACHTURN", "If true, dump phase space after each "
+                               "turn ,only aviable for OPAL-cycl, its default value is false",
+                               psDumpEachTurn);
 
     itsAttr[SCSOLVEFREQ] = Attributes::makeReal
                            ("SCSOLVEFREQ", "The frequency to solve space charge fields. its default value is 1");
 
-    itsAttr[MTSSUBSTEPS] = Attributes::makeReal("MTSSUBSTEPS", "How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator");
+    itsAttr[MTSSUBSTEPS] = Attributes::makeReal("MTSSUBSTEPS", "How many small timesteps "
+                                                "are inside the large timestep used in multiple "
+                                                "time stepping (MTS) integrator");
 
     itsAttr[REMOTEPARTDEL] = Attributes::makeReal
-      ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, its default values is 0 (no delete) ",0.0);
+      ("REMOTEPARTDEL", "Artifically delete the remote particle if its distance "
+       "to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, "
+       "its default values is 0 (no delete) ",0.0);
 
     itsAttr[PSDUMPFRAME] = Attributes::makeString
-                                ("PSDUMPFRAME", "Controls the frame of phase space dump in stat file and h5 file. If 'GLOBAL' OPAL will dump in the lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will dump in the local Cartesian frame of the beam mean; if 'REFERENCE'  OPAL will dump in the local Cartesian frame of the reference particle 0. Only aviable for OPAL-cycl, its default value is 'GLOBAL'");
+                                ("PSDUMPFRAME", "Controls the frame of phase space dump in "
+                                 "stat file and h5 file. If 'GLOBAL' OPAL will dump in the "
+                                 "lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will "
+                                 "dump in the local Cartesian frame of the beam mean; "
+                                 "if 'REFERENCE'  OPAL will dump in the local Cartesian "
+                                 "frame of the reference particle 0. Only aviable for "
+                                 "OPAL-cycl, its default value is 'GLOBAL'");
 
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal
-                           ("SPTDUMPFREQ", "The frequency to dump single particle trajectory of particles with ID = 0 & 1, its default value is 1. ");
+                           ("SPTDUMPFREQ", "The frequency to dump single "
+                            "particle trajectory of particles with ID = 0 & 1, "
+                            "its default value is 1. ");
 
     itsAttr[REPARTFREQ] = Attributes::makeReal
-                          ("REPARTFREQ", "The frequency to do particles repartition for better load balance between nodes,its default value is 10. ");
+                          ("REPARTFREQ", "The frequency to do particles repartition "
+                           "for better load balance between nodes, its "
+                           "default value is 10.", repartFreq);
 
     itsAttr[REBINFREQ] = Attributes::makeReal
-                         ("REBINFREQ", "The frequency to reset energy bin ID for all particles, its default value is 100. ");
+                         ("REBINFREQ", "The frequency to reset energy bin ID for "
+                          "all particles, its default value is 100.", rebinFreq);
 
     itsAttr[SCAN] = Attributes::makeBool
-                    ("SCAN", "If true, each new track starts at the begin of the lattics with a new distribution", scan);
+                    ("SCAN", "If true, each new track starts at the begin "
+                     "of the lattics with a new distribution", scan);
 
     itsAttr[RHODUMP] = Attributes::makeBool
-                       ("RHODUMP", "If true, in addition to the phase space the scalar rho field is also dumped (H5Block)", rhoDump);
+                       ("RHODUMP", "If true, in addition to the phase "
+                        "space the scalar rho field is also dumped (H5Block)", rhoDump);
 
     itsAttr[EBDUMP] = Attributes::makeBool
-                       ("EBDUMP", "If true, in addition to the phase space the E and B field at each particle is also dumped into the H5 file)", ebDump);
+                       ("EBDUMP", "If true, in addition to the phase space the "
+                        "E and B field at each particle is also dumped into the H5 file)", ebDump);
 
     itsAttr[CSRDUMP] = Attributes::makeBool
-                       ("CSRDUMP", "If true, the csr E field, line density and the line density derivative is dumped into the data directory)", csrDump);
+                       ("CSRDUMP", "If true, the csr E field, line density "
+                        "and the line density derivative is dumped into the "
+                        "data directory)", csrDump);
 
     itsAttr[AUTOPHASE] = Attributes::makeReal
-                         ("AUTOPHASE", "If greater than zero OPAL is scaning the phases of each rf structure in order to get maximum acceleration. Defines the number of refinements of the search range", autoPhase);
+                         ("AUTOPHASE", "If greater than zero OPAL is scaning "
+                          "the phases of each rf structure in order to get maximum "
+                          "acceleration. Defines the number of refinements of the "
+                          "search range", autoPhase);
 
     itsAttr[PPDEBUG] = Attributes::makeBool
-                       ("PPDEBUG", "If true, use special initial velocity distribution for parallel plate and print special debug output", ppdebug);
+                       ("PPDEBUG", "If true, use special initial velocity distribution "
+                        "for parallel plate and print special debug output", ppdebug);
 
     itsAttr[SURFDUMPFREQ] =  Attributes::makeReal
-                             ("SURFDUMPFREQ", "The frequency to dump surface-partcle interaction data, its default value is -1 (no dump). ");
+                             ("SURFDUMPFREQ", "The frequency to dump surface-partcle "
+                              "interaction data, its default value is -1 (no dump).",
+                              surfDumpFreq);
 
     itsAttr[CZERO] =  Attributes::makeBool
-                      ("CZERO", "If set to true a symmetric distribution is created -> centroid == 0.0 ", cZero);
+                      ("CZERO", "If set to true a symmetric distribution is "
+                       "created -> centroid == 0.0 ", cZero);
 
     itsAttr[RNGTYPE] =  Attributes::makeString
-                        ("RNGTYPE", "RANDOM (default), Quasi-random number generators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
+                        ("RNGTYPE", "RANDOM (default), Quasi-random number "
+                         "generators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
 
 
     itsAttr[CLOTUNEONLY] =  Attributes::makeBool
-                                   ("CLOTUNEONLY", "If set to true stop after CLO and tune calculation ", cloTuneOnly);
+                                   ("CLOTUNEONLY", "If set to true stop after "
+                                    "CLO and tune calculation ", cloTuneOnly);
 
     itsAttr[NUMBLOCKS] = Attributes::makeReal
-                          ("NUMBLOCKS", "Maximum number of vectors in the Krylov space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
+                          ("NUMBLOCKS", "Maximum number of vectors in the Krylov "
+                           "space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
     itsAttr[RECYCLEBLOCKS] = Attributes::makeReal
-                          ("RECYCLEBLOCKS", "Number of vectors in the recycle space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
+                          ("RECYCLEBLOCKS", "Number of vectors in the recycle "
+                           "space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
     itsAttr[NLHS] = Attributes::makeReal
-                          ("NLHS", "Number of stored old solutions for extrapolating the new starting vector. Default value is 1 and just the last solution is used.");
+                          ("NLHS", "Number of stored old solutions for extrapolating "
+                           "the new starting vector. Default value is 1 and just the last solution is used.");
 
     itsAttr[ENABLEHDF5] = Attributes::makeBool
         ("ENABLEHDF5", "If true, HDF5 actions are enabled", enableHDF5);
@@ -205,6 +246,11 @@ Option::Option():
 #ifdef ENABLE_AMR
     itsAttr[AMR] = Attributes::makeBool
         ("AMR", "Use adaptive mesh refinement.", amr);
+    
+    itsAttr[AMR_YT_DUMP_FREQ] = Attributes::makeReal("AMR_YT_DUMP_FREQ",
+                                                     "The frequency to dump grid "
+                                                     "and particle data "
+                                                     "(default: 10", amrYtDumpFreq);
 #endif
     itsAttr[MEMORYDUMP] = Attributes::makeBool
         ("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
@@ -254,6 +300,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[VERSION], version);
 #ifdef ENABLE_AMR
     Attributes::setBool(itsAttr[AMR], amr);
+    Attributes::setReal(itsAttr[AMR_YT_DUMP_FREQ], amrYtDumpFreq);
 #endif
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
 }
@@ -284,6 +331,7 @@ void Option::execute() {
     version = Attributes::getReal(itsAttr[VERSION]);
 #ifdef ENABLE_AMR
     amr = Attributes::getBool(itsAttr[AMR]);
+    amrYtDumpFreq = Attributes::getReal(itsAttr[AMR_YT_DUMP_FREQ]);
 #endif
     memoryDump = Attributes::getBool(itsAttr[MEMORYDUMP]);
     

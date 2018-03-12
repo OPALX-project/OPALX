@@ -136,8 +136,6 @@ OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
-OPTION (AMR_YT_DUMP "Dump AMR field data to yt readable format" OFF)
-OPTION (AMR_PYTHON_DUMP "Dump AMR grids and particles" OFF)
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 
@@ -219,16 +217,6 @@ IF (DBG_STENCIL)
     MESSAGE (STATUS "\nWrite stencil is enabled ")
     SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
 ENDIF (DBG_STENCIL)
-
-IF (AMR_YT_DUMP AND ENABLE_AMR)
-    MESSAGE (STATUS "\nWrite AMR field data in yt format is enabled ")
-    SET (CMAKE_CXX_FLAGS "-DAMR_YT_DUMP ${CMAKE_CXX_FLAGS}")
-ENDIF (AMR_YT_DUMP AND ENABLE_AMR)
-
-IF (AMR_PYTHON_DUMP AND ENABLE_AMR)
-    MESSAGE (STATUS "\nWrite AMR grids and particles is enabled ")
-    SET (CMAKE_CXX_FLAGS "-DAMR_PYTHON_DUMP ${CMAKE_CXX_FLAGS}")
-ENDIF (AMR_PYTHON_DUMP AND ENABLE_AMR)
 
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE (STATUS "\nCompiler will not try to optimize field assignment")
