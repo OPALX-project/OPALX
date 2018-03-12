@@ -5,23 +5,57 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_VectorIO.H>
+#include <AMReX_NFiles.H>
 
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
 
 
-AmrYtWriter::AmrYtWriter(int step) : step_m(step)
+AmrYtWriter::AmrYtWriter(int step)
+    : step_m(step)
 {
+    intData_m.resize(1);
+//     intData_m[0] = "id";
+//     intData_m[1] = "cpu";
+    intData_m[0] = "energy_bin";
+    
+    realData_m.resize(//3 +  // coordinates
+                      3 +  // momenta
+                      3 +  // charge + mass + timestep
+//                       1 +  // potential at particle location
+                      3 +  // electric field at particle location
+                      3);  // magnetic field at particle location
+    
+    int idx = 0;
+//     realData_m[idx++] ="position_x";
+//     realData_m[idx++] ="position_y";
+//     realData_m[idx++] ="position_z";
+    realData_m[idx++] ="momentum_x";
+    realData_m[idx++] ="momentum_y";
+    realData_m[idx++] ="momentum_z";
+    realData_m[idx++] ="charge";
+    realData_m[idx++] ="mass";
+    realData_m[idx++] ="timestep";
+//     realData_m[idx++] ="potential";
+    realData_m[idx++] ="electric_field_x";
+    realData_m[idx++] ="electric_field_y";
+    realData_m[idx++] ="electric_field_z";
+    realData_m[idx++] ="magnetic_field_x";
+    realData_m[idx++] ="magnetic_field_y";
+    realData_m[idx++] ="magnetic_field_z";
+    
     namespace fs = boost::filesystem;
     
     fs::path dir = OpalData::getInstance()->getInputBasename();
-    dir_m = dir.parent_path() / "data" / "amr" / "yt";
+    boost::filesystem::path path = dir.parent_path() / "data" / "amr" / "yt";
+    dir_m = amrex::Concatenate((path / "plt").string(), step, 10);
     
-    if ( Ippl::myNode() == 0 && !fs::exists(dir_m) ) {
+    if ( Ippl::myNode() == 0 && !fs::exists(path) ) {
         try {
-            fs::create_directories( dir_m );
+            fs::create_directories( path );
         } catch(const fs::filesystem_error& ex) {
-            throw OpalException("AmrPythonWriter::AmrPythonWriter()",
+            throw OpalException("AmrYtWriter::AmrYtWriter()",
                                 ex.what());
         }
     }
@@ -35,15 +69,14 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                               const amr::AmrFieldContainer_t& efield,
                               const amr::AmrIntArray_t& refRatio,
                               const amr::AmrGeomContainer_t& geom,
+                              const int& nLevel,
                               const double& time,
                               const double& scale)
 {
     /* We need to scale the geometry and cell sizes according to the
      * particle mapping
      */
-    std::string dir = amrex::Concatenate((dir_m / "plt").string(), step_m, 10);
     
-    int nLevels = rho.size();
     //
     // Only let 64 CPUs be writing at any one time.
     //
@@ -52,14 +85,14 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if ( Ippl::myNode() == 0 )
-        if (!amrex::UtilCreateDirectory(dir, 0755))
-            amrex::CreateDirectoryFailed(dir);
+        if (!amrex::UtilCreateDirectory(dir_m, 0755))
+            amrex::CreateDirectoryFailed(dir_m);
     //
     // Force other processors to wait till directory is built.
     //
     Ippl::Comm->barrier();
 
-    std::string HeaderFileName = dir + "/OpalAmrHeader";
+    std::string HeaderFileName = dir_m + "/Header";
 
     amrex::VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
 
@@ -77,7 +110,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
         if (!HeaderFile.good())
             amrex::FileOpenFailed(HeaderFileName);
-        HeaderFile << "OpalAmr-V1.0\n";
+        HeaderFile << "HyperCLaw-V1.1\n";
 
         HeaderFile << nData << '\n';
 
@@ -86,7 +119,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
             HeaderFile << "rho\n";
         
         for (int ivar = 1; ivar <= phi[0]->nComp(); ivar++)
-            HeaderFile << "potential\n";
+            HeaderFile << "phi\n";
         
         HeaderFile << "Ex\nEy\nEz\n";
         
@@ -95,7 +128,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         // time
         HeaderFile << time << '\n';
-        HeaderFile << nLevels - 1 << std::endl; // maximum level number (0=single level)
+        HeaderFile << nLevel - 1 << '\n'; // maximum level number (0=single level)
         
         // physical domain
         for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -103,23 +136,25 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << '\n';
         for (int i = 0; i < AMREX_SPACEDIM; i++)
             HeaderFile << geom[0].ProbHi(i) / scale << ' ';
-        HeaderFile << std::endl;
+        HeaderFile << '\n';
         
         // reference ratio
         for (int i = 0; i < refRatio.size(); ++i)
             HeaderFile << refRatio[i] << ' ';
-        HeaderFile << std::endl;
+        HeaderFile << '\n';
         
         // geometry domain for all levels
-        for (int i = 0; i < nLevels; ++i)
+        for (int i = 0; i < nLevel; ++i)
             HeaderFile << geom[i].Domain() << ' ';
-        HeaderFile << std::endl;
+        HeaderFile << '\n';
         
         // number of time steps
-        HeaderFile << 0 << " " << std::endl;
+        for (int i = 0; i < nLevel; ++i)
+            HeaderFile << 0 << ' ';
+        HeaderFile << '\n';
         
         // cell sizes for all level
-        for (int i = 0; i < nLevels; ++i) {
+        for (int i = 0; i < nLevel; ++i) {
             for (int k = 0; k < AMREX_SPACEDIM; k++)
                 HeaderFile << geom[i].CellSize()[k] / scale << ' ';
             HeaderFile << '\n';
@@ -130,20 +165,22 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         HeaderFile << "0\n"; // write boundary data
     }
     
-    for (int lev = 0; lev < nLevels; ++lev) {
+    for (int lev = 0; lev < nLevel; ++lev) {
         // Build the directory to hold the MultiFab at this level.
         // The name is relative to the directory containing the Header file.
         //
         static const std::string BaseName = "/Cell";
+        char buf[64];
+        sprintf(buf, "Level_%d", lev);
+        std::string sLevel = buf;
     
-        std::string Level = amrex::Concatenate("Level_", lev, 1);
         //
         // Now for the full pathname of that directory.
         //
-        std::string FullPath = dir;
+        std::string FullPath = dir_m;
         if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
             FullPath += '/';
-        FullPath += Level;
+        FullPath += sLevel;
         //
         // Only the I/O processor makes the directory if it doesn't already exist.
         //
@@ -157,8 +194,8 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         
         if ( Ippl::myNode() == 0 )
         {
-            HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 << '\n';
-            HeaderFile << 0 << '\n';    // # time steps at this level
+            HeaderFile << lev << ' ' << rho[lev]->boxArray().size() << ' ' << 0 /*time*/ << '\n';
+            HeaderFile << 0 /* level steps */ << '\n';
     
             for (int i = 0; i < rho[lev]->boxArray().size(); ++i)
             {
@@ -186,7 +223,7 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
                     HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
             }
     
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = sLevel;
             PathNameInHeader += BaseName;
             HeaderFile << PathNameInHeader << '\n';
         }
@@ -194,7 +231,10 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         //
         // We combine all of the multifabs 
         //
-        amr::AmrField_t data(rho[lev]->boxArray(), rho[lev]->DistributionMap(), nData, 0);
+        amr::AmrField_t data(rho[lev]->boxArray(),
+                             rho[lev]->DistributionMap(),
+                             nData, 0,
+                             amrex::MFInfo());
         
         //
         // Cull data -- use no ghost cells.
@@ -215,15 +255,397 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         std::string TheFullPath = FullPath;
         TheFullPath += BaseName;
     
-        amrex::VisMF::Write(data,TheFullPath);
+        amrex::VisMF::Write(data, TheFullPath, amrex::VisMF::NFiles, true);
     }
+    
+    if ( Ippl::myNode() == 0 )
+        HeaderFile.close();
 }
 
 
 void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
+                             const double& time,
                              const double& scale)
 {
+    /* According to
+     * 
+     * template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+     * void
+     * ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+     * ::Checkpoint (const std::string&        dir,
+     *               const std::string&        name,
+     *               bool                      is_checkpoint,
+     *               const Vector<std::string>& real_comp_names,
+     *               const Vector<std::string>& int_comp_names) const
+     * 
+     * in AMReX_ParticleContainerI.H with AMReX_Particles.H and AMReX_ParticleI.H.
+     * 
+     * ATTENTION: We need to scale the geometry and cell sizes according to the
+     * particle mapping
+     */
     
-    throw OpalException("AmrYtWriter::writeBunch",
-                        "Not yet implemented.");
+    const AmrLayout_t* layout_p = static_cast<const AmrLayout_t*>(&bunch_p->getLayout());
+    const AmrPartBunch::pbase_t* amrpbase_p = bunch_p->getAmrParticleBase();
+    
+    const int  MyProc       = amrex::ParallelDescriptor::MyProc();
+    const int  NProcs       = amrex::ParallelDescriptor::NProcs();
+    const int  IOProcNumber = amrex::ParallelDescriptor::IOProcessorNumber();
+    
+    bool doUnlink = true;
+    
+    //
+    // We store the particles in a subdirectory of "dir".
+    //
+    std::string pdir = dir_m;
+    
+    if ( ! pdir.empty() && pdir[pdir.size()-1] != '/') {
+        pdir += '/';
+    }
+    
+    pdir += "opal";
+    //
+    // Make the particle directories if they don't already exist.
+    //
+    if ( Ippl::myNode() == 0 ) {
+        if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
+            amrex::CreateDirectoryFailed(pdir);
+        }
+    }
+    
+    // Force other processors to wait until directory is built.
+    Ippl::Comm->barrier();
+    
+    //
+    // The header contains the info we need to read back in the particles.
+    //
+    // Only the I/O processor writes to the header file.
+    //
+    std::ofstream HdrFile;
+    
+    long nParticles = bunch_p->getTotalNum();
+    
+    // do not modify LocalNumPerLevel in here!!!
+    auto LocalNumPerLevel = amrpbase_p->getLocalNumPerLevel();
+    
+    int nLevel = (&amrpbase_p->getAmrLayout())->maxLevel() + 1;
+    
+    std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
+    std::unique_ptr<size_t[]> globalPartPerLevel( new size_t[nLevel] );
+    
+    for (size_t i = 0; i < LocalNumPerLevel.size(); ++i)
+        partPerLevel[i] = LocalNumPerLevel[i];
+    
+    allreduce(*partPerLevel.get(),
+              *globalPartPerLevel.get(),
+              nLevel, std::plus<size_t>());
+    
+    if ( Ippl::myNode() == 0 )
+    {
+        std::string HdrFileName = pdir;
+        
+        if ( ! HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/') {
+            HdrFileName += '/';
+            
+        }
+        
+        HdrFileName += "Header";
+        
+        HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
+        
+        if ( ! HdrFile.good()) {
+            amrex::FileOpenFailed(HdrFileName);
+        }
+        //
+        // First thing written is our Checkpoint/Restart version string.
+        // 
+        // We append "_single" or "_double" to the version string indicating
+        // whether we're using "float" or "double" floating point data in the
+        // particles so that we can Restart from the checkpoint files.
+        //
+        HdrFile << "Version_Two_Dot_Zero_double" << '\n';
+        //
+        // AMREX_SPACEDIM and N for sanity checking.
+        //
+        HdrFile << AMREX_SPACEDIM << '\n';
+        
+        // The number of extra real parameters
+        HdrFile << realData_m.size() << '\n';
+        for (std::size_t j = 0; j < realData_m.size(); ++j)
+            HdrFile << realData_m[j] << '\n';
+        
+        // The number of extra int parameters
+        HdrFile << intData_m.size() << '\n';
+        for (std::size_t j = 0; j < intData_m.size(); ++j)
+            HdrFile << intData_m[j] << '\n';
+        
+        // is_checkpoint
+        HdrFile << true << '\n';
+        
+        //
+        // The total number of particles.
+        //
+        HdrFile << nParticles << '\n';
+        //
+        // The value of nextid that we need to restore on restart.
+        // --> we don's use this feature
+        //
+        HdrFile << 0 << '\n';
+        //
+        // Then the finest level of the AMR hierarchy.
+        //
+        HdrFile << layout_p->finestLevel() << '\n';
+        //
+        // Then the number of grids at each level.
+        //
+        for (int lev = 0; lev <= layout_p->finestLevel(); ++lev) {
+            HdrFile << layout_p->ParticleBoxArray(lev).size() << '\n';
+        }
+    }
+    //
+    // We want to write the data out in parallel.
+    //
+    // We'll allow up to nOutFiles active writers at a time.
+    //
+    int nOutFiles(256);
+
+    nOutFiles = std::max(1, std::min(nOutFiles, NProcs));
+    
+    for (int lev = 0; lev <= layout_p->finestLevel(); ++lev) {
+        bool gotsome = (globalPartPerLevel[lev] > 0);
+        //
+        // We store the particles at each level in their own subdirectory.
+        //
+        std::string LevelDir = pdir;
+        
+        if (gotsome) {
+            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') {
+                LevelDir += '/';
+            }
+            
+            LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
+            
+            if ( Ippl::myNode() == 0 ) {
+                if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
+                    amrex::CreateDirectoryFailed(LevelDir);
+                }
+            }
+            //
+            // Force other processors to wait until directory is built.
+            //
+            Ippl::Comm->barrier();
+        }
+        
+        // Write out the header for each particle
+        if ( gotsome && Ippl::myNode() == 0 ) {
+            std::string HeaderFileName = LevelDir;
+            HeaderFileName += "/Particle_H";
+            std::ofstream ParticleHeader(HeaderFileName);
+            
+            layout_p->ParticleBoxArray(lev).writeOn(ParticleHeader);
+            ParticleHeader << '\n';
+
+            ParticleHeader.flush();
+            ParticleHeader.close();
+        }
+        
+        amrex::MFInfo info;
+        info.SetAlloc(false);
+        amr::AmrField_t state(layout_p->ParticleBoxArray(lev),
+                              layout_p->ParticleDistributionMap(lev),
+                              1, 0, info);
+        //
+        // We eventually want to write out the file name and the offset
+        // into that file into which each grid of particles is written.
+        //
+        amrex::Vector<int>  which(state.size(),0);
+        amrex::Vector<int > count(state.size(),0);
+        amrex::Vector<long> where(state.size(),0);
+        
+        std::string filePrefix(LevelDir);
+        filePrefix += '/';
+        filePrefix += "DATA_";
+        bool groupSets(false), setBuf(true);
+
+        if (gotsome) {
+            for(amrex::NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
+                std::ofstream& myStream = (std::ofstream&) nfi.Stream();
+                //
+                // Write out all the valid particles we own at the specified level.
+                // Do it grid block by grid block remembering the seek offset
+                // for the start of writing of each block of data.
+                //
+                writeParticles_m(lev, myStream, nfi.FileNumber(), which, count, where, bunch_p);
+            }
+
+            amrex::ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProcNumber);
+            amrex::ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProcNumber);
+            amrex::ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProcNumber);
+        }
+
+        if ( Ippl::myNode() == 0 ) {
+            for (int j = 0; j < state.size(); j++) {
+                //
+                // We now write the which file, the particle count, and the
+                // file offset into which the data for each grid was written,
+                // to the header file.
+                //
+                HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
+            }
+
+            if (gotsome && doUnlink) {
+                //
+                // Unlink any zero-length data files.
+                //
+                amrex::Vector<long> cnt(nOutFiles,0);
+
+                for (int i = 0, N=count.size(); i < N; i++) {
+                    cnt[which[i]] += count[i];
+                }
+
+                for (int i = 0, N=cnt.size(); i < N; i++) {
+                    if (cnt[i] == 0) {
+                        std::string FullFileName = amrex::NFilesIter::FileName(i, filePrefix);
+                        amrex::UnlinkFile(FullFileName.c_str());
+                    }
+                }
+            }
+        }
+    }            // ---- end for(lev...)
+
+    if ( Ippl::myNode() == 0 ) {
+        HdrFile.flush();
+        HdrFile.close();
+        if ( ! HdrFile.good()) {
+            throw OpalException("AmrYtWriter:writeBunch()",
+                                "Problem writing HdrFile");
+        }
+    }
+}
+
+
+void AmrYtWriter::writeParticles_m(int level,
+                                   std::ofstream& ofs,
+                                   int fnum,
+                                   amrex::Vector<int>& which,
+                                   amrex::Vector<int>& count,
+                                   amrex::Vector<long>& where,
+                                   const AmrPartBunch* bunch_p) const
+{
+    /* Copied and modified of
+     * 
+     * template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+     * void
+     * ParticleContainer<NStructReal,
+     *                   NStructInt,
+     *                   NArrayReal,
+     *                   NArrayInt>
+     * ::WriteParticles(int              lev,
+     *                  std::ofstream&   ofs,
+     *                  int              fnum,
+     *                  Vector<int>&     which,
+     *                  Vector<int>&     count,
+     *                  Vector<long>&    where,
+     *                  bool             is_checkpoint) const
+     * 
+     * in AMReX_ParticleContainerI.H
+     */
+    
+    const AmrLayout_t* layout_p = static_cast<const AmrLayout_t*>(&bunch_p->getLayout());
+    const AmrPartBunch::pbase_t* amrpbase_p = bunch_p->getAmrParticleBase();
+    
+    const auto& LocalNumPerLevel = amrpbase_p->getLocalNumPerLevel();
+    size_t lBegin = LocalNumPerLevel.begin(level);
+    size_t lEnd   = LocalNumPerLevel.end(level);
+    
+    for (size_t ip = lBegin; ip < lEnd; ++ip) {
+        const int grid = amrpbase_p->Grid[ip];
+        
+        count[grid] += 1;
+    }
+    
+    amrex::MFInfo info;
+    info.SetAlloc(false);
+    amr::AmrField_t state(layout_p->ParticleBoxArray(level),
+                          layout_p->ParticleDistributionMap(level),
+                          1, 0, info);
+
+    for (amrex::MFIter mfi(state); mfi.isValid(); ++mfi) {
+        const int grid = mfi.index();
+        
+        which[grid] = fnum;
+        where[grid] = amrex::VisMF::FileOffset(ofs);
+      
+        if (count[grid] == 0) {
+            continue;
+        }
+        
+        
+        // First write out the integer data in binary.
+        const int iChunkSize = 2 + intData_m.size();
+        amrex::Vector<int> istuff(count[grid]*iChunkSize);
+        int* iptr = istuff.dataPtr();
+        
+        // inefficient
+        for (size_t ip = lBegin; ip < lEnd; ++ip) {
+            const int pGrid = amrpbase_p->Grid[ip];
+            
+            if ( grid == pGrid ) {
+                
+                iptr[0] = bunch_p->ID[ip];
+                iptr[1] = Ippl::myNode();
+                iptr[2] = bunch_p->Bin[ip];
+                
+                iptr += 2 + intData_m.size();
+            }
+        }
+
+        amrex::writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+      
+        // Write the Real data in binary.
+        const int rChunkSize = AMREX_SPACEDIM + realData_m.size();
+        amrex::Vector<double> rstuff(count[grid]*rChunkSize);
+        double* rptr = rstuff.dataPtr();
+        
+        
+        // inefficient
+        for (size_t ip = lBegin; ip < lEnd; ++ip) {
+            const int pGrid = amrpbase_p->Grid[ip];
+            
+            if ( grid == pGrid ) {
+                
+                int idx = 0;
+                
+                // coordinates
+                for (int j = 0; j < AMREX_SPACEDIM; ++j)
+                    rptr[idx++] = bunch_p->R[ip](j);
+                
+                // momenta
+                for (int j = 0; j < AMREX_SPACEDIM; ++j)
+                    rptr[idx++] = bunch_p->P[ip](j);
+                
+                // charge
+                rptr[idx++] = bunch_p->Q[ip];
+                
+                // mass
+                rptr[idx++] = bunch_p->M[ip];
+                
+                // timestep
+                rptr[idx++] = bunch_p->dt[ip];
+                
+//                 // potential
+//                 rptr[idx++] = bunch_p->Phi[ip];
+                
+                // electric field
+                for (int j = 0; j < AMREX_SPACEDIM; ++j)
+                    rptr[idx++] = bunch_p->Ef[ip](j);
+                
+                // magnetic field
+                for (int j = 0; j < AMREX_SPACEDIM; ++j)
+                    rptr[idx++] = bunch_p->Bf[ip](j);
+                
+                rptr += idx; //realData_m.size();
+            }
+        }
+        amrex::writeDoubleData(rstuff.dataPtr(), rstuff.size(), ofs);
+    }
 }
