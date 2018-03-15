@@ -54,12 +54,12 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
     }
     
     // cell size in direction
-    scalar_t h = 1.0 / scalar_t(nr[dir]);
-    scalar_t r = 0.718; // + 0.5 * h; //0.358;
-    
+    scalar_t h = mglevel->cellSize(dir);
+    scalar_t r = 1.475625 - 0.5 * h;
+
     // 1st order
-//     map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;
-    map[mglevel->serialize(niv)] += (1.0 - h / r) * value;
+    map[mglevel->serialize(niv)] -= 2.0 * h / r * value;
+    map[mglevel->serialize(n2iv)] += value;
 }
 
 #endif
