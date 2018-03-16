@@ -75,7 +75,7 @@ void MueLuPreconditioner<Level>::fillMap(map_t& map) {
 template <class Level>
 void MueLuPreconditioner<Level>::init_m() {
     params_m.set("problem: type", "Poisson-3D");
-    params_m.set("verbosity", "extreme");
+    params_m.set("verbosity", "low");
     params_m.set("number of equations", 1);
     params_m.set("max levels", 8);
     params_m.set("cycle type", "V");
