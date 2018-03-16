@@ -885,7 +885,8 @@ void TrackRun::setupCyclotronTracker(){
     if(specifiedNumBunch > 1) {
 
         // only for regular  run of multi bunches, instantiate the  PartBins class
-        // note that for restart run of multi bunches, PartBins class is instantiated in function doRestart_cycl()
+        // note that for restart run of multi bunches, PartBins class is instantiated in function
+        // Distribution::doRestartOpalCycl()
         if(!opal->inRestartRun()) {
 
             // already exist bins number initially
