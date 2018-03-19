@@ -24,12 +24,18 @@ LINK_DIRECTORIES (
 
 SET (MSLANG_LIBS
     libOPAL
+    ${OPTP_LIBS}
+    ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
+    ${GSL_LIBRARY}
+    ${H5Hut_LIBRARY}
+    ${HDF5_LIBRARY}
     ${Boost_LIBRARIES}
     m
     z
 )
 
+MESSAGE( STATUS "Compiling MSLang")
 ADD_EXECUTABLE( mslang mslang.cpp )
 TARGET_LINK_LIBRARIES( mslang ${MSLANG_LIBS} )
 
