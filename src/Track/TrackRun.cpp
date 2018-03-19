@@ -441,6 +441,9 @@ void TrackRun::setupTTracker(){
 
     double charge = setDistributionParallelT(beam);
 
+    // ada                                                                                                          
+    *gmsg << "setDistributionParallelT q= " << charge << endl;
+
     Track::block->bunch->setdT(Track::block->dT.front());
     Track::block->bunch->dtScInit_m = Track::block->dtScInit;
     Track::block->bunch->deltaTau_m = Track::block->deltaTau;
