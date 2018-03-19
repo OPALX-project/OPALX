@@ -175,7 +175,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch_m->getdT() * c;
     scaleFactor_m = 1;
-    multiBunchMode_m = 0;
+    multiBunchMode_m = MB_MODE::NONE;
 
     IntegrationTimer_m = IpplTimings::getTimer("Integration");
     TransformTimer_m   = IpplTimings::getTimer("Frametransform");
@@ -235,6 +235,28 @@ void ParallelCyclotronTracker::initializeBoundaryGeometry() {
         OpalData::getInstance()->setGlobalGeometry(bgf_m);
         *gmsg << "* Boundary geometry initialized " << endl;
     }
+}
+
+
+/// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
+inline
+void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
+{
+    if ( mbmode.compare("FORCE") == 0 ) {
+        *gmsg << "FORCE mode: The multi bunches will be injected consecutively "
+              << "after each revolution, until get \"TURNS\" bunches." << endl;
+        multiBunchMode_m = MB_MODE::FORCE;
+    } else if ( mbmode.compare("AUTO") == 0 ) {
+        *gmsg << "AUTO mode: The multi bunches will be injected only when "
+                      << "the distance between two neighboring bunches " << endl
+                      << "is below the limitation. The control parameter is set to "
+                      << CoeffDBunches_m << endl;
+        multiBunchMode_m = MB_MODE::AUTO;
+    } else if ( mbmode.compare("NONE") == 0 )
+        multiBunchMode_m = MB_MODE::NONE;
+    else
+        throw OpalException("ParallelCyclotronTracker::setMultiBunchMode()",
+                            "MBMODE name \"" + mbmode + "\" unknown.");
 }
 
 /**
@@ -2357,7 +2379,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         }
 
         // Backup initial distribution if multi bunch mode
-        if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == 1)) {
+        if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == MB_MODE::FORCE)) {
 
             initialR_m = new Vector_t[initialLocalNum_m];
             initialP_m = new Vector_t[initialLocalNum_m];
@@ -2416,8 +2438,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     // Bunch (local) elevation at meanR w.r.t. xy plane
     double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
 
-    // AUTO mode
-    if(multiBunchMode_m == 2) {
+    if(multiBunchMode_m == MB_MODE::AUTO) {
 
         RLastTurn_m = sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);
         RThisTurn_m = RLastTurn_m;
@@ -3522,7 +3543,7 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
 
 
 void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
-    if ((BunchCount_m == 1) && (multiBunchMode_m == 2) && (!flagTransition)) {
+    if ((BunchCount_m == 1) && (multiBunchMode_m == MB_MODE::AUTO) && (!flagTransition)) {
 
         if (step_m == setup_m.stepsNextCheck) {
             // If all of the following conditions are met, this code will be executed
@@ -3580,7 +3601,7 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
         BunchCount_m++;
 
         // read initial distribution from h5 file
-        if (multiBunchMode_m == 1) {
+        if (multiBunchMode_m == MB_MODE::FORCE) {
 
             if (BunchCount_m == 2)
                 saveOneBunch();
@@ -3590,7 +3611,7 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
 //             if (timeIntegrator_m == 0) //FIXME Matthias
                 itsBunch_m->resetPartBinID2(eta_m);
 
-        } else if (multiBunchMode_m == 2) {
+        } else if (multiBunchMode_m == MB_MODE::AUTO) {
 
             if(OpalData::getInstance()->inRestartRun())
                 readOneBunchFromFile(BunchCount_m - 1);
