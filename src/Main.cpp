@@ -130,13 +130,16 @@ int main(int argc, char *argv[]) {
 
 #ifdef OPAL_DKS
     *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version " 
-	  << DKS_VERSION << endl << endl;
+	  << DKS_VERSION;
+    if (IpplInfo::DKSEnabled)
+      *gmsg << " GPU present" << endl << endl;
+    else
+      *gmsg << " GPU not present" << endl << endl;
 #endif
 
     *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers "
 	  << OPAL_PACKAGE_BUGREPORT << "\n" << endl;
     *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
-
 
     /*
       Make a directory data for some of the output
