@@ -302,9 +302,6 @@ private:
     // vector of [angle, x, y] of SEO read in from external file for tune with SC. Unit : rad, mm
     std::vector<Vector_t> variable_SEO_m;
 
-    // save initial phase space distribution (in global Cartesian frame ) for multi-bunch simultion. FixMe: not used
-    Vector_t *initialR_m, *initialP_m;
-
     // record how many bunches has already been injected. ONLY FOR MPM
     int BunchCount_m;
 
