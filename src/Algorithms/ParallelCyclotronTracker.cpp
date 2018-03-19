@@ -3601,27 +3601,31 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
         BunchCount_m++;
 
         // read initial distribution from h5 file
-        if (multiBunchMode_m == MB_MODE::FORCE) {
-
-            if (BunchCount_m == 2)
-                saveOneBunch();
-
-            readOneBunch(BunchCount_m - 1);
-
-//             if (timeIntegrator_m == 0) //FIXME Matthias
-                itsBunch_m->resetPartBinID2(eta_m);
-
-        } else if (multiBunchMode_m == MB_MODE::AUTO) {
-
-            if(OpalData::getInstance()->inRestartRun())
-                readOneBunchFromFile(BunchCount_m - 1);
-            else
+        switch ( multiBunchMode_m ) {
+            case MB_MODE::FORCE:
+                if (BunchCount_m == 2)
+                    saveOneBunch();
+                
                 readOneBunch(BunchCount_m - 1);
-
-//             if (timeIntegrator_m == 0)  //FIXME Matthias
+//              if (timeIntegrator_m == 0) //FIXME Matthias
                 itsBunch_m->resetPartBinID2(eta_m);
-        }
+                break;
+            case MB_MODE::AUTO:
+                if(OpalData::getInstance()->inRestartRun())
+                    readOneBunchFromFile(BunchCount_m - 1);
+                else
+                    readOneBunch(BunchCount_m - 1);
 
+//              if (timeIntegrator_m == 0)  //FIXME Matthias
+                itsBunch_m->resetPartBinID2(eta_m);
+                break;
+            case MB_MODE::NONE:
+                // do nothing
+            default:
+                throw OpalException("ParallelCyclotronTracker::injectBunch_m()",
+                                    "We shouldn't be here in single bunch mode.");
+        }
+        
         itsBunch_m->setNumBunch(BunchCount_m);
 
         setup_m.stepsNextCheck += setup_m.stepsPerTurn;
