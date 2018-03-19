@@ -2912,10 +2912,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
         restartStep0_m = itsBunch_m->getLocalTrackStep();
         step_m = restartStep0_m;
-
-        if (numBunch_m > 1)
-            itsBunch_m->resetPartBinID2(eta_m);
-
+        
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
 
@@ -2928,6 +2925,9 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     }
 
     initDistInGlobalFrame();
+    
+    if ( OpalData::getInstance()->inRestartRun() && numBunch_m > 1)
+        itsBunch_m->resetPartBinID2(eta_m);
 
     turnnumber_m = 1;
 
