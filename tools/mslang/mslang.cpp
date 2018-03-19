@@ -447,6 +447,68 @@ struct Rotate: public Function {
     }
 };
 
+struct Shear: public Function {
+    Function* func_m;
+    double angleX_m;
+    double angleY_m;
+
+    virtual ~Shear() {
+        delete func_m;
+    }
+
+    virtual void print(int indentwidth) {
+        std::string indent(indentwidth, ' ');
+        std::string indent2(indentwidth + 8, ' ');
+        std::cout << indent << "shear, " << std::endl;
+        func_m->print(indentwidth + 8);
+        if (std::abs(angleX_m) > 0.0) {
+            std::cout << ",\n"
+                      << indent2 << "angle X: " << angleX_m;
+        } else {
+            std::cout << ",\n"
+                      << indent2 << "angle Y: " << angleY_m;
+        }
+    }
+
+    virtual void apply(std::vector<Base*> &bfuncs) {
+        AffineTransformation shear(Vector_t(1.0, tan(angleX_m), 0.0),
+                                   Vector_t(-tan(angleY_m), 1.0, 0.0));
+
+        func_m->apply(bfuncs);
+        const unsigned int size = bfuncs.size();
+
+        for (unsigned int j = 0; j < size; ++ j) {
+            Base *obj = bfuncs[j];
+            obj->trafo_m = obj->trafo_m.mult(shear);
+        }
+    }
+
+    static
+    bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+        Shear *shr = static_cast<Shear*>(fun);
+        if (!parse(it, end, shr->func_m)) return false;
+
+        boost::regex argumentList("," + Double + "," + Double + "\\)(.*)");
+        boost::smatch what;
+
+        std::string str(it, end);
+        if (!boost::regex_match(str, what, argumentList)) return false;
+
+        shr->angleX_m = atof(std::string(what[1]).c_str());
+        shr->angleY_m = atof(std::string(what[3]).c_str());
+
+        if (std::abs(shr->angleX_m) > 0.0 && std::abs(shr->angleY_m) > 0.0)
+            return false;
+
+        std::string fullMatch = what[0];
+        std::string rest = what[5];
+
+        it += (fullMatch.size() - rest.size());
+
+        return true;
+    }
+};
+
 struct Union: public Function {
     std::vector<Function*> funcs_m;
 
@@ -540,24 +602,24 @@ bool parse(iterator &it, const iterator &end, Function* &fun) {
 
     if (identifier == "rectangle") {
         fun = new Rectangle;
-        iterator it2 = it + shift;
-        if (!Rectangle::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Rectangle::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
         return true;
     } else if (identifier == "ellipse") {
         fun = new Ellipse;
-        iterator it2 = it + shift;
-        if (!Ellipse::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Ellipse::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
         return true;
     } else if (identifier == "repeat") {
         fun = new Repeat;
-        iterator it2 = it + shift;
-        if (!Repeat::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Repeat::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
 
         return true;
     } else if (identifier == "rotate") {
@@ -566,23 +628,31 @@ bool parse(iterator &it, const iterator &end, Function* &fun) {
             it += shift;
         if (!Rotate::parse_detail(it, end, fun)) return false;
 
-        // it = it2;
+        // // it = it2;
 
         return true;
     } else if (identifier == "translate") {
         fun = new Translate;
-        iterator it2 = it + shift;
-        if (!Translate::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Translate::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
+
+        return true;
+    } else if (identifier == "shear") {
+        fun = new Shear;
+        /*iterator it2 = */it += shift;
+        if (!Shear::parse_detail(it, end, fun)) return false;
+
+        // it = it2;
 
         return true;
     } else if (identifier == "union") {
         fun = new Union;
-        iterator it2 = it + shift;
-        if (!Union::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Union::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
 
         return true;
     }
