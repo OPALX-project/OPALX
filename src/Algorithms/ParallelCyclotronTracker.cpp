@@ -2374,7 +2374,6 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         // Do a local frame restart (we have already checked that the old h5 file was saved in local
         // frame as well).
-        // Cave: Multi-bunch must not be done in the local frame! (TODO: Is this still true? -DW)
         if((Options::psDumpFrame != Options::GLOBAL)) {
 
             *gmsg << "* Restart in the local frame" << endl;
