@@ -129,8 +129,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     bgf_m(nullptr),
     lastDumpedStep_m(0),
     eta_m(0.01),
-    initialR_m(nullptr),
-    initialP_m(nullptr),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0),
@@ -164,8 +162,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     maxSteps_m(maxSTEPS),
     lastDumpedStep_m(0),
     eta_m(0.01),
-    initialR_m(nullptr),
-    initialP_m(nullptr),
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch->getLocalNum()),
     initialTotalNum_m(bunch->getTotalNum()),
@@ -1687,7 +1683,8 @@ void ParallelCyclotronTracker::saveOneBunch() {
         std::make_pair("B-tail_y", 0.0),
         std::make_pair("E-tail_x", 0.0),
         std::make_pair("E-tail_z", 0.0),
-        std::make_pair("E-tail_y", 0.0)};
+        std::make_pair("E-tail_y", 0.0)
+    };
 
     std::string fn_appendix = "-onebunch";
     std::string fileName = OpalData::getInstance()->getInputBasename() + fn_appendix + ".h5";
@@ -1698,6 +1695,7 @@ void ParallelCyclotronTracker::saveOneBunch() {
     h5wrapper.close();
 
 }
+
 
 /**
  *
@@ -2379,17 +2377,8 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         }
 
         // Backup initial distribution if multi bunch mode
-        if((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == MB_MODE::FORCE)) {
-
-            initialR_m = new Vector_t[initialLocalNum_m];
-            initialP_m = new Vector_t[initialLocalNum_m];
-
-            for(size_t i = 0; i < initialLocalNum_m; ++i) {
-
-                initialR_m[i] = itsBunch_m->R[i];
-                initialP_m[i] = itsBunch_m->P[i];
-            }
-        }
+        if ((initialTotalNum_m > 2) && (numBunch_m > 1) && (multiBunchMode_m == MB_MODE::FORCE))
+            saveOneBunch();
 
         // Else: Restart from the distribution in the h5 file
     } else {
@@ -3603,9 +3592,6 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
         // read initial distribution from h5 file
         switch ( multiBunchMode_m ) {
             case MB_MODE::FORCE:
-                if (BunchCount_m == 2)
-                    saveOneBunch();
-                
                 readOneBunch(BunchCount_m - 1);
 //              if (timeIntegrator_m == 0) //FIXME Matthias
                 itsBunch_m->resetPartBinID2(eta_m);
