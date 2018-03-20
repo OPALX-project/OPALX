@@ -148,8 +148,9 @@ target_link_libraries (libOPAL
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
+    ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARY}
+    ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     m
     z
