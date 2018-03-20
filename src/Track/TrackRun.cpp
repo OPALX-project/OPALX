@@ -911,7 +911,8 @@ void TrackRun::setupCyclotronTracker(){
         //        then starts to generate new bunches after each revolution,until get "TURNS" bunches;
         //        otherwise, run single bunch track
 
-        *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE------ ----------------------------*** " << endl;
+        *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE "
+              << "----------------------------*** " << endl;
 
         double paraMb = Attributes::getReal(itsAttr[PARAMB]);
         itsTracker->setParaAutoMode(paraMb);
@@ -921,36 +922,18 @@ void TrackRun::setupCyclotronTracker(){
             itsTracker->setLastDumpedStep(opal->getRestartStep());
 
             if(Track::block->bunch->pbin_m->getLastemittedBin() < 2) {
-                itsTracker->setMultiBunchMode(2);
                 *gmsg << "In this restart job, the multi-bunches mode is forcely set to AUTO mode." << endl;
+                itsTracker->setMultiBunchMode("AUTO");
             } else {
-                itsTracker->setMultiBunchMode(1);
                 *gmsg << "In this restart job, the multi-bunches mode is forcely set to FORCE mode." << endl
-                      << "If the existing bunch number is less than the specified number of TURN, readin the phase space of STEP#0 from h5 file consecutively" << endl;
+                      << "If the existing bunch number is less than the specified number of TURN, "
+                      << "readin the phase space of STEP#0 from h5 file consecutively" << endl;
+                itsTracker->setMultiBunchMode("FORCE");
             }
         } else {
-            //////
-            if((Attributes::getString(itsAttr[MBMODE])) == std::string("FORCE")) {
-                itsTracker->setMultiBunchMode(1);
-                *gmsg << "FORCE mode: The multi bunches will be injected consecutively after each revolution, until get \"TURNS\" bunches." << endl;
-
-
-            }
-            //////
-            else if((Attributes::getString(itsAttr[MBMODE])) == std::string("AUTO")) {
-
-
-                itsTracker->setMultiBunchMode(2);
-
-                *gmsg << "AUTO mode: The multi bunches will be injected only when the distance between two neighboring bunches " << endl
-                      << "is below the limitation. The control parameter is set to " << paraMb << endl;
-            }
-            //////
-            else
-                throw OpalException("TrackRun::execute()",
-                                    "MBMODE name \"" + Attributes::getString(itsAttr[MBMODE]) + "\" unknown.");
+            std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));            
+            itsTracker->setMultiBunchMode(mbmode);
         }
-
     }
 }
 
