@@ -18,6 +18,62 @@ std::string FCall("([a-z]*)\\((.*)");
 
 typedef std::string::iterator iterator;
 
+struct AffineTransformation: public Tenzor<double, 3> {
+    AffineTransformation(const Vector_t& row0,
+                         const Vector_t& row1):
+        Tenzor(row0[0], row0[1], row0[2], row1[0], row1[1], row1[2], 0.0, 0.0, 1.0) {
+    }
+
+    AffineTransformation():
+        Tenzor(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) { }
+
+    AffineTransformation getInverse() const {
+        AffineTransformation Ret;
+        double det = (*this)(0, 0) * (*this)(1, 1) - (*this)(1, 0) * (*this)(0, 1);
+
+        Ret(0, 0) = (*this)(1, 1) / det;
+        Ret(1, 0) = -(*this)(1, 0) / det;
+        Ret(0, 1) = -(*this)(0, 1) / det;
+        Ret(1, 1) = (*this)(0, 0) / det;
+
+        Ret(0, 2) = - Ret(0, 0) * (*this)(0, 2) - Ret(0, 1) * (*this)(1, 2);
+        Ret(1, 2) = - Ret(1, 0) * (*this)(0, 2) - Ret(1, 1) * (*this)(1, 2);
+        Ret(2, 2) = 1.0;
+
+        return Ret;
+    }
+
+    Vector_t getOrigin() const {
+        return Vector_t(-(*this)(0, 2), -(*this)(1, 2), 0.0);
+    }
+
+    double getAngle() const {
+        return atan2((*this)(1, 0), (*this)(0, 0));
+    }
+
+    Vector_t transformTo(const Vector_t &v) const {
+        const Tenzor<double, 3> &A = *static_cast<const Tenzor<double, 3>* >(this);
+        Vector_t b(v[0], v[1], 1.0);
+        return dot(A, b);
+    }
+
+    Vector_t transformFrom(const Vector_t &v) const {
+        AffineTransformation inv = getInverse();
+        return inv.transformTo(v);
+    }
+
+    AffineTransformation mult(const AffineTransformation &B) {
+        AffineTransformation Ret;
+        const Tenzor<double, 3> &A = *static_cast<const Tenzor<double, 3> *>(this);
+        const Tenzor<double, 3> &BTenz = *static_cast<const Tenzor<double, 3> *>(&B);
+        Tenzor<double, 3> &C = *static_cast<Tenzor<double, 3> *>(&Ret);
+
+        C = dot(A, BTenz);
+
+        return Ret;
+    }
+};
+
 struct Base;
 
 struct Function {
@@ -30,13 +86,12 @@ struct Function {
 bool parse(iterator &it, const iterator &end, Function* &fun);
 
 struct Base: public Function {
-    CoordinateSystemTrafo trafo_m;
+    AffineTransformation trafo_m;
     // std::tuple<unsigned int,
     //            double,
     //            double> repeat_m;
     Base():
-        trafo_m(Vector_t(0.0),
-                Quaternion(1.0, 0.0, 0.0, 0.0))
+        trafo_m()
         // , repeat_m(std::make_tuple(0u, 0.0, 0.0))
     { }
 
@@ -60,12 +115,15 @@ struct Rectangle: public Base {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
         Vector_t origin = trafo_m.getOrigin();
-        double angle = acos(trafo_m.getRotation()[0]) * 2 * Physics::rad2deg;
+        double angle = trafo_m.getAngle() * Physics::rad2deg;
         std::cout << indent << "rectangle, \n"
                   << indent2 << "w: " << width_m << ", \n"
                   << indent2 << "h: " << height_m << ", \n"
                   << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
-                  << indent2 << "angle: " << angle;
+                  << indent2 << "angle: " << angle << "\n"
+                  << indent2 << trafo_m(0, 0) << "\t" << trafo_m(0, 1) << "\t" << trafo_m(0, 2) << "\n"
+                  << indent2 << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
+                  << indent2 << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2) << std::endl;
     }
 
     virtual void writeGnuplot(std::ofstream &out) const {
@@ -134,12 +192,15 @@ struct Ellipse: public Base {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
         Vector_t origin = trafo_m.getOrigin();
-        double angle = acos(trafo_m.getRotation()[0]) * 2 * Physics::rad2deg;
+        double angle = trafo_m.getAngle() * Physics::rad2deg;
         std::cout << indent << "ellipse, \n"
                   << indent2 << "w: " << width_m << ", \n"
                   << indent2 << "h: " << height_m << ", \n"
                   << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
-                  << indent2 << "angle: " << angle;
+                  << indent2 << "angle: " << angle << "\n"
+                  << indent2 << trafo_m(0, 0) << "\t" << trafo_m(0, 1) << "\t" << trafo_m(0, 2) << "\n"
+                  << indent2 << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
+                  << indent2 << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2) << std::endl;
     }
 
     virtual void writeGnuplot(std::ofstream &out) const {
@@ -234,20 +295,23 @@ struct Repeat: public Function {
     }
 
     virtual void apply(std::vector<Base*> &bfuncs) {
-        CoordinateSystemTrafo shift(Vector_t(shiftx_m, shifty_m, 0.0),
-                                    Quaternion(1.0, 0.0, 0.0, 0.0));
+        AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
+                                   Vector_t(0.0, 1.0, -shifty_m));
+        std::cout << shiftx_m << "\t" << shift(0, 2) << std::endl;
+        // CoordinateSystemTrafo shift(Vector_t(shiftx_m, shifty_m, 0.0),
+        //                             Quaternion(1.0, 0.0, 0.0, 0.0));
         func_m->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
-        CoordinateSystemTrafo current_shift = shift;
+        AffineTransformation current_shift = shift;
         for (unsigned int i = 0; i < N_m; ++ i) {
             for (unsigned int j = 0; j < size; ++ j) {
                 Base *obj = bfuncs[j]->clone();
-                obj->trafo_m *= current_shift;
+                obj->trafo_m = obj->trafo_m.mult(current_shift);
                 bfuncs.push_back(obj);
             }
 
-            current_shift *= shift;
+            current_shift = current_shift.mult(shift);
         }
     }
 
@@ -295,14 +359,15 @@ struct Translate: public Function {
     }
 
     virtual void apply(std::vector<Base*> &bfuncs) {
-        CoordinateSystemTrafo shift(Vector_t(shiftx_m, shifty_m, 0.0),
-                                    Quaternion(1.0, 0.0, 0.0, 0.0));
+        AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
+                                   Vector_t(0.0, 1.0, -shifty_m));
+
         func_m->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
         for (unsigned int j = 0; j < size; ++ j) {
             Base *obj = bfuncs[j];
-            obj->trafo_m *= shift;// * obj->trafo_m;
+            obj->trafo_m = obj->trafo_m.mult(shift);
         }
     }
 
@@ -348,14 +413,15 @@ struct Rotate: public Function {
     }
 
     virtual void apply(std::vector<Base*> &bfuncs) {
-        CoordinateSystemTrafo rotation(Vector_t(0.0, 0.0, 0.0),
-                                       Quaternion(cos(-0.5 * angle_m), 0.0, 0.0, sin(-0.5 * angle_m)));
+        AffineTransformation rotation(Vector_t(cos(angle_m), sin(angle_m), 0.0),
+                                      Vector_t(-sin(angle_m), cos(angle_m), 0.0));
+
         func_m->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
         for (unsigned int j = 0; j < size; ++ j) {
             Base *obj = bfuncs[j];
-            obj->trafo_m *= rotation;
+            obj->trafo_m = obj->trafo_m.mult(rotation);
         }
     }
 
@@ -363,7 +429,7 @@ struct Rotate: public Function {
     bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
         Rotate *rot = static_cast<Rotate*>(fun);
         if (!parse(it, end, rot->func_m)) return false;
-        std::cout << std::string(it, end) << std::endl;
+
         boost::regex argumentList("," + Double + "\\)(.*)");
         boost::smatch what;
 
@@ -374,6 +440,68 @@ struct Rotate: public Function {
 
         std::string fullMatch = what[0];
         std::string rest = what[3];
+
+        it += (fullMatch.size() - rest.size());
+
+        return true;
+    }
+};
+
+struct Shear: public Function {
+    Function* func_m;
+    double angleX_m;
+    double angleY_m;
+
+    virtual ~Shear() {
+        delete func_m;
+    }
+
+    virtual void print(int indentwidth) {
+        std::string indent(indentwidth, ' ');
+        std::string indent2(indentwidth + 8, ' ');
+        std::cout << indent << "shear, " << std::endl;
+        func_m->print(indentwidth + 8);
+        if (std::abs(angleX_m) > 0.0) {
+            std::cout << ",\n"
+                      << indent2 << "angle X: " << angleX_m;
+        } else {
+            std::cout << ",\n"
+                      << indent2 << "angle Y: " << angleY_m;
+        }
+    }
+
+    virtual void apply(std::vector<Base*> &bfuncs) {
+        AffineTransformation shear(Vector_t(1.0, tan(angleX_m), 0.0),
+                                   Vector_t(-tan(angleY_m), 1.0, 0.0));
+
+        func_m->apply(bfuncs);
+        const unsigned int size = bfuncs.size();
+
+        for (unsigned int j = 0; j < size; ++ j) {
+            Base *obj = bfuncs[j];
+            obj->trafo_m = obj->trafo_m.mult(shear);
+        }
+    }
+
+    static
+    bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+        Shear *shr = static_cast<Shear*>(fun);
+        if (!parse(it, end, shr->func_m)) return false;
+
+        boost::regex argumentList("," + Double + "," + Double + "\\)(.*)");
+        boost::smatch what;
+
+        std::string str(it, end);
+        if (!boost::regex_match(str, what, argumentList)) return false;
+
+        shr->angleX_m = atof(std::string(what[1]).c_str());
+        shr->angleY_m = atof(std::string(what[3]).c_str());
+
+        if (std::abs(shr->angleX_m) > 0.0 && std::abs(shr->angleY_m) > 0.0)
+            return false;
+
+        std::string fullMatch = what[0];
+        std::string rest = what[5];
 
         it += (fullMatch.size() - rest.size());
 
@@ -474,24 +602,24 @@ bool parse(iterator &it, const iterator &end, Function* &fun) {
 
     if (identifier == "rectangle") {
         fun = new Rectangle;
-        iterator it2 = it + shift;
-        if (!Rectangle::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Rectangle::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
         return true;
     } else if (identifier == "ellipse") {
         fun = new Ellipse;
-        iterator it2 = it + shift;
-        if (!Ellipse::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Ellipse::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
         return true;
     } else if (identifier == "repeat") {
         fun = new Repeat;
-        iterator it2 = it + shift;
-        if (!Repeat::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Repeat::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
 
         return true;
     } else if (identifier == "rotate") {
@@ -500,23 +628,31 @@ bool parse(iterator &it, const iterator &end, Function* &fun) {
             it += shift;
         if (!Rotate::parse_detail(it, end, fun)) return false;
 
-        // it = it2;
+        // // it = it2;
 
         return true;
     } else if (identifier == "translate") {
         fun = new Translate;
-        iterator it2 = it + shift;
-        if (!Translate::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Translate::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
+
+        return true;
+    } else if (identifier == "shear") {
+        fun = new Shear;
+        /*iterator it2 = */it += shift;
+        if (!Shear::parse_detail(it, end, fun)) return false;
+
+        // it = it2;
 
         return true;
     } else if (identifier == "union") {
         fun = new Union;
-        iterator it2 = it + shift;
-        if (!Union::parse_detail(it2, end, fun)) return false;
+        /*iterator it2 = */it += shift;
+        if (!Union::parse_detail(it, end, fun)) return false;
 
-        it = it2;
+        // it = it2;
 
         return true;
     }
