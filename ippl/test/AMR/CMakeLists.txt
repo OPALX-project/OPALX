@@ -74,7 +74,7 @@ IF ( ENABLE_AMR )
                               ${Trilinos_TPL_LIBRARIES}
                               ${IPPL_LIBRARY}
                               ${H5Hut_LIBRARY}
-                              ${HDF5_LIBRARY}
+                              ${HDF5_LIBRARIES}
                               ${AMREX_EXTRA_Fortran_LINK_LINE}
                               ${AMREX_LIBRARIES})
                               
