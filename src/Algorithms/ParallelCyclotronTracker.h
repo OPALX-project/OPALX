@@ -50,12 +50,20 @@ class ParallelCyclotronTracker: public Tracker {
 
 public:
     
-    enum MODE {
+    enum class MODE {
         UNDEFINED = -1,
         SINGLE = 0,
         SEO = 1,
         BUNCH = 2
     };
+    
+    // multi-bunch modes
+    enum class MB_MODE {
+        NONE   = 0,
+        FORCE  = 1,
+        AUTO   = 2
+    };
+        
 
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -181,7 +189,7 @@ public:
     inline int  getNumBunch() { return numBunch_m; }
 
     /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
-    inline void  setMultiBunchMode(const int flag) {multiBunchMode_m = flag; }
+    void setMultiBunchMode(const std::string& mbmode);
 
     /// set last dumped step
     inline void setLastDumpedStep(const int para) {lastDumpedStep_m = para ; }
@@ -259,7 +267,7 @@ private:
     // 0 for single bunch (default),
     // 1 for FORCE,
     // 2 for AUTO
-    int multiBunchMode_m;
+    MB_MODE multiBunchMode_m;
 
     // control parameter for AUTO multi-bunch mode
     double CoeffDBunches_m;
@@ -293,9 +301,6 @@ private:
 
     // vector of [angle, x, y] of SEO read in from external file for tune with SC. Unit : rad, mm
     std::vector<Vector_t> variable_SEO_m;
-
-    // save initial phase space distribution (in global Cartesian frame ) for multi-bunch simultion. FixMe: not used
-    Vector_t *initialR_m, *initialP_m;
 
     // record how many bunches has already been injected. ONLY FOR MPM
     int BunchCount_m;
