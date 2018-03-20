@@ -162,11 +162,11 @@ int main(int argc, char *argv[])
   // Used in evaluating correctness of results:
   double realDiff;
   const double errorTol = 1.0e-10;
-  bool correct = true;
+  //  bool correct = true;
 
   // Various counters, constants, etc:
-  double pi = acos(-1.0);
-  double twopi = 2.0*pi;
+  //  double pi = acos(-1.0);
+  //double twopi = 2.0*pi;
 
 
   // probes etc.
@@ -177,8 +177,8 @@ int main(int argc, char *argv[])
     std::string("-mz=") + std::to_string(nz) +
     std::string("-p=") + std::to_string(processes);
 
-  unsigned int pwi = 10;
-  std::ios_base::openmode mode_m = std::ios::out;
+  //  unsigned int pwi = 10;
+  //  std::ios_base::openmode mode_m = std::ios::out;
 
   //  std::ofstream os_memData;
   //open_m(os_memData, baseFn+std::string(".mem"), mode_m);
@@ -313,13 +313,14 @@ int main(int argc, char *argv[])
   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
   dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
 
+ /*
   double xfact, kx, yfact, ky, zfact, kz;
   xfact = pi/(ngrid[0] + 1.0);
   yfact = 2.0*twopi/(ngrid[1]);
   zfact = 2.0*twopi/(ngrid[2]);
   kx = 1.0; ky = 2.0; kz = 3.0; // wavenumbers
-  /*
-  CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
+ 
+    CFieldPPStan[ndiStandard[0]][ndiStandard[1]][ndiStandard[2]] = 
     sfact * ( sin( (ndiStandard[0]+1) * kx * xfact +
 		   ndiStandard[1]    * ky * yfact +
 		   ndiStandard[2]    * kz * zfact ) +
@@ -362,7 +363,7 @@ int main(int argc, char *argv[])
     diffFieldPPStan = Abs(CFieldPPStan - CFieldPPStan_save);
     realDiff = max(diffFieldPPStan);
     if (fabs(realDiff) > errorTol) {
-      correct = false;
+      //      correct = false;
       testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
     }
     IpplTimings::stopTimer(fEvalccppTimer);
@@ -380,7 +381,7 @@ int main(int argc, char *argv[])
     diffFieldSPStan = Abs(CFieldSPStan - CFieldSPStan_save);
     realDiff = max(diffFieldSPStan);
     if (fabs(realDiff) > errorTol) {
-      correct = false;
+      //      correct = false;
       testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
     }
     IpplTimings::stopTimer(fEvalccpsTimer);
@@ -440,7 +441,7 @@ int main(int argc, char *argv[])
       diffFieldPPStan = Abs(RFieldPPStan - RFieldPPStan_save);
       realDiff = max(diffFieldPPStan);
       if (fabs(realDiff) > errorTol) {
-	correct = false;
+	//	correct = false;
 	testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
       }
       IpplTimings::stopTimer(fEvalrcppTimer);
@@ -459,7 +460,7 @@ int main(int argc, char *argv[])
       diffFieldSPStan = Abs(RFieldSPStan - RFieldSPStan_save);
       realDiff = max(diffFieldSPStan);
       if (fabs(realDiff) > errorTol) {
-	correct = false;
+	//	correct = false;
 	testmsg << "fabs(realDiff) = " << fabs(realDiff) << endl;
       }
       IpplTimings::stopTimer(fEvalrcpsTimer);
