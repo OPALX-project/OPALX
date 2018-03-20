@@ -50,7 +50,7 @@ add_compile_options (-Wall)
 
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-    add_comile_options (-diag-disable 383 -diag-disable 981)
+    add_compile_options (-diag-disable 383 -diag-disable 981)
     if (ENABLE_OpenMP)
 	add_compile_options (-openmp)
     endif ()
