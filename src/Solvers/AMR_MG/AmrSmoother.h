@@ -11,17 +11,17 @@
 class AmrSmoother {
     
 public:
-    typedef amr::global_ordinal_t global_ordinal_t;
-    typedef amr::local_ordinal_t local_ordinal_t;
-    typedef amr::scalar_t scalar_t;
-    typedef amr::node_t node_t;
-    typedef amr::matrix_t matrix_t;
-    typedef amr::vector_t vector_t;
+    typedef amr::global_ordinal_t   go_t;
+    typedef amr::local_ordinal_t    lo_t;
+    typedef amr::scalar_t           scalar_t;
+    typedef amr::node_t             node_t;
+    typedef amr::matrix_t           matrix_t;
+    typedef amr::vector_t           vector_t;
     typedef Ifpack2::Preconditioner<scalar_t,
-                                    local_ordinal_t,
-                                    global_ordinal_t,
+                                    lo_t,
+                                    go_t,
                                     node_t
-                                    > preconditioner_t;
+            > preconditioner_t;
     
     /// All supported Ifpack2 smoothers
     enum Smoother {
@@ -39,7 +39,7 @@ public:
      */
     AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
                 const Smoother& smoother,
-                local_ordinal_t nSweeps);
+                lo_t nSweeps);
     
     ~AmrSmoother();
     
@@ -66,7 +66,7 @@ private:
      * @param nSweeps number of iterations
      */
     void initParameter_m(const Smoother& smoother,
-                         local_ordinal_t nSweeps);
+                         lo_t nSweeps);
     
     
 private:

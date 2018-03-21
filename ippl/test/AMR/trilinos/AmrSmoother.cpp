@@ -7,7 +7,7 @@
 
 AmrSmoother::AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
                          const Smoother& smoother,
-                         local_ordinal_t nSweeps)
+                         lo_t nSweeps)
 {
     const std::string type = "RELAXATION";
     
@@ -59,7 +59,7 @@ AmrSmoother::convertToEnumSmoother(const std::string& smoother) {
 
 
 void AmrSmoother::initParameter_m(const Smoother& smoother,
-                                  local_ordinal_t nSweeps)
+                                  lo_t nSweeps)
 {
     if ( params_mp == Teuchos::null )
         params_mp = Teuchos::rcp( new Teuchos::ParameterList );

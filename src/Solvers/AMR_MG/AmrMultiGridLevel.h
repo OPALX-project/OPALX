@@ -33,12 +33,12 @@ public:
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
     typedef amr::node_t node_t;
-    typedef amr::global_ordinal_t global_ordinal_t;
+    typedef amr::global_ordinal_t go_t;
     typedef amr::scalar_t scalar_t;
     typedef amr::local_ordinal_t lo_t;
     
     /// Type for matrix indices
-    typedef std::vector<lo_t> indices_t;
+    typedef std::vector<go_t> indices_t;
     
     /// Type for matrix entries
     typedef std::vector<scalar_t> coefficients_t;

@@ -193,7 +193,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     coefficients_t values;
 //     indices_t globalindices;
     
-    Teuchos::Array<global_ordinal_t> globalindices;
+    Teuchos::Array<go_t> globalindices;
     
     for (amrex::MFIter mfi(grids, dmap, true); mfi.isValid(); ++mfi) {
         const amrex::Box&    tbx  = mfi.tilebox();
@@ -229,7 +229,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     AmrIntVect_t lowcorner(D_DECL(lo[0], lo[1], lo[2]));
     
     // where to start indexing
-    amr::global_ordinal_t baseIndex = serialize(lowcorner);
+    go_t baseIndex = serialize(lowcorner);
     
     // numGlobalElements == N
     int N = grids.numPts();
