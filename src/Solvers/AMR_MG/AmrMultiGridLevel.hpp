@@ -83,7 +83,8 @@ AmrMultiGridLevel<MatrixType, VectorType>::~AmrMultiGridLevel()
 
 
 template <class MatrixType, class VectorType>
-int AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv) const {
+typename AmrMultiGridLevel<MatrixType, VectorType>::go_t
+AmrMultiGridLevel<MatrixType, VectorType>::serialize(const AmrIntVect_t& iv) const {
 #if AMREX_SPACEDIM == 3
     return iv[0] + (iv[1] + nr_m[1] * iv[2]) * nr_m[0];
 #else
@@ -189,7 +190,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
                                                            const Teuchos::RCP<node_t>& node)
 {
     
-    int localNumElements = 0;
+    go_t localNumElements = 0;
     coefficients_t values;
 //     indices_t globalindices;
     
@@ -207,7 +208,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
 
-                    int globalidx = serialize(iv);
+                    go_t globalidx = serialize(iv);
                     
                     globalindices.push_back(globalidx);
                     
@@ -232,7 +233,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
     go_t baseIndex = serialize(lowcorner);
     
     // numGlobalElements == N
-    int N = grids.numPts();
+    go_t N = grids.numPts();
     
     map_p = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm, node) );
 }
