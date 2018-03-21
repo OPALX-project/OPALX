@@ -56,7 +56,8 @@ if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     endif ()
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-    add_compile_options (-Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
+    add_compile_options (-Werror -Wsign-compare -Wunused-variable -Warray-bounds)
+    add_definitions(-DIPPL_RESTRICT_BUG)
     if (ENABLE_OpenMP)
 	    add_compile_options (-fopenmp)
     endif ()
@@ -66,7 +67,12 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
         message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
     endif ()
     # Warning flags, -Wno-unused-local-typedefs is needed for boost versions below 1.59
-    add_compile_options (-Wno-unused-local-typedefs -Werror=unused-variable)
+    #add_compile_options (-Wno-unused-local-typedefs -Werror=unused-variable)
+    add_compile_options(-Wno-unused-local-typedefs -Wextra -Wunused-macros -Wno-unused-parameter -Werror=unused-variable) # -Wno-implicit-fallthrough")
+    add_compile_options(-Wpointer-arith -Wcast-align -Wctor-dtor-privacy -Wdisabled-optimization -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wredundant-decls -Wstrict-null-sentinel)
+    add_compile_options(-Wlogical-not-parentheses -Wswitch-bool -Wsizeof-array-argument -Wbool-compare)
+    add_compile_options(-Wno-overloaded-virtual -Wno-cast-qual -Wno-undef)
+
     if (ENABLE_OpenMP)
         add_compile_options (-fopenmp)
     endif ()
@@ -121,16 +127,17 @@ IF (ENABLE_DKS)
     MESSAGE ("Found DKS version: ${DKS_VERSION}")
     MESSAGE ("Found DKS library: ${DKS_LIBRARY}")
     MESSAGE ("Found DKS include dir: ${DKS_INCLUDE_DIR}")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_MPI")
+    add_definitions(-DDKS_MPI)
 
     ### OpenCL compiler flags ###
     #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lOpenCL -pthread -DDKS_OPENCL")
 
     ### CUDA compiler flags ###
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDKS_CUDA")
+    add_definitions(-DDKS_CUDA)
 
     ### if any accelerator enabled set flag to use DKS ###
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS")
+    add_definitions(-DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS)
+
 ENDIF (ENABLE_DKS)
 ### END DKS part ###
 
@@ -149,7 +156,7 @@ OPTION (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 
 IF (BUILD_OPAL_UNIT_TESTS)
     FIND_PACKAGE (GTest REQUIRED)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_UNIT_TESTS")
+    ADD_DEFINITIONS(-DWITH_UNIT_TESTS)
 ENDIF (BUILD_OPAL_UNIT_TESTS)
 
 IF (ENABLE_AMR)
@@ -166,8 +173,7 @@ IF (ENABLE_AMR)
     echo_amrex_config_options()
     
     add_definitions(${AMREX_DEFINES})
-    
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR")
+    add_definitions(-DENABLE_AMR)
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
 
 ENDIF (ENABLE_AMR)
@@ -216,19 +222,17 @@ ENDIF ()
 
 IF (DBG_SCALARFIELD)
     MESSAGE ("\nWrite scalar rho_m field is enabled ")
-    SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
+    ADD_DEFINITIONS(-DDBG_SCALARFIELD)
 ENDIF (DBG_SCALARFIELD)
 
 IF (DBG_STENCIL)
     MESSAGE ("\nWrite stencil is enabled ")
-    SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
+    ADD_DEFINITIONS(-DDBG_STENCIL)
 ENDIF (DBG_STENCIL)
 
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE ("\nCompiler will not try to optimize field assignment")
-    SET (CMAKE_CXX_FLAGS
-        "-DdontOPTIMIZE_FIELD_ASSIGNMENT ${CMAKE_CXX_FLAGS}"
-	)
+    ADD_DEFINITIONS(-DdontOPTIMIZE_FIELD_ASSIGNMENT)
 ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
 
 INCLUDE(FindGit)
