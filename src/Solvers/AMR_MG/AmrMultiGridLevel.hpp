@@ -191,8 +191,6 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap_m(const Teuchos::RCP<co
 {
     
     go_t localNumElements = 0;
-    coefficients_t values;
-//     indices_t globalindices;
     
     Teuchos::Array<go_t> globalindices;
     
