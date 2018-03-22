@@ -28,9 +28,6 @@ void MueLuPreconditioner<Level>::create(const Teuchos::RCP<amr::matrix_t>& A,
             new amr::multivector_t(A->getDomainMap(), AMREX_SPACEDIM, false)
         );
     
-#ifdef _OPENMP
-        #pragma omp parallel
-#endif
         for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true);
              mfi.isValid(); ++mfi)
         {

@@ -15,7 +15,7 @@ endif()
 
 IF (OPTP_USED_FROM_OPAL)
     STRING (REGEX REPLACE "/[^/]+$" "/" GTEST_LIBRARY_DIRS ${GTEST_LIBRARY})
-    SET (RELATIVE_TO_OPAL "opt-pilot/")
+    SET (RELATIVE_TO_OPAL "optimizer/")
 ENDIF()
 
 include_directories (
@@ -32,7 +32,7 @@ link_directories (
     ${PYTHON_LIBRARIES}
 )
 
-set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/opt-pilot)
+set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/optimizer)
 set (SDDSPARSER_SRC
     ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/array.cpp
     ${OPT_PILOT_SOURCE_DIR}/Util/SDDSParser/associate.cpp

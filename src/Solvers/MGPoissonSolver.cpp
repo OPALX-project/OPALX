@@ -155,24 +155,21 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     FunctionTimer8_m = IpplTimings::getTimer("LHS to IPPL");
 }
 
-MGPoissonSolver::~MGPoissonSolver() {
-    if (Map) delete Map; Map = 0;
-    if (MLPrec) delete MLPrec; MLPrec = 0;
+void MGPoissonSolver::deletePtr() {
+    if(Map) delete Map;
+    Map = 0;
+    if(MLPrec) delete MLPrec;
+    MLPrec=0;
     A = Teuchos::null;
     LHS = Teuchos::null;
     RHS = Teuchos::null;
     prec_m = Teuchos::null;
-    solver_ptr = Teuchos::null;
-    problem_ptr = Teuchos::null;
 }
 
-void MGPoissonSolver::deletePtr() {
-    A = Teuchos::null;
-    LHS = Teuchos::null;
-    RHS = Teuchos::null;
-    if(Map) delete Map;
-    if(MLPrec) delete MLPrec; MLPrec=0;
-    prec_m = Teuchos::null;
+MGPoissonSolver::~MGPoissonSolver() {
+    deletePtr ();
+    solver_ptr = Teuchos::null;
+    problem_ptr = Teuchos::null;
 }
 
 void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift) {

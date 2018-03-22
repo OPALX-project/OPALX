@@ -41,7 +41,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
    ${HOSTNAME_BASE} MATCHES "daint")
     SET (LIBS
         ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
+        ${HDF5_LIBRARIES}
         ${IPPL_LIBRARY}
         ippl
         m
@@ -50,7 +50,7 @@ IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
 ELSE()
     SET (LIBS
         ${H5Hut_LIBRARY}
-        ${HDF5_LIBRARY}
+        ${HDF5_LIBRARIES}
         ${IPPL_LIBRARY}
         ippl
         ${MPI_LIBRARIES}

@@ -6,8 +6,9 @@ set (OPAL_LIBS
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
+    ${GSL_CBLAS_LIBRARY}
     ${H5HUT_LIBRARY}
-    ${HDF5_LIBRARY}
+    ${HDF5_LIBRARIES}
     )
 
 include_directories (
