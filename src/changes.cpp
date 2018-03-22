@@ -35,6 +35,11 @@ namespace Versions {
                     "* The attribute DISTRIBUTION of the command DISTRIBUTION has been renamed to\n"
                     "  TYPE.\n"
                     "\n"
+                    "* The meaning of OFFSETZ of the command DISTRIBUTION has changed. It now \n"
+                    "  indicates a shift of the particle bunch relative to the reference particle.\n"
+                    "  Use the ZSTART attribute of the TRACK command to start the simulation at a \n"
+                    "  position z > 0.\n"
+                    "\n"
                     "* The string indicating the orientation (sofar always XYZ) of 3D fieldmaps has\n"
                     "  been dropped.\n"
                     });

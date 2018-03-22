@@ -3,7 +3,7 @@
 set_source_files_properties(${CMAKE_SOURCE_DIR}/Expression/Parser/expression.cpp PROPERTIES COMPILE_FLAGS "-Wno-error=parentheses" )
 
 set (PILOT_FEVAL_SRCS
-    ${CMAKE_SOURCE_DIR}/opt-pilot/Simulation/FunctionEvaluator.cpp
+    ${CMAKE_SOURCE_DIR}/optimizer/Simulation/FunctionEvaluator.cpp
 )
 
 IF (ENABLE_DKS)

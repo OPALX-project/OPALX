@@ -1,6 +1,8 @@
 #include "Ippl.h"
 #include "Utilities/OpalException.h"
 
+extern Inform* gmsg;
+
 template <class Level>
 BelosBottomSolver<Level>::BelosBottomSolver(std::string solvertype,
                                             const std::shared_ptr<prec_t>& prec_p)
@@ -39,10 +41,9 @@ void BelosBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
     Belos::ReturnType ret = solver_mp->solve();
     
     if ( ret != Belos::Converged ) {
-        //TODO When put into OPAL: Replace with gmsg
-        std::cerr << "Warning: Bottom solver not converged. Achieved tolerance"
-                  << " after " << solver_mp->getNumIters() << " iterations is "
-                  << solver_mp->achievedTol() << "." << std::endl;
+        *gmsg << "Warning: Bottom solver not converged. Achieved tolerance"
+              << " after " << solver_mp->getNumIters() << " iterations is "
+              << solver_mp->achievedTol() << "." << endl;
     }
     
     // undo sign change

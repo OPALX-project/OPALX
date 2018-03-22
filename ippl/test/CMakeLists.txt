@@ -11,7 +11,5 @@ endmacro()
 
 list_subdirectories("TESTS" ${CMAKE_CURRENT_SOURCE_DIR})
 foreach (test ${TESTS})
-  if(NOT "${test}" STREQUAL ".svn")
-    add_subdirectory (${test})
-  endif(NOT "${test}" STREQUAL ".svn")
+  add_subdirectory (${test})
 endforeach()

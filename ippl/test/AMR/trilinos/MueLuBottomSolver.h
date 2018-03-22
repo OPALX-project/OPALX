@@ -5,6 +5,8 @@
 
 #include "Amr/AmrDefs.h"
 
+#include "Ippl.h"
+
 #include <MueLu.hpp>
 #include <MueLu_Level.hpp>
 #include <MueLu_Utilities.hpp>
@@ -67,6 +69,8 @@ private:
     Teuchos::ParameterList mueluList_m;   
     
     bool rebalance_m;                           ///< use subcommunicators (less communication)
+    
+    IpplTimings::TimerRef setupTimer_m;
 };
 
 #include "MueLuBottomSolver.hpp"
