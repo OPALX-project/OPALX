@@ -151,7 +151,7 @@ LossDataSink::LossDataSink() {
     LossDataSink(std::string("NULL"), false);
 }
 
-LossDataSink::~LossDataSink() {
+LossDataSink::~LossDataSink() noexcept(false) {
     if (H5file_m) {
         CLOSE_FILE ();
         H5file_m = 0;

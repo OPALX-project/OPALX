@@ -5,6 +5,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <vector>
+
 /*!
  * This concrete class writes output files
  * that are readable by
@@ -33,16 +35,41 @@ public:
                      const amr::AmrFieldContainer_t& efield,
                      const amr::AmrIntArray_t& refRatio,
                      const amr::AmrGeomContainer_t& geom,
+                     const int& nLevel,
                      const double& time,
                      const double& scale);
     
     
     void writeBunch(const AmrPartBunch* bunch_p,
+                    const double& time,
                     const double& scale);
     
 private:
-    boost::filesystem::path dir_m;  ///< directory where to write files
-    int step_m;                     ///< that we write
+    /* Copied and slightely modified version of
+     * AMReX_ParticleContainerI.H
+     * 
+     * @param level to write
+     * @param ofs out stream
+     * @param fnum file number
+     * @param which file
+     * @param count how many particles on this grid
+     * @param where file offset
+     * @param bunch_p to get data from
+     */
+    void writeParticles_m(int level,
+                          std::ofstream& ofs,
+                          int fnum,
+                          amrex::Vector<int>& which,
+                          amrex::Vector<int>& count,
+                          amrex::Vector<long>& where,
+                          const AmrPartBunch* bunch_p) const;
+    
+private:
+    std::string dir_m;                      ///< directory where to write files
+    int step_m;                             ///< that we write
+    
+    std::vector<std::string> intData_m;     ///< integer bunch data
+    std::vector<std::string> realData_m;    ///< real bunch data
 };
 
 #endif

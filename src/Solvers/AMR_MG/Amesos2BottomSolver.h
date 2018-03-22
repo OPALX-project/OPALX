@@ -7,6 +7,8 @@
 
 #include <string>
 
+extern Inform* gmsg;
+
 /// Interface to Amesos2 solvers of the Trilinos package
 template <class Level>
 class Amesos2BottomSolver : public BottomSolver<Teuchos::RCP<amr::matrix_t>,

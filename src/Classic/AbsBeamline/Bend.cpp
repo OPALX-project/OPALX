@@ -330,15 +330,17 @@ void Bend::initialise(PartBunchBase<double, 3> *bunch,
 }
 
 void Bend::adjustFringeFields(double ratio) {
+    findChordLength(*gmsg, chordLength_m);
+    double halfChordLength = 0.5 * chordLength_m;
 
     double delta = std::abs(entranceParameter1_m - entranceParameter2_m);
     entranceParameter1_m = entranceParameter2_m - delta * ratio;
 
     delta = std::abs(entranceParameter2_m - entranceParameter3_m);
-    entranceParameter3_m = entranceParameter2_m + delta * ratio;
+    entranceParameter3_m = std::min(halfChordLength, entranceParameter2_m + delta * ratio);
 
     delta = std::abs(exitParameter1_m - exitParameter2_m);
-    exitParameter1_m = exitParameter2_m - delta * ratio;
+    exitParameter1_m = -std::min(halfChordLength, -(exitParameter2_m - delta * ratio));
 
     delta = std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter3_m = exitParameter2_m + delta * ratio;
@@ -1071,7 +1073,6 @@ void Bend::print(Inform &msg, double bendAngleX, double bendAngleY) {
             msg << coef << "\n";
         }
     }
-
     msg << endl;
 }
 
@@ -1206,13 +1207,17 @@ void Bend::setEngeOriginDelta(double delta) {
      * and exit points in the magnet. A positive delta shifts them towards
      * the center of the magnet.
      */
+    findChordLength(*gmsg, chordLength_m);
+    double halfChordLength = 0.5 * chordLength_m;
+
     entranceParameter1_m = delta - std::abs(entranceParameter1_m
                                             - entranceParameter2_m);
-    entranceParameter3_m = delta + std::abs(entranceParameter2_m
-                                            - entranceParameter3_m);
+    entranceParameter3_m = std::min(halfChordLength,
+                                    delta + std::abs(entranceParameter2_m
+                                                     - entranceParameter3_m));
     entranceParameter2_m = delta;
 
-    exitParameter1_m = -delta - std::abs(exitParameter1_m - exitParameter2_m);
+    exitParameter1_m = -std::min(halfChordLength, -(delta - std::abs(exitParameter1_m - exitParameter2_m)));
     exitParameter3_m = -delta + std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter2_m = -delta;
 

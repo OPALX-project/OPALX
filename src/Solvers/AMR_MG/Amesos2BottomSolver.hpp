@@ -28,8 +28,7 @@ void Amesos2BottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
     try {
         solver_mp = Amesos2::create<matrix_t, mv_t>(solvertype_m, A);
     } catch(const std::invalid_argument& ex) {
-        //TODO change to gmsg IPPL when built-in in OPAL
-        std::cerr << ex.what() << std::endl;
+        *gmsg << ex.what() << endl;
     }
     
     solver_mp->symbolicFactorization();

@@ -28,7 +28,7 @@ class LossDataSink {
     LossDataSink(std::string elem, bool hdf5Save, ElementBase::ElementType type = ElementBase::ANY);
 
     LossDataSink(const LossDataSink &rsh);
-    ~LossDataSink();
+    ~LossDataSink() noexcept(false);
 
     bool inH5Mode() { return h5hut_mode_m;}
 
