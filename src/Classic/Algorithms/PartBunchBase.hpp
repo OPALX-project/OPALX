@@ -573,6 +573,12 @@ bool PartBunchBase<T, Dim>::isGridFixed() {
 
 
 template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::hasBinning() {
+    return (pbin_m != nullptr);
+}
+
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setTEmission(double t) {
     tEmission_m = t;
 }
