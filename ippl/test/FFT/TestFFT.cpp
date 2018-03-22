@@ -208,12 +208,12 @@ int main(int argc, char *argv[])
   //  writeMemoryHeader(os_memData);
   
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
-  for (int d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++) 
     allParallel[d] = PARALLEL;
 
   e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
   serialParallel[0] = SERIAL;
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     serialParallel[d] = PARALLEL;
 
   testmsg << "Make fields" << endl;
@@ -224,12 +224,12 @@ int main(int argc, char *argv[])
 
   // create standard domain
   NDIndex<D> ndiStandard;
-  for (int d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++) 
     ndiStandard[d] = Index(ngrid[d]);
     // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted;
   ndiPermuted[0] = ndiStandard[D-1];
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     ndiPermuted[d] = ndiStandard[d-1];
 
   // create half-size domain for RC transform along zeroth axis
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
   // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted0h;
   ndiPermuted0h[0] = ndiStandard0h[D-1];
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     ndiPermuted0h[d] = ndiStandard0h[d-1];
 
   // create half-size domain for sine transform along zeroth axis
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
   // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted1h;
   ndiPermuted1h[0] = ndiStandard1h[D-1];
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     ndiPermuted1h[d] = ndiStandard1h[d-1];
 
   // all parallel layout, standard domain, normal axis order
@@ -496,7 +496,7 @@ int main(int argc, char *argv[])
     // define zeroth axis to be sine transform
     bool sineTransformDims[D];
     sineTransformDims[0] = true;
-    for (int d=1; d<D; ++d) sineTransformDims[d] = false;
+    for (unsigned int d=1; d<D; ++d) sineTransformDims[d] = false;
 
     // Sine and RC transform tests
 
