@@ -38,7 +38,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       lfine_m(0),
       nlevel_m(1),
       nBcPoints_m(0),
-      eps_m(1.0e-12),
+      eps_m(1.0e-10),
       verbose_m(false),
       fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
       flag_m(std::ios::out)
