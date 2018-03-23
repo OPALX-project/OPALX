@@ -67,11 +67,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
         message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
     endif ()
     # Warning flags, -Wno-unused-local-typedefs is needed for boost versions below 1.59
-    #add_compile_options (-Wno-unused-local-typedefs -Werror=unused-variable)
-    add_compile_options(-Wno-unused-local-typedefs -Wextra -Wunused-macros -Wno-unused-parameter -Werror=unused-variable) # -Wno-implicit-fallthrough")
-    add_compile_options(-Wpointer-arith -Wcast-align -Wctor-dtor-privacy -Wdisabled-optimization -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wredundant-decls -Wstrict-null-sentinel)
-    add_compile_options(-Wlogical-not-parentheses -Wswitch-bool -Wsizeof-array-argument -Wbool-compare)
-    add_compile_options(-Wno-overloaded-virtual -Wno-cast-qual -Wno-undef)
+    add_compile_options (-Wno-unused-local-typedefs -Werror=unused-variable)
 
     if (ENABLE_OpenMP)
         add_compile_options (-fopenmp)
