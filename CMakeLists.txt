@@ -7,14 +7,18 @@ set (OPAL_PACKAGE_BUGREPORT opal@lists.psi.ch)
 set (OPAL_PACKAGE_VERSION
   ${OPAL_MAJOR_VERSION}.${OPAL_MINOR_VERSION}.${OPAL_PATCH_VERSION})
 
-# Select flags.
+set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+
+cmake_host_system_information (RESULT HOSTNAME QUERY HOSTNAME)
+
+# Build type
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
 set (CMAKE_CXX_FLAGS_RELEASE "-O3")
 set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 
-set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
-
-cmake_host_system_information (RESULT HOSTNAME QUERY HOSTNAME)
+if (NOT CMAKE_BUILD_TYPE)
+    set (CMAKE_BUILD_TYPE Release)
+endif()
 
 message ("Build type is: " ${CMAKE_BUILD_TYPE})
 message ("Host OS System: ${CMAKE_HOST_SYSTEM}")
