@@ -1,4 +1,3 @@
-cmake_minimum_required (VERSION 2.8.10)
 set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
 
 set (CMAKE_CXX_FLAGS
