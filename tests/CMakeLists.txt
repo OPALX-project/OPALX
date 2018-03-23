@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 2.6)
 FIND_PACKAGE (GTest REQUIRED)
 
 set (TEST_EXE opal_unit_tests)
