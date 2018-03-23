@@ -42,7 +42,7 @@ IF (ENABLE_AMR_SOLVER)
     IF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori")
         SET (LIBS
             ${H5Hut_LIBRARY}
-            ${HDF5_LIBRARY}
+            ${HDF5_LIBRARIES}
             ${IPPL_LIBRARY}
             ippl
             m
@@ -51,7 +51,7 @@ IF (ENABLE_AMR_SOLVER)
     ELSE()
         SET (LIBS
             ${H5Hut_LIBRARY}
-            ${HDF5_LIBRARY}
+            ${HDF5_LIBRARYIES}
             ${IPPL_LIBRARY}
             ippl
             mpi
