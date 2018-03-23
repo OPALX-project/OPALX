@@ -163,8 +163,10 @@ MGPoissonSolver::MGPoissonSolver(PartBunch &beam):
 }
 
 MGPoissonSolver::~MGPoissonSolver() {
-    if (Map) delete Map; Map = 0;
-    if (MLPrec) delete MLPrec; MLPrec = 0;
+    if (Map) delete Map;
+    Map = 0;
+    if (MLPrec) delete MLPrec;
+    MLPrec = 0;
     A = Teuchos::null;
     LHS = Teuchos::null;
     RHS = Teuchos::null;
@@ -178,7 +180,9 @@ void MGPoissonSolver::deletePtr() {
     LHS = Teuchos::null;
     RHS = Teuchos::null;
     if(Map) delete Map;
-    if(MLPrec) delete MLPrec; MLPrec=0;
+    Map = 0;
+    if(MLPrec) delete MLPrec;
+    MLPrec=0;
     prec_m = Teuchos::null;
 }
 
