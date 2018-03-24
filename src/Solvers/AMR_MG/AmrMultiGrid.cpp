@@ -2037,7 +2037,9 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     map["L2"]   = Norm::L2;
     map["LINF"] = Norm::LINF;
     
-    auto n = map.find(Util::toUpper(norm));
+    snorm_m = Util::toUpper(norm);
+    
+    auto n = map.find(snorm_m);
     
     if ( n == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
@@ -2052,7 +2054,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
     std::string indent("        ");
-
+    
     outfile << "SDDS1" << std::endl;
     outfile << "&description\n"
             << indent << "text=\"Solver statistics '" << OpalData::getInstance()->getInputFn()
@@ -2099,7 +2101,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << indent << "description=\"4 Regrid Step\"\n"
             << "&end\n";
     outfile << "&column\n"
-            << indent << "name=error,\n"
+            << indent << "name=" + snorm_m + ",\n"
             << indent << "type=double,\n"
             << indent << "units=1,\n"
             << indent << "description=\"5 Error\"\n"
