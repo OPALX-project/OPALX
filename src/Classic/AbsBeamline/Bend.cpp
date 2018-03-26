@@ -331,19 +331,24 @@ void Bend::initialise(PartBunchBase<double, 3> *bunch,
 
 void Bend::adjustFringeFields(double ratio) {
     findChordLength(*gmsg, chordLength_m);
-    double halfChordLength = 0.5 * chordLength_m;
 
     double delta = std::abs(entranceParameter1_m - entranceParameter2_m);
     entranceParameter1_m = entranceParameter2_m - delta * ratio;
 
     delta = std::abs(entranceParameter2_m - entranceParameter3_m);
-    entranceParameter3_m = std::min(halfChordLength, entranceParameter2_m + delta * ratio);
+    entranceParameter3_m = entranceParameter2_m + delta * ratio;
 
     delta = std::abs(exitParameter1_m - exitParameter2_m);
-    exitParameter1_m = -std::min(halfChordLength, -(exitParameter2_m - delta * ratio));
+    exitParameter1_m = exitParameter2_m - delta * ratio;
 
     delta = std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter3_m = exitParameter2_m + delta * ratio;
+
+    if (entranceParameter3_m - exitParameter1_m > chordLength_m) {
+        entranceParameter3_m = 0.5 * chordLength_m;
+        exitParameter1_m = -0.5 * chordLength_m;
+        WARNMSG("The fringe fields of dipole '" << getName() << "' were shortened because overlapping fringe fields aren't supported." << endl);
+    }
 
     setupFringeWidths();
 }
@@ -516,7 +521,7 @@ Vector_t Bend::calcExitFringeField(const Vector_t &R,
     const CoordinateSystemTrafo fromEndToExitRegion(Vector_t(0, 0, exitParameter2_m),
                                                     Quaternion(1, 0, 0, 0));
     const CoordinateSystemTrafo toExitRegion = (fromEndToExitRegion *
-                                                getBeginToEnd_local());
+                                                 getBeginToEnd_local());
     const Vector_t Rprime = toExitRegion.transformTo(R);
 
     Vector_t B(0.0);
@@ -1208,18 +1213,22 @@ void Bend::setEngeOriginDelta(double delta) {
      * the center of the magnet.
      */
     findChordLength(*gmsg, chordLength_m);
-    double halfChordLength = 0.5 * chordLength_m;
 
     entranceParameter1_m = delta - std::abs(entranceParameter1_m
                                             - entranceParameter2_m);
-    entranceParameter3_m = std::min(halfChordLength,
-                                    delta + std::abs(entranceParameter2_m
-                                                     - entranceParameter3_m));
+    entranceParameter3_m = delta + std::abs(entranceParameter2_m
+                                            - entranceParameter3_m);
     entranceParameter2_m = delta;
 
-    exitParameter1_m = -std::min(halfChordLength, -(delta - std::abs(exitParameter1_m - exitParameter2_m)));
+    exitParameter1_m = -delta - std::abs(exitParameter1_m - exitParameter2_m);
     exitParameter3_m = -delta + std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter2_m = -delta;
+
+    if (entranceParameter3_m - exitParameter1_m > chordLength_m) {
+        entranceParameter3_m = 0.5 * chordLength_m;
+        exitParameter1_m = -0.5 * chordLength_m;
+        WARNMSG("The fringe fields of dipole '" << getName() << "' were shortened because overlapping fringe fields aren't supported." << endl);
+    }
 
     setupFringeWidths();
 }
