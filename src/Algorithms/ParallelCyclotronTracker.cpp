@@ -132,6 +132,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(0),
     initialTotalNum_m(0),
+    onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5"),
     opalRing_m(nullptr),
     itsStepper_mp(nullptr),
     mode_m(MODE::UNDEFINED),
@@ -165,6 +166,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     myNode_m(Ippl::myNode()),
     initialLocalNum_m(bunch->getLocalNum()),
     initialTotalNum_m(bunch->getTotalNum()),
+    onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5"),
     opalRing_m(nullptr),
     itsStepper_mp(nullptr) {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
@@ -1638,24 +1640,26 @@ bool ParallelCyclotronTracker::getTunes(dvector_t &t, dvector_t &r, dvector_t &z
 void ParallelCyclotronTracker::saveOneBunch() {
 
     *gmsg << endl;
-    *gmsg << "* ---------------- Clone Beam---------------- *" << endl;
+    *gmsg << "* Store beam to H5 file for multibunch simulation ... ";
+    
+    Ppos_t coord, momentum;
+    ParticleAttrib<double> mass, charge;
+    ParticleAttrib<short> ptype;
 
-    npart_mb = itsBunch_m->getLocalNum();
+    coord.create(initialLocalNum_m);
+    coord = itsBunch_m->R;
 
-    r_mb.create(npart_mb);
-    r_mb = itsBunch_m->R;
+    momentum.create(initialLocalNum_m);
+    momentum = itsBunch_m->P;
 
-    p_mb.create(npart_mb);
-    p_mb = itsBunch_m->P;
+    mass.create(initialLocalNum_m);
+    mass = itsBunch_m->M;
 
-    m_mb.create(npart_mb);
-    m_mb = itsBunch_m->M;
+    charge.create(initialLocalNum_m);
+    charge = itsBunch_m->Q;
 
-    q_mb.create(npart_mb);
-    q_mb = itsBunch_m->Q;
-
-    ptype_mb.create(npart_mb);
-    ptype_mb = itsBunch_m->PType;
+    ptype.create(initialLocalNum_m);
+    ptype = itsBunch_m->PType;
 
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("REFPR", 0.0),
@@ -1685,119 +1689,66 @@ void ParallelCyclotronTracker::saveOneBunch() {
         std::make_pair("E-tail_z", 0.0),
         std::make_pair("E-tail_y", 0.0)
     };
-
-    std::string fn_appendix = "-onebunch";
-    std::string fileName = OpalData::getInstance()->getInputBasename() + fn_appendix + ".h5";
-
-    H5PartWrapperForPC h5wrapper(fileName);
+    
+    H5PartWrapperForPC h5wrapper(onebunch_m);
     h5wrapper.writeHeader();
     h5wrapper.writeStep(itsBunch_m, additionalAttributes);
     h5wrapper.close();
-
+    
+    *gmsg << "Done." << endl;
 }
 
-
-/**
- *
- * @param BinID
- * @param step
- */
-bool ParallelCyclotronTracker::readOneBunch(const size_t BinID) {
-
-    *gmsg << endl;
-    *gmsg << "* ---------------- Copy Beam---------------- *" << endl;
-
-    const size_t LocalNum = itsBunch_m->getLocalNum();
-    const size_t NewLocalNum = LocalNum + npart_mb;
-
-    itsBunch_m->create(npart_mb);
-
-    for(size_t ii = LocalNum; ii < NewLocalNum; ii++) {
-        size_t i = ii - LocalNum;
-        itsBunch_m->R[ii] = r_mb[i];
-        itsBunch_m->P[ii] = p_mb[i];
-        itsBunch_m->M[ii] = m_mb[i];
-        itsBunch_m->Q[ii] = q_mb[i];
-        itsBunch_m->PType[ii] = ptype_mb[i];
-        itsBunch_m->Bin[ii] = BinID;
-
-    }
-
-    // update statistics parameters of PartBunch
-    // allocate ID for new particles
-    itsBunch_m->boundp();
-
-    return true;
-
-}
 
 bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
+    
+    *gmsg << endl;
+    *gmsg << "* Read beam from H5 file for multibunch simulation ... ";
+    
+    std::size_t localNum = itsBunch_m->getLocalNum();
 
-    static bool restartflag = true;
-
-    if(restartflag) {
-        *gmsg << "----------------Read beam from hdf5 file----------------" << endl;
-        size_t localNum = itsBunch_m->getLocalNum();
-
-        //FIXME
-        std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
+    //FIXME
+    std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
 #ifdef ENABLE_AMR
-        if ( dynamic_cast<AmrPartBunch*>(itsBunch_m) != 0 )
-            tmpBunch.reset(new AmrPartBunch(&itsReference));
-        else
+    if ( dynamic_cast<AmrPartBunch*>(itsBunch_m) != 0 )
+        tmpBunch.reset(new AmrPartBunch(&itsReference));
+    else
 #endif
-            tmpBunch.reset(new PartBunch(&itsReference));
+        tmpBunch.reset(new PartBunch(&itsReference));
+    
+    H5PartWrapperForPC dataSource(onebunch_m, H5_O_RDONLY);
+    
+    long numParticles = dataSource.getNumParticles();
+    size_t numParticlesPerNode = numParticles / Ippl::getNodes();
 
-        std::string fn_appendix = "-onebunch";
-        std::string fileName = OpalData::getInstance()->getInputBasename() + fn_appendix + ".h5";
-        H5PartWrapperForPC dataSource(fileName, H5_O_RDONLY);
+    size_t firstParticle = numParticlesPerNode * Ippl::myNode();
+    size_t lastParticle = firstParticle + numParticlesPerNode - 1;
+    if (Ippl::myNode() == Ippl::getNodes() - 1)
+        lastParticle = numParticles - 1;
 
-        long numParticles = dataSource.getNumParticles();
-        size_t numParticlesPerNode = numParticles / Ippl::getNodes();
+    numParticles = lastParticle - firstParticle + 1;
+    PAssert_GE(numParticles, 0l);
 
-        size_t firstParticle = numParticlesPerNode * Ippl::myNode();
-        size_t lastParticle = firstParticle + numParticlesPerNode - 1;
-        if (Ippl::myNode() == Ippl::getNodes() - 1)
-            lastParticle = numParticles - 1;
+    dataSource.readStep(tmpBunch.get(), firstParticle, lastParticle);
+    dataSource.close();
 
-        numParticles = lastParticle - firstParticle + 1;
-        PAssert_GE(numParticles, 0l);
-
-        dataSource.readStep(tmpBunch.get(), firstParticle, lastParticle);
-        dataSource.close();
-
-        tmpBunch->boundp();
-
-        // itsDataSink->readOneBunch(*itsBunch_m, fn_appendix, BinID);
-        restartflag = false;
-
-        npart_mb = tmpBunch->getLocalNum();
-
-        itsBunch_m->create(npart_mb);
-        r_mb.create(npart_mb);
-        p_mb.create(npart_mb);
-        m_mb.create(npart_mb);
-        q_mb.create(npart_mb);
-        ptype_mb.create(npart_mb);
-
-        for(size_t ii = 0; ii < npart_mb; ++ ii, ++ localNum) {
-            itsBunch_m->R[localNum] = tmpBunch->R[ii];
-            itsBunch_m->P[localNum] = tmpBunch->P[ii];
-            itsBunch_m->M[localNum] = tmpBunch->M[ii];
-            itsBunch_m->Q[localNum] = tmpBunch->Q[ii];
-            itsBunch_m->PType[localNum] = ParticleType::REGULAR;
-            itsBunch_m->Bin[localNum] = BinID;
-
-            r_mb[ii] = itsBunch_m->R[localNum];
-            p_mb[ii] = itsBunch_m->P[localNum];
-            m_mb[ii] = itsBunch_m->M[localNum];
-            q_mb[ii] = itsBunch_m->Q[localNum];
-            ptype_mb[ii] = itsBunch_m->PType[localNum];
-        }
-
-    } else
-        readOneBunch(BinID);
-
+    tmpBunch->boundp();
+    
+    std::size_t tmpLocalNum = tmpBunch->getLocalNum();
+    itsBunch_m->create(tmpLocalNum);
+    
+    for(size_t ii = 0; ii < tmpLocalNum; ++ ii, ++ localNum) {
+        itsBunch_m->R[localNum] = tmpBunch->R[ii];
+        itsBunch_m->P[localNum] = tmpBunch->P[ii];
+        itsBunch_m->M[localNum] = tmpBunch->M[ii];
+        itsBunch_m->Q[localNum] = tmpBunch->Q[ii];
+        itsBunch_m->PType[localNum] = ParticleType::REGULAR;
+        itsBunch_m->Bin[localNum] = BinID;
+    }
+    
+    itsBunch_m->boundp();
+    
+    *gmsg << "Done." << endl;
+    
     return true;
 }
 
@@ -3592,17 +3543,8 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
         // read initial distribution from h5 file
         switch ( multiBunchMode_m ) {
             case MB_MODE::FORCE:
-                readOneBunch(BunchCount_m - 1);
-//              if (timeIntegrator_m == 0) //FIXME Matthias
-                itsBunch_m->resetPartBinID2(eta_m);
-                break;
             case MB_MODE::AUTO:
-                if(OpalData::getInstance()->inRestartRun())
-                    readOneBunchFromFile(BunchCount_m - 1);
-                else
-                    readOneBunch(BunchCount_m - 1);
-
-//              if (timeIntegrator_m == 0)  //FIXME Matthias
+                readOneBunchFromFile(BunchCount_m - 1);
                 itsBunch_m->resetPartBinID2(eta_m);
                 break;
             case MB_MODE::NONE:

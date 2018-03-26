@@ -332,13 +332,9 @@ private:
 
 
     //store the data of the beam which are required for injecting a new bunch for multibunch
-    Ppos_t r_mb, p_mb;
-
-    ParticleAttrib<double> q_mb;
-    ParticleAttrib<double> m_mb;
-    ParticleAttrib<short> ptype_mb;
-    size_t npart_mb;
-
+    /// filename
+    std::string onebunch_m;
+    
     void openFiles(std::string fn);
     void closeFiles();
 
@@ -360,7 +356,6 @@ private:
     double calculateAngle2(double x, double y);
 
     bool readOneBunchFromFile(const size_t BeamCount);
-    bool readOneBunch(const size_t BeamCount);
     void saveOneBunch();
 
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);
