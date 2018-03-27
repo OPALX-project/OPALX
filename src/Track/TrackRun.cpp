@@ -76,7 +76,8 @@ namespace {
         FNAME,        // The name of file to be written.
         TURNS,        // The number of turns to be tracked.
         MBMODE,       // The working way for multi-bunch mode for OPAL-cycl: "FORCE" or "AUTO"
-        PARAMB,       // The control parameter for "AUTO" mode of multi-bunch
+        PARAMB,       // The control parameter for "AUTO" mode of multi-bunch,
+        MB_ETA,       // The scale parameter for binning in multi-bunch mode
         BEAM,         // The beam to track
         FIELDSOLVER,  // The field solver attached
         BOUNDARYGEOMETRY, // The boundary geometry
@@ -110,6 +111,10 @@ TrackRun::TrackRun():
 
     itsAttr[PARAMB] = Attributes::makeReal
                       ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
+    
+    itsAttr[MB_ETA] = Attributes::makeReal("MB_ETA",
+                                           "The scale parameter for binning in multi-bunch mode",
+                                           0.01);
 
     itsAttr[FNAME] = Attributes::makeString
                      ("FILE", "Name of file to be written", "TRACK");
@@ -934,6 +939,8 @@ void TrackRun::setupCyclotronTracker(){
             std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));            
             itsTracker->setMultiBunchMode(mbmode);
         }
+        
+        itsTracker->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
     }
 }
 
