@@ -189,7 +189,7 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
                                     "This type of boundary is not supported");
         }
         // we use the maximum in order to build matrices
-        int tmp = bc_m[i]->getNumberOfPoints();
+        go_t tmp = bc_m[i]->getNumberOfPoints();
         if ( nBcPoints_m < tmp )
             nBcPoints_m = tmp;
     }
@@ -714,7 +714,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
                     for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                         AmrIntVect_t iv(D_DECL(i, j, k));
-                        int gidx = mglevel_m[lbase_m]->serialize(iv);
+                        go_t gidx = mglevel_m[lbase_m]->serialize(iv);
                         
                         this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
                         
@@ -791,7 +791,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
                             int kk = k << 1;
 #endif
                             AmrIntVect_t iv(D_DECL(i, j, k));
-                            int gidx = mglevel_m[lev]->serialize(iv);
+                            go_t gidx = mglevel_m[lev]->serialize(iv);
                             
                             this->buildRestrictionMatrix_m(lev, gidx, iv,
                                                            D_DECL(ii, jj, kk), rfab);
