@@ -940,7 +940,7 @@ void TrackRun::setupCyclotronTracker(){
             itsTracker->setMultiBunchMode(mbmode);
         }
         
-        itsTracker->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
+        dynamic_cast<ParallelCyclotronTracker*>(itsTracker)->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
     }
 }
 
