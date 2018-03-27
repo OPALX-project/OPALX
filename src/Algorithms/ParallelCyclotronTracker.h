@@ -190,6 +190,9 @@ public:
 
     /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
     void setMultiBunchMode(const std::string& mbmode);
+    
+    /// set the scale for binning in multi-bunch mode
+    void setMultiBunchEta(const double& eta) { eta_m = eta; };
 
     /// set last dumped step
     inline void setLastDumpedStep(const int para) {lastDumpedStep_m = para ; }
@@ -290,7 +293,7 @@ private:
 
     int turnnumber_m;
 
-    double const eta_m; // parameter for reset bin in multi-bunch run, todo: readin from inputfile
+    double eta_m; // parameter for reset bin in multi-bunch run
 
     // temporal 6 phase space varibles of particle [x,y,z,px,py,pz]. Unit: mm & dimensionless
     double variable_m[6];
