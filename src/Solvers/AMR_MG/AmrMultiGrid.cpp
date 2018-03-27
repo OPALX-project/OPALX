@@ -1677,7 +1677,7 @@ void AmrMultiGrid::map2vector_m(umap_t& map, indices_t& indices,
     values.reserve(map.size());
     
     std::for_each(map.begin(), map.end(),
-                  [&](const std::pair<const int, scalar_t>& entry)
+                  [&](const std::pair<const go_t, scalar_t>& entry)
                   {
                       indices.push_back(entry.first);
                       values.push_back(entry.second);
