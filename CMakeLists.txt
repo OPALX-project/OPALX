@@ -170,8 +170,8 @@ IF (ENABLE_AMR)
     
     add_definitions(${AMREX_DEFINES})
     add_definitions(-DENABLE_AMR)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
-
+    
+    add_compile_options (-Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
 ENDIF (ENABLE_AMR)
 
 # remove digits from hostname: edison03 -> edison
