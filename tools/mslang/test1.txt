@@ -1,25 +1,37 @@
-repeat(
-       union(
-             rotate(
-                    ellipse(
-                            0.1,
-                            0.2
-                           ),
-                    0.52359877
-                   ),
-             translate(
-                       rotate(
-                              rectangle(
-                                        0.2,
-                                        0.1
+union(
+      repeat(
+             union(
+                   rotate(
+                          ellipse(
+                                  0.1,
+                                  0.2
+                                 ),
+                          0.52359877
+                         ),
+                   translate(
+                             rectangle(
+                                       0.2,
+                                       0.1
                                        ),
-                              0.252359877
-                             ),
-                       -0.01,
-                       -0.02
-                      )
+                             -0.01,
+                             -0.02
+                            )
+                  ),
+             2,
+             0.1,
+             0.2
             ),
-       2,
-       0.1,
-       0.2
+      translate(
+
+                shear(
+                      rectangle(
+                                0.2,
+                                0.1
+                               ),
+                      0.0,
+                      0.523
+                     ),
+                0.0,
+                -0.2
+               )
       )
