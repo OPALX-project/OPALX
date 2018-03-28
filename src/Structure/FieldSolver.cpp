@@ -404,12 +404,19 @@ void FieldSolver::initCartesianFields() {
         decomp[2] = PARALLEL;
     }
     // create prototype mesh and layout objects for this problem domain
-    mesh_m   = new Mesh_t(domain);
-    FL_m     = new FieldLayout_t(*mesh_m, decomp);
-    PL_m.reset(new Layout_t(*FL_m, *mesh_m));
-    // OpalData::getInstance()->setMesh(mesh_m);
-    // OpalData::getInstance()->setFieldLayout(FL_m);
-    // OpalData::getInstance()->setLayout(PL_m);
+    
+#ifdef ENABLE_AMR
+    if ( !isAmrSolverType() ) {
+#endif
+        mesh_m   = new Mesh_t(domain);
+        FL_m     = new FieldLayout_t(*mesh_m, decomp);
+        PL_m.reset(new Layout_t(*FL_m, *mesh_m));
+        // OpalData::getInstance()->setMesh(mesh_m);
+        // OpalData::getInstance()->setFieldLayout(FL_m);
+        // OpalData::getInstance()->setLayout(PL_m);
+#ifdef ENABLE_AMR
+    }
+#endif
 }
 
 bool FieldSolver::hasPeriodicZ() {
@@ -622,8 +629,15 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     else
         os << "* Z(T)DIM      serial  " << endl;
 
-    INFOMSG(level3 << *mesh_m << endl);
-    INFOMSG(level3 << *PL_m << endl);
+#ifdef ENABLE_AMR
+    if ( !isAmrSolverType() ) {
+#endif
+        INFOMSG(level3 << *mesh_m << endl);
+        INFOMSG(level3 << *PL_m << endl);
+#ifdef ENABLE_AMR
+    }
+#endif
+    
     if(solver_m)
         os << *solver_m << endl;
     os << "* ********************************************************************************** " << endl;

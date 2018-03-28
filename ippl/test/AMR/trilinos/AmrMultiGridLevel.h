@@ -33,18 +33,18 @@ public:
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
     typedef amr::node_t node_t;
-    typedef amr::global_ordinal_t global_ordinal_t;
+    typedef amr::global_ordinal_t go_t;
     typedef amr::scalar_t scalar_t;
     typedef amr::local_ordinal_t lo_t;
     
     /// Type for matrix indices
-    typedef std::vector<lo_t> indices_t;
+    typedef std::vector<go_t> indices_t;
     
     /// Type for matrix entries
     typedef std::vector<scalar_t> coefficients_t;
     
     // Type with matrix index (column) and coefficient value
-    typedef std::unordered_map<lo_t, scalar_t> umap_t;
+    typedef std::unordered_map<go_t, scalar_t> umap_t;
     
     // covered   : ghost cells covered by valid cells of this FabArray
     //             (including periodically shifted valid cells)
@@ -92,7 +92,7 @@ public:
      * Map a 2D / 3D grid point to an array index
      * @param iv grid point (i, j, k)
      */
-    int serialize(const AmrIntVect_t& iv) const;
+    go_t serialize(const AmrIntVect_t& iv) const;
     
     /*!
      * Checks if grid point is on the physical / mesh boundary
@@ -203,7 +203,7 @@ public:
     std::unique_ptr<mask_t> crsemask;
     
 private:
-    int nr_m[AMREX_SPACEDIM];           ///< number of grid points
+    go_t nr_m[AMREX_SPACEDIM];           ///< number of grid points
     
     AmrIntVect_t rr_m;                  ///< refinement
     

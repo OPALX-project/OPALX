@@ -207,6 +207,15 @@ void H5PartWrapperForPC::readStepData(PartBunchBase<double, 3>* bunch,
     for(long int n = 0; n < numParticles; ++ n) {
         bunch->M[n] = f64buffer[n];
     }
+    
+    if ( bunch->hasBinning() ) {
+        std::vector<char> ibuffer(numParticles * sizeof(h5_int64_t));
+        h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&ibuffer[0]);
+        READDATA(Int64, file_m, "bin", i64buffer);
+        for(long int n = 0; n < numParticles; ++ n) {
+            bunch->Bin[n] = i64buffer[n];
+        }
+    }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
 }
@@ -226,6 +235,7 @@ void H5PartWrapperForPC::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "qUnit", "Cb");
 
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
+    WRITESTRINGFILEATTRIB(file_m, "binUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "ptype", "1");
     WRITESTRINGFILEATTRIB(file_m, "lastsection", "1");
 
@@ -518,6 +528,17 @@ void H5PartWrapperForPC::writeStepData(PartBunchBase<double, 3>* bunch) {
         i64buffer[i] = bunch->ID[i + 1];
 
     WRITEDATA(Int64, file_m, "id", i64buffer);
+    
+    
+    if ( bunch->hasBinning() ) {
+        for(size_t i = 0; i < skipID; ++ i)
+            i64buffer[i] =  bunch->Bin[i];
+        for (size_t i = skipID; i < numLocalParticles; ++ i)
+            i64buffer[i] = bunch->Bin[i + 1];
+        
+        WRITEDATA(Int64, file_m, "bin", i64buffer);
+    }
+    
 
     if (Options::ebDump) {
         for(size_t i = 0; i < skipID; ++ i)

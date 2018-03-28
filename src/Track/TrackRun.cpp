@@ -76,7 +76,8 @@ namespace {
         FNAME,        // The name of file to be written.
         TURNS,        // The number of turns to be tracked.
         MBMODE,       // The working way for multi-bunch mode for OPAL-cycl: "FORCE" or "AUTO"
-        PARAMB,       // The control parameter for "AUTO" mode of multi-bunch
+        PARAMB,       // The control parameter for "AUTO" mode of multi-bunch,
+        MB_ETA,       // The scale parameter for binning in multi-bunch mode
         BEAM,         // The beam to track
         FIELDSOLVER,  // The field solver attached
         BOUNDARYGEOMETRY, // The boundary geometry
@@ -110,6 +111,10 @@ TrackRun::TrackRun():
 
     itsAttr[PARAMB] = Attributes::makeReal
                       ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
+    
+    itsAttr[MB_ETA] = Attributes::makeReal("MB_ETA",
+                                           "The scale parameter for binning in multi-bunch mode",
+                                           0.01);
 
     itsAttr[FNAME] = Attributes::makeString
                      ("FILE", "Name of file to be written", "TRACK");
@@ -885,7 +890,8 @@ void TrackRun::setupCyclotronTracker(){
     if(specifiedNumBunch > 1) {
 
         // only for regular  run of multi bunches, instantiate the  PartBins class
-        // note that for restart run of multi bunches, PartBins class is instantiated in function doRestart_cycl()
+        // note that for restart run of multi bunches, PartBins class is instantiated in function
+        // Distribution::doRestartOpalCycl()
         if(!opal->inRestartRun()) {
 
             // already exist bins number initially
@@ -910,7 +916,8 @@ void TrackRun::setupCyclotronTracker(){
         //        then starts to generate new bunches after each revolution,until get "TURNS" bunches;
         //        otherwise, run single bunch track
 
-        *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE------ ----------------------------*** " << endl;
+        *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE "
+              << "----------------------------*** " << endl;
 
         double paraMb = Attributes::getReal(itsAttr[PARAMB]);
         itsTracker->setParaAutoMode(paraMb);
@@ -920,36 +927,20 @@ void TrackRun::setupCyclotronTracker(){
             itsTracker->setLastDumpedStep(opal->getRestartStep());
 
             if(Track::block->bunch->pbin_m->getLastemittedBin() < 2) {
-                itsTracker->setMultiBunchMode(2);
                 *gmsg << "In this restart job, the multi-bunches mode is forcely set to AUTO mode." << endl;
+                itsTracker->setMultiBunchMode("AUTO");
             } else {
-                itsTracker->setMultiBunchMode(1);
                 *gmsg << "In this restart job, the multi-bunches mode is forcely set to FORCE mode." << endl
-                      << "If the existing bunch number is less than the specified number of TURN, readin the phase space of STEP#0 from h5 file consecutively" << endl;
+                      << "If the existing bunch number is less than the specified number of TURN, "
+                      << "readin the phase space of STEP#0 from h5 file consecutively" << endl;
+                itsTracker->setMultiBunchMode("FORCE");
             }
         } else {
-            //////
-            if((Attributes::getString(itsAttr[MBMODE])) == std::string("FORCE")) {
-                itsTracker->setMultiBunchMode(1);
-                *gmsg << "FORCE mode: The multi bunches will be injected consecutively after each revolution, until get \"TURNS\" bunches." << endl;
-
-
-            }
-            //////
-            else if((Attributes::getString(itsAttr[MBMODE])) == std::string("AUTO")) {
-
-
-                itsTracker->setMultiBunchMode(2);
-
-                *gmsg << "AUTO mode: The multi bunches will be injected only when the distance between two neighboring bunches " << endl
-                      << "is below the limitation. The control parameter is set to " << paraMb << endl;
-            }
-            //////
-            else
-                throw OpalException("TrackRun::execute()",
-                                    "MBMODE name \"" + Attributes::getString(itsAttr[MBMODE]) + "\" unknown.");
+            std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));            
+            itsTracker->setMultiBunchMode(mbmode);
         }
-
+        
+        dynamic_cast<ParallelCyclotronTracker*>(itsTracker)->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
     }
 }
 
@@ -1003,7 +994,7 @@ void TrackRun::setupFieldsolver() {
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
-        if (numParticles < numGridPoints)
+        if (!opal->inRestartRun() && numParticles < numGridPoints)
             throw OpalException("TrackRun::setupFieldsolver()",
                                 "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
                                 "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +

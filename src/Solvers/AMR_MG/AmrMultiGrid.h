@@ -668,6 +668,7 @@ private:
     int nBcPoints_m;                    ///< maximum number of stencils points for BC
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
+    std::string snorm_m;    ///< norm for convergence criteria
     
     const scalar_t eps_m;   ///< rhs scale for convergence
     

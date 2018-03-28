@@ -102,6 +102,8 @@ public:
                          bool scan);
 
     bool isGridFixed();
+    
+    bool hasBinning();
 
 
     /*
