@@ -1,4 +1,3 @@
-cmake_minimum_required (VERSION 2.8.10)
 set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
 
 set (CMAKE_CXX_FLAGS
@@ -148,8 +147,9 @@ target_link_libraries (libOPAL
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
+    ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARY}
+    ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     m
     z

@@ -25,7 +25,7 @@ SET (SDDS_LIBS
     mdblib
     lzma
     ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARY}
+    ${HDF5_LIBRARIES}
     z
     ${MPI_LIBRARIES}
     dl
