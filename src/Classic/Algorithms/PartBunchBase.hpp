@@ -573,6 +573,12 @@ bool PartBunchBase<T, Dim>::isGridFixed() {
 
 
 template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::hasBinning() {
+    return (pbin_m != nullptr);
+}
+
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setTEmission(double t) {
     tEmission_m = t;
 }
@@ -715,13 +721,16 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
         bingamma_m[i] = 0.0;
     for(unsigned int n = 0; n < getLocalNum(); n++)
         bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+
+    allreduce(*bingamma_m.get(), emittedBins, std::plus<double>());
+
     for(int i = 0; i < emittedBins; i++) {
-        reduce(bingamma_m[i], bingamma_m[i], OpAddAssign());
         if(pbin_m->getTotalNumPerBin(i) > 0)
             bingamma_m[i] /= pbin_m->getTotalNumPerBin(i);
         else
             bingamma_m[i] = 0.0;
-        INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i) << " gamma = " << bingamma_m[i] << endl);
+        INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i)
+                       << " gamma = " << bingamma_m[i] << endl);
     }
 
 }

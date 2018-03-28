@@ -66,10 +66,6 @@ public:
     /// return the name of time integrator
     int getTIMEINTEGRATOR() const;
 
-    /// return the number of neighbouring bunches
-    int getNNB() const;
-
-
 private:
 
     // Not implemented.
