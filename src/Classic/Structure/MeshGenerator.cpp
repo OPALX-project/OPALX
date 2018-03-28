@@ -332,7 +332,7 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << "normAxis = math.sqrt(dot(axis, axis))\n\n";
 
     out << indent << "if normAxis < 1e-12:\n";
-    out << indent << indent << "if math.abs(dot(u, ref) - 1.0) < 1e-12:\n";
+    out << indent << indent << "if math.fabs(dot(u, ref) - 1.0) < 1e-12:\n";
     out << indent << indent << indent << "return Quaternion([1.0, 0.0, 0.0, 0.0])\n\n";
 
     out << indent << indent << "return Quaternion([0.0, 1.0, 0.0, 0.0])\n\n";

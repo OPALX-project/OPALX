@@ -44,7 +44,7 @@ link_directories (
     
 SET (LIBS
     ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARY}
+    ${HDF5_LIBRARIES}
     ${IPPL_LIBRARY}
     ippl
     ${Boost_LIBRARIES}
