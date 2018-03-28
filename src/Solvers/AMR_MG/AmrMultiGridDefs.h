@@ -16,7 +16,7 @@ namespace amr {
     // All Tpetra
     typedef double scalar_t;
     typedef int local_ordinal_t;
-    typedef int global_ordinal_t;
+    typedef long global_ordinal_t;
     
 #ifdef AMR_MG_SERIAL_NODE
     typedef ::Kokkos::Compat::KokkosSerialWrapperNode node_t;
