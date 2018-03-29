@@ -30,7 +30,6 @@ namespace Options {
     bool warn = true;
     bool psDumpEachTurn = false;
     DumpFrame psDumpFrame = GLOBAL;
-    bool scan = false;
     bool rhoDump = false;
     bool ebDump = false;
 
