@@ -1486,6 +1486,7 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
     totalNumberParticles_m = numberOfParticles;
     if (beam->getTotalNum() != 0) {
         numberOfPartToCreate = beam->getLocalNum();
+    }
 
     // Setup particle bin structure.
     setupParticleBins(beam->getM(),beam);
