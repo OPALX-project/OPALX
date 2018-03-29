@@ -1731,8 +1731,6 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
 
     numParticles = lastParticle - firstParticle + 1;
     
-    PAssert_GE(numParticles, 0l);
-    
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
 #ifdef ENABLE_AMR
