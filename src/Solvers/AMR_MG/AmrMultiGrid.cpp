@@ -21,6 +21,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                            const std::string& bsolver,
                            const std::string& prec,
                            const bool& rebalance,
+                           const std::string& reuse,
                            const std::string& bcx,
                            const std::string& bcy,
                            const std::string& bcz,
@@ -70,11 +71,11 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     
     // preconditioner
     const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initPrec_m(precond, rebalance);
+    this->initPrec_m(precond, rebalance, reuse);
     
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
-    this->initBaseSolver_m(solver, rebalance);
+    this->initBaseSolver_m(solver, rebalance, reuse);
     
     if (boost::filesystem::exists(fname_m)) {
         flag_m = std::ios::app;
@@ -1833,7 +1834,8 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
 
 
 void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
-                                    const bool& rebalance)
+                                    const bool& rebalance,
+                                    const std::string& reuse)
 {
     switch ( solver ) {
         // Belos solvers
@@ -1893,8 +1895,11 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
             break;
 #endif
         case BaseSolver::SA:
-            solver_mp.reset( new MueLuSolver_t(rebalance) );
+        {
+            std::string muelu = MueLuSolver_t::convertToMueLuReuseOption(reuse);
+            solver_mp.reset( new MueLuSolver_t(rebalance, muelu) );
             break;
+        }
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
@@ -1903,7 +1908,8 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
 
 
 void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
-                              const bool& rebalance)
+                              const bool& rebalance,
+                              const std::string& reuse)
 {
     switch ( prec ) {
         case Preconditioner::ILUT:
@@ -1917,7 +1923,8 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
             break;
         case Preconditioner::SA:
         {
-            prec_mp.reset( new MueLuPreconditioner_t(rebalance) );
+            std::string muelu = MueLuPreconditioner_t::convertToMueLuReuseOption(reuse);
+            prec_mp.reset( new MueLuPreconditioner_t(rebalance, muelu) );
             break;
         }
         case Preconditioner::NONE:
