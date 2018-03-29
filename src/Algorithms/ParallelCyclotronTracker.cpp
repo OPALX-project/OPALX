@@ -1645,20 +1645,22 @@ void ParallelCyclotronTracker::saveOneBunch() {
     Ppos_t coord, momentum;
     ParticleAttrib<double> mass, charge;
     ParticleAttrib<short> ptype;
+    
+    std::size_t localNum = itsBunch_m->getLocalNum();
 
-    coord.create(initialLocalNum_m);
+    coord.create(localNum);
     coord = itsBunch_m->R;
 
-    momentum.create(initialLocalNum_m);
+    momentum.create(localNum);
     momentum = itsBunch_m->P;
 
-    mass.create(initialLocalNum_m);
+    mass.create(localNum);
     mass = itsBunch_m->M;
 
-    charge.create(initialLocalNum_m);
+    charge.create(localNum);
     charge = itsBunch_m->Q;
 
-    ptype.create(initialLocalNum_m);
+    ptype.create(localNum);
     ptype = itsBunch_m->PType;
 
     std::map<std::string, double> additionalAttributes = {
@@ -1690,7 +1692,7 @@ void ParallelCyclotronTracker::saveOneBunch() {
         std::make_pair("E-tail_y", 0.0)
     };
     
-    H5PartWrapperForPC h5wrapper(onebunch_m);
+    H5PartWrapperForPC h5wrapper(onebunch_m, H5_O_WRONLY);
     h5wrapper.writeHeader();
     h5wrapper.writeStep(itsBunch_m, additionalAttributes);
     h5wrapper.close();
@@ -1706,6 +1708,31 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     
     std::size_t localNum = itsBunch_m->getLocalNum();
 
+    /*
+     * 2nd argument: 0  --> step zero is fine since the file has only this step
+     * 3rd argument: "" --> onebunch_m is used
+     * 4th argument: H5_O_RDONLY does not work with this constructor
+     */
+    H5PartWrapperForPC h5wrapper(onebunch_m, 0, "", H5_O_WRONLY);
+    
+    size_t numParticles = h5wrapper.getNumParticles();
+    
+    if ( numParticles == 0 ) {
+        throw OpalException("ParallelCyclotronTracker::readOneBunchFromFile()",
+                            "No particles in file " + onebunch_m + ".");
+    }
+    
+    size_t numParticlesPerNode = numParticles / Ippl::getNodes();
+    
+    size_t firstParticle = numParticlesPerNode * Ippl::myNode();
+    size_t lastParticle = firstParticle + numParticlesPerNode - 1;
+    if (Ippl::myNode() == Ippl::getNodes() - 1)
+        lastParticle = numParticles - 1;
+
+    numParticles = lastParticle - firstParticle + 1;
+    
+    PAssert_GE(numParticles, 0l);
+    
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
 #ifdef ENABLE_AMR
@@ -1715,28 +1742,14 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
 #endif
         tmpBunch.reset(new PartBunch(&itsReference));
     
-    H5PartWrapperForPC dataSource(onebunch_m, H5_O_RDONLY);
+    tmpBunch->create(numParticles);
     
-    long numParticles = dataSource.getNumParticles();
-    size_t numParticlesPerNode = numParticles / Ippl::getNodes();
-
-    size_t firstParticle = numParticlesPerNode * Ippl::myNode();
-    size_t lastParticle = firstParticle + numParticlesPerNode - 1;
-    if (Ippl::myNode() == Ippl::getNodes() - 1)
-        lastParticle = numParticles - 1;
-
-    numParticles = lastParticle - firstParticle + 1;
-    PAssert_GE(numParticles, 0l);
-
-    dataSource.readStep(tmpBunch.get(), firstParticle, lastParticle);
-    dataSource.close();
-
-    tmpBunch->boundp();
+    h5wrapper.readStep(tmpBunch.get(), firstParticle, lastParticle);
+    h5wrapper.close();
     
-    std::size_t tmpLocalNum = tmpBunch->getLocalNum();
-    itsBunch_m->create(tmpLocalNum);
+    itsBunch_m->create(numParticles);
     
-    for(size_t ii = 0; ii < tmpLocalNum; ++ ii, ++ localNum) {
+    for(size_t ii = 0; ii < numParticles; ++ ii, ++ localNum) {
         itsBunch_m->R[localNum] = tmpBunch->R[ii];
         itsBunch_m->P[localNum] = tmpBunch->P[ii];
         itsBunch_m->M[localNum] = tmpBunch->M[ii];
@@ -3536,7 +3549,7 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
         // 3. Number of existing bunches is less than the desired number of bunches
         // 4. FORCE mode, or AUTO mode with flagTransition = true
         // Note: restart from 1 < BunchCount < numBunch_m must be avoided.
-        *gmsg << "* MBM: Step " << step_m << ", injecting a new bunch... ... ..." << endl;
+        *gmsg << "* MBM: Step " << step_m << ", injecting a new bunch ..." << endl;
 
         BunchCount_m++;
 
