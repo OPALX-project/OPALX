@@ -1728,10 +1728,10 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     size_t lastParticle = firstParticle + numParticlesPerNode - 1;
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
+    
+    PAssert_LT(firstParticle, lastParticle +1);
 
     numParticles = lastParticle - firstParticle + 1;
-    
-    PAssert_GE(numParticles, 0l);
     
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
@@ -2887,14 +2887,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
         step_m = restartStep0_m;
         
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
-    }
-
-    // TODO: Comment about what scan option does -DW
-    if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
-
-        lastDumpedStep_m = 0;
-        itsBunch_m->setT(0.0);
-        t = 0.0;
     }
 
     initDistInGlobalFrame();
