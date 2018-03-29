@@ -1729,7 +1729,7 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     if (Ippl::myNode() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
     
-    PAssertLE(firstParticle, lastParticle);
+    PAssert_LT(firstParticle, lastParticle +1);
 
     numParticles = lastParticle - firstParticle + 1;
     
