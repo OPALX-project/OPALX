@@ -18,6 +18,73 @@ std::string FCall("([a-z]*)\\((.*)");
 
 typedef std::string::iterator iterator;
 
+struct BoundingVolume {
+    virtual bool isInside(const Vector_t &X) const = 0;
+};
+
+struct BoundingBox: public BoundingVolume {
+    Vector_t center_m;
+    double width_m;
+    double height_m;
+
+    BoundingBox():
+        center_m(0.0),
+        width_m(0.0),
+        height_m(0.0)
+    { }
+
+    BoundingBox(const Vector_t &llc,
+                const Vector_t &urc):
+        center_m(0.5 * (llc + urc)),
+        width_m(urc[0] - llc[0]),
+        height_m(urc[1] - llc[1])
+    { }
+
+    virtual bool isInside(const Vector_t &X) const {
+        if (2 * std::abs(X[0] - center_m[0]) <= width_m &&
+            2 * std::abs(X[1] - center_m[1]) <= height_m)
+            return true;
+
+        return false;
+    }
+
+    virtual void writeGnuplot(std::ofstream &out) const {
+        std::vector<Vector_t> pts({Vector_t(center_m[0] + 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
+                                   Vector_t(center_m[0] - 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
+                                   Vector_t(center_m[0] - 0.5 * width_m, center_m[1] - 0.5 * height_m, 0),
+                                   Vector_t(center_m[0] + 0.5 * width_m, center_m[1] - 0.5 * height_m, 0)});
+        unsigned int width = out.precision() + 8;
+        for (unsigned int i = 0; i < 5; ++ i) {
+            Vector_t & pt = pts[i % 4];
+
+            out << std::setw(width) << pt[0]
+                << std::setw(width) << pt[1]
+                << std::endl;
+        }
+        out << std::endl;
+    }
+};
+
+struct BoundingSphere: public BoundingVolume {
+    Vector_t center_m;
+    double radiusSqr_m;
+
+    BoundingSphere(const Vector_t &c,
+                   double r):
+        center_m(c),
+        radiusSqr_m(r*r)
+    { }
+
+    virtual bool isInside(const Vector_t &X) const {
+        if (std::pow(X[0] - center_m[0], 2) +
+            std::pow(X[1] - center_m[1], 2) < radiusSqr_m)
+            return true;
+
+        return false;
+    }
+
+};
+
 struct AffineTransformation: public Tenzor<double, 3> {
     AffineTransformation(const Vector_t& row0,
                          const Vector_t& row1):
@@ -54,7 +121,9 @@ struct AffineTransformation: public Tenzor<double, 3> {
     Vector_t transformTo(const Vector_t &v) const {
         const Tenzor<double, 3> &A = *static_cast<const Tenzor<double, 3>* >(this);
         Vector_t b(v[0], v[1], 1.0);
-        return dot(A, b);
+        Vector_t w = dot(A, b);
+
+        return Vector_t(w[0], w[1], 0.0);
     }
 
     Vector_t transformFrom(const Vector_t &v) const {
@@ -87,6 +156,7 @@ bool parse(iterator &it, const iterator &end, Function* &fun);
 
 struct Base: public Function {
     AffineTransformation trafo_m;
+    BoundingBox bb_m;
     // std::tuple<unsigned int,
     //            double,
     //            double> repeat_m;
@@ -97,6 +167,7 @@ struct Base: public Function {
 
     virtual Base* clone() = 0;
     virtual void writeGnuplot(std::ofstream &out) const = 0;
+    virtual void computeBoundingBox() = 0;
 };
 
 struct Rectangle: public Base {
@@ -126,6 +197,28 @@ struct Rectangle: public Base {
                   << indent2 << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2) << std::endl;
     }
 
+    virtual void computeBoundingBox() {
+        std::vector<Vector_t> corners({Vector_t(0.5 * width_m, 0.5 * height_m, 0),
+                    Vector_t(-0.5 * width_m, 0.5 * height_m, 0),
+                    Vector_t(-0.5 * width_m, -0.5 * height_m, 0),
+                    Vector_t(0.5 * width_m, -0.5 * height_m, 0)});
+
+        for (Vector_t &v: corners) {
+            v = trafo_m.transformFrom(v);
+        }
+
+        Vector_t llc = corners[0], urc = corners[0];
+        for (unsigned int i = 1; i < 4; ++ i) {
+            if (corners[i][0] < llc[0]) llc[0] = corners[i][0];
+            else if (corners[i][0] > urc[0]) urc[0] = corners[i][0];
+
+            if (corners[i][1] < llc[1]) llc[1] = corners[i][1];
+            else if (corners[i][1] > urc[1]) urc[1] = corners[i][1];
+        }
+
+        bb_m = BoundingBox(llc, urc);
+    }
+
     virtual void writeGnuplot(std::ofstream &out) const {
         std::vector<Vector_t> pts({Vector_t(0.5 * width_m, 0.5 * height_m, 0),
                                    Vector_t(-0.5 * width_m, 0.5 * height_m, 0),
@@ -141,6 +234,8 @@ struct Rectangle: public Base {
                 << std::endl;
         }
         out << std::endl;
+
+        bb_m.writeGnuplot(out);
     }
 
     virtual void apply(std::vector<Base*> &bfuncs) {
@@ -198,16 +293,13 @@ struct Ellipse: public Base {
                   << indent2 << "h: " << height_m << ", \n"
                   << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
                   << indent2 << "angle: " << angle << "\n"
-                  << indent2 << trafo_m(0, 0) << "\t" << trafo_m(0, 1) << "\t" << trafo_m(0, 2) << "\n"
-                  << indent2 << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
-                  << indent2 << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2) << std::endl;
+                  // << indent2 << trafo_m(0, 0) << "\t" << trafo_m(0, 1) << "\t" << trafo_m(0, 2) << "\n"
+                  // << indent2 << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
+                  // << indent2 << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2)
+                  << std::endl;
     }
 
     virtual void writeGnuplot(std::ofstream &out) const {
-        std::vector<Vector_t> pts({Vector_t(0.5 * width_m, 0.5 * height_m, 0),
-                                   Vector_t(-0.5 * width_m, 0.5 * height_m, 0),
-                                   Vector_t(-0.5 * width_m, -0.5 * height_m, 0),
-                                   Vector_t(0.5 * width_m, -0.5 * height_m, 0)});
         const unsigned int N = 101;
         const double dp = Physics::two_pi / (N - 1);
         const unsigned int colwidth = out.precision() + 8;
@@ -228,15 +320,7 @@ struct Ellipse: public Base {
         }
         out << std::endl;
 
-        for (unsigned int i = 0; i < 5; ++ i) {
-            Vector_t pt = pts[i % 4];
-            pt = trafo_m.transformFrom(pt);
-
-            out << std::setw(colwidth) << pt[0]
-                << std::setw(colwidth) << pt[1]
-                << std::endl;
-        }
-        out << std::endl;
+        bb_m.writeGnuplot(out);
     }
 
     virtual void apply(std::vector<Base*> &bfuncs) {
@@ -250,6 +334,35 @@ struct Ellipse: public Base {
         elps->trafo_m = trafo_m;
 
         return elps;
+    }
+
+    virtual void computeBoundingBox() {
+        // TODO: Currently doesn't take into account shear operation!!
+        Vector_t llc(0.0), urc(0.0);
+        const Vector_t e_x(1.0, 0.0, 0.0), e_y(0.0, 1.0, 0.0);
+        const Vector_t center = trafo_m.transformFrom(Vector_t(0.0));
+        const Vector_t e_xp = trafo_m.transformFrom(e_x) - center;
+        const Vector_t e_yp = trafo_m.transformFrom(e_y) - center;
+        const double &M11 = e_xp[0];
+        const double &M12 = e_yp[0];
+        const double &M21 = e_xp[1];
+        const double &M22 = e_yp[1];
+
+        double t = atan2(height_m * M12, width_m * M11);
+        double halfwidth = 0.5 * (M11 * width_m * cos(t) +
+                                  M12 * height_m * sin(t));
+        llc[0] = center[0] - std::abs(halfwidth);
+        urc[0] = center[0] + std::abs(halfwidth);
+
+        t = atan2(height_m * M22, width_m * M21);
+
+        double halfheight = 0.5 * (M21 * width_m * cos(t) +
+                                   M22 * height_m * sin(t));
+
+        llc[1] = center[1] - std::abs(halfheight);
+        urc[1] = center[1] + std::abs(halfheight);
+
+        bb_m = BoundingBox(llc, urc);
     }
 
     static
@@ -686,6 +799,7 @@ int main(int argc, char *argv[])
         std::ofstream out("test.gpl");
         for (Base* bfun: baseBlocks) {
             bfun->print(0);
+            bfun->computeBoundingBox();
             std::cout << std::endl;
             bfun->writeGnuplot(out);
         }

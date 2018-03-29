@@ -112,11 +112,6 @@ namespace Options {
     // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
     extern int mtsSubsteps;
 
-    /// this allows to repeat tracks starting always at the begining of the lattice and
-    /// generates a new distribution
-
-    extern bool scan;
-
     extern bool rhoDump;
 
     extern bool ebDump;
