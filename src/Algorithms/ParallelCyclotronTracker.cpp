@@ -2889,14 +2889,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
 
-    // TODO: Comment about what scan option does -DW
-    if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
-
-        lastDumpedStep_m = 0;
-        itsBunch_m->setT(0.0);
-        t = 0.0;
-    }
-
     initDistInGlobalFrame();
     
     if ( OpalData::getInstance()->inRestartRun() && numBunch_m > 1)
