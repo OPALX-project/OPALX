@@ -513,35 +513,6 @@ void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle)
 }
 
 
-/** \brief After each Schottky scan we delete all the particles.
-
- */
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::cleanUpParticles() {
-
-    size_t np = getTotalNum();
-    bool scan = false;
-
-    destroy(getLocalNum(), 0, true);
-
-    dist_m->createOpalT(this, np, scan);
-
-    update();
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::resetIfScan()
-/*
-  In case of a scan we have
-  to reset some variables
- */
-{
-    dt = 0.0;
-    localTrackStep_m = 0;
-}
-
-
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::do_binaryRepart() {
     // do nothing here
@@ -551,18 +522,17 @@ void PartBunchBase<T, Dim>::do_binaryRepart() {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
                                             std::vector<Distribution *> addedDistributions,
-                                            size_t &np,
-                                            bool scan)
+                                            size_t &np)
 {
     Inform m("setDistribution " );
     dist_m = d;
 
-    dist_m->createOpalT(this, addedDistributions, np, scan);
+    dist_m->createOpalT(this, addedDistributions, np);
 
 //    if (Options::cZero)
-//        dist_m->create(this, addedDistributions, np / 2, scan);
+//        dist_m->create(this, addedDistributions, np / 2);
 //    else
-//        dist_m->create(this, addedDistributions, np, scan);
+//        dist_m->create(this, addedDistributions, np);
 }
 
 

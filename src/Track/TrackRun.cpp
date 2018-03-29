@@ -246,7 +246,7 @@ void TrackRun::execute() {
 
 void TrackRun::setupSliceTracker() {
     // OpalData::getInstance()->setInOPALEnvMode();
-    // bool isFollowupTrack = opal->hasSLBunchAllocated() && !Options::scan;
+    // bool isFollowupTrack = opal->hasSLBunchAllocated();
     // if(!opal->hasSLBunchAllocated()) {
     //     *gmsg << "* ********************************************************************************** " << endl;
     //     *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, NEW TRACK" << endl;
@@ -254,10 +254,6 @@ void TrackRun::setupSliceTracker() {
     // } else if(isFollowupTrack) {
     //     *gmsg << "* ********************************************************************************** " << endl;
     //     *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, FOLLOWUP TRACK" << endl;
-    //     *gmsg << "* ********************************************************************************** " << endl;
-    // } else if(opal->hasSLBunchAllocated() && Options::scan) {
-    //     *gmsg << "* ********************************************************************************** " << endl;
-    //     *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, SCAN TRACK" << endl;
     //     *gmsg << "* ********************************************************************************** " << endl;
     // }
 
@@ -369,31 +365,17 @@ void TrackRun::setupSliceTracker() {
 void TrackRun::setupThickTracker()
 {
     OpalData::getInstance()->setInOPALThickTrackerMode();
-    bool isFollowupTrack = (opal->hasBunchAllocated() && !Options::scan);
+    bool isFollowupTrack = opal->hasBunchAllocated();
 
-    if(opal->hasBunchAllocated()) {
-        if (Options::scan) {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == THICK, FOLLOWUP TRACK in SCAN MODE" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-            Track::block->bunch->setLocalTrackStep(0);
-            Track::block->bunch->setGlobalTrackStep(0);
-        } else {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == THICK, FOLLOWUP TRACK" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-            Track::block->bunch->setLocalTrackStep(0);
-        }
+    if(isFollowupTrack) {
+        *gmsg << "* ********************************************************************************** " << endl;
+        *gmsg << "* Selected Tracking Method == THICK, FOLLOWUP TRACK" << endl;
+        *gmsg << "* ********************************************************************************** " << endl;
+        Track::block->bunch->setLocalTrackStep(0);
     } else {
-        if (Options::scan) {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == THICK, NEW TRACK in SCAN MODE" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-        } else {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == THICK, NEW TRACK" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-        }
+        *gmsg << "* ********************************************************************************** " << endl;
+        *gmsg << "* Selected Tracking Method == THICK, NEW TRACK" << endl;
+        *gmsg << "* ********************************************************************************** " << endl;
     }
 
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
@@ -446,11 +428,7 @@ void TrackRun::setupThickTracker()
     Track::block->bunch->calcBeamParameters();
 
     if(!opal->inRestartRun()) {
-        if(!opal->hasDataSinkAllocated() && !Options::scan) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m));
-        } else if(Options::scan) {
-            ds = opal->getDataSink();
-            delete ds;
+        if(!opal->hasDataSinkAllocated()) {
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else {
             ds = opal->getDataSink();
@@ -462,10 +440,7 @@ void TrackRun::setupThickTracker()
 
     ds = opal->getDataSink();
 
-    if(opal->hasBunchAllocated() && Options::scan)
-      ds->reset();
-
-    if(!opal->hasBunchAllocated() || Options::scan)
+    if(!opal->hasBunchAllocated())
       *gmsg << *dist << endl;
 
     if (Track::block->bunch->getTotalNum() > 0) {
@@ -503,35 +478,17 @@ void TrackRun::setupThickTracker()
 
 void TrackRun::setupTTracker(){
     OpalData::getInstance()->setInOPALTMode();
-    bool isFollowupTrack = (opal->hasBunchAllocated() && !Options::scan);
+    bool isFollowupTrack = opal->hasBunchAllocated();
 
-    if(opal->hasBunchAllocated()) {
-        if (Options::scan) {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK in SCAN MODE" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-            Track::block->bunch->setLocalTrackStep(0);
-            Track::block->bunch->setGlobalTrackStep(0);
-            Track::block->bunch->set_sPos(0.0);
-            Track::block->bunch->RefPartR_m = Vector_t(0.0);
-            Track::block->bunch->RefPartP_m = Vector_t(0.0);
-        } else {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-            Track::block->bunch->setLocalTrackStep(0);
-        }
+    if(isFollowupTrack) {
+        *gmsg << "* ********************************************************************************** " << endl;
+        *gmsg << "* Selected Tracking Method == PARALLEL-T, FOLLOWUP TRACK" << endl;
+        *gmsg << "* ********************************************************************************** " << endl;
+        Track::block->bunch->setLocalTrackStep(0);
     } else {
-        if (Options::scan) {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == PARALLEL-T, NEW TRACK in SCAN MODE" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-
-        } else {
-            *gmsg << "* ********************************************************************************** " << endl;
-            *gmsg << "* Selected Tracking Method == PARALLEL-T, NEW TRACK" << endl;
-            *gmsg << "* ********************************************************************************** " << endl;
-        }
+        *gmsg << "* ********************************************************************************** " << endl;
+        *gmsg << "* Selected Tracking Method == PARALLEL-T, NEW TRACK" << endl;
+        *gmsg << "* ********************************************************************************** " << endl;
     }
 
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
@@ -593,57 +550,7 @@ void TrackRun::setupTTracker(){
     }
 
     if(!opal->inRestartRun()) {
-        if(!opal->hasDataSinkAllocated() && !Options::scan) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m));
-        } else if(Options::scan) {
-            ds = opal->getDataSink();
-            namespace fs = boost::filesystem;
-            std::string basename = opal->getInputBasename() + "_scan_";
-            if (ds == NULL) {
-                const boost::regex my_filter( basename + "[0-9]{5,5}\\.stat" );
-
-                std::vector< std::string > all_matching_files;
-
-                fs::directory_iterator end_itr; // Default ctor yields past-the-end
-                for( fs::directory_iterator it( "." ); it != end_itr; ++ it )
-                    {
-                        // Skip if not a file
-                        if( !fs::is_regular_file( it->status() ) ) continue;
-
-                        boost::smatch what;
-                        std::string filename = it->path().filename().native();
-
-                        if( !boost::regex_match(filename , what, my_filter ) ) continue;
-
-                        fs::remove(it->path());
-                    }
-            } else {
-                if (Ippl::myNode() == 0) {
-                    size_t n = 1;
-                    std::string filename = basename + "00001.stat";
-                    while (fs::exists(filename)) {
-                        std::ostringstream oss;
-                        oss.fill('0');
-                        oss.width(5);
-                        oss << ++ n;
-                        filename = basename + oss.str() + ".stat";
-                    }
-
-                    delete ds;
-
-                    std::ostringstream oss;
-                    std::string from = opal->getInputBasename() + ".stat";
-                    oss << std::setfill('0') << std::setw(5) << n;
-                    std::string to = basename + oss.str() + ".stat";
-
-                    fs::copy_file(from, to, fs::copy_option::overwrite_if_exists);
-
-                } else {
-                    delete ds;
-                }
-            }
-            Ippl::Comm->barrier();
-
+        if(!opal->hasDataSinkAllocated()) {
             opal->setDataSink(new DataSink(phaseSpaceSink_m));
         } else {
             ds = opal->getDataSink();
@@ -655,10 +562,7 @@ void TrackRun::setupTTracker(){
 
     ds = opal->getDataSink();
 
-    if(opal->hasBunchAllocated() && Options::scan)
-        ds->reset();
-
-    if(!opal->hasBunchAllocated() || Options::scan) {
+    if(!opal->hasBunchAllocated()) {
         if(!mpacflg) {
             *gmsg << std::scientific;
             *gmsg << *dist << endl;
@@ -745,7 +649,7 @@ void TrackRun::setupCyclotronTracker(){
                                                   opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
-    } else if (opal->hasBunchAllocated() && !Options::scan) {
+    } else if (opal->hasBunchAllocated()) {
         phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
                                                   opal->getInputBasename() + std::string(".h5"),
@@ -760,8 +664,7 @@ void TrackRun::setupCyclotronTracker(){
         macromass = beam->getMass();
         dist->createOpalCycl(Track::block->bunch,
                              beam->getNumberOfParticles(),
-                             beam->getCurrent(),*Track::block->use->fetchLine(),
-                             Options::scan);
+                             beam->getCurrent(),*Track::block->use->fetchLine());
 
     } else {
 
@@ -779,8 +682,7 @@ void TrackRun::setupCyclotronTracker(){
                 dist->createOpalCycl(Track::block->bunch,
                                      beam->getNumberOfParticles(),
                                      beam->getCurrent(),
-                                     *Track::block->use->fetchLine(),
-                                     Options::scan);
+                                     *Track::block->use->fetchLine());
 
             } else {
                 dist->doRestartOpalCycl(Track::block->bunch,
@@ -791,14 +693,6 @@ void TrackRun::setupCyclotronTracker(){
                 macrocharge /= beam->getNumberOfParticles();
                 macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
             }
-        } else if(opal->hasBunchAllocated() && Options::scan) {
-            macrocharge /= beam->getNumberOfParticles();
-            macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
-            dist->createOpalCycl(Track::block->bunch,
-                                 beam->getNumberOfParticles(),
-                                 beam->getCurrent(),
-                                 *Track::block->use->fetchLine(),
-                                 Options::scan);
         }
     }
     Track::block->bunch->setMass(macromass); // set the Mass per macro-particle, [GeV/c^2]
@@ -830,20 +724,13 @@ void TrackRun::setupCyclotronTracker(){
         opal->setDataSink(ds);
     }
 
-    if(opal->hasBunchAllocated() && Options::scan)
-        ds->reset();
-
-    if(!opal->hasBunchAllocated() && !Options::scan) {
+    if(!opal->hasBunchAllocated()) {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == CYCLOTRON-T, NEW TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
-    } else if(opal->hasBunchAllocated() && !Options::scan) {
+    } else {
         *gmsg << "* ********************************************************************************** " << endl;
         *gmsg << "* Selected Tracking Method == CYCLOTRON-T, FOLLOWUP TRACK" << endl;
-        *gmsg << "* ********************************************************************************** " << endl;
-    } else if(opal->hasBunchAllocated() && Options::scan) {
-        *gmsg << "* ********************************************************************************** " << endl;
-        *gmsg << "* Selected Tracking Method == CYCLOTRON-T, SCAN TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
     }
     *gmsg << "* Number of neighbour bunches= " << specifiedNumBunch << endl;
@@ -964,7 +851,7 @@ void TrackRun::setupStatisticalErrors(const std::string & method) {
                                 "number of arguments: " + std::to_string(tmp.size()) + " != 3");
         }
 
-        if(!opal->hasBunchAllocated() && !Options::scan) {
+        if(!opal->hasBunchAllocated()) {
             itsTracker = new StatisticalErrors(*Track::block->use->fetchLine(),
                                                Track::block->reference,
                                                false,
@@ -1070,8 +957,7 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
                  */
                 Track::block->bunch->setDistribution(dist,
                                                      distrs_m,
-                                                     numberOfParticles,
-                                                     Options::scan);
+                                                     numberOfParticles);
 
                 /*
                  * If this is an injected beam (rather than an emitted beam), we
@@ -1086,18 +972,6 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
              */
             dist->doRestartOpalT(Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
         }
-    } else if (opal->hasBunchAllocated() && Options::scan) {
-        /*
-         * We are in scan mode and have already allocated a bunch. So, we need to
-         * do a couple more things.
-         */
-        Track::block->bunch->setDistribution(dist,
-                                             distrs_m,
-                                             numberOfParticles,
-                                             Options::scan);
-        Track::block->bunch->resetIfScan();
-
-        opal->setGlobalPhaseShift(0.5 * dist->getTEmission() + dist->getEmissionTimeShift());
     }
 
     // Return charge per macroparticle.
