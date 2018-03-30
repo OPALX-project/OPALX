@@ -1,7 +1,11 @@
-#include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Vektor.h"
+#include "Algorithms/Quaternion.h"
+#include "AppTypes/Tenzor.h"
 #include "Physics/Physics.h"
 
 #include <boost/regex.hpp>
+
+#include <gsl/gsl_rng.h>
 
 #include <iostream>
 #include <string>
@@ -168,6 +172,7 @@ struct Base: public Function {
     virtual Base* clone() = 0;
     virtual void writeGnuplot(std::ofstream &out) const = 0;
     virtual void computeBoundingBox() = 0;
+    virtual bool isInside(const Vector_t &R) const = 0;
 };
 
 struct Rectangle: public Base {
@@ -217,6 +222,16 @@ struct Rectangle: public Base {
         }
 
         bb_m = BoundingBox(llc, urc);
+    }
+
+    virtual bool isInside(const Vector_t &R) const {
+        if (!bb_m.isInside(R)) return false;
+
+        Vector_t X = trafo_m.transformTo(R);
+        if (2 * std::abs(X[0]) <= width_m &&
+            2 * std::abs(X[1]) <= height_m) return true;
+
+        return false;
     }
 
     virtual void writeGnuplot(std::ofstream &out) const {
@@ -293,9 +308,9 @@ struct Ellipse: public Base {
                   << indent2 << "h: " << height_m << ", \n"
                   << indent2 << "origin: " << origin[0] << ", " << origin[1] << ",\n"
                   << indent2 << "angle: " << angle << "\n"
-                  // << indent2 << trafo_m(0, 0) << "\t" << trafo_m(0, 1) << "\t" << trafo_m(0, 2) << "\n"
-                  // << indent2 << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
-                  // << indent2 << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2)
+                  << indent2 << std::setw(14) << trafo_m(0, 0) << std::setw(14) << trafo_m(0, 1) << std::setw(14) << trafo_m(0, 2) << "\n"
+                  << indent2 << std::setw(14) << trafo_m(1, 0) << std::setw(14) << trafo_m(1, 1) << std::setw(14) << trafo_m(1, 2) << "\n"
+                  << indent2 << std::setw(14) << trafo_m(2, 0) << std::setw(14) << trafo_m(2, 1) << std::setw(14) << trafo_m(2, 2)
                   << std::endl;
     }
 
@@ -337,7 +352,6 @@ struct Ellipse: public Base {
     }
 
     virtual void computeBoundingBox() {
-        // TODO: Currently doesn't take into account shear operation!!
         Vector_t llc(0.0), urc(0.0);
         const Vector_t e_x(1.0, 0.0, 0.0), e_y(0.0, 1.0, 0.0);
         const Vector_t center = trafo_m.transformFrom(Vector_t(0.0));
@@ -365,6 +379,16 @@ struct Ellipse: public Base {
         bb_m = BoundingBox(llc, urc);
     }
 
+    virtual bool isInside(const Vector_t &R) const {
+        if (!bb_m.isInside(R)) return false;
+
+        Vector_t X = trafo_m.transformTo(R);
+        if (4 * (std::pow(X[0] / width_m, 2) + std::pow(X[1] / height_m, 2)) <= 1)
+            return true;
+
+        return false;
+    }
+
     static
     bool parse_detail(iterator &it, const iterator &end, Function* fun) {
         std::string str(it, end);
@@ -382,7 +406,6 @@ struct Ellipse: public Base {
         it += (fullMatch.size() - rest.size() + 1);
 
         return true;
-
     }
 };
 
@@ -411,8 +434,7 @@ struct Repeat: public Function {
         AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
                                    Vector_t(0.0, 1.0, -shifty_m));
         std::cout << shiftx_m << "\t" << shift(0, 2) << std::endl;
-        // CoordinateSystemTrafo shift(Vector_t(shiftx_m, shifty_m, 0.0),
-        //                             Quaternion(1.0, 0.0, 0.0, 0.0));
+
         func_m->apply(bfuncs);
         const unsigned int size = bfuncs.size();
 
@@ -691,6 +713,7 @@ struct Union: public Function {
 
 
 bool parse(std::string str, Function* &fun) {
+    str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
     str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
     iterator it = str.begin();
     iterator end = str.end();
@@ -802,6 +825,48 @@ int main(int argc, char *argv[])
             bfun->computeBoundingBox();
             std::cout << std::endl;
             bfun->writeGnuplot(out);
+        }
+        out.close();
+
+        out.open("particles.gpl");
+        if (baseBlocks.size() > 0) {
+            Vector_t llc, urc;
+            Base* first = baseBlocks.front();
+            const BoundingBox &bb = first->bb_m;
+            llc = Vector_t(bb.center_m[0] - 0.5 * bb.width_m,
+                           bb.center_m[1] - 0.5 * bb.height_m,
+                           0.0);
+            urc = Vector_t(bb.center_m[0] + 0.5 * bb.width_m,
+                           bb.center_m[1] + 0.5 * bb.height_m,
+                           0.0);
+
+            for (unsigned int i = 1; i < baseBlocks.size(); ++ i) {
+                const BoundingBox &bb = baseBlocks[i]->bb_m;
+                llc[0] = std::min(llc[0], bb.center_m[0] - 0.5 * bb.width_m);
+                llc[1] = std::min(llc[1], bb.center_m[1] - 0.5 * bb.height_m);
+                urc[0] = std::max(urc[0], bb.center_m[0] + 0.5 * bb.width_m);
+                urc[1] = std::max(urc[1], bb.center_m[1] + 0.5 * bb.height_m);
+            }
+
+            gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
+
+            for (unsigned int i = 0; i < 100000; ++ i) {
+                Vector_t X(0.0);
+                X[0] = llc[0] + (urc[0] - llc[0]) * gsl_rng_uniform(rng);
+                X[1] = llc[1] + (urc[1] - llc[1]) * gsl_rng_uniform(rng);
+
+                for (Base* func: baseBlocks) {
+                    if (func->isInside(X)) {
+                        out << std::setw(14) << X[0]
+                            << std::setw(14) << X[1]
+                            << std::endl;
+                        break;
+                    }
+                }
+            }
+
+            gsl_rng_free(rng);
+
         }
 
         for (Base* func: baseBlocks) {
