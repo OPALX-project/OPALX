@@ -18,6 +18,7 @@ add_subdirectory(Physics)
 add_subdirectory(Solvers)
 add_subdirectory(Structure)
 add_subdirectory(Utilities)
+add_subdirectory(TrimCoils)
 
 install (FILES Utilities/ClassicException.h Utilities/ClassicRandom.h Utilities/Options.h Utilities/OptionTypes.h 
     DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities"

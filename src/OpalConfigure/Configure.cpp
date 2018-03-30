@@ -63,6 +63,7 @@
 #include "Structure/OpalWake.h"
 #include "Structure/ParticleMatterInteraction.h"
 #include "Utilities/OpalFilter.h"
+#include "TrimCoils/OpalTrimCoil.h"
 #include "Tables/AttList.h"
 #include "Tables/Eigen.h"
 #include "Tables/Envelope.h"
@@ -211,6 +212,7 @@ namespace {
         opal->create(new ParticleMatterInteraction());
 
         opal->create(new OpalFilter());
+        opal->create(new OpalTrimCoil());
 
         opal->create(new Distribution());
 
