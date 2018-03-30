@@ -115,7 +115,7 @@ std::size_t MueLuBottomSolver<Level>::getNumIters() {
 template <class Level>
 void MueLuBottomSolver<Level>::initMueLuList_m() {
     mueluList_m.set("problem: type", "Poisson-3D");
-    mueluList_m.set("verbosity", "extreme");
+    mueluList_m.set("verbosity", "low");
     mueluList_m.set("number of equations", 1);
     mueluList_m.set("max levels", 8);
     mueluList_m.set("cycle type", "V");

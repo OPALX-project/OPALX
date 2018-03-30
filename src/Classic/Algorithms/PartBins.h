@@ -132,7 +132,7 @@ public:
     void setGamma(double gamma) { gamma_m = gamma;}
     double getGamma() {return gamma_m;}
 
-private:
+protected:
 
     double gamma_m;
     /**
@@ -149,8 +149,8 @@ private:
     double xmax_m;
 
     /** extremal particle position within the bins */
-    double *xbinmin_m;
-    double *xbinmax_m;
+    std::unique_ptr<double[]> xbinmin_m;
+    std::unique_ptr<double[]> xbinmax_m;
 
     /** bin size */
     double hBin_m;
@@ -160,7 +160,7 @@ private:
     std::vector< bool > isEmitted_m;
     /** holds information whether all particles of a bin are emitted */
     //  std::vector< bool > binsEmitted_m;
-    bool *binsEmitted_m;
+    std::unique_ptr<bool[]> binsEmitted_m;
 
     /**
         Here comes the new stuff, t-binning
@@ -173,10 +173,10 @@ public:
     int getSBins() { return sBins_m; };
 
     /** get the number of used bin */
-    virtual int getNBins() {return gsl_histogram_bins(h_m) / sBins_m; }
+    virtual int getNBins() {return gsl_histogram_bins(h_m.get()) / sBins_m; }
 
     /** Get the total number of sampled bins */
-    virtual int getNSBins() {return gsl_histogram_bins(h_m); }
+    virtual int getNSBins() {return gsl_histogram_bins(h_m.get()); }
 
     int getBinToEmit() {
         int save;
@@ -206,23 +206,21 @@ public:
 
     /** \brief If the bunch object rebins we need to call resetBins() */
     void resetBins() {
-        if(h_m)
-            delete h_m;
-        h_m = NULL;
+        h_m.reset(nullptr);
     }
 
     virtual bool weHaveBins() {
-        return h_m != NULL;
+        return h_m != nullptr;
     }
 
     /** sort the vector of particles according to the bin number */
     void sortArrayT();
 
-    inline void setHistogram(gsl_histogram *h) { h_m = h;}
+    inline void setHistogram(gsl_histogram *h) { h_m.reset(h);}
 
     /** \brief How many particles are on one bin */
     virtual inline size_t getGlobalBinCount(int bin) {
-        size_t a = gsl_histogram_get(h_m, bin);
+        size_t a = gsl_histogram_get(h_m.get(), bin);
         reduce(a, a, OpAddAssign());
         return a;
     }
@@ -231,13 +229,13 @@ public:
     inline size_t getLocalBinCount(int bin) {
         size_t ret = 0;
         for(int i = sBins_m * bin; i < sBins_m * (bin + 1); i++) {
-            ret += gsl_histogram_get(h_m, i);
+            ret += gsl_histogram_get(h_m.get(), i);
         }
         return ret;
     }
 
     /** \brief How many particles are in one sampling bin */
-    inline size_t getLocalSBinCount(int bin) { return gsl_histogram_get(h_m, bin);}
+    inline size_t getLocalSBinCount(int bin) { return gsl_histogram_get(h_m.get(), bin);}
 
 
     /** \brief How many particles are in all the bins */
@@ -247,7 +245,7 @@ public:
     size_t getTotalNumPerBin(int b);
 
 
-private:
+protected:
 
     /** number of emitted bins */
     int nemittedBins_m;
@@ -256,12 +254,12 @@ private:
     int nemittedSBins_m;
 
     /** number of particles in the bins, the sum of all the nodes */
-    size_t *nBin_m;
+    std::unique_ptr<size_t[]> nBin_m;
 
     /** number of deleted particles in the bins */
-    size_t *nDelBin_m;
+    std::unique_ptr<size_t[]> nDelBin_m;
 
-    gsl_histogram *h_m;
+    std::unique_ptr<gsl_histogram> h_m;
 
 };
 
