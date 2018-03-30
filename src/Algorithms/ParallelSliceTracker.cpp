@@ -127,7 +127,6 @@ void ParallelSliceTracker::execute() {
 
     setTime();
     setLastStep();
-    dumpPhaseSpaceOnScan();
 
     msg << "Track start at: t= " << itsBunch_m->getT()
         << " zstop@ " << zstop_m << " [m]" << endl;
@@ -284,11 +283,6 @@ void ParallelSliceTracker::setLastStep() {
         int prevDumpFreq = OpalData::getInstance()->getRestartDumpFreq();
         step = OpalData::getInstance()->getRestartStep() * prevDumpFreq + 1;
         maxSteps_m += step;
-    } else if (OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
-
-        step = 1;
-        if (!itsBunch_m->doEmission())
-            writePhaseSpace(step - 1, 0.0); // write initial phase space
     } else {
 
         step = OpalData::getInstance()->getLastStep() + 1;
@@ -303,22 +297,8 @@ void ParallelSliceTracker::setTime() {
 
     if (OpalData::getInstance()->inRestartRun())
         currentSimulationTime_m = itsBunch_m->getT();
-    else if (OpalData::getInstance()->hasBunchAllocated() && Options::scan)
-        itsBunch_m->setT(0.0);
     else
         currentSimulationTime_m = itsBunch_m->getT();
-}
-
-
-void ParallelSliceTracker::dumpPhaseSpaceOnScan() {
-
-    unsigned long long step = OpalData::getInstance()->getLastStep();
-
-    if (OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
-
-        if (!itsBunch_m->doEmission())
-            writePhaseSpace(step - 1, 0.0);
-    }
 }
 
 

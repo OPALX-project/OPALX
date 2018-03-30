@@ -593,7 +593,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
 	std::string interp = "PC";
-        std::string norm = "L2";
+        std::string norm = "LINF";
         AmrMultiGrid sol(&myAmrOpal, params.bs, params.prec,
                          params.rebalance, params.bcx, params.bcy,
                          params.bcz, params.smoother, params.nsweeps,

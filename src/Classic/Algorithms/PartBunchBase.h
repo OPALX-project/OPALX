@@ -88,20 +88,13 @@ public:
     //FIXME: unify methods, use convention that all particles have own dt
     void switchOffUnitlessPositions(bool use_dt_per_particle = false);
 
-    /** \brief After each Schottky scan we delete
-        all the particles.
-
-    */
-    void cleanUpParticles();
-
-    void resetIfScan();
-
     void setDistribution(Distribution *d,
                          std::vector<Distribution *> addedDistributions,
-                         size_t &np,
-                         bool scan);
+                         size_t &np);
 
     bool isGridFixed();
+    
+    bool hasBinning();
 
 
     /*

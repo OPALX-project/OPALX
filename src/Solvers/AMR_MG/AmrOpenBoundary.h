@@ -9,6 +9,7 @@ class AmrOpenBoundary : public AmrBoundary<Level> {
 public:
     typedef typename Level::umap_t      umap_t;
     typedef typename Level::lo_t        lo_t;
+    typedef typename Level::go_t        go_t;
     typedef typename Level::scalar_t    scalar_t;
     typedef amr::AmrIntVect_t           AmrIntVect_t;
     
@@ -21,7 +22,7 @@ public:
                umap_t& map,
                const scalar_t& value,
                Level* mglevel,
-               const lo_t* nr);
+               const go_t* nr);
     
 };
 
@@ -32,7 +33,7 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
                                    umap_t& map,
                                    const scalar_t& value,
                                    Level* mglevel,
-                                   const lo_t* nr)
+                                   const go_t* nr)
 {
     /* depending on boundary we need forward
      * or backward difference for the gradient
@@ -54,12 +55,12 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
     }
     
     // cell size in direction
-    scalar_t h = 1.0 / scalar_t(nr[dir]);
-    scalar_t r = 0.718; // + 0.5 * h; //0.358;
-    
+    scalar_t h = mglevel->cellSize(dir);
+    scalar_t r = 1.475625 - 0.5 * h;
+
     // 1st order
-//     map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;
-    map[mglevel->serialize(niv)] += (1.0 - h / r) * value;
+    map[mglevel->serialize(niv)] -= 2.0 * h / r * value;
+    map[mglevel->serialize(n2iv)] += value;
 }
 
 #endif
