@@ -655,19 +655,15 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     IpplTimings::startTimer(buildTimer_m);
 #endif
     
-    bool isNewOperator = (mglevel_m[lbase_m]->Anf_p == Teuchos::null);
-    
     if ( lbase_m == lfine_m )
-        this->buildSingleLevel_m(rho, phi, isNewOperator);
+        this->buildSingleLevel_m(rho, phi, matrices);
     else
         this->buildMultiLevel_m(rho, phi, matrices);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
-    if ( matrices )
-        this->clearMasks_m();
-    
-    if ( isNewOperator ) {
+    if ( matrices ) {
+        this->clearMasks_m();    
         // set the bottom solve operator
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p, mglevel_m[0].get());
     }
