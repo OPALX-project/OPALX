@@ -142,7 +142,6 @@ private:
     void handleRestartRun();
     void setTime();
     void setLastStep();
-    void dumpPhaseSpaceOnScan();
 
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;

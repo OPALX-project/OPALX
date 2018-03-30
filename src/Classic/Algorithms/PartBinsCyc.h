@@ -30,41 +30,12 @@
 
 class PartBinsCyc: public PartBins {
 
-private:
-
-    double gamma_m;
-
-    int getBin(double x);
-
-    int bins_m;
-
-
-    /** extremal particle positions */
-    double xmin_m;
-    double xmax_m;
-
-    /** extremal particle position within the bins */
-    double *xbinmin_m;
-    double *xbinmax_m;
-
-    /** bin size */
-    double hBin_m;
-
-    /** holds the particles not yet in the bunch */
-    std::vector< std::vector<double> > tmppart_m;
-    std::vector< bool > isEmitted_m;
-    /** holds information whether all particles of a bin are emitted */
-    //  std::vector< bool > binsEmitted_m;
-    bool *binsEmitted_m;
-
-
 public:
 
 
     /** constructer function for cyclotron*/
     PartBinsCyc(int bunches, int bins, size_t  partInBin[]);
     PartBinsCyc(int specifiedNumBins, int bins);
-    ~PartBinsCyc();
 
     /** get the number of used bin */
     int getNBins() {return bins_m; }
@@ -79,20 +50,6 @@ public:
     bool weHaveBins() {
       return  ( nemittedBins_m > 0 );
     }
-
-private:
-
-    /** number of emitted bins */
-    int nemittedBins_m;
-
-    /** number of particles in the bins, the sum of all the nodes */
-    size_t *nBin_m;
-
-    /** number of deleted particles in the bins */
-    size_t *nDelBin_m;
-
-    gsl_histogram *h_m;
-
 };
 
 #endif // OPAL_BinsCyc_HH
