@@ -29,6 +29,12 @@ namespace mslang {
             height_m(0.0)
         { }
 
+        Rectangle(const Rectangle &right):
+            Base(right),
+            width_m(right.width_m),
+            height_m(right.height_m)
+        { }
+
         virtual ~Rectangle() { }
 
         virtual void print(int indentwidth) {
@@ -136,8 +142,15 @@ namespace mslang {
         double height_m;
 
         Ellipse():
+            Base(),
             width_m(0.0),
             height_m(0.0)
+        { }
+
+        Ellipse(const Ellipse &right):
+            Base(right),
+            width_m(right.width_m),
+            height_m(right.height_m)
         { }
 
         virtual ~Ellipse() { }
