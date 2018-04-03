@@ -26,6 +26,7 @@
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -109,6 +110,9 @@ void ThinMapper::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
 
+void ThinMapper::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    applyDrift(flip_s * coll.getElementLength());
+}
 
 void ThinMapper::visitLambertson(const Lambertson &lamb) {
     // Assume that the reference orbit is in the magnet's window.

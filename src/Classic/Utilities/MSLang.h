@@ -19,6 +19,12 @@ namespace mslang {
             height_m(0.0)
         { }
 
+        BoundingBox(const BoundingBox &right):
+            center_m(right.center_m),
+            width_m(right.width_m),
+            height_m(right.height_m)
+        { }
+
         BoundingBox(const Vector_t &llc,
                     const Vector_t &urc):
             center_m(0.5 * (llc + urc)),
@@ -124,6 +130,11 @@ namespace mslang {
 
         Base():
             trafo_m()
+        { }
+
+        Base(const Base &right):
+            trafo_m(right.trafo_m),
+            bb_m(right.bb_m)
         { }
 
         virtual Base* clone() = 0;

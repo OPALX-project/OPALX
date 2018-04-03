@@ -9,6 +9,7 @@ set (_SRCS
   OpalCyclotron.cpp
   OpalDrift.cpp
   OpalECollimator.cpp
+  OpalFlexibleCollimator.cpp
   OpalDegrader.cpp
   OpalElement.cpp
   OpalHKicker.cpp
