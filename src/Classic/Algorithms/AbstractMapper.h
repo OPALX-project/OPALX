@@ -91,6 +91,10 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &) = 0;
 
+    /// Apply the algorithm to a flexible collimator
+    virtual void visitFlexibleCollimator(const FlexibleCollimator &) = 0;
+
+
     /// Apply the algorithm to a Lambertson.
     virtual void visitLambertson(const Lambertson &) = 0;
 

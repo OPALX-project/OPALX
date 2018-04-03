@@ -868,13 +868,16 @@ int main(int argc, char *argv[])
             out.open("particles.gpl");
             gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
-            for (unsigned int i = 0; i < 100000; ++ i) {
+            const unsigned int N = 100000;
+            unsigned int n = 0;
+            for (unsigned int i = 0; i < N; ++ i) {
                 Vector_t X(0.0);
                 X[0] = llc[0] + (urc[0] - llc[0]) * gsl_rng_uniform(rng);
                 X[1] = llc[1] + (urc[1] - llc[1]) * gsl_rng_uniform(rng);
 
                 for (Base* func: baseBlocks) {
                     if (func->isInside(X)) {
+                        ++ n;
                         out << std::setw(14) << X[0]
                             << std::setw(14) << X[1]
                             << std::endl;
@@ -882,7 +885,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-
+            std::cout << (double)n / N * 100 << " % of particles passed" << std::endl;
             gsl_rng_free(rng);
 
 
