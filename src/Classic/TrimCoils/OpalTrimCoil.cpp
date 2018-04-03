@@ -1,9 +1,7 @@
 #include "TrimCoils/OpalTrimCoil.h"
 
-// #include "Filters/Filters.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 #include "AbsBeamline/ElementBase.h"
@@ -13,8 +11,6 @@
 
 extern Inform *gmsg;
 
-using namespace Physics;
-
 
 // Class OpalTrimCoil
 // ------------------------------------------------------------------------
@@ -23,7 +19,8 @@ using namespace Physics;
 namespace {
     enum {
         TYPE,       // The type of trim coil
-        COEF,       // 
+        COEFNUM,    //
+        COEFDENOM,  //
         BMAX,       //
         RMIN,       //
         RMAX,       //
@@ -34,21 +31,24 @@ namespace {
 OpalTrimCoil::OpalTrimCoil():
     Definition(SIZE, "TRIMCOIL",
                "The \"TRIMCOIL\" statement defines a trim coil."),
-    trimcoil_m(0) {
-    itsAttr[TYPE] = Attributes::makeString
-                    ("TYPE", "Specifies the type of trim coil: PSI-RING");
+    trimcoil_m(nullptr) {
+    itsAttr[TYPE]      = Attributes::makeString
+                         ("TYPE", "Specifies the type of trim coil: PSI-RING");
 
-    itsAttr[COEF] = Attributes::makeRealArray
-                    ("COEF", "List of coefficients");
+    itsAttr[COEFNUM]   = Attributes::makeRealArray
+                         ("COEFNUM", "List of polynomial coefficients for the numerator");
 
-    itsAttr[BMAX] = Attributes::makeReal
-                    ("BMAX", "Maximum magnetic field in Tesla.");
+    itsAttr[COEFDENOM] = Attributes::makeRealArray
+                         ("COEFDENOM", "List of polynomial coefficients for the denominator");
 
-    itsAttr[RMIN] = Attributes::makeReal
-                    ("RMIN", "Minimum radius in meters.");
+    itsAttr[BMAX]      = Attributes::makeReal
+                         ("BMAX", "Maximum magnetic field in Tesla.");
 
-    itsAttr[RMAX] = Attributes::makeReal
-                    ("RMAX", "Maximum radius in meters.");
+    itsAttr[RMIN]      = Attributes::makeReal
+                         ("RMIN", "Minimum radius in meters.");
+
+    itsAttr[RMAX]      = Attributes::makeReal
+                         ("RMAX", "Maximum radius in meters.");
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -69,19 +69,18 @@ OpalTrimCoil::OpalTrimCoil():
 
 OpalTrimCoil::OpalTrimCoil(const std::string &name, OpalTrimCoil *parent):
     Definition(name, parent),
-    trimcoil_m(0)
+    trimcoil_m(nullptr)
 {}
 
 
 OpalTrimCoil::~OpalTrimCoil() {
-    if (trimcoil_m)
-        delete trimcoil_m;
+    delete trimcoil_m;
 }
 
 
 bool OpalTrimCoil::canReplaceBy(Object *object) {
-    // Can replace only by another WAKE.
-    return dynamic_cast<OpalTrimCoil *>(object) != 0;
+    // Can replace only by another trim coil.
+    return dynamic_cast<OpalTrimCoil *>(object) != nullptr;
 }
 
 
@@ -98,7 +97,7 @@ void OpalTrimCoil::execute() {
 OpalTrimCoil *OpalTrimCoil::find(const std::string &name) {
     OpalTrimCoil *trimcoil = dynamic_cast<OpalTrimCoil *>(OpalData::getInstance()->find(name));
 
-    if (trimcoil == 0) {
+    if (trimcoil == nullptr) {
         throw OpalException("OpalTrimCoil::find()", "OpalTrimCoil \"" + name + "\" not found.");
     }
     return trimcoil;
@@ -112,7 +111,7 @@ void OpalTrimCoil::update() {
 
 
 void OpalTrimCoil::initOpalTrimCoil() {
-    if (trimcoil_m == 0) {
+    if (trimcoil_m == nullptr) {
         *gmsg << "* ************* T R I M C O I L ****************************************************" << endl;
         *gmsg << "OpalTrimCoil::initOpalTrimCoilfunction " << endl;
         *gmsg << "* **********************************************************************************" << endl;
@@ -134,7 +133,8 @@ Inform& OpalTrimCoil::print(Inform &os) const {
     os << "* ************* T R I M C O I L*****************************************************\n"
        << "* TRIMCOIL       " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n'
-       //<< "* COEF           " << Attributes::getReal(itsAttr[NFREQ]) << '\n'
+       //<< "* COEFNUM      " << Attributes::getReal(itsAttr[COEFNUM]) << '\n'
+       //<< "* COEFDENOM    " << Attributes::getReal(itsAttr[COEFDENOM]) << '\n'
        << "* BMAX           " << Attributes::getReal(itsAttr[BMAX]) << '\n'
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
        << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n'
