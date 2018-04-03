@@ -20,10 +20,6 @@ FlexibleCollimator::FlexibleCollimator():
     filename_m(""),
     informed_m(false),
     losses_m(0),
-    losses1_m(0),
-    losses2_m(0),
-    minR_m(0),
-    maxR_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL){}
 
@@ -35,10 +31,6 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     filename_m(right.filename_m),
     informed_m(right.informed_m),
     losses_m(0),
-    losses1_m(0),
-    losses2_m(0),
-    minR_m(0),
-    maxR_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL) {
 }
@@ -49,10 +41,6 @@ FlexibleCollimator::FlexibleCollimator(const std::string &name):
     filename_m(""),
     informed_m(false),
     losses_m(0),
-    losses1_m(0),
-    losses2_m(0),
-    minR_m(0),
-    maxR_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {}
@@ -76,20 +64,13 @@ bool FlexibleCollimator::isStopped(const Vector_t &R, const Vector_t &P, double 
         (z > getElementLength()) ||
         (!isInsideTransverse(R))) return false;
 
-    if (!bb_m.isInside(R)) {
-        ++ losses1_m;
-        if (R[0] < minR_m[0]) minR_m[0] = R[0];
-        else if (R[0] > maxR_m[0]) maxR_m[0] = R[0];
-        if (R[1] < minR_m[1]) minR_m[1] = R[1];
-        else if (R[1] > maxR_m[1]) maxR_m[1] = R[1];
+    if (!bb_m.isInside(R))
         return true;
-    }
 
     for (mslang::Base *func: holes_m) {
         if (func->isInside(R)) return false;
     }
 
-    ++ losses2_m;
     return true;
 }
 
@@ -114,22 +95,6 @@ bool FlexibleCollimator::apply(const size_t &i, const double &t, Vector_t &E, Ve
 }
 
 bool FlexibleCollimator::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
-    *gmsg << __DBGMSG__
-          << std::setw(10) << losses1_m
-          << std::setw(10) << losses2_m
-          << std::setw(18) << minR_m[0]
-          << std::setw(18) << minR_m[1]
-          << std::setw(18) << maxR_m[0]
-          << std::setw(18) << maxR_m[1]
-          << std::setw(18) << bb_m.center_m[0]
-          << std::setw(18) << bb_m.center_m[1]
-          << std::setw(18) << bb_m.width_m
-          << std::setw(18) << bb_m.height_m
-          << endl;
-    losses1_m = losses2_m = 0;
-    minR_m = Vector_t(0.0);
-    maxR_m = Vector_t(0.0);
-
     return false;
 }
 

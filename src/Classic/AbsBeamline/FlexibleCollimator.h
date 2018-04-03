@@ -67,9 +67,6 @@ private:
 
     bool informed_m;
     unsigned int losses_m;
-    unsigned int losses1_m;
-    unsigned int losses2_m;
-    Vector_t minR_m, maxR_m;
     std::unique_ptr<LossDataSink> lossDs_m;
 
     ParticleMatterInteractionHandler *parmatint_m;
