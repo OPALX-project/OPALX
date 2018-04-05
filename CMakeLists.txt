@@ -39,7 +39,7 @@ message ("The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message ("The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message ("The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-OPTION (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP" OFF)
+option (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP" OFF)
 
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -90,12 +90,14 @@ else ()
     if (ENABLE_AMR)
 	message (FATAL_ERROR "AMR is enabled but no Fortran compiler found!")
     endif ()
-endif()
+endif ()
 
 find_package (H5Hut REQUIRED)
+
 set (HDF5_USE_STATIC_LIBRARIES ON)
 find_package (HDF5 REQUIRED)
 message ("Found HDF5 libraries: ${HDF5_C_LIBRARIES}")
+
 find_package (GSL REQUIRED)
 message ("Found gsl libraries: ${GSL_LIBRARIES}")
 
@@ -142,27 +144,27 @@ if (BUILD_OPAL_UNIT_TESTS)
     add_definitions (-DWITH_UNIT_TESTS)
 endif ()
 
-OPTION (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
+option (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
 IF (ENABLE_AMR)
-    MESSAGE ("Enable AMR_SOLVER    " ${ENABLE_AMR})
-    ENABLE_LANGUAGE (Fortran)
+    message ("Enable AMR_SOLVER    " ${ENABLE_AMR})
+    enable_language (Fortran)
 
     find_package (AMReX CONFIG REQUIRED
         HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
 
-    MESSAGE ("Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
-    MESSAGE ("Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
-    MESSAGE ("Found AMReX libraries: ${AMREX_LIBRARIES}")
-    MESSAGE ("Found AMReX Fortran links: ${AMREX_EXTRA_Fortran_LINK_LINE}")
+    message ("Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
+    message ("Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
+    message ("Found AMReX libraries: ${AMREX_LIBRARIES}")
+    message ("Found AMReX Fortran links: ${AMREX_EXTRA_Fortran_LINK_LINE}")
     echo_amrex_config_options()
     
     add_definitions(${AMREX_DEFINES})
     add_definitions(-DENABLE_AMR)
     add_compile_options (-Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
-ENDIF ()
+endif ()
 
-OPTION (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
-OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
+option (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
+option (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
 if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
     #
     # :FIXME: We have to add checks whether the required Trilinos modules
@@ -194,54 +196,54 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
     endif ()
 endif ()
 
-OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
-IF (DBG_SCALARFIELD)
-    MESSAGE ("\nWrite scalar rho_m field is enabled ")
-    ADD_DEFINITIONS(-DDBG_SCALARFIELD)
-ENDIF ()
+option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
+if (DBG_SCALARFIELD)
+    message ("\nWrite scalar rho_m field is enabled ")
+    add_DEFINITIONS (-DDBG_SCALARFIELD)
+endif ()
 
-OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
-IF (DBG_STENCIL)
+option (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
+if (DBG_STENCIL)
     MESSAGE ("\nWrite stencil is enabled ")
     ADD_DEFINITIONS(-DDBG_STENCIL)
-ENDIF ()
+endif ()
 
-OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
-IF (NO_FIELD_ASSIGN_OPTIMIZATION)
+option (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
+if (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE ("\nCompiler will not try to optimize field assignment")
     ADD_DEFINITIONS(-DdontOPTIMIZE_FIELD_ASSIGNMENT)
-ENDIF ()
+endif ()
 
-INCLUDE(FindGit)
-IF(GIT_FOUND)
-    SET (OPAL_WC_REVISION 0)
-    EXECUTE_PROCESS(
+include (FindGit)
+if (GIT_FOUND)
+    set (OPAL_WC_REVISION 0)
+    execute_PROCESS(
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMAND git rev-parse HEAD
         OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-    SET (OPAL_WC_REVISION \"${GIT_OUT}\")
-ELSE()
-    MESSAGE ("could not find git")
-    SET (OPAL_WC_REVISION \"\")
-ENDIF()
+    set (OPAL_WC_REVISION \"${GIT_OUT}\")
+else ()
+    message ("could not find git")
+    set (OPAL_WC_REVISION \"\")
+endif ()
 
-SET (IPPL_USED_FROM_OPAL "TRUE")
+set (IPPL_USED_FROM_OPAL "TRUE")
 
-ADD_SUBDIRECTORY (ippl)
-ADD_SUBDIRECTORY (optimizer)
-ADD_SUBDIRECTORY (src)
-ADD_SUBDIRECTORY (tools)
+add_subdirectory (ippl)
+add_subdirectory (optimizer)
+add_subdirectory (src)
+add_subdirectory (tools)
 
-IF (BUILD_OPAL_UNIT_TESTS)
-    ADD_SUBDIRECTORY(tests)
-ENDIF (BUILD_OPAL_UNIT_TESTS)
+if (BUILD_OPAL_UNIT_TESTS)
+    add_subdirectory (tests)
+endif ()
 
 # make variables visible in other CMakeLists files
-set(OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
+set (OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
     CACHE INTERNAL "" FORCE
     )
-set(OPAL_LIBS ${OPAL_LIBS}
+set (OPAL_LIBS ${OPAL_LIBS}
     CACHE INTERNAL "" FORCE
     )
 
