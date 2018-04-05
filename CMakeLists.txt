@@ -55,12 +55,8 @@ if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     endif ()
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-<<<<<<< HEAD
-    add_compile_options (-Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG)
-=======
-    add_compile_options (-Werror -Wsign-compare -Wunused-variable -Warray-bounds)
+    add_compile_options (-Werror -Wsign-compare -Wunused-variable -Warray-bounds)
     add_definitions(-DIPPL_RESTRICT_BUG)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
     if (ENABLE_OpenMP)
 	    add_compile_options (-fopenmp)
     endif ()
@@ -123,63 +119,28 @@ option (ENABLE_DKS "Enable DKS" OFF)
 if (ENABLE_DKS)
     find_package (dKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
     set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
-<<<<<<< HEAD
     message ("Found DKS version: ${DKS_VERSION}")
     message ("Found DKS library: ${DKS_LIBRARY}")
     message ("Found DKS include dir: ${DKS_INCLUDE_DIR}")
-    add_compile_options (-DDKS_MPI)
-=======
-    MESSAGE ("Found DKS version: ${DKS_VERSION}")
-    MESSAGE ("Found DKS library: ${DKS_LIBRARY}")
-    MESSAGE ("Found DKS include dir: ${DKS_INCLUDE_DIR}")
     add_definitions(-DDKS_MPI)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
 
     ### OpenCL compiler flags ###
     #add_compile_options (-lOpenCL -pthread -DDKS_OPENCL)
 
     ### CUDA compiler flags ###
-<<<<<<< HEAD
-    add_compile_options(-DDKS_CUDA)
-
-    ### if any accelerator enabled set flag to use DKS ###
-    add_compile_options (-DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS)
-endif ()
-=======
     add_definitions(-DDKS_CUDA)
 
     ### if any accelerator enabled set flag to use DKS ###
     add_definitions(-DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS)
 
-ENDIF (ENABLE_DKS)
-### END DKS part ###
+endif ()
 
-# Handle options
-OPTION (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
-OPTION (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
-
-OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
-
-OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
-OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
-
-OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
-
-
-<<<<<<< HEAD
 # Handle options
 option (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 if (BUILD_OPAL_UNIT_TESTS)
     find_package (GTest REQUIRED HINT $ENV{GTEST_PREFIX})
-    add_compile_options (-DWITH_UNIT_TESTS)
+    add_definitions (-DWITH_UNIT_TESTS)
 endif ()
-=======
-IF (BUILD_OPAL_UNIT_TESTS)
-    FIND_PACKAGE (GTest REQUIRED)
-    ADD_DEFINITIONS(-DWITH_UNIT_TESTS)
-ENDIF (BUILD_OPAL_UNIT_TESTS)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
 
 OPTION (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
 IF (ENABLE_AMR)
@@ -197,25 +158,8 @@ IF (ENABLE_AMR)
     
     add_definitions(${AMREX_DEFINES})
     add_definitions(-DENABLE_AMR)
-    
-<<<<<<< HEAD
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_AMR")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized")
-
-ENDIF ()
-=======
     add_compile_options (-Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
-ENDIF (ENABLE_AMR)
-
-# remove digits from hostname: edison03 -> edison
-STRING(REGEX MATCH "[^0-9]*" HOSTNAME_BASE "${HOSTNAME}")
-
-# In case of Edison and Cori the find_package(Trilinos) gives the wrong
-# Trilinos_TPL_LIBRARIES, instead of cray-tpsl/16.07.1 it uses
-# cray-tpsl/16.06.1 libraries -> Linker error.
-# We can avoid this issue by not going into the if-statement
-IF (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
+ENDIF ()
 
 OPTION (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
 OPTION (ENABLE_SAAMG_SOLVER "Enable iteartive SA-AMG-PCG self field solver" OFF)
@@ -253,37 +197,20 @@ endif ()
 OPTION (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 IF (DBG_SCALARFIELD)
     MESSAGE ("\nWrite scalar rho_m field is enabled ")
-<<<<<<< HEAD
-    SET (CMAKE_CXX_FLAGS "-DDBG_SCALARFIELD ${CMAKE_CXX_FLAGS}")
-ENDIF ()
-=======
     ADD_DEFINITIONS(-DDBG_SCALARFIELD)
-ENDIF (DBG_SCALARFIELD)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
+ENDIF ()
 
 OPTION (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
 IF (DBG_STENCIL)
     MESSAGE ("\nWrite stencil is enabled ")
-<<<<<<< HEAD
-    SET (CMAKE_CXX_FLAGS "-DDBG_STENCIL ${CMAKE_CXX_FLAGS}")
-ENDIF ()
-=======
     ADD_DEFINITIONS(-DDBG_STENCIL)
-ENDIF (DBG_STENCIL)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
+ENDIF ()
 
 OPTION (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
 IF (NO_FIELD_ASSIGN_OPTIMIZATION)
     MESSAGE ("\nCompiler will not try to optimize field assignment")
-<<<<<<< HEAD
-    SET (CMAKE_CXX_FLAGS
-        "-DdontOPTIMIZE_FIELD_ASSIGNMENT ${CMAKE_CXX_FLAGS}"
-	)
-ENDIF ()
-=======
     ADD_DEFINITIONS(-DdontOPTIMIZE_FIELD_ASSIGNMENT)
-ENDIF (NO_FIELD_ASSIGN_OPTIMIZATION)
->>>>>>> 3834e6eef6d61f1c54c3582b66db9e5e060f5178
+ENDIF ()
 
 INCLUDE(FindGit)
 IF(GIT_FOUND)
