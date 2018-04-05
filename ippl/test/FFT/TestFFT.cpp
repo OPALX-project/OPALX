@@ -208,12 +208,12 @@ int main(int argc, char *argv[])
   //  writeMemoryHeader(os_memData);
   
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
-  for (int d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++)
     allParallel[d] = PARALLEL;
 
   e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
   serialParallel[0] = SERIAL;
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     serialParallel[d] = PARALLEL;
 
   testmsg << "Make fields" << endl;
@@ -224,12 +224,12 @@ int main(int argc, char *argv[])
 
   // create standard domain
   NDIndex<D> ndiStandard;
-  for (int d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++) 
     ndiStandard[d] = Index(ngrid[d]);
     // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted;
   ndiPermuted[0] = ndiStandard[D-1];
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     ndiPermuted[d] = ndiStandard[d-1];
 
   // create half-size domain for RC transform along zeroth axis
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
   // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted0h;
   ndiPermuted0h[0] = ndiStandard0h[D-1];
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     ndiPermuted0h[d] = ndiStandard0h[d-1];
 
   // create half-size domain for sine transform along zeroth axis
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
   // create new domain with axes permuted to match FFT output
   NDIndex<D> ndiPermuted1h;
   ndiPermuted1h[0] = ndiStandard1h[D-1];
-  for (int d=1; d<D; d++) 
+  for (unsigned int d=1; d<D; d++) 
     ndiPermuted1h[d] = ndiStandard1h[d-1];
 
   // all parallel layout, standard domain, normal axis order
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
   ccfft.setDirectionName(-1, "inverse");
 
   testmsg << nLoop << " x In-place CC transform using all-parallel layout ..." << endl;
-  for (int i=0; i<nLoop; i++) {
+  for (uint i=0; i<nLoop; i++) {
     IpplTimings::startTimer(fftccppTimer);
     ccfft.transform("forward", CFieldPPStan);
     IpplTimings::stopTimer(fftccppTimer);
@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
   }
 
   testmsg << "In-place CC transform using layout with zeroth dim serial ..." << endl;
-  for (int i=0; i<nLoop; i++) {
+  for (uint i=0; i<nLoop; i++) {
     IpplTimings::startTimer(fftccpsTimer);
     ccfft.transform("forward", CFieldSPStan);
     IpplTimings::stopTimer(fftccpsTimer);
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
     rcfft.setDirectionName(-1, "inverse");
 
     testmsg << "RC transform using all-parallel layout ..." << endl;
-    for (int i=0; i<nLoop; i++) {
+    for (uint i=0; i<nLoop; i++) {
       IpplTimings::startTimer(fftrcppTimer);
       rcfft.transform("forward", RFieldPPStan, CFieldPPStan0h, constInput);
       IpplTimings::stopTimer(fftrcppTimer);
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
 
     testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
 
-    for (int i=0; i<nLoop; i++) {
+    for (uint i=0; i<nLoop; i++) {
       IpplTimings::startTimer(fftrcpsTimer);
       rcfft.transform("forward", RFieldSPStan, CFieldSPStan0h, constInput);
       IpplTimings::stopTimer(fftrcpsTimer);
@@ -496,7 +496,7 @@ int main(int argc, char *argv[])
     // define zeroth axis to be sine transform
     bool sineTransformDims[D];
     sineTransformDims[0] = true;
-    for (int d=1; d<D; ++d) sineTransformDims[d] = false;
+    for (unsigned int d=1; d<D; ++d) sineTransformDims[d] = false;
 
     // Sine and RC transform tests
 
