@@ -11,6 +11,7 @@ class AmrBoundary {
 public:
     typedef typename Level::umap_t      umap_t;
     typedef typename Level::lo_t        lo_t;
+    typedef typename Level::go_t        go_t;
     typedef typename Level::scalar_t    scalar_t;
     typedef typename Level::basefab_t   basefab_t;
     typedef amr::AmrIntVect_t           AmrIntVect_t;
@@ -20,7 +21,7 @@ public:
     /*!
      * @param nPoints used in stencil for applying the boundary
      */
-    AmrBoundary(lo_t nPoints) : nPoints_m(nPoints) { };
+    AmrBoundary(go_t nPoints) : nPoints_m(nPoints) { };
     
     
     /*!
@@ -28,7 +29,7 @@ public:
      * @param iv cell to check
      * @param nr is the number of grid points
      */
-    bool isBoundary(const AmrIntVect_t& iv, const lo_t* nr) const {
+    bool isBoundary(const AmrIntVect_t& iv, const go_t* nr) const {
         return AMREX_D_TERM(   isBoundary(iv, 0, nr),
                             || isBoundary(iv, 1, nr),
                             || isBoundary(iv, 2, nr));
@@ -41,7 +42,7 @@ public:
      */
     bool isBoundary(const AmrIntVect_t& iv,
                     const lo_t& dir,
-                    const lo_t* nr) const {
+                    const go_t* nr) const {
         return ( iv[dir] < 0 || iv[dir] >= nr[0] );
     }
     
@@ -59,17 +60,17 @@ public:
                        umap_t& map,
                        const scalar_t& value,
                        Level* mglevel,
-                       const lo_t* nr) = 0;
+                       const go_t* nr) = 0;
     
     /*!
      * @returns the number of stencil points required
      */
-    const lo_t& getNumberOfPoints() const {
+    const go_t& getNumberOfPoints() const {
         return nPoints_m;
     }
     
 private:
-    const lo_t nPoints_m;    ///< Number of points used for boundary
+    const go_t nPoints_m;    ///< Number of points used for boundary
 };
 
 #endif

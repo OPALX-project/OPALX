@@ -476,10 +476,13 @@ public:
         h5_prop_t props = H5CreateFileProp ();
         MPI_Comm comm = Ippl::getComm();
         h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
+#if defined (NDEBUG)
+        (void)h5err;
+#endif
         assert (h5err != H5_ERR);
         H5f_m = H5OpenFile (fn.c_str(), H5_O_RDONLY, props);
         assert (H5f_m != (h5_file_t)H5_ERR);
-	H5CloseProp (props);
+        H5CloseProp (props);
     }
 
 

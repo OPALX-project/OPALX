@@ -56,10 +56,11 @@ BendBase::BendBase(const std::string &name):
 std::vector<Vector_t> BendBase::getDesignPath() const {
     unsigned int size = refTrajMap_m.size();
     std::vector<Vector_t> designPath(size);
-
+    double angleZ = getRotationAboutZ();
+    Quaternion rotationAboutZ(cos(angleZ / 2), sin(angleZ / 2) * Vector_t(0, 0, 1));
     for (unsigned int i = 0; i < size; ++ i) {
         Vector_t currentPosition = refTrajMap_m[i];
-        designPath[i] = currentPosition;
+        designPath[i] = rotationAboutZ.rotate(currentPosition);
     }
 
     return designPath;
