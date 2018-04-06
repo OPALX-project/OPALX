@@ -26,13 +26,21 @@ FlexibleCollimator::FlexibleCollimator():
 
 FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     Component(right),
-    holes_m(right.holes_m.begin(), right.holes_m.end()),
+    //holes_m(right.holes_m.begin(), right.holes_m.end()),
     bb_m(right.bb_m),
+    tree_m(right.tree_m),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
     losses_m(0),
+    losses1_m(0),
+    losses2_m(0),
+    losses3_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL) {
+    parmatint_m(NULL)
+{
+    for (const mslang::Base *obj: right.holes_m) {
+        holes_m.push_back(obj->clone());
+    }
 }
 
 
@@ -49,6 +57,10 @@ FlexibleCollimator::FlexibleCollimator(const std::string &name):
 FlexibleCollimator::~FlexibleCollimator() {
     if (online_m)
         goOffline();
+
+    for (mslang::Base *obj: holes_m) {
+        delete obj;
+    }
 }
 
 
@@ -64,14 +76,18 @@ bool FlexibleCollimator::isStopped(const Vector_t &R, const Vector_t &P, double 
         (z > getElementLength()) ||
         (!isInsideTransverse(R))) return false;
 
-    if (!bb_m.isInside(R))
+    ++ losses3_m;
+    if (!bb_m.isInside(R)) {
+        ++losses1_m;
         return true;
-
-    for (mslang::Base *func: holes_m) {
-        if (func->isInside(R)) return false;
     }
 
-    return true;
+    if (!tree_m.isInside(R)) {
+        ++ losses2_m;
+        return true;
+    }
+
+    return  false;
 }
 
 bool FlexibleCollimator::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
@@ -218,10 +234,10 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
 
     bb_m = mslang::BoundingBox(llc, urc);
 
-    *gmsg << __DBGMSG__
-          << std::setw(18) << bb_m.center_m[0]
-          << std::setw(18) << bb_m.center_m[1]
-          << std::setw(18) << bb_m.width_m
-          << std::setw(18) << bb_m.height_m
-          << endl;
+    tree_m.bb_m = bb_m;
+    tree_m.objects_m.insert(tree_m.objects_m.end(), holes_m.begin(), holes_m.end());
+    tree_m.buildUp();
+
+    std::ofstream out("quadtree.gpl");
+    tree_m.writeGnuplot(out);
 }
