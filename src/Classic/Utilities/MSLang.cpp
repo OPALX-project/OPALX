@@ -19,6 +19,11 @@ namespace mslang {
 
     bool parse(iterator &it, const iterator &end, Function* &fun);
 
+    std::ostream & operator<< (std::ostream &out, const BoundingBox &bb) {
+        bb.print(out);
+        return out;
+    }
+
     struct Rectangle: public Base {
         double width_m;
         double height_m;
@@ -107,7 +112,7 @@ namespace mslang {
             bfuncs.push_back(this->clone());
         }
 
-        virtual Base* clone() {
+        virtual Base* clone() const {
             Rectangle *rect = new Rectangle;
             rect->width_m = width_m;
             rect->height_m = height_m;
@@ -199,7 +204,7 @@ namespace mslang {
             bfuncs.push_back(this->clone());
         }
 
-        virtual Base* clone() {
+        virtual Base* clone() const{
             Ellipse *elps = new Ellipse;
             elps->width_m = width_m;
             elps->height_m = height_m;
@@ -568,6 +573,131 @@ namespace mslang {
     };
 
 
+    QuadTree::QuadTree(const QuadTree &right):
+        level_m(right.level_m),
+        objects_m(right.objects_m.begin(),
+                  right.objects_m.end()),
+        bb_m(right.bb_m),
+        nodes_m(0)
+    {
+        if (right.nodes_m != 0) {
+            nodes_m = new QuadTree[4];
+            for (unsigned int i = 0; i < 4u; ++ i) {
+                nodes_m[i] = right.nodes_m[i];
+            }
+        }
+    }
+
+    QuadTree::~QuadTree() {
+        for (Base *&obj: objects_m)
+            obj = 0; // memory isn't handled by QuadTree class
+
+        if (nodes_m != 0) {
+            delete[] nodes_m;
+        }
+        nodes_m = 0;
+    }
+
+    void QuadTree::operator=(const QuadTree &right) {
+        level_m = right.level_m;
+        objects_m.insert(objects_m.end(),
+                         right.objects_m.begin(),
+                         right.objects_m.end());
+        bb_m = right.bb_m;
+
+        if (nodes_m != 0) delete[] nodes_m;
+        nodes_m = 0;
+
+        if (right.nodes_m != 0) {
+            nodes_m = new QuadTree[4];
+            for (unsigned int i = 0; i < 4u; ++ i) {
+                nodes_m[i] = right.nodes_m[i];
+            }
+        }
+    }
+
+    void QuadTree::transferIfInside(std::list<Base*> &objs) {
+        for (Base* &obj: objs) {
+            if (bb_m.isInside(obj->bb_m)) {
+                objects_m.push_back(obj);
+                obj = 0;
+            }
+        }
+
+        objs.remove_if([](const Base *obj) { return obj == 0; });
+    }
+
+    void QuadTree::buildUp() {
+        QuadTree *next = new QuadTree[4];
+        next[0] = QuadTree(level_m + 1,
+                           BoundingBox(bb_m.center_m,
+                                       Vector_t(bb_m.center_m[0] + 0.5 * bb_m.width_m,
+                                                bb_m.center_m[1] + 0.5 * bb_m.height_m,
+                                                0.0)));
+        next[1] = QuadTree(level_m + 1,
+                           BoundingBox(Vector_t(bb_m.center_m[0],
+                                                bb_m.center_m[1] - 0.5 * bb_m.height_m,
+                                                0.0),
+                                       Vector_t(bb_m.center_m[0] + 0.5 * bb_m.width_m,
+                                                bb_m.center_m[1],
+                                                0.0)));
+        next[2] = QuadTree(level_m + 1,
+                           BoundingBox(Vector_t(bb_m.center_m[0] - 0.5 * bb_m.width_m,
+                                                bb_m.center_m[1],
+                                                0.0),
+                                       Vector_t(bb_m.center_m[0],
+                                                bb_m.center_m[1] + 0.5 * bb_m.height_m,
+                                                0.0)));
+        next[3] = QuadTree(level_m + 1,
+                           BoundingBox(Vector_t(bb_m.center_m[0] - 0.5 * bb_m.width_m,
+                                                bb_m.center_m[1] - 0.5 * bb_m.height_m,
+                                                0.0),
+                                       bb_m.center_m));
+
+        bool allNonEmpty = true;
+        for (unsigned int i = 0; i < 4u; ++ i) {
+            next[i].transferIfInside(objects_m);
+            if (next[i].objects_m.size() == 0) {
+                allNonEmpty = false;
+                for (unsigned int j = 0; j < i; ++ j) {
+                    objects_m.merge(next[j].objects_m);
+                }
+                break;
+            }
+        }
+
+        if (!allNonEmpty) {
+            delete[] next;
+            return;
+        }
+
+        for (unsigned int i = 0; i < 4u; ++ i) {
+            next[i].buildUp();
+        }
+
+        nodes_m = next;
+    }
+
+    bool QuadTree::isInside(const Vector_t &R) const {
+        if (nodes_m != 0) {
+            Vector_t X = R - bb_m.center_m;
+            unsigned int idx = (X[1] >= 0.0 ? 0: 1);
+            idx += (X[0] >= 0.0 ? 0: 2);
+
+            if (nodes_m[idx].isInside(R)) {
+                return true;
+            }
+        }
+
+        for (Base* obj: objects_m) {
+            if (obj->isInside(R)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool parse(std::string str, Function* &fun) {
         str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
         str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
@@ -653,134 +783,4 @@ namespace mslang {
         return (it == end);
 
     }
-
-    // int main(int argc, char *argv[])
-    // {
-    //     if (argc < 2) {
-    //         std::cout << "please provide the name of the file that contains your code" << std::endl;
-    //         return 1;
-    //     }
-    //     Function *fun;
-
-    //     std::ifstream t(argv[1]);
-    //     std::string str((std::istreambuf_iterator<char>(t)),
-    //                     std::istreambuf_iterator<char>());
-
-    //     // std::string str("repeat( translate(union(rectangle(0.1, 0.1), ellipse(0.1, 0.1)), -0.01, -0.02), 2, 0.1, 0.2)");
-
-    //     if (parse(str, fun)) {
-    //         fun->print(0);
-    //         std::cout << "\n" << std::endl;
-
-    //         std::vector<Base*> baseBlocks;
-    //         fun->apply(baseBlocks);
-
-    //         std::ofstream out("test.gpl");
-    //         for (Base* bfun: baseBlocks) {
-    //             bfun->print(0);
-    //             std::cout << std::endl;
-    //             bfun->computeBoundingBox();
-    //             bfun->writeGnuplot(out);
-    //         }
-
-    //         if (baseBlocks.size() > 0) {
-    //             Vector_t llc, urc;
-    //             Base* first = baseBlocks.front();
-    //             const BoundingBox &bb = first->bb_m;
-    //             llc = Vector_t(bb.center_m[0] - 0.5 * bb.width_m,
-    //                            bb.center_m[1] - 0.5 * bb.height_m,
-    //                            0.0);
-    //             urc = Vector_t(bb.center_m[0] + 0.5 * bb.width_m,
-    //                            bb.center_m[1] + 0.5 * bb.height_m,
-    //                            0.0);
-
-    //             for (unsigned int i = 1; i < baseBlocks.size(); ++ i) {
-    //                 const BoundingBox &bb = baseBlocks[i]->bb_m;
-    //                 llc[0] = std::min(llc[0], bb.center_m[0] - 0.5 * bb.width_m);
-    //                 llc[1] = std::min(llc[1], bb.center_m[1] - 0.5 * bb.height_m);
-    //                 urc[0] = std::max(urc[0], bb.center_m[0] + 0.5 * bb.width_m);
-    //                 urc[1] = std::max(urc[1], bb.center_m[1] + 0.5 * bb.height_m);
-    //             }
-
-    //             struct CoordinateComp {
-    //                 double delta_m;
-    //                 CoordinateComp(double delta):
-    //                     delta_m(delta)
-    //                 { }
-
-    //                 bool operator()(double a, double b) const {
-    //                     return a < b && std::abs(a - b) > delta_m;
-    //                 }
-    //             };
-
-    //             std::set<double, CoordinateComp> xCoordinates(CoordinateComp(1e-6 * (urc[0] - llc[0])));
-    //             std::set<double, CoordinateComp> yCoordinates(CoordinateComp(1e-6 * (urc[1] - llc[1])));
-    //             for (Base *func: baseBlocks) {
-    //                 Vector_t center = func->trafo_m.transformFrom(Vector_t(0.0));
-    //                 xCoordinates.insert(center[0]);
-    //                 yCoordinates.insert(center[1]);
-    //             }
-    //             std::set<double> dualXCoordinates;
-    //             auto it = xCoordinates.begin();
-    //             auto next = std::next(it);
-    //             dualXCoordinates.insert(std::min(llc[0], 1.5 * (*it) - 0.5 * (*next)));
-    //             for (; next != xCoordinates.end(); ++ it, ++ next) {
-    //                 dualXCoordinates.insert(0.5 * ((*next) + (*it)));
-    //             }
-    //             dualXCoordinates.insert(std::max(urc[0], 1.5 * (*it) - 0.5 * (*std::prev(it))));
-
-    //             std::set<double> dualYCoordinates;
-    //             it = yCoordinates.begin();
-    //             next = std::next(it);
-    //             dualYCoordinates.insert(std::min(llc[1], 1.5 * (*it) - 0.5 * (*next)));
-    //             for (; next != yCoordinates.end(); ++ it, ++ next) {
-    //                 dualYCoordinates.insert(0.5 * ((*next) + (*it)));
-    //             }
-    //             dualXCoordinates.insert(std::max(urc[0], 1.5 * (*it) - 0.5 * (*std::prev(it))));
-
-    //             for (auto it = dualXCoordinates.begin(); it != dualXCoordinates.end(); ++ it) {
-    //                 out << std::setw(14) << *it << std::setw(14) << *(dualYCoordinates.begin()) << "\n"
-    //                     << std::setw(14) << *it << std::setw(14) << *(dualYCoordinates.rbegin()) << "\n"
-    //                     << std::endl;
-    //             }
-    //             for (auto it = dualYCoordinates.begin(); it != dualYCoordinates.end(); ++ it) {
-    //                 out << std::setw(14) << *(dualXCoordinates.begin()) << std::setw(14) << *it << "\n"
-    //                     << std::setw(14) << *(dualXCoordinates.rbegin()) << std::setw(14) << *it << "\n"
-    //                     << std::endl;
-    //             }
-    //             out.close();
-
-    //             out.open("particles.gpl");
-    //             gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
-
-    //             for (unsigned int i = 0; i < 100000; ++ i) {
-    //                 Vector_t X(0.0);
-    //                 X[0] = llc[0] + (urc[0] - llc[0]) * gsl_rng_uniform(rng);
-    //                 X[1] = llc[1] + (urc[1] - llc[1]) * gsl_rng_uniform(rng);
-
-    //                 for (Base* func: baseBlocks) {
-    //                     if (func->isInside(X)) {
-    //                         out << std::setw(14) << X[0]
-    //                             << std::setw(14) << X[1]
-    //                             << std::endl;
-    //                         break;
-    //                     }
-    //                 }
-    //             }
-
-    //             gsl_rng_free(rng);
-
-
-    //             for (Base* func: baseBlocks) {
-    //                 delete func;
-    //             }
-    //         }
-
-    //         out.close();
-    //     }
-
-    //     delete fun;
-
-    //     return 0;
-    // }
 }

@@ -62,11 +62,15 @@ private:
 
     std::vector<mslang::Base*> holes_m;
     mslang::BoundingBox bb_m;
+    mslang::QuadTree tree_m;
 
     std::string filename_m;               /**< The name of the outputfile*/
 
     bool informed_m;
     unsigned int losses_m;
+    unsigned int losses1_m;
+    unsigned int losses2_m;
+    unsigned int losses3_m;
     std::unique_ptr<LossDataSink> lossDs_m;
 
     ParticleMatterInteractionHandler *parmatint_m;
