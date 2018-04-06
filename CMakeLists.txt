@@ -1,16 +1,12 @@
 cmake_minimum_required (VERSION 3.1)
-project (OPAL)
-set (OPAL_VERSION_MAJOR 1)
-SET (OPAL_VERSION_MINOR 9.0)
-set (PACKAGE \"opal\")
-set (PACKAGE_BUGREPORT \"opal@lists.psi.ch\")
-set (PACKAGE_NAME \"OPAL\")
-set (PACKAGE_TARNAME \"opal\")
-set (PACKAGE_VERSION "${OPAL_VERSION_MAJOR}.${OPAL_VERSION_MINOR}")
-set (PACKAGE_VERSION_STR "\"${PACKAGE_VERSION}\"")
-string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PACKAGE_VERSION})
+project (OPAL VERSION 1.9.0)
+set (PROJECT_BUGREPORT opal@lists.psi.ch)
+
+string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PROJECT_VERSION})
 string (REGEX REPLACE "\\.([0-9])$" ".0\\1" PACKAGE_VERSION ${PACKAGE_VERSION})
 string (REGEX REPLACE "\\." "" PACKAGE_VERSION ${PACKAGE_VERSION})
+
+message (PACKAGE_VERSION=${PACKAGE_VERSION})
 
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
@@ -46,6 +42,10 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
 add_compile_options (-Wall)
+add_definitions (-DIPPL_LINUX -DIPPL_STRINGSTREAM)
+add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_PARTIAL_SPECIALIZATION -Drestrict=__restrict__ -DNOCTAssert)
+
+add_compile_options (-ftemplate-depth=1024 -funroll-loops -fstrict-aliasing)
 
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
@@ -227,8 +227,6 @@ else ()
     message ("could not find git")
     set (OPAL_WC_REVISION \"\")
 endif ()
-
-set (IPPL_USED_FROM_OPAL "TRUE")
 
 add_subdirectory (ippl)
 add_subdirectory (optimizer)
