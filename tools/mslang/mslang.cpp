@@ -71,6 +71,13 @@ int main(int argc, char *argv[])
                 urc[1] = std::max(urc[1], bb.center_m[1] + 0.5 * bb.height_m);
             }
 
+            double width = urc[0] - llc[0];
+            double height = urc[1] - llc[1];
+            llc[0] -= 1e-3 * width;
+            urc[0] += 1e-3 * width;
+            llc[1] -= 1e-3 * height;
+            urc[1] += 1e-3 * width;
+
             mslang::QuadTree tree;
             tree.bb_m = mslang::BoundingBox(llc, urc);
             tree.objects_m.insert(tree.objects_m.end(), baseBlocks.begin(), baseBlocks.end());
