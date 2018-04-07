@@ -38,7 +38,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       lfine_m(0),
       nlevel_m(1),
       nBcPoints_m(0),
-      eps_m(1.0e-12),
+      eps_m(1.0e-10),
       verbose_m(false),
       fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
       flag_m(std::ios::out)
@@ -185,7 +185,7 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
                                     "This type of boundary is not supported");
         }
         // we use the maximum in order to build matrices
-        int tmp = bc_m[i]->getNumberOfPoints();
+        go_t tmp = bc_m[i]->getNumberOfPoints();
         if ( nBcPoints_m < tmp )
             nBcPoints_m = tmp;
     }
@@ -710,7 +710,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
                     for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                         AmrIntVect_t iv(D_DECL(i, j, k));
-                        int gidx = mglevel_m[lbase_m]->serialize(iv);
+                        go_t gidx = mglevel_m[lbase_m]->serialize(iv);
                         
                         this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
                         
@@ -787,7 +787,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
                             int kk = k << 1;
 #endif
                             AmrIntVect_t iv(D_DECL(i, j, k));
-                            int gidx = mglevel_m[lev]->serialize(iv);
+                            go_t gidx = mglevel_m[lev]->serialize(iv);
                             
                             this->buildRestrictionMatrix_m(lev, gidx, iv,
                                                            D_DECL(ii, jj, kk), rfab);
@@ -1677,7 +1677,7 @@ void AmrMultiGrid::map2vector_m(umap_t& map, indices_t& indices,
     values.reserve(map.size());
     
     std::for_each(map.begin(), map.end(),
-                  [&](const std::pair<const int, scalar_t>& entry)
+                  [&](const std::pair<const go_t, scalar_t>& entry)
                   {
                       indices.push_back(entry.first);
                       values.push_back(entry.second);
@@ -2037,7 +2037,9 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     map["L2"]   = Norm::L2;
     map["LINF"] = Norm::LINF;
     
-    auto n = map.find(Util::toUpper(norm));
+    snorm_m = Util::toUpper(norm);
+    
+    auto n = map.find(snorm_m);
     
     if ( n == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
@@ -2052,7 +2054,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
     std::string indent("        ");
-
+    
     outfile << "SDDS1" << std::endl;
     outfile << "&description\n"
             << indent << "text=\"Solver statistics '" << OpalData::getInstance()->getInputFn()
@@ -2099,7 +2101,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << indent << "description=\"4 Regrid Step\"\n"
             << "&end\n";
     outfile << "&column\n"
-            << indent << "name=error,\n"
+            << indent << "name=" + snorm_m + ",\n"
             << indent << "type=double,\n"
             << indent << "units=1,\n"
             << indent << "description=\"5 Error\"\n"

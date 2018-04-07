@@ -250,8 +250,7 @@ public:
     void createBoundaryGeometry(PartBunchBase<double, 3> *p, BoundaryGeometry &bg);
     void createOpalCycl(PartBunchBase<double, 3> *beam,
                         size_t numberOfParticles,
-			double current, const Beamline &bl,
-                        bool scan);
+			double current, const Beamline &bl);
     void createOpalE(Beam *beam,
                      std::vector<Distribution *> addedDistributions,
                      EnvelopeBunch *envelopeBunch,
@@ -259,9 +258,8 @@ public:
                      double Bz0);
     void createOpalT(PartBunchBase<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
-                     size_t &numberOfParticles,
-                     bool scan);
-    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles, bool scan);
+                     size_t &numberOfParticles);
+    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles);
     void createPriPart(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg);
     void doRestartOpalT(PartBunchBase<double, 3> *p, size_t Np, int restartStep, H5PartWrapper *h5wrapper);
     void doRestartOpalCycl(PartBunchBase<double, 3> *p, size_t Np, int restartStep,
@@ -403,7 +401,6 @@ private:
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
     void createMatchedGaussDistribution(size_t numberOfParticles, double massIneV);
-    void destroyBeam(PartBunchBase<double, 3> *beam);
     void fillEBinHistogram();
     void fillParticleBins();
     size_t findEBin(double tOrZ);
@@ -457,10 +454,6 @@ private:
 
     bool emitting_m;                     /// Distribution is an emitted, and is currently
                                          /// emitting, rather than an injected, beam.
-
-    bool scan_m;                         /// If we are doing a scan, we need to
-                                         /// destroy existing particles before
-                                         /// each run.
 
     PartData particleRefData_m;          /// Reference data for particle type (charge,
                                          /// mass etc.)
