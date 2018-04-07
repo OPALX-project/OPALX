@@ -50,12 +50,20 @@ class ParallelCyclotronTracker: public Tracker {
 
 public:
     
-    enum MODE {
+    enum class MODE {
         UNDEFINED = -1,
         SINGLE = 0,
         SEO = 1,
         BUNCH = 2
     };
+    
+    // multi-bunch modes
+    enum class MB_MODE {
+        NONE   = 0,
+        FORCE  = 1,
+        AUTO   = 2
+    };
+        
 
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -181,7 +189,10 @@ public:
     inline int  getNumBunch() { return numBunch_m; }
 
     /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
-    inline void  setMultiBunchMode(const int flag) {multiBunchMode_m = flag; }
+    void setMultiBunchMode(const std::string& mbmode);
+    
+    /// set the scale for binning in multi-bunch mode
+    void setMultiBunchEta(const double& eta) { eta_m = eta; };
 
     /// set last dumped step
     inline void setLastDumpedStep(const int para) {lastDumpedStep_m = para ; }
@@ -259,7 +270,7 @@ private:
     // 0 for single bunch (default),
     // 1 for FORCE,
     // 2 for AUTO
-    int multiBunchMode_m;
+    MB_MODE multiBunchMode_m;
 
     // control parameter for AUTO multi-bunch mode
     double CoeffDBunches_m;
@@ -282,7 +293,7 @@ private:
 
     int turnnumber_m;
 
-    double const eta_m; // parameter for reset bin in multi-bunch run, todo: readin from inputfile
+    double eta_m; // parameter for reset bin in multi-bunch run
 
     // temporal 6 phase space varibles of particle [x,y,z,px,py,pz]. Unit: mm & dimensionless
     double variable_m[6];
@@ -293,9 +304,6 @@ private:
 
     // vector of [angle, x, y] of SEO read in from external file for tune with SC. Unit : rad, mm
     std::vector<Vector_t> variable_SEO_m;
-
-    // save initial phase space distribution (in global Cartesian frame ) for multi-bunch simultion. FixMe: not used
-    Vector_t *initialR_m, *initialP_m;
 
     // record how many bunches has already been injected. ONLY FOR MPM
     int BunchCount_m;
@@ -327,13 +335,9 @@ private:
 
 
     //store the data of the beam which are required for injecting a new bunch for multibunch
-    Ppos_t r_mb, p_mb;
-
-    ParticleAttrib<double> q_mb;
-    ParticleAttrib<double> m_mb;
-    ParticleAttrib<short> ptype_mb;
-    size_t npart_mb;
-
+    /// filename
+    std::string onebunch_m;
+    
     void openFiles(std::string fn);
     void closeFiles();
 
@@ -355,7 +359,6 @@ private:
     double calculateAngle2(double x, double y);
 
     bool readOneBunchFromFile(const size_t BeamCount);
-    bool readOneBunch(const size_t BeamCount);
     void saveOneBunch();
 
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);

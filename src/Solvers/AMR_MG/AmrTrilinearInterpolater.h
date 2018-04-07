@@ -10,12 +10,12 @@ template <class Level>
 class AmrTrilinearInterpolater : public AmrInterpolater<Level>
 {
 public:
-    typedef typename Level::global_ordinal_t    go_t;
-    typedef typename Level::lo_t                lo_t;
-    typedef typename Level::scalar_t            scalar_t;
-    typedef typename Level::umap_t              umap_t;
-    typedef typename Level::basefab_t           basefab_t;
-    typedef amr::AmrIntVect_t                   AmrIntVect_t;
+    typedef typename Level::go_t        go_t;
+    typedef typename Level::lo_t        lo_t;
+    typedef typename Level::scalar_t    scalar_t;
+    typedef typename Level::umap_t      umap_t;
+    typedef typename Level::basefab_t   basefab_t;
+    typedef amr::AmrIntVect_t           AmrIntVect_t;
     
 public:
     

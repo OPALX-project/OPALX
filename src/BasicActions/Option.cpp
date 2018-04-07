@@ -180,7 +180,7 @@ Option::Option():
                         "data directory)", csrDump);
 
     itsAttr[AUTOPHASE] = Attributes::makeReal
-                         ("AUTOPHASE", "If greater than zero OPAL is scaning "
+                         ("AUTOPHASE", "If greater than zero OPAL is scanning "
                           "the phases of each rf structure in order to get maximum "
                           "acceleration. Defines the number of refinements of the "
                           "search range", autoPhase);
@@ -316,7 +316,6 @@ void Option::execute() {
     mtrace     = Attributes::getBool(itsAttr[TRACE]);
     warn      = Attributes::getBool(itsAttr[WARN]);
     psDumpEachTurn =   Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
-    scan = false; // ada does not exist anymore
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
