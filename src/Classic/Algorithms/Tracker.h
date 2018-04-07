@@ -139,7 +139,7 @@ public:
     virtual int  getNumBunch() { return 0; }
 
     /// set the working sub-mode for multi-bunch mode
-    virtual void  setMultiBunchMode(const int /*flag*/) {};
+    virtual void  setMultiBunchMode(const std::string& mbmode) {};
 
     /// set the control parameter for sub-mode of multi-bunch mode
     virtual void  setParaAutoMode(const double /*para*/) {};

@@ -76,7 +76,6 @@ Distribution::Distribution():
     distrTypeT_m(DistrTypeT::NODIST),
     numberOfDistributions_m(1),
     emitting_m(false),
-    scan_m(false),
     emissionModel_m(EmissionModelT::NONE),
     tEmission_m(0.0),
     tBin_m(0.0),
@@ -153,7 +152,6 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     distrTypeT_m(DistrTypeT::NODIST),
     numberOfDistributions_m(parent->numberOfDistributions_m),
     emitting_m(parent->emitting_m),
-    scan_m(parent->scan_m),
     particleRefData_m(parent->particleRefData_m),
     addedDistributions_m(parent->addedDistributions_m),
     particlesPerDist_m(parent->particlesPerDist_m),
@@ -1470,8 +1468,7 @@ void  Distribution::createBoundaryGeometry(PartBunchBase<double, 3> *beam, Bound
 
 void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
                                   size_t numberOfParticles,
-                                  double current, const Beamline &bl,
-                                  bool scan) {
+                                  double current, const Beamline &bl) {
 
     /*
      *  setup data for matched distribution generation
@@ -1481,11 +1478,6 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
     I_m = current;
 
     /*
-     * When scan mode is true, we need to destroy particles except
-     * for the first pass.
-     */
-
-    /*
       Fixme:
 
       avrgpz_m = beam->getP()/beam->getM();
@@ -1493,17 +1485,8 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
     size_t numberOfPartToCreate = numberOfParticles;
     totalNumberParticles_m = numberOfParticles;
     if (beam->getTotalNum() != 0) {
-        scan_m = scan;
         numberOfPartToCreate = beam->getLocalNum();
-    } else
-        scan_m = false;
-
-    /*
-     * If in scan mode, destroy existing beam so we
-     * can create new particles.
-     */
-    if (scan_m)
-        destroyBeam(beam);
+    }
 
     // Setup particle bin structure.
     setupParticleBins(beam->getM(),beam);
@@ -1619,16 +1602,14 @@ void Distribution::createOpalE(Beam *beam,
 
 void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
                                std::vector<Distribution *> addedDistributions,
-                               size_t &numberOfParticles,
-                               bool scan) {
+                               size_t &numberOfParticles) {
 
     addedDistributions_m = addedDistributions;
-    createOpalT(beam, numberOfParticles, scan);
+    createOpalT(beam, numberOfParticles);
 }
 
 void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
-                               size_t &numberOfParticles,
-                               bool scan) {
+                               size_t &numberOfParticles) {
 
     IpplTimings::startTimer(beam->distrCreate_m);
 
@@ -1641,14 +1622,6 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     avrgpz_m = beam->getP()/beam->getM() + deltaP;
 
     totalNumberParticles_m = numberOfParticles;
-
-    /*
-     * If in scan mode, destroy existing beam so we
-     * can create new particles.
-     */
-    scan_m = scan;
-    if (scan_m)
-        destroyBeam(beam);
 
     /*
      * Set what units to use for input momentum units. Default is
@@ -1773,29 +1746,6 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
 
     OpalData::getInstance()->addProblemCharacteristicValue("NP", numberOfParticles);
     IpplTimings::stopTimer(beam->distrCreate_m);
-}
-
-void Distribution::destroyBeam(PartBunchBase<double, 3> *beam) {
-
-    particlesPerDist_m.clear();
-    xDist_m.clear();
-    pxDist_m.clear();
-    yDist_m.clear();
-    pyDist_m.clear();
-    tOrZDist_m.clear();
-    pzDist_m.clear();
-    xWrite_m.clear();
-    pxWrite_m.clear();
-    yWrite_m.clear();
-    pyWrite_m.clear();
-    tOrZWrite_m.clear();
-    pzWrite_m.clear();
-    binWrite_m.clear();
-
-    beam->destroy(beam->getLocalNum(), 0);
-    beam->update();
-    INFOMSG("In scan mode: delete all particles in the bunch before next run.");
-
 }
 
 /**
