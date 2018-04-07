@@ -172,7 +172,7 @@ void LossDataSink::writeHeaderH5() {
 
     // Write file attributes to describe phase space to H5 file.
     std::stringstream OPAL_version;
-    OPAL_version << PACKAGE_NAME << " " << OPAL_VERSION_STR << " # git rev. " << Util::getGitRevision();
+    OPAL_version << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " # git rev. " << Util::getGitRevision();
     WRITE_FILEATTRIB_STRING ("OPAL_version", OPAL_version.str().c_str());
     WRITE_FILEATTRIB_STRING ("tUnit", "s");
     WRITE_FILEATTRIB_STRING ("xUnit", "m");
@@ -910,7 +910,7 @@ void LossDataSink::writeStatistics() {
                 << indent << "no_row_counts=1\n"
                 << "&end\n";
 
-        statOut << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. " << Util::getGitRevision() << std::endl;
+        statOut << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. " << Util::getGitRevision() << std::endl;
     }
 
     for (auto entry: statFileEntries_s) {
