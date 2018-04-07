@@ -232,6 +232,14 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
         urc[1] = std::max(urc[1], bb.center_m[1] + 0.5 * bb.height_m);
     }
 
+    double width = urc[0] - llc[0];
+    double height = urc[1] - llc[1];
+
+    llc[0] -= 1e-3 * width;
+    urc[0] += 1e-3 * width;
+    llc[1] -= 1e-3 * height;
+    urc[1] += 1e-3 * height;
+
     bb_m = mslang::BoundingBox(llc, urc);
 
     tree_m.bb_m = bb_m;
