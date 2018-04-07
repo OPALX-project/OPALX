@@ -276,6 +276,7 @@ namespace mslang {
         unsigned int N_m;
         double shiftx_m;
         double shifty_m;
+        double rot_m;
 
         virtual ~Repeat() {
             delete func_m;
@@ -293,21 +294,21 @@ namespace mslang {
         }
 
         virtual void apply(std::vector<Base*> &bfuncs) {
-            AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
-                                       Vector_t(0.0, 1.0, -shifty_m));
+            AffineTransformation trafo(Vector_t(cos(rot_m), sin(rot_m), -shiftx_m),
+                                       Vector_t(-sin(rot_m), cos(rot_m), -shifty_m));
 
             func_m->apply(bfuncs);
             const unsigned int size = bfuncs.size();
 
-            AffineTransformation current_shift = shift;
+            AffineTransformation current_trafo = trafo;
             for (unsigned int i = 0; i < N_m; ++ i) {
                 for (unsigned int j = 0; j < size; ++ j) {
                     Base *obj = bfuncs[j]->clone();
-                    obj->trafo_m = obj->trafo_m.mult(current_shift);
+                    obj->trafo_m = obj->trafo_m.mult(current_trafo);
                     bfuncs.push_back(obj);
                 }
 
-                current_shift = current_shift.mult(shift);
+                current_trafo = current_trafo.mult(trafo);
             }
         }
 
@@ -316,22 +317,40 @@ namespace mslang {
             Repeat *rep = static_cast<Repeat*>(fun);
             if (!parse(it, end, rep->func_m)) return false;
 
-            boost::regex argumentList("," + UInt + "," + Double + "," + Double + "\\)(.*)");
+            boost::regex argumentListTrans("," + UInt + "," + Double + "," + Double + "\\)(.*)");
+            boost::regex argumentListRot("," + UInt + "," + Double + "\\)(.*)");
             boost::smatch what;
 
             std::string str(it, end);
-            if (!boost::regex_match(str, what, argumentList)) return false;
+            if (boost::regex_match(str, what, argumentListTrans)) {
+                rep->N_m = atof(std::string(what[1]).c_str());
+                rep->shiftx_m = atof(std::string(what[2]).c_str());
+                rep->shifty_m = atof(std::string(what[4]).c_str());
+                rep->rot_m = 0.0;
 
-            rep->N_m = atof(std::string(what[1]).c_str());
-            rep->shiftx_m = atof(std::string(what[2]).c_str());
-            rep->shifty_m = atof(std::string(what[4]).c_str());
+                std::string fullMatch = what[0];
+                std::string rest = what[6];
 
-            std::string fullMatch = what[0];
-            std::string rest = what[6];
+                it += (fullMatch.size() - rest.size());
 
-            it += (fullMatch.size() - rest.size());
+                return true;
+            }
 
-            return true;
+            if (boost::regex_match(str, what, argumentListRot)) {
+                rep->N_m = atof(std::string(what[1]).c_str());
+                rep->shiftx_m = 0.0;
+                rep->shifty_m = 0.0;
+                rep->rot_m = atof(std::string(what[2]).c_str());
+
+                std::string fullMatch = what[0];
+                std::string rest = what[4];
+
+                it += (fullMatch.size() - rest.size());
+
+                return true;
+            }
+
+            return false;
         }
     };
 
