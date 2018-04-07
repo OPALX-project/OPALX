@@ -919,7 +919,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << "&end\n";
 
     outputFile << Ippl::getNodes() << std::endl;
-    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << std::endl;
+    outputFile << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl;
     outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                    (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 }
@@ -1316,7 +1316,7 @@ void DataSink::replaceVersionString(const std::string &fileName) const {
             if (line != versionFile) {
                 fs << line << "\n";
             } else {
-                fs << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << "\n";
+                fs << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n";
             }
 
             allLines.pop();
@@ -1410,7 +1410,7 @@ void DataSink::writeLBalHeader(PartBunchBase<double, 3> *beam,
                << "&end\n";
 
     outputFile << Ippl::getNodes() << std::endl;
-    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << std::endl;
+    outputFile << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl;
     outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                    (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 
@@ -1512,7 +1512,7 @@ void DataSink::writeMemoryHeader(std::ofstream &outputFile)
                << "&end\n";
 
     outputFile << Ippl::getNodes() << std::endl;
-    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << std::endl;
+    outputFile << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl;
     outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                    (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 }
@@ -1624,7 +1624,7 @@ void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
                << "&end\n";
 
     outputFile << Ippl::getNodes() << std::endl;
-    outputFile << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << std::endl;
+    outputFile << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl;
     outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                    (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 }
