@@ -30,9 +30,35 @@ set( GTEST_BOTH_LIBRARIES
     ${GTEST_LIBRARY_MAIN}
 )
 
-IF(GTEST_INCLUDE_DIR AND GTEST_LIBRARY)
+# ``GTEST_INCLUDE_DIRS``
+#   the directory containing the Google Test headers
+#
+# The library variables below are set as normal variables.  These
+# contain debug/optimized keywords when a debugging library is found.
+#
+# ``GTEST_LIBRARIES``
+#   The Google Test ``gtest`` library; note it also requires linking
+#   with an appropriate thread library
+# ``GTEST_MAIN_LIBRARIES``
+#   The Google Test ``gtest_main`` library
+# ``GTEST_BOTH_LIBRARIES``
+#
+
+set (GTEST_INCLUDE_DIRS
+    ${GTEST_INCLUDE_DIR}
+)
+
+set (GTEST_MAIN_LIBRARIES
+    ${GTEST_LIBRARY_MAIN}
+)
+
+set (GTEST_LIBRARIES
+    ${GTEST_LIBRARY}
+)
+
+IF(GTEST_INCLUDE_DIR AND GTEST_LIBRARY AND GTEST_LIBRARY_MAIN)
     SET( GTEST_FOUND "YES" )
-ENDIF(GTEST_INCLUDE_DIR AND GTEST_LIBRARY)
+ENDIF()
 
 IF (GTEST_FOUND)
    IF (NOT GTEST_FIND_QUIETLY)
@@ -44,4 +70,3 @@ ELSE (GTEST_FOUND)
       MESSAGE(FATAL_ERROR "Could not find GTEST!")
    ENDIF (GTest_FIND_REQUIRED)
 ENDIF (GTEST_FOUND)
-
