@@ -1,22 +1,17 @@
-/* Name of package */
-#define PACKAGE ${PACKAGE}
+/* Define to the one symbol short name of this package. */
+#define OPAL_PROJECT_NAME "${PROJECT_NAME}"
+
+/* Define OPAL version */
+#define OPAL_PROJECT_VERSION "${PROJECT_VERSION}"
+#define OPAL_VERSION_MAJOR   ${PROJECT_VERSION_MAJOR}
+#define OPAL_VERSION_MINOR   ${PROJECT_VERSION_MINOR}
+#define OPAL_VERSION_PATCH   ${PROJECT_VERSION_PATCH}
+
+/* Define string with the options used to compile OPAL */
+#define OPAL_COMPILE_OPTIONS "${CMAKE_CXX_FLAGS}"
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT ${PACKAGE_BUGREPORT}
-
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME ${PACKAGE_TARNAME}
-
-/* Define to the one symbol short name of this package. */
-#define PACKAGE_NAME ${PACKAGE_NAME}
-
-/* Define to the version of this package. */
-#define OPAL_VERSION ${PACKAGE_VERSION}
-
-/* Define string OPAL_VERSION */
-#define OPAL_VERSION_STR ${PACKAGE_VERSION_STR}
+#define PACKAGE_BUGREPORT "${PROJECT_BUGREPORT}"
 
 /* Define DKS version used in this package. */
 #define DKS_VERSION ${DKS_VERSION_OPAL}
-
-#define PACKAGE_COMPILE_OPTIONS ${PACKAGE_COMPILE_OPTIONS}
