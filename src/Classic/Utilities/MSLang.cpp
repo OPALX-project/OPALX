@@ -718,8 +718,6 @@ namespace mslang {
     }
 
     bool parse(std::string str, Function* &fun) {
-        str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
-        str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
         iterator it = str.begin();
         iterator end = str.end();
         if (!parse(it, end, fun)) {
