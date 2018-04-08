@@ -55,11 +55,13 @@ public:
     unsigned int getLosses() const;
 
     void setDescription(const std::string &desc);
+    std::string getDescription() const;
 private:
 
     // Not implemented.
     void operator=(const FlexibleCollimator &);
 
+    std::string description_m;
     std::vector<mslang::Base*> holes_m;
     mslang::BoundingBox bb_m;
     mslang::QuadTree tree_m;
@@ -68,9 +70,6 @@ private:
 
     bool informed_m;
     unsigned int losses_m;
-    unsigned int losses1_m;
-    unsigned int losses2_m;
-    unsigned int losses3_m;
     std::unique_ptr<LossDataSink> lossDs_m;
 
     ParticleMatterInteractionHandler *parmatint_m;
@@ -96,6 +95,11 @@ void FlexibleCollimator::setOutputFN(const std::string &fn) {
 inline
 std::string FlexibleCollimator::getOutputFN() const {
     return filename_m;
+}
+
+inline
+std::string FlexibleCollimator::getDescription() const {
+    return description_m;
 }
 
 #endif // CLASSIC_FlexibleCollimator_HH

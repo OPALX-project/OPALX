@@ -17,6 +17,7 @@ extern Inform *gmsg;
 
 FlexibleCollimator::FlexibleCollimator():
     Component(),
+    description_m(""),
     filename_m(""),
     informed_m(false),
     losses_m(0),
@@ -26,15 +27,12 @@ FlexibleCollimator::FlexibleCollimator():
 
 FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     Component(right),
-    //holes_m(right.holes_m.begin(), right.holes_m.end()),
+    description_m(right.description_m),
     bb_m(right.bb_m),
     tree_m(right.tree_m),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
     losses_m(0),
-    losses1_m(0),
-    losses2_m(0),
-    losses3_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {
@@ -46,6 +44,7 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
 
 FlexibleCollimator::FlexibleCollimator(const std::string &name):
     Component(name),
+    description_m(""),
     filename_m(""),
     informed_m(false),
     losses_m(0),
@@ -76,14 +75,11 @@ bool FlexibleCollimator::isStopped(const Vector_t &R, const Vector_t &P, double 
         (z > getElementLength()) ||
         (!isInsideTransverse(R))) return false;
 
-    ++ losses3_m;
     if (!bb_m.isInside(R)) {
-        ++losses1_m;
         return true;
     }
 
     if (!tree_m.isInside(R)) {
-        ++ losses2_m;
         return true;
     }
 
