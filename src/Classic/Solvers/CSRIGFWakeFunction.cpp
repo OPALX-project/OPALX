@@ -80,7 +80,7 @@ void CSRIGFWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
 	    double spos = bunch->get_sPos();
 	    if (Ippl::myNode() == 0) {
                 std::stringstream filename_str;
-                filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
+                filename_str << "data/" << bendName_m << "-CSRWake" << std::setw(5) << std::setfill('0') << file_number << ".txt";
                 std::ofstream csr(filename_str.str().c_str());
                 csr << spos << ", " << FieldBegin_m << ", " << smin(2) << ", " << smax(2) << ", " << meshSpacing*64 << std::endl;
                 for(unsigned int i = 0; i < lineDensity_m.size(); ++ i) {
