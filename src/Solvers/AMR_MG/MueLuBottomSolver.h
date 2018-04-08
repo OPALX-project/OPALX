@@ -44,7 +44,8 @@ public:
         
 public:
     
-    MueLuBottomSolver(const bool& rebalance);
+    MueLuBottomSolver(const bool& rebalance,
+                      const std::string& reuse);
     
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
@@ -53,14 +54,20 @@ public:
                      Level* level_p = nullptr);
     
     std::size_t getNumIters();
+    
+    /*
+     * MueLu reuse option.
+     * Either none, RP, RAP or full
+     */
+    static std::string convertToMueLuReuseOption(const std::string& reuse);
 
 private:
-    void initMueLuList_m();
+    void initMueLuList_m(const std::string& reuse);
     
 private:
     Teuchos::RCP<hierarchy_t> hierarchy_mp;     ///< manages the multigrid hierarchy
     
-    Teuchos::RCP<level_t> finest_mp;            ///< finest level of hierarchy
+    Teuchos::RCP<manager_t> factory_mp;         ///< sets up hierarchy
 
     Teuchos::RCP<xmatrix_t> A_mp;               ///< MueLu requires Xpetra
 
