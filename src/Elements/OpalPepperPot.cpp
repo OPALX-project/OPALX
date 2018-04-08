@@ -35,8 +35,6 @@ OpalPepperPot::OpalPepperPot():
                      ("YSIZE", "Size in y of the pepperpot in m");
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Pepperpot output filename");
-    itsAttr[PITCH] = Attributes::makeReal
-                     ("PITCH", "Pitch of the pepperpot in m");
     itsAttr[NHOLX] = Attributes::makeReal
                      ("NHOLX", "Number of holes in x");
     itsAttr[NHOLY] = Attributes::makeReal
@@ -47,7 +45,6 @@ OpalPepperPot::OpalPepperPot():
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
-    registerRealAttribute("PITCH");
     registerRealAttribute("R");
     registerRealAttribute("NHOLX");
     registerRealAttribute("NHOLY");
@@ -100,7 +97,6 @@ void OpalPepperPot::update() {
         double xsize = Attributes::getReal(itsAttr[XSIZE]);
         double ysize = Attributes::getReal(itsAttr[YSIZE]);
         double diameter = 2 * Attributes::getReal(itsAttr[R]);
-        double pitch = Attributes::getReal(itsAttr[PITCH]);
         int repX = Attributes::getReal(itsAttr[NHOLX]) - 1;
         int repY = Attributes::getReal(itsAttr[NHOLY]) - 1;
 
@@ -108,12 +104,11 @@ void OpalPepperPot::update() {
         double shifty = (ysize - diameter) / repY;
 
         std::stringstream description;
-        description << "rotate(repeat(repeat(translate(ellipse("
+        description << "repeat(repeat(translate(ellipse("
                     << diameter << "," << diameter << "),"
                     << -shiftx * 0.5 * repX << "," << -shifty * 0.5 * repY << "),"
                     << repX << "," << shiftx << ",0.0),"
-                    << repY << ",0.0," << shifty << "),"
-                    << pitch << ")";
+                    << repY << ",0.0," << shifty << ")";
 
         std::cout << "OpalPepperPot.cpp: " << __LINE__ << "\t"
                   << description.str() << std::endl;
