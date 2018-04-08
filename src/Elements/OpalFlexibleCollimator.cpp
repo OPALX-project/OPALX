@@ -91,6 +91,7 @@ void OpalFlexibleCollimator::update() {
 
         coll->setDescription(str);
     } else if (desc != "") {
+        desc = boost::regex_replace(desc, boost::regex("[\\t ]"), std::string(""), boost::match_default | boost::format_all);
         coll->setDescription(desc);
     } else if (getOpalName() != "FLEXIBLECOLLIMATOR") {
         throw OpalException("OpalFlexibleCollimator::update",
