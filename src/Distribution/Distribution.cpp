@@ -585,7 +585,7 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
     double meanE = static_cast<H5PartWrapperForPC*>(dataSource)->getMeanKineticEnergy();
 
     const int globalN = beam->getTotalNum();
-    INFOMSG("Restart from hdf5 format file " << OpalData::getInstance()->getInputBasename() << ".h5" << endl);
+    INFOMSG("Restart from hdf5 format file " << OpalData::getInstance()->getRestartFileName() << endl);
     INFOMSG("total number of particles = " << globalN << endl);
     INFOMSG("* Restart Energy = " << meanE << " (MeV), Path lenght = " << beam->getLPath() << " (m)" <<  endl);
     INFOMSG("Tracking Step since last bunch injection is " << beam->getSteptoLastInj() << endl);
