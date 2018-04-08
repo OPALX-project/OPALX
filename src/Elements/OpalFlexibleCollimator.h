@@ -33,6 +33,7 @@ public:
     /// The attributes of class OpalFlexibleCollimator.
     enum {
         FNAME = COMMON,  // The horizontal half-size.
+        DESC,
         OUTFN,
         SIZE
     };

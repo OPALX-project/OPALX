@@ -20,6 +20,9 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/FlexibleCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
+#include "Utilities/OpalException.h"
+
+#include <boost/regex.hpp>
 
 // Class OpalFlexibleCollimator
 // ------------------------------------------------------------------------
@@ -30,11 +33,13 @@ OpalFlexibleCollimator::OpalFlexibleCollimator():
     partMatInt_m(NULL) {
     itsAttr[FNAME] = Attributes::makeString
                      ("FNAME", "File name containing description of holes");
+    itsAttr[DESC] = Attributes::makeString
+                    ("DESCRIPTION", "String describing the distribution of holes");
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "File name of log file for deleted particles");
 
-
     registerStringAttribute("OUTFN");
+    registerStringAttribute("DESC");
     registerStringAttribute("FNAME");
 
     registerOwnership();
@@ -75,11 +80,21 @@ void OpalFlexibleCollimator::update() {
     coll->setElementLength(length);
 
     std::string fname = Attributes::getString(itsAttr[FNAME]);
+    std::string desc = Attributes::getString(itsAttr[DESC]);
     if (fname != "") {
         std::ifstream it(fname);
         std::string str((std::istreambuf_iterator<char>(it)),
                         std::istreambuf_iterator<char>());
+
+        str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
+        str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
+
         coll->setDescription(str);
+    } else if (desc != "") {
+        coll->setDescription(desc);
+    } else if (getOpalName() != "FLEXIBLECOLLIMATOR") {
+        throw OpalException("OpalFlexibleCollimator::update",
+                            "A description for the holes has to be provided, either using DESCRIPTION or FNAME");
     }
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
