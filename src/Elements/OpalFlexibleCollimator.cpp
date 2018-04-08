@@ -68,6 +68,10 @@ OpalFlexibleCollimator *OpalFlexibleCollimator::clone(const std::string &name) {
 
 void OpalFlexibleCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
+
+    const FlexibleCollimatorRep *coll =
+        dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
+    attributeRegistry["DESCRIPTION"]->setString(coll->getDescription());
 }
 
 
