@@ -1,10 +1,10 @@
 #ifndef OPAL_TRIM_COIL_H
 #define OPAL_TRIM_COIL_H
 
-#include <vector>
-#include <memory>
+#include <string>
 #include "AbstractObjects/Definition.h"
-#include "TrimCoils/TrimCoil.h"
+
+class TrimCoil;
 
 // Class OpalTrimCoil
 // ------------------------------------------------------------------------
@@ -31,7 +31,7 @@ public:
     /// Check the OpalTrimCoil data.
     virtual void execute();
 
-    /// Find named FILTER.
+    /// Find named trim coil.
     static OpalTrimCoil *find(const std::string &name);
 
     /// Update the OpalTrimCoil data.
@@ -41,12 +41,12 @@ public:
 
     void initOpalTrimCoil();
 
-    TrimCoil *trimcoil_m;
 private:
+    TrimCoil *trimcoil_m;
 
     // Not implemented.
-    OpalTrimCoil(const OpalTrimCoil &);
-    void operator=(const OpalTrimCoil &);
+    OpalTrimCoil  (const OpalTrimCoil &) = delete;
+    void operator=(const OpalTrimCoil &) = delete;
 
     // Clone constructor.
     OpalTrimCoil(const std::string &name, OpalTrimCoil *parent);
