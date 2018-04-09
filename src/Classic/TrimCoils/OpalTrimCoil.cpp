@@ -2,12 +2,10 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
+#include "TrimCoils/TrimCoil.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
-#include "AbsBeamline/ElementBase.h"
-
 #include "Utility/IpplInfo.h"
-#include <cmath>
 
 extern Inform *gmsg;
 
