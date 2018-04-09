@@ -232,7 +232,7 @@ void H5PartWrapperForPC::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "pxUnit", "#beta#gamma");
     WRITESTRINGFILEATTRIB(file_m, "pyUnit", "#beta#gamma");
     WRITESTRINGFILEATTRIB(file_m, "pzUnit", "#beta#gamma");
-    WRITESTRINGFILEATTRIB(file_m, "qUnit", "Cb");
+    WRITESTRINGFILEATTRIB(file_m, "qUnit", "C");
 
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "binUnit", "1");
