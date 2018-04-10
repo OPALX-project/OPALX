@@ -34,7 +34,6 @@ public:
     /// The attributes of class OpalPepperPot.
     enum {
         R = COMMON,  // The horizontal half-size of a hole
-        PITCH,        // The separation of the pepperpot holes
         NHOLX,
         NHOLY,
         XSIZE,
