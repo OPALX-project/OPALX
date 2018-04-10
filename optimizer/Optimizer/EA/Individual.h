@@ -72,6 +72,7 @@ public:
         bounds_m      =      bounds_t(individual->bounds_m);
         names_m       =       names_t(individual->names_m);
         constraints_m = constraints_t(individual->constraints_m);
+        id            = individual->id;
     }
 
     /// serialization of structure
@@ -101,7 +102,7 @@ public:
     /// values of objectives of an individual
     objectives_t objectives;
     /// id
-    unsigned int id;
+    unsigned int id = 0;
 
 private:
     /// check bounds
