@@ -180,7 +180,7 @@ private:
     /// size of initial population
     size_t alpha_m;
     /// number of parents the selector chooses
-    size_t mu_m;
+    //size_t mu_m;
     /// number of children the variator produces
     size_t lambda_m;
     /// number of objectives
