@@ -150,8 +150,8 @@ public:
                 }
 
                 // check if viable offspring
-                bool viableA = this->viable(a);
-                bool viableB = this->viable(b);
+                bool viableA = a->viable();
+                bool viableB = b->viable();
                 if (viableA == true && viableB == true) {
                     break;
                 }
@@ -185,15 +185,6 @@ protected:
         individualsToEvaluate_m.push(
             population_m->add_individual(return_ind) ) ;
     }
-
-    /// test if individual within bounds and constraints
-    bool viable(boost::shared_ptr<ind_t> ind) {
-        if (ind->viable()==true) {
-            return true;
-        }
-        return false;
-    }
-
 
 private:
 
