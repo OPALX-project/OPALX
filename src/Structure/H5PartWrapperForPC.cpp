@@ -16,8 +16,6 @@
 #include <sstream>
 #include <set>
 
-extern Inform *gmsg;
-
 H5PartWrapperForPC::H5PartWrapperForPC(const std::string &fileName, h5_int32_t flags):
     H5PartWrapper(fileName, flags),
     previousH5Local_m(false),
@@ -225,7 +223,7 @@ void H5PartWrapperForPC::writeHeader() {
     OPAL_version << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " # git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
-    WRITESTRINGFILEATTRIB(file_m, "tUnit", "s");
+    // Units for the step data
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "zUnit", "m");
@@ -233,53 +231,72 @@ void H5PartWrapperForPC::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "pyUnit", "#beta#gamma");
     WRITESTRINGFILEATTRIB(file_m, "pzUnit", "#beta#gamma");
     WRITESTRINGFILEATTRIB(file_m, "qUnit", "C");
-
+    WRITESTRINGFILEATTRIB(file_m, "massUnit", "GeV");
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "binUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "ptype", "1");
-    WRITESTRINGFILEATTRIB(file_m, "lastsection", "1");
+    if (Options::ebDump) {
+      WRITESTRINGFILEATTRIB(file_m, "Ex", "MV/m");
+      WRITESTRINGFILEATTRIB(file_m, "Ey", "MV/m");
+      WRITESTRINGFILEATTRIB(file_m, "Ez", "MV/m");
+      WRITESTRINGFILEATTRIB(file_m, "Bx", "T");
+      WRITESTRINGFILEATTRIB(file_m, "By", "T");
+      WRITESTRINGFILEATTRIB(file_m, "Bz", "T");
+    }
 
-    WRITESTRINGFILEATTRIB(file_m, "SPOSUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "TIMEUnit", "s");
-    WRITESTRINGFILEATTRIB(file_m, "#gammaUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "ENERGYUnit", "MeV");
-    WRITESTRINGFILEATTRIB(file_m, "#varepsilonUnit", "m rad");
-    WRITESTRINGFILEATTRIB(file_m, "#varepsilonrUnit", "m rad");
+    // Units for the step attributes
+    WRITESTRINGFILEATTRIB(file_m, "TIMEUnit",     "s");
+    WRITESTRINGFILEATTRIB(file_m, "SPOSUnit",     "m");
+
+    WRITESTRINGFILEATTRIB(file_m, "RefPartRUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "centroidUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "RMSXUnit",     "m");
+    WRITESTRINGFILEATTRIB(file_m, "minXUnit",     "m");
+    WRITESTRINGFILEATTRIB(file_m, "maxXUnit",     "m");
+
+    WRITESTRINGFILEATTRIB(file_m, "RefPartPUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "RMSPUnit",     "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "minPUnit",     "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "maxPUnit",     "#beta#gamma");
+
+    WRITESTRINGFILEATTRIB(file_m, "#varepsilonUnit",      "m rad");
     WRITESTRINGFILEATTRIB(file_m, "#varepsilon-geomUnit", "m rad");
-
-    WRITESTRINGFILEATTRIB(file_m, "#sigmaUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "RMSXUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "RMSRUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "RMSPUnit", "#beta#gamma");
-
-    WRITESTRINGFILEATTRIB(file_m, "maxdEUnit", "MeV");
-    WRITESTRINGFILEATTRIB(file_m, "max#phiUnit", "deg");
-
-    WRITESTRINGFILEATTRIB(file_m, "phizUnit", "deg");
-    WRITESTRINGFILEATTRIB(file_m, "dEUnit", "MeV");
-
-    WRITESTRINGFILEATTRIB(file_m, "MASSUnit", "GeV");
-    WRITESTRINGFILEATTRIB(file_m, "CHARGEUnit", "C");
-
-    WRITESTRINGFILEATTRIB(file_m, "spos-headUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "E-headUnit", "MV/m");
-    WRITESTRINGFILEATTRIB(file_m, "B-headUnit", "T");
-    WRITESTRINGFILEATTRIB(file_m, "spos-refUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "E-refUnit", "MV/m");
-    WRITESTRINGFILEATTRIB(file_m, "B-refUnit", "T");
-    WRITESTRINGFILEATTRIB(file_m, "spos-tailUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "E-tailUnit", "MV/m");
-    WRITESTRINGFILEATTRIB(file_m, "B-tailUnit", "T");
 
     WRITESTRINGFILEATTRIB(file_m, "StepUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "LocalTrackStepUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "GlobalTrackStepUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "NumBunchUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "NumPartUnit", "1");
 
-    WRITESTRINGFILEATTRIB(file_m, "RefPartRUnit", "m");
-    WRITESTRINGFILEATTRIB(file_m, "RefPartPUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "#sigmaUnit", "1");
+
+    WRITESTRINGFILEATTRIB(file_m, "ENERGYUnit", "MeV");
+    WRITESTRINGFILEATTRIB(file_m, "dEUnit",     "MeV");
+
+    WRITESTRINGFILEATTRIB(file_m, "MASSUnit",   "GeV");
+    WRITESTRINGFILEATTRIB(file_m, "CHARGEUnit", "C");
+
+    WRITESTRINGFILEATTRIB(file_m, "NumBunchUnit",      "1");
     WRITESTRINGFILEATTRIB(file_m, "SteptoLastInjUnit", "1");
+    WRITESTRINGFILEATTRIB(file_m, "LOCALUnit",         "1");
+
+    // additional step attributes
+    WRITESTRINGFILEATTRIB(file_m, "REFPRUnit",        "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "REFPTUnit",        "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "REFPZUnit",        "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "REFRUnit",         "mm");
+    WRITESTRINGFILEATTRIB(file_m, "REFTHETAUnit",     "deg");
+    WRITESTRINGFILEATTRIB(file_m, "REFZUnit",         "mm");
+    WRITESTRINGFILEATTRIB(file_m, "REFAZIMUTHUnit",   "deg");
+    WRITESTRINGFILEATTRIB(file_m, "REFELEVATIONUnit", "deg");
+
+    WRITESTRINGFILEATTRIB(file_m, "spos-headUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "spos-refUnit",  "m");
+    WRITESTRINGFILEATTRIB(file_m, "spos-tailUnit", "m");
+
+    WRITESTRINGFILEATTRIB(file_m, "B-refUnit",  "T");
+    WRITESTRINGFILEATTRIB(file_m, "E-refUnit",  "MV/m");
+    WRITESTRINGFILEATTRIB(file_m, "B-headUnit", "T");
+    WRITESTRINGFILEATTRIB(file_m, "E-headUnit", "MV/m");
+    WRITESTRINGFILEATTRIB(file_m, "B-tailUnit", "T");
+    WRITESTRINGFILEATTRIB(file_m, "E-tailUnit", "MV/m");
 
     /// Write file dump frequency.
     h5_int64_t dumpfreq = Options::psDumpFreq;
@@ -354,20 +371,20 @@ void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
 
     WRITESTEPATTRIB(Float64, file_m, "RefPartR", (h5_float64_t *)&RefPartR, 3);
     WRITESTEPATTRIB(Float64, file_m, "centroid", (h5_float64_t *)&centroid, 3);
-    WRITESTEPATTRIB(Float64, file_m, "RMSX", (h5_float64_t *)&xsigma, 3);
-    WRITESTEPATTRIB(Float64, file_m, "minX", (h5_float64_t *)&rmin, 3);
-    WRITESTEPATTRIB(Float64, file_m, "maxX", (h5_float64_t *)&rmax, 3);
+    WRITESTEPATTRIB(Float64, file_m, "RMSX",     (h5_float64_t *)&xsigma,   3);
+    WRITESTEPATTRIB(Float64, file_m, "minX",     (h5_float64_t *)&rmin,     3);
+    WRITESTEPATTRIB(Float64, file_m, "maxX",     (h5_float64_t *)&rmax,     3);
 
     WRITESTEPATTRIB(Float64, file_m, "RefPartP", (h5_float64_t *)&RefPartP, 3);
-    WRITESTEPATTRIB(Float64, file_m, "RMSP", (h5_float64_t *)&psigma, 3);
-    WRITESTEPATTRIB(Float64, file_m, "minP", (h5_float64_t *)&minP, 3);
-    WRITESTEPATTRIB(Float64, file_m, "maxP", (h5_float64_t *)&maxP, 3);
+    WRITESTEPATTRIB(Float64, file_m, "RMSP",     (h5_float64_t *)&psigma,   3);
+    WRITESTEPATTRIB(Float64, file_m, "minP",     (h5_float64_t *)&minP,     3);
+    WRITESTEPATTRIB(Float64, file_m, "maxP",     (h5_float64_t *)&maxP,     3);
 
-    WRITESTEPATTRIB(Float64, file_m, "#varepsilon", (h5_float64_t *)&vareps, 3);
+    WRITESTEPATTRIB(Float64, file_m, "#varepsilon",      (h5_float64_t *)&vareps,     3);
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon-geom", (h5_float64_t *)&geomvareps, 3);
 
-    WRITESTEPATTRIB(Int64, file_m, "Step", &numSteps_m, 1);
-    WRITESTEPATTRIB(Int64, file_m, "LocalTrackStep", &localTrackStep, 1);
+    WRITESTEPATTRIB(Int64, file_m, "Step",            &numSteps_m,      1);
+    WRITESTEPATTRIB(Int64, file_m, "LocalTrackStep",  &localTrackStep,  1);
     WRITESTEPATTRIB(Int64, file_m, "GlobalTrackStep", &globalTrackStep, 1);
 
     WRITESTEPATTRIB(Float64, file_m, "#sigma", &sigma, 1);
@@ -380,19 +397,17 @@ void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
     WRITESTEPATTRIB(Float64, file_m, "CHARGE", &charge, 1);
 
     WRITESTEPATTRIB(Int64, file_m, "NumBunch", &numBunch, 1);
-
     WRITESTEPATTRIB(Int64, file_m, "SteptoLastInj", &SteptoLastInj, 1);
-
     WRITESTEPATTRIB(Int64, file_m, "LOCAL", &localFrame, 1);
 
     try {
-        h5_float64_t refpr = additionalStepAttributes.at("REFPR");
-        h5_float64_t refpt = additionalStepAttributes.at("REFPT");
-        h5_float64_t refpz = additionalStepAttributes.at("REFPZ");
-        h5_float64_t refr = additionalStepAttributes.at("REFR");
-        h5_float64_t reft = additionalStepAttributes.at("REFTHETA");
-        h5_float64_t refz = additionalStepAttributes.at("REFZ");
-        h5_float64_t azimuth = additionalStepAttributes.at("AZIMUTH");
+        h5_float64_t refpr     = additionalStepAttributes.at("REFPR");
+        h5_float64_t refpt     = additionalStepAttributes.at("REFPT");
+        h5_float64_t refpz     = additionalStepAttributes.at("REFPZ");
+        h5_float64_t refr      = additionalStepAttributes.at("REFR");
+        h5_float64_t reft      = additionalStepAttributes.at("REFTHETA");
+        h5_float64_t refz      = additionalStepAttributes.at("REFZ");
+        h5_float64_t azimuth   = additionalStepAttributes.at("AZIMUTH");
         h5_float64_t elevation = additionalStepAttributes.at("ELEVATION");
 
         Vector_t referenceB(additionalStepAttributes.at("B-ref_x"),
@@ -414,21 +429,21 @@ void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
                        additionalStepAttributes.at("E-tail_z"),
                        additionalStepAttributes.at("E-tail_y"));
 
-        WRITESTEPATTRIB(Float64, file_m, "REFPR", &refpr, 1);
-        WRITESTEPATTRIB(Float64, file_m, "REFPT", &refpt, 1);
-        WRITESTEPATTRIB(Float64, file_m, "REFPZ", &refpz, 1);
-        WRITESTEPATTRIB(Float64, file_m, "REFR", &refr, 1);
-        WRITESTEPATTRIB(Float64, file_m, "REFTHETA", &reft, 1);
-        WRITESTEPATTRIB(Float64, file_m, "REFZ", &refz, 1);
-        WRITESTEPATTRIB(Float64, file_m, "AZIMUTH", &azimuth, 1);
+        WRITESTEPATTRIB(Float64, file_m, "REFPR",     &refpr, 1);
+        WRITESTEPATTRIB(Float64, file_m, "REFPT",     &refpt, 1);
+        WRITESTEPATTRIB(Float64, file_m, "REFPZ",     &refpz, 1);
+        WRITESTEPATTRIB(Float64, file_m, "REFR",      &refr, 1);
+        WRITESTEPATTRIB(Float64, file_m, "REFTHETA",  &reft, 1);
+        WRITESTEPATTRIB(Float64, file_m, "REFZ",      &refz, 1);
+        WRITESTEPATTRIB(Float64, file_m, "AZIMUTH",   &azimuth, 1);
         WRITESTEPATTRIB(Float64, file_m, "ELEVATION", &elevation, 1);
 
         WRITESTEPATTRIB(Float64, file_m, "spos-head", &sposHead, 1);
-        WRITESTEPATTRIB(Float64, file_m, "spos-ref", &sposRef, 1);
+        WRITESTEPATTRIB(Float64, file_m, "spos-ref",  &sposRef,  1);
         WRITESTEPATTRIB(Float64, file_m, "spos-tail", &sposTail, 1);
 
-        WRITESTEPATTRIB(Float64, file_m, "B-ref", (h5_float64_t *)&referenceB, 3);
-        WRITESTEPATTRIB(Float64, file_m, "E-ref", (h5_float64_t *)&referenceE, 3);
+        WRITESTEPATTRIB(Float64, file_m, "B-ref",  (h5_float64_t *)&referenceB, 3);
+        WRITESTEPATTRIB(Float64, file_m, "E-ref",  (h5_float64_t *)&referenceE, 3);
         WRITESTEPATTRIB(Float64, file_m, "B-head", (h5_float64_t *)&headB, 3);
         WRITESTEPATTRIB(Float64, file_m, "E-head", (h5_float64_t *)&headE, 3);
         WRITESTEPATTRIB(Float64, file_m, "B-tail", (h5_float64_t *)&tailB, 3);
@@ -461,7 +476,7 @@ void H5PartWrapperForPC::writeStepData(PartBunchBase<double, 3>* bunch) {
 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    h5_int64_t   *i64buffer = reinterpret_cast<h5_int64_t*>  (&buffer[0]);
 
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
