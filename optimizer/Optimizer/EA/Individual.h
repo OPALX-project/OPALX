@@ -60,7 +60,7 @@ public:
             // check constraints
             bool allSatisfied = checkConstraints();
             if (allSatisfied == true) break;
-            // else next iteration
+            // else next try
             iter++;
         }
     }
@@ -91,6 +91,10 @@ public:
         genes[gene_idx] = rand() / (RAND_MAX + 1.0) * delta + min;
         return genes[gene_idx];
     }
+    /// test if individual within bounds and constraints
+    bool viable() {
+        return checkBounds() && checkConstraints();
+    }
 
     /// genes of an individual
     genes_t      genes;
@@ -100,7 +104,21 @@ public:
     unsigned int id;
 
 private:
+    /// check bounds
+    bool checkBounds() {
+        for (size_t i=0; i < bounds_m.size(); i++) {
+             double value = genes[i];
+             double max = std::max(bounds_m[i].first, bounds_m[i].second);
+             double min = std::min(bounds_m[i].first, bounds_m[i].second);
+             bool is_valid = (value >= min && value<= max);
+             if (is_valid == false) {
+                 return false;
+             }
+        }
+        return true;
+    }
 
+    /// check if all constraints on design variables are checked
     bool checkConstraints() {
         for (auto namedConstraint : constraints_m) {
             Expressions::Expr_t *constraint = namedConstraint.second;
