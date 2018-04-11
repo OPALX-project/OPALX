@@ -122,7 +122,7 @@ void OpalTrimCoil::initOpalTrimCoil() {
 }
 
 Inform& OpalTrimCoil::print(Inform &os) const {
-    os << "* ************* T R I M C O I L*****************************************************\n"
+    os << "* ******************************** T R I M C O I L ********************************\n"
        << "* TRIMCOIL       " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n'
        //<< "* COEFNUM      " << Attributes::getReal(itsAttr[COEFNUM]) << '\n'
@@ -130,6 +130,6 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        << "* BMAX           " << Attributes::getReal(itsAttr[BMAX]) << '\n'
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
        << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n'
-       << "* ********************************************************************************** " << endl;
+       << "* *********************************************************************************" << endl;
     return os;
 }
