@@ -2,7 +2,8 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "TrimCoils/TrimCoil.h"
+#include "TrimCoils/TrimCoilFit.h"
+#include "TrimCoils/TrimCoilMirrored.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
@@ -119,18 +120,15 @@ void OpalTrimCoil::initOpalTrimCoil() {
         double rmin = Attributes::getReal(itsAttr[RMIN]);
         double rmax = Attributes::getReal(itsAttr[RMAX]);
         
-        //*gmsg << bmax << " " << rmin << " " << rmax << endl;
-
         if (type == "PSI-RING") {
             std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
             std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
+            trimcoil_m = std::unique_ptr<TrimCoilFit>      (new TrimCoilFit(bmax, rmin, rmax, coefnum, coefdenom));
         } else if (type == "PSI-RING-OLD") {
-
-          double slope = Attributes::getReal(itsAttr[SLPTC]);
-          //*gmsg << slope << endl;
-
+            double slope = Attributes::getReal(itsAttr[SLPTC]);
+            trimcoil_m = std::unique_ptr<TrimCoilMirrored> (new TrimCoilMirrored(bmax, rmin, rmax, slope));
         } else {
-          
+            WARNMSG(type << " is not a valid trim coil type" << endl);
         }
         
         *gmsg << level3 << *this << endl;
@@ -142,24 +140,28 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        << "* TRIMCOIL       " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
        
-    std::vector<double> coefnum = Attributes::getRealArray(itsAttr[COEFNUM]);
-    std::stringstream ss;
-    for (std::size_t i = 0; i < coefnum.size(); ++i) {
-        ss << ((i > 0) ? "+ " : "") << coefnum[i]
-           << ((i > 0) ? (" * x^" + std::to_string(i)) : "") << ' ';
-    }
-    os << "* POLYNOM NUM    " << ss.str() << '\n';
+    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-RING") {
+        std::vector<double> coefnum = Attributes::getRealArray(itsAttr[COEFNUM]);
+        std::stringstream ss;
+        for (std::size_t i = 0; i < coefnum.size(); ++i) {
+            ss << ((i > 0) ? "+ " : "") << coefnum[i]
+               << ((i > 0) ? (" * x^" + std::to_string(i)) : "") << ' ';
+        }
+        os << "* POLYNOM NUM    " << ss.str() << '\n';
     
-    std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
-    ss.str("");
-    for (std::size_t i = 0; i < coefdenom.size(); ++i) {
-        ss << ((i > 0) ? "+ " : "") << coefdenom[i]
-           << ((i > 0) ? (" * x^" + std::to_string(i)) : "") << ' ';
+        std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
+        ss.str("");
+        for (std::size_t i = 0; i < coefdenom.size(); ++i) {
+            ss << ((i > 0) ? "+ " : "") << coefdenom[i]
+               << ((i > 0) ? (" * x^" + std::to_string(i)) : "") << ' ';
+        }
+        os << "* POLYNOM DENOM  " << ss.str() << '\n';
     }
-    os << "* POLYNOM DENOM  " << ss.str() << '\n'
-       << "* BMAX           " << Attributes::getReal(itsAttr[BMAX]) << '\n'
+
+    os << "* BMAX           " << Attributes::getReal(itsAttr[BMAX]) << '\n'
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
        << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n';
+ 
     if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-RING-OLD") {
         os << "* SLPTC          " << Attributes::getReal(itsAttr[SLPTC]) << '\n';
     }

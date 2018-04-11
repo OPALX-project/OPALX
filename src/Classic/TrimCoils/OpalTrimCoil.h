@@ -37,19 +37,22 @@ public:
     /// Update the OpalTrimCoil data.
     virtual void update();
 
+    /// Print method, called at initialisation
     Inform& print(Inform& os) const;
 
+    /// Initialise implementation
     void initOpalTrimCoil();
 
+    /// Actual implementation
     std::unique_ptr<TrimCoil> trimcoil_m;
     
 private:
 
-    // Not implemented.
+    ///@{ Not implemented.
     OpalTrimCoil  (const OpalTrimCoil &) = delete;
     void operator=(const OpalTrimCoil &) = delete;
-
-    // Clone constructor.
+    ///@}
+    /// Private copy constructor, called by clone
     OpalTrimCoil(const std::string &name, OpalTrimCoil *parent);
 
 };
