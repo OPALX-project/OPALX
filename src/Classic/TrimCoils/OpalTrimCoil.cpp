@@ -107,9 +107,6 @@ void OpalTrimCoil::update() {
 
 void OpalTrimCoil::initOpalTrimCoil() {
     if (trimcoil_m == nullptr) {
-        *gmsg << "* ************* T R I M C O I L ****************************************************" << endl;
-        *gmsg << "OpalTrimCoil::initOpalTrimCoilfunction " << endl;
-        *gmsg << "* **********************************************************************************" << endl;
         
         std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
         
@@ -120,7 +117,7 @@ void OpalTrimCoil::initOpalTrimCoil() {
 //         std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
 //         std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
         
-        *gmsg << *this << endl;
+        *gmsg << level3 << *this << endl;
     }
 }
 
