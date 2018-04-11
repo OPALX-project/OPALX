@@ -22,6 +22,7 @@ namespace {
         BMAX,       //
         RMIN,       //
         RMAX,       //
+        SLPTC,
         SIZE
     };
 }
@@ -31,7 +32,7 @@ OpalTrimCoil::OpalTrimCoil():
                "The \"TRIMCOIL\" statement defines a trim coil."),
     trimcoil_m(nullptr) {
     itsAttr[TYPE]      = Attributes::makeString
-                         ("TYPE", "Specifies the type of trim coil: PSI-RING");
+                         ("TYPE", "Specifies the type of trim coil: PSI-RING, PSI-RING-OLD");
 
     itsAttr[COEFNUM]   = Attributes::makeRealArray
                          ("COEFNUM", "List of polynomial coefficients for the numerator");
@@ -43,10 +44,14 @@ OpalTrimCoil::OpalTrimCoil():
                          ("BMAX", "Maximum magnetic field in Tesla.");
 
     itsAttr[RMIN]      = Attributes::makeReal
-                         ("RMIN", "Minimum radius in meters.");
+                         ("RMIN", "Minimum radius in millimeters.");
 
     itsAttr[RMAX]      = Attributes::makeReal
-                         ("RMAX", "Maximum radius in meters.");
+                         ("RMAX", "Maximum radius in millimeters.");
+
+    itsAttr[SLPTC]      = Attributes::makeReal
+                         ("SLPTC", "Slopes of the rising edge [1/mm] (for PSI-RING-OLD)");
+    
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -113,12 +118,23 @@ void OpalTrimCoil::initOpalTrimCoil() {
         
         std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
         
+        double bmax = Attributes::getReal(itsAttr[BMAX]);
+        double rmin = Attributes::getReal(itsAttr[RMIN]);
+        double rmax = Attributes::getReal(itsAttr[RMAX]);
         
-//         double bmax = Attributes::getReal(itsAttr[BMAX]);
-//         double rmin = Attributes::getReal(itsAttr[RMIN]);
-//         double rmax = Attributes::getReal(itsAttr[RMAX]);
-//         std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
-//         std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
+        //*gmsg << bmax << " " << rmin << " " << rmax << endl;
+
+        if (type == "PSI-RING") {
+            std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
+            std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
+        } else if (type == "PSI-RING-OLD") {
+
+          double slope = Attributes::getReal(itsAttr[SLPTC]);
+          //*gmsg << slope << endl;
+
+        } else {
+          
+        }
         
         *gmsg << *this << endl;
     }
@@ -132,7 +148,10 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        //<< "* COEFDENOM    " << Attributes::getReal(itsAttr[COEFDENOM]) << '\n'
        << "* BMAX           " << Attributes::getReal(itsAttr[BMAX]) << '\n'
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
-       << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n'
-       << "* ********************************************************************************** " << endl;
+       << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n';
+    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-RING-OLD") {
+        os << "* SLPTC          " << Attributes::getReal(itsAttr[SLPTC]) << '\n';
+    }
+    os << "* ********************************************************************************** " << endl;
     return os;
 }
