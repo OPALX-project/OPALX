@@ -112,9 +112,6 @@ void OpalTrimCoil::update() {
 
 void OpalTrimCoil::initOpalTrimCoil() {
     if (trimcoil_m == nullptr) {
-        *gmsg << "* ************* T R I M C O I L ****************************************************" << endl;
-        *gmsg << "OpalTrimCoil::initOpalTrimCoilfunction " << endl;
-        *gmsg << "* **********************************************************************************" << endl;
         
         std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
         
@@ -136,12 +133,12 @@ void OpalTrimCoil::initOpalTrimCoil() {
           
         }
         
-        *gmsg << *this << endl;
+        *gmsg << level3 << *this << endl;
     }
 }
 
 Inform& OpalTrimCoil::print(Inform &os) const {
-    os << "* ************* T R I M C O I L*****************************************************\n"
+    os << "* ******************************** T R I M C O I L ********************************\n"
        << "* TRIMCOIL       " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n'
        //<< "* COEFNUM      " << Attributes::getReal(itsAttr[COEFNUM]) << '\n'
@@ -152,6 +149,6 @@ Inform& OpalTrimCoil::print(Inform &os) const {
     if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-RING-OLD") {
         os << "* SLPTC          " << Attributes::getReal(itsAttr[SLPTC]) << '\n';
     }
-    os << "* ********************************************************************************** " << endl;
+    os << "* *********************************************************************************" << endl;
     return os;
 }
