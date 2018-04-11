@@ -140,9 +140,23 @@ void OpalTrimCoil::initOpalTrimCoil() {
 Inform& OpalTrimCoil::print(Inform &os) const {
     os << "* ******************************** T R I M C O I L ********************************\n"
        << "* TRIMCOIL       " << getOpalName() << '\n'
-       << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n'
-       //<< "* COEFNUM      " << Attributes::getReal(itsAttr[COEFNUM]) << '\n'
-       //<< "* COEFDENOM    " << Attributes::getReal(itsAttr[COEFDENOM]) << '\n'
+       << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
+       
+    std::vector<double> coefnum = Attributes::getRealArray(itsAttr[COEFNUM]);
+    std::stringstream ss;
+    for (std::size_t i = 0; i < coefnum.size(); ++i) {
+        ss << ((i > 0) ? "+ " : "") << coefnum[i]
+           << ((i > 0) ? (" * x^" + std::to_string(i)) : "") << ' ';
+    }
+    os << "* POLYNOM NUM    " << ss.str() << '\n';
+    
+    std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
+    ss.str("");
+    for (std::size_t i = 0; i < coefdenom.size(); ++i) {
+        ss << ((i > 0) ? "+ " : "") << coefdenom[i]
+           << ((i > 0) ? (" * x^" + std::to_string(i)) : "") << ' ';
+    }
+    os << "* POLYNOM DENOM  " << ss.str() << '\n'
        << "* BMAX           " << Attributes::getReal(itsAttr[BMAX]) << '\n'
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
        << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n';
