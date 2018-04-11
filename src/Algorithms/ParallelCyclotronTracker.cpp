@@ -2583,6 +2583,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
 }
 
 void ParallelCyclotronTracker::bunchDumpStatData(){
+    
+    // don't dump stat file in case of multi-bunch mode
+    if ( multiBunchMode_m != MB_MODE::NONE )
+        return;
+    
     IpplTimings::startTimer(DumpTimer_m);
 
     /*
@@ -2671,7 +2676,9 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     Vector_t meanR;
     Vector_t meanP;
-    if (Options::psDumpFrame == Options::BUNCH_MEAN) {
+    
+    // in case of multi-bunch mode take always bunch mean (although it takes all bunches)
+    if (Options::psDumpFrame == Options::BUNCH_MEAN || multiBunchMode_m != MB_MODE::NONE ) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else {
@@ -2887,14 +2894,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
         step_m = restartStep0_m;
         
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
-    }
-
-    // TODO: Comment about what scan option does -DW
-    if(OpalData::getInstance()->hasBunchAllocated() && Options::scan) {
-
-        lastDumpedStep_m = 0;
-        itsBunch_m->setT(0.0);
-        t = 0.0;
     }
 
     initDistInGlobalFrame();

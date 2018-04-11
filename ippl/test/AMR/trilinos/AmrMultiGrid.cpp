@@ -2114,7 +2114,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << indent << "no_row_counts=1\n"
             << "&end\n"
             << Ippl::getNodes() << '\n'
-            << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << '\n'
+            << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << '\n'
             << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                 (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 */
