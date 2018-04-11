@@ -126,15 +126,47 @@ public:
             idx = tmp.front(); tmp.pop();
             boost::shared_ptr<ind_t> b = population_m->get_staging(idx);
 
-            // do recombination
-            if(drand(1) <= recombinationProbability_m) {
-                this->crossover(a, b, args_);
-            }
+            // create new individuals
 
-            // do mutation
-            if (drand(1) <= mutationProbability_m) {
-                this->mutate(a, args_);
-                this->mutate(b, args_);
+            // temporary copy in case not successful
+            boost::shared_ptr<ind_t> copyA(new ind_t(a));
+            boost::shared_ptr<ind_t> copyB(new ind_t(b));
+
+            int iter = 0;
+            while (true) {
+                // assign with shared pointer constructor
+                *a = copyA;
+                *b = copyB;
+
+                // do recombination
+                if(drand(1) <= recombinationProbability_m) {
+                    this->crossover(a, b, args_);
+                }
+
+                // do mutation
+                if (drand(1) <= mutationProbability_m) {
+                    this->mutate(a, args_);
+                    this->mutate(b, args_);
+                }
+
+                // check if viable offspring
+                bool viableA = a->viable();
+                bool viableB = b->viable();
+                if (viableA == true && viableB == true) {
+                    break;
+                }
+		std::cout << "Individual not viable, I try again: iter= " << iter << std::endl;
+                iter++;
+                // if maximum number of tries then create new individual(s)
+                if (iter > 100) {
+                    if (viableA == false) {
+                        infeasible(a);
+                    }
+                    if (viableB == false) {
+                        infeasible(b);
+                    }
+                    break;
+                }
             }
         }
     }
@@ -154,7 +186,6 @@ protected:
         individualsToEvaluate_m.push(
             population_m->add_individual(return_ind) ) ;
     }
-
 
 private:
 

@@ -48,8 +48,10 @@ add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL -DIPPL_USE_XDIV
 add_compile_options (-ftemplate-depth=1024 -funroll-loops -fstrict-aliasing)
 
 # compiler dependent flags
+message ("The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-    add_compile_options (-diag-disable 383 -diag-disable 981)
+    add_compile_options ("-diag-disable 383") 
+    add_compile_options ("-diag-disable 981")
     if (ENABLE_OpenMP)
 	add_compile_options (-openmp)
     endif ()

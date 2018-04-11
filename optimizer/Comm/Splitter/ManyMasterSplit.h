@@ -120,6 +120,12 @@ private:
             MPI_Abort(getComm(), -1111);
         }
 
+        if(num_masters_ == 0 || num_coworkers_worker_ == 0) {
+            std::cout << "\033[01;31m" << "Need at least"
+                      << " 1 master and 1 coworker to run.. Aborting." << "\e[0m" << std::endl;
+            MPI_Abort(getComm(), -1111);
+        }
+
         if(static_cast<size_t>(num_procs_) < num_masters_ *
                                              (2 + num_coworkers_worker_)) {
             std::cout << "\033[01;31m" << "Need at least "
