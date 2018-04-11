@@ -242,6 +242,6 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
     tree_m.objects_m.insert(tree_m.objects_m.end(), holes_m.begin(), holes_m.end());
     tree_m.buildUp();
 
-    std::ofstream out("quadtree.gpl");
+    std::ofstream out("data/quadtree.gpl");
     tree_m.writeGnuplot(out);
 }
