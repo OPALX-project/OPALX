@@ -246,7 +246,7 @@ void OpalCyclotron::update() {
     
     if ( !trimcoil.empty() ) {
         
-        std::vector<std::unique_ptr<TrimCoil> > trimcoils;
+        std::vector<TrimCoil* > trimcoils;
         
         for (std::vector<std::string>::const_iterator tit = trimcoil.begin();
              tit != trimcoil.end(); ++tit)
@@ -255,9 +255,10 @@ void OpalCyclotron::update() {
             
             if ( tc ) {
                 tc->initOpalTrimCoil();
-//                 trimcoils.push_back(tc->trimcoil);
+                trimcoils.push_back(tc->trimcoil_m.get());
             }
         }
+        cycl->setTrimCoils(trimcoils);
     }
     
 
