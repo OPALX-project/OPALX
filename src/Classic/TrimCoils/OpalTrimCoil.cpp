@@ -69,7 +69,7 @@ OpalTrimCoil::OpalTrimCoil(const std::string &name, OpalTrimCoil *parent):
 
 
 OpalTrimCoil::~OpalTrimCoil() {
-    delete trimcoil_m;
+    
 }
 
 

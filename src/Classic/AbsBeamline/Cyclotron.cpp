@@ -352,6 +352,10 @@ void Cyclotron::setSLPtcV(const vector<double> & slptc) {
     slptcV_m = slptc;
 }
 
+void Cyclotron::setTrimCoils(const std::vector<TrimCoil*> &trimcoils) {
+    //TODO
+}
+
 void Cyclotron::setFMLowE(double e) { fmLowE_m = e;}
 double Cyclotron::getFMLowE() const { return fmLowE_m;}
 

@@ -41,8 +41,9 @@ public:
 
     void initOpalTrimCoil();
 
+    std::unique_ptr<TrimCoil> trimcoil_m;
+    
 private:
-    TrimCoil *trimcoil_m;
 
     // Not implemented.
     OpalTrimCoil  (const OpalTrimCoil &) = delete;

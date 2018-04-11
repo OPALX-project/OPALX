@@ -24,6 +24,8 @@
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
+#include "TrimCoils/TrimCoil.h"
+
 #include <string>
 #include <vector>
 
@@ -162,6 +164,8 @@ public:
     void setTCr2V(const std::vector<double> &tcr2);
     void setMBtcV(const std::vector<double> &mbtc);
     void setSLPtcV(const std::vector<double> &slptc);
+    
+    void setTrimCoils(const std::vector<TrimCoil*> &trimcoils);
 
     void setSuperpose(std::vector<bool> flag);
     //    virtual bool getSuperpose() const;
