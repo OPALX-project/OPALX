@@ -46,23 +46,24 @@ public:
         RFFREQ,    // First hamonic of the RF system [MHz]
         FMAPFN,    // The filename of the mid-plane fieldmap
         RFMAPFN,   // The filename(s) of the RF fieldmap
-	RFFCFN,    // The filename(s) of coefficients for RF frequency function f(t)
-	RFVCFN,    // The filename(s) of coefficients for RF voltage function v(t)
+        RFFCFN,    // The filename(s) of coefficients for RF frequency function f(t)
+        RFVCFN,    // The filename(s) of coefficients for RF voltage function v(t)
         BSCALE,    // A scalar to scale the B-field
         ESCALE,    // A scalar to scale the RF field
         TCR1V,     // trim coil r1 [mm]
         TCR2V,     // trim coil r2 [mm]
         MBTCV,     // max bfield of trim coil [kG]
         SLPTCV,    // slope of the rising edge [1/mm]
-	RFPHI,     // the initial phase of RF field
-	SUPERPOSE, // whether the electric field map are superposed or not
-	MINZ,      // minimal vertical extend of the machine
-	MAXZ,      // maximal vertical extend of the machine
-	MINR,      // minimal radial extend of the machine
-	MAXR,      // maximal radial extend of the machine
-	FMLOWE,    // minimal energy of the field map
-	FMHIGHE,   // maximal energy of the field map
-	SPIRAL,    // flag whether or not this is a spiral inflector simulation
+        RFPHI,     // the initial phase of RF field
+        SUPERPOSE, // whether the electric field map are superposed or not
+        MINZ,      // minimal vertical extend of the machine
+        MAXZ,      // maximal vertical extend of the machine
+        MINR,      // minimal radial extend of the machine
+        MAXR,      // maximal radial extend of the machine
+        FMLOWE,    // minimal energy of the field map
+        FMHIGHE,   // maximal energy of the field map
+        SPIRAL,    // flag whether or not this is a spiral inflector simulation
+        TRIMCOIL,  // list of trim coils
         SIZE
     };
 
