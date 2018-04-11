@@ -59,9 +59,6 @@ OpalTrimCoil::OpalTrimCoil():
     } catch(...) {
         delete defTrimCoil;
     }
-    
-    // FIXME
-    this->initOpalTrimCoil();
 }
 
 
@@ -116,12 +113,12 @@ void OpalTrimCoil::initOpalTrimCoil() {
         
         std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
         
-        /*
-        double bmax = Attributes::getReal(itsAttr[BMAX]);
-        double rmin = Attributes::getReal(itsAttr[RMIN]);
-        double rmax = Attributes::getReal(itsAttr[RMAX]);
-        std::vector<double> coef = Attributes::getRealArray(itsAttr[COEF]);
-        */
+        
+//         double bmax = Attributes::getReal(itsAttr[BMAX]);
+//         double rmin = Attributes::getReal(itsAttr[RMIN]);
+//         double rmax = Attributes::getReal(itsAttr[RMAX]);
+//         std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
+//         std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
         
         *gmsg << *this << endl;
     }

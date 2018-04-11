@@ -26,6 +26,9 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
+#include "TrimCoils/OpalTrimCoil.h"
+#include "TrimCoils/TrimCoil.h"
+
 // Class OpalCyclotron
 // ------------------------------------------------------------------------
 
@@ -239,6 +242,23 @@ void OpalCyclotron::update() {
     std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
     std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
     std::vector<double> slptcv = Attributes::getRealArray(itsAttr[SLPTCV]);
+    
+    
+    if ( !trimcoil.empty() ) {
+        
+        std::vector<std::unique_ptr<TrimCoil> > trimcoils;
+        
+        for (std::vector<std::string>::const_iterator tit = trimcoil.begin();
+             tit != trimcoil.end(); ++tit)
+        {
+            OpalTrimCoil *tc = OpalTrimCoil::find(*tit);
+            
+            if ( tc ) {
+                tc->initOpalTrimCoil();
+//                 trimcoils.push_back(tc->trimcoil);
+            }
+        }
+    }
     
 
     const unsigned int vsize = tcr1v.size();
