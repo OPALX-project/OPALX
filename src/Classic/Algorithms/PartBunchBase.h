@@ -88,18 +88,9 @@ public:
     //FIXME: unify methods, use convention that all particles have own dt
     void switchOffUnitlessPositions(bool use_dt_per_particle = false);
 
-    /** \brief After each Schottky scan we delete
-        all the particles.
-
-    */
-    void cleanUpParticles();
-
-    void resetIfScan();
-
     void setDistribution(Distribution *d,
                          std::vector<Distribution *> addedDistributions,
-                         size_t &np,
-                         bool scan);
+                         size_t &np);
 
     bool isGridFixed();
     
@@ -490,7 +481,7 @@ public:
     ParticleAttrib< Vector_t > Ef;     // e field vector
     ParticleAttrib< Vector_t > Eftmp;  // e field vector for gun simulations
 
-    ParticleAttrib< Vector_t > Bf;   // b field vector
+    ParticleAttrib< Vector_t > Bf;    // b field vector
     ParticleAttrib< int >      Bin;   // holds the bin in which the particle is in, if zero particle is marked for deletion
     ParticleAttrib< double >   dt;   // holds the dt timestep for particle
 
