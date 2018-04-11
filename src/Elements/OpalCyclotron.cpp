@@ -119,6 +119,9 @@ OpalCyclotron::OpalCyclotron():
 
     itsAttr[SPIRAL]     = Attributes::makeBool
                         ("SPIRAL","Flag whether or not this is a spiral inflector simulation", false);
+    
+    itsAttr[TRIMCOIL]   = Attributes::makeStringArray
+                        ("TRIMCOIL", "List of trim coils");
 
 
     registerStringAttribute("FMAPFN");
@@ -230,11 +233,13 @@ void OpalCyclotron::update() {
     std::vector<double> phi_str         = Attributes::getRealArray(itsAttr[RFPHI]);
     std::vector<double> rff_str         = Attributes::getRealArray(itsAttr[RFFREQ]);
     std::vector<bool> superpose_str     = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
+    std::vector<std::string> trimcoil   = Attributes::getStringArray(itsAttr[TRIMCOIL]);
 
     std::vector<double> tcr1v  = Attributes::getRealArray(itsAttr[TCR1V]);
     std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
     std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
     std::vector<double> slptcv = Attributes::getRealArray(itsAttr[SLPTCV]);
+    
 
     const unsigned int vsize = tcr1v.size();
 
