@@ -9,15 +9,15 @@ TrimCoilMirrored::TrimCoilMirrored(double bmax,
                                    double rmin,
                                    double rmax,
                                    double bslope):
-    TrimCoil(),
-    bslope_m(bslope)
+    TrimCoil()
 {
-  // convert to m
-  const double mm2m = 0.001;
-  rmin_m = rmin * mm2m;
-  rmax_m = rmax * mm2m;
-  // convert to kG
-  bmax_m = bmax * 10.0;
+    // convert to m
+    const double mm2m = 0.001;
+    rmin_m   = rmin   * mm2m;
+    rmax_m   = rmax   * mm2m;
+    bslope_m = bslope / mm2m;
+    // convert to kG
+    bmax_m   = bmax * 10.0;
 }
 
 void TrimCoilMirrored::doApplyField(const double r, const double z, double *br, double *bz)
@@ -79,7 +79,7 @@ void TrimCoilMirrored::doApplyField(const double r, const double z, double *br, 
         ERRORMSG("slope = " << slope << ", magnitude = " << magnitude << " kG\n");
         ERRORMSG("part1 = " << part1 << ", part2 = " << part2 << "\n");
         ERRORMSG("part3 = " << part3 << ", part4 = " << part4 << endl);
-        throw GeneralClassicException("Cyclotron::applyTrimCoil",
+        throw GeneralClassicException("TrimCoilMirrored::doApplyField",
                                       "dr or btr yield results that are either nan or inf");
     }
 
