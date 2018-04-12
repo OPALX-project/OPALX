@@ -22,7 +22,7 @@ public:
 
 private:
     TrimCoilFit() = delete;
-    /// Maximum B field (T)
+    /// Maximum B field (kG)
     double bmax_m;
     /// Minimum radius (m)
     double rmin_m;

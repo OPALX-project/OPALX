@@ -1,6 +1,7 @@
 #include "TrimCoils/TrimCoilFit.h"
 
 #include <cmath>
+#include <iostream>
 
 TrimCoilFit::TrimCoilFit(double bmax,
                          double rmin,
@@ -8,7 +9,6 @@ TrimCoilFit::TrimCoilFit(double bmax,
                          const std::vector<double>& coefnum,
                          const std::vector<double>& coefdenom):
     TrimCoil(),
-    bmax_m(bmax),
     coefnum_m(coefnum),
     coefdenom_m(coefdenom)
 {
@@ -16,6 +16,12 @@ TrimCoilFit::TrimCoilFit(double bmax,
     const double mm2m = 0.001;
     rmin_m = rmin * mm2m;
     rmax_m = rmax * mm2m;
+    // convert to kG
+    bmax_m   = bmax * 10.0;
+
+    // normal polynom if no denominator coefficients (denominator = 1)
+    if (coefdenom_m.empty())
+      coefdenom_m.push_back(1.0);
 }
 
 void TrimCoilFit::doApplyField(const double r, const double z, double *br, double *bz)
@@ -24,30 +30,28 @@ void TrimCoilFit::doApplyField(const double r, const double z, double *br, doubl
     // check range, go up to 1 meter outside trim coil
     if (r < rmin_m - 1 || r > rmax_m + 1) return;
 
-    double num     = 0.0; // numerator
-    double dnum_dr = 0.0; // derivative of numerator
-    // add constant
-    num += coefnum_m[0];
-    for (std::size_t i = 1; i < coefnum_m.size(); ++i) {
-        double dummy = coefnum_m[i] * std::pow(r, i-1);
-        num     += dummy * r;
-        dnum_dr += dummy * i;
+    double num  = 0.0; // numerator
+    double powr = 1.0; // power of r
+    for (std::size_t i = 0; i < coefnum_m.size(); ++i) {
+        num  += coefnum_m[i] * powr;
+        powr *= r;
     }
 
-    double denom     = 0.0; // denominator
-    double ddenom_dr = 0.0; // derivate of denominator
-    // add constant
-    denom += coefdenom_m[0];
-    for (std::size_t i = 1; i < coefdenom_m.size(); ++i) {
-        double dummy = coefdenom_m[i] * std::pow(r, i-1);
-        num     += dummy * r;
-        dnum_dr += dummy * i;
+    double denom = 0.0; // denominator
+    powr         = 1.0; // power of r
+    for (std::size_t i = 0; i < coefdenom_m.size(); ++i) {
+        denom += coefdenom_m[i] * powr;
+        powr  *= r;
     }
 
     double dr  = num / denom;
-    // derivative of dr with quotient rule
-    double ddr = (dnum_dr * denom - ddenom_dr * num) / (denom*denom);
 
-    *bz -= ddr;
-    *br -= dr * z;
+    // FIXME
+    // integral of dr
+    double btr = 0.0;
+
+    //std::cout << "r " << r << " dr " <<  dr << std::endl;
+
+    *bz += bmax_m * btr;
+    *br += bmax_m * dr * z;
 }
