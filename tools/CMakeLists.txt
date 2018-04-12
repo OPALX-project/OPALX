@@ -1,17 +1,14 @@
-OPTION (ENABLE_SDDSTOOLS "Compile conversion tools for SDDS to Opal and vice-versa")
+option (ENABLE_SDDSTOOLS "Compile conversion tools for SDDS to Opal and vice-versa")
 
-IF (ENABLE_SDDSTOOLS)
-    FIND_PACKAGE(SDDS REQUIRED)
+if (ENABLE_SDDSTOOLS)
+    find_package (SDDS REQUIRED)
+    add_subdirectory (sdds2opal)
+    add_subdirectory (opal2sdds)
+endif ()
 
-    IF(SDDS_FOUND)
-        ADD_SUBDIRECTORY(sdds2opal)
-        ADD_SUBDIRECTORY(opal2sdds)
-    ENDIF(SDDS_FOUND)
-ENDIF(ENABLE_SDDSTOOLS)
-
-#ADD_SUBDIRECTORY(SDDSReader)
-OPTION (ENABLE_MSLANG "Compile MSLang stand-alone compiler" OFF)
+#add_subdirectory (SDDSReader)
+option (ENABLE_MSLANG "Compile MSLang stand-alone compiler" OFF)
 
 if (ENABLE_MSLANG)
     ADD_SUBDIRECTORY(mslang)
-endif(ENABLE_MSLANG)
+endif ()
