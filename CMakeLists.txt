@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.0.2)
 project (OPAL)
 set (OPAL_MAJOR_VERSION 1)
 set (OPAL_MINOR_VERSION 6)
-set (OPAL_PATCH_VERSION 2)
+set (OPAL_PATCH_VERSION 2rc1)
 set (OPAL_PACKAGE_BUGREPORT opal@lists.psi.ch)
 set (OPAL_PACKAGE_VERSION
   ${OPAL_MAJOR_VERSION}.${OPAL_MINOR_VERSION}.${OPAL_PATCH_VERSION})
@@ -33,7 +33,7 @@ message ("The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
 # compiler dependent flags
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-    add_compile_options (-diag-disable 383 -diag-disable 981 -std=c++11)
+    add_compile_options (-w3 -diag-disable 383,981 -std=c++11)
 
 elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     add_compile_options (-Wall -Werror -Wsign-compare -Wunused-variable -Warray-bounds -DIPPL_RESTRICT_BUG -std=c++11)
