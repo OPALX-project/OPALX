@@ -1,7 +1,6 @@
 #include "TrimCoils/TrimCoilFit.h"
 
 #include <cmath>
-#include <iostream>
 
 TrimCoilFit::TrimCoilFit(double bmax,
                          double rmin,
@@ -30,28 +29,37 @@ void TrimCoilFit::doApplyField(const double r, const double z, double *br, doubl
     // check range, go up to 1 meter outside trim coil
     if (r < rmin_m - 1 || r > rmax_m + 1) return;
 
-    double num  = 0.0; // numerator
-    double powr = 1.0; // power of r
-    for (std::size_t i = 0; i < coefnum_m.size(); ++i) {
-        num  += coefnum_m[i] * powr;
-        powr *= r;
+    double num     = 0.0; // numerator
+    double dnum_dr = 0.0; // derivative of numerator
+    double powr    = 1.0; // power of r
+
+    // add constant
+    num += coefnum_m[0];
+    for (std::size_t i = 1; i < coefnum_m.size(); ++i) {
+        dnum_dr += coefnum_m[i] * powr * i;
+        powr    *= r;
+        num     += coefnum_m[i] * powr;
     }
 
-    double denom = 0.0; // denominator
-    powr         = 1.0; // power of r
+    double denom     = 0.0; // denominator
+    double ddenom_dr = 0.0; // derivative of denominator
+    powr             = 1.0; // power of r
+
+    // add constant
+    denom += coefdenom_m[0];
     for (std::size_t i = 0; i < coefdenom_m.size(); ++i) {
-        denom += coefdenom_m[i] * powr;
-        powr  *= r;
+        ddenom_dr += coefdenom_m[i] * powr * i;
+        powr      *= r;
+        denom     += coefdenom_m[i] * powr;
     }
 
-    double dr  = num / denom;
+    double btr = num / denom;
 
-    // FIXME
-    // integral of dr
-    double btr = 0.0;
+    // derivative of dr with quotient rule
+    double dr = (dnum_dr * denom - ddenom_dr * num) / (denom*denom);
 
     //std::cout << "r " << r << " dr " <<  dr << std::endl;
 
-    *bz += bmax_m * btr;
-    *br += bmax_m * dr * z;
+    *bz -= bmax_m * btr;
+    *br -= bmax_m * dr * z;
 }
