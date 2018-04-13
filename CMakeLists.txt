@@ -122,7 +122,7 @@ endif ()
 
 option (ENABLE_DKS "Enable DKS" OFF)
 if (ENABLE_DKS)
-    find_package (dKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+    find_package (DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
     set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
     message ("Found DKS version: ${DKS_VERSION}")
     message ("Found DKS library: ${DKS_LIBRARY}")
