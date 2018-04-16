@@ -244,6 +244,7 @@ public:
 
 
     series_t createHamiltonian(std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices);
+    void defMapTrackingElement(std::shared_ptr<Component> element, structMapTracking& elSrct, std::list<structMapTracking>& mBL);
     void fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace);
 
     void setHamiltonianDrift(series_t& H, double& beta0, double& gamma0);
