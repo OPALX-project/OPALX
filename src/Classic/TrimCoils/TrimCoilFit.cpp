@@ -60,6 +60,6 @@ void TrimCoilFit::doApplyField(const double r, const double z, double *br, doubl
 
     //std::cout << "r " << r << " dr " <<  dr << std::endl;
 
-    *bz -= bmax_m * btr;
-    *br -= bmax_m * dr * z;
+    *bz += bmax_m * btr;
+    *br += bmax_m * dr * z;
 }
