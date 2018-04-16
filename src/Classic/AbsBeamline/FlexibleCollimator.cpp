@@ -69,7 +69,7 @@ void FlexibleCollimator::accept(BeamlineVisitor &visitor) const {
 
 
 bool FlexibleCollimator::isStopped(const Vector_t &R, const Vector_t &P, double recpgamma) {
-    const double z = R(2);
+    const double z = R(2);// + P(2) * recpgamma;
 
     if ((z < 0.0) ||
         (z > getElementLength()) ||
