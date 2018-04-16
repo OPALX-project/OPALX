@@ -47,7 +47,7 @@ void TrimCoilFit::doApplyField(const double r, const double z, double *br, doubl
 
     // add constant
     denom += coefdenom_m[0];
-    for (std::size_t i = 0; i < coefdenom_m.size(); ++i) {
+    for (std::size_t i = 1; i < coefdenom_m.size(); ++i) {
         ddenom_dr += coefdenom_m[i] * powr * i;
         powr      *= r;
         denom     += coefdenom_m[i] * powr;
