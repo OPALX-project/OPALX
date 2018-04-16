@@ -26,8 +26,8 @@ TrimCoilFit::TrimCoilFit(double bmax,
 void TrimCoilFit::doApplyField(const double r, const double z, double *br, double *bz)
 {
     if (std::abs(bmax_m) < 1e-20) return;
-    // check range, go up to 1 meter outside trim coil
-    if (r < rmin_m - 1 || r > rmax_m + 1) return;
+    // check range
+    if (r < rmin_m || r > rmax_m) return;
 
     double num     = 0.0; // numerator
     double dnum_dr = 0.0; // derivative of numerator
