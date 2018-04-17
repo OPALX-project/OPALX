@@ -28,7 +28,7 @@ public:
         group_id_ = 0;
 
         if(num_procs_ < 3)
-            throw OptPilotException("SplitStrategy::SplitStartegy",
+            throw OptPilotException("SplitStrategy::SplitStrategy",
                                     "We need 3 or more cores to split!");
     }
 
