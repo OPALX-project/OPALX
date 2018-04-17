@@ -102,6 +102,9 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &);
 
+    /// Apply the algorithm to a flexible collimator
+    virtual void visitFlexibleCollimator(const FlexibleCollimator &);
+
     /// Apply the algorithm to a Lambertson.
     virtual void visitLambertson(const Lambertson &);
 
@@ -286,6 +289,11 @@ void SpecificElementVisitor<ELEM>::visitDiagnostic(const Diagnostic &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator &element) {
+    CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

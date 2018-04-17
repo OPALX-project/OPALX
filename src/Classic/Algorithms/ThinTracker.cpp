@@ -27,6 +27,7 @@
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -172,7 +173,7 @@ void ThinTracker::visitDegrader(const Degrader &deg) {
 }
 
 void ThinTracker::visitParallelPlate(const ParallelPlate &pplate) {
-    //do nothing 
+    //do nothing
 }
 
 
@@ -213,6 +214,9 @@ void ThinTracker::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
 
+void ThinTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    applyDrift(flip_s * coll.getElementLength());
+}
 
 void ThinTracker::visitLambertson(const Lambertson &lamb) {
     // Assume the particle go through the magnet's window.

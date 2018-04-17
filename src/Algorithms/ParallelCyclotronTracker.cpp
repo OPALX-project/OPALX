@@ -694,6 +694,15 @@ void ParallelCyclotronTracker::visitDrift(const Drift &drift) {
 }
 
 /**
+ *  
+ *
+ *  @param 
+ */
+void ParallelCyclotronTracker::visitFlexibleCollimator(const FlexibleCollimator &) {
+
+}
+
+/**
  *
  *
  * @param lamb

@@ -107,7 +107,8 @@ set (BOOSTROOT $ENV{BOOST_DIR})
 set (Boost_USE_STATIC_LIBS ON)
 set (Boost_USE_MULTITHREADED OFF)
 set (Boost_USE_STATIC_RUNTIME OFF)
-find_package (Boost REQUIRED COMPONENTS filesystem system iostreams regex)
+find_package (Boost
+    REQUIRED COMPONENTS chrono filesystem iostreams regex serialization system)
 if (Boost_INCLUDE_DIRS)
     if (${Boost_VERSION} VERSION_LESS 106000)
 	message (FATAL_ERROR
@@ -121,7 +122,7 @@ endif ()
 
 option (ENABLE_DKS "Enable DKS" OFF)
 if (ENABLE_DKS)
-    find_package (dKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
+    find_package (DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
     set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
     message ("Found DKS version: ${DKS_VERSION}")
     message ("Found DKS library: ${DKS_LIBRARY}")
