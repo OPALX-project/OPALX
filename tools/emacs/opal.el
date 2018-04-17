@@ -1,6 +1,6 @@
 ;;; opal-mode-el -- Major mode for editing OPAL files
 
-;; Author: Oscar Roberto Blanco Garcia
+;; Authors: Oscar Roberto Blanco Garcia, Christof Metzger-Kraus
 ;; email : <oscar.roberto.blanco.garcia@cern.ch>
 ;; Version: 1.0
 ;; Created: 17.05.2012
@@ -82,11 +82,11 @@
   )
   "Highlighting expressions for OPAL mode (controlstm).")
 
-;(regexp-opt '("CCOLLIMATOR" "CYCLOTRON" "DEGRADER" "DRIFT" "ECOLLIMATOR" "HKICKER" "KICKER" "MARKER" "MATRIX" "MONITOR" "MULTIPOLE" "OCTUPOLE" "PROBE" "QUADRUPOLE" "RBEND" "RCOLLIMATOR" "RFCAVITY" "RINGDEFINITION" "SBEND" "SBEND3D" "SEPTUM" "SEXTUPOLE" "SOLENOID" "SOURCE" "STRIPPER" "TRAVELINGWAVE" "TRIMCOIL" "VARIABLE_RF_CAVITY" "VKICKER") t)
+;(regexp-opt '("CCOLLIMATOR" "CYCLOTRON" "DEGRADER" "DRIFT" "ECOLLIMATOR" "FLEXIBLECOLLIMATOR" "HKICKER" "KICKER" "MARKER" "MATRIX" "MONITOR" "MULTIPOLE" "OCTUPOLE" "PROBE" "QUADRUPOLE" "RBEND" "RCOLLIMATOR" "RFCAVITY" "RINGDEFINITION" "SBEND" "SBEND3D" "SEPTUM" "SEXTUPOLE" "SOLENOID" "SOURCE" "STRIPPER" "TRAVELINGWAVE" "TRIMCOIL" "VARIABLE_RF_CAVITY" "VKICKER") t)
 
 (defconst opal-font-lock-keywords-elements
   (list
-  '("\\(C\\(?:COLLIMATOR\\|YCLOTRON\\)\\|D\\(?:EGRADER\\|RIFT\\)\\|ECOLLIMATOR\\|HKICKER\\|KICKER\\|M\\(?:A\\(?:RKER\\|TRIX\\)\\|ONITOR\\|ULTIPOLE\\)\\|OCTUPOLE\\|PROBE\\|QUADRUPOLE\\|R\\(?:BEND\\|COLLIMATOR\\|FCAVITY\\|INGDEFINITION\\)\\|S\\(?:BEND\\(?:3D\\)?\\|E\\(?:PTUM\\|XTUPOLE\\)\\|O\\(?:LENOID\\|URCE\\)\\|TRIPPER\\)\\|TR\\(?:AVELINGWAVE\\|IMCOIL\\)\\|V\\(?:ARIABLE_RF_CAVITY\\|KICKER\\)\\)"
+  '("\\(C\\(?:COLLIMATOR\\|YCLOTRON\\)\\|D\\(?:EGRADER\\|RIFT\\)\\|ECOLLIMATOR\\|FLEXIBLECOLLIMATOR\\|HKICKER\\|KICKER\\|M\\(?:A\\(?:RKER\\|TRIX\\)\\|ONITOR\\|ULTIPOLE\\)\\|OCTUPOLE\\|PROBE\\|QUADRUPOLE\\|R\\(?:BEND\\|COLLIMATOR\\|FCAVITY\\|INGDEFINITION\\)\\|S\\(?:BEND\\(?:3D\\)?\\|E\\(?:PTUM\\|XTUPOLE\\)\\|O\\(?:LENOID\\|URCE\\)\\|TRIPPER\\)\\|TR\\(?:AVELINGWAVE\\|IMCOIL\\)\\|V\\(?:ARIABLE_RF_CAVITY\\|KICKER\\)\\)"
   . font-lock-type-face)
   )
   "Highlighting expressions for OPAL mode (elements).")

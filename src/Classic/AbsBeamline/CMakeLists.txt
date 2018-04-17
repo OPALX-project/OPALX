@@ -17,6 +17,7 @@ set (_SRCS
   Drift.cpp
   ElementBase.cpp
   ElementImage.cpp
+  FlexibleCollimator.cpp
   Integrator.cpp
   Lambertson.cpp
   Marker.cpp
@@ -67,6 +68,7 @@ set (HDRS
     Drift.h
     ElementBase.h
     ElementImage.h
+    FlexibleCollimator.h
     Integrator.h
     Lambertson.h
     Marker.h
