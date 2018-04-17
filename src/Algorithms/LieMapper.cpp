@@ -25,6 +25,7 @@
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
@@ -157,6 +158,9 @@ void LieMapper::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
 
+void LieMapper::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    applyDrift(flip_s * coll.getElementLength());
+}
 
 void LieMapper::visitLambertson(const Lambertson &lamb) {
     // Assume the particle go through the magnet's window.

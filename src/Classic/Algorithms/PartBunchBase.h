@@ -93,7 +93,7 @@ public:
                          size_t &np);
 
     bool isGridFixed();
-    
+
     bool hasBinning();
 
 

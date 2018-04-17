@@ -14,6 +14,7 @@ set (_SRCS
   GeneralClassicException.cpp
   InverseGauss.cpp
   LogicalError.cpp
+  MSLang.cpp
   NormalFormError.cpp
   Options.cpp
   OverflowError.cpp

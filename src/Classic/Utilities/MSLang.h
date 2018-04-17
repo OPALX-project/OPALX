@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <list>
 
 namespace mslang {
     typedef std::string::iterator iterator;
@@ -17,6 +18,12 @@ namespace mslang {
             center_m(0.0),
             width_m(0.0),
             height_m(0.0)
+        { }
+
+        BoundingBox(const BoundingBox &right):
+            center_m(right.center_m),
+            width_m(right.width_m),
+            height_m(right.height_m)
         { }
 
         BoundingBox(const Vector_t &llc,
@@ -34,6 +41,13 @@ namespace mslang {
             return false;
         }
 
+        bool isInside(const BoundingBox &b) const {
+            return (isInside(b.center_m + 0.5 * Vector_t( b.width_m,  b.height_m, 0.0)) &&
+                    isInside(b.center_m + 0.5 * Vector_t(-b.width_m,  b.height_m, 0.0)) &&
+                    isInside(b.center_m + 0.5 * Vector_t(-b.width_m, -b.height_m, 0.0)) &&
+                    isInside(b.center_m + 0.5 * Vector_t( b.width_m, -b.height_m, 0.0)));
+        }
+
         virtual void writeGnuplot(std::ofstream &out) const {
             std::vector<Vector_t> pts({Vector_t(center_m[0] + 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
                         Vector_t(center_m[0] - 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
@@ -49,7 +63,17 @@ namespace mslang {
             }
             out << std::endl;
         }
+
+        void print(std::ostream &out) const {
+            out << std::setw(18) << center_m[0] - 0.5 * width_m
+                << std::setw(18) << center_m[1] - 0.5 * height_m
+                << std::setw(18) << center_m[0] + 0.5 * width_m
+                << std::setw(18) << center_m[1] + 0.5 * height_m
+                << std::endl;
+        }
     };
+
+    std::ostream & operator<< (std::ostream &out, const BoundingBox &bb);
 
     struct AffineTransformation: public Tenzor<double, 3> {
         AffineTransformation(const Vector_t& row0,
@@ -126,12 +150,64 @@ namespace mslang {
             trafo_m()
         { }
 
-        virtual Base* clone() = 0;
+        Base(const Base &right):
+            trafo_m(right.trafo_m),
+            bb_m(right.bb_m)
+        { }
+
+        virtual Base* clone() const = 0;
         virtual void writeGnuplot(std::ofstream &out) const = 0;
         virtual void computeBoundingBox() = 0;
         virtual bool isInside(const Vector_t &R) const = 0;
     };
 
+
+    struct QuadTree {
+        int level_m;
+        std::list<Base*> objects_m;
+        BoundingBox bb_m;
+        QuadTree *nodes_m;
+
+        QuadTree():
+            level_m(0),
+            bb_m(),
+            nodes_m(0)
+        { }
+
+        QuadTree(int l, const BoundingBox &b):
+            level_m(l),
+            bb_m(b),
+            nodes_m(0)
+        { }
+
+        QuadTree(const QuadTree &right);
+
+        ~QuadTree();
+
+        void operator=(const QuadTree &right);
+
+        void transferIfInside(std::list<Base*> &objs);
+        void buildUp();
+
+
+        void writeGnuplot(std::ofstream &out) const {
+            out << "# level: " << level_m << ", size: " << objects_m.size() << std::endl;
+            bb_m.writeGnuplot(out);
+            out << "# num holes: " << objects_m.size() << std::endl;
+            for (const Base *obj: objects_m) {
+                obj->writeGnuplot(out);
+            }
+            out << std::endl;
+
+            if (nodes_m != 0) {
+                for (unsigned int i = 0; i < 4u; ++ i) {
+                    nodes_m[i].writeGnuplot(out);
+                }
+            }
+        }
+
+        bool isInside(const Vector_t &R) const;
+    };
 
     bool parse(std::string str, Function* &fun);
 }

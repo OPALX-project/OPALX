@@ -1,15 +1,15 @@
-#ifndef OPAL_OpalPeperPot_HH
-#define OPAL_OpalPeperPot_HH
+#ifndef OPAL_OpalFlexibleCollimator_HH
+#define OPAL_OpalFlexibleCollimator_HH
 
 // ------------------------------------------------------------------------
-// $RCSfile: OpalPeperPot.h,v $
+// $RCSfile: OpalFlexibleCollimator.h,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
-// Class: OpalPepperPot
+// Class: OpalFlexibleCollimator
 //
 // ------------------------------------------------------------------------
 //
@@ -20,35 +20,31 @@
 
 #include "Elements/OpalElement.h"
 
-
-// Class OpalPepperPot
-// ------------------------------------------------------------------------
-/// The PEPPERPOT element.
-
 class ParticleMatterInteraction;
 
-class OpalPepperPot: public OpalElement {
+// Class OpalFlexibleCollimator
+// ------------------------------------------------------------------------
+/// The ECOLLIMATOR element.
+
+class OpalFlexibleCollimator: public OpalElement {
 
 public:
 
-    /// The attributes of class OpalPepperPot.
+    /// The attributes of class OpalFlexibleCollimator.
     enum {
-        R = COMMON,  // The horizontal half-size of a hole
-        NHOLX,
-        NHOLY,
-        XSIZE,
-        YSIZE,
+        FNAME = COMMON,  // The horizontal half-size.
+        DESC,
         OUTFN,
         SIZE
     };
 
     /// Exemplar constructor.
-    OpalPepperPot();
+    OpalFlexibleCollimator();
 
-    virtual ~OpalPepperPot();
+    virtual ~OpalFlexibleCollimator();
 
     /// Make clone.
-    virtual OpalPepperPot *clone(const std::string &name);
+    virtual OpalFlexibleCollimator *clone(const std::string &name);
 
     /// Fill in all registered attributes.
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
@@ -59,13 +55,13 @@ public:
 private:
 
     // Not implemented.
-    OpalPepperPot(const OpalPepperPot &);
-    void operator=(const OpalPepperPot &);
+    OpalFlexibleCollimator(const OpalFlexibleCollimator &);
+    void operator=(const OpalFlexibleCollimator &);
 
     // Clone constructor.
-    OpalPepperPot(const std::string &name, OpalPepperPot *parent);
+    OpalFlexibleCollimator(const std::string &name, OpalFlexibleCollimator *parent);
 
-    ParticleMatterInteraction *parmatint_m;
+    ParticleMatterInteraction *partMatInt_m;
 };
 
-#endif // OPAL_OpalPepperPot_HH
+#endif // OPAL_OpalFlexibleCollimator_HH
