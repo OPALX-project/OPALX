@@ -722,6 +722,7 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
             for (unsigned int i = 0; i < localNum; ++ i) {
                 itsBunch_m->R[i] = referenceToBeamCSTrafo.transformTo(itsBunch_m->R[i]);
+                itsBunch_m->P[i] = referenceToBeamCSTrafo.rotateTo(itsBunch_m->P[i]);
                 itsBunch_m->Ef[i] = referenceToBeamCSTrafo.rotateTo(itsBunch_m->Ef[i]);
             }
 
@@ -729,6 +730,7 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
             for (unsigned int i = 0; i < localNum; ++ i) {
                 itsBunch_m->R[i] = beamToReferenceCSTrafo.transformTo(itsBunch_m->R[i]);
+                itsBunch_m->P[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->P[i]);
                 itsBunch_m->Ef[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Ef[i]);
             }
 

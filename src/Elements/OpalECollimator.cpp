@@ -18,9 +18,11 @@
 
 #include "Elements/OpalECollimator.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/CollimatorRep.h"
+#include "BeamlineCore/FlexibleCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 
+#include <boost/regex.hpp>
+#include <cstdlib>
 
 // Class OpalECollimator
 // ------------------------------------------------------------------------
@@ -43,14 +45,14 @@ OpalECollimator::OpalECollimator():
 
     registerOwnership();
 
-    setElement((new CollimatorRep("ECOLLIMATOR"))->makeAlignWrapper());
+    setElement((new FlexibleCollimatorRep("ECOLLIMATOR"))->makeAlignWrapper());
 }
 
 
 OpalECollimator::OpalECollimator(const std::string &name, OpalECollimator *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new CollimatorRep(name))->makeAlignWrapper());
+    setElement((new FlexibleCollimatorRep(name))->makeAlignWrapper());
 }
 
 
@@ -68,22 +70,39 @@ OpalECollimator *OpalECollimator::clone(const std::string &name) {
 void OpalECollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
 
-    const CollimatorRep *coll =
-        dynamic_cast<const CollimatorRep *>(base.removeWrappers());
-    attributeRegistry["XSIZE"]->setReal(coll->getXsize());
-    attributeRegistry["YSIZE"]->setReal(coll->getYsize());
+    const FlexibleCollimatorRep *coll =
+        dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
+    std::string Double("(-?[0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
+    std::string desc = coll->getDescription();
+
+    boost::regex parser("ellipse\\(" + Double + "," + Double + "\\)");
+    boost::smatch what;
+    if (!boost::regex_match(desc, what, parser)) return;
+
+    double width = atof(std::string(what[1]).c_str());
+    double height = atof(std::string(what[3]).c_str());
+
+    attributeRegistry["XSIZE"]->setReal(0.5 * width);
+    attributeRegistry["YSIZE"]->setReal(0.5 * height);
 }
 
 
 void OpalECollimator::update() {
     OpalElement::update();
 
-    CollimatorRep *coll =
-        dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
+    FlexibleCollimatorRep *coll =
+        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     coll->setElementLength(length);
-    coll->setXsize(Attributes::getReal(itsAttr[XSIZE]));
-    coll->setYsize(Attributes::getReal(itsAttr[YSIZE]));
+
+    if (getOpalName() != "ECOLLIMATOR") {
+        double width = 2 * Attributes::getReal(itsAttr[XSIZE]);
+        double height = 2 * Attributes::getReal(itsAttr[YSIZE]);
+        std::stringstream description;
+        description << "ellipse(" << width << "," << height << ")";
+        coll->setDescription(description.str());
+    }
+
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {

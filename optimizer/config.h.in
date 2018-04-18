@@ -1,9 +1,0 @@
-
-/* Define to the version of this package. */
-#define PACKAGE_VERSION ${PACKAGE_VERSION}
-
-/* repository git version */
-${GIT_REVISION}
-
-/* repository git version */
-#define BUILD_DATE ${BUILD_DATE}

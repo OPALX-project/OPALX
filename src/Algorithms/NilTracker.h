@@ -25,6 +25,7 @@ class Degrader;
 class Diagnostic;
 class Drift;
 class ElementBase;
+class FlexibleCollimator;
 class Lambertson;
 class Marker;
 class Monitor;
@@ -60,6 +61,7 @@ public:
     NIL_VISITELEMENT(Degrader)
     NIL_VISITELEMENT(Diagnostic)
     NIL_VISITELEMENT(Drift)
+    NIL_VISITELEMENT(FlexibleCollimator)
     NIL_VISITELEMENT(Lambertson)
     NIL_VISITELEMENT(Marker)
     NIL_VISITELEMENT(Monitor)
