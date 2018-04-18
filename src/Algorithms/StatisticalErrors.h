@@ -31,6 +31,7 @@ class Degrader;
 class Diagnostic;
 class Drift;
 class ElementBase;
+class FlexibleCollimator;
 class Lambertson;
 class Marker;
 class Monitor;
@@ -72,6 +73,7 @@ public:
     SE_VISITELEMENT(Degrader)
     SE_VISITELEMENT(Diagnostic)
     SE_VISITELEMENT(Drift)
+    SE_VISITELEMENT(FlexibleCollimator)
     SE_VISITELEMENT(Lambertson)
     SE_VISITELEMENT(Marker)
     SE_VISITELEMENT(Monitor)

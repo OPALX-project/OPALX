@@ -20,7 +20,7 @@
 
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
-#include "Structure/DataSink.h"                                                                      
+#include "Structure/DataSink.h"
 
 #include "Classic/FixedAlgebra/FTps.h"
 #include "Classic/FixedAlgebra/FVps.h"
@@ -35,6 +35,7 @@
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
@@ -52,7 +53,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/CyclotronValley.h"
-                       
+
 #include "Elements/OpalBeamline.h"
 
 #include <cmath>
@@ -128,7 +129,7 @@ public:
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ThickTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch,
 			  DataSink &ds,
-                          const PartData &data, 
+                          const PartData &data,
 			  bool revBeam, bool revTrack,
 			  const std::vector<unsigned long long> &maxSTEPS,
 			  double zstart,
@@ -158,6 +159,9 @@ public:
 
     /// Apply the algorithm to a Drift.
     virtual void visitDrift(const Drift &);
+
+    /// Apply the algorithm to a flexible collimator
+    virtual void visitFlexibleCollimator(const FlexibleCollimator &);
 
     /// Apply the algorithm to a Lambertson.
     virtual void visitLambertson(const Lambertson &);
@@ -215,7 +219,7 @@ public:
 
     void updateReferenceParticle(const BorisPusher &pusher);
     void updateRFElement(std::string elName, double maxPhase);
-    void prepareSections();  
+    void prepareSections();
     void saveCavityPhases();
     void restoreCavityPhases();
     void changeDT();
@@ -279,10 +283,10 @@ private:
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
 
-    Vector_t RefPartR_m; 
-    Vector_t RefPartP_m; 
+    Vector_t RefPartR_m;
+    Vector_t RefPartP_m;
 
-    DataSink *itsDataSink_m; 
+    DataSink *itsDataSink_m;
 
     OpalBeamline itsOpalBeamline_m;
 
@@ -295,10 +299,10 @@ private:
     /// where to stop
     std::queue<double> zStop_m;
 
-    double dtCurrentTrack_m;  
+    double dtCurrentTrack_m;
     std::queue<double> dtAllTracks_m;
 
-    /// The maximal number of steps the system is integrated per TRACK 
+    /// The maximal number of steps the system is integrated per TRACK
     std::queue<unsigned long long> localTrackSteps_m;
 
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
@@ -340,6 +344,11 @@ inline void ThickTracker::visitDiagnostic(const Diagnostic &diag) {
 
 inline void ThickTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
+}
+
+
+inline void ThickTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
 }
 
 
@@ -412,7 +421,5 @@ inline void ThickTracker::visitParallelPlate(const ParallelPlate &pplate) {
 inline void ThickTracker::visitCyclotronValley(const CyclotronValley &cv) {
     itsOpalBeamline_m.visit(cv, *this, itsBunch_m);
 }
-
-
 
 #endif // OPAL_ThickTracker_HH

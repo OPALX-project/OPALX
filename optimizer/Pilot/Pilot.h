@@ -8,8 +8,6 @@
 #include "boost/smart_ptr.hpp"
 //#include "boost/dynamic_bitset.hpp"
 
-#include "config.h"
-
 #include "Comm/MasterNode.h"
 #include "Comm/CommSplitter.h"
 

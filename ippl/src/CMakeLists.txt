@@ -1,168 +1,158 @@
-IF (GIT_FOUND)
-    SET (IPPL_WC_REVISION 0)
-    EXECUTE_PROCESS (
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMAND git rev-parse HEAD
-        OUTPUT_VARIABLE GIT_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_VARIABLE DEV_NULL
-        )
-    SET (IPPL_WC_REVISION \"${GIT_OUT}\")
-ENDIF ()
-
-CONFIGURE_FILE (config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
-
-MESSAGE (STATUS "configure: make IpplInfo.h")
-EXECUTE_PROCESS (
+message ("configure: make IpplInfo.h")
+execute_process (
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMAND date
     OUTPUT_VARIABLE DATE_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-EXECUTE_PROCESS (
+execute_process (
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMAND uname -a
     OUTPUT_VARIABLE UNAME_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-EXECUTE_PROCESS (
+execute_process (
     COMMAND whoami
     OUTPUT_VARIABLE WHOAMI_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-SET (IPPL_COMPILE_ARCH \"$ENV{IPPL_ARCH}\")
-SET (IPPL_COMPILE_LINE \"${CMAKE_CXX_FLAGS}\")
-SET (IPPL_COMPILE_DATE \"${DATE_OUT}\")
-SET (IPPL_COMPILE_MACHINE \"${UNAME_OUT}\")
-SET (IPPL_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
-SET (IPPL_COMPILE_USER \"${WHOAMI_OUT}\")
+set (IPPL_COMPILE_ARCH \"$ENV{IPPL_ARCH}\")
+set (IPPL_COMPILE_LINE \"${CMAKE_CXX_FLAGS}\")
+set (IPPL_COMPILE_DATE \"${DATE_OUT}\")
+set (IPPL_COMPILE_MACHINE \"${UNAME_OUT}\")
+set (IPPL_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
+set (IPPL_COMPILE_USER \"${WHOAMI_OUT}\")
 
-CONFIGURE_FILE (IpplVersions.h.in ${CMAKE_CURRENT_SOURCE_DIR}/IpplVersions.h)
+configure_file (IpplVersions.h.in ${CMAKE_CURRENT_SOURCE_DIR}/IpplVersions.h)
 
-### print the compiler flags #############################
-SET (PRETTY_PRINT_WIDTH 78)
-STRING (TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_STR)
-SET (COMPILE_FLAGS_STR
-    "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_STR}}")
-STRING (REGEX REPLACE " +" ";" COMPILE_FLAGS_LIST ${COMPILE_FLAGS_STR})
+if (UNUSED)
+    ### print the compiler flags #############################
+    set (PRETTY_PRINT_WIDTH 78)
+    string (TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_STR)
+    set (COMPILE_FLAGS_STR
+        "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_STR}}")
+    string (REGEX REPLACE " +" ";" COMPILE_FLAGS_LIST ${COMPILE_FLAGS_STR})
+    
+    list (LENGTH COMPILE_FLAGS_LIST NUMBER_OF_COMPILE_FLAGS)
+    set (CURRENT_FLAG_INDEX 0)
 
-LIST (LENGTH COMPILE_FLAGS_LIST NUMBER_OF_COMPILE_FLAGS)
-SET (CURRENT_FLAG_INDEX 0)
+    message ("")
+    message ("Building IPPL with:")
+    while (${CURRENT_FLAG_INDEX} LESS ${NUMBER_OF_COMPILE_FLAGS})
+        set (FLAGS_PRETTY_PRINT "")
+        
+        list (GET COMPILE_FLAGS_LIST ${CURRENT_FLAG_INDEX} CURRENT_FLAG)
+        string (LENGTH ${CURRENT_FLAG} LENGTH_INCL_NEXT)
+        
+        while (${LENGTH_INCL_NEXT} LESS ${PRETTY_PRINT_WIDTH})
+            set (FLAGS_PRETTY_PRINT
+                "${FLAGS_PRETTY_PRINT} ${CURRENT_FLAG}")
+            
+            math (EXPR CURRENT_FLAG_INDEX "(${CURRENT_FLAG_INDEX} + 1)")
+           
+            if (${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
+                set (LENGTH_INCL_NEXT ${PRETTY_PRINT_WIDTH})
+            else (${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
+                list (GET COMPILE_FLAGS_LIST ${CURRENT_FLAG_INDEX} CURRENT_FLAG)
+                if (CURRENT_FLAG)
+                    string (LENGTH ${CURRENT_FLAG} LENGTH_CURRENT_FLAG)
+                    math (EXPR LENGTH_INCL_NEXT "${LENGTH_INCL_NEXT} + 1 + ${LENGTH_CURRENT_FLAG}")
+                endif ()
+            endif ()
+        endwhile ()
+        string (STRIP ${FLAGS_PRETTY_PRINT} FLAGS_PRETTY_PRINT)
+        message (STATUS "${FLAGS_PRETTY_PRINT}")
+    endwhile ()
+    message ("")
+endif ()
 
-MESSAGE (STATUS "")
-MESSAGE (STATUS "Building IPPL with:")
-WHILE (${CURRENT_FLAG_INDEX} LESS ${NUMBER_OF_COMPILE_FLAGS})
-    SET (FLAGS_PRETTY_PRINT "")
-
-    LIST (GET COMPILE_FLAGS_LIST ${CURRENT_FLAG_INDEX} CURRENT_FLAG)
-    STRING (LENGTH ${CURRENT_FLAG} LENGTH_INCL_NEXT)
-
-    WHILE (${LENGTH_INCL_NEXT} LESS ${PRETTY_PRINT_WIDTH})
-        SET (FLAGS_PRETTY_PRINT
-            "${FLAGS_PRETTY_PRINT} ${CURRENT_FLAG}")
-
-        MATH (EXPR CURRENT_FLAG_INDEX "(${CURRENT_FLAG_INDEX} + 1)")
-
-        IF (${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
-            SET (LENGTH_INCL_NEXT ${PRETTY_PRINT_WIDTH})
-        ELSE(${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
-            LIST (GET COMPILE_FLAGS_LIST ${CURRENT_FLAG_INDEX} CURRENT_FLAG)
-            IF (CURRENT_FLAG)
-                STRING (LENGTH ${CURRENT_FLAG} LENGTH_CURRENT_FLAG)
-                MATH (EXPR LENGTH_INCL_NEXT "${LENGTH_INCL_NEXT} + 1 + ${LENGTH_CURRENT_FLAG}")
-            ENDIF (CURRENT_FLAG)
-        ENDIF(${CURRENT_FLAG_INDEX} EQUAL ${NUMBER_OF_COMPILE_FLAGS})
-
-    ENDWHILE (${LENGTH_INCL_NEXT} LESS ${PRETTY_PRINT_WIDTH})
-    STRING (STRIP ${FLAGS_PRETTY_PRINT} FLAGS_PRETTY_PRINT)
-    MESSAGE (STATUS "${FLAGS_PRETTY_PRINT}")
-ENDWHILE()
-MESSAGE (STATUS "")
-
-SET (IPPL_SRCS_FORT
-#    FFT/fftpack.F
-    )
-
-SET (IPPL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-MACRO (ADD_IPPL_SOURCES )
-    FILE (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    FOREACH (_src ${ARGN})
-        IF (_relPath)
-            LIST (APPEND IPPL_SRCS "${_relPath}/${_src}")
-        ELSE ()
-            LIST (APPEND IPPL_SRCS "${_src}")
-        ENDIF ()
-    ENDFOREACH ()
-    IF (_relPath)
+set (IPPL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+macro (add_ippl_sources)
+    file (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_src ${ARGN})
+        if (_relPath)
+            list (APPEND IPPL_SRCS "${_relPath}/${_src}")
+        else ()
+            list (APPEND IPPL_SRCS "${_src}")
+        endif ()
+    endforeach ()
+    if (_relPath)
         # propagate SRCS to parent directory
-        SET (IPPL_SRCS ${IPPL_SRCS} PARENT_SCOPE)
-    ENDIF ()
-ENDMACRO ()
+        set (IPPL_SRCS ${IPPL_SRCS} PARENT_SCOPE)
+    endif ()
+endmacro ()
 
-MACRO (ADD_IPPL_HEADERS )
-    FILE (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    FOREACH (_hdr ${ARGN})
-        IF (_relPath)
-            LIST (APPEND IPPL_HDRS "${_relPath}/${_hdr}")
-        ELSE ()
-            LIST (APPEND IPPL_HDRS "${_hdr}")
-        ENDIF ()
-    ENDFOREACH ()
-    IF (_relPath)
+macro (add_ippl_headers)
+    file (RELATIVE_PATH _relPath "${IPPL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    foreach (_hdr ${ARGN})
+        if (_relPath)
+            list (APPEND IPPL_HDRS "${_relPath}/${_hdr}")
+        else ()
+            list (APPEND IPPL_HDRS "${_hdr}")
+        endif ()
+    endforeach ()
+    if (_relPath)
         # propagate HDRS to parent directory
-        SET (IPPL_HDRS ${IPPL_HDRS} PARENT_SCOPE)
-    ENDIF ()
-ENDMACRO ()
+        set (IPPL_HDRS ${IPPL_HDRS} PARENT_SCOPE)
+    endif ()
+endmacro ()
 
-SET (IPPL_BASEDIR_HDRS
+set (IPPL_BASEDIR_HDRS
     Ippl.h
     IpplVersions.h
     )
-ADD_IPPL_HEADERS (${IPPL_BASEDIR_HDRS})
+add_ippl_headers (${IPPL_BASEDIR_HDRS})
 
-ADD_SUBDIRECTORY (AppTypes)
-ADD_SUBDIRECTORY (DataSource)
-ADD_SUBDIRECTORY (DomainMap)
-ADD_SUBDIRECTORY (FFT)
-ADD_SUBDIRECTORY (Field)
-ADD_SUBDIRECTORY (FieldLayout)
-ADD_SUBDIRECTORY (Index)
-ADD_SUBDIRECTORY (Meshes)
-ADD_SUBDIRECTORY (Message)
-ADD_SUBDIRECTORY (Particle)
-ADD_SUBDIRECTORY (PETE)
-ADD_SUBDIRECTORY (Region)
-ADD_SUBDIRECTORY (SubField)
-ADD_SUBDIRECTORY (SubParticle)
-ADD_SUBDIRECTORY (Utility)
+add_subdirectory (AppTypes)
+add_subdirectory (DataSource)
+add_subdirectory (DomainMap)
+add_subdirectory (FFT)
+add_subdirectory (Field)
+add_subdirectory (FieldLayout)
+add_subdirectory (Index)
+add_subdirectory (Meshes)
+add_subdirectory (Message)
+add_subdirectory (Particle)
+add_subdirectory (PETE)
+add_subdirectory (Region)
+add_subdirectory (SubField)
+add_subdirectory (SubParticle)
+add_subdirectory (Utility)
 
-IF ( ENABLE_AMR )
-    ADD_SUBDIRECTORY(AmrParticle)
-ENDIF ( ENABLE_AMR )
+if (ENABLE_AMR)
+    add_subdirectory(AmrParticle)
+endif ()
 
-SET (MAKE_DEF
+set (MAKE_DEF
     ../test/Makefile.def
     )
 
-
-INCLUDE_DIRECTORIES (
-    BEFORE ${CMAKE_CURRENT_SOURCE_DIR}
+include_directories (
+    before ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-ADD_LIBRARY ( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )
+add_library ( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )
 
-TARGET_LINK_LIBRARIES(
+target_link_libraries(
     ippl
-)
+    )
 
-IF (ENABLE_DKS)
-    MESSAGE (STATUS "DKS include dirs: ${DKS_INCLUDE_DIR}")
-    INCLUDE_DIRECTORIES (${DKS_INCLUDE_DIR})
-    LINK_DIRECTORIES(${DKS_LIBRARY_DIR})
-    TARGET_LINK_LIBRARIES(
+if (ENABLE_DKS)
+    message ( "DKS include dirs: ${DKS_INCLUDE_DIR}")
+    include_directories (${DKS_INCLUDE_DIR})
+    link_directories (${DKS_LIBRARY_DIR})
+    target_link_libraries (
         ${TARGET_LINK_LIBRARIES} 
         dks
         ${DKS_CUDA_LIBS}
-    )
-ENDIF (ENABLE_DKS)
+        )
+endif ()
 
-INSTALL (FILES ${MAKE_DEF} DESTINATION lib)
-INSTALL (TARGETS ippl DESTINATION lib)
-INSTALL (FILES ${IPPL_BASEDIR_HDRS} DESTINATION include)
+install (FILES ${MAKE_DEF} DESTINATION lib)
+install (TARGETS ippl DESTINATION lib)
+install (FILES ${IPPL_BASEDIR_HDRS} DESTINATION include)
+
+# vi: set et ts=4 sw=4 sts=4:
+# Local Variables:
+# mode:cmake
+# cmake-tab-width: 4
+# indent-tabs-mode:nil
+# End:

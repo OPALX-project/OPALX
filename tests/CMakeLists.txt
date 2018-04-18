@@ -1,11 +1,10 @@
-FIND_PACKAGE (GTest REQUIRED)
+find_package (GTest REQUIRED)
 
 set (TEST_EXE opal_unit_tests)
 set (SRC_DIRS classic_src opal_src)
 
-set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -DWITH_UNIT_TESTS"
-)
+add_compile_options (${IPPL_CMAKE_CXX_FLAGS} )
+add_definitions (-DPARALLEL_IO -DWITH_UNIT_TESTS)
 
 set (TEST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 macro (add_sources)
@@ -28,10 +27,9 @@ add_subdirectory (classic_src)
 add_subdirectory (ippl_src)
 add_subdirectory (opal_test_utilities)
 
+set (TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp ${TEST_SRCS_LOCAL})
 
-set(TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp ${TEST_SRCS_LOCAL})
-
-LINK_DIRECTORIES( ${GTEST_LIB_DIR}
+link_directories (${GTEST_LIB_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
     ${IPPL_LIBRARY_DIR}
     ${OPAL_SOURCE_DIR}/src
@@ -40,7 +38,7 @@ LINK_DIRECTORIES( ${GTEST_LIB_DIR}
     ${AMREX_LIBRARY_DIR}
 )
 
-INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS}
+include_directories (${GTEST_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${IPPL_INCLUDE_DIR}
     ${H5Hut_INCLUDE_DIR}
@@ -61,8 +59,8 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS}
 # Build the test exe. We don't do an install on the unit test exe as it is
 # assumed that this is internal to opal
 # the opal and classic sources are not needed again if we link against libOPAL and libCLASSIC!
-ADD_EXECUTABLE(${TEST_EXE} ${TEST_SRCS})
-TARGET_LINK_LIBRARIES(
+add_executable (${TEST_EXE} ${TEST_SRCS})
+target_link_libraries (
 	${TEST_EXE}
 	libOPAL
 	${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}

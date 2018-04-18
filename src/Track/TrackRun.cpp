@@ -161,7 +161,7 @@ TrackRun *TrackRun::clone(const std::string &name) {
 
 
 void TrackRun::execute() {
-    const int currentVersion = (OPAL_VERSION / 100) * 100;
+    const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
     if (Options::version < currentVersion) {
         unsigned int fileVersion = Options::version / 100;
         bool newerChanges = false;

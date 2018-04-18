@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
 
 
     *gmsg << endl
-          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_VERSION_STR << "\n\n"
+          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_PROJECT_VERSION << "\n\n"
           << "                (c) PSI, http://amas.web.psi.ch" << endl
           << "The optimiser (former opt-Pilot) is integrated " << endl
           << endl;
@@ -238,11 +238,11 @@ int main(int argc, char *argv[]) {
                     continue;
                 } else if (argStr == std::string("-version") ||
                            argStr == std::string("--version")) {
-                    INFOMSG("OPAL Version " << OPAL_VERSION_STR << ", git rev. " << Util::getGitRevision() << endl);
+                    INFOMSG("OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. " << Util::getGitRevision() << endl);
                     IpplInfo::printVersion(true);
                     std::string options = (IpplInfo::compileOptions() +
                                            std::string(" ") +
-                                           std::string(PACKAGE_COMPILE_OPTIONS) +
+                                           std::string(OPAL_COMPILE_OPTIONS) +
                                            std::string(" "));
                     std::set<std::string> uniqOptions;
                     while (options.length() > 0) {

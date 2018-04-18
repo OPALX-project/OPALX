@@ -93,7 +93,7 @@ public:
                          size_t &np);
 
     bool isGridFixed();
-    
+
     bool hasBinning();
 
 
@@ -481,7 +481,7 @@ public:
     ParticleAttrib< Vector_t > Ef;     // e field vector
     ParticleAttrib< Vector_t > Eftmp;  // e field vector for gun simulations
 
-    ParticleAttrib< Vector_t > Bf;   // b field vector
+    ParticleAttrib< Vector_t > Bf;    // b field vector
     ParticleAttrib< int >      Bin;   // holds the bin in which the particle is in, if zero particle is marked for deletion
     ParticleAttrib< double >   dt;   // holds the dt timestep for particle
 

@@ -1,6 +1,6 @@
 set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
 
-set (CMAKE_CXX_FLAGS
+add_definitions (
     "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS}"
     )
 
@@ -38,7 +38,6 @@ else (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
     set (AMR_MG_SOLVER_LIBS "")
 endif(ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
 
-set (PACKAGE_COMPILE_OPTIONS \"${CMAKE_CXX_FLAGS}\")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
 configure_file(revision.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALrevision.h)
 
