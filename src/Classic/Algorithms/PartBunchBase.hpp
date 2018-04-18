@@ -784,7 +784,7 @@ void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
     for (unsigned int i = 0; i < lN; ++ i) {
         const double z = R[i](2) - 0.5 * hz;
         unsigned int idx = (z - zmin) / hz;
-        double tau = z - (zmin + idx * hz);
+        double tau = (z - zmin) / hz - idx;
 
         lineDensity[idx] += Q[i] * (1.0 - tau) * perMeter;
         lineDensity[idx + 1] += Q[i] * tau * perMeter;

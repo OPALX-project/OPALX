@@ -694,6 +694,15 @@ void ParallelCyclotronTracker::visitDrift(const Drift &drift) {
 }
 
 /**
+ *  
+ *
+ *  @param 
+ */
+void ParallelCyclotronTracker::visitFlexibleCollimator(const FlexibleCollimator &) {
+
+}
+
+/**
  *
  *
  * @param lamb
@@ -2583,6 +2592,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
 }
 
 void ParallelCyclotronTracker::bunchDumpStatData(){
+    
+    // don't dump stat file in case of multi-bunch mode
+    if ( multiBunchMode_m != MB_MODE::NONE )
+        return;
+    
     IpplTimings::startTimer(DumpTimer_m);
 
     /*
@@ -2671,7 +2685,9 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
     Vector_t meanR;
     Vector_t meanP;
-    if (Options::psDumpFrame == Options::BUNCH_MEAN) {
+    
+    // in case of multi-bunch mode take always bunch mean (although it takes all bunches)
+    if (Options::psDumpFrame == Options::BUNCH_MEAN || multiBunchMode_m != MB_MODE::NONE ) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else {

@@ -74,7 +74,7 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     num_ind_in_generation = args->getArg<int>("num-ind-gen", 2, false);
     alpha_m               = args->getArg<int>("initialPopulation", true);
     lambda_m              = num_ind_in_generation;
-    mu_m                  = num_ind_in_generation;
+    //mu_m                = num_ind_in_generation;
 
     file_param_descr_ = "%ID,";
 
