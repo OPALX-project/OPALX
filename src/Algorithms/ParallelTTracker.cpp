@@ -1363,39 +1363,40 @@ void ParallelTTracker::evenlyDistributeParticles() {
     long idx = itsBunch_m->getLocalNum() - 1;
     int tag = Ippl::Comm->next_tag(P_SPATIAL_TRANSFER_TAG, P_LAYOUT_CYCLE);
 
+    std::vector<char> send_msgbuf;
+
     if (send.size() > 0) {
-        std::vector<char> msgbuf;
         const char *buffer;
 
         unsigned int totalSend = 0, startIndex = 0;
         for (DistributionInfo &request: send) {
             totalSend += request.howMany;
         }
-        msgbuf.reserve(totalSend * sizeSingleParticle);
+        send_msgbuf.reserve(totalSend * sizeSingleParticle);
 
         for (DistributionInfo &request: send) {
-
+            size_t sizePrior = send_msgbuf.size();
             for (long i = 0; i < request.howMany; ++ i, -- idx) {
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->R[idx](0)));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + 3 * sizeof(double));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + 3 * sizeof(double));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->P[idx](0)));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + 3 * sizeof(double));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + 3 * sizeof(double));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->Q[idx]));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->M[idx]));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->dt[idx]));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(double));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->PType[idx]));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(short));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(short));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->TriID[idx]));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(int));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(int));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->ID[idx]));
-                msgbuf.insert(msgbuf.end(), buffer, buffer + sizeof(PID_t::Return_t));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(PID_t::Return_t));
             }
 
-            size_t sendSizeThis = request.howMany * sizeSingleParticle;
-            MPI_Request req = Ippl::Comm->raw_isend(&(msgbuf[startIndex]),
+            size_t sendSizeThis = send_msgbuf.size() - sizePrior;
+            MPI_Request req = Ippl::Comm->raw_isend(&(send_msgbuf[startIndex]),
                                                     sendSizeThis,
                                                     request.whom,
                                                     tag);
@@ -1450,7 +1451,9 @@ void ParallelTTracker::evenlyDistributeParticles() {
         delete[] recvbuf;
     }
 
-    MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
+    if (requests.size() > 0) {
+        MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
+    }
 }
 
 // vi: set et ts=4 sw=4 sts=4:
