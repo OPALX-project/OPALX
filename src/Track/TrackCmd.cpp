@@ -48,7 +48,6 @@ namespace {
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
         STEPSPERTURN, // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR, // the name of time integrator
-        NNB, // Number of neighbouring bunches in OPAL-cycl
         MAP_ORDER,    // Truncation order of maps for ThickTracker (default: 1 (linear))
         SIZE
     };
@@ -79,8 +78,6 @@ TrackCmd::TrackCmd():
                      ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
     itsAttr[TIMEINTEGRATOR] = Attributes::makeString
                               ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
-    itsAttr[NNB] = Attributes::makeReal
-                   ("NNB", "Number of neighbouring bunches in OPAL-cycl", 0.0);
     
     itsAttr[MAP_ORDER] = Attributes::makeReal
                      ("MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear)", 1);
@@ -158,10 +155,6 @@ std::vector<unsigned long long> TrackCmd::getMAXSTEPS() const {
 
 int TrackCmd::getSTEPSPERTURN() const {
     return (int) Attributes::getReal(itsAttr[STEPSPERTURN]);
-}
-
-int TrackCmd::getNNB() const {
-    return (int) Attributes::getReal(itsAttr[NNB]);
 }
 
 // return int type rathor than string to improve the speed

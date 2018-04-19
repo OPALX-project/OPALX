@@ -6,6 +6,7 @@ set (_SRCS
   CyclotronValleyRep.cpp
   DegraderRep.cpp
   DriftRep.cpp
+  FlexibleCollimatorRep.cpp
   MarkerRep.cpp
   MonitorRep.cpp
   MultipoleRep.cpp
@@ -47,6 +48,7 @@ set (HDRS
     CyclotronValleyRep.h
     DegraderRep.h
     DriftRep.h
+    FlexibleCollimatorRep.h
     MarkerRep.h
     MonitorRep.h
     MultipoleRep.h

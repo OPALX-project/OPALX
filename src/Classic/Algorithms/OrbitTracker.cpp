@@ -36,6 +36,7 @@
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -149,6 +150,9 @@ void OrbitTracker::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
 
+void OrbitTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    applyDrift(flip_s * coll.getElementLength());
+}
 
 void OrbitTracker::visitLambertson(const Lambertson &lamb) {
     // Assume the orbit goes through the magnet's window.

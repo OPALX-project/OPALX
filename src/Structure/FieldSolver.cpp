@@ -112,6 +112,7 @@ namespace {
         AMR_MG_NORM,        // AMR, norm convergence criteria
         AMR_MG_VERBOSE,     // AMR, enable solver info writing (SDDS file)
         AMR_MG_REBALANCE,   // AMR, rebalance smoothed aggregation (SA) preconditioner
+        AMR_MG_REUSE,       // AMR, reuse type of SA (none, RP, RAP, S or full)
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -297,6 +298,10 @@ FieldSolver::FieldSolver():
                                                      "Rebalancing of Smoothed Aggregation "
                                                      "Preconditioner",
                                                      false);
+    
+    itsAttr[AMR_MG_REUSE] = Attributes::makeString("AMR_MG_REUSE",
+                                                   "Reuse type of Smoothed Aggregation",
+                                                   "RAP");
 #endif
 
     mesh_m = 0;
@@ -404,12 +409,19 @@ void FieldSolver::initCartesianFields() {
         decomp[2] = PARALLEL;
     }
     // create prototype mesh and layout objects for this problem domain
-    mesh_m   = new Mesh_t(domain);
-    FL_m     = new FieldLayout_t(*mesh_m, decomp);
-    PL_m.reset(new Layout_t(*FL_m, *mesh_m));
-    // OpalData::getInstance()->setMesh(mesh_m);
-    // OpalData::getInstance()->setFieldLayout(FL_m);
-    // OpalData::getInstance()->setLayout(PL_m);
+    
+#ifdef ENABLE_AMR
+    if ( !isAmrSolverType() ) {
+#endif
+        mesh_m   = new Mesh_t(domain);
+        FL_m     = new FieldLayout_t(*mesh_m, decomp);
+        PL_m.reset(new Layout_t(*FL_m, *mesh_m));
+        // OpalData::getInstance()->setMesh(mesh_m);
+        // OpalData::getInstance()->setFieldLayout(FL_m);
+        // OpalData::getInstance()->setLayout(PL_m);
+#ifdef ENABLE_AMR
+    }
+#endif
 }
 
 bool FieldSolver::hasPeriodicZ() {
@@ -583,6 +595,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_PREC])) << '\n'
            << "* AMR_MG_REBALANCE     "
            << Attributes::getBool(itsAttr[AMR_MG_REBALANCE]) << '\n'
+           << "* AMR_MG_REUSE         "
+           << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_REUSE])) << '\n'
            << "* AMR_MG_SMOOTHER      "
            << Util::toUpper(Attributes::getString(itsAttr[AMR_MG_SMOOTHER])) << '\n'
            << "* AMR_MG_NSWEEPS       "
@@ -622,8 +636,15 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     else
         os << "* Z(T)DIM      serial  " << endl;
 
-    INFOMSG(level3 << *mesh_m << endl);
-    INFOMSG(level3 << *PL_m << endl);
+#ifdef ENABLE_AMR
+    if ( !isAmrSolverType() ) {
+#endif
+        INFOMSG(level3 << *mesh_m << endl);
+        INFOMSG(level3 << *PL_m << endl);
+#ifdef ENABLE_AMR
+    }
+#endif
+    
     if(solver_m)
         os << *solver_m << endl;
     os << "* ********************************************************************************** " << endl;
@@ -700,6 +721,7 @@ void FieldSolver::initAmrSolver_m() {
                                     Attributes::getString(itsAttr[ITSOLVER]),
                                     Attributes::getString(itsAttr[AMR_MG_PREC]),
                                     Attributes::getBool(itsAttr[AMR_MG_REBALANCE]),
+                                    Attributes::getString(itsAttr[AMR_MG_REUSE]),
                                     Attributes::getString(itsAttr[BCFFTX]),
                                     Attributes::getString(itsAttr[BCFFTY]),
                                     bcz,

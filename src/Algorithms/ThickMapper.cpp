@@ -26,6 +26,7 @@
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -128,6 +129,9 @@ void ThickMapper::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
 
+void ThickMapper::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    applyDrift(flip_s * coll.getElementLength());
+}
 
 void ThickMapper::visitLambertson(const Lambertson &lamb) {
     // Assume the particle go through the magnet's window.

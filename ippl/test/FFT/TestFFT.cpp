@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
   //  writeMemoryHeader(os_memData);
   
   e_dim_tag allParallel[D];    // Specifies SERIAL, PARALLEL dims
-  for (unsigned int d=0; d<D; d++) 
+  for (unsigned int d=0; d<D; d++)
     allParallel[d] = PARALLEL;
 
   e_dim_tag serialParallel[D]; // Specifies SERIAL, PARALLEL dims
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
   ccfft.setDirectionName(-1, "inverse");
 
   testmsg << nLoop << " x In-place CC transform using all-parallel layout ..." << endl;
-  for (int i=0; i<nLoop; i++) {
+  for (uint i=0; i<nLoop; i++) {
     IpplTimings::startTimer(fftccppTimer);
     ccfft.transform("forward", CFieldPPStan);
     IpplTimings::stopTimer(fftccppTimer);
@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
   }
 
   testmsg << "In-place CC transform using layout with zeroth dim serial ..." << endl;
-  for (int i=0; i<nLoop; i++) {
+  for (uint i=0; i<nLoop; i++) {
     IpplTimings::startTimer(fftccpsTimer);
     ccfft.transform("forward", CFieldSPStan);
     IpplTimings::stopTimer(fftccpsTimer);
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
     rcfft.setDirectionName(-1, "inverse");
 
     testmsg << "RC transform using all-parallel layout ..." << endl;
-    for (int i=0; i<nLoop; i++) {
+    for (uint i=0; i<nLoop; i++) {
       IpplTimings::startTimer(fftrcppTimer);
       rcfft.transform("forward", RFieldPPStan, CFieldPPStan0h, constInput);
       IpplTimings::stopTimer(fftrcppTimer);
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
 
     testmsg << "RC transform using layout with zeroth dim serial ..." << endl;
 
-    for (int i=0; i<nLoop; i++) {
+    for (uint i=0; i<nLoop; i++) {
       IpplTimings::startTimer(fftrcpsTimer);
       rcfft.transform("forward", RFieldSPStan, CFieldSPStan0h, constInput);
       IpplTimings::stopTimer(fftrcpsTimer);
