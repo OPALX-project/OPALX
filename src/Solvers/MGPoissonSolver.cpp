@@ -92,7 +92,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     hasParallelDecompositionChanged_m = true;
     repartFreq_m = 1000;
     useRCB_m = false;
-    if(Ippl::Info->getOutputLevel() > 1)
+    if(Ippl::Info->getOutputLevel() > 3)
         verbose_m = true;
     else
         verbose_m = false;
@@ -249,6 +249,7 @@ void MGPoissonSolver::extrapolateLHS() {
 // on IPPL GRID)
 void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
+    Inform msg("OPAL ", INFORM_ALL_NODES);
     nr_m[0] = orig_nr_m[0];
     nr_m[1] = orig_nr_m[1];
     nr_m[2] = orig_nr_m[2];
@@ -266,33 +267,37 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     IpplTimings::stopTimer(FunctionTimer1_m);
 
     // Define the Map
-    INFOMSG(level2 << "* Computing Map..." << endl);
+    INFOMSG(level3 << "* Computing Map..." << endl);
     IpplTimings::startTimer(FunctionTimer2_m);
     computeMap(localId);
     IpplTimings::stopTimer(FunctionTimer2_m);
-    INFOMSG(level2 << "* Done." << endl);
+    INFOMSG(level3 << "* Done." << endl);
 
     // Allocate the RHS with the new Epetra Map
     if (Teuchos::is_null(RHS))
         RHS = rcp(new Epetra_Vector(*Map));
     RHS->PutScalar(0.0);
 
-    // get charge densities from IPPL field and store in Epetra vector (RHS)
-    Ippl::Comm->barrier();
-    std::cout << "* Node:" << Ippl::myNode() << ", Filling RHS..." << std::endl;
-    Ippl::Comm->barrier();
+    // // get charge densities from IPPL field and store in Epetra vector (RHS)
+    if (verbose_m) {
+        Ippl::Comm->barrier();
+        msg << "* Node:" << Ippl::myNode() << ", Filling RHS..." << endl;
+        Ippl::Comm->barrier();
+    }
     IpplTimings::startTimer(FunctionTimer3_m);
     int id = 0;
     float scaleFactor = itsBunch_m->getdT();
 
 
-    std::cout << "* Node:" << Ippl::myNode() << ", Rho for final element: " << rho[localId[0].last()][localId[1].last()][localId[2].last()].get() << std::endl;
+    if (verbose_m) {
+        msg << "* Node:" << Ippl::myNode() << ", Rho for final element: " << rho[localId[0].last()][localId[1].last()][localId[2].last()].get() << endl;
 
-    Ippl::Comm->barrier();
-    std::cout << "* Node:" << Ippl::myNode() << ", Local nx*ny*nz = " <<  localId[2].last() *  localId[0].last() *  localId[1].last() << std::endl;
-    std::cout << "* Node:" << Ippl::myNode() << ", Number of reserved local elements in RHS: " << RHS->MyLength() << std::endl;
-    std::cout << "* Node:" << Ippl::myNode() << ", Number of reserved global elements in RHS: " << RHS->GlobalLength() << std::endl;
-    Ippl::Comm->barrier();
+        Ippl::Comm->barrier();
+        msg << "* Node:" << Ippl::myNode() << ", Local nx*ny*nz = " <<  localId[2].last() *  localId[0].last() *  localId[1].last() << endl;
+        msg << "* Node:" << Ippl::myNode() << ", Number of reserved local elements in RHS: " << RHS->MyLength() << endl;
+        msg << "* Node:" << Ippl::myNode() << ", Number of reserved global elements in RHS: " << RHS->GlobalLength() << endl;
+        Ippl::Comm->barrier();
+    }
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
     	    for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
@@ -302,26 +307,27 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         }
     }
 
-    std::cout << "* Node:" << Ippl::myNode() << ", Number of Local Inside Points " << id << std::endl;
-    Ippl::Comm->barrier();
     IpplTimings::stopTimer(FunctionTimer3_m);
-    std::cout << "* Node:" << Ippl::myNode() << ", Done." << std::endl;
-    Ippl::Comm->barrier();
-
+    if (verbose_m) {
+        Ippl::Comm->barrier();
+        msg << "* Node:" << Ippl::myNode() << ", Number of Local Inside Points " << id << endl;
+        msg << "* Node:" << Ippl::myNode() << ", Done." << endl;
+        Ippl::Comm->barrier();
+    }
     // build discretization matrix
-    INFOMSG(level2 << "* Building Discretization Matrix..." << endl);
+    INFOMSG(level3 << "* Building Discretization Matrix..." << endl);
     IpplTimings::startTimer(FunctionTimer4_m);
     if(Teuchos::is_null(A))
         A = rcp(new Epetra_CrsMatrix(Copy, *Map,  7, true));
     ComputeStencil(hr, RHS);
     IpplTimings::stopTimer(FunctionTimer4_m);
-    INFOMSG(level2 << "* Done." << endl);
+    INFOMSG(level3 << "* Done." << endl);
 
 #ifdef DBG_STENCIL
     EpetraExt::RowMatrixToMatlabFile("DiscrStencil.dat", *A);
 #endif
 
-    INFOMSG(level2 << "* Computing Preconditioner..." << endl);
+    INFOMSG(level3 << "* Computing Preconditioner..." << endl);
     IpplTimings::startTimer(FunctionTimer5_m);
     if(!MLPrec) {
         MLPrec = new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m);
@@ -330,11 +336,11 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     } else if (precmode_m == REUSE_PREC){
     }
     IpplTimings::stopTimer(FunctionTimer5_m);
-    INFOMSG(level2 << "* Done." << endl);
+    INFOMSG(level3 << "* Done." << endl);
 
     // setup preconditioned iterative solver
     // use old LHS solution as initial guess
-    INFOMSG(level2 << "* Final Setup of Solver..." << endl);
+    INFOMSG(level3 << "* Final Setup of Solver..." << endl);
     IpplTimings::startTimer(FunctionTimer6_m);
     problem_ptr->setOperator(A);
     problem_ptr->setLHS(LHS);
@@ -349,39 +355,43 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         }
     }
     IpplTimings::stopTimer(FunctionTimer6_m);
-    INFOMSG(level2 << "* Done." << endl);
+    INFOMSG(level3 << "* Done." << endl);
 
-    std::ofstream timings;
-    char filename[50];
-    sprintf(filename, "timing_MX%d_MY%d_MZ%d_nProc%d_recB%d_numB%d_nLHS%d", orig_nr_m[0], orig_nr_m[1], orig_nr_m[2], Comm.NumProc(), recycleBlocks_m, numBlocks_m, nLHS_m);
-    if(Comm.MyPID() == 0) timings.open(filename, std::ios::app);
     double time = MPI_Wtime();
 
-    INFOMSG(level2 << "* Solving for Space Charge..." << endl);
+    INFOMSG(level3 << "* Solving for Space Charge..." << endl);
     IpplTimings::startTimer(FunctionTimer7_m);
-    	solver_ptr->solve();
+    solver_ptr->solve();
     IpplTimings::stopTimer(FunctionTimer7_m);
-    INFOMSG(level2 << "* Done." << endl);
+    INFOMSG(level3 << "* Done." << endl);
 
-    time = MPI_Wtime() - time;
-    double minTime, maxTime, avgTime;
-    Comm.MinAll(&time, &minTime, 1);
-    Comm.MaxAll(&time, &maxTime, 1);
-    Comm.SumAll(&time, &avgTime, 1);
-    avgTime /= Comm.NumProc();
-    if(Comm.MyPID() == 0) timings <<
-                                      solver_ptr->getNumIters() << "\t" <<
-                                      //time <<" "<<
-                                      minTime << "\t" <<
-                                      maxTime << "\t" <<
-                                      avgTime << "\t" <<
-                                      numBlocks_m << "\t" <<
-                                      recycleBlocks_m << "\t" <<
-                                      nLHS_m << "\t" <<
-                                      //OldLHS.size() <<"\t"<<
-                                      std::endl;
-    if(Comm.MyPID() == 0) timings.close();
+    std::ofstream timings;
+    if (true || verbose_m) {
+        time = MPI_Wtime() - time;
+        double minTime, maxTime, avgTime;
+        Comm.MinAll(&time, &minTime, 1);
+        Comm.MaxAll(&time, &maxTime, 1);
+        Comm.SumAll(&time, &avgTime, 1);
+        avgTime /= Comm.NumProc();
+        if(Comm.MyPID() == 0) {
+            char filename[50];
+            sprintf(filename, "timing_MX%d_MY%d_MZ%d_nProc%d_recB%d_numB%d_nLHS%d", orig_nr_m[0], orig_nr_m[1], orig_nr_m[2], Comm.NumProc(), recycleBlocks_m, numBlocks_m, nLHS_m);
+            timings.open(filename, std::ios::app);
+            timings << solver_ptr->getNumIters() << "\t"
+                    //<< time <<" "<<
+                    << minTime << "\t"
+                    << maxTime << "\t"
+                    << avgTime << "\t"
+                    << numBlocks_m << "\t"
+                    << recycleBlocks_m << "\t"
+                    << nLHS_m << "\t"
+                    //<< OldLHS.size() <<"\t"<<
+                    << std::endl;
 
+            timings.close();
+        }
+
+    }
     // Store new LHS in OldLHS
     if(nLHS_m > 1) OldLHS.push_front(*(LHS.get()));
     if(OldLHS.size() > nLHS_m) OldLHS.pop_back();
@@ -573,8 +583,8 @@ void MGPoissonSolver::printLoadBalanceStats() {
     MPI_Reduce(&myNumPart, &maxn, 1, MPI_INT, MPI_MAX, 0, Ippl::getComm());
 
     avg /= Comm.NumProc();
-    if(Comm.MyPID() == 0) *gmsg << "LBAL min = " << min << ", max = " << max << ", avg = " << avg << endl;
-    if(Comm.MyPID() == 0) *gmsg << "min nr gridpoints = " << minn << ", max nr gridpoints = " << maxn << endl;
+    *gmsg << "LBAL min = " << min << ", max = " << max << ", avg = " << avg << endl;
+    *gmsg << "min nr gridpoints = " << minn << ", max nr gridpoints = " << maxn << endl;
 }
 
 Inform &MGPoissonSolver::print(Inform &os) const {
