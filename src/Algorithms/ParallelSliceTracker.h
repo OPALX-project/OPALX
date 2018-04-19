@@ -67,6 +67,7 @@ public:
     virtual void visitDegrader(const Degrader &);
     virtual void visitDiagnostic(const Diagnostic &);
     virtual void visitDrift(const Drift &);
+    virtual void visitFlexibleCollimator(const FlexibleCollimator &);
     virtual void visitLambertson(const Lambertson &);
     virtual void visitMarker(const Marker &);
     virtual void visitMonitor(const Monitor &);
@@ -142,7 +143,6 @@ private:
     void handleRestartRun();
     void setTime();
     void setLastStep();
-    void dumpPhaseSpaceOnScan();
 
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;

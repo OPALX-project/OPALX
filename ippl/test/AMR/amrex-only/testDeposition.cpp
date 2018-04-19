@@ -55,14 +55,10 @@ class MyParticleContainer
         BL_ASSERT(m_gdb != 0);
         
         const int       MyProc   = ParallelDescriptor::MyProc();
-        const int       NProcs   = ParallelDescriptor::NProcs();
         const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-        const Real      strttime = ParallelDescriptor::second();
         const Geometry& geom     = m_gdb->Geom(0);
         
-        Real r, x, len[AMREX_SPACEDIM] = { D_DECL(geom.ProbLength(0),
-                                               geom.ProbLength(1),
-                                               geom.ProbLength(2)) };
+        Real x;
         
         RealBox containing_bx = geom.ProbDomain();
         const Real* xlo = containing_bx.lo();
@@ -223,7 +219,6 @@ void test_assign_density(TestParams& parms)
     myPC.SetVerbose(false);
 
     int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
-    bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
     myPC.InitParticles(num_particles, iseed, mass);

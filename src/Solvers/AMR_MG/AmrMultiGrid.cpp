@@ -21,6 +21,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                            const std::string& bsolver,
                            const std::string& prec,
                            const bool& rebalance,
+                           const std::string& reuse,
                            const std::string& bcx,
                            const std::string& bcy,
                            const std::string& bcz,
@@ -38,7 +39,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       lfine_m(0),
       nlevel_m(1),
       nBcPoints_m(0),
-      eps_m(1.0e-12),
+      eps_m(1.0e-10),
       verbose_m(false),
       fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
       flag_m(std::ios::out)
@@ -70,11 +71,11 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     
     // preconditioner
     const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initPrec_m(precond, rebalance);
+    this->initPrec_m(precond, rebalance, reuse);
     
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
-    this->initBaseSolver_m(solver, rebalance);
+    this->initBaseSolver_m(solver, rebalance, reuse);
     
     if (boost::filesystem::exists(fname_m)) {
         flag_m = std::ios::app;
@@ -185,7 +186,7 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
                                     "This type of boundary is not supported");
         }
         // we use the maximum in order to build matrices
-        int tmp = bc_m[i]->getNumberOfPoints();
+        go_t tmp = bc_m[i]->getNumberOfPoints();
         if ( nBcPoints_m < tmp )
             nBcPoints_m = tmp;
     }
@@ -654,19 +655,15 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
     IpplTimings::startTimer(buildTimer_m);
 #endif
     
-    bool isNewOperator = (mglevel_m[lbase_m]->Anf_p == Teuchos::null);
-    
     if ( lbase_m == lfine_m )
-        this->buildSingleLevel_m(rho, phi, isNewOperator);
+        this->buildSingleLevel_m(rho, phi, matrices);
     else
         this->buildMultiLevel_m(rho, phi, matrices);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
     
-    if ( matrices )
-        this->clearMasks_m();
-    
-    if ( isNewOperator ) {
+    if ( matrices ) {
+        this->clearMasks_m();    
         // set the bottom solve operator
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p, mglevel_m[0].get());
     }
@@ -710,7 +707,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
                     for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                         AmrIntVect_t iv(D_DECL(i, j, k));
-                        int gidx = mglevel_m[lbase_m]->serialize(iv);
+                        go_t gidx = mglevel_m[lbase_m]->serialize(iv);
                         
                         this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
                         
@@ -787,7 +784,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
                             int kk = k << 1;
 #endif
                             AmrIntVect_t iv(D_DECL(i, j, k));
-                            int gidx = mglevel_m[lev]->serialize(iv);
+                            go_t gidx = mglevel_m[lev]->serialize(iv);
                             
                             this->buildRestrictionMatrix_m(lev, gidx, iv,
                                                            D_DECL(ii, jj, kk), rfab);
@@ -1677,7 +1674,7 @@ void AmrMultiGrid::map2vector_m(umap_t& map, indices_t& indices,
     values.reserve(map.size());
     
     std::for_each(map.begin(), map.end(),
-                  [&](const std::pair<const int, scalar_t>& entry)
+                  [&](const std::pair<const go_t, scalar_t>& entry)
                   {
                       indices.push_back(entry.first);
                       values.push_back(entry.second);
@@ -1833,7 +1830,8 @@ void AmrMultiGrid::initCrseFineInterp_m(const Interpolater& interface) {
 
 
 void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
-                                    const bool& rebalance)
+                                    const bool& rebalance,
+                                    const std::string& reuse)
 {
     switch ( solver ) {
         // Belos solvers
@@ -1893,8 +1891,11 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
             break;
 #endif
         case BaseSolver::SA:
-            solver_mp.reset( new MueLuSolver_t(rebalance) );
+        {
+            std::string muelu = MueLuSolver_t::convertToMueLuReuseOption(reuse);
+            solver_mp.reset( new MueLuSolver_t(rebalance, muelu) );
             break;
+        }
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
@@ -1903,7 +1904,8 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
 
 
 void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
-                              const bool& rebalance)
+                              const bool& rebalance,
+                              const std::string& reuse)
 {
     switch ( prec ) {
         case Preconditioner::ILUT:
@@ -1917,7 +1919,8 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
             break;
         case Preconditioner::SA:
         {
-            prec_mp.reset( new MueLuPreconditioner_t(rebalance) );
+            std::string muelu = MueLuPreconditioner_t::convertToMueLuReuseOption(reuse);
+            prec_mp.reset( new MueLuPreconditioner_t(rebalance, muelu) );
             break;
         }
         case Preconditioner::NONE:
@@ -2037,7 +2040,9 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     map["L2"]   = Norm::L2;
     map["LINF"] = Norm::LINF;
     
-    auto n = map.find(Util::toUpper(norm));
+    snorm_m = Util::toUpper(norm);
+    
+    auto n = map.find(snorm_m);
     
     if ( n == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
@@ -2052,7 +2057,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
     std::string indent("        ");
-
+    
     outfile << "SDDS1" << std::endl;
     outfile << "&description\n"
             << indent << "text=\"Solver statistics '" << OpalData::getInstance()->getInputFn()
@@ -2099,7 +2104,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << indent << "description=\"4 Regrid Step\"\n"
             << "&end\n";
     outfile << "&column\n"
-            << indent << "name=error,\n"
+            << indent << "name=" + snorm_m + ",\n"
             << indent << "type=double,\n"
             << indent << "units=1,\n"
             << indent << "description=\"5 Error\"\n"
@@ -2109,7 +2114,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << indent << "no_row_counts=1\n"
             << "&end\n"
             << Ippl::getNodes() << '\n'
-            << PACKAGE_NAME << " " << OPAL_VERSION_STR << " git rev. #" << Util::getGitRevision() << '\n'
+            << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << '\n'
             << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                 (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 }

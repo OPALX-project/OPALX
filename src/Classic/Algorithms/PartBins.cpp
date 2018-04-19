@@ -15,12 +15,16 @@ PartBins::PartBins(int bins, int sbins) :
     hBin_m(0.0),
     nemittedBins_m(0),
     nemittedSBins_m(0) {
-
-    nBin_m = new size_t[bins_m];
-    xbinmin_m = new double[bins_m];
-    xbinmax_m = new double[bins_m];
-    binsEmitted_m = new bool[bins_m];
-    nDelBin_m = new size_t[bins_m];
+    
+    // number of particles in the bins on the local node
+    nBin_m        = std::unique_ptr<size_t[]>(new size_t[bins_m]);
+    xbinmin_m     = std::unique_ptr<double[]>(new double[bins_m]);
+    xbinmax_m     = std::unique_ptr<double[]>(new double[bins_m]);
+    
+    // flag whether the bin contain particles or not
+    binsEmitted_m = std::unique_ptr<bool[]>(new bool[bins_m]);
+    
+    nDelBin_m     = std::unique_ptr<size_t[]>(new size_t[bins_m]);
 
     for(int i = 0; i < bins_m; i++) {
         nDelBin_m[i] = nBin_m[i] = 0;
@@ -124,16 +128,8 @@ void PartBins::resetPartInBin_cyc(size_t newPartNum[], int maxbinIndex) {
 
 
 PartBins::~PartBins() {
-
-    if(nBin_m) {
-        delete [] nBin_m;
-        delete [] xbinmax_m;
-        delete [] xbinmin_m;
-        delete [] binsEmitted_m;
-    }
     tmppart_m.clear();
     isEmitted_m.clear();
-
 }
 
 
@@ -228,7 +224,7 @@ Inform &PartBins::print(Inform &os) {
     for(int i = 0; i < bins_m; i++) {
         size_t msum = 0;
         for(int j = 0; j < sBins_m; j++)
-            msum += gsl_histogram_get(h_m, i * sBins_m + j);
+            msum += gsl_histogram_get(h_m.get(), i * sBins_m + j);
         os << "Bin # " << i << " val " << msum << endl;
     }
 

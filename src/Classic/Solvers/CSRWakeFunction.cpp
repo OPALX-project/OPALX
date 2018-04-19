@@ -82,7 +82,7 @@ void CSRWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
             if(counter == 0) file_number = 0;
 	    if (Ippl::myNode() == 0) {
                 std::stringstream filename_str;
-                filename_str << "data/" << bendName_m << "-CSRWake" << file_number << ".txt";
+                filename_str << "data/" << bendName_m << "-CSRWake" << std::setw(5) << std::setfill('0') << file_number << ".txt";
 
                 std::ofstream csr(filename_str.str().c_str());
                 csr << std::setprecision(8);
