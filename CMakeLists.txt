@@ -41,11 +41,15 @@ set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
-add_compile_options (-Wall)
 add_definitions (-DIPPL_LINUX -DIPPL_STRINGSTREAM)
-add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_PARTIAL_SPECIALIZATION -Drestrict=__restrict__ -DNOCTAssert)
+add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL)
+add_definitions (-DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY)
+add_definitions (-DIPPL_HAS_TEMPLATED_COMPLEX)
+add_definitions (-DIPPL_USE_PARTIAL_SPECIALIZATION)
+add_definitions ( -Drestrict=__restrict__ -DNOCTAssert)
 
-add_compile_options (-ftemplate-depth=1024 -funroll-loops -fstrict-aliasing)
+add_compile_options (-Wall)
+add_compile_options (-funroll-loops -fstrict-aliasing)
 
 # compiler dependent flags
 message ("The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
