@@ -150,7 +150,7 @@ void OpalSimulation::setupSimulation() {
     MPI_Comm_rank(comm_, &rank);
     if(rank == 0) {
 
-        mkdir((const char*)(simulationDirName_.c_str()), 0777);
+        mkdir((const char*)(simulationDirName_.c_str()), 0755);
 
         std::string infile = simulationDirName_ + "/" +
                              simulationName_ + ".in";
