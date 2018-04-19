@@ -6,6 +6,8 @@
 
 #include <gsl/gsl_rng.h>
 
+#include <boost/regex.hpp>
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -35,7 +37,10 @@ int main(int argc, char *argv[])
 
     // std::string str("repeat( translate(union(rectangle(0.1, 0.1), ellipse(0.1, 0.1)), -0.01, -0.02), 2, 0.1, 0.2)");
 
-    if (parse(str, fun)) {
+    str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
+    str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
+
+     if (parse(str, fun)) {
         fun->print(0);
         std::cout << "\n" << std::endl;
 
