@@ -145,6 +145,7 @@ public:
                  const std::string& bsolver,
                  const std::string& prec,
                  const bool& rebalance,
+                 const std::string& reuse,
                  const std::string& bcx,
                  const std::string& bcy,
                  const std::string& bcz,
@@ -564,18 +565,22 @@ private:
     /*!
      * Instantiate a bottom solver
      * @param solver type
-     * @param rebalance solver (SA onl)
+     * @param rebalance solver (SA only)
+     * @param reuse types of SA hierarchy
      */
     void initBaseSolver_m(const BaseSolver& solver,
-                          const bool& rebalance);
+                          const bool& rebalance,
+                          const std::string& reuse);
     
     /*!
      * Instantiate a preconditioner for the bottom solver
      * @param precond type
      * @param rebalance preconditioner (SA only)
+     * @param reuse types of SA hierarchy
      */
     void initPrec_m(const Preconditioner& prec,
-                    const bool& rebalance);
+                    const bool& rebalance,
+                    const std::string& reuse);
     
     /*!
      * Convertstring to enum Boundary
@@ -668,6 +673,7 @@ private:
     int nBcPoints_m;                    ///< maximum number of stencils points for BC
     
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
+    std::string snorm_m;    ///< norm for convergence criteria
     
     const scalar_t eps_m;   ///< rhs scale for convergence
     

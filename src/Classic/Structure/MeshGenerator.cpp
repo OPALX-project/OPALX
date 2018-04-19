@@ -779,7 +779,7 @@ void MeshGenerator::write(const std::string &fname) {
     // out << indent << indent << indent << "fg.write(\"\\n\")\n\n";
 
     out << indent << indent << "idx = idChanges[idx]\n";
-    out << indent << indent << "fh.write(\"%.6f    %.6f    %d\\n\" % (positions[idx][0], positions[idx][1], idx))\n\n";
+    out << indent << indent << "fh.write(\"%.6f    %.6f\\n\" % (positions[idx][0], positions[idx][1]))\n\n";
 
     out << indent << indent << "curAngle = math.pi\n";
     out << indent << indent << "origin = idx\n";
@@ -808,7 +808,7 @@ void MeshGenerator::write(const std::string &fname) {
     out << indent << indent << indent << "else:\n";
     out << indent << indent << indent << indent << "idx = nextIdx\n";
     out << indent << "\n";
-    out << indent << indent << indent << "fh.write(\"%.6f    %.6f    %d\\n\" % (positions[idx][0], positions[idx][1], idx))\n";
+    out << indent << indent << indent << "fh.write(\"%.6f    %.6f\\n\" % (positions[idx][0], positions[idx][1]))\n";
     out << indent << "\n";
     out << indent << indent << indent << "if idx in passed:\n";
     out << indent << indent << indent << indent << "direction1 = [positions[idx][0] - positions[passed[-1]][0],\n";

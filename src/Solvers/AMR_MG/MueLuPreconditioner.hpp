@@ -3,12 +3,13 @@
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 
 template <class Level>
-MueLuPreconditioner<Level>::MueLuPreconditioner(const bool& rebalance)
+MueLuPreconditioner<Level>::MueLuPreconditioner(const bool& rebalance,
+                                                const std::string& reuse)
     : prec_mp(Teuchos::null),
       coords_mp(Teuchos::null),
       rebalance_m(rebalance)
 {
-    this->init_m();
+    this->init_m(reuse);
 }
 
 
@@ -73,9 +74,30 @@ void MueLuPreconditioner<Level>::fillMap(map_t& map) {
 
 
 template <class Level>
-void MueLuPreconditioner<Level>::init_m() {
+std::string
+MueLuPreconditioner<Level>::convertToMueLuReuseOption(const std::string& reuse) {
+    
+    std::map<std::string, std::string> map;
+    map["NONE"] = "none";
+    map["RP"]   = "RP";
+    map["RAP"]  = "RAP";
+    map["S"]    = "S";
+    map["FULL"] = "full";
+    
+    auto muelu =  map.find(Util::toUpper(reuse));
+    
+    if ( muelu == map.end() )
+        throw OpalException("MueLuPreconditioner::convertToMueLuReuseOption()",
+                            "No MueLu reuse option '" + reuse + "'.");
+    
+    return muelu->second;
+}
+
+
+template <class Level>
+void MueLuPreconditioner<Level>::init_m(const std::string& reuse) {
     params_m.set("problem: type", "Poisson-3D");
-    params_m.set("verbosity", "extreme");
+    params_m.set("verbosity", "low");
     params_m.set("number of equations", 1);
     params_m.set("max levels", 8);
     params_m.set("cycle type", "V");
@@ -118,5 +140,5 @@ void MueLuPreconditioner<Level>::init_m() {
 
     params_m.set("transpose: use implicit", false);
 
-    params_m.set("reuse: type", "full"); // none
+    params_m.set("reuse: type", reuse); // none
 }

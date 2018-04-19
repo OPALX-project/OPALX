@@ -41,6 +41,7 @@ class Corrector;
 class Degrader;
 class Diagnostic;
 class Drift;
+class FlexibleCollimator;
 class Lambertson;
 class Marker;
 class Monitor;
@@ -124,6 +125,9 @@ public:
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &) = 0;
+
+    /// Apply the algorithm to a flexible collimator
+    virtual void visitFlexibleCollimator(const FlexibleCollimator &) = 0;
 
     /// Apply the algorithm to an Ring
     virtual void visitRing(const Ring &) = 0;

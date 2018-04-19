@@ -62,7 +62,6 @@ namespace {
         SCSOLVEFREQ,
         MTSSUBSTEPS,
 	REMOTEPARTDEL,
-        SCAN,
         RHODUMP,
         EBDUMP,
 	CSRDUMP,
@@ -167,10 +166,6 @@ Option::Option():
                          ("REBINFREQ", "The frequency to reset energy bin ID for "
                           "all particles, its default value is 100.", rebinFreq);
 
-    itsAttr[SCAN] = Attributes::makeBool
-                    ("SCAN", "If true, each new track starts at the begin "
-                     "of the lattics with a new distribution", scan);
-
     itsAttr[RHODUMP] = Attributes::makeBool
                        ("RHODUMP", "If true, in addition to the phase "
                         "space the scalar rho field is also dumped (H5Block)", rhoDump);
@@ -185,7 +180,7 @@ Option::Option():
                         "data directory)", csrDump);
 
     itsAttr[AUTOPHASE] = Attributes::makeReal
-                         ("AUTOPHASE", "If greater than zero OPAL is scaning "
+                         ("AUTOPHASE", "If greater than zero OPAL is scanning "
                           "the phases of each rf structure in order to get maximum "
                           "acceleration. Defines the number of refinements of the "
                           "search range", autoPhase);
@@ -278,7 +273,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[REMOTEPARTDEL], remotePartDel);
     Attributes::setReal(itsAttr[REPARTFREQ], repartFreq);
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
-    Attributes::setBool(itsAttr[SCAN], scan);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
@@ -322,7 +316,6 @@ void Option::execute() {
     mtrace     = Attributes::getBool(itsAttr[TRACE]);
     warn      = Attributes::getBool(itsAttr[WARN]);
     psDumpEachTurn =   Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
-    scan = Attributes::getBool(itsAttr[SCAN]);
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);

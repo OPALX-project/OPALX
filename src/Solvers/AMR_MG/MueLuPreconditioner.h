@@ -31,7 +31,8 @@ public:
     
 public:
     
-    MueLuPreconditioner(const bool& rebalance);
+    MueLuPreconditioner(const bool& rebalance,
+                        const std::string& reuse);
     
     void create(const Teuchos::RCP<amr::matrix_t>& A, Level* level_p =  nullptr);
     
@@ -39,8 +40,10 @@ public:
     
     static void fillMap(map_t& map);
     
+    static std::string convertToMueLuReuseOption(const std::string& reuse);
+    
 private:
-    void init_m();
+    void init_m(const std::string& reuse);
 
 private:
     Teuchos::ParameterList params_m;

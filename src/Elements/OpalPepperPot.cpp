@@ -18,7 +18,7 @@
 
 #include "Elements/OpalPepperPot.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/CollimatorRep.h"
+#include "BeamlineCore/FlexibleCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 
 
@@ -35,8 +35,6 @@ OpalPepperPot::OpalPepperPot():
                      ("YSIZE", "Size in y of the pepperpot in m");
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Pepperpot output filename");
-    itsAttr[PITCH] = Attributes::makeReal
-                     ("PITCH", "Pitch of the pepperpot in m");
     itsAttr[NHOLX] = Attributes::makeReal
                      ("NHOLX", "Number of holes in x");
     itsAttr[NHOLY] = Attributes::makeReal
@@ -47,21 +45,20 @@ OpalPepperPot::OpalPepperPot():
     registerStringAttribute("OUTFN");
     registerRealAttribute("XSIZE");
     registerRealAttribute("YSIZE");
-    registerRealAttribute("PITCH");
     registerRealAttribute("R");
     registerRealAttribute("NHOLX");
     registerRealAttribute("NHOLY");
 
     registerOwnership();
 
-    setElement((new CollimatorRep("PEPPERPOT"))->makeAlignWrapper());
+    setElement((new FlexibleCollimatorRep("PEPPERPOT"))->makeAlignWrapper());
 }
 
 
 OpalPepperPot::OpalPepperPot(const std::string &name, OpalPepperPot *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new CollimatorRep(name))->makeAlignWrapper());
+    setElement((new FlexibleCollimatorRep(name))->makeAlignWrapper());
 }
 
 
@@ -80,29 +77,44 @@ void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base, ValueFlag 
     OpalElement::fillRegisteredAttributes(base, flag);
 
 
-    const CollimatorRep *ppo =
-        dynamic_cast<const CollimatorRep *>(base.removeWrappers());
-    attributeRegistry["XSIZE"]->setReal(ppo->getXsize());
-    attributeRegistry["YSIZE"]->setReal(ppo->getYsize());
+    // const FlexibleCollimatorRep *ppo =
+    //     dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
+    // attributeRegistry["XSIZE"]->setReal(ppo->getXsize());
+    // attributeRegistry["YSIZE"]->setReal(ppo->getYsize());
 
 }
 
 void OpalPepperPot::update() {
     OpalElement::update();
 
-    CollimatorRep *ppo =
-        dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
+    FlexibleCollimatorRep *ppo =
+        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     ppo->setElementLength(length);
     ppo->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    ppo->setXsize(Attributes::getReal(itsAttr[XSIZE]));
-    ppo->setYsize(Attributes::getReal(itsAttr[YSIZE]));
 
-    ppo->setRHole(Attributes::getReal(itsAttr[R]));
-    ppo->setPitch(Attributes::getReal(itsAttr[PITCH]));
-    ppo->setNHoles(Attributes::getReal(itsAttr[NHOLX]), Attributes::getReal(itsAttr[NHOLY]));
+    if (getOpalName() != "PEPPERPOT") {
+        double xsize = Attributes::getReal(itsAttr[XSIZE]);
+        double ysize = Attributes::getReal(itsAttr[YSIZE]);
+        double diameter = 2 * Attributes::getReal(itsAttr[R]);
+        int repX = Attributes::getReal(itsAttr[NHOLX]) - 1;
+        int repY = Attributes::getReal(itsAttr[NHOLY]) - 1;
 
-    ppo->setPepperPot();
+        double shiftx = (xsize - diameter) / repX;
+        double shifty = (ysize - diameter) / repY;
+
+        std::stringstream description;
+        description << "repeat(repeat(translate(ellipse("
+                    << diameter << "," << diameter << "),"
+                    << -shiftx * 0.5 * repX << "," << -shifty * 0.5 * repY << "),"
+                    << repX << "," << shiftx << ",0.0),"
+                    << repY << ",0.0," << shifty << ")";
+
+        std::cout << "OpalPepperPot.cpp: " << __LINE__ << "\t"
+                  << description.str() << std::endl;
+        ppo->setDescription(description.str());
+        exit(1);
+    }
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));

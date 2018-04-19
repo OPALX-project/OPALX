@@ -1,12 +1,8 @@
 #ifndef OPAL_H5PARTWRAPPERFORPC_H
 #define OPAL_H5PARTWRAPPERFORPC_H
 
-//
-//  Copyright & License: See Copyright.readme in src directory
-//
-
 /*!
-  H5PartWrapperForPT: a class that manages a calls to H5Part for the cyclotron tracker
+  H5PartWrapperForPT: a class that manages calls to H5Part for the cyclotron tracker
 */
 
 #include "Structure/H5PartWrapper.h"

@@ -513,35 +513,6 @@ void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle)
 }
 
 
-/** \brief After each Schottky scan we delete all the particles.
-
- */
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::cleanUpParticles() {
-
-    size_t np = getTotalNum();
-    bool scan = false;
-
-    destroy(getLocalNum(), 0, true);
-
-    dist_m->createOpalT(this, np, scan);
-
-    update();
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::resetIfScan()
-/*
-  In case of a scan we have
-  to reset some variables
- */
-{
-    dt = 0.0;
-    localTrackStep_m = 0;
-}
-
-
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::do_binaryRepart() {
     // do nothing here
@@ -551,24 +522,29 @@ void PartBunchBase<T, Dim>::do_binaryRepart() {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
                                             std::vector<Distribution *> addedDistributions,
-                                            size_t &np,
-                                            bool scan)
+                                            size_t &np)
 {
     Inform m("setDistribution " );
     dist_m = d;
 
-    dist_m->createOpalT(this, addedDistributions, np, scan);
+    dist_m->createOpalT(this, addedDistributions, np);
 
 //    if (Options::cZero)
-//        dist_m->create(this, addedDistributions, np / 2, scan);
+//        dist_m->create(this, addedDistributions, np / 2);
 //    else
-//        dist_m->create(this, addedDistributions, np, scan);
+//        dist_m->create(this, addedDistributions, np);
 }
 
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::isGridFixed() {
     return fixed_grid;
+}
+
+
+template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::hasBinning() {
+    return (pbin_m != nullptr);
 }
 
 
@@ -715,13 +691,16 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
         bingamma_m[i] = 0.0;
     for(unsigned int n = 0; n < getLocalNum(); n++)
         bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+
+    allreduce(*bingamma_m.get(), emittedBins, std::plus<double>());
+
     for(int i = 0; i < emittedBins; i++) {
-        reduce(bingamma_m[i], bingamma_m[i], OpAddAssign());
         if(pbin_m->getTotalNumPerBin(i) > 0)
             bingamma_m[i] /= pbin_m->getTotalNumPerBin(i);
         else
             bingamma_m[i] = 0.0;
-        INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i) << " gamma = " << bingamma_m[i] << endl);
+        INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i)
+                       << " gamma = " << bingamma_m[i] << endl);
     }
 
 }
@@ -805,7 +784,7 @@ void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
     for (unsigned int i = 0; i < lN; ++ i) {
         const double z = R[i](2) - 0.5 * hz;
         unsigned int idx = (z - zmin) / hz;
-        double tau = z - (zmin + idx * hz);
+        double tau = (z - zmin) / hz - idx;
 
         lineDensity[idx] += Q[i] * (1.0 - tau) * perMeter;
         lineDensity[idx + 1] += Q[i] * tau * perMeter;
@@ -2583,23 +2562,22 @@ void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
 
 template <class T, unsigned Dim>
 FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
-	const double  N =  static_cast<double>(this->getTotalNum());
+    const double  N =  static_cast<double>(this->getTotalNum());
 
-	Vektor<double, 2*Dim> rpmean;
-	for (unsigned int i=0; i<Dim; i++){
-		rpmean(2*i)= rmean_m(i);
-		rpmean((2*i)+1)= pmean_m(i);
-	}
-
-	FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix=moments_m / N;
-	for (unsigned int i=0; i<2*Dim; i++){
-		for (unsigned int j=0; j<=i; j++){
-			sigmaMatrix[i][j] = moments_m(i, j) -  rpmean(i) * rpmean(j);
-			sigmaMatrix[j][i] = sigmaMatrix[i][j];
-		}
-	}
-	return sigmaMatrix;
+    Vektor<double, 2*Dim> rpmean;
+    for (unsigned int i = 0; i < Dim; i++) {
+        rpmean(2*i)= rmean_m(i);
+        rpmean((2*i)+1)= pmean_m(i);
+    }
+    
+    FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix = moments_m / N;
+    for (unsigned int i = 0; i < 2 * Dim; i++) {
+        for (unsigned int j = 0; j <= i; j++) {
+            sigmaMatrix[i][j] = moments_m(i, j) -  rpmean(i) * rpmean(j);
+            sigmaMatrix[j][i] = sigmaMatrix[i][j];
+        }
+    }
+    return sigmaMatrix;
 }
-
 
 #endif

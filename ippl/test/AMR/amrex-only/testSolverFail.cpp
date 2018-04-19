@@ -55,8 +55,6 @@ class MyParticleContainer
         
         const int       MyProc   = ParallelDescriptor::MyProc();
         const int       NProcs   = ParallelDescriptor::NProcs();
-        const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-        const Real      strttime = ParallelDescriptor::second();
         
         particles_rm.resize(m_gdb->finestLevel()+1);
         

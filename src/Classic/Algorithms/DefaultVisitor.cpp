@@ -29,6 +29,7 @@
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
@@ -126,6 +127,9 @@ void DefaultVisitor::visitDrift(const Drift &drf) {
     applyDefault(drf);
 }
 
+void DefaultVisitor::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    applyDefault(coll);
+}
 
 void DefaultVisitor::visitLambertson(const Lambertson &lamb) {
     applyDefault(lamb);
