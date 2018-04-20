@@ -1,0 +1,70 @@
+SDDS1
+&description
+        text="Processor statistics 'BendAngle.in' 12/03/201817:03:28",
+        contents="stat parameters"
+&end
+&parameter
+        name=processors,
+        type=long,
+        description="Number of Cores used"
+&end
+&parameter
+        name=revision,
+        type=string,
+        description="git revision of opal"
+&end
+&parameter
+        name=flavor,
+        type=string,
+        description="OPAL flavor that wrote file"
+&end
+&column
+        name=t,
+        type=double,
+        units=ns,
+        description="1 Time"
+&end
+&column
+        name=processor-0,
+        type=long,
+        units=1,
+        description="2 Number of particles of processor 0"
+&end
+&data
+        mode=ascii,
+        no_row_counts=1
+&end
+1
+OPAL 1.9.0 git rev. #48e9060a07f71ea683517aea368271ac30706c8f
+opal-env
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000
+0.000000000000000e+00         	1000

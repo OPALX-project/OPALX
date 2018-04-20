@@ -1,0 +1,68 @@
+OPTION, ECHO=FALSE;
+OPTION, INFO=TRUE;
+Option, PSDUMPFREQ=1;
+Option, SPTDUMPFREQ = 50;
+Option, STATDUMPFREQ=1;
+OPTION, VERSION=10900;
+
+TITLE, STRING="MAP Test";
+
+REAL Edes   = 0.01;
+REAL gamma  = (Edes+PMASS)/PMASS;
+REAL beta   = sqrt(1-(1/gamma^2));
+REAL gambet = gamma*beta;
+REAL P0     = gamma*beta*PMASS;
+REAL brho   = (PMASS*1.0e9*gambet) / CLIGHT;
+REAL rf     = 50.6328e6;  //need to be confirmed
+
+REAL length= 30.0 * Pi / 180.0;
+
+VALUE,{gamma,brho,Edes,beta,gambet};
+
+Bend0: SBend,   ANGLE = 30.0*Pi / 180.0, FMAPFN = "1DPROFILE1-DEFAULT", ELEMEDGE = 0.0, DESIGNENERGY = Edes*1e3, L = 1.0, GAP = 0.02, NSLICES= 5;
+
+
+Bend1: SBend, ANGLE = -60.0 * Pi / 180.0,
+         FMAPFN = "1DPROFILE1-DEFAULT",
+         ELEMEDGE = 0.0,
+         DESIGNENERGY = 10.0,
+         L = 0.5,
+         GAP = 0.02;
+
+
+Bend3: SBend, K0 = 2.0,
+         FMAPFN = "1DPROFILE1-DEFAULT",
+         ELEMEDGE = 0.0,
+         DESIGNENERGY = 10.0,
+         L = 0.5,
+         GAP = 0.02;
+
+
+BENDTEST: LINE=(Bend1);
+
+
+DIST: DISTRIBUTION, TYPE=GAUSS,
+SIGMAX=  5*1.0e-03,   SIGMAPX= 0.696*1.0e06,  CORRX= 0.0,
+SIGMAY=  5*1.0e-03,   SIGMAPY= 0.310*1.0e06,  CORRY= 0.0,
+OFFSETZ     =  0.005,        SIGMAT= 0.0005, 
+SIGMAPT= 0.0, CORRT= 0.0, R61= 0.0, INPUTMOUNITS=EV;
+
+//DIST1: DISTRIBUTION, TYPE = FROMFILE, FNAME="PartDatabase1.dat";
+
+FS1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, 
+                 PARFFTX=true, PARFFTY=true, PARFFTT=true,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open, 
+                 BBOXINCR=1, GREENSF=STANDARD;
+
+BEAM1: BEAM, PARTICLE=PROTON, PC=P0, NPART=1000, BCURRENT=2.0e-03, BFREQ=rf, CHARGE=1;
+
+SELECT, LINE=BENDTEST;
+
+
+TRACK, LINE= BENDTEST, BEAM=BEAM1, MAXSTEPS=10000, DT=1.0e-10, ZSTART=0.0, ZSTOP=.5, MAP_ORDER=1;
+
+RUN, METHOD = "THICK", BEAM=BEAM1, FIELDSOLVER=FS1, DISTRIBUTION=DIST;
+
+ENDTRACK;
+
+STOP;

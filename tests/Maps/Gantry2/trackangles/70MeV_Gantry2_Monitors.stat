@@ -1,0 +1,200 @@
+SDDS1
+&description 
+        text="Statistics data of monitors", 
+        contents="stat parameters"
+&end
+&parameter 
+        name=revision, 
+        type=string, 
+        description="git revision of opal"
+&end
+&column 
+        name=name, 
+        type=string 
+        description="1 Monitor name"
+&end
+&column 
+        name=s, 
+        type=double, 
+        units=m, 
+        description="2 Longitudinal Position"
+&end
+&column 
+        name=t, 
+        type=double, 
+        units=ns, 
+        description="3 Passage Time Reference Particle"
+&end
+&column 
+        name=numParticles, 
+        type=long, 
+        units=1, 
+        description="4 Number of Macro Particles"
+&end
+&column 
+        name=rms_x, 
+        type=double, 
+        units=m, 
+        description="5 RMS Beamsize in x"
+&end
+&column 
+        name=rms_y, 
+        type=double, 
+        units=m, 
+        description="6 RMS Beamsize in y"
+&end
+&column 
+        name=rms_s, 
+        type=double, 
+        units=m, 
+        description="7 RMS Beamsize in s"
+&end
+&column 
+        name=rms_t, 
+        type=double, 
+        units=ns, 
+        description="8 RMS Passage Time"
+&end
+&column 
+        name=rms_px, 
+        type=double, 
+        units=1, 
+        description="9 RMS Momenta in x"
+&end
+&column 
+        name=rms_py, 
+        type=double, 
+        units=1, 
+        description="10 RMS Momenta in y"
+&end
+&column 
+        name=rms_ps, 
+        type=double, 
+        units=1, 
+        description="11 RMS Momenta in s"
+&end
+&column 
+        name=emit_x, 
+        type=double, 
+        units=m, 
+        description="12 Normalized Emittance x"
+&end
+&column 
+        name=emit_y, 
+        type=double, 
+        units=m, 
+        description="13 Normalized Emittance y"
+&end
+&column 
+        name=emit_s, 
+        type=double, 
+        units=m, 
+        description="14 Normalized Emittance s"
+&end
+&column 
+        name=mean_x, 
+        type=double, 
+        units=m, 
+        description="15 Mean Beam Position in x"
+&end
+&column 
+        name=mean_y, 
+        type=double, 
+        units=m, 
+        description="16 Mean Beam Position in y"
+&end
+&column 
+        name=mean_s, 
+        type=double, 
+        units=m, 
+        description="17 Mean Beam Position in s"
+&end
+&column 
+        name=mean_t, 
+        type=double, 
+        units=ns, 
+        description="18 Mean Passage Time"
+&end
+&column 
+        name=ref_x, 
+        type=double, 
+        units=m, 
+        description="19 x coordinate of reference particle in lab cs"
+&end
+&column 
+        name=ref_y, 
+        type=double, 
+        units=m, 
+        description="20 y coordinate of reference particle in lab cs"
+&end
+&column 
+        name=ref_z, 
+        type=double, 
+        units=m, 
+        description="21 z coordinate of reference particle in lab cs"
+&end
+&column 
+        name=ref_px, 
+        type=double, 
+        units=1, 
+        description="22 x momentum of reference particle in lab cs"
+&end
+&column 
+        name=ref_py, 
+        type=double, 
+        units=1, 
+        description="23 y momentum of reference particle in lab cs"
+&end
+&column 
+        name=ref_pz, 
+        type=double, 
+        units=1, 
+        description="24 z momentum of reference particle in lab cs"
+&end
+&column 
+        name=max_x, 
+        type=double, 
+        units=m, 
+        description="25 Max Beamsize in x"
+&end
+&column 
+        name=max_y, 
+        type=double, 
+        units=m, 
+        description="26 Max Beamsize in y"
+&end
+&column 
+        name=max_s, 
+        type=double, 
+        units=m, 
+        description="27 Max Beamsize in s"
+&end
+&column 
+        name=xpx, 
+        type=double, 
+        units=1, 
+        description="28 Correlation xpx"
+&end
+&column 
+        name=ypy, 
+        type=double, 
+        units=1, 
+        description="29 Correlation ypyy"
+&end
+&column 
+        name=zpz, 
+        type=double, 
+        units=1, 
+        description="30 Correlation zpz"
+&end
+&data 
+        mode=ascii,
+        no_row_counts=1
+&end
+OPAL 1.9.0 git rev. 48e9060a07f71ea683517aea368271ac30706c8f
+MMBP7X	34.457562	306.59438	1000	0.005613016	0.0066333523	0	0.086899906	0.001334216	0.0023828284	0.0016036661	2.3423789e-06	2.995964e-06	0	1.6407745e-06	3.6359758e-07	0.005	306.59567	0	0	34.457556	0	0	0.40437617	0.01930425	0.021574806	0.005	-0.94982661	-0.98187217	0	
+MMBP9X	36.197162	322.07292	1000	0.0018058108	0.0039430346	0	0.13964794	0.001334216	0.0023828284	0.0016036661	2.3459702e-06	2.9995375e-06	0	8.8774746e-06	6.2283091e-07	0.005	322.07479	0	0	36.197156	0	0	0.40437617	0.0062755543	0.013729998	0.005	0.2278443	0.94767052	0	
+UPG2X	36.292662	322.92266	1000	0.0019027151	0.0044799158	0	0.1425437	0.001334216	0.0023828284	0.0016036661	2.346178e-06	2.9998184e-06	0	9.2747526e-06	6.3706221e-07	0.005	322.92455	0	0	36.292656	0	0	0.40437617	0.0073512637	0.015366458	0.005	0.38193423	0.95970284	0	
+MMFP1X	37.371762	332.52423	1000	0.0046362495	0.010731779	0	0.17526428	0.001334216	0.0023828284	0.0016036661	2.3486028e-06	3.0036029e-06	0	1.3763786e-05	7.9786854e-07	0.005	332.52649	0	0	37.371756	0	0	0.40437617	0.019506216	0.035674524	0.005	0.92511828	0.993078	0	
+MMFP3X	40.989963	364.71811	1000	0.0042325869	0.017296255	0	0.28243963	0.0029776901	0.0014099083	0.0016050984	1.0309897e-05	3.0138644e-06	0	-6.2330716e-05	1.2017112e-06	0.005	364.72157	-1.0408579	0	40.569466	-0.33773931	0	0.22237862	0.015722424	0.057518422	0.005	0.57517626	0.99233346	0	
+MMFP5X	45.514531	404.97663	1000	0.021150632	0.0038294637	0	0.44402253	0.0051102355	0.00081588697	0.0016059246	1.8187077e-05	3.0458017e-06	0	0.00045920043	-6.8603545e-06	0.005	404.98322	-3.1460321	2.1938254e-16	44.100331	-0.00015544648	4.1351833e-17	0.40437614	0.083927121	0.015582712	0.005	0.98574148	-0.22290251	0	
