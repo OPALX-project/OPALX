@@ -1,4 +1,3 @@
-This is OPAL >= 1.9.9. Be aware of the fact that the documentation is not
-anymore a separate project.
+# This is OPAL 2.
 
-The documentation is in the [Wiki](https://gitlab.psi.ch/OPAL/src/wikis/home).
+The documentation has been moved to the [Wiki](https://gitlab.psi.ch/OPAL/src/wikis/home).
