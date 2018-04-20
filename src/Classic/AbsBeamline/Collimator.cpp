@@ -270,7 +270,7 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 }
 
 
-// rectangle collimators in cyclotron cyclindral coordiantes
+// rectangle collimators in cyclotron cyclindral coordinates
 // without particlematterinteraction, the particle hitting collimator is deleted directly
 bool Collimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
@@ -312,19 +312,8 @@ bool Collimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turn
 }
 
 void Collimator::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
-    RefPartBunch_m = bunch;
     endField = startField + getElementLength();
-
-    parmatint_m = getParticleMatterInteraction();
-
-    // if (!parmatint_m) {
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-    // }
-
-    goOnline(-1e6);
+    initialise(bunch);
 }
 
 void Collimator::initialise(PartBunchBase<double, 3> *bunch) {
@@ -432,7 +421,7 @@ ElementBase::ElementType Collimator::getType() const {
 
 std::string Collimator::getCollimatorShape() {
     if (isAPepperPot_m)
-        return "PeperPot";
+        return "PepperPot";
     else if (isASlit_m)
         return "Slit";
     else if (isARColl_m)
