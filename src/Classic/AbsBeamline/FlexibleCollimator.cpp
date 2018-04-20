@@ -110,7 +110,7 @@ bool FlexibleCollimator::applyToReferenceParticle(const Vector_t &R, const Vecto
     return false;
 }
 
-// rectangle collimators in cyclotron cyclindral coordiantes
+// rectangle collimators in cyclotron cyclindral coordinates
 // without particlematterinteraction, the particle hitting collimator is deleted directly
 bool FlexibleCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
