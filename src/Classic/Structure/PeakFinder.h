@@ -9,7 +9,7 @@
  * @brief Find peaks of radial profile
  * @details It computes a histogram based on the radial
  * distribution of the particle bunch. After that all
- * peaks of the histogram are searched. They radii are
+ * peaks of the histogram are searched. The radii are
  * written in ASCII format to a file. This class is
  * used for the cyclotron probe element.
  */
