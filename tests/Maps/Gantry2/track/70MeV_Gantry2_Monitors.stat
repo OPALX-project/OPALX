@@ -1,0 +1,202 @@
+SDDS1
+&description 
+        text="Statistics data of monitors", 
+        contents="stat parameters"
+&end
+&parameter 
+        name=revision, 
+        type=string, 
+        description="git revision of opal"
+&end
+&column 
+        name=name, 
+        type=string 
+        description="1 Monitor name"
+&end
+&column 
+        name=s, 
+        type=double, 
+        units=m, 
+        description="2 Longitudinal Position"
+&end
+&column 
+        name=t, 
+        type=double, 
+        units=ns, 
+        description="3 Passage Time Reference Particle"
+&end
+&column 
+        name=numParticles, 
+        type=long, 
+        units=1, 
+        description="4 Number of Macro Particles"
+&end
+&column 
+        name=rms_x, 
+        type=double, 
+        units=m, 
+        description="5 RMS Beamsize in x"
+&end
+&column 
+        name=rms_y, 
+        type=double, 
+        units=m, 
+        description="6 RMS Beamsize in y"
+&end
+&column 
+        name=rms_s, 
+        type=double, 
+        units=m, 
+        description="7 RMS Beamsize in s"
+&end
+&column 
+        name=rms_t, 
+        type=double, 
+        units=ns, 
+        description="8 RMS Passage Time"
+&end
+&column 
+        name=rms_px, 
+        type=double, 
+        units=1, 
+        description="9 RMS Momenta in x"
+&end
+&column 
+        name=rms_py, 
+        type=double, 
+        units=1, 
+        description="10 RMS Momenta in y"
+&end
+&column 
+        name=rms_ps, 
+        type=double, 
+        units=1, 
+        description="11 RMS Momenta in s"
+&end
+&column 
+        name=emit_x, 
+        type=double, 
+        units=m, 
+        description="12 Normalized Emittance x"
+&end
+&column 
+        name=emit_y, 
+        type=double, 
+        units=m, 
+        description="13 Normalized Emittance y"
+&end
+&column 
+        name=emit_s, 
+        type=double, 
+        units=m, 
+        description="14 Normalized Emittance s"
+&end
+&column 
+        name=mean_x, 
+        type=double, 
+        units=m, 
+        description="15 Mean Beam Position in x"
+&end
+&column 
+        name=mean_y, 
+        type=double, 
+        units=m, 
+        description="16 Mean Beam Position in y"
+&end
+&column 
+        name=mean_s, 
+        type=double, 
+        units=m, 
+        description="17 Mean Beam Position in s"
+&end
+&column 
+        name=mean_t, 
+        type=double, 
+        units=ns, 
+        description="18 Mean Passage Time"
+&end
+&column 
+        name=ref_x, 
+        type=double, 
+        units=m, 
+        description="19 x coordinate of reference particle in lab cs"
+&end
+&column 
+        name=ref_y, 
+        type=double, 
+        units=m, 
+        description="20 y coordinate of reference particle in lab cs"
+&end
+&column 
+        name=ref_z, 
+        type=double, 
+        units=m, 
+        description="21 z coordinate of reference particle in lab cs"
+&end
+&column 
+        name=ref_px, 
+        type=double, 
+        units=1, 
+        description="22 x momentum of reference particle in lab cs"
+&end
+&column 
+        name=ref_py, 
+        type=double, 
+        units=1, 
+        description="23 y momentum of reference particle in lab cs"
+&end
+&column 
+        name=ref_pz, 
+        type=double, 
+        units=1, 
+        description="24 z momentum of reference particle in lab cs"
+&end
+&column 
+        name=max_x, 
+        type=double, 
+        units=m, 
+        description="25 Max Beamsize in x"
+&end
+&column 
+        name=max_y, 
+        type=double, 
+        units=m, 
+        description="26 Max Beamsize in y"
+&end
+&column 
+        name=max_s, 
+        type=double, 
+        units=m, 
+        description="27 Max Beamsize in s"
+&end
+&column 
+        name=xpx, 
+        type=double, 
+        units=1, 
+        description="28 Correlation xpx"
+&end
+&column 
+        name=ypy, 
+        type=double, 
+        units=1, 
+        description="29 Correlation ypyy"
+&end
+&column 
+        name=zpz, 
+        type=double, 
+        units=1, 
+        description="30 Correlation zpz"
+&end
+&data 
+        mode=ascii,
+        no_row_counts=1
+&end
+OPAL 1.9.0 git rev. 967992889874e6ee74c45432dd9414ff20557160
+MMBP7X	34.457562	306.59438	1000	0.005613016	0.0066333523	0	0.086899906	0.001334216	0.0023828284	0.0016036661	2.3423789e-06	2.995964e-06	0	1.6407745e-06	3.6359758e-07	0.005	306.59567	0	0	34.457556	0	0	0.40437617	0.01930425	0.021574806	0.005	-0.94982661	-0.98187217	0	
+MMBP9X	36.197162	322.07292	1000	0.0018058108	0.0039430346	0	0.13964794	0.001334216	0.0023828284	0.0016036661	2.3459702e-06	2.9995375e-06	0	8.8774746e-06	6.2283091e-07	0.005	322.07479	0	0	36.197156	0	0	0.40437617	0.0062755543	0.013729998	0.005	0.2278443	0.94767052	0	
+UPG2X	36.292662	322.92266	1000	0.0019027151	0.0044799158	0	0.1425437	0.001334216	0.0023828284	0.0016036661	2.346178e-06	2.9998184e-06	0	9.2747526e-06	6.3706221e-07	0.005	322.92455	0	0	36.292656	0	0	0.40437617	0.0073512637	0.015366458	0.005	0.38193423	0.95970284	0	
+MMFP1X	37.371762	332.52423	1000	0.0046362495	0.010731779	0	0.17526428	0.001334216	0.0023828284	0.0016036661	2.3486028e-06	3.0036029e-06	0	1.3763786e-05	7.9786854e-07	0.005	332.52649	0	0	37.371756	0	0	0.40437617	0.019506216	0.035674524	0.005	0.92511828	0.993078	0	
+MMFP3X	40.989963	364.71811	1000	0.0047274245	0.017296472	0	0.28109058	0.0032498829	0.0014099083	0.0016055823	8.9886806e-06	3.0137144e-06	0	-6.7171557e-05	9.2414617e-07	0.005	364.72163	-1.0408579	0	40.569466	-0.33773931	0	0.22237862	0.018586869	0.057523073	0.005	0.81098687	0.99233442	0	
+MMFP5X	44.615299	396.97548	1000	0.012388246	0.0045856269	0	0.4076728	0.0057523346	0.00081630716	0.00160872	1.6719284e-05	3.0456097e-06	0	0.00032100138	-4.7482176e-06	0.005	396.98181	-3.1456864	1.2742632e-16	43.201099	-0.00015544648	4.1351833e-17	0.40437614	0.050867395	0.016472611	0.005	0.97208734	-0.58139619	0	
+Mon_D98extX	50.650175	450.67236	1000	0.0038006112	0.0054174152	0	0.58972992	0.0022112483	0.00062863641	0.0016046154	6.1353583e-06	3.0441441e-06	0	-0.00038141384	-5.5465089e-06	0.005	450.6893	-1.2456642	7.4758767e-16	48.013251	0.40424334	2.8283388e-17	0.010363887	0.018198212	0.019235027	0.005	0.68340027	0.44832953	0	
+Mon_ISO	52.165972	464.15956	1000	0.011240461	0.0068075506	0	0.63563367	0.0022112483	0.00062863641	0.0016046154	6.14162e-06	3.0446524e-06	0	-3.0975961e-05	-3.6832024e-06	0.005	464.17691	0.2696349	8.5360745e-16	48.0521	0.40424334	2.8283388e-17	0.010363887	0.047461754	0.023477707	0.005	0.96899164	0.70273187	0	

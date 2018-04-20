@@ -1,0 +1,26 @@
+Problem size:
+            NP: 10
+
+                  num Nodes   CPU tot  Wall tot
+===============================================
+mainTimer...........      1      0.15    0.4703
+
+                  num Nodes   CPU max  Wall max   CPU min  Wall min   CPU avg  Wall avg
+=======================================================================================
+mainTimer...........      1      0.15    0.4703      0.15    0.4703      0.15    0.4703
+Boundingbox.........      1         0     2e-05         0     2e-05         0     2e-05
+Boundingbox-bounds..      1         0     1e-06         0     1e-06         0     1e-06
+Boundingbox-update..      1         0     4e-06         0     4e-06         0     4e-06
+Compute Statistics..      1         0  0.000187         0  0.000187         0  0.000187
+Create Distr........      1         0  0.000206         0  0.000206         0  0.000206
+Fast inside test....      1         0         0         0         0         0         0
+Histogram...........      1         0         0         0         0         0         0
+Initialize geometry.      1         0         0         0         0         0         0
+Inside test.........      1         0         0         0         0         0         0
+Load Distr..........      1         0         0         0         0         0         0
+Particle Inside.....      1         0         0         0         0         0         0
+Ray tracing.........      1         0         0         0         0         0         0
+Secondary emission..      1         0         0         0         0         0         0
+SelfField total.....      1         0         0         0         0         0         0
+Write H5-File.......      1      0.11    0.4187      0.11    0.4187      0.11    0.4187
+Write Stat..........      1      0.01  0.002912      0.01  0.002912      0.01  0.002912
