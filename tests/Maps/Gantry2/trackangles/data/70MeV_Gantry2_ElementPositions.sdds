@@ -1,0 +1,180 @@
+SDDS1
+&description 
+        text="Element positions '70MeV_Gantry2.in'", 
+        contents="element positions" 
+&end
+&parameter
+        name=revision, 
+        type=string,
+        description="git revision of opal"
+&end
+&column 
+        name=s, 
+        type=double, 
+        units=m, 
+        description="1 longitudinal position" 
+&end
+&column 
+        name=dipole, 
+        type=float, 
+        units=1, 
+        description="2 dipole field present" 
+&end
+&column 
+        name=quadrupole, 
+        type=float, 
+        units=1, 
+        description="3 quadrupole field present" 
+&end
+&column 
+        name=sextupole, 
+        type=float, 
+        units=1, 
+        description="4 sextupole field present" 
+&end
+&column 
+        name=octupole, 
+        type=float, 
+        units=1, 
+        description="5 octupole field present" 
+&end
+&column 
+        name=decapole, 
+        type=float, 
+        units=1, 
+        description="6 decapole field present" 
+&end
+&column 
+        name=multipole, 
+        type=float, 
+        units=1, 
+        description="7 higher multipole field present" 
+&end
+&column 
+        name=solenoid, 
+        type=float, 
+        units=1, 
+        description="8 solenoid field present" 
+&end
+&column 
+        name=rfcavity, 
+        type=float, 
+        units=1, 
+        description="9 RF field present" 
+&end
+&column 
+        name=monitor, 
+        type=float, 
+        units=1, 
+        description="10 monitor present" 
+&end
+&column 
+        name=element_names, 
+        type=string, 
+        description="names of elements" 
+&end
+&data 
+        mode=ascii, 
+        no_row_counts=1 
+&end
+OPAL 1.9.0 # git rev. 48e9060a07f71ea683517aea368271ac30706c8f
+       32.632075         0     0     0     0     0     0     0     0     0 ""
+       32.632075         0    -1     0     0     0     0     0     0     0 "QMB3"
+       33.000033         0    -1     0     0     0     0     0     0     0 "QMB3"
+       33.000033         0     0     0     0     0     0     0     0     0 ""
+       33.202106         0     0     0     0     0     0     0     0     0 ""
+       33.202106         0     1     0     0     0     0     0     0     0 "QMB4"
+       33.570064         0     1     0     0     0     0     0     0     0 "QMB4"
+       33.570064         0     0     0     0     0     0     0     0     0 ""
+       33.772025         0     0     0     0     0     0     0     0     0 ""
+       33.772025         0    -1     0     0     0     0     0     0     0 "QMB5"
+       34.140095         0    -1     0     0     0     0     0     0     0 "QMB5"
+       34.140095         0     0     0     0     0     0     0     0     0 ""
+       34.452533         0     0     0     0     0     0     0     0     0 ""
+       34.452533         0     0     0     0     0     0     0     0     1 "MMBP7X, MMBP8Y"
+       34.457591         0     0     0     0     0     0     0     0     1 "MMBP7X, MMBP8Y"
+       34.457591         0     0     0     0     0     0     0     0     1 ""
+       34.457591         0     0     0     0     0     0     0     0     1 ""
+       34.457591         0     0     0     0     0     0     0     0     1 "MMBP7X, MMBP8Y"
+       34.462536         0     0     0     0     0     0     0     0     1 "MMBP7X, MMBP8Y"
+       34.462536         0     0     0     0     0     0     0     0     0 ""
+       36.192185         0     0     0     0     0     0     0     0     0 ""
+       36.192185         0     0     0     0     0     0     0     0     1 "MMBP9X, MMBP10Y"
+        36.19713         0     0     0     0     0     0     0     0     1 "MMBP9X, MMBP10Y"
+        36.19713         0     0     0     0     0     0     0     0     1 ""
+        36.19713         0     0     0     0     0     0     0     0     1 ""
+        36.19713         0     0     0     0     0     0     0     0     1 "MMBP9X, MMBP10Y"
+       36.202187         0     0     0     0     0     0     0     0     1 "MMBP9X, MMBP10Y"
+       36.202187         0     0     0     0     0     0     0     0     0 ""
+       36.287714         0     0     0     0     0     0     0     0     0 ""
+       36.287714         0     0     0     0     0     0     0     0     1 "UPG2X, UPG2Y"
+       36.292659         0     0     0     0     0     0     0     0     1 "UPG2X, UPG2Y"
+       36.292659         0     0     0     0     0     0     0     0     1 ""
+       36.292659         0     0     0     0     0     0     0     0     1 ""
+       36.292659         0     0     0     0     0     0     0     0     1 "UPG2X, UPG2Y"
+       36.297717         0     0     0     0     0     0     0     0     1 "UPG2X, UPG2Y"
+       36.297717         0     0     0     0     0     0     0     0     0 ""
+        37.36675         0     0     0     0     0     0     0     0     0 ""
+        37.36675         0     0     0     0     0     0     0     0     1 "MMFP1X, MMFP2Y"
+       37.371807         0     0     0     0     0     0     0     0     1 "MMFP1X, MMFP2Y"
+       37.371807         0     0     0     0     0     0     0     0     1 ""
+       37.371807         0     0     0     0     0     0     0     0     1 ""
+       37.371807         0     0     0     0     0     0     0     0     1 "MMFP1X, MMFP2Y"
+       37.376753         0     0     0     0     0     0     0     0     1 "MMFP1X, MMFP2Y"
+       37.376753         0     0     0     0     0     0     0     0     0 ""
+       37.650304         0     0     0     0     0     0     0     0     0 ""
+       37.650304         0    -1     0     0     0     0     0     0     0 "QMF1"
+       37.970273         0    -1     0     0     0     0     0     0     0 "QMF1"
+       37.970273         0     0     0     0     0     0     0     0     0 ""
+       38.280238         0     0     0     0     0     0     0     0     0 ""
+       38.280238         0     1     0     0     0     0     0     0     0 "QMF2"
+       38.600207         0     1     0     0     0     0     0     0     0 "QMF2"
+       38.600207         0     0     0     0     0     0     0     0     0 ""
+       39.036271         0     0     0     0     0     0     0     0     0 ""
+       39.036271   0.33333     0     0     0     0     0     0     0     0 "AMF1"
+       40.591719   0.33333     0     0     0     0     0     0     0     0 "AMF1"
+       40.591719         0     0     0     0     0     0     0     0     0 ""
+       40.984964         0     0     0     0     0     0     0     0     0 ""
+       40.984964         0     0     0     0     0     0     0     0     1 "MMFP3X, MMFP4Y"
+       40.989909         0     0     0     0     0     0     0     0     1 "MMFP3X, MMFP4Y"
+       40.989909         0     0     0     0     0     0     0     0     1 ""
+       40.989909         0     0     0     0     0     0     0     0     1 ""
+       40.989909         0     0     0     0     0     0     0     0     1 "MMFP3X, MMFP4Y"
+       40.994967         0     0     0     0     0     0     0     0     1 "MMFP3X, MMFP4Y"
+       40.994967         0     0     0     0     0     0     0     0     0 ""
+       41.256718         0     0     0     0     0     0     0     0     0 ""
+       41.256718         0    -1     0     0     0     0     0     0     0 "QMF3"
+       41.576686         0    -1     0     0     0     0     0     0     0 "QMF3"
+       41.576686         0     0     0     0     0     0     0     0     0 ""
+       41.916659         0     0     0     0     0     0     0     0     0 ""
+       41.916659         0     1     0     0     0     0     0     0     0 "QMF4"
+       42.236627         0     1     0     0     0     0     0     0     0 "QMF4"
+       42.236627         0     0     0     0     0     0     0     0     0 ""
+       42.661678         0     0     0     0     0     0     0     0     0 ""
+       42.661678  -0.33333     0     0     0     0     0     0     0     0 "AMF2"
+       44.217126  -0.33333     0     0     0     0     0     0     0     0 "AMF2"
+       44.217126         0     0     0     0     0     0     0     0     0 ""
+       45.509586         0     0     0     0     0     0     0     0     0 ""
+       45.509586         0     0     0     0     0     0     0     0     1 "MMFP5X, MMFP6Y"
+       45.514531         0     0     0     0     0     0     0     0     1 "MMFP5X, MMFP6Y"
+       45.514531         0     0     0     0     0     0     0     0     1 ""
+       45.514531         0     0     0     0     0     0     0     0     1 ""
+       45.514531         0     0     0     0     0     0     0     0     1 "MMFP5X, MMFP6Y"
+       45.519476         0     0     0     0     0     0     0     0     1 "MMFP5X, MMFP6Y"
+       45.519476         0     0     0     0     0     0     0     0     0 ""
+       45.985998         0     0     0     0     0     0     0     0     0 ""
+       45.985998         0     1     0     0     0     0     0     0     0 "QMF5"
+       46.306079         0     1     0     0     0     0     0     0     0 "QMF5"
+       46.306079         0     0     0     0     0     0     0     0     0 ""
+       46.446002         0     0     0     0     0     0     0     0     0 ""
+       46.446002         0     1     0     0     0     0     0     0     0 "QMF6"
+       46.766082         0     1     0     0     0     0     0     0     0 "QMF6"
+       46.766082         0     0     0     0     0     0     0     0     0 ""
+       46.906005         0     0     0     0     0     0     0     0     0 ""
+       46.906005         0    -1     0     0     0     0     0     0     0 "QMF7"
+       47.226086         0    -1     0     0     0     0     0     0     0 "QMF7"
+       47.226086         0     0     0     0     0     0     0     0     0 ""
+        48.75737         0     0     0     0     0     0     0     0     0 ""
+        48.75737  -0.33333     0     0     0     0     0     0     0     0 "AMF3"
+       51.167639  -0.33333     0     0     0     0     0     0     0     0 "AMF3"
+       51.167639         0     0     0     0     0     0     0     0     0 ""
