@@ -38,7 +38,13 @@ set_source_files_properties(SOURCE PIC3d.cpp p3m3d.cpp
 #target_link_libraries (PIC3d ${IPPL_LIBS})
 
 add_executable (p3m3dHeating p3m3dHeating.cpp)
-target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARIES} z ${CMAKE_DL_LIBS})
+target_link_libraries (
+    p3m3dHeating
+    ${IPPL_LIBS}
+    ${H5Hut_LIBRARY}
+    ${HDF5_LIBRARIES}
+    ${MPI_CXX_LIBRARIES}
+)
 
 #add_executable (p3m3d p3m3d.cpp)
 #target_link_libraries (p3m3d ${IPPL_LIBS})
@@ -50,10 +56,18 @@ target_link_libraries (p3m3dHeating ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARI
 #target_link_libraries (p3m3dTwoStream ${IPPL_LIBS})
 
 add_executable (p3m3dTwoStreamParallel p3m3dTwoStreamParallel.cpp)
-target_link_libraries (p3m3dTwoStreamParallel ${IPPL_LIBS})
+target_link_libraries (
+    p3m3dTwoStreamParallel
+    ${IPPL_LIBS}
+    ${MPI_CXX_LIBRARIES}
+)
 
 add_executable (p3m3dRegressionTests p3m3dRegressionTests.cpp)
-target_link_libraries (p3m3dRegressionTests ${IPPL_LIBS})
+target_link_libraries (
+    p3m3dRegressionTests
+    ${IPPL_LIBS}
+    ${MPI_CXX_LIBRARIES}
+)
 
 #add_executable (p3m3dMicrobunching p3m3dMicrobunching.cpp)
 #target_link_libraries (p3m3dMicrobunching ${IPPL_LIBS} ${H5Hut_LIBRARY} ${HDF5_LIBRARIES} z ${CMAKE_DL_LIBS})

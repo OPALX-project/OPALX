@@ -1,5 +1,5 @@
-FILE (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-MESSAGE (STATUS "Adding test ippltoyfdtd found in ${_relPath}")
+file (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+message ("Adding test ippltoyfdtd found in ${_relPath}")
 
 set (IPPLTOYFDTD_SRCS
     ToyFDTD-DataSink/DataSink.cpp
@@ -15,17 +15,20 @@ link_directories (
     ${CMAKE_SOURCE_DIR}/src
 )
 
-SET (IPPL_LIBS ippl)
+set (IPPL_LIBS ippl)
 
-IF (ENABLE_DKS)
+if (ENABLE_DKS)
 
    include_directories (${DKS_INCLUDE_DIR})
    link_directories (${DKS_LIBRARY_DIR})
-   #SET (IPPL_LIBS ${IPPL_LIBS} dks)
-   SET (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
+   set (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
 
-ENDIF (ENABLE_DKS)
+endif ()
 
 add_executable (ipplToyFDTD ${IPPLTOYFDTD_SRCS} ToyFDTD-DataSink/ipplToyFDTD2.cpp)
-target_link_libraries (ipplToyFDTD ${IPPL_LIBS})
+target_link_libraries (
+    ipplToyFDTD
+    ${IPPL_LIBS}
+    ${MPI_CXX_LIBRARIES}
+)
 
