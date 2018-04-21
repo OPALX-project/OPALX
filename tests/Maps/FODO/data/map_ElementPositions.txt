@@ -1,6 +1,0 @@
-"BEGIN: QP1"                  0                 0                 0                 
-"END: QP1"                    1                 0                 0                 
-"BEGIN: QP2"                  1                 0                 0                 
-"END: QP2"                    2                 0                 0                 
-"BEGIN: QP3"                  2                 0                 0                 
-"END: QP3"                    3                 0                 0                 
