@@ -891,7 +891,7 @@ void ThickTracker::execute() {
             tFMatrix= combinedMaps.linearTerms();
             linTAnalyze(tFMatrix);
             position+= mapBeamLineit->stepSize;
-            //twiss << position << std::endl;
+            //twiss <<"Position:" << position << std::endl;
             totalSlices++;
         }
     }
@@ -917,11 +917,11 @@ void ThickTracker::execute() {
 	OpalData::getInstance()->setInPrepState(false);
 	selectDT();
 
-//    trackParticles_m(
-//#ifdef PHIL_WRITE
-//        outfile,
-//#endif
-//        mapBeamLine);
+    trackParticles_m(
+#ifdef PHIL_WRITE
+        outfile,
+#endif
+        mapBeamLine);
     
 //-------------------------
 
@@ -1133,9 +1133,9 @@ void ThickTracker::linTAnalyze(fMatrix_t& tMatrix){
 	//twiss << tMatrix << std::endl;
 	//twiss << cblocktMatrix;
 
-	//twiss << "the EigenValues of Transfer" << std::endl;
+	twiss << std::endl << "the EigenValues of Transfer" << std::endl;
 	for (int i=0; i<2*DIM; i++){
-	    //twiss << eigenValM[i][i] << "  " << std::endl;
+	    twiss << eigenValM[i][i] << "  " << std::endl;
 	}
 
 	//twiss << "the abs() of EigenValues of Transfer => Stability (equal 1)" << std::endl;
@@ -1146,13 +1146,14 @@ void ThickTracker::linTAnalyze(fMatrix_t& tMatrix){
 	FVector<std::complex<double>, DIM> betaTunes, betaTunes2, betaTunes3;
 	//twiss << "Beta tunes in 2 ways" << std::endl;
 	//twiss << tMatrix << std::endl;
+	twiss << "Beta tunes"<< std::endl;
 	for (int i = 0; i < DIM; i++){
 	    betaTunes[i]=std::log(eigenValM[i*2][i*2])/ (2*Physics::pi * complex<double>(0, 1));
 	    betaTunes2[i]= std::acos(cblocktMatrix[i*2][i*2])/(complex<double>(2*Physics::pi, 0));
 	    betaTunes3[i]= std::acos(eigenValM[i*2][i*2].real())/(2*Physics::pi);
-	    twiss<<"1: "<<betaTunes[i] <<std::endl;
+	    //twiss<<"1: "<<betaTunes[i] <<std::endl;
 	    twiss<<"2: "<<betaTunes2[i]<< std::endl;
-	    twiss<<"3: "<<betaTunes3[i]<< std::endl;
+	    //twiss<<"3: "<<betaTunes3[i]<< std::endl;
 	}
 
 
