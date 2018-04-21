@@ -502,7 +502,7 @@ void ThickTracker::fillDrift(std::list<structMapTracking>& mapBeamLine,double& e
 
 void ThickTracker::defMapTrackingElement(std::shared_ptr<Component> element, structMapTracking& elSrct, std::list<structMapTracking>& mBL){
     std::ofstream mbl;
-    mbl.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/mapBeamLine.txt",std::ios::app);
+    mbl.open ("mapBeamLine.txt",std::ios::app);
 
 	series_t H;
 	double  gamma0 =  (itsBunch_m->getInitialGamma())   ;   //(EProt + E) / EProt;
@@ -749,20 +749,20 @@ void ThickTracker::execute() {
     msg<<"gamma: " << itsBunch_m->getInitialGamma()<< endl;
     msg<<"E0:  " << itsBunch_m->getM() <<endl;
     std::ofstream outfile;
-    outfile.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/generatedMaps.txt");
+    outfile.open ("generatedMaps.txt");
     outfile << std::setprecision(8);
 
     std::ofstream mbl;
-    mbl.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/mapBeamLine.txt",std::ios::app);
+    mbl.open ("mapBeamLine.txt");
     mbl << std::setprecision(16);
 
     std::ofstream tmap;
-    tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt");
+    tmap.open ("TransferMap.txt");
     tmap << std::setprecision(16);
 
 
     std::ofstream twiss;
-    twiss.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/twiss.txt");
+    twiss.open ("twiss.txt");
     tmap << std::setprecision(16);
 #endif
     
@@ -1115,7 +1115,7 @@ void ThickTracker::linTAnalyze(fMatrix_t& tMatrix){
 
 
 	std::ofstream twiss;
-	twiss.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/twiss.txt",std::ios::app);
+	twiss.open ("twiss.txt",std::ios::app);
 	twiss << std::setprecision(16);
 
 
@@ -1180,7 +1180,7 @@ void ThickTracker::linSigAnalyze(){
 
 
 	std::ofstream tmap;
-	//tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt",std::ios::app);
+	//tmap.open ("TransferMap.txt",std::ios::app);
 	//tmap << std::setprecision(16);
 
 
@@ -1225,7 +1225,7 @@ ThickTracker::cfMatrix_t ThickTracker::getBlockDiagonal(fMatrix_t& M,
 	cfMatrix_t cM, qMatrix, invqMatrix, nMatrix, invnMatrix, rMatrix;
 
 	std::ofstream tmap;
-	//tmap.open ("/home/phil/Documents/ETH/MScProj/OPAL/src/tests/Maps/TransferMap.txt",std::ios::app);
+	//tmap.open ("TransferMap.txt",std::ios::app);
 	//tmap << std::setprecision(16);
 
 
