@@ -76,6 +76,9 @@ OpalBend::OpalBend(const char *name, const char *help):
     itsAttr[GREATERTHANPI] = Attributes::makeBool
                              ("GREATERTHANPI",
                               "-- not supported any more --");
+    itsAttr[NSLICES] = Attributes::makeReal
+                          ("NSLICES",
+                          "The number of slices/ steps for this element in Map Tracking", 1);
 
     registerRealAttribute("ANGLE");
     registerRealAttribute("K0L");
@@ -99,6 +102,7 @@ OpalBend::OpalBend(const char *name, const char *help):
     registerRealAttribute("HAPERT");
     registerRealAttribute("ROTATION");
     registerRealAttribute("DESIGNENERGY");
+    registerRealAttribute("NSLICES");
 }
 
 

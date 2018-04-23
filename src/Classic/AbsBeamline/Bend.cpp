@@ -71,7 +71,8 @@ Bend::Bend():
     cosEntranceAngle_m(1.0),
     sinEntranceAngle_m(0.0),
     tanEntranceAngle_m(0.0),
-    tanExitAngle_m(0.0) {
+    tanExitAngle_m(0.0),
+	nSlices_m(1){
 
     setElType(isDipole);
 
@@ -111,7 +112,8 @@ Bend::Bend(const Bend &right):
     cosEntranceAngle_m(right.cosEntranceAngle_m),
     sinEntranceAngle_m(right.sinEntranceAngle_m),
     tanEntranceAngle_m(right.tanEntranceAngle_m),
-    tanExitAngle_m(right.tanExitAngle_m) {
+    tanExitAngle_m(right.tanExitAngle_m),
+	nSlices_m(right.nSlices_m){
 
     setElType(isDipole);
 
@@ -151,7 +153,8 @@ Bend::Bend(const std::string &name):
     cosEntranceAngle_m(1.0),
     sinEntranceAngle_m(0.0),
     tanEntranceAngle_m(0.0),
-    tanExitAngle_m(0.0) {
+    tanExitAngle_m(0.0),
+	nSlices_m(1){
 
     setElType(isDipole);
 
@@ -1851,4 +1854,14 @@ void Bend::setupFringeWidths()
 {
     widthEntranceFringe_m = 2 * std::min(entranceParameter3_m - entranceParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
     widthExitFringe_m = 2 * std::min(exitParameter3_m - exitParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
+}
+
+//set the number of slices for map tracking
+void Bend::setNSlices(const std::size_t& nSlices) {
+    nSlices_m = nSlices;
+}
+
+//get the number of slices for map tracking
+std::size_t Bend::getNSlices() const {
+    return nSlices_m;
 }
