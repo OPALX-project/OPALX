@@ -131,6 +131,14 @@ public:
     virtual CoordinateSystemTrafo getBeginToEnd() const;
 
     virtual bool isInside(const Vector_t &r) const;
+
+
+    //set number of slices for map tracking
+    void setNSlices(const std::size_t& nSlices);
+
+    //set number of slices for map tracking
+    std::size_t getNSlices() const;
+
 protected:
     void setMessageHeader(const std::string & header);
     double getStartField() const;
@@ -198,6 +206,10 @@ private:
     void retrieveDesignEnergy(double startField);
 
     CoordinateSystemTrafo getBeginToEnd_local() const;
+    void setCSTrafoToEntranceRegion(const CoordinateSystemTrafo &trafo);
+    void setCSTrafoToExitRegion(const CoordinateSystemTrafo &trafo);
+    Vector_t transformToEntranceRegion(const Vector_t &R) const;
+    Vector_t transformToExitRegion(const Vector_t &R) const;
 
     std::string messageHeader_m;
 
@@ -285,9 +297,13 @@ private:
 
     CoordinateSystemTrafo beginToEnd_m;
     CoordinateSystemTrafo beginToEnd_lcs_m; // local coordinate system
+    CoordinateSystemTrafo toEntranceRegion_m;
+    CoordinateSystemTrafo toExitRegion_m;
 
     CoordinateSystemTrafo computeAngleTrafo_m;
     double maxAngle_m;
+
+    std::size_t nSlices_m;
 };
 
 
@@ -387,6 +403,26 @@ inline
 CoordinateSystemTrafo Bend::getBeginToEnd_local() const
 {
     return beginToEnd_lcs_m;
+}
+
+inline
+void Bend::setCSTrafoToEntranceRegion(const CoordinateSystemTrafo &trafo) {
+    toEntranceRegion_m = trafo;
+}
+
+inline
+void Bend::setCSTrafoToExitRegion(const CoordinateSystemTrafo &trafo) {
+    toExitRegion_m = trafo;
+}
+
+inline
+Vector_t Bend::transformToEntranceRegion(const Vector_t &R) const {
+    return toEntranceRegion_m.transformTo(R);
+}
+
+inline
+Vector_t Bend::transformToExitRegion(const Vector_t &R) const {
+    return toExitRegion_m.transformTo(R);
 }
 
 #endif // CLASSIC_BEND_H

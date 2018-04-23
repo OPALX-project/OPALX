@@ -126,7 +126,7 @@ set (MAKE_DEF
     )
 
 include_directories (
-    before ${CMAKE_CURRENT_SOURCE_DIR}
+    BEFORE ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
 add_library ( ippl ${IPPL_SRCS} ${IPPL_SRCS_FORT} )

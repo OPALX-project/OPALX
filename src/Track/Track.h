@@ -94,6 +94,9 @@ public:
     // 3 --- AMTS
     int timeIntegrator;
     
+    /// Trunction order for map tracking
+    int truncOrder;
+    
 private:
 
     // Not implemented.
