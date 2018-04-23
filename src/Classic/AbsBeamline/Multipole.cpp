@@ -46,7 +46,8 @@ Multipole::Multipole():
     SkewComponents(1, 0.0),
     SkewComponentErrors(1, 0.0),
     max_SkewComponent_m(1),
-    max_NormalComponent_m(1) {
+    max_NormalComponent_m(1),
+    nSlices_m(1) {
     setElType(isMultipole);
 }
 
@@ -58,7 +59,8 @@ Multipole::Multipole(const Multipole &right):
     SkewComponents(right.SkewComponents),
     SkewComponentErrors(right.SkewComponentErrors),
     max_SkewComponent_m(right.max_SkewComponent_m),
-    max_NormalComponent_m(right.max_NormalComponent_m) {
+    max_NormalComponent_m(right.max_NormalComponent_m),
+    nSlices_m(right.nSlices_m) {
     setElType(isMultipole);
 }
 
@@ -70,7 +72,8 @@ Multipole::Multipole(const std::string &name):
     SkewComponents(1, 0.0),
     SkewComponentErrors(1, 0.0),
     max_SkewComponent_m(1),
-    max_NormalComponent_m(1) {
+    max_NormalComponent_m(1),
+    nSlices_m(1) {
     setElType(isMultipole);
 }
 
@@ -159,6 +162,16 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
         SkewComponents[n - 1] = (v + vError);
         SkewComponentErrors[n - 1] = vError;
     }
+}
+
+//set the number of slices for map tracking
+void Multipole::setNSlices(const std::size_t& nSlices) {
+    nSlices_m = nSlices;
+}
+
+//get the number of slices for map tracking
+std::size_t Multipole::getNSlices() const {
+    return nSlices_m;
 }
 
 //ff

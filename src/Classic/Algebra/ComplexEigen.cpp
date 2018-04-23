@@ -526,57 +526,57 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
 // Translated to FORTRAN by Burton S. Garbov, ANL
 // Adapted March 1997 by F. Christoph Iselin, CERN, SL/AP
 {
-    int n = h.nrows();
+    ssize_t n = h.nrows();
     complex<double> s, x, y, z;
 
     // Form the matrix of accumulated transformations from the information
     // left by "orthes".
-    for(int i = upp - 1; i > low; i--) {
+    for(ssize_t i = upp - 1; i > low; i--) {
         if(ort[i] != 0.0  &&  h[i][i-1] != 0.0) {
             // Norm below is negative of h formed in orthes
             double norm = real(h[i][i-1]) * real(ort[i]) +
                           imag(h[i][i-1]) * imag(ort[i]);
 
-            for(int k = i + 1; k <= upp; k++) ort[k] = h[k][i-1];
+            for(ssize_t k = i + 1; k <= upp; k++) ort[k] = h[k][i-1];
 
-            for(int j = i; j <= upp; j++) {
+            for(ssize_t j = i; j <= upp; j++) {
                 s = 0.0;
-                for(int k = i; k <= upp; k++) s += conj(ort[k]) * vectors[k][j];
+                for(ssize_t k = i; k <= upp; k++) s += conj(ort[k]) * vectors[k][j];
                 s /= norm;
-                for(int k = i; k <= upp; k++) vectors[k][j] += s * ort[k];
+                for(ssize_t k = i; k <= upp; k++) vectors[k][j] += s * ort[k];
             }
         }
     }
 
     // Create real subdiagonal elements.
-    for(int i = low + 1; i <= upp; i++) {
+    for( ssize_t i = low + 1; i <= upp; i++) {
         if(imag(h[i][i-1]) != 0.0) {
             double norm = std::abs(h[i][i-1]);
             y = h[i][i-1] / norm;
             h[i][i-1] = norm;
-            for(int j = i; j < n; j++) h[i][j] = conj(y) * h[i][j];
+            for(ssize_t j = i; j < n; j++) h[i][j] = conj(y) * h[i][j];
             int ll = (upp <= i) ? upp : (i + 1);
-            for(int j = 0; j <= ll; j++) h[j][i] = y * h[j][i];
-            for(int j = low; j <= upp; j++) vectors[j][i] = y * vectors[j][i];
+            for(ssize_t j = 0; j <= ll; j++) h[j][i] = y * h[j][i];
+            for(ssize_t j = low; j <= upp; j++) vectors[j][i] = y * vectors[j][i];
         }
     }
 
     // Store roots isolated by "balance".
-    for(int i = 0; i < n; i++) {
+    for(ssize_t i = 0; i < n; i++) {
         if(i < low  ||  i > upp) lambda[i] = h[i][i];
     }
 
     complex<double> t = 0.0;
-    int itn = n * 30;
+    ssize_t itn = n * 30;
 
     // Search for eigenvalues.
-    for(int en = upp + 1; en-- > low;) {
-        int its = 0;
+    for(ssize_t en = upp + 1; en-- > low;) {
+        ssize_t its = 0;
 
-        // Look for single small sub-diagonal element.
+	ssize_t l = en;
+        // Look for singlengle small sub-diagonal element.
         while(true) {
-            int l;
-            for(l = en; l > low; l--) {
+            for(; l > low; l--) {
                 double tst1, tst2;
                 tst1 = abssum(h[l-1][l-1]) + abssum(h[l][l]);
                 tst2 = tst1 + std::abs(real(h[l][l-1]));
@@ -608,13 +608,13 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
                 s = std::abs(real(h[en][en-1])) + std::abs(real(h[en-1][en-2]));
             }
 
-            for(int i = low; i <= en; i++) h[i][i] -= s;
+            for(ssize_t i = low; i <= en; i++) h[i][i] -= s;
             t += s;
             its++;
             itn--;
 
             // Reduce to triangle (rows).
-            for(int i = l + 1; i <= en; i++) {
+            for(ssize_t i = l + 1; i <= en; i++) {
                 double sr = real(h[i][i-1]);
                 double norm = hypot(std::abs(h[i-1][i-1]), sr);
                 lambda[i-1] = x = h[i-1][i-1] / norm;
@@ -622,7 +622,7 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
                 double fi = sr / norm;
                 h[i][i-1] = complex<double>(0.0, fi);
 
-                for(int j = i; j < n; j++) {
+                for(ssize_t j = i; j < n; j++) {
                     y = h[i-1][j];
                     z = h[i][j];
                     h[i-1][j] = conj(x) * y + fi * z;
@@ -636,15 +636,15 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
                 double norm = std::abs(h[en][en]);
                 s = h[en][en] / norm;
                 h[en][en] = norm;
-                for(int j = en + 1; j < n; j++) h[en][j] *= conj(s);
+                for(ssize_t j = en + 1; j < n; j++) h[en][j] *= conj(s);
             }
 
             // Inverse operation (columns).
-            for(int j = l + 1; j <= en; j++) {
+            for(ssize_t j = l + 1; j <= en; j++) {
                 x = lambda[j-1];
                 double fi = imag(h[j][j-1]);
 
-                for(int i = 0; i < j; i++) {
+                for(ssize_t i = 0; i < j; i++) {
                     y = h[i][j-1];
                     z = h[i][j];
                     h[i][j-1] = x       * y + fi * z;
@@ -656,7 +656,7 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
                 h[j][j-1] = real(x) * yr + fi * real(z);
                 h[j][j]   = conj(x) * z  - fi * yr;
 
-                for(int i = low; i <= upp; i++) {
+                for(ssize_t i = low; i <= upp; i++) {
                     y = vectors[i][j-1];
                     z = vectors[i][j];
                     vectors[i][j-1] = x       * y + fi * z;
@@ -665,8 +665,8 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
             }
 
             if(si != 0.0) {
-                for(int i = 0; i <= en; i++) h[i][en] *= s;
-                for(int i = low; i <= upp; i++) vectors[i][en] *= s;
+                for(ssize_t i = 0; i <= en; i++) h[i][en] *= s;
+                for(ssize_t i = low; i <= upp; i++) vectors[i][en] *= s;
             }
         }
 
@@ -679,8 +679,8 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
     // Backsubstitute to find vectors of upper triangular form.
     double norm = 0.0;
 
-    for(int i = 0; i < n; i++) {
-        for(int j = i; j < n; j++) {
+    for(ssize_t i = 0; i < n; i++) {
+        for(ssize_t j = i; j < n; j++) {
             double temp = abssum(h[i][j]);
             if(temp > norm) norm = temp;
         }
@@ -688,13 +688,13 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
 
     if(n == 1  ||  norm == 0.0) return 0;
 
-    for(int en = n - 1; en > 0; en--) {
+    for(ssize_t en = n - 1; en > 0; en--) {
         x = lambda[en];
         h[en][en] = 1.0;
 
-        for(int i = en; i-- > 0;) {
+        for(ssize_t i = en; i-- > 0;) {
             z = 0.0;
-            for(int j = i + 1; j <= en; j++) z += h[i][j] * h[j][en];
+            for(ssize_t j = i + 1; j <= en; j++) z += h[i][j] * h[j][en];
             y = x - lambda[i];
 
             if(y == 0.0) {
@@ -719,26 +719,26 @@ int ComplexEigen::hqr2(Matrix<complex<double> > &h, int low,
                 double tst2 = tst1 + 1.0 / tst1;
 
                 if(tst2 <= tst1) {
-                    for(int j = i; j <= en; j++) h[j][en] /= temp;
+                    for(ssize_t j = i; j <= en; j++) h[j][en] /= temp;
                 }
             }
         }
     }
 
     // End backsubstitution; vectors of isolated roots.
-    for(int i = 0; i < n; i++) {
+    for(ssize_t i = 0; i < n; i++) {
         if(i < low  ||  i > upp) {
-            for(int j = i; j <= n; j++) vectors[i][j] = h[i][j];
+            for(ssize_t j = i; j <= n; j++) vectors[i][j] = h[i][j];
         }
     }
 
     // Multiply by transformation matrix to give vectors of original full matrix.
-    for(int j = n; j-- > low;) {
-        int m = (j < upp) ? j : upp;
+    for(ssize_t j = n; j-- > low;) {
+        ssize_t m = (j < upp) ? j : upp;
 
-        for(int i = low; i <= upp; i++) {
+        for(ssize_t i = low; i <= upp; i++) {
             z = 0.0;
-            for(int k = low; k <= m; k++) z += vectors[i][k] * h[k][j];
+            for(ssize_t k = low; k <= m; k++) z += vectors[i][k] * h[k][j];
             vectors[i][j] = z;
         }
     }

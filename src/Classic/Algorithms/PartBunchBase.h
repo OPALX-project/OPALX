@@ -525,6 +525,9 @@ public:
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
 
+    // get 2nd order momentum matrix
+    FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix();
+
 protected:
     IpplTimings::TimerRef boundpTimer_m;
     IpplTimings::TimerRef boundpBoundsTimer_m;

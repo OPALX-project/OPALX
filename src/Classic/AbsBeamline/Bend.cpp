@@ -43,7 +43,6 @@ Bend::Bend():
     pusher_m(),
     fieldmap_m(NULL),
     fast_m(false),
-    // aperture_m(0.0),
     designRadius_m(0.0),
     exitAngle_m(0.0),
     fieldIndex_m(0.0),
@@ -72,7 +71,8 @@ Bend::Bend():
     cosEntranceAngle_m(1.0),
     sinEntranceAngle_m(0.0),
     tanEntranceAngle_m(0.0),
-    tanExitAngle_m(0.0) {
+    tanExitAngle_m(0.0),
+	nSlices_m(1){
 
     setElType(isDipole);
 
@@ -84,7 +84,6 @@ Bend::Bend(const Bend &right):
     pusher_m(right.pusher_m),
     fieldmap_m(right.fieldmap_m),
     fast_m(right.fast_m),
-    // aperture_m(right.aperture_m),
     designRadius_m(right.designRadius_m),
     exitAngle_m(right.exitAngle_m),
     fieldIndex_m(right.fieldIndex_m),
@@ -113,7 +112,8 @@ Bend::Bend(const Bend &right):
     cosEntranceAngle_m(right.cosEntranceAngle_m),
     sinEntranceAngle_m(right.sinEntranceAngle_m),
     tanEntranceAngle_m(right.tanEntranceAngle_m),
-    tanExitAngle_m(right.tanExitAngle_m) {
+    tanExitAngle_m(right.tanExitAngle_m),
+	nSlices_m(right.nSlices_m){
 
     setElType(isDipole);
 
@@ -125,7 +125,6 @@ Bend::Bend(const std::string &name):
     pusher_m(),
     fieldmap_m(NULL),
     fast_m(false),
-    // aperture_m(0.0),
     designRadius_m(0.0),
     exitAngle_m(0.0),
     fieldIndex_m(0.0),
@@ -154,7 +153,8 @@ Bend::Bend(const std::string &name):
     cosEntranceAngle_m(1.0),
     sinEntranceAngle_m(0.0),
     tanEntranceAngle_m(0.0),
-    tanExitAngle_m(0.0) {
+    tanExitAngle_m(0.0),
+	nSlices_m(1){
 
     setElType(isDipole);
 
@@ -258,33 +258,12 @@ bool Bend::applyToReferenceParticle(const Vector_t &R,
 }
 
 void Bend::goOnline(const double &) {
-
-    // // Check if we need to reinitialize the bend field amplitude.
-    // if(reinitialize_m) {
-    //     reinitialize_m = reinitialize();
-    //     recalcRefTraj_m = false;
-    // }
-
-    // /*
-    //  * Always recalculate the reference trajectory on first call even
-    //  * if we do not reinitialize the bend. The reference trajectory
-    //  * has to be calculated at the same energy as the actual beam or
-    //  * we do not get accurate values for the magnetic field in the output
-    //  * file.
-    //  */
-    // if(recalcRefTraj_m) {
-    //     double angleX = 0.0;
-    //     double angleY = 0.0;
-    //     calculateRefTrajectory(angleX, angleY);
-    //     recalcRefTraj_m = false;
-    // }
-
     online_m = true;
 }
 
 void Bend::initialise(PartBunchBase<double, 3> *bunch,
-                       double &startField,
-                       double &endField) {
+                      double &startField,
+                      double &endField) {
 
     Inform msg(messageHeader_m.c_str(), *gmsg);
 
@@ -340,12 +319,6 @@ void Bend::adjustFringeFields(double ratio) {
 
     delta = std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter3_m = exitParameter2_m + delta * ratio;
-
-    if (entranceParameter3_m - exitParameter1_m > chordLength_m) {
-        entranceParameter3_m = 0.5 * chordLength_m;
-        exitParameter1_m = -0.5 * chordLength_m;
-        WARNMSG("The fringe fields of dipole '" << getName() << "' were shortened because overlapping fringe fields aren't supported." << endl);
-    }
 
     setupFringeWidths();
 }
@@ -554,13 +527,25 @@ bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
     bool verticallyInside = (std::abs(R(1)) < 0.5 * gap_m);
     bool horizontallyInside = false;
     Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, R(1), designRadius_m * sinEntranceAngle_m);
-
     if(inMagnetCentralRegion(R)) {
         if (verticallyInside) {
             double deltaX = 0.0;//euclidean_norm(R - rotationCenter) - designRadius_m;
-            if (isPositionInEntranceField(R)) {
+            bool inEntranceRegion = isPositionInEntranceField(R);
+            bool inExitRegion = isPositionInExitField(R);
+
+            if (inEntranceRegion && inExitRegion) {
+                Vector_t Rp = transformToEntranceRegion(R);
+                Vector_t Rpp = transformToExitRegion(R);
+
+                if (std::abs(Rp[2]) < std::abs(Rpp[2])) {
+                    inExitRegion = false;
+                } else {
+                    inEntranceRegion = false;
+                }
+            }
+            if (inEntranceRegion) {
                 B = calcEntranceFringeField(R, deltaX);
-            } else if (isPositionInExitField(R)) {
+            } else if (inExitRegion) {
                 B = calcExitFringeField(R, deltaX);
             } else {
                 B = calcCentralField(R, deltaX);
@@ -574,14 +559,17 @@ bool Bend::calculateMapField(const Vector_t &R, Vector_t &B) {
     Vector_t BEntrance(0.0), BExit(0.0);
     verticallyInside = (std::abs(R(1)) < gap_m);
 
-    if (inMagnetEntranceRegion(R)) {
+    bool inEntranceRegion = inMagnetEntranceRegion(R);
+    bool inExitRegion = inMagnetExitRegion(R);
+
+    if (inEntranceRegion) {
         horizontallyInside = true;
         if (verticallyInside) {
             BEntrance = calcEntranceFringeField(R, R(0));
         }
     }
 
-    if (inMagnetExitRegion(R)) {
+    if (inExitRegion) {
         horizontallyInside = true;
         if (verticallyInside) {
             Vector_t Rprime = getBeginToEnd_local().transformTo(R);
@@ -1221,12 +1209,6 @@ void Bend::setEngeOriginDelta(double delta) {
     exitParameter3_m = -delta + std::abs(exitParameter2_m - exitParameter3_m);
     exitParameter2_m = -delta;
 
-    if (entranceParameter3_m - exitParameter1_m > chordLength_m) {
-        entranceParameter3_m = 0.5 * chordLength_m;
-        exitParameter1_m = -0.5 * chordLength_m;
-        WARNMSG("The fringe fields of dipole '" << getName() << "' were shortened because overlapping fringe fields aren't supported." << endl);
-    }
-
     setupFringeWidths();
 }
 
@@ -1259,6 +1241,12 @@ void Bend::setFieldCalcParam() {
     Vector_t chord = getChordLength() * halfRotationAboutAxis.rotate(Vector_t(0, 0, 1));
     beginToEnd_lcs_m = CoordinateSystemTrafo(chord, exitFaceRotation.conjugate());
     beginToEnd_m = beginToEnd_lcs_m * CoordinateSystemTrafo(Vector_t(0.0), rotationAboutZ.conjugate());
+    toEntranceRegion_m = CoordinateSystemTrafo(Vector_t(0, 0, entranceParameter2_m),
+                                               Quaternion(0, 0, 1, 0));
+    const CoordinateSystemTrafo fromEndToExitRegion(Vector_t(0, 0, exitParameter2_m),
+                                                    Quaternion(1, 0, 0, 0));
+    toExitRegion_m = CoordinateSystemTrafo(fromEndToExitRegion *
+                                           getBeginToEnd_local());
 
     Vector_t rotationCenter = Vector_t(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
 
@@ -1742,50 +1730,109 @@ MeshData Bend::getSurfaceMesh() const {
     mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 4 + midIdx,  2*size + 3, size + 6 + midIdx));
     mesh.triangles_m.push_back(Vektor<unsigned int, 3>(size + 4 + midIdx, size + 6 + midIdx, size + 5 + midIdx));
 
-    double tau1, tau2;
     Vector_t rotationCenter(-designRadius_m * cosEntranceAngle_m, 0.0, designRadius_m * sinEntranceAngle_m);
-    Vector_t P(-0.5 * aperture_m.second[0], 0.0, 0.0);
-    Vector_t R = Vector_t(0, 0, entranceParameter3_m) - rotationCenter;
-    gsl_poly_solve_quadratic(dot(P,P),
-                             2 * dot(P,R),
-                             dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0],2),
-                             &tau1,
-                             &tau2);
-    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
-    Vector_t lowerCornerFringeLimitEntrance = Vector_t(0, 0, entranceParameter3_m) + tau1 * P;
 
-    gsl_poly_solve_quadratic(dot(P,P),
-                             -2 * dot(P,R),
-                             dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0],2),
-                             &tau1,
-                             &tau2);
-    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
-    Vector_t upperCornerFringeLimitEntrance = Vector_t(0, 0, entranceParameter3_m) - tau1 * P;
+    Vector_t P1 = toEntranceRegion_m.transformFrom(Vector_t(0, 0, entranceParameter1_m));
+    Vector_t P2 = toExitRegion_m.transformFrom(Vector_t(0, 0, exitParameter1_m));
 
-    P = Vector_t(0.5 * aperture_m.second[0], 0.0, 0.0);
-    R = Vector_t(0, 0, exitParameter1_m) - getBeginToEnd_local().transformTo(rotationCenter);
-    gsl_poly_solve_quadratic(dot(P,P),
-                             2 * dot(P,R),
-                             dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0],2),
-                             &tau1,
-                             &tau2);
-    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
-    Vector_t upperCornerFringeLimitExit = getBeginToEnd_local().transformFrom(Vector_t(0, 0, exitParameter1_m) + tau1 * P);
+    Vector_t T = cross(P1 - rotationCenter, P2 - rotationCenter);
+    if (T[1] > 0) { // fringe fields are overlapping
+        Vector_t dir1 = toEntranceRegion_m.rotateFrom(Vector_t(1, 0, 0));
+        if (this->getType() == ElementBase::RBEND ||
+            std::abs(entranceAngle_m + exitAngle_m - angle_m) < 1e-8) {
+            mesh.decorations_m.push_back(std::make_pair(0.5 * (P1 + P2) - 0.25 * dir1,
+                                                        0.5 * (P1 + P2) + 0.25 * dir1));
+        } else {
+            Vector_t dir2 = toExitRegion_m.rotateFrom(Vector_t(-1, 0, 0));
+            Tenzor<double, 3> inv;
+            double det = -dir1[0] * dir2[2] + dir1[2] * dir2[0];
+            inv(0, 0) = -dir2[2] / det;
+            inv(0, 2) = dir2[0] / det;
+            inv(1,1) = 1.0;
+            inv(2, 0) = -dir1[2] / det;
+            inv(2, 2) = dir1[0] / det;
+            Vector_t Tau = dot(inv, P2 - P1);
+            Vector_t crossPoint = P1 + Tau[0] * dir1;
+            double angle = asin(cross(dir1, dir2)[1]);
+            Quaternion halfRot(cos(0.25 * angle), sin(0.25 * angle) * Vector_t(0, 1, 0));
+            Vector_t P = halfRot.rotate(dir1);
+            Vector_t R = crossPoint - rotationCenter;
 
-    gsl_poly_solve_quadratic(dot(P,P),
-                             -2 * dot(P,R),
-                             dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0],2),
-                             &tau1,
-                             &tau2);
-    tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
-    Vector_t lowerCornerFringeLimitExit = getBeginToEnd_local().transformFrom(Vector_t(0, 0, exitParameter1_m) - tau1 * P);
+            double radius = designRadius_m - 0.5 * aperture_m.second[0];
+            double tau1, tau2;
+            gsl_poly_solve_quadratic(dot(P,P),
+                                     2 * dot(P,R),
+                                     dot(R,R) - std::pow(radius, 2),
+                                     &tau1,
+                                     &tau2);
+            if (euclidean_norm(crossPoint + tau1 * P - P1) > euclidean_norm(crossPoint + tau2 * P - P1)) {
+                std::swap(tau1, tau2);
+            }
+            Vector_t lowerCornerFringeLimit = crossPoint + tau1 * P;
 
-    mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimitEntrance, upperCornerFringeLimitEntrance));
-    mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimitExit, upperCornerFringeLimitExit));
+            radius = designRadius_m + 0.5 * aperture_m.second[0];
+            gsl_poly_solve_quadratic(dot(P,P),
+                                     2 * dot(P,R),
+                                     dot(R,R) - std::pow(radius, 2),
+                                     &tau1,
+                                     &tau2);
+            if (euclidean_norm(crossPoint + tau1 * P - P1) > euclidean_norm(crossPoint + tau2 * P - P1)) {
+                std::swap(tau1, tau2);
+            }
+            Vector_t upperCornerFringeLimit = crossPoint + tau1 * P;
+
+            mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimit,
+                                                        upperCornerFringeLimit));
+        }
+    } else {
+
+        double tau1, tau2;
+        Vector_t P(-0.5 * aperture_m.second[0], 0.0, 0.0);
+        Vector_t R = Vector_t(0, 0, entranceParameter3_m) - rotationCenter;
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0],2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t lowerCornerFringeLimitEntrance = Vector_t(0, 0, entranceParameter3_m) + tau1 * P;
+
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0],2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t upperCornerFringeLimitEntrance = Vector_t(0, 0, entranceParameter3_m) - tau1 * P;
+
+        P = Vector_t(0.5 * aperture_m.second[0], 0.0, 0.0);
+        R = Vector_t(0, 0, exitParameter1_m) - getBeginToEnd_local().transformTo(rotationCenter);
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m + 0.5 * aperture_m.second[0],2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t upperCornerFringeLimitExit = getBeginToEnd_local().transformFrom(Vector_t(0, 0, exitParameter1_m) + tau1 * P);
+
+        gsl_poly_solve_quadratic(dot(P,P),
+                                 -2 * dot(P,R),
+                                 dot(R,R) - std::pow(designRadius_m - 0.5 * aperture_m.second[0],2),
+                                 &tau1,
+                                 &tau2);
+        tau1 = (std::abs(1.0 - tau2) < std::abs(1.0 - tau1)? tau2: tau1);
+        Vector_t lowerCornerFringeLimitExit = getBeginToEnd_local().transformFrom(Vector_t(0, 0, exitParameter1_m) - tau1 * P);
+
+        mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimitEntrance, upperCornerFringeLimitEntrance));
+        mesh.decorations_m.push_back(std::make_pair(lowerCornerFringeLimitExit, upperCornerFringeLimitExit));
+
+    }
+
     mesh.decorations_m.push_back(std::make_pair(Vector_t(entranceParameter1_m * tanEntranceAngle_m, 0.0, entranceParameter1_m),
                                                 Vector_t(0.0)));
     mesh.decorations_m.push_back(std::make_pair(getBeginToEnd_local().transformFrom(Vector_t(0.0)),
                                                 getBeginToEnd_local().transformFrom(Vector_t(-exitParameter3_m * tanExitAngle_m, 0.0, exitParameter3_m))));
+
     return mesh;
 }
 
@@ -1807,4 +1854,14 @@ void Bend::setupFringeWidths()
 {
     widthEntranceFringe_m = 2 * std::min(entranceParameter3_m - entranceParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
     widthExitFringe_m = 2 * std::min(exitParameter3_m - exitParameter1_m, aperture_m.second[0]) + aperture_m.second[0];
+}
+
+//set the number of slices for map tracking
+void Bend::setNSlices(const std::size_t& nSlices) {
+    nSlices_m = nSlices;
+}
+
+//get the number of slices for map tracking
+std::size_t Bend::getNSlices() const {
+    return nSlices_m;
 }

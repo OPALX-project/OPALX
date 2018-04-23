@@ -22,6 +22,10 @@
 #include "Steppers/BorisPusher.h"
 #include "Structure/DataSink.h"
 
+#include "Classic/FixedAlgebra/FTps.h"
+#include "Classic/FixedAlgebra/FVps.h"
+
+
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
 #include "AbsBeamline/AlignWrapper.h"
@@ -51,6 +55,12 @@
 #include "AbsBeamline/CyclotronValley.h"
 
 #include "Elements/OpalBeamline.h"
+
+#include <cmath>
+
+#define PSdim 6
+
+#define PHIL_WRITE 1
 
 class BMultipoleField;
 
@@ -124,8 +134,9 @@ public:
 			  const std::vector<unsigned long long> &maxSTEPS,
 			  double zstart,
 			  const std::vector<double> &zstop,
-			  const std::vector<double> &dt);
-
+			  const std::vector<double> &dt,
+                          const int& truncOrder);
+    
     virtual ~ThickTracker();
 
 
@@ -216,12 +227,56 @@ public:
     void autophaseCavities(const BorisPusher &pusher);
     void findStartPosition(const BorisPusher &pusher);
 
+
+
+
+    typedef FTps<double, PSdim> series_t;
+    typedef FVps<double, PSdim> map_t;
+    typedef FMatrix<double, PSdim, PSdim> fMatrix_t;
+    typedef FMatrix<std::complex<double>, PSdim, PSdim> cfMatrix_t;
+
+    series_t x, px, y, py, delta; //z
+
+
+    struct structMapTracking {
+                	std::string elementName;
+                	map_t elementMap;
+                	std::size_t nSlices;
+                	double elementPos;
+                	double stepSize;
+                };
+
+
+    series_t createHamiltonian(std::shared_ptr<Component> element, double& stepSize, std::size_t& nSlices);
+    void defMapTrackingElement(std::shared_ptr<Component> element, structMapTracking& elSrct, std::list<structMapTracking>& mBL);
+    void fillDrift(std::list<structMapTracking>& mapBeamLine,double& elementPos, double& undefSpace);
+
+    void setHamiltonianDrift(series_t& H, double& beta0, double& gamma0);
+    void setHamiltonianSBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
+    void setHamiltonianRBend(series_t& H, double& beta0, double& gamma0, double& q, double& h, double& K0 );
+    void setHamiltonianQuadrupole(series_t& H, double& beta0, double& gamma0, double& q, double& K1 );
+
+    void eigenDecomp(fMatrix_t& M, cfMatrix_t& eigenVal, cfMatrix_t& eigenVec, cfMatrix_t& invEigenVec);
+    void linTAnalyze(fMatrix_t& tMatrix);
+    void linSigAnalyze();
+    cfMatrix_t getBlockDiagonal(fMatrix_t& M, cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM);
+
+    void dumpStats(long long step, bool psDump, bool statDump);
+    void writePhaseSpace(const long long step, bool psDump, bool statDump);
+    void setTime();
+
 private:
 
     // Not implemented.
     ThickTracker();
     ThickTracker(const ThickTracker &);
     void operator=(const ThickTracker &);
+    
+    void trackParticles_m(
+#ifdef PHIL_WRITE
+        std::ofstream& outfile,
+#endif
+                          const std::list<structMapTracking>& mapBeamLine);
 
     // Fringe fields for entrance and exit of magnetic elements.
     void applyEntranceFringe(double edge, double curve,
@@ -254,7 +309,9 @@ private:
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
     bool globalEOL_m;
-
+    
+    
+    int truncOrder_m;
 };
 
 inline void ThickTracker::visitAlignWrapper(const AlignWrapper &wrap) {
