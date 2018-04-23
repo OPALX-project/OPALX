@@ -1,8 +1,8 @@
-#ifndef OPAL_OpalPeperPot_HH
-#define OPAL_OpalPeperPot_HH
+#ifndef OPAL_OpalPepperPot_HH
+#define OPAL_OpalPepperPot_HH
 
 // ------------------------------------------------------------------------
-// $RCSfile: OpalPeperPot.h,v $
+// $RCSfile: OpalPepperPot.h,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------

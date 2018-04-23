@@ -97,7 +97,7 @@ protected:
     double charge;   // Particle charge.
     double mass;     // Particle mass.
     double beta;     // particle velocity divided by c.
-    double gamma;    // particle energy divided by particle mas
+    double gamma;    // particle energy divided by particle mass
 };
 
 

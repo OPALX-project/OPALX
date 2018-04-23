@@ -41,8 +41,14 @@ OpalDrift::OpalDrift():
     //     registerRealAttribute("LENGTH");
     itsAttr[GEOMETRY] = Attributes::makeString
                         ("GEOMETRY", "BoundaryGeometry for Drifts");
-    registerStringAttribute("GEOMETRY");
 
+    itsAttr[NSLICES] = Attributes::makeReal
+                          ("NSLICES",
+                          "The number of slices/ steps for this element in Map Tracking", 1);
+
+
+    registerStringAttribute("GEOMETRY");
+    registerRealAttribute("NSLICES");
     registerOwnership();
 
     setElement(new DriftRep("DRIFT"));
@@ -83,6 +89,7 @@ void OpalDrift::update() {
 
     DriftRep *drf = static_cast<DriftRep *>(getElement());
     drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
+    drf->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
     if(itsAttr[WAKEF] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*drf);
