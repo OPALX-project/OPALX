@@ -28,19 +28,22 @@ extern Inform *gmsg;
 // ------------------------------------------------------------------------
 
 Drift::Drift():
-    Component()
+    Component(),
+    nSlices_m(1)
 { }
 
 
 Drift::Drift(const Drift &right):
-    Component(right)
+    Component(right),
+    nSlices_m(right.nSlices_m)
 { }
 
 
 Drift::Drift(const std::string &name):
-    Component(name) {
+    Component(name),
+    nSlices_m(1)
+{ }
 
-}
 
 Drift::~Drift()
 { }
@@ -54,6 +57,17 @@ void Drift::initialise(PartBunchBase<double, 3> *bunch, double &startField, doub
     endField = startField + getElementLength();
     RefPartBunch_m = bunch;
     startField_m = startField;
+}
+
+
+//set the number of slices for map tracking
+void Drift::setNSlices(const std::size_t& nSlices) { 
+    nSlices_m = nSlices;
+}
+
+//get the number of slices for map tracking
+std::size_t Drift::getNSlices() const {
+    return nSlices_m;
 }
 
 void Drift::finalise() {

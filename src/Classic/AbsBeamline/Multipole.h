@@ -96,6 +96,12 @@ public:
 
     size_t getMaxNormalComponentIndex() const;
     size_t getMaxSkewComponentIndex() const;
+    
+    //set number of slices for map tracking
+    void setNSlices(const std::size_t& nSlices);
+    
+    //set number of slices for map tracking
+    std::size_t getNSlices() const;
 
     bool isFocusing(unsigned int component) const;
 
@@ -137,6 +143,7 @@ private:
     std::vector<double> SkewComponentErrors;
     int max_SkewComponent_m;
     int max_NormalComponent_m;
+    std::size_t nSlices_m;
 };
 
 inline

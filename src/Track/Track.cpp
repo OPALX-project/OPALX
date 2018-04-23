@@ -57,7 +57,9 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
     stepsPerTurn(stepsperturn),
     zstart(zStart),
     zstop(zStop),
-    timeIntegrator(timeintegrator) {
+    timeIntegrator(timeintegrator),
+    truncOrder(1)
+    {
     if(nslices > 0) {
         if(!OpalData::getInstance()->hasSLBunchAllocated())
             OpalData::getInstance()->setSLPartBunch(new EnvelopeBunch(&ref));
