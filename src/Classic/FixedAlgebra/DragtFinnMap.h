@@ -1381,7 +1381,7 @@ orderModes(FMatrix<double, 2 * N, 2 * N> &V, FVector<complex<double>, 2 * N> &mu
             }
             n_r++;
             i++;
-        } else {
+        } else if (i + 1 < 2 * N) {
             // Collect "stable" modes in lower indices of V.
             mu[n_c]   = tmu[i];
             mu[n_c+1] = tmu[i+1];
@@ -1405,8 +1405,8 @@ orderModes(FMatrix<double, 2 * N, 2 * N> &V, FVector<complex<double>, 2 * N> &mu
 
     // Order and copy "unstable" modes.
     for(int i = 0; i < n_r;) {
-        int m;
-        for(m = i + 1; m < n_r; ++m) {
+        int m = i + 1;
+        for(; m < n_r && m < 2 * N; ++m) {
             if(std::abs(tmu[i] + tmu[m]) < tol) break;
         }
 

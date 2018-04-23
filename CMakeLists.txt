@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.1)
-project (OPAL VERSION 1.9.0)
+project (OPAL VERSION 2.0.0)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
 string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PROJECT_VERSION})
@@ -41,16 +41,20 @@ set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
-add_compile_options (-Wall)
 add_definitions (-DIPPL_LINUX -DIPPL_STRINGSTREAM)
-add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL -DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY -DIPPL_HAS_TEMPLATED_COMPLEX -DIPPL_USE_PARTIAL_SPECIALIZATION -Drestrict=__restrict__ -DNOCTAssert)
+add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL)
+add_definitions (-DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY)
+add_definitions (-DIPPL_HAS_TEMPLATED_COMPLEX)
+add_definitions (-DIPPL_USE_PARTIAL_SPECIALIZATION)
+add_definitions ( -Drestrict=__restrict__ -DNOCTAssert)
 
-add_compile_options (-ftemplate-depth=1024 -funroll-loops -fstrict-aliasing)
+add_compile_options (-Wall)
+add_compile_options (-funroll-loops -fstrict-aliasing)
 
 # compiler dependent flags
 message ("The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
-    add_compile_options ("-diag-disable 383") 
+    add_compile_options ("-diag-disable 383")
     add_compile_options ("-diag-disable 981")
     if (ENABLE_OpenMP)
 	add_compile_options (-openmp)
@@ -160,7 +164,7 @@ IF (ENABLE_AMR)
     message ("Found AMReX libraries: ${AMREX_LIBRARIES}")
     message ("Found AMReX Fortran links: ${AMREX_EXTRA_Fortran_LINK_LINE}")
     echo_amrex_config_options()
-    
+
     add_definitions(${AMREX_DEFINES})
     add_definitions(-DENABLE_AMR)
     add_compile_options (-Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
@@ -176,7 +180,7 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
     #         Trilinos. Host specific should be avoided in almost any case.
     message ("Enable SAAMG_SOLVER: " ${ENABLE_SAAMG_SOLVER})
     message ("Enable AMR_MG_SOLVER: " ${ENABLE_AMR_MG_SOLVER})
-    
+
     find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
 
     message ("Found Trilinos: ${Trilinos_DIR}")
