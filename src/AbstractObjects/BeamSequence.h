@@ -21,7 +21,6 @@
 #include "AbstractObjects/Element.h"
 
 class Beamline;
-class BeamlineVisitor;
 
 
 // Class BeamSequence

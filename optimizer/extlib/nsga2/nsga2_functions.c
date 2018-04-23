@@ -66,7 +66,14 @@ void initialize(char *paramfile, char *filenamebase)
     FILE *fp;
     int result;
     char str[CFG_ENTRY_LENGTH];
-    
+
+#if (NDEBUG)
+    /*
+      'result' is used in assert() only. Without below statement 
+       we get a warning if we compile with NDEBUG (assert() disabled)
+    */
+    (void)result;
+#endif    
     /* reading parameter file with parameters for selection */
     fp = fopen(paramfile, "r");
     assert(fp != NULL);
