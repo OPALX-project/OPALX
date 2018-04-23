@@ -125,6 +125,9 @@ void OpalRBend::update() {
     }
     geometry.setBendAngle(angle);
 
+    // Define number of slices for map tracking
+    bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
+
     // Define pole face angles.
     bend->setEntryFaceRotation(Attributes::getReal(itsAttr[E1]));
     bend->setExitFaceRotation(Attributes::getReal(itsAttr[E2]));

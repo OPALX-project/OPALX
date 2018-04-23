@@ -48,6 +48,7 @@ public:
         ROTATION,         // Magnet rotation about z axis.
         DESIGNENERGY,     // the design energy of the particles
         GREATERTHANPI,    // Boolean flag set to true if bend angle is greater
+		NSLICES,	  // The number of slices / steps per element for map tracking
         // than 180 degrees.
         SIZE              // Total number of attributes.
     };
