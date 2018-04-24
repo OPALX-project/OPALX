@@ -26,13 +26,16 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
+#include "TrimCoils/OpalTrimCoil.h"
+#include "TrimCoils/TrimCoil.h"
+
 // Class OpalCyclotron
 // ------------------------------------------------------------------------
 
 OpalCyclotron::OpalCyclotron():
     OpalElement(SIZE, "CYCLOTRON",
                 "The \"CYCLOTRON\" defines an cyclotron"),
-    obgeo_m(NULL)  {
+    obgeo_m(nullptr)  {
     itsAttr[CYHARMON] = Attributes::makeReal
                         ("CYHARMON", "the harmonic number of the cyclotron");
 
@@ -84,18 +87,6 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[TYPE]     = Attributes::makeString
                         ("TYPE", "Used to identify special cyclotron types");
 
-    itsAttr[TCR1V]     = Attributes::makeRealArray
-                        ("TCR1", "array of trim coil r1 [mm]");
-
-    itsAttr[TCR2V]     = Attributes::makeRealArray
-                        ("TCR2", "array of trim coil r2 [mm]");
-
-    itsAttr[MBTCV]     = Attributes::makeRealArray
-                        ("MBTC", "array of max bfield values of trim coils [kG]");
-
-    itsAttr[SLPTCV]    = Attributes::makeRealArray
-                        ("SLPTC", "array of slopes of the rising edge [1/mm]");
-
     itsAttr[MINZ]     = Attributes::makeReal
                         ("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
 
@@ -119,6 +110,9 @@ OpalCyclotron::OpalCyclotron():
 
     itsAttr[SPIRAL]     = Attributes::makeBool
                         ("SPIRAL","Flag whether or not this is a spiral inflector simulation", false);
+    
+    itsAttr[TRIMCOIL]   = Attributes::makeStringArray
+                        ("TRIMCOIL", "List of trim coils");
 
 
     registerStringAttribute("FMAPFN");
@@ -152,7 +146,7 @@ OpalCyclotron::OpalCyclotron():
 
 OpalCyclotron::OpalCyclotron(const std::string &name, OpalCyclotron *parent):
     OpalElement(name, parent),
-    obgeo_m(NULL) {
+    obgeo_m(nullptr) {
     setElement((new CyclotronRep(name))->makeAlignWrapper());
 }
 
@@ -230,75 +224,24 @@ void OpalCyclotron::update() {
     std::vector<double> phi_str         = Attributes::getRealArray(itsAttr[RFPHI]);
     std::vector<double> rff_str         = Attributes::getRealArray(itsAttr[RFFREQ]);
     std::vector<bool> superpose_str     = Attributes::getBoolArray(itsAttr[SUPERPOSE]);
+    std::vector<std::string> trimcoil   = Attributes::getStringArray(itsAttr[TRIMCOIL]);
 
-    std::vector<double> tcr1v  = Attributes::getRealArray(itsAttr[TCR1V]);
-    std::vector<double> tcr2v  = Attributes::getRealArray(itsAttr[TCR2V]);
-    std::vector<double> mbtcv  = Attributes::getRealArray(itsAttr[MBTCV]);
-    std::vector<double> slptcv = Attributes::getRealArray(itsAttr[SLPTCV]);
-
-    const unsigned int vsize = tcr1v.size();
-
-    if (tcr2v.size() != vsize ||
-	mbtcv.size() != vsize ||
-        slptcv.size() != vsize) {
-        throw OpalException("OpalCyclotron::update()",
-                            "The arrays TCR1, TCR2, MBTC and SLPTC have to\n"
-                            "have the same length.");
-    }
-
-    const double mm2m = 0.001;
-    unsigned int effectiveSize = vsize;
-    for (unsigned int i = 0; i < effectiveSize; ++ i) {
-        if (std::abs(slptcv[i]) < 1e-20) {
-            throw OpalException("OpalCyclotron::update()",
-                                "The slopes of the rising edge have to be different from zero");
+    if ( !trimcoil.empty() ) {
+        
+        std::vector<TrimCoil* > trimcoils;
+        
+        for (std::vector<std::string>::const_iterator tit = trimcoil.begin();
+             tit != trimcoil.end(); ++tit)
+        {
+            OpalTrimCoil *tc = OpalTrimCoil::find(*tit);
+            
+            if ( tc ) {
+                tc->initOpalTrimCoil();
+                trimcoils.push_back(tc->trimcoil_m.get());
+            }
         }
-        // remove switched off trim coils
-        if (tcr1v[i] == 0 ||
-            tcr2v[i] == 0 ||
-            mbtcv[i] == 0) {
-            std::swap(tcr1v[i], tcr1v[effectiveSize - 1]);
-            std::swap(tcr2v[i], tcr2v[effectiveSize - 1]);
-            std::swap(mbtcv[i], mbtcv[effectiveSize - 1]);
-            std::swap(slptcv[i], slptcv[effectiveSize - 1]);
-            -- effectiveSize;
-            -- i;
-        } else {
-            // convert to meters for internal use
-            tcr1v[i]  *= mm2m;
-            tcr2v[i]  *= mm2m;
-            slptcv[i] /= mm2m;
-        }
+        cycl->setTrimCoils(trimcoils);
     }
-
-    tcr1v.resize(effectiveSize);
-    tcr2v.resize(effectiveSize);
-    mbtcv.resize(effectiveSize);
-    slptcv.resize(effectiveSize);
-
-    // sort the arrays simultaneous such that the values
-    // in tcr2v are descending
-    std::vector<unsigned int> p(effectiveSize);
-    std::iota(p.begin(), p.end(), 0);
-    std::sort(p.begin(), p.end(),
-              [&](std::size_t i, std::size_t j){ return tcr2v[i] > tcr2v[j]; });
-
-    std::vector<double> temp(tcr2v.size());
-    std::transform(p.begin(), p.end(), temp.begin(),
-                   [&](std::size_t i){ return tcr1v[i]; });
-    cycl->setTCr1V(temp);
-
-    std::transform(p.begin(), p.end(), temp.begin(),
-                   [&](std::size_t i){ return tcr2v[i]; });
-    cycl->setTCr2V(temp);
-
-    std::transform(p.begin(), p.end(), temp.begin(),
-                   [&](std::size_t i){ return mbtcv[i]; });
-    cycl->setMBtcV(temp);
-
-    std::transform(p.begin(), p.end(), temp.begin(),
-                   [&](std::size_t i){ return slptcv[i]; });
-    cycl->setSLPtcV(temp);
 
     cycl->setRfPhi(phi_str);
     cycl->setEScale(scale_str);
@@ -308,7 +251,7 @@ void OpalCyclotron::update() {
     cycl->setRfFrequ(rff_str);
     cycl->setSuperpose(superpose_str);
 
-    if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
+    if(itsAttr[GEOMETRY] && obgeo_m == nullptr) {
       obgeo_m = BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY]));
       if(obgeo_m) {
 	cycl->setBoundaryGeometry(obgeo_m);

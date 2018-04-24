@@ -19,12 +19,14 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Cyclotron.h"
-#include "Algorithms/PartBunchBase.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "TrimCoils/TrimCoil.h"
 #include "Utilities/Options.h"
-#include "Fields/Fieldmap.h"
 #include "Utilities/GeneralClassicException.h"
 #include <fstream>
 
@@ -62,10 +64,7 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     type_m(right.type_m),
     harm_m(right.harm_m),
     bscale_m(right.bscale_m),
-    tcr1V_m(right.tcr1V_m),
-    tcr2V_m(right.tcr2V_m),
-    mbtcV_m(right.mbtcV_m),
-    slptcV_m(right.slptcV_m),
+    trimcoils_m(right.trimcoils_m),
     minr_m(right.minr_m),
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
@@ -88,69 +87,9 @@ Cyclotron::~Cyclotron() {
 
 
 void Cyclotron::applyTrimCoil(const double r, const double z, double *br, double *bz) {
-    /// update bz and br with trim coil contributions
-    // for some discussion on the formulas see
-    // http://doi.org/10.1103/PhysRevSTAB.14.054402
-    // https://gitlab.psi.ch/OPAL/src/issues/157
-    // https://gitlab.psi.ch/OPAL/src/issues/110
-
-    // unitless constants
-    const double Amax1 = 1;
-    const double Amax2 = 3;
-    const double Amin  = -2;
-    const double x01   = 4;
-    const double x02   = 8;
-    const double h1    = 0.03;
-    const double h2    = 0.2;
-    const double justAnotherFudgeFactor = 1 / 2.78;
-    // helper variables
-    const double log10  = std::log(10);
-    const double const3 = -(Amax1 - Amin) * h1 * log10;
-    const double const4 =  (Amax2 - Amin) * h2 * log10;
-
-    for (unsigned int idx = 0; idx < slptcV_m.size(); ++ idx) {
-        const double &tcr1 = tcr1V_m[idx];
-        const double &tcr2 = tcr2V_m[idx];
-        const double &slope = slptcV_m[idx];
-        const double &magnitude = mbtcV_m[idx];
-
-        double part1;
-        double part2;
-
-        if (2 * r < (tcr2 + tcr1)) {
-            part1 = std::pow(10.0,  ((r - tcr1) * slope - x01) * h1);
-            part2 = std::pow(10.0, -((r - tcr1) * slope - x02) * h2);
-        } else {
-            part1 = std::pow(10.0,  ((tcr2 - r) * slope - x01) * h1);
-            part2 = std::pow(10.0, -((tcr2 - r) * slope - x02) * h2);
-        }
-
-        const double part1plusinv = 1 / (1 + part1);
-        const double part2plusinv = 1 / (1 + part2);
-
-        double part3 = const3 * slope * part1 * part1plusinv * part1plusinv;
-        double part4 = const4 * slope * part2 * part2plusinv * part2plusinv;
-
-        const double constmag = magnitude * justAnotherFudgeFactor;
-
-        double dr  = constmag * (part3 + part4);
-        double btr = constmag * (Amin - 1 +
-                                 (Amax1 - Amin) * part1plusinv +
-                                 (Amax2 - Amin) * part2plusinv);
-
-        if (std::isnan(dr)  || std::isinf(dr) ||
-            std::isnan(btr) || std::isinf(btr)) {
-            ERRORMSG("r = " << r << " m, tcr1 = " << tcr1 << " m, tcr2 = " << tcr2 << " m\n");
-            ERRORMSG("slope = " << slope << ", magnitude = " << magnitude << " kG\n");
-            ERRORMSG("part1 = " << part1 << ", part2 = " << part2 << "\n");
-            ERRORMSG("part3 = " << part3 << ", part4 = " << part4 << endl);
-            throw GeneralClassicException("Cyclotron::applyTrimCoil",
-                                          "dr or btr yield results that are either nan or inf");
-        }
-
-        *bz -= btr;
-        *br -= dr * z;
-    }
+     for (auto trimcoil : trimcoils_m) {
+         trimcoil->applyField(r,z,br,bz);
+     }
 }
 
 void Cyclotron::accept(BeamlineVisitor &visitor) const {
@@ -283,7 +222,7 @@ void Cyclotron::setEScale(vector<double> s) {
 }
 
 unsigned int Cyclotron::getNumberOfTrimcoils() const {
-  return tcr1V_m.size();
+  return trimcoils_m.size();
 }
 
 double Cyclotron::getCyclHarm() const {
@@ -336,20 +275,8 @@ double Cyclotron::getMaxZ() const {
     return maxz_m;
 }
 
-void Cyclotron::setTCr1V(const vector<double> & tcr1) {
-    tcr1V_m = tcr1;
-}
-
-void Cyclotron::setTCr2V(const vector<double> & tcr2) {
-    tcr2V_m = tcr2;
-}
-
-void Cyclotron::setMBtcV(const vector<double> & mbtc) {
-    mbtcV_m = mbtc;
-}
-
-void Cyclotron::setSLPtcV(const vector<double> & slptc) {
-    slptcV_m = slptc;
+void Cyclotron::setTrimCoils(const std::vector<TrimCoil*> &trimcoils) {
+    trimcoils_m = trimcoils;
 }
 
 void Cyclotron::setFMLowE(double e) { fmLowE_m = e;}

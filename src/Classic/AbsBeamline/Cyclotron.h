@@ -29,6 +29,7 @@
 
 class Fieldmap;
 class LossDataSink;
+class TrimCoil;
 
 enum BFieldType {PSIBF,CARBONBF,ANSYSBF,AVFEQBF,FFAGBF,BANDRF,SYNCHRO};
 
@@ -158,10 +159,7 @@ public:
 
     void   setEScale(std::vector<double> bs);
 
-    void setTCr1V(const std::vector<double> &tcr1);
-    void setTCr2V(const std::vector<double> &tcr2);
-    void setMBtcV(const std::vector<double> &mbtc);
-    void setSLPtcV(const std::vector<double> &slptc);
+    void setTrimCoils(const std::vector<TrimCoil*> &trimcoils);
 
     void setSuperpose(std::vector<bool> flag);
     //    virtual bool getSuperpose() const;
@@ -243,12 +241,8 @@ private:
 
     double bscale_m; // a scale factor for the B-field
 
-    ///@{ Trim coil variable
-    std::vector<double> tcr1V_m;
-    std::vector<double> tcr2V_m;
-    std::vector<double> mbtcV_m;
-    std::vector<double> slptcV_m;
-    ///@}
+    /// Trim coils
+    std::vector<TrimCoil*> trimcoils_m;
 
     double minr_m;
     double maxr_m;
