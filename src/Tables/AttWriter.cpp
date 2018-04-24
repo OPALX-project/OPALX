@@ -18,7 +18,8 @@
 
 #include "Tables/AttWriter.h"
 
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"

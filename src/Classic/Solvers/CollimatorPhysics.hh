@@ -12,7 +12,8 @@
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 #include "Algorithms/Vektor.h"
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Degrader.h"
 #include <gsl/gsl_rng.h>
 
@@ -107,7 +108,7 @@ private:
     void addBackToBunch(PartBunchBase<double, 3> *bunch, unsigned i);
 
 #ifdef OPAL_DKS
-  void copyFromBunchDKS(PartBunchBase<double, 3> *bunch, 
+  void copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
 			const std::pair<Vector_t, double> &boundingSphere);
     void addBackToBunchDKS(PartBunchBase<double, 3> *bunch, unsigned i);
 
@@ -123,8 +124,6 @@ private:
 
     void deleteParticleFromLocalVector();
 
-    bool checkHit(const Vector_t &R, const Vector_t &P, double dt, Degrader *deg, Collimator *coll);
-
     void calcStat(double Eng);
 
     // :FIXME: remove unused declaration
@@ -136,19 +135,9 @@ private:
 
     gsl_rng *rGen_m;
 
-    enum ElementShape {
-        DEGRADER,
-        PEPPERPOT,
-        SLIT,
-        RCOLLIMATOR,
-        CCOLLIMATOR,
-        WIRE,
-        ECOLLIMATOR
-    };
-
     std::string material_m;
     std::string FN_m;
-    ElementShape collshape_m;
+    ElementBase::ElementType collshape_m;
     std::string collshapeStr_m;
 
     double Z_m;

@@ -29,7 +29,7 @@
 
 class AttCell;
 class Beamline;
-class Collimator;
+class CCollimator;
 class Corrector;
 class Drift;
 class ElementBase;

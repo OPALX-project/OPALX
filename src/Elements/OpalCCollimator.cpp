@@ -18,7 +18,7 @@
 
 #include "Elements/OpalCCollimator.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/CollimatorRep.h"
+#include "BeamlineCore/CCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 #include "Physics/Physics.h"
 
@@ -59,14 +59,14 @@ OpalCCollimator::OpalCCollimator():
 
     registerOwnership();
 
-    setElement((new CollimatorRep("CCOLLIMATOR"))->makeAlignWrapper());
+    setElement((new CCollimatorRep("CCOLLIMATOR"))->makeAlignWrapper());
 }
 
 
 OpalCCollimator::OpalCCollimator(const std::string &name, OpalCCollimator *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new CollimatorRep(name))->makeAlignWrapper());
+    setElement((new CCollimatorRep(name))->makeAlignWrapper());
 }
 
 
@@ -89,8 +89,8 @@ void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFla
 void OpalCCollimator::update() {
     OpalElement::update();
 
-    CollimatorRep *coll =
-        dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
+    CCollimatorRep *coll =
+        dynamic_cast<CCollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double xstart = Attributes::getReal(itsAttr[XSTART]);
     double xend = Attributes::getReal(itsAttr[XEND]);
@@ -108,7 +108,6 @@ void OpalCCollimator::update() {
     coll->setZEnd(zend);
     coll->setWidth(width);
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-    coll->setCColl();
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));

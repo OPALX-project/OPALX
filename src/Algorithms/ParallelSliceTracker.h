@@ -15,7 +15,8 @@
 
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
@@ -62,7 +63,7 @@ public:
 
     virtual void visitAlignWrapper(const AlignWrapper &);
     virtual void visitBeamBeam(const BeamBeam &);
-    virtual void visitCollimator(const Collimator &);
+    virtual void visitCCollimator(const CCollimator &);
     virtual void visitCorrector(const Corrector &);
     virtual void visitDegrader(const Degrader &);
     virtual void visitDiagnostic(const Diagnostic &);
@@ -163,7 +164,7 @@ inline void ParallelSliceTracker::visitBeamBeam(const BeamBeam &bb) {
     itsOpalBeamline_m->visit(bb, *this, itsBunch_m);
 }
 
-inline void ParallelSliceTracker::visitCollimator(const Collimator &coll) {
+inline void ParallelSliceTracker::visitCCollimator(const CCollimator &coll) {
     itsOpalBeamline_m->visit(coll, *this, itsBunch_m);
 }
 

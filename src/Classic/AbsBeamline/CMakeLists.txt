@@ -7,7 +7,7 @@ set (_SRCS
   BeamlineVisitor.cpp
   Bend.cpp
   BendBase.cpp
-  Collimator.cpp
+  CCollimator.cpp
   Component.cpp
   Corrector.cpp
   Cyclotron.cpp
@@ -58,7 +58,7 @@ set (HDRS
     BeamlineVisitor.h
     Bend.h
     BendBase.h
-    Collimator.h
+    CCollimator.h
     Component.h
     Corrector.h
     Cyclotron.h

@@ -1,6 +1,6 @@
 set (_SRCS
   BeamBeamRep.cpp
-  CollimatorRep.cpp
+  CCollimatorRep.cpp
   CorrectorRep.cpp
   CyclotronRep.cpp
   CyclotronValleyRep.cpp
@@ -42,7 +42,7 @@ ADD_OPAL_SOURCES(${_SRCS})
 
 set (HDRS
     BeamBeamRep.h
-    CollimatorRep.h
+    CCollimatorRep.h
     CorrectorRep.h
     CyclotronRep.h
     CyclotronValleyRep.h

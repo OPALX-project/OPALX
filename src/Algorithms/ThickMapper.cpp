@@ -20,7 +20,7 @@
 
 #include "Algorithms/ThickMapper.h"
 
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
@@ -93,7 +93,7 @@ void ThickMapper::visitBeamBeam(const BeamBeam &) {
 }
 
 
-void ThickMapper::visitCollimator(const Collimator &coll) {
+void ThickMapper::visitCCollimator(const CCollimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
 

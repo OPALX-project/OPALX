@@ -56,6 +56,9 @@ public:
 
     void setDescription(const std::string &desc);
     std::string getDescription() const;
+
+    bool isStopped(const Vector_t &R, const Vector_t &P, double recpgamma);
+
 private:
 
     // Not implemented.
@@ -73,8 +76,6 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m;
 
     ParticleMatterInteractionHandler *parmatint_m;
-
-    bool isStopped(const Vector_t &R, const Vector_t &P, double recpgamma);
 };
 
 inline
