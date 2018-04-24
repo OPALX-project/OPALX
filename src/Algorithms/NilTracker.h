@@ -18,7 +18,7 @@ template <class T, unsigned Dim>
 class PartBunchBase;
 class AlignWrapper;
 class BeamBeam;
-class Collimator;
+class CCollimator;
 class Corrector;
 class CyclotronValley;
 class Degrader;
@@ -55,7 +55,7 @@ public:
     NIL_VISITELEMENT(AlignWrapper)
     NIL_VISITELEMENT(Beamline)
     NIL_VISITELEMENT(BeamBeam)
-    NIL_VISITELEMENT(Collimator)
+    NIL_VISITELEMENT(CCollimator)
     NIL_VISITELEMENT(Corrector)
     NIL_VISITELEMENT(CyclotronValley)
     NIL_VISITELEMENT(Degrader)

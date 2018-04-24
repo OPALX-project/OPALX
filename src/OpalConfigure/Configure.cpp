@@ -130,7 +130,7 @@
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVKicker.h"
 #include "Elements/OpalVMonitor.h"
-#include "Elements/OpalWire.h"
+//#include "Elements/OpalWire.h"
 #include "Elements/OpalYRot.h"
 #include "Elements/OpalParallelPlate.h"
 #include "Elements/OpalCyclotronValley.h"
@@ -273,7 +273,7 @@ namespace {
         opal->create(new OpalVariableRFCavity());
         opal->create(new OpalVKicker());
         opal->create(new OpalVMonitor());
-        opal->create(new OpalWire());
+        // opal->create(new OpalWire());
         opal->create(new OpalYRot());
         opal->create(new OpalParallelPlate());
         opal->create(new OpalCyclotronValley());

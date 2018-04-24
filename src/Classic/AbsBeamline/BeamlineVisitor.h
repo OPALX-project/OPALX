@@ -36,7 +36,7 @@ class CyclotronWrapper;
 
 // Specific element classes interacting with a BeamlineVisitor
 class BeamBeam;
-class Collimator;
+class CCollimator;
 class Corrector;
 class Degrader;
 class Diagnostic;
@@ -109,7 +109,7 @@ public:
     virtual void visitBeamBeam(const BeamBeam &) = 0;
 
     /// Apply the algorithm to a collimator.
-    virtual void visitCollimator(const Collimator &) = 0;
+    virtual void visitCCollimator(const CCollimator &) = 0;
 
     /// Apply the algorithm to an arbitrary component (catch all).
     virtual void visitComponent(const Component &) = 0;

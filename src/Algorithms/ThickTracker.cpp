@@ -33,7 +33,7 @@
 #include <typeinfo>
 #include <fstream>
 #include "Algorithms/ThickTracker.h"
-#include "Algorithms/OrbitThreader.h" 
+#include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
 
 #include <cfloat>
@@ -107,7 +107,7 @@ ThickTracker::ThickTracker(const Beamline &beamline,
 ThickTracker::ThickTracker(const Beamline &beamline,
                PartBunchBase<double, 3> *bunch,
 			   DataSink &ds,
-			   const PartData &reference,	  
+			   const PartData &reference,
                bool revBeam, bool revTrack,
 			   const std::vector<unsigned long long> &maxSteps,
 			   double zstart,
@@ -719,7 +719,7 @@ void ThickTracker::execute() {
     msg << std::setprecision(10);
 
 
-    
+
     msg << "Tuncation order: " << this->truncOrder_m << endl;
 
     series_t::setGlobalTruncOrder(truncOrder_m+1);
@@ -765,7 +765,7 @@ void ThickTracker::execute() {
     twiss.open ("twiss.txt");
     tmap << std::setprecision(16);
 #endif
-    
+
     FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
 
 	//sorts beamline according elementposition
@@ -922,7 +922,7 @@ void ThickTracker::execute() {
         outfile,
 #endif
         mapBeamLine);
-    
+
 //-------------------------
 
 
@@ -932,7 +932,7 @@ void ThickTracker::execute() {
 //    linTAnalyze(tFMatrix);
 
     /*
-    
+
 	FMatrix<double, 2 * DIM, 2 * DIM> sigmaSFMatrix= sFMatrix*skewMatrix;
 
 	cfMatrix_t eigenValM, eigenVecM, invEigenValM;*/
@@ -977,7 +977,7 @@ void ThickTracker::trackParticles_m(
 
     const std::list<structMapTracking>& mapBeamLine) {
     int sliceidx=0;
-    
+
     FVector<double, 6> particle, partout;
 
     dumpStats(sliceidx, true, true);
@@ -996,7 +996,7 @@ void ThickTracker::trackParticles_m(
                     particle[2 * d] = itsBunch_m->R[partidx](d);
                     particle[2 *d + 1] = itsBunch_m->P[partidx](d);
                 }
-                
+
 #ifdef PHIL_WRITE
                 if (sliceidx==0) outfile << sliceidx <<"  "<< partidx << " ["<< particle;
 #endif
@@ -1017,7 +1017,7 @@ void ThickTracker::trackParticles_m(
                 particle[3]*=betagamma;
 
                 particle[5] = (particle[5] + 1./itsBunch_m->getInitialBeta()) * itsBunch_m->getP()/itsBunch_m->getM() //TODO change P to P0
-                                /std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ; 
+                                /std::sqrt( 1./(itsBunch_m ->get_part(partidx)[5]* itsBunch_m ->get_part(partidx)[5]) +1) ;
 
 #ifdef PHIL_WRITE
                 //Write in File
@@ -1041,7 +1041,7 @@ void ThickTracker::trackParticles_m(
             dumpStats(sliceidx, psDump, statDump);
             sliceidx ++;
         }
-    }    
+    }
 }
 
 //TODO: Write a nice comment
@@ -1345,10 +1345,10 @@ void ThickTracker::writePhaseSpace(const long long step, bool psDump, bool statD
 
     if (statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
-        FieldList collimators = itsOpalBeamline_m.getElementByType(ElementBase::COLLIMATOR);
+        FieldList collimators = itsOpalBeamline_m.getElementByType(ElementBase::CCOLLIMATOR);
         if (collimators.size() != 0) {
             for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
-                Collimator* coll = static_cast<Collimator*>(it->getElement().get());
+                CCollimator* coll = static_cast<CCollimator*>(it->getElement().get());
                 std::string name = coll->getName();
                 unsigned int losses = coll->getLosses();
                 collimatorLosses.push_back(std::make_pair(name, losses));
@@ -1368,7 +1368,7 @@ void ThickTracker::writePhaseSpace(const long long step, bool psDump, bool statD
                 collimatorLosses[i].second = bareLosses[i];
             }
         }
-        
+
         // Write statistical data.
         itsDataSink_m->writeStatData(itsBunch_m, FDext, collimatorLosses);
 
@@ -1431,5 +1431,3 @@ void ThickTracker::setTime() {
         itsBunch_m->dt[i] = itsBunch_m->getdT();
     }
 }
-
-

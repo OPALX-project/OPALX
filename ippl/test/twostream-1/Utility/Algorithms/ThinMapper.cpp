@@ -20,7 +20,7 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/ThinMapper.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
