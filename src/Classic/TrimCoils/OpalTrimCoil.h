@@ -2,6 +2,7 @@
 #define OPAL_TRIM_COIL_H
 
 #include <string>
+#include <memory>
 #include "AbstractObjects/Definition.h"
 
 class TrimCoil;
@@ -45,7 +46,7 @@ public:
 
     /// Actual implementation
     std::unique_ptr<TrimCoil> trimcoil_m;
-    
+
 private:
 
     ///@{ Not implemented.
