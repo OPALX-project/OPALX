@@ -20,7 +20,7 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/ThinMapper.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
@@ -78,7 +78,7 @@ void ThinMapper::visitDegrader(const Degrader &deg) {
     applyDrift(flip_s * deg.getElementLength());
 }
 
-void ThinMapper::visitCollimator(const Collimator &coll) {
+void ThinMapper::visitCCollimator(const CCollimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
 

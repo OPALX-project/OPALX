@@ -47,7 +47,6 @@ set (_SRCS
   OpalVariableRFCavity.cpp
   OpalVKicker.cpp
   OpalVMonitor.cpp
-  OpalWire.cpp
   OpalYRot.cpp
   OpalBeamline.cpp
   OpalParallelPlate.cpp
@@ -108,7 +107,6 @@ set (HDRS
     OpalVariableRFCavity.h
     OpalVKicker.h
     OpalVMonitor.h
-    OpalWire.h
     OpalYRot.h
     OpalOffset/OpalGlobalCartesianOffset.h
     OpalOffset/OpalGlobalCylindricalOffset.h

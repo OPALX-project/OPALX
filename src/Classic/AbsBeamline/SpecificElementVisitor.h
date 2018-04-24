@@ -7,13 +7,14 @@
 
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
@@ -79,7 +80,7 @@ public:
     virtual void visitBeamBeam(const BeamBeam &);
 
     /// Apply the algorithm to a collimator.
-    virtual void visitCollimator(const Collimator &);
+    virtual void visitCCollimator(const CCollimator &);
 
     /// Apply the algorithm to an arbitrary component.
     virtual void visitComponent(const Component &);
@@ -252,8 +253,8 @@ void SpecificElementVisitor<ELEM>::visitBeamBeam(const BeamBeam &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitCollimator(const Collimator &element) {
-    CastsTrait<ELEM, Collimator>::apply(allElementsOfTypeE, element);
+void SpecificElementVisitor<ELEM>::visitCCollimator(const CCollimator &element) {
+    CastsTrait<ELEM, CCollimator>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

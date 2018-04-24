@@ -18,7 +18,7 @@
 
 #include "Elements/OpalWire.h"
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/CollimatorRep.h"
+#include "BeamlineCore/CCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 
 // Class OpalWire
@@ -47,14 +47,14 @@ OpalWire::OpalWire():
 
     registerOwnership();
 
-    setElement((new CollimatorRep("WIRE"))->makeAlignWrapper());
+    setElement((new CCollimatorRep("WIRE"))->makeAlignWrapper());
 }
 
 
 OpalWire::OpalWire(const std::string &name, OpalWire *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new CollimatorRep(name))->makeAlignWrapper());
+    setElement((new CCollimatorRep(name))->makeAlignWrapper());
 }
 
 
@@ -72,8 +72,8 @@ OpalWire *OpalWire::clone(const std::string &name) {
 void OpalWire::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
 
-    const CollimatorRep *coll =
-        dynamic_cast<const CollimatorRep *>(base.removeWrappers());
+    const CCollimatorRep *coll =
+        dynamic_cast<const CCollimatorRep *>(base.removeWrappers());
     attributeRegistry["XSIZE"]->setReal(coll->getXsize());
     attributeRegistry["YSIZE"]->setReal(coll->getYsize());
 }
@@ -82,8 +82,8 @@ void OpalWire::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag)
 void OpalWire::update() {
     OpalElement::update();
 
-    CollimatorRep *coll =
-        dynamic_cast<CollimatorRep *>(getElement()->removeWrappers());
+    CCollimatorRep *coll =
+        dynamic_cast<CCollimatorRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     coll->setElementLength(length);
     coll->setXsize(Attributes::getReal(itsAttr[XSIZE]));

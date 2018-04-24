@@ -24,7 +24,7 @@ class BMultipoleField;
 class PartBunch;
 class AlignWrapper;
 class BeamBeam;
-class Collimator;
+class CCollimator;
 class Corrector;
 class CyclotronValley;
 class Degrader;
@@ -67,7 +67,7 @@ public:
     SE_VISITELEMENT(AlignWrapper)
     SE_VISITELEMENT(Beamline)
     SE_VISITELEMENT(BeamBeam)
-    SE_VISITELEMENT(Collimator)
+    SE_VISITELEMENT(CCollimator)
     SE_VISITELEMENT(Corrector)
     SE_VISITELEMENT(CyclotronValley)
     SE_VISITELEMENT(Degrader)

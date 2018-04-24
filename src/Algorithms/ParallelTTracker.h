@@ -31,7 +31,7 @@
 #include "Algorithms/IndexMap.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Degrader.h"
@@ -106,7 +106,7 @@ public:
     virtual void visitBeamBeam(const BeamBeam &);
 
     /// Apply the algorithm to a collimator.
-    virtual void visitCollimator(const Collimator &);
+    virtual void visitCCollimator(const CCollimator &);
 
 
     /// Apply the algorithm to a Corrector.
@@ -332,7 +332,7 @@ inline void ParallelTTracker::visitBeamBeam(const BeamBeam &bb) {
 }
 
 
-inline void ParallelTTracker::visitCollimator(const Collimator &coll) {
+inline void ParallelTTracker::visitCCollimator(const CCollimator &coll) {
     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
 }
 

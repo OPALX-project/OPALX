@@ -59,7 +59,7 @@ public:
     virtual void visitBeamBeam(const BeamBeam &);
 
     /// Apply the algorithm to a collimator.
-    virtual void visitCollimator(const Collimator &);
+    virtual void visitCCollimator(const CCollimator &);
 
     /// Apply the algorithm to a corrector.
     virtual void visitCorrector(const Corrector &);

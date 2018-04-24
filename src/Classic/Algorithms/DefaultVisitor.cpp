@@ -22,7 +22,7 @@
 
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Diagnostic.h"
@@ -97,7 +97,7 @@ void DefaultVisitor::visitBeamBeam(const BeamBeam &bb) {
 }
 
 
-void DefaultVisitor::visitCollimator(const Collimator &coll) {
+void DefaultVisitor::visitCCollimator(const CCollimator &coll) {
     applyDefault(coll);
 }
 

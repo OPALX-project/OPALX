@@ -30,7 +30,7 @@
 #include "FixedAlgebra/FTps.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
@@ -92,7 +92,7 @@ void OrbitTracker::visitBeamBeam(const BeamBeam &) {
 }
 
 
-void OrbitTracker::visitCollimator(const Collimator &coll) {
+void OrbitTracker::visitCCollimator(const CCollimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
 

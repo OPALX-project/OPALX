@@ -94,7 +94,7 @@ public:
     virtual void visitBeamBeam(const BeamBeam &);
 
     /// Apply the algorithm to a Collimator.
-    virtual void visitCollimator(const Collimator &);
+    virtual void visitCCollimator(const CCollimator &);
 
     /// Apply the algorithm to a Component.
     virtual void visitComponent(const Component &);

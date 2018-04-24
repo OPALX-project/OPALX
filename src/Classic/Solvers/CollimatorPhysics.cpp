@@ -9,7 +9,8 @@
 #include "Solvers/CollimatorPhysics.hh"
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunchBase.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/SBend.h"
@@ -39,6 +40,55 @@ using Physics::Avo;
 #ifdef OPAL_DKS
 const int CollimatorPhysics::numpar = 13;
 #endif
+
+namespace {
+    struct InsideTester {
+        virtual ~InsideTester()
+        { }
+
+        virtual
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) = 0;
+    };
+
+    struct DegraderInsideTester: public InsideTester {
+        DegraderInsideTester(ElementBase * el) {
+            deg_m = static_cast<Degrader*>(el);
+        }
+        virtual
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+            return deg_m->isInMaterial(R(2));
+        }
+
+    private:
+        Degrader *deg_m;
+    };
+
+    struct CollimatorInsideTester: public InsideTester {
+        CollimatorInsideTester(ElementBase * el) {
+            col_m = static_cast<CCollimator*>(el);
+        }
+        virtual
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+            return col_m->checkPoint(R(0), R(1));
+        }
+
+    private:
+        CCollimator *col_m;
+    };
+
+    struct FlexCollimatorInsideTester: public InsideTester {
+        FlexCollimatorInsideTester(ElementBase * el) {
+            col_m = static_cast<FlexibleCollimator*>(el);
+        }
+        virtual
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+            return col_m->isStopped(R, P, Physics::c * dt / sqrt(1.0  + dot(P, P)));
+        }
+
+    private:
+        FlexibleCollimator *col_m;
+    };
+}
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
     ParticleMatterInteractionHandler(name, element),
@@ -80,49 +130,8 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *eleme
     gsl_rng_set(rGen_m, Options::seed);
 
     Material();
-
-    if (dynamic_cast<Collimator *>(element_ref_m)) {
-        Collimator *coll = dynamic_cast<Collimator *>(element_ref_m);
-        FN_m = coll->getName();
-        collshapeStr_m = coll->getCollimatorShape();
-        if (collshapeStr_m == "PepperPot") {
-            collshape_m = PEPPERPOT;
-        } else if (collshapeStr_m == "Slit") {
-            collshape_m = SLIT;
-        } else if (collshapeStr_m == "RCollimator") {
-            collshape_m = RCOLLIMATOR;
-        } else if (collshapeStr_m == "CCollimator") {
-            collshape_m = CCOLLIMATOR;
-        } else if (collshapeStr_m == "Wire") {
-            collshape_m = WIRE;
-        } else if (collshapeStr_m == "ECollimator") {
-            collshape_m = ECOLLIMATOR;
-        } else {
-            throw GeneralClassicException("CollimatorPhysics::CollimatorPhysics()",
-                                          "Unknown collimator type \"" + collshapeStr_m + "\"");
-        }
-
-    } else if (dynamic_cast<Drift *>(element_ref_m)) {
-        Drift *drf = dynamic_cast<Drift *>(element_ref_m);
-        FN_m = drf->getName();
-    } else if (dynamic_cast<SBend *>(element_ref_m)) {
-        ERRORMSG("SBend Begin_m and End_m not defined");
-    } else if (dynamic_cast<RBend *>(element_ref_m)) {
-        ERRORMSG("RBend Begin_m and End_m not defined");
-    } else if (dynamic_cast<Multipole *>(element_ref_m)) {
-        Multipole *quad = dynamic_cast<Multipole *>(element_ref_m);
-        FN_m = quad->getName();
-    } else if (dynamic_cast<Degrader *>(element_ref_m)) {
-        Degrader *deg = dynamic_cast<Degrader *>(element_ref_m);
-        FN_m = deg->getName();
-        collshapeStr_m = deg->getDegraderShape();
-        if (collshapeStr_m == "DEGRADER") {
-            collshape_m = DEGRADER;
-        } else {
-            throw GeneralClassicException("CollimatorPhysics::CollimatorPhysics()",
-                                          "Unknown collimator type \"" + collshapeStr_m + "\"");
-        }
-    }
+    collshape_m = element_ref_m->getType();
+    FN_m = element_ref_m->getName();
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
 
@@ -166,15 +175,20 @@ void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
         Particle goes back to beam if
         -- not absorbed and out of material
     */
-
-    Degrader   *deg  = NULL;
-    Collimator *coll = NULL;
-
-    if (collshape_m == DEGRADER) {
-        deg = static_cast<Degrader *>(element_ref_m);
-    }
-    else {
-        coll = static_cast<Collimator *>(element_ref_m);
+    InsideTester *tester;
+    switch (collshape_m) {
+    case ElementBase::DEGRADER:
+        tester = new DegraderInsideTester(element_ref_m);
+        break;
+    case ElementBase::CCOLLIMATOR:
+        tester = new CollimatorInsideTester(element_ref_m);
+        break;
+    case ElementBase::FLEXIBLECOLLIMATOR:
+        tester = new FlexCollimatorInsideTester(element_ref_m);
+        break;
+    default:
+        throw OpalException("CollimatorPhysics::doPhysics",
+                            "Unsupported element type");
     }
 
     for (size_t i = 0; i < locParts_m.size(); ++i) {
@@ -183,7 +197,7 @@ void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 
         double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
         if (locParts_m[i].label != -1) {
-            if (checkHit(R, P, dT_m, deg, coll)) {
+            if (tester->checkHit(R, P, dT_m)) {
                 bool pdead = EnergyLoss(Eng, dT_m);
                 if (!pdead) {
                     double ptot = sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
@@ -208,7 +222,7 @@ void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
                 */
                 double gamma = (Eng + m_p) / m_p;
                 double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-                if (collshape_m == CCOLLIMATOR) {
+                if (collshape_m == ElementBase::CCOLLIMATOR) {
                     R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
                 } else {
                     R = R + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
@@ -217,6 +231,8 @@ void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
             }
         }
     }
+
+    delete tester;
 }
 
 /// Energy Loss:  using the Bethe-Bloch equation.
@@ -265,19 +281,6 @@ bool CollimatorPhysics::EnergyLoss(double &Eng, const double &deltat) {
     return ((Eng < 1e-4) || (dEdx > 0));
 }
 
-
-
-bool CollimatorPhysics::checkHit(const Vector_t &R, const Vector_t &P, double dt, Degrader *deg, Collimator *coll) {
-    bool hit = false;
-    if (collshape_m == CCOLLIMATOR)
-        hit = coll->checkPoint(R(0), R(1));
-    else if (collshape_m == DEGRADER) {
-        hit = deg->isInMaterial(R(2));
-    }
-    else
-        hit = coll->isInColl(R, P, Physics::c * dt / sqrt(1.0  + dot(P, P)));
-    return hit;
-}
 
 void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
                               const std::pair<Vector_t, double> &boundingSphere,
@@ -765,8 +768,8 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, const double &del
 
 
     // Rutherford-scattering in x-direction
-    if (collshape_m == CCOLLIMATOR)
-        R = R * 1000.0;
+    if (collshape_m == ElementBase::CCOLLIMATOR)
+        R = R * 1e-3;
 
     double P2 = gsl_rng_uniform(rGen_m);
     if (P2 < 0.0047) {
@@ -796,8 +799,8 @@ void  CollimatorPhysics::CoulombScat(Vector_t &R, Vector_t &P, const double &del
     Rot(P(1), P(2), R(1), R(2), yplane, normP, thetacou, deltas, coord);
 
     // Rutherford-scattering in x-direction
-    if (collshape_m == CCOLLIMATOR)
-        R = R * 1000.0;
+    if (collshape_m == ElementBase::CCOLLIMATOR)
+        R = R * 1e3;
 
     P2 = gsl_rng_uniform(rGen_m);
     if (P2 < 0.0047) {
@@ -853,13 +856,21 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
         return;
     }
 
-    Degrader   *deg  = NULL;
-    Collimator *coll = NULL;
-
-    if (collshape_m == DEGRADER)
-        deg = static_cast<Degrader *>(element_ref_m);
-    else
-        coll = static_cast<Collimator *>(element_ref_m);
+    InsideTester *tester;
+    switch (collshape_m) {
+    case ElementBase::DEGRADER:
+        tester = new DegraderInsideTester(element_ref_m);
+        break;
+    case ElementBase::CCOLLIMATOR:
+        tester = new CollimatorInsideTester(element_ref_m);
+        break;
+    case ElementBase::FLEXIBLECOLLIMATOR:
+        tester = new FlexCollimatorInsideTester(element_ref_m);
+        break;
+    default:
+        throw OpalException("CollimatorPhysics::doPhysics",
+                            "Unsupported element type");
+    }
 
     size_t ne = 0;
     std::set<size_t> partsToDel;
@@ -867,7 +878,7 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     for (size_t i = 0; i < nL; ++ i) {
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            checkHit(bunch->R[i], bunch->P[i], dT_m, deg, coll))
+            tester->checkHit(bunch->R[i], bunch->P[i], dT_m))
         {
             PART x;
             x.localID      = i;
@@ -896,6 +907,8 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     if (ne > 0) {
         bunch->performDestroy(true);
     }
+
+    delete tester;
     IpplTimings::stopTimer(DegraderDestroyTimer_m);
 }
 
@@ -926,7 +939,7 @@ void CollimatorPhysics::print(Inform &msg) {
     if (locPartsInMat_m + bunchToMatStat_m + rediffusedStat_m + stoppedPartStat_m > 0) {
         OPALTimer::Timer time;
         msg << level2
-            << "--- CollimatorPhysics - Type is " << collshapeStr_m << " Name " << FN_m
+            << "--- CollimatorPhysics - Name " << FN_m
             << " Material " << material_m << "\n"
             << "Particle Statistics @ " << time.time() << "\n"
             << std::setw(21) << "entered: " << Util::toStringWithThousandSep(bunchToMatStat_m) << "\n"
@@ -951,7 +964,7 @@ bool CollimatorPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
     bool degraderAlive = true;
 
     //free GPU memory in case element is degrader, it is empty and bunch has moved past it
-    if (collshape_m == DEGRADER && locPartsInMat_m == 0) {
+    if (collshape_m == ElementBase::DEGRADER && locPartsInMat_m == 0) {
         Degrader *deg = static_cast<Degrader *>(element_ref_m);
 
         //get the size of the degrader
@@ -1055,13 +1068,21 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
         return;
     }
 
-    Degrader   *deg  = NULL;
-    Collimator *coll = NULL;
-
-    if (collshape_m == DEGRADER)
-        deg = static_cast<Degrader *>(element_ref_m);
-    else
-        coll = static_cast<Collimator *>(element_ref_m);
+    InsideTester *tester;
+    switch (collshape_m) {
+    case ElementBase::DEGRADER:
+        tester = new DegraderInsideTester(element_ref_m);
+        break;
+    case ElementBase::CCOLLIMATOR:
+        tester = new CollimatorInsideTester(element_ref_m);
+        break;
+    case ElementBase::FLEXIBLECOLLIMATOR:
+        tester = new FlexCollimatorInsideTester(element_ref_m);
+        break;
+    default:
+        throw OpalException("CollimatorPhysics::doPhysics",
+                            "Unsupported element type");
+    }
 
     size_t ne = 0;
     const unsigned int minNumOfParticlesPerCore = bunch->getMinimumNumberOfParticlesPerCore();
@@ -1069,7 +1090,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
     for (unsigned int i = 0; i < nL; ++i) {
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            checkHit(bunch->R[i], bunch->P[i], dT_m, deg, coll))
+            tester->checkHit(bunch->R[i], bunch->P[i], dT_m);
         {
 
             PART x;

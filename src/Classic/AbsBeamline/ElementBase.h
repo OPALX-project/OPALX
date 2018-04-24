@@ -152,7 +152,7 @@ public:
                     , BEAMBEAM
                     , BEAMBEAM3D
                     , BEAMLINE
-                    , COLLIMATOR
+                    , CCOLLIMATOR
                     , CORRECTOR
                     , CORRECTORWRAPPER
                     , CYCLOTRON
@@ -161,6 +161,7 @@ public:
                     , DEGRADER
                     , DIAGNOSTIC
                     , DRIFT
+                    , FLEXIBLECOLLIMATOR
                     , INTEGRATOR
                     , LAMBERTSON
                     , MARKER

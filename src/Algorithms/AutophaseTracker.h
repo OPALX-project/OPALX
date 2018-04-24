@@ -16,7 +16,8 @@ class ClassicField;
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
+#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Diagnostic.h"
@@ -66,7 +67,7 @@ public:
     virtual void visitBeamline(const Beamline &bl);
     AP_VISITELEMENT(AlignWrapper)
     AP_IGNOREELEMENT(BeamBeam)
-    AP_IGNOREELEMENT(Collimator)
+    AP_IGNOREELEMENT(CCollimator)
     AP_IGNOREELEMENT(Corrector)
     AP_IGNOREELEMENT(CyclotronValley)
     AP_IGNOREELEMENT(Degrader)

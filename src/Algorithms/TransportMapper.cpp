@@ -20,7 +20,7 @@
 #include "Algorithms/TransportMapper.h"
 
 #include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/Collimator.h"
+#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Degrader.h"
@@ -121,7 +121,7 @@ void TransportMapper::visitBeamBeam(const BeamBeam &) {
 }
 
 
-void TransportMapper::visitCollimator(const Collimator &coll) {
+void TransportMapper::visitCCollimator(const CCollimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
 

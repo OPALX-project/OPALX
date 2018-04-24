@@ -179,8 +179,8 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "BeamBeam";
     case BEAMLINE:
         return "Beamline";
-    case COLLIMATOR:
-        return "Collimator";
+    case CCOLLIMATOR:
+        return "CCollimator";
     case CORRECTOR:
         return "Corrector";
     case CORRECTORWRAPPER:
