@@ -289,7 +289,7 @@ FieldSolver::FieldSolver():
     itsAttr[AMR_MG_NORM] = Attributes::makeString("AMR_MG_NORM",
                                                   "Norm for convergence criteria",
                                                   "LINF");
-    
+
     itsAttr[AMR_MG_VERBOSE] = Attributes::makeBool("AMR_MG_VERBOSE",
                                                    "Write solver info in SDDS format (*.solver)",
                                                    false);
@@ -298,7 +298,7 @@ FieldSolver::FieldSolver():
                                                      "Rebalancing of Smoothed Aggregation "
                                                      "Preconditioner",
                                                      false);
-    
+
     itsAttr[AMR_MG_REUSE] = Attributes::makeString("AMR_MG_REUSE",
                                                    "Reuse type of Smoothed Aggregation",
                                                    "RAP");
@@ -409,7 +409,7 @@ void FieldSolver::initCartesianFields() {
         decomp[2] = PARALLEL;
     }
     // create prototype mesh and layout objects for this problem domain
-    
+
 #ifdef ENABLE_AMR
     if ( !isAmrSolverType() ) {
 #endif
@@ -522,10 +522,8 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
                                        Util::toUpper(Attributes::getString(itsAttr[PRECMODE])));
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
 #else
-        INFOMSG("SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1" << endl);
-        INFOMSG("switching to FFT solver..." << endl);
-        solver_m = new FFTPoissonSolver(mesh_m, FL_m, greens, bcz);
-        fsType_m = "FFT";
+        throw OpalException("FieldSolver::initSolver",
+                            "SAAMG Solver not enabled! Please build OPAL with -DENABLE_SAAMG_SOLVER=1");
 #endif
     } else {
         solver_m = 0;
@@ -644,7 +642,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 #ifdef ENABLE_AMR
     }
 #endif
-    
+
     if(solver_m)
         os << *solver_m << endl;
     os << "* ********************************************************************************** " << endl;
@@ -729,7 +727,7 @@ void FieldSolver::initAmrSolver_m() {
                                     Attributes::getReal(itsAttr[AMR_MG_NSWEEPS]),
                                     Attributes::getString(itsAttr[AMR_MG_INTERP]),
                                     Attributes::getString(itsAttr[AMR_MG_NORM]));
-        
+
         dynamic_cast<AmrMultiGrid*>(solver_m)->setVerbose(
             Attributes::getBool(itsAttr[AMR_MG_VERBOSE]));
 #else
