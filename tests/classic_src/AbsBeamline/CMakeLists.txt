@@ -1,11 +1,12 @@
 set (_SRCS
+    DipoleFieldTest.cpp
     MultipoleTTest.cpp
     OffsetTest.cpp
     RingTest.cpp
     SBend3DTest.cpp
     ScalingFFAGMagnetTest.cpp
+    TrimCoilTest.cpp
     VariableRFCavityTest.cpp
-    DipoleFieldTest.cpp
 )
 
 include_directories (
