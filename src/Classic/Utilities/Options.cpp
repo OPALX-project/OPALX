@@ -90,13 +90,15 @@ namespace Options {
 
     // opal version of input file
     int version = 10000;
-    
+
 #ifdef ENABLE_AMR
     bool amr = false;
-    
+
     /// The frequency to dump AMR grid data and particles into file
     int amrYtDumpFreq = 10;
 #endif
-    
+
     bool memoryDump = false;
+
+    bool useUUID = false;
 }
