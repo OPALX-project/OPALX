@@ -15,7 +15,7 @@
 #include "Util/SDDSReader.h"
 #include "Util/SDDSParser/SDDSParserException.h"
 #include "Util/OptPilotException.h"
-// #include "Util/HashNameGenerator.h"
+#include "Util/HashNameGenerator.h"
 #include "Util/UUIDNameGenerator.h"
 
 #include "Expression/SumErrSq.h"
