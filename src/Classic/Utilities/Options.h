@@ -139,15 +139,17 @@ namespace Options {
 
     /// opal version of input file
     extern int version;
-    
+
 #ifdef ENABLE_AMR
     extern bool amr;
-    
+
     /// The frequency to dump AMR grid data and particles into file
     extern int amrYtDumpFreq;
 #endif
-    
+
     extern bool memoryDump;
+
+    extern bool useUUID;
 }
 
 #endif // OPAL_Options_HH
