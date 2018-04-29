@@ -1,10 +1,6 @@
 #include "Algorithms/Vektor.h"
 #include "Utilities/MSLang.h"
 
-#include "boost/uuid/uuid.hpp"
-#include "boost/uuid/uuid_io.hpp"
-#include "boost/uuid/name_generator_sha1.hpp"
-#include "../optimizer/Util/HashNameGenerator.h"
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
@@ -35,14 +31,6 @@ int main(int argc, char *argv[])
     std::ifstream t(argv[1]);
     std::string str((std::istreambuf_iterator<char>(t)),
                     std::istreambuf_iterator<char>());
-
-    std::string res = HashNameGenerator::generate({str});
-    boost::uuids::name_generator_sha1 gen(boost::uuids::ns::url());
-    boost::uuids::uuid udoc = gen(str);
-    std::ostringstream print;
-    print << udoc;
-    std::cout << res << std::endl;
-    std::cout << print.str() << std::endl;
 
     const unsigned int method = (atoi(argv[2]) == 0 ? 0: 1);
     std::cout << method << std::endl;
