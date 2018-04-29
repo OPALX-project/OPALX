@@ -5,9 +5,9 @@
   ETH Zurich
   ========================================================================
   NSGA2
-  
+
   Implements most functions.
-  
+
   file: nsga2_functions.c
   author: Marco Laumanns, laumanns@tik.ee.ethz.ch
 
@@ -69,65 +69,65 @@ void initialize(char *paramfile, char *filenamebase)
 
 #if (NDEBUG)
     /*
-      'result' is used in assert() only. Without below statement 
+      'result' is used in assert() only. Without below statement
        we get a warning if we compile with NDEBUG (assert() disabled)
     */
     (void)result;
-#endif    
+#endif
     /* reading parameter file with parameters for selection */
     fp = fopen(paramfile, "r");
     assert(fp != NULL);
-    
-    fscanf(fp, "%s", str);
+
+    result = fscanf(fp, "%s", str);
     assert(strcmp(str, "seed") == 0);
     result = fscanf(fp, "%d", &seed);
 
-    fscanf(fp, "%s", str);
+    result = fscanf(fp, "%s", str);
     assert(strcmp(str, "tournament") == 0);
     result = fscanf(fp, "%d", &tournament); /* fscanf() returns EOF
 					       if reading fails. */
     assert(result != EOF); /* no EOF, parameters correctly read */
-    
+
     fclose(fp);
-    
+
     srand(seed); /* seeding random number generator */
-    
+
     sprintf(varfile, "%svar", filenamebase);
     sprintf(selfile, "%ssel", filenamebase);
     sprintf(cfgfile, "%scfg", filenamebase);
     sprintf(inifile, "%sini", filenamebase);
     sprintf(arcfile, "%sarc", filenamebase);
-    
+
     /* reading cfg file with common configurations for both parts */
     fp = fopen(cfgfile, "r");
     assert(fp != NULL);
-    
-    fscanf(fp, "%s", str);
+
+    result = fscanf(fp, "%s", str);
     assert(strcmp(str, "alpha") == 0);
-    fscanf(fp, "%d", &alpha);
+    result = fscanf(fp, "%d", &alpha);
     assert(alpha > 0);
-    
-    fscanf(fp, "%s", str);
+
+    result = fscanf(fp, "%s", str);
     assert(strcmp(str, "mu") == 0);
-    fscanf(fp, "%d", &mu);
+    result = fscanf(fp, "%d", &mu);
     assert(mu > 0);
-    
-    fscanf(fp, "%s", str);
+
+    result = fscanf(fp, "%s", str);
     assert(strcmp(str, "lambda") == 0);
-    fscanf(fp, "%d", &lambda);
+    result = fscanf(fp, "%d", &lambda);
     assert(lambda > 0);
-    
-    fscanf(fp, "%s", str);
+
+    result = fscanf(fp, "%s", str);
     assert(strcmp(str, "dim") == 0);
     result = fscanf(fp, "%d", &dim);
     assert(result != EOF); /* no EOF, 'dim' correctly read */
     assert(dim > 0);
-    
+
     fclose(fp);
-    
+
     /* create individual and archive pop */
     pp_all = create_pop(alpha + lambda, dim);
-    pp_sel = create_pop(mu, dim);    
+    pp_sel = create_pop(mu, dim);
 }
 
 
@@ -148,18 +148,18 @@ pop* create_pop(int maxsize, int dim)
 {
     int i;
     pop *pp;
-    
+
     assert(dim >= 0);
     assert(maxsize >= 0);
-    
+
     pp = (pop*) chk_malloc(sizeof(pop));
     pp->size = 0;
     pp->maxsize = maxsize;
     pp->ind_array = (ind**) chk_malloc(maxsize * sizeof(ind*));
-    
+
     for (i = 0; i < maxsize; i++)
 	pp->ind_array[i] = NULL;
-    
+
     return (pp);
 }
 
@@ -168,11 +168,11 @@ ind* create_ind(int dim)
 /* Allocates memory for one individual. */
 {
     ind *p_ind;
-    
+
     assert(dim >= 0);
-    
+
     p_ind = (ind*) chk_malloc(sizeof(ind));
-    
+
     p_ind->index = -1;
     p_ind->fitness = -1;
     p_ind->f = (double*) chk_malloc(dim * sizeof(double));
@@ -220,10 +220,10 @@ void complete_free_pop(pop *pp)
                pp->ind_array[i] = NULL;
             }
          }
-         
+
          free(pp->ind_array);
       }
-   
+
       free(pp);
    }
 }
@@ -233,7 +233,7 @@ void free_ind(ind *p_ind)
 /* Frees memory for given individual. */
 {
     assert(p_ind != NULL);
-     
+
     free(p_ind->f);
     free(p_ind);
 }
@@ -246,10 +246,10 @@ void selection()
 {
     int i;
     int size;
-    
+
     /* Join offspring individuals from variator to population */
     mergeOffspring();
-    
+
     size = pp_all->size;
 
     /* Create internal data structures for selection process */
@@ -263,7 +263,7 @@ void selection()
     {
 	front[i] = (int*) chk_malloc(size * sizeof(int));
     }
-    
+
     /* Calculates NSGA2 fitness values for all individuals */
     calcFitnesses();
 
@@ -277,8 +277,8 @@ void selection()
     /* Performs mating selection
        (fills mating pool / offspring population pp_sel */
     matingSelection();
-    
-    /* Frees memory of internal data structures */    
+
+    /* Frees memory of internal data structures */
     free(copies);
     copies = NULL;
     free(dist);
@@ -298,14 +298,14 @@ void mergeOffspring()
     int i;
 
     assert(pp_all->size + pp_new->size <= pp_all->maxsize);
-    
+
     for (i = 0; i < pp_new->size; i++)
     {
 	pp_all->ind_array[pp_all->size + i] = pp_new->ind_array[i];
     }
-    
+
     pp_all->size += pp_new->size;
-    
+
     free_pop(pp_new);
     pp_new = NULL;
 }
@@ -318,11 +318,11 @@ void calcFitnesses()
     int num;
     int *d;
     int *f;
-    
+
     size = pp_all->size;
     d = (int*) chk_malloc(size * sizeof(int));
     f = (int*) chk_malloc(size * sizeof(int));
-    
+
     /* initialize fitness and strength values */
     for (i = 0; i < size; i++)
     {
@@ -365,11 +365,11 @@ void calcFitnesses()
 		copies[l] += 1;
             }
         }
-	
+
 	if (num == 0)
 	    break;
     }
-    
+
     free(d);
     d = NULL;
     free(f);
@@ -388,7 +388,7 @@ void calcDistances()
     {
 	dist[i] = 1;
     }
-    
+
     for (l = 0; l < size; l++)
     {
 	for (d = 0; d < dim; d++)
@@ -431,7 +431,7 @@ void environmentalSelection()
     int i, j;
     int size = pp_all->size;
 
-    
+
     for (i = 0; i < size; i++)
     {
 	pp_all->ind_array[i]->fitness += 1.0 / dist[i];
@@ -451,7 +451,7 @@ void environmentalSelection()
 	pp_all->ind_array[min] = pp_all->ind_array[i];
 	pp_all->ind_array[i] = p_min;
     }
-    
+
     for (i = alpha; i < size; i++)
     {
        free_ind(pp_all->ind_array[i]);
@@ -459,7 +459,7 @@ void environmentalSelection()
     }
 
     pp_all->size = alpha;
-    
+
     return;
 }
 
@@ -472,7 +472,7 @@ void matingSelection()
     for (i = 0; i < mu; i++)
     {
 	int winner = irand(pp_all->size);
-	
+
 	for (j = 1; j < tournament; j++)
 	{
 	    int opponent = irand(pp_all->size);
@@ -481,7 +481,7 @@ void matingSelection()
 	    {
 		winner = opponent;
 	    }
-	}  
+	}
 	pp_sel->ind_array[i] = pp_all->ind_array[winner];
     }
     pp_sel->size = mu;
@@ -509,13 +509,13 @@ int dominates(ind *p_ind_a, ind *p_ind_b)
     int i;
     int a_is_worse = 0;
     int equal = 1;
-    
+
      for (i = 0; i < dim && !a_is_worse; i++)
      {
 	 a_is_worse = p_ind_a->f[i] > p_ind_b->f[i];
           equal = (p_ind_a->f[i] == p_ind_b->f[i]) && equal;
      }
-     
+
      return (!equal && !a_is_worse);
 }
 
@@ -525,10 +525,10 @@ int is_equal(ind *p_ind_a, ind *p_ind_b)
 {
      int i;
      int equal = 1;
-     
+
      for (i = 0; i < dim; i++)
 	 equal = (p_ind_a->f[i] == p_ind_b->f[i]) && equal;
-     
+
      return (equal);
 }
 
@@ -548,12 +548,12 @@ int read_ini()
 {
     int i;
     pp_new = create_pop(alpha, dim);
-    
+
     for (i = 0; i < alpha; i++)
 	pp_new->ind_array[i] = create_ind(dim);
     pp_new->size = alpha;
-    
-    return (read_pop(inifile, pp_new, alpha, dim));                    
+
+    return (read_pop(inifile, pp_new, alpha, dim));
 }
 
 
@@ -562,10 +562,10 @@ int read_var()
     int i;
 
     pp_new = create_pop(lambda, dim);
-    
+
     for (i = 0; i < lambda; i++)
 	pp_new->ind_array[i] = create_ind(dim);
-    
+
     pp_new->size = lambda;
     return (read_pop(varfile, pp_new, lambda, dim));
 }
