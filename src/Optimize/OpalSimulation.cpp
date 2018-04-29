@@ -94,12 +94,12 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
 
     // hash the dictionary to get a short unique directory name for temporary
     // simulation data
-    std::string hash = UUIDNameGenerator::generate(dict);
-    // if (Options::useUUID) {
-    //     hash = UUIDNameGenerator::generate(dict);
-    // } else {
-    //     hash = HashNameGenerator::generate(dict);
-    // }
+    std::string hash;
+    if (Options::useUUID) {
+        hash = UUIDNameGenerator::generate(dict);
+    } else {
+        hash = HashNameGenerator::generate(dict);
+    }
 
     std::ostringstream tmp;
     tmp.precision(15);
