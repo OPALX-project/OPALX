@@ -100,5 +100,5 @@ namespace Options {
 
     bool memoryDump = false;
 
-    bool useUUID = false;
+    bool useUUID = true;
 }
