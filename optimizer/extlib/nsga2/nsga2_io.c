@@ -7,7 +7,7 @@
   NSGA2
 
   Implements data exchange trough files.
-  
+
   file: nsga2_io.c
   author: Marco Laumanns, laumanns@tik.ee.ethz.ch
 
@@ -33,25 +33,25 @@ int read_pop(char *filename, pop *pp, int size, int dim)
     char tag[4];
     FILE *fp;
     int result;
-    
+
     assert(dim >= 0);
     assert(pp != NULL);
-    
+
     fp = fopen(filename, "r");
     assert(fp != NULL);
-    
-    fscanf(fp, "%d", &entries);
+
+    result = fscanf(fp, "%d", &entries);
     if (entries == 0) /* file has not been written yet */
     {
        return (1);  /* signalling that reading failed */
     }
     assert(entries == size * (dim + 1));
-    
+
     for (j = 0; j < size; j++)
     {
 	/* reading index of individual */
 	result = fscanf(fp, "%d", &(pp->ind_array[j]->index));
-	
+
 	for (i = 0; i < dim; i++)
 	{
 	    /* reading objective values of ind */
@@ -64,9 +64,9 @@ int read_pop(char *filename, pop *pp, int size, int dim)
 	    }
 	}
     }
-    
+
     /* after all data elements: "END" expected */
-    fscanf(fp, "%s", tag);
+    result = fscanf(fp, "%s", tag);
     if (strcmp(tag, "END") != 0)
     {
 	fclose(fp);
@@ -75,13 +75,13 @@ int read_pop(char *filename, pop *pp, int size, int dim)
     else /* "END" ok */
     {
 	fclose(fp);
-        
+
         /* delete file content if reading successful */
         fp = fopen(filename, "w");
         assert(fp != NULL);
         fprintf(fp, "0");
         fclose(fp);
-        
+
         return (0);  /* signalling that reading was successful */
     }
 }
@@ -95,17 +95,17 @@ void write_pop(char* filename, pop* pp, int size)
      FILE *fp;
 
      assert(0 <= size <= pp->size);
-     
+
      fp = fopen(filename, "w");
      assert(fp != NULL);
-     
+
      fprintf(fp, "%d\n", size); /* number of elements */
-     
+
      for (i = 0; i < size; i++)
      {
           fprintf(fp, "%d\n", pp->ind_array[i]->index);
      }
-     
+
      fprintf(fp, "END");
      fclose(fp);
 }
@@ -115,12 +115,14 @@ void write_pop(char* filename, pop* pp, int size)
 int check_file(char* filename)
 {
      int control_element = 1;
-
      FILE *fp;
 
      fp = fopen(filename, "r");
      assert(fp != NULL);
-     fscanf(fp, "%d", &control_element);
+     if (fscanf(fp, "%d", &control_element) != 1) {
+         fprintf(stderr, "Couldn't read file '%s'.", filename);
+     }
+
      fclose(fp);
 
      if(0 == control_element)
