@@ -222,6 +222,8 @@ bool OrbitThreader::containsCavity(const IndexMap::value_t &activeSet) {
 
 void OrbitThreader::autophaseCavities(const IndexMap::value_t &activeSet,
                                       const std::set<std::string> &visitedElements) {
+    if (Options::autoPhase == 0) return;
+
     IndexMap::value_t::const_iterator it = activeSet.begin();
     const IndexMap::value_t::const_iterator end = activeSet.end();
 
