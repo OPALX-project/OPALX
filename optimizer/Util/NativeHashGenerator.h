@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <functional>
+#include <algorithm>
 
 /**
  *  \brief Generates a hash name.
@@ -28,6 +29,10 @@ public:
 
         std::ostringstream hash_str;
         hash_str << std::hex << hash_value;
+
+        reverse(hash_input.begin(), hash_input.end());
+        hash_value = hashFunction(hash_input);
+        hash_str << hash_value;
 
         return hash_str.str();
     }
