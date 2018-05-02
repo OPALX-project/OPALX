@@ -16,7 +16,7 @@
 #include "Util/SDDSParser/SDDSParserException.h"
 #include "Util/OptPilotException.h"
 #include "Util/HashNameGenerator.h"
-#include "Util/UUIDNameGenerator.h"
+#include "Util/NativeHashGenerator.h"
 
 #include "Expression/SumErrSq.h"
 #include "Expression/FromFile.h"
@@ -96,7 +96,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     // simulation data
     std::string hash;
     if (Options::useUUID) {
-        hash = UUIDNameGenerator::generate(dict);
+        hash = NativeHashGenerator::generate(dict);
     } else {
         hash = HashNameGenerator::generate(dict);
     }
