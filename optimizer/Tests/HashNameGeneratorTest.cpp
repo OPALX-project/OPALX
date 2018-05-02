@@ -38,7 +38,7 @@ namespace {
         params.push_back("sigmay=6.05");
 
         std::string hash = NativeHashGenerator::generate(params);
-        std::string expected = "88a02dc533c53bc1";
+        std::string expected = "88a02dc533c53bc156f54a4fcc54397b";
         ASSERT_STREQ(expected.c_str(), hash.c_str());
     }
 
