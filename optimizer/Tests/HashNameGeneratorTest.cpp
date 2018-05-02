@@ -1,4 +1,4 @@
-#include "Util/UUIDNameGenerator.h"
+#include "Util/NativeHashGenerator.h"
 #include "gtest/gtest.h"
 #include <fstream>
 
@@ -37,8 +37,8 @@ namespace {
         params.push_back("sigmax=5.05");
         params.push_back("sigmay=6.05");
 
-        std::string hash = UUIDNameGenerator::generate(params);
-        std::string expected = "ccee6325-cc2a-5773-b39a-dabfcbeb6a38";
+        std::string hash = NativeHashGenerator::generate(params);
+        std::string expected = "88a02dc533c53bc1";
         ASSERT_STREQ(expected.c_str(), hash.c_str());
     }
 
