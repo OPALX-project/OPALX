@@ -21,10 +21,7 @@ public:
             hash_input += arg;
         }
 
-        // // append PID
-        // std::ostringstream pidStr;
-        // pidStr << world_pid;
-        hash_input += "_" + std::to_string(world_pid);//pidStr.str();
+        hash_input += "_" + std::to_string(world_pid);
 
         std::hash<std::string> hashFunction;
         size_t hash_value = hashFunction(hash_input);
