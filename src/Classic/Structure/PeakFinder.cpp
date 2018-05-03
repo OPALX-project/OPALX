@@ -350,10 +350,10 @@ void PeakFinder::saveASCII_m() {
             os_m << radius << std::endl;
         
         hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
-              << globMin_m << " "
-              << globMax_m << " "
+              << globMin_m << " mm "
+              << globMax_m << " mm "
               << nBins_m << " "
-              << binWidth_m << std::endl;
+              << binWidth_m << " mm" << std::endl;
         for (auto binCount : globHist_m)
             hos_m << binCount << std::endl;
     }
