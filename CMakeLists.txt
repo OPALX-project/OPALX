@@ -221,6 +221,8 @@ if (NO_FIELD_ASSIGN_OPTIMIZATION)
     ADD_DEFINITIONS(-DdontOPTIMIZE_FIELD_ASSIGNMENT)
 endif ()
 
+option (ENABLE_DOXYDOC "compile Doxygen documentation" OFF)
+
 include (FindGit)
 if (GIT_FOUND)
     set (OPAL_WC_REVISION 0)
