@@ -51,7 +51,6 @@ Sampler/*<SO>*/::Sampler(Expressions::Named_t objectives,
     struct stat dirInfo;
     if(stat(resultDir_m.c_str(),&dirInfo) != 0)
         mkdir((const char*)(resultDir_m.c_str()), 0777);
-    
 }
 
 
@@ -66,6 +65,7 @@ void Sampler/*<SO>*/::initialize() {
     nsamples_m = args_->getArg<int>("nsamples", true);
     act_sample_m = 0;
     curState_m = SUBMIT;
+    gid = 0;
     
     this->initSamplingMethods_m();
     
@@ -104,9 +104,13 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 
     MPITag_t tag = MPITag_t(status.MPI_TAG);
     switch(tag) {
-        case EXCHANGE_SOL_STATE_RES_SIZE_TAG: {
+        case OPT_NEW_JOB_TAG: {
             
-            std::cout << "EXCHANGE_SOL_STATE_RES_SIZE_TAG" << std::endl;
+            std::cout << "OPT_NEW_JOB_TAG" << std::endl;
+            
+            dispatch_forward_solves();
+            
+//             individuals_m.
             
             
 //             size_t buf_size = length;
@@ -140,7 +144,7 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 //     
 //         }
 
-            return true;
+//             return true;
         }
 /*
 
@@ -208,7 +212,35 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 
 /*template< template <class> class SO >*/
 void Sampler/*<SO>*/::postPoll() {
+    
+    if ( act_sample_m < nsamples_m ) {
+        this->createNewIndividual_m();
+    }
+    
     runStateMachine();
+}
+
+
+void Sampler::createNewIndividual_m() {
+    
+    std::vector<std::string> dNames;
+    
+    DVarContainer_t::iterator itr;
+    for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
+        std::string dName = boost::get<VAR_NAME>(itr->second);
+        dNames.push_back(dName);
+    }
+    
+    boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
+    for (uint i = 0; i < samplingOp_m.size(); ++i) {
+        
+        samplingOp_m[i]->create(ind, i);
+        
+    }
+    
+    ind->id = gid++;
+    
+    individuals_m.push(ind);
 }
 
 
@@ -358,29 +390,30 @@ void Sampler::dispatch_forward_solves() {
 
     typedef typename Sampler::Individual_t individual;
 
-//     while (variator_m->hasMoreIndividualsToEvaluate()) {
-// 
-//         boost::shared_ptr<individual> ind =
-//             variator_m->popIndividualToEvaluate();
-//         Param_t params;
-//         DVarContainer_t::iterator itr;
-//         size_t i = 0;
-//         for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++, i++) {
-//             params.insert(
-//                 std::pair<std::string, double>
-//                     (boost::get<VAR_NAME>(itr->second),
-//                      ind->genes[i]));
-//         }
-// 
-//         size_t jid = static_cast<size_t>(ind->id);
-//         int pilot_rank = comms_.master_local_pid;
-// 
-//         // now send the request to the pilot
-//         MPI_Send(&jid, 1, MPI_UNSIGNED_LONG, pilot_rank, OPT_NEW_JOB_TAG, comms_.opt);
-// 
-//         MPI_Send_params(params, pilot_rank, comms_.opt);
-// 
+    while ( !individuals_m.empty() ) {
+        boost::shared_ptr<Individual_t> ind = individuals_m.front();
+        
+        individuals_m.pop();
+
+        Param_t params;
+        DVarContainer_t::iterator itr;
+        size_t i = 0;
+        for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++, i++) {
+            params.insert(
+                std::pair<std::string, double>
+                    (boost::get<VAR_NAME>(itr->second),
+                     ind->genes[i]));
+        }
+
+        size_t jid = static_cast<size_t>(ind->id);
+        int pilot_rank = comms_.master_local_pid;
+
+        // now send the request to the pilot
+        MPI_Send(&jid, 1, MPI_UNSIGNED_LONG, pilot_rank, OPT_NEW_JOB_TAG, comms_.opt);
+
+        MPI_Send_params(params, pilot_rank, comms_.opt);
+
 //         jobmapping_m.insert(
 //                 std::pair<size_t, boost::shared_ptr<individual> >(jid, ind));
-//     }
+    }
 }
