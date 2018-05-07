@@ -11,11 +11,11 @@ class Uniform : public SamplingOperator
 {
 
 public:
-    typedef std::conditional<
-                std::is_integral<T>::value,
-                std::uniform_int_distribution<>,
-                std::uniform_real_distribution<>
-            > dist_t;
+    typedef typename std::conditional<
+                        std::is_integral<T>::value,
+                        std::uniform_int_distribution<>,
+                        std::uniform_real_distribution<>
+                     >::type dist_t;
     
     
     Uniform(int seed, T lower, T upper)
