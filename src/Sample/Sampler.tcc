@@ -82,10 +82,10 @@ void Sampler::initSamplingMethods_m() {
         std::string s = it->second->toString();
         
         if ( s == "UNIFORM_INT" ) {
-            samplingOp_m.push_back( std::unique_ptr< Uniform<int> >() );        // C++14 --> std::make_unique
+            samplingOp_m.push_back( std::unique_ptr< Uniform<int> >(new Uniform<int>(42, 0, 1) ) );  //FIXME        // C++14 --> std::make_unique
         }
         else if ( s == "UNIFORM_DOUBLE" ) {
-            samplingOp_m.push_back( std::unique_ptr< Uniform<double> >() );
+            samplingOp_m.push_back( std::unique_ptr<Uniform<double> >(new Uniform<double>(42, 0.0, 1.0) ) );
         } else {
             throw OptPilotException("Sampler::initSamplingMethods_m",
                                     "Sampling method '" + s + "' not supported.");
@@ -223,6 +223,8 @@ void Sampler/*<SO>*/::postPoll() {
 
 void Sampler::createNewIndividual_m() {
     
+    std::cout << "createNewIndividual_m" << std::endl;
+    
     std::vector<std::string> dNames;
     
     DVarContainer_t::iterator itr;
@@ -232,15 +234,22 @@ void Sampler::createNewIndividual_m() {
     }
     
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
+    
+    std::cout << "HI 1" << std::endl;
+    
     for (uint i = 0; i < samplingOp_m.size(); ++i) {
         
         samplingOp_m[i]->create(ind, i);
         
     }
     
+    std::cout << "HI 2" << std::endl;
+    
     ind->id = gid++;
     
     individuals_m.push(ind);
+    
+    std::cout << "Done." << std::endl;
 }
 
 
@@ -248,98 +257,17 @@ void Sampler::createNewIndividual_m() {
 void Sampler/*<SO>*/::dumpPopulationToJSON() {
     
     std::cout << "dumpPopulationToJSON" << std::endl;
-/*
-    typedef typename FixedPisaNsga2::Individual_t individual;
-    boost::shared_ptr<individual> temp;
-
-    std::ofstream file;
-    std::ostringstream filename;
-    filename << resultDir_m << "/" << act_gen << "_" << resultFile_m
-             << "_" << comms_.island_id << ".json";
-    file.open(filename.str().c_str(), std::ios::out);
-
-    file << "{" << std::endl;
-    file << "\t" << "\"name\": " << "\"opt-pilot\"," << std::endl;
-    
-    file << "\t" << "\"dvar-bounds\": {" << std::endl;
-    DVarContainer_t::iterator itr = dvars_m.begin();
-    for ( bounds_t::iterator it = dVarBounds_m.begin();
-          it != dVarBounds_m.end(); ++it, ++itr )
-    {
-         file << "\t\t\"" << boost::get<VAR_NAME>(itr->second) << "\": "
-              << "[ " << it->first << ", " << it->second << " ]";
-         
-         if ( it != dVarBounds_m.end() - 1 )
-             file << ",";
-         file << "\n";
-    }
-    file << "\t}\n\t," << std::endl;
-    
-    file << "\t" << "\"constraints\": [" << std::endl;
-    for ( Expressions::Named_t::iterator it = constraints_m.begin();
-          it != constraints_m.end(); ++it )
-    {
-	std::string s = it->second->toString();
-	/// cleanup string to make json reader happy
-	s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
-
-        file << "\t\t\"" << s << "\"";
-        
-        if ( it != std::prev(constraints_m.end(), 1) )
-            file << ",";
-        file << "\n";
-    }
-    file << "\t]\n\t," << std::endl;
-    
-    file << "\t" << "\"solutions\": " << "[" << std::endl;
-
-    typename std::map<unsigned int, boost::shared_ptr<individual> >::iterator it;
-    for(it = variator_m->population()->begin();
-        it != variator_m->population()->end(); it++) {
-
-        if(it != variator_m->population()->begin())
-            file << "\t" << "," << std::endl;
-
-        file << "\t" << "{" << std::endl;
-        file << "\t" << "\t" << "\"ID\": " << it->first << "," << std::endl;
-
-        Expressions::Named_t::iterator expr_it;
-        expr_it = objectives_m.begin();
-        temp = it->second;
-        
-        file << "\t\t\"obj\":\n" << "\t\t{\n";
-        for(size_t i=0; i < temp->objectives.size(); i++, expr_it++) {
-            file << "\t" << "\t" << "\t" << "\"" << expr_it->first << "\": "
-                 << temp->objectives[i];
-            if( i + 1 != temp->objectives.size())
-                file << ",";
-            file << std::endl;
-        }
-        file << "\t\t}\n" << "\t\t,\n" << "\t\t\"dvar\":\n" << "\t\t{\n";
-        size_t i = 0;
-        for(itr = dvars_m.begin(); itr != dvars_m.end(); ++i, ++itr) {
-            file << "\t\t\t\"" << boost::get<VAR_NAME>(itr->second) << "\": "
-                 << temp->genes[i];
-            if ( i + 1 != temp->genes.size())
-                file << ",";
-            file << "\n";
-        }
-        file << "\t\t}\n";
-
-        file << "\t" << "}" << std::endl;
-    }
-
-    file << "\t" << "]" << std::endl;
-    file << "}" << std::endl;
-    file.close();
-    */
 }
 
 void Sampler::runStateMachine() {
+    
+    std::cout << "runStateMachine" << std::endl;
 
     switch(curState_m) {
         
         case SUBMIT: {
+            
+            std::cout << "SUBMIT" << std::endl;
             
             if ( act_sample_m == nsamples_m ) {
                 curState_m = STOP;
@@ -372,6 +300,9 @@ void Sampler::runStateMachine() {
             break;
         }
         case STOP: {
+            
+            std::cout << "STOP" << std::endl;
+            
             // notify pilot that we have converged
             int dummy = 0;
             MPI_Request req;
@@ -387,6 +318,8 @@ void Sampler::runStateMachine() {
 
 
 void Sampler::dispatch_forward_solves() {
+    
+    std::cout << "dispatch_forward_solves" << std::endl;
 
     typedef typename Sampler::Individual_t individual;
 
@@ -394,26 +327,39 @@ void Sampler::dispatch_forward_solves() {
         boost::shared_ptr<Individual_t> ind = individuals_m.front();
         
         individuals_m.pop();
-
+        
+        std::cout << "hello 1" << std::endl;
+        
         Param_t params;
         DVarContainer_t::iterator itr;
         size_t i = 0;
+        
+        std::cout << "hello 2" << std::endl;
+        
         for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++, i++) {
             params.insert(
                 std::pair<std::string, double>
                     (boost::get<VAR_NAME>(itr->second),
                      ind->genes[i]));
         }
+        
+        std::cout << "hello 3" << std::endl;
 
         size_t jid = static_cast<size_t>(ind->id);
         int pilot_rank = comms_.master_local_pid;
+        
+        std::cout << "hello 4" << std::endl;
 
         // now send the request to the pilot
         MPI_Send(&jid, 1, MPI_UNSIGNED_LONG, pilot_rank, OPT_NEW_JOB_TAG, comms_.opt);
 
         MPI_Send_params(params, pilot_rank, comms_.opt);
+        
+        std::cout << "hello 5" << std::endl;
 
-//         jobmapping_m.insert(
-//                 std::pair<size_t, boost::shared_ptr<individual> >(jid, ind));
+        jobmapping_m.insert(
+                std::pair<size_t, boost::shared_ptr<individual> >(jid, ind));
     }
+    
+    std::cout << "Done." << std::endl;
 }
