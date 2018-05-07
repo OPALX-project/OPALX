@@ -4,11 +4,13 @@
 
 #include "Sample/Individual.h"
 
+#include <boost/smart_ptr.hpp>
+
 class SamplingOperator
 {
     
 public:
-    virtual void create(Individual& ind, int i) = 0;
+    virtual void create(boost::shared_ptr<Individual>& ind, int i) = 0;
 };
 
 #endif

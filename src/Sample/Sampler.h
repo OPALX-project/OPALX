@@ -12,6 +12,7 @@
 #include <utility>
 #include <fstream>
 
+
 #include "Comm/types.h"
 #include "Util/Types.h"
 #include "Util/CmdArguments.h"
@@ -81,6 +82,8 @@ protected:
 
 
 private:
+    
+    int gid;
 
     int my_local_pid_;
 
@@ -100,6 +103,8 @@ private:
     std::map<size_t, boost::shared_ptr<Individual> > jobmapping_m;
     
     std::vector< std::unique_ptr<SamplingOperator> > samplingOp_m;
+    
+    std::queue<boost::shared_ptr<Individual_t> > individuals_m;
 
     /// bounds on each specified gene
     bounds_t dVarBounds_m;
@@ -143,6 +148,8 @@ private:
     void runStateMachine();
     
     void initSamplingMethods_m();
+    
+    void createNewIndividual_m();
 };
 
 #include "Sample/Sampler.tcc"
