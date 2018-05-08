@@ -117,7 +117,6 @@ void SampleCmd::execute() {
     // prepare function dictionary and add all available functions in
     // expressions
     functionDictionary_t funcs;
-    client::function::type ff;
     
     //////////////////////////////////////////////////////////////////////////
 
@@ -205,6 +204,10 @@ void SampleCmd::execute() {
 
         setenv("FIELDMAPS", dir.c_str(), 1);
     }
+    
+    std::string argument = "--sample=1";
+    arguments.push_back(argument);
+    
 
     *gmsg << endl;
     for (size_t i = 0; i < arguments.size(); ++ i) {

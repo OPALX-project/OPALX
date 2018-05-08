@@ -124,6 +124,8 @@ private:
     /// current generation
     int act_sample_m;
     
+    int done_sample_m;
+    
     enum State {
         SUBMIT,
         STOP
