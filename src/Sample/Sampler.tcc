@@ -62,8 +62,9 @@ Sampler/*<SO>*/::~Sampler()
 /*template< template <class> class SO >*/
 void Sampler/*<SO>*/::initialize() {
     
-    nsamples_m = args_->getArg<int>("nsamples", true);
+    nsamples_m = args_->getArg<int>("nsamples", true) - 1;
     act_sample_m = 0;
+    done_sample_m = 0;
     curState_m = SUBMIT;
     gid = 0;
     
@@ -109,98 +110,36 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
             std::cout << "OPT_NEW_JOB_TAG" << std::endl;
             
             dispatch_forward_solves();
-            
-//             individuals_m.
-            
-            
-//             size_t buf_size = length;
-//             size_t pilot_rank = status.MPI_SOURCE;
-//     
-//             char *buffer = new char[buf_size];
-//             MPI_Recv(buffer, buf_size, MPI_CHAR, pilot_rank,
-//                     MPI_EXCHANGE_SOL_STATE_RES_TAG, comms_.opt, &status);
-//     
-//             SolutionState_t new_states;
-//             std::istringstream is(buffer);
-//             boost::archive::text_iarchive ia(is);
-//             ia >> new_states;
-//             delete[] buffer;
-//     
-//             std::set<unsigned int> new_state_ids;
-//             foreach(individual ind, new_states) {
-//     
-//                 // only insert individual if not already in population
-//                 if(variator_m->population()->isRepresentedInPopulation(ind.genes))
-//                     continue;
-//     
-//                 boost::shared_ptr<individual> new_ind(new individual);
-//                 new_ind->genes = ind.genes;
-//                 new_ind->objectives = ind.objectives;
-//     
-//                 //XXX:   can we pass more than lambda_m files to selector?
-//                 unsigned int id =
-//                     variator_m->population()->add_individual(new_ind);
-//                 finishedBuffer_m.push(id);
-//     
-//         }
 
-//             return true;
+            return true;
         }
-/*
 
         case REQUEST_FINISHED: {
             std::cout << "REQUEST_FINISHED" << std::endl;
     
-//             unsigned int jid = static_cast<unsigned int>(length);
-//             typename std::map<size_t, boost::shared_ptr<individual> >::iterator it;
-//             it = jobmapping_m.find(jid);
-//     
-//             if(it == jobmapping_m.end()) {
-//                 dump << "\t |-> NOT FOUND!" << std::endl;
-//                 std::cout << "NON-EXISTING JOB with ID = " << jid << std::endl;
-//                 throw OptPilotException("Sampler::onMessage",
-//                         "non-existing job");
-//             }
-//     
-//             boost::shared_ptr<individual> ind = it->second;
-//             jobmapping_m.erase(it);
-//     
-//             reqVarContainer_t res;
-//             MPI_Recv_reqvars(res, status.MPI_SOURCE, comms_.opt);
-//     
-//             ind->objectives.clear();
-//     
-//             //XXX: check order of genes
-//             reqVarContainer_t::iterator itr;
-//             std::map<std::string, double> vars;
-//             for(itr = res.begin(); itr != res.end(); itr++) {
-//                 // mark invalid if expression could not be evaluated or constraint does not hold
-//                 if(!itr->second.is_valid || (itr->second.value.size() > 1 && !itr->second.value[0])) {
-//                     std::ostringstream dump;
-//                     if (!itr->second.is_valid) {
-//                         dump << "invalid individual, objective or constraint\"" << itr->first
-//                             << "\" failed to be evaluated correctly"
-//                             << std::endl;
-//                     } else {
-//                         dump << "invalid individual, constraint \"" << itr->first
-//                             << "\" failed to yield true; result: " << itr->second.value[1]
-//                             << std::endl;
-//                     }
-// //                     variator_m->infeasible(ind);
-//                     dispatch_forward_solves();
-//                     return true;
-//                 } else {
-//                     // update objective value for valid objective
-//                     if(itr->second.value.size() == 1)
-//                         ind->objectives.push_back(itr->second.value[0]);
-//                 }
-//             }
-//     
-//             finishedBuffer_m.push(jid);
+            unsigned int jid = static_cast<unsigned int>(length);
+            typename std::map<size_t, boost::shared_ptr<individual> >::iterator it;
+            it = jobmapping_m.find(jid);
     
+            if(it == jobmapping_m.end()) {
+                std::cout << "NON-EXISTING JOB with ID = " << jid << std::endl;
+                throw OptPilotException("Sampler::onMessage",
+                        "non-existing job");
+            }
+    
+    
+            boost::shared_ptr<individual> ind = it->second;
+            
+            jobmapping_m.erase(it);
+            
+            done_sample_m++;
+            
+            
+            finishedBuffer_m.push(jid);
+            
+            
             return true;
         }
-    */
         default: {
             std::cout << "(Sampler) Error: unexpected MPI_TAG: "
                       << status.MPI_TAG << std::endl;
@@ -235,21 +174,15 @@ void Sampler::createNewIndividual_m() {
     
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
     
-    std::cout << "HI 1" << std::endl;
-    
     for (uint i = 0; i < samplingOp_m.size(); ++i) {
         
         samplingOp_m[i]->create(ind, i);
         
     }
     
-    std::cout << "HI 2" << std::endl;
-    
     ind->id = gid++;
     
     individuals_m.push(ind);
-    
-    std::cout << "Done." << std::endl;
 }
 
 
@@ -267,13 +200,11 @@ void Sampler::runStateMachine() {
         
         case SUBMIT: {
             
-            std::cout << "SUBMIT" << std::endl;
             
-            if ( act_sample_m == nsamples_m ) {
+            if ( done_sample_m == nsamples_m) {
                 curState_m = STOP;
             } else {
                 
-                act_sample_m++;
                 
 //             if(parent_queue_.size() > 0) {
 //                 std::vector<unsigned int> parents(parent_queue_.begin(),
@@ -292,7 +223,12 @@ void Sampler::runStateMachine() {
 //                 // feed results back to the selector.
 //                 //FIXME: variate works on staging set!!!
 //                 variator_m->variate(parents);
-                dispatch_forward_solves();
+                
+                if ( act_sample_m != nsamples_m ) {
+                    std::cout << "SUBMIT" << std::endl;
+                    act_sample_m++;
+                    dispatch_forward_solves();
+                }
 // 
 //                 curState_m = Variate;
 //             }
@@ -328,13 +264,9 @@ void Sampler::dispatch_forward_solves() {
         
         individuals_m.pop();
         
-        std::cout << "hello 1" << std::endl;
-        
         Param_t params;
         DVarContainer_t::iterator itr;
         size_t i = 0;
-        
-        std::cout << "hello 2" << std::endl;
         
         for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++, i++) {
             params.insert(
@@ -343,23 +275,15 @@ void Sampler::dispatch_forward_solves() {
                      ind->genes[i]));
         }
         
-        std::cout << "hello 3" << std::endl;
-
         size_t jid = static_cast<size_t>(ind->id);
         int pilot_rank = comms_.master_local_pid;
         
-        std::cout << "hello 4" << std::endl;
-
         // now send the request to the pilot
         MPI_Send(&jid, 1, MPI_UNSIGNED_LONG, pilot_rank, OPT_NEW_JOB_TAG, comms_.opt);
 
         MPI_Send_params(params, pilot_rank, comms_.opt);
         
-        std::cout << "hello 5" << std::endl;
-
         jobmapping_m.insert(
                 std::pair<size_t, boost::shared_ptr<individual> >(jid, ind));
     }
-    
-    std::cout << "Done." << std::endl;
 }

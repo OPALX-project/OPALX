@@ -320,6 +320,8 @@ void OpalSimulation::run() {
 
 
 void OpalSimulation::collectResults() {
+    
+    std::cout << "collectResults" << std::endl;
 
     // clear old solutions
     requestedVars_.clear();
