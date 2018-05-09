@@ -9,7 +9,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
 
-//#include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
 #include "Track/Track.h"
