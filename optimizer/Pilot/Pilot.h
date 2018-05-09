@@ -91,12 +91,10 @@ public:
     // constructor only for Pilot classes inherited from this class
     // they have their own setup function
     Pilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
-          const DVarContainer_t &dvar,
-          const Expressions::Named_t &cons)
+          const DVarContainer_t &dvar)
         : Poller(comm->mpiComm())
         , comm_(comm)
         , cmd_args_(args)
-        , constraints_(cons)
         , dvars_(dvar)
     {
         // do nothing

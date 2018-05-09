@@ -1,8 +1,8 @@
 #include "Sample/SampleCmd.h"
 #include "Sample/SVar.h"
 #include "Sample/Sampler.h"
-// #include "Sample/Objective.h"
-// #include "Sample/Constraint.h"
+#include "Sample/OpalSample.h"
+#include "Optimize/Constraint.h"
 #include "Optimize/OpalSimulation.h"
 
 #include "Attributes/Attributes.h"
@@ -36,6 +36,7 @@ namespace {
         OUTPUT,
         OUTDIR,
         SVARS,
+        SAMPLINGS,
         NUMMASTERS,
         NUMCOWORKERS,
         N,
@@ -57,6 +58,8 @@ SampleCmd::SampleCmd():
         ("OUTDIR", "Name of directory used to store sample output files");
     itsAttr[SVARS] = Attributes::makeStringArray
         ("SVARS", "List of sampling variables to be used");
+    itsAttr[SAMPLINGS] = Attributes::makeStringArray
+        ("SAMPLINGS", "List of sampling methods to be used");
     itsAttr[NUMMASTERS] = Attributes::makeReal
         ("NUM_MASTERS", "Number of master nodes");
     itsAttr[NUMCOWORKERS] = Attributes::makeReal
@@ -93,12 +96,28 @@ void SampleCmd::execute() {
 
     std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[SVARS]);
     DVarContainer_t dvars;
+        
+    std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
     
-    
-    // constrains --> type of sampling
-    Expressions::Named_t constraints;
-    
+    if ( sampling.size() != dvarsstr.size() )
+        throw OpalException("SampleCmd::execute",
+                            "Number of sampling methods != number of design variables.");
 
+    std::vector< std::shared_ptr<SamplingMethod> > sampleMethods;
+    for (std::vector<std::string>::const_iterator sit = sampling.begin();
+         sit != sampling.end(); ++sit)
+    {
+        OpalSample *s = OpalSample::find(*sit);
+            
+        if ( s ) {
+            s->initOpalSample();
+            sampleMethods.push_back( s->sampleMethod_m );
+        } else {
+            throw OpalException("SampleCmd::execute",
+                                "Sampling method not found.");
+        }
+    }
+    
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
     typedef OpalInputFileParser Input_t;
@@ -197,10 +216,6 @@ void SampleCmd::execute() {
         setenv("FIELDMAPS", dir.c_str(), 1);
     }
     
-    std::string argument = "--sample=1";
-    arguments.push_back(argument);
-    
-
     *gmsg << endl;
     for (size_t i = 0; i < arguments.size(); ++ i) {
         argv.push_back(const_cast<char*>(arguments[i].c_str()));
@@ -214,16 +229,12 @@ void SampleCmd::execute() {
         std::string var = dvar->getVariable();
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
-        std::string type  = dvar->getType();
+/*        std::string type  = dvar->getType()*/;
 
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
-        
-        // type of sampling
-        constraints.insert(Expressions::SingleNamed_t(
-            name, new Expressions::Expr_t(type) ));
     }
-
+    
     Inform *origGmsg = gmsg;
     gmsg = 0;
     stashEnvironment();
@@ -231,7 +242,7 @@ void SampleCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, dvars, constraints));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, dvars, sampleMethods));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;

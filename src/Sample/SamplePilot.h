@@ -45,15 +45,15 @@ public:
 
     SamplePilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
                 const DVarContainer_t &dvar,
-                const Expressions::Named_t &cons)
+                const std::vector< std::shared_ptr<SamplingMethod> >& sampleMethods)
         : Pilot<Input_t,
                 Opt_t,
                 Sim_t,
                 SolPropagationGraph_t,
                 Comm_t>(args,
                         comm,
-                        dvar,
-                        cons)
+                        dvar)
+        , sampleMethods_m(sampleMethods)
     {
         // create a dummy objective, base class requires at least 1 objective
         this->objectives_ = {
@@ -97,7 +97,7 @@ protected:
         std::cout << os.str() << std::flush;
 
         boost::scoped_ptr<Opt_t> opt(
-                new Opt_t(this->constraints_, this->dvars_,
+                new Opt_t(sampleMethods_m, this->dvars_,
                           this->comm_->getBundle(), this->cmd_args_));
         opt->initialize();
 
@@ -119,9 +119,9 @@ protected:
         pos = tmplfile.find(".");
         std::string simName = tmplfile.substr(0,pos);
         
-        boost::scoped_ptr< SWorker<Sim_t> > w(
-            new SWorker<Sim_t>(this->constraints_, simName,
-                               this->comm_->getBundle(), this->cmd_args_));
+        boost::scoped_ptr< SampleWorker<Sim_t> > w(
+            new SampleWorker<Sim_t>(this->constraints_, simName,
+                                    this->comm_->getBundle(), this->cmd_args_));
 
         std::cout << "Stop Worker.." << std::endl;
     }
@@ -169,9 +169,6 @@ protected:
         Param_t job_params = job->second;
         MPI_Send(&jid, 1, MPI_UNSIGNED_LONG, worker, MPI_WORK_JOBID_TAG, this->worker_comm_);
         MPI_Send_params(job_params, worker, this->worker_comm_);
-
-        //reqVarContainer_t job_reqvars = job->second.second;
-        //MPI_Send_reqvars(job_reqvars, worker, worker_comm_);
 
         running_job_list_.insert(std::pair<size_t,
                 Param_t >(job->first, job->second));
@@ -257,6 +254,8 @@ bool onMessage(MPI_Status status, size_t recv_value) /*override*/ {
     }
 }
 
+private:
+    std::vector< std::shared_ptr<SamplingMethod> > sampleMethods_m;
 };
 
 #endif

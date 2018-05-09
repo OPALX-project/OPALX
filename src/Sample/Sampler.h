@@ -19,7 +19,7 @@
 
 #include "Optimizer/Optimizer.h"
 #include "Sample/SIndividual.h"
-#include "Sample/SamplingOperator.h"
+#include "Sample/SamplingMethod.h"
 
 #include <boost/smart_ptr.hpp>
 #include <boost/chrono.hpp>
@@ -61,10 +61,9 @@ public:
      *  @param[in] comms available to the sampler
      *  @param[in] args the user passed on the command line
      */
-    Sampler(
-                   Expressions::Named_t type,
-                   DVarContainer_t dvars, Comm::Bundle_t comms,
-                   CmdArguments_t args);
+    Sampler(const std::vector< std::shared_ptr<SamplingMethod> >& sampleMethods,
+            DVarContainer_t dvars, Comm::Bundle_t comms,
+            CmdArguments_t args);
 
     ~Sampler();
 
@@ -95,6 +94,8 @@ protected:
 
 private:
     
+    std::vector< std::shared_ptr<SamplingMethod> > sampleMethods_m;
+    
     int gid;
 
     int my_local_pid_;
@@ -106,8 +107,6 @@ private:
 
 //     /// mapping from unique job ID to individual
     std::map<size_t, boost::shared_ptr<SIndividual > > jobmapping_m;
-    
-    std::vector< std::unique_ptr<SamplingOperator> > samplingOp_m;
     
     std::queue<boost::shared_ptr<Individual_t> > individuals_m;
 
@@ -154,8 +153,6 @@ private:
     
     
     void runStateMachine();
-    
-    void initSamplingMethods_m();
     
     void createNewIndividual_m();
 };

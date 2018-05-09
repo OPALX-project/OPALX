@@ -1,5 +1,6 @@
 set (_SRCS
     SampleCmd.cpp
+    OpalSample.cpp
     SVar.cpp
   )
 
@@ -11,6 +12,7 @@ add_opal_sources(${_SRCS})
 
 set (HDRS
     Individual.h
+    OpalSample.h
     SampleCmd.h
     SamplePilot.h
     SampleWorker.h
