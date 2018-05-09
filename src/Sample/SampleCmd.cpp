@@ -14,7 +14,7 @@
 #include "Utility/IpplTimings.h"
 #include "Track/Track.h"
 
-#include "Pilot/Pilot.h"
+#include "Sample/SPilot.h"
 #include "Util/CmdArguments.h"
 #include "Util/OptPilotException.h"
 #include "Util/OpalInputFileParser.h"
@@ -112,11 +112,7 @@ void SampleCmd::execute() {
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
 
-    typedef Pilot<Input_t, Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-
-    // prepare function dictionary and add all available functions in
-    // expressions
-    functionDictionary_t funcs;
+    typedef SPilot<Input_t, Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
     
     //////////////////////////////////////////////////////////////////////////
 
@@ -239,7 +235,7 @@ void SampleCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, constraints));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, dvars, objectives, constraints));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;
