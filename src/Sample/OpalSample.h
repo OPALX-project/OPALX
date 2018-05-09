@@ -19,24 +19,18 @@ public:
     /// Exemplar constructor.
     OpalSample();
 
-    /// Test if replacement is allowed.
-    //  Can replace only by another OpalSample
-    virtual bool canReplaceBy(Object *object);
-
     /// Make clone.
     virtual OpalSample *clone(const std::string &name);
 
     /// Check the OpalSample data.
     virtual void execute();
-
-    /// Find named trim coil.
+    
+    /// Find sampling method
     static OpalSample *find(const std::string &name);
-
-    /// Update the OpalSample data.
-    virtual void update();
-
-    /// Initialise implementation
-    void initOpalSample();
+    
+    void initOpalSample(double lower, double upper, int nSample);
+    
+    std::string getVariable() const;
     
     std::shared_ptr<SamplingMethod> sampleMethod_m;
 
@@ -48,7 +42,6 @@ private:
     ///@}
     /// Private copy constructor, called by clone
     OpalSample(const std::string &name, OpalSample *parent);
-
 };
 
 #endif
