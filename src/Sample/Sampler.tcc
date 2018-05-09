@@ -123,11 +123,8 @@ void Sampler::createNewIndividual_m() {
     
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
     
-    for (uint i = 0; i < sampleMethods_m.size(); ++i) {
+    for (uint i = 0; i < sampleMethods_m.size(); ++i)
         sampleMethods_m[i]->create(ind, i);
-        
-        std::cout << dNames[i] << " " << ind->genes[i] << std::endl;
-    }
     
     // FIXME does not work with more than 1 master
     ind->id = gid++;
