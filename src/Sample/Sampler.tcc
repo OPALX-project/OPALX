@@ -8,26 +8,11 @@
 #include <string>
 #include <limits>
 
-#include <sys/stat.h>
-
 #include "Sample/Uniform.h"
 
-// #include <memory>
-
-// #include "boost/algorithm/string.hpp"
-// #include "boost/foreach.hpp"
-// #define foreach BOOST_FOREACH
-
-// #include <boost/archive/text_oarchive.hpp>
-// #include <boost/archive/text_iarchive.hpp>
-// #include <boost/serialization/map.hpp>
 
 #include "Util/OptPilotException.h"
 #include "Util/MPIHelper.h"
-
-// #include "Util/Trace/TraceComponent.h"
-// #include "Util/Trace/Timestamp.h"
-// #include "Util/Trace/FileSink.h"
 
 Sampler::Sampler(Expressions::Named_t objectives,
                  Expressions::Named_t constraints,
@@ -41,10 +26,9 @@ Sampler::Sampler(Expressions::Named_t objectives,
 }
 
 
-// template< template <class> class SO >
-Sampler/*<SO>*/::Sampler(Expressions::Named_t type,
-                   DVarContainer_t dvars, Comm::Bundle_t comms,
-                   CmdArguments_t args)
+Sampler::Sampler(Expressions::Named_t type,
+                 DVarContainer_t dvars, Comm::Bundle_t comms,
+                 CmdArguments_t args)
     : Optimizer(comms.opt)
     , comms_(comms)
     , type_m(type)
@@ -53,33 +37,31 @@ Sampler/*<SO>*/::Sampler(Expressions::Named_t type,
 {
     my_local_pid_ = 0;
     MPI_Comm_rank(comms_.opt, &my_local_pid_);
-    
-    //FIXME: proper rand gen initialization (use boost?!)
-    srand(time(NULL) + comms_.island_id);
-
-    // create output directory if it does not exists
-    struct stat dirInfo;
-    if(stat(resultDir_m.c_str(),&dirInfo) != 0)
-        mkdir((const char*)(resultDir_m.c_str()), 0777);
 }
 
 
-/*template< template <class> class SO >*/
-Sampler/*<SO>*/::~Sampler()
+Sampler::~Sampler()
 {}
 
 
-/*template< template <class> class SO >*/
-void Sampler/*<SO>*/::initialize() {
+void Sampler::initialize() {
     
-    nsamples_m = args_->getArg<int>("nsamples", true);
+    nSamples_m = args_->getArg<int>("nsamples", true);
     act_sample_m = 0;
     done_sample_m = 0;
     curState_m = SUBMIT;
+    
+    int nMasters = args_->getArg<int>("num-masters", true);
+    
+    if ( nMasters > 1 )
+        throw OptPilotException("Sampler::initialize",
+                                "Only single master execution currently supported.");
+        
+    
+    // unique job id, FIXME does not work with more than 1 sampler
     gid = 0;
     
     this->initSamplingMethods_m();
-    
     
     // start poll loop
     run();
@@ -93,7 +75,8 @@ void Sampler::initSamplingMethods_m() {
         std::string s = it->second->toString();
         
         if ( s == "UNIFORM_INT" ) {
-            samplingOp_m.push_back( std::unique_ptr< Uniform<int> >(new Uniform<int>(42, 0, 1) ) );  //FIXME        // C++14 --> std::make_unique
+            //FIXME        // C++14 --> std::make_unique
+            samplingOp_m.push_back( std::unique_ptr< Uniform<int> >(new Uniform<int>(42, 0, 1) ) );
         }
         else if ( s == "UNIFORM_DOUBLE" ) {
             samplingOp_m.push_back( std::unique_ptr<Uniform<double> >(new Uniform<double>(42, 0.0, 1.0) ) );
@@ -105,8 +88,7 @@ void Sampler::initSamplingMethods_m() {
 }
 
 
-/*template< template <class> class SO >*/
-bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
+bool Sampler::onMessage(MPI_Status status, size_t length) {
     
     typedef typename Sampler::Individual_t individual;
 
@@ -141,10 +123,9 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 }
 
 
-/*template< template <class> class SO >*/
-void Sampler/*<SO>*/::postPoll() {
+void Sampler::postPoll() {
     
-    if ( act_sample_m < nsamples_m ) {
+    if ( act_sample_m < nSamples_m ) {
         this->createNewIndividual_m();
     }
     
@@ -153,8 +134,6 @@ void Sampler/*<SO>*/::postPoll() {
 
 
 void Sampler::createNewIndividual_m() {
-    
-    std::cout << "createNewIndividual_m" << std::endl;
     
     std::vector<std::string> dNames;
     
@@ -172,30 +151,28 @@ void Sampler::createNewIndividual_m() {
         
     }
     
+    // FIXME does not work with more than 1 master
     ind->id = gid++;
     
     individuals_m.push(ind);
 }
 
 
-/*template< template <class> class SO >*/
-void Sampler/*<SO>*/::dumpPopulationToJSON() {
+void Sampler::dumpPopulationToJSON() {
     
     std::cout << "dumpPopulationToJSON" << std::endl;
 }
 
+
 void Sampler::runStateMachine() {
-    
-    std::cout << "runStateMachine" << std::endl;
     
     switch(curState_m) {
         
         case SUBMIT: {
-            if ( done_sample_m == nsamples_m) {
+            if ( done_sample_m == nSamples_m) {
                 curState_m = STOP;
             } else {
-                if ( act_sample_m != nsamples_m ) {
-                    std::cout << "SUBMIT" << std::endl;
+                if ( act_sample_m != nSamples_m ) {
                     dispatch_forward_solves();
                 }
             }
@@ -221,12 +198,8 @@ void Sampler::runStateMachine() {
 }
 
 
-
-
 void Sampler::dispatch_forward_solves() {
     
-    std::cout << "dispatch_forward_solves" << std::endl;
-
     typedef typename Sampler::Individual_t individual;
 
     while ( !individuals_m.empty() ) {
