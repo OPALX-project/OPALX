@@ -40,6 +40,18 @@ class Sampler : public Optimizer {
 
 public:
 
+    /** This constructor should never be called.
+     *  It's provided due to the inheritance of SamplePilot from
+     *  Pilot
+     * 
+     */
+    Sampler(Expressions::Named_t objectives,
+            Expressions::Named_t constraints,
+            DVarContainer_t dvars,
+            size_t dim, Comm::Bundle_t comms,
+            CmdArguments_t args);
+    
+    
     /**
      *  Retrieves all (for the sampler) relevant arguments specified on the
      *  command line, initializes the variator and sets up statistics and
@@ -88,16 +100,9 @@ private:
     int my_local_pid_;
 
     typedef SIndividual  Individual_t;
-//     /// type of our variator
-//     typedef Variator< Individual_t, CrossoverOperator, MutationOperator >
-//         Variator_t;
-//      boost::scoped_ptr<Variator_t> variator_m;
 
     /// communicator bundle for the optimizer
     Comm::Bundle_t comms_;
-
-    /// buffer holding all finished job id's
-    std::queue<unsigned int> finishedBuffer_m;
 
 //     /// mapping from unique job ID to individual
     std::map<size_t, boost::shared_ptr<SIndividual > > jobmapping_m;
