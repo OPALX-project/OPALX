@@ -13,6 +13,7 @@ set (HDRS
     Individual.h
     SampleCmd.h
     SamplePilot.h
+    SampleWorker.h
     SVar.h
     Sampler.h
     Sampler.tcc
