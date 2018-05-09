@@ -26,12 +26,12 @@ Sampler::Sampler(Expressions::Named_t objectives,
 }
 
 
-Sampler::Sampler(Expressions::Named_t type,
+Sampler::Sampler(const std::vector< std::shared_ptr<SamplingMethod> >& sampleMethods,
                  DVarContainer_t dvars, Comm::Bundle_t comms,
                  CmdArguments_t args)
     : Optimizer(comms.opt)
+    , sampleMethods_m(sampleMethods)
     , comms_(comms)
-    , type_m(type)
     , dvars_m(dvars)
     , args_(args)
 {
@@ -61,30 +61,8 @@ void Sampler::initialize() {
     // unique job id, FIXME does not work with more than 1 sampler
     gid = 0;
     
-    this->initSamplingMethods_m();
-    
     // start poll loop
     run();
-}
-
-
-void Sampler::initSamplingMethods_m() {
-    for ( Expressions::Named_t::iterator it = type_m.begin();
-          it != type_m.end(); ++it )
-    {
-        std::string s = it->second->toString();
-        
-        if ( s == "UNIFORM_INT" ) {
-            //FIXME        // C++14 --> std::make_unique
-            samplingOp_m.push_back( std::unique_ptr< Uniform<int> >(new Uniform<int>(42, 0, 1) ) );
-        }
-        else if ( s == "UNIFORM_DOUBLE" ) {
-            samplingOp_m.push_back( std::unique_ptr<Uniform<double> >(new Uniform<double>(42, 0.0, 1.0) ) );
-        } else {
-            throw OptPilotException("Sampler::initSamplingMethods_m",
-                                    "Sampling method '" + s + "' not supported.");
-        }
-    }
 }
 
 
@@ -145,10 +123,10 @@ void Sampler::createNewIndividual_m() {
     
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
     
-    for (uint i = 0; i < samplingOp_m.size(); ++i) {
+    for (uint i = 0; i < sampleMethods_m.size(); ++i) {
+        sampleMethods_m[i]->create(ind, i);
         
-        samplingOp_m[i]->create(ind, i);
-        
+        std::cout << dNames[i] << " " << ind->genes[i] << std::endl;
     }
     
     // FIXME does not work with more than 1 master

@@ -1,29 +1,28 @@
 #ifndef OPAL_UNIFORM_H
 #define OPAL_UNIFORM_H
 
-#include "Sample/SamplingOperator.h"
+#include "Sample/SamplingMethod.h"
 
 #include <random>
 #include <type_traits>
 
 template <typename T>
-class Uniform : public SamplingOperator
+class Uniform : public SamplingMethod
 {
 
 public:
     typedef typename std::conditional<
                         std::is_integral<T>::value,
-                        std::uniform_int_distribution<>,
-                        std::uniform_real_distribution<>
+                        std::uniform_int_distribution<T>,
+                        std::uniform_real_distribution<T>
                      >::type dist_t;
     
     
-    Uniform(int seed, T lower, T upper)
+    Uniform(T lower, T upper, int seed)
         : eng_m(seed)
         , dist_m(lower, upper)
         
     { }
-    
     
     void create(boost::shared_ptr<SIndividual>& ind, int i) {
         ind->genes[i] = dist_m(eng_m);
