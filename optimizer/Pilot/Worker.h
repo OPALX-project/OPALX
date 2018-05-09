@@ -31,6 +31,21 @@ template <class Sim_t>
 class Worker : protected Poller {
 
 public:
+    
+    Worker(Expressions::Named_t constraints,
+           std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
+        : Poller(comms.worker)
+        , cmd_args_(args)
+    {
+        constraints_     = constraints;
+        simulation_name_ = simName;
+        pilot_rank_      = comms.master_local_pid;
+        is_idle_         = true;
+        coworker_comm_   = comms.coworkers;
+        
+        leader_pid_      = 0;
+        MPI_Comm_size(coworker_comm_, &num_coworkers_);
+    }
 
     Worker(Expressions::Named_t objectives, Expressions::Named_t constraints,
            std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
@@ -60,7 +75,7 @@ public:
     {}
 
 
-private:
+protected:
     typedef boost::scoped_ptr<Sim_t> SimPtr_t;
 
     bool is_idle_;
@@ -160,7 +175,7 @@ protected:
             notifyCoWorkers(MPI_STOP_TAG);
     }
 
-    bool onMessage(MPI_Status status, size_t recv_value) {
+    virtual bool onMessage(MPI_Status status, size_t recv_value) {
 
         if(status.MPI_TAG == MPI_WORK_JOBID_TAG) {
 
