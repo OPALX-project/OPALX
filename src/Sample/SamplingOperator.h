@@ -2,7 +2,7 @@
 #define OPAL_SAMPLING_OPERATOR_H
 
 
-#include "Sample/Individual.h"
+#include "Sample/SIndividual.h"
 
 #include <boost/smart_ptr.hpp>
 
@@ -10,7 +10,7 @@ class SamplingOperator
 {
     
 public:
-    virtual void create(boost::shared_ptr<Individual>& ind, int i) = 0;
+    virtual void create(boost::shared_ptr<SIndividual>& ind, int i) = 0;
 };
 
 #endif

@@ -32,12 +32,13 @@ class SWorker : protected Poller {
 
 public:
 
-    SWorker(Expressions::Named_t objectives, Expressions::Named_t constraints,
+    SWorker(Expressions::Named_t constraints,
            std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
         : Poller(comms.worker)
         , cmd_args_(args)
     {
-        objectives_      = objectives;
+        objectives_.insert(Expressions::SingleNamed_t(
+            "dummy", new Expressions::Expr_t("dummy") ));
         constraints_     = constraints;
         simulation_name_ = simName;
         pilot_rank_      = comms.master_local_pid;
@@ -190,9 +191,12 @@ protected:
                                        simulation_name_,
                                        coworker_comm_,
                                        cmd_args_));
-
+                
+                sim->setFilename(job_id);
+                
                 // run simulation in a "blocking" fashion
                 sim->run();
+                
             } catch(OptPilotException &ex) {
                 std::cout << "Exception while running simulation: "
                           << ex.what() << std::endl;
@@ -204,7 +208,11 @@ protected:
             size_t dummy = 0;
             MPI_Recv(&dummy, 1, MPI_UNSIGNED_LONG, pilot_rank_,
                      MPI_WORKER_FINISHED_ACK_TAG, comm_m, &status);
-
+            
+            
+//             MPI_Send(&dummy, 1, MPI_UNSIGNED_LONG, pilot_rank_,
+//                      MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm_m);
+            
             is_idle_ = true;
             return true;
 

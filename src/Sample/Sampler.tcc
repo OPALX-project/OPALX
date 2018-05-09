@@ -31,9 +31,8 @@
 
 
 // template< template <class> class SO >
-Sampler/*<SO>*/::Sampler(Expressions::Named_t objectives,
-                   Expressions::Named_t type,
-                   DVarContainer_t dvars, size_t dim, Comm::Bundle_t comms,
+Sampler/*<SO>*/::Sampler(Expressions::Named_t type,
+                   DVarContainer_t dvars, Comm::Bundle_t comms,
                    CmdArguments_t args)
     : Optimizer(comms.opt)
     , comms_(comms)
@@ -62,7 +61,7 @@ Sampler/*<SO>*/::~Sampler()
 /*template< template <class> class SO >*/
 void Sampler/*<SO>*/::initialize() {
     
-    nsamples_m = args_->getArg<int>("nsamples", true) - 1;
+    nsamples_m = args_->getArg<int>("nsamples", true);
     act_sample_m = 0;
     done_sample_m = 0;
     curState_m = SUBMIT;
@@ -105,15 +104,6 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 
     MPITag_t tag = MPITag_t(status.MPI_TAG);
     switch(tag) {
-        case OPT_NEW_JOB_TAG: {
-            
-            std::cout << "OPT_NEW_JOB_TAG" << std::endl;
-            
-            dispatch_forward_solves();
-
-            return true;
-        }
-
         case REQUEST_FINISHED: {
             std::cout << "REQUEST_FINISHED" << std::endl;
     
@@ -134,8 +124,9 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
             
             done_sample_m++;
             
-            
             finishedBuffer_m.push(jid);
+            
+            std::cout << "HI" << std::endl;
             
             
             return true;
@@ -151,6 +142,10 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 
 /*template< template <class> class SO >*/
 void Sampler/*<SO>*/::postPoll() {
+    
+    std::cout << "Sampler::postPoll" << std::endl;
+    
+    std::cout << "act_sample_m: " << act_sample_m << std::endl;
     
     if ( act_sample_m < nsamples_m ) {
         this->createNewIndividual_m();
@@ -195,6 +190,8 @@ void Sampler/*<SO>*/::dumpPopulationToJSON() {
 void Sampler::runStateMachine() {
     
     std::cout << "runStateMachine" << std::endl;
+    
+    std::cout << "done_sample_m: " << done_sample_m << std::endl;
 
     switch(curState_m) {
         
@@ -226,7 +223,6 @@ void Sampler::runStateMachine() {
                 
                 if ( act_sample_m != nsamples_m ) {
                     std::cout << "SUBMIT" << std::endl;
-                    act_sample_m++;
                     dispatch_forward_solves();
                 }
 // 
@@ -237,6 +233,8 @@ void Sampler::runStateMachine() {
         }
         case STOP: {
             
+            curState_m = TERMINATE;
+            
             std::cout << "STOP" << std::endl;
             
             // notify pilot that we have converged
@@ -245,6 +243,10 @@ void Sampler::runStateMachine() {
             MPI_Isend(&dummy, 1, MPI_INT, comms_.master_local_pid,
                       MPI_OPT_CONVERGED_TAG, comms_.opt, &req);
     
+            break;
+        }
+        
+        case TERMINATE: {
             break;
         }
     }
@@ -277,6 +279,9 @@ void Sampler::dispatch_forward_solves() {
         
         size_t jid = static_cast<size_t>(ind->id);
         int pilot_rank = comms_.master_local_pid;
+        
+        
+        act_sample_m++;
         
         // now send the request to the pilot
         MPI_Send(&jid, 1, MPI_UNSIGNED_LONG, pilot_rank, OPT_NEW_JOB_TAG, comms_.opt);

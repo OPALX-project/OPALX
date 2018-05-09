@@ -17,7 +17,7 @@
  *
  *  @see Types.h
  */
-class Individual {
+class SIndividual {
 
 public:
 
@@ -26,18 +26,18 @@ public:
     /// gene names
     typedef std::vector<std::string> names_t;
 
-    Individual()
+    SIndividual()
     {}
 
-    /// create a new individual
-    Individual(names_t names)
+    /// create a new SIndividual
+    SIndividual(names_t names)
         : names_m(names)
     {
         genes.resize(names.size(), 0.0);
     }
 
-    /// copy another individual
-    Individual(boost::shared_ptr<Individual> individual) {
+    /// copy another SIndividual
+    SIndividual(boost::shared_ptr<SIndividual> individual) {
         genes         =       genes_t(individual->genes);
         names_m       =       names_t(individual->names_m);
         id            = individual->id;

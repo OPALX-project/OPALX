@@ -25,7 +25,7 @@ public:
     { }
     
     
-    void create(boost::shared_ptr<Individual>& ind, int i) {
+    void create(boost::shared_ptr<SIndividual>& ind, int i) {
         ind->genes[i] = dist_m(eng_m);
     }
     
