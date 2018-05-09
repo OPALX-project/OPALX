@@ -6,6 +6,8 @@
 #include "Utilities/Util.h"
 
 #include "Sample/Uniform.h"
+#include "Sample/SampleSequence.h"
+#include "Sample/FromFile.h"
 
 
 // Class OpalSample
@@ -15,7 +17,9 @@
 namespace {
     enum {
         TYPE,       // The type of sampling
-        PARAMETERS, //
+        VARIABLE,   // name of design variable
+        SEED,       // for random sample methods
+        FNAME,      // file to read from sampling points
         SIZE
     };
 }
@@ -26,22 +30,18 @@ OpalSample::OpalSample():
 {
     itsAttr[TYPE]       = Attributes::makeString
                           ("TYPE", "UNIFORM_INT, UNIFORM_REAL, SEQUENCE, FROMFILE");
-
-    itsAttr[PARAMETERS] = Attributes::makeRealArray
-                         ("PARAMETERS", "List of parameters (depends on TYPE)");
+    
+    itsAttr[VARIABLE]   = Attributes::makeString
+                          ("VARIABLE", "Name of design variable");
+    
+    itsAttr[SEED]       = Attributes::makeReal
+                          ("SEED", "seed for random sampling (default: 42)", 42);
+    
+    itsAttr[FNAME]      = Attributes::makeString
+                          ("FNAME", "File to read from the sampling points");
 
 
     registerOwnership(AttributeHandler::STATEMENT);
-
-    OpalSample *defSampling = clone("UNNAMED_SAMPLING");
-    defSampling->builtin = true;
-
-    try {
-        defSampling->update();
-        OpalData::getInstance()->define(defSampling);
-    } catch(...) {
-        delete defSampling;
-    }
 }
 
 
@@ -50,18 +50,13 @@ OpalSample::OpalSample(const std::string &name, OpalSample *parent):
 {}
 
 
-bool OpalSample::canReplaceBy(Object *object) {
-    return dynamic_cast<OpalSample *>(object) != nullptr;
-}
-
-
 OpalSample *OpalSample::clone(const std::string &name) {
     return new OpalSample(name, this);
 }
 
 
 void OpalSample::execute() {
-    update();
+    
 }
 
 
@@ -69,64 +64,39 @@ OpalSample *OpalSample::find(const std::string &name) {
     OpalSample *sampling = dynamic_cast<OpalSample *>(OpalData::getInstance()->find(name));
 
     if (sampling == nullptr) {
-        throw OpalException("OpalSample::find()", "OpalSample \"" + name + "\" not found.");
+        throw OpalException("OpalSample::find()",
+                            "OpalSample \"" + name + "\" not found.");
     }
     return sampling;
 }
 
 
-void OpalSample::update() {
-    // Set default name.
-    if (getOpalName().empty()) setOpalName("UNNAMED_SAMPLING");
-}
-
-
-void OpalSample::initOpalSample() {
+void OpalSample::initOpalSample(double lower, double upper, int nSample) {
+    
+    if ( lower >= upper )
+        throw OpalException("OpalSample::initOpalSample()",
+                                "Lower bound >= upper bound.");
     
     std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    
+    int seed = Attributes::getReal(itsAttr[SEED]);
         
     if (type == "UNIFORM_INT") {
-        std::vector<double> params = Attributes::getRealArray(itsAttr[PARAMETERS]);
-        
-        if ( params.size() != 3 ) {
-            throw OpalException("OpalSample::initOpalSample()",
-                                type + " requires exactly 3 arguments.");
-        }
-        
-        /* params[0]: lower bound
-         * params[1]: upper bound
-         * params[2]: seed
-         */
-        
-        if ( params[0] >= params[1] ) {
-            throw OpalException("OpalSample::initOpalSample()",
-                                "Lower bound >= upper bound.");
-        }
-        
-        sampleMethod_m.reset( new Uniform<int>(params[0], params[1], params[2]) );
-            
-            
+        sampleMethod_m.reset( new Uniform<int>(lower, upper, seed) );
     } else if (type == "UNIFORM_REAL") {
-        std::vector<double> params = Attributes::getRealArray(itsAttr[PARAMETERS]);
-    
-        if ( params.size() != 3 ) {
-            throw OpalException("OpalSample::initOpalSample()",
-                                type + " requires exactly 3 arguments.");
-        }
-        
-        if ( params[0] >= params[1] ) {
-            throw OpalException("OpalSample::initOpalSample()",
-                                "Lower bound >= upper bound.");
-        }
-            
-        /* params[0]: lower bound
-         * params[1]: upper bound
-         * params[2]: seed
-         */
-        sampleMethod_m.reset( new Uniform<double>(params[0], params[1], params[2]) );
-            
+        sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
+    } else if (type == "SEQUENCE") {
+        sampleMethod_m.reset( new SampleSequence(lower, upper, nSample) );
+    } else if (type == "FROMFILE") {
+        std::string fname = Attributes::getString(itsAttr[FNAME]);
+        sampleMethod_m.reset( new FromFile(fname) );
     } else {
         throw OpalException("OpalSample::initOpalSample()",
                             "Unkown sampling method: '" + type + "'.");
     }
+}
+
+
+std::string OpalSample::getVariable() const {
+    return Attributes::getString(itsAttr[VARIABLE]);
 }
