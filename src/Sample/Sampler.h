@@ -18,7 +18,7 @@
 #include "Util/CmdArguments.h"
 
 #include "Optimizer/Optimizer.h"
-#include "Sample/SIndividual.h"
+#include "Sample/SampleIndividual.h"
 #include "Sample/SamplingMethod.h"
 
 #include <boost/smart_ptr.hpp>
@@ -71,7 +71,7 @@ public:
     void initialize();
     
     /// type used in solution state exchange with other optimizers
-    typedef std::vector< SIndividual > SolutionState_t;
+    typedef std::vector< SampleIndividual > SolutionState_t;
 
 protected:
 
@@ -100,13 +100,13 @@ private:
 
     int my_local_pid_;
 
-    typedef SIndividual  Individual_t;
+    typedef SampleIndividual  Individual_t;
 
     /// communicator bundle for the optimizer
     Comm::Bundle_t comms_;
 
-//     /// mapping from unique job ID to individual
-    std::map<size_t, boost::shared_ptr<SIndividual > > jobmapping_m;
+    /// mapping from unique job ID to individual
+    std::map<size_t, boost::shared_ptr<Individual_t> > jobmapping_m;
     
     std::queue<boost::shared_ptr<Individual_t> > individuals_m;
 

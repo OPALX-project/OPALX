@@ -1,6 +1,6 @@
 set (_SRCS
-    SampleCmd.cpp
     OpalSample.cpp
+    SampleCmd.cpp
   )
 
 include_directories (
@@ -10,13 +10,13 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
-    Individual.h
     OpalSample.h
     SampleCmd.h
+    SampleIndividual.h
     SamplePilot.h
-    SampleWorker.h
     Sampler.h
     Sampler.tcc
+    SampleWorker.h
     SamplingOperator.h
     Uniform.h
 )
