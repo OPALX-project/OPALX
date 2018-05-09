@@ -1,8 +1,8 @@
 #include "Sample/SampleCmd.h"
-#include "Sample/SVar.h"
 #include "Sample/Sampler.h"
 #include "Sample/OpalSample.h"
-#include "Optimize/Constraint.h"
+
+#include "Optimize/DVar.h"
 #include "Optimize/OpalSimulation.h"
 
 #include "Attributes/Attributes.h"
@@ -35,7 +35,7 @@ namespace {
         INPUT,
         OUTPUT,
         OUTDIR,
-        SVARS,
+        DVARS,
         SAMPLINGS,
         NUMMASTERS,
         NUMCOWORKERS,
@@ -56,8 +56,8 @@ SampleCmd::SampleCmd():
         ("OUTPUT", "Name used in output file sample");
     itsAttr[OUTDIR] = Attributes::makeString
         ("OUTDIR", "Name of directory used to store sample output files");
-    itsAttr[SVARS] = Attributes::makeStringArray
-        ("SVARS", "List of sampling variables to be used");
+    itsAttr[DVARS] = Attributes::makeStringArray
+        ("DVARS", "List of sampling variables to be used");
     itsAttr[SAMPLINGS] = Attributes::makeStringArray
         ("SAMPLINGS", "List of sampling methods to be used");
     itsAttr[NUMMASTERS] = Attributes::makeReal
@@ -94,7 +94,7 @@ void SampleCmd::execute() {
     auto opal = OpalData::getInstance();
     fs::path inputfile(Attributes::getString(itsAttr[INPUT]));
 
-    std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[SVARS]);
+    std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
     DVarContainer_t dvars;
         
     std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
@@ -225,12 +225,11 @@ void SampleCmd::execute() {
 
     for (const std::string &name: dvarsstr) {
         Object *obj = opal->find(name);
-        SVar* dvar = static_cast<SVar*>(obj);
+        DVar* dvar = static_cast<DVar*>(obj);
         std::string var = dvar->getVariable();
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
-/*        std::string type  = dvar->getType()*/;
-
+        
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
     }
