@@ -101,16 +101,46 @@ void SampleCmd::execute() {
     if ( sampling.size() != dvarsstr.size() )
         throw OpalException("SampleCmd::execute",
                             "Number of sampling methods != number of design variables.");
-
-    std::vector< std::shared_ptr<SamplingMethod> > sampleMethods;
-    for (std::vector<std::string>::const_iterator sit = sampling.begin();
-         sit != sampling.end(); ++sit)
-    {
-        OpalSample *s = OpalSample::find(*sit);
-            
+    
+    
+    std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods;
+    
+    int nSample = Attributes::getReal(itsAttr[N]);
+    
+    if (nSample <= 0) {
+        throw OpalException("SampleCmd::execute",
+                            "The argument N has to be provided");
+    }
+    
+    std::map<std::string, std::pair<double, double> > vars;
+    
+    for (std::string& name : dvarsstr) {
+        Object *obj = opal->find(name);
+        DVar* dvar = static_cast<DVar*>(obj);
+        std::string var = dvar->getVariable();
+        double lowerbound = dvar->getLowerBound();
+        double upperbound = dvar->getUpperBound();
+        
+        vars[var] = std::make_pair(lowerbound, upperbound);
+        
+        DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
+        dvars.insert(namedDVar_t(name, tmp));
+    }
+    
+    for (size_t i = 0; i < sampling.size(); ++i) {
+        // corresponding sampling method
+        OpalSample *s = OpalSample::find(sampling[i]);
+        
+        std::string name = s->getVariable();
+        
+        if ( vars.find(name) == vars.end() ) {
+            throw OpalException("SampleCmd::execute",
+                                "Variable '" + name + "' not a DVAR.");
+        }
+        
         if ( s ) {
-            s->initOpalSample();
-            sampleMethods.push_back( s->sampleMethod_m );
+            s->initOpalSample(vars[name].first, vars[name].second, nSample);
+            sampleMethods[name] = s->sampleMethod_m;
         } else {
             throw OpalException("SampleCmd::execute",
                                 "Sampling method not found.");
@@ -171,10 +201,6 @@ void SampleCmd::execute() {
         throw OpalException("SampleCmd::execute",
                             "The argument INPUT has to be provided");
     }
-    if (Attributes::getReal(itsAttr[N]) <= 0) {
-        throw OpalException("SampleCmd::execute",
-                            "The argument N has to be provided");
-    }
 
     if (Attributes::getString(itsAttr[SIMTMPDIR]) != "") {
         fs::path dir(Attributes::getString(itsAttr[SIMTMPDIR]));
@@ -221,17 +247,6 @@ void SampleCmd::execute() {
         *gmsg << arguments[i] << " ";
     }
     *gmsg << endl;
-
-    for (const std::string &name: dvarsstr) {
-        Object *obj = opal->find(name);
-        DVar* dvar = static_cast<DVar*>(obj);
-        std::string var = dvar->getVariable();
-        double lowerbound = dvar->getLowerBound();
-        double upperbound = dvar->getUpperBound();
-        
-        DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
-        dvars.insert(namedDVar_t(name, tmp));
-    }
     
     Inform *origGmsg = gmsg;
     gmsg = 0;

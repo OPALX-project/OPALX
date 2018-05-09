@@ -45,7 +45,9 @@ public:
 
     SamplePilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
                 const DVarContainer_t &dvar,
-                const std::vector< std::shared_ptr<SamplingMethod> >& sampleMethods)
+                const std::map< std::string,
+                                std::shared_ptr<SamplingMethod>
+                        >& sampleMethods)
         : Pilot<Input_t,
                 Opt_t,
                 Sim_t,
@@ -255,7 +257,9 @@ bool onMessage(MPI_Status status, size_t recv_value) /*override*/ {
 }
 
 private:
-    std::vector< std::shared_ptr<SamplingMethod> > sampleMethods_m;
+    std::map< std::string,
+              std::shared_ptr<SamplingMethod>
+            > sampleMethods_m;
 };
 
 #endif
