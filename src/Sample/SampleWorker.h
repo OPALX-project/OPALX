@@ -37,13 +37,82 @@ public:
         if(my_local_pid == this->leader_pid_)
             this->run();
         else
-            this->runCoWorker();
+            runSlave();
     }
 
     ~SampleWorker()
     {}
 
 protected:
+    
+    /// notify coworkers of incoming broadcast
+    void notifyCoWorkers(size_t job_id, int tag) {
+
+        for(int i=0; i < this->num_coworkers_; i++) {
+            if(i == this->leader_pid_) continue;
+
+            // send job id to co workers
+            MPI_Send(&job_id, 1, MPI_UNSIGNED_LONG, i, tag, this->coworker_comm_);
+        }
+    }
+    
+    /// coworkers simply wait on a job broadcast from the leader and then
+    /// start a simulation..
+    void runSlave() {
+        /* needs to be executed by derived class otherwise
+         * a base class instance is created.
+         */
+
+        MPI_Request stop_req;
+        size_t job_id = 0;
+
+        MPI_Irecv(&job_id, 1, MPI_UNSIGNED_LONG, this->leader_pid_,
+                  MPI_ANY_TAG, this->coworker_comm_, &stop_req);
+        this->is_running_ = true;
+
+        while(this->is_running_) {
+
+            //FIXME: bcast blocks after our leader stopped working
+            // Either we create a new class implementing a coworker in the
+            // same manner as the worker (poll loop). Anyway there is no way
+            // around removing the Bcast and adding another tag in the poll
+            // loop above in order to be able to exit cleanly.
+            if(stop_req != MPI_REQUEST_NULL) {
+                MPI_Status status;
+                int flag = 0;
+                MPI_Test(&stop_req, &flag, &status);
+
+                if(flag) {
+
+                    if(status.MPI_TAG == MPI_COWORKER_NEW_JOB_TAG) {
+                        Param_t params;
+                        MPI_Bcast_params(params, this->leader_pid_, this->coworker_comm_);
+
+                        try {
+                            typename Worker<Sim_t>::SimPtr_t sim(new Sim_t(this->objectives_, this->constraints_,
+                                    params, this->simulation_name_, this->coworker_comm_,
+                                    this->cmd_args_));
+
+                            sim->setFilename(job_id);
+                            
+                            sim->run();
+                            
+                        } catch(OptPilotException &ex) {
+                            std::cout << "Exception while running simulation: "
+                                      << ex.what() << std::endl;
+                        }
+                        MPI_Irecv(&job_id, 1, MPI_UNSIGNED_LONG, this->leader_pid_,
+                                  MPI_ANY_TAG, this->coworker_comm_, &stop_req);
+                    }
+
+                    if(status.MPI_TAG == MPI_STOP_TAG) {
+                        this->is_running_ = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
     
     bool onMessage(MPI_Status status, size_t recv_value) override {
         
@@ -58,7 +127,7 @@ protected:
 
             // and forward to coworkers (if any)
             if(this->num_coworkers_ > 1) {
-                this->notifyCoWorkers(MPI_COWORKER_NEW_JOB_TAG);
+                notifyCoWorkers(job_id, MPI_COWORKER_NEW_JOB_TAG);
                 MPI_Bcast_params(params, this->leader_pid_, this->coworker_comm_);
             }
 
