@@ -1,15 +1,7 @@
 #include <iostream>
-#include <sstream>
-#include <cassert>
-#include <cmath>
-#include <cstring>
-#include <set>
-#include <cstdlib>
 #include <string>
-#include <limits>
 
 #include "Sample/Uniform.h"
-
 
 #include "Util/OptPilotException.h"
 #include "Util/MPIHelper.h"
@@ -40,10 +32,6 @@ Sampler::Sampler(const std::vector< std::shared_ptr<SamplingMethod> >& sampleMet
 }
 
 
-Sampler::~Sampler()
-{}
-
-
 void Sampler::initialize() {
     
     nSamples_m = args_->getArg<int>("nsamples", true);
@@ -67,14 +55,11 @@ void Sampler::initialize() {
 
 
 bool Sampler::onMessage(MPI_Status status, size_t length) {
-    
-    typedef typename Sampler::Individual_t individual;
-
     MPITag_t tag = MPITag_t(status.MPI_TAG);
     switch(tag) {
         case REQUEST_FINISHED: {
             unsigned int jid = static_cast<unsigned int>(length);
-            typename std::map<size_t, boost::shared_ptr<individual> >::iterator it;
+            typename std::map<size_t, boost::shared_ptr<Individual_t> >::iterator it;
             it = jobmapping_m.find(jid);
     
             if(it == jobmapping_m.end()) {
@@ -84,7 +69,7 @@ bool Sampler::onMessage(MPI_Status status, size_t length) {
             }
     
     
-            boost::shared_ptr<individual> ind = it->second;
+            boost::shared_ptr<Individual_t> ind = it->second;
             
             jobmapping_m.erase(it);
             
