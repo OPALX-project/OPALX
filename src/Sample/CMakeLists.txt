@@ -12,6 +12,7 @@ add_opal_sources(${_SRCS})
 set (HDRS
     Individual.h
     SampleCmd.h
+    SamplePilot.h
     SVar.h
     Sampler.h
     Sampler.tcc
