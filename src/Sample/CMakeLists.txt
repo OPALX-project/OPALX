@@ -10,12 +10,14 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
+    FromFile.h
     OpalSample.h
     SampleCmd.h
     SampleIndividual.h
     SamplePilot.h
     Sampler.h
     Sampler.tcc
+    SampleSequence.h
     SampleWorker.h
     SamplingOperator.h
     Uniform.h
