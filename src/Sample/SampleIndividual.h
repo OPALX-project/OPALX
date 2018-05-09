@@ -11,13 +11,13 @@
 #include "boost/smart_ptr.hpp"
 
 /**
- * \class Individual
+ * \class SampleIndividual
  *  Structure for an individual in the population holding genes
  *  values.
  *
  *  @see Types.h
  */
-class SIndividual {
+class SampleIndividual {
 
 public:
 
@@ -26,21 +26,13 @@ public:
     /// gene names
     typedef std::vector<std::string> names_t;
 
-    SIndividual()
+    SampleIndividual()
     {}
 
-    /// create a new SIndividual
-    SIndividual(names_t names)
+    SampleIndividual(names_t names)
         : names_m(names)
     {
         genes.resize(names.size(), 0.0);
-    }
-
-    /// copy another SIndividual
-    SIndividual(boost::shared_ptr<SIndividual> individual) {
-        genes         =       genes_t(individual->genes);
-        names_m       =       names_t(individual->names_m);
-        id            = individual->id;
     }
 
     /// serialization of structure
