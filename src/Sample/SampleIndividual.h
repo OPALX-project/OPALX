@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "Utilities/OpalException.h"
+
 
 #include "boost/smart_ptr.hpp"
 
@@ -46,6 +48,16 @@ public:
     genes_t      genes;
     /// id
     unsigned int id = 0;
+    
+    int getIndex(std::string name) {
+        auto res = std::find(std::begin(names_m), std::end(names_m), name);
+        
+        if (res == std::end(names_m)) {
+            throw OpalException("SampleIndividual::getIndex()",
+                                "Variable '" + name + "' not contained.");
+        }
+        return std::distance(std::begin(names_m), res);
+    }
 
 private:
     /// gene names

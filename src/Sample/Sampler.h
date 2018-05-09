@@ -61,11 +61,11 @@ public:
      *  @param[in] comms available to the sampler
      *  @param[in] args the user passed on the command line
      */
-    Sampler(const std::vector< std::shared_ptr<SamplingMethod> >& sampleMethods,
+    Sampler(const std::map< std::string,
+                            std::shared_ptr<SamplingMethod>
+                >& sampleMethods,
             DVarContainer_t dvars, Comm::Bundle_t comms,
             CmdArguments_t args);
-
-    ~Sampler();
 
     /// Starting selection algorithm and variator PISA state machine
     void initialize();
@@ -94,7 +94,9 @@ protected:
 
 private:
     
-    std::vector< std::shared_ptr<SamplingMethod> > sampleMethods_m;
+    std::map<std::string,
+             std::shared_ptr<SamplingMethod>
+        > sampleMethods_m;
     
     int gid;
 
@@ -112,8 +114,6 @@ private:
 
     /// bounds on each specified gene
     bounds_t dVarBounds_m;
-    
-    Expressions::Named_t type_m;
     
     /// design variables
     DVarContainer_t dvars_m;
@@ -138,15 +138,6 @@ private:
     
     State curState_m;
     
-
-    /// result file name
-    std::string resultFile_m;
-    std::string resultDir_m;
-
-
-    // dump frequency
-    int dump_freq_;
-
     /// Dumps index, objective values and bit string of all individuals in
     /// global_population.
     void dumpPopulationToJSON();
