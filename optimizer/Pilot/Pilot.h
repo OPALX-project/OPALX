@@ -18,7 +18,6 @@
 
 #include "Pilot/Poller.h"
 #include "Pilot/Worker.h"
-#include "Pilot/SWorker.h"
 #include "Optimizer/Optimizer.h"
 
 #include "Util/Trace/Trace.h"
@@ -265,17 +264,9 @@ private:
         pos = tmplfile.find(".");
         std::string simName = tmplfile.substr(0,pos);
         
-        
-        if ( cmd_args_->getArg<bool>("sample", true, false) ) {
-            
-            std::cout << "Sample Worker" << std::endl;
-            
-            boost::scoped_ptr< SWorker<Sim_t> > w(new SWorker<Sim_t>(objectives_, constraints_, simName,
-                                      comm_->getBundle(), cmd_args_));
-        } else {
-            boost::scoped_ptr< Worker<Sim_t> > w(new Worker<Sim_t>(objectives_, constraints_, simName,
-                                      comm_->getBundle(), cmd_args_));
-        }
+        boost::scoped_ptr< Worker<Sim_t> > w(
+                new Worker<Sim_t>(objectives_, constraints_, simName,
+                    comm_->getBundle(), cmd_args_));
 
         std::cout << "Stop Worker.." << std::endl;
     }
