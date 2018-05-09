@@ -120,7 +120,7 @@ private:
     DVarContainer_t dvars_m;
     
     
-    int nsamples_m;
+    int nSamples_m;
     
 
     /// command line arguments specified by the user
