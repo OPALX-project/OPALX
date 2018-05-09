@@ -41,6 +41,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                , objectives_(objectives)
                , constraints_(constraints)
                , comm_(comm)
+               , id_m(-1)
 {
     namespace fs = boost::filesystem;
 
@@ -151,6 +152,13 @@ bool OpalSimulation::hasResultsAvailable() {
 
 
 void OpalSimulation::setupSimulation() {
+    
+    
+    if ( id_m > -1 ) {
+        std::ostringstream tmp;
+        tmp << simTmpDir_ << "/" << id_m;
+        simulationDirName_ = tmp.str();
+    }
 
     // only on processor in comm group has to setup files
     int rank = 0;

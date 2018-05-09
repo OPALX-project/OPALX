@@ -18,7 +18,7 @@
 #include "Util/CmdArguments.h"
 
 #include "Optimizer/Optimizer.h"
-#include "Sample/Individual.h"
+#include "Sample/SIndividual.h"
 #include "Sample/SamplingOperator.h"
 
 #include <boost/smart_ptr.hpp>
@@ -49,9 +49,9 @@ public:
      *  @param[in] comms available to the sampler
      *  @param[in] args the user passed on the command line
      */
-    Sampler(Expressions::Named_t objectives,
+    Sampler(
                    Expressions::Named_t type,
-                   DVarContainer_t dvars, size_t dim, Comm::Bundle_t comms,
+                   DVarContainer_t dvars, Comm::Bundle_t comms,
                    CmdArguments_t args);
 
     ~Sampler();
@@ -60,7 +60,7 @@ public:
     void initialize();
     
     /// type used in solution state exchange with other optimizers
-    typedef std::vector< Individual > SolutionState_t;
+    typedef std::vector< SIndividual > SolutionState_t;
 
 protected:
 
@@ -87,7 +87,7 @@ private:
 
     int my_local_pid_;
 
-    typedef Individual Individual_t;
+    typedef SIndividual  Individual_t;
 //     /// type of our variator
 //     typedef Variator< Individual_t, CrossoverOperator, MutationOperator >
 //         Variator_t;
@@ -100,7 +100,7 @@ private:
     std::queue<unsigned int> finishedBuffer_m;
 
 //     /// mapping from unique job ID to individual
-    std::map<size_t, boost::shared_ptr<Individual> > jobmapping_m;
+    std::map<size_t, boost::shared_ptr<SIndividual > > jobmapping_m;
     
     std::vector< std::unique_ptr<SamplingOperator> > samplingOp_m;
     
@@ -128,7 +128,8 @@ private:
     
     enum State {
         SUBMIT,
-        STOP
+        STOP,
+        TERMINATE
     };
     
     State curState_m;
