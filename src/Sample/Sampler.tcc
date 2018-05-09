@@ -18,7 +18,9 @@ Sampler::Sampler(Expressions::Named_t objectives,
 }
 
 
-Sampler::Sampler(const std::vector< std::shared_ptr<SamplingMethod> >& sampleMethods,
+Sampler::Sampler(const std::map<std::string,
+                                std::shared_ptr<SamplingMethod>
+                    >& sampleMethods,
                  DVarContainer_t dvars, Comm::Bundle_t comms,
                  CmdArguments_t args)
     : Optimizer(comms.opt)
@@ -108,8 +110,11 @@ void Sampler::createNewIndividual_m() {
     
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
     
-    for (uint i = 0; i < sampleMethods_m.size(); ++i)
-        sampleMethods_m[i]->create(ind, i);
+    for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
+        std::string dName = boost::get<VAR_NAME>(itr->second);
+        int i = ind->getIndex(dName);
+        sampleMethods_m[dName]->create(ind, i);
+    }
     
     // FIXME does not work with more than 1 master
     ind->id = gid++;
@@ -159,8 +164,6 @@ void Sampler::runStateMachine() {
 
 
 void Sampler::dispatch_forward_solves() {
-    
-    typedef typename Sampler::Individual_t individual;
 
     while ( !individuals_m.empty() ) {
         boost::shared_ptr<Individual_t> ind = individuals_m.front();
@@ -169,13 +172,13 @@ void Sampler::dispatch_forward_solves() {
         
         Param_t params;
         DVarContainer_t::iterator itr;
-        size_t i = 0;
         
-        for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++, i++) {
+        for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
+            std::string dName = boost::get<VAR_NAME>(itr->second);
+            int i = ind->getIndex(dName);
             params.insert(
                 std::pair<std::string, double>
-                    (boost::get<VAR_NAME>(itr->second),
-                     ind->genes[i]));
+                    (dName, ind->genes[i]));
         }
         
         size_t jid = static_cast<size_t>(ind->id);
@@ -190,6 +193,6 @@ void Sampler::dispatch_forward_solves() {
         MPI_Send_params(params, pilot_rank, comms_.opt);
         
         jobmapping_m.insert(
-                std::pair<size_t, boost::shared_ptr<individual> >(jid, ind));
+                std::pair<size_t, boost::shared_ptr<Individual_t> >(jid, ind));
     }
 }
