@@ -29,6 +29,17 @@
 // #include "Util/Trace/Timestamp.h"
 // #include "Util/Trace/FileSink.h"
 
+Sampler::Sampler(Expressions::Named_t objectives,
+                 Expressions::Named_t constraints,
+                 DVarContainer_t dvars,
+                 size_t dim, Comm::Bundle_t comms,
+                 CmdArguments_t args)
+    : Optimizer(comms.opt)
+{
+    throw OptPilotException("Sampler::Sampler",
+                            "We shouldn't get here!");
+}
+
 
 // template< template <class> class SO >
 Sampler/*<SO>*/::Sampler(Expressions::Named_t type,
@@ -97,16 +108,11 @@ void Sampler::initSamplingMethods_m() {
 /*template< template <class> class SO >*/
 bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
     
-    std::cout << "onMessage" << std::endl;
-    
-
     typedef typename Sampler::Individual_t individual;
 
     MPITag_t tag = MPITag_t(status.MPI_TAG);
     switch(tag) {
         case REQUEST_FINISHED: {
-            std::cout << "REQUEST_FINISHED" << std::endl;
-    
             unsigned int jid = static_cast<unsigned int>(length);
             typename std::map<size_t, boost::shared_ptr<individual> >::iterator it;
             it = jobmapping_m.find(jid);
@@ -124,11 +130,6 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
             
             done_sample_m++;
             
-            finishedBuffer_m.push(jid);
-            
-            std::cout << "HI" << std::endl;
-            
-            
             return true;
         }
         default: {
@@ -142,10 +143,6 @@ bool Sampler/*<SO>*/::onMessage(MPI_Status status, size_t length) {
 
 /*template< template <class> class SO >*/
 void Sampler/*<SO>*/::postPoll() {
-    
-    std::cout << "Sampler::postPoll" << std::endl;
-    
-    std::cout << "act_sample_m: " << act_sample_m << std::endl;
     
     if ( act_sample_m < nsamples_m ) {
         this->createNewIndividual_m();
@@ -191,51 +188,22 @@ void Sampler::runStateMachine() {
     
     std::cout << "runStateMachine" << std::endl;
     
-    std::cout << "done_sample_m: " << done_sample_m << std::endl;
-
     switch(curState_m) {
         
         case SUBMIT: {
-            
-            
             if ( done_sample_m == nsamples_m) {
                 curState_m = STOP;
             } else {
-                
-                
-//             if(parent_queue_.size() > 0) {
-//                 std::vector<unsigned int> parents(parent_queue_.begin(),
-//                                                   parent_queue_.end());
-//                 parent_queue_.clear();
-// 
-//                 // remove non-surviving individuals
-//                 //std::set<unsigned int> survivors(archive_.begin(),
-//                                                  //archive_.end());
-//                 std::set<unsigned int> survivors(pp_all.begin(),
-//                                                  pp_all.end());
-// 
-//                 variator_m->population()->keepSurvivors(survivors);
-// 
-//                 // only enqueue new individuals to pilot, the poll loop will
-//                 // feed results back to the selector.
-//                 //FIXME: variate works on staging set!!!
-//                 variator_m->variate(parents);
-                
                 if ( act_sample_m != nsamples_m ) {
                     std::cout << "SUBMIT" << std::endl;
                     dispatch_forward_solves();
                 }
-// 
-//                 curState_m = Variate;
-//             }
             }
             break;
         }
         case STOP: {
             
             curState_m = TERMINATE;
-            
-            std::cout << "STOP" << std::endl;
             
             // notify pilot that we have converged
             int dummy = 0;

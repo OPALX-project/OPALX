@@ -14,7 +14,7 @@
 #include "Utility/IpplTimings.h"
 #include "Track/Track.h"
 
-#include "Sample/SPilot.h"
+#include "Sample/SamplePilot.h"
 #include "Util/CmdArguments.h"
 #include "Util/OptPilotException.h"
 #include "Util/OpalInputFileParser.h"
@@ -95,11 +95,6 @@ void SampleCmd::execute() {
     DVarContainer_t dvars;
     
     
-    // OPT-Pilot wants to have at least 1 objective --> create a dummy one
-    Expressions::Named_t objectives;
-    objectives.insert(Expressions::SingleNamed_t(
-        "dummy", new Expressions::Expr_t("dummy") ));
-    
     // constrains --> type of sampling
     Expressions::Named_t constraints;
     
@@ -112,7 +107,7 @@ void SampleCmd::execute() {
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
 
-    typedef SPilot<Input_t, Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+    typedef SamplePilot<Input_t, Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
     
     //////////////////////////////////////////////////////////////////////////
 
@@ -124,7 +119,8 @@ void SampleCmd::execute() {
             {OUTDIR, "outdir"},
             {NUMMASTERS, "num-masters"},
             {NUMCOWORKERS, "num-coworkers"},
-            {N, "nsamples"}
+            {N, "nsamples"},
+            {N, "initialPopulation"}
         });
 
     auto it = argumentMapper.end();
@@ -235,7 +231,7 @@ void SampleCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, dvars, objectives, constraints));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, dvars, constraints));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;
