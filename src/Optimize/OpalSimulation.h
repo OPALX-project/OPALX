@@ -57,8 +57,12 @@ public:
 
     /// returns container containing all requested variables with results
     reqVarContainer_t getResults() { return requestedVars_; }
+    
+    void setFilename(int id) { id_m = id; }
 
 private:
+    
+    int id_m;
 
     /// identification of the simulation (corresponding to output filename)
     std::string simulationName_;
