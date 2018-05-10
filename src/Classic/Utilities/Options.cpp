@@ -43,7 +43,7 @@ namespace Options {
 
     // the number of refinements of the search range for the phase with maximum energy
     // if eq 0 then no autophase
-    int autoPhase = 0;
+    int autoPhase = 6;
 
     // The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
     int psDumpFreq = 10;
@@ -99,6 +99,4 @@ namespace Options {
 #endif
 
     bool memoryDump = false;
-
-    bool useUUID = true;
 }
