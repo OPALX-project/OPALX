@@ -28,6 +28,8 @@
 
 #include <queue>
 
+#include <boost/property_tree/ptree.hpp>
+
 
 /**
  *  \class Sampler
@@ -94,6 +96,7 @@ protected:
 
 private:
     
+    
     std::map<std::string,
              std::shared_ptr<SamplingMethod>
         > sampleMethods_m;
@@ -138,10 +141,15 @@ private:
     
     State curState_m;
     
-    /// Dumps index, objective values and bit string of all individuals in
-    /// global_population.
-    void dumpPopulationToJSON();
+    /// Dumps id, design variables and bound
+    std::string resultFile_m;
+    std::string resultDir_m;
     
+    boost::property_tree::ptree samples_m;
+    
+    void dumpIndividualsToJSON_m();
+    
+    void addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind);
     
     void runStateMachine();
     
