@@ -87,6 +87,18 @@ template <
 class Pilot : protected Poller {
 
 public:
+    
+    // constructor only for Pilot classes inherited from this class
+    // they have their own setup function
+    Pilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
+          const DVarContainer_t &dvar)
+        : Poller(comm->mpiComm())
+        , comm_(comm)
+        , cmd_args_(args)
+        , dvars_(dvar)
+    {
+        // do nothing
+    }
 
     Pilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
           functionDictionary_t known_expr_funcs)
@@ -116,7 +128,7 @@ public:
     {}
 
 
-private:
+protected:
 
     /// MPI communicator used for messages to/from worker
     MPI_Comm worker_comm_;
@@ -162,7 +174,7 @@ private:
     //DEBUG
     boost::scoped_ptr<Trace> job_trace_;
 
-
+private:
     void setup(functionDictionary_t known_expr_funcs) {
         global_rank_ = comm_->globalRank();
 
@@ -191,6 +203,8 @@ private:
         else if ( comm_->isWorker()    ) { startWorker();    }
         else if ( comm_->isPilot()     ) { startPilot();     }
     }
+    
+protected:
 
     void parseInputFile(functionDictionary_t known_expr_funcs) {
 
@@ -263,7 +277,7 @@ private:
             tmplfile = input_file_.substr(pos+1);
         pos = tmplfile.find(".");
         std::string simName = tmplfile.substr(0,pos);
-
+        
         boost::scoped_ptr< Worker<Sim_t> > w(
                 new Worker<Sim_t>(objectives_, constraints_, simName,
                     comm_->getBundle(), cmd_args_));
@@ -324,9 +338,6 @@ private:
 
         std::cout << "Stop Pilot.." << std::endl;
     }
-
-
-protected:
 
     void setupPoll()
     {}
