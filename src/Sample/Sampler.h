@@ -59,7 +59,8 @@ public:
      *  command line, initializes the variator and sets up statistics and
      *  debug traces.
      *
-     *  @param[in] svars of sampling
+     *  @param[in] sampleMethods per design variable (dvar)
+     *  @param[in] dvars of sampling
      *  @param[in] comms available to the sampler
      *  @param[in] args the user passed on the command line
      */
@@ -82,17 +83,11 @@ protected:
     void postPoll();
 
     void setupPoll() {}
-    void prePoll() {
-        // std::ostringstream debug;
-        // debug << "IN PRE POLL: ";
-        // debug << getStateString(curState_m) << std::endl;
-        // progress_->log(debug);
-    }
+    void prePoll() {}
     void onStop() {}
 
     // helper sending evaluation requests to the pilot
     void dispatch_forward_solves();
-
 
 private:
     
@@ -101,8 +96,9 @@ private:
              std::shared_ptr<SamplingMethod>
         > sampleMethods_m;
     
+    // global index (for job id)
     int gid;
-
+    
     int my_local_pid_;
 
     typedef SampleIndividual  Individual_t;
