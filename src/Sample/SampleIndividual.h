@@ -58,6 +58,11 @@ public:
         }
         return std::distance(std::begin(names_m), res);
     }
+    
+    
+    std::string getName(size_t i) {
+        return names_m[i];
+    }
 
 private:
     /// gene names
