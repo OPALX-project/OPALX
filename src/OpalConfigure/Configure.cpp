@@ -148,6 +148,10 @@
 #include "Optimize/Objective.h"
 #include "Optimize/Constraint.h"
 
+// Sample command
+#include "Sample/SampleCmd.h"
+#include "Sample/OpalSample.h"
+
 #include "changes.h"
 
 // Modify these methods to add new commands.
@@ -175,6 +179,7 @@ namespace {
         opal->create(new Micado());
         opal->create(new Option());
         opal->create(new OptimizeCmd());
+        opal->create(new SampleCmd());
         opal->create(new Save());
         opal->create(new Select());
         opal->create(new Show());
@@ -225,6 +230,8 @@ namespace {
         opal->create(new DVar());
         opal->create(new Objective());
         opal->create(new Constraint());
+        
+        opal->create(new OpalSample());
     }
 
 
