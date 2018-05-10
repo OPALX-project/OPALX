@@ -298,18 +298,16 @@ void PeakFinder::createHistogram_m() {
     if (globMax_m < -1e9)
         nBins_m = 10; // no particles in probe
     else {
-        // calculate bins, round up so that histogram is large enough
-        nBins_m = static_cast<unsigned int>(std::ceil(( globMax_m - globMin_m ) / binWidth_m));
+        // calculate bins, round up so that histogram is large enough (add one for safety)
+        nBins_m = static_cast<unsigned int>(std::ceil(( globMax_m - globMin_m ) / binWidth_m)) + 1;
     }
     
-    globHist_m.resize(nBins_m + 1);
-    
-    container_t locHist(nBins_m + 1);
+    globHist_m.resize(nBins_m);
+    container_t locHist(nBins_m,0.0);
 
     double invBinWidth = 1.0 / binWidth_m;
     for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
-        int bin = std::abs(*it - globMin_m ) * invBinWidth;
-        
+        int bin = static_cast<int>(std::abs(*it - globMin_m ) * invBinWidth);
         ++locHist[bin];
     }
     
@@ -351,7 +349,11 @@ void PeakFinder::saveASCII_m() {
         for (auto &radius : peakRadii_m)
             os_m << radius << std::endl;
         
-        hos_m << "# Histogram bin counts ()" << std::endl;
+        hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
+              << globMin_m << " mm "
+              << globMax_m << " mm "
+              << nBins_m << " "
+              << binWidth_m << " mm" << std::endl;
         for (auto binCount : globHist_m)
             hos_m << binCount << std::endl;
     }
