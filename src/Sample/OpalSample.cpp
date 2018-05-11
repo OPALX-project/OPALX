@@ -7,6 +7,7 @@
 
 #include "Sample/Uniform.h"
 #include "Sample/SampleSequence.h"
+#include "Sample/SampleGaussianSequence.h"
 #include "Sample/FromFile.h"
 
 
@@ -30,13 +31,13 @@ OpalSample::OpalSample():
 {
     itsAttr[TYPE]       = Attributes::makeString
                           ("TYPE", "UNIFORM_INT, UNIFORM_REAL, SEQUENCE, FROMFILE");
-    
+
     itsAttr[VARIABLE]   = Attributes::makeString
                           ("VARIABLE", "Name of design variable");
-    
+
     itsAttr[SEED]       = Attributes::makeReal
                           ("SEED", "seed for random sampling (default: 42)", 42);
-    
+
     itsAttr[FNAME]      = Attributes::makeString
                           ("FNAME", "File to read from the sampling points");
 
@@ -56,7 +57,7 @@ OpalSample *OpalSample::clone(const std::string &name) {
 
 
 void OpalSample::execute() {
-    
+
 }
 
 
@@ -72,21 +73,23 @@ OpalSample *OpalSample::find(const std::string &name) {
 
 
 void OpalSample::initOpalSample(double lower, double upper, int nSample) {
-    
+
     if ( lower >= upper )
         throw OpalException("OpalSample::initOpalSample()",
                                 "Lower bound >= upper bound.");
-    
+
     std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
-    
+
     int seed = Attributes::getReal(itsAttr[SEED]);
-        
+
     if (type == "UNIFORM_INT") {
         sampleMethod_m.reset( new Uniform<int>(lower, upper, seed) );
     } else if (type == "UNIFORM_REAL") {
         sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
     } else if (type == "SEQUENCE") {
         sampleMethod_m.reset( new SampleSequence(lower, upper, nSample) );
+    } else if (type == "GAUSSIAN_SEQUENCE") {
+        sampleMethod_m.reset( new SampleGaussianSequence(lower, upper, nSample) );
     } else if (type == "FROMFILE") {
         std::string fname = Attributes::getString(itsAttr[FNAME]);
         sampleMethod_m.reset( new FromFile(fname) );
