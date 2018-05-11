@@ -29,7 +29,7 @@ namespace Versions {
                     "* OPAL-T: The design energy of dipoles is now expected to be in MeV instead\n"
                     "  of eV.\n"
                     "\n"
-                    "* OPAL-T: The attribute 'ROTATION' of RBEND and SBEND have been replaced\n"
+                    "* OPAL-T: The attribute 'ROTATION' of RBEND and SBEND has been replaced\n"
                     "  by 'PSI'. Can be applyied to all elements to rotate them.\n"
                     "\n"
                     "* The attribute DISTRIBUTION of the command DISTRIBUTION has been renamed to\n"
