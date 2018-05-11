@@ -17,16 +17,18 @@ public:
     {
         double mean = 0.5 * (lower + upper);
         double sigma = (upper - lower) / 10; // +- 5 sigma
+        double factor = sigma / sqrt(2);
         double dx = 2.0 / nSample;
-        double oldY = -5.0;
+        double oldY = -2.5;
         for (long i = 1; i < nSample; ++ i) {
             double x = -1.0 + i * dx;
             double y = erfinv(x);
-            chain_m.push_back(mean + 0.5 * sigma * (y + oldY));
+            chain_m.push_back(mean + factor * (y + oldY));
             oldY = y;
         }
 
-        chain_m.push_back(mean + 0.5 * sigma * (5.0 + oldY));
+        chain_m.push_back(mean + factor * (2.5 + oldY));
+
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
