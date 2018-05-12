@@ -87,7 +87,7 @@ SampleCmd *SampleCmd::clone(const std::string &name) {
 }
 
 void SampleCmd::execute() {
-    
+
     namespace fs = boost::filesystem;
 
     auto opal = OpalData::getInstance();
@@ -95,58 +95,57 @@ void SampleCmd::execute() {
 
     std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
     DVarContainer_t dvars;
-        
+
     std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
-    
+
     if ( sampling.size() != dvarsstr.size() )
         throw OpalException("SampleCmd::execute",
                             "Number of sampling methods != number of design variables.");
-    
-    
+
+
     std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods;
-    
+
     int nSample = Attributes::getReal(itsAttr[N]);
-    
+
     if (nSample <= 0) {
         throw OpalException("SampleCmd::execute",
                             "The argument N has to be provided");
     }
-    
+
     std::map<std::string, std::pair<double, double> > vars;
-    
+
     for (std::string& name : dvarsstr) {
         Object *obj = opal->find(name);
         DVar* dvar = static_cast<DVar*>(obj);
         std::string var = dvar->getVariable();
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
-        
+
         vars[var] = std::make_pair(lowerbound, upperbound);
-        
+
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
     }
-    
+
     for (size_t i = 0; i < sampling.size(); ++i) {
         // corresponding sampling method
         OpalSample *s = OpalSample::find(sampling[i]);
-        
+        if (s == 0) {
+            throw OpalException("SampleCmd::execute",
+                                "Sampling method not found.");
+        }
+
         std::string name = s->getVariable();
-        
+
         if ( vars.find(name) == vars.end() ) {
             throw OpalException("SampleCmd::execute",
                                 "Variable '" + name + "' not a DVAR.");
         }
-        
-        if ( s ) {
-            s->initOpalSample(vars[name].first, vars[name].second, nSample);
-            sampleMethods[name] = s->sampleMethod_m;
-        } else {
-            throw OpalException("SampleCmd::execute",
-                                "Sampling method not found.");
-        }
+
+        s->initOpalSample(vars[name].first, vars[name].second, nSample);
+        sampleMethods[name] = s->sampleMethod_m;
     }
-    
+
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
     typedef OpalInputFileParser Input_t;
@@ -156,7 +155,7 @@ void SampleCmd::execute() {
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
 
     typedef SamplePilot<Input_t, Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-    
+
     //////////////////////////////////////////////////////////////////////////
 
     std::vector<std::string> arguments(opal->getArguments());
@@ -240,14 +239,14 @@ void SampleCmd::execute() {
 
         setenv("FIELDMAPS", dir.c_str(), 1);
     }
-    
+
     *gmsg << endl;
     for (size_t i = 0; i < arguments.size(); ++ i) {
         argv.push_back(const_cast<char*>(arguments[i].c_str()));
         *gmsg << arguments[i] << " ";
     }
     *gmsg << endl;
-    
+
     Inform *origGmsg = gmsg;
     gmsg = 0;
     stashEnvironment();
