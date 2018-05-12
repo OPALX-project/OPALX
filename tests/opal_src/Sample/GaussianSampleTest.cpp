@@ -6,7 +6,7 @@
 TEST(GaussSampleTest, ChainTest) {
     OpalTestUtilities::SilenceTest silencer;
     unsigned int nSample = 101;
-    SampleGaussianSequence seq(-5, 5, nSample);
+    SampleGaussianSequence seq(-5, 5, 1, nSample);
 
     for (unsigned int i = 0; i * 2 < nSample - 1; ++ i) {
         seq.getNext();

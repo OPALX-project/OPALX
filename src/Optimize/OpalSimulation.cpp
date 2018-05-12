@@ -116,10 +116,12 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     std::string dataFile = simulationName_ + ".data";
     fs::path pwd = fs::current_path();
     if (!fs::exists(dataFile))
-        throw OptPilotException("OpalSimulation::OpalSimulation", "The data file '" + dataFile + "' \n     doesn't exist in directory '" + pwd.native() + "'");
+        throw OptPilotException("OpalSimulation::OpalSimulation",
+                                "The data file '" + dataFile + "' \n     doesn't exist in directory '" + pwd.native() + "'");
 
     if (!fs::exists(tmplFile))
-        throw OptPilotException("OpalSimulation::OpalSimulation", "The template file '" + tmplFile + "' doesn't exit");
+        throw OptPilotException("OpalSimulation::OpalSimulation",
+                                "The template file '" + tmplFile + "' doesn't exit");
 
     gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, userVariables_));
 }
@@ -146,8 +148,8 @@ bool OpalSimulation::hasResultsAvailable() {
 
 
 void OpalSimulation::setupSimulation() {
-    
-    
+
+
     if ( id_m > -1 ) {
         std::ostringstream tmp;
         tmp << simTmpDir_ << "/" << id_m;
@@ -322,7 +324,7 @@ void OpalSimulation::run() {
 
 
 void OpalSimulation::collectResults() {
-    
+
     std::cout << "collectResults" << std::endl;
 
     // clear old solutions

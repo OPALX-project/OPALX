@@ -1,4 +1,4 @@
-#include "Sample/SampleCmd.h"
+#include "Sample/SequenceSampleCmd.h"
 #include "Sample/Sampler.h"
 #include "Sample/OpalSample.h"
 
@@ -24,6 +24,7 @@
 #include "Comm/MasterGraph/SocialNetworkGraph.h"
 
 #include "Expression/Parser/function.hpp"
+#include "Utilities/Util.h"
 
 #include <boost/filesystem.hpp>
 
@@ -38,7 +39,6 @@ namespace {
         SAMPLINGS,
         NUMMASTERS,
         NUMCOWORKERS,
-        N,
         SIMTMPDIR,
         TEMPLATEDIR,
         FIELDMAPDIR,
@@ -46,9 +46,9 @@ namespace {
     };
 }
 
-SampleCmd::SampleCmd():
-    Action(SIZE, "SAMPLE",
-           "The \"SAMPLE\" command initiates sampling.") {
+SequenceSampleCmd::SequenceSampleCmd():
+    Action(SIZE, "SEQUENCESAMPLE",
+           "The \"SEQUENCESAMPLE\" command initiates sampling.") {
     itsAttr[INPUT] = Attributes::makeString
         ("INPUT", "Path to input file");
     itsAttr[OUTPUT] = Attributes::makeString
@@ -63,8 +63,6 @@ SampleCmd::SampleCmd():
         ("NUM_MASTERS", "Number of master nodes");
     itsAttr[NUMCOWORKERS] = Attributes::makeReal
         ("NUM_COWORKERS", "Number processors per worker");
-    itsAttr[N] = Attributes::makeReal
-        ("N", "Number of samples");
     itsAttr[SIMTMPDIR] = Attributes::makeString
         ("SIMTMPDIR", "Directory where simulations are run");
     itsAttr[TEMPLATEDIR] = Attributes::makeString
@@ -75,18 +73,18 @@ SampleCmd::SampleCmd():
     registerOwnership(AttributeHandler::COMMAND);
 }
 
-SampleCmd::SampleCmd(const std::string &name, SampleCmd *parent):
+SequenceSampleCmd::SequenceSampleCmd(const std::string &name, SequenceSampleCmd *parent):
     Action(name, parent)
 { }
 
-SampleCmd::~SampleCmd()
+SequenceSampleCmd::~SequenceSampleCmd()
 { }
 
-SampleCmd *SampleCmd::clone(const std::string &name) {
-    return new SampleCmd(name, this);
+SequenceSampleCmd *SequenceSampleCmd::clone(const std::string &name) {
+    return new SequenceSampleCmd(name, this);
 }
 
-void SampleCmd::execute() {
+void SequenceSampleCmd::execute() {
 
     namespace fs = boost::filesystem;
 
@@ -99,18 +97,10 @@ void SampleCmd::execute() {
     std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
 
     if ( sampling.size() != dvarsstr.size() )
-        throw OpalException("SampleCmd::execute",
+        throw OpalException("SequenceSampleCmd::execute",
                             "Number of sampling methods != number of design variables.");
 
-
     std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods;
-
-    int nSample = Attributes::getReal(itsAttr[N]);
-
-    if (nSample <= 0) {
-        throw OpalException("SampleCmd::execute",
-                            "The argument N has to be provided");
-    }
 
     std::map<std::string, std::pair<double, double> > vars;
 
@@ -127,25 +117,29 @@ void SampleCmd::execute() {
         dvars.insert(namedDVar_t(name, tmp));
     }
 
+    size_t modulo = 1;
     for (size_t i = 0; i < sampling.size(); ++i) {
         // corresponding sampling method
         OpalSample *s = OpalSample::find(sampling[i]);
         if (s == 0) {
-            throw OpalException("SampleCmd::execute",
+            throw OpalException("SequenceSampleCmd::execute",
                                 "Sampling method not found.");
         }
 
         std::string name = s->getVariable();
 
         if ( vars.find(name) == vars.end() ) {
-            throw OpalException("SampleCmd::execute",
+            throw OpalException("SequenceSampleCmd::execute",
                                 "Variable '" + name + "' not a DVAR.");
         }
 
         s->initialize(name,
                       vars[name].first,
                       vars[name].second,
-                      nSample);
+                      1,
+                      modulo,
+                      true);
+        modulo *= s->getSize();
         sampleMethods[name] = s->sampleMethod_m;
     }
 
@@ -168,9 +162,7 @@ void SampleCmd::execute() {
             {OUTPUT, "outfile"},
             {OUTDIR, "outdir"},
             {NUMMASTERS, "num-masters"},
-            {NUMCOWORKERS, "num-coworkers"},
-            {N, "nsamples"},
-            {N, "initialPopulation"}
+            {NUMCOWORKERS, "num-coworkers"}
         });
 
     auto it = argumentMapper.end();
@@ -199,8 +191,11 @@ void SampleCmd::execute() {
             }
         }
     }
+
+    arguments.push_back("--nsamples=" + std::to_string(modulo));
+
     if (Attributes::getString(itsAttr[INPUT]) == "") {
-        throw OpalException("SampleCmd::execute",
+        throw OpalException("SequenceSampleCmd::execute",
                             "The argument INPUT has to be provided");
     }
 
@@ -267,14 +262,14 @@ void SampleCmd::execute() {
     gmsg = origGmsg;
 }
 
-void SampleCmd::stashEnvironment() {
+void SequenceSampleCmd::stashEnvironment() {
     Ippl::stash();
     IpplTimings::stash();
     Track::stash();
     OpalData::stashInstance();
 }
 
-void SampleCmd::popEnvironment() {
+void SequenceSampleCmd::popEnvironment() {
     Ippl::pop();
     IpplTimings::pop();
     OpalData::popInstance();

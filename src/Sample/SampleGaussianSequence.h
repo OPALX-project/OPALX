@@ -12,8 +12,10 @@ class SampleGaussianSequence : public SamplingMethod
 
 public:
 
-    SampleGaussianSequence(double lower, double upper, int nSample)
+    SampleGaussianSequence(double lower, double upper, size_t modulo, int nSample)
         : n_m(0)
+        , counter_m(0)
+        , mod_m(modulo)
     {
         double mean = 0.5 * (lower + upper);
         double sigma = (upper - lower) / 10; // +- 5 sigma
@@ -48,9 +50,13 @@ private:
 #endif
     std::vector<double> chain_m;
     unsigned int n_m;
+    size_t counter_m;
+    size_t mod_m;
 
     void incrementCounter() {
-        ++ n_m;
+        ++ counter_m;
+        if (counter_m % mod_m == 0)
+            ++ n_m;
         if (n_m >= chain_m.size())
             n_m = 0;
     }
