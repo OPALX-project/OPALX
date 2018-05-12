@@ -28,12 +28,12 @@
  *  @tparam Comm_t comm splitter strategy
  */
 template <
-          class Input_t
-        , class Opt_t
-        , class Sim_t
-        , class SolPropagationGraph_t
-        , class Comm_t
->
+    class Input_t
+    , class Opt_t
+    , class Sim_t
+    , class SolPropagationGraph_t
+    , class Comm_t
+    >
 class SamplePilot : protected Pilot<Input_t,
                                     Opt_t,
                                     Sim_t,
@@ -46,8 +46,8 @@ public:
     SamplePilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
                 const DVarContainer_t &dvar,
                 const std::map< std::string,
-                                std::shared_ptr<SamplingMethod>
-                        >& sampleMethods)
+                std::shared_ptr<SamplingMethod>
+                >& sampleMethods)
         : Pilot<Input_t,
                 Opt_t,
                 Sim_t,
@@ -61,7 +61,7 @@ public:
         this->objectives_ = {
             {"dummy", new Expressions::Expr_t("dummy")}
         };
-        
+
         setup();
     }
 
@@ -70,17 +70,18 @@ public:
 
 
 protected:
-    
+
     /// keep track of requests and running jobs
     typedef std::map<size_t, Param_t > Jobs_t;
     typedef Jobs_t::iterator JobIter_t;
     Jobs_t  running_job_list_;
     Jobs_t  request_queue_;
-    
-    
+
+
+    virtual
     void setup() {
         this->global_rank_ = this->comm_->globalRank();
-        
+
         this->parseInputFile(functionDictionary_t());
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -89,26 +90,27 @@ protected:
         else if ( this->comm_->isWorker()    ) { startWorker();    }
         else if ( this->comm_->isPilot()     ) { this->startPilot();     }
     }
-    
-    
+
+    virtual
     void startSampler() {
-        
+
         std::ostringstream os;
         os << "\033[01;35m" << "  " << this->global_rank_ << " ▶ Sampler"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
         boost::scoped_ptr<Opt_t> opt(
-                new Opt_t(sampleMethods_m, this->dvars_,
-                          this->comm_->getBundle(), this->cmd_args_));
+                                     new Opt_t(sampleMethods_m, this->dvars_,
+                                               this->comm_->getBundle(), this->cmd_args_));
         opt->initialize();
 
         std::cout << "Stop Opt.." << std::endl;
     }
 
 
+    virtual
     void startWorker() /*override*/ {
-        
+
         std::ostringstream os;
         os << "\033[01;35m" << "  " << this->global_rank_ << " ▶ Worker"
            << "\e[0m" << std::endl;
@@ -120,14 +122,16 @@ protected:
             tmplfile = this->input_file_.substr(pos+1);
         pos = tmplfile.find(".");
         std::string simName = tmplfile.substr(0,pos);
-        
+
+        std::cout << this->input_file_ << "\t" << tmplfile << std::endl;
         boost::scoped_ptr< SampleWorker<Sim_t> > w(
-            new SampleWorker<Sim_t>(this->constraints_, simName,
-                                    this->comm_->getBundle(), this->cmd_args_));
+                                                   new SampleWorker<Sim_t>(this->constraints_, simName,
+                                                                           this->comm_->getBundle(), this->cmd_args_));
 
         std::cout << "Stop Worker.." << std::endl;
     }
-    
+
+    virtual
     void postPoll() {
 
         // terminating all workers is tricky since we do not know their state.
@@ -160,8 +164,9 @@ protected:
     }
 
 
+    virtual
     void sendNewJobToWorker(int worker) /*override*/ {
-        
+
         // no new jobs once our opt has converged
         if (this->has_opt_converged_) return;
 
@@ -173,7 +178,7 @@ protected:
         MPI_Send_params(job_params, worker, this->worker_comm_);
 
         running_job_list_.insert(std::pair<size_t,
-                Param_t >(job->first, job->second));
+                                 Param_t >(job->first, job->second));
         request_queue_.erase(jid);
         this->is_worker_idle_[worker] = false;
 
@@ -185,81 +190,82 @@ protected:
     }
 
 
-bool onMessage(MPI_Status status, size_t recv_value) /*override*/ {
+    virtual
+    bool onMessage(MPI_Status status, size_t recv_value) /*override*/ {
 
-    MPITag_t tag = MPITag_t(status.MPI_TAG);
-    switch(tag) {
+        MPITag_t tag = MPITag_t(status.MPI_TAG);
+        switch(tag) {
 
         case WORKER_FINISHED_TAG: {
-    
+
             size_t job_id = recv_value;
-    
+
             size_t dummy = 1;
             MPI_Send(&dummy, 1, MPI_UNSIGNED_LONG, status.MPI_SOURCE,
                      MPI_WORKER_FINISHED_ACK_TAG, this->worker_comm_);
-    
+
             running_job_list_.erase(job_id);
             this->is_worker_idle_[status.MPI_SOURCE] = true;
-    
+
             std::ostringstream dump;
             dump << "worker finished job with ID " << job_id << std::endl;
             this->job_trace_->log(dump);
-    
-    
+
+
             // sampler already terminated, cannot accept new messages
             if (this->has_opt_converged_) return true;
-    
+
             int opt_master_rank = this->comm_->getLeader();
             MPI_Send(&job_id, 1, MPI_UNSIGNED_LONG, opt_master_rank,
                      MPI_OPT_JOB_FINISHED_TAG, this->opt_comm_);
-    
+
             // we keep worker busy _after_ results have been sent to sampler
             if (request_queue_.size() > 0)
                 sendNewJobToWorker(status.MPI_SOURCE);
-    
+
             return true;
         }
-    
+
         case OPT_NEW_JOB_TAG: {
-            
+
             size_t job_id = recv_value;
             int opt_master_rank = this->comm_->getLeader();
-    
+
             Param_t job_params;
             MPI_Recv_params(job_params, (size_t)opt_master_rank, this->opt_comm_);
-    
+
             request_queue_.insert(
-                    std::pair<size_t, Param_t >(
-                        job_id, job_params));
-    
+                                  std::pair<size_t, Param_t >(
+                                                              job_id, job_params));
+
             std::ostringstream dump;
             dump << "new opt job with ID " << job_id << std::endl;
             this->job_trace_->log(dump);
-    
+
             return true;
         }
-    
+
         case OPT_CONVERGED_TAG: {
             return this->stop();
         }
-    
+
         case WORKER_STATUSUPDATE_TAG: {
             this->is_worker_idle_[status.MPI_SOURCE] = true;
             return true;
         }
-    
+
         default: {
             std::string msg = "(Pilot) Error: unexpected MPI_TAG: ";
             msg += status.MPI_TAG;
             throw OptPilotException("Pilot::onMessage", msg);
         }
+        }
     }
-}
 
 private:
     std::map< std::string,
               std::shared_ptr<SamplingMethod>
-            > sampleMethods_m;
+              > sampleMethods_m;
 };
 
 #endif

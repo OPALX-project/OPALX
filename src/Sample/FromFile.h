@@ -22,68 +22,72 @@ class FromFile : public SamplingMethod
 {
 
 public:
-    
-    FromFile(std::string filename)
-        : filename_m(filename)
-        , line_m(0)
-        
+
+    FromFile(const std::string &filename, const std::string &dvarName, size_t modulo)
+        : n_m(0)
+        , counter_m(0)
+        , mod_m(modulo)
     {
-        in_m.open(filename);
-        
-        if ( !in_m.is_open() ) {
+        std::ifstream in(filename);
+
+        if ( !in.is_open() ) {
             throw OpalException("FromFile()",
                                 "Couldn't open file \"" + filename + "\".");
         }
-        
+
         std::string header;
-        std::getline(in_m, header);
+        std::getline(in, header);
         std::istringstream iss(header);
-        dvars_m = {std::istream_iterator<std::string>{iss},
-                   std::istream_iterator<std::string>{}};
-        line_m++;
-    }
-    
-    void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
-        
-        std::string line;
-        std::getline(in_m, line);
-        
-        // 9. Mai 2018
-        // https://stackoverflow.com/questions/236129/the-most-elegant-way-to-iterate-the-words-of-a-string
-        std::istringstream iss(line);
-        std::vector<std::string> numbers{std::istream_iterator<std::string>{iss},
-                                         std::istream_iterator<std::string>{}};
-        
-        // the file column does not need to agree with gene index i
-        size_t j = getColumn_m(ind->getName(i));
-        
-        ind->genes[i] = std::stod(numbers[j]);
-        
-        ++line_m;
-    }
-    
-    ~FromFile() {
-        in_m.close();
-    }
-    
-private:
-    
-    size_t getColumn_m(std::string name) {
-        auto res = std::find(std::begin(dvars_m), std::end(dvars_m), name);
-        
-        if (res == std::end(dvars_m)) {
-            throw OpalException("FromFile::getColumn()",
-                                "Variable '" + name + "' not contained.");
+        std::vector<std::string> dvars({std::istream_iterator<std::string>{iss},
+                                        std::istream_iterator<std::string>{}});
+        size_t j = 0;
+        for (const std::string str: dvars) {
+            if (str == dvarName) break;
+            ++ j;
         }
-        return std::distance(std::begin(dvars_m), res);
+
+        if (j == dvars.size()) {
+            throw OpalException("FromFile()",
+                                "Couldn't find the dvar '" + dvarName + "' in the file '" + filename + "'");
+        }
+
+        std::string line;
+        std::getline(in, line);
+        while (in.good() && !in.eof()) {
+            std::istringstream iss(line);
+            std::vector<std::string> numbers({std::istream_iterator<std::string>{iss},
+                                              std::istream_iterator<std::string>{}});
+
+            chain_m.push_back(std::stod(numbers[j]));
+
+            std::getline(in, line);
+        }
     }
-    
+
+    void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
+        ind->genes[i] = getNext();
+    }
+
+    double getNext() {
+        double sample = chain_m[n_m];
+        incrementCounter();
+
+        return sample;
+    }
+
 private:
-    std::ifstream in_m;
-    std::string filename_m;
-    int line_m;
-    
-    std::vector<std::string> dvars_m;
+    std::vector<double> chain_m;
+    unsigned int n_m;
+    size_t counter_m;
+    size_t mod_m;
+
+    void incrementCounter() {
+        ++ counter_m;
+        if (counter_m % mod_m == 0)
+            ++ n_m;
+        if (n_m >= chain_m.size())
+            n_m = 0;
+    }
 };
 
 #endif

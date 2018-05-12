@@ -87,7 +87,7 @@ template <
 class Pilot : protected Poller {
 
 public:
-    
+
     // constructor only for Pilot classes inherited from this class
     // they have their own setup function
     Pilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
@@ -195,37 +195,8 @@ private:
             std::cout << std::endl;
         }
 
-        parseInputFile(known_expr_funcs);
         MPI_Barrier(MPI_COMM_WORLD);
-
-        // here the control flow starts to diverge
-        if      ( comm_->isOptimizer() ) { startOptimizer(); }
-        else if ( comm_->isWorker()    ) { startWorker();    }
-        else if ( comm_->isPilot()     ) { startPilot();     }
-    }
-    
-protected:
-
-    void parseInputFile(functionDictionary_t known_expr_funcs) {
-
-        try {
-            input_file_ = cmd_args_->getArg<std::string>("inputfile", true);
-        } catch (OptPilotException &e) {
-            std::cout << "Could not find 'inputfile' in arguments.. Aborting."
-                << std::endl;
-            MPI_Abort(comm_m, -101);
-        }
-
-        boost::scoped_ptr<Input_t> parser(new Input_t(input_file_, known_expr_funcs));
-
-        try {
-            parser->doParse();
-            parser->getProblem(objectives_, constraints_, dvars_);
-        } catch (OptPilotException &e) {
-            std::cout << "Exception while parsing and getting problem: ";
-            std::cout << e.what() << std::endl;
-            MPI_Abort(comm_m, -101);
-        }
+        parseInputFile(known_expr_funcs);
 
         if(global_rank_ == 0) {
             std::ostringstream os;
@@ -241,13 +212,44 @@ protected:
             std::cout << os.str() << std::flush;
         }
 
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        // here the control flow starts to diverge
+        if      ( comm_->isOptimizer() ) { startOptimizer(); }
+        else if ( comm_->isWorker()    ) { startWorker();    }
+        else if ( comm_->isPilot()     ) { startPilot();     }
+    }
+
+protected:
+
+    void parseInputFile(functionDictionary_t known_expr_funcs) {
+
+        try {
+            input_file_ = cmd_args_->getArg<std::string>("inputfile", true);
+        } catch (OptPilotException &e) {
+            std::cout << "Could not find 'inputfile' in arguments.. Aborting."
+                << std::endl;
+            MPI_Abort(comm_m, -101);
+        }
+
+        // boost::scoped_ptr<Input_t> parser(new Input_t(input_file_, known_expr_funcs));
+
+        // try {
+        //     parser->doParse();
+        //     parser->getProblem(objectives_, constraints_, dvars_);
+        // } catch (OptPilotException &e) {
+        //     std::cout << "Exception while parsing and getting problem: ";
+        //     std::cout << e.what() << std::endl;
+        //     MPI_Abort(comm_m, -101);
+        // }
+
         if(objectives_.size() == 0 || dvars_.size() == 0) {
             throw OptPilotException("Pilot::Pilot()",
                     "No objectives or dvars specified");
         }
     }
 
-
+    virtual
     void startOptimizer() {
 
         std::ostringstream os;
@@ -263,7 +265,7 @@ protected:
         std::cout << "Stop Opt.." << std::endl;
     }
 
-
+    virtual
     void startWorker() {
 
         std::ostringstream os;
@@ -277,7 +279,7 @@ protected:
             tmplfile = input_file_.substr(pos+1);
         pos = tmplfile.find(".");
         std::string simName = tmplfile.substr(0,pos);
-        
+
         boost::scoped_ptr< Worker<Sim_t> > w(
                 new Worker<Sim_t>(objectives_, constraints_, simName,
                     comm_->getBundle(), cmd_args_));
@@ -285,7 +287,7 @@ protected:
         std::cout << "Stop Worker.." << std::endl;
     }
 
-
+    virtual
     void startPilot() {
 
         std::ostringstream os;
@@ -339,15 +341,19 @@ protected:
         std::cout << "Stop Pilot.." << std::endl;
     }
 
+    virtual
     void setupPoll()
     {}
 
+    virtual
     void prePoll()
     {}
 
+    virtual
     void onStop()
     {}
 
+    virtual
     void postPoll() {
 
         // terminating all workers is tricky since we do not know their state.
@@ -380,6 +386,7 @@ protected:
     }
 
 
+    virtual
     void sendNewJobToWorker(int worker) {
 
         // no new jobs once our opt has converged
@@ -408,266 +415,267 @@ protected:
     }
 
 
-bool onMessage(MPI_Status status, size_t recv_value){
+    virtual
+    bool onMessage(MPI_Status status, size_t recv_value){
 
-    MPITag_t tag = MPITag_t(status.MPI_TAG);
-    switch(tag) {
+        MPITag_t tag = MPITag_t(status.MPI_TAG);
+        switch(tag) {
 
-    case WORKER_FINISHED_TAG: {
+        case WORKER_FINISHED_TAG: {
 
-        size_t job_id = recv_value;
+            size_t job_id = recv_value;
 
-        size_t dummy = 1;
-        MPI_Send(&dummy, 1, MPI_UNSIGNED_LONG, status.MPI_SOURCE,
-                 MPI_WORKER_FINISHED_ACK_TAG, worker_comm_);
+            size_t dummy = 1;
+            MPI_Send(&dummy, 1, MPI_UNSIGNED_LONG, status.MPI_SOURCE,
+                     MPI_WORKER_FINISHED_ACK_TAG, worker_comm_);
 
-        reqVarContainer_t res;
-        MPI_Recv_reqvars(res, status.MPI_SOURCE, worker_comm_);
+            reqVarContainer_t res;
+            MPI_Recv_reqvars(res, status.MPI_SOURCE, worker_comm_);
 
-        running_job_list_.erase(job_id);
-        is_worker_idle_[status.MPI_SOURCE] = true;
+            running_job_list_.erase(job_id);
+            is_worker_idle_[status.MPI_SOURCE] = true;
 
-        std::ostringstream dump;
-        dump << "worker finished job with ID " << job_id << std::endl;
-        job_trace_->log(dump);
+            std::ostringstream dump;
+            dump << "worker finished job with ID " << job_id << std::endl;
+            job_trace_->log(dump);
 
 
-        // optimizer already terminated, cannot accept new messages
+            // optimizer already terminated, cannot accept new messages
+            if(has_opt_converged_) return true;
+
+            int opt_master_rank = comm_->getLeader();
+            MPI_Send(&job_id, 1, MPI_UNSIGNED_LONG, opt_master_rank,
+                     MPI_OPT_JOB_FINISHED_TAG, opt_comm_);
+
+            MPI_Send_reqvars(res, opt_master_rank, opt_comm_);
+
+            // we keep worker busy _after_ results have been sent to optimizer
+            if(request_queue_.size() > 0)
+                sendNewJobToWorker(status.MPI_SOURCE);
+
+            return true;
+        }
+
+        case OPT_NEW_JOB_TAG: {
+
+            size_t job_id = recv_value;
+            int opt_master_rank = comm_->getLeader();
+
+            Param_t job_params;
+            MPI_Recv_params(job_params, (size_t)opt_master_rank, opt_comm_);
+
+            reqVarContainer_t reqVars;
+            //MPI_Recv_reqvars(reqVars, (size_t)opt_master_rank, job_size, opt_comm_);
+
+            std::pair<Param_t, reqVarContainer_t> job =
+                std::pair<Param_t, reqVarContainer_t>(job_params, reqVars);
+            request_queue_.insert(
+                                  std::pair<size_t, std::pair<Param_t, reqVarContainer_t> >(
+                                                                                            job_id, job));
+
+            std::ostringstream dump;
+            dump << "new opt job with ID " << job_id << std::endl;
+            job_trace_->log(dump);
+
+            return true;
+        }
+
+        case EXCHANGE_SOL_STATE_TAG: {
+
+            if(num_coworkers_ <= 1) return true;
+
+            std::ostringstream dump;
+            dump << "starting solution exchange.. " << status.MPI_SOURCE << std::endl;
+            job_trace_->log(dump);
+
+            // we start by storing or local solution state
+            size_t buffer_size = recv_value;
+            int opt_master_rank = status.MPI_SOURCE; //comm_->getLeader();
+
+            char *buffer = new char[buffer_size];
+            MPI_Recv(buffer, buffer_size, MPI_CHAR, opt_master_rank,
+                     MPI_EXCHANGE_SOL_STATE_DATA_TAG, opt_comm_, &status);
+            master_node_->store(buffer, buffer_size);
+            delete[] buffer;
+
+            dump.clear();
+            dump.str(std::string());
+            dump << "getting " << buffer_size << " bytes from OPT "
+                 << opt_master_rank << std::endl;
+            job_trace_->log(dump);
+
+            // and then continue collecting all other solution states
+            std::ostringstream states;
+            master_node_->collect(states);
+            buffer_size = states.str().length();
+
+            dump.clear();
+            dump.str(std::string());
+            dump << "collected solution states of other PILOTS: "
+                 << buffer_size << " bytes" << std::endl;
+            job_trace_->log(dump);
+
+            // send collected solution states to optimizer;
+            MPI_Send(&buffer_size, 1, MPI_UNSIGNED_LONG, opt_master_rank,
+                     MPI_EXCHANGE_SOL_STATE_RES_SIZE_TAG, opt_comm_);
+
+            buffer = new char[buffer_size];
+            memcpy(buffer, states.str().c_str(), buffer_size);
+            MPI_Send(buffer, buffer_size, MPI_CHAR, opt_master_rank,
+                     MPI_EXCHANGE_SOL_STATE_RES_TAG, opt_comm_);
+
+            dump.clear();
+            dump.str(std::string());
+            dump << "sent set of new solutions to OPT" << std::endl;
+            job_trace_->log(dump);
+
+            delete[] buffer;
+
+            return true;
+        }
+
+        case OPT_CONVERGED_TAG: {
+            return stop();
+        }
+
+        case WORKER_STATUSUPDATE_TAG: {
+            is_worker_idle_[status.MPI_SOURCE] = true;
+            return true;
+        }
+
+        default: {
+            std::string msg = "(Pilot) Error: unexpected MPI_TAG: ";
+            msg += status.MPI_TAG;
+            throw OptPilotException("Pilot::onMessage", msg);
+        }
+        }
+    }
+
+    bool stop(bool isOpt = true) {
+
         if(has_opt_converged_) return true;
 
-        int opt_master_rank = comm_->getLeader();
-        MPI_Send(&job_id, 1, MPI_UNSIGNED_LONG, opt_master_rank,
-                 MPI_OPT_JOB_FINISHED_TAG, opt_comm_);
+        has_opt_converged_ = true;
+        request_queue_.clear();
+        size_t dummy = 0;
+        MPI_Request req;
+        MPI_Isend(&dummy, 1, MPI_UNSIGNED_LONG, comm_->getLeader(), MPI_STOP_TAG, opt_comm_, &req);
 
-        MPI_Send_reqvars(res, opt_master_rank, opt_comm_);
-
-        // we keep worker busy _after_ results have been sent to optimizer
-        if(request_queue_.size() > 0)
-            sendNewJobToWorker(status.MPI_SOURCE);
-
-        return true;
-    }
-
-    case OPT_NEW_JOB_TAG: {
-
-        size_t job_id = recv_value;
-        int opt_master_rank = comm_->getLeader();
-
-        Param_t job_params;
-        MPI_Recv_params(job_params, (size_t)opt_master_rank, opt_comm_);
-
-        reqVarContainer_t reqVars;
-        //MPI_Recv_reqvars(reqVars, (size_t)opt_master_rank, job_size, opt_comm_);
-
-        std::pair<Param_t, reqVarContainer_t> job =
-            std::pair<Param_t, reqVarContainer_t>(job_params, reqVars);
-        request_queue_.insert(
-                std::pair<size_t, std::pair<Param_t, reqVarContainer_t> >(
-                    job_id, job));
-
-        std::ostringstream dump;
-        dump << "new opt job with ID " << job_id << std::endl;
-        job_trace_->log(dump);
-
-        return true;
-    }
-
-    case EXCHANGE_SOL_STATE_TAG: {
-
+        if(! isOpt) return true;
         if(num_coworkers_ <= 1) return true;
 
-        std::ostringstream dump;
-        dump << "starting solution exchange.. " << status.MPI_SOURCE << std::endl;
-        job_trace_->log(dump);
+        if(! cmd_args_->getArg<bool>("one-pilot-converge", false, false))
+            return true;
 
-        // we start by storing or local solution state
-        size_t buffer_size = recv_value;
-        int opt_master_rank = status.MPI_SOURCE; //comm_->getLeader();
-
-        char *buffer = new char[buffer_size];
-        MPI_Recv(buffer, buffer_size, MPI_CHAR, opt_master_rank,
-                 MPI_EXCHANGE_SOL_STATE_DATA_TAG, opt_comm_, &status);
-        master_node_->store(buffer, buffer_size);
-        delete[] buffer;
-
-        dump.clear();
-        dump.str(std::string());
-        dump << "getting " << buffer_size << " bytes from OPT "
-             << opt_master_rank << std::endl;
-        job_trace_->log(dump);
-
-        // and then continue collecting all other solution states
-        std::ostringstream states;
-        master_node_->collect(states);
-        buffer_size = states.str().length();
-
-        dump.clear();
-        dump.str(std::string());
-        dump << "collected solution states of other PILOTS: "
-             << buffer_size << " bytes" << std::endl;
-        job_trace_->log(dump);
-
-        // send collected solution states to optimizer;
-        MPI_Send(&buffer_size, 1, MPI_UNSIGNED_LONG, opt_master_rank,
-                 MPI_EXCHANGE_SOL_STATE_RES_SIZE_TAG, opt_comm_);
-
-        buffer = new char[buffer_size];
-        memcpy(buffer, states.str().c_str(), buffer_size);
-        MPI_Send(buffer, buffer_size, MPI_CHAR, opt_master_rank,
-                 MPI_EXCHANGE_SOL_STATE_RES_TAG, opt_comm_);
-
-        dump.clear();
-        dump.str(std::string());
-        dump << "sent set of new solutions to OPT" << std::endl;
-        job_trace_->log(dump);
-
-        delete[] buffer;
-
-        return true;
-    }
-
-    case OPT_CONVERGED_TAG: {
-        return stop();
-    }
-
-    case WORKER_STATUSUPDATE_TAG: {
-        is_worker_idle_[status.MPI_SOURCE] = true;
-        return true;
-    }
-
-    default: {
-        std::string msg = "(Pilot) Error: unexpected MPI_TAG: ";
-        msg += status.MPI_TAG;
-        throw OptPilotException("Pilot::onMessage", msg);
-    }
-    }
-}
-
-bool stop(bool isOpt = true) {
-
-    if(has_opt_converged_) return true;
-
-    has_opt_converged_ = true;
-    request_queue_.clear();
-    size_t dummy = 0;
-    MPI_Request req;
-    MPI_Isend(&dummy, 1, MPI_UNSIGNED_LONG, comm_->getLeader(), MPI_STOP_TAG, opt_comm_, &req);
-
-    if(! isOpt) return true;
-    if(num_coworkers_ <= 1) return true;
-
-    if(! cmd_args_->getArg<bool>("one-pilot-converge", false, false))
-        return true;
-
-    // propagate converged message to other pilots
-    // FIXME what happens if two island converge at the same time?
-    int my_rank = 0;
-    MPI_Comm_rank(coworker_comm_, &my_rank);
-    for(int i=0; i < num_coworkers_; i++) {
-        if(i == my_rank) continue;
-        MPI_Request req;
-        MPI_Isend(&dummy, 1, MPI_UNSIGNED_LONG, i, OPT_CONVERGED_TAG, coworker_comm_, &req);
-    }
-
-    return true;
-}
-
-
-// we overwrite run here to handle polling on two different communicators
-//XXX: would be nice to give the poller interface an array of comms and
-//     listeners to be called..
-void run() {
-
-    MPI_Request opt_request;
-    MPI_Request worker_request;
-    MPI_Status status;
-    int flag = 0;
-    size_t recv_value_worker = 0;
-    size_t recv_value_opt = 0;
-
-    setupPoll();
-
-    MPI_Irecv(&recv_value_opt, 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
-              MPI_ANY_TAG, opt_comm_, &opt_request);
-    MPI_Irecv(&recv_value_worker, 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
-              MPI_ANY_TAG, worker_comm_, &worker_request);
-
-    bool pending_opt_request    = true;
-    bool pending_worker_request = true;
-    bool pending_pilot_request  = false;
-
-    MPI_Request pilot_request;
-    size_t recv_value_pilot = 0;
-    if(cmd_args_->getArg<bool>("one-pilot-converge", false, false)) {
-        MPI_Irecv(&recv_value_pilot, 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
-                MPI_ANY_TAG, coworker_comm_, &pilot_request);
-        pending_pilot_request = true;
-    }
-
-    while(continue_polling_) {
-
-        prePoll();
-
-        if(opt_request != MPI_REQUEST_NULL) {
-            MPI_Test(&opt_request, &flag, &status);
-            if(flag) {
-                pending_opt_request = false;
-                if(status.MPI_TAG == MPI_STOP_TAG) {
-                    return;
-                } else {
-                    if(onMessage(status, recv_value_opt)) {
-                        MPI_Irecv(&recv_value_opt, 1, MPI_UNSIGNED_LONG,
-                                  MPI_ANY_SOURCE, MPI_ANY_TAG, opt_comm_,
-                                  &opt_request);
-                        pending_opt_request = true;
-                    } else
-                        return;
-                }
-            }
+        // propagate converged message to other pilots
+        // FIXME what happens if two island converge at the same time?
+        int my_rank = 0;
+        MPI_Comm_rank(coworker_comm_, &my_rank);
+        for(int i=0; i < num_coworkers_; i++) {
+            if(i == my_rank) continue;
+            MPI_Request req;
+            MPI_Isend(&dummy, 1, MPI_UNSIGNED_LONG, i, OPT_CONVERGED_TAG, coworker_comm_, &req);
         }
 
-        if(worker_request != MPI_REQUEST_NULL) {
-            MPI_Test(&worker_request, &flag, &status);
-            if(flag) {
-                pending_worker_request = false;
-                if(status.MPI_TAG == MPI_STOP_TAG) {
-                    return;
-                } else {
-                    if(onMessage(status, recv_value_worker)) {
-                        MPI_Irecv(&recv_value_worker, 1,
-                                  MPI_UNSIGNED_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG,
-                                  worker_comm_, &worker_request);
-                        pending_worker_request = true;
-                    } else
-                        return;
-                }
-            }
-        }
+        return true;
+    }
 
+
+    // we overwrite run here to handle polling on two different communicators
+    //XXX: would be nice to give the poller interface an array of comms and
+    //     listeners to be called..
+    void run() {
+
+        MPI_Request opt_request;
+        MPI_Request worker_request;
+        MPI_Status status;
+        int flag = 0;
+        size_t recv_value_worker = 0;
+        size_t recv_value_opt = 0;
+
+        setupPoll();
+
+        MPI_Irecv(&recv_value_opt, 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
+                  MPI_ANY_TAG, opt_comm_, &opt_request);
+        MPI_Irecv(&recv_value_worker, 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
+                  MPI_ANY_TAG, worker_comm_, &worker_request);
+
+        bool pending_opt_request    = true;
+        bool pending_worker_request = true;
+        bool pending_pilot_request  = false;
+
+        MPI_Request pilot_request;
+        size_t recv_value_pilot = 0;
         if(cmd_args_->getArg<bool>("one-pilot-converge", false, false)) {
-            if(pilot_request != MPI_REQUEST_NULL) {
-                MPI_Test(&pilot_request, &flag, &status);
+            MPI_Irecv(&recv_value_pilot, 1, MPI_UNSIGNED_LONG, MPI_ANY_SOURCE,
+                      MPI_ANY_TAG, coworker_comm_, &pilot_request);
+            pending_pilot_request = true;
+        }
+
+        while(continue_polling_) {
+
+            prePoll();
+
+            if(opt_request != MPI_REQUEST_NULL) {
+                MPI_Test(&opt_request, &flag, &status);
                 if(flag) {
-                    pending_pilot_request = false;
-                    if(status.MPI_TAG == OPT_CONVERGED_TAG) {
-                        stop(false);
+                    pending_opt_request = false;
+                    if(status.MPI_TAG == MPI_STOP_TAG) {
+                        return;
                     } else {
-                        MPI_Irecv(&recv_value_pilot, 1,
-                                  MPI_UNSIGNED_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG,
-                                  coworker_comm_, &pilot_request);
-                        pending_pilot_request = true;
+                        if(onMessage(status, recv_value_opt)) {
+                            MPI_Irecv(&recv_value_opt, 1, MPI_UNSIGNED_LONG,
+                                      MPI_ANY_SOURCE, MPI_ANY_TAG, opt_comm_,
+                                      &opt_request);
+                            pending_opt_request = true;
+                        } else
+                            return;
                     }
                 }
             }
+
+            if(worker_request != MPI_REQUEST_NULL) {
+                MPI_Test(&worker_request, &flag, &status);
+                if(flag) {
+                    pending_worker_request = false;
+                    if(status.MPI_TAG == MPI_STOP_TAG) {
+                        return;
+                    } else {
+                        if(onMessage(status, recv_value_worker)) {
+                            MPI_Irecv(&recv_value_worker, 1,
+                                      MPI_UNSIGNED_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG,
+                                      worker_comm_, &worker_request);
+                            pending_worker_request = true;
+                        } else
+                            return;
+                    }
+                }
+            }
+
+            if(cmd_args_->getArg<bool>("one-pilot-converge", false, false)) {
+                if(pilot_request != MPI_REQUEST_NULL) {
+                    MPI_Test(&pilot_request, &flag, &status);
+                    if(flag) {
+                        pending_pilot_request = false;
+                        if(status.MPI_TAG == OPT_CONVERGED_TAG) {
+                            stop(false);
+                        } else {
+                            MPI_Irecv(&recv_value_pilot, 1,
+                                      MPI_UNSIGNED_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG,
+                                      coworker_comm_, &pilot_request);
+                            pending_pilot_request = true;
+                        }
+                    }
+                }
+            }
+
+            postPoll();
         }
 
-        postPoll();
+        if(pending_opt_request)     MPI_Cancel( &opt_request );
+        if(pending_worker_request)  MPI_Cancel( &worker_request );
+        if(pending_pilot_request)   MPI_Cancel( &pilot_request );
     }
-
-    if(pending_opt_request)     MPI_Cancel( &opt_request );
-    if(pending_worker_request)  MPI_Cancel( &worker_request );
-    if(pending_pilot_request)   MPI_Cancel( &pilot_request );
-}
 
 };
 

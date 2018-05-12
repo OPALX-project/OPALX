@@ -24,14 +24,21 @@ public:
 
     /// Check the OpalSample data.
     virtual void execute();
-    
+
     /// Find sampling method
     static OpalSample *find(const std::string &name);
-    
-    void initOpalSample(double lower, double upper, int nSample);
-    
+
+    void initialize(const std::string &dvarName,
+                    double lower,
+                    double upper,
+                    int nSample,
+                    size_t modulo = 1,
+                    bool sequence = false);
+
     std::string getVariable() const;
-    
+
+    int getSize() const;
+
     std::shared_ptr<SamplingMethod> sampleMethod_m;
 
 private:

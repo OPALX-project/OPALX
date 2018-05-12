@@ -45,15 +45,15 @@ public:
     /** This constructor should never be called.
      *  It's provided due to the inheritance of SamplePilot from
      *  Pilot
-     * 
+     *
      */
     Sampler(Expressions::Named_t objectives,
             Expressions::Named_t constraints,
             DVarContainer_t dvars,
             size_t dim, Comm::Bundle_t comms,
             CmdArguments_t args);
-    
-    
+
+
     /**
      *  Retrieves all (for the sampler) relevant arguments specified on the
      *  command line, initializes the variator and sets up statistics and
@@ -72,7 +72,7 @@ public:
 
     /// Starting selection algorithm and variator PISA state machine
     void initialize();
-    
+
     /// type used in solution state exchange with other optimizers
     typedef std::vector< SampleIndividual > SolutionState_t;
 
@@ -90,15 +90,15 @@ protected:
     void dispatch_forward_solves();
 
 private:
-    
-    
+
+
     std::map<std::string,
              std::shared_ptr<SamplingMethod>
         > sampleMethods_m;
-    
+
     // global index (for job id)
     int gid;
-    
+
     int my_local_pid_;
 
     typedef SampleIndividual  Individual_t;
@@ -108,50 +108,48 @@ private:
 
     /// mapping from unique job ID to individual
     std::map<size_t, boost::shared_ptr<Individual_t> > jobmapping_m;
-    
+
     std::queue<boost::shared_ptr<Individual_t> > individuals_m;
 
     /// bounds on each specified gene
     bounds_t dVarBounds_m;
-    
+
     /// design variables
     DVarContainer_t dvars_m;
-    
-    
+
+
     int nSamples_m;
-    
+
 
     /// command line arguments specified by the user
     CmdArguments_t args_;
 
     /// current generation
     int act_sample_m;
-    
+
     int done_sample_m;
-    
+
     enum State {
         SUBMIT,
         STOP,
         TERMINATE
     };
-    
+
     State curState_m;
-    
+
     /// Dumps id, design variables and bound
     std::string resultFile_m;
     std::string resultDir_m;
-    
+
     boost::property_tree::ptree samples_m;
-    
+
     void dumpIndividualsToJSON_m();
-    
+
     void addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind);
-    
+
     void runStateMachine();
-    
+
     void createNewIndividual_m();
 };
-
-#include "Sample/Sampler.tcc"
 
 #endif
