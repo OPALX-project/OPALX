@@ -6,6 +6,7 @@
 #include "Utilities/Util.h"
 
 #include "Sample/Uniform.h"
+#include "Sample/Normal.h"
 #include "Sample/SampleSequence.h"
 #include "Sample/SampleGaussianSequence.h"
 #include "Sample/FromFile.h"
@@ -90,6 +91,8 @@ void OpalSample::initOpalSample(double lower, double upper, int nSample) {
         sampleMethod_m.reset( new SampleSequence(lower, upper, nSample) );
     } else if (type == "GAUSSIAN_SEQUENCE") {
         sampleMethod_m.reset( new SampleGaussianSequence(lower, upper, nSample) );
+    } else if (type == "GAUSSIAN_RANDOM") {
+        sampleMethod_m.reset( new Normal(lower, upper, seed) );
     } else if (type == "FROMFILE") {
         std::string fname = Attributes::getString(itsAttr[FNAME]);
         sampleMethod_m.reset( new FromFile(fname) );
