@@ -150,6 +150,7 @@
 
 // Sample command
 #include "Sample/SampleCmd.h"
+#include "Sample/SequenceSampleCmd.h"
 #include "Sample/OpalSample.h"
 
 #include "changes.h"
@@ -180,6 +181,7 @@ namespace {
         opal->create(new Option());
         opal->create(new OptimizeCmd());
         opal->create(new SampleCmd());
+        opal->create(new SequenceSampleCmd());
         opal->create(new Save());
         opal->create(new Select());
         opal->create(new Show());
@@ -230,7 +232,7 @@ namespace {
         opal->create(new DVar());
         opal->create(new Objective());
         opal->create(new Constraint());
-        
+
         opal->create(new OpalSample());
     }
 

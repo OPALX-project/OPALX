@@ -142,7 +142,10 @@ void SampleCmd::execute() {
                                 "Variable '" + name + "' not a DVAR.");
         }
 
-        s->initOpalSample(vars[name].first, vars[name].second, nSample);
+        s->initialize(name,
+                      vars[name].first,
+                      vars[name].second,
+                      nSample);
         sampleMethods[name] = s->sampleMethod_m;
     }
 

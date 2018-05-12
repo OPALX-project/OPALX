@@ -22,6 +22,7 @@ namespace {
         VARIABLE,   // name of design variable
         SEED,       // for random sample methods
         FNAME,      // file to read from sampling points
+        N,
         SIZE
     };
 }
@@ -42,6 +43,8 @@ OpalSample::OpalSample():
     itsAttr[FNAME]      = Attributes::makeString
                           ("FNAME", "File to read from the sampling points");
 
+    itsAttr[N]          = Attributes::makeReal
+                          ("N", "Number of sampling points", 1);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -73,7 +76,12 @@ OpalSample *OpalSample::find(const std::string &name) {
 }
 
 
-void OpalSample::initOpalSample(double lower, double upper, int nSample) {
+void OpalSample::initialize(const std::string &dvarName,
+                            double lower,
+                            double upper,
+                            int nSample,
+                            size_t modulo,
+                            bool sequence) {
 
     if ( lower >= upper )
         throw OpalException("OpalSample::initOpalSample()",
@@ -83,26 +91,41 @@ void OpalSample::initOpalSample(double lower, double upper, int nSample) {
 
     int seed = Attributes::getReal(itsAttr[SEED]);
 
-    if (type == "UNIFORM_INT") {
-        sampleMethod_m.reset( new Uniform<int>(lower, upper, seed) );
-    } else if (type == "UNIFORM_REAL") {
-        sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
-    } else if (type == "SEQUENCE") {
-        sampleMethod_m.reset( new SampleSequence(lower, upper, nSample) );
-    } else if (type == "GAUSSIAN_SEQUENCE") {
-        sampleMethod_m.reset( new SampleGaussianSequence(lower, upper, nSample) );
-    } else if (type == "GAUSSIAN_RANDOM") {
-        sampleMethod_m.reset( new Normal(lower, upper, seed) );
-    } else if (type == "FROMFILE") {
-        std::string fname = Attributes::getString(itsAttr[FNAME]);
-        sampleMethod_m.reset( new FromFile(fname) );
+    if (sequence) {
+        unsigned int size = getSize();
+        if (type == "UNIFORM_INT") {
+            sampleMethod_m.reset( new SampleSequence<int>(lower, upper, modulo, size) );
+        } else if (type == "UNIFORM") {
+            sampleMethod_m.reset( new SampleSequence<double>(lower, upper, modulo, size) );
+        } else if (type == "GAUSSIAN") {
+            sampleMethod_m.reset( new SampleGaussianSequence(lower, upper, modulo, size) );
+        } else if (type == "FROMFILE") {
+            std::string fname = Attributes::getString(itsAttr[FNAME]);
+            sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
+        } else {
+            throw OpalException("OpalSample::initOpalSample()",
+                                "Unkown sampling method: '" + type + "'.");
+        }
     } else {
-        throw OpalException("OpalSample::initOpalSample()",
-                            "Unkown sampling method: '" + type + "'.");
+        if (type == "UNIFORM_INT") {
+            sampleMethod_m.reset( new Uniform<int>(lower, upper, seed) );
+        } else if (type == "UNIFORM") {
+            sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
+        } else if (type == "GAUSSIAN") {
+            sampleMethod_m.reset( new Normal(lower, upper, seed) );
+        } else {
+            throw OpalException("OpalSample::initOpalSample()",
+                                "Unkown sampling method: '" + type + "'.");
+        }
     }
 }
 
 
 std::string OpalSample::getVariable() const {
     return Attributes::getString(itsAttr[VARIABLE]);
+}
+
+
+int OpalSample::getSize() const {
+    return Attributes::getReal(itsAttr[N]);
 }
