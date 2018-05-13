@@ -75,6 +75,10 @@ public:
         return sample;
     }
 
+    unsigned int getSize() const {
+        return chain_m.size();
+    }
+
 private:
     std::vector<double> chain_m;
     unsigned int n_m;

@@ -37,7 +37,7 @@ public:
 
     std::string getVariable() const;
 
-    int getSize() const;
+    unsigned int getSize() const;
 
     std::shared_ptr<SamplingMethod> sampleMethod_m;
 
@@ -49,6 +49,12 @@ private:
     ///@}
     /// Private copy constructor, called by clone
     OpalSample(const std::string &name, OpalSample *parent);
+
+    unsigned int size_m;
 };
 
+inline
+unsigned int OpalSample::getSize() const{
+    return size_m;
+}
 #endif

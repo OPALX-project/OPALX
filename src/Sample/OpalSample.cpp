@@ -30,6 +30,7 @@ namespace {
 OpalSample::OpalSample():
     Definition(SIZE, "SAMPLING",
                "The \"SAMPLING\" statement defines methods used for the optimizer in sample mode.")
+    , size_m(1)
 {
     itsAttr[TYPE]       = Attributes::makeString
                           ("TYPE", "UNIFORM_INT, UNIFORM_REAL, SEQUENCE, FROMFILE");
@@ -90,19 +91,20 @@ void OpalSample::initialize(const std::string &dvarName,
     std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
 
     int seed = Attributes::getReal(itsAttr[SEED]);
+    size_m = Attributes::getReal(itsAttr[N]);
 
     if (sequence) {
-        unsigned int size = getSize();
         if (type == "UNIFORM_INT") {
-            sampleMethod_m.reset( new SampleSequence<int>(lower, upper, modulo, size) );
+            sampleMethod_m.reset( new SampleSequence<int>(lower, upper, modulo, size_m) );
         } else if (type == "UNIFORM") {
-            sampleMethod_m.reset( new SampleSequence<double>(lower, upper, modulo, size) );
+            sampleMethod_m.reset( new SampleSequence<double>(lower, upper, modulo, size_m) );
         } else if (type == "GAUSSIAN") {
-            sampleMethod_m.reset( new SampleGaussianSequence(lower, upper, modulo, size) );
+            sampleMethod_m.reset( new SampleGaussianSequence(lower, upper, modulo, size_m) );
         } else if (type == "FROMFILE") {
             std::string fname = Attributes::getString(itsAttr[FNAME]);
             sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
-        } else {
+            size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
+       } else {
             throw OpalException("OpalSample::initOpalSample()",
                                 "Unkown sampling method: '" + type + "'.");
         }
@@ -123,9 +125,4 @@ void OpalSample::initialize(const std::string &dvarName,
 
 std::string OpalSample::getVariable() const {
     return Attributes::getString(itsAttr[VARIABLE]);
-}
-
-
-int OpalSample::getSize() const {
-    return Attributes::getReal(itsAttr[N]);
 }

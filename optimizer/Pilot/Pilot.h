@@ -232,17 +232,6 @@ protected:
             MPI_Abort(comm_m, -101);
         }
 
-        // boost::scoped_ptr<Input_t> parser(new Input_t(input_file_, known_expr_funcs));
-
-        // try {
-        //     parser->doParse();
-        //     parser->getProblem(objectives_, constraints_, dvars_);
-        // } catch (OptPilotException &e) {
-        //     std::cout << "Exception while parsing and getting problem: ";
-        //     std::cout << e.what() << std::endl;
-        //     MPI_Abort(comm_m, -101);
-        // }
-
         if(objectives_.size() == 0 || dvars_.size() == 0) {
             throw OptPilotException("Pilot::Pilot()",
                     "No objectives or dvars specified");

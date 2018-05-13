@@ -148,7 +148,7 @@ bool OpalSimulation::hasResultsAvailable() {
 
 
 void OpalSimulation::setupSimulation() {
-
+    namespace fs = boost::filesystem;
 
     if ( id_m > -1 ) {
         std::ostringstream tmp;
@@ -160,6 +160,9 @@ void OpalSimulation::setupSimulation() {
     int rank = 0;
     MPI_Comm_rank(comm_, &rank);
     if(rank == 0) {
+        if (fs::exists(simulationDirName_)) {
+            fs::remove_all(simulationDirName_);
+        }
 
         mkdir((const char*)(simulationDirName_.c_str()), 0755);
 
