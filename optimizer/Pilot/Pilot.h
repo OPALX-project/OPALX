@@ -198,22 +198,6 @@ private:
         MPI_Barrier(MPI_COMM_WORLD);
         parseInputFile(known_expr_funcs);
 
-        if(global_rank_ == 0) {
-            std::ostringstream os;
-            os << "\033[01;35m";
-            os << "  ✔ " << objectives_.size()
-               << " objectives" << std::endl;
-            os << "  ✔ " << constraints_.size()
-               << " constraints" << std::endl;
-            os << "  ✔ " << dvars_.size()
-               << " dvars" << std::endl;
-            os << "\e[0m";
-            os << std::endl;
-            std::cout << os.str() << std::flush;
-        }
-
-        MPI_Barrier(MPI_COMM_WORLD);
-
         // here the control flow starts to diverge
         if      ( comm_->isOptimizer() ) { startOptimizer(); }
         else if ( comm_->isWorker()    ) { startWorker();    }
@@ -236,6 +220,22 @@ protected:
             throw OptPilotException("Pilot::Pilot()",
                     "No objectives or dvars specified");
         }
+
+        if(global_rank_ == 0) {
+            std::ostringstream os;
+            os << "\033[01;35m";
+            os << "  ✔ " << objectives_.size()
+               << " objectives" << std::endl;
+            os << "  ✔ " << constraints_.size()
+               << " constraints" << std::endl;
+            os << "  ✔ " << dvars_.size()
+               << " dvars" << std::endl;
+            os << "\e[0m";
+            os << std::endl;
+            std::cout << os.str() << std::flush;
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 
     virtual
