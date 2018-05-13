@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <utility>
 #include <vector>
 
@@ -48,25 +49,37 @@ public:
     genes_t      genes;
     /// id
     unsigned int id = 0;
-    
+
     int getIndex(std::string name) {
         auto res = std::find(std::begin(names_m), std::end(names_m), name);
-        
+
         if (res == std::end(names_m)) {
             throw OpalException("SampleIndividual::getIndex()",
                                 "Variable '" + name + "' not contained.");
         }
         return std::distance(std::begin(names_m), res);
     }
-    
-    
+
+
     std::string getName(size_t i) {
         return names_m[i];
     }
 
+    void print(std::ostream &out) const {
+        out << std::setw(8) << id << std::endl;
+        for (unsigned int i = 0; i < genes.size(); ++ i) {
+            out << names_m[i] << ": " << genes[i] << std::endl;
+        }
+    }
 private:
     /// gene names
     names_t names_m;
 };
 
+inline
+std::ostream & operator<<(std::ostream & out, const SampleIndividual &ind) {
+    ind.print(out);
+
+    return out;
+}
 #endif
