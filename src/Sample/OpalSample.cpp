@@ -115,6 +115,10 @@ void OpalSample::initialize(const std::string &dvarName,
             sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
         } else if (type == "GAUSSIAN") {
             sampleMethod_m.reset( new Normal(lower, upper, seed) );
+        } else if (type == "FROMFILE") {
+            std::string fname = Attributes::getString(itsAttr[FNAME]);
+            sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
+            size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
         } else {
             throw OpalException("OpalSample::initOpalSample()",
                                 "Unkown sampling method: '" + type + "'.");
