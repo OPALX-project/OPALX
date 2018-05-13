@@ -123,7 +123,6 @@ protected:
         pos = tmplfile.find(".");
         std::string simName = tmplfile.substr(0,pos);
 
-        std::cout << this->input_file_ << "\t" << tmplfile << std::endl;
         boost::scoped_ptr< SampleWorker<Sim_t> > w(
                                                    new SampleWorker<Sim_t>(this->constraints_, simName,
                                                                            this->comm_->getBundle(), this->cmd_args_));
@@ -257,7 +256,7 @@ protected:
         default: {
             std::string msg = "(Pilot) Error: unexpected MPI_TAG: ";
             msg += status.MPI_TAG;
-            throw OptPilotException("Pilot::onMessage", msg);
+            throw OptPilotException("SamplePilot::onMessage", msg);
         }
         }
     }
