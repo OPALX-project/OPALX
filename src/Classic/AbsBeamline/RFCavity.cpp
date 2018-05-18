@@ -35,6 +35,15 @@ extern Inform *gmsg;
 
 using namespace std;
 
+class NegativeMomentumError: public GeneralClassicException
+{
+public:
+    NegativeMomentumError(const std::string &where,
+                          const std::string &what):
+        GeneralClassicException(where, what)
+    { }
+};
+
 // Class RFCavity
 // ------------------------------------------------------------------------
 
@@ -609,27 +618,37 @@ ElementBase::ElementType RFCavity::getType() const {
 
 double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, double mass) {
     const double dt = 1e-13;
-    const double dphi = pi / 18;
     const double p0 = Util::getP(E0, mass);
+    double dphi = pi / 18;
 
     double phi = 0.0;
     setPhasem(phi);
     std::pair<double, double> ret = trackOnAxisParticle(E0 / mass, t0, dt, q, mass);
-    double phimax = ret.first;
-    double Emax = ret.second;
+    double phimax = 0.0;
+    double Emax = Util::getEnergy(Vector_t(0.0, 0.0, ret.first), mass);
     phi += dphi;
 
-    for (unsigned int i = 1; i < 36; ++ i, phi += dphi) {
-        setPhasem(phi);
-        ret = trackOnAxisParticle(p0, t0, dt, q, mass);
-        if (ret.second > Emax) {
-            Emax = ret.second;
-            phimax = ret.second;
+    for (unsigned int j = 0; j < 2; ++ j) {
+        for (unsigned int i = 0; i < 36; ++ i, phi += dphi) {
+            setPhasem(phi);
+            ret = trackOnAxisParticle(p0, t0, dt, q, mass);
+            double Ekin = Util::getEnergy(Vector_t(0.0, 0.0, ret.first), mass);
+            if (Ekin > Emax) {
+                Emax = Ekin;
+                phimax = phi;
+            }
         }
+
+        phi = phimax - dphi;
+        dphi = dphi / 17.5;
     }
 
+    phimax = phimax - floor(phimax / Physics::two_pi + 0.5) * Physics::two_pi;
+    phimax = fmod(phimax, Physics::two_pi);
+
     const int prevPrecision = Ippl::Info->precision(8);
-    INFOMSG(level2 << "estimated phase= " << phimax << " rad = "
+    INFOMSG(level2 << "\n"
+            << "estimated phase= " << phimax << " rad = "
             << phimax * Physics::rad2deg << " deg \n"
             << "Ekin= " << Emax << " MeV" << setprecision(prevPrecision) << endl);
 
@@ -712,7 +731,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
                 E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F) ;
             }
             const int prevPrecision = Ippl::Info->precision(8);
-            INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
+            INFOMSG(level2 << "\nestimated phase= " << tmp_phi << " rad = "
                     << tmp_phi * Physics::rad2deg << " deg \n"
                     << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
@@ -757,7 +776,8 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     }
 
     const int prevPrecision = Ippl::Info->precision(8);
-    INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
+    INFOMSG(level2 << "\n"
+            << "estimated phase= " << tmp_phi << " rad = "
             << tmp_phi * Physics::rad2deg << " deg \n"
             << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
 
@@ -768,7 +788,8 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
                                                    const double &t0,
                                                    const double &dt,
                                                    const double &q,
-                                                   const double &mass) {
+                                                   const double &mass,
+						   std::ofstream *out) {
     Vector_t p(0, 0, p0);
     double t = t0;
     BorisPusher integrator(*RefPartBunch_m->getReference());
@@ -780,6 +801,9 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
     double dz = 0.5 * p(2) / sqrt(1.0 + dot(p, p)) * cdt;
     Vector_t Ef(0.0), Bf(0.0);
 
+    if (out) *out << std::setw(18) << z[2]
+		  << std::setw(18) << Util::getEnergy(p, mass)
+		  << std::endl;
     while(z(2) + dz < zend && z(2) + dz > zbegin) {
         z /= cdt;
         integrator.push(z, p, dt);
@@ -791,12 +815,19 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
         integrator.kick(z, p, Ef, Bf, dt);
+        if (z[2] < zbegin)
+            throw NegativeMomentumError("RFCavit::trackOnAxisParticle",
+                                        "registered negative momentum");
 
         dz = 0.5 * p(2) / sqrt(1.0 + dot(p, p)) * cdt;
         z /= cdt;
         integrator.push(z, p, dt);
         z *= cdt;
         t += dt;
+
+	if (out) *out << std::setw(18) << z[2]
+		      << std::setw(18) << Util::getEnergy(p, mass)
+		      << std::endl;
     }
 
     const double beta = sqrt(1. - 1 / (dot(p, p) + 1.));
