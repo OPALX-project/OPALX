@@ -52,13 +52,14 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     if (!apVeto) {
         double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
         double AstraPhase    = 0.0;
-        double initialPhase  = guessCavityPhase(t + tErr);
         double designEnergy  = element->getDesignEnergy();
 
         if (amplitude < 0.0) {
             amplitude = -amplitude;
             element->setAmplitudem(amplitude);
         }
+
+        double initialPhase  = guessCavityPhase(t + tErr);
 
         if (amplitude == 0.0 && designEnergy <= 0.0) {
             throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
@@ -245,11 +246,9 @@ double CavityAutophaser::track(Vector_t R,
                                                             itsReference_m.getQ(),
                                                             itsReference_m.getM() * 1e-6,
 							    out);
-    double finalMomentum = pe.first;
     rfc->setPhasem(initialPhase);
 
-    double finalGamma = sqrt(1.0 + finalMomentum * finalMomentum);
-    double finalKineticEnergy = (finalGamma - 1.0) * itsReference_m.getM() * 1e-6;
+    double finalKineticEnergy = Util::getEnergy(pe.first, itsReference_m.getM() * 1e-6);
 
     return finalKineticEnergy;
 }
