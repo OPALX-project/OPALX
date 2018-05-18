@@ -7,6 +7,9 @@
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
 
+#include <fstream>
+#include <iostream>
+
 extern Inform *gmsg;
 
 CavityAutophaser::CavityAutophaser(const PartData &ref,
@@ -102,6 +105,10 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
         OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), newPhase);
 
         newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
+
+	std::ofstream out("data/" + itsCavity_m->getName() + "_AP.dat");
+        track(initialR_m, initialP_m, t + tErr, dt, newPhase, &out);
+	out.close();
 
         INFOMSG(level1 << endl);
         INFOMSG(level1 << std::fixed << std::setprecision(4)
@@ -224,7 +231,8 @@ double CavityAutophaser::track(Vector_t R,
                                Vector_t P,
                                double t,
                                const double dt,
-                               const double phase) const {
+                               const double phase,
+			       std::ofstream *out) const {
     const Vector_t &refP = initialP_m;
 
     RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
@@ -235,7 +243,8 @@ double CavityAutophaser::track(Vector_t R,
                                                             t,
                                                             dt,
                                                             itsReference_m.getQ(),
-                                                            itsReference_m.getM() * 1e-6);
+                                                            itsReference_m.getM() * 1e-6,
+							    out);
     double finalMomentum = pe.first;
     rfc->setPhasem(initialPhase);
 
