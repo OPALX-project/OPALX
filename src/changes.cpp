@@ -19,6 +19,8 @@ namespace Versions {
                     });
 
         changes.insert({109,
+                    "* The attribute BFREQ of the command BEAM is now in MHz instead of Hz\n"
+                    "\n"
                     "* OPAL-T: Beamlines are now placed in 3-dimensional space. Make sure that\n"
                     "  you use apertures to limit the range of the elements. Default aperture \n"
                     "  has circular shape with diameter 1 meter.\n"
