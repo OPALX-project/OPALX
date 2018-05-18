@@ -13,15 +13,17 @@ add_opal_sources(${_SRCS})
 
 set (HDRS
     FromFile.h
+    Normal.h
     OpalSample.h
     SampleCmd.h
-    SequenceSampleCmd.h
+    SampleGaussianSequence.h
     SampleIndividual.h
     SamplePilot.h
     Sampler.h
     SampleSequence.h
     SampleWorker.h
-    SamplingOperator.h
+    SamplingMethod.h
+    SequenceSampleCmd.h
     Uniform.h
 )
 
