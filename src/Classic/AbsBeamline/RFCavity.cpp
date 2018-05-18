@@ -35,15 +35,6 @@ extern Inform *gmsg;
 
 using namespace std;
 
-class NegativeMomentumError: public GeneralClassicException
-{
-public:
-    NegativeMomentumError(const std::string &where,
-                          const std::string &what):
-        GeneralClassicException(where, what)
-    { }
-};
-
 // Class RFCavity
 // ------------------------------------------------------------------------
 
@@ -619,6 +610,8 @@ ElementBase::ElementType RFCavity::getType() const {
 double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, double mass) {
     const double dt = 1e-13;
     const double p0 = Util::getP(E0, mass);
+    const double origPhase =getPhasem();
+
     double dphi = pi / 18;
 
     double phi = 0.0;
@@ -652,6 +645,7 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
             << phimax * Physics::rad2deg << " deg \n"
             << "Ekin= " << Emax << " MeV" << setprecision(prevPrecision) << endl);
 
+    setPhasem(origPhase);
     return phimax;
 }
 
@@ -815,9 +809,6 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
         integrator.kick(z, p, Ef, Bf, dt);
-        if (z[2] < zbegin)
-            throw NegativeMomentumError("RFCavit::trackOnAxisParticle",
-                                        "registered negative momentum");
 
         dz = 0.5 * p(2) / sqrt(1.0 + dot(p, p)) * cdt;
         z /= cdt;
