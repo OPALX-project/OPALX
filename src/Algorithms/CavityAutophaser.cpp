@@ -41,6 +41,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
 
     RFCavity *element     = static_cast<RFCavity *>(itsCavity_m.get());
     bool apVeto           = element->getAutophaseVeto();
+    bool isDCGun          = false;
     double originalPhase  = element->getPhasem();
     double tErr           = (initialR_m(2) - R(2)) * sqrt(dot(P,P) + 1.0) / (P(2) * Physics::c);
     double optimizedPhase = 0.0;
@@ -48,7 +49,27 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double newPhase       = 0.0;
     double amplitude      = element->getAmplitudem();
     double basePhase      = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
+    double frequency      = element->getFrequencym();
 
+    if (frequency <= (1.0 + 1e-6) * Physics::two_pi) { // DC gun
+        optimizedPhase = (amplitude * itsReference_m.getQ() > 0.0? 0.0: Physics::pi);
+        element->setPhasem(optimizedPhase + originalPhase);
+        element->setAutophaseVeto();
+
+        originalPhase += optimizedPhase;
+        OpalData::getInstance()->setMaxPhase(itsCavity_m->getName(), originalPhase);
+
+        apVeto = true;
+        isDCGun = true;
+    }
+
+    std::stringstream ss;
+    for (char c: itsCavity_m->getName()) {
+        ss << std::setw(2) << std::left << c;
+    }
+    INFOMSG(level1 << "\n* ************* "
+                   << std::left << std::setw(68) << std::setfill('*') << ss.str()
+                   << std::setfill(' ') << endl);
     if (!apVeto) {
         double initialEnergy = Util::getEnergy(P, itsReference_m.getM()) * 1e-6;
         double AstraPhase    = 0.0;
@@ -99,7 +120,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
         optimizedPhase = status.first;
         finalEnergy = status.second;
 
-        AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2, Physics::two_pi);
+        AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2 + Physics::two_pi, Physics::two_pi);
         newPhase = std::fmod(originalPhase + optimizedPhase + Physics::two_pi, Physics::two_pi);
         element->setPhasem(newPhase);
         element->setAutophaseVeto();
@@ -111,7 +132,6 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
         track(initialR_m, initialP_m, t + tErr, dt, newPhase, &out);
 	out.close();
 
-        INFOMSG(level1 << endl);
         INFOMSG(level1 << std::fixed << std::setprecision(4)
                 << itsCavity_m->getName() << "_phi = "  << newPhase * Physics::rad2deg <<  " [deg], "
                 << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
@@ -122,20 +142,28 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     } else {
         auto status = optimizeCavityPhase(originalPhase, t + tErr, dt);
 
-        optimizedPhase = originalPhase;
         finalEnergy = status.second;
 
-        newPhase = std::fmod(originalPhase + basePhase, Physics::two_pi);
+        originalPhase = std::fmod(originalPhase, Physics::two_pi);
+        double AstraPhase = std::fmod(optimizedPhase + Physics::pi / 2 + Physics::two_pi, Physics::two_pi);
 
-        INFOMSG(level1 << "\n"
-                << ">>>>>> APVETO >>>>>> " << endl);
+        if (!isDCGun) {
+            INFOMSG(level1 << ">>>>>> APVETO >>>>>> " << endl);
+        }
         INFOMSG(level1 << std::fixed << std::setprecision(4)
-                << itsCavity_m->getName() << "_phi = "  << newPhase * Physics::rad2deg <<  " [deg],\n"
+                << itsCavity_m->getName() << "_phi = "  << originalPhase * Physics::rad2deg <<  " [deg], "
+                << "corresp. in Astra = " << AstraPhase * Physics::rad2deg << " [deg],\n"
                 << "E = " << finalEnergy << " [MeV], " << "phi_nom = " << originalPhase * Physics::rad2deg << " [deg]\n"
                 << "Ez_0 = " << amplitude << " [MV/m]" << "\n"
                 << "time = " << (t + tErr) * 1e9 << " [ns], dt = " << dt * 1e12 << " [ps]" << endl);
-        INFOMSG(level1 << " <<<<<< APVETO <<<<<< " << endl);
+        if (!isDCGun) {
+            INFOMSG(level1 << " <<<<<< APVETO <<<<<< " << endl);
+        }
+
+        optimizedPhase = originalPhase;
     }
+    INFOMSG(level1 << "* " << std::right << std::setw(83) << std::setfill('*') << "*\n"
+            << std::setfill(' ') << endl);
 
     return optimizedPhase;
 }
