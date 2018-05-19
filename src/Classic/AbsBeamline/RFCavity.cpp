@@ -640,10 +640,10 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
     phimax = fmod(phimax, Physics::two_pi);
 
     const int prevPrecision = Ippl::Info->precision(8);
-    INFOMSG(level2 << "\n"
+    INFOMSG(level2
             << "estimated phase= " << phimax << " rad = "
             << phimax * Physics::rad2deg << " deg \n"
-            << "Ekin= " << Emax << " MeV" << setprecision(prevPrecision) << endl);
+            << "Ekin= " << Emax << " MeV" << setprecision(prevPrecision) << "\n" << endl);
 
     setPhasem(origPhase);
     return phimax;
@@ -725,9 +725,9 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
                 E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F) ;
             }
             const int prevPrecision = Ippl::Info->precision(8);
-            INFOMSG(level2 << "\nestimated phase= " << tmp_phi << " rad = "
+            INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
                     << tmp_phi * Physics::rad2deg << " deg \n"
-                    << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
+                    << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << "\n" << endl);
 
             return tmp_phi;
         }
@@ -770,10 +770,10 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     }
 
     const int prevPrecision = Ippl::Info->precision(8);
-    INFOMSG(level2 << "\n"
+    INFOMSG(level2
             << "estimated phase= " << tmp_phi << " rad = "
             << tmp_phi * Physics::rad2deg << " deg \n"
-            << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << endl);
+            << "Ekin= " << E[N - 1] << " MeV" << setprecision(prevPrecision) << "\n" << endl);
 
     return phi;
 }
