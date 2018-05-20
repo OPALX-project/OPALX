@@ -160,7 +160,7 @@ void OpalCavity::update() {
     std::string fmapfn = Attributes::getString(itsAttr[FMAPFN]);
     std::string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
-    bool apVeto = (Attributes::getBool(itsAttr[APVETO]) || freq < 1e-3);
+    bool apVeto = (Attributes::getBool(itsAttr[APVETO]));
 
     double rmin = Attributes::getReal(itsAttr[RMIN]);
     double rmax = Attributes::getReal(itsAttr[RMAX]);
