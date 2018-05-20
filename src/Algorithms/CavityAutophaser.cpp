@@ -51,7 +51,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
     double basePhase      = std::fmod(element->getFrequencym() * (t + tErr), Physics::two_pi);
     double frequency      = element->getFrequencym();
 
-    if (frequency <= (1.0 + 1e-6) * Physics::two_pi) { // DC gun
+    if ((!apVeto) && frequency <= (1.0 + 1e-6) * Physics::two_pi) { // DC gun
         optimizedPhase = (amplitude * itsReference_m.getQ() > 0.0? 0.0: Physics::pi);
         element->setPhasem(optimizedPhase + originalPhase);
         element->setAutophaseVeto();
