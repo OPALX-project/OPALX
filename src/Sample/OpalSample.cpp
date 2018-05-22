@@ -80,7 +80,6 @@ OpalSample *OpalSample::find(const std::string &name) {
 void OpalSample::initialize(const std::string &dvarName,
                             double lower,
                             double upper,
-                            int nSample,
                             size_t modulo,
                             bool sequence) {
 

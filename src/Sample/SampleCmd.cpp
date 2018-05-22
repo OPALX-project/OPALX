@@ -38,10 +38,9 @@ namespace {
         SAMPLINGS,
         NUMMASTERS,
         NUMCOWORKERS,
-        N,
-        SIMTMPDIR,
         TEMPLATEDIR,
         FIELDMAPDIR,
+        SEQUENCE,
         SIZE
     };
 }
@@ -54,7 +53,7 @@ SampleCmd::SampleCmd():
     itsAttr[OUTPUT] = Attributes::makeString
         ("OUTPUT", "Name used in output file sample");
     itsAttr[OUTDIR] = Attributes::makeString
-        ("OUTDIR", "Name of directory used to store sample output files");
+        ("OUTDIR", "Name of directory used to run and store sample output files");
     itsAttr[DVARS] = Attributes::makeStringArray
         ("DVARS", "List of sampling variables to be used");
     itsAttr[SAMPLINGS] = Attributes::makeStringArray
@@ -63,14 +62,12 @@ SampleCmd::SampleCmd():
         ("NUM_MASTERS", "Number of master nodes");
     itsAttr[NUMCOWORKERS] = Attributes::makeReal
         ("NUM_COWORKERS", "Number processors per worker");
-    itsAttr[N] = Attributes::makeReal
-        ("N", "Number of samples");
-    itsAttr[SIMTMPDIR] = Attributes::makeString
-        ("SIMTMPDIR", "Directory where simulations are run");
     itsAttr[TEMPLATEDIR] = Attributes::makeString
         ("TEMPLATEDIR", "Directory where templates are stored");
     itsAttr[FIELDMAPDIR] = Attributes::makeString
         ("FIELDMAPDIR", "Directory where field maps are stored");
+    itsAttr[SEQUENCE] = Attributes::makeBool
+        ("SEQUENCE", "Scan full space given by design variables (default: true)", true);
 
     registerOwnership(AttributeHandler::COMMAND);
 }
@@ -105,13 +102,6 @@ void SampleCmd::execute() {
 
     std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods;
 
-    int nSample = Attributes::getReal(itsAttr[N]);
-
-    if (nSample <= 0) {
-        throw OpalException("SampleCmd::execute",
-                            "The argument N has to be provided");
-    }
-
     std::map<std::string, std::pair<double, double> > vars;
 
     for (std::string& name : dvarsstr) {
@@ -126,7 +116,11 @@ void SampleCmd::execute() {
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
     }
-
+    
+    bool sequence = Attributes::getBool(itsAttr[SEQUENCE]);
+    size_t modulo = 1;
+    unsigned int nSample = std::numeric_limits<unsigned int>::max();
+    
     for (size_t i = 0; i < sampling.size(); ++i) {
         // corresponding sampling method
         OpalSample *s = OpalSample::find(sampling[i]);
@@ -145,7 +139,14 @@ void SampleCmd::execute() {
         s->initialize(name,
                       vars[name].first,
                       vars[name].second,
-                      nSample);
+                      modulo,
+                      sequence);
+        
+        if ( sequence )
+            modulo *= s->getSize();
+        
+        nSample = std::min(nSample, s->getSize());
+        
         sampleMethods[name] = s->sampleMethod_m;
     }
 
@@ -168,9 +169,7 @@ void SampleCmd::execute() {
             {OUTPUT, "outfile"},
             {OUTDIR, "outdir"},
             {NUMMASTERS, "num-masters"},
-            {NUMCOWORKERS, "num-coworkers"},
-            {N, "nsamples"},
-            {N, "initialPopulation"}
+            {NUMCOWORKERS, "num-coworkers"}
         });
 
     auto it = argumentMapper.end();
@@ -199,13 +198,21 @@ void SampleCmd::execute() {
             }
         }
     }
+    
+    if ( !sequence )
+        modulo = nSample;
+    
+    std::cout << modulo << " " << nSample << std::endl;
+    
+    arguments.push_back("--nsamples=" + std::to_string(modulo));
+    
     if (Attributes::getString(itsAttr[INPUT]) == "") {
         throw OpalException("SampleCmd::execute",
                             "The argument INPUT has to be provided");
     }
 
-    if (Attributes::getString(itsAttr[SIMTMPDIR]) != "") {
-        fs::path dir(Attributes::getString(itsAttr[SIMTMPDIR]));
+    if (Attributes::getString(itsAttr[OUTDIR]) != "") {
+        fs::path dir(Attributes::getString(itsAttr[OUTDIR]));
         if (dir.is_relative()) {
             fs::path path = fs::path(std::string(getenv("PWD")));
             path /= dir;
