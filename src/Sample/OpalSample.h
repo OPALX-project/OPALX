@@ -31,7 +31,6 @@ public:
     void initialize(const std::string &dvarName,
                     double lower,
                     double upper,
-                    int nSample,
                     size_t modulo = 1,
                     bool sequence = false);
 
