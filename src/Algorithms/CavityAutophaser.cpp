@@ -276,7 +276,7 @@ double CavityAutophaser::track(Vector_t R,
 							    out);
     rfc->setPhasem(initialPhase);
 
-    double finalKineticEnergy = Util::getEnergy(pe.first, itsReference_m.getM() * 1e-6);
+    double finalKineticEnergy = Util::getEnergy(Vector_t(0.0, 0.0, pe.first), itsReference_m.getM() * 1e-6);
 
     return finalKineticEnergy;
 }
