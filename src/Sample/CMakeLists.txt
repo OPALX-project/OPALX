@@ -1,5 +1,6 @@
 set (_SRCS
     OpalSample.cpp
+    RNGStream.cpp
     SampleCmd.cpp
     Sampler.cpp
   )
@@ -14,6 +15,7 @@ set (HDRS
     FromFile.h
     Normal.h
     OpalSample.h
+    RNGStream.h
     SampleCmd.h
     SampleGaussianSequence.h
     SampleIndividual.h

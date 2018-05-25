@@ -2,8 +2,8 @@
 #define OPAL_UNIFORM_H
 
 #include "Sample/SamplingMethod.h"
+#include "Sample/RNGStream.h"
 
-#include <random>
 #include <type_traits>
 
 template <typename T>
@@ -16,21 +16,31 @@ public:
                         std::uniform_int_distribution<T>,
                         std::uniform_real_distribution<T>
                      >::type dist_t;
-    
-    
-    Uniform(T lower, T upper, int seed)
-        : eng_m(seed)
-        , dist_m(lower, upper)
-        
-    { }
-    
-    void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
-        ind->genes[i] = dist_m(eng_m);
+
+    Uniform(T lower, T upper)
+        : dist_m(lower, upper)
+    {
+        RNGInstance_m = RNGStream::getInstance();
     }
-    
+
+    Uniform(T lower, T upper, int seed)
+        : dist_m(lower, upper)
+
+    {
+        RNGInstance_m = RNGStream::getInstance(seed);
+    }
+
+    ~Uniform() {
+        RNGStream::deleteInstance(RNGInstance_m);
+    }
+
+    void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
+        ind->genes[i] = RNGInstance_m->getNext(dist_m);
+    }
+
 private:
-    std::mt19937_64 eng_m;
-    
+    RNGStream *RNGInstance_m;
+
     dist_t dist_m;
 };
 
