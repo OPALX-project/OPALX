@@ -1,6 +1,7 @@
 #include "Sample/SampleCmd.h"
 #include "Sample/Sampler.h"
 #include "Sample/OpalSample.h"
+#include "Sample/RNGStream.h"
 
 #include "Optimize/DVar.h"
 #include "Optimize/OpalSimulation.h"
@@ -41,6 +42,7 @@ namespace {
         TEMPLATEDIR,
         FIELDMAPDIR,
         SEQUENCE,
+        SEED,
         SIZE
     };
 }
@@ -68,6 +70,8 @@ SampleCmd::SampleCmd():
         ("FIELDMAPDIR", "Directory where field maps are stored");
     itsAttr[SEQUENCE] = Attributes::makeBool
         ("SEQUENCE", "Scan full space given by design variables (default: true)", true);
+    itsAttr[SEED] = Attributes::makeReal
+        ("SEED", "Seed for global random number generator (default: 42)", 42);
 
     registerOwnership(AttributeHandler::COMMAND);
 }
@@ -89,6 +93,9 @@ void SampleCmd::execute() {
 
     auto opal = OpalData::getInstance();
     fs::path inputfile(Attributes::getString(itsAttr[INPUT]));
+
+    unsigned int seed = Attributes::getReal(itsAttr[SEED]);
+    RNGStream::setGlobalSeed(seed);
 
     std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
     DVarContainer_t dvars;
@@ -116,11 +123,11 @@ void SampleCmd::execute() {
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
     }
-    
+
     bool sequence = Attributes::getBool(itsAttr[SEQUENCE]);
     size_t modulo = 1;
     unsigned int nSample = std::numeric_limits<unsigned int>::max();
-    
+
     for (size_t i = 0; i < sampling.size(); ++i) {
         // corresponding sampling method
         OpalSample *s = OpalSample::find(sampling[i]);
@@ -141,12 +148,12 @@ void SampleCmd::execute() {
                       vars[name].second,
                       modulo,
                       sequence);
-        
+
         if ( sequence )
             modulo *= s->getSize();
-        
+
         nSample = std::min(nSample, s->getSize());
-        
+
         sampleMethods[name] = s->sampleMethod_m;
     }
 
@@ -198,14 +205,12 @@ void SampleCmd::execute() {
             }
         }
     }
-    
-    if ( !sequence )
-        modulo = nSample;
-    
-    std::cout << modulo << " " << nSample << std::endl;
-    
-    arguments.push_back("--nsamples=" + std::to_string(modulo));
-    
+
+    if ( sequence )
+        nSample = modulo;
+
+    arguments.push_back("--nsamples=" + std::to_string(nSample));
+
     if (Attributes::getString(itsAttr[INPUT]) == "") {
         throw OpalException("SampleCmd::execute",
                             "The argument INPUT has to be provided");

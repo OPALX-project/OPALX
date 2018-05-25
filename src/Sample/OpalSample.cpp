@@ -23,6 +23,7 @@ namespace {
         SEED,       // for random sample methods
         FNAME,      // file to read from sampling points
         N,
+        RANDOM,
         SIZE
     };
 }
@@ -39,13 +40,16 @@ OpalSample::OpalSample():
                           ("VARIABLE", "Name of design variable");
 
     itsAttr[SEED]       = Attributes::makeReal
-                          ("SEED", "seed for random sampling (default: 42)", 42);
+                          ("SEED", "seed for random sampling");
 
     itsAttr[FNAME]      = Attributes::makeString
                           ("FNAME", "File to read from the sampling points");
 
     itsAttr[N]          = Attributes::makeReal
                           ("N", "Number of sampling points", 1);
+
+    itsAttr[RANDOM]     = Attributes::makeBool
+                          ("RANDOM", "Whether sequence should be sampled randomly (default: false)", false);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -92,7 +96,9 @@ void OpalSample::initialize(const std::string &dvarName,
     int seed = Attributes::getReal(itsAttr[SEED]);
     size_m = Attributes::getReal(itsAttr[N]);
 
-    if (sequence) {
+    bool random = Attributes::getBool(itsAttr[RANDOM]);
+
+    if (!random) {
         if (type == "UNIFORM_INT") {
             sampleMethod_m.reset( new SampleSequence<int>(lower, upper, modulo, size_m) );
         } else if (type == "UNIFORM") {
@@ -109,11 +115,23 @@ void OpalSample::initialize(const std::string &dvarName,
         }
     } else {
         if (type == "UNIFORM_INT") {
-            sampleMethod_m.reset( new Uniform<int>(lower, upper, seed) );
+            if (Attributes::getReal(itsAttr[SEED])) {
+                sampleMethod_m.reset( new Uniform<int>(lower, upper, seed) );
+            } else {
+                sampleMethod_m.reset( new Uniform<int>(lower, upper) );
+            }
         } else if (type == "UNIFORM") {
-            sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
+            if (Attributes::getReal(itsAttr[SEED])) {
+                sampleMethod_m.reset( new Uniform<double>(lower, upper, seed) );
+            } else {
+                sampleMethod_m.reset( new Uniform<double>(lower, upper) );
+            }
         } else if (type == "GAUSSIAN") {
-            sampleMethod_m.reset( new Normal(lower, upper, seed) );
+            if (Attributes::getReal(itsAttr[SEED])) {
+                sampleMethod_m.reset( new Normal(lower, upper, seed) );
+            } else {
+                sampleMethod_m.reset( new Normal(lower, upper) );
+            }
         } else if (type == "FROMFILE") {
             std::string fname = Attributes::getString(itsAttr[FNAME]);
             sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
