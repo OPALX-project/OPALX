@@ -406,7 +406,7 @@ void initSphere(double r,
     if ( isFixedCharge )
         qi = charge;
     else
-        qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
+        qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles) * 1.0e4;
     
     for (uint i = 0; i < bunch->getLocalNum(); ++i) {
         // 17. Dec. 2016,
