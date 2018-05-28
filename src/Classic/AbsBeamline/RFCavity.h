@@ -103,7 +103,8 @@ public:
                                                           const double & t0,
                                                           const double & dt,
                                                           const double & q,
-                                                          const double & mass);
+                                                          const double & mass,
+							  std::ofstream *out = NULL);
 
     virtual void addKR(int i, double t, Vector_t &K);
 
