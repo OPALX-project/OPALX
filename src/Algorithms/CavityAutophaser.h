@@ -26,7 +26,8 @@ private:
                  Vector_t P,
                  double t,
                  const double dt,
-                 const double phase) const;
+                 const double phase,
+		 std::ofstream *out = NULL) const;
     double getEnergyMeV(const Vector_t &P);
     double getMomentum(double kineticEnergyMeV);
 
