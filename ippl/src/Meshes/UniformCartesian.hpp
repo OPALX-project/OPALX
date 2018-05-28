@@ -2130,13 +2130,9 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
      Field<Vektor<T,3U>,3U,UniformCartesian<3U,MFLOAT>,Cell>& r)
 {
   const NDIndex<3U>& domain = r.getDomain();
-  const NDIndex<3U>& locDomain = r.getLayout().getLocalNDIndex();
   Index I = domain[0];
   Index J = domain[1];
   Index K = domain[2];
-  Index locI = locDomain[0];
-  Index locJ = locDomain[1];
-  Index locK = locDomain[2];
 
   Vektor<T,3U> idx,idy,idz;
   idx[0] = 0.5/x.get_mesh().get_meshSpacing(0);
@@ -2159,61 +2155,48 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Vektor<T,3U> yy = Vektor<T,3U>(0.0,1.0,0.0);
   Vektor<T,3U> zz = Vektor<T,3U>(0.0,0.0,1.0);
 
-  int LI = I.length() - 1;
-  int LJ = J.length() - 1;
-  int LK = K.length() - 1;
-  Index lowL(0, 0);
-  Index IhighL(LI, LI);
-  Index JhighL(LJ, LJ);
-  Index KhighL(LK, LK);
+  Index lo(0, 0);
 
-  if (locI.contains(lowL)) {
-      r[0][J][K] = (idx * (-1.0*x[2][J][K]
-                           + 4.0*x[1][J][K]
-                           - 3.0*x[0][J][K])
-                    + yy*r[0][J][K]
-                    + zz*r[0][J][K]);
-  }
+  int maxI = I.length() - 1;
+  int maxJ = J.length() - 1;
+  int maxK = K.length() - 1;
 
-  if (locI.contains(IhighL)) {
-      r[LI][J][K] = (idx * (1.0*x[LI-2][J][K]
-                            - 4.0*x[LI-1][J][K]
-                            + 3.0*x[LI][J][K])
-                     + yy*r[LI][J][K]
-                     + zz*r[LI][J][K]);
-  }
+  Index Iup(maxI, maxI);
+  Index Jup(maxJ, maxJ);
+  Index Kup(maxK, maxK);
 
-  if (locJ.contains(lowL)) {
-      r[I][0][K] = (idy * (-1.0*x[I][2][K]
-                           + 4.0*x[I][1][K]
-                           - 3.0*x[I][0][K])
-                    + xx*r[I][0][K]
-                    + zz*r[I][0][K]);
-  }
+  r[lo][J][K] = (idx * (- 1.0*x[lo+2][J][K]
+                        + 4.0*x[lo+1][J][K]
+                        - 3.0*x[lo  ][J][K])
+                 + yy*r[lo][J][K]
+                 + zz*r[lo][J][K]);
+  r[Iup][J][K] = (idx * (  1.0*x[Iup-2][J][K]
+                         - 4.0*x[Iup-1][J][K]
+                         + 3.0*x[Iup  ][J][K])
+                  + yy*r[Iup][J][K]
+                  + zz*r[Iup][J][K]);
 
-  if (locJ.contains(JhighL)) {
-      r[I][LJ][K] = (idy * (1.0*x[I][LJ-2][K]
-                            - 4.0*x[I][LJ-1][K]
-                            + 3.0*x[I][LJ][K])
-                     + xx*r[I][LJ][K]
-                     + zz*r[I][LJ][K]);
-  }
+  r[I][lo][K] = (idy * (- 1.0*x[I][lo+2][K]
+                        + 4.0*x[I][lo+1][K]
+                        - 3.0*x[I][lo  ][K])
+                 + xx*r[I][lo][K]
+                 + zz*r[I][lo][K]);
+  r[I][Jup][K] = (idy * (  1.0*x[I][Jup-2][K]
+                         - 4.0*x[I][Jup-1][K]
+                         + 3.0*x[I][Jup  ][K])
+                  + xx*r[I][Jup][K]
+                  + zz*r[I][Jup][K]);
 
-  if (locK.contains(lowL)) {
-      r[I][J][0] = (idz * (-1.0*x[I][J][2]
-                           + 4.0*x[I][J][1]
-                           - 3.0*x[I][J][0])
-                    + xx*r[I][J][0]
-                    + yy*r[I][J][0]);
-  }
-
-  if (locK.contains(KhighL)) {
-      r[I][J][LK] = (idz * (1.0*x[I][J][LK-2]
-                            - 4.0*x[I][J][LK-1]
-                            + 3.0*x[I][J][LK])
-                     + xx*r[I][J][LK]
-                     + yy*r[I][J][LK]);
-  }
+  r[I][J][lo] = (idz * (- 1.0*x[I][J][lo+2]
+                        + 4.0*x[I][J][lo+1]
+                        - 3.0*x[I][J][lo  ])
+                 + xx*r[I][J][lo]
+                 + yy*r[I][J][lo]);
+  r[I][J][Kup] = (idz * (  1.0*x[I][J][Kup-2]
+                         - 4.0*x[I][J][Kup-1]
+                         + 3.0*x[I][J][Kup  ])
+                  + xx*r[I][J][Kup]
+                  + yy*r[I][J][Kup]);
 
   return r;
 }
