@@ -88,19 +88,34 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
     AmrIntVect_t niv = iv;
     AmrIntVect_t n2iv = iv;
     
-    if ( niv[dir] == -1 ) {
-        // lower boundary // --> forward difference
-        niv[dir]  = 0;
-        
-    } else {
-        // upper boundary // --> backward difference
-        niv[dir]  = nr[dir] - 1;
-    }
+    // cell size in direction
+    scalar_t h = mglevel->cellSize(dir);
     
     scalar_t coord1 = this->coordinate_m(niv, dir, mglevel, nr);
     
-    // cell size in direction
-    scalar_t h = mglevel->cellSize(dir);
+    scalar_t sign = 1.0;
+    
+    if ( niv[dir] == -1 ) {
+        // lower boundary // --> forward difference
+        
+        niv[dir] = 1;
+        map[mglevel->serialize(niv)] += value;
+        
+        sign = -1.0;
+        
+//         niv[dir]  = 0;
+//         map[mglevel->serialize(niv)]  += (1.0 + h / coord1) * value;
+        
+    } else {
+        // upper boundary // --> backward difference
+        niv[dir] = nr[dir] - 2;
+        map[mglevel->serialize(niv)] += value;
+        
+        
+//         niv[dir]  = nr[dir] - 1;
+//         map[mglevel->serialize(niv)]  += (1.0 - h / coord1) * value;
+    }
+    
     //scalar_t r = 1.475625 - 0.5 * h; //0.358;
     
     /*
@@ -112,7 +127,8 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
 //     std::cout << dir << " " << iv << " " << niv << std::endl;
 //     
 
-    map[mglevel->serialize(niv)]  += (1.0 - h / coord1) * value;
+    
+    
 //     map[mglevel->serialize(n2iv)] += value;
     
     // gradients other directions
@@ -124,7 +140,7 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
         
         scalar_t coord2 = this->coordinate_m(niv, d, mglevel, nr);
         
-        scalar_t scale = -h * coord2 / coord1 * value;
+        scalar_t scale = - sign * 2.0 * h * coord2 / coord1 * value;
         
         std::cout << dir << " " << niv << " " << d << " " << coord1 << " " << coord2 << " " << scale << std::endl;
         
@@ -264,8 +280,22 @@ void AmrOpenBoundary<Level>::gradient_m(const AmrIntVect_t& iv,
         // i + 1
         uiv[dir] += 1;
         
+//         // i + 2
+//         AmrIntVect_t u2iv = uiv;
+//         u2iv[dir] += 2;
+        
         // i - 1
         liv[dir] -= 1;
+        
+//         AmrIntVect_t l2iv = liv;
+//         l2iv[dir] -= 1;
+        
+//         scalar_t frac = value / (12.0 * mglevel->cellSize(dir) );
+        
+//         map[mglevel->serialize(u2iv)] -= frac;
+//         map[mglevel->serialize(uiv)]  += 8.0 / frac;
+//         map[mglevel->serialize(liv)]  -= 8.0 / frac;
+//         map[mglevel->serialize(l2iv)] += frac;
         
         map[mglevel->serialize(uiv)] += denom * value;
         map[mglevel->serialize(liv)] -= denom * value;
