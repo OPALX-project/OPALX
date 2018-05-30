@@ -902,7 +902,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
         // number of internal stencil points
         int nIntBoundary = AMREX_SPACEDIM * interface_mp->getNumberOfPoints();
     
-        int nEntries = (AMREX_SPACEDIM << 1) + 1 /* plus boundaries */ + nPhysBoundary + nIntBoundary;
+        int nEntries = (AMREX_SPACEDIM << 1) + 2 /* plus boundaries */ + nPhysBoundary + nIntBoundary;
     
         mglevel_m[level]->Anf_p = Teuchos::rcp(
             new matrix_t(mglevel_m[level]->map_p, nEntries,
@@ -929,7 +929,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
         /*
          * gradient matrices
          */
-        nEntries = 5;
+        nEntries = 7;
     
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[level]->G_p[d] = Teuchos::rcp(

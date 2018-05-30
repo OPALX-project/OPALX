@@ -21,7 +21,7 @@
 #include <AMReX_Geometry.H>
 
 #ifdef IPPL_AMR
-    #include "ippl-amr/AmrParticleBase.h"
+    #include "ippl-amr/AmrParticleBase1.h"
     #include "ippl-amr/ParticleAmrLayout.h"
     #include "ippl-amr/PartBunchAmr.h"
 #else

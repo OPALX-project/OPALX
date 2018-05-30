@@ -1,14 +1,14 @@
 
 #include "Ippl.h"
 
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 #include "ParticleAmrLayout.h"
 #include "PartBunchAmr.h"
 
 #define Dim 3
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
-typedef AmrParticleBase<amrplayout_t> amrbase_t;
+typedef AmrParticleBase1<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
 
@@ -41,7 +41,7 @@ public:
 };
 
 class AmrPartBunch : public PartBunchBase<AmrPartBunch>,
-                     public AmrParticleBase<BoxLibLayout<double, 3> >
+                     public AmrParticleBase1<BoxLibLayout<double, 3> >
 {
 public:
     
