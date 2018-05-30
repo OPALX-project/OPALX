@@ -16,12 +16,12 @@
  * This is a specialized version of ParticleLayout, which places particles
  * on processors based on their spatial location relative to multilevel grid.
  * The grids are defined by AMR framework (AMReX) and can contain multiple levels.
- * Layout uses specialized AmrParticleBase class and AMReXs ParGDB to determine to 
+ * Layout uses specialized AmrParticleBase1 class and AMReXs ParGDB to determine to 
  * which grid and level the particle belongs to.
  */
 
 #include "Particle/ParticleLayout.h"
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 
 #include "Region/RegionLayout.h"
 #include "Message/Message.h"
@@ -71,21 +71,21 @@ private:
     amrex::ParGDBBase* m_gdb;
     amrex::ParGDB m_gdb_object;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
-    bool Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+    bool Where (AmrParticleBase1< ParticleAmrLayout<T,Dim> >& p,
                 const unsigned int ip, 
                 int lev_min = 0, int lev_max = -1, int nGrow=0) const;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
-    bool EnforcePeriodicWhere (AmrParticleBase< ParticleAmrLayout<T,Dim> >& prt,
+    bool EnforcePeriodicWhere (AmrParticleBase1< ParticleAmrLayout<T,Dim> >& prt,
                                const unsigned int ip,
                                int lev_min = 0, int lev_max = -1) const;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     // Returns true if the particle was shifted.
     bool PeriodicShift (SingleParticlePos_t R) const;
 
@@ -182,18 +182,18 @@ public:
         return m_gdb; 
     }
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     //get the cell of the particle
-    amrex::IntVect Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+    amrex::IntVect Index (AmrParticleBase1< ParticleAmrLayout<T,Dim> >& p,
                    const unsigned int ip, int leve) const;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     //get the cell of the particle
     amrex::IntVect Index (SingleParticlePos_t &R, int lev) const;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     //redistribute the particles using AMReXs ParGDB class to determine where particle should go
-    void Redistribute(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
+    void Redistribute(AmrParticleBase1< ParticleAmrLayout<T,Dim> >& PData,
                       int lev_min = 0, int lev_max = -1, int nGrow = 0)
     {
         unsigned N = Ippl::getNodes();
@@ -209,7 +209,7 @@ public:
         //loop trough the particles and assigne the grid and level where each particle belongs
         size_t LocalNum = PData.getLocalNum();
         
-        typedef typename AmrParticleBase< ParticleAmrLayout<T,Dim> >::LevelNumCounter_t LevelNumCounter_t;
+        typedef typename AmrParticleBase1< ParticleAmrLayout<T,Dim> >::LevelNumCounter_t LevelNumCounter_t;
         LevelNumCounter_t& LocalNumPerLevel = PData.getLocalNumPerLevel();
         
         std::multimap<unsigned, unsigned> p2n; //node ID, particle 
@@ -360,10 +360,10 @@ public:
     
     }
 
-    //update the location and indices of all atoms in the given AmrParticleBase object.
+    //update the location and indices of all atoms in the given AmrParticleBase1 object.
     //uses the Redistribute function to swap particles among processes if needed
     //handles create and destroy requests. When complete all nodes have correct layout information
-    void update(AmrParticleBase< ParticleAmrLayout<T,Dim> >& PData,
+    void update(AmrParticleBase1< ParticleAmrLayout<T,Dim> >& PData,
                 const ParticleAttrib<char>* canSwap=0,
                 int lbase = 0, int lfine = -1)
     {
@@ -384,7 +384,7 @@ public:
                 const ParticleAttrib<char>* canSwap=0)
     {
         std::cout << "IpplBase update" << std::endl;
-        //TODO: exit since we need AmrParticleBase with grids and levels for particles for this layout
+        //TODO: exit since we need AmrParticleBase1 with grids and levels for particles for this layout
         //if IpplParticleBase is used something went wrong
     }
     
@@ -392,7 +392,7 @@ public:
 private:
     int getTileIndex(const amrex::IntVect& iv, const amrex::Box& box,amrex:: Box& tbx);
     
-    void locateParticle(AmrParticleBase< ParticleAmrLayout<T,Dim> >& p, 
+    void locateParticle(AmrParticleBase1< ParticleAmrLayout<T,Dim> >& p, 
                         const unsigned int ip,
                         int lev_min, int lev_max, int nGrow,
                         bool &particleLeftDomain) const

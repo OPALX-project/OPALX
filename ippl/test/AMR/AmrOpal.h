@@ -4,7 +4,7 @@
 #include <AMReX_AmrCore.H>
 
 #ifdef IPPL_AMR
-    #include "ippl-amr/AmrParticleBase.h"
+    #include "ippl-amr/AmrParticleBase1.h"
     #include "ippl-amr/ParticleAmrLayout.h"
     #include "ippl-amr/PartBunchAmr.h"
 #else
@@ -49,7 +49,7 @@ public:
     
 #ifdef IPPL_AMR
     typedef ParticleAmrLayout<double, AMREX_SPACEDIM> amrplayout_t;
-    typedef AmrParticleBase<amrplayout_t> amrbase_t;
+    typedef AmrParticleBase1<amrplayout_t> amrbase_t;
     typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 #endif
     
