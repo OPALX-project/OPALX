@@ -2,10 +2,9 @@
 
 template <class Level>
 FFTBottomSolver<Level>::FFTBottomSolver(Mesh_t *mesh,
-                                 FieldLayout_t *fl,
-                                 std::string greensFunction,
-                                 std::string bcz)
-    : FFTPoissonSolver(mesh, fl, greensFunction, bcz)
+                                        FieldLayout_t *fl,
+                                        std::string greensFunction)
+    : FFTPoissonSolver(mesh, fl, greensFunction, "OPEN")
 {
     for (lo_t i = 0; i < 6; ++i) {
         if (Ippl::getNodes()>1)
@@ -22,8 +21,7 @@ FFTBottomSolver<Level>::FFTBottomSolver(Mesh_t *mesh,
 
 
 template <class Level>
-FieldLayout_t* FFTBottomSolver<Level>::initMesh(Mesh_t *mesh,
-                                                       AmrOpal* amrobject_p)
+Mesh_t* FFTBottomSolver<Level>::initMesh(AmrOpal* amrobject_p)
 {
     if ( amrobject_p == nullptr )
         throw OpalException("FFTBottomSolver::initMesh()",
@@ -68,7 +66,7 @@ FieldLayout_t* FFTBottomSolver<Level>::initFieldLayout(Mesh_t *mesh,
         nodes.push_back( pmap[i] );
     }
     
-    return new FieldLayout_t(*mesh.get(),
+    return new FieldLayout_t(*mesh,
                              &regions[0],
                              &regions[0] + regions.size(),
                              &nodes[0],
@@ -82,6 +80,10 @@ void FFTBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
 {
     Vector_t hr;
     
+    hr[0] = level_mp->cellSize(0);
+    hr[1] = level_mp->cellSize(1);
+    hr[2] = level_mp->cellSize(2);
+    
     this->vector2field_m(b);
     
     FFTPoissonSolver::computePotential(rho_m, hr);
@@ -91,20 +93,23 @@ void FFTBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
 
 
 template <class Level>
-void FFTBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A)
+void FFTBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
+                                          Level* level_p)
 {
+    level_mp = level_p;
+    
     // do nothing here
+    this->fillMap_m(level_p);
+    
 };
 
 
 template <class Level>
-void FFTBottomSolver<Level>::fillMap_m(const AmrGrid_t& ba,
-                                const AmrProcMap_t& dmap)
+void FFTBottomSolver<Level>::fillMap_m(Level* level_p)
 {
     map_m.clear();
     
-    lo_t localidx = 0;
-    for (amrex::MFIter mfi(ba, dmap, true); mfi.isValid(); ++mfi) {
+    for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true); mfi.isValid(); ++mfi) {
         const amrex::Box&       tbx = mfi.tilebox();
         const int* lo = tbx.loVect();
         const int* hi = tbx.hiVect();
@@ -115,10 +120,11 @@ void FFTBottomSolver<Level>::fillMap_m(const AmrGrid_t& ba,
                 for (int k = lo[2]; k <= hi[2]; ++k) {
 #endif
                     AmrIntVect_t iv(D_DECL(i, j, k));
-                    map_m[localidx++] = iv;
-//                     go_t gidx = iv[0] + (iv[1] + ny * iv[2]) * nx;
-//                     map_m[gidx] = iv;
-                        
+                    
+                    go_t gidx = level_p->serialize(iv);
+                    lo_t lidx = level_p->map_p->getLocalElement(gidx);
+                    
+                    map_m[lidx] = iv;
 #if AMREX_SPACEDIM == 3
                 }
 #endif
