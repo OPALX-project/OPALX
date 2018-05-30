@@ -35,12 +35,9 @@ public:
     
     FFTBottomSolver(Mesh_t *mesh,
                     FieldLayout_t *fl,
-                    std::string greensFunction,
-                    std::string bcz);
+                    std::string greensFunction);
     
-    static Mesh_t* initMesh(Mesh_t *mesh,
-                         FieldLayout_t* fl,
-                         AmrOpal* amrobject_p);
+    static Mesh_t* initMesh(AmrOpal* amrobject_p);
     
     static FieldLayout_t* initFieldLayout(Mesh_t *mesh,
                                           AmrOpal* amrobject_p);
@@ -48,11 +45,13 @@ public:
     void solve(const Teuchos::RCP<mv_t>& x,
                const Teuchos::RCP<mv_t>& b);
     
-    void setOperator(const Teuchos::RCP<matrix_t>& A);
+    void setOperator(const Teuchos::RCP<matrix_t>& A,
+                      Level* level_p);
+    
+    std::size_t getNumIters() { return 1; }
     
 private:
-    void fillMap_m(const AmrGrid_t& ba,
-                   const AmrProcMap_t& dmap);
+    void fillMap_m(Level* level_p);
     
     void field2vector_m(const Teuchos::RCP<mv_t>& vector);
     
@@ -63,6 +62,8 @@ private:
     
     Field_t rho_m;
     BConds<double, 3, Mesh_t, Center_t> bc_m;
+    
+    Level_p* level_mp;
 };
 
 #endif
