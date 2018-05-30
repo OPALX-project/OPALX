@@ -19,7 +19,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 #include "ParticleAmrLayout.h"
 #include "PartBunchAmr.h"
 
@@ -28,7 +28,7 @@
 using namespace amrex;
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
-typedef AmrParticleBase<amrplayout_t> amrbase_t;
+typedef AmrParticleBase1<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
 // typedef std::deque<Particle<1,0> > PBox;
