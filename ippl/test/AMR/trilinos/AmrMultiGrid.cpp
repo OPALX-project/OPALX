@@ -929,7 +929,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
         /*
          * gradient matrices
          */
-        nEntries = 5;
+        nEntries = 11;
     
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[level]->G_p[d] = Teuchos::rcp(
