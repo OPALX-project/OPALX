@@ -68,6 +68,7 @@ struct param_t {
     std::string smoother;
     std::string prec;
     bool rebalance;
+    double bboxincr;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -107,7 +108,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 8;
+    int required = 9;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -138,15 +139,16 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #endif
             { "tagging",         required_argument, 0, 't' },
             { "tagging-factor",  required_argument, 0, 'f' },
+            { "bboxincr",        required_argument, 0, 'b' },
             { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "a:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
+        c = getopt_long(argc, argv, "a:b:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "b:x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -194,6 +196,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 break;
             }
 #endif
+            case 'b':
+                params.bboxincr = std::atof(optarg); ++cnt; break;
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -244,6 +248,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
                     << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
+                    << "--bboxincr [value] (increase box size by [value] percent)" << endl
                     << "--radius [sphere radius]" << endl
                     << "--nparticles [#particles]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
@@ -683,8 +688,11 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::RealBox amr_domain;
     
-    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
-    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    double incr = params.bboxincr * 0.01;
+    double blen = 1.0 + incr;
+    
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{-blen, -blen, -blen}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{ blen,  blen,  blen}}; // m
     
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
@@ -840,6 +848,7 @@ int main(int argc, char *argv[]) {
             << "- #level                = " << params.nLevels - 1 << endl
             << "- sphere radius [m]     = " << params.radius << endl
             << "- #particles            = " << params.nParticles << endl
+            << "- bboxincr              = " << params.bboxincr << endl
             << "- tagging               = " << tagging << endl
             << "- tagging factor        = " << params.tagfactor << endl;
 
