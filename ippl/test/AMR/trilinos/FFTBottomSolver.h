@@ -63,7 +63,7 @@ private:
     Field_t rho_m;
     BConds<double, 3, Mesh_t, Center_t> bc_m;
     
-    Level_p* level_mp;
+    Level* level_mp;
 };
 
 #endif
