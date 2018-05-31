@@ -60,17 +60,6 @@ private:
                const scalar_t& value,
                Level* mglevel,
                const go_t* nr);
-    
-    /*
-     * Asymptotic boundary condition second order (ABC2)
-     * FIXME Not working
-     */
-    void abc2_m(const AmrIntVect_t& iv,
-                const lo_t& dir,
-                umap_t& map,
-                const scalar_t& value,
-                Level* mglevel,
-                const go_t* nr);
 };
 
 
@@ -84,8 +73,6 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
 {
     this->robin_m(iv, dir, map, value, mglevel, nr);
 //     this->abc1_m(iv, dir, map, value, mglevel, nr);
-    
-//     this->abc2_m(iv, dir, map, value, mglevel, nr);
 }
 
 
@@ -187,79 +174,6 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
         
         std::cout << dir << " " << niv << " " << d << " " << c1 << " " << c2 << std::endl;
     }
-}
-
-
-template <class Level>
-void AmrOpenBoundary<Level>::abc2_m(const AmrIntVect_t& iv,
-                                    const lo_t& dir,
-                                    umap_t& map,
-                                    const scalar_t& value,
-                                    Level* mglevel,
-                                    const go_t* nr)
-{
-    // find interior neighbour cells
-    AmrIntVect_t niv = iv;
-    AmrIntVect_t n2iv = iv;
-    
-    if ( niv[dir] == -1 ) {
-        // lower boundary // --> forward difference
-        niv[dir]  = 0;
-        n2iv[dir] = 1;
-        
-    } else {
-        // upper boundary // --> backward difference
-        niv[dir]  = nr[dir] - 1;
-        n2iv[dir] = nr[dir] - 2;
-    }
-    
-    scalar_t coord1 = 10.0 * this->coordinate_m(niv, dir, mglevel, nr);
-    
-    // cell size in direction
-    scalar_t h = mglevel->cellSize(dir);
-    
-    // normal
-    scalar_t prefac = 1.0 / ( 1.0 + coord1 / (2.0 * h) );
-    
-    map[mglevel->serialize(n2iv)] += prefac * value;
-    map[mglevel->serialize(niv)]  += prefac * coord1 / (2.0 * h) * value;
-    map[mglevel->serialize(n2iv)] -= prefac * coord1 / (2.0 * h) * value;
-    
-    
-    map[mglevel->serialize(niv)] -= h / coord1;
-    
-    // tangential
-    
-    scalar_t coord3 = 1.0;
-    
-    for (lo_t i = 1; i < 3; ++i) {
-        lo_t d = (dir + i) % 3;
-        
-        
-        scalar_t hd = mglevel->cellSize(d);
-        
-        scalar_t coord2 = this->coordinate_m(niv, d, mglevel, nr);
-        
-        coord3 *= coord2;
-        
-        scalar_t scale = -0.5 * h * coord2 * coord2 / coord1 * value;
-        
-        AmrIntVect_t liv = niv;
-        liv[d] += 1;
-        
-        AmrIntVect_t riv = niv;
-        riv[d] -= 1;
-        
-        map[mglevel->serialize(liv)] += scale / ( hd * hd );
-        map[mglevel->serialize(riv)] += scale / ( hd * hd );
-        map[mglevel->serialize(niv)] += 2.0 * scale / ( hd * hd );
-        
-    }
-    
-    // mixed derivative
-    coord3 = h * coord3 / coord1;
-    
-    
 }
 
 
