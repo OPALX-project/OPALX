@@ -100,7 +100,7 @@ void setupField() {
     
     
     
-    auto pmap = dmap.ProcessorMap();
+    const auto& pmap = dmap.ProcessorMap();
     
     std::vector< NDIndex<3> > regions;
     std::vector< int > nodes;

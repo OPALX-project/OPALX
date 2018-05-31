@@ -1,13 +1,13 @@
 #ifndef PARTBUNCHAMR_H
 #define PARTBUNCHAMR_H
 
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 
 #include <list>
 #include <sstream>
 
 template<class PLayout>
-class PartBunchAmr : public AmrParticleBase<PLayout>
+class PartBunchAmr : public AmrParticleBase1<PLayout>
 {
 
 public:
@@ -17,7 +17,7 @@ public:
     typename PLayout::ParticlePos_t P;
     ParticleAttrib<double> mass;
     ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
-    typedef typename AmrParticleBase<PLayout>::LevelNumCounter_t LevelNumCounter_t;
+    typedef typename AmrParticleBase1<PLayout>::LevelNumCounter_t LevelNumCounter_t;
     
     PartBunchAmr() {
         this->addAttribute(qm);
