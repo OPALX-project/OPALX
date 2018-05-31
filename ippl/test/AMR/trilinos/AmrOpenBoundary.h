@@ -40,6 +40,20 @@ private:
                           Level* mglevel,
                           const go_t* nr);
     
+    /*
+     * Robin boundary condition (i.e. Dirichlet + Neumann)
+     */
+    void robin_m(const AmrIntVect_t& iv,
+                 const lo_t& dir,
+                 umap_t& map,
+                 const scalar_t& value,
+                 Level* mglevel,
+                 const go_t* nr);
+    
+    /*
+     * Asymptotic boundary condition first order (ABC1)
+     * BUG Not working in 3 dimensions
+     */
     void abc1_m(const AmrIntVect_t& iv,
                const lo_t& dir,
                umap_t& map,
@@ -47,6 +61,10 @@ private:
                Level* mglevel,
                const go_t* nr);
     
+    /*
+     * Asymptotic boundary condition second order (ABC2)
+     * FIXME Not working
+     */
     void abc2_m(const AmrIntVect_t& iv,
                 const lo_t& dir,
                 umap_t& map,
@@ -64,11 +82,70 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
                                    Level* mglevel,
                                    const go_t* nr)
 {
-    this->abc1_m(iv, dir, map, value, mglevel, nr);
+    this->robin_m(iv, dir, map, value, mglevel, nr);
+//     this->abc1_m(iv, dir, map, value, mglevel, nr);
     
 //     this->abc2_m(iv, dir, map, value, mglevel, nr);
 }
 
+
+template <class Level>
+void AmrOpenBoundary<Level>::robin_m(const AmrIntVect_t& iv,
+                                     const lo_t& dir,
+                                     umap_t& map,
+                                     const scalar_t& value,
+                                     Level* mglevel,
+                                     const go_t* nr)
+{
+    AmrIntVect_t niv = iv;
+    AmrIntVect_t n2iv = iv;
+    
+    scalar_t sign = 1.0;
+    
+    if ( iv[dir] == -1 ) {
+        // lower boundary
+        
+        niv[dir] = 0;
+        n2iv[dir] = 1;
+        
+    } else {
+        // upper boundary
+        
+        niv[dir] = nr[dir] - 1;
+        n2iv[dir] = nr[dir] - 2;
+        
+        sign = -1.0;
+    }
+    
+    // correct cell size
+    scalar_t h = mglevel->cellSize(dir);
+    
+    // artificial cell size
+    scalar_t ah = h;
+    
+    scalar_t d = this->coordinate_m(niv, dir, mglevel, nr) - 2.5 * sign * ah;
+    
+    map[mglevel->serialize(niv)]  += sign * (h + ah) / d * value;
+    map[mglevel->serialize(n2iv)] += value;
+    
+    
+//     scalar_t h = mglevel->cellSize(dir);
+//     scalar_t d = this->coordinate_m(niv, dir, mglevel, nr)
+    
+    
+//     map[mglevel->serialize(niv)]  += 2.0 * sign * h / (d) * value;
+//     map[mglevel->serialize(n2iv)] += value;
+    
+    std::cout << dir << " " << niv << " " << d << " " << h << " " << std::endl;
+    
+    
+    // 1st order
+    //scalar_t r = 1.475625 - 0.5 * h; //0.358;
+// //     map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;
+//     map[mglevel->serialize(niv)] -= 2.0 * h / r * value;
+//     map[mglevel->serialize(n2iv)] += value;
+// //    map[mglevel->serialize(niv)] += (1.0 - h / r) * value;
+}
 
 
 template <class Level>
@@ -91,15 +168,15 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
     // cell size in direction
     scalar_t h = mglevel->cellSize(dir);
     
-    scalar_t coord1 = this->coordinate_m(niv, dir, mglevel, nr);
+    scalar_t coord1 = 1000.0 * this->coordinate_m(niv, dir, mglevel, nr);
     
     scalar_t sign = 1.0;
     
     if ( niv[dir] == -1 ) {
         // lower boundary // --> forward difference
         
-        niv[dir] = 1;
-        map[mglevel->serialize(niv)] += value;
+        niv[dir] = 0;
+        n2iv[dir] = 1;
         
         sign = -1.0;
         
@@ -108,15 +185,18 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
         
     } else {
         // upper boundary // --> backward difference
-        niv[dir] = nr[dir] - 2;
-        map[mglevel->serialize(niv)] += value;
+        
+        niv[dir] = nr[dir] - 1;
+        n2iv[dir] = nr[dir] - 2;
         
         
 //         niv[dir]  = nr[dir] - 1;
 //         map[mglevel->serialize(niv)]  += (1.0 - h / coord1) * value;
     }
     
-    //scalar_t r = 1.475625 - 0.5 * h; //0.358;
+    map[mglevel->serialize(n2iv)] += value;
+    
+    map[mglevel->serialize(niv)] += sign * 2.0 * h / coord1 * value;
     
     /*
      * 
@@ -146,13 +226,6 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
         
         this->gradient_m(niv, d, map, scale, mglevel, nr);
     }
-    
-    
-    // 1st order
-// //     map[mglevel->serialize(niv)] += 2.0 * r / (2.0 * r + h) * value;
-//     map[mglevel->serialize(niv)] -= 2.0 * h / r * value;
-//     map[mglevel->serialize(n2iv)] += value;
-// //    map[mglevel->serialize(niv)] += (1.0 - h / r) * value;
 }
 
 
@@ -179,7 +252,7 @@ void AmrOpenBoundary<Level>::abc2_m(const AmrIntVect_t& iv,
         n2iv[dir] = nr[dir] - 2;
     }
     
-    scalar_t coord1 = this->coordinate_m(niv, dir, mglevel, nr);
+    scalar_t coord1 = 10.0 * this->coordinate_m(niv, dir, mglevel, nr);
     
     // cell size in direction
     scalar_t h = mglevel->cellSize(dir);
