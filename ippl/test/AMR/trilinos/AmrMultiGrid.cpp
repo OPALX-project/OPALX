@@ -1899,18 +1899,18 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
         case BaseSolver::SA:
             solver_mp.reset( new MueLuSolver_t(rebalance) );
             break;
-        case BaseSolver::FFT:
-        {
-            std::shared_ptr<Mesh_t> mesh = std::shared_ptr<Mesh_t>(
-                FFTSolver_t::initMesh(itsAmrObject_mp)
-            );
-            
-            std::shared_ptr<FieldLayout_t> fl = std::shared_ptr<FieldLayout_t>(
-                FFTSolver_t::initFieldLayout(mesh.get(), itsAmrObject_mp)
-            );
-            
-            solver_mp.reset( new FFTSolver_t(mesh.get(), fl.get(), std::string("INTEGRATED")) );
-        }
+//         case BaseSolver::FFT:
+//         {
+//             std::shared_ptr<Mesh_t> mesh = std::shared_ptr<Mesh_t>(
+//                 FFTSolver_t::initMesh(itsAmrObject_mp)
+//             );
+//             
+//             std::shared_ptr<FieldLayout_t> fl = std::shared_ptr<FieldLayout_t>(
+//                 FFTSolver_t::initFieldLayout(mesh.get(), itsAmrObject_mp)
+//             );
+//             
+//             solver_mp.reset( new FFTSolver_t(mesh.get(), fl.get(), std::string("INTEGRATED")) );
+//         }
         default:
             throw OpalException("AmrMultiGrid::initBaseSolver_m()",
                                 "No such bottom solver available.");
