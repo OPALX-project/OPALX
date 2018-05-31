@@ -59,7 +59,7 @@ set(F90_source_files ../Tagging_nd.f90)
 add_library(amropal
             ../AmrOpal.cpp
             ../AmrOpal_F.h
-            AmrParticleBase.hpp
+            AmrParticleBase1.hpp
             ../Distribution.cpp
             ../H5Reader.cpp
             ${F90_source_files}
@@ -76,7 +76,7 @@ if ( ENABLE_AMR_MG_SOLVER )
 endif ( ENABLE_AMR_MG_SOLVER )
 
 # set_property(SOURCE testAmrPartBase.cpp testPerformance.cpp testPlasma.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -DUNIQUE_PTR ")
-add_executable(testAmrPartBase testAmrPartBase.cpp AmrParticleBase.hpp)
+add_executable(testAmrPartBase testAmrPartBase.cpp AmrParticleBase1.hpp)
 
 add_executable( testNewTracker
                 testNewTracker.cpp)
@@ -117,14 +117,14 @@ add_executable( testLayout
 # add_executable( testInitGuessSolver
 #                 testInitGuessSolver.cpp
 #                 ../AmrOpal.cpp
-#                 AmrParticleBase.hpp
+#                 AmrParticleBase1.hpp
 #                 ../Distribution.cpp
 #                 ../H5Reader.cpp
 #                 ${F90_source_files}
 #                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
 #                 ../Solver.cpp)
 
-add_executable(testScatterAMReX testScatterAMReX.cpp AmrParticleBase.hpp)
+add_executable(testScatterAMReX testScatterAMReX.cpp AmrParticleBase1.hpp)
 
 add_custom_command(TARGET testScatterAMReX POST_BUILD
                    COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/inputs $<TARGET_FILE_DIR:testScatterAMReX>)

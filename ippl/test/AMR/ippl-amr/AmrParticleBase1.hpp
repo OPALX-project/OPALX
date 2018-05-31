@@ -4,9 +4,9 @@
 #include <AMReX_ParmParse.H>
 #include <limits>
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
+void AmrParticleBase1<PLayout>::Interp(const SingleParticlePos_t &R,
 				      const amrex::Geometry &geom,
 				      const amrex::FArrayBox& fab,
 				      const int* idx,
@@ -32,9 +32,9 @@ void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
   }
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
+void AmrParticleBase1<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
 						     const amrex::Real* plo, 
 						     const amrex::Real* dx, 
 						     amrex::Real* fracs,  
@@ -55,22 +55,22 @@ void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &
 
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
+int AmrParticleBase1<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
 					       const amrex::Real*         plo,
 					       const amrex::Real*         dx_geom,
 					       const amrex::Real*         dx_part,
 					       amrex::Array<amrex::Real>&        fracs,
 					       amrex::Array<amrex::IntVect>&     cells)
 {
-    BL_PROFILE("AmrParticleBase::CIC_Cells_Fracs()");
+    BL_PROFILE("AmrParticleBase1::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
     {
         const int M = D_TERM(2,+2,+4);
         fracs.resize(M);
         cells.resize(M);
-        AmrParticleBase::CIC_Cells_Fracs_Basic(R,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
+        AmrParticleBase1::CIC_Cells_Fracs_Basic(R,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
         return M;
     }
     //
@@ -119,9 +119,9 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
     return M;
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
+bool AmrParticleBase1<PLayout>::FineToCrse (const int ip,
 					   int                               flev,
 					   const amrex::Array<amrex::IntVect>&              fcells,
 					   const amrex::BoxArray&                    fvalid,
@@ -136,7 +136,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     PLayout *Layout = &this->getLayout();
     const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
-    BL_PROFILE("AmrParticleBase::FineToCrse()");
+    BL_PROFILE("AmrParticleBase1::FineToCrse()");
     BL_ASSERT(m_gdb != 0);
     BL_ASSERT(flev > 0);
     //
@@ -240,9 +240,9 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     return result;
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
+void AmrParticleBase1<PLayout>::FineCellsToUpdateFromCrse (
   const int ip,
   int lev,
   const amrex::IntVect& ccell,
@@ -368,7 +368,7 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
 
 
 template<class PLayout>
-void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
+void AmrParticleBase1<PLayout>::AssignDensityDoit(int rho_index,
 						 amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf,
 						 PMap&             data,
 						 int               ncomp,
@@ -572,7 +572,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
                                                   amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                                                   int lev_min, int ncomp, int finest_level) const
 {
@@ -633,7 +633,7 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
 // This is the single-level version for cell-centered density
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa,
                                                                  amrex::MultiFab& mf_to_be_filled,
                                                                  int       lev,
                                                                  int       ncomp,
@@ -755,7 +755,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
                                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                                                 int lev_min, int lev_max)
 {
@@ -766,7 +766,7 @@ void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType> &pa,
                                                            amrex::MultiFab& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
