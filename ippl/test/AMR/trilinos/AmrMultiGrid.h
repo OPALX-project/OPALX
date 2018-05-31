@@ -55,7 +55,7 @@ public:
     typedef BelosBottomSolver<AmrMultiGridLevel_t>      BelosSolver_t;
     typedef Amesos2BottomSolver<AmrMultiGridLevel_t>    Amesos2Solver_t;
     typedef MueLuBottomSolver<AmrMultiGridLevel_t>      MueLuSolver_t;
-    typedef FFTBottomSolver<AmrMultiGridLevel_t>        FFTSolver_t;
+//     typedef FFTBottomSolver<AmrMultiGridLevel_t>        FFTSolver_t;
     
     typedef AmrPreconditioner<matrix_t, AmrMultiGridLevel_t> preconditioner_t;
     
