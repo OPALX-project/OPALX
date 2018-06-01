@@ -154,7 +154,8 @@ public:
                  const std::string& smoother,
                  const std::size_t& nSweeps,
                  const std::string& interp,
-                 const std::string& norm);
+                 const std::string& norm,
+                 int inc = 5);
     
 //     /*!
 //      * Instantiation used in Structure/FieldSolver.cpp for
@@ -710,6 +711,8 @@ private:
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
     IpplTimings::TimerRef dumpTimer_m;          ///< write SDDS file timer
 #endif
+
+    int inc_m;
 };
 
 
