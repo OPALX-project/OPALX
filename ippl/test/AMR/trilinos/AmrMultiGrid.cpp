@@ -27,7 +27,8 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
                            const std::string& smoother,
                            const std::size_t& nSweeps,
                            const std::string& interp,
-                           const std::string& norm)
+                           const std::string& norm,
+                           int inc)
     : itsAmrObject_mp(itsAmrObject_p),
       nIter_m(0),
       bIter_m(0),
@@ -41,7 +42,8 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
       eps_m(1.0e-10),
       verbose_m(false),
       fname_m(/*OpalData::getInstance()->getInputBasename()*/ "Solver.solver"),
-      flag_m(std::ios::out)
+      flag_m(std::ios::out),
+      inc_m(inc)
 {
     comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
@@ -179,7 +181,7 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
                 bc_m[i].reset( new AmrDirichletBoundary<AmrMultiGridLevel_t>() );
                 break;
             case Boundary::OPEN:
-                bc_m[i].reset( new AmrOpenBoundary<AmrMultiGridLevel_t>() );
+                bc_m[i].reset( new AmrOpenBoundary<AmrMultiGridLevel_t>(inc_m) );
                 break;
             case Boundary::PERIODIC:
                 bc_m[i].reset( new AmrPeriodicBoundary<AmrMultiGridLevel_t>() );

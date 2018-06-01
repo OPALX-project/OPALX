@@ -69,6 +69,7 @@ struct param_t {
     std::string prec;
     bool rebalance;
     double bboxincr;
+    int inc;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -108,7 +109,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 9;
+    int required = 10;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -140,15 +141,16 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "tagging",         required_argument, 0, 't' },
             { "tagging-factor",  required_argument, 0, 'f' },
             { "bboxincr",        required_argument, 0, 'b' },
+            { "inc",        required_argument, 0, 'I' },
             { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "a:b:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:a:b:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "b:x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:b:x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -198,6 +200,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #endif
             case 'b':
                 params.bboxincr = std::atof(optarg); ++cnt; break;
+            case 'I':
+                params.inc = std::atoi(optarg); ++cnt; break;
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -602,7 +606,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         AmrMultiGrid sol(&myAmrOpal, params.bs, params.prec,
                          params.rebalance, params.bcx, params.bcy,
                          params.bcz, params.smoother, params.nsweeps,
-                         interp, norm);
+                         interp, norm, params.inc);
         
         IpplTimings::startTimer(solvTimer);
         
