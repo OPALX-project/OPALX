@@ -544,7 +544,7 @@ template<typename Value_type, typename Size_type>
 
         while (error_m > accuracy && !stop) {
 	    /*
-	     * Version 2.0 decouple was substituded by getEigenvalues
+	     * Version 2.0 decouple was substituded by setEigenVectors
              * and updateInitialSigma was changed according to Eq. 18 Sec. 2.4 
              * Frey Semester thesis
              */
