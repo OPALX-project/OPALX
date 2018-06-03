@@ -13,7 +13,7 @@
  * @version 2.1
  * (Version 2.1 implemented by Cristopher Cortes)
  * The original version used a private class <b>RDM</b> to calculate the coupled part of the sigma matrix
- * in version 2.1 this was replaced by an Eigenvalues Solver
+ * in version 2.1 this was replaced by an Eigenvalue Solver
  *
  */
 #ifndef SIGMAGENERATOR_H
@@ -534,9 +534,6 @@ template<typename Value_type, typename Size_type>
 
         // (inverse) transformation matrix
         complex_matrix_type R(6,6), invR(6,6);
-	
-        // eigenvalues --> 6 
-        complex_vector_type eigen(6);
 
         // new initial sigma matrix
         matrix_type newSigma(6,6);
