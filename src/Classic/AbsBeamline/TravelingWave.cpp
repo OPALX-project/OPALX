@@ -522,7 +522,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
             const int prevPrecision = Ippl::Info->precision(8);
             INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
                     << tmp_phi * Physics::rad2deg << " deg,\n"
-                    << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << endl);
+                    << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
             return tmp_phi;
         }
         phi = tmp_phi - floor(tmp_phi / Physics::two_pi + 0.5) * Physics::two_pi;
@@ -562,16 +562,17 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
     const int prevPrecision = Ippl::Info->precision(8);
     INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
             << tmp_phi * Physics::rad2deg << " deg,\n"
-            << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << endl);
+            << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
 
     return phi;
 }
 
 std::pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
-                                                        const double &t0,
-                                                        const double &dt,
-                                                        const double &q,
-                                                        const double &mass) {
+							     const double &t0,
+							     const double &dt,
+							     const double &q,
+							     const double &mass,
+							     std::ofstream *out) {
     double phase = frequency_m * t0 + phase_m;
     double p = p0;
     double t = t0;
@@ -599,6 +600,9 @@ std::pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
     delete[] zvals;
     delete[] onAxisField;
 
+    if (out) *out << std::setw(18) << z
+		  << std::setw(18) << Util::getEnergy(p, mass)
+		  << std::endl;
     double dz = 0.5 * p / sqrt(1.0 + p * p) * cdt;
     while(z + dz < startCoreField_m + zbegin) {
         z += dz;
@@ -632,6 +636,10 @@ std::pair<double, double> TravelingWave::trackOnAxisParticle(const double &p0,
         phase += dphi;
         phase2 += dphi;
         t += dt;
+
+	if (out) *out << std::setw(18) << z
+		      << std::setw(18) << Util::getEnergy(p, mass)
+		      << std::endl;
     }
     phase = phase - phaseCore1_m + phaseExit_m;
     while(z + dz < startExitField_m + 0.5 * PeriodLength_m + zbegin) {
