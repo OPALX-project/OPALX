@@ -2155,14 +2155,48 @@ Grad(Field<T,3U,UniformCartesian<3U,MFLOAT>,Cell>& x,
   Vektor<T,3U> yy = Vektor<T,3U>(0.0,1.0,0.0);
   Vektor<T,3U> zz = Vektor<T,3U>(0.0,0.0,1.0);
 
-  r[0][J][K] = idx * (-1.0*x[2][J][K] + 4.0*x[1][J][K] - 3.0*x[0][J][K]) + yy*r[0][J][K] + zz*r[0][J][K];
-  r[I.length()-1][J][K] = idx * (1.0*x[I.length()-3][J][K] - 4.0*x[I.length()-2][J][K] + 3.0*x[I.length()-1][J][K]) + yy*r[I.length()-1][J][K] + zz*r[I.length()-1][J][K];
+  Index lo(0, 0);
 
-  r[I][0][K] = idy * (-1.0*x[I][2][K] + 4.0*x[I][1][K] - 3.0*x[I][0][K]) + xx*r[I][0][K] + zz*r[I][0][K];
-  r[I][J.length()-1][K] = idy * (1.0*x[I][J.length()-3][K] - 4.0*x[I][J.length()-2][K] + 3.0*x[I][J.length()-1][K]) + xx*r[I][J.length()-1][K] + zz*r[I][J.length()-1][K];
+  int maxI = I.length() - 1;
+  int maxJ = J.length() - 1;
+  int maxK = K.length() - 1;
 
-  r[I][J][0] = idz * (-1.0*x[I][J][2] + 4.0*x[I][J][1] - 3.0*x[I][J][0]) + xx*r[I][J][0] + yy*r[I][J][0];
-  r[I][J][K.length()-1] = idz * (1.0*x[I][J][K.length()-3] - 4.0*x[I][J][K.length()-2] + 3.0*x[I][J][K.length()-1]) + xx*r[I][J][K.length()-1] + yy*r[I][J][K.length()-1];
+  Index Iup(maxI, maxI);
+  Index Jup(maxJ, maxJ);
+  Index Kup(maxK, maxK);
+
+  r[lo][J][K] = (idx * (- 1.0*x[lo+2][J][K]
+                        + 4.0*x[lo+1][J][K]
+                        - 3.0*x[lo  ][J][K])
+                 + yy*r[lo][J][K]
+                 + zz*r[lo][J][K]);
+  r[Iup][J][K] = (idx * (  1.0*x[Iup-2][J][K]
+                         - 4.0*x[Iup-1][J][K]
+                         + 3.0*x[Iup  ][J][K])
+                  + yy*r[Iup][J][K]
+                  + zz*r[Iup][J][K]);
+
+  r[I][lo][K] = (idy * (- 1.0*x[I][lo+2][K]
+                        + 4.0*x[I][lo+1][K]
+                        - 3.0*x[I][lo  ][K])
+                 + xx*r[I][lo][K]
+                 + zz*r[I][lo][K]);
+  r[I][Jup][K] = (idy * (  1.0*x[I][Jup-2][K]
+                         - 4.0*x[I][Jup-1][K]
+                         + 3.0*x[I][Jup  ][K])
+                  + xx*r[I][Jup][K]
+                  + zz*r[I][Jup][K]);
+
+  r[I][J][lo] = (idz * (- 1.0*x[I][J][lo+2]
+                        + 4.0*x[I][J][lo+1]
+                        - 3.0*x[I][J][lo  ])
+                 + xx*r[I][J][lo]
+                 + yy*r[I][J][lo]);
+  r[I][J][Kup] = (idz * (  1.0*x[I][J][Kup-2]
+                         - 4.0*x[I][J][Kup-1]
+                         + 3.0*x[I][J][Kup  ])
+                  + xx*r[I][J][Kup]
+                  + yy*r[I][J][Kup]);
 
   return r;
 }

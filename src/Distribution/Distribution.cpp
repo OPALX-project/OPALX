@@ -706,7 +706,8 @@ double Distribution::getTEmission() {
 
 Inform &Distribution::printInfo(Inform &os) const {
 
-    os << "* ************* D I S T R I B U T I O N ********************************************" << endl;
+    os << "\n"
+       << "* ************* D I S T R I B U T I O N ********************************************" << endl;
     os << "* " << endl;
     if (OpalData::getInstance()->inRestartRun()) {
         os << "* In restart. Distribution read in from .h5 file." << endl;
@@ -744,9 +745,9 @@ Inform &Distribution::printInfo(Inform &os) const {
             os << "* Delta t during emission  = " << tBin_m / numberOfSampleBins_m << " [sec]" << endl;
             os << "* " << endl;
             printEmissionModel(os);
-            os << "* " << endl;
-        } else
+        } else {
             os << "* Distribution is injected." << endl;
+        }
     }
     os << "* " << endl;
     os << "* **********************************************************************************" << endl;
@@ -4034,7 +4035,6 @@ void Distribution::setDistParametersFlattop(double massIneV) {
 
 
     if (emitting_m) {
-        INFOMSG("emitting"<<endl);
         sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
                             std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
                             0.0);
@@ -4451,9 +4451,12 @@ void Distribution::writeOutFileHeader() {
         return;
 
     std::string fname = "data/" + OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat";
-    *gmsg << "* **********************************************************************************" << endl;
-    *gmsg << "* Write initial distribution to file \"" << fname << "\"" << endl;
-    *gmsg << "* **********************************************************************************" << endl;
+    *gmsg << "\n"
+          << std::left << std::setw(84) << std::setfill('*') << "* " << "\n"
+          << "* Write initial distribution to file \"" << fname << "\"\n"
+          << std::left << std::setw(84) << std::setfill('*') << "* "
+          << std::setfill(' ') << endl;
+
     std::ofstream outputFile(fname);
     if (outputFile.bad()) {
         *gmsg << "Unable to open output file \"" << fname << "\"" << endl;

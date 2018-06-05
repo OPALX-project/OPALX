@@ -16,6 +16,8 @@
 namespace Util {
     std::string getGitRevision();
 
+    double erfinv(double x);
+
     inline
     double getGamma(Vector_t p) {
         return sqrt(dot(p, p) + 1.0);
