@@ -40,6 +40,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                , objectives_(objectives)
                , constraints_(constraints)
                , comm_(comm)
+               , id_m(-1)
 {
     namespace fs = boost::filesystem;
 
@@ -115,10 +116,12 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     std::string dataFile = simulationName_ + ".data";
     fs::path pwd = fs::current_path();
     if (!fs::exists(dataFile))
-        throw OptPilotException("OpalSimulation::OpalSimulation", "The data file '" + dataFile + "' \n     doesn't exist in directory '" + pwd.native() + "'");
+        throw OptPilotException("OpalSimulation::OpalSimulation",
+                                "The data file '" + dataFile + "' \n     doesn't exist in directory '" + pwd.native() + "'");
 
     if (!fs::exists(tmplFile))
-        throw OptPilotException("OpalSimulation::OpalSimulation", "The template file '" + tmplFile + "' doesn't exit");
+        throw OptPilotException("OpalSimulation::OpalSimulation",
+                                "The template file '" + tmplFile + "' doesn't exit");
 
     gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, userVariables_));
 }
@@ -145,11 +148,21 @@ bool OpalSimulation::hasResultsAvailable() {
 
 
 void OpalSimulation::setupSimulation() {
+    namespace fs = boost::filesystem;
+
+    if ( id_m > -1 ) {
+        std::ostringstream tmp;
+        tmp << simTmpDir_ << "/" << id_m;
+        simulationDirName_ = tmp.str();
+    }
 
     // only on processor in comm group has to setup files
     int rank = 0;
     MPI_Comm_rank(comm_, &rank);
     if(rank == 0) {
+        if (fs::exists(simulationDirName_)) {
+            fs::remove_all(simulationDirName_);
+        }
 
         mkdir((const char*)(simulationDirName_.c_str()), 0755);
 
@@ -314,6 +327,8 @@ void OpalSimulation::run() {
 
 
 void OpalSimulation::collectResults() {
+
+    std::cout << "collectResults" << std::endl;
 
     // clear old solutions
     requestedVars_.clear();
