@@ -3,8 +3,8 @@
  * The SigmaGenerator class uses the class <b>ClosedOrbitFinder</b> to get the parameters (inverse bending radius, path length
  * field index and tunes) to initialize the sigma matrix. 
  * The main function of this class is <b>match(value_type, size_type)</b>, where it iteratively
- * tries to find a matched distribution for given
- * emittances, energy and current. The computation stops when the L2-norm is smaller than a user-defined tolerance. \n
+ * tries to find a matched distribution for given emittances, energy and current. 
+ * The computation stops when the L2-norm is smaller than a user-defined tolerance. \n
  * In default mode it prints all space charge maps, cyclotron maps and second moment matrices. The orbit properties, i.e.
  * tunes, average radius, orbit radius, inverse bending radius, path length, field index and frequency error, are printed
  * as well.
