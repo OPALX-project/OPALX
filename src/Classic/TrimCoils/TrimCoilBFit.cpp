@@ -1,29 +1,22 @@
-#include "TrimCoils/TrimCoilFit.h"
+#include "TrimCoils/TrimCoilBFit.h"
 
 #include <cmath>
 
-TrimCoilFit::TrimCoilFit(double bmax,
-                         double rmin,
-                         double rmax,
-                         const std::vector<double>& coefnum,
-                         const std::vector<double>& coefdenom):
-    TrimCoil(),
+TrimCoilBFit::TrimCoilBFit(double bmax,
+                           double rmin,
+                           double rmax,
+                           const std::vector<double>& coefnum,
+                           const std::vector<double>& coefdenom):
+    TrimCoil(bmax, rmin, rmax),
     coefnum_m(coefnum),
     coefdenom_m(coefdenom)
 {
-    // convert to m
-    const double mm2m = 0.001;
-    rmin_m = rmin * mm2m;
-    rmax_m = rmax * mm2m;
-    // convert to kG
-    bmax_m   = bmax * 10.0;
-
     // normal polynom if no denominator coefficients (denominator = 1)
     if (coefdenom_m.empty())
       coefdenom_m.push_back(1.0);
 }
 
-void TrimCoilFit::doApplyField(const double r, const double z, double *br, double *bz)
+void TrimCoilBFit::doApplyField(const double r, const double z, double *br, double *bz)
 {
     if (std::abs(bmax_m) < 1e-20) return;
     // check range
