@@ -9,15 +9,11 @@ TrimCoilMirrored::TrimCoilMirrored(double bmax,
                                    double rmin,
                                    double rmax,
                                    double bslope):
-    TrimCoil()
+    TrimCoil(bmax, rmin, rmax)
 {
     // convert to m
     const double mm2m = 0.001;
-    rmin_m   = rmin   * mm2m;
-    rmax_m   = rmax   * mm2m;
     bslope_m = bslope / mm2m;
-    // convert to kG
-    bmax_m   = bmax * 10.0;
 }
 
 void TrimCoilMirrored::doApplyField(const double r, const double z, double *br, double *bz)
