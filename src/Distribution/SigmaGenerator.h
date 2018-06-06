@@ -1021,18 +1021,18 @@ template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type
     
     std::string energy = float2string(E_m);
     std::ofstream writeSigmas("data/Matches"+energy+"MeV.txt", std::ios::app);
-    writeSigmas<<std::left
-               <<std::setw(10)<<E_m
-               <<std::setw(10)<<I_m
-	       <<std::setw(10)<<permutation
-               <<std::setw(10)<<niterations_m
-               <<std::setw(10)<<emittance_m[0]
-               <<std::setw(10)<<emittance_m[1]
+    writeSigmas<<std::left<<std::setprecision(5)
+               <<std::setw(12)<<E_m
+               <<std::setw(12)<<I_m
+	       <<std::setw(12)<<permutation
+               <<std::setw(12)<<niterations_m
+               <<std::setw(12)<<emittance_m[0]
+               <<std::setw(12)<<emittance_m[1]
 	       <<std::endl;
     for(size_type i = 0; i < 6; i++){
         for(size_type j = 0; j < 6; j++){
 	    writeSigmas<<std::left<<std::setprecision(5)
-	               <<std::setw(10)<<match(i,j);
+	               <<std::setw(12)<<match(i,j);
         }
         writeSigmas<<std::endl;
     }
