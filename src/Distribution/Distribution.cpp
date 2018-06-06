@@ -870,6 +870,7 @@ void Distribution::applyEmissModelNonEquil(double lowEnergyLimit,
             counter = 0;
         }
     }
+
     while (additionalRNs.size() - counter < 2) {
         -- counter;
         additionalRNs[counter] = gsl_rng_uniform(randGen_m);
@@ -877,7 +878,7 @@ void Distribution::applyEmissModelNonEquil(double lowEnergyLimit,
 
     // Compute emission angles.
     double energyInternal = energy + laserEnergy_m;
-    double energyExternal = energy - lowEnergyLimit;
+    double energyExternal = energy - lowEnergyLimit; // uniformly distributed (?) value between 0 and emitEnergyUpperLimit_m
 
     double thetaInMax = acos(sqrt((lowEnergyLimit + laserEnergy_m) / (energyInternal)));
     double thetaIn = additionalRNs[counter++] * thetaInMax;
@@ -1791,6 +1792,7 @@ size_t Distribution::emitParticles(PartBunchBase<double, 3> *beam, double eZ) {
                                      - sqrt(std::max(0.0, (Physics::q_e * beam->getQ() * eZ) /
                                                      (4.0 * Physics::pi * Physics::epsilon_0))));
         double lowEnergyLimit = cathodeFermiEnergy_m + phiEffective - laserEnergy_m;
+
         for (size_t particleIndex = 0; particleIndex < tOrZDist_m.size(); particleIndex++) {
 
             // Advance particle time.
@@ -4291,7 +4293,7 @@ void Distribution::setupEmissionModelNonEquil() {
         + cathodeTemp_m * log(1.0e9 - 1.0);
 
     // TODO: get better estimate of pmean
-    pmean_m = 0.5 * (cathodeWorkFunc_m + emitEnergyUpperLimit_m);
+    pmean_m = Vector_t(0, 0, sqrt(pow(0.5 * emitEnergyUpperLimit_m / (Physics::m_e * 1e9) + 1.0, 2) - 1.0));
 }
 
 void Distribution::setupEnergyBins(double maxTOrZ, double minTOrZ) {
