@@ -376,7 +376,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
   Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
   error_m(std::numeric_limits<value_type>::max()),
   fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(false),
-  scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m),permutations_m{{1,2,3},{1,3,2},{2,1,3},{2,3,1},{3,1,2},{3,2,1}}
+  scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m),permutations_m{{1,3,2},{2,1,3},{2,3,1},{3,1,2},{3,2,1},{1,2,3}}
 {
     // set emittances (initialization like that due to old compiler version)
     // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = mm mrad
@@ -460,81 +460,83 @@ template<typename Value_type, typename Size_type>
      * - tune nuz
      */
     // object for space cyclotron map
-    MapGenerator<value_type,size_type,Series,Map,Hamiltonian,SpaceCharge> mapgen(nStepsPerSector_m);
+    try{
+        MapGenerator<value_type,size_type,Series,Map,Hamiltonian,SpaceCharge> mapgen(nStepsPerSector_m);
 
-    container_type h(nStepsPerSector_m), r(nStepsPerSector_m), ds(nStepsPerSector_m), fidx(nStepsPerSector_m);
-    value_type ravg = 0.0;
-    std::pair<value_type,value_type> tunes;
+	container_type h(nStepsPerSector_m), r(nStepsPerSector_m), ds(nStepsPerSector_m), fidx(nStepsPerSector_m);
+	value_type ravg = 0.0;
+	std::pair<value_type,value_type> tunes;
 
-    std::string resultDir = "data";
-    if ( !boost::filesystem::exists(resultDir) ) {
-        boost::filesystem::create_directory(resultDir);
-    } 
+	std::string resultDir = "data";
+	if ( !boost::filesystem::exists(resultDir) ) {
+	    boost::filesystem::create_directory(resultDir);
+	} 
+	if (!harmonic) {
+	    ClosedOrbitFinder<value_type, size_type,
+	        boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
+									   maxitOrbit, Emin_m, Emax_m,
+									   nSector_m, fieldmap_m, rguess,
+									   type, scaleFactor_m, false);
 
-    if (!harmonic) {
-        ClosedOrbitFinder<value_type, size_type,
-	  boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
-								     maxitOrbit, Emin_m, Emax_m,
-								     nSector_m, fieldmap_m, rguess,
-								     type, scaleFactor_m, false);
+	    // properties of one turn
+	    container_type h_turn = cof.getInverseBendingRadius();
+	    container_type r_turn = cof.getOrbit(angle);
+	    container_type ds_turn = cof.getPathLength();
+	    container_type fidx_turn = cof.getFieldIndex();
+	    tunes = cof.getTunes();
+	    ravg = cof.getAverageRadius();                   // average radius
 
-	// properties of one turn
-	container_type h_turn = cof.getInverseBendingRadius();
-	container_type r_turn = cof.getOrbit(angle);
-	container_type ds_turn = cof.getPathLength();
-	container_type fidx_turn = cof.getFieldIndex();
-	tunes = cof.getTunes();
-	ravg = cof.getAverageRadius();                   // average radius
+	    container_type peo = cof.getMomentum(angle);
 
-	container_type peo = cof.getMomentum(angle);
+	    // write to terminal
+	    *gmsg << "* ----------------------------" << endl
+		  << "* Closed orbit info (Gordon units):" << endl
+		  << "*" << endl
+		  << "* average radius: " << ravg << " [m]" << endl
+		  << "* initial radius: " << r_turn[0] << " [m]" << endl
+		  << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
+		  << "* frequency error: " << cof.getFrequencyError() << endl
+		  << "* horizontal tune: " << tunes.first << endl
+		  << "* vertical tune: " << tunes.second << endl
+		  << "* ----------------------------" << endl << endl;
 
-	// write to terminal
-	*gmsg << "* ----------------------------" << endl
-	      << "* Closed orbit info (Gordon units):" << endl
-	      << "*" << endl
-	      << "* average radius: " << ravg << " [m]" << endl
-	      << "* initial radius: " << r_turn[0] << " [m]" << endl
-	      << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
-	      << "* frequency error: " << cof.getFrequencyError() << endl
-	      << "* horizontal tune: " << tunes.first << endl
-	      << "* vertical tune: " << tunes.second << endl
-	      << "* ----------------------------" << endl << endl;
+	    // compute the number of steps per degree
+	    value_type deg_step = N_m / 360.0;
+	    // compute starting point of computation
+	    size_type start = deg_step * angle;
 
-	// compute the number of steps per degree
-	value_type deg_step = N_m / 360.0;
-	// compute starting point of computation
-	size_type start = deg_step * angle;
-
-	// copy properties of the length of one sector (--> nStepsPerSector_m)
-	std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
-	std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
-	std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
-	std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
+	    // copy properties of the length of one sector (--> nStepsPerSector_m)
+	    std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
+	    std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
+	    std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
+	    std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
             
-    } else {
-        *gmsg << "Not yet supported." << endl;
-	return false;
-    }
+	} else {
+	    *gmsg << "Not yet supported." << endl;
+	    return false;
+	}
 
-    if(Options::cloTuneOnly)
-        throw OpalException("Do only CLO and tune calculation","... ");
+	if(Options::cloTuneOnly)
+	  throw OpalException("Do only CLO and tune calculation","... ");
 
-    // computes the cyclotron maps for each angle and stores them into a vector
-    std::vector<matrix_type> Mcycs(nStepsPerSector_m);
+	// computes the cyclotron maps for each angle and stores them into a vector
+	std::vector<matrix_type> Mcycs(nStepsPerSector_m);
     
-    // calculate only for a single sector (a nSector_-th) of the whole cyclotron
-    for (size_type i = 0; i < nStepsPerSector_m; ++i) 
-        Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
+	// calculate only for a single sector (a nSector_-th) of the whole cyclotron
+	for (size_type i = 0; i < nStepsPerSector_m; ++i) 
+	    Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
     
-    // search for a match distribution for each permutation 
-    for(size_type permutation = 0; permutation < 6; permutation++){
-        findMatchDistribution(accuracy,h,fidx,ds,tunes,ravg,maxit,Mcycs,harmonic,permutation);
+	// search for a match distribution for each permutation 
+	for(size_type permutation = 0; permutation < 6; permutation++){
+	    findMatchDistribution(accuracy,h,fidx,ds,tunes,ravg,maxit,Mcycs,harmonic,permutation);
+	}
+	std::cout << "OPAL> * Number of matched distributions: " <<matchedSigmas_m.size() << std::endl;
+	std::cout << "OPAL> * Last matched distribution information: "<<std::endl;
+	
+    }catch(const std::exception& e) {
+        std::cerr << e.what() << std::endl;
     }
-    std::cout << "OPAL> * Number of matched distributions: " <<matchedSigmas_m.size() << std::endl;
-    std::cout << "OPAL> * Last matched distribution information: "<<std::endl;
-   
     return (0 < matchedSigmas_m.size());
-
 }
 
 template<typename Value_type, typename Size_type> bool SigmaGenerator<Value_type, Size_type>::InvertMatrix(const complex_matrix_type& R,complex_matrix_type& invR){
