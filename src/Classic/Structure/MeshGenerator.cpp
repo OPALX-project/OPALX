@@ -550,11 +550,12 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << "def squashVertices(positionDict, connections):\n";
     out << indent << "removedItems = []\n";
-    out << indent << "idxChanges = positionDict.keys()\n";
-    out << indent << "for i in positionDict.keys():\n";
+    out << indent << "indices = [int(k) for k in positionDict.keys()]\n";
+    out << indent << "idxChanges = indices\n";
+    out << indent << "for i in indices:\n";
     out << indent << indent << "if i in removedItems:\n";
     out << indent << indent << indent << "continue\n";
-    out << indent << indent << "for j in positionDict.keys():\n";
+    out << indent << indent << "for j in indices:\n";
     out << indent << indent << indent << "if j in removedItems or j == i:\n";
     out << indent << indent << indent << indent << "continue\n\n";
 
@@ -778,7 +779,7 @@ void MeshGenerator::write(const std::string &fname) {
     // out << indent << indent << indent << indent << indent << "fg.write(\"%.8f    %.8f    \\n%.8f    %.8f\\n#    %d    %d\\n\\n\" %(positions[j][0], positions[j][1], positions[k][0], positions[k][1], j, k))\n";
     // out << indent << indent << indent << "fg.write(\"\\n\")\n\n";
 
-    out << indent << indent << "idx = idChanges[idx]\n";
+    out << indent << indent << "idx = idChanges[int(idx)]\n";
     out << indent << indent << "fh.write(\"%.6f    %.6f\\n\" % (positions[idx][0], positions[idx][1]))\n\n";
 
     out << indent << indent << "curAngle = math.pi\n";
