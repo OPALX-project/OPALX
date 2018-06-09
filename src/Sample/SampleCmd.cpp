@@ -41,7 +41,7 @@ namespace {
         NUMCOWORKERS,
         TEMPLATEDIR,
         FIELDMAPDIR,
-        SEQUENCE,
+        RASTER,
         SEED,
         SIZE
     };
@@ -68,8 +68,8 @@ SampleCmd::SampleCmd():
         ("TEMPLATEDIR", "Directory where templates are stored");
     itsAttr[FIELDMAPDIR] = Attributes::makeString
         ("FIELDMAPDIR", "Directory where field maps are stored");
-    itsAttr[SEQUENCE] = Attributes::makeBool
-        ("SEQUENCE", "Scan full space given by design variables (default: true)", true);
+    itsAttr[RASTER] = Attributes::makeBool
+        ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
         ("SEED", "Seed for global random number generator (default: 42)", 42);
 
@@ -124,7 +124,7 @@ void SampleCmd::execute() {
         dvars.insert(namedDVar_t(name, tmp));
     }
 
-    bool sequence = Attributes::getBool(itsAttr[SEQUENCE]);
+    bool raster = Attributes::getBool(itsAttr[RASTER]);
     size_t modulo = 1;
     unsigned int nSample = std::numeric_limits<unsigned int>::max();
 
@@ -147,9 +147,9 @@ void SampleCmd::execute() {
                       vars[name].first,
                       vars[name].second,
                       modulo,
-                      sequence);
+                      raster);
 
-        if ( sequence )
+        if ( raster )
             modulo *= s->getSize();
 
         nSample = std::min(nSample, s->getSize());
@@ -206,7 +206,7 @@ void SampleCmd::execute() {
         }
     }
 
-    if ( sequence )
+    if ( raster )
         nSample = modulo;
 
     arguments.push_back("--nsamples=" + std::to_string(nSample));
