@@ -7,8 +7,8 @@
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      reltol_m(1.0e-9),
-      abstol_m(0.0)
+      reltol_m(1.0e-15),
+      abstol_m(1.0e-9)
 {
     // Dirichlet boundary conditions are default
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -55,17 +55,8 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         }
     }
 
-    // normalize right-hand-side for better convergence
-    double l0norm = rho[finestLevel]->norm0(0);
     for (int i = 0; i <= finestLevel; ++i) {
-        rho[i]->mult(1.0 / l0norm, 0, 1);
-        
-        // reset
-        if ( prevAsGuess )
-            this->interpolate_m(phi, geom, 1.0 / l0norm, finestLevel);
-        else
-            phi[i]->setVal(0.0, 1);
-        
+        phi[i]->setVal(0.0, 1);
         efield[i]->setVal(0.0, 1);
     }
     
@@ -76,18 +67,12 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
                                             baseLevel,
                                             finestLevel);
 
-    if ( residNorm > reltol_m ) {
+    if ( residNorm > abstol_m ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << residNorm
-           << " > " << reltol_m << " (relative tolerance)";
+           << " > " << abstol_m << " (absolute tolerance)";
         throw OpalException("FMGPoissonSolver::solve()",
                             "Multigrid solver did not converge. " + ss.str());
-    }
-    
-    // undo normalization
-    for (int i = 0; i <= finestLevel; ++i) {
-        rho[i]->mult(l0norm, 0, 1);
-        phi[i]->mult(l0norm, 0, 1);
     }
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
@@ -97,7 +82,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         
         efield[lev]->FillBoundary(0, AMREX_SPACEDIM,geom[lev].periodicity());
         // we need also minus sign due to \vec{E} = - \nabla\phi
-        efield[lev]->mult(-l0norm, 0, 3);
+        efield[lev]->mult(-1.0, 0, 3);
     }
 }
 
@@ -298,6 +283,7 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
 }
 
 
+/*
 void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
                                      const GeomContainer_t& geom,
                                      double l0norm,
@@ -328,3 +314,4 @@ void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
     
     phi[finestLevel]->mult(l0norm, 0, 1);
 }
+*/
