@@ -95,7 +95,10 @@ void AmrPartBunch::do_binaryRepart() {
              * the regrid process!
              * We regrid from base level 0 up to the finest level.
              */
-            amrobj_mp->regrid(0, lev_top, t_m * 1.0e9 /*time [ns] */);
+            for (int i = 0; i <= lev_top; ++i) {
+                amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
+                lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
+            }
                 
             *gmsg << "*     New finest level: "
                   << amrobj_mp->finestLevel() << endl
