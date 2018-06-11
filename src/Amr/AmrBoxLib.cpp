@@ -743,8 +743,8 @@ void AmrBoxLib::ClearLevel(int lev) {
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
     
-    layout_mp->ClearParticleBoxArray(lev);
-    layout_mp->ClearParticleDistributionMap(lev);
+//     layout_mp->ClearParticleBoxArray(lev);
+//     layout_mp->ClearParticleDistributionMap(lev);
 }
 
 
