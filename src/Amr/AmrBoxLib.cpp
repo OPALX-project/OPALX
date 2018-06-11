@@ -554,7 +554,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      * dumping only
      */
     if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
-        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep(), bin);
         
         int nLevel = finest_level + 1;
         
@@ -742,6 +742,9 @@ void AmrBoxLib::ClearLevel(int lev) {
     efield_m[lev].reset(nullptr);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
+    
+    layout_mp->ClearParticleBoxArray(lev);
+    layout_mp->ClearParticleDistributionMap(lev);
 }
 
 

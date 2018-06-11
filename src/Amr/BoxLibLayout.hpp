@@ -282,6 +282,11 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     PData.setTotalNum(TotalNum);    // set the total atom count
     PData.setLocalNum(LocalNum);    // set the number of local atoms
     
+    // final check
+    if ( LocalNum != LocalNumPerLevel.getLocalNumAllLevel() )
+        throw OpalException("BoxLibLayout::update()",
+                            "Local #particles disagrees with sum over levels");
+    
     if ( !PData.isForbidTransform() ) {
         // undo domain transformation
         PData.domainMapping(true);
