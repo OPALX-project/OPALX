@@ -102,14 +102,14 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
      * 
      * regrid_m is set in AmrBoxlib::regrid()
      */
-    prevAsGuess = !this->regrid_m;
+    bool reset = (this->regrid_m || prevAsGuess);
     
-    this->initLevels_m(rho, itsAmrObject_mp->Geom(), prevAsGuess);
+    this->initLevels_m(rho, itsAmrObject_mp->Geom(), this->regrid_m);
     
     // build all necessary matrices and vectors
-    this->setup_m(rho, phi, !prevAsGuess);
+    this->setup_m(rho, phi, this->regrid_m);
     
-    this->initGuess_m(prevAsGuess);
+    this->initGuess_m(reset);
     
     // actual solve
     scalar_t error = this->iterate_m();
@@ -195,9 +195,9 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
 
 void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
                                 const amrex::Array<AmrGeometry_t>& geom,
-                                bool previous)
+                                bool regrid)
 {
-    if ( previous )
+    if ( !regrid )
         return;
     
     mglevel_m.resize(nlevel_m);
@@ -206,6 +206,8 @@ void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
+        
+        mglevel_m[lev].reset(nullptr);
         
         mglevel_m[lev].reset(new AmrMultiGridLevel_t(itsAmrObject_mp->getMeshScaling(),
                                                      rho[ilev]->boxArray(),

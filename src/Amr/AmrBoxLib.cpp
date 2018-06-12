@@ -514,7 +514,8 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     IpplTimings::startTimer(this->amrSolveTimer_m);
     
-    solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
+    // in case of binning we reset phi every time
+    solver->solve(rho_m, phi_m, efield_m, 0, finest_level, false);
     
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
