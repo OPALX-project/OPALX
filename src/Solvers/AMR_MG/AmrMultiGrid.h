@@ -240,9 +240,9 @@ private:
     
     /*!
      * Reset potential to zero (currently)
-     * @param previous solution as initial guess
+     * @param reset solution to initial guess (zero)
      */
-    void initGuess_m(bool previous);
+    void initGuess_m(bool reset);
     
     /*!
      * Actual solve.

@@ -284,8 +284,8 @@ void AmrMultiGrid::clearMasks_m() {
 }
 
 
-void AmrMultiGrid::initGuess_m(bool previous) {
-    if ( previous )
+void AmrMultiGrid::initGuess_m(bool reset) {
+    if ( !reset )
         return;
     
     // reset
