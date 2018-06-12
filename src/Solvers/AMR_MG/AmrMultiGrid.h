@@ -227,11 +227,11 @@ private:
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
-     * @param previous solution as initial guess
+     * @param regrid was performed
      */
     void initLevels_m(const amrex::Array<AmrField_u>& rho,
                       const amrex::Array<AmrGeometry_t>& geom,
-                      bool previous);
+                      bool regrid);
     
     /*!
      * Clear masks (required to build matrices) no longer needed.
