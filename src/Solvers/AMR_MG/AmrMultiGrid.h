@@ -19,7 +19,6 @@
 
 #define AMR_MG_TIMER true
 #define AMR_MG_WRITE false
-#define DEBUG false
 
 class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     

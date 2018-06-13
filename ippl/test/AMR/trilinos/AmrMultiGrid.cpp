@@ -121,12 +121,18 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
     // actual solve
     scalar_t error = this->iterate_m();
     
+    for (int lev = nlevel_m - 1; lev > -1; --lev) {
+        averageDown_m(lev);
+    }
+    
     // write efield to AMReX
     this->computeEfield_m(efield);    
     
     // copy solution back
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
+        
+        phi[ilev]->setVal(0.0, phi[ilev]->nGrow());
         
         this->trilinos2amrex_m(lev, 0, *phi[ilev], mglevel_m[lev]->phi_p);
     }
@@ -315,14 +321,14 @@ AmrMultiGrid::scalar_t AmrMultiGrid::iterate_m() {
         
         relax_m(lfine_m);
         
-        /* in contrast to algorithm, we average down now
-         * --> potential is valid also on coarse covered
-         * cells
-         * --> however, it may take 1-2 iterations longer
-         */
-        for (int lev = nlevel_m - 1; lev > -1; --lev) {
-            averageDown_m(lev);
-        }
+//         /* in contrast to algorithm, we average down now
+//          * --> potential is valid also on coarse covered
+//          * cells
+//          * --> however, it may take 1-2 iterations longer
+//          */
+//         for (int lev = nlevel_m - 1; lev > -1; --lev) {
+//             averageDown_m(lev);
+//         }
         
         // update residual
         for (int lev = 0; lev < nlevel_m; ++lev) {
@@ -393,17 +399,17 @@ void AmrMultiGrid::residual_m(const lo_t& level,
                                              scalar_t(1.0));
         }
         
-        Teuchos::RCP<vector_t> tmp4 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
-        mglevel_m[level]->UnCovered_p->apply(fine2crse, *tmp4);
+        Teuchos::RCP<vector_t> uncov_Ax = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
+        mglevel_m[level]->UnCovered_p->apply(fine2crse, *uncov_Ax);
         
-        Teuchos::RCP<vector_t> tmp3 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
+        Teuchos::RCP<vector_t> uncov_b = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
     
-        mglevel_m[level]->UnCovered_p->apply(*b, *tmp3);
+        mglevel_m[level]->UnCovered_p->apply(*b, *uncov_b);
     
         // ONLY subtract coarse rho
 //         mglevel_m[level]->residual_p->putScalar(0.0);
         
-        r->update(1.0, *tmp3, -1.0, *tmp4, 0.0);
+        r->update(1.0, *uncov_b, -1.0, *uncov_Ax, 0.0);
         
     } else {
         /* finest level: Awf_p == Anf_p
@@ -411,18 +417,18 @@ void AmrMultiGrid::residual_m(const lo_t& level,
          * In this case we use Awf_p instead of Anf_p since Anf_p might be
          * made positive definite for the bottom solver.
          */
-        Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
-        mglevel_m[level]->Awf_p->apply(*x, *tmp);
+        Teuchos::RCP<vector_t> Ax = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
+        mglevel_m[level]->Awf_p->apply(*x, *Ax);
         
         if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
-            // operationr: tmp += B * phi^(l-1)
+            // operationr: Ax += B * phi^(l-1)
             mglevel_m[level]->Bcrse_p->apply(*mglevel_m[level-1]->phi_p,
-                                             *tmp,
+                                             *Ax,
                                              Teuchos::NO_TRANS,
                                              scalar_t(1.0),
                                              scalar_t(1.0));
         }
-        r->update(1.0, *b, -1.0, *tmp, 0.0);
+        r->update(1.0, *b, -1.0, *Ax, 0.0);
     }
 }
 
@@ -488,7 +494,7 @@ void AmrMultiGrid::relax_m(const lo_t& level) {
         Tpetra::deep_copy(*mglevel_m[level]->residual_p, *tmp);
         
         // delta error
-        Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p) );
+        Teuchos::RCP<vector_t> derror = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
         
         // smoothing
         this->smooth_m(level, derror, mglevel_m[level]->residual_p);
@@ -526,7 +532,7 @@ void AmrMultiGrid::residual_no_fine_m(const lo_t& level,
 #if AMR_MG_TIMER
     IpplTimings::startTimer(residnofineTimer_m);
 #endif
-    vector_t crse2fine(mglevel_m[level]->Anf_p->getDomainMap());
+    vector_t crse2fine(mglevel_m[level]->Anf_p->getDomainMap(), true);
     
     // get boundary for 
     if ( mglevel_m[level]->Bcrse_p != Teuchos::null ) {
@@ -641,6 +647,8 @@ void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
     Teuchos::RCP<vector_t> efield_p = Teuchos::null;
     for (int lev = nlevel_m - 1; lev > -1; --lev) {
         int ilev = lbase_m + lev;
+        
+        efield[ilev]->setVal(0.0, efield[ilev]->nGrow());
         
         efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
         
@@ -1733,7 +1741,7 @@ void AmrMultiGrid::restrict_m(const lo_t& level) {
     // composite matrix, i.e. matrix without covered cells
     // r^(l-1) = rho^(l-1) - A * phi^(l-1)
     
-    vector_t fine2crse(mglevel_m[level-1]->Awf_p->getDomainMap());
+    vector_t fine2crse(mglevel_m[level-1]->Awf_p->getDomainMap(), true);
     
     // get boundary for 
     mglevel_m[level-1]->Bfine_p->apply(*mglevel_m[level]->phi_p, fine2crse);
@@ -1750,15 +1758,15 @@ void AmrMultiGrid::restrict_m(const lo_t& level) {
                                            scalar_t(1.0), scalar_t(1.0));
     }
     
-    Teuchos::RCP<vector_t> tmp1 = Teuchos::rcp( new vector_t(mglevel_m[level-1]->map_p, true) );
+    Teuchos::RCP<vector_t> uncoveredRho = Teuchos::rcp( new vector_t(mglevel_m[level-1]->map_p, true) );
     
-    mglevel_m[level-1]->UnCovered_p->apply(*mglevel_m[level-1]->rho_p, *tmp1);
+    mglevel_m[level-1]->UnCovered_p->apply(*mglevel_m[level-1]->rho_p, *uncoveredRho);
     
-    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level-1]->map_p, true) );
-    mglevel_m[level-1]->UnCovered_p->apply(fine2crse, *tmp2);
+//     Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level-1]->map_p, true) );
+//     mglevel_m[level-1]->UnCovered_p->apply(fine2crse, *tmp2);
     
     // ONLY subtract coarse rho
-    mglevel_m[level-1]->residual_p->update(1.0, *tmp1, -1.0, *tmp2, 1.0);
+    mglevel_m[level-1]->residual_p->update(1.0, *uncoveredRho, -1.0, fine2crse, 1.0);
     
 #if AMR_MG_TIMER
         IpplTimings::stopTimer(restrictTimer_m);
@@ -1788,16 +1796,16 @@ void AmrMultiGrid::averageDown_m(const lo_t& level) {
     if (level == lfine_m )
         return;
     
-    Teuchos::RCP<vector_t> tmp = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
+    Teuchos::RCP<vector_t> phicrse = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
     
-    // operation: tmp = 0.0 * tmp + 1.0 * R^(l) * phi^(l+1)
-    mglevel_m[level]->R_p->apply(*mglevel_m[level+1]->phi_p, *tmp);
+    // operation: phicrse = 0.0 * phicrse + 1.0 * R^(l) * phi^(l+1)
+    mglevel_m[level]->R_p->apply(*mglevel_m[level+1]->phi_p, *phicrse);
     
-    Teuchos::RCP<vector_t> tmp2 = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, false) );
+    Teuchos::RCP<vector_t> uncov_phi = Teuchos::rcp( new vector_t(mglevel_m[level]->map_p, true) );
     
-    mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->phi_p, *tmp2);
+    mglevel_m[level]->UnCovered_p->apply(*mglevel_m[level]->phi_p, *uncov_phi);
     
-    mglevel_m[level]->phi_p->update(1.0, *tmp, 1.0, *tmp2, 0.0);
+    mglevel_m[level]->phi_p->update(1.0, *phicrse, 1.0, *uncov_phi, 0.0);
 }
 
 
