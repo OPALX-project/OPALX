@@ -1215,7 +1215,7 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
         setInform(fid);
 
         fid.precision(6);
-        fid << setiosflags(std::ios::scientific);
+        fid << std::setiosflags(std::ios::scientific);
         double t = beam->getT() * 1.0e9;
         if(!nEmissionMode) {
 
