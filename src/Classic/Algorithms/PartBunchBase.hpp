@@ -731,9 +731,9 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
     const Vector_t meanR = get_rmean();
 
     for(unsigned long k = 0; k < getLocalNum(); ++ k)
-        if (abs(R[k](0) - meanR(0)) > x(0) ||
-            abs(R[k](1) - meanR(1)) > x(1) ||
-            abs(R[k](2) - meanR(2)) > x(2)) {
+        if (std::abs(R[k](0) - meanR(0)) > x(0) ||
+            std::abs(R[k](1) - meanR(1)) > x(1) ||
+            std::abs(R[k](2) - meanR(2)) > x(2)) {
 
             ++localnum;
         }
@@ -924,9 +924,9 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                     /* delete the particle if the ditance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
-                    if (abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
-                        abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] ||
-                        abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
+		    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
+		        std::abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] ||
+		        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
                     {
                         // put particle onto deletion list
                         destroy(1, ii);
@@ -948,8 +948,8 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                     /* delete the particle if the ditance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
-                    if (abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
-                        abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
+		    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
+		        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
                     {
                         // put particle onto deletion list
                         destroy(1, ii);
