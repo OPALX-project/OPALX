@@ -99,14 +99,9 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
                                    const go_t* nr)
 {
     switch ( order_m ) {
-        case ABC::Zeroth:
+        case ABC::Third:
         {
-            this->abc0_m(iv, dir, map, value, mglevel, nr);
-            break;
-        }
-        case ABC::First:
-        {
-            this->abc1_m(iv, dir, map, value, mglevel, nr);
+            this->abc3_m(iv, dir, map, value, mglevel, nr);
             break;
         }
         case ABC::Second:
@@ -114,9 +109,14 @@ void AmrOpenBoundary<Level>::apply(const AmrIntVect_t& iv,
             this->abc2_m(iv, dir, map, value, mglevel, nr);
             break;
         }
-        case ABC::Third:
+        case ABC::First:
         {
-            this->abc3_m(iv, dir, map, value, mglevel, nr);
+            this->abc1_m(iv, dir, map, value, mglevel, nr);
+            break;
+        }
+        case ABC::Zeroth:
+        {
+            this->abc0_m(iv, dir, map, value, mglevel, nr);
             break;
         }
         default:
