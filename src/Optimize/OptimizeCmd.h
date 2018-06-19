@@ -7,7 +7,7 @@
 
 // Class OptimizeCmd
 // ------------------------------------------------------------------------
-/// The RUN command.
+/// The OPTIMIZE command.
 
 class OptimizeCmd: public Action {
 
@@ -27,8 +27,8 @@ public:
 private:
 
     // Not implemented.
-    OptimizeCmd(const OptimizeCmd &);
-    void operator=(const OptimizeCmd &);
+    OptimizeCmd(const OptimizeCmd &)    = delete;
+    void operator=(const OptimizeCmd &) = delete;
 
     // Clone constructor.
     OptimizeCmd(const std::string &name, OptimizeCmd *parent);
