@@ -147,8 +147,8 @@ void OptimizeCmd::execute() {
     auto opal = OpalData::getInstance();
     fs::path inputfile(Attributes::getString(itsAttr[INPUT]));
 
-    std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
-    std::vector<std::string> objectivesstr = Attributes::getStringArray(itsAttr[OBJECTIVES]);
+    std::vector<std::string> dvarsstr       = Attributes::getStringArray(itsAttr[DVARS]);
+    std::vector<std::string> objectivesstr  = Attributes::getStringArray(itsAttr[OBJECTIVES]);
     std::vector<std::string> constraintsstr = Attributes::getStringArray(itsAttr[CONSTRAINTS]);
     DVarContainer_t dvars;
     Expressions::Named_t objectives;
@@ -313,7 +313,12 @@ void OptimizeCmd::execute() {
 
     for (const std::string &name: dvarsstr) {
         Object *obj = opal->find(name);
-        DVar* dvar = static_cast<DVar*>(obj);
+        DVar* dvar = dynamic_cast<DVar*>(obj);
+        if (dvar == nullptr) {
+            throw OpalException("OptimizeCmd::execute",
+                                "The design variable " + name + " is not known");
+
+        }
         std::string var = dvar->getVariable();
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
@@ -323,14 +328,24 @@ void OptimizeCmd::execute() {
     }
     for (const std::string &name: objectivesstr) {
         Object *obj = opal->find(name);
-        Objective* objective = static_cast<Objective*>(obj);
+        Objective* objective = dynamic_cast<Objective*>(obj);
+        if (objective == nullptr) {
+            throw OpalException("OptimizeCmd::execute",
+                                "The objective " + name + " is not known");
+
+        }
         std::string expr = objective->getExpression();
         objectives.insert(Expressions::SingleNamed_t(
                    name, new Expressions::Expr_t(expr, funcs)));
     }
     for (const std::string &name: constraintsstr) {
         Object *obj = opal->find(name);
-        Constraint* constraint = static_cast<Constraint*>(obj);
+        Constraint* constraint = dynamic_cast<Constraint*>(obj);
+        if (constraint == nullptr) {
+            throw OpalException("OptimizeCmd::execute",
+                                "The constraint " + name + " is not known");
+
+        }
         std::string expr = constraint->getExpression();
         constraints.insert(Expressions::SingleNamed_t(
                     name, new Expressions::Expr_t(expr, funcs)));
