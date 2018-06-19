@@ -113,7 +113,12 @@ void SampleCmd::execute() {
 
     for (std::string& name : dvarsstr) {
         Object *obj = opal->find(name);
-        DVar* dvar = static_cast<DVar*>(obj);
+        DVar* dvar = dynamic_cast<DVar*>(obj);
+        if (dvar == nullptr) {
+            throw OpalException("SampleCmd::execute",
+                                "The sampling variable " + name + " is not known");
+
+        }
         std::string var = dvar->getVariable();
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
