@@ -133,7 +133,8 @@ void OpalTrimCoil::initOpalTrimCoil() {
         double slope = Attributes::getReal(itsAttr[SLPTC]);
         trimcoil_m = std::unique_ptr<TrimCoilMirrored>     (new TrimCoilMirrored(bmax, rmin, rmax, slope));
     } else {
-        WARNMSG(type << " is not a valid trim coil type" << endl);
+        throw OpalException("OpalTrimCoil::initOpalTrimCoil",
+                            type + " is not a valid trim coil type");
     }
         
     *gmsg << level3 << *this << endl;
