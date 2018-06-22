@@ -171,13 +171,13 @@ OpalDataImpl::OpalDataImpl():
     isInOPALThickTrackerMode_m(false),
     isInPrepState_m(false)
 {
-    bunch_m = 0;
-    slbunch_m = 0;
-    dataSink_m = 0;
-    bg_m = 0;
-    mesh_m = 0;
-    FL_m = 0;
-    PL_m = 0;
+    bunch_m    = nullptr;
+    slbunch_m  = nullptr;
+    dataSink_m = nullptr;
+    bg_m       = nullptr;
+    mesh_m     = nullptr;
+    FL_m       = nullptr;
+    PL_m       = nullptr;
 }
 
 OpalDataImpl::~OpalDataImpl() {
@@ -203,7 +203,7 @@ OpalDataImpl::~OpalDataImpl() {
 // ------------------------------------------------------------------------
 
 bool OpalData::isInstantiated = false;
-OpalData *OpalData::instance = 0;
+OpalData *OpalData::instance = nullptr;
 std::stack<OpalData*> OpalData::stashedInstances;
 
 OpalData *OpalData::getInstance() {
@@ -218,7 +218,7 @@ OpalData *OpalData::getInstance() {
 
 void OpalData::deleteInstance() {
     delete instance;
-    instance = 0;
+    instance = nullptr;
     isInstantiated = false;
 }
 
@@ -229,7 +229,7 @@ void OpalData::stashInstance() {
                             "too many OpalData instances stashed");
     }
     stashedInstances.push(instance);
-    instance = 0;
+    instance = nullptr;
     isInstantiated = false;
 }
 
@@ -500,7 +500,7 @@ BoundaryGeometry *OpalData::getGlobalGeometry() {
 }
 
 bool OpalData::hasGlobalGeometry() {
-    return p->bg_m != 0;
+    return p->bg_m != nullptr;
 }
 
 
@@ -518,7 +518,7 @@ void OpalData::create(Object *newObject) {
     const std::string name = newObject->getOpalName();
     Object *oldObject = p->mainDirectory.find(name);
 
-    if(oldObject != 0) {
+    if(oldObject != nullptr) {
         throw OpalException("OpalData::create()",
                             "You cannot replace the object \"" + name + "\".");
     } else {
@@ -532,7 +532,7 @@ void OpalData::define(Object *newObject) {
     const std::string name = newObject->getOpalName();
     Object *oldObject = p->mainDirectory.find(name);
 
-    if(oldObject != 0  &&  oldObject != newObject) {
+    if(oldObject != nullptr  &&  oldObject != newObject) {
         // Attempt to replace an object.
         if(oldObject->isBuiltin()  ||  ! oldObject->canReplaceBy(newObject)) {
             throw OpalException("OpalData::define()",
@@ -591,7 +591,7 @@ void OpalData::define(Object *newObject) {
 void OpalData::erase(const std::string &name) {
     Object *oldObject = p->mainDirectory.find(name);
 
-    if(oldObject != 0) {
+    if(oldObject != nullptr) {
         // Relink all children of "this" to "this->getParent()".
         for(ObjectDir::iterator i = p->mainDirectory.begin();
             i != p->mainDirectory.end(); ++i) {

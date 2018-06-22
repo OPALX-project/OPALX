@@ -86,7 +86,6 @@ namespace {
         AMR_YT_DUMP_FREQ,
 #endif
         MEMORYDUMP,
-        USEUUID,
         SIZE
     };
 }
@@ -251,9 +250,6 @@ Option::Option():
     itsAttr[MEMORYDUMP] = Attributes::makeBool
         ("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
 
-    itsAttr[USEUUID] = Attributes::makeBool
-        ("USEUUID", "If true, uses UUID to create unique directory names", useUUID);
-
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -301,7 +297,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[AMR_YT_DUMP_FREQ], amrYtDumpFreq);
 #endif
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
-    Attributes::setBool(itsAttr[USEUUID], useUUID);
 }
 
 
@@ -459,8 +454,6 @@ void Option::execute() {
     if(Attributes::getBool(itsAttr[TELL])) {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
-
-    useUUID = Attributes::getBool(itsAttr[USEUUID]);
 }
 
 void Option::handlePsDumpFrame(const std::string &dumpFrame) {

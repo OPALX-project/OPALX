@@ -148,8 +148,6 @@ namespace Options {
 #endif
 
     extern bool memoryDump;
-
-    extern bool useUUID;
 }
 
 #endif // OPAL_Options_HH
