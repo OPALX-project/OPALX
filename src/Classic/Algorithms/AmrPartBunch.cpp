@@ -48,7 +48,7 @@ const AmrPartBunch::pbase_t *AmrPartBunch::getAmrParticleBase() const {
 
 
 void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
-    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+//     Layout_t* layout = static_cast<Layout_t*>(&getLayout());
 }
 
 
