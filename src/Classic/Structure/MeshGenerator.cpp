@@ -550,11 +550,12 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << "def squashVertices(positionDict, connections):\n";
     out << indent << "removedItems = []\n";
-    out << indent << "idxChanges = positionDict.keys()\n";
-    out << indent << "for i in positionDict.keys():\n";
+    out << indent << "indices = [int(k) for k in positionDict.keys()]\n";
+    out << indent << "idxChanges = indices\n";
+    out << indent << "for i in indices:\n";
     out << indent << indent << "if i in removedItems:\n";
     out << indent << indent << indent << "continue\n";
-    out << indent << indent << "for j in positionDict.keys():\n";
+    out << indent << indent << "for j in indices:\n";
     out << indent << indent << indent << "if j in removedItems or j == i:\n";
     out << indent << indent << indent << indent << "continue\n\n";
 
@@ -778,7 +779,7 @@ void MeshGenerator::write(const std::string &fname) {
     // out << indent << indent << indent << indent << indent << "fg.write(\"%.8f    %.8f    \\n%.8f    %.8f\\n#    %d    %d\\n\\n\" %(positions[j][0], positions[j][1], positions[k][0], positions[k][1], j, k))\n";
     // out << indent << indent << indent << "fg.write(\"\\n\")\n\n";
 
-    out << indent << indent << "idx = idChanges[idx]\n";
+    out << indent << indent << "idx = idChanges[int(idx)]\n";
     out << indent << indent << "fh.write(\"%.6f    %.6f\\n\" % (positions[idx][0], positions[idx][1]))\n\n";
 
     out << indent << indent << "curAngle = math.pi\n";
@@ -836,39 +837,40 @@ void MeshGenerator::write(const std::string &fname) {
 
     out << indent << "fh.close()\n\n";
 
-    out << "parser = argparse.ArgumentParser()\n";
-    out << "parser.add_argument('--export-vtk', action='store_true')\n";
-    out << "parser.add_argument('--export-web', action='store_true')\n";
-    out << "parser.add_argument('--background', nargs=3, type=float)\n";
-    out << "parser.add_argument('--project-to-plane', action='store_true')\n";
-    out << "parser.add_argument('--normal', nargs=3, type=float)\n";
-    out << "args = parser.parse_args()\n\n";
+    out << "if __name__ == \"__main__\":\n";
+    out << indent << "parser = argparse.ArgumentParser()\n";
+    out << indent << "parser.add_argument('--export-vtk', action='store_true')\n";
+    out << indent << "parser.add_argument('--export-web', action='store_true')\n";
+    out << indent << "parser.add_argument('--background', nargs=3, type=float)\n";
+    out << indent << "parser.add_argument('--project-to-plane', action='store_true')\n";
+    out << indent << "parser.add_argument('--normal', nargs=3, type=float)\n";
+    out << indent << "args = parser.parse_args()\n\n";
 
-    out << "if (args.export_vtk):\n";
-    out << indent << "exportVTK()\n";
-    out << indent << "sys.exit()\n\n";
+    out << indent << "if (args.export_vtk):\n";
+    out << indent << indent << "exportVTK()\n";
+    out << indent << indent << "sys.exit()\n\n";
 
-    out << "if (args.export_web):\n";
-    out << indent << "bgcolor = []\n";
-    out << indent << "if (args.background):\n";
-    out << indent << indent << "validBackground = True\n";
-    out << indent << indent << "for comp in bgcolor:\n";
-    out << indent << indent << indent << "if comp < 0.0 or comp > 1.0:\n";
-    out << indent << indent << indent << indent << "validBackground = False\n";
-    out << indent << indent << indent << indent << "break\n";
-    out << indent << indent << "if (validBackground):\n";
-    out << indent << indent << indent << "bgcolor = args.background\n";
-    out << indent << "exportWeb(bgcolor)\n";
-    out << indent << "sys.exit()\n\n";
+    out << indent << "if (args.export_web):\n";
+    out << indent << indent << "bgcolor = []\n";
+    out << indent << indent << "if (args.background):\n";
+    out << indent << indent << indent << "validBackground = True\n";
+    out << indent << indent << indent << "for comp in bgcolor:\n";
+    out << indent << indent << indent << indent << "if comp < 0.0 or comp > 1.0:\n";
+    out << indent << indent << indent << indent << indent << "validBackground = False\n";
+    out << indent << indent << indent << indent << indent << "break\n";
+    out << indent << indent << indent << "if (validBackground):\n";
+    out << indent << indent << indent << indent << "bgcolor = args.background\n";
+    out << indent << indent << "exportWeb(bgcolor)\n";
+    out << indent << indent << "sys.exit()\n\n";
 
-    out << "if (args.project_to_plane):\n";
-    out << indent << "normal = [0.0, 1.0, 0.0]\n";
-    out << indent << "if (args.normal):\n";
-    out << indent << indent << "normal = args.normal\n";
-    out << indent << "projectToPlane(normal)\n";
-    out << indent << "sys.exit()\n\n";
+    out << indent << "if (args.project_to_plane):\n";
+    out << indent << indent << "normal = [0.0, 1.0, 0.0]\n";
+    out << indent << indent << "if (args.normal):\n";
+    out << indent << indent << indent << "normal = args.normal\n";
+    out << indent << indent << "projectToPlane(normal)\n";
+    out << indent << indent << "sys.exit()\n\n";
 
-    out << "parser.print_help()\n";
+    out << indent << "parser.print_help()\n";
 }
 
 MeshData MeshGenerator::getCylinder(double length,
