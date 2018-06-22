@@ -155,7 +155,7 @@ public:
                  const std::size_t& nSweeps,
                  const std::string& interp,
                  const std::string& norm,
-                 int inc = 5);
+                 int inc = 5, double dd = 0.5);
     
 //     /*!
 //      * Instantiation used in Structure/FieldSolver.cpp for
@@ -713,6 +713,7 @@ private:
 #endif
 
     int inc_m;
+    double dd_m;
 };
 
 

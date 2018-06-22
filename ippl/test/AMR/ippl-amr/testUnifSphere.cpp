@@ -49,7 +49,6 @@ struct param_t {
     size_t maxBoxSize;
     size_t blocking_factor;
     double radius;
-    double length;
     size_t nParticles;
     double pCharge;
     bool isFixedCharge;
@@ -70,6 +69,7 @@ struct param_t {
     bool rebalance;
     double bboxincr;
     int inc;
+    double dd;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -109,7 +109,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 10;
+    int required = 11;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -142,15 +142,16 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
             { "tagging-factor",  required_argument, 0, 'f' },
             { "bboxincr",        required_argument, 0, 'b' },
             { "inc",        required_argument, 0, 'I' },
+            { "dd",        required_argument, 0, 'D' },
             { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "I:a:b:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:D:a:b:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "I:b:x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:D:b:x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -202,6 +203,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.bboxincr = std::atof(optarg); ++cnt; break;
             case 'I':
                 params.inc = std::atoi(optarg); ++cnt; break;
+            case 'D':
+                params.dd = std::atoi(optarg); ++cnt; break;
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -606,7 +609,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         AmrMultiGrid sol(&myAmrOpal, params.bs, params.prec,
                          params.rebalance, params.bcx, params.bcy,
                          params.bcz, params.smoother, params.nsweeps,
-                         interp, norm, params.inc);
+                         interp, norm, params.inc, params.dd);
         
         IpplTimings::startTimer(solvTimer);
         
