@@ -17,7 +17,7 @@
 #include <iostream>
 #include <array>
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 
 #ifdef IPPL_AMR
@@ -28,7 +28,7 @@
     #include "boxlib-amr/PartBunchBase.h"
 #endif
 
-using amrex::Array;
+using amrex::Vector;
 using amrex::BoxArray;
 using amrex::Geometry;
 
@@ -167,8 +167,8 @@ public:
      * @param nParticles is the number of particles per cell
      * @param seed of the Mersenne-Twister
      */
-    void uniformPerCell(const Array<Geometry>& geom,
-                        const Array<BoxArray>& ba,
+    void uniformPerCell(const Vector<Geometry>& geom,
+                        const Vector<BoxArray>& ba,
                         const Vektor<std::size_t, 3>& nr,
                         std::size_t nParticles, int seed);
     

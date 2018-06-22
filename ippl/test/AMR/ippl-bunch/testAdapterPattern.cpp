@@ -50,18 +50,18 @@ void initBunch(std::unique_ptr<PartBunchBase<double, 3> >& bunch) {
     int bc[AMREX_SPACEDIM] = {1, 1, 1};
     
     //Container for geometry at all levels
-    Array<Geometry> geom;
+    Vector<Geometry> geom;
     geom.resize(nLevels);
     
     // Container for boxes at all levels
-    Array<BoxArray> ba;
+    Vector<BoxArray> ba;
     ba.resize(nLevels);    
     
     // level 0 describes physical domain
     geom[0].define(bx, &domain, 0, bc);
     
     //refinement for each level
-    Array<int> rr(nLevels - 1);
+    Vector<int> rr(nLevels - 1);
     for (unsigned int lev = 0; lev < rr.size(); ++lev)
         rr[lev] = 2;
     
@@ -89,7 +89,7 @@ void initBunch(std::unique_ptr<PartBunchBase<double, 3> >& bunch) {
     /*
      * distribution mapping
      */
-    Array<DistributionMapping> dmap;
+    Vector<DistributionMapping> dmap;
     dmap.resize(nLevels);
     dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
     if (nLevels > 1)

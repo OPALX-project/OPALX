@@ -17,7 +17,7 @@
 #include <AMReX_ParGDB.H>
 #include <AMReX_REAL.H>
 #include <AMReX_IntVect.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>
@@ -81,19 +81,19 @@ public:
                                 const amrex::Real*         plo,
                                 const amrex::Real*         dx_geom,
                                 const amrex::Real*         dx_part,
-                                amrex::Array<amrex::Real>&        fracs,
-                                amrex::Array<amrex::IntVect>&     cells);
+                                amrex::Vector<amrex::Real>&        fracs,
+                                amrex::Vector<amrex::IntVect>&     cells);
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
     bool FineToCrse (const int ip,
                      int                                flev,
-                     const amrex::Array<amrex::IntVect>&              fcells,
+                     const amrex::Vector<amrex::IntVect>&              fcells,
                      const amrex::BoxArray&                    fvalid,
                      const amrex::BoxArray&                    compfvalid_grown,
-                     amrex::Array<amrex::IntVect>&                    ccells,
-                     amrex::Array<amrex::Real>&                       cfracs,
-                     amrex::Array<int>&                        which,
-                     amrex::Array<int>&                        cgrid,
-                     amrex::Array<amrex::IntVect>&                    pshifts,
+                     amrex::Vector<amrex::IntVect>&                    ccells,
+                     amrex::Vector<amrex::Real>&                       cfracs,
+                     amrex::Vector<int>&                        which,
+                     amrex::Vector<int>&                        cgrid,
+                     amrex::Vector<amrex::IntVect>&                    pshifts,
                      std::vector< std::pair<int,amrex::Box> >& isects);
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
@@ -101,14 +101,14 @@ public:
                                     int lev,
                                     const amrex::IntVect& ccell,
                                     const amrex::IntVect& cshift,
-                                    amrex::Array<int>& fgrid,
-                                    amrex::Array<amrex::Real>& ffrac,
-                                    amrex::Array<amrex::IntVect>& fcells,
+                                    amrex::Vector<int>& fgrid,
+                                    amrex::Vector<amrex::Real>& ffrac,
+                                    amrex::Vector<amrex::IntVect>& fcells,
                                     std::vector< std::pair<int,amrex::Box> >& isects);
 
     //Function from AMReX adjusted to work with Ippl AmrParticleBase class
     //sends/receivs the particles that are needed by other processes to during AssignDensity
-    void AssignDensityDoit(int level, amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf, PMap& data,
+    void AssignDensityDoit(int level, amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf, PMap& data,
                            int ncomp, int lev_min = 0);
 
     // Function from AMReX adjusted to work with Ippl AmrParticleBase class
@@ -321,12 +321,12 @@ public:
     
     template <class AType>
     void AssignDensityFort (ParticleAttrib<AType> &pa,
-                            amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
+                            amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                             int lev_min, int ncomp, int finest_level) const;
     
     template <class AType>
     void InterpolateFort (ParticleAttrib<AType> &pa,
-                          amrex::Array<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
+                          amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                           int lev_min, int lev_max);
     
     template <class AType>
@@ -342,7 +342,7 @@ public:
     template <class AType>
         void AssignDensity(ParticleAttrib<AType> &pa,
                            bool sub_cycle,
-                           amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled,
+                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled,
                            int lev_min,
                            int finest_level)
         {
@@ -401,7 +401,7 @@ public:
                 }
             }
             
-            amrex::Array<std::unique_ptr<amrex::MultiFab> > mf_part;
+            amrex::Vector<std::unique_ptr<amrex::MultiFab> > mf_part;
             if (!all_grids_the_same)
             { 
                 // Create the space for the temporary, mf_part
@@ -446,10 +446,10 @@ public:
             //
             const int M = D_TERM(2,+2,+4);
 
-            amrex::Array<int>     cgrid(M);
-            amrex::Array<int>    cwhich(M),  fwhich(M);
-            amrex::Array<amrex::Real>    fracs(M),  cfracs(M);
-            amrex::Array<amrex::IntVect> cells(M),  ccells(M), cfshifts(M);
+            amrex::Vector<int>     cgrid(M);
+            amrex::Vector<int>    cwhich(M),  fwhich(M);
+            amrex::Vector<amrex::Real>    fracs(M),  cfracs(M);
+            amrex::Vector<amrex::IntVect> cells(M),  ccells(M), cfshifts(M);
 
             ParticleType pb;
 
@@ -457,11 +457,11 @@ public:
             // I'm going to allocate these badboys here & pass'm into routines that use'm.
             // This should greatly cut down on memory allocation/deallocation.
             //
-            amrex::Array<amrex::IntVect>                    pshifts(27);
+            amrex::Vector<amrex::IntVect>                    pshifts(27);
             std::vector< std::pair<int,amrex::Box> > isects;
-            amrex::Array<int>                        fgrid(M);
-            amrex::Array<amrex::Real>                       ffracs(M);
-            amrex::Array<amrex::IntVect>                    fcells;
+            amrex::Vector<int>                        fgrid(M);
+            amrex::Vector<amrex::Real>                       ffracs(M);
+            amrex::Vector<amrex::IntVect>                    fcells;
             //
             // "fvalid" contains all the valid region of the MultiFab at this level, together
             // with any ghost cells lying outside the domain, that can be periodically shifted into the
@@ -1150,8 +1150,8 @@ public:
 
                     amrex::FArrayBox& fab = (*mf_pointer)[m_grid[ip]];
 
-                    amrex::Array<amrex::Real> fracs;
-                    amrex::Array<amrex::IntVect> cells;
+                    amrex::Vector<amrex::Real> fracs;
+                    amrex::Vector<amrex::IntVect> cells;
 
                     const int M = CIC_Cells_Fracs(this->R[ip], plo, dx, dx_particle, fracs, cells);
                     //
@@ -1243,17 +1243,17 @@ public:
 
             mf_pointer->setVal(0.0);
 
-            amrex::Array<amrex::IntVect> cells;
+            amrex::Vector<amrex::IntVect> cells;
             cells.resize(8);
     
-            amrex::Array<amrex::Real> fracs;
+            amrex::Vector<amrex::Real> fracs;
             fracs.resize(8);
 
-            amrex::Array<amrex::Real> sx;
+            amrex::Vector<amrex::Real> sx;
             sx.resize(2);
-            amrex::Array<amrex::Real> sy;
+            amrex::Vector<amrex::Real> sy;
             sy.resize(2);
-            amrex::Array<amrex::Real> sz;
+            amrex::Vector<amrex::Real> sz;
             sz.resize(2);
 
             //loop trough particles and distribute values on the grid
@@ -1334,7 +1334,7 @@ public:
     //
     template <class AType>
         void GetGravity(ParticleAttrib<AType> &pa,
-                        amrex::Array<std::unique_ptr<amrex::MultiFab> > &mf) 
+                        amrex::Vector<std::unique_ptr<amrex::MultiFab> > &mf) 
         {
 
             PLayout *Layout = &this->getLayout();

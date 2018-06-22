@@ -9,7 +9,7 @@
 
 
 // AmrOpal::AmrOpal() { }
-AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord,
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector<int>& n_cell_in, int coord,
 #ifdef IPPL_AMR
                  PartBunchAmr<amrplayout_t>* bunch)
 #else
@@ -35,7 +35,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
     nChargePerCell_m[0]->setVal(0.0, 1);
 }
 
-AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord)
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector<int>& n_cell_in, int coord)
     : AmrMesh(rb, max_level_in, n_cell_in, coord),
       tagging_m(kChargeDensity),
       scaling_m(0.75),
@@ -55,7 +55,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
     MakeNewLevel(0, 0.0, ba, dm);
 }
 
-AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord,
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector<int>& n_cell_in, int coord,
                  const std::vector<int>& refratio)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, refratio),
       tagging_m(kChargeDensity),
@@ -277,16 +277,16 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
         chargeOnGrid[i]->setVal(0.0);
     }
     
-    amrex::Array<std::string> varnames(1, "rho");
+    amrex::Vector<std::string> varnames(1, "rho");
     
-    amrex::Array<const amrex::MultiFab*> tmp(finest_level + 1);
+    amrex::Vector<const amrex::MultiFab*> tmp(finest_level + 1);
     for (/*unsigned*/ int i = 0; i < finest_level + 1; ++i) {
         tmp[i] = chargeOnGrid[i].get();
     }
     
     const auto& mf = tmp;
     
-    amrex::Array<int> istep(finest_level+1, step);
+    amrex::Vector<int> istep(finest_level+1, step);
     
     amrex::WriteMultiLevelPlotfile(filename, finest_level + 1, mf, varnames,
                                    Geom(), 0.0, istep, refRatio());
@@ -345,7 +345,7 @@ void
 AmrOpal::regrid (int lbase, amrex::Real time)
 {
     int new_finest = 0;
-    amrex::Array<amrex::BoxArray> new_grids(finest_level+2);
+    amrex::Vector<amrex::BoxArray> new_grids(finest_level+2);
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
 
@@ -480,7 +480,7 @@ void AmrOpal::tagForChargeDensity_m(int lev, amrex::TagBoxArray& tags, amrex::Re
 #pragma omp parallel
 #endif
     {
-        amrex::Array<int>  itags;
+        amrex::Vector<int>  itags;
         for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
@@ -596,7 +596,7 @@ void AmrOpal::tagForPotentialStrength_m(int lev, amrex::TagBoxArray& tags, amrex
 #pragma omp parallel
 #endif
     {
-        amrex::Array<int>  itags;
+        amrex::Vector<int>  itags;
         for (amrex::MFIter mfi(*phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
@@ -969,7 +969,7 @@ void AmrOpal::tagForCenteredRegion_m(int lev, amrex::TagBoxArray& tags, amrex::R
 #pragma omp parallel
 #endif
     {
-        amrex::Array<int>  itags;
+        amrex::Vector<int>  itags;
         for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             

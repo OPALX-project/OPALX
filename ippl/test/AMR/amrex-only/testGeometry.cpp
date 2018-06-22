@@ -33,10 +33,10 @@ class MyParticleContainer
 {
 public:
 
-    MyParticleContainer(const Array<Geometry>            & geom, 
-                        const Array<DistributionMapping> & dmap,
-                        const Array<BoxArray>            & ba,
-                        const Array<int>                 & rr)
+    MyParticleContainer(const Vector<Geometry>            & geom, 
+                        const Vector<DistributionMapping> & dmap,
+                        const Vector<BoxArray>            & ba,
+                        const Vector<int>                 & rr)
         : ParticleContainer<AMREX_SPACEDIM> (geom, dmap, ba, rr), particles_rm(GetParticles())
         {
         }
@@ -74,7 +74,7 @@ public:
         // positions no matter how many CPUs we have.  This is here
         // mainly for debugging purposes.  It's not really useful for
         // very large numbers of particles.
-        Array<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
+        Vector<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
         
         if (ParallelDescriptor::IOProcessor()) {
             for (unsigned long j = 0; j < icount; j++) {
@@ -180,7 +180,7 @@ public:
         int max_grid_size = 8;
         
         // Define the refinement ratio
-        Array<int> rr(nlevs-1);
+        Vector<int> rr(nlevs-1);
         for (int lev = 1; lev < nlevs; lev++)
             rr[lev-1] = 2;
         
@@ -189,14 +189,14 @@ public:
         const Box domain(domain_lo, domain_hi);
         
         // This defines a Geometry object which is useful for writing the plotfiles  
-        Array<Geometry> geom(nlevs);
+        Vector<Geometry> geom(nlevs);
         geom[0].define(domain, &real_box, coord, is_per);
         for (int lev = 1; lev < nlevs; lev++) {
             geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                             &real_box, coord, is_per);
         }
     
-        Array<BoxArray> ba(nlevs);
+        Vector<BoxArray> ba(nlevs);
         ba[0].define(domain);
         
         // Now we make the refined level be the center eighth of the domain
@@ -211,7 +211,7 @@ public:
         }
         
         // break the BoxArrays at both levels into max_grid_size^3 boxes
-        Array<DistributionMapping> dmap(nlevs);
+        Vector<DistributionMapping> dmap(nlevs);
         for (int lev = 0; lev < nlevs; lev++) {
             ba[lev].maxSize(max_grid_size);
             dmap[lev].define(ba[lev], ParallelDescriptor::NProcs() /*nprocs*/);
@@ -222,7 +222,7 @@ public:
     
     
 private:
-    Array<ParticleLevel>& particles_rm;
+    Vector<ParticleLevel>& particles_rm;
 };
 
 void testGeometry() {
@@ -243,7 +243,7 @@ void testGeometry() {
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -256,14 +256,14 @@ void testGeometry() {
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
         geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                          &real_box, coord, is_per);
     }
 
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
     // Now we make the refined level be the center eighth of the domain
@@ -278,7 +278,7 @@ void testGeometry() {
     }
     
     // break the BoxArrays at both levels into max_grid_size^3 boxes
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         ba[lev].maxSize(max_grid_size);
         dmap[lev].define(ba[lev]);

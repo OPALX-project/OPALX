@@ -15,7 +15,7 @@
 
 #include "Ippl.h"
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
@@ -34,7 +34,7 @@ typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 // typedef std::deque<Particle<1,0> > PBox;
 // typedef typename std::map<int,PBox> PMap;
 
-typedef Array<std::unique_ptr<MultiFab> > container_t;
+typedef Vector<std::unique_ptr<MultiFab> > container_t;
 
 struct TestParams {
   int nx;
@@ -49,10 +49,10 @@ struct TestParams {
 
 void createParticles(TestParams& parms,
                      PartBunchAmr<amrplayout_t>* pbase,
-                     const Array<Geometry>& geom,
-                     const Array<DistributionMapping>& dmap,
-                     const Array<BoxArray>& ba,
-                     const Array<int>& rr)
+                     const Vector<Geometry>& geom,
+                     const Vector<DistributionMapping>& dmap,
+                     const Vector<BoxArray>& ba,
+                     const Vector<int>& rr)
 {
     typedef ParticleContainer<1> MyParticleContainer;
     MyParticleContainer myPC(geom, dmap, ba, rr);
@@ -118,7 +118,7 @@ void doTestScatter(TestParams& parms) {
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -131,14 +131,14 @@ void doTestScatter(TestParams& parms) {
         is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, coord, is_per);
     }
 
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
     // Now we make the refined level be the center eighth of the domain
@@ -157,12 +157,12 @@ void doTestScatter(TestParams& parms) {
         ba[lev].maxSize(parms.max_grid_size);
     }
 
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
 
-    Array<std::unique_ptr<MultiFab> > partMF(nlevs);
-//     Array<std::unique_ptr<MultiFab> > partMF_old(nlevs);
-//     Array<std::unique_ptr<MultiFab> > density(nlevs);
-//     Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
+    Vector<std::unique_ptr<MultiFab> > partMF(nlevs);
+//     Vector<std::unique_ptr<MultiFab> > partMF_old(nlevs);
+//     Vector<std::unique_ptr<MultiFab> > density(nlevs);
+//     Vector<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping(ba[lev], ParallelDescriptor::NProcs());
         partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));

@@ -183,7 +183,7 @@ h5_ssize_t H5Reader::getNumParticles() {
 		(i + j*i_dims + k*i_dims*j_dims)
 
 void H5Reader::writeScalarField(const container_t& scalfield,
-                                const Array<Geometry>& geom)
+                                const Vector<Geometry>& geom)
 {
     h5_int64_t verbosity = DEFAULT_VERBOSITY;
     H5SetVerbosityLevel (verbosity);
