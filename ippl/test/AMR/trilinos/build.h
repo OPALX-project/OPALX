@@ -4,8 +4,8 @@
 
 void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
                               const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                              const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                              const Array<Geometry>& geom,
+                              const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+                              const Vector<Geometry>& geom,
                               const IntVect& rr, Epetra_MpiComm& comm, int level) {
     
     if ( level == (int)dmap.size() - 1 )
@@ -90,8 +90,8 @@ void buildInterpolationMatrix(Teuchos::RCP<Epetra_CrsMatrix>& I,
 
 void buildPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                         const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                        const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                        const Array<Geometry>& geom,
+                        const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+                        const Vector<Geometry>& geom,
                         Epetra_MpiComm& comm, int level)
 {
     /*
@@ -256,8 +256,8 @@ void buildVector(Teuchos::RCP<Epetra_Vector>& x, const Teuchos::RCP<Epetra_Map>&
 
 void buildRestrictionMatrix(Teuchos::RCP<Epetra_CrsMatrix>& R,
                             const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                            const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                            const Array<Geometry>& geom,
+                            const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+                            const Vector<Geometry>& geom,
                             const IntVect& rr, Epetra_MpiComm& comm, int level) {
     if ( level == 0 )
         return;
@@ -497,8 +497,8 @@ void buildSmootherMatrix(Teuchos::RCP<Epetra_CrsMatrix>& S,
 
 void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
                                const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                               const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                               const Array<Geometry>& geom,
+                               const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+                               const Vector<Geometry>& geom,
                                const IntVect& rr,
                                Epetra_MpiComm& comm, int level)
 {
@@ -695,7 +695,7 @@ void buildSpecialPoissonMatrix(Teuchos::RCP<Epetra_CrsMatrix>& A,
 
 
 void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
-                   const Array<Geometry>& geom,
+                   const Vector<Geometry>& geom,
                    int level,
                    const amrex::BaseFab<int>& mfab,
                    const IntVect& lo,
@@ -832,8 +832,8 @@ void checkBoundary(Teuchos::RCP<Epetra_CrsMatrix>& B,
 
 void buildCrseBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bcrse,
                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                             const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                             const Array<Geometry>& geom,
+                             const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+                             const Vector<Geometry>& geom,
                              const IntVect& rr, Epetra_MpiComm& comm, int level)
 {
     if ( level == 0 )
@@ -929,8 +929,8 @@ void buildCrseBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bcrse,
 
 void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-                             const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-                             const Array<Geometry>& geom,
+                             const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+                             const Vector<Geometry>& geom,
                              const IntVect& rr, Epetra_MpiComm& comm, int level)
 {
     if ( level == 1 /*finest*/ )
@@ -1234,8 +1234,8 @@ void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 
 // void buildFineBoundaryMatrix(Teuchos::RCP<Epetra_CrsMatrix>& Bfine,
 //                              const std::vector<Teuchos::RCP<Epetra_Map> >& maps,
-//                              const Array<BoxArray>& grids, const Array<DistributionMapping>& dmap,
-//                              const Array<Geometry>& geom,
+//                              const Vector<BoxArray>& grids, const Vector<DistributionMapping>& dmap,
+//                              const Vector<Geometry>& geom,
 //                              const IntVect& rr, Epetra_MpiComm& comm, int level)
 // {
 //     if ( level == 1 /*finest*/ )

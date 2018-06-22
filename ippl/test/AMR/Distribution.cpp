@@ -239,8 +239,8 @@ void Distribution::special(const Vector_t& lower, const Vector_t& upper,
     }
 }
 
-void Distribution::uniformPerCell(const Array<Geometry>& geom,
-                                  const Array<BoxArray>& ba,
+void Distribution::uniformPerCell(const Vector<Geometry>& geom,
+                                  const Vector<BoxArray>& ba,
                                   const Vektor<std::size_t, 3>& nr,
                                   std::size_t nParticles, int seed) {
     

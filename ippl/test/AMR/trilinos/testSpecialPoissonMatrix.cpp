@@ -147,7 +147,7 @@ void test(const param_t& params)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -160,17 +160,17 @@ void test(const param_t& params)
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
         geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                          &real_box, coord, is_per);
     }
 
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
     
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
