@@ -141,7 +141,7 @@ Vector_t MultipoleT::rotateFrameInverse(Vector_t &B) {
 }
 
 bool MultipoleT::insideAperture(const Vector_t &R) {
-    if (abs(R[1]) <= verticalApert_m / 2. && abs(R[0]) <= horizApert_m / 2.) {
+    if (std::abs(R[1]) <= verticalApert_m / 2. && std::abs(R[0]) <= horizApert_m / 2.) {
         return true;
     }
     else {
@@ -168,12 +168,12 @@ Vector_t MultipoleT::transformCoords(const Vector_t &R) {
         // point along the trajectory
         double deltaAlpha, S = 0.0, localRadius;
         double stepSize = varStep_m; // mm -> has a big effect on tracking time
-        if (abs(R[2]) <= stepSize) {
+        if (std::abs(R[2]) <= stepSize) {
             return R; // no transformation around origin
         }
         Y = R;
         Vector_t temp;
-        while (abs(Y[2]) > stepSize and getRadius(S) != -1) {
+        while (std::abs(Y[2]) > stepSize and getRadius(S) != -1) {
             localRadius = getRadius(S);
             deltaAlpha = stepSize / localRadius;
             if (R[2] < 0) {

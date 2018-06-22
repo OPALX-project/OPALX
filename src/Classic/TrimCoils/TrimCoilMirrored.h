@@ -18,12 +18,6 @@ public:
     virtual ~TrimCoilMirrored() { };
 
 private:
-    /// Maximum B field (kG)
-    double bmax_m;
-    /// Minimum radius (m)
-    double rmin_m;
-    /// Maximum radius (m)
-    double rmax_m;
     /// Slope in (1 / mm)
     double bslope_m;
 

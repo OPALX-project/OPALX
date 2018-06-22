@@ -2297,7 +2297,7 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
 
             outfTrackOrbit_m.open(f.c_str());
             outfTrackOrbit_m << "# The six-dimensional phase space data in the global Cartesian coordinates" << std::endl;
-            outfTrackOrbit_m << "# Part. ID    x [mm]       beta_x*gamma       y [mm]      beta_y*gamma        z [mm]      beta_z*gamma" << std::endl;
+            outfTrackOrbit_m << "# Part. ID    x [m]       beta_x*gamma       y [m]      beta_y*gamma        z [m]      beta_z*gamma" << std::endl;
         }
     }
 }

@@ -28,12 +28,21 @@ void IndexMap::print(std::ostream &out) const {
     out << std::fixed << std::setprecision(6);
     auto mapIti = mapRange2Element_m.begin();
     auto mapItf = mapRange2Element_m.end();
+
+    double totalLength = (*mapRange2Element_m.rbegin()).first.second;
+    unsigned int numDigits = std::floor(std::max(0.0, log(totalLength) / log(10.0))) + 1;
+
     for (; mapIti != mapItf; mapIti++) {
         const auto key = (*mapIti).first;
         const auto val = (*mapIti).second;
-        out << "Key: (" << std::setw(14) << key.first << "-" << std::setw(14) << key.second << ") number of overlapping elements " << val.size() << "\n";
+        out << "Key: ("
+            << std::setw(numDigits + 7) << std::right << key.first
+            << " - "
+            << std::setw(numDigits + 7) << std::right << key.second
+            << ") number of overlapping elements " << val.size() << "\n";
+
         for (auto element: val) {
-            out << std::setw(37) << " " << element->getName() << "\n";
+            out << std::setw(25 + 2 * numDigits) << " " << element->getName() << "\n";
         }
     }
 }
