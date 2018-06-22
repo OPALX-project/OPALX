@@ -171,7 +171,6 @@ IF (ENABLE_AMR)
 
     add_definitions(${AMREX_DEFINES})
     add_definitions(-DENABLE_AMR)
-    add_compile_options (-Wno-unused-variable -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
 endif ()
 
 option (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
