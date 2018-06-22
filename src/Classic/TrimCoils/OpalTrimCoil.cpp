@@ -2,7 +2,8 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "TrimCoils/TrimCoilFit.h"
+#include "TrimCoils/TrimCoilBFit.h"
+#include "TrimCoils/TrimCoilPhaseFit.h"
 #include "TrimCoils/TrimCoilMirrored.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
@@ -33,7 +34,7 @@ OpalTrimCoil::OpalTrimCoil():
                "The \"TRIMCOIL\" statement defines a trim coil."),
     trimcoil_m(nullptr) {
     itsAttr[TYPE]      = Attributes::makeString
-                         ("TYPE", "Specifies the type of trim coil: PSI-RING, PSI-RING-OLD");
+                         ("TYPE", "Specifies the type of trim coil: PSI-BFIELD, PSI-PHASE, PSI-BFIELD-MIRRORED");
 
     itsAttr[COEFNUM]   = Attributes::makeRealArray
                          ("COEFNUM", "List of polynomial coefficients for the numerator");
@@ -51,7 +52,7 @@ OpalTrimCoil::OpalTrimCoil():
                          ("RMAX", "Maximum radius in millimeters.");
 
     itsAttr[SLPTC]      = Attributes::makeReal
-                         ("SLPTC", "Slopes of the rising edge [1/mm] (for PSI-RING-OLD)");
+                         ("SLPTC", "Slopes of the rising edge [1/mm] (for PSI-BFIELD-MIRRORED)");
     
 
     registerOwnership(AttributeHandler::STATEMENT);
@@ -112,27 +113,31 @@ void OpalTrimCoil::update() {
 
 
 void OpalTrimCoil::initOpalTrimCoil() {
-    if (trimcoil_m == nullptr) {
+    if (trimcoil_m != nullptr) return;
         
-        std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
         
-        double bmax = Attributes::getReal(itsAttr[BMAX]);
-        double rmin = Attributes::getReal(itsAttr[RMIN]);
-        double rmax = Attributes::getReal(itsAttr[RMAX]);
+    double bmax = Attributes::getReal(itsAttr[BMAX]);
+    double rmin = Attributes::getReal(itsAttr[RMIN]);
+    double rmax = Attributes::getReal(itsAttr[RMAX]);
         
-        if (type == "PSI-RING") {
-            std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
-            std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
-            trimcoil_m = std::unique_ptr<TrimCoilFit>      (new TrimCoilFit(bmax, rmin, rmax, coefnum, coefdenom));
-        } else if (type == "PSI-RING-OLD") {
-            double slope = Attributes::getReal(itsAttr[SLPTC]);
-            trimcoil_m = std::unique_ptr<TrimCoilMirrored> (new TrimCoilMirrored(bmax, rmin, rmax, slope));
-        } else {
-            WARNMSG(type << " is not a valid trim coil type" << endl);
-        }
-        
-        *gmsg << level3 << *this << endl;
+    if (type == "PSI-BFIELD" || type == "PSI-PHASE") {
+        std::vector<double> coefnum   = Attributes::getRealArray(itsAttr[COEFNUM]);
+        std::vector<double> coefdenom = Attributes::getRealArray(itsAttr[COEFDENOM]);
+        if (type == "PSI-BFIELD")
+            trimcoil_m = std::unique_ptr<TrimCoilBFit>     (new TrimCoilBFit    (bmax, rmin, rmax, coefnum, coefdenom));
+        else // type == "PSI-PHASE"
+            trimcoil_m = std::unique_ptr<TrimCoilPhaseFit> (new TrimCoilPhaseFit(bmax, rmin, rmax, coefnum, coefdenom));
+
+    } else if (type == "PSI-BFIELD-MIRRORED") {
+        double slope = Attributes::getReal(itsAttr[SLPTC]);
+        trimcoil_m = std::unique_ptr<TrimCoilMirrored>     (new TrimCoilMirrored(bmax, rmin, rmax, slope));
+    } else {
+        throw OpalException("OpalTrimCoil::initOpalTrimCoil",
+                            type + " is not a valid trim coil type");
     }
+        
+    *gmsg << level3 << *this << endl;
 }
 
 Inform& OpalTrimCoil::print(Inform &os) const {
@@ -140,7 +145,8 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        << "* TRIMCOIL       " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
        
-    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-RING") {
+    std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    if (type == "PSI-BFIELD" || type == "PSI-PHASE") {
         std::vector<double> coefnum = Attributes::getRealArray(itsAttr[COEFNUM]);
         std::stringstream ss;
         for (std::size_t i = 0; i < coefnum.size(); ++i) {
@@ -162,7 +168,7 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
        << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n';
  
-    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-RING-OLD") {
+    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-BFIELD-MIRRORED") {
         os << "* SLPTC          " << Attributes::getReal(itsAttr[SLPTC]) << '\n';
     }
     os << "* *********************************************************************************" << endl;
