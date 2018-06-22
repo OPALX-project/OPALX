@@ -103,7 +103,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
     amrex::PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::Vector<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
     amrex::PCInterp mapper;
     
     AmrFieldContainer_t tmp(finest_level+1);
@@ -160,8 +160,6 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     
     const PLayout *layout_p = &this->getLayout();
     
-    int rho_index = 0;
-
     AmrField_t* mf_pointer;
 
     if (layout_p->OnSameGrids(level, mf_to_be_filled)) {
@@ -187,7 +185,7 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
 
     const AmrGeometry_t& gm          = layout_p->Geom(level);
     const AmrReal_t*     plo         = gm.ProbLo();
-    const AmrReal_t*     dx_particle = layout_p->Geom(level + particle_lvl_offset).CellSize();
+//     const AmrReal_t*     dx_particle = layout_p->Geom(level + particle_lvl_offset).CellSize();
     const AmrReal_t*     dx          = gm.CellSize();
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
@@ -214,7 +212,6 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
         
         const int grid = this->Grid[ip];
         FArrayBox_t& fab = (*mf_pointer)[grid];
-        const AmrBox_t& box = fab.box();
         
         // not callable:
         // begin amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
@@ -310,7 +307,6 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
 
         const int grid = this->Grid[ip];
         FArrayBox_t& fab = mesh_data[grid];
-        const AmrBox_t& box = fab.box();
         int nComp = fab.nComp();
         
         // not callable

@@ -42,8 +42,8 @@
 class Solver {
 
 public:
-    typedef amrex::Array<std::unique_ptr<amrex::MultiFab> > container_t;
-    typedef amrex::Array<amrex::MultiFab*> container_pt;
+    typedef amrex::Vector<std::unique_ptr<amrex::MultiFab> > container_t;
+    typedef amrex::Vector<amrex::MultiFab*> container_pt;
 
     /*!
      * Prepares the solver and calls the solve_with_f90 function.
@@ -60,7 +60,7 @@ public:
     void solve_for_accel(const container_t& rhs,
                          const container_t& phi,
                          const container_t& grad_phi,
-                         const amrex::Array<amrex::Geometry>& geom,
+                         const amrex::Vector<amrex::Geometry>& geom,
                          int base_level,
                          int finest_level,
                          amrex::Real offset,
@@ -80,8 +80,8 @@ public:
      * @param doGradient  compute the gradient (true) or not (false)
      */
     void solve_with_f90(const container_pt& rhs,
-                        const container_pt& phi, const amrex::Array<container_pt>& grad_phi_edge, 
-                        const amrex::Array<amrex::Geometry>& geom, int base_level, int finest_level,
+                        const container_pt& phi, const amrex::Vector<container_pt>& grad_phi_edge, 
+                        const amrex::Vector<amrex::Geometry>& geom, int base_level, int finest_level,
                         amrex::Real tol, amrex::Real abs_tol,
                         bool timing, bool doGradient);
     

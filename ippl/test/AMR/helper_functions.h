@@ -10,7 +10,7 @@
 #ifndef HELPER_FUNCTIONS_H
 #define HELPER_FUNCTIONS_H
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
@@ -18,7 +18,7 @@
 
 #include <fstream>
 
-using amrex::Array;
+using amrex::Vector;
 using amrex::MultiFab;
 using amrex::DistributionMapping;
 using amrex::BoxArray;
@@ -30,7 +30,7 @@ using amrex::IntVect;
 using amrex::RealBox;
 using amrex::Real;
 
-typedef Array<std::unique_ptr<MultiFab> > container_t;
+typedef Vector<std::unique_ptr<MultiFab> > container_t;
 
 typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
@@ -199,7 +199,7 @@ inline void writeVectorField(const container_t& vecfield,
  * @param efield specifies the electric field
  * @param rr are the refinement ratios.
  */
-inline double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
+inline double totalFieldEnergy(container_t& efield, const Vector<int>& rr) {
     
     for (int lev = efield.size() - 2; lev >= 0; lev--)
         amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
@@ -234,10 +234,10 @@ inline double totalFieldEnergy(container_t& efield, const Array<int>& rr) {
  * @param upper is the physical upper bound of the domain
  */
 inline void init(RealBox& domain,
-                 Array<BoxArray>& ba,
-                 Array<DistributionMapping>& dmap,
-                 Array<Geometry>& geom,
-                 Array<int>& rr,
+                 Vector<BoxArray>& ba,
+                 Vector<DistributionMapping>& dmap,
+                 Vector<Geometry>& geom,
+                 Vector<int>& rr,
                  const Vektor<size_t, 3>& nr,
                  int nLevels,
                  size_t maxBoxSize,
@@ -386,7 +386,7 @@ inline void initGridData(container_t& rhs,
  */
 inline double totalCharge(const container_t& rhs,
                           int finest_level,
-                          const Array<Geometry>& geom,
+                          const Vector<Geometry>& geom,
                           bool scale = true)
 {
     

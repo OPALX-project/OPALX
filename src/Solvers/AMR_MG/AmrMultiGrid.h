@@ -6,7 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 #include "AmrMultiGridCore.h"
 
@@ -228,8 +228,8 @@ private:
      * @param geom is the geometry
      * @param regrid was performed
      */
-    void initLevels_m(const amrex::Array<AmrField_u>& rho,
-                      const amrex::Array<AmrGeometry_t>& geom,
+    void initLevels_m(const amrex::Vector<AmrField_u>& rho,
+                      const amrex::Vector<AmrGeometry_t>& geom,
                       bool regrid);
     
     /*!
@@ -313,28 +313,28 @@ private:
     /*!
      * @param efield to compute
      */
-    void computeEfield_m(amrex::Array<AmrField_u>& efield);
+    void computeEfield_m(amrex::Vector<AmrField_u>& efield);
     
     /*!
      * Build all matrices and vectors, i.e. AMReX to Trilinos
      * @param matrices if we need to build matrices as well or only vectors.
      */
-    void setup_m(const amrex::Array<AmrField_u>& rho,
-                 const amrex::Array<AmrField_u>& phi,
+    void setup_m(const amrex::Vector<AmrField_u>& rho,
+                 const amrex::Vector<AmrField_u>& phi,
                  const bool& matrices = true);
     
     /*!
      * Build all matrices and vectors needed for single-level computation
      */
-    void buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
-                            const amrex::Array<AmrField_u>& phi,
+    void buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
+                            const amrex::Vector<AmrField_u>& phi,
                             const bool& matrices = true);
     
     /*!
      * Build all matrices and vectors needed for multi-level computation
      */
-    void buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
-                           const amrex::Array<AmrField_u>& phi,
+    void buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
+                           const amrex::Vector<AmrField_u>& phi,
                            const bool& matrices = true);
 
     /*!
