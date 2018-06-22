@@ -61,8 +61,8 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
 					       const amrex::Real*         plo,
 					       const amrex::Real*         dx_geom,
 					       const amrex::Real*         dx_part,
-					       amrex::Array<amrex::Real>&        fracs,
-					       amrex::Array<amrex::IntVect>&     cells)
+					       amrex::Vector<amrex::Real>&        fracs,
+					       amrex::Vector<amrex::IntVect>&     cells)
 {
     BL_PROFILE("AmrParticleBase::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
@@ -123,14 +123,14 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
 template<class PLayout>
 bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
 					   int                               flev,
-					   const amrex::Array<amrex::IntVect>&              fcells,
+					   const amrex::Vector<amrex::IntVect>&              fcells,
 					   const amrex::BoxArray&                    fvalid,
 					   const amrex::BoxArray&                    compfvalid_grown,
-					   amrex::Array<amrex::IntVect>&                    ccells,
-					   amrex::Array<amrex::Real>&                       cfracs,
-					   amrex::Array<int>&                        which,
-					   amrex::Array<int>&                        cgrid,
-					   amrex::Array<amrex::IntVect>&                    pshifts,
+					   amrex::Vector<amrex::IntVect>&                    ccells,
+					   amrex::Vector<amrex::Real>&                       cfracs,
+					   amrex::Vector<int>&                        which,
+					   amrex::Vector<int>&                        cgrid,
+					   amrex::Vector<amrex::IntVect>&                    pshifts,
 					   std::vector< std::pair<int,amrex::Box> >& isects)
 {
     PLayout *Layout = &this->getLayout();
@@ -247,9 +247,9 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
   int lev,
   const amrex::IntVect& ccell,
   const amrex::IntVect& cshift,
-  amrex::Array<int>& fgrid,
-  amrex::Array<amrex::Real>& ffrac,
-  amrex::Array<amrex::IntVect>& fcells,
+  amrex::Vector<int>& fgrid,
+  amrex::Vector<amrex::Real>& ffrac,
+  amrex::Vector<amrex::IntVect>& fcells,
   std::vector< std::pair<int,amrex::Box> >& isects)
 {
   BL_PROFILE("ParticleContainer<NR, NI, NA>::FineCellsToUpdateFromCrse()");
@@ -369,7 +369,7 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
-						 amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf,
+						 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf,
 						 PMap&             data,
 						 int               ncomp,
 						 int               lev_min)
@@ -392,7 +392,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   //
   const int MyProc = amrex::ParallelDescriptor::MyProc();
 
-  amrex::Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
+  amrex::Vector<int> Snds(NProcs,0), Rcvs(NProcs,0);
 
   int NumSnds = 0, NumRcvs = 0;
 
@@ -448,8 +448,8 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   //
   // Don't need these anymore.
   //
-  amrex::Array<int>().swap(Snds);
-  amrex::Array<int>().swap(Rcvs);
+  amrex::Vector<int>().swap(Snds);
+  amrex::Vector<int>().swap(Rcvs);
   //
   // The data we want to receive.
   //
@@ -458,12 +458,12 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   const int iChunkSize = 2 + AMREX_SPACEDIM;
   const int rChunkSize = ncomp;
 
-  amrex::Array<int>                    irecvdata (NumRcvs*iChunkSize);
-  amrex::Array<amrex::ParticleCommData::RealType> rrecvdata (NumRcvs*rChunkSize);
+  amrex::Vector<int>                    irecvdata (NumRcvs*iChunkSize);
+  amrex::Vector<amrex::ParticleCommData::RealType> rrecvdata (NumRcvs*rChunkSize);
 
-  amrex::Array<int>         index(2*RcvCnts.size());
-  amrex::Array<MPI_Status>  stats(2*RcvCnts.size());
-  amrex::Array<MPI_Request> rreqs(2*RcvCnts.size());
+  amrex::Vector<int>         index(2*RcvCnts.size());
+  amrex::Vector<MPI_Status>  stats(2*RcvCnts.size());
+  amrex::Vector<MPI_Request> rreqs(2*RcvCnts.size());
 
   const int SeqNumI = amrex::ParallelDescriptor::SeqNum();
   const int SeqNumR = amrex::ParallelDescriptor::SeqNum();
@@ -491,8 +491,8 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
   //
   // Send the data.
   //
-  amrex::Array<int>                    isenddata;
-  amrex::Array<amrex::ParticleCommData::RealType> rsenddata;
+  amrex::Vector<int>                    isenddata;
+  amrex::Vector<amrex::ParticleCommData::RealType> rsenddata;
 
   for (const auto& kv : SndCnts)
   {
@@ -573,7 +573,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 template<class PLayout>
 template <class AType>
 void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
-                                                  amrex::Array<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
+                                                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                                                   int lev_min, int ncomp, int finest_level) const
 {
 //     BL_PROFILE("AssignDensityFort()");
@@ -587,10 +587,10 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
     amrex::PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::Vector<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
     amrex::PCInterp mapper;
     
-    amrex::Array<std::unique_ptr<amrex::MultiFab> > tmp(finest_level+1);
+    amrex::Vector<std::unique_ptr<amrex::MultiFab> > tmp(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         const amrex::BoxArray& ba = mf_to_be_filled[lev]->boxArray();
         const amrex::DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
@@ -756,7 +756,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
 template<class PLayout>
 template <class AType>
 void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
-                                                amrex::Array<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
+                                                amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                                                 int lev_min, int lev_max)
 {
     for (int lev = lev_min; lev <= lev_max; ++lev) {

@@ -42,8 +42,8 @@ using namespace amrex;
 class Solver {
 
 public:
-    typedef Array<std::unique_ptr<MultiFab> > container_t;
-    typedef Array<MultiFab*> container_pt;
+    typedef Vector<std::unique_ptr<MultiFab> > container_t;
+    typedef Vector<MultiFab*> container_pt;
 
     /*!
      * Prepares the solver and calls the solve_with_f90 function.
@@ -60,7 +60,7 @@ public:
     void solve_for_accel(const container_t& rhs,
                          const container_t& phi,
                          const container_t& grad_phi,
-                         const Array<Geometry>& geom,
+                         const Vector<Geometry>& geom,
                          int base_level,
                          int finest_level,
                          Real offset,
@@ -80,8 +80,8 @@ public:
      * @param doGradient  compute the gradient (true) or not (false)
      */
     void solve_with_f90(const container_pt& rhs,
-                        const container_pt& phi, const Array<container_pt>& grad_phi_edge, 
-                        const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
+                        const container_pt& phi, const Vector<container_pt>& grad_phi_edge, 
+                        const Vector<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol,
                         bool timing, bool doGradient);
     
 #ifdef USEHYPRE

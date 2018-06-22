@@ -187,12 +187,12 @@ void doAMReX(const param_t& params, Inform& msg)
     ParmParse pp("amr");
     pp.add("max_grid_size", int(params.maxBoxSize));
     
-    Array<int> error_buf(params.nLevels, 0);
+    Vector<int> error_buf(params.nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = params.nr[i];
     
@@ -203,11 +203,11 @@ void doAMReX(const param_t& params, Inform& msg)
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Vector<BoxArray>& ba = myAmrOpal.boxArray();
+    const Vector<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Vector<Geometry>& geom = myAmrOpal.Geom();
     
-    Array<int> rr(params.nLevels);
+    Vector<int> rr(params.nLevels);
     for (uint i = 0; i < params.nLevels; ++i)
         rr[i] = 2;
     
@@ -255,7 +255,7 @@ void doAMReX(const param_t& params, Inform& msg)
     
     myAmrOpal.setBunch(bunch.get());
     
-    const Array<Geometry>& geoms = myAmrOpal.Geom();
+    const Vector<Geometry>& geoms = myAmrOpal.Geom();
     
     // tagging using potential strength
     myAmrOpal.setTagging(params.criteria);
