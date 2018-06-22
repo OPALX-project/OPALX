@@ -199,8 +199,8 @@ void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
 }
 
 
-void AmrMultiGrid::initLevels_m(const amrex::Array<AmrField_u>& rho,
-                                const amrex::Array<AmrGeometry_t>& geom,
+void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
+                                const amrex::Vector<AmrGeometry_t>& geom,
                                 bool regrid)
 {
     if ( !regrid )
@@ -640,7 +640,7 @@ void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
 }
 
 
-void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
+void AmrMultiGrid::computeEfield_m(amrex::Vector<AmrField_u>& efield) {
     Teuchos::RCP<vector_t> efield_p = Teuchos::null;
     for (int lev = nlevel_m - 1; lev > -1; --lev) {
         int ilev = lbase_m + lev;
@@ -657,8 +657,8 @@ void AmrMultiGrid::computeEfield_m(amrex::Array<AmrField_u>& efield) {
 }
 
 
-void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
-                           const amrex::Array<AmrField_u>& phi,
+void AmrMultiGrid::setup_m(const amrex::Vector<AmrField_u>& rho,
+                           const amrex::Vector<AmrField_u>& phi,
                            const bool& matrices)
 {
 #if AMR_MG_TIMER
@@ -685,8 +685,8 @@ void AmrMultiGrid::setup_m(const amrex::Array<AmrField_u>& rho,
 }
 
 
-void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
-                                      const amrex::Array<AmrField_u>& phi,
+void AmrMultiGrid::buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
+                                      const amrex::Vector<AmrField_u>& phi,
                                       const bool& matrices)
 {
     this->open_m(lbase_m, matrices);
@@ -745,8 +745,8 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
 }
 
 
-void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
-                                     const amrex::Array<AmrField_u>& phi,
+void AmrMultiGrid::buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
+                                     const amrex::Vector<AmrField_u>& phi,
                                      const bool& matrices)
 {
     // the base level has no smoother --> nlevel_m - 1
@@ -760,7 +760,7 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
         int ilev = lbase_m + lev;
 
         // find all coarse cells that are covered by fine cells
-        AmrIntVect_t rr = mglevel_m[lev]->refinement();
+//         AmrIntVect_t rr = mglevel_m[lev]->refinement();
 
 
         const scalar_t* invdx = mglevel_m[lev]->invCellSize();

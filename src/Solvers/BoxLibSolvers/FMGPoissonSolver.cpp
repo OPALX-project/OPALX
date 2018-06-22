@@ -42,7 +42,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         }
     }
     
-    amrex::Array< AmrFieldContainer_t > grad_phi_edge(rho.size());
+    amrex::Vector< AmrFieldContainer_t > grad_phi_edge(rho.size());
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
@@ -60,9 +60,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         efield[i]->setVal(0.0, 1);
     }
     
-    double residNorm = this->solveWithF90_m(amrex::GetArrOfPtrs(rho),
-                                            amrex::GetArrOfPtrs(phi),
-                                            amrex::GetArrOfArrOfPtrs(grad_phi_edge),
+    double residNorm = this->solveWithF90_m(amrex::GetVecOfPtrs(rho),
+                                            amrex::GetVecOfPtrs(phi),
+                                            amrex::GetVecOfVecOfPtrs(grad_phi_edge),
                                             geom,
                                             baseLevel,
                                             finestLevel);
@@ -77,7 +77,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
         amrex::average_face_to_cellcenter(*(efield[lev].get()),
-                                          amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
+                                          amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
                                           geom[lev]);
         
         efield[lev]->FillBoundary(0, AMREX_SPACEDIM,geom[lev].periodicity());
@@ -228,7 +228,7 @@ void FMGPoissonSolver::initParameters_m() {
 
 double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
                                         const AmrFieldContainer_pt& phi,
-                                        const amrex::Array< AmrFieldContainer_pt > & grad_phi_edge,
+                                        const amrex::Vector< AmrFieldContainer_pt > & grad_phi_edge,
                                         const GeomContainer_t& geom,
                                         int baseLevel,
                                         int finestLevel)
@@ -292,7 +292,7 @@ void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
     amrex::PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::Vector<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
     amrex::PCInterp mapper;
     
     std::unique_ptr<AmrField_t> tmp;

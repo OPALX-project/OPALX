@@ -632,7 +632,7 @@ void AmrBoxLib::redistributeGrids(int how) {
 //    for(unsigned int ilev = 0; ilev < allBoxes.size(); ++ilev) {
 //        allBoxes[ilev] = boxArray(ilev);
 //    }
-//    amrex::Array<AmrIntArray_t> mLDM;
+//    amrex::Vector<AmrIntArray_t> mLDM;
 //        
 //    switch ( how ) {
 //        case RANK_ZERO:
@@ -933,7 +933,7 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
     
     // obtain maximum absolute value
     AmrIntArray_t comps = {0, 1, 2};
-    amrex::Array<AmrReal_t> threshold = efield_m[lev]->norm0(comps,
+    amrex::Vector<AmrReal_t> threshold = efield_m[lev]->norm0(comps,
                                                              0 /*nghosts*/,
                                                              false /*local*/);
     

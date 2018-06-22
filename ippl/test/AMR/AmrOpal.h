@@ -31,7 +31,7 @@
 class AmrOpal : public amrex::AmrMesh {
     
 private:
-    typedef amrex::Array<std::unique_ptr<amrex::MultiFab> > mfs_mt;
+    typedef amrex::Vector<std::unique_ptr<amrex::MultiFab> > mfs_mt;
     typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 public:
@@ -66,7 +66,7 @@ public:
      * @param bunch is the particle bunch
      */
     AmrOpal(const amrex::RealBox* rb, int max_level_in,
-            const amrex::Array<int>& n_cell_in, int coord,
+            const amrex::Vector<int>& n_cell_in, int coord,
 #ifdef IPPL_AMR
             PartBunchAmr<amrplayout_t>* bunch);
 #else
@@ -82,7 +82,7 @@ public:
      * @param refratio
      */
     AmrOpal(const amrex::RealBox* rb, int max_level_in,
-            const amrex::Array<int>& n_cell_in, int coord,
+            const amrex::Vector<int>& n_cell_in, int coord,
             const std::vector<int>& refratio);
     
     /*!
@@ -93,7 +93,7 @@ public:
      * @param coord is the coordinate system (0: cartesian)
      */
     AmrOpal(const amrex::RealBox* rb, int max_level_in,
-            const amrex::Array<int>& n_cell_in, int coord);
+            const amrex::Vector<int>& n_cell_in, int coord);
     
     virtual ~AmrOpal();     ///< does nothing
     

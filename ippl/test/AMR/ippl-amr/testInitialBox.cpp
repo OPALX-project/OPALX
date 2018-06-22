@@ -10,7 +10,7 @@
 
 #include "Ippl.h"
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
@@ -117,7 +117,7 @@ void initAmr(AmrOpal* &myAmrOpal) {
     }
     
     int maxLevel = 3;
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     nCells[0] = 64;
     nCells[1] = 64;
     nCells[2] = 64;
@@ -149,15 +149,15 @@ void initAmr(AmrOpal* &myAmrOpal) {
 
 void updateBunch(amrbunch_t* bunch, AmrOpal* myAmrOpal) {
     
-    const Array<Geometry>& geom = myAmrOpal->Geom();
-    const Array<DistributionMapping>& dmap = myAmrOpal->DistributionMap();
-    const Array<BoxArray>& ba = myAmrOpal->boxArray();
-    const Array<IntVect>& ref_rato = myAmrOpal->refRatio ();
+    const Vector<Geometry>& geom = myAmrOpal->Geom();
+    const Vector<DistributionMapping>& dmap = myAmrOpal->DistributionMap();
+    const Vector<BoxArray>& ba = myAmrOpal->boxArray();
+    const Vector<IntVect>& ref_rato = myAmrOpal->refRatio ();
     
     std::cout << ba[0] << std::endl;
     
     
-    Array<int> rr( ref_rato.size() );
+    Vector<int> rr( ref_rato.size() );
     for (unsigned int i = 0; i < rr.size(); ++i) {
         rr[i] = ref_rato[i][0];
     }
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i <= myAmrOpal->finestLevel() && i < myAmrOpal->maxLevel(); ++i)
         myAmrOpal->regrid(i /*lbase*/, 0.0 /*time*/);
     
-    const Array<Geometry>& geom = myAmrOpal->Geom();
+    const Vector<Geometry>& geom = myAmrOpal->Geom();
     for (unsigned int i = 0; i < geom.size(); ++i) {
         std::cout << geom[i].CellSize(0) << " "
                   << geom[i].CellSize(1) << " "

@@ -90,7 +90,7 @@ public:
     h5_ssize_t getNumParticles();
     
     void writeScalarField(const container_t& scalfield,
-                          const Array<Geometry>& geom);
+                          const Vector<Geometry>& geom);
     
     void writeVectorField(const container_t& vecfield);
     

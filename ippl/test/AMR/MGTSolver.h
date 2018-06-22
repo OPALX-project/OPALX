@@ -8,12 +8,12 @@
 class MGTSolver {
     
 public:
-    typedef amrex::Array<std::unique_ptr<amrex::MultiFab> > container_t;
+    typedef amrex::Vector<std::unique_ptr<amrex::MultiFab> > container_t;
     
     void solve(const container_t& rho,
                container_t& phi,
                container_t& efield,
-               const amrex::Array<amrex::Geometry>& geom);
+               const amrex::Vector<amrex::Geometry>& geom);
     
     
 //     void set_dirichlet_bcs (int level, MultiFab* phi);
