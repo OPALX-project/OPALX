@@ -287,7 +287,6 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
     const AmrLayout_t* layout_p = static_cast<const AmrLayout_t*>(&bunch_p->getLayout());
     const AmrPartBunch::pbase_t* amrpbase_p = bunch_p->getAmrParticleBase();
     
-    const int  MyProc       = amrex::ParallelDescriptor::MyProc();
     const int  NProcs       = amrex::ParallelDescriptor::NProcs();
     const int  IOProcNumber = amrex::ParallelDescriptor::IOProcessorNumber();
     
