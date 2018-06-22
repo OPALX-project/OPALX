@@ -41,9 +41,9 @@ Solver::solve_for_accel(const container_t& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
     
-    solve_with_f90  (amrex::GetArrOfPtrs(rhs),
-                     amrex::GetArrOfPtrs(phi),
-                     amrex::GetArrOfArrOfPtrs(grad_phi_edge),
+    solve_with_f90  (amrex::GetVecOfPtrs(rhs),
+                     amrex::GetVecOfPtrs(phi),
+                     amrex::GetVecOfArrOfPtrs(grad_phi_edge),
                      geom,
                      base_level,
                      finest_level,
@@ -57,7 +57,7 @@ Solver::solve_for_accel(const container_t& rhs,
         for (int lev = base_level; lev <= finest_level; lev++)
         {
             amrex::average_face_to_cellcenter(*(grad_phi[lev].get()),
-                                              amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
+                                              amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
                                               geom[lev]);
         
             grad_phi[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());

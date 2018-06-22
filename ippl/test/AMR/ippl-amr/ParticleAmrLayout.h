@@ -38,7 +38,7 @@
 #include <AMReX_ParGDB.H>
 #include <AMReX_REAL.H>
 #include <AMReX_IntVect.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>
@@ -112,10 +112,10 @@ public:
 
     //constructor: takes AMReX Geometry, DistributionMapping, BoxArray and an array of refinements
     //at each level and constructs a new ParGDBBase object
-    ParticleAmrLayout(const amrex::Array<amrex::Geometry>            & geom, 
-                      const amrex::Array<amrex::DistributionMapping> & dmap,
-                      const amrex::Array<amrex::BoxArray>            & ba,
-                      const amrex::Array<int>                 & rr):
+    ParticleAmrLayout(const amrex::Vector<amrex::Geometry>            & geom, 
+                      const amrex::Vector<amrex::DistributionMapping> & dmap,
+                      const amrex::Vector<amrex::BoxArray>            & ba,
+                      const amrex::Vector<int>                 & rr):
         m_gdb_object(geom,dmap,ba,rr)
     {
         m_gdb = & m_gdb_object;
@@ -138,10 +138,10 @@ public:
 
     //create new ParGDBBase using Geometry, DistributionMapping, BoxArray and 
     //array with refinements at each level
-    void Define (const amrex::Array<amrex::Geometry>            & geom, 
-                 const amrex::Array<amrex::DistributionMapping> & dmap,
-                 const amrex::Array<amrex::BoxArray>            & ba,
-                 const amrex::Array<int>                 & rr)
+    void Define (const amrex::Vector<amrex::Geometry>            & geom, 
+                 const amrex::Vector<amrex::DistributionMapping> & dmap,
+                 const amrex::Vector<amrex::BoxArray>            & ba,
+                 const amrex::Vector<int>                 & rr)
     {
         m_gdb_object = amrex::ParGDB(geom, dmap, ba, rr);
         m_gdb = &m_gdb_object;

@@ -62,8 +62,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              int nLevels,
              Inform& msg)
 {
@@ -92,7 +92,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     int base_level   = 0;
     int finest_level = myAmrOpal.finestLevel();
     
-    Array<std::unique_ptr<MultiFab> > partMF(nLevels);
+    Vector<std::unique_ptr<MultiFab> > partMF(nLevels);
     for (int lev = 0; lev < nLevels; lev++) {
         const BoxArray& ba = rhs[lev]->boxArray();
         const DistributionMapping& dmap = rhs[lev]->DistributionMap();
@@ -166,12 +166,12 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
-    Array<int> error_buf(nLevels, 0);
+    Vector<int> error_buf(nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
@@ -182,11 +182,11 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Vector<BoxArray>& ba = myAmrOpal.boxArray();
+    const Vector<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Vector<Geometry>& geom = myAmrOpal.Geom();
     
-    Array<int> rr(nLevels);
+    Vector<int> rr(nLevels);
     for (int i = 0; i < nLevels; ++i)
         rr[i] = 2;
     
@@ -233,7 +233,7 @@ void doAMReX(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     myAmrOpal.setBunch(bunch);
         
-    const Array<Geometry>& geoms = myAmrOpal.Geom();
+    const Vector<Geometry>& geoms = myAmrOpal.Geom();
     for (int i = 0; i < nLevels; ++i)
         msg << "#Cells per dim of level " << i << " for bunch : "
             << 2.0 * sig / *(geoms[i].CellSize()) << endl;

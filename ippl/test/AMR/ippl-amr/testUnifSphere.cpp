@@ -356,8 +356,8 @@ void writeCSV(const container_t& phi,
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const amrex::Array<amrex::Geometry>& geom,
-             const amrex::Array<int>& rr,
+             const amrex::Vector<amrex::Geometry>& geom,
+             const amrex::Vector<int>& rr,
              const double& scalefactor)
 {
     std::string dir = "yt-testUnifSphere";
@@ -435,7 +435,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const amrex::Array<int>& rr,
+             const amrex::Vector<int>& rr,
              Inform& msg,
              const double& scale, const param_t& params)
 {
@@ -550,7 +550,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-    const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Vector<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     for (uint i = 0; i < rhs.size(); ++i)
         if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
@@ -657,25 +657,25 @@ void doAMReX(const param_t& params, Inform& msg)
     amrex::ParmParse pp("amr");
     pp.add("max_grid_size", int(params.maxBoxSize));
     
-    amrex::Array<int> error_buf(params.nLevels, 0);
+    amrex::Vector<int> error_buf(params.nLevels, 0);
     
-    amrex::Array<int> bf(params.nLevels, int(params.blocking_factor));
+    amrex::Vector<int> bf(params.nLevels, int(params.blocking_factor));
     pp.addarr("blocking_factor", bf);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
     amrex::ParmParse pgeom("geometry");
-    amrex::Array<int> is_per = { 0, 0, 0};
+    amrex::Vector<int> is_per = { 0, 0, 0};
     pgeom.addarr("is_periodic", is_per);
     
-    amrex::Array<int> nCells(3);
+    amrex::Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = params.nr[i];
     
     
     std::vector<int> rr(params.nLevels);
-    amrex::Array<int> rrr(params.nLevels);
+    amrex::Vector<int> rrr(params.nLevels);
     for (unsigned int i = 0; i < params.nLevels; ++i) {
         rr[i] = 2;
         rrr[i] = 2;
@@ -701,9 +701,9 @@ void doAMReX(const param_t& params, Inform& msg)
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const amrex::Array<amrex::BoxArray>& ba = myAmrOpal.boxArray();
-    const amrex::Array<amrex::DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Vector<amrex::BoxArray>& ba = myAmrOpal.boxArray();
+    const amrex::Vector<amrex::DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    amrex::Vector<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);

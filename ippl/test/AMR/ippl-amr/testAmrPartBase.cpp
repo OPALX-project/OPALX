@@ -37,7 +37,7 @@ Usage:
 #include <iomanip>
 
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
@@ -59,7 +59,7 @@ typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 typedef std::deque<Particle<4,0> > PBox4;
 typedef typename std::map<int,PBox4> PMap4;
 
-typedef Array<std::unique_ptr<MultiFab> > container_t;
+typedef Vector<std::unique_ptr<MultiFab> > container_t;
 
 
 
@@ -199,7 +199,7 @@ void compareDistribution(int node) {
     std::cout << "Particle distribution for Ippl and AMReX matches" << std::endl;
 }
 
-void compareFields(container_t &field_ippl, Array< std::unique_ptr<MultiFab> > &field_bl, int node,
+void compareFields(container_t &field_ippl, Vector< std::unique_ptr<MultiFab> > &field_bl, int node,
                    int comp=0) {
 
   bool fields_match = true;
@@ -225,8 +225,8 @@ void compareFields(container_t &field_ippl, Array< std::unique_ptr<MultiFab> > &
   
 }
 
-void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba, 
-	    Array<DistributionMapping> &dmap, Array<int> &rr, 
+void doIppl(Vector<Geometry> &geom, Vector<BoxArray> &ba, 
+	    Vector<DistributionMapping> &dmap, Vector<int> &rr, 
 	    size_t nLevels, int myNode, 
 	    container_t &field, container_t &efield,
 	    int N, int seed) 
@@ -256,7 +256,7 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
     
     pbase->AssignCellDensitySingleLevelFort(pbase->qm, *(field[0].get()), 0);
     
-    Array<std::unique_ptr<MultiFab> > partMF(nLevels);
+    Vector<std::unique_ptr<MultiFab> > partMF(nLevels);
     for (unsigned int lev = 0; lev < nLevels; lev++) {
             partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
             partMF[lev]->setVal(0.0, 2);
@@ -287,11 +287,11 @@ void doIppl(Array<Geometry> &geom, Array<BoxArray> &ba,
     IpplTimings::stopTimer(mainTimer);
 }
 
-void doAMReX(Array<Geometry> &geom, Array<BoxArray> &ba, 
-	      Array<DistributionMapping> &dmap, Array<int> &rr, 
+void doAMReX(Vector<Geometry> &geom, Vector<BoxArray> &ba, 
+	      Vector<DistributionMapping> &dmap, Vector<int> &rr, 
 	      size_t nLevels, int myNode, 
-	      Array< std::unique_ptr<MultiFab> > &field,
-              Array< std::unique_ptr<MultiFab> > &efield,
+	      Vector< std::unique_ptr<MultiFab> > &field,
+              Vector< std::unique_ptr<MultiFab> > &efield,
 	      int N, int seed) 
 {
 
@@ -309,7 +309,7 @@ void doAMReX(Array<Geometry> &geom, Array<BoxArray> &ba,
   pc->SetAllowParticlesNearBoundary(true);
   pc->AssignCellDensitySingleLevelFort(0, *(field[0].get()), 0);
   
-  Array<std::unique_ptr<MultiFab> > partMF(nLevels);
+  Vector<std::unique_ptr<MultiFab> > partMF(nLevels);
   for (unsigned int lev = 0; lev < nLevels; lev++) {
       partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
       partMF[lev]->setVal(0.0, 2);
@@ -412,18 +412,18 @@ int main(int argc, char *argv[]) {
   int bc[AMREX_SPACEDIM] = {1, 1, 1};
 
   //Container for geometry at all levels
-  Array<Geometry> geom;
+  Vector<Geometry> geom;
   geom.resize(nLevels);
 
   // Container for boxes at all levels
-  Array<BoxArray> ba;
+  Vector<BoxArray> ba;
   ba.resize(nLevels);    
 
   // level 0 describes physical domain
   geom[0].define(bx, &domain, 0, bc);
 
   //refinement for each level
-  Array<int> rr(nLevels - 1);
+  Vector<int> rr(nLevels - 1);
   for (unsigned int lev = 0; lev < rr.size(); ++lev)
     rr[lev] = 2;
 
@@ -451,7 +451,7 @@ int main(int argc, char *argv[]) {
   /*
    * distribution mapping
    */
-  Array<DistributionMapping> dmap;
+  Vector<DistributionMapping> dmap;
   dmap.resize(nLevels);
   dmap[0].define(ba[0], ParallelDescriptor::NProcs() /*nprocs*/);
   if (nLevels > 1)
@@ -476,12 +476,12 @@ int main(int argc, char *argv[]) {
   for (size_t lev = 0; lev < nLevels; ++lev)
     field_ippl[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 1));
 
-  Array< std::unique_ptr<MultiFab> > field_bl;
+  Vector< std::unique_ptr<MultiFab> > field_bl;
   field_bl.resize(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev)
     field_bl[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 1));
 
-  Array< std::unique_ptr<MultiFab> > efield;
+  Vector< std::unique_ptr<MultiFab> > efield;
   efield.resize(nLevels);
   container_t efield_ippl(nLevels);
   for (size_t lev = 0; lev < nLevels; ++lev) {

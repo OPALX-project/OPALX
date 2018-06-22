@@ -12,7 +12,7 @@ class FMGPoissonSolver : public AmrPoissonSolver< AmrBoxLib > {
     
 private:
     typedef AmrBoxLib::AmrGeomContainer_t GeomContainer_t;
-    typedef amrex::Array<AmrBoxLib::AmrField_t*> AmrFieldContainer_pt;
+    typedef amrex::Vector<AmrBoxLib::AmrField_t*> AmrFieldContainer_pt;
     typedef AmrBoxLib::AmrGeometry_t AmrGeometry_t;
     typedef AmrBoxLib::AmrGrid_t AmrGrid_t;
     typedef AmrBoxLib::AmrProcMap_t           AmrProcMap_t;
@@ -85,7 +85,7 @@ private:
      */
     double solveWithF90_m(const AmrFieldContainer_pt& rho,
                           const AmrFieldContainer_pt& phi,
-                          const amrex::Array< AmrFieldContainer_pt >& grad_phi_edge, 
+                          const amrex::Vector< AmrFieldContainer_pt >& grad_phi_edge, 
                           const GeomContainer_t& geom,
                           int baseLevel,
                           int finestLevel);
