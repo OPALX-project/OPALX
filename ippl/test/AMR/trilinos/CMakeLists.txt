@@ -14,6 +14,8 @@ set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
 
 add_definitions(${AMREX_DEFINES})
 
+add_compile_options(-Wno-deprecated-declarations)
+
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/ippl/src
