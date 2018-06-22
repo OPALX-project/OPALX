@@ -57,9 +57,12 @@ public:
 
     /// returns container containing all requested variables with results
     reqVarContainer_t getResults() { return requestedVars_; }
+    
+    /// set job id (SAMPLE command)
+    void setFilename(int id) { id_m = id; }
 
 private:
-
+    
     /// identification of the simulation (corresponding to output filename)
     std::string simulationName_;
     /// full path of simulation directory (where simulation will be run)
@@ -88,7 +91,9 @@ private:
 
     /// object to generate simulation input files
     boost::scoped_ptr<GenerateOpalSimulation> gs_;
-
+    
+    /// job id (SAMPLE command)
+    int id_m;
 
     /// mark a solution as invalid
     void invalidBunch();

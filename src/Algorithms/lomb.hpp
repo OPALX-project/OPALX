@@ -313,7 +313,7 @@ int LOMB_class::moment(std::vector<LOMB_TYPE> *indata, double *ave, double *adev
 
         s = ((*p).x - *ave);
         ep += s * (*p).y;
-        *adev = *adev + (double)abs((double)s);
+        *adev = *adev + (double)std::abs((double)s);
 
         pnr = s * s;
         *var += pnr * (*p).y;

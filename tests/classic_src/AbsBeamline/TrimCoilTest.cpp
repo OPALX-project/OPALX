@@ -1,12 +1,13 @@
 #include "gtest/gtest.h"
 
-#include "TrimCoils/TrimCoilFit.h"
+#include "TrimCoils/TrimCoilBFit.h"
+#include "TrimCoils/TrimCoilPhaseFit.h"
 #include "TrimCoils/TrimCoilMirrored.h"
 
 #include "opal_test_utilities/SilenceTest.h"
 
-// Test TrimCoilFit on zeros
-TEST(TrimCoil, TrimCoilFitZeros)
+// Test TrimCoilBFit on zeros
+TEST(TrimCoil, TrimCoilBFitZeros)
 {
     OpalTestUtilities::SilenceTest silencer;
 
@@ -16,7 +17,7 @@ TEST(TrimCoil, TrimCoilFitZeros)
     double rmin = 1000; // mm
     double rmax = 2000;
 
-    TrimCoilFit myTrimCoil(bmax, rmin, rmax, {}, {});
+    TrimCoilBFit myTrimCoil(bmax, rmin, rmax, {}, {});
 
     const double one = 1.0;
     double br = one, bz = one;
@@ -26,7 +27,7 @@ TEST(TrimCoil, TrimCoilFitZeros)
     EXPECT_NEAR(bz, one, 1e-7);
 
     bmax = 1.0;
-    myTrimCoil = TrimCoilFit(bmax, rmin, rmax, {}, {});
+    myTrimCoil = TrimCoilBFit(bmax, rmin, rmax, {}, {});
 
     myTrimCoil.applyField(rmin*mm2m - 1, 1, &br, &bz);
     // not changed since r outside range
@@ -39,7 +40,7 @@ TEST(TrimCoil, TrimCoilFitZeros)
     EXPECT_NEAR(bz, one, 1e-7);
 }
 
-TEST(TrimCoil, TrimCoilFit)
+TEST(TrimCoil, TrimCoilBFit)
 {
     OpalTestUtilities::SilenceTest silencer;
 
@@ -48,7 +49,7 @@ TEST(TrimCoil, TrimCoilFit)
     double rmax = 3000.0;
 
     // polynom 1 + 2*x + 3*x^2
-    TrimCoilFit myTrimCoil(bmax, rmin, rmax, {1.0, 2.0, 3.0}, {});
+    TrimCoilBFit myTrimCoil(bmax, rmin, rmax, {1.0, 2.0, 3.0}, {});
 
     double br = 1.0, bz = 1.0;
     myTrimCoil.applyField(2.0, 2.0, &br, &bz);
@@ -56,14 +57,41 @@ TEST(TrimCoil, TrimCoilFit)
     EXPECT_NEAR(bz, 171.0, 1e-7);
     EXPECT_NEAR(br, 281.0, 1e-7);
 
-    // ration function (4 + 3*x) / (1 + 2*x)
-    myTrimCoil = TrimCoilFit(bmax, rmin, rmax, {4.0, 3.0}, {1.0, 2.0});
+    // rational function (4 + 3*x) / (1 + 2*x)
+    myTrimCoil = TrimCoilBFit(bmax, rmin, rmax, {4.0, 3.0}, {1.0, 2.0});
 
     br = 1.0, bz = 1.0;
     myTrimCoil.applyField(2.0, 2.0, &br, &bz);
     // 1 + 10*(4+3*2) / (1+2*2) = 21.0 ; 1 + 10*2*(-0.2) = -3
     EXPECT_NEAR(bz, 21.0, 1e-7);
     EXPECT_NEAR(br, -3.0, 1e-7);
+}
+
+TEST(TrimCoil, TrimCoilPhaseFit)
+{
+    OpalTestUtilities::SilenceTest silencer;
+
+    double bmax = 1.0; // 1 T will be converted to 10 kG
+    double rmin = 0.0;
+    double rmax = 3000.0;
+
+    // polynom 1 + 2*x + 3*x^2
+    TrimCoilPhaseFit myTrimCoil(bmax, rmin, rmax, {1.0, 2.0, 3.0}, {});
+
+    double br = 1.0, bz = 1.0;
+    myTrimCoil.applyField(2.0, 2.0, &br, &bz);
+    // 1 - 10*(2 + 6*2) = -139; 1 - 2*10*6 = -119
+    EXPECT_NEAR(bz, -139.0, 1e-7);
+    EXPECT_NEAR(br, -119.0, 1e-7);
+
+    // rational function (4 + 3*x) / (1 + 2*x)
+    myTrimCoil = TrimCoilPhaseFit(bmax, rmin, rmax, {4.0, 3.0}, {1.0, 2.0});
+
+    br = 1.0, bz = 1.0;
+    myTrimCoil.applyField(2.0, 2.0, &br, &bz);
+    // 1 - 10*(-0.2) = 3; 1 + 2*10*2*(-0.2*2) / 5 = -2.2   
+    EXPECT_NEAR(bz, 3.0, 1e-7);
+    EXPECT_NEAR(br,-2.2, 1e-7);
 }
 
 TEST(TrimCoil, TrimCoilMirrored)

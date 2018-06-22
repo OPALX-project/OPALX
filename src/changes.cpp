@@ -19,6 +19,8 @@ namespace Versions {
                     });
 
         changes.insert({109,
+                    "* The attribute BFREQ of the command BEAM is now in MHz instead of Hz\n"
+                    "\n"
                     "* OPAL-T: Beamlines are now placed in 3-dimensional space. Make sure that\n"
                     "  you use apertures to limit the range of the elements. Default aperture \n"
                     "  has circular shape with diameter 1 meter.\n"
@@ -29,7 +31,7 @@ namespace Versions {
                     "* OPAL-T: The design energy of dipoles is now expected to be in MeV instead\n"
                     "  of eV.\n"
                     "\n"
-                    "* OPAL-T: The attribute 'ROTATION' of RBEND and SBEND have been replaced\n"
+                    "* OPAL-T: The attribute 'ROTATION' of RBEND and SBEND has been replaced\n"
                     "  by 'PSI'. Can be applyied to all elements to rotate them.\n"
                     "\n"
                     "* The attribute DISTRIBUTION of the command DISTRIBUTION has been renamed to\n"

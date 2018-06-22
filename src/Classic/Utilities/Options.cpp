@@ -99,6 +99,4 @@ namespace Options {
 #endif
 
     bool memoryDump = false;
-
-    bool useUUID = true;
 }
