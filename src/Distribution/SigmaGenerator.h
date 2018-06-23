@@ -376,7 +376,11 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
   Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
   error_m(std::numeric_limits<value_type>::max()),
   fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(false),
-  scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m),permutations_m{{1,3,2},{2,1,3},{2,3,1},{3,1,2},{3,2,1},{1,2,3}}
+  scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m),permutations_m{{0,1,2,3},{1,2,3,0},{0,1,3,2},{1,0,2,3},{0,2,3,1},{0,3,2,1},
+  {1,0,3,2},{1,3,2,0},{2,1,0,3},{2,0,1,3},{2,3,0,1},{2,3,1,0},{3,1,0,2},{3,2,0,1}, {3,2,1,0},{3,0,1,2}}
+  // The permutations up converge to a matched distribution, but the first four give the 4 unique solutions
+  // Following permutations threw an OPAL error, whose reason I still don't know. 
+  //{0,2,1,3},{0,3,1,2},{1,2,0,3},{1,3,0,2},{2,1,3,0},{2,0,3,1},{3,1,2,0},{3,0,2,1}
 {
     // set emittances (initialization like that due to old compiler version)
     // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = mm mrad
@@ -527,7 +531,7 @@ template<typename Value_type, typename Size_type>
 	    Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
     
 	// search for a match distribution for each permutation 
-	for(size_type permutation = 0; permutation < 6; permutation++){
+	for(size_type permutation = 0; permutation < 4; permutation++){
 	    findMatchDistribution(accuracy,h,fidx,ds,tunes,ravg,maxit,Mcycs,harmonic,permutation);
 	}
 	std::cout << "OPAL> * Number of matched distributions: " <<matchedSigmas_m.size() << std::endl;
@@ -889,45 +893,53 @@ template<typename Value_type, typename Size_type>
     // Sorts the Eigenvectors such that
     // Re(eig_x) < Re(eig_y) < Re(eig_z)
 
-    complex_number_type eigx = eigen(0);
-    complex_number_type eigy = eigen(2);
-    complex_number_type eigz = eigen(4);
-    std::vector<size_type> order{},newOrder{};
-    std::vector<complex_number_type> eig{eigx,eigy,eigz};
-    std::vector<value_type> eigr{eigx.real(),eigy.real(),eigz.real()};
-    
-    std::sort(eigr.begin(),eigr.end());
-    for(value_type i = 0; i < 3; i++){
-        for(value_type j = 0; j < 3; j++){
-	    if(eig[i].real() == eigr[j]) order.push_back(j);
-        }
-    }
-    
     std::vector<size_type> permutation = permutations_m[perm];
 
-    for(size_type i = 0; i < 3; i++) newOrder.push_back(order[permutation[i]-1]);
+    bool isZdirection = false;
+    std::vector<complex_vector_type> zVectors;
+    std::vector<complex_vector_type> xyVectors; 
 
-    std::vector<complex_vector_type> eigVec{};
     for(size_type i = 0; i < 6; i++){
-        complex_vector_type v(6);
-        for(size_type j = 0; j <6; j++) v(j) = R(i,j);
-        eigVec.push_back(v);
+        complex_number_type z = R(i,0);
+	if(std::abs(z) < 1e-13) z = 0.;
+	if(z == 0.) isZdirection = true;
+	
+	complex_vector_type v(6);
+	if(isZdirection){
+	    for(size_type j = 0;j < matrixDimension; j++){
+	        complex_number_type z = R(i,j);
+		v(j) = z;
+	    }
+	    zVectors.push_back(v);
+	}
+	else{
+	    for(size_type j = 0;j < matrixDimension; j++){
+	        complex_number_type z = R(i,j);
+		v(j) = z;
+	    }
+	    xyVectors.push_back(v);
+	}
+        isZdirection = false;
     }
     // Norms the Eigenvectors
-    for(value_type i = 0; i < 6; i++){
+     for(size_type i = 0; i < 4; i++){
         value_type norm{0};
-        for(value_type j = 0; j < 6; j++) norm += std::norm(eigVec[i](j));
-	for(value_type j = 0; j < 6; j++) eigVec[i](j) /= std::sqrt(norm);
+        for(size_type j = 0; j < 6; j++) norm += std::norm(xyVectors[i](j));
+	for(size_type j = 0; j < 6; j++) xyVectors[i](j) /= std::sqrt(norm);
+    }
+    for(size_type i = 0; i < 2; i++){
+        value_type norm{0};
+        for(size_type j = 0; j < 6; j++) norm += std::norm(zVectors[i](j));
+	for(size_type j = 0; j < 6; j++) zVectors[i](j) /= std::sqrt(norm);
     }
     
     for(value_type i = 0; i < 6; i++){
-        R(i,0) = eigVec[newOrder[0]*2](i);
-        R(i,1) = eigVec[newOrder[0]*2+1](i);
-        R(i,2) = eigVec[newOrder[1]*2](i);
-        R(i,3) = eigVec[newOrder[1]*2+1](i);
-	// We dont know why the EV Solver swaps for this direction
-        R(i,4) = eigVec[newOrder[2]*2+1](i);
-        R(i,5) = eigVec[newOrder[2]*2](i); 
+        R(i,0) = xyVectors[permutation[0]](i);
+        R(i,1) = xyVectors[permutation[1]](i);
+        R(i,2) = zVectors[0](i);
+        R(i,3) = zVectors[1](i);
+        R(i,4) = xyVectors[permutation[2]](i);
+        R(i,5) = xyVectors[permutation[3]](i); 
     }
 
     //Sets the invert matrix of R in invR
