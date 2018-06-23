@@ -7,7 +7,7 @@
 
 // Class SampleCmd
 // ------------------------------------------------------------------------
-/// The RUN command.
+/// The SAMPLE command.
 
 class SampleCmd: public Action {
 
@@ -27,8 +27,8 @@ public:
 private:
 
     // Not implemented.
-    SampleCmd(const SampleCmd &);
-    void operator=(const SampleCmd &);
+    SampleCmd(const SampleCmd &)      = delete;
+    void operator=(const SampleCmd &) = delete;
 
     // Clone constructor.
     SampleCmd(const std::string &name, SampleCmd *parent);

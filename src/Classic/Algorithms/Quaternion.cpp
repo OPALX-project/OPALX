@@ -52,7 +52,7 @@ Quaternion getQuaternion(Vector_t u, Vector_t ref)
             axis(0) = sqrt(1 - u*u) * cos(v);
             axis(1) = sqrt(1 - u*u) * sin(v);
             axis(2) = u;
-        } while(abs(dot(axis, ref)) > 0.9);
+        } while(std::abs(dot(axis, ref)) > 0.9);
 
         axis -= dot(axis, ref) * ref;
         axis = normalize(axis);
