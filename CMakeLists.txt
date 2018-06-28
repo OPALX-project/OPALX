@@ -46,10 +46,13 @@ add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL)
 add_definitions (-DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY)
 add_definitions (-DIPPL_HAS_TEMPLATED_COMPLEX)
 add_definitions (-DIPPL_USE_PARTIAL_SPECIALIZATION)
-add_definitions ( -Drestrict=__restrict__ -DNOCTAssert)
+add_definitions (-Drestrict=__restrict__ -DNOCTAssert)
 
 add_compile_options (-Wall)
 add_compile_options (-funroll-loops -fstrict-aliasing)
+add_compile_options (-fPIE)
+
+set (CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pie")
 
 # compiler dependent flags
 message ("The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
