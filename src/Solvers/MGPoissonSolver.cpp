@@ -156,13 +156,13 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
 }
 
 void MGPoissonSolver::deletePtr() {
-    if(Map) delete Map;
-    Map = 0;
-    if(MLPrec) delete MLPrec;
-    MLPrec=0;
-    A = Teuchos::null;
-    LHS = Teuchos::null;
-    RHS = Teuchos::null;
+    delete Map;
+    Map = nullptr;
+    delete MLPrec;
+    MLPrec = nullptr;
+    A      = Teuchos::null;
+    LHS    = Teuchos::null;
+    RHS    = Teuchos::null;
     prec_m = Teuchos::null;
 }
 
