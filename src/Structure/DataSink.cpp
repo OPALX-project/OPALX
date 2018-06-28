@@ -593,7 +593,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
     outputFile << "SDDS1" << std::endl;
     outputFile << "&description\n"
                << indent << "text=\"Statistics data '" << OpalData::getInstance()->getInputFn()
-               << "' " << dateStr << "" << timeStr << "\",\n"
+               << "' " << dateStr << " " << timeStr << "\",\n"
                << indent << "contents=\"stat parameters\"\n"
                << "&end\n";
     outputFile << "&parameter\n"
