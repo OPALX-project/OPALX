@@ -102,13 +102,13 @@ BMultipoleField::BMultipoleField(const BMultipoleField &rhs):
 
 
 BMultipoleField::~BMultipoleField() {
-    if(pairs != 0) delete [] pairs;
+    delete [] pairs;
 }
 
 
 BMultipoleField &BMultipoleField::operator=(const BMultipoleField &rhs) {
     if(&rhs != this) {
-        if(pairs != NULL) delete[] pairs;
+        delete[] pairs;
 
         if (rhs.itsOrder > 0)
             pairs = new Pair[rhs.itsOrder];
@@ -188,7 +188,7 @@ void BMultipoleField::reserve(int n) {
     if(n > itsOrder) {
         Pair *temp = new Pair[n];
         for(int i = 0; i < itsOrder; i++) temp[i] = pairs[i];
-        if(pairs != 0) delete [] pairs;
+        delete [] pairs;
         itsOrder = n;
         pairs = temp;
     }
