@@ -16,7 +16,8 @@
  * in version 2.1 this was replaced by an Eigenvalue Solver
  * @version 2.2
  * In version 2.2 for every permutation of the Eigenvalue-order the algorithm searches for a matched distribution
- *
+ * @version 2.3
+ * The algorithm puts the vertical plane on the right position, and the other eigenvectors can be permutated
  */
 #ifndef SIGMAGENERATOR_H
 #define SIGMAGENERATOR_H
@@ -321,7 +322,10 @@ class SigmaGenerator
 	 * @param match is the matched distribution sigma matrix
 	 * @param permutation is the permutation used
 	 */
-	void writeMatched(const matrix_type& match, const size_type permutation);
+	void writeMatched(const matrix_type& match, 
+			  const size_type permutation,
+			  const std::vector<matrix_type>& Mcycs,
+			  const std::vector<matrix_type>& Mscs);
         /// Returns the L2-error norm between the old and new sigma-matrix
         /*!
          * @param oldS is the old sigma matrix
@@ -375,7 +379,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
   nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
   Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
   error_m(std::numeric_limits<value_type>::max()),
-  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(false),
+  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(true),
   scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m),permutations_m{{0,1,2,3},{1,2,3,0},{0,1,3,2},{1,0,2,3},{0,2,3,1},{0,3,2,1},
   {1,0,3,2},{1,3,2,0},{2,1,0,3},{2,0,1,3},{2,3,0,1},{2,3,1,0},{3,1,0,2},{3,2,0,1}, {3,2,1,0},{3,0,1,2}}
   // The permutations up converge to a matched distribution, but the first four give the 4 unique solutions
@@ -514,6 +518,10 @@ template<typename Value_type, typename Size_type>
 	    std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
 	    std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
 	    std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
+
+	    if(write_m){
+	        writeOrbitOutput_m(tunes,ravg, cof.getFrequencyError(),r_turn,peo,h_turn,fidx_turn,ds_turn);
+	    }
             
 	} else {
 	    *gmsg << "Not yet supported." << endl;
@@ -531,8 +539,8 @@ template<typename Value_type, typename Size_type>
 	    Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
     
 	// search for a match distribution for each permutation 
-	for(size_type permutation = 0; permutation < 4; permutation++){
-	    findMatchDistribution(accuracy,h,fidx,ds,tunes,ravg,maxit,Mcycs,harmonic,permutation);
+	for(size_type permutation = 0; permutation < 1; permutation++){
+	    findMatchDistribution(accuracy,h,fidx,ds,tunes,ravg,maxit,Mcycs,harmonic,2);
 	}
 	std::cout << "OPAL> * Number of matched distributions: " <<matchedSigmas_m.size() << std::endl;
 	std::cout << "OPAL> * Last matched distribution information: "<<std::endl;
@@ -540,7 +548,18 @@ template<typename Value_type, typename Size_type>
     }catch(const std::exception& e) {
         std::cerr << e.what() << std::endl;
     }
-    return (0 < matchedSigmas_m.size());
+    //Returns true if at least one matched distribution was found.
+    if ( 0 < matchedSigmas_m.size()) return (0 < matchedSigmas_m.size());
+    //Returns an identity matrix, if  no matched distribution was found
+    else{
+        matrix_type One(6,6);
+	for(size_type i = 0; i < 6; i++){
+	  for(size_type j = 0; j < 6; j++) One(i,j) = 0;
+	}
+	for(size_type i = 0 ; i < 6; i++) One(i,i) = 0;
+        sigma_m.swap(One);
+	return true;
+    }
 }
 
 template<typename Value_type, typename Size_type> bool SigmaGenerator<Value_type, Size_type>::InvertMatrix(const complex_matrix_type& R,complex_matrix_type& invR){
@@ -747,12 +766,10 @@ template<typename Value_type, typename Size_type>
 								    std::vector<matrix_type>& Mcycs,
 								    bool harmonic,
 								    size_type permutation){
-    maxit = 200;
     // object for space charge map
     MapGenerator<value_type,size_type,Series,Map,Hamiltonian,SpaceCharge> mapgen(nStepsPerSector_m);
     value_type const_ds = 0.0;
 
-    
     try {
         // stores computed space charge map for each angle
         std::vector<matrix_type> Mscs(nStepsPerSector_m);
@@ -825,15 +842,15 @@ template<typename Value_type, typename Size_type>
 	     converged_m = error_m < accuracy;
 	     // store converged sigma-matrix
 	     if(converged_m){
-		 for(size_type i = 0; i < 6; i++){
-		     for(size_type j = 0; j < 6; j++){
-		         if(std::abs(newSigma(i,j)) < 1e-13) newSigma(i,j) = 0.;
-		     }
+	         for(size_type i = 0; i < 6; i++){
+	             for(size_type j = 0; j < 6; j++){
+	                 if(std::abs(newSigma(i,j)) < 1e-12) newSigma(i,j) = 0.;
+	             }
 		 }
-		 writeMatched(newSigma,permutation);
+		 writeMatched(newSigma,permutation,Mcycs,Mscs);
 		 sigma_m.swap(newSigma);
 		 matchedSigmas_m.push_back(newSigma);
-	     }
+		 }
 	 }
 	 // reset for next permutation
 	 error_m = 1;
@@ -1031,7 +1048,7 @@ typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_
     return std::sqrt(std::inner_product(diff.data().begin(),diff.data().end(),diff.data().begin(),0.0));
 }
 
-template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type, Size_type>::writeMatched(const matrix_type& match, const size_type permutation){
+template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type, Size_type>::writeMatched(const matrix_type& match, const size_type permutation,const std::vector<matrix_type>& Mcycs, const std::vector<matrix_type>& Mscs){
     
     std::string energy = float2string(E_m);
     std::ofstream writeSigmas("data/Matches"+energy+"MeV.txt", std::ios::app);
@@ -1051,9 +1068,32 @@ template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type
         writeSigmas<<std::endl;
     }
     writeSigmas<<std::endl;
-    
     writeSigmas.close();
 
+    std::ofstream writeSigma;
+    std::stringstream ss;
+    ss << permutation;
+    std::string p = ss.str();
+    writeSigma.open("data/SigmaPerAngleForEnergy"+p+"_"+energy+"MeV.dat",std::ios::app);
+    matrix_type M = boost::numeric::ublas::matrix<value_type>(6,6);
+    // initial sigma is already computed
+    for (size_type i = 1; i < nStepsPerSector_m; ++i) {
+        // transfer matrix for one angle
+        M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
+        // transfer the matrix sigma
+        sigmas_m[i] = matt_boost::gemmm<matrix_type>(M,sigmas_m[i - 1],boost::numeric::ublas::trans(M));
+	
+	for(size_type j = 0; j < 6; j++){
+	    for(size_type k = 0; k < 6; k++){
+	      if(std::abs(sigmas_m[i](j,k)) < 10e-13) sigmas_m[i](j,k) = 0.; 
+	        writeSigma<<std::left<<std::setprecision(5)
+			   <<std::setw(12)<<sigmas_m[i](j,k);
+	    }
+	    writeSigma<<std::endl;
+	}
+    }
+    writeSigma << std::endl;
+    writeSigma.close();
 }
  
 template<typename Value_type, typename Size_type>
