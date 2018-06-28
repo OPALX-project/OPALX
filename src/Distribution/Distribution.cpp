@@ -2491,7 +2491,7 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
                 gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
             }
         }
-        // Applying a renormalization method corMat = corMat + r*Unitymatrix
+        // Applying a renormalization method corMat = corMat + rn*Unitymatrix
         // This is the renormalization
         double rn = 1e-10;
         for(int i = 0; i < 6; i++){
