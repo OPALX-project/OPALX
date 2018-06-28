@@ -37,7 +37,7 @@ namespace Expressions {
 
 
     SCell::~SCell() {
-        if(itsChannel) delete itsChannel;
+        delete itsChannel;
     }
 
 

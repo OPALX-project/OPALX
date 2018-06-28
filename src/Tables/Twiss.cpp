@@ -481,8 +481,8 @@ Twiss::Twiss(const std::string &name, Twiss *parent):
 
 
 Twiss::~Twiss() {
-    if(itsTable)  delete itsTable;
-    if(itsMapper) delete itsMapper;
+    delete itsTable;
+    delete itsMapper;
 }
 
 /*

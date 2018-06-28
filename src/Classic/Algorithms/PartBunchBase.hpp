@@ -921,7 +921,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                 len[2] > checkfactor * rrms_m[2])
             {
                 for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-                    /* delete the particle if the ditance to the beam center
+                    /* delete the particle if the distance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
 		    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
@@ -945,7 +945,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                 len[2] > checkfactor * rrms_m[2])
             {
                 for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-                    /* delete the particle if the ditance to the beam center
+                    /* delete the particle if the distance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
 		    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
