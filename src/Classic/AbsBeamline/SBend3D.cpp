@@ -97,10 +97,9 @@ const BGeometryBase& SBend3D::getGeometry() const {
 }
 
 void SBend3D::setFieldMapFileName(std::string name) {
-    if (map_m != NULL) {
-        delete map_m;
-        map_m = NULL;
-    }
+    delete map_m;
+    map_m = NULL;
+    
     if (name != "") {
         map_m = new SectorMagneticFieldMap(
                         name,
