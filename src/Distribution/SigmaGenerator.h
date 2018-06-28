@@ -321,6 +321,8 @@ class SigmaGenerator
 	/*
 	 * @param match is the matched distribution sigma matrix
 	 * @param permutation is the permutation used
+	 * @param Mcycs is the container with all the cyclotron maps for each angle
+	 * @param Mscs is the container with the space charge maps for each angle
 	 */
 	void writeMatched(const matrix_type& match, 
 			  const size_type permutation,
@@ -379,7 +381,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
   nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
   Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
   error_m(std::numeric_limits<value_type>::max()),
-  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(true),
+  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(write),
   scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m),permutations_m{{0,1,2,3},{1,2,3,0},{0,1,3,2},{1,0,2,3},{0,2,3,1},{0,3,2,1},
   {1,0,3,2},{1,3,2,0},{2,1,0,3},{2,0,1,3},{2,3,0,1},{2,3,1,0},{3,1,0,2},{3,2,0,1}, {3,2,1,0},{3,0,1,2}}
   // The permutations up converge to a matched distribution, but the first four give the 4 unique solutions
@@ -552,6 +554,7 @@ template<typename Value_type, typename Size_type>
     if ( 0 < matchedSigmas_m.size()) return (0 < matchedSigmas_m.size());
     //Returns an identity matrix, if  no matched distribution was found
     else{
+        *gmsg << "No matched distribution found, returning identity matrix instead.";
         matrix_type One(6,6);
 	for(size_type i = 0; i < 6; i++){
 	  for(size_type j = 0; j < 6; j++) One(i,j) = 0;
@@ -847,10 +850,10 @@ template<typename Value_type, typename Size_type>
 	                 if(std::abs(newSigma(i,j)) < 1e-12) newSigma(i,j) = 0.;
 	             }
 		 }
-		 writeMatched(newSigma,permutation,Mcycs,Mscs);
+		 if(write_m) writeMatched(newSigma,permutation,Mcycs,Mscs);
 		 sigma_m.swap(newSigma);
 		 matchedSigmas_m.push_back(newSigma);
-		 }
+	     }
 	 }
 	 // reset for next permutation
 	 error_m = 1;
