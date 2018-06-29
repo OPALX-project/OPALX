@@ -20,7 +20,7 @@
  *  according to
  *
  *  \f[
- *    result = ||measurement_i - value_i||_1
+ *    result = ||measurement_i - value_i||_\infty
  *  \f]
  *
  */
