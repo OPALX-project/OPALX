@@ -470,6 +470,7 @@ template<typename Value_type, typename Size_type>
      * - tune nuz
      */
     // object for space cyclotron map
+    maxit = 150;
     try{
         MapGenerator<value_type,size_type,Series,Map,Hamiltonian,SpaceCharge> mapgen(nStepsPerSector_m);
 
@@ -554,12 +555,12 @@ template<typename Value_type, typename Size_type>
     if ( 0 < matchedSigmas_m.size()) return (0 < matchedSigmas_m.size());
     //Returns an identity matrix, if  no matched distribution was found
     else{
-        *gmsg << "No matched distribution found, returning identity matrix instead.";
+        *gmsg << "No matched distribution found, returning unity matrix instead.";
         matrix_type One(6,6);
 	for(size_type i = 0; i < 6; i++){
 	  for(size_type j = 0; j < 6; j++) One(i,j) = 0;
 	}
-	for(size_type i = 0 ; i < 6; i++) One(i,i) = 0;
+	for(size_type i = 0 ; i < 6; i++) One(i,i) = 1;
         sigma_m.swap(One);
 	return true;
     }
