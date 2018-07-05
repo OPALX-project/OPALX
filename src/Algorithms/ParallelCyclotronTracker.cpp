@@ -2731,42 +2731,17 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     FDext_m[0] = extB_m * 0.1; // kgauss --> T
     FDext_m[1] = extE_m;
 
-    //itsBunch_m->R *= Vector_t(0.001); // mm --> m
-
     // -------------- If flag psDumpFrame is global, dump bunch in global frame ------------- //
     if (Options::psDumpFreq < std::numeric_limits<int>::max() ){
+        bool dumpLocalFrame    = true;
+        std::string dumpString = "local";
         if (Options::psDumpFrame == Options::GLOBAL) {
-
-            FDext_m[0] = extB_m * 0.1; // kgauss --> T
-            FDext_m[1] = extE_m;
-
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(itsBunch_m, // Global and in m
-                                                                 FDext_m, E,
-                                                                 referencePr,
-                                                                 referencePt,
-                                                                 referencePz,
-                                                                 referenceR,
-                                                                 referenceTheta,
-                                                                 referenceZ,
-                                                                 phi / Physics::deg2rad, // P_mean azimuth
-                                                                 // at ref. R/Th/Z
-                                                                 psi / Physics::deg2rad, // P_mean elevation
-                                                                 // at ref. R/Th/Z
-                                                                 false);          // Flag localFrame
-
-            // Tell user in which mode we are dumping
-	    // New: no longer dumping for num part < 3, omit phase space dump number info
-	    if (lastDumpedStep_m == -1){
-		    *gmsg << endl << "* Integration step " << step_m + 1
-                          << " (no phase space dump for <= 2 particles)" << endl;
-	    } else {
-                *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                      << " (global frame) at integration step " << step_m + 1 << endl;
-	    }
+            dumpLocalFrame = false;
+            dumpString     = "global";
         }
 
-        // ---------------- If flag psDumpFrame is local, dump bunch in local frame ---------------- //
-        else {
+        if (dumpLocalFrame == true) {
+            // ---------------- If flag psDumpFrame is local, dump bunch in local frame ---------------- //
 
             // The bunch is transformed into a local coordinate system with meanP in direction of y-axis
             globalToLocal(itsBunch_m->R, phi, psi, meanR);
@@ -2775,41 +2750,43 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
 
             globalToLocal(extB_m, phi, psi);
             globalToLocal(extE_m, phi, psi);
+        }
 
-            FDext_m[0] = extB_m * 0.1; // kgauss --> T
-            FDext_m[1] = extE_m;
+        FDext_m[0] = extB_m * 0.1; // kgauss --> T
+        FDext_m[1] = extE_m;
 
-            lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(itsBunch_m, // Local and in m
-                                                                 FDext_m, E,
-                                                                 referencePr,
-                                                                 referencePt,
-                                                                 referencePz,
-                                                                 referenceR,
-                                                                 referenceTheta,
-                                                                 referenceZ,
-                                                                 phi / Physics::deg2rad, // P_mean azimuth
-                                                                 // at ref. R/Th/Z
-                                                                 psi / Physics::deg2rad, // P_mean elevation
-                                                                 // at ref. R/Th/Z
-                                                                 true);           // Flag localFrame
+        lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(itsBunch_m, // Local and in m
+                                                             FDext_m, E,
+                                                             referencePr,
+                                                             referencePt,
+                                                             referencePz,
+                                                             referenceR,
+                                                             referenceTheta,
+                                                             referenceZ,
+                                                             phi / Physics::deg2rad, // P_mean azimuth
+                                                             // at ref. R/Th/Z
+                                                             psi / Physics::deg2rad, // P_mean elevation
+                                                             // at ref. R/Th/Z
+                                                             dumpLocalFrame);        // Flag localFrame
 
+        if (dumpLocalFrame == true) {
+            // Return to global frame
             localToGlobal(itsBunch_m->R, phi, psi, meanR);
             //localToGlobal(itsBunch_m->R, phi, psi, meanR * Vector_t(0.001));
             localToGlobal(itsBunch_m->P, phi, psi);
+        }
 
-            // Tell user in which mode we are dumping
-	    // New: no longer dumping for num part < 3, omit phase space dump number info
-	    if (lastDumpedStep_m == -1){
-		*gmsg << endl << "* Integration step " << step_m + 1
-                      << " (no phase space dump for <= 2 particles)" << endl;
-	    } else {
-                *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
-                      << " (local frame) at integration step " << step_m + 1 << endl;
-	    }
+
+        // Tell user in which mode we are dumping
+        // New: no longer dumping for num part < 3, omit phase space dump number info
+        if (lastDumpedStep_m == -1){
+          *gmsg << endl << "* Integration step " << step_m + 1
+                << " (no phase space dump for <= 2 particles)" << endl;
+        } else {
+          *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
+                << " (" << dumpString << " frame) at integration step " << step_m + 1 << endl;
         }
     }
-    // Everything is (back to) global, now return to mm
-    //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
     // Print dump information on screen
     *gmsg << "* T = " << temp_t << " ns"
