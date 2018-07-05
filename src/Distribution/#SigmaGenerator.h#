@@ -470,7 +470,6 @@ template<typename Value_type, typename Size_type>
      * - tune nuz
      */
     // object for space cyclotron map
-    maxit = 150;
     try{
         MapGenerator<value_type,size_type,Series,Map,Hamiltonian,SpaceCharge> mapgen(nStepsPerSector_m);
 
