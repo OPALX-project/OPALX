@@ -104,14 +104,14 @@ inline OwnPtr<Object>::OwnPtr(Object *obj):
 
 template <class Object>
 inline OwnPtr<Object>::~OwnPtr() {
-    if(object) delete object;
+    delete object;
 }
 
 
 template <class Object>
 inline OwnPtr<Object> &OwnPtr<Object>::operator=(const OwnPtr &rhs) {
     if(object != rhs.object) {
-        if(object) delete object;
+        delete object;
         object = rhs.object;
         rhs.object = 0;
     }
@@ -122,7 +122,7 @@ inline OwnPtr<Object> &OwnPtr<Object>::operator=(const OwnPtr &rhs) {
 
 template <class Object>
 inline OwnPtr<Object> &OwnPtr<Object>::operator=(Object *obj) {
-    if(object) delete object;
+    delete object;
     object = obj;
     return *this;
 }
