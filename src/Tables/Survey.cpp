@@ -300,8 +300,8 @@ Survey::Survey(const std::string &name, Survey *parent):
 
 
 Survey::~Survey() {
-    if(itsTable)   delete itsTable;
-    if(itsVisitor) delete itsVisitor;
+    delete itsTable;
+    delete itsVisitor;
 }
 
 

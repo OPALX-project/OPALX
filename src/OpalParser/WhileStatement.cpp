@@ -62,7 +62,7 @@ WhileStatement::WhileStatement(const Parser &parser, TokenStream &is):
 
 
 WhileStatement::~WhileStatement() {
-    if(while_block != 0) delete while_block;
+    delete while_block;
 }
 
 #include "Utilities/OpalException.h"

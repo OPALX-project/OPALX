@@ -51,7 +51,7 @@ Selector::Selector(const Beamline &bl, const RangeRep &range,
 
 
 Selector::~Selector() {
-    if(itsPattern) delete itsPattern;
+    delete itsPattern;
 }
 
 

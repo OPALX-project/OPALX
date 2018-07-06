@@ -21,9 +21,6 @@
 
 extern Inform* gmsg;
 
-#include <sstream>
-std::stringstream debug_output;
-
 #define SQR(x) ((x)*(x))
 #define PointID(triangle_id, vertex_id) Triangles_m[4 * (triangle_id) + (vertex_id)]
 #define Point(triangle_id, vertex_id)   Points_m[Triangles_m[4 * (triangle_id) + (vertex_id)]]
