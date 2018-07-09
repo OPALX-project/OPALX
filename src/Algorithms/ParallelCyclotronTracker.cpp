@@ -381,10 +381,7 @@ void ParallelCyclotronTracker::visitRing(const Ring &ring) {
     sinRefTheta_m = sin(referenceTheta * Physics::deg2rad);
     cosRefTheta_m = cos(referenceTheta * Physics::deg2rad);
 
-    double BcParameter[8];
-
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {}; // zero initialise array
 
     buildupFieldList(BcParameter, ElementBase::RING, opalRing_m);
 
@@ -583,10 +580,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // Read in cyclotron field maps (midplane + 3D fields if desired).
     elptr->initialise(itsBunch_m, fieldflag, elptr->getBScale());
 
-    double BcParameter[8];
-
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {};
 
     BcParameter[0] = 0.001 * elptr->getRmin();
     BcParameter[1] = 0.001 * elptr->getRmax();
@@ -638,9 +632,7 @@ void ParallelCyclotronTracker::visitCCollimator(const CCollimator &coll) {
 
     elptr->initialise(itsBunch_m);
 
-    double BcParameter[8];
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {};
 
     BcParameter[0] = 0.001 * xstart ;
     BcParameter[1] = 0.001 * xend;
@@ -801,9 +793,7 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
 
-    double BcParameter[8];
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {};
 
     BcParameter[0] = 0.001 * xstart ;
     BcParameter[1] = 0.001 * xend;
@@ -934,9 +924,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     // read cavity voltage profile data from file.
     elptr->initialise(itsBunch_m, freq_atd, ampl_atd, phase_atd);
 
-    double BcParameter[8];
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {};
 
     BcParameter[0] = 0.001 * rmin;
     BcParameter[1] = 0.001 * rmax;
@@ -1007,9 +995,7 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
 
-    double BcParameter[8];
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {};
 
     BcParameter[0] = 0.001 * xstart ;
     BcParameter[1] = 0.001 * xend;
@@ -1105,9 +1091,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     elptr->initialise(itsBunch_m);
 
-    double BcParameter[8];
-    for(int i = 0; i < 8; i++)
-        BcParameter[i] = 0.0;
+    double BcParameter[8] = {};
 
     BcParameter[0] = 0.001 * xstart ;
     BcParameter[1] = 0.001 * xend;
@@ -1244,7 +1228,7 @@ void ParallelCyclotronTracker::execute() {
             itsStepper_mp.reset(nullptr);
             // continue here and throw exception
         default:
-            throw OpalException("ParallelTTracker::execute",
+            throw OpalException("ParallelCyclotronTracker::execute",
                                 "Invalid name of TIMEINTEGRATOR in Track command");
     }
 
@@ -2919,7 +2903,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
                   << "* ---------------- NOTE: SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE ------------------ *" << endl;
 
             if(Ippl::getNodes() != 1)
-                throw OpalException("Error in ParallelCyclotronTracker::execute",
+                throw OpalException("Error in ParallelCyclotronTracker::initializeTracking_m",
                                     "SEO MODE ONLY WORKS SERIALLY ON SINGLE NODE!");
             break;
         case MODE::SINGLE:
@@ -2931,7 +2915,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
                   << "* ---------NOTE: SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE ------------ *" << endl;
 
             if(Ippl::getNodes() != 1)
-                throw OpalException("Error in ParallelCyclotronTracker::execute",
+                throw OpalException("Error in ParallelCyclotronTracker::initializeTracking_m",
                                     "SINGLE PARTICLE MODE ONLY WORKS SERIALLY ON A SINGLE NODE!");
 
             // For single particle mode open output files
@@ -3033,7 +3017,7 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
 {
 
     // 2 particles: Trigger SEO mode
-    // (Switch off cavity and calculate betatron osciliation tuning)
+    // (Switch off cavity and calculate betatron oscillation tuning)
     double r_tuning[2], z_tuning[2] ;
 
     IpplTimings::startTimer(IntegrationTimer_m);
@@ -3417,7 +3401,7 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
         if ((itsBunch_m->weHaveBins()) && BunchCount_m > 1) {
             // --- Multibunche mode --- //
 
-            // Calcualte gamma for each energy bin
+            // Calculate gamma for each energy bin
             itsBunch_m->calcGammas_cycl();
 
             repartition();
