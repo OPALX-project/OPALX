@@ -2306,32 +2306,8 @@ template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::calculateAngle(double x, double y) {
     double thetaXY = atan2(y, x);
 
-    // if(x < 0)                   thetaXY = pi + atan(y / x);
-    // else if((x > 0) && (y >= 0))  thetaXY = atan(y / x);
-    // else if((x > 0) && (y < 0))   thetaXY = 2.0 * pi + atan(y / x);
-    // else if((x == 0) && (y > 0)) thetaXY = pi / 2.0;
-    // else if((x == 0) && (y < 0)) thetaXY = 3.0 / 2.0 * pi;
-
     return thetaXY >= 0 ? thetaXY : thetaXY + Physics::two_pi;
-
 }
-
-
-// angle range [-PI~PI) degree
-template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::calculateAngle2(double x, double y) {
-
-    // double thetaXY = atan2(y, x);
-    // if(x > 0)              thetaXY = atan(y / x);
-    // else if((x < 0)  && (y > 0)) thetaXY = pi + atan(y / x);
-    // else if((x < 0)  && (y <= 0)) thetaXY = -pi + atan(y / x);
-    // else if((x == 0) && (y > 0)) thetaXY = pi / 2.0;
-    // else if((x == 0) && (y < 0)) thetaXY = -pi / 2.0;
-
-    return atan2(y, x);
-
-}
-
 
 
 template <class T, unsigned Dim>
