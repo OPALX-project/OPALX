@@ -32,7 +32,7 @@
 #include "Expression/SumErrSq.h"
 #include "Expression/SDDSVariable.h"
 #include "Expression/RadialPeak.h"
-#include "Expression/InfNormRadialPeak.h"
+#include "Expression/MaxNormRadialPeak.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
 
@@ -187,9 +187,9 @@ void OptimizeCmd::execute() {
     funcs.insert(std::pair<std::string, client::function::type>
                  ("radialPeak", ff));
 
-    ff = InfNormRadialPeak();
+    ff = MaxNormRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
-		 ("infNormRadialPeak", ff));
+                 ("maxNormRadialPeak", ff));
 
     ff = SumErrSqRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
