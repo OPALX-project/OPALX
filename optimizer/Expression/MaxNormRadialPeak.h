@@ -1,5 +1,5 @@
-#ifndef __INFNORMRADIALPEAK_H__
-#define __INFNORMRADIALPEAK_H__
+#ifndef __MAX_NORM_RADIALPEAK_H__
+#define __MAX_NORM_RADIALPEAK_H__
 
 #include <string>
 
@@ -20,11 +20,11 @@
  *  according to
  *
  *  \f[
- *    result = ||measurement_i - value_i||_1
+ *    result = ||measurement_i - value_i||_\infty
  *  \f]
  *
  */
-struct InfNormRadialPeak {
+struct MaxNormRadialPeak {
 
     static const std::string name;
 
@@ -44,7 +44,7 @@ struct InfNormRadialPeak {
             meas_peaks->parseFile();
 
             if ( end_ < begin_ || end_ < 0 || begin_ < 0 )
-                throw OptPilotException("InfNormRadialPeak::operator()",
+                throw OptPilotException("MaxNormRadialPeak::operator()",
                                         "Error check turn number range");
 
         } catch (OptPilotException &ex) {
