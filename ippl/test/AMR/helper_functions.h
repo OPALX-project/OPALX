@@ -379,6 +379,8 @@ inline void initGridData(container_t& rhs,
 
 /*!
  * Compute the total charge from the grid data
+ * (only coarsest level -> averaged down from fine
+ * levels)
  * @param rhs is the charge density on the grid
  * @param finest_level of AMR
  * @param geom are the geometries of each level
@@ -401,6 +403,82 @@ inline double totalCharge(const container_t& rhs,
     Real totCharge = 0.0;
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     totCharge = (scale) ? rhs[0]->sum(0) * vol : rhs[0]->sum(0);
+    return totCharge;
+}
+
+/*!
+ * Compute the total charge from the grid data on the
+ * composite domain
+ * @param rhs is the charge density on the grid
+ * @param finest_level of AMR
+ * @param geom are the geometries of each level
+ * @param scale with the cell volume
+ */
+inline double totalCharge_composite(const container_t& rhs,
+                          int finest_level,
+                          const Vector<Geometry>& geom,
+                          bool scale = true)
+{
+    typedef amrex::FabArray<amrex::BaseFab<int> >  mask_t;
+    
+    // covered (i.e. refined) or not-covered
+    std::vector<std::unique_ptr<mask_t> > refmasks(rhs.size());
+    
+    for (uint i = 0; i < rhs.size(); ++i) {
+        const amrex::BoxArray& ba = rhs[i]->boxArray();
+        const amrex::DistributionMapping& dmap = rhs[i]->DistributionMap();
+        refmasks[i].reset(new mask_t(ba, dmap, 1, 2));
+        refmasks[i]->setVal(0 /*not refined*/, 2);
+        refmasks[i]->FillBoundary(false);
+    }
+    
+    for (uint lev = 0; lev < rhs.size() - 1; ++lev) {
+        // get boxarray with refined cells
+        amrex::BoxArray ba = rhs[lev]->boxArray();
+        ba.refine(2);
+        ba = amrex::intersect(rhs[lev+1]->boxArray(), ba);
+        ba.coarsen(2);
+
+        // refined cells
+        amrex::DistributionMapping dmap(ba, Ippl::getNodes());
+        mask_t refined(ba, dmap, 1, 0);
+        refined.setVal(1 /*refined*/);
+
+        // fill intersection with YES
+        refmasks[lev]->copy(refined, 0, 0, 1, 0, 2);
+
+        /* physical boundary cells will never be refined cells
+         * since they are ghost cells
+         */
+        refmasks[lev]->setDomainBndry(2, geom[lev]);
+        refmasks[lev]->FillBoundary(false);
+    }
+    
+    long double totCharge = 0.0;
+    for (uint i = 0; i < rhs.size(); ++i) {
+        
+        long double vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );
+        
+        for (amrex::MFIter mfi(*(rhs[i]), true); mfi.isValid(); ++mfi) {
+            const amrex::Box&          tbx  = mfi.tilebox();
+            const amrex::BaseFab<int>& rfab = (*refmasks[i])[mfi];
+            const amrex::FArrayBox&     fab = (*rhs[i])[mfi];
+            
+            const int* lo = tbx.loVect();
+            const int* hi = tbx.hiVect();
+            
+            for (int i = lo[0]; i <= hi[0]; ++i) {
+                for (int j = lo[1]; j <= hi[1]; ++j) {
+                    for (int k = lo[2]; k <= hi[2]; ++k) {
+                        amrex::IntVect iv(i, j, k);
+                        if ( rfab(iv) == 0 ) {
+                            totCharge += fab(iv, 0) * vol;
+                        }
+                    }
+                }
+            }
+        }
+    }
     return totCharge;
 }
 
