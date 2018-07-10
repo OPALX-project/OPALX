@@ -14,9 +14,9 @@
  * @version 2.1 (implemented by Cristopher Cortes)
  * The original version used a private class <b>RDM</b> to calculate the coupled part of the sigma matrix
  * in version 2.1 this was replaced by an Eigenvalue Solver
- * @version 2.2
+ * @version 2.2 (implemented by Cristopher Cortes)
  * In version 2.2 for every permutation of the Eigenvalue-order the algorithm searches for a matched distribution
- * @version 2.3
+ * @version 2.3 (implemented by Cristopher Cortes)
  * The algorithm puts the vertical plane on the right position, and the other eigenvectors can be permutated
  */
 #ifndef SIGMAGENERATOR_H
