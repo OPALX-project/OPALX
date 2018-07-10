@@ -571,9 +571,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
+    double totCharge_composite = totalCharge_composite(rhs, finest_level, geom);
     
-    msg << "Total Charge (computed): " << totCharge << " C" << endl
-        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
+    msg << "Total Charge (computed):  " << totCharge << " C" << endl
+        << "Total Charge (composite): " << totCharge_composite << " C" << endl
+        << "Vacuum permittivity:      " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
     amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
