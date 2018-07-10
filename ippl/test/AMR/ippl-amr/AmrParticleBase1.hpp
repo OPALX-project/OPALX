@@ -368,7 +368,7 @@ void AmrParticleBase1<PLayout>::FineCellsToUpdateFromCrse (
 
 
 template<class PLayout>
-void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
+void AmrParticleBase1<PLayout>::AssignDensityDoit(int rho_index,
 						 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf,
 						 PMap&             data,
 						 int               ncomp,
@@ -572,7 +572,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
                                                   amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                                                   int lev_min, int ncomp, int finest_level) const
 {
@@ -755,7 +755,7 @@ void AmrParticleBase1<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
                                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                                                 int lev_min, int lev_max)
 {

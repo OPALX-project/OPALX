@@ -68,7 +68,7 @@ add_library(amropal
 
 target_link_libraries(amropal ${LIBS})
 
-set (TESTLIBS amropal)
+set (TESTLIBS amropal ${GSL_LIBRARY})
 
 if ( ENABLE_AMR_MG_SOLVER )
     set (CMAKE_CXX_FLAGS "-DHAVE_AMR_MG_SOLVER ${CMAKE_CXX_FLAGS}")
@@ -101,6 +101,9 @@ add_executable( testGaussian
                 
 add_executable( testUnifSphere
                 testUnifSphere.cpp)
+
+add_executable( testThreeGaussian
+                testThreeGaussian.cpp)
     
 add_executable( testFromH5
                 testFromH5.cpp)
@@ -163,6 +166,9 @@ target_link_libraries (testGaussian ${TESTLIBS}
 target_link_libraries (testUnifSphere ${TESTLIBS}
                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
+target_link_libraries (testThreeGaussian ${TESTLIBS}
+                       ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
+
 target_link_libraries (testFromH5 ${TESTLIBS}
                        ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
@@ -188,6 +194,7 @@ set (EXECS
     testDomainTransformSolve
     testGaussian
     testUnifSphere
+    testThreeGaussian
     testFromH5
     testMultipleSources
     testUnifBox
