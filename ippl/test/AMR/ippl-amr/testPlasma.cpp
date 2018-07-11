@@ -386,7 +386,7 @@ void ipplProjection(Field2d_t& field,
     field = 0; // otherwise values are accumulated over steps
     
     for (unsigned i=0; i< bunch->getLocalNum(); ++i)
-        bunch->Rphase[i]= Vektor<double,2>(bunch->R[i][2],bunch->P[i][2]);
+        bunch->Rphase[i]= Vektor<double,2>(bunch->R[i][2], bunch->P[i][2]);
     
     bunch->qm.scatter(field, bunch->Rphase, IntrplCIC_t());
     
@@ -810,6 +810,38 @@ initDistribution(const param_t& params,
 }
 
 
+void updateIpplMesh(Field2d_t* field,
+                    FieldLayout2d_t* layout2d,
+                    BConds<double, 2, Mesh2d_t, Center_t>& BC,
+                    std::unique_ptr<amrbunch_t> &bunch,
+                    int nx, int nv)
+{
+    Mesh2d_t& mesh = field->get_mesh();
+    
+    
+//     Mesh2d_t(domain2d, spacings, origin);
+    
+//     Vector_t rmin = min(bunch->R);
+    Vector_t pmin = min(bunch->P);
+    Vector_t pmax = max(bunch->P);
+    
+    Vektor<double, 2> origin(0, pmin[2]);
+    
+    double spacings[2] = {
+        ( 4.0 * Physics::pi ) / nx,
+        (pmax[2] - pmin[2]) / nv
+    };
+    
+    mesh.set_meshSpacing(&(spacings[0]));
+    mesh.set_origin(origin);
+    
+    field->initialize(mesh,
+                      *layout2d,
+                      GuardCellSizes<2>(2),
+                      BC);
+}
+
+
 void doPlasma(const param_t& params, Inform& msg)
 {
     // ========================================================================
@@ -1004,8 +1036,10 @@ void doPlasma(const param_t& params, Inform& msg)
     for (std::size_t i = 0; i < params.nIterations; ++i) {
         msg << "Processing step " << i << endl;
 
-        if ( params.type == Distribution::Type::kTwoStream )
+        if ( params.type == Distribution::Type::kTwoStream ) {
+            updateIpplMesh(&field, layout2d, BC, bunch, Nx[2], Nv[2]);
             ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
+        }
         
         assign(bunch->R, bunch->R + params.timestep * bunch->P);
         
