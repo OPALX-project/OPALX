@@ -1130,5 +1130,7 @@ int main(int argc, char *argv[]) {
     
     IpplTimings::print(fn, problemSize);
     
+    amrex::Finalize(true);
+    
     return 0;
 }

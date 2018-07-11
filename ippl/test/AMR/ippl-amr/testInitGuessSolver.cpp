@@ -490,7 +490,7 @@ int main(int argc, char *argv[]) {
     
     
         
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
     int nSteps = std::atoi(argv[7]);
@@ -517,6 +517,8 @@ int main(int argc, char *argv[]) {
              << "-threads-1.dat";
     
     IpplTimings::print(timefile.str());
+    
+    amrex::Finalize(true);
     
     return 0;
 }

@@ -233,5 +233,7 @@ int main (int argc, char *argv[])
     
     test(comm);
     
+    amrex::Finalize(true);
+    
     return 0;
 }

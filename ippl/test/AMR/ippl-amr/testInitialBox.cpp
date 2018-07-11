@@ -218,5 +218,7 @@ int main(int argc, char* argv[]) {
     delete myAmrOpal;
     delete bunch;
     
+    amrex::Finalize(true);
+    
     return 0;
 }

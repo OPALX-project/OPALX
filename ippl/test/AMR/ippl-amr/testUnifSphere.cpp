@@ -896,7 +896,10 @@ int main(int argc, char *argv[]) {
     problemSize["gridy"] = params.nr[1];
     problemSize["gridz"] = params.nr[2];
     
+    
     IpplTimings::print(fn, problemSize);
 
+    amrex::Finalize(true);
+    
     return 0;
 }
