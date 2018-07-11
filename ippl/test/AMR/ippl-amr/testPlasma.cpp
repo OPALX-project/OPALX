@@ -1004,8 +1004,8 @@ void doPlasma(const param_t& params, Inform& msg)
     for (std::size_t i = 0; i < params.nIterations; ++i) {
         msg << "Processing step " << i << endl;
 
-//         if ( params.type == Distribution::Type::kTwoStream )
-//             ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
+        if ( params.type == Distribution::Type::kTwoStream )
+            ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
         
         assign(bunch->R, bunch->R + params.timestep * bunch->P);
         
