@@ -425,5 +425,7 @@ int main(int argc, char *argv[]) {
     
     IpplTimings::print(timefile.str());
     
+    amrex::Finalize(true);
+    
     return 0;
 }
