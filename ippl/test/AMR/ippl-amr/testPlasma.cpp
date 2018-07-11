@@ -580,6 +580,18 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // **************************************************************************                                                                                                                                
 
     amrex::Real offset = 0.;
+    
+    if ( geom[0].isAllPeriodic() ) {
+        double sum = rhs[0]->sum(0);
+        double max = rhs[0]->max(0);
+        msg << "total charge in density field before ion subtraction is " << sum << endl;
+        msg << "max total charge in density field before ion subtraction is " << max << endl;
+//         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
+//             offset += bunch->qm[i];
+        
+//         offset /= geom[0].ProbSize();
+        offset = -1.0;
+    }
 
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
@@ -880,10 +892,6 @@ void doPlasma(const param_t& params, Inform& msg)
     
     auto tuple = initDistribution(params, bunch, extend_l, extend_r);
     
-    // redistribute on single-level
-    bunch->update();
-    
-    
     // --------------------------------------------------------------------
     
     Vektor<std::size_t, 3> Nx = std::get<0>(tuple);
@@ -996,8 +1004,8 @@ void doPlasma(const param_t& params, Inform& msg)
     for (std::size_t i = 0; i < params.nIterations; ++i) {
         msg << "Processing step " << i << endl;
 
-        if ( params.type == Distribution::Type::kTwoStream )
-            ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
+//         if ( params.type == Distribution::Type::kTwoStream )
+//             ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
         
         assign(bunch->R, bunch->R + params.timestep * bunch->P);
         
@@ -1024,12 +1032,12 @@ void doPlasma(const param_t& params, Inform& msg)
         
         doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params, dir);
         
+        bunch->GetGravity(bunch->E, efield);
         
         domainMapping(*bunch, scale, true);
         msg << endl << "Back to normal positions" << endl << endl;
     
         
-        bunch->GetGravity(bunch->E, efield);
         
         /* epsilon_0 not used by Ulmer --> multiply it away */
         assign(bunch->P, bunch->P + params.timestep * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
