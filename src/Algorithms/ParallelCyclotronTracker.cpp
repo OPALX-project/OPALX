@@ -2477,13 +2477,13 @@ void ParallelCyclotronTracker::singleParticleDump() {
         if(myNode_m == 0) {
             int notReceived = Ippl::getNodes() - 1;
             int numberOfPart = 0;
-
+            // receive other nodes
             while(notReceived > 0) {
 
                 int node = COMM_ANY_NODE;
                 Message *rmsg =  Ippl::Comm->receive_block(node, tag);
 
-                if(rmsg == 0)
+                if(rmsg == nullptr)
                     ERRORMSG("Could not receive from client nodes in main." << endl);
 
                 --notReceived;
@@ -2491,25 +2491,16 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 rmsg->get(&numberOfPart);
 
                 for(int i = 0; i < numberOfPart; ++i) {
-
                     rmsg->get(&id);
                     tmpi.push_back(id);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
+                    for(int ii = 0; ii < 6; ii++) {
+                        rmsg->get(&x);
+                        tmpr.push_back(x);
+                    }
                 }
                 delete rmsg;
             }
-
+            // own node
             for(int i = 0; i < counter; ++i) {
 
                 tmpi.push_back(itsBunch_m->ID[found[i]]);
@@ -2520,13 +2511,21 @@ void ParallelCyclotronTracker::singleParticleDump() {
                     tmpr.push_back(itsBunch_m->P[found[i]](j));
                 }
             }
-
+            // store
             dvector_t::iterator itParameter = tmpr.begin();
 
             for(auto id : tmpi) {
 
                 outfTrackOrbit_m << "ID" << id;
 
+                if (id == 0) { // for stat file
+                    itsBunch_m->RefPartR_m[0] = *itParameter;
+                    itsBunch_m->RefPartR_m[1] = *(itParameter + 2);
+                    itsBunch_m->RefPartR_m[2] = *(itParameter + 4);
+                    itsBunch_m->RefPartP_m[0] = *(itParameter + 1);
+                    itsBunch_m->RefPartP_m[1] = *(itParameter + 3);
+                    itsBunch_m->RefPartP_m[2] = *(itParameter + 5);
+                }
                 for(int ii = 0; ii < 6; ii++) {
 
                     outfTrackOrbit_m << " " << *itParameter;
@@ -2536,7 +2535,6 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 outfTrackOrbit_m << std::endl;
             }
         } else {
-
             // for other nodes
             Message *smsg = new Message();
             smsg->put(counter);
@@ -2568,6 +2566,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 outfTrackOrbit_m << itsBunch_m->R[i](0) << " " << itsBunch_m->P[i](0) << " ";
                 outfTrackOrbit_m << itsBunch_m->R[i](1) << " " << itsBunch_m->P[i](1) << " ";
                 outfTrackOrbit_m << itsBunch_m->R[i](2) << " " << itsBunch_m->P[i](2) << std::endl;
+
+                if (itsBunch_m->ID[i] == 0) { // for stat file
+                    itsBunch_m->RefPartR_m = itsBunch_m->R[i];
+                    itsBunch_m->RefPartP_m = itsBunch_m->P[i];
+                }
             }
         }
     }

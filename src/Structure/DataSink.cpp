@@ -882,7 +882,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                    << indent << "name=R0_s,\n"
                    << indent << "type=double,\n"
                    << indent << "units=m,\n"
-                   << indent << "description=\"45 R0 Particle position in s\"\n"
+                   << indent << "description=\"45 R0 Particle position in z\"\n"
                    << "&end\n";
         outputFile << "&column\n"
                    << indent << "name=P0_x,\n"
@@ -900,7 +900,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                    << indent << "name=P0_s,\n"
                    << indent << "type=double,\n"
                    << indent << "units=1,\n"
-                   << indent << "description=\"48 R0 Particle momentum in s\"\n"
+                   << indent << "description=\"48 R0 Particle momentum in z\"\n"
                    << "&end\n";
         columnStart = 49;
     }
