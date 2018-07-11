@@ -1,38 +1,29 @@
-// -------------------------------------------------------------------------
-//
-//                                PSI Paul Scherrer Institut 
-//
-// Program name:         OPAL (Object Oriented Parallel Accelerator Library) 
-//
-// Version:              1.0
-//
-// Date:                 xx.2.2008 
-//
-// Authors and contact:  Andreas Adelmann 
-//                       andreas.adelmann@psi.ch
-//
-// Address:              AMAS (Accelerator Modelling and Advanced Simulations) 
-//                       PSI 
-//                       CH-5232 Villigen PSI
-//                       SWITZERLAND
-//
-// Copyright PSI, Villigen 2007 - Copyright and any other appropriate legal
-// protection of this computer program and associated documentation reserved
-// in all countries of the world.
-//
-// Organizations collaborating with PSI may receive this program and
-// documentation freely and without charge.
-//
-// PSI undertakes no obligation for the maintenance of this program, nor
-// responsibility for its correctness, and accepts no liability whatsoever
-// resulting from its use.
-//
-// Program and documentation are provided solely for the use of the
-// organisation to which they are distributed.
-//
-// This program may not be copied or otherwise distributed without permission.
-// This message must be retained on this and any other authorized copies.
-//
-// The material cannot be sold. PSI should be given credit in all references.
-//
-// -------------------------------------------------------------------------
+Copyright (c) 2008-2018
+Paul Scherrer Institut, Villigen PSI, Switzerland
+All rights reserved.
+
+OPAL is licensed under the terms of the GNU General Public License
+version 3.
+
+(1) Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+(2) Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+(3) Neither the name of Paul Scherrer Institut nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

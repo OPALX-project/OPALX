@@ -83,7 +83,7 @@ protected:
     /// The zero magnetic field.
     NullField field;
 
-    /// The septa's geometry.
+    /// The probe's geometry.
     StraightGeometry geometry;
 
     /// The active/inactive flag.

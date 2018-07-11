@@ -137,7 +137,6 @@ int main(int argc, char *argv[])
     // zeroth axis serial, zeroth axis half-size domain, permuted axis order
     FieldLayout<D> layoutSPPerm0h(ndiPermuted0h,serialParallel,vnodes);
 #endif
-#ifndef IPPL_USE_SCSL_FFT
     // all parallel layout, first axis half-size domain, normal axis order
     FieldLayout<D> layoutPPStan1h(ndiStandard1h,allParallel,vnodes);
 #ifndef ONED
@@ -145,7 +144,6 @@ int main(int argc, char *argv[])
     FieldLayout<D> layoutSPStan1h(ndiStandard1h,serialParallel,vnodes);
     // zeroth axis serial, first axis half-size domain, permuted axis order
     FieldLayout<D> layoutSPPerm1h(ndiPermuted1h,serialParallel,vnodes);
-#endif
 #endif
 
     // create test Fields for complex-to-complex FFT
@@ -170,13 +168,11 @@ int main(int argc, char *argv[])
     BareField<dcomplex,D> CFieldSPPerm0h(layoutSPPerm0h);
 #endif
 
-#ifndef IPPL_USE_SCSL_FFT
     // create test Fields for sine transform and real-to-complex FFT
     BareField<dcomplex,D> CFieldPPStan1h(layoutPPStan1h);
 #ifndef ONED
     BareField<dcomplex,D> CFieldSPStan1h(layoutSPStan1h);
     BareField<dcomplex,D> CFieldSPPerm1h(layoutSPPerm1h);
-#endif
 #endif
 
 
