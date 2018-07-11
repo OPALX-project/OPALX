@@ -484,7 +484,7 @@ void ParticleAttrib<T>::calcSortList(SortList_t &slist, bool ascending)
 // Process a sort-list, as described for "calcSortList", to reorder
 // the elements in this attribute.  All indices in the sort list are
 // considered "local", so they should be in the range 0 ... localnum-1.
-// The sort-list does not have to have been calcualted by calcSortList,
+// The sort-list does not have to have been calculated by calcSortList,
 // it could be calculated by some other means, but it does have to
 // be in the same format.  Note that the routine may need to modify
 // the sort-list temporarily, but it will return it in the same state.
