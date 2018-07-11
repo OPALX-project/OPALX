@@ -553,8 +553,6 @@ private:
 };
 
 /**
- *
- *
  * @param x
  * @param y
  *
@@ -569,8 +567,6 @@ double ParallelCyclotronTracker::calculateAngle(double x, double y) {
 }
 
 /**
- *
- *
  * @param x
  * @param y
  *

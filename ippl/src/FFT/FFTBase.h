@@ -1,12 +1,12 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
+//
+// IPPL FFT
+//
+// Copyright (c) 2008-2018
+// Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// OPAL is licensed under GNU GPL version 3.
+//
 
 //--------------------------------------------------------------------------
 // Class FFTBase
@@ -20,11 +20,7 @@
 #include "Index/NDIndex.h"
 #include "Field/GuardCellSizes.h"
 
-#if defined(IPPL_USE_SCSL_FFT)
-#include "FFT/SCSL_FFT.h"
-#else
 #include "FFT/fftpack_FFT.h"
-#endif
 
 #include <map>
 #include <iostream>
@@ -67,11 +63,7 @@ public:
     enum FFT_e { ccFFT, rcFFT, sineFFT, cosineFFT };
 
     // Type used for performing 1D FFTs
-#if defined(IPPL_USE_SCSL_FFT)
-    typedef SCSL<T> InternalFFT_t;
-#else
     typedef FFTPACK<T> InternalFFT_t;
-#endif
 
     FFTBase() {}  
   
@@ -308,9 +300,9 @@ FFTBase<Dim,T>::checkDomain(const FFTBase<Dim,T>::Domain_t& dom1,
 
 #endif // IPPL_FFT_FFTBASE_H
 
-/***************************************************************************
- * $RCSfile: FFTBase.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:25 $
- * IPPL_VERSION_ID: $Id: FFTBase.h,v 1.1.1.1 2003/01/23 07:40:25 adelmann Exp $ 
- ***************************************************************************/
-
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

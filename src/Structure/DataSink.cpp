@@ -189,12 +189,12 @@ int DataSink::writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDex
         std::make_pair("E-head_x", FDext[1](0)),
         std::make_pair("E-head_z", FDext[1](1)),
         std::make_pair("E-head_y", FDext[1](2)),
-        std::make_pair("B-ref_x", FDext[2](0)),
-        std::make_pair("B-ref_z", FDext[2](1)),
-        std::make_pair("B-ref_y", FDext[2](2)),
-        std::make_pair("E-ref_x", FDext[3](0)),
-        std::make_pair("E-ref_z", FDext[3](1)),
-        std::make_pair("E-ref_y", FDext[3](2)),
+        std::make_pair("B-ref_x",  FDext[2](0)),
+        std::make_pair("B-ref_z",  FDext[2](1)),
+        std::make_pair("B-ref_y",  FDext[2](2)),
+        std::make_pair("E-ref_x",  FDext[3](0)),
+        std::make_pair("E-ref_z",  FDext[3](1)),
+        std::make_pair("E-ref_y",  FDext[3](2)),
         std::make_pair("B-tail_x", FDext[4](0)),
         std::make_pair("B-tail_z", FDext[4](1)),
         std::make_pair("B-tail_y", FDext[4](2)),
@@ -216,7 +216,7 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("sposHead", sposHead),
-        std::make_pair("sposRef", sposRef),
+        std::make_pair("sposRef",  sposRef),
         std::make_pair("sposTail", sposTail),
         std::make_pair("B-head_x", FDext[0](0)),
         std::make_pair("B-head_z", FDext[0](1)),
@@ -224,12 +224,12 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
         std::make_pair("E-head_x", FDext[1](0)),
         std::make_pair("E-head_z", FDext[1](1)),
         std::make_pair("E-head_y", FDext[1](2)),
-        std::make_pair("B-ref_x", FDext[2](0)),
-        std::make_pair("B-ref_z", FDext[2](1)),
-        std::make_pair("B-ref_y", FDext[2](2)),
-        std::make_pair("E-ref_x", FDext[3](0)),
-        std::make_pair("E-ref_z", FDext[3](1)),
-        std::make_pair("E-ref_y", FDext[3](2)),
+        std::make_pair("B-ref_x",  FDext[2](0)),
+        std::make_pair("B-ref_z",  FDext[2](1)),
+        std::make_pair("B-ref_y",  FDext[2](2)),
+        std::make_pair("E-ref_x",  FDext[3](0)),
+        std::make_pair("E-ref_z",  FDext[3](1)),
+        std::make_pair("E-ref_y",  FDext[3](2)),
         std::make_pair("B-tail_x", FDext[4](0)),
         std::make_pair("B-tail_z", FDext[4](1)),
         std::make_pair("B-tail_y", FDext[4](2)),
@@ -870,7 +870,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                    << indent << "name=R0_x,\n"
                    << indent << "type=double,\n"
                    << indent << "units=m,\n"
-                   << indent << "description=\"43 R0 Particle position in x\""
+                   << indent << "description=\"43 R0 Particle position in x\"\n"
                    << "&end\n";
         outputFile << "&column\n"
                    << indent << "name=R0_y,\n"

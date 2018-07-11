@@ -1,3 +1,13 @@
+//
+// IPPL FFT
+//
+// Copyright (c) 2008-2018
+// Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// OPAL is licensed under GNU GPL version 3.
+//
+
 /*
  *  This file is part of libfftpack.
  *
@@ -32,33 +42,38 @@
   (reformatted by joerg arndt)
 
   reformatted and slightly enhanced by Martin Reinecke (2004)
- */
+*/
 
 #ifndef PLANCK_FFTPACK_H
 #define PLANCK_FFTPACK_H
-
-/* #include "c_utils.h" */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*! forward complex transform */
-void cfftf(size_t N, double complex_data[], double wrk[]);
+    void cfftf(size_t N, double complex_data[], double wrk[]);
 /*! backward complex transform */
-void cfftb(size_t N, double complex_data[], double wrk[]);
+    void cfftb(size_t N, double complex_data[], double wrk[]);
 /*! initializer for complex transforms */
-void cffti(size_t N, double wrk[]);
+    void cffti(size_t N, double wrk[]);
 
 /*! forward real transform */
-void rfftf(size_t N, double data[], double wrk[]);
+    void rfftf(size_t N, double data[], double wrk[]);
 /*! backward real transform */
-void rfftb(size_t N, double data[], double wrk[]);
+    void rfftb(size_t N, double data[], double wrk[]);
 /*! initializer for real transforms */
-void rffti(size_t N, double wrk[]);
+    void rffti(size_t N, double wrk[]);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode:nil
+// End:

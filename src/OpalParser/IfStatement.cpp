@@ -70,8 +70,8 @@ IfStatement::IfStatement(const Parser &parser, TokenStream &is):
 
 
 IfStatement::~IfStatement() {
-    if(then_block != 0) delete then_block;
-    if(else_block != 0) delete else_block;
+    delete then_block;
+    delete else_block;
 }
 
 

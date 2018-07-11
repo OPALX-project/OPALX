@@ -32,6 +32,7 @@
 #include "Expression/SDDSVariable.h"
 #include "Expression/RadialPeak.h"
 #include "Expression/SumErrSqRadialPeak.h"
+#include "Expression/MaxNormRadialPeak.h"
 #include "Expression/ProbeVariable.h"
 //////////////////////////////////////////////////////////////////////////////
 
@@ -78,6 +79,9 @@ int main(int argc, char** argv) {
     ff = RadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
             ("radialPeak", ff));
+    ff = MaxNormRadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("maxNormRadialPeak", ff));
     ff = SumErrSqRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
             ("sumErrSqRadialPeak", ff));

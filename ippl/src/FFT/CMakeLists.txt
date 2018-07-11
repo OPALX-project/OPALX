@@ -1,22 +1,20 @@
-SET (_SRCS
-	fftpack.cpp
+set (_SRCS
+  fftpack.cpp
   )
 
-SET (_HDRS
-  f2c.h
+set (_HDRS
   FFTBase.hpp
   FFTBase.h
   FFT.hpp
   FFT.h
   fftpack_FFT.h
-  SCSL_FFT.h
   )
 
-INCLUDE_DIRECTORIES (
+include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
-)
+  )
 
-ADD_IPPL_SOURCES (${_SRCS})
-ADD_IPPL_HEADERS (${_HDRS})
+add_ippl_sources (${_SRCS})
+add_ippl_headers (${_HDRS})
 
-INSTALL (FILES ${_HDRS} DESTINATION include/FFT)
+#install (FILES ${_HDRS} DESTINATION include/FFT)
