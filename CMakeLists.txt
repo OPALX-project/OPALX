@@ -44,12 +44,16 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 add_definitions (-DIPPL_LINUX -DIPPL_STRINGSTREAM)
 add_definitions (-DIPPL_MPI -DMPICH_SKIP_MPICXX -DIPPL_DONT_POOL)
 add_definitions (-DIPPL_USE_XDIV_RNG -DPETE_BITWISE_COPY)
-add_definitions (-DIPPL_HAS_TEMPLATED_COMPLEX)
 add_definitions (-DIPPL_USE_PARTIAL_SPECIALIZATION)
-add_definitions ( -Drestrict=__restrict__ -DNOCTAssert)
+add_definitions (-Drestrict=__restrict__ -DNOCTAssert)
 
 add_compile_options (-Wall)
 add_compile_options (-funroll-loops -fstrict-aliasing)
+option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
+if (NOT ${USE_STATIC_LIBRARIES})
+    add_compile_options (-fPIE -fPIC)
+    set (CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pie")
+endif ()
 
 # compiler dependent flags
 message ("The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
@@ -104,7 +108,9 @@ endif ()
 
 find_package (H5Hut REQUIRED)
 
-set (HDF5_USE_STATIC_LIBRARIES ON)
+if (USE_STATIC_LIBRARIES)
+    set (HDF5_USE_STATIC_LIBRARIES ON)
+endif ()
 find_package (HDF5 REQUIRED)
 message ("Found HDF5 libraries: ${HDF5_C_LIBRARIES}")
 
@@ -112,7 +118,9 @@ find_package (GSL REQUIRED)
 message ("Found gsl libraries: ${GSL_LIBRARIES}")
 
 set (BOOSTROOT $ENV{BOOST_DIR})
-set (Boost_USE_STATIC_LIBS ON)
+if (USE_STATIC_LIBRARIES)
+    set (Boost_USE_STATIC_LIBS ON)
+endif ()
 set (Boost_USE_MULTITHREADED OFF)
 set (Boost_USE_STATIC_RUNTIME OFF)
 find_package (Boost

@@ -18,15 +18,11 @@
 #include <iosfwd>
 #include <vector>
 
-
-// #include "Distribution/Distribution.h"
 #include "Structure/LossDataSink.h"
 #include "Structure/FieldSolver.h"
 #include "Algorithms/ListElem.h"
+
 class Distribution;
-// class LossDataSink;
-// class FieldSolver;
-// class ListElem;
 
 template <class T, int, int> class FMatrix;
 template <class T, int> class FVector;
@@ -447,13 +443,12 @@ public:
 protected:
     size_t calcMoments();    // Calculates bunch moments using only emitted particles.
 
-    /* Calcualtes bunch moments by summing over bins
+    /* Calculates bunch moments by summing over bins
      * (not accurate when any particles have been emitted).
      */
     void calcMomentsInitial();
-
+    /// angle range [0~2PI) degree
     double calculateAngle(double x, double y);
-    double calculateAngle2(double x, double y);
 
 
 private:
