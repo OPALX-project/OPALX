@@ -431,6 +431,9 @@ inline double totalCharge_composite(const container_t& rhs,
         amrex::MultiFab::Copy(cp_rhs[lev], *rhs[lev], 0, 0, 1, 1);
     }
     
+    /* set the values of all refined cells to zero
+     * (AssignDensityFort averages down)
+     */
     for (uint lev = 0; lev < cp_rhs.size() - 1; ++lev) {
         // get boxarray with refined cells
         amrex::BoxArray ba = cp_rhs[lev].boxArray();
