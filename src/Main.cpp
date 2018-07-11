@@ -380,11 +380,16 @@ int main(int argc, char *argv[]) {
         Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
+        
+#ifdef ENABLE_AMR
+    amrex::Finalize(true);
+#endif
         delete ippl;
         delete Ippl::Info;
         delete Ippl::Warn;
         delete Ippl::Error;
         delete Ippl::Debug;
+        
         return 0;
 
     } catch(OpalException &ex) {
@@ -461,6 +466,6 @@ int main(int argc, char *argv[]) {
 
         MPI_Abort(MPI_COMM_WORLD, -100);
     }
-
+    
     return 1;
 }
