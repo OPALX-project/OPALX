@@ -23,8 +23,6 @@
 // include standard complex header file
 #include <complex>
 
-#ifdef IPPL_HAS_TEMPLATED_COMPLEX
-
 // KAI and others have a templated complex class
 #ifdef IPPL_USE_SINGLE_PRECISION
 typedef std::complex<float> dcomplex;
@@ -32,20 +30,4 @@ typedef std::complex<float> dcomplex;
 typedef std::complex<double> dcomplex;
 #endif
 
-typedef std::complex<float> fComplex;
-
-#else
-
-// This assumes that all other compilers have the old non-templated
-// complex type which is like complex<double> in the draft standard.
-typedef std::complex dcomplex;
-
-#endif // IPPL_HAS_TEMPLATED_COMPLEX
-
 #endif // DCOMPLEX_H
-
-/***************************************************************************
- * $RCSfile: dcomplex.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:24 $
- * IPPL_VERSION_ID: $Id: dcomplex.h,v 1.1.1.1 2003/01/23 07:40:24 adelmann Exp $
- ***************************************************************************/
