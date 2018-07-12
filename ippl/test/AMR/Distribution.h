@@ -62,7 +62,7 @@ private:
         
         double f = factor * std::exp(-0.5 * v2) *
                     (1.0 + alpha * std::cos(k * pos[2])) *
-                    (1.0 + 0.5 * vel[2] * vel[2]);
+                    (1.0 + 5.0 * vel[2] * vel[2]);
         
         return f;
     };
