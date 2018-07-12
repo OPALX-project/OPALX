@@ -38,6 +38,11 @@
 
 #include <boost/filesystem.hpp>
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 extern Inform *gmsg;
 
 namespace {
@@ -104,15 +109,15 @@ OptimizeCmd::OptimizeCmd():
     itsAttr[MAXGENERATIONS] = Attributes::makeReal
         ("MAXGENERATIONS", "Number of generations to run");
     itsAttr[EPSILON] = Attributes::makeReal
-        ("EPSILON", "Tolerance of hypervolume criteria");
+        ("EPSILON", "Tolerance of hypervolume criteria, default 0.001");
     itsAttr[EXPECTEDHYPERVOL] = Attributes::makeReal
-        ("EXPECTED_HYPERVOL", "The reference hypervolume");
+        ("EXPECTED_HYPERVOL", "The reference hypervolume, default 0");
     itsAttr[CONVHVOLPROG] = Attributes::makeReal
-        ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller");
+        ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller, default 0");
     itsAttr[ONEPILOTCONVERGE] = Attributes::makeBool
-        ("ONE_PILOT_CONVERGE", "");
+        ("ONE_PILOT_CONVERGE", "default false");
     itsAttr[SOLSYNCH] = Attributes::makeReal
-        ("SOL_SYNCH", "Solution exchange frequency");
+        ("SOL_SYNCH", "Solution exchange frequency, default 0");
     itsAttr[GENEMUTATIONPROBABILITY] = Attributes::makeReal
         ("GENE_MUTATION_PROBABILITY", "Mutation probability of individual gene, default: 0.5");
     itsAttr[MUTATIONPROBABILITY] = Attributes::makeReal
@@ -120,7 +125,7 @@ OptimizeCmd::OptimizeCmd():
     itsAttr[RECOMBINATIONPROBABILITY] = Attributes::makeReal
         ("RECOMBINATION_PROBABILITY", "Probability for genes to recombine, default: 0.5");
     itsAttr[SIMBINCROSSOVERNU] = Attributes::makeReal
-        ("SIMBIN_CROSSOVER_NU", "Simulated binary crossover");
+        ("SIMBIN_CROSSOVER_NU", "Simulated binary crossover, default: 2.0");
     itsAttr[SIMTMPDIR] = Attributes::makeString
         ("SIMTMPDIR", "Directory where simulations are run");
     itsAttr[TEMPLATEDIR] = Attributes::makeString
@@ -316,6 +321,7 @@ void OptimizeCmd::execute() {
     }
     *gmsg << endl;
 
+    std::set<std::string> vars; // check if all unique vars
     for (const std::string &name: dvarsstr) {
         Object *obj = opal->find(name);
         DVar* dvar = dynamic_cast<DVar*>(obj);
@@ -330,7 +336,13 @@ void OptimizeCmd::execute() {
 
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
+        auto ret = vars.insert(var);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a design variable with the variable " + var + " defined");
+        }
     }
+    std::set<std::string> objExpressions; // check if all unique objective expressions
     for (const std::string &name: objectivesstr) {
         Object *obj = opal->find(name);
         Objective* objective = dynamic_cast<Objective*>(obj);
@@ -342,7 +354,13 @@ void OptimizeCmd::execute() {
         std::string expr = objective->getExpression();
         objectives.insert(Expressions::SingleNamed_t(
                    name, new Expressions::Expr_t(expr, funcs)));
+        auto ret = objExpressions.insert(expr);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a objective with the expression " + expr + " defined");
+        }
     }
+    std::set<std::string> constraintExpressions; // check if all unique constraint expressions
     for (const std::string &name: constraintsstr) {
         Object *obj = opal->find(name);
         Constraint* constraint = dynamic_cast<Constraint*>(obj);
@@ -354,6 +372,11 @@ void OptimizeCmd::execute() {
         std::string expr = constraint->getExpression();
         constraints.insert(Expressions::SingleNamed_t(
                     name, new Expressions::Expr_t(expr, funcs)));
+        auto ret = constraintExpressions.insert(expr);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a constraint with the expression " + expr + " defined");
+        }
     }
 
     Inform *origGmsg = gmsg;
