@@ -46,9 +46,6 @@
 #include <sstream>
 #endif
 
-using std::max;
-
-
 // Local structures.
 // ------------------------------------------------------------------------
 
@@ -454,7 +451,7 @@ Twiss::Twiss(int size, const char *name, const char *help):
     itsAttr[XCRMS].setReadOnly(true);
 
     itsAttr[YCRMS] = Attributes::makeReal
-                     ("YCRMS", "R.m.s. verticla closed orbit in m");
+                     ("YCRMS", "R.m.s. vertical closed orbit in m");
     itsAttr[YCRMS].setReadOnly(true);
 
     itsAttr[DXMAX] = Attributes::makeReal
