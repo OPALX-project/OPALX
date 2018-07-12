@@ -28,6 +28,11 @@
 
 #include <boost/filesystem.hpp>
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 extern Inform *gmsg;
 
 namespace {
@@ -123,7 +128,11 @@ void SampleCmd::execute() {
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
 
-        vars[var] = std::make_pair(lowerbound, upperbound);
+        auto ret = vars.insert(std::make_pair(var,std::make_pair(lowerbound, upperbound)));
+        if (ret.second == false) {
+            throw OpalException("SampleCmd::execute",
+                                "There is already a design variable with the variable " + var + " defined");
+        }
 
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
@@ -133,10 +142,11 @@ void SampleCmd::execute() {
     size_t modulo = 1;
     unsigned int nSample = std::numeric_limits<unsigned int>::max();
 
+    std::set<std::string> names; // check if all unique variables
     for (size_t i = 0; i < sampling.size(); ++i) {
         // corresponding sampling method
         OpalSample *s = OpalSample::find(sampling[i]);
-        if (s == 0) {
+        if (s == nullptr) {
             throw OpalException("SampleCmd::execute",
                                 "Sampling method not found.");
         }
@@ -146,6 +156,12 @@ void SampleCmd::execute() {
         if ( vars.find(name) == vars.end() ) {
             throw OpalException("SampleCmd::execute",
                                 "Variable '" + name + "' not a DVAR.");
+        }
+
+        auto ret = names.insert(name);
+        if (ret.second == false) {
+            throw OpalException("SampleCmd::execute",
+                                "There is already a sampling method with the variable " + name + " defined");
         }
 
         s->initialize(name,
