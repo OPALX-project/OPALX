@@ -21,6 +21,8 @@
 
 #include "../helper_functions.h"
 
+#include "../writePlotFile.H"
+
 
 #ifdef HAVE_AMR_MG_SOLVER
     #include "../trilinos/AmrMultiGrid.h"
@@ -352,6 +354,26 @@ void writeEnergy(amrbunch_t* bunch,
                << integral_phi_m << std::endl;
         
         csvout.close();
+        
+        
+        fname.str("");
+        fname << dir << "/amplitude";
+        fname << ".csv";
+
+        // open a new data file for this iteration
+        // and start with header
+        double AmplitudeEfield = max(sqrt(dot(bunch->E,bunch->E)));
+        bunch->E = bunch->E * Vector_t(0,0,1);
+        double AmplitudeEFz=max(sqrt(dot(bunch->E,bunch->E)));
+        
+        csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
+        if (step == 0){
+                csvout << "it,max(|E|),max(|Ez|)" << std::endl;
+        }
+        csvout << step << ", "
+                << AmplitudeEfield << ", "
+                << AmplitudeEFz << std::endl;
+        csvout.close();
     }
 }
 
@@ -574,24 +596,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         rhs[i]->mult(1.0 / l0norm/*[i]*/, 0, 1);
     }
     
-    // **************************************************************************                                                                                                                                
-    // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
-    //     to make the Poisson equations solvable                                                                                                                                                                
-    // **************************************************************************                                                                                                                                
-
     amrex::Real offset = 0.;
-    
-    if ( geom[0].isAllPeriodic() ) {
-        double sum = rhs[0]->sum(0);
-        double max = rhs[0]->max(0);
-        msg << "total charge in density field before ion subtraction is " << sum << endl;
-        msg << "max total charge in density field before ion subtraction is " << max << endl;
-//         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-//             offset += bunch->qm[i];
-        
-//         offset /= geom[0].ProbSize();
-        offset = -1.0;
-    }
 
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
@@ -650,88 +655,6 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     IpplTimings::stopTimer(solvTimer);
 }
 
-// void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
-//              container_t& rhs,
-//              container_t& phi,
-//              container_t& efield,
-//              const Vector<Geometry>& geom,
-//              const Vector<int>& rr,
-//              int nLevels,
-//              int step,
-//              Inform& msg,
-//              std::string dir = "./")
-// {
-//     // we need to write in the format of Ulmer
-//     for (int i = 0; i <=finest_level; ++i) {
-//         double cell_volume = geom[i].CellSize(0) *
-//                              geom[i].CellSize(1) *
-//                              geom[i].CellSize(2);
-// #ifdef UNIQUE_PTR
-//         rhs[i]->mult(cell_volume, 0, 1);       // in [V m]
-// #else
-//         rhs[i].mult(cell_volume, 0, 1);
-// #endif
-//     }
-//     
-//     writeScalarField(rhs, dir + "/rho", step);
-//     
-//     // undo Ulmer scaling
-//     for (int i = 0; i <=finest_level; ++i) {
-//         double cell_volume = geom[i].CellSize(0) *
-//                              geom[i].CellSize(1) *
-//                              geom[i].CellSize(2);
-// #ifdef UNIQUE_PTR
-//         rhs[i]->mult(1.0 / cell_volume, 0, 1);       // in [V m]
-// #else
-//         rhs[i].mult(1.0 / cell_volume, 0, 1);
-// #endif
-//     }
-//     
-//     // **************************************************************************                                                                                                                                
-//     // Compute the total charge of all particles in order to compute the offset                                                                                                                                  
-//     //     to make the Poisson equations solvable                                                                                                                                                                
-//     // **************************************************************************                                                                                                                                
-// 
-//     Real offset = 0.0;
-//     
-//     if ( geom[0].isAllPeriodic() ) {
-//         double sum = rhs[0]->sum(0);
-//         double max = rhs[0]->max(0);
-//         msg << "total charge in density field before ion subtraction is " << sum << endl;
-//         msg << "max total charge in densitty field before ion subtraction is " << max << endl;
-// //         for (std::size_t i = 0; i < bunch->getLocalNum(); ++i)
-// //             offset += bunch->qm[i];
-//         
-// //         offset /= geom[0].ProbSize();
-//         offset = -1.0;
-//     }
-// 
-//     // solve                                                                                                                                                                                                     
-//     Solver sol;
-//     sol.solve_for_accel(rhs,
-//                         phi,
-//                         efield,
-//                         geom,
-//                         base_level,
-//                         finest_level,
-//                         offset,
-//                         false);
-//     
-//     if ( geom[0].isAllPeriodic() ) {
-//         double sum = rhs[0]->sum(0);
-//         msg << "total charge in density field after ion subtraction is " << sum << endl;
-//     }
-//     
-//     // for plotting unnormalize
-//     for (int i = 0; i <=finest_level; ++i) {
-// #ifdef UNIQUE_PTR
-//         rhs[i]->mult(1.0 / constant, 0, 1);       // in [V m]
-// #else
-//         rhs[i].mult(1.0 / constant, 0, 1);
-// #endif
-//     }
-// }
-
 
 std::tuple<Vektor<std::size_t, 3>,
            Vektor<std::size_t, 3>,
@@ -752,8 +675,8 @@ initDistribution(const param_t& params,
     
     if ( params.type == Distribution::Type::kTwoStream ) {
         dirname = "twostream";
-        Nx = Vektor<std::size_t, 3>(4, 4, 32);
-        Nv = Vektor<std::size_t, 3>(8, 8, 128);
+        Nx = Vektor<std::size_t, 3>(4, 4, 32); // 4, 4, 32
+        Nv = Vektor<std::size_t, 3>(8, 8, 128); // 8, 8, 128
         Vmax = Vector_t(6.0, 6.0, 6.0);
         
         dist.special(extend_l,
@@ -972,7 +895,7 @@ void doPlasma(const param_t& params, Inform& msg)
     
     NDIndex<2> lDom = domain2d;
     Vektor<double,3> dx = (extend_r - extend_l) / Vector_t(Nx);
-    Vektor<double,3> dv = 2. * Vmax / Vector_t(Nv);
+//     Vektor<double,3> dv = 2. * Vmax / Vector_t(Nv);
     
     
     // field is used for twostream instability as 2D phase space mesh
@@ -1015,6 +938,8 @@ void doPlasma(const param_t& params, Inform& msg)
     
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params, dir);
     
+    bunch->GetGravity(bunch->E, efield);
+    
     msg << endl << "Back to normal positions" << endl << endl;
     
     domainMapping(*bunch, scale, true);
@@ -1038,8 +963,22 @@ void doPlasma(const param_t& params, Inform& msg)
 
         if ( params.type == Distribution::Type::kTwoStream ) {
             updateIpplMesh(&field, layout2d, BC, bunch, Nx[2], Nv[2]);
+            
+            Vmax = max(bunch->P);
+            Vektor<double,3> dv = (Vmax - min(bunch->P)) / Vector_t(Nv);
+            domain2d = layout2d->getDomain();
+            NDIndex<2> lDom = domain2d;
             ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
         }
+        
+        /* Leap-Frog
+         * 
+         * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
+         * x_{i+1} = x_i + v_{i+1/2} * dt
+         * v_{i+1} = v_{i+1/2} + a_{i+1} * dt / 2
+         */
+        assign(bunch->P, bunch->P + 0.5 * params.timestep * bunch->qm / bunch->mass * bunch->E);
+        
         
         assign(bunch->R, bunch->R + params.timestep * bunch->P);
         
@@ -1072,13 +1011,10 @@ void doPlasma(const param_t& params, Inform& msg)
         msg << endl << "Back to normal positions" << endl << endl;
     
         
-        
         /* epsilon_0 not used by Ulmer --> multiply it away */
-        assign(bunch->P, bunch->P + params.timestep * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
+        assign(bunch->P, bunch->P + 0.5 * params.timestep * bunch->qm / bunch->mass * bunch->E ); //* Physics::epsilon_0);
         
         writeEnergy(bunch.get(), rhs, phi, efield, rr, cell_volume, i + 1, dir);
-//         writeGridSum(rhs, i + 1, "RhoInterpol", dir);
-//         writeGridSum(phi, i + 1, "Phi_m", dir);
         
         msg << "Done with step " << i << endl;
     }
