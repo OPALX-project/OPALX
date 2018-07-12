@@ -327,7 +327,8 @@ class SigmaGenerator
 	void writeMatched(const matrix_type& match, 
 			  const size_type permutation,
 			  const std::vector<matrix_type>& Mcycs,
-			  const std::vector<matrix_type>& Mscs);
+			  const std::vector<matrix_type>& Mscs,
+			  const matrix_type& Mcyc);
         /// Returns the L2-error norm between the old and new sigma-matrix
         /*!
          * @param oldS is the old sigma matrix
@@ -470,7 +471,6 @@ template<typename Value_type, typename Size_type>
      * - tune nuz
      */
     // object for space cyclotron map
-    maxit = 150;
     try{
         MapGenerator<value_type,size_type,Series,Map,Hamiltonian,SpaceCharge> mapgen(nStepsPerSector_m);
 
@@ -803,7 +803,7 @@ template<typename Value_type, typename Size_type>
 	 // Twiss-Matrix (One turn matrix)
          mapgen.combine(Mscs,Mcycs);
          matrix_type Mturn = mapgen.getMap();
-	 
+
          while (error_m > accuracy && !stop) {
 	     /*
 	      * Version 2.0 decouple was substituded by setEigenVectors
@@ -851,7 +851,9 @@ template<typename Value_type, typename Size_type>
 	                 if(std::abs(newSigma(i,j)) < 1e-12) newSigma(i,j) = 0.;
 	             }
 		 }
-		 if(write_m) writeMatched(newSigma,permutation,Mcycs,Mscs);
+		 mapgen.combine(Mcycs);
+		 matrix_type Mcyc = mapgen.getMap();
+		 if(write_m) writeMatched(newSigma,permutation,Mcycs,Mscs,Mcyc);
 		 sigma_m.swap(newSigma);
 		 matchedSigmas_m.push_back(newSigma);
 	     }
@@ -1052,7 +1054,7 @@ typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_
     return std::sqrt(std::inner_product(diff.data().begin(),diff.data().end(),diff.data().begin(),0.0));
 }
 
-template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type, Size_type>::writeMatched(const matrix_type& match, const size_type permutation,const std::vector<matrix_type>& Mcycs, const std::vector<matrix_type>& Mscs){
+template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type, Size_type>::writeMatched(const matrix_type& match, const size_type permutation,const std::vector<matrix_type>& Mcycs, const std::vector<matrix_type>& Mscs, const matrix_type& Mcyc){
     
     std::string energy = float2string(E_m);
     std::ofstream writeSigmas("data/Matches"+energy+"MeV.txt", std::ios::app);
@@ -1073,6 +1075,17 @@ template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type
     }
     writeSigmas<<std::endl;
     writeSigmas.close();
+    
+    std::ofstream writeOneTurn("data/OneTurnMatrix"+energy+"MeV.txt", std::ios::app);
+    for(size_type i = 0; i < 6; i++){
+        for(size_type j = 0; j < 6; j++){
+	    writeOneTurn<<std::left<<std::setprecision(5)
+	               <<std::setw(12)<<Mcyc(i,j);
+        }
+        writeOneTurn<<std::endl;
+    }
+    writeOneTurn<<std::endl;
+    writeOneTurn.close();
 
     std::ofstream writeSigma;
     std::stringstream ss;
