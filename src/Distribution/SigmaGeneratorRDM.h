@@ -44,6 +44,7 @@
 #endif
 
 #include "rdm.h"
+#include <boost/filesystem.hpp>
 
 #include "matrix_vector_operation.h"
 #include "ClosedOrbitFinder.h"
@@ -271,15 +272,12 @@ class SigmaGenerator
          * @param val is the floating point value which is transformed to a string
          */
         std::string float2string(value_type val);
-<<<<<<< HEAD
-=======
 	
 	/// Writes the Matched Distributions
 	/*
 	 * @param match is the matched distribution sigma matrix
 	 */
 	void writeMatched(const matrix_type& match);
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
         
         /// Called within SigmaGenerator::match().
         /*!
@@ -314,11 +312,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type e
   nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
   Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
   error_m(std::numeric_limits<value_type>::max()),
-<<<<<<< HEAD
   fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(write),
-=======
-  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(false),
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
   scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m)
 {
     // set emittances (initialization like that due to old compiler version)
@@ -419,6 +413,11 @@ template<typename Value_type, typename Size_type>
         container_type h(nStepsPerSector_m), r(nStepsPerSector_m), ds(nStepsPerSector_m), fidx(nStepsPerSector_m);
         value_type ravg = 0.0, const_ds = 0.0;
         std::pair<value_type,value_type> tunes;
+
+	std::string resultDir = "data";
+	if ( !boost::filesystem::exists(resultDir) ) {
+	    boost::filesystem::create_directory(resultDir);
+	} 
 
         if (!harmonic) {
             ClosedOrbitFinder<value_type, size_type,
@@ -536,11 +535,7 @@ template<typename Value_type, typename Size_type>
         while (error_m > accuracy && !stop) {
             // decouple transfer matrix and compute (inverse) tranformation matrix
             eigen = decouple(Mturn,R,invR);
-<<<<<<< HEAD
-
-=======
             
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
             // construct new initial sigma-matrix
             newSigma = updateInitialSigma(Mturn,eigen,R,invR);
 
@@ -592,11 +587,7 @@ template<typename Value_type, typename Size_type>
 
         // returns if the sigma matrix has converged
         converged_m = error_m < accuracy;
-<<<<<<< HEAD
-
-=======
 	
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
         // Close files
         if (write_m) {
             writeMturn.close();
@@ -608,8 +599,6 @@ template<typename Value_type, typename Size_type>
         std::cerr << e.what() << std::endl;
     }
     
-<<<<<<< HEAD
-=======
      // store converged sigma-matrix
     if(converged_m){
         for(size_type i = 0; i < 6; i++){
@@ -619,7 +608,6 @@ template<typename Value_type, typename Size_type>
 	}
 	writeMatched(sigma_m);
     }
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
     if ( converged_m && write_m ) {
         // write tunes
         std::ofstream writeSigmaMatched("data/MatchedDistributions.dat", std::ios::app);
@@ -635,16 +623,9 @@ template<typename Value_type, typename Size_type>
             writeSigmaMatched << std::setprecision(4)  << std::setw(11)
                               << sigma_m(i,0);
             for(unsigned int j = 1; j < sigma_m.size2(); ++ j) {
-<<<<<<< HEAD
-                writeSigmaMatched << " & " <<  std::setprecision(4)
-                                  << std::setw(11) << sigma_m(i,j);
-            }
-            writeSigmaMatched << " \\\\" << std::endl;
-=======
                 writeSigmaMatched  << std::setw(11) << sigma_m(i,j);
             }
             writeSigmaMatched << std::endl;
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
         }
         
         writeSigmaMatched << std::endl;
@@ -956,10 +937,7 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
     value_type ey = emittance_m[1] * invbg;
     value_type ez = emittance_m[2] * invbg;
 
-<<<<<<< HEAD
-=======
     std::vector<value_type> twiss{};
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
 
     // alpha^2-beta*gamma = 1
 
@@ -1036,11 +1014,7 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
     // Convention beta>0
     if (std::signbit(betay))    // singbit = true if beta<0, else false
         betay  *= -1.0;
-<<<<<<< HEAD
-
-=======
     
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
     // diagonal matrix with eigenvalues
     matrix_type D = boost::numeric::ublas::zero_matrix<value_type>(6,6);
     // x-direction
@@ -1068,8 +1042,6 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
     // sigma = -R*D*R^{-1}*S
     matrix_type sigma = matt_boost::gemmm<matrix_type>(-invR,D,R);
     sigma = boost::numeric::ublas::prod(sigma,S);
-<<<<<<< HEAD
-=======
     
     twiss.push_back(sigma(0,1));
     twiss.push_back(sigma(0,0));
@@ -1101,7 +1073,6 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
         }
         writeEigen.close();
     }
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
 
     if (write_m) {
         std::string energy = float2string(E_m);
@@ -1253,9 +1224,6 @@ void SigmaGenerator<Value_type, Size_type>::writeOrbitOutput_m(
     writePhase.close();
     writeProperties.close();
 }
-<<<<<<< HEAD
-
-=======
 template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type, Size_type>::writeMatched(const matrix_type& match){
     
     std::string energy = float2string(E_m);
@@ -1278,5 +1246,4 @@ template<typename Value_type, typename Size_type> void SigmaGenerator<Value_type
     writeSigmas<<std::endl;
     writeSigmas.close();
 }
->>>>>>> 97db47282fefdff106db67f90ede0cf30662d640
 #endif
