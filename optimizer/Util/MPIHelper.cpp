@@ -48,7 +48,7 @@ void MPI_Bcast_params(Param_t &params, size_t root, MPI_Comm comm) {
 
     if(my_pid == root) {
         serialize(params, os);
-        buf_size = os.str().length();
+        buf_size = os.str().length() + 1;  // +1 for null-termination
     }
 
     MPI_Bcast(&buf_size, 1, MPI_UNSIGNED_LONG, root, comm);
@@ -67,7 +67,7 @@ void MPI_Send_params(Param_t params, size_t pid, MPI_Comm comm) {
 
     std::ostringstream os;
     serialize(params, os);
-    size_t buf_size = os.str().length();
+    size_t buf_size = os.str().length() + 1; // +1 for null-termination
 
     MPI_Send(&buf_size, 1, MPI_UNSIGNED_LONG, pid,
              MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm);
@@ -87,7 +87,7 @@ std::pair<size_t*, char*> MPI_ISend_params(Param_t params, size_t pid,
     std::ostringstream os;
     serialize(params, os);
     size_t* buf_size = new size_t();
-    *buf_size = os.str().length();
+    *buf_size = os.str().length() + 1;  // +1 for null-termination
 
     MPI_Isend(buf_size, 1, MPI_UNSIGNED_LONG, pid,
               MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm, req);
@@ -111,7 +111,7 @@ void MPI_Recv_params(Param_t &params, size_t pid, MPI_Comm comm) {
     MPI_Recv(&buf_size, 1, MPI_UNSIGNED_LONG, pid,
              MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm, &status);
 
-    char *buffer = new char[buf_size];
+    char *buffer = new char[buf_size]();
 
     MPI_Recv(buffer, buf_size, MPI_CHAR, pid,
              MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm, &status);
@@ -126,7 +126,7 @@ void MPI_Send_reqvars(reqVarContainer_t reqvars, size_t pid, MPI_Comm comm) {
 
     std::ostringstream os;
     serialize(reqvars, os);
-    size_t buf_size = os.str().length();
+    size_t buf_size = os.str().length() + 1;  // +1 for null-termination
 
     MPI_Send(&buf_size, 1, MPI_UNSIGNED_LONG, pid,
              MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm);
@@ -148,7 +148,7 @@ void MPI_Recv_reqvars(reqVarContainer_t &reqvars, size_t pid, MPI_Comm comm) {
     MPI_Recv(&buf_size, 1, MPI_UNSIGNED_LONG, pid,
              MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm, &status);
 
-    char *buffer = new char[buf_size];
+    char *buffer = new char[buf_size]();
 
     MPI_Recv(buffer, buf_size, MPI_CHAR, pid,
              MPI_EXCHANGE_SERIALIZED_DATA_TAG, comm, &status);
