@@ -20,6 +20,8 @@
 
 #include <random>
 
+#include <AMReX_AmrParticles.H>
+
 using namespace amrex;
 
 
