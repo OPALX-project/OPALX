@@ -55,6 +55,7 @@ private:
                                const Vector_t& vel,
                                double alpha, double k)
     {
+#if AMREX_SPACEDIM == 3
         double factor = 1.0 / ( M_PI * 30.0 );
         double v2 = vel[0] * vel[0] +
                     vel[1] * vel[1] +
@@ -62,8 +63,19 @@ private:
         
         double f = factor * std::exp(-0.5 * v2) *
                     (1.0 + alpha * std::cos(k * pos[2])) *
-                    (1.0 + 5.0 * vel[2] * vel[2]);
+                    (1.0 + 5.0/*0.5*/ * vel[2] * vel[2]);
+#elif AMREX_SPACEDIM == 2
+        double factor = 1.0 / ( 12.0 * M_PI );
+        double v2 = vel[0] * vel[0] +
+                    vel[1] * vel[1];
         
+        double f = factor * std::exp(-0.5 * v2) *
+                    (1.0 + alpha * std::cos(k * pos[0])) *
+                    (1.0 + 5.0 * vel[0] * vel[0]);
+#else
+        double f = 0.0;
+        throw std::runtime_error("DIM > 1");
+#endif
         return f;
     };
     
@@ -71,6 +83,7 @@ private:
                                    const Vector_t& vel,
                                    double alpha, double k)
     {
+#if AMREX_SPACEDIM == 3
         double factor = 1.0 / ( 2.0 * M_PI * std::sqrt(2.0 * M_PI) );
         double v2 = vel[0] * vel[0] +
                     vel[1] * vel[1] +
@@ -82,7 +95,20 @@ private:
                                      std::cos( k * pos[0])
                                    )
                     );
+#elif AMREX_SPACEDIM == 2
+        double factor = 1.0 / ( 2.0 * M_PI );
+        double v2 = vel[0] * vel[0] +
+                    vel[1] * vel[1];
         
+        double f = factor * std::exp(-0.5 * v2) *
+                    (1.0 + alpha * ( std::cos(k * pos[0]) *
+                                     std::cos(k * pos[1])
+                                   )
+                    );
+#else
+        double f = 0.0;
+        throw std::runtime_error("DIM > 1");
+#endif
         return f;
     };
     
@@ -92,6 +118,7 @@ private:
                                const Vector_t& vel,
                                double alpha, double k)
     {
+#if AMREX_SPACEDIM == 3
         double factor = 1.0 / ( 2.0 * M_PI * std::sqrt(2.0 * M_PI) );
         double v2 = vel[0] * vel[0] +
                     vel[1] * vel[1] +
@@ -103,7 +130,10 @@ private:
                         std::cos( k * pos[1] ) +
                         std::cos( k * pos[0] )
                     );
-        
+#else
+        double f = 0.0;
+        throw std::runtime_error("DIM > 2");
+#endif
         return f;
     };
     
@@ -155,8 +185,10 @@ public:
      * @param kk is phase
      */
     void special(const Vector_t& lower, const Vector_t& upper,
-                   const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
-                   const Vektor<double, 3>& vmax, Type type, double alpha = 0.5, double kk = 0.5);
+                   const Vektor<std::size_t, AMREX_SPACEDIM>& nx,
+                 const Vektor<std::size_t, AMREX_SPACEDIM>& nv,
+                   const Vektor<double, AMREX_SPACEDIM>& vmax,
+                 Type type, double alpha = 0.5, double kk = 0.5);
     
     /// Generate a uniform particle disitribution per cell
     /*!

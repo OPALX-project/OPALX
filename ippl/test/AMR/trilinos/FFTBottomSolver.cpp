@@ -6,16 +6,16 @@ FFTBottomSolver<Level>::FFTBottomSolver(Mesh_t *mesh,
                                         std::string greensFunction)
     : FFTPoissonSolver(mesh, fl, greensFunction, "OPEN")
 {
-    for (lo_t i = 0; i < 6; ++i) {
+    for (lo_t i = 0; i < 2 * AMREX_SPACEDIM; ++i) {
         if (Ippl::getNodes()>1)
-            bc_m[i] = new ParallelInterpolationFace<double, 3, Mesh_t, Center_t>(i);
+            bc_m[i] = new ParallelInterpolationFace<double, AMREX_SPACEDIM, Mesh_t, Center_t>(i);
         else
-            bc_m[i] = new InterpolationFace<double, 3, Mesh_t, Center_t>(i);
+            bc_m[i] = new InterpolationFace<double, AMREX_SPACEDIM, Mesh_t, Center_t>(i);
     }
     
     rho_m.initialize(*mesh,
                      *fl,
-                     GuardCellSizes<3>(1),
+                     GuardCellSizes<AMREX_SPACEDIM>(1),
                      bc_m);
 }
 
@@ -32,11 +32,12 @@ Mesh_t* FFTBottomSolver<Level>::initMesh(AmrOpal* amrobject_p)
     const AmrBox_t& bx = geom.Domain();
     AmrIntVect_t iv = bx.size();
     
-    NDIndex<3> domain;
+    NDIndex<AMREX_SPACEDIM> domain;
     domain[0] = Index(0, iv[0]);
     domain[1] = Index(0, iv[1]);
+#if AMREX_SPACEDIM == 3
     domain[2] = Index(0, iv[2]);
-    
+#endif
     return new Mesh_t(domain);
 }
 
@@ -53,13 +54,13 @@ FieldLayout_t* FFTBottomSolver<Level>::initFieldLayout(Mesh_t *mesh,
     const AmrProcMap_t& dmap = amrobject_p->DistributionMap(0);
     auto pmap = dmap.ProcessorMap();
     
-    std::vector< NDIndex<3> > regions;
+    std::vector< NDIndex<AMREX_SPACEDIM> > regions;
     std::vector< int > nodes;
     for (uint i = 0; i < pmap.size(); ++i) {
         AmrBox_t bx = ba[i];
         
-        NDIndex<3> range;
-        for (int j = 0; j < 3; ++j)
+        NDIndex<AMREX_SPACEDIM> range;
+        for (int j = 0; j < AMREX_SPACEDIM; ++j)
             range[j] = Index(bx.smallEnd(j), bx.bigEnd(j));
         
         regions.push_back( range );
@@ -82,8 +83,9 @@ void FFTBottomSolver<Level>::solve(const Teuchos::RCP<mv_t>& x,
     
     hr[0] = level_mp->cellSize(0);
     hr[1] = level_mp->cellSize(1);
+#if AMREX_SPACEDIM == 3
     hr[2] = level_mp->cellSize(2);
-    
+#endif
     this->vector2field_m(b);
     
     FFTPoissonSolver::computePotential(rho_m, hr);
@@ -139,7 +141,11 @@ void FFTBottomSolver<Level>::field2vector_m(const Teuchos::RCP<mv_t>& vector)
 {
     for (size_t i = 0; i < vector->getLocalLength(); ++i) {
         AmrIntVect_t iv = map_m[i];
+#if AMREX_SPACEDIM == 3
         vector->replaceLocalValue(i, 0, rho_m[iv[0]][iv[1]][iv[2]].get());
+#else
+        vector->replaceLocalValue(i, 0, rho_m[iv[0]][iv[1]].get());
+#endif
     }
 }
     
@@ -149,6 +155,10 @@ void FFTBottomSolver<Level>::vector2field_m(const Teuchos::RCP<mv_t>& vector)
 {
     for (size_t i = 0; i < vector->getLocalLength(); ++i) {
         AmrIntVect_t iv = map_m[i];
+#if AMREX_SPACEDIM == 3
         rho_m[iv[0]][iv[1]][iv[2]] = vector->getData(0)[i];
+#else
+        rho_m[iv[0]][iv[1]] = vector->getData(0)[i];
+#endif
     }
 }

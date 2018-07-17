@@ -42,7 +42,7 @@ typedef AmrOpal::amrbunch_t amrbunch_t;
 typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 struct param_t {
-    Vektor<size_t, 3> nr;
+    Vektor<size_t, AMREX_SPACEDIM> nr;
     size_t nLevels;
     size_t maxBoxSize;
     size_t blocking_factor;
@@ -58,8 +58,8 @@ struct param_t {
     std::string smoother;
     std::string prec;
     bool rebalance;
-    double bboxincr;
 #endif
+    double bboxincr;
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
 };
@@ -90,13 +90,19 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 10;
+    int required = 9;
+    
+#if AMREX_SPACEDIM == 3
+    ++required;
+#endif
     
     while ( true ) {
         static struct option long_options[] = {
             { "gridx",           required_argument, 0, 'x' },
             { "gridy",           required_argument, 0, 'y' },
+#if AMREX_SPACEDIM == 3
             { "gridz",           required_argument, 0, 'z' },
+#endif
             { "level",           required_argument, 0, 'l' },
             { "maxgrid",         required_argument, 0, 'm' },
             { "blocking_factor", required_argument, 0, 'd' },
@@ -163,8 +169,10 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
                 params.nr[1] = std::atoi(optarg); ++cnt; break;
+#if AMREX_SPACEDIM == 3
             case 'z':
                 params.nr[2] = std::atoi(optarg); ++cnt; break;
+#endif
             case 'l':
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
@@ -209,7 +217,9 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << endl
                     << "--gridx [#gridpoints in x]" << endl
                     << "--gridy [#gridpoints in y]" << endl
+#if AMREX_SPACEDIM == 3
                     << "--gridz [#gridpoints in z]" << endl
+#endif
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
                     << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
@@ -317,10 +327,13 @@ void writeEnergy(amrbunch_t* bunch,
                  std::string dir = "./")
 {
     for (int lev = efield.size() - 2; lev >= 0; lev--)
-        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
+        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0,
+                            AMREX_SPACEDIM, rr[lev]);
     
     // field energy (Ulmer version, i.e. cell_volume instead #points)
-    double field_energy = 0.5 * cell_volume * MultiFab::Dot(*(efield[0].get()), 0, *(efield[0].get()), 0, 3, 0);
+    double field_energy = 0.5 * cell_volume * MultiFab::Dot(*(efield[0].get()), 0, *(efield[0].get()),
+                                                            0, AMREX_SPACEDIM, 0);
+//     double field_energy = 0.5 * cell_volume * sum(dot(bunch->E, bunch->E));
     
     // kinetic energy
     double ekin = 0.5 * sum( dot(bunch->P, bunch->P) );
@@ -329,6 +342,11 @@ void writeEnergy(amrbunch_t* bunch,
     rho[0]->mult(cell_volume, 0, 1);
     MultiFab::Multiply(*(phi[0].get()), *(rho[0].get()), 0, 0, 1, 0);
     double integral_phi_m = 0.5 * phi[0]->sum(0);
+    
+    double potential_energy=0;
+    for (unsigned i=0; i<bunch->getLocalNum(); ++i) {
+        potential_energy += 0.5 * (bunch->qm[i] *  bunch->phi[i]);
+    }
     
     if(Ippl::myNode()==0) {
         std::ofstream csvout;
@@ -350,8 +368,8 @@ void writeEnergy(amrbunch_t* bunch,
         csvout << step << ", "
                << field_energy << ","
                << ekin << ","
-               << field_energy + ekin << "," 
-               << integral_phi_m << std::endl;
+               << /*field_energy*/potential_energy + ekin << "," 
+               << /*integral_phi_m*/potential_energy << std::endl;
         
         csvout.close();
         
@@ -363,7 +381,7 @@ void writeEnergy(amrbunch_t* bunch,
         // open a new data file for this iteration
         // and start with header
         double AmplitudeEfield = max(sqrt(dot(bunch->E,bunch->E)));
-        bunch->E = bunch->E * Vector_t(0,0,1);
+        bunch->E = bunch->E * AMREX_D_PICK(1.0, Vector_t(0, 1), Vector_t(0,0,1));
         double AmplitudeEFz=max(sqrt(dot(bunch->E,bunch->E)));
         
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
@@ -577,14 +595,39 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         << "Total Charge (composite): " << totCharge_composite << " C" << endl
         << "Vacuum permittivity:      " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
-    amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
-    msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
+    amrex::Real vol = AMREX_D_TERM(*(geom[0].CellSize()), * *(geom[0].CellSize()), * *(geom[0].CellSize()));
+    msg << "Cell volume: " << *(geom[0].CellSize()) << "^"
+        << AMREX_SPACEDIM << " = " << vol << " m^" << AMREX_SPACEDIM << endl;
     
     // eps in C / (V * m)
     double constant = -1.0; // / Physics::epsilon_0 ; //* scale;  // in [V m / C]
+    
+    msg << "total charge in density field before ion subtraction is "
+        << totCharge_composite / vol
+        << endl;
+    
+    //subtract the background charge of the ions
     for (int i = 0; i <= finest_level; ++i) {
-        rhs[i]->mult(constant, 0, 1);       // in [V m]
+        /*
+         * 4*pi / nr[0] == amr_domain / nr[0] * x
+         * 
+         * 1 C / m^3 ---> x^3 C / m^3 
+         * 
+         */
+//         double factor = 64.0 * Physics::pi * Physics::pi * Physics::pi / geom[i].ProbSize();
+//         std::cout << factor << " " << geom[i].ProbSize() << std::endl;
+        rhs[i]->plus(1.0, 0, 1);
     }
+    
+    totCharge_composite = totalCharge_composite(rhs, finest_level, geom);
+    msg << "total charge in density field after ion subtraction is "
+        << totCharge_composite / vol
+        << endl;
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        rhs[i]->mult(constant, 0, 1);
+    }
+    
     
     
     // normalize each level
@@ -648,16 +691,29 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         phi[i]->mult(scale * l0norm/*[i]*/, 0, 1);
     }
     
+    bunch->InterpolateFort(bunch->phi, phi, base_level, finest_level);
+    
+    double bb = phi[0]->sum(0);
+    std::cout << "PHI: " << bb << std::endl;
+    
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield[i]->mult(scale * scale * l0norm/*[i]*/, 0, 3);
+        efield[i]->mult(scale * scale * l0norm/*[i]*/, 0, AMREX_SPACEDIM);
+    
+    bunch->InterpolateFort(bunch->E, efield, base_level, finest_level);
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        rhs[i]->mult(l0norm / constant, 0, 1);
+    }
     
     IpplTimings::stopTimer(solvTimer);
+    
+    
 }
 
 
-std::tuple<Vektor<std::size_t, 3>,
-           Vektor<std::size_t, 3>,
+std::tuple<Vektor<std::size_t, AMREX_SPACEDIM>,
+           Vektor<std::size_t, AMREX_SPACEDIM>,
            Vector_t,
            std::string
            >
@@ -668,16 +724,16 @@ initDistribution(const param_t& params,
 {
     Distribution dist;
     
-    Vektor<std::size_t, 3> Nx, Nv;
+    Vektor<std::size_t, AMREX_SPACEDIM> Nx, Nv;
     Vector_t Vmax;
     
     std::string dirname = "";
     
     if ( params.type == Distribution::Type::kTwoStream ) {
         dirname = "twostream";
-        Nx = Vektor<std::size_t, 3>(4, 4, 32); // 4, 4, 32
-        Nv = Vektor<std::size_t, 3>(8, 8, 128); // 8, 8, 128
-        Vmax = Vector_t(6.0, 6.0, 6.0);
+        Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(4, 4, 32)); // 4, 4, 32
+        Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(8, 8, 128)); // 8, 8, 128
+        Vmax = Vector_t(D_DECL(6.0, 6.0, 6.0));
         
         dist.special(extend_l,
                      extend_r,
@@ -688,9 +744,9 @@ initDistribution(const param_t& params,
                      0.05);
     } else if ( params.type == Distribution::Type::kRecurrence ) {
         dirname = "recurrence";
-        Nx = Vektor<std::size_t, 3>(8, 8, 8);
-        Nv = Vektor<std::size_t, 3>(32, 32, 32);
-        Vmax = Vector_t(6.0, 6.0, 6.0);
+        Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(8, 8, 8));
+        Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(32, 32, 32));
+        Vmax = Vector_t(D_DECL(6.0, 6.0, 6.0));
         
         dist.special(extend_l,
                      extend_r,
@@ -701,9 +757,11 @@ initDistribution(const param_t& params,
                      0.01);
     } else if ( params.type == Distribution::Type::kLandauDamping ) {
         dirname = "landau";
-        Nx = Vektor<std::size_t, 3>(8, 8, 8);
-        Nv = Vektor<std::size_t, 3>(32, 32, 32);
-        Vmax = Vector_t(6.0, 6.0, 6.0);
+//         Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(8, 8, 8));
+//         Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(32, 32, 32));
+        Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(32, 32, 32));
+        Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(64, 64, 64));
+        Vmax = Vector_t(D_DECL(6.0, 6.0, 6.0));
         
         dist.special(extend_l,
                      extend_r,
@@ -716,9 +774,9 @@ initDistribution(const param_t& params,
     
     dirname += (
         "-data-grid-" +
-        std::to_string(params.nr[0]) + "-" + 
-        std::to_string(params.nr[1]) + "-" + 
-        std::to_string(params.nr[2])
+        AMREX_D_TERM(std::to_string(params.nr[0]),
+                     + "-" + std::to_string(params.nr[1]),
+                     + "-" + std::to_string(params.nr[2]))
     );
     
     boost::filesystem::path dir(dirname);
@@ -760,7 +818,7 @@ void updateIpplMesh(Field2d_t* field,
     
     field->initialize(mesh,
                       *layout2d,
-                      GuardCellSizes<2>(2),
+                      GuardCellSizes<2>(1),
                       BC);
 }
 
@@ -786,11 +844,11 @@ void doPlasma(const param_t& params, Inform& msg)
     pp.add("grid_eff", 0.95);
     
     amrex::ParmParse pgeom("geometry");
-    amrex::Vector<int> is_per = { 1, 1, 1};
+    amrex::Vector<int> is_per = { D_DECL(1, 1, 1) };
     pgeom.addarr("is_periodic", is_per);
     
-    amrex::Vector<int> nCells(3);
-    for (int i = 0; i < 3; ++i)
+    amrex::Vector<int> nCells(AMREX_SPACEDIM);
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         nCells[i] = params.nr[i];
     
     
@@ -806,8 +864,15 @@ void doPlasma(const param_t& params, Inform& msg)
     double incr = params.bboxincr * 0.01;
     double blen = 1.0 + incr;
     
-    std::array<double, AMREX_SPACEDIM> amr_lower = {{-blen, -blen, -blen}}; // m
-    std::array<double, AMREX_SPACEDIM> amr_upper = {{ blen,  blen,  blen}}; // m
+//     std::array<double, AMREX_SPACEDIM> amr_lower = {{-blen, -blen, -blen}}; // m
+//     std::array<double, AMREX_SPACEDIM> amr_upper = {{ blen,  blen,  blen}}; // m
+    
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{D_DECL(0.0, 0.0, 0.0)}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{
+        D_DECL(4.0 * Physics::pi,
+               4.0 * Physics::pi,
+               4.0 * Physics::pi)
+    }}; // m
     
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
@@ -839,33 +904,33 @@ void doPlasma(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
         
     // initialize a particle distribution
-    Vector_t extend_l = Vector_t(0.0, 0.0, 0.0);
+    Vector_t extend_l = Vector_t(D_DECL(0.0, 0.0, 0.0));
     
-    Vector_t extend_r = Vector_t(4.0 * Physics::pi,
-                                 4.0 * Physics::pi,
-                                 4.0 * Physics::pi);
+    Vector_t extend_r = Vector_t(D_DECL(4.0 * Physics::pi,
+                                        4.0 * Physics::pi,
+                                        4.0 * Physics::pi));
     
     auto tuple = initDistribution(params, bunch, extend_l, extend_r);
     
     // --------------------------------------------------------------------
     
-    Vektor<std::size_t, 3> Nx = std::get<0>(tuple);
-    Vektor<std::size_t, 3> Nv = std::get<1>(tuple);
+    Vektor<std::size_t, AMREX_SPACEDIM> Nx = std::get<0>(tuple);
+    Vektor<std::size_t, AMREX_SPACEDIM> Nv = std::get<1>(tuple);
     Vector_t Vmax = std::get<2>(tuple);
     std::string dir = std::get<3>(tuple);
     
     double spacings[2] = {
-        ( extend_r[2] - extend_l[2] ) / Nx[2],
-        2. * Vmax[2] / Nv[2]
+        ( extend_r[AMREX_SPACEDIM-1] - extend_l[AMREX_SPACEDIM-1] ) / Nx[AMREX_SPACEDIM-1],
+        2. * Vmax[AMREX_SPACEDIM-1] / Nv[AMREX_SPACEDIM-1]
     };
     
     Vektor<double,2> origin = {
-        extend_l[2],
-        -Vmax[2]
+        extend_l[AMREX_SPACEDIM-1],
+        -Vmax[AMREX_SPACEDIM-1]
     };
     
-    Index I(Nx[2]+1);
-    Index J(Nv[2]+1);
+    Index I(Nx[AMREX_SPACEDIM-1]+1);
+    Index J(Nv[AMREX_SPACEDIM-1]+1);
     NDIndex<2> domain2d;
     domain2d[0]=I;
     domain2d[1]=J;
@@ -894,14 +959,14 @@ void doPlasma(const param_t& params, Inform& msg)
     }
     
     NDIndex<2> lDom = domain2d;
-    Vektor<double,3> dx = (extend_r - extend_l) / Vector_t(Nx);
+    Vektor<double,AMREX_SPACEDIM> dx = (extend_r - extend_l) / Vector_t(Nx);
 //     Vektor<double,3> dv = 2. * Vmax / Vector_t(Nv);
     
     
     // field is used for twostream instability as 2D phase space mesh
     Field2d_t field;
 //     field.initialize(mesh2d, *(layout2d.get()), GuardCellSizes<2>(1),BC);
-    field.initialize(mesh2d, *layout2d, GuardCellSizes<2>(2),BC);
+    field.initialize(mesh2d, *layout2d, GuardCellSizes<2>(1),BC);
     
     
     
@@ -916,7 +981,7 @@ void doPlasma(const param_t& params, Inform& msg)
     // map particles
     double scale = 1.0;
     
-    scale = domainMapping(*bunch, scale);
+//     scale = domainMapping(*bunch, scale);
     
     msg << "Scale: " << scale << endl;
     msg << endl << "Transformed positions" << endl << endl;
@@ -938,11 +1003,9 @@ void doPlasma(const param_t& params, Inform& msg)
     
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params, dir);
     
-    bunch->GetGravity(bunch->E, efield);
-    
     msg << endl << "Back to normal positions" << endl << endl;
     
-    domainMapping(*bunch, scale, true);
+//     domainMapping(*bunch, scale, true);
     
     
 //     writeScalarField(rhs, dir + "/rho_0.dat");
@@ -952,7 +1015,9 @@ void doPlasma(const param_t& params, Inform& msg)
 //     writePlotFile(plotsolve, rhs, phi, efield, rr, geoms, 0);
     
     Vector_t hr = ( extend_r - extend_l ) / Vector_t(params.nr);
-    double cell_volume = hr[0] * hr[1] * hr[2];
+    double cell_volume = AMREX_D_TERM(*(geom[0].CellSize()),
+                                      * *(geom[0].CellSize()),
+                                      * *(geom[0].CellSize()) );//hr[0] * hr[1] * hr[2];
     writeEnergy(bunch.get(), rhs, phi, efield, rr, cell_volume, 0, dir);
     
 //     writeGridSum(rhs, 0, "RhoInterpol", dir);
@@ -962,10 +1027,10 @@ void doPlasma(const param_t& params, Inform& msg)
         msg << "Processing step " << i << endl;
 
         if ( params.type == Distribution::Type::kTwoStream ) {
-            updateIpplMesh(&field, layout2d, BC, bunch, Nx[2], Nv[2]);
+            updateIpplMesh(&field, layout2d, BC, bunch, Nx[AMREX_SPACEDIM-1], Nv[AMREX_SPACEDIM-1]);
             
             Vmax = max(bunch->P);
-            Vektor<double,3> dv = (Vmax - min(bunch->P)) / Vector_t(Nv);
+            Vector_t dv = (Vmax - min(bunch->P)) / Vector_t(Nv);
             domain2d = layout2d->getDomain();
             NDIndex<2> lDom = domain2d;
             ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
@@ -994,7 +1059,7 @@ void doPlasma(const param_t& params, Inform& msg)
         }
         
         msg << endl << "Transformed positions" << endl << endl;
-        scale = domainMapping(*bunch, scale);
+//         scale = domainMapping(*bunch, scale);
         
         if ( myAmrOpal.maxLevel() > 0 )
             for (int k = 0; k <= myAmrOpal.finestLevel() && k < myAmrOpal.maxLevel(); ++k)
@@ -1005,9 +1070,7 @@ void doPlasma(const param_t& params, Inform& msg)
         
         doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params, dir);
         
-        bunch->GetGravity(bunch->E, efield);
-        
-        domainMapping(*bunch, scale, true);
+//         domainMapping(*bunch, scale, true);
         msg << endl << "Back to normal positions" << endl << endl;
     
         
@@ -1095,7 +1158,9 @@ int main(int argc, char *argv[]) {
     problemSize["maxgrid"]     = params.maxBoxSize;
     problemSize["gridx"]       = params.nr[0];
     problemSize["gridy"]       = params.nr[1];
+#if AMREX_SPACEDIM == 3
     problemSize["gridz"]       = params.nr[2];
+#endif
     problemSize["#iterations"] = params.nIterations;
     
     IpplTimings::print(fn, problemSize);

@@ -61,7 +61,7 @@ private:
     std::map<lo_t, AmrIntVect_t> map_m;
     
     Field_t rho_m;
-    BConds<double, 3, Mesh_t, Center_t> bc_m;
+    BConds<double, AMREX_SPACEDIM, Mesh_t, Center_t> bc_m;
     
     Level* level_mp;
 };
