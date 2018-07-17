@@ -48,6 +48,8 @@ Usage:
 #include "ParticleAmrLayout.h"
 #include "PartBunchAmr.h"
 
+#include <AMReX_AmrParticles.H>
+
 #define Dim 3
 
 using namespace amrex;
