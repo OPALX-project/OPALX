@@ -426,7 +426,7 @@ void ipplProjection(Field2d_t& field,
     field = 0; // otherwise values are accumulated over steps
     
     for (unsigned i=0; i< bunch->getLocalNum(); ++i)
-        bunch->Rphase[i]= Vektor<double,2>(bunch->R[i][2], bunch->P[i][2]);
+        bunch->Rphase[i]= Vektor<double,2>(bunch->R[i][AMREX_SPACEDIM-1], bunch->P[i][AMREX_SPACEDIM-1]);
     
     bunch->qm.scatter(field, bunch->Rphase, IntrplCIC_t());
     
@@ -448,8 +448,8 @@ void ipplProjection(Field2d_t& field,
     
         for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
         
-            csvout << (i+0.5) * dx[2] << ","
-                   << (j+0.5) * dv[2] - Vmax[2]
+            csvout << (i+0.5) * dx[AMREX_SPACEDIM-1] << ","
+                   << (j+0.5) * dv[AMREX_SPACEDIM-1] - Vmax[AMREX_SPACEDIM-1]
                    << "," << field[i][j].get() << std::endl;
         }
     }
@@ -731,9 +731,13 @@ initDistribution(const param_t& params,
     
     if ( params.type == Distribution::Type::kTwoStream ) {
         dirname = "twostream";
-        Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(4, 4, 32)); // 4, 4, 32
-        Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(8, 8, 128)); // 8, 8, 128
-        Vmax = Vector_t(D_DECL(6.0, 6.0, 6.0));
+//         Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(4, 4, 32)); // 4, 4, 32
+//         Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(8, 8, 128)); // 8, 8, 128
+//         Vmax = Vector_t(D_DECL(6.0, 6.0, 6.0));
+        
+        Nx = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(32, 32, 32)); // 4, 4, 32
+        Nv = Vektor<std::size_t, AMREX_SPACEDIM>(D_DECL(64, 64, 64)); // 8, 8, 128
+        Vmax = Vector_t(D_DECL(9.0, 9.0, 9.0));
         
         dist.special(extend_l,
                      extend_r,
@@ -806,11 +810,11 @@ void updateIpplMesh(Field2d_t* field,
     Vector_t pmin = min(bunch->P);
     Vector_t pmax = max(bunch->P);
     
-    Vektor<double, 2> origin(0, pmin[2]);
+    Vektor<double, 2> origin(0, pmin[AMREX_SPACEDIM-1]);
     
     double spacings[2] = {
         ( 4.0 * Physics::pi ) / nx,
-        (pmax[2] - pmin[2]) / nv
+        (pmax[AMREX_SPACEDIM-1] - pmin[AMREX_SPACEDIM-1]) / nv
     };
     
     mesh.set_meshSpacing(&(spacings[0]));
