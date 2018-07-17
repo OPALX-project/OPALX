@@ -21,6 +21,8 @@ typedef std::chrono::time_point<std::chrono::high_resolution_clock> chrono_t;
 
 #include <random>
 
+#include <AMReX_AmrParticles.H>
+
 using namespace amrex;
 
 /* NStructReal = 3 (mass, position are already reserved)
