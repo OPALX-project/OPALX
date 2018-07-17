@@ -541,7 +541,9 @@ template<typename Value_type, typename Size_type>
 	for (size_type i = 0; i < nStepsPerSector_m; ++i) 
 	    Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
     
-	// search for a match distribution for each permutation 
+	// search for a match distribution for each permutation
+	// Set to search for the permutation which converged to a matched distribution upon tracking
+	// Note that 4 permutations converge to the same matched distribution
 	for(size_type permutation = 0; permutation < 1; permutation++){
 	    findMatchDistribution(accuracy,h,fidx,ds,tunes,ravg,maxit,Mcycs,harmonic,2);
 	}
