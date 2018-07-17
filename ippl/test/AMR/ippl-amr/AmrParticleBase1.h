@@ -33,6 +33,14 @@
 
 #include "LevelNumCounter.h"
 
+#include <type_traits>
+
+template<typename T>
+struct is_Vektor : std::false_type {};
+ 
+template<typename T/*, int N*/>
+struct is_Vektor<Vektor<T, AMREX_SPACEDIM> > : std::true_type {};
+
 
 //AMRPArticleBase class definition. Template parameter is the specific AmrParticleLayout-derived
 //class which determines how the particles are distribute amoung processors.
@@ -317,6 +325,20 @@ public:
         attrib_container_t::iterator aend = this->end();
         for ( ; abeg != aend; ++abeg )
             (*abeg)->sort(sortlist);
+    }
+    
+    
+    template <class AType,
+              typename std::enable_if<std::is_scalar<AType>::value>::type* = nullptr>
+    double& get(ParticleAttrib<AType>& pa, int i, int nc) {
+        return pa[i];
+    }
+    
+    
+    template <class AType,
+              typename std::enable_if<is_Vektor<AType>::value>::type* = nullptr >
+    double& get(ParticleAttrib<AType>& pa, int i, int nc) {
+        return pa[i](nc);
     }
     
     template <class AType>
@@ -1267,43 +1289,52 @@ public:
                     
                     amrex::IntVect m_cell = Layout->Index(this->R[ip], this->m_lev[ip]);
                     cells[0] = m_cell;
-                    cells[1] = m_cell+amrex::IntVect(1,0,0);
-                    cells[2] = m_cell+amrex::IntVect(0,1,0);
-                    cells[3] = m_cell+amrex::IntVect(1,1,0);
-                    cells[4] = m_cell+amrex::IntVect(0,0,1);
-                    cells[5] = m_cell+amrex::IntVect(1,0,1);
-                    cells[6] = m_cell+amrex::IntVect(0,1,1);
-                    cells[7] = m_cell+amrex::IntVect(1,1,1);
+                    cells[1] = m_cell+amrex::IntVect(D_DECL(1,0,0));
+                    cells[2] = m_cell+amrex::IntVect(D_DECL(0,1,0));
+                    cells[3] = m_cell+amrex::IntVect(D_DECL(1,1,0));
+#if AMREX_SPACEDIM == 3
+                    cells[4] = m_cell+amrex::IntVect(D_DECL(0,0,1));
+                    cells[5] = m_cell+amrex::IntVect(D_DECL(1,0,1));
+                    cells[6] = m_cell+amrex::IntVect(D_DECL(0,1,1));
+                    cells[7] = m_cell+amrex::IntVect(D_DECL(1,1,1));
+#endif
 
                     amrex::Real x = this->R[ip][0] / dx[0];
                     amrex::Real y = this->R[ip][1] / dx[1];
+#if AMREX_SPACEDIM == 3
                     amrex::Real z = this->R[ip][2] / dx[2];
-
+#endif
+                    
                     int i = m_cell[0];
                     int j = m_cell[1];
+#if AMREX_SPACEDIM == 3
                     int k = m_cell[2];
+#endif
 
                     amrex::Real xint = x - i;
                     amrex::Real yint = y - j;
+#if AMREX_SPACEDIM == 3
                     amrex::Real zint = z - k;
-
+#endif
                     sx[0] = 1.0-xint;
                     sx[1] = xint;
                     sy[0] = 1.0-yint;
                     sy[1] = yint;
+#if AMREX_SPACEDIM == 3
                     sz[0] = 1.0-zint;
                     sz[1] = zint;
-
-                    fracs[0] = sx[0] * sy[0] * sz[0];
-                    fracs[1] = sx[1] * sy[0] * sz[0];
-                    fracs[2] = sx[0] * sy[1] * sz[0];
-                    fracs[3] = sx[1] * sy[1] * sz[0];
+#endif
+                    fracs[0] = AMREX_D_TERM(sx[0], * sy[0], * sz[0]);
+                    fracs[1] = AMREX_D_TERM(sx[1], * sy[0], * sz[0]);
+                    fracs[2] = AMREX_D_TERM(sx[0], * sy[1], * sz[0]);
+                    fracs[3] = AMREX_D_TERM(sx[1], * sy[1], * sz[0]);
+#if AMREX_SPACEDIM == 3
                     fracs[4] = sx[0] * sy[0] * sz[1];
                     fracs[5] = sx[1] * sy[0] * sz[1];
                     fracs[6] = sx[0] * sy[1] * sz[1];
                     fracs[7] = sx[1] * sy[1] * sz[1];
-
-                    for (int i = 0; i < 8; i++)
+#endif
+                    for (int i = 0; i < AMREX_D_TERM(2, * 2, * 2); i++)
                         fab(cells[i],0) += pa[ip] * fracs[i];
 
                 }

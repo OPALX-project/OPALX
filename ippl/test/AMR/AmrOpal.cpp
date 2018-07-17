@@ -26,7 +26,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector
       nCharge_m(1.0e-15),
       minNumPart_m(1),
       maxNumPart_m(1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+      meshScaling_m(Vector_t(D_DECL(1.0, 1.0, 1.0)))
 {
     initBaseLevel();
     
@@ -42,7 +42,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector
       nCharge_m(1.0e-15),
       minNumPart_m(1),
       maxNumPart_m(1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+      meshScaling_m(Vector_t(D_DECL(1.0, 1.0, 1.0)))
 {
     finest_level = 0;
     
@@ -63,7 +63,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector
       nCharge_m(1.0e-15),
       minNumPart_m(1),
       maxNumPart_m(1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+      meshScaling_m(Vector_t(D_DECL(1.0, 1.0, 1.0)))
 {
     finest_level = 0;
     
@@ -701,14 +701,14 @@ void AmrOpal::tagForEfieldStrength_m(int lev, amrex::TagBoxArray& tags, amrex::R
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;
     
-    amrex::Real min[3] = {0.0, 0.0, 0.0};
-    amrex::Real max[3] = {0.0, 0.0, 0.0};
-    for (int i = 0; i < 3; ++i) {
+    amrex::Real min[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    amrex::Real max[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         max[i] = scaling_m * grad_phi[lev]->max(i);
         min[i] = scaling_m * grad_phi[lev]->min(i);
     }
-    amrex::Real efield[3] = {0.0, 0.0, 0.0};
-    for (int i = 0; i < 3; ++i)
+    amrex::Real efield[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         efield[i] = std::max( std::abs(min[i]), std::abs(max[i]) );
     
     
@@ -733,17 +733,23 @@ void AmrOpal::tagForEfieldStrength_m(int lev, amrex::TagBoxArray& tags, amrex::R
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i,j,k);
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
                         if (std::abs(fab(iv, 0)) >= efield[0])
                             tagfab(iv) = tagval;
                         else if (std::abs(fab(iv, 1)) >= efield[1])
                             tagfab(iv) = tagval;
+#if AMREX_SPACEDIM == 3
                         else if (std::abs(fab(iv, 2)) >= efield[2])
                             tagfab(iv) = tagval;
+#endif
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
                             
@@ -774,7 +780,7 @@ void AmrOpal::tagForMomentum_m(int lev, amrex::TagBoxArray& tags, amrex::Real sc
     size_t lBegin = LocalNumPerLevel.begin(lev);
     size_t lEnd   = LocalNumPerLevel.end(lev);
     
-    Vector_t pmax = Vector_t(0.0, 0.0, 0.0);
+    Vector_t pmax = Vector_t(D_DECL(0.0, 0.0, 0.0));
     for (size_t i = lBegin; i < lEnd; ++i) {
         const Vector_t& tmp = bunch_m->P[i];
         pmax = ( dot(tmp, tmp) > dot(pmax, pmax) ) ? tmp : pmax;
@@ -810,13 +816,17 @@ void AmrOpal::tagForMomentum_m(int lev, amrex::TagBoxArray& tags, amrex::Real sc
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i, j, k);
+#endif
+                        amrex::IntVect iv(D_DECL(i, j, k));
                         if ( cells.find(iv) != cells.end() )
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
             //
@@ -869,13 +879,17 @@ void AmrOpal::tagForMaxNumParticles_m(int lev, amrex::TagBoxArray& tags, amrex::
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i, j, k);
+#endif
+                        amrex::IntVect iv(D_DECL(i, j, k));
                         if ( cells.find(iv) != cells.end() && cells[iv] <= maxNumPart_m )
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
             //
@@ -921,13 +935,17 @@ void AmrOpal::tagForMinNumParticles_m(int lev, amrex::TagBoxArray& tags, amrex::
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i, j, k);
+#endif
+                        amrex::IntVect iv(D_DECL(i, j, k));
                         if ( cells.find(iv) != cells.end() && cells[iv] >= minNumPart_m )
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
             //
