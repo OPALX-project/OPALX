@@ -13,6 +13,7 @@ class PartBunchAmr : public AmrParticleBase1<PLayout>
 public:
     
     ParticleAttrib<double> qm;
+    ParticleAttrib<double> phi;
     typename PLayout::ParticlePos_t E;
     typename PLayout::ParticlePos_t P;
     ParticleAttrib<double> mass;
@@ -21,6 +22,7 @@ public:
     
     PartBunchAmr() {
         this->addAttribute(qm);
+        this->addAttribute(phi);
         this->addAttribute(E);
         this->addAttribute(P);
         this->addAttribute(mass);
@@ -142,10 +144,14 @@ public:
                 for (size_t i = 0; i < this->getLocalNum(); ++i) {
                     msg2all << this->R[i](0) << " "
                             << this->R[i](1) << " "
+#if AMREX_SPACEDIM == 3
                             << this->R[i](2) << " "
+#endif
                             << this->P[i](0) << " "
                             << this->P[i](1) << " "
+#if AMREX_SPACEDIM
                             << this->P[i](2)
+#endif
                             << endl;
                 }
             }

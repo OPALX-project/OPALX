@@ -77,7 +77,7 @@ Solver::solve_for_accel(const container_t& rhs,
         }
         
         for (int lev = base_level; lev <= finest_level; ++lev) {
-            grad_phi[lev]->mult(-1.0, 0, 3);
+            grad_phi[lev]->mult(-1.0, 0, AMREX_SPACEDIM);
         }
     }
 
