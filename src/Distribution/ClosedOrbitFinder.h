@@ -304,7 +304,7 @@ ClosedOrbitFinder<Value_type,
     
     // read in magnetic fieldmap
     bField_m.read(type, scaleFactor);
-    
+
     // compute closed orbit
     converged_m = findOrbit(accuracy, maxit);
 
@@ -481,7 +481,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         r_m[idx] = y[0];
         pr_m[idx] = y[1];
 
-	// count number of crossings (excluding starting point --> idx>0)
+        // count number of crossings (excluding starting point --> idx>0)
         nxcross_m += (idx > 0) * (y[4] * xold < 0);
         xold = y[4];
         ++idx;
@@ -493,7 +493,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
                                                                                               const double theta)
     {
         pr2 = y[1] * y[1];
-		
         if (p2 < pr2)
             throw OpalException("ClosedOrbitFinder::findOrbit()", "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
 
