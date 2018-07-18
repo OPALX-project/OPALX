@@ -1309,7 +1309,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         hE = E_m*1E-6;
     }
 
-    int Nint = 1440;
+    int Nint = 1000;
     double scaleFactor = 1.0;
     bool writeMap = true;
 
@@ -2477,36 +2477,20 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
         *gmsg << " \\\\" << endl;
     }
 #endif
-    //Sets the GSL error handler off, exception will be handled internaly with a renormalization method
-    gsl_set_error_handler_off();
-    
-    int errcode = gsl_linalg_cholesky_decomp(corMat);
-    double rn = 1e-9;
 
-    while (errcode == GSL_EDOM) {
-        
-        // Resets the correlation matrix
-        for (unsigned int i = 0; i < 6; ++ i) {
-            gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
-            for (unsigned int j = 0; j < i; ++ j) {
-                gsl_matrix_set(corMat, i, j, correlationMatrix_m(i, j));
-                gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
-            }
-        }
-        // Applying a renormalization method corMat = corMat + rn*Unitymatrix
-        // This is the renormalization
-        for(int i = 0; i < 6; i++){
-            double corMati = gsl_matrix_get(corMat, i , i);
-            gsl_matrix_set(corMat, i, i, corMati + rn);
-        }
-        //Just to be sure that the renormalization worked
-        errcode = gsl_linalg_cholesky_decomp(corMat);
-        if(errcode != GSL_EDOM) *gmsg << "WARNING: Correlation matrix had to be renormalized"<<endl;
-        else rn *= 10;
+    int errcode = gsl_linalg_cholesky_decomp(corMat);
+
+    if (errcode == GSL_EDOM) {
+        throw OpalException("Distribution::GenerateGaussZ",
+                            "gsl_linalg_cholesky_decomp failed");
     }
-    //Sets again the standard GSL error handler on
-    gsl_set_error_handler(NULL);
-   
+    // so make the upper part zero.
+    for (int i = 0; i < 5; ++ i) {
+        for (int j = i+1; j < 6 ; ++ j) {
+            gsl_matrix_set (corMat, i, j, 0.0);
+        }
+    }
+
 #define DISTDBG2
 #ifdef DISTDBG2
     *gmsg << "* m after gsl_linalg_cholesky_decomp" << endl;
