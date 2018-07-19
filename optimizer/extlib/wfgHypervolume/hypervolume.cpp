@@ -381,6 +381,10 @@ double Hypervolume::FromFile(std::string file)
   // initialise the reference point
   ref.objectives = (OBJECTIVE*) malloc(sizeof(OBJECTIVE) * maxn);
   ref.tnode = (avl_node_t*) malloc(sizeof(avl_node_t));
+
+  // initialise to zero (origin)
+  for (int i = 0; i < maxn; i++) ref.objectives[i] = 0;
+
   /*
   if (argc == 2)
     {printf("No reference point provided: using the origin\n");
