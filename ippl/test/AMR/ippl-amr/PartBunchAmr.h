@@ -17,7 +17,6 @@ public:
     typename PLayout::ParticlePos_t E;
     typename PLayout::ParticlePos_t E1;
     typename PLayout::ParticlePos_t P;
-    typename PLayout::ParticlePos_t R1;
     ParticleAttrib<double> mass;
     ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
     typedef typename AmrParticleBase1<PLayout>::LevelNumCounter_t LevelNumCounter_t;
@@ -28,7 +27,6 @@ public:
         this->addAttribute(E);
         this->addAttribute(E1);
         this->addAttribute(P);
-        this->addAttribute(R1);
         this->addAttribute(mass);
         this->addAttribute(Rphase);
     }
