@@ -70,8 +70,8 @@ private:
                     vel[1] * vel[1];
         
         double f = factor * std::exp(-0.5 * v2) *
-                    (1.0 + alpha * std::cos(k * pos[0])) *
-                    (1.0 + 5.0 * vel[0] * vel[0]);
+                    (1.0 + alpha * std::cos(k * pos[1])) *
+                    (1.0 + 5.0 * vel[1] * vel[1]);
 #else
         double f = 0.0;
         throw std::runtime_error("DIM > 1");

@@ -131,13 +131,15 @@ void H5Reader::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "NumPartUnit", "1");
 }
 
-void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch)
+void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch, int step)
 {
     const size_t numLocalParticles = bunch->getLocalNum();
     
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    
+    H5SetStep (file_m, step);
     
     H5PartSetNumParticles(file_m, numLocalParticles);
     
