@@ -835,15 +835,15 @@ void AmrParticleBase1<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType
         
         for (int nc = 0; nc < nComp; ++nc) {
             /*pa[ip](nc)*/
-            this->get(pa, i, nc) =  AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_lo[2]) * fab(i1, nc) +
-                                    AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_lo[2]) * fab(i3, nc) +
-                                    AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_lo[2]) * fab(i5, nc) +
-                                    AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_lo[2]) * fab(i7, nc)
+            this->get(pa, ip, nc) =  AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_lo[2]) * fab(i1, nc) +
+                                     AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_lo[2]) * fab(i3, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_lo[2]) * fab(i5, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_lo[2]) * fab(i7, nc)
 #if AMREX_SPACEDIM == 3
-                                 +  AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_hi[2]) * fab(i2, nc) +
-                                    AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_hi[2]) * fab(i4, nc) +
-                                    AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_hi[2]) * fab(i6, nc) +
-                                    AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_hi[2]) * fab(i8, nc);
+                                  +  AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_hi[2]) * fab(i2, nc) +
+                                     AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_hi[2]) * fab(i4, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_hi[2]) * fab(i6, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_hi[2]) * fab(i8, nc);
 #else
                                     ;
 #endif
