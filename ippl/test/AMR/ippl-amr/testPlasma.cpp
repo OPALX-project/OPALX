@@ -292,43 +292,81 @@ void writeParticles(std::string file, amrbunch_t* bunch, unsigned int step) {
     }
 }
 
+// composite
+void electric_field(const container_t& efield,
+                    const amrex::Vector<amrex::Geometry>& geom,
+                    double& field_energy,
+                    double& amplitude)
+{
+    std::vector<amrex::MultiFab> cp_efield(efield.size());
+    
+    for (uint lev = 0; lev < efield.size(); ++lev) {
+        
+        cp_efield[lev].define(efield[lev]->boxArray(),
+                              efield[lev]->DistributionMap(), AMREX_SPACEDIM, 1);
+        
+        cp_efield[lev].setVal(0.0, 1);
+        
+        amrex::MultiFab::Copy(cp_efield[lev], *efield[lev], 0, 0, AMREX_SPACEDIM, 1);
+    }
+    
+    field_energy = 0.0;
+    amplitude = -1.0;
+    
+    for (uint lev = 0; lev < cp_efield.size() - 1; ++lev) {
+        // get boxarray with refined cells
+        amrex::BoxArray ba = cp_efield[lev].boxArray();
+        ba.refine(2);
+        ba = amrex::intersect(cp_efield[lev+1].boxArray(), ba);
+        ba.coarsen(2);
+        for ( uint b = 0; b < ba.size(); ++b)
+            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                cp_efield[lev].mult(0.0, ba[b], c, AMREX_SPACEDIM, 1);
+    }
+    
+    for (uint lev = 0; lev < efield.size(); ++lev) {
+            amrex::MultiFab::AddProduct(cp_efield[lev],
+                                        cp_efield[lev], 0,
+                                        cp_efield[lev], 0,
+                                        0, AMREX_SPACEDIM, 0);
+        for (int c = 0; c < AMREX_SPACEDIM; ++c) {
+            field_energy += cp_efield[lev].sum(c);
+            amplitude = std::max(amplitude, std::sqrt(cp_efield[lev].max(c)));
+        }
+        
+        field_energy *= 0.5 * AMREX_D_TERM(  geom[lev].CellSize(0),
+                                           * geom[lev].CellSize(1),
+                                           * geom[lev].CellSize(2) );
+            
+    }
+    
+}
+
+
 void writeEnergy(amrbunch_t* bunch,
                  container_t& rho,
                  container_t& phi,
                  container_t& efield,
                  const std::vector<int>& rr,
+                 const amrex::Vector<amrex::Geometry>& geom,
                  double cell_volume,
                  int step,
                  std::string dir = "./")
 {
-    for (int lev = efield.size() - 2; lev >= 0; lev--)
-        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0,
-                            AMREX_SPACEDIM, rr[lev]);
-    
-    // field energy (Ulmer version, i.e. cell_volume instead #points)
-    double field_energy = 0.5 * cell_volume * MultiFab::Dot(*(efield[0].get()), 0, *(efield[0].get()),
-                                                            0, AMREX_SPACEDIM, 0);
-//     double field_energy = 0.5 * cell_volume * sum(dot(bunch->E, bunch->E));
-    
     // kinetic energy
     double ekin = 0.5 * sum( dot(bunch->P, bunch->P) );
     
-    // potential energy
-    rho[0]->mult(cell_volume, 0, 1);
-    MultiFab::Multiply(*(phi[0].get()), *(rho[0].get()), 0, 0, 1, 0);
-    double integral_phi_m = 0.5 * phi[0]->sum(0);
-    
-    double potential_energy=0;
+    double epot = 0;
     for (unsigned i=0; i<bunch->getLocalNum(); ++i) {
-        potential_energy += 0.5 * (bunch->qm[i] *  bunch->phi[i]);
+        epot += 0.5 * (bunch->qm[i] *  bunch->phi[i]);
     }
     
-        // open a new data file for this iteration
-        // and start with header
-    double AmplitudeEfield = max(sqrt(dot(bunch->E,bunch->E)));
-    bunch->E1 = 0;
-    assign(bunch->E1, bunch->E * AMREX_D_PICK(1.0, Vector_t(0.0, 1.0), Vector_t(0,0,1)));
-    double AmplitudeEFz=max(sqrt(dot(bunch->E1,bunch->E1)));
+    double glob_epot = 0.0;
+    MPI_Reduce(&epot, &glob_epot, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    
+    double ampl = 0.0;
+    double field_energy = 0.0;
+    electric_field(efield, geom, field_energy, ampl);
     
     if(Ippl::myNode()==0) {
         std::ofstream csvout;
@@ -344,14 +382,15 @@ void writeEnergy(amrbunch_t* bunch,
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
         
         if (step == 0) {
-            csvout << "it,Efield,Ekin,Etot,Epot" << std::endl;
+            csvout << "it, field energy, kinetic energy, "
+                   << "total energy, potential energy" << std::endl;
         }
         
         csvout << step << ", "
                << field_energy << ","
                << ekin << ","
-               << /*field_energy*/potential_energy + ekin << "," 
-               << /*integral_phi_m*/potential_energy << std::endl;
+               << glob_epot + ekin << "," 
+               << epot << std::endl;
         
         csvout.close();
         
@@ -363,11 +402,10 @@ void writeEnergy(amrbunch_t* bunch,
         
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
         if (step == 0){
-                csvout << "it,max(|E|),max(|Ez|)" << std::endl;
+                csvout << "it,max(|Ez|)" << std::endl;
         }
         csvout << step << ", "
-                << AmplitudeEfield << ", "
-                << AmplitudeEFz << std::endl;
+                << ampl << std::endl;
         csvout.close();
     }
 }
@@ -1136,7 +1174,7 @@ void doPlasma(const param_t& params, Inform& msg)
 //         domainMapping(*bunch, scale, true);
 //         msg << endl << "Back to normal positions" << endl << endl;
         
-        writeEnergy(bunch.get(), rhs, phi, efield, rr, cell_volume, i, dir);
+        writeEnergy(bunch.get(), rhs, phi, efield, rr, geom, cell_volume, i, dir);
         /* Leap-Frog
          * 
          * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
