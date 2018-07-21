@@ -21,6 +21,10 @@ public:
     ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
     typedef typename AmrParticleBase1<PLayout>::LevelNumCounter_t LevelNumCounter_t;
     
+    typename PLayout::ParticlePos_t k1;
+    typename PLayout::ParticlePos_t k2;
+    typename PLayout::ParticlePos_t k3;
+    
     PartBunchAmr() {
         this->addAttribute(qm);
         this->addAttribute(phi);
@@ -29,6 +33,10 @@ public:
         this->addAttribute(P);
         this->addAttribute(mass);
         this->addAttribute(Rphase);
+        
+        this->addAttribute(k1);
+        this->addAttribute(k2);
+        this->addAttribute(k3);
     }
     
     ~PartBunchAmr() {}

@@ -228,7 +228,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
                     << "--bboxincr [value] (increase box size by [value] percent)" << endl
                     << "--use-mgt-solver (optional)" << endl
-                    << "--timstep [val > 0]" << endl
+                    << "--timestep [val > 0]" << endl
                     << "--iterations [val > 0]" << endl
                     << "--test [twostream, recurrence, landau]" << endl
 #ifdef HAVE_AMR_MG_SOLVER
@@ -610,7 +610,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     msg << "Total Charge (computed):  " << totCharge << " C" << endl
         << "Total Charge (composite): " << totCharge_composite << " C" << endl
         << "Vacuum permittivity:      " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
-    
+        
     amrex::Real vol = AMREX_D_TERM(*(geom[0].CellSize()), * *(geom[0].CellSize()), * *(geom[0].CellSize()));
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^"
         << AMREX_SPACEDIM << " = " << vol << " m^" << AMREX_SPACEDIM << endl;
@@ -804,6 +804,52 @@ initDistribution(const param_t& params,
 }
 
 
+// void remapping(AmrOpal& myAmrOpal,
+//                std::unique_ptr<amrbunch_t>& bunch,
+//                const param_t& params)
+// {
+//     
+//     
+//     
+//     container_t Q(params.nLevels);
+//     container_t partMF(params.nLevels);
+//     for (uint lev = 0; lev < params.nLevels; lev++) {
+//         const amrex::BoxArray& ba = myAmrOpal.boxArray()[lev];
+//         const amrex::DistributionMapping& dmap = myAmrOpal.DistributionMap(lev);
+//         partMF[lev].reset(new amrex::MultiFab(ba, dmap, 1, 2));
+//         partMF[lev]->setVal(0.0, 2);
+//         
+//         Q[lev].reset(new MultiFab(ba, dmap, 1, 1));
+//         Q[lev]->setVal(0.0, 1);
+//    }
+//     
+//     bunch->AssignDensityFort(bunch->qm, partMF, 0, 1, myAmrOpal.finestLevel());
+//     
+//     const amrex::Vector<amrex::Geometry>& geom = myAmrOpal.Geom();
+//     
+//     for (uint lev = 0; lev < params.nLevels; ++lev) {
+//         amrex::MultiFab::Copy(*Q[lev], *partMF[lev], 0, 0, 1, 1);
+//         
+//         double vol = AMREX_D_TERM(  geom[lev].CellSize(0),
+//                                   * geom[lev].CellSize(1),
+//                                   * geom[lev].CellSize(2) );
+//         
+//         Q[lev]->mult(vol, 0, 1, 1);
+//     }
+//     
+//     std::cout << min(bunch->qm) << " " << max(bunch->qm) << std::endl; std::cin.get();
+//     
+//     bunch->qm = 0.0;
+//     bunch->mass = 0.0;
+//     
+//     bunch->InterpolateFort(bunch->qm, Q, 0, myAmrOpal.finestLevel());
+//     
+//     bunch->InterpolateFort(bunch->mass, Q, 0, myAmrOpal.finestLevel());
+//     bunch->mass *= -1.0;
+//     
+//     std::cout << min(bunch->qm) << " " << max(bunch->qm) << std::endl; std::cin.get();
+//     
+// }
 
 // void remapping(std::unique_ptr<amrbunch_t>& bunch,
 //                const Vector_t& lower,
@@ -956,6 +1002,128 @@ void updateIpplMesh(Field2d_t* field,
                       *layout2d,
                       GuardCellSizes<2>(1),
                       BC);
+}
+
+
+void periodic_shift(AmrOpal& myAmrOpal,
+                    amrbunch_t* bunch)
+{
+    double up = 4.0 * Physics::pi;
+    
+    for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if ( bunch->R[j](d) > up )
+                bunch->R[j](d) = bunch->R[j](d) - up;
+            else if ( bunch->R[j](d) < 0.0 )
+                bunch->R[j](d) = up + bunch->R[j](d);
+        }
+    }
+    
+    
+    if ( myAmrOpal.maxLevel() > 0 )
+        for (int k = 0; k <= myAmrOpal.finestLevel() && k < myAmrOpal.maxLevel(); ++k)
+            myAmrOpal.regrid(k /*lbase*/, 0 /*time*/);
+    else
+        bunch->update();
+}
+
+
+void rk4(AmrOpal& myAmrOpal,
+         std::unique_ptr<amrbunch_t>& bunch,
+         container_t& rhs,
+         container_t& phi,
+         container_t& efield,
+         const amrex::Vector<int>& rr,
+         Inform& msg,
+         const double& scale, const param_t& params,
+         int time, std::string dir = "./")
+{
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rr, msg, scale, params, dir);
+    
+    bunch->k1 = bunch->E;
+    
+    bunch->k2 = bunch->R;
+    
+    bunch->R = bunch->R + 0.5 * bunch->P * params.timestep + 0.125 * bunch->k1 * params.timestep * params.timestep;
+    
+    periodic_shift(myAmrOpal, bunch.get());
+    
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rr, msg, scale, params, dir);
+    
+    bunch->R = bunch->k2;
+    
+    periodic_shift(myAmrOpal, bunch.get());
+    
+    bunch->k2 = bunch->E;
+    
+    bunch->k3 = bunch->R;
+    
+    bunch->R = bunch->R + bunch->P * params.timestep + 0.5 * bunch->k2 * params.timestep * params.timestep;
+    
+    periodic_shift(myAmrOpal, bunch.get());
+    
+    doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rr, msg, scale, params, dir);
+    
+    bunch->R = bunch->k3;
+    
+    periodic_shift(myAmrOpal, bunch.get());
+    
+    bunch->k3 = bunch->E;
+    
+    bunch->R = bunch->R + bunch->P * params.timestep
+             + 1.0 / 6.0 * (bunch->k1 + 2.0 * bunch->k2) * params.timestep * params.timestep;
+    
+    bunch->P = bunch->P + 1.0 / 6.0 * (bunch->k1 + 4.0 * bunch->k2 + bunch->k3) * params.timestep;
+    
+    periodic_shift(myAmrOpal, bunch.get());
+}
+
+void leap_frog(AmrOpal& myAmrOpal,
+               std::unique_ptr<amrbunch_t>& bunch,
+               container_t& rhs,
+               container_t& phi,
+               container_t& efield,
+               const amrex::Vector<int>& rr,
+               Inform& msg,
+               const double& scale, const param_t& params,
+               int time, std::string dir = "./")
+{
+    /* Leap-Frog
+     * 
+     * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
+     * x_{i+1} = x_i + v_{i+1/2} * dt
+     * v_{i+1} = v_{i+1/2} + a_{i+1} * dt / 2
+     */
+    
+    //         msg << endl << "Transformed positions" << endl << endl;
+//         scale = domainMapping(*bunch, scale);
+        
+    doSolve(myAmrOpal, bunch.get(), /*bunch->E,*/ rhs, phi, efield, rr, msg, scale, params, dir);
+        
+//         domainMapping(*bunch, scale, true);
+//         msg << endl << "Back to normal positions" << endl << endl;
+        
+//         assign(bunch->P, bunch->P + 0.5 * params.timestep * bunch->qm / bunch->mass * bunch->E);
+        
+    for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
+        bunch->P[j] = bunch->P[j] + 0.5 * params.timestep * bunch->qm[j] / bunch->mass[j] * bunch->E[j];
+        bunch->R[j] = bunch->R[j] + params.timestep * bunch->P[j];
+            
+    }
+    periodic_shift(myAmrOpal, bunch.get());
+        
+//         msg << endl << "Transformed positions" << endl << endl;
+//         scale = domainMapping(*bunch, scale);
+        
+    doSolve(myAmrOpal, bunch.get(), /*bunch->E,*/ rhs, phi, efield, rr, msg, scale, params, dir);
+        
+//         domainMapping(*bunch, scale, true);
+//         msg << endl << "Back to normal positions" << endl << endl;
+    
+    for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
+        bunch->P[j] = bunch->P[j] + 0.5 * params.timestep * bunch->qm[j] / bunch->mass[j] * bunch->E[j];
+    }
+    
 }
 
 
@@ -1151,7 +1319,7 @@ void doPlasma(const param_t& params, Inform& msg)
         
 //         if ( i != 0 && i % 5 == 0) {
 //             msg << "    Particle remapping" << endl;
-//             remapping(bunch, extend_l, extend_r);
+//             remapping(myAmrOpal, bunch, params);
 //         }
 
         if ( params.type == Distribution::Type::kTwoStream ) {
@@ -1166,57 +1334,10 @@ void doPlasma(const param_t& params, Inform& msg)
             ipplProjection(field, dx, dv, Vmax, lDom, bunch.get(), i, dir);
         }
         
-//         msg << endl << "Transformed positions" << endl << endl;
-//         scale = domainMapping(*bunch, scale);
-        
-        doSolve(myAmrOpal, bunch.get(), /*bunch->E,*/ rhs, phi, efield, rrr, msg, scale, params, dir);
-        
-//         domainMapping(*bunch, scale, true);
-//         msg << endl << "Back to normal positions" << endl << endl;
+        rk4(myAmrOpal, bunch, rhs, phi, efield, rrr, msg, scale, params, i, dir);
+//         leap_frog(myAmrOpal, bunch, rhs, phi, efield, rrr, msg, scale, params, i, dir);
         
         writeEnergy(bunch.get(), rhs, phi, efield, rr, geom, cell_volume, i, dir);
-        /* Leap-Frog
-         * 
-         * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
-         * x_{i+1} = x_i + v_{i+1/2} * dt
-         * v_{i+1} = v_{i+1/2} + a_{i+1} * dt / 2
-         */
-//         assign(bunch->P, bunch->P + 0.5 * params.timestep * bunch->qm / bunch->mass * bunch->E);
-        
-        
-        double up = 4.0 * Physics::pi;
-        for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
-            bunch->P[j] = bunch->P[j] + 0.5 * params.timestep * bunch->qm[j] / bunch->mass[j] * bunch->E[j];
-            bunch->R[j] = bunch->R[j] + params.timestep * bunch->P[j];
-            
-            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                if ( bunch->R[j](d) > up )
-                    bunch->R[j](d) = bunch->R[j](d) - up;
-                else if ( bunch->R[j](d) < 0.0 )
-                    bunch->R[j](d) = up + bunch->R[j](d);
-            }
-        }
-        
-//         msg << endl << "Transformed positions" << endl << endl;
-//         scale = domainMapping(*bunch, scale);
-        
-        if ( myAmrOpal.maxLevel() > 0 )
-            for (int k = 0; k <= myAmrOpal.finestLevel() && k < myAmrOpal.maxLevel(); ++k)
-                myAmrOpal.regrid(k /*lbase*/, i /*time*/);
-        else
-            bunch->update();
-        
-        doSolve(myAmrOpal, bunch.get(), /*bunch->E,*/ rhs, phi, efield, rrr, msg, scale, params, dir);
-        
-//         domainMapping(*bunch, scale, true);
-//         msg << endl << "Back to normal positions" << endl << endl;
-    
-        
-        /* epsilon_0 not used by Ulmer --> multiply it away */
-        for (std::size_t j = 0; j < bunch->getLocalNum(); ++j) {
-            bunch->P[j] = bunch->P[j] + 0.5 * params.timestep * bunch->qm[j] / bunch->mass[j] * bunch->E[j];
-            //* Physics::epsilon_0);
-        }
 
         msg << "Done with step " << i << endl;
     }
