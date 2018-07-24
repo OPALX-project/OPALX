@@ -54,6 +54,12 @@ public:
                    double minFractionalArea,
                    double minAreaAboveNoise,
                    double minSlope);
+    
+    
+    /**
+     * Single particle peak finder.
+     */
+    bool findPeaks();
 
 private:
     
