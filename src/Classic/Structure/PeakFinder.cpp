@@ -7,6 +7,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
+#include "Algorithms/PartBunchBase.h"
 
 PeakFinder::PeakFinder(std::string elem):
     element_m(elem), nBins_m(10), binWidth_m(1.0 /*mm*/),
@@ -28,11 +29,19 @@ void PeakFinder::save() {
     
     createHistogram_m();
 
-    bool found = findPeaks(smoothingNumber_m,
-                           minArea_m,
-                           minFractionalArea_m,
-                           minAreaAboveNoise_m,
-                           minSlope_m);
+    bool found = false;
+    
+    std::size_t nParticles = (OpalData::getInstance()->getPartBunch())->getTotalNum();
+    
+    if ( Ippl::getNodes() == 1 && nParticles == 1) {
+        found = findPeaks();
+    } else {
+        found = findPeaks(smoothingNumber_m,
+                          minArea_m,
+                          minFractionalArea_m,
+                          minAreaAboveNoise_m,
+                          minSlope_m);
+    }    
     
     if ( found ) {
         fn_m = element_m + std::string(".peaks");
@@ -56,6 +65,13 @@ void PeakFinder::save() {
     globHist_m.clear();
     peakRadii_m.clear();
     fourSigmaPeaks_m.clear();
+}
+
+
+bool PeakFinder::findPeaks() {
+    for (const auto &radius : radius_m)
+        peakRadii_m.push_back(radius);
+    return !peakRadii_m.empty();
 }
 
 
