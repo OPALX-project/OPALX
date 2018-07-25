@@ -46,6 +46,7 @@ namespace {
         NUMCOWORKERS,
         TEMPLATEDIR,
         FIELDMAPDIR,
+        DISTDIR,
         RASTER,
         SEED,
         SIZE
@@ -73,6 +74,8 @@ SampleCmd::SampleCmd():
         ("TEMPLATEDIR", "Directory where templates are stored");
     itsAttr[FIELDMAPDIR] = Attributes::makeString
         ("FIELDMAPDIR", "Directory where field maps are stored");
+    itsAttr[DISTDIR] = Attributes::makeString
+        ("DISTDIR", "Directory where distributions are stored");
     itsAttr[RASTER] = Attributes::makeBool
         ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
@@ -274,6 +277,17 @@ void SampleCmd::execute() {
         }
 
         setenv("FIELDMAPS", dir.c_str(), 1);
+    }
+    
+    if (Attributes::getString(itsAttr[DISTDIR]) != "") {
+        fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
+        if (dir.is_relative()) {
+            fs::path path = fs::path(std::string(getenv("PWD")));
+            path /= dir;
+            dir = path;
+        }
+
+        setenv("DISTRIBUTIONS", dir.c_str(), 1);
     }
 
     *gmsg << endl;
