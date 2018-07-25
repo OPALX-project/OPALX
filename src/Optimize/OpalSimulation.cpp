@@ -147,6 +147,24 @@ bool OpalSimulation::hasResultsAvailable() {
 }
 
 
+void OpalSimulation::createSymlink_m(const std::string& path) {
+    struct dirent **files;
+    int count = scandir(path.c_str(), &files, 0, alphasort);
+
+    for(int i=0; i<count; i++) {
+	if (files[i]->d_name == std::string(".") ||
+	    files[i]->d_name == std::string("..")) continue;
+	std::string source = path + "/" + files[i]->d_name;
+	std::string target = simulationDirName_ + '/' + files[i]->d_name;
+	int err = symlink(source.c_str(), target.c_str());
+	if (err != 0) {
+	    throw OptPilotException("OpalSimulation::createSymlink()",
+				    "Cannot create symbolic link '" + source + "' to " +
+				    target);
+	}
+    }
+}
+
 void OpalSimulation::setupSimulation() {
     namespace fs = boost::filesystem;
 
@@ -170,31 +188,18 @@ void OpalSimulation::setupSimulation() {
                              simulationName_ + ".in";
         gs_->writeInputFile(infile);
 
-        // linking fieldmaps
+        // linking fieldmaps + distributions
         if(getenv("FIELDMAPS") == NULL) {
             throw OptPilotException("OpalSimulation::OpalSimulation",
                 "Environment variable FIELDMAPS not defined!");
         }
+
         std::string fieldmapPath = getenv("FIELDMAPS");
+	this->createSymlink_m(fieldmapPath);
 
-        struct dirent **files;
-        int count = scandir(fieldmapPath.c_str(), &files, 0, alphasort);
-
-        for(int i=0; i<count; i++) {
-            if (files[i]->d_name == std::string(".") ||
-                files[i]->d_name == std::string("..")) continue;
-            std::string source = fieldmapPath + "/" + files[i]->d_name;
-            std::string target = simulationDirName_ + '/' + files[i]->d_name;
-	    int err = symlink(source.c_str(), target.c_str());
-	    if (err != 0) {
-	      // FIXME properly handle error
-	      std::cout << "Cannot symlink fieldmap "
-			<< source.c_str() << " to "
-			<< target.c_str() << " error no " << err << std::endl;
-	      std::cout << "fieldmapPath " << fieldmapPath << " i= " << i << std::endl;
-	      std::cout << "target       " << simulationDirName_ + '/' + files[i]->d_name << std::endl;
-
-	    }
+        if ( getenv("DISTRIBUTIONS") != NULL ) {
+	    std::string distPath = getenv("DISTRIBUTIONS");
+	    this->createSymlink_m(distPath);
 	}
     }
 
