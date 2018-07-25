@@ -317,9 +317,9 @@ void OptimizeCmd::execute() {
     }
 
     if (Attributes::getString(itsAttr[DISTDIR]) != "") {
-	fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
-	if (dir.is_relative()) {
-	    fs::path path = fs::path(std::string(getenv("PWD")));
+        fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
+        if (dir.is_relative()) {
+            fs::path path = fs::path(std::string(getenv("PWD")));
             path /= dir;
             dir = path;
         }
