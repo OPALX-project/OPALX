@@ -44,7 +44,7 @@ PlasmaPIC::~PlasmaPIC() {
 }
 
 
-void PlasmaPIC::execute() {
+void PlasmaPIC::execute(Inform& msg) {
     
     amropal_m->setBunch( bunch_m.get() );
     
@@ -59,9 +59,15 @@ void PlasmaPIC::execute() {
         if ( tcurrent_m + dt_m > tstop_m )
             dt_m = tstop_m - tcurrent_m;
         
+        msg << "At time " << tcurrent_m
+            << " with timestep " << dt_m << ". ";
+        
         this->integrate_m();
         
         this->dump_m();
+        
+        
+        msg << "Done." << endl;
     }
 }
 
@@ -70,15 +76,6 @@ void PlasmaPIC::parseParticleInfo_m() {
     amrex::ParmParse pp("particle");
     
     pp.get("test", test_m);
-    
-    std::string dir = test_m + "-data-grid-" +
-                      AMREX_D_TERM(std::to_string(bNx_m[0]),
-                                   + "-" + std::to_string(bNx_m[1]),
-                                   + "-" + std::to_string(bNx_m[2]));
-    
-    boost::filesystem::path dir_m(dir);
-    if ( Ippl::myNode() == 0 )
-        boost::filesystem::create_directory(dir_m);
     
     pp.get("alpha", alpha_m);
     pp.get("threshold", threshold_m);
@@ -107,19 +104,27 @@ void PlasmaPIC::parseBoxInfo_m() {
     pp.get("maxgrid", maxgrid_m);
     pp.get("blocking_factor", blocking_factor_m);
     pp.get("nlevel", nlevel_m);
-    pp.get("boxlength", boxlength_m);
     
     pp.get("wavenumber", wavenumber_m);
     
     left_m = Vector_t(D_DECL(0.0, 0.0, 0.0));
     
     using Physics::two_pi;
-    double length = two_pi * boxlength_m / wavenumber_m;
+    double length = two_pi / wavenumber_m;
     right_m = Vector_t(D_DECL(length, length, length));
     
     int nx = 0;
     pp.get("nx", nx);
     bNx_m = Vector<int>(D_DECL(nx, nx, nx));
+    
+    std::string dir = test_m + "-data-grid-" +
+                      AMREX_D_TERM(std::to_string(bNx_m[0]),
+                                   + "-" + std::to_string(bNx_m[1]),
+                                   + "-" + std::to_string(bNx_m[2]));
+    
+    boost::filesystem::path dir_m(dir);
+    if ( Ippl::myNode() == 0 )
+        boost::filesystem::create_directory(dir_m);
 }
 
 
@@ -127,6 +132,8 @@ void PlasmaPIC::initAmr_m() {
     
     amrex::ParmParse pp("amr");
     pp.add("max_grid_size", maxgrid_m);
+    
+    pp.add("max_level", nlevel_m);
     
     amrex::Vector<int> bf(nlevel_m, blocking_factor_m);
     pp.addarr("blocking_factor", bf);

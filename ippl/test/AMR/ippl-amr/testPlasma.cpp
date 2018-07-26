@@ -1,5 +1,4 @@
 #include "Ippl.h"
-#include <iostream>
 
 #include "PlasmaPIC.h"
 
@@ -7,7 +6,9 @@
 int main(int argc, char *argv[]) {
     
     Ippl ippl(argc, argv);
-    amrex::Initialize(argc,argv, false);
+    
+    char* in_file_name = argv[1];
+    amrex::Initialize(argc, argv /*false*/);
     
     Inform msg(argv[0]);
     
@@ -15,14 +16,15 @@ int main(int argc, char *argv[]) {
     
     IpplTimings::startTimer(mainTimer);
     
+    
     try {
         
         PlasmaPIC pic;
         
-        pic.execute();
+        pic.execute(msg);
         
     } catch(const std::exception& ex) {
-        std::cout << ex.what() << std::endl;
+        msg << ex.what() << endl;
     }
     
     IpplTimings::stopTimer(mainTimer);
