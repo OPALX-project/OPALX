@@ -91,6 +91,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
                     testPerformance.cpp)
                     
     add_executable( testPlasma
+                    PlasmaPIC.cpp
                     testPlasma.cpp)
                     
     add_executable( testTagging
@@ -211,11 +212,11 @@ ENDIF ( ${AMREX_DIM} EQUAL 3 )
 
 IF ( ${AMREX_DIM} EQUAL 2 )
     add_executable( testPlasma
+                    PlasmaPIC.cpp
                     testPlasma.cpp)
     
     target_link_libraries (testPlasma ${TESTLIBS} -lgslcblas
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
-    
     set (EXECS testPlasma)
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
     
