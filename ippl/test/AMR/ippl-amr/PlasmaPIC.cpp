@@ -66,6 +66,7 @@ void PlasmaPIC::execute(Inform& msg) {
         
         this->dump_m();
         
+        tcurrent_m += dt_m;
         
         msg << "Done." << endl;
     }
@@ -596,7 +597,6 @@ void PlasmaPIC::dump_m() {
         
         fname.str("");
         fname << (dir_m / "amplitude.csv").string();
-
         
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
         if (tcurrent_m < dt_m){
