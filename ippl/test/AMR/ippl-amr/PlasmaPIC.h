@@ -41,7 +41,7 @@ public:
     
     ~PlasmaPIC();
     
-    void execute();
+    void execute(Inform& msg);
     
 private:
     
