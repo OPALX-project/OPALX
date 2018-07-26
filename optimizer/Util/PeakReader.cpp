@@ -54,3 +54,8 @@ void PeakReader::getPeak(int nPeak, double& radius) {
                                 "peak not found!");
     }
 }
+
+
+std::size_t PeakReader::getNumberOfPeaks() {
+    return peaks_m.size();
+}

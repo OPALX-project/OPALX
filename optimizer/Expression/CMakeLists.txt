@@ -3,6 +3,7 @@ SET (_EXPR_SRCS
     SumErrSq.cpp
     FromFile.cpp
     MaxNormRadialPeak.cpp
+    NumberOfPeaks.h
     RadialPeak.cpp
     SumErrSqRadialPeak.cpp
     Parser/expression.cpp
