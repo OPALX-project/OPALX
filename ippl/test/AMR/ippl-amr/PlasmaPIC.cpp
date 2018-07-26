@@ -1,15 +1,14 @@
 #include "PlasmaPIC.h"
 
-#include <boost/filesystem.hpp>
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_Vector.H>
 
 #include "Physics/Physics.h"
 
-#include "../Solver.h"
+#include <string>
+#include <fstream>
 
-#include "../Distribution.h"
+#include "../Solver.h"
 
 #include "../helper_functions.h"
 
@@ -29,11 +28,13 @@ PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
     
     this->parseBoxInfo_m();
     
-    this->initializeAmr_m();
+    this->initAmr_m();
     
-    this->initializeBunch_m();
+    this->initBunch_m();
     
-    this->initializeSolver_m();
+    this->initDistribution_m();
+    
+    this->initSolver_m();
 }
 
 
@@ -50,7 +51,7 @@ void PlasmaPIC::execute() {
     for (int i = 0; i <= amropal_m->finestLevel() &&
                     i < amropal_m->maxLevel(); ++i)
     {
-        amropal_m->regrid(i /*lbase*/, 0.0 /*time*/);
+        amropal_m->regrid(i /*lbase*/,tcurrent_m);
     }
     
     while ( tcurrent_m < tstop_m ) {
@@ -59,6 +60,8 @@ void PlasmaPIC::execute() {
             dt_m = tstop_m - tcurrent_m;
         
         this->integrate_m();
+        
+        this->dump_m();
     }
 }
 
@@ -68,15 +71,14 @@ void PlasmaPIC::parseParticleInfo_m() {
     
     pp.get("test", test_m);
     
-    dir_m = test_m + "-data-grid-" +
-            AMREX_D_TERM(std::to_string(bNx_m[0]),
-                         + "-" + std::to_string(bNx_m[1]),
-                         + "-" + std::to_string(bNx_m[2]));
+    std::string dir = test_m + "-data-grid-" +
+                      AMREX_D_TERM(std::to_string(bNx_m[0]),
+                                   + "-" + std::to_string(bNx_m[1]),
+                                   + "-" + std::to_string(bNx_m[2]));
     
-    boost::filesystem::path dir(dir_m);
+    boost::filesystem::path dir_m(dir);
     if ( Ippl::myNode() == 0 )
-        boost::filesystem::create_directory(dir);
-    dir_m = dir.string();
+        boost::filesystem::create_directory(dir_m);
     
     pp.get("alpha", alpha_m);
     pp.get("threshold", threshold_m);
@@ -121,7 +123,7 @@ void PlasmaPIC::parseBoxInfo_m() {
 }
 
 
-void PlasmaPIC::initializeAmr_m() {
+void PlasmaPIC::initAmr_m() {
     
     amrex::ParmParse pp("amr");
     pp.add("max_grid_size", maxgrid_m);
@@ -161,7 +163,7 @@ void PlasmaPIC::initializeAmr_m() {
 }
 
 
-void PlasmaPIC::initializeBunch_m() {
+void PlasmaPIC::initBunch_m() {
     
     const auto& geom = amropal_m->Geom();
     const auto& dmap = amropal_m->DistributionMap();
@@ -179,22 +181,65 @@ void PlasmaPIC::initializeBunch_m() {
     bunch_m->initializeAmr(); // add attributes: level, grid
     
     bunch_m->setAllowParticlesNearBoundary(true);
+}
+
+
+void PlasmaPIC::initDistribution_m() {
     
-    Distribution dist;
+    const BoxArray ba = amropal_m->boxArray(0);
+    const DistributionMapping& dmap = amropal_m->DistributionMap(0);
     
-//     dist.plasma(amropal_m,
-//                 bunch_m,
-//                 vmin_m, vmax_m,
-//                 pNx_m, pNv_m,
-//                 test_m);
+    Vector_t length = right_m - left_m;
+    Vector_t hx = length / pNx_m;
+    Vector_t hv = length / pNv_m;
     
-    dist.injectBeam( *(bunch_m.get()) );
+    std::size_t ip = 0;
     
+    for (amrex::MFIter mfi(ba, dmap); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.validbox();
+        
+        for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                amrex::IntVect iv(D_DECL(i, j, 0));
+                
+                double x = (iv[0] + 0.5) * hx[0] + left_m[0];
+                double y = (iv[1] + 0.5) * hx[1] + left_m[1];
+                
+                for (int ii = 0; ii < pNv_m[0]; ii++) {
+                    for (int jj = 0; jj < pNv_m[1]; jj++) {
+                        double vx = (ii + 0.5)*hv[0] + vmin_m[0];
+                        double vy = (jj + 0.5)*hv[1] + vmin_m[1];
+                        double v2 = vx * vx + vy * vy;
+                        double f = (1.0 / (2.0 * Physics::pi)) * std::exp(-0.5 * v2) *
+                                    ( 1.0 + alpha_m *
+                                      std::cos(wavenumber_m * x) * std::cos(wavenumber_m * y)
+                                    );
+                        double m = hx[0] * hv[0] * hx[1] * hv[1] * f;
+                        double q = -m;
+                        
+                        if ( m > threshold_m ) {
+                            
+                            bunch_m->create(1);
+                            
+                            bunch_m->R[ip](0) = x;
+                            bunch_m->R[ip](1) = y;                            
+                            bunch_m->P[ip](0) = vx;
+                            bunch_m->P[ip](1) = vy;
+                            bunch_m->qm[ip] = q;
+                            bunch_m->mass[ip] = m;
+                            
+                            ++ip;
+                        }
+                    }
+                }
+            }
+        }
+    }
     bunch_m->update();
 }
 
 
-void PlasmaPIC::initializeSolver_m() {
+void PlasmaPIC::initSolver_m() {
     amrex::ParmParse pp("solver");
     
     std::string type = "AMReX_FMG";
@@ -202,15 +247,15 @@ void PlasmaPIC::initializeSolver_m() {
     pp.get("type", type);
     
     if ( type == "AMReX_FMG" )
-        this->initializeAmrexFMG_m();
+        this->initAmrexFMG_m();
 #ifdef HAVE_AMR_MG_SOLVER
     else if ( type == "AMR_MG" )
-        this->initializeAmrMG();
+        this->initAmrMG();
 #endif
 }
 
 
-void PlasmaPIC::initializeAmrexFMG_m() {
+void PlasmaPIC::initAmrexFMG_m() {
     int maxiter = 100;
     int maxiter_b = 100;
     int verbose = 0;
@@ -291,7 +336,7 @@ void PlasmaPIC::initializeAmrexFMG_m() {
 
 
 #ifdef HAVE_AMR_MG_SOLVER
-void PlasmaPIC::initializeAmrMG() {
+void PlasmaPIC::initAmrMG() {
     std::string interp = "PC";
     std::string norm = "LINF";
     std::string bs = "SA";
@@ -413,6 +458,145 @@ void PlasmaPIC::solve_m() {
 
 
 void PlasmaPIC::integrate_m() {
+    /* Leap-Frog
+     * 
+     * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
+     * x_{i+1} = x_i + v_{i+1/2} * dt
+     * v_{i+1} = v_{i+1/2} + a_{i+1} * dt / 2
+     */
     
+    this->solve_m();
     
+    bunch_m->P = bunch_m->P + 0.5 * dt_m * bunch_m->qm / bunch_m->mass * bunch_m->E;
+    bunch_m->R = bunch_m->R + dt_m * bunch_m->P;
+    
+    this->applyPeriodicity_m();
+    
+    this->solve_m();
+    
+    bunch_m->P = bunch_m->P + 0.5 * dt_m * bunch_m->qm / bunch_m->mass * bunch_m->E;
+}
+
+
+void PlasmaPIC::applyPeriodicity_m()
+{
+    for (std::size_t j = 0; j < bunch_m->getLocalNum(); ++j) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            if ( bunch_m->R[j](d) > right_m[d] )
+                bunch_m->R[j](d) = bunch_m->R[j](d) - right_m[d];
+            else if ( bunch_m->R[j](d) < 0.0 )
+                bunch_m->R[j](d) = bunch_m->R[j](d) + right_m[d];
+        }
+    }
+    
+    if ( amropal_m->maxLevel() > 0 )
+        for (int k = 0; k <= amropal_m->finestLevel() && k < amropal_m->maxLevel(); ++k)
+            amropal_m->regrid(k /*lbase*/, tcurrent_m);
+    else
+        bunch_m->update();
+}
+
+
+void PlasmaPIC::electricField_m(double& field_energy, double& amplitude)
+{
+    std::vector<amrex::MultiFab> cp_efield(efield_m.size());
+    
+    for (uint lev = 0; lev < efield_m.size(); ++lev) {
+        
+        cp_efield[lev].define(efield_m[lev]->boxArray(),
+                              efield_m[lev]->DistributionMap(), AMREX_SPACEDIM, 1);
+        
+        cp_efield[lev].setVal(0.0, 1);
+        
+        amrex::MultiFab::Copy(cp_efield[lev], *efield_m[lev], 0, 0, AMREX_SPACEDIM, 1);
+    }
+    
+    field_energy = 0.0;
+    amplitude = -1.0;
+    
+    for (uint lev = 0; lev < cp_efield.size() - 1; ++lev) {
+        // get boxarray with refined cells
+        amrex::BoxArray ba = cp_efield[lev].boxArray();
+        ba.refine(2);
+        ba = amrex::intersect(cp_efield[lev+1].boxArray(), ba);
+        ba.coarsen(2);
+        for ( uint b = 0; b < ba.size(); ++b)
+            for (int c = 0; c < AMREX_SPACEDIM; ++c)
+                cp_efield[lev].mult(0.0, ba[b], c, AMREX_SPACEDIM, 1);
+    }
+    
+    const auto& geom = amropal_m->Geom();
+    
+    for (uint lev = 0; lev < efield_m.size(); ++lev) {
+            amrex::MultiFab::AddProduct(cp_efield[lev],
+                                        cp_efield[lev], 0,
+                                        cp_efield[lev], 0,
+                                        0, AMREX_SPACEDIM, 0);
+        for (int c = 0; c < AMREX_SPACEDIM; ++c) {
+            field_energy += cp_efield[lev].sum(c);
+            amplitude = std::max(amplitude, std::sqrt(cp_efield[lev].max(c)));
+        }
+        
+        field_energy *= 0.5 * AMREX_D_TERM(  geom[lev].CellSize(0),
+                                           * geom[lev].CellSize(1),
+                                           * geom[lev].CellSize(2) );
+            
+    }
+}
+
+
+void PlasmaPIC::dump_m() {
+    // kinetic energy
+    double ekin = 0.5 * sum( dot(bunch_m->P, bunch_m->P) );
+    
+    double epot = 0;
+    for (unsigned i=0; i<bunch_m->getLocalNum(); ++i) {
+        epot += 0.5 * (bunch_m->qm[i] *  bunch_m->phi[i]);
+    }
+    
+    double glob_epot = 0.0;
+    MPI_Reduce(&epot, &glob_epot, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    
+    double ampl = 0.0;
+    double field_energy = 0.0;
+    electricField_m(field_energy, ampl);
+    
+    if(Ippl::myNode()==0) {
+        std::ofstream csvout;
+        csvout.precision(10);
+        csvout.setf(std::ios::scientific, std::ios::floatfield);
+
+        std::stringstream fname;
+        fname << (dir_m / "energy.csv").string();
+
+        // open a new data file for this iteration
+        // and start with header
+        csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
+        
+        if (tcurrent_m < dt_m) {
+            csvout << "it, field energy, kinetic energy, "
+                   << "total energy, potential energy" << std::endl;
+        }
+        
+        csvout << tcurrent_m << ", "
+               << field_energy << ","
+               << ekin << ","
+               << glob_epot + ekin << "," 
+               << epot << std::endl;
+        
+        csvout.close();
+        
+        
+        fname.str("");
+        fname << (dir_m / "amplitude.csv").string();
+
+        
+        csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
+        if (tcurrent_m < dt_m){
+                csvout << "it,max(|Ez|)" << std::endl;
+        }
+        csvout << tcurrent_m << ", "
+                << ampl << std::endl;
+        csvout.close();
+    }
 }

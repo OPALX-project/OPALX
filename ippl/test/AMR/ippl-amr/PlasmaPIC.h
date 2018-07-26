@@ -3,6 +3,8 @@
 
 #include <memory>
 
+#include <boost/filesystem.hpp>
+
 #include "Ippl.h"
 
 #include <AMReX_Vector.H>
@@ -46,16 +48,18 @@ private:
     void parseParticleInfo_m();
     void parseBoxInfo_m();
     
-    void initializeAmr_m();
+    void initAmr_m();
     
-    void initializeBunch_m();
+    void initBunch_m();
     
-    void initializeSolver_m();
+    void initDistribution_m();
     
-    void initializeAmrexFMG_m();
+    void initSolver_m();
+    
+    void initAmrexFMG_m();
     
 #ifdef HAVE_AMR_MG_SOLVER
-    void initializeAmrMG();
+    void initAmrMG();
 #endif
     
     void depositCharge_m();
@@ -63,6 +67,12 @@ private:
     void solve_m();
     
     void integrate_m();
+    
+    void applyPeriodicity_m();
+    
+    void electricField_m(double& field_energy, double& amplitude);
+    
+    void dump_m();
     
 private:
     int maxgrid_m;
@@ -75,7 +85,7 @@ private:
     double threshold_m;
     std::string test_m;
     
-    std::string dir_m;
+    boost::filesystem::path dir_m;
     
     Vector_t vmax_m;
     Vector_t vmin_m;
