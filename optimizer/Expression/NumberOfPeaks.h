@@ -29,15 +29,16 @@ struct NumberOfPeaks {
         bool is_valid = true;
 
         boost::scoped_ptr<PeakReader> sim_peaks(new PeakReader(sim_filename_));
+        std::size_t nPeaks = 0;
+        
         try {
             sim_peaks->parseFile();
+            nPeaks = sim_peaks->getNumberOfPeaks();
         } catch (OptPilotException &ex) {
             std::cout << "Caught exception: " << ex.what() << std::endl;
             is_valid = false;
         }
 
-        std::size_t nPeaks = sim_peaks->getNumberOfPeaks();
-        is_valid = true;
         
         return boost::make_tuple(nPeaks, is_valid);
     }
