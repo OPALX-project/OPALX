@@ -25,6 +25,8 @@
 #include "HypreABecLap.H"
 #endif
 
+#include "AbstractSolver.h"
+
 /*!
  * @file Solver.h
  * @author Matthias Frey
@@ -39,11 +41,21 @@
  */
 
 /// Do a MultiGrid solve
-class Solver {
+class Solver : public AbstractSolver {
 
 public:
     typedef amrex::Vector<std::unique_ptr<amrex::MultiFab> > container_t;
     typedef amrex::Vector<amrex::MultiFab*> container_pt;
+    typedef AbstractSolver::amropal_p amropal_p;
+    
+    virtual
+    void solve(amropal_p& amropal,
+               amr::AmrFieldContainer_t &rho,
+               amr::AmrFieldContainer_t &phi,
+               amr::AmrFieldContainer_t &efield,
+               unsigned short baseLevel,
+               unsigned short finestLevel,
+               bool prevAsGuess = true);
 
     /*!
      * Prepares the solver and calls the solve_with_f90 function.

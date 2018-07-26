@@ -1,0 +1,104 @@
+#ifndef PLASMA_PIC_H
+#define PLASMA_PIC_H
+
+#include <memory>
+
+#include "Ippl.h"
+
+#include <AMReX_Vector.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H>
+
+#include "../AmrOpal.h"
+
+#include "../AbstractSolver.h"
+
+using amrex::Vector;
+using amrex::Geometry;
+using amrex::MultiFab;
+using amrex::BoxArray;
+using amrex::DistributionMapping;
+
+class PlasmaPIC
+{
+public:
+    
+    typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
+    typedef Vektor<int, AMREX_SPACEDIM> iVector_t;
+    typedef AmrOpal::amrplayout_t amrplayout_t;
+    typedef AmrOpal::amrbase_t amrbase_t;
+    typedef AmrOpal::amrbunch_t amrbunch_t;
+    typedef std::unique_ptr<amrbunch_t> amrbunch_p;
+    typedef AmrOpal amropal_t;
+    typedef std::unique_ptr<amropal_t> amropal_p;
+    typedef AbstractSolver* solver_p;
+    typedef Vector<std::unique_ptr<MultiFab> > container_t;
+    
+public:
+    PlasmaPIC();
+    
+    ~PlasmaPIC();
+    
+    void execute();
+    
+private:
+    
+    void parseParticleInfo_m();
+    void parseBoxInfo_m();
+    
+    void initializeAmr_m();
+    
+    void initializeBunch_m();
+    
+    void initializeSolver_m();
+    
+    void initializeAmrexFMG_m();
+    
+#ifdef HAVE_AMR_MG_SOLVER
+    void initializeAmrMG();
+#endif
+    
+    void depositCharge_m();
+    
+    void solve_m();
+    
+    void integrate_m();
+    
+private:
+    int maxgrid_m;
+    int blocking_factor_m;
+    double dt_m;
+    double tstop_m;
+    double tcurrent_m;
+    int nlevel_m;
+    
+    double threshold_m;
+    std::string test_m;
+    
+    std::string dir_m;
+    
+    Vector_t vmax_m;
+    Vector_t vmin_m;
+    
+    double alpha_m;
+    
+    iVector_t pNx_m;
+    iVector_t pNv_m;
+    
+    double wavenumber_m;
+    double boxlength_m;
+    Vector_t left_m;
+    Vector_t right_m;
+    Vector<int> bNx_m;
+    
+    amropal_p amropal_m;
+    amrbunch_p bunch_m;
+    solver_p solver_mp;
+    
+    
+    container_t rho_m;
+    container_t phi_m;
+    container_t efield_m;
+};
+
+#endif

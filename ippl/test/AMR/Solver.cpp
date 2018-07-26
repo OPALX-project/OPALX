@@ -1,5 +1,21 @@
 #include "Solver.h"
 
+
+void Solver::solve(amropal_p& amropal,
+                   amr::AmrFieldContainer_t &rho,
+                   amr::AmrFieldContainer_t &phi,
+                   amr::AmrFieldContainer_t &efield,
+                   unsigned short baseLevel,
+                   unsigned short finestLevel,
+                   bool prevAsGuess)
+{
+    const amrex::Vector<amrex::Geometry>& geom = amropal->Geom();
+    this->solve_for_accel(rho, phi, efield, geom,
+                          baseLevel, finestLevel,
+                          0.0, false, true);
+}
+
+
 void 
 Solver::solve_for_accel(const container_t& rhs,
                         const container_t& phi,
