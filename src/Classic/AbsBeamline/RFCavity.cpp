@@ -608,6 +608,7 @@ ElementBase::ElementType RFCavity::getType() const {
 }
 
 double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, double mass) {
+    using Physics::pi;
     const double dt = 1e-13;
     const double p0 = Util::getP(E0, mass);
     const double origPhase =getPhasem();
