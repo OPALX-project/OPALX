@@ -61,21 +61,13 @@ PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
 
 }
 
-PartBunch::PartBunch(const std::vector<OpalParticle> &rhs,
-                     const PartData *ref):
-    PartBunchBase<double, 3>(new PartBunch::pbase_t(new Layout_t()), rhs, ref),
-    interpolationCacheSet_m(false)
-{
-    ERRORMSG("should not be here: PartBunch::PartBunch(const std::vector<OpalParticle> &rhs, const PartData *ref):" << endl);
-}
-
-PartBunch::PartBunch(const PartBunch &rhs):
-    PartBunchBase<double, 3>(rhs),
-    interpolationCacheSet_m(rhs.interpolationCacheSet_m)
-{
-    ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
-    std::exit(0);
-}
+// PartBunch::PartBunch(const PartBunch &rhs):
+//     PartBunchBase<double, 3>(rhs),
+//     interpolationCacheSet_m(rhs.interpolationCacheSet_m)
+// {
+//     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
+//     std::exit(0);
+// }
 
 
 PartBunch::~PartBunch() {
