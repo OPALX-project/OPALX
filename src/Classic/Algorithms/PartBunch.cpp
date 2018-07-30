@@ -49,8 +49,6 @@
 //#define DBG_SCALARFIELD
 //#define FIELDSTDOUT
 
-// using namespace std;
-
 // Class PartBunch
 // ------------------------------------------------------------------------
 
@@ -60,14 +58,6 @@ PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
 {
 
 }
-
-// PartBunch::PartBunch(const PartBunch &rhs):
-//     PartBunchBase<double, 3>(rhs),
-//     interpolationCacheSet_m(rhs.interpolationCacheSet_m)
-// {
-//     ERRORMSG("should not be here: PartBunch::PartBunch(const PartBunch &rhs):" << endl);
-//     std::exit(0);
-// }
 
 
 PartBunch::~PartBunch() {
