@@ -621,7 +621,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << indent << "name=s,\n"
                << indent << "type=double,\n"
                << indent << "units=m,\n"
-               << indent << "description=\"2 Average Longitudinal Position\"\n"
+               << indent << "description=\"2 Path length\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=numParticles,\n"
@@ -639,7 +639,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << indent << "name=energy,\n"
                << indent << "type=double,\n"
                << indent << "units=MeV,\n"
-               << indent << "description=\"5 Mean Energy\"\n"
+               << indent << "description=\"5 Mean Bunch Energy\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=rms_x,\n"
@@ -663,19 +663,19 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << indent << "name=rms_px,\n"
                << indent << "type=double,\n"
                << indent << "units=1,\n"
-               << indent << "description=\"9 RMS Momenta in x\"\n"
+               << indent << "description=\"9 RMS Normalized Momenta in x\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=rms_py,\n"
                << indent << "type=double,\n"
                << indent << "units=1,\n"
-               << indent << "description=\"10 RMS Momenta in y\"\n"
+               << indent << "description=\"10 RMS Normalized Momenta in y\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=rms_ps,\n"
                << indent << "type=double,\n"
                << indent << "units=1,\n"
-               << indent << "description=\"11 RMS Momenta in s\"\n"
+               << indent << "description=\"11 RMS Normalized Momenta in s\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=emit_x,\n"
