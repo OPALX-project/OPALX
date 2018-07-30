@@ -99,17 +99,23 @@ void Probe::initialise(PartBunchBase<double, 3> *bunch, double &startField, doub
 
 void Probe::initialise(PartBunchBase<double, 3> *bunch) {
     *gmsg << "* Initialize probe" << endl;
-    if (filename_m == std::string("")) {
-        peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder(getName()));
-        lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    } else {
-        peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder(filename_m.substr(0, filename_m.rfind("."))));
-        lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-    }
+
+    double r_start = std::sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
+    double r_end   = std::sqrt(xend_m * xend_m + yend_m * yend_m);
+
+    std::string name;
+    if (filename_m == std::string(""))
+        name = getName();
+    else
+        name = filename_m.substr(0, filename_m.rfind("."));
+
+    bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
+    peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder  (name, r_start, r_end, singlemode));
+    lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(name, !Options::asciidump));
 }
 
 void Probe::finalise() {
-    *gmsg << "* Finalize probe " << getName() << endl; 
+    *gmsg << "* Finalize probe " << getName() << endl;
     peakfinder_m->save();
     lossDs_m->save();
 }
