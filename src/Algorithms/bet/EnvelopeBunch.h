@@ -324,8 +324,6 @@ public:
 
 
 private:
-    const PartData *reference;
-
     /// number of total slices in bunch
     int numSlices_m;
     /// number of my slices in bunch
