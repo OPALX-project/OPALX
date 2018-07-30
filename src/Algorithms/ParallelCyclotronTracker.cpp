@@ -3105,7 +3105,6 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
 void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
                                             bool& dumpEachTurn, double& oldReferenceTheta) {
     // 1 particle: Trigger single particle mode
-    bool flagNoDeletion = true;
 
     // ********************************************************************************** //
     // * This was moved here b/c collision should be tested before the actual           * //
@@ -3153,14 +3152,8 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     Vector_t Pold = itsBunch_m->P[i]; // [px,py,pz] (beta*gamma)
 
     // integrate for one step in the lab Cartesian frame (absolute value).
-    flagNoDeletion = itsStepper_mp->advance(itsBunch_m, i, t, dt);
-
-    if ( !flagNoDeletion ) {
-        *gmsg << "* SPT: The particle was lost at step "
-              << step_m << "!" << endl;
-        throw OpalException("ParallelCyclotronTracker",
-                            "The particle is out of the region of interest.");
-    }
+    /*bool flagNoDeletion = */
+    itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
     // If gap crossing happens, do momenta kicking
     gapCrossKick_m(i, t, dt, Rold, Pold);
