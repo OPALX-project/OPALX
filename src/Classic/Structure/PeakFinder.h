@@ -28,9 +28,9 @@ public:
     
 public:
     
-    PeakFinder();
+    PeakFinder() = delete;
 
-    explicit PeakFinder(std::string elem);
+    PeakFinder(std::string elem, double min, double max, bool singlemode);
     
     /*!
      * Append the particle coordinates to the container
@@ -92,7 +92,7 @@ private:
                      const int startIndex, const int endIndex,
                      double& peak,
                      double& fourSigma)const;
-                         
+
 private:
     container_t radius_m;
     /// global histogram values
@@ -119,8 +119,10 @@ private:
     /// Bin width in mm
     double binWidth_m;
     ///@{ histogram size
-    double globMin_m, globMax_m;
+    double min_m, max_m;
     ///@}
+    /// Single particle mode on (different peakfinder)
+    bool singlemode_m;
     ///@{ Peak analysis parameters (copied from RRI2 probe program for now, need to be tuned a bit)
     const int    smoothingNumber_m   = 0;
     const double minArea_m           = 0.025;
