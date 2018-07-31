@@ -59,6 +59,7 @@ public:
         FMLOWE,    // minimal energy of the field map
         FMHIGHE,   // maximal energy of the field map
         SPIRAL,    // flag whether or not this is a spiral inflector simulation
+        TRIMCOILTHRESHOLD, // minimum B-field for which trim coils are applied
         TRIMCOIL,  // list of trim coils
         SIZE
     };

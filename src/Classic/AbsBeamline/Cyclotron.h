@@ -179,6 +179,9 @@ public:
     void setFMHighE(double e);
     virtual double getFMHighE() const;
 
+    void setTrimCoilThreshold(double);
+    virtual double getTrimCoilThreshold() const;
+
     void setSpiralFlag(bool spiral_flag);
     virtual bool getSpiralFlag() const;
 
@@ -235,6 +238,7 @@ private:
     double pzinit_m;
 
     bool spiral_flag_m;
+    double trimCoilThreshold_m; ///< B-field threshold for applying trim coil
 
     std::string type_m; /* what type of field we use */
     double harm_m;
