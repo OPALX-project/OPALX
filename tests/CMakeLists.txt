@@ -53,6 +53,8 @@ include_directories (${GTEST_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
 )
 
+configure_file(SourcePath.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OpalSourcePath.h)
+
 # Check to see if cmake finds the test files
 # MESSAGE(STATUS "unit test src files: ${TEST_SRCS}")
 
