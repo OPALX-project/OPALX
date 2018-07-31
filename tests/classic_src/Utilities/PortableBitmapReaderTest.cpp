@@ -10,7 +10,7 @@ TEST(PBMReaderTest, SimpleAsciiTest) {
     OpalTestUtilities::SilenceTest silencer;
 
     std::string opalSourcePath = OPAL_SOURCE_DIR;
-    std::string pathToBitmapFile = opalSourcePath + "/tests/opal_src/Utilities/Untitled.pbm";
+    std::string pathToBitmapFile = opalSourcePath + "/tests/classic_src/Utilities/Untitled.pbm";
     PortableBitmapReader reader(pathToBitmapFile);
 
     bool pixel = reader.isBlack(111, 300);
@@ -33,7 +33,7 @@ TEST(PBMReaderTest, SimpleBinaryTest) {
     OpalTestUtilities::SilenceTest silencer;
 
     std::string opalSourcePath = OPAL_SOURCE_DIR;
-    std::string pathToBitmapFile = opalSourcePath + "/tests/opal_src/Utilities/Untitled_binary.pbm";
+    std::string pathToBitmapFile = opalSourcePath + "/tests/classic_src/Utilities/Untitled_binary.pbm";
     PortableBitmapReader reader(pathToBitmapFile);
 
     bool pixel = reader.isBlack(111, 300);
