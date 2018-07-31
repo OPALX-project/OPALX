@@ -466,23 +466,72 @@ void PlasmaPIC::solve_m() {
 
 
 void PlasmaPIC::integrate_m() {
-    /* Leap-Frog
-     * 
-     * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
-     * x_{i+1} = x_i + v_{i+1/2} * dt
-     * v_{i+1} = v_{i+1/2} + a_{i+1} * dt / 2
-     */
-    
+    // RK-4
     this->solve_m();
     
-    bunch_m->P = bunch_m->P + 0.5 * dt_m * bunch_m->qm / bunch_m->mass * bunch_m->E;
-    bunch_m->R = bunch_m->R + dt_m * bunch_m->P;
+    bunch_m->k1 = bunch_m->E;
+    
+    bunch_m->R += 0.5 * bunch_m->P * dt_m + 0.125 * bunch_m->k1 * dt_m * dt_m;
     
     this->applyPeriodicity_m();
     
     this->solve_m();
     
-    bunch_m->P = bunch_m->P + 0.5 * dt_m * bunch_m->qm / bunch_m->mass * bunch_m->E;
+    bunch_m->k2 = bunch_m->E;
+    
+    bunch_m->R += 0.5 * bunch_m->P * dt_m + (0.5 * bunch_m->k2 - 0.125 * bunch_m->k1) * dt_m * dt_m;
+    
+    this->applyPeriodicity_m();
+    
+    this->solve_m();
+    
+    bunch_m->R = bunch_m->R - bunch_m->P * dt_m - 0.5 * bunch_m->k2 * dt_m * dt_m;
+    
+    bunch_m->R += bunch_m->P * dt_m + (1.0 / 6.0 ) * (bunch_m->k1 + 2.0 * bunch_m->k2) * dt_m * dt_m;
+    bunch_m->P += (1.0 / 6.0) * (bunch_m->k1 + 4.0 * bunch_m->k2 + bunch_m->E) * dt_m;
+    
+    this->applyPeriodicity_m();
+    
+//     // RK-2
+//     
+//     this->solve_m();
+//     
+//     bunch_m->k1 = bunch_m->E;
+//     
+//     bunch_m->R += bunch_m->P * dt_m;
+//     
+//     this->applyPeriodicity_m();
+//     
+//     this->solve_m();
+//     
+//     bunch_m->R += 0.5 * bunch_m->k1 * dt_m * dt_m;
+//     bunch_m->P += 0.5 * (bunch_m->k1 + bunch_m->E) * dt_m;
+//     
+//     this->applyPeriodicity_m();
+    
+    
+    
+    
+    
+    
+    
+//     /* Leap-Frog
+//      * 
+//      * v_{i+1/2} = v_i + a_i * dt / 2    (a_i = F_i = q * E_i )
+//      * x_{i+1} = x_i + v_{i+1/2} * dt
+//      * v_{i+1} = v_{i+1/2} + a_{i+1} * dt / 2
+//      */
+//     
+//     this->solve_m();
+//     
+//     bunch_m->P = bunch_m->P + 0.5 * dt_m * bunch_m->qm / bunch_m->mass * bunch_m->E;
+//     bunch_m->R = bunch_m->R + dt_m * bunch_m->P;
+//     
+//     this->applyPeriodicity_m();
+//     
+//     this->solve_m();
+//     
+//     bunch_m->P = bunch_m->P + 0.5 * dt_m * bunch_m->qm / bunch_m->mass * bunch_m->E;
 }
 
 
