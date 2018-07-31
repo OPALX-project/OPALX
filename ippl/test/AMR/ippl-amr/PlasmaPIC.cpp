@@ -197,9 +197,10 @@ void PlasmaPIC::initDistribution_m() {
     const BoxArray ba = amropal_m->boxArray(0);
     const DistributionMapping& dmap = amropal_m->DistributionMap(0);
     
-    Vector_t length = right_m - left_m;
+    Vector_t length  = right_m - left_m;
+    Vector_t vlength = vmax_m - vmin_m;
     Vector_t hx = length / pNx_m;
-    Vector_t hv = length / pNv_m;
+    Vector_t hv = vlength / pNv_m;
     
     std::size_t ip = 0;
     
