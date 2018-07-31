@@ -1,8 +1,10 @@
 #include "Utilities/MSLang.h"
+#include "Utilities/PortableBitmapReader.h"
 #include "Algorithms/Quaternion.h"
 #include "Physics/Physics.h"
 
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 
 #include <iostream>
 #include <string>
@@ -591,6 +593,62 @@ namespace mslang {
         }
     };
 
+    struct Mask: public Function {
+        static
+        bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+            Mask *pixmap = static_cast<Mask*>(fun);
+
+            std::string str(it, end);
+            std::cout << str << std::endl;
+            boost::regex argument("'([^\\0]+)'(\\).*)");
+            boost::smatch what;
+            if (!boost::regex_match(str, what, argument)) return false;
+
+            std::string filename = what[1];
+            std::cout << filename << std::endl;
+            if (!boost::filesystem::exists(filename)) {
+                ERRORMSG("file '" << filename << "' doesn't exists" << endl);
+                return false;
+            }
+
+            PortableBitmapReader reader(filename);
+            unsigned int width = reader.getWidth();
+            unsigned int height = reader.getHeight();
+            double pixel_width = 0.001;
+            double pixel_height = 0.001;
+
+            for (unsigned int i = 0; i < height; ++ i) {
+                for (unsigned int j = 0; j < width; ++ j) {
+                    if (reader.isBlack(i, j)) {
+                        Rectangle rect;
+                        rect.width_m = pixel_width;
+                        rect.height_m = pixel_height;
+                        rect.trafo_m = AffineTransformation(Vector_t(1, 0, (j - 0.5 * width) * pixel_width),
+                                                            Vector_t(0, 1, (0.5 * height - i) * pixel_height));
+                        // rect.computeBoundingBox();
+                        pixmap->pixels_m.push_back(rect);
+                        pixmap->pixels_m.back().computeBoundingBox();
+                    }
+                }
+            }
+
+            std::string fullMatch = what[0];
+            std::string rest = what[2];
+            it += (fullMatch.size() - rest.size() + 1);
+
+            return true;
+        }
+
+        virtual void print(int ident) {
+            for (auto pix: pixels_m) pix.print(ident);
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            for (auto pix: pixels_m) pix.apply(bfuncs);
+        }
+
+        std::vector<Rectangle> pixels_m;
+    };
 
     QuadTree::QuadTree(const QuadTree &right):
         level_m(right.level_m),
@@ -794,6 +852,10 @@ namespace mslang {
             // it = it2;
 
             return true;
+        } else if (identifier == "mask") {
+            fun = new Mask;
+            it += shift;
+            return Mask::parse_detail(it, end, fun);
         }
 
 
