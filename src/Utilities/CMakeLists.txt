@@ -2,6 +2,7 @@ set (_SRCS
   OpalException.cpp
   OpalFilter.cpp
   OpalSection.cpp
+  PortableBitmapReader.cpp
   RegularExpression.cpp
   Round.cpp
   Timer.cpp
@@ -20,6 +21,7 @@ set (HDRS
     OpalException.h
     OpalFilter.h
     OpalSection.h
+    PortableBitmapReader.h
     RegularExpression.h
     Round.h
     Timer.h

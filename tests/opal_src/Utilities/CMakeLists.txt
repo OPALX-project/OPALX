@@ -1,4 +1,5 @@
 set (_SRCS
+    PortableBitmapReaderTest.cpp
   )
 
 include_directories (
