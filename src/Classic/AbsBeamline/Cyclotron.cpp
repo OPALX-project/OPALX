@@ -136,6 +136,14 @@ double Cyclotron::getPZinit() const {
     return pzinit_m;
 }
 
+void Cyclotron::setTrimCoilThreshold(double trimCoilThreshold) {
+    trimCoilThreshold_m = trimCoilThreshold;
+}
+
+double Cyclotron::getTrimCoilThreshold() const {
+    return trimCoilThreshold_m;
+}
+
 void Cyclotron::setSpiralFlag(bool spiral_flag) {
     spiral_flag_m = spiral_flag;
 }
@@ -336,7 +344,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 
     /* if((R[0] > 0) && (R[1] >= 0)) tet = tempv;
        else*/
-    if((R[0] < 0) && (R[1] >= 0)) tet = pi + tempv;
+    if     ((R[0] < 0) && (R[1] >= 0)) tet = pi + tempv;
     else if((R[0] < 0) && (R[1] <= 0)) tet = pi + tempv;
     else if((R[0] > 0) && (R[1] <= 0)) tet = 2.0 * pi + tempv;
     else if((R[0] == 0) && (R[1] > 0)) tet = pi / 2.0;
@@ -443,112 +451,115 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         // bt = -( btf - btcub );
         bt = - btf;
 
-        applyTrimCoil(rad, R[2], &br, &bz);
+        if (std::abs(br) > trimCoilThreshold_m || std::abs(bz) > trimCoilThreshold_m)
+            applyTrimCoil(rad, R[2], &br, &bz);
 
         /* Br Btheta -> Bx By */
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
         B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
         B[2] = bz;
 
-	//*gmsg << "R = " << rad << ", Theta = " << tet << ", B = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
+        //*gmsg << "R = " << rad << ", Theta = " << tet << ", B = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
 
     } else {
         return true;
     }
 
-    if(myBFieldType_m == SYNCHRO || myBFieldType_m == BANDRF) {
-        //The RF field is supposed to be sampled on a cartesian grid
-        vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
-        vector<double>::const_iterator rffi    = rffrequ_m.begin();
-        vector<double>::const_iterator rfphii  = rfphi_m.begin();
-        vector<double>::const_iterator escali  = escale_m.begin();
-	vector<bool>::const_iterator superposei = superpose_m.begin();
-        vector< vector<double> >::const_iterator rffci;
-        vector< vector<double> >::const_iterator rfvci;
+    if(myBFieldType_m != SYNCHRO && myBFieldType_m != BANDRF) {
+        return false;
+    }
+
+    //The RF field is supposed to be sampled on a cartesian grid
+    vector<Fieldmap *>::const_iterator fi  = RFfields_m.begin();
+    vector<double>::const_iterator rffi    = rffrequ_m.begin();
+    vector<double>::const_iterator rfphii  = rfphi_m.begin();
+    vector<double>::const_iterator escali  = escale_m.begin();
+    vector<bool>::const_iterator superposei = superpose_m.begin();
+    vector< vector<double> >::const_iterator rffci;
+    vector< vector<double> >::const_iterator rfvci;
+    if(myBFieldType_m == SYNCHRO) {
+        rffci = rffc_m.begin();
+        rfvci = rfvc_m.begin();
+    }
+    double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
+    int fcount = 0;
+
+    for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
         if(myBFieldType_m == SYNCHRO) {
-            rffci = rffc_m.begin();
-            rfvci = rfvc_m.begin();
+          ++rffci, ++rfvci;
         }
-        double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
-        int fcount = 0;
 
-        for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
-            if(myBFieldType_m == SYNCHRO) {
-                ++rffci, ++rfvci;
+        (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
+        bool SuperPose = *superposei;
+        if (fcount > 0 && !SuperPose) {
+            //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
+            break;
+        }
+
+        // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
+        // change stuff here to match with the input units of mm in the fieldmaps. -DW
+        const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+
+        if ((temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) == false)
+            continue;
+
+        Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+        if((*fi)->getFieldstrength(temp_R, tmpE, tmpB) == true) // out of bounds
+            continue;
+
+        ++fcount;
+
+        double frequency = (*rffi);   // frequency in MHz
+        double ebscale = (*escali);   // E and B field scaling
+
+        if(myBFieldType_m == SYNCHRO) {
+            double powert = 1;
+            for(const double fcoef : (*rffci)) {
+                powert *= (t * 1e-9);
+                frequency += fcoef * powert; // Add frequency ramp (in MHz/s^n)
             }
 
-            (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
-	    bool SuperPose = *superposei;
-            if (fcount > 0 && !SuperPose) {
-	      //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
-	      break;
+            powert = 1;
+            for(const double vcoef : (*rfvci)) {
+                powert *= (t * 1e-9);
+                ebscale += vcoef * powert; // Add frequency ramp (in MHz/s^n)
             }
+        }
 
-            // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
-            // change stuff here to match with the input units of mm in the fieldmaps. -DW
-	    const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+        double phase = 2.0 * pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
 
-            if ((temp_R(0) >= xBegin && temp_R(0) <= xEnd && temp_R(1) >= yBegin && temp_R(1) <= yEnd && temp_R(2) >= zBegin && temp_R(2) <= zEnd) == false)
-                continue;
+        E += ebscale * cos(phase) * tmpE;
+        B -= ebscale * sin(phase) * tmpB;
 
-            Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-            if((*fi)->getFieldstrength(temp_R, tmpE, tmpB) == true) // out of bounds
-                continue;
+        // INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
 
-            ++fcount;
+        if(myBFieldType_m != SYNCHRO)
+            continue;
 
-            double frequency = (*rffi);   // frequency in MHz
-            double ebscale = (*escali);   // E and B field scaling
+        // Some phase output -DW
 
-            if(myBFieldType_m == SYNCHRO) {
-                double powert = 1;
-                for(const double fcoef : (*rffci)) {
-                    powert *= (t * 1e-9);
-                    frequency += fcoef * powert; // Add frequency ramp (in MHz/s^n)
-                }
+        if (tet >= 90.0 && waiting_for_gap == 1) {
 
-                powert = 1;
-                for(const double vcoef : (*rfvci)) {
-                    powert *= (t * 1e-9);
-                    ebscale += vcoef * powert; // Add frequency ramp (in MHz/s^n)
-                }
-            }
+            double phase_print = 180.0 * phase / pi;
+            phase_print = fmod(phase_print, 360) - 360.0;
 
-            double phase = 2.0 * pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
+            *gmsg << endl << "Gap 1 phase = " << phase_print << " Deg" << endl;
+            *gmsg << "Gap 1 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
+            *gmsg << "Gap 1 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
+            *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
 
-            E += ebscale * cos(phase) * tmpE;
-            B -= ebscale * sin(phase) * tmpB;
+            waiting_for_gap = 2;
+        }
+        else if (tet >= 270.0 && waiting_for_gap == 2) {
 
-            // INFOMSG("Field " << fcount << " BANDRF E= " << tmpE << " R= " << R << " phase " << phase << endl);
+            double phase_print = 180.0 * phase / pi;
+            phase_print = fmod(phase_print, 360) - 360.0;
 
-            if(myBFieldType_m != SYNCHRO)
-                continue;
-
-            // Some phase output -DW
-
-            if (tet >= 90.0 && waiting_for_gap == 1) {
-
-                double phase_print = 180.0 * phase / pi;
-                phase_print = fmod(phase_print, 360) - 360.0;
-
-                *gmsg << endl << "Gap 1 phase = " << phase_print << " Deg" << endl;
-                *gmsg << "Gap 1 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
-                *gmsg << "Gap 1 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
-                *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
-
-                waiting_for_gap = 2;
-            }
-            else if (tet >= 270.0 && waiting_for_gap == 2) {
-
-                double phase_print = 180.0 * phase / pi;
-                phase_print = fmod(phase_print, 360) - 360.0;
-
-                *gmsg << endl << "Gap 2 phase = " << phase_print << " Deg" << endl;
-                *gmsg << "Gap 2 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
-                *gmsg << "Gap 2 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
-                *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
-                waiting_for_gap = 0;
-            }
+            *gmsg << endl << "Gap 2 phase = " << phase_print << " Deg" << endl;
+            *gmsg << "Gap 2 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
+            *gmsg << "Gap 2 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
+            *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
+            waiting_for_gap = 0;
         }
     }
     return false;
