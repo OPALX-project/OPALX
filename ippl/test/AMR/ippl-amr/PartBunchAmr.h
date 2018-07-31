@@ -15,7 +15,6 @@ public:
     ParticleAttrib<double> qm;
     ParticleAttrib<double> phi;
     typename PLayout::ParticlePos_t E;
-    typename PLayout::ParticlePos_t E1;
     typename PLayout::ParticlePos_t P;
     ParticleAttrib<double> mass;
     ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
@@ -23,20 +22,17 @@ public:
     
     typename PLayout::ParticlePos_t k1;
     typename PLayout::ParticlePos_t k2;
-    typename PLayout::ParticlePos_t k3;
     
     PartBunchAmr() {
         this->addAttribute(qm);
         this->addAttribute(phi);
         this->addAttribute(E);
-        this->addAttribute(E1);
         this->addAttribute(P);
         this->addAttribute(mass);
         this->addAttribute(Rphase);
         
         this->addAttribute(k1);
         this->addAttribute(k2);
-        this->addAttribute(k3);
     }
     
     ~PartBunchAmr() {}
