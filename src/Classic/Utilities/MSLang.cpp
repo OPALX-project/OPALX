@@ -599,7 +599,7 @@ namespace mslang {
             Mask *pixmap = static_cast<Mask*>(fun);
 
             std::string str(it, end);
-            boost::regex argument("'([^\\0]+)'(\\).*)");
+            boost::regex argument("'([^,]+)'," + UDouble + "," + UDouble + "(\\).*)");
             boost::smatch what;
             if (!boost::regex_match(str, what, argument)) return false;
 
@@ -612,8 +612,8 @@ namespace mslang {
             PortableBitmapReader reader(filename);
             unsigned int width = reader.getWidth();
             unsigned int height = reader.getHeight();
-            double pixel_width = 0.001;
-            double pixel_height = 0.001;
+            double pixel_width = atof(std::string(what[2]).c_str()) / width;
+            double pixel_height = atof(std::string(what[4]).c_str()) / height;
 
             for (unsigned int i = 0; i < height; ++ i) {
                 for (unsigned int j = 0; j < width; ++ j) {
@@ -631,7 +631,7 @@ namespace mslang {
             }
 
             std::string fullMatch = what[0];
-            std::string rest = what[2];
+            std::string rest = what[6];
             it += (fullMatch.size() - rest.size() + 1);
 
             return true;
