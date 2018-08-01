@@ -194,9 +194,9 @@ namespace mslang {
             out << "# level: " << level_m << ", size: " << objects_m.size() << std::endl;
             bb_m.writeGnuplot(out);
             out << "# num holes: " << objects_m.size() << std::endl;
-            for (const Base *obj: objects_m) {
-                obj->writeGnuplot(out);
-            }
+            // for (const Base *obj: objects_m) {
+            //     obj->writeGnuplot(out);
+            // }
             out << std::endl;
 
             if (nodes_m != 0) {

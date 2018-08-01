@@ -599,13 +599,11 @@ namespace mslang {
             Mask *pixmap = static_cast<Mask*>(fun);
 
             std::string str(it, end);
-            std::cout << str << std::endl;
             boost::regex argument("'([^\\0]+)'(\\).*)");
             boost::smatch what;
             if (!boost::regex_match(str, what, argument)) return false;
 
             std::string filename = what[1];
-            std::cout << filename << std::endl;
             if (!boost::filesystem::exists(filename)) {
                 ERRORMSG("file '" << filename << "' doesn't exists" << endl);
                 return false;
@@ -731,19 +729,23 @@ namespace mslang {
                                                 0.0),
                                        bb_m.center_m));
 
-        bool allNonEmpty = true;
         for (unsigned int i = 0; i < 4u; ++ i) {
             next[i].transferIfInside(objects_m);
-            if (next[i].objects_m.size() == 0) {
-                allNonEmpty = false;
-                for (unsigned int j = 0; j < i; ++ j) {
-                    objects_m.merge(next[j].objects_m);
-                }
+        }
+
+        bool allEmpty = true;
+        for (unsigned int i = 0; i < 4u; ++ i) {
+            if (next[i].objects_m.size() != 0) {
+                allEmpty = false;
                 break;
             }
         }
 
-        if (!allNonEmpty) {
+        if (allEmpty) {
+            for (unsigned int i = 0; i < 4u; ++ i) {
+                objects_m.merge(next[i].objects_m);
+            }
+
             delete[] next;
             return;
         }
