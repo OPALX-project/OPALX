@@ -1300,15 +1300,12 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     const double fmLowE  = CyclotronElement->getFMLowE();
     const double fmHighE = CyclotronElement->getFMHighE();
 
-    double lE,hE;
-    lE = fmLowE;
-    hE = fmHighE;
-
-    if ((lE<0) || (hE<0)) {
-        lE = E_m*1E-6;
-        hE = E_m*1E-6;
+    if ( fmLowE < 0 || fmHighE < 0 ) {
+        throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                            "Missing attributes 'FMLOWE' and/or 'FMHIHGE' in "
+                            "'CYCLOTRON' definition.");
     }
-
+    
     int Nint = 1000;
     double scaleFactor = 1.0;
     bool writeMap = true;
@@ -1322,8 +1319,8 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             E_m*1E-6,
                                             CyclotronElement->getCyclHarm(),
                                             massIneV*1E-6,
-                                            lE,
-                                            hE,
+                                            fmLowE,
+                                            fmHighE,
                                             (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]),
                                             Nint,
                                             Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]),
