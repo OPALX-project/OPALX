@@ -61,6 +61,7 @@ Cyclotron::Cyclotron(const Cyclotron &right):
     zinit_m(right.zinit_m),
     pzinit_m(right.pzinit_m),
     spiral_flag_m(right.spiral_flag_m),
+    trimCoilThreshold_m(right.trimCoilThreshold_m),
     type_m(right.type_m),
     harm_m(right.harm_m),
     bscale_m(right.bscale_m),
