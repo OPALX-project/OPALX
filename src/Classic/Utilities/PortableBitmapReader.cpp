@@ -88,20 +88,22 @@ void PortableBitmapReader::readImageAscii(std::istream &in) {
 void PortableBitmapReader::readImageBinary(std::istream &in) {
     static const unsigned int sizeChar = sizeof(char) * 8;
 
-    unsigned int trueSize = (height_m * width_m);
-    unsigned int size = trueSize / sizeChar;
-    if (size * sizeChar != trueSize)
-        ++ size;
+    unsigned int numBytes = width_m / sizeChar;
+    if (numBytes * sizeChar != width_m)
+        ++ numBytes;
 
     unsigned int numPixels = 0;
-    for (unsigned int i = 0; i < size; ++ i) {
-        char c;
-        in >> c;
+    for (unsigned int i = 0; i < height_m; ++ i) {
+        for (unsigned int j = 0; j < numBytes; ++ j) {
+            unsigned char c;
+            in >> c;
 
-        unsigned int numBits = std::min(sizeChar, trueSize - numPixels);
-
-        for (unsigned int j = numBits; j > 0 ; -- j, ++ numPixels) {
-            pixels_m[numPixels] = ((c >> (numBits - 1)) & 1);
+            for (unsigned int j = sizeChar; j > 0 ; -- j) {
+                pixels_m[numPixels ++] = ((c >> (j - 1)) & 1);
+                if (numPixels % width_m == 0) {
+                    break;
+                }
+            }
         }
     }
 }

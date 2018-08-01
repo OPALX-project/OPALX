@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
                     std::istreambuf_iterator<char>());
 
     const unsigned int method = (atoi(argv[2]) == 0 ? 0: 1);
-    std::cout << method << std::endl;
     const unsigned int N = atoi(argv[3]);
 
     // std::string str("repeat( translate(union(rectangle(0.1, 0.1), ellipse(0.1, 0.1)), -0.01, -0.02), 2, 0.1, 0.2)");
@@ -42,8 +41,8 @@ int main(int argc, char *argv[])
     str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
 
      if (parse(str, fun)) {
-        fun->print(0);
-        std::cout << "\n" << std::endl;
+        // fun->print(0);
+        // std::cout << "\n" << std::endl;
 
         std::vector<mslang::Base*> baseBlocks;
         fun->apply(baseBlocks);
@@ -86,7 +85,7 @@ int main(int argc, char *argv[])
 
             mslang::QuadTree tree;
             tree.bb_m = mslang::BoundingBox(llc, urc);
-            std::cout << tree.bb_m << std::endl;
+
             tree.objects_m.insert(tree.objects_m.end(), baseBlocks.begin(), baseBlocks.end());
             tree.buildUp();
 
@@ -95,7 +94,7 @@ int main(int argc, char *argv[])
 
             out.close();
 
-            if (false) {
+            if (true) {
                 out.open("particles.gpl");
                 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
