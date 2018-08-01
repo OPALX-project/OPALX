@@ -621,8 +621,8 @@ namespace mslang {
                         Rectangle rect;
                         rect.width_m = pixel_width;
                         rect.height_m = pixel_height;
-                        rect.trafo_m = AffineTransformation(Vector_t(1, 0, (j - 0.5 * width) * pixel_width),
-                                                            Vector_t(0, 1, (0.5 * height - i) * pixel_height));
+                        rect.trafo_m = AffineTransformation(Vector_t(1, 0, (0.5 * width - j) * pixel_width),
+                                                            Vector_t(0, 1, (i - 0.5 * height) * pixel_height));
                         // rect.computeBoundingBox();
                         pixmap->pixels_m.push_back(rect);
                         pixmap->pixels_m.back().computeBoundingBox();
