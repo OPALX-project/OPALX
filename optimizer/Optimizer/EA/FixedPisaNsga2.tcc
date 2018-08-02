@@ -11,8 +11,6 @@
 #include <sys/stat.h>
 
 #include "boost/algorithm/string.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -32,15 +30,17 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
                            Expressions::Named_t constraints,
                            DVarContainer_t dvars,
                            size_t dim, Comm::Bundle_t comms,
-                           CmdArguments_t args)
+                           CmdArguments_t args,
+                           std::vector<double> hypervolRef)
              : Optimizer(comms.opt)
              , statistics_(new Statistics<size_t>("individuals"))
              , comms_(comms)
              , objectives_m(objectives)
              , constraints_m(constraints)
              , dvars_m(dvars)
-             , args_(args)
+             , args_m(args)
              , dim_m(dim)
+             , hvol_ref_m(hypervolRef)
 {
     my_local_pid_ = 0;
     MPI_Comm_rank(comms_.opt, &my_local_pid_);
@@ -48,10 +48,10 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     //FIXME: proper rand gen initialization (use boost?!)
     srand(time(NULL) + comms_.island_id);
 
-    dump_freq_ = args->getArg<int>("dump-freq", 1, false);
+    dump_freq_       = args->getArg<int>("dump-freq", 1, false);
     maxGenerations_m = args->getArg<int>("maxGenerations", true);
-    resultFile_m = args->getArg<std::string>("outfile", "-th_generation.dat", false);
-    resultDir_m = args->getArg<std::string>("outdir", "generations", false);
+    resultFile_m     = args->getArg<std::string>("outfile", "-th_generation.dat", false);
+    resultDir_m      = args->getArg<std::string>("outdir", "generations", false);
 
     // create output directory if it does not exists
     struct stat dirInfo;
@@ -86,7 +86,7 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
 
     DVarContainer_t::iterator itr;
     std::vector<std::string> dNames;
-    
+
     for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
         std::string dName = boost::get<VAR_NAME>(itr->second);
         file_param_descr_ += '%' + dName + ',';
@@ -144,13 +144,14 @@ void FixedPisaNsga2<CO, MO>::initialize() {
 
     // start poll loop
     run_clock_start_ = boost::chrono::system_clock::now();
-    last_clock_ = boost::chrono::system_clock::now();
+    last_clock_      = boost::chrono::system_clock::now();
     run();
 
+    // run has ended
     bool compHyvol = (objectives_m.size() > (hyper_opt / 2 + 1));
     if (compHyvol)
         current_hvol_ =
-            variator_m->population()->computeHypervolume(comms_.island_id);
+          variator_m->population()->computeHypervolume(comms_.island_id, hvol_ref_m);
 
     boost::chrono::duration<double> total =
         boost::chrono::system_clock::now() - run_clock_start_;
@@ -206,7 +207,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
         delete[] buffer;
 
         std::set<unsigned int> new_state_ids;
-        foreach(individual ind, new_states) {
+        for (individual ind : new_states) {
 
             // only insert individual if not already in population
             if(variator_m->population()->isRepresentedInPopulation(ind.genes))
@@ -262,9 +263,8 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
         ind->objectives.clear();
 
         //XXX: check order of genes
-        reqVarContainer_t::iterator itr;
-        std::map<std::string, double> vars;
-        for(itr = res.begin(); itr != res.end(); itr++) {
+        reqVarContainer_t::iterator itr = res.begin();
+        for(; itr != res.end(); ++itr) {
             // mark invalid if expression could not be evaluated or constraint does not hold
             if(!itr->second.is_valid || (itr->second.value.size() > 1 && !itr->second.value[0])) {
                 std::ostringstream dump;
@@ -321,7 +321,7 @@ void FixedPisaNsga2<CO, MO>::postPoll() {
         bool compHyvol = (objectives_m.size() > (hyper_opt / 2 + 1));
         if (compHyvol) {
             double hvol =
-                variator_m->population()->computeHypervolume(comms_.island_id);
+              variator_m->population()->computeHypervolume(comms_.island_id, hvol_ref_m);
             hvol_progress_ = fabs(current_hvol_ - hvol) / current_hvol_;
             current_hvol_ = hvol;
         }
@@ -337,7 +337,7 @@ void FixedPisaNsga2<CO, MO>::postPoll() {
         stats << "dt = " << dt.count() << "s, total = " << total.count()
               << "s" << std::endl;
         if (compHyvol)
-            stats << "Hypervolume = " << current_hvol_            << std::endl;
+            stats << "Hypervolume = " << current_hvol_        << std::endl;
         stats << "__________________________________________" << std::endl;
         progress_->log(stats);
 
@@ -370,7 +370,7 @@ void FixedPisaNsga2<CO, MO>::exchangeSolutionStates() {
 
     typedef typename FixedPisaNsga2::Individual_t individual;
 
-    size_t num_masters = args_->getArg<size_t>("num-masters", 1, false);
+    size_t num_masters = args_m->getArg<size_t>("num-masters", 1, false);
 
     if(num_masters <= 1 ||
        exchangeSolStateFreq_m == 0 ||
@@ -562,7 +562,8 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         dumpPopulationToFile();
         dumpPopulationToJSON();
 
-        variator_m->population()->clean_population();
+        // don't clean population otherwise final hypervolume calculation can't be done
+        //variator_m->population()->clean_population();
         curState_m = VariatorStopped;
 
         // notify pilot that we have converged
@@ -660,7 +661,7 @@ template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::dumpPopulationToFile() {
 
     // only dump old data format if the user requests it
-    if(! args_->getArg<bool>("dump-dat", false, false)) return;
+    if(! args_m->getArg<bool>("dump-dat", false, false)) return;
 
     typedef typename FixedPisaNsga2::Individual_t individual;
     boost::shared_ptr<individual> temp;
@@ -750,9 +751,9 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
     for ( Expressions::Named_t::iterator it = constraints_m.begin();
           it != constraints_m.end(); ++it )
     {
-	std::string s = it->second->toString();
-	/// cleanup string to make json reader happy
-	s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
+        std::string s = it->second->toString();
+        /// cleanup string to make json reader happy
+        s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
 
         file << "\t\t\"" << s << "\"";
         

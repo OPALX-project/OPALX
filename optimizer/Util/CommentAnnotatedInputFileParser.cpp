@@ -4,15 +4,12 @@
 
 #include "boost/algorithm/string.hpp"
 #include "boost/tuple/tuple.hpp"
-#include "boost/foreach.hpp"
 
 #include "Expression/SumErrSq.h"
 #include "Expression/FromFile.h"
 
 #include "CommentAnnotatedInputFileParser.h"
 #include "Util/OptPilotException.h"
-
-#define foreach BOOST_FOREACH
 
 typedef std::pair<std::string, DVar_t>  namedDVar_t;
 
@@ -31,17 +28,17 @@ void CommentAnnotatedInputFileParser::getProblem(Expressions::Named_t &objective
                                      Expressions::Named_t &constraints,
                                      DVarContainer_t &dvars) {
 
-    foreach(Expressions::SingleNamed_t obj, nobjectives_) {
+    for(Expressions::SingleNamed_t obj : nobjectives_) {
         if(objectives_.count(obj.first) > 0)
             objectives.insert(Expressions::SingleNamed_t(obj.first, obj.second));
     }
 
-    foreach(Expressions::SingleNamed_t constr, nconstraints_) {
+    for(Expressions::SingleNamed_t constr : nconstraints_) {
         if(constraints_.count(constr.first) > 0)
             constraints.insert(Expressions::SingleNamed_t(constr.first, constr.second));
     }
 
-    foreach(namedDVar_t dvar, ndvars_) {
+    for(namedDVar_t dvar : ndvars_) {
         if(dvars_.count(dvar.first) > 0)
             dvars.insert(namedDVar_t(dvar.first, dvar.second));
     }
@@ -137,7 +134,7 @@ std::set<std::string> CommentAnnotatedInputFileParser::getListAttribute(
                  boost::token_compress_on);
 
     std::set<std::string> ret;
-    foreach(std::string list_attribute_name, attributes) {
+    for(std::string list_attribute_name : attributes) {
         boost::trim(list_attribute_name);
         ret.insert(list_attribute_name);
     }

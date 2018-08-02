@@ -64,6 +64,7 @@ namespace {
         MAXGENERATIONS,
         EPSILON,
         EXPECTEDHYPERVOL,
+        HYPERVOLREFERENCE,
         CONVHVOLPROG,
         ONEPILOTCONVERGE,
         SOLSYNCH,
@@ -114,6 +115,8 @@ OptimizeCmd::OptimizeCmd():
         ("EPSILON", "Tolerance of hypervolume criteria, default 0.001");
     itsAttr[EXPECTEDHYPERVOL] = Attributes::makeReal
         ("EXPECTED_HYPERVOL", "The reference hypervolume, default 0");
+    itsAttr[HYPERVOLREFERENCE] = Attributes::makeRealArray
+        ("HYPERVOLREFERENCE", "The reference point (real array) for the hypervolume, default empty (origin)");
     itsAttr[CONVHVOLPROG] = Attributes::makeReal
         ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller, default 0");
     itsAttr[ONEPILOTCONVERGE] = Attributes::makeBool
@@ -123,7 +126,7 @@ OptimizeCmd::OptimizeCmd():
     itsAttr[GENEMUTATIONPROBABILITY] = Attributes::makeReal
         ("GENE_MUTATION_PROBABILITY", "Mutation probability of individual gene, default: 0.5");
     itsAttr[MUTATIONPROBABILITY] = Attributes::makeReal
-        ("MUTATION_PROBABILITY", "Mutation probability of genom, default: 0.5");
+        ("MUTATION_PROBABILITY", "Mutation probability of genome, default: 0.5");
     itsAttr[RECOMBINATIONPROBABILITY] = Attributes::makeReal
         ("RECOMBINATION_PROBABILITY", "Probability for genes to recombine, default: 0.5");
     itsAttr[SIMBINCROSSOVERNU] = Attributes::makeReal
@@ -269,6 +272,7 @@ void OptimizeCmd::execute() {
             }
         }
     }
+    // sanity checks
     if (Attributes::getString(itsAttr[INPUT]) == "") {
         throw OpalException("OptimizeCmd::execute",
                             "The argument INPUT has to be provided");
@@ -280,6 +284,11 @@ void OptimizeCmd::execute() {
     if (Attributes::getReal(itsAttr[MAXGENERATIONS]) <= 0) {
         throw OpalException("OptimizeCmd::execute",
                             "The argument MAXGENERATIONS has to be provided");
+    }
+    if (Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]).empty() == false &&
+        Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]).size()  != objectivesstr.size()) {
+        throw OpalException("OptimizeCmd::execute",
+                            "The hypervolume reference point should have the same dimension as the objectives");
     }
 
     if (Attributes::getString(itsAttr[SIMTMPDIR]) != "") {
@@ -405,7 +414,7 @@ void OptimizeCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, constraints));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, constraints, Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;
