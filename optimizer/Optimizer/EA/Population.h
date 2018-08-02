@@ -11,8 +11,6 @@
 #include <fstream>
 
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "extlib/wfgHypervolume/hypervolume.h"
 
@@ -116,7 +114,7 @@ public:
 
     void commit_individuals(std::set<unsigned int> ids) {
 
-        foreach(unsigned int id, ids) {
+        for (unsigned int id : ids) {
             //std::cout << "--+ committing id = " << id << "\xd";
             individual ind = get_staging(id);
             individuals.insert(ind_t(id, ind));
@@ -150,7 +148,7 @@ public:
     //XXX: currently O(n): add a fast look-up table?
     bool isRepresentedInPopulation(genes_t ind_genes) {
 
-        foreach(ind_t ind, individuals) {
+        for(ind_t ind : individuals) {
             if( ind_genes == ind.second->genes )
                 return true;
         }

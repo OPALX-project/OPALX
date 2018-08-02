@@ -4,7 +4,6 @@
 =============================================================================*/
 #include "evaluator.hpp"
 
-#include <boost/foreach.hpp>
 #include <boost/variant/apply_visitor.hpp>
 
 namespace client { namespace code_gen {
@@ -101,8 +100,7 @@ namespace client { namespace code_gen {
 
     bool StackEvaluator::operator()(ast::function_call const& x) {
 
-        BOOST_FOREACH(ast::function_call_argument const& arg, x.args) {
-
+        for(ast::function_call_argument const& arg : x.args) {
             if (!boost::apply_visitor(*this, arg))
                 return false;
         }
@@ -135,7 +133,7 @@ namespace client { namespace code_gen {
         if (!boost::apply_visitor(*this, x.first))
             return false;
 
-        BOOST_FOREACH(ast::operation const& oper, x.rest) {
+        for(ast::operation const& oper : x.rest) {
             if (!(*this)(oper))
                 return false;
         }

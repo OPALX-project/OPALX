@@ -11,8 +11,6 @@
 #include <sys/stat.h>
 
 #include "boost/algorithm/string.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -209,7 +207,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
         delete[] buffer;
 
         std::set<unsigned int> new_state_ids;
-        foreach(individual ind, new_states) {
+        for (individual ind : new_states) {
 
             // only insert individual if not already in population
             if(variator_m->population()->isRepresentedInPopulation(ind.genes))

@@ -10,8 +10,6 @@
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "Util/Types.h"
 #include "Util/SDDSReader.h"
@@ -58,7 +56,7 @@ struct SumErrSq {
 
         double sum = 0;
 
-        foreach(Measurement measurement, measurements_) {
+        for(Measurement measurement : measurements_) {
             double sim_value = 0.0;
             try {
                 sim_stats->getInterpolatedValue(
