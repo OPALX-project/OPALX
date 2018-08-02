@@ -4,9 +4,6 @@
 #include <set>
 #include <vector>
 
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
-
 #include "Comm/Splitter/SplitStrategy.h"
 
 typedef std::vector<int> coordinates_t;
@@ -52,12 +49,12 @@ public:
         }
 
         // 3. Compute centroids of partition and assign master
-        foreach(region_t & region, regions_) {
+        for(region_t & region : regions_) {
             computeCentroid(region);
         }
 
         // 4. Create communicator groups
-        foreach(region_t & region, regions_) {
+        for(region_t & region : regions_) {
             bool is_worker = false;
 
             coordinates_t iter = region.origin;
@@ -107,7 +104,7 @@ protected:
         int split_in_direction = 0;
         int max_ext_dir = 0;
 
-        foreach(region_t region, regions_) {
+        for(region_t region : regions_) {
             for(int dim = 0; dim < topology_.getNumDimensions(); dim++) {
                 if(region.extensions[dim] > max_ext_dir) {
                     split_in_direction = dim;
