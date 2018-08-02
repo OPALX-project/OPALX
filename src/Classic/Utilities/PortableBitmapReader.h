@@ -15,6 +15,7 @@ public:
     unsigned int getHeight() const;
 
     bool isBlack(unsigned int i, unsigned int j) const;
+    void print(std::ostream &out) const;
 
 private:
     void readHeader(std::istream &in);
@@ -33,8 +34,6 @@ private:
     };
 
     FileType type_m;
-
-    // static unsigned int sizeChar_s;
 
     std::vector<bool> pixels_m;
 };
