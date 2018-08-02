@@ -149,6 +149,7 @@ void FixedPisaNsga2<CO, MO>::initialize() {
     last_clock_      = boost::chrono::system_clock::now();
     run();
 
+    // run has ended
     bool compHyvol = (objectives_m.size() > (hyper_opt / 2 + 1));
     if (compHyvol)
         current_hvol_ =
@@ -563,7 +564,8 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         dumpPopulationToFile();
         dumpPopulationToJSON();
 
-        variator_m->population()->clean_population();
+        // don't clean population otherwise final hypervolume calculation can't be done
+        //variator_m->population()->clean_population();
         curState_m = VariatorStopped;
 
         // notify pilot that we have converged
@@ -751,9 +753,9 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
     for ( Expressions::Named_t::iterator it = constraints_m.begin();
           it != constraints_m.end(); ++it )
     {
-	std::string s = it->second->toString();
-	/// cleanup string to make json reader happy
-	s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
+        std::string s = it->second->toString();
+        /// cleanup string to make json reader happy
+        s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
 
         file << "\t\t\"" << s << "\"";
         
