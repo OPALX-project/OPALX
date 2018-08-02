@@ -61,11 +61,13 @@ public:
      *  @param[in] dim number of objectives
      *  @param[in] comms available to the optimizer
      *  @param[in] args the user passed on the command line
+     *  @param[in] hypervolRef hypervolume reference point
      */
     FixedPisaNsga2(Expressions::Named_t objectives,
                    Expressions::Named_t constraints,
                    DVarContainer_t dvars, size_t dim, Comm::Bundle_t comms,
-                   CmdArguments_t args);
+                   CmdArguments_t args,
+                   std::vector<double> hypervolRef);
 
     ~FixedPisaNsga2();
 
@@ -175,7 +177,7 @@ private:
     DVarContainer_t dvars_m;
 
     /// command line arguments specified by the user
-    CmdArguments_t args_;
+    CmdArguments_t args_m;
 
     /// size of initial population
     size_t alpha_m;
@@ -204,6 +206,9 @@ private:
     double current_hvol_;
     double conv_hvol_progress_;
     double hvol_progress_;
+
+    /// hypervolume reference point
+    std::vector<double> hvol_ref_m;
 
     /// file header for result files contains this parameter description
     std::string file_param_descr_;

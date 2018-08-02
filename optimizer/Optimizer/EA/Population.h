@@ -162,7 +162,9 @@ public:
     }
 
 
-    double computeHypervolume(size_t island_id) {
+    double computeHypervolume(size_t island_id, const std::vector<double>& referencePoint) {
+        // protection check
+        if (individuals.empty() == true) return -1;
 
         std::ofstream file;
         std::ostringstream filename;
@@ -186,7 +188,7 @@ public:
         file.flush();
         file.close();
 
-        hypervolume_ = Hypervolume::FromFile(filename.str());
+        hypervolume_ = Hypervolume::FromFile(filename.str(), referencePoint);
         return hypervolume_;
     }
 

@@ -15,7 +15,7 @@
 
 /**
  *  \class CmdArguments
- *  \brief Parsing commando line arguments
+ *  \brief Parsing command line arguments
  *
  *  In order to have a flexible framework, each component implementation gets
  *  access to all command line arguments.

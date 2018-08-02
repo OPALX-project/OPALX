@@ -22,6 +22,9 @@
 
 */
 
+#include <string>
+#include <vector>
+
 // To do:
 // - can we sort less often or reduce/optimise dominance checks?
 // - should we use FPL's data structure?
@@ -36,7 +39,7 @@
 
 namespace Hypervolume {
 
-    double FromFile(std::string file);
+    double FromFile(std::string file, const std::vector<double>& referencePoint);
     //Room for more functions to compute volumes
     //without accessing external files
 }
