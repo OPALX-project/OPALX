@@ -138,7 +138,7 @@ double Cyclotron::getPZinit() const {
 }
 
 void Cyclotron::setTrimCoilThreshold(double trimCoilThreshold) {
-    trimCoilThreshold_m = trimCoilThreshold;
+    trimCoilThreshold_m = 10.0 * trimCoilThreshold; // convert from Tesla to kGauss
 }
 
 double Cyclotron::getTrimCoilThreshold() const {
@@ -452,8 +452,13 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         // bt = -( btf - btcub );
         bt = - btf;
 
-        if (std::abs(br) > trimCoilThreshold_m || std::abs(bz) > trimCoilThreshold_m)
+        if (std::abs(bz) > trimCoilThreshold_m)
             applyTrimCoil(rad, R[2], &br, &bz);
+        else {
+            double tmp_bz = 0.0;
+            applyTrimCoil(rad, R[2], &br, &tmp_bz);
+            bz += tmp_bz * std::abs(bz) / trimCoilThreshold_m;
+        }
 
         /* Br Btheta -> Bx By */
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
