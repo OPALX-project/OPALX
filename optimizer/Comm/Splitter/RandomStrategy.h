@@ -5,9 +5,6 @@
 
 #include "Comm/Splitter/SplitStrategy.h"
 
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
-
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
@@ -41,7 +38,7 @@ public:
         int num_assigned_masters = 0;
 
         // assign workers uniform at random to each master
-        foreach(int master_pid, master_pids) {
+        for(int master_pid : master_pids) {
 
             if(master_pid == rank_) role_ = Role_t.POLLER;
 
