@@ -33,12 +33,9 @@ class Population {
 public:
     Population() {
         last_identity = 0;
-        hypervolume_  = 0.0;
     }
 
-    ~Population() {
-        clean_population();
-    }
+    ~Population() {}
 
     typedef typename Individual_t::genes_t          genes_t;
     typedef boost::shared_ptr<Individual_t>         individual;
@@ -128,9 +125,9 @@ public:
     }
 
     /**
-     *  Remove all non-surviving individuals from the population and put ID's
-     *  back in pool of free ID's.
-     *  @param surviors to keep for next generation
+     *  Remove all non-surviving individuals from the population and put IDs
+     *  back in pool of free IDs.
+     *  @param survivors to keep for next generation
      */
     void keepSurvivors(std::set<unsigned int> survivors) {
 
@@ -188,8 +185,7 @@ public:
         file.flush();
         file.close();
 
-        hypervolume_ = Hypervolume::FromFile(filename.str(), referencePoint);
-        return hypervolume_;
+        return Hypervolume::FromFile(filename.str(), referencePoint);
     }
 
 
@@ -216,12 +212,12 @@ public:
     /// iterator end on population container
     indItr_t end()   { return individuals.end(); }
 
-    /// Remove (and cleanup) all individuals in the population
-    void clean_population() {
+    /* /// Remove (and cleanup) all individuals in the population */
+    /* void clean_population() { */
 
-        stagingArea.clear();
-        individuals.clear();
-    }
+    /*     stagingArea.clear(); */
+    /*     individuals.clear(); */
+    /* } */
 
 private:
 
@@ -231,16 +227,14 @@ private:
     /// staging area for individuals probably joining population
     std::map<unsigned int, individual > stagingArea;
 
-    /// queue to handle free individual ID's
+    /// queue to handle free individual IDs
     std::queue<unsigned int> freeids;
 
     /// last used (= next free) ID
     unsigned int last_identity;
 
-    double hypervolume_;
-
     /**
-     *  Manages free individual ID's
+     *  Manages free individual IDs
      *  @return lowest free ID
      */
     unsigned int getFreeID() {
