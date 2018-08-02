@@ -14,7 +14,6 @@
 #include "Expression/Parser/skipper.hpp"
 #include "Expression/Parser/function.hpp"
 
-#include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/variant/get.hpp>

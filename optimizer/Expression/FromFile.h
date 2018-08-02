@@ -11,8 +11,6 @@
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "Util/Types.h"
 #include "Util/OptPilotException.h"
@@ -43,7 +41,7 @@ struct FromFile {
             return boost::make_tuple(0.0, false);
         }
 
-        foreach(double obj_value, values_)
+        for(double obj_value : values_)
             sum += obj_value;
 
         return boost::make_tuple(sum, is_valid);
