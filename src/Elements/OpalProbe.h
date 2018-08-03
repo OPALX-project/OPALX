@@ -39,6 +39,7 @@ public:
         YEND1,           // Not used now
         YEND,            // End of y coordinate
         WIDTH,           // Width of the probe
+        STEP,            // Step size of the probe
         SIZE
     };
     ///YEND1 is not used since it is treated as a string in the input file which should be a real argument.
