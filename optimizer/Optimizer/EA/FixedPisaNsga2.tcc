@@ -75,6 +75,7 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     alpha_m               = args->getArg<int>("initialPopulation", true);
     lambda_m              = num_ind_in_generation;
     //mu_m                = num_ind_in_generation;
+    initialOptimization_m = args->getArg<bool>("initial-optimization", false);
 
     file_param_descr_ = "%ID,";
 
@@ -101,8 +102,7 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
 
 
     // setup variator
-    variator_m.reset(new Variator_t(alpha_m, dNames, dVarBounds_m, constraints_m,
-                                    args));
+    variator_m.reset(new Variator_t(dNames, dVarBounds_m, constraints_m, args));
 
 
     // Traces and statistics
@@ -140,7 +140,7 @@ template<
 void FixedPisaNsga2<CO, MO>::initialize() {
 
     curState_m = Initialize;
-    notInitialized_m = true;
+    initialized_m = false;
 
     // start poll loop
     run_clock_start_ = boost::chrono::system_clock::now();
@@ -347,9 +347,9 @@ void FixedPisaNsga2<CO, MO>::postPoll() {
             dumpPopulationToJSON();
         }
 
-        //XXX we can only use lambda_m here (selector does not support
-        //    variable size). Change selector?
-        toSelectorAndCommit(lambda_m);
+        // we can only send all finished individuals (selector does not support
+        // variable size).
+        toSelectorAndCommit();
 
         exchangeSolutionStates();
 
@@ -419,7 +419,7 @@ void FixedPisaNsga2<CO, MO>::exchangeSolutionStates() {
 
 
 template< template <class> class CO, template <class> class MO >
-void FixedPisaNsga2<CO, MO>::toSelectorAndCommit(int num_individuals) {
+void FixedPisaNsga2<CO, MO>::toSelectorAndCommit() {
 
     to_selector_.clear();
     selector_mu_ = finishedBuffer_m.size();
@@ -535,10 +535,15 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
     // State 0 of the FSM: generate initial population and write
     // information about initial population to ini file.
     case Initialize: {
-        if(notInitialized_m) {
-            variator_m->initial_population();
+        if(initialized_m == false) {
+            if (initialOptimization_m == true) {
+              // double population such that workers keep busy until full initial population is found
+              variator_m->initial_population(2*alpha_m);
+            } else {
+              variator_m->initial_population(alpha_m);
+            }
             dispatch_forward_solves();
-            notInitialized_m = false;
+            initialized_m = true;
         }
 
         //XXX: wait till the first alpha_m individuals are ready then start
@@ -546,12 +551,14 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         if(finishedBuffer_m.size() >= alpha_m) {
 
             act_gen = 1;
-            toSelectorAndCommit(alpha_m);
+            toSelectorAndCommit();
             curState_m = InitializeSelector;
 
-            //FIXME: and double the population again to have all workers busy
-            variator_m->initial_population();
-            dispatch_forward_solves();
+            if (initialOptimization_m == false) {
+                //FIXME: and double the population again to have all workers busy
+                variator_m->initial_population(alpha_m);
+                dispatch_forward_solves();
+            }
         }
         break;
     }
