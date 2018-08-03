@@ -51,16 +51,15 @@ public:
 
     virtual void goOffline();
 
-    void setXstart(double xstart);
+    /// Set dimensions and consistency checks
+    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
+
     virtual double getXstart() const;
 
-    void setXend(double xend);
     virtual double getXend() const;
 
-    void setYstart(double ystart);
     virtual double getYstart() const;
 
-    void setYend(double yend);
     virtual double getYend() const;
 
     void setOPCharge(double charge);
@@ -87,11 +86,15 @@ public:
 private:
     std::string filename_m;             /**< The name of the inputfile*/
     double position_m;
+    ///@{ input geometry positions
     double xstart_m;
     double xend_m;
     double ystart_m;
     double yend_m;
+    double rstart_m;
+    double rend_m;
     double width_m;
+    ///@}
     double opcharge_m;
     double opmass_m;
     double opyield_m;

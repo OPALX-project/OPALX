@@ -39,32 +39,25 @@ CCollimator::CCollimator():
     Component(),
     filename_m(""),
     informed_m(false),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+}
 
 
 CCollimator::CCollimator(const CCollimator &right):
     Component(right),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
-    xstart_m(right.xstart_m),
-    xend_m(right.xend_m),
-    ystart_m(right.ystart_m),
-    yend_m(right.yend_m),
-    zstart_m(right.zstart_m),
-    zend_m(right.zend_m),
-    width_m(right.width_m),
     losses_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {
+    setDimensions(right.xstart_m, right.xend_m,
+                  right.ystart_m, right.yend_m,
+                  right.zstart_m, right.zend_m,
+                  right.width_m);
     setGeom();
 }
 
@@ -73,17 +66,11 @@ CCollimator::CCollimator(const std::string &name):
     Component(name),
     filename_m(""),
     informed_m(false),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    zstart_m(0.0),
-    zend_m(0.0),
-    width_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+}
 
 
 CCollimator::~CCollimator() {
@@ -107,12 +94,10 @@ bool CCollimator::applyToReferenceParticle(const Vector_t &R, const Vector_t &P,
 
 bool CCollimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
-    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     bool isDead = false;
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+        if ( r1 > rstart_m - 10.0 && r1 < rend_m + 10.0 ){
             if (r(2) < zend_m && r(2) > zstart_m ) {
                 int pflag = checkPoint(r(0), r(1));
                 isDead = (pflag != 0);
@@ -131,27 +116,25 @@ bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int tur
     Vector_t rmin, rmax;
 
     bunch->get_bounds(rmin, rmax);
-    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     std::pair<Vector_t, double> boundingSphere;
     boundingSphere.first = 0.5 * (rmax + rmin);
     boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-        if ( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
+        // if ( r1 > rstart_m - 10.0 && r1 < rend_m + 10.0 ){
+        if ( r1 > rstart_m - 100.0 && r1 < rend_m + 100.0 ){
             size_t tempnum = bunch->getLocalNum();
             int pflag = 0;
             for (unsigned int i = 0; i < tempnum; ++i) {
                 if (bunch->PType[i] == ParticleType::REGULAR && bunch->R[i](2) < zend_m && bunch->R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
-		    /// bunch->Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
+                    /// bunch->Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
                     if ((pflag != 0) && (bunch->Bin[i] != -1))  {
-		      if (!parmatint_m)
-			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
-		      bunch->Bin[i] = -1;
-		      flagNeedUpdate = true;
+                      if (!parmatint_m)
+                        lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+                      bunch->Bin[i] = -1;
+                      flagNeedUpdate = true;
                     }
                 }
             }
@@ -229,6 +212,25 @@ void CCollimator::goOffline() {
         lossDs_m->save();
     lossDs_m.reset(0);
     online_m = false;
+}
+
+void CCollimator::setDimensions(double xstart, double xend, double ystart, double yend, double zstart, double zend, double width) {
+    xstart_m = xstart;
+    ystart_m = ystart;
+    xend_m   = xend;
+    yend_m   = yend;
+    zstart_m = zstart;
+    zend_m   = zend;
+    width_m  = width;
+    rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
+    rend_m   = std::sqrt(xend * xend   + yend * yend);
+    // start position is the one with lowest radius
+    if (rstart_m > rend_m) {
+        std::swap(xstart_m, xend_m);
+        std::swap(ystart_m, yend_m);
+        std::swap(zstart_m, zend_m);
+        std::swap(rstart_m, rend_m);
+    }
 }
 
 bool CCollimator::bends() const {
