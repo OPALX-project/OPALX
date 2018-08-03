@@ -28,7 +28,6 @@
 #include "Utilities/Options.h"
 #include <iostream>
 #include <fstream>
-using Physics::pi;
 
 extern Inform *gmsg;
 
@@ -39,16 +38,8 @@ Probe::Probe():
     Component(),
     filename_m(""),
     position_m(0.0),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
-    step_m(0){
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    step_m(0.0){
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 
@@ -56,16 +47,8 @@ Probe::Probe(const Probe &right):
     Component(right),
     filename_m(right.filename_m),
     position_m(right.position_m),
-    xstart_m(right.xstart_m),
-    xend_m(right.xend_m),
-    ystart_m(right.ystart_m),
-    yend_m(right.yend_m),
-    width_m(right.width_m),
     step_m(right.step_m){
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m, right.width_m);
 }
 
 
@@ -73,16 +56,8 @@ Probe::Probe(const std::string &name):
     Component(name),
     filename_m(""),
     position_m(0.0),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
-    step_m(0){
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    step_m(0.0){
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 Probe::~Probe() {}
@@ -100,9 +75,6 @@ void Probe::initialise(PartBunchBase<double, 3> *bunch, double &startField, doub
 void Probe::initialise(PartBunchBase<double, 3> *bunch) {
     *gmsg << "* Initialize probe" << endl;
 
-    double r_start = std::sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end   = std::sqrt(xend_m * xend_m + yend_m * yend_m);
-
     std::string name;
     if (filename_m == std::string(""))
         name = getName();
@@ -110,7 +82,7 @@ void Probe::initialise(PartBunchBase<double, 3> *bunch) {
         name = filename_m.substr(0, filename_m.rfind("."));
 
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
-    peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder  (name, r_start, r_end, step_m, singlemode));
+    peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder  (name, rstart_m, rend_m, step_m, singlemode));
     lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(name, !Options::asciidump));
 }
 
@@ -131,24 +103,25 @@ void Probe::goOffline() {
     lossDs_m->save();
 }
 
-void  Probe::setXstart(double xstart) {
+void Probe::setDimensions(double xstart, double xend, double ystart, double yend, double width) {
     xstart_m = xstart;
-}
-
-void  Probe::setXend(double xend) {
-    xend_m = xend;
-}
-
-void  Probe::setYstart(double ystart) {
     ystart_m = ystart;
-}
+    xend_m   = xend;
+    yend_m   = yend;
+    width_m  = width;
+    rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
+    rend_m   = std::sqrt(xend * xend   + yend * yend);
+    // start position is the one with lowest radius
+    if (rstart_m > rend_m) {
+        std::swap(xstart_m, xend_m);
+        std::swap(ystart_m, yend_m);
+        std::swap(rstart_m, rend_m);
+    }
 
-void  Probe::setYend(double yend) {
-    yend_m = yend;
-}
-
-void  Probe::setWidth(double width) {
-    width_m = width;
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m;
+    R_m = std::sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 void  Probe::setStep(double step) {
@@ -211,12 +184,10 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
     bool flagprobed = false;
     Vector_t rmin, rmax, probepoint;
     bunch->get_bounds(rmin, rmax);
-    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
     double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     double r2 = sqrt(rmin(0) * rmin(0) + rmin(1) * rmin(1));
 
-    if( r1 > r_start - 10.0 && r2 < r_end + 10.0 ) {
+    if( r1 > rstart_m - 10.0 && r2 < rend_m + 10.0 ) {
         size_t tempnum = bunch->getLocalNum();
         int pflag = 0;
 
@@ -311,7 +282,7 @@ int Probe::checkPoint(const double &x, const double &y) {
 
 void Probe::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = position_m - 0.005;
-    zEnd = position_m + 0.005;
+    zEnd   = position_m + 0.005;
 }
 
 ElementBase::ElementType Probe::getType() const {
