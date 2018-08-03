@@ -93,7 +93,7 @@ private:
     ///@}
     double width_m;   ///< bin width, not used
     Point  geom_m[5]; ///< actual geometry positions with adaptive width such that each particle hits probe once per turn
-    int step_m; ///< Step size of the probe (bin width in histogram file)
+    double step_m; ///< Step size of the probe (bin width in histogram file)
 
     double A_m, B_m,R_m, C_m;
     void setGeom(const double dist);
