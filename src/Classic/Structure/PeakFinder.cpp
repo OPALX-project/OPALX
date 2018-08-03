@@ -7,8 +7,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
-PeakFinder::PeakFinder(std::string elem, double min, double max, bool singlemode):
-    element_m(elem), binWidth_m(1.0 /*mm*/),
+PeakFinder::PeakFinder(std::string elem, double min, double max, double binWidth, bool singlemode):
+    element_m(elem), binWidth_m(binWidth),
     min_m(min), max_m(max), singlemode_m(singlemode)
 {
     if (min_m > max_m) {
@@ -42,7 +42,7 @@ void PeakFinder::save() {
     }
     
     if ( found ) {
-        fn_m = element_m + std::string(".peaks");
+        fn_m   = element_m + std::string(".peaks");
         hist_m = element_m + std::string(".hist");
         
         INFOMSG("Save " << fn_m << " and " << hist_m << endl);
