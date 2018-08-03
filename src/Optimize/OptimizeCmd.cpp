@@ -72,6 +72,7 @@ namespace {
         MUTATIONPROBABILITY,
         RECOMBINATIONPROBABILITY,
         SIMBINCROSSOVERNU,
+        INITIALOPTIMIZATION,
         SIMTMPDIR,
         TEMPLATEDIR,
         FIELDMAPDIR,
@@ -131,6 +132,8 @@ OptimizeCmd::OptimizeCmd():
         ("RECOMBINATION_PROBABILITY", "Probability for genes to recombine, default: 0.5");
     itsAttr[SIMBINCROSSOVERNU] = Attributes::makeReal
         ("SIMBIN_CROSSOVER_NU", "Simulated binary crossover, default: 2.0");
+    itsAttr[INITIALOPTIMIZATION] = Attributes::makeBool
+        ("INITIAL_OPTIMIZATION", "Optimize speed of initial generation, default: false");
     itsAttr[SIMTMPDIR] = Attributes::makeString
         ("SIMTMPDIR", "Directory where simulations are run");
     itsAttr[TEMPLATEDIR] = Attributes::makeString
@@ -243,7 +246,8 @@ void OptimizeCmd::execute() {
             {GENEMUTATIONPROBABILITY, "gene-mutation-probability"},
             {MUTATIONPROBABILITY, "mutation-probability"},
             {RECOMBINATIONPROBABILITY, "recombination-probability"},
-            {SIMBINCROSSOVERNU, "simbin-crossover-nu"}
+            {SIMBINCROSSOVERNU, "simbin-crossover-nu"},
+            {INITIALOPTIMIZATION, "initial-optimization"}
         });
 
     auto it = argumentMapper.end();

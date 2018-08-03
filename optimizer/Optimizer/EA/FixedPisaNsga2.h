@@ -164,7 +164,7 @@ private:
     std::string execAlgo_m;
 
     /// indicating if initial population has been created
-    bool notInitialized_m;
+    bool initialized_m;
 
 
     /// bounds on each specified gene
@@ -181,6 +181,8 @@ private:
 
     /// size of initial population
     size_t alpha_m;
+    /// initial population optimization flag (doubles initial population)
+    bool initialOptimization_m;
     /// number of parents the selector chooses
     //size_t mu_m;
     /// number of children the variator produces
@@ -227,8 +229,8 @@ private:
     /// executes one loop of the PISA state machine
     void runStateMachine();
 
-    /// passes num_individuals to the selector
-    void toSelectorAndCommit(int num_individuals);
+    /// passes finished individuals to the selector
+    void toSelectorAndCommit();
 
     /// how often do we exchange solutions with other optimizers
     size_t exchangeSolStateFreq_m;
