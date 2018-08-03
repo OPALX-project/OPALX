@@ -207,8 +207,20 @@ void PlasmaPIC::initDistribution_m() {
     for (amrex::MFIter mfi(ba, dmap); mfi.isValid(); ++mfi) {
         const amrex::Box& bx = mfi.validbox();
         
-        for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+        Box pbox = bx;
+        
+        if (pNx_m[0] > bNx_m[0]) {
+            int refFac = pNx_m[0] / bNx_m[0];
+            pbox.refine(refFac);
+        }
+
+        else if (pNx_m[0] < bNx_m[0]) {
+            int crseFac = bNx_m[0] / pNx_m[0];
+            pbox.coarsen(crseFac);
+        }
+        
+        for (int i = pbox.loVect()[0]; i <= pbox.hiVect()[0]; ++i) {
+            for (int j = pbox.loVect()[1]; j <= pbox.hiVect()[1]; ++j) {
                 amrex::IntVect iv(D_DECL(i, j, 0));
                 
                 double x = (iv[0] + 0.5) * hx[0] + left_m[0];
