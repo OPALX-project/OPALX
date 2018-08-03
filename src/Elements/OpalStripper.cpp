@@ -101,11 +101,7 @@ void OpalStripper::update() {
     bool   stop = Attributes::getBool(itsAttr[STOP]);
 
     strp->setElementLength(length);
-    strp->setXstart(xstart);
-    strp->setXend(xend);
-    strp->setYstart(ystart);
-    strp->setYend(yend);
-    strp->setWidth(width);
+    strp->setDimensions(xstart, xend, ystart, yend, width);
     strp->setOPCharge(opcharge);
     strp->setOPMass(opmass);
     strp->setOPYield(opyield);

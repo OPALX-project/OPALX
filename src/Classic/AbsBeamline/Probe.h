@@ -59,13 +59,9 @@ public:
 
     virtual void goOffline();
 
-    void setXstart(double xstart);
-    void setXend(double xend);
+    /// Set dimensions and consistency checks
+    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
 
-    void setYstart(double ystart);
-    void setYend(double yend);
-
-    void setWidth(double width);
     void setStep(double step);
 
     virtual double getXstart() const;
@@ -90,6 +86,8 @@ private:
     double xend_m;
     double ystart_m;
     double yend_m;
+    double rstart_m;
+    double rend_m;
     ///@}
     double width_m;   ///< bin width, not used
     Point  geom_m[5]; ///< actual geometry positions with adaptive width such that each particle hits probe once per turn
