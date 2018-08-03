@@ -110,7 +110,7 @@ void Probe::initialise(PartBunchBase<double, 3> *bunch) {
         name = filename_m.substr(0, filename_m.rfind("."));
 
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
-    peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder  (name, r_start, r_end, singlemode));
+    peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder  (name, r_start, r_end, step_m, singlemode));
     lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(name, !Options::asciidump));
 }
 
@@ -143,14 +143,17 @@ void  Probe::setYstart(double ystart) {
     ystart_m = ystart;
 }
 
-
 void  Probe::setYend(double yend) {
     yend_m = yend;
 }
+
 void  Probe::setWidth(double width) {
     width_m = width;
 }
 
+void  Probe::setStep(double step) {
+    step_m = step;
+}
 
 double  Probe::getXstart() const {
     return xstart_m;
@@ -167,8 +170,13 @@ double  Probe::getYstart() const {
 double  Probe::getYend() const {
     return yend_m;
 }
+
 double  Probe::getWidth() const {
     return width_m;
+}
+
+double  Probe::getStep() const {
+    return step_m;
 }
 
 void Probe::setGeom(const double dist) {
@@ -239,6 +247,7 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
             sk2 = - A_m/B_m;
             stangle = std::abs(( sk1-sk2 )/(1 + sk1*sk2));
         }
+        // change probe width depending on step size on angle of particle
         double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
         double Swidth = lstep / sqrt( 1 + 1/stangle/stangle );
         setGeom(Swidth);
