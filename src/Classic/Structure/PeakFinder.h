@@ -30,7 +30,7 @@ public:
     
     PeakFinder() = delete;
 
-    PeakFinder(std::string elem, double min, double max, bool singlemode);
+    PeakFinder(std::string elem, double min, double max, double binwidth, bool singlemode);
     
     /*!
      * Append the particle coordinates to the container
