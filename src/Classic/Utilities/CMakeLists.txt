@@ -25,6 +25,7 @@ set (_SRCS
   SingularMatrixError.cpp
   SizeError.cpp
   SwitcherError.cpp
+  Mesher.cpp
   Util.cpp
   )
 
@@ -61,6 +62,7 @@ set (HDRS
     SingularMatrixError.h
     SizeError.h
     SwitcherError.h
+    Mesher.h
     Util.h
 )
 

@@ -1,3 +1,6 @@
+#ifndef MSLANG_H
+#define MSLANG_H
+
 #include "Algorithms/Vektor.h"
 #include "AppTypes/Tenzor.h"
 
@@ -32,6 +35,13 @@ namespace mslang {
             width_m(urc[0] - llc[0]),
             height_m(urc[1] - llc[1])
         { }
+
+        bool doesIntersect(const BoundingBox &bb) {
+            return ((center_m[0] - 0.5 * width_m <= bb.center_m[0] + 0.5 * bb.width_m) &&
+                    (center_m[0] + 0.5 * width_m >= bb.center_m[0] - 0.5 * bb.width_m) &&
+                    (center_m[1] - 0.5 * height_m <= bb.center_m[1] + 0.5 * bb.height_m) &&
+                    (center_m[1] + 0.5 * height_m >= bb.center_m[1] - 0.5 * bb.height_m));
+        }
 
         bool isInside(const Vector_t &X) const {
             if (2 * std::abs(X[0] - center_m[0]) <= width_m &&
@@ -162,6 +172,31 @@ namespace mslang {
     };
 
 
+    struct Triangle: public Base {
+        std::vector<Vector_t> nodes_m;
+        Triangle():
+            Base(),
+            nodes_m(std::vector<Vector_t>(3, Vector_t(0, 0, 1)))
+        { }
+
+        Triangle(const Triangle &right):
+            Base(right),
+            nodes_m(right.nodes_m)
+        { }
+
+        virtual ~Triangle()
+        { }
+
+        virtual void print(int indentwidth);
+        virtual void apply(std::vector<Base*> &bfuncs);
+        virtual Base* clone() const;
+        virtual void writeGnuplot(std::ofstream &out) const;
+        virtual void computeBoundingBox();
+        double crossProduct(const Vector_t &pt, unsigned int nodeNum) const;
+        virtual bool isInside(const Vector_t &R) const;
+        void orientNodesCCW();
+    };
+
     struct QuadTree {
         int level_m;
         std::list<Base*> objects_m;
@@ -211,3 +246,5 @@ namespace mslang {
 
     bool parse(std::string str, Function* &fun);
 }
+
+#endif

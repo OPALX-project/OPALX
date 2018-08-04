@@ -1,5 +1,6 @@
 #include "Utilities/MSLang.h"
 #include "Utilities/PortableBitmapReader.h"
+#include "Utilities/Mesher.h"
 #include "Algorithms/Quaternion.h"
 #include "Physics/Physics.h"
 
@@ -272,6 +273,90 @@ namespace mslang {
             return true;
         }
     };
+
+    void Triangle::print(int indentwidth) {
+        std::string indent(indentwidth, ' ');
+        std::string indentbase(4, ' ');
+        Vector_t origin = trafo_m.getOrigin();
+        double angle = trafo_m.getAngle() * Physics::rad2deg;
+
+        std::cout << indent << "triangle, \n";
+
+        for (unsigned int i = 0; i < 3u; ++ i) {
+            std::cout << indent << indentbase << "node " << i << ": " << nodes_m[i] << "\n";
+        }
+        std::cout << indent << indentbase << "origin: " << origin[0] << ", " << origin[1] << ",\n"
+                  << indent << indentbase << "angle: " << angle << "\n"
+                  << indent << indentbase << trafo_m(0, 0) << "\t" << trafo_m(0, 1) << "\t" << trafo_m(0, 2) << "\n"
+                  << indent << indentbase << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
+                  << indent << indentbase << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2) << std::endl;
+    }
+    void Triangle::apply(std::vector<Base*> &bfuncs) {
+        bfuncs.push_back(this->clone());
+    }
+
+    Base* Triangle::clone() const {
+        Triangle *tri = new Triangle(*this);
+        return tri;
+    }
+
+    void Triangle::writeGnuplot(std::ofstream &out) const {
+        unsigned int width = out.precision() + 8;
+
+        for (unsigned int i = 0; i < 4u; ++ i) {
+            Vector_t corner = trafo_m.transformFrom(nodes_m[i % 3u]);
+
+            out << std::setw(width) << corner[0]
+                << std::setw(width) << corner[1]
+                << std::endl;
+        }
+        out << std::endl;
+
+        bb_m.writeGnuplot(out);
+
+    }
+
+    void Triangle::computeBoundingBox() {
+        std::vector<Vector_t> corners;
+        for (unsigned int i = 0; i < 3u; ++ i) {
+            corners.push_back(trafo_m.transformFrom(nodes_m[i]));
+        }
+
+        Vector_t llc = corners[0], urc = corners[0];
+        for (unsigned int i = 1u; i < 3u; ++ i) {
+            if (corners[i][0] < llc[0]) llc[0] = corners[i][0];
+            else if (corners[i][0] > urc[0]) urc[0] = corners[i][0];
+
+            if (corners[i][1] < llc[1]) llc[1] = corners[i][1];
+            else if (corners[i][1] > urc[1]) urc[1] = corners[i][1];
+        }
+
+        bb_m = BoundingBox(llc, urc);
+    }
+
+    double Triangle::crossProduct(const Vector_t &pt, unsigned int nodeNum) const {
+        nodeNum = nodeNum % 3u;
+        unsigned int nextNode = (nodeNum + 1) % 3u;
+        Vector_t nodeToPt = pt - nodes_m[nodeNum];
+        Vector_t nodeToNext = nodes_m[nextNode] - nodes_m[nodeNum];
+
+        return nodeToPt[0] * nodeToNext[1] - nodeToPt[1] * nodeToNext[0];
+
+    }
+
+    bool Triangle::isInside(const Vector_t &R) const {
+        bool test0 = (crossProduct(R, 0) <= 0.0);
+        bool test1 = (crossProduct(R, 1) <= 0.0);
+        bool test2 = (crossProduct(R, 2) <= 0.0);
+
+        return test0 && test1 && test2;
+    }
+
+    void Triangle::orientNodesCCW() {
+        if (crossProduct(nodes_m[0], 1) > 0.0) {
+            std::swap(nodes_m[1], nodes_m[2]);
+        }
+    }
 
     struct Repeat: public Function {
         Function* func_m;
@@ -648,6 +733,67 @@ namespace mslang {
         std::vector<Rectangle> pixels_m;
     };
 
+    struct Polygon: public Function {
+        std::vector<Triangle> triangles_m;
+
+        void triangulize(std::vector<Vector_t> &nodes) {
+            Mesher mesher(nodes);
+            triangles_m = mesher.getTriangles();
+        }
+
+        static
+        bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+            Polygon *poly = static_cast<Polygon*>(fun);
+
+            std::vector<Vector_t> nodes;
+            std::string str(it, end);
+            boost::regex argument(Double + "," + Double + ";(.*)");
+            boost::regex argumentEnd(Double + "," + Double + "(\\).*)");
+
+            boost::smatch what;
+            while (boost::regex_match(str, what, argument)) {
+                Vector_t p(atof(std::string(what[1]).c_str()),
+                           atof(std::string(what[3]).c_str()),
+                           1.0);
+                nodes.push_back(p);
+
+                std::string fullMatch = what[0];
+                std::string rest = what[5];
+                it += (fullMatch.size() - rest.size());
+
+                str = std::string(it, end);
+            }
+
+            if (!boost::regex_match(str, what, argumentEnd) ||
+                nodes.size() < 2) return false;
+
+            Vector_t p(atof(std::string(what[1]).c_str()),
+                       atof(std::string(what[3]).c_str()),
+                       1.0);
+            nodes.push_back(p);
+
+
+            std::string fullMatch = what[0];
+            std::string rest = what[5];
+            it += (fullMatch.size() - rest.size() + 1);
+
+            str = std::string(it, end);
+
+            poly->triangulize(nodes);
+
+            return true;
+        }
+
+        virtual void print(int ident) {
+            // for (auto pix: pixels_m) pix.print(ident);
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            for (Triangle &tri: triangles_m)
+                bfuncs.push_back(tri.clone());
+        }
+    };
+
     QuadTree::QuadTree(const QuadTree &right):
         level_m(right.level_m),
         objects_m(right.objects_m.begin(),
@@ -801,57 +947,50 @@ namespace mslang {
 
         if (identifier == "rectangle") {
             fun = new Rectangle;
-            /*iterator it2 = */it += shift;
+            it += shift;
             if (!Rectangle::parse_detail(it, end, fun)) return false;
 
-            // it = it2;
             return true;
         } else if (identifier == "ellipse") {
             fun = new Ellipse;
-            /*iterator it2 = */it += shift;
+            it += shift;
             if (!Ellipse::parse_detail(it, end, fun)) return false;
 
-            // it = it2;
+            return true;
+        } else if (identifier == "polygon") {
+            fun = new Polygon;
+            it += shift;
+            if (!Polygon::parse_detail(it, end, fun)) return false;
+
             return true;
         } else if (identifier == "repeat") {
             fun = new Repeat;
-            /*iterator it2 = */it += shift;
+            it += shift;
             if (!Repeat::parse_detail(it, end, fun)) return false;
-
-            // it = it2;
 
             return true;
         } else if (identifier == "rotate") {
             fun = new Rotate;
-            // iterator it2 =
             it += shift;
             if (!Rotate::parse_detail(it, end, fun)) return false;
-
-            // // it = it2;
 
             return true;
         } else if (identifier == "translate") {
             fun = new Translate;
-            /*iterator it2 = */it += shift;
+            it += shift;
             if (!Translate::parse_detail(it, end, fun)) return false;
-
-            // it = it2;
 
             return true;
         } else if (identifier == "shear") {
             fun = new Shear;
-            /*iterator it2 = */it += shift;
+            it += shift;
             if (!Shear::parse_detail(it, end, fun)) return false;
-
-            // it = it2;
 
             return true;
         } else if (identifier == "union") {
             fun = new Union;
-            /*iterator it2 = */it += shift;
+            it += shift;
             if (!Union::parse_detail(it, end, fun)) return false;
-
-            // it = it2;
 
             return true;
         } else if (identifier == "mask") {

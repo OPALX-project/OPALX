@@ -50,7 +50,6 @@ int main(int argc, char *argv[])
         std::ofstream out("test.gpl");
         for (mslang::Base* bfun: baseBlocks) {
             // bfun->print(0);
-            // std::cout << std::endl;
             bfun->computeBoundingBox();
             bfun->writeGnuplot(out);
         }
