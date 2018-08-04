@@ -192,6 +192,9 @@ namespace mslang {
         virtual Base* clone() const;
         virtual void writeGnuplot(std::ofstream &out) const;
         virtual void computeBoundingBox();
+        // double crossProduct(const Vector_t &pt,
+        //                     const Vector_t &start,
+        //                     const Vector_t &end) const;
         double crossProduct(const Vector_t &pt, unsigned int nodeNum) const;
         virtual bool isInside(const Vector_t &R) const;
         void orientNodesCCW();

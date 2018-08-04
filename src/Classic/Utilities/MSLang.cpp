@@ -345,9 +345,11 @@ namespace mslang {
     }
 
     bool Triangle::isInside(const Vector_t &R) const {
-        bool test0 = (crossProduct(R, 0) <= 0.0);
-        bool test1 = (crossProduct(R, 1) <= 0.0);
-        bool test2 = (crossProduct(R, 2) <= 0.0);
+        Vector_t X = trafo_m.transformTo(R);
+
+        bool test0 = (crossProduct(X, 0) <= 0.0);
+        bool test1 = (crossProduct(X, 1) <= 0.0);
+        bool test2 = (crossProduct(X, 2) <= 0.0);
 
         return test0 && test1 && test2;
     }
