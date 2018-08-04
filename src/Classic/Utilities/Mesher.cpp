@@ -58,8 +58,8 @@ bool Mesher::isPointOnLine(unsigned int i,
 }
 
 bool Mesher::isPointRightOfLine(unsigned int i,
-                                     unsigned int j,
-                                     const Vector_t &pt) const {
+                                unsigned int j,
+                                const Vector_t &pt) const {
     Vector_t aTmp = vertices_m[j] - vertices_m[i];
     Vector_t bTmp = pt - vertices_m[i];
 
@@ -109,16 +109,42 @@ bool Mesher::isPotentialEdgeIntersected(unsigned int i) const {
     return false;
 }
 
-bool Mesher::isPointInsideCone(unsigned int i,
-                                    unsigned int j,
-                                    unsigned int jPlusOne,
-                                    unsigned int jMinusOne) const {
-    const Vector_t &pt = vertices_m[i];
-    return !(isPointOnLine(jMinusOne, j, pt) ||
-             isPointRightOfLine(jMinusOne, j, pt) ||
-             isPointOnLine(j, jPlusOne, pt) ||
-             isPointRightOfLine(j, jPlusOne, pt));
+double getAngleBetweenEdges(const Vector_t &a,
+                            const Vector_t &b) {
+    double lengthA = mslang::euclidean_norm2D(a);
+    double lengthB = mslang::euclidean_norm2D(b);
 
+    double angle = std::acos((a[0] * b[0] + a[1] * b[1]) / lengthA / lengthB);
+    if (a[0] * b[1] - a[1] * b[0] < 0.0)
+        angle += M_PI;
+
+    return angle;
+}
+
+double Mesher::dotProduct(unsigned int i,
+                          unsigned int j,
+                          const Vector_t &pt) const {
+    Vector_t edge0 = vertices_m[j] - vertices_m[i];
+    Vector_t edge1 = vertices_m[j] - pt;
+
+    return edge0[0] * edge1[0] + edge0[1] * edge1[1];
+}
+
+double dotProduct(const Vector_t &a,
+                  const Vector_t &b) {
+    return a[0] * b[0] + a[1] * b[1];
+}
+
+bool Mesher::isPointInsideCone(unsigned int i,
+                               unsigned int j,
+                               unsigned int jPlusOne,
+                               unsigned int jMinusOne) const {
+    const Vector_t &pt = vertices_m[i];
+
+    return !((isPointRightOfLine(jMinusOne, j, pt) &&
+              dotProduct(jMinusOne, j, pt) > 0.0) ||
+             (isPointRightOfLine(j, jPlusOne, pt) &&
+              dotProduct(jPlusOne, j, pt) < 0.0));
 }
 
 bool Mesher::isEar(unsigned int i) const {
@@ -161,12 +187,12 @@ double Mesher::computeMinimumAngle(unsigned int i) const {
     Vector_t edge0 = vertices_m[i] - vertices_m[previous];
     Vector_t edge1 = vertices_m[next] - vertices_m[i];
     Vector_t edge2 = vertices_m[previous] - vertices_m[next];
-    double length0 = euclidean_norm(edge0);
-    double length1 = euclidean_norm(edge1);
-    double length2 = euclidean_norm(edge2);
+    double length0 = mslang::euclidean_norm2D(edge0);
+    double length1 = mslang::euclidean_norm2D(edge1);
+    double length2 = mslang::euclidean_norm2D(edge2);
 
-    double angle01 = std::asin((edge0[0] * edge1[1] - edge0[1] * edge1[0]) / length0 / length1);
-    double angle12 = std::asin((edge1[0] * edge2[1] - edge1[1] * edge2[0]) / length1 / length2);
+    double angle01 = std::acos(-(edge0[0] * edge1[0] + edge0[1] * edge1[1]) / length0 / length1);
+    double angle12 = std::acos(-(edge1[0] * edge2[0] + edge1[1] * edge2[1]) / length1 / length2);
     double angle20 = M_PI - angle01 - angle12;
 
     return std::min(std::min(angle01, angle12), angle20);
@@ -204,7 +230,7 @@ void Mesher::apply() {
         tri.nodes_m[0] = vertices_m[previous];
         tri.nodes_m[1] = vertices_m[bestEar];
         tri.nodes_m[2] = vertices_m[next];
-
+        // tri.print(4);
         triangles_m.push_back(tri);
 
         vertices_m.erase(vertices_m.begin() + bestEar);

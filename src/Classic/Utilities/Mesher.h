@@ -26,6 +26,9 @@ private:
                                          unsigned int k,
                                          unsigned int l) const;
     bool isPotentialEdgeIntersected(unsigned int i) const;
+    double dotProduct(unsigned int i,
+                      unsigned int j,
+                      const Vector_t &pt) const;
     bool isPointInsideCone(unsigned int i,
                            unsigned int j,
                            unsigned int jPlusOne,
