@@ -297,6 +297,8 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
     size_t lBegin = LocalNumPerLevel.begin(lev);
     size_t lEnd   = LocalNumPerLevel.end(lev);    
     
+    // make sure that boundaries are filled!
+    mesh_data.FillBoundary(gm.periodicity());
     
     AmrReal_t inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
     double lxyz[3] = { 0.0, 0.0, 0.0 };
