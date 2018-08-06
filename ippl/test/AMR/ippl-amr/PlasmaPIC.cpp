@@ -16,6 +16,10 @@
     #include "../trilinos/AmrMultiGrid.h"
 #endif
 
+#include <functional>
+
+#include "Ippl.h"
+
 
 PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
     
@@ -54,6 +58,13 @@ void PlasmaPIC::execute(Inform& msg) {
         amropal_m->regrid(i /*lbase*/,tcurrent_m);
     }
     
+    int step = 0;
+    
+    if ( test_m == "twostream" ) {
+        this->solve_m();
+        deposit2D_m(step);
+    }
+    
     while ( tcurrent_m < tstop_m ) {
         
         if ( tcurrent_m + dt_m > tstop_m )
@@ -67,6 +78,13 @@ void PlasmaPIC::execute(Inform& msg) {
         this->dump_m();
         
         tcurrent_m += dt_m;
+        
+        
+        ++step;
+    
+        if ( test_m == "twostream" ) {
+            deposit2D_m(step);
+        }
         
         msg << "Done." << endl;
     }
@@ -204,6 +222,35 @@ void PlasmaPIC::initDistribution_m() {
     
     std::size_t ip = 0;
     
+    std::function<double(double& x,
+                         double& vx,
+                         double& y,
+                         double& vy)> func;
+    
+    if ( test_m == "landau" ) {
+        func = [&](double& x, double& vx,
+                   double& y, double& vy)
+        {
+            double v2 = vx * vx + vy * vy;
+            return (1.0 / (2.0 * Physics::pi)) * std::exp(-0.5 * v2) *
+                        ( 1.0 + alpha_m *
+                            std::cos(wavenumber_m * x) * std::cos(wavenumber_m * y)
+                        );
+        };
+    } else if ( test_m == "twostream" ) {
+        func = [&](double& x, double& vx,
+                   double& y, double& vy)
+        {
+            double v2 = vx * vx + vy * vy;
+            return (1.0 / (12.0 * Physics::pi)) * std::exp(-0.5 * v2) *
+                        (1.0 + alpha_m * std::cos(wavenumber_m * x) ) *
+                        (1.0 + 5.0 * vx * vx);
+        };
+    } else {
+        throw std::runtime_error("No such test '" + test_m + "'");
+    }
+    
+    
     for (amrex::MFIter mfi(ba, dmap); mfi.isValid(); ++mfi) {
         const amrex::Box& bx = mfi.validbox();
         
@@ -230,11 +277,7 @@ void PlasmaPIC::initDistribution_m() {
                     for (int jj = 0; jj < pNv_m[1]; jj++) {
                         double vx = (ii + 0.5)*hv[0] + vmin_m[0];
                         double vy = (jj + 0.5)*hv[1] + vmin_m[1];
-                        double v2 = vx * vx + vy * vy;
-                        double f = (1.0 / (2.0 * Physics::pi)) * std::exp(-0.5 * v2) *
-                                    ( 1.0 + alpha_m *
-                                      std::cos(wavenumber_m * x) * std::cos(wavenumber_m * y)
-                                    );
+                        double f = func(x, vx, y, vy);
                         double m = hx[0] * hv[0] * hx[1] * hv[1] * f;
                         double q = -m;
                         
@@ -486,7 +529,7 @@ void PlasmaPIC::solve_m() {
     
     // undo scale
     for (int i = 0; i <= finest_level; ++i)
-        efield_m[i]->mult(l0norm, 0, AMREX_SPACEDIM);
+        efield_m[i]->mult(- /*only here*/ l0norm, 0, AMREX_SPACEDIM);
     
     bunch_m->E = 0;
     
@@ -784,5 +827,93 @@ void PlasmaPIC::dumpFields_m() {
             }
         }
     }
+    out.close();
+}
+
+
+void PlasmaPIC::deposit2D_m(int step) {
+    typedef Cell                                        Center_t;
+    typedef IntCIC                                      IntrplCIC_t;
+    typedef UniformCartesian<2, double>                 Mesh2d_t;
+    typedef CenteredFieldLayout<2, Mesh2d_t, Center_t>  FieldLayout2d_t;
+    typedef Field<double, 2, Mesh2d_t, Center_t>        Field2d_t;
+
+    
+    double spacings[2] = {
+        ( right_m[0] - left_m[0] ) / pNx_m[0],
+        ( vmax_m[0] - vmin_m[0] ) / pNv_m[0]
+    };
+    
+    Vektor<double,2> origin = { left_m[0], vmin_m[0] };
+    
+    Index I(pNx_m[0]+1);
+    Index J(pNv_m[0]+1);
+    
+    NDIndex<2> domain2d;
+    domain2d[0]=I;
+    domain2d[1]=J;
+    
+    Mesh2d_t mesh2d = Mesh2d_t(domain2d, spacings, origin);
+    FieldLayout2d_t* layout2d = new FieldLayout2d_t(mesh2d);
+    
+    mesh2d.set_meshSpacing(&(spacings[0]));
+    mesh2d.set_origin(origin);
+
+    domain2d = layout2d->getDomain();
+    
+    BConds<double, 2, Mesh2d_t, Center_t> BC;
+    if (Ippl::getNodes()>1) {
+        BC[0] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(0);
+        BC[1] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(1);
+        BC[2] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(2);
+        BC[3] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(3);
+    }
+    else {
+        BC[0] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(0);
+        BC[1] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(1);
+        BC[2] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(2);
+        BC[3] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(3);
+    }
+    
+    NDIndex<2> lDom = domain2d;
+    Vector_t dx = (right_m - left_m) / pNx_m;
+    Vector_t dv = (vmax_m - vmin_m) / pNv_m;
+    
+    // field is used for twostream instability as 2D phase space mesh
+    Field2d_t field;
+    field.initialize(mesh2d, *layout2d, GuardCellSizes<2>(1),BC);
+    
+    field = 0;
+    
+    // only x-direction
+    for (std::size_t i=0; i < bunch_m->getLocalNum(); ++i)
+        bunch_m->Rphase[i]= Vektor<double,2>(bunch_m->R[i][0], bunch_m->P[i][0]);
+    
+    bunch_m->qm.scatter(field, bunch_m->Rphase, IntrplCIC_t());
+    
+    std::ofstream out;
+    out.precision(10);
+    out.setf(std::ios::scientific, std::ios::floatfield);
+
+    std::stringstream fname;
+    fname << (dir_m / "f_mesh_").string();
+    fname << std::setw(4) << std::setfill('0') << step;
+    fname << ".csv";
+    
+    // open a new data file for this iteration
+    // and start with header
+    out.open(fname.str().c_str(), std::ios::out);
+    out << "x, vx, f" << std::endl;
+    
+    for (int i=lDom[0].first(); i<=lDom[0].last(); i++) {
+    
+        for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
+        
+            out << (i+0.5) * dx[0] << ","
+                   << (j+0.5) * dv[0] + vmin_m[0]
+                   << "," << field[i][j].get() << std::endl;
+        }
+    }
+    
     out.close();
 }
