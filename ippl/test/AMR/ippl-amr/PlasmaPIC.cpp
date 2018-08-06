@@ -123,7 +123,7 @@ void PlasmaPIC::parseBoxInfo_m() {
                                    + "-" + std::to_string(bNx_m[1]),
                                    + "-" + std::to_string(bNx_m[2]));
     
-    boost::filesystem::path dir_m(dir);
+    dir_m = dir;
     if ( Ippl::myNode() == 0 )
         boost::filesystem::create_directory(dir_m);
 }
@@ -445,8 +445,24 @@ void PlasmaPIC::solve_m() {
      */
     this->depositCharge_m();
     
+    // subtract sum of rhs for periodic boundary conditions
+    double sum = 0.0;
+    double vol = 0.0;
+    
+    this->volWeightedSum_m(sum , vol);
+    
+    const amrex::Geometry& geom = amropal_m->Geom()[0];
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        rho_m[i]->plus(-sum / vol, 0, 1);
+        phi_m[i]->setVal(0.0);
+    }
+    
+    
+    this->volWeightedSum_m(sum , vol);
+    
     // normalize each level
-    double l0norm = rho_m[finest_level]->norm0(0);
+    double l0norm = 1.0; //rho_m[finest_level]->norm0(0);
     for (int i = 0; i <= finest_level; ++i) {
         rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
@@ -481,6 +497,17 @@ void PlasmaPIC::solve_m() {
 void PlasmaPIC::integrate_m() {
     // RK-4
     this->solve_m();
+    
+    this->dumpFields_m();
+    
+//     for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i) {
+//         std::cout << bunch_m->R[i] << " "
+//                   << bunch_m->P[i] << " "
+//                   << bunch_m->E[i] << " "
+//                   << bunch_m->phi[i] << std::endl;
+//     }
+    
+//     std::cerr << "Done." << std::endl; std::cin.get();
     
     bunch_m->k1 = bunch_m->E;
     
@@ -668,4 +695,94 @@ void PlasmaPIC::dump_m() {
                 << ampl << std::endl;
         csvout.close();
     }
+}
+
+
+void PlasmaPIC::volWeightedSum_m(double& sum, double& vol) {
+    std::vector<amrex::MultiFab> cp_rho(rho_m.size());
+    std::vector<amrex::MultiFab> volume(rho_m.size());
+    
+    sum = 0.0;
+    vol = 0.0;
+    
+    for (uint lev = 0; lev < rho_m.size(); ++lev) {
+        
+        cp_rho[lev].define(rho_m[lev]->boxArray(),
+                             rho_m[lev]->DistributionMap(), 1, 1);
+        
+        amrex::MultiFab::Copy(cp_rho[lev], *rho_m[lev], 0, 0, 1, 1);
+        
+        volume[lev].define(rho_m[lev]->boxArray(),
+                           rho_m[lev]->DistributionMap(), 1, 0);
+        
+        volume[lev].setVal(1.0);
+    }
+    
+    /* set the values of all refined cells to zero
+     * (AssignDensityFort averages down)
+     */
+    for (uint lev = 0; lev < cp_rho.size() - 1; ++lev) {
+        // get boxarray with refined cells
+        amrex::BoxArray ba = cp_rho[lev].boxArray();
+        ba.refine(2);
+        ba = amrex::intersect(cp_rho[lev+1].boxArray(), ba);
+        ba.coarsen(2);
+        for ( uint b = 0; b < ba.size(); ++b)
+            cp_rho[lev].mult(0.0, ba[b], 0, 1, 1);
+        
+        ba = volume[lev].boxArray();
+        ba.refine(2);
+        ba = amrex::intersect(volume[lev+1].boxArray(), ba);
+        ba.coarsen(2);
+        for ( uint b = 0; b < ba.size(); ++b)
+            volume[lev].mult(0.0, ba[b], 0, 1, 1);
+    }
+    
+    
+    const amrex::Geometry& geom = amropal_m->Geom()[0];
+    
+    double v = AMREX_D_TERM(*(geom.CellSize()), * *(geom.CellSize()), * *(geom.CellSize()) );
+    for (uint i = 0; i < cp_rho.size(); ++i) {
+        
+        sum += cp_rho[i].sum(0);
+        vol += volume[i].sum(0);
+    }
+    
+    sum *= v;
+    vol *= v;
+}
+
+
+void PlasmaPIC::dumpFields_m() {
+    
+    std::ofstream out;
+    
+    std::stringstream fname;
+    fname << (dir_m / "fields.dat").string();
+    
+    out.open(fname.str().c_str(), std::ios::out);
+    
+    const BoxArray ba = amropal_m->boxArray(0);
+    const DistributionMapping& dmap = amropal_m->DistributionMap(0);
+    
+    for (amrex::MFIter mfi(ba, dmap); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& pfab = (*phi_m[0])[mfi];
+        const amrex::FArrayBox& efab = (*efield_m[0])[mfi];
+        
+        for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+            for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                
+                amrex::IntVect iv(D_DECL(i, j, 0));
+                
+                out << i << " "
+                    << j << " "
+                    << pfab(iv) << " "
+                    << efab(iv, 0) << " "
+                    << efab(iv, 1) << " "
+                    << std::endl;
+            }
+        }
+    }
+    out.close();
 }

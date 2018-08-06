@@ -74,6 +74,10 @@ private:
     
     void dump_m();
     
+    void volWeightedSum_m(double& sum, double& vol);
+    
+    void dumpFields_m();
+    
 private:
     int maxgrid_m;
     int blocking_factor_m;
