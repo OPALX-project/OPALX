@@ -799,6 +799,9 @@ void AmrParticleBase1<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType
     size_t lBegin = this->LocalNumPerLevel_m.begin(lev);
     size_t lEnd   = this->LocalNumPerLevel_m.end(lev);
     
+    // make sure that boundaries are filled!
+    mesh_data.FillBoundary(gm.periodicity());
+    
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
         const int grid = m_grid[ip];
