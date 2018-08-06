@@ -85,11 +85,14 @@ Solver::solve_for_accel(const container_t& rhs,
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level; lev++)
         {
+            
+            phi[lev]->FillBoundary(geom[lev].periodicity());
+            
             amrex::average_face_to_cellcenter(*(grad_phi[lev].get()),
                                               amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
                                               geom[lev]);
         
-            grad_phi[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev]->FillBoundary(/*0,AMREX_SPACEDIM,*/geom[lev].periodicity());
         }
         
         for (int lev = base_level; lev <= finest_level; ++lev) {
