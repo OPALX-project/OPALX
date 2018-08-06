@@ -78,6 +78,8 @@ private:
     
     void dumpFields_m();
     
+    void deposit2D_m(int step);
+    
 private:
     int maxgrid_m;
     int blocking_factor_m;
