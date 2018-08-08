@@ -94,6 +94,9 @@ public:
                  const amrplayout_t::ParticlePos_t& x,
                  const amrplayout_t::ParticlePos_t& v,
                  std::size_t localnum);
+    
+    void write(const std::string& fname);
+    
 private:
     
     void fill_m(const ParticleAttrib<double>& q,
