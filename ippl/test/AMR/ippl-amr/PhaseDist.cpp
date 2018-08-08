@@ -115,7 +115,7 @@ void PhaseDist::deposit(const ParticleAttrib<double>& q,
     fmf.SumBoundary(periodicity);
     
     const amrex::Real vol = D_TERM(dx_m[0], *dv_m[0], *1.0);
-    fmf.mult(1.0/vol, 0, 1, fmf.nGrow());
+    fmf.mult(-1.0/vol, 0, 1, fmf.nGrow()); // minus --> to make positive (charges < 0)
     
     amrex::MultiFab::Copy(fmf_m, fmf, 0, 0, 1, 0);
     
