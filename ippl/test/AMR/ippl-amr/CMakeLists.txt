@@ -23,6 +23,7 @@ include_directories (
     ${HDF5_INCLUDE_DIR}
     ${AMREX_INCLUDE_DIR}
     ${HYPRE_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS}
     ${BOOST_INCLUDE_DIR}
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
@@ -35,6 +36,7 @@ link_directories (
     ${IPPL_LIBRARY_DIR}
     ${AMREX_LIBRARY_DIR}
     ${HYPRE_LIBRARY_DIR}
+    ${Boost_LIBRARY_DIRS}
     ${BOOST_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
@@ -91,6 +93,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
                     testPerformance.cpp)
                     
     add_executable( testPlasma
+                    PhaseDist.cpp
                     PlasmaPIC.cpp
                     testPlasma.cpp)
                     
@@ -212,10 +215,11 @@ ENDIF ( ${AMREX_DIM} EQUAL 3 )
 
 IF ( ${AMREX_DIM} EQUAL 2 )
     add_executable( testPlasma
+                    PhaseDist.cpp
                     PlasmaPIC.cpp
                     testPlasma.cpp)
     
-    target_link_libraries (testPlasma ${TESTLIBS} -lgslcblas
+    target_link_libraries (testPlasma ${TESTLIBS} -lgslcblas -lboost_mpi
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     set (EXECS testPlasma)
 ENDIF ( ${AMREX_DIM} EQUAL 2 )

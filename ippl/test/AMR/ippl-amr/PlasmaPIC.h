@@ -15,6 +15,8 @@
 
 #include "../AbstractSolver.h"
 
+#include "PhaseDist.h"
+
 using amrex::Vector;
 using amrex::Geometry;
 using amrex::MultiFab;
@@ -115,6 +117,9 @@ private:
     container_t rho_m;
     container_t phi_m;
     container_t efield_m;
+    
+    
+    PhaseDist pd_m;
 };
 
 #endif
