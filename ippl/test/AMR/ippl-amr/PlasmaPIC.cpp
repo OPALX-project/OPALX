@@ -20,7 +20,6 @@
 
 #include "Ippl.h"
 
-
 PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
     
     amrex::ParmParse pp;
@@ -39,6 +38,8 @@ PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
     this->initDistribution_m();
     
     this->initSolver_m();
+    
+    pd_m.define(left_m, right_m, pNx_m, vmin_m, vmax_m, pNv_m);
 }
 
 
@@ -541,7 +542,7 @@ void PlasmaPIC::integrate_m() {
     // RK-4
     this->solve_m();
     
-    this->dumpFields_m();
+//     this->dumpFields_m();
     
 //     for (std::size_t i = 0; i < bunch_m->getLocalNum(); ++i) {
 //         std::cout << bunch_m->R[i] << " "
@@ -832,88 +833,16 @@ void PlasmaPIC::dumpFields_m() {
 
 
 void PlasmaPIC::deposit2D_m(int step) {
-    typedef Cell                                        Center_t;
-    typedef IntCIC                                      IntrplCIC_t;
-    typedef UniformCartesian<2, double>                 Mesh2d_t;
-    typedef CenteredFieldLayout<2, Mesh2d_t, Center_t>  FieldLayout2d_t;
-    typedef Field<double, 2, Mesh2d_t, Center_t>        Field2d_t;
-
     
-    double spacings[2] = {
-        ( right_m[0] - left_m[0] ) / pNx_m[0],
-        ( vmax_m[0] - vmin_m[0] ) / pNv_m[0]
-    };
+    pd_m.deposit(bunch_m->qm,
+                 bunch_m->R,
+                 bunch_m->P,
+                 bunch_m->getLocalNum());
     
-    Vektor<double,2> origin = { left_m[0], vmin_m[0] };
-    
-    Index I(pNx_m[0]+1);
-    Index J(pNv_m[0]+1);
-    
-    NDIndex<2> domain2d;
-    domain2d[0]=I;
-    domain2d[1]=J;
-    
-    Mesh2d_t mesh2d = Mesh2d_t(domain2d, spacings, origin);
-    FieldLayout2d_t* layout2d = new FieldLayout2d_t(mesh2d);
-    
-    mesh2d.set_meshSpacing(&(spacings[0]));
-    mesh2d.set_origin(origin);
-
-    domain2d = layout2d->getDomain();
-    
-    BConds<double, 2, Mesh2d_t, Center_t> BC;
-    if (Ippl::getNodes()>1) {
-        BC[0] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(0);
-        BC[1] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(1);
-        BC[2] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(2);
-        BC[3] = new ParallelInterpolationFace<double,2,Mesh2d_t, Center_t>(3);
-    }
-    else {
-        BC[0] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(0);
-        BC[1] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(1);
-        BC[2] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(2);
-        BC[3] = new InterpolationFace<double,2,Mesh2d_t, Center_t>(3);
-    }
-    
-    NDIndex<2> lDom = domain2d;
-    Vector_t dx = (right_m - left_m) / pNx_m;
-    Vector_t dv = (vmax_m - vmin_m) / pNv_m;
-    
-    // field is used for twostream instability as 2D phase space mesh
-    Field2d_t field;
-    field.initialize(mesh2d, *layout2d, GuardCellSizes<2>(1),BC);
-    
-    field = 0;
-    
-    // only x-direction
-    for (std::size_t i=0; i < bunch_m->getLocalNum(); ++i)
-        bunch_m->Rphase[i]= Vektor<double,2>(bunch_m->R[i][0], bunch_m->P[i][0]);
-    
-    bunch_m->qm.scatter(field, bunch_m->Rphase, IntrplCIC_t());
-    
-    std::ofstream out;
-    out.precision(10);
-    out.setf(std::ios::scientific, std::ios::floatfield);
-
     std::stringstream fname;
     fname << (dir_m / "f_mesh_").string();
     fname << std::setw(4) << std::setfill('0') << step;
     fname << ".csv";
     
-    // open a new data file for this iteration
-    // and start with header
-    out.open(fname.str().c_str(), std::ios::out);
-    out << "x, vx, f" << std::endl;
-    
-    for (int i=lDom[0].first(); i<=lDom[0].last(); i++) {
-    
-        for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
-        
-            out << (i+0.5) * dx[0] << ","
-                   << (j+0.5) * dv[0] + vmin_m[0]
-                   << "," << field[i][j].get() << std::endl;
-        }
-    }
-    
-    out.close();
+    pd_m.write(fname.str());
 }

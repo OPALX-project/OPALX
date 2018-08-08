@@ -58,13 +58,6 @@ public:
     double   q_m;
 };
 
-// BOOST_IS_MPI_DATATYPE(Particle)
-
-// namespace boost { namespace mpi {
-//   template <>
-//   struct is_mpi_datatype<Particle> : mpl::true_ { };
-// } }
-
 
 class PhaseDist {
     
