@@ -228,7 +228,7 @@ void PhaseDist::redistribute_m()
     boost::mpi::communicator world(Ippl::getComm(), boost::mpi::comm_duplicate);
     
     typedef std::multimap<std::size_t, std::size_t> multimap_t;
-//     
+    
     multimap_t p2n; //node ID, particle
     std::size_t send = 0;
     std::size_t N = Ippl::getNodes();
@@ -255,11 +255,8 @@ void PhaseDist::redistribute_m()
         }
     }
     
-//     std::cout << Ippl::myNode() << " send: " << send << std::endl;
-    
     
     boost::mpi::all_reduce(world, msgsend, N, msgrecv, std::plus<int>());
-//     MPI_Allreduce(msgsend, msgrecv, N, MPI_INT, MPI_SUM, Ippl::getComm());
     
     std::vector<boost::mpi::request> requests;
     
@@ -286,17 +283,11 @@ void PhaseDist::redistribute_m()
         
         std::vector<Particle> precv;
         
-//         boost::optional<int> num = stat.template count<Particle>();
-                
         world.recv(stat.source(), stat.tag(), precv);
-        
-//         std::cout << Ippl::myNode() << " recv: " << precv.size() << std::endl;
         
         std::copy(precv.begin(), precv.end(), std::back_inserter(tmp));
     }
     
 //     boost::mpi::wait_all(requests, requests.size());
-//     std::cin.get();
-    
     particles_m.swap(tmp);
 }
