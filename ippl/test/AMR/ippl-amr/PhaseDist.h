@@ -74,14 +74,16 @@ public:
               const Vector_t& nx,
               const Vector_t& vmin,
               const Vector_t& vmax,
-              const Vector_t& nv);
+              const Vector_t& nv,
+              const int& maxgrid);
     
     void define(const Vector_t& left,
                 const Vector_t& right,
                 const Vector_t& nx,
                 const Vector_t& vmin,
                 const Vector_t& vmax,
-                const Vector_t& nv);
+                const Vector_t& nv,
+                const int& maxgrid);
     
     void deposit(const ParticleAttrib<double>& q,
                  const amrplayout_t::ParticlePos_t& x,
