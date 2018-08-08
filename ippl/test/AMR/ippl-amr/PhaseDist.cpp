@@ -74,7 +74,6 @@ void PhaseDist::deposit(const ParticleAttrib<double>& q,
     
     amrex::MultiFab fmf(fba_m, fdmap_m, 1, 2);
     fmf.setVal(0.0, 2);
-    fmf.FillBoundary(periodicity);
     
     double inv_dx[2] = { 1.0 / dx_m[0], 1.0 / dv_m[0] };
     
