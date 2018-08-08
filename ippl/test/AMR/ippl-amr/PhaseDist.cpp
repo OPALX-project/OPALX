@@ -19,9 +19,12 @@ PhaseDist::PhaseDist(const Vector_t& left,
               const Vector_t& nx,
               const Vector_t& vmin,
               const Vector_t& vmax,
-              const Vector_t& nv)
+              const Vector_t& nv,
+              const int& maxgrid)
 {
-    this->define(left, right, nx, vmin, vmax, nv);
+    this->define(left, right, nx,
+                 vmin, vmax, nv,
+                 maxgrid);
 }
 
 
@@ -30,7 +33,8 @@ void PhaseDist::define(const Vector_t& left,
                        const Vector_t& nx,
                        const Vector_t& vmin,
                        const Vector_t& vmax,
-                       const Vector_t& nv)
+                       const Vector_t& nv,
+                       const int& maxgrid)
 {
     left_m = left;
     nx_m = nx;
@@ -45,7 +49,7 @@ void PhaseDist::define(const Vector_t& left,
     amrex::Box bx(low, high);
     
     fba_m.define(bx);
-    fba_m.maxSize( 4/* nx_m[0]*/ );
+    fba_m.maxSize( maxgrid );
     
     fdmap_m.define(fba_m, amrex::ParallelDescriptor::NProcs());
     

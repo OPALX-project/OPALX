@@ -39,7 +39,9 @@ PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
     
     this->initSolver_m();
     
-    pd_m.define(left_m, right_m, pNx_m, vmin_m, vmax_m, pNv_m);
+    pd_m.define(left_m, right_m, pNx_m,
+                vmin_m, vmax_m, pNv_m,
+                maxgrid_m);
 }
 
 
