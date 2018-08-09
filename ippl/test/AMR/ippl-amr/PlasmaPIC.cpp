@@ -495,17 +495,15 @@ void PlasmaPIC::solve_m() {
     double sum = 0.0;
     double vol = 0.0;
     
-    this->volWeightedSum_m(sum , vol);
+    // FIXME: Check if needed
+//     this->volWeightedSum_m(sum , vol);
     
     const amrex::Geometry& geom = amropal_m->Geom()[0];
     
     for (int i = 0; i <= finest_level; ++i) {
-        rho_m[i]->plus(-sum / vol, 0, 1);
+//         rho_m[i]->plus(-sum / vol, 0, 1);
         phi_m[i]->setVal(0.0);
     }
-    
-    
-    this->volWeightedSum_m(sum , vol);
     
     // normalize each level
     double l0norm = 1.0; //rho_m[finest_level]->norm0(0);
@@ -671,13 +669,14 @@ void PlasmaPIC::electricField_m(double& field_energy, double& amplitude)
     const auto& geom = amropal_m->Geom();
     
     for (uint lev = 0; lev < efield_m.size(); ++lev) {
-            amrex::MultiFab::AddProduct(cp_efield[lev],
-                                        cp_efield[lev], 0,
-                                        cp_efield[lev], 0,
-                                        0, AMREX_SPACEDIM, 0);
+        amplitude = std::max(amplitude, cp_efield[lev].max(0));
+        amrex::MultiFab::AddProduct(cp_efield[lev],
+                                    cp_efield[lev], 0,
+                                    cp_efield[lev], 0,
+                                    0, AMREX_SPACEDIM, 0);
+        
         for (int c = 0; c < AMREX_SPACEDIM; ++c) {
             field_energy += cp_efield[lev].sum(c);
-            amplitude = std::max(amplitude, std::sqrt(cp_efield[lev].max(c)));
         }
         
         field_energy *= 0.5 * AMREX_D_TERM(  geom[lev].CellSize(0),
