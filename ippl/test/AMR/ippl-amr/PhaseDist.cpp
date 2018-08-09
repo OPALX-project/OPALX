@@ -66,7 +66,7 @@ void PhaseDist::deposit(const ParticleAttrib<double>& q,
     
     this->redistribute_m();
     
-    amrex::Periodicity periodicity(amrex::IntVect(D_DECL(1, 0, 0)));
+    amrex::Periodicity periodicity(amrex::IntVect(D_DECL(0, 0, 0)));
     
     int grid = 0;
     double lxv[2] = { 0.0, 0.0 };
@@ -106,15 +106,15 @@ void PhaseDist::deposit(const ParticleAttrib<double>& q,
         
         amrex::FArrayBox& fab = fmf[grid];
         
-        fab(i1, 0) += AMREX_D_TERM(wxv_lo[0], * wxv_lo[1], * 1.0) * it->q_m;
-        fab(i2, 0) += AMREX_D_TERM(wxv_lo[0], * wxv_hi[1], * 1.0) * it->q_m;
-        fab(i3, 0) += AMREX_D_TERM(wxv_hi[0], * wxv_lo[1], * 1.0) * it->q_m;
-        fab(i4, 0) += AMREX_D_TERM(wxv_hi[0], * wxv_hi[1], * 1.0) * it->q_m;
+        fab(i1, 0) += wxv_lo[0] * wxv_lo[1] * it->q_m;
+        fab(i2, 0) += wxv_lo[0] * wxv_hi[1] * it->q_m;
+        fab(i3, 0) += wxv_hi[0] * wxv_lo[1] * it->q_m;
+        fab(i4, 0) += wxv_hi[0] * wxv_hi[1] * it->q_m;
     }
     
     fmf.SumBoundary(periodicity);
     
-    const amrex::Real vol = D_TERM(dx_m[0], *dv_m[0], *1.0);
+    const amrex::Real vol = dx_m[0] * dv_m[0];
     fmf.mult(-1.0/vol, 0, 1, fmf.nGrow()); // minus --> to make positive (charges < 0)
     
     amrex::MultiFab::Copy(fmf_m, fmf, 0, 0, 1, 0);
@@ -233,7 +233,6 @@ void PhaseDist::redistribute_m()
     typedef std::multimap<std::size_t, std::size_t> multimap_t;
     
     multimap_t p2n; //node ID, particle
-    std::size_t send = 0;
     std::size_t N = Ippl::getNodes();
     
     int *msgsend = new int[N];
@@ -252,7 +251,6 @@ void PhaseDist::redistribute_m()
         if ( cpu != Ippl::myNode() ) {
             msgsend[cpu] = 1;
             p2n.insert(std::pair<std::size_t, std::size_t>(cpu, i));
-            ++send;
         } else {
             tmp.push_back( particles_m[i] );
         }
