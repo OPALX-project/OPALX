@@ -174,7 +174,6 @@ void AmrLagrangeInterpolater<Level>::crseLinear_m(
     const AmrIntVect_t& riv,
     Level* mglevel)
 {
-    //TODO Extend to 3D
 #if AMREX_SPACEDIM == 2
     bool top = (riv[(dir+1)%AMREX_SPACEDIM] % 2 == 1);
     
