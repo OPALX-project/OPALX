@@ -6,6 +6,8 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/mpi.hpp>
 
+#define USE_IPPL 1
+
 #ifdef USE_IPPL
 #include "Particle/ParticleLayout.h"
 
@@ -15,7 +17,6 @@ class DummyLayout : public ParticleLayout<T, Dim>
 {
 
 public:
-    // pair iterator definition ... this layout does not allow for pairlists
     typedef int pair_t;
     typedef pair_t* pair_iterator;
     typedef typename ParticleLayout<T, Dim>::SingleParticlePos_t
