@@ -161,6 +161,7 @@ namespace mslang {
     struct Base: public Function {
         AffineTransformation trafo_m;
         BoundingBox bb_m;
+        std::vector<Base*> divisor_m;
 
         Base():
             trafo_m()
@@ -171,10 +172,19 @@ namespace mslang {
             bb_m(right.bb_m)
         { }
 
+        virtual ~Base() {
+            for (auto item: divisor_m) {
+                delete item;
+                item = NULL;
+            }
+            divisor_m.clear();
+        }
+
         virtual Base* clone() const = 0;
         virtual void writeGnuplot(std::ofstream &out) const = 0;
         virtual void computeBoundingBox() = 0;
         virtual bool isInside(const Vector_t &R) const = 0;
+        virtual void divideBy(std::vector<Base*> &divisors) = 0;
     };
 
 
@@ -200,6 +210,7 @@ namespace mslang {
         virtual void computeBoundingBox();
         double crossProduct(const Vector_t &pt, unsigned int nodeNum) const;
         virtual bool isInside(const Vector_t &R) const;
+        virtual void divideBy(std::vector<Base*> &divisors);
         void orientNodesCCW();
     };
 

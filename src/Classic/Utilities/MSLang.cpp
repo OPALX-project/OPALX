@@ -18,7 +18,7 @@ namespace mslang {
     std::string UDouble("([0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
     std::string Double("(-?[0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
     std::string UInt("([0-9]+)");
-    std::string FCall("([a-z]*)\\((.*)");
+    std::string FCall("([a-z_]*)\\((.*)");
 
     bool parse(iterator &it, const iterator &end, Function* &fun);
 
@@ -80,6 +80,10 @@ namespace mslang {
             }
 
             bb_m = BoundingBox(llc, urc);
+
+            for (auto item: divisor_m) {
+                item->computeBoundingBox();
+            }
         }
 
         virtual bool isInside(const Vector_t &R) const {
@@ -87,7 +91,13 @@ namespace mslang {
 
             Vector_t X = trafo_m.transformTo(R);
             if (2 * std::abs(X[0]) <= width_m &&
-                2 * std::abs(X[1]) <= height_m) return true;
+                2 * std::abs(X[1]) <= height_m) {
+                for (auto item: divisor_m) {
+                    if (item->isInside(R))
+                        return false;
+                }
+                return true;
+            }
 
             return false;
         }
@@ -108,7 +118,11 @@ namespace mslang {
             }
             out << std::endl;
 
-            bb_m.writeGnuplot(out);
+            for (auto item: divisor_m) {
+                item->writeGnuplot(out);
+            }
+
+            // bb_m.writeGnuplot(out);
         }
 
         virtual void apply(std::vector<Base*> &bfuncs) {
@@ -121,7 +135,18 @@ namespace mslang {
             rect->height_m = height_m;
             rect->trafo_m = trafo_m;
 
+            for (auto item: divisor_m) {
+                rect->divisor_m.push_back(item->clone());
+            }
             return rect;
+        }
+
+        virtual void divideBy(std::vector<Base*> &divisors) {
+            for (auto item: divisors) {
+                if (bb_m.doesIntersect(item->bb_m)) {
+                    divisor_m.push_back(item->clone());
+                }
+            }
         }
 
         static
@@ -200,7 +225,11 @@ namespace mslang {
             }
             out << std::endl;
 
-            bb_m.writeGnuplot(out);
+            for (auto item: divisor_m) {
+                item->writeGnuplot(out);
+            }
+
+            // bb_m.writeGnuplot(out);
         }
 
         virtual void apply(std::vector<Base*> &bfuncs) {
@@ -212,6 +241,10 @@ namespace mslang {
             elps->width_m = width_m;
             elps->height_m = height_m;
             elps->trafo_m = trafo_m;
+
+            for (auto item: divisor_m) {
+                elps->divisor_m.push_back(item->clone());
+            }
 
             return elps;
         }
@@ -242,16 +275,34 @@ namespace mslang {
             urc[1] = center[1] + std::abs(halfheight);
 
             bb_m = BoundingBox(llc, urc);
+
+            for (auto item: divisor_m) {
+                item->computeBoundingBox();
+            }
         }
 
         virtual bool isInside(const Vector_t &R) const {
             if (!bb_m.isInside(R)) return false;
 
             Vector_t X = trafo_m.transformTo(R);
-            if (4 * (std::pow(X[0] / width_m, 2) + std::pow(X[1] / height_m, 2)) <= 1)
+            if (4 * (std::pow(X[0] / width_m, 2) + std::pow(X[1] / height_m, 2)) <= 1) {
+
+                for (auto item: divisor_m) {
+                    if (item->isInside(R)) return false;
+                }
+
                 return true;
+            }
 
             return false;
+        }
+
+        virtual void divideBy(std::vector<Base*> &divisors) {
+            for (auto item: divisors) {
+                if (bb_m.doesIntersect(item->bb_m)) {
+                    divisor_m.push_back(item->clone());
+                }
+            }
         }
 
         static
@@ -297,6 +348,12 @@ namespace mslang {
 
     Base* Triangle::clone() const {
         Triangle *tri = new Triangle(*this);
+        tri->trafo_m = trafo_m;
+
+        for (auto item: divisor_m) {
+            tri->divisor_m.push_back(item->clone());
+        }
+
         return tri;
     }
 
@@ -332,6 +389,10 @@ namespace mslang {
         }
 
         bb_m = BoundingBox(llc, urc);
+
+        for (auto item: divisor_m) {
+            item->computeBoundingBox();
+        }
     }
 
     double Triangle::crossProduct(const Vector_t &pt, unsigned int nodeNum) const {
@@ -351,12 +412,25 @@ namespace mslang {
         bool test1 = (crossProduct(X, 1) <= 0.0);
         bool test2 = (crossProduct(X, 2) <= 0.0);
 
-        return test0 && test1 && test2;
+        if (!(test0 && test1 && test2)) return false;
+
+        for (auto item: divisor_m)
+            if (item->isInside(R)) return false;
+
+        return true;
     }
 
     void Triangle::orientNodesCCW() {
         if (crossProduct(nodes_m[0], 1) > 0.0) {
             std::swap(nodes_m[1], nodes_m[2]);
+        }
+    }
+
+    void Triangle::divideBy(std::vector<Base*> &divisors) {
+        for (auto item: divisors) {
+            if (bb_m.doesIntersect(item->bb_m)) {
+                divisor_m.push_back(item->clone());
+            }
         }
     }
 
@@ -443,12 +517,12 @@ namespace mslang {
         }
     };
 
-    struct Translate: public Function {
+    struct Translation: public Function {
         Function* func_m;
         double shiftx_m;
         double shifty_m;
 
-        virtual ~Translate() {
+        virtual ~Translation() {
             delete func_m;
         }
 
@@ -462,22 +536,28 @@ namespace mslang {
                       << indent2 << "dy: " << shifty_m;
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        void applyTranslation(std::vector<Base*> &bfuncs) {
             AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
                                        Vector_t(0.0, 1.0, -shifty_m));
 
-            func_m->apply(bfuncs);
             const unsigned int size = bfuncs.size();
-
             for (unsigned int j = 0; j < size; ++ j) {
                 Base *obj = bfuncs[j];
                 obj->trafo_m = obj->trafo_m.mult(shift);
+
+                if (obj->divisor_m.size() > 0)
+                    applyTranslation(obj->divisor_m);
             }
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            func_m->apply(bfuncs);
+            applyTranslation(bfuncs);
         }
 
         static
         bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
-            Translate *trans = static_cast<Translate*>(fun);
+            Translation *trans = static_cast<Translation*>(fun);
             if (!parse(it, end, trans->func_m)) return false;
 
             boost::regex argumentList("," + Double + "," + Double + "\\)(.*)");
@@ -499,11 +579,11 @@ namespace mslang {
     };
 
 
-    struct Rotate: public Function {
+    struct Rotation: public Function {
         Function* func_m;
         double angle_m;
 
-        virtual ~Rotate() {
+        virtual ~Rotation() {
             delete func_m;
         }
 
@@ -516,22 +596,30 @@ namespace mslang {
                       << indent2 << "angle: " << angle_m;
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        void applyRotation(std::vector<Base*> &bfuncs) {
+
             AffineTransformation rotation(Vector_t(cos(angle_m), sin(angle_m), 0.0),
                                           Vector_t(-sin(angle_m), cos(angle_m), 0.0));
 
-            func_m->apply(bfuncs);
             const unsigned int size = bfuncs.size();
 
             for (unsigned int j = 0; j < size; ++ j) {
                 Base *obj = bfuncs[j];
                 obj->trafo_m = obj->trafo_m.mult(rotation);
+
+                if (obj->divisor_m.size() > 0)
+                    applyRotation(obj->divisor_m);
             }
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            func_m->apply(bfuncs);
+            applyRotation(bfuncs);
         }
 
         static
         bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
-            Rotate *rot = static_cast<Rotate*>(fun);
+            Rotation *rot = static_cast<Rotation*>(fun);
             if (!parse(it, end, rot->func_m)) return false;
 
             boost::regex argumentList("," + Double + "\\)(.*)");
@@ -574,17 +662,24 @@ namespace mslang {
             }
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        void applyShear(std::vector<Base*> &bfuncs) {
             AffineTransformation shear(Vector_t(1.0, tan(angleX_m), 0.0),
                                        Vector_t(-tan(angleY_m), 1.0, 0.0));
 
-            func_m->apply(bfuncs);
             const unsigned int size = bfuncs.size();
 
             for (unsigned int j = 0; j < size; ++ j) {
                 Base *obj = bfuncs[j];
                 obj->trafo_m = obj->trafo_m.mult(shear);
+
+                if (obj->divisor_m.size() > 0)
+                    applyShear(obj->divisor_m);
             }
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            func_m->apply(bfuncs);
+            applyShear(bfuncs);
         }
 
         static
@@ -710,7 +805,7 @@ namespace mslang {
                         rect.height_m = pixel_height;
                         rect.trafo_m = AffineTransformation(Vector_t(1, 0, (0.5 * width - j) * pixel_width),
                                                             Vector_t(0, 1, (i - 0.5 * height) * pixel_height));
-                        // rect.computeBoundingBox();
+
                         pixmap->pixels_m.push_back(rect);
                         pixmap->pixels_m.back().computeBoundingBox();
                     }
@@ -733,6 +828,237 @@ namespace mslang {
         }
 
         std::vector<Rectangle> pixels_m;
+    };
+
+    struct Difference: public Function {
+        Function* dividend_m;
+        Function* divisor_m;
+
+        Difference()
+        { }
+
+        Difference(const Difference &right):
+            dividend_m(right.dividend_m),
+            divisor_m(right.divisor_m)
+        { }
+
+        virtual ~Difference() {
+            delete dividend_m;
+            delete divisor_m;
+        }
+
+        virtual void print(int indentwidth) {
+            std::string indent(' ', indentwidth);
+            std::cout << indent << "Difference\n"
+                      << indent << "    nominators\n";
+            dividend_m->print(indentwidth + 8);
+
+            std::cout << indent << "    denominators\n";
+            divisor_m->print(indentwidth + 8);
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            std::vector<Base*> nom, denom;
+
+            dividend_m->apply(nom);
+            divisor_m->apply(denom);
+            for (auto item: nom) {
+                item->divideBy(denom);
+                bfuncs.push_back(item->clone());
+            }
+        }
+
+        static
+        bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+            Difference *dif = static_cast<Difference*>(fun);
+            if (!parse(it, end, dif->dividend_m)) return false;
+
+            boost::regex argumentList("(,[a-z]+\\(.*)");
+            boost::regex endParenthesis("\\)(.*)");
+            boost::smatch what;
+
+            std::string str(it, end);
+            if (!boost::regex_match(str, what, argumentList)) return false;
+
+            iterator it2 = it + 1;
+            if (!parse(it2, end, dif->divisor_m)) return false;
+
+            it = it2;
+            str = std::string(it, end);
+            if (!boost::regex_match(str, what, endParenthesis)) return false;
+
+            std::string fullMatch = what[0];
+            std::string rest = what[1];
+
+            it += (fullMatch.size() - rest.size());
+
+            return true;
+        }
+    };
+
+    struct SymmetricDifference: public Function {
+        Function *firstOperand_m;
+        Function *secondOperand_m;
+
+        SymmetricDifference()
+        { }
+
+        SymmetricDifference(const SymmetricDifference &right):
+            firstOperand_m(right.firstOperand_m),
+            secondOperand_m(right.secondOperand_m)
+        { }
+
+        virtual ~SymmetricDifference() {
+            delete firstOperand_m;
+            delete secondOperand_m;
+        }
+
+        virtual void print(int indentwidth) {
+            std::string indent(' ', indentwidth);
+            std::cout << indent << "Symmetric division\n"
+                      << indent << "    first operand\n";
+            firstOperand_m->print(indentwidth + 8);
+
+            std::cout << indent << "    second operand\n";
+            secondOperand_m->print(indentwidth + 8);
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            std::vector<Base*> first, second;
+
+            firstOperand_m->apply(first);
+            secondOperand_m->apply(second);
+            for (auto item: first) {
+                item->divideBy(second);
+                bfuncs.push_back(item->clone());
+            }
+
+            for (auto item: second)
+                delete item;
+            for (auto item: first)
+                delete item;
+
+            first.clear();
+            second.clear();
+
+            secondOperand_m->apply(first);
+            firstOperand_m->apply(second);
+            for (auto item: first) {
+                item->divideBy(second);
+                bfuncs.push_back(item->clone());
+            }
+
+            first.clear();
+            for (auto item: second)
+                delete item;
+            second.clear();
+        }
+
+        static
+        bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+            SymmetricDifference *dif = static_cast<SymmetricDifference*>(fun);
+            if (!parse(it, end, dif->firstOperand_m)) return false;
+
+            boost::regex argumentList("(,[a-z]+\\(.*)");
+            boost::regex endParenthesis("\\)(.*)");
+            boost::smatch what;
+
+            std::string str(it, end);
+            if (!boost::regex_match(str, what, argumentList)) return false;
+
+            iterator it2 = it + 1;
+            if (!parse(it2, end, dif->secondOperand_m)) return false;
+
+            it = it2;
+            str = std::string(it, end);
+            if (!boost::regex_match(str, what, endParenthesis)) return false;
+
+            std::string fullMatch = what[0];
+            std::string rest = what[1];
+
+            it += (fullMatch.size() - rest.size());
+
+            return true;
+        }
+    };
+
+    struct Intersection: public Function {
+        Function *firstOperand_m;
+        Function *secondOperand_m;
+
+        Intersection()
+        { }
+
+        Intersection(const Intersection &right):
+            firstOperand_m(right.firstOperand_m),
+            secondOperand_m(right.secondOperand_m)
+        { }
+
+        virtual ~Intersection() {
+            delete firstOperand_m;
+            delete secondOperand_m;
+        }
+
+        virtual void print(int indentwidth) {
+            std::string indent(' ', indentwidth);
+            std::cout << indent << "Intersection\n"
+                      << indent << "    first operand\n";
+            firstOperand_m->print(indentwidth + 8);
+
+            std::cout << indent << "    second operand\n";
+            secondOperand_m->print(indentwidth + 8);
+        }
+
+        virtual void apply(std::vector<Base*> &bfuncs) {
+            std::vector<Base*> first, firstrep, second;
+
+            firstOperand_m->apply(first);
+            firstOperand_m->apply(firstrep);
+            secondOperand_m->apply(second);
+
+            for (auto item: firstrep) {
+                item->divideBy(second);
+            }
+
+            for (auto item: first) {
+                item->divideBy(firstrep);
+                bfuncs.push_back(item->clone());
+            }
+
+            for (auto item: first)
+                delete item;
+            for (auto item: firstrep)
+                delete item;
+            for (auto item: second)
+                delete item;
+        }
+
+        static
+        bool parse_detail(iterator &it, const iterator &end, Function* &fun) {
+            Intersection *inter = static_cast<Intersection*>(fun);
+            if (!parse(it, end, inter->firstOperand_m)) return false;
+
+            boost::regex argumentList("(,[a-z]+\\(.*)");
+            boost::regex endParenthesis("\\)(.*)");
+            boost::smatch what;
+
+            std::string str(it, end);
+            if (!boost::regex_match(str, what, argumentList)) return false;
+
+            iterator it2 = it + 1;
+            if (!parse(it2, end, inter->secondOperand_m)) return false;
+
+            it = it2;
+            str = std::string(it, end);
+            if (!boost::regex_match(str, what, endParenthesis)) return false;
+
+            std::string fullMatch = what[0];
+            std::string rest = what[1];
+
+            it += (fullMatch.size() - rest.size());
+
+            return true;
+        }
     };
 
     struct Polygon: public Function {
@@ -965,6 +1291,11 @@ namespace mslang {
             if (!Polygon::parse_detail(it, end, fun)) return false;
 
             return true;
+        } else if (identifier == "mask") {
+            fun = new Mask;
+            it += shift;
+
+            return Mask::parse_detail(it, end, fun);
         } else if (identifier == "repeat") {
             fun = new Repeat;
             it += shift;
@@ -972,15 +1303,15 @@ namespace mslang {
 
             return true;
         } else if (identifier == "rotate") {
-            fun = new Rotate;
+            fun = new Rotation;
             it += shift;
-            if (!Rotate::parse_detail(it, end, fun)) return false;
+            if (!Rotation::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "translate") {
-            fun = new Translate;
+            fun = new Translation;
             it += shift;
-            if (!Translate::parse_detail(it, end, fun)) return false;
+            if (!Translation::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "shear") {
@@ -995,12 +1326,26 @@ namespace mslang {
             if (!Union::parse_detail(it, end, fun)) return false;
 
             return true;
-        } else if (identifier == "mask") {
-            fun = new Mask;
+        } else if (identifier == "difference") {
+            fun = new Difference;
             it += shift;
-            return Mask::parse_detail(it, end, fun);
-        }
+            if (!Difference::parse_detail(it, end, fun)) return false;
 
+            return true;
+        } else if (identifier == "symmetric_difference") {
+
+            fun = new SymmetricDifference;
+            it += shift;
+            if (!SymmetricDifference::parse_detail(it, end, fun)) return false;
+
+            return true;
+        } else if (identifier == "intersection") {
+            fun = new Intersection;
+            it += shift;
+            if (!Intersection::parse_detail(it, end, fun)) return false;
+
+            return true;
+        }
 
         return (it == end);
 
