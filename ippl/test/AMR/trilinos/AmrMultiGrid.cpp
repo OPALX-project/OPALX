@@ -54,9 +54,13 @@ AmrMultiGrid::AmrMultiGrid(AmrOpal* itsAmrObject_p,
 #endif
     
     const Boundary bcs[AMREX_SPACEDIM] = {
-        this->convertToEnumBoundary_m(bcx),
-        this->convertToEnumBoundary_m(bcy),
-        this->convertToEnumBoundary_m(bcz)
+        D_DECL(
+            this->convertToEnumBoundary_m(bcx),
+            this->convertToEnumBoundary_m(bcy),
+#if AMREX_SPACEDIM == 3
+            this->convertToEnumBoundary_m(bcz)
+#endif
+        )
     };
     
     this->initPhysicalBoundary_m(&bcs[0]);
@@ -2208,12 +2212,20 @@ double AmrMultiGrid::getYRangeMax(unsigned short level) {
 
 
 double AmrMultiGrid::getZRangeMin(unsigned short level) {
+#if AMREX_SPACEDIM == 3
     return itsAmrObject_mp->Geom(level).ProbLo(2);
+#else
+    return 0.0;
+#endif
 }
 
 
 double AmrMultiGrid::getZRangeMax(unsigned short level) {
+#if AMREX_SPACEDIM == 3
     return itsAmrObject_mp->Geom(level).ProbHi(2);
+#else
+    return 0.0;
+#endif
 }
 
 
