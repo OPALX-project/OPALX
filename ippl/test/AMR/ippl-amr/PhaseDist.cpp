@@ -60,9 +60,9 @@ void PhaseDist::define(const Vector_t& left,
     
 #ifdef USE_IPPL
     ippl_init_m();
-#endif
-    
+#else
     fmf_m.define(fba_m, fdmap_m, 1, 1);
+#endif
 }
 
 
@@ -218,111 +218,6 @@ void PhaseDist::redistribute_m()
 }
 
 
-void PhaseDist::amrex_deposit_m()
-{
-    amrex::Periodicity periodicity(amrex::IntVect(D_DECL(0, 0, 0)));
-    
-    int grid = 0;
-    double lxv[2] = { 0.0, 0.0 };
-    double wxv_hi[2] = { 0.0, 0.0 };
-    double wxv_lo[2] = { 0.0, 0.0 };
-    int ij[2] = { 0, 0 };
-    
-    fmf_m.setVal(0.0, 1);
-    
-    amrex::MultiFab fmf(fba_m, fdmap_m, 1, 2);
-    fmf.setVal(0.0, 2);
-    
-    double inv_dx[2] = { 1.0 / dx_m[0], 1.0 / dv_m[0] };
-    
-    for (std::vector<Particle>::iterator it = particles_m.begin();
-         it != particles_m.end(); ++it)
-    {
-        lxv[0] = ( it->x_m[0] - left_m[0] ) * inv_dx[0] + 0.5;
-        ij[0] = lxv[0];
-        wxv_hi[0] = lxv[0] - ij[0];
-        wxv_lo[0] = 1.0 - wxv_hi[0];
-        
-        lxv[1] = ( it->v_m[0] - vmin_m[0] ) * inv_dx[1] + 0.5;
-        ij[1] = lxv[1];
-        wxv_hi[1] = lxv[1] - ij[1];
-        wxv_lo[1] = 1.0 - wxv_hi[1];
-        
-        int& i = ij[0];
-        int& j = ij[1];
-        
-        amrex::IntVect i1(D_DECL(i-1, j-1, 0));
-        amrex::IntVect i2(D_DECL(i-1, j,   0));
-        amrex::IntVect i3(D_DECL(i,   j-1, 0));
-        amrex::IntVect i4(D_DECL(i,   j,   0));
-        
-        grid = this->where_m(it->x_m, it->v_m);
-        
-        amrex::FArrayBox& fab = fmf[grid];
-        
-        fab(i1, 0) += wxv_lo[0] * wxv_lo[1] * it->q_m;
-        fab(i2, 0) += wxv_lo[0] * wxv_hi[1] * it->q_m;
-        fab(i3, 0) += wxv_hi[0] * wxv_lo[1] * it->q_m;
-        fab(i4, 0) += wxv_hi[0] * wxv_hi[1] * it->q_m;
-    }
-    
-    fmf.SumBoundary(periodicity);
-    
-//     const amrex::Real vol = dx_m[0] * dv_m[0];
-    fmf.mult(-1.0 /*/ vol*/, 0, 1, fmf.nGrow()); // minus --> to make positive (charges < 0)
-    
-    amrex::MultiFab::Copy(fmf_m, fmf, 0, 0, 1, 0);
-    
-    if ( fmf_m.contains_nan() || fmf_m.contains_inf() )
-        throw std::runtime_error("\033[1;31mError: NANs or INFs on charge grid.\033[0m");
-}
-
-
-void PhaseDist::amrex_write_m(const std::string& fname) {
-    
-    std::ofstream out;
-    out.precision(10);
-    out.setf(std::ios::scientific, std::ios::floatfield);
-    
-    bool first = true;
-    
-    for (amrex::MFIter mfi(fmf_m); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
-        const amrex::FArrayBox& fab = fmf_m[mfi];
-        
-        for (int p = 0; p < amrex::ParallelDescriptor::NProcs(); ++p) {
-            
-            if ( p == amrex::ParallelDescriptor::MyProc() ) {
-            
-                if ( p == 0 && first) {
-                    first = false;
-                    out.open(fname.c_str(), std::ios::out);
-                    out << "x, vx, f" << std::endl;
-                } else {
-                    out.open(fname.c_str(), std::ios::app);
-                }
-                
-                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
-                        
-                        amrex::IntVect iv(D_DECL(i, j, 0));
-                        
-                        out << (i + 0.5) * dx_m[0]
-                            << ", "
-                            << (j + 0.5) * dv_m[0] + vmin_m[0]
-                            << ", "
-                            << fab(iv, 0)
-                            << std::endl;
-                    }
-                }
-                out.close();
-            }
-            amrex::ParallelDescriptor::Barrier();
-        }
-    }
-}
-
-
 #ifdef USE_IPPL
 void PhaseDist::ippl_deposit_m()
 {
@@ -431,5 +326,111 @@ void PhaseDist::ippl_write_m(const std::string& fname) {
     
     if ( Ippl::myNode() == 0 )
         out.close();
+}
+
+#else
+
+void PhaseDist::amrex_deposit_m()
+{
+    amrex::Periodicity periodicity(amrex::IntVect(D_DECL(0, 0, 0)));
+    
+    int grid = 0;
+    double lxv[2] = { 0.0, 0.0 };
+    double wxv_hi[2] = { 0.0, 0.0 };
+    double wxv_lo[2] = { 0.0, 0.0 };
+    int ij[2] = { 0, 0 };
+    
+    fmf_m.setVal(0.0, 1);
+    
+    amrex::MultiFab fmf(fba_m, fdmap_m, 1, 2);
+    fmf.setVal(0.0, 2);
+    
+    double inv_dx[2] = { 1.0 / dx_m[0], 1.0 / dv_m[0] };
+    
+    for (std::vector<Particle>::iterator it = particles_m.begin();
+         it != particles_m.end(); ++it)
+    {
+        lxv[0] = ( it->x_m[0] - left_m[0] ) * inv_dx[0] + 0.5;
+        ij[0] = lxv[0];
+        wxv_hi[0] = lxv[0] - ij[0];
+        wxv_lo[0] = 1.0 - wxv_hi[0];
+        
+        lxv[1] = ( it->v_m[0] - vmin_m[0] ) * inv_dx[1] + 0.5;
+        ij[1] = lxv[1];
+        wxv_hi[1] = lxv[1] - ij[1];
+        wxv_lo[1] = 1.0 - wxv_hi[1];
+        
+        int& i = ij[0];
+        int& j = ij[1];
+        
+        amrex::IntVect i1(D_DECL(i-1, j-1, 0));
+        amrex::IntVect i2(D_DECL(i-1, j,   0));
+        amrex::IntVect i3(D_DECL(i,   j-1, 0));
+        amrex::IntVect i4(D_DECL(i,   j,   0));
+        
+        grid = this->where_m(it->x_m, it->v_m);
+        
+        amrex::FArrayBox& fab = fmf[grid];
+        
+        fab(i1, 0) += wxv_lo[0] * wxv_lo[1] * it->q_m;
+        fab(i2, 0) += wxv_lo[0] * wxv_hi[1] * it->q_m;
+        fab(i3, 0) += wxv_hi[0] * wxv_lo[1] * it->q_m;
+        fab(i4, 0) += wxv_hi[0] * wxv_hi[1] * it->q_m;
+    }
+    
+    fmf.SumBoundary(periodicity);
+    
+//     const amrex::Real vol = dx_m[0] * dv_m[0];
+    fmf.mult(-1.0 /*/ vol*/, 0, 1, fmf.nGrow()); // minus --> to make positive (charges < 0)
+    
+    amrex::MultiFab::Copy(fmf_m, fmf, 0, 0, 1, 0);
+    
+    if ( fmf_m.contains_nan() || fmf_m.contains_inf() )
+        throw std::runtime_error("\033[1;31mError: NANs or INFs on charge grid.\033[0m");
+}
+
+
+void PhaseDist::amrex_write_m(const std::string& fname) {
+    
+    std::ofstream out;
+    out.precision(10);
+    out.setf(std::ios::scientific, std::ios::floatfield);
+    
+    bool first = true;
+    
+    for (amrex::MFIter mfi(fmf_m); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& fab = fmf_m[mfi];
+        
+        for (int p = 0; p < amrex::ParallelDescriptor::NProcs(); ++p) {
+            
+            if ( p == amrex::ParallelDescriptor::MyProc() ) {
+            
+                if ( p == 0 && first) {
+                    first = false;
+                    out.open(fname.c_str(), std::ios::out);
+                    out << "x, vx, f" << std::endl;
+                } else {
+                    out.open(fname.c_str(), std::ios::app);
+                }
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                        
+                        amrex::IntVect iv(D_DECL(i, j, 0));
+                        
+                        out << (i + 0.5) * dx_m[0]
+                            << ", "
+                            << (j + 0.5) * dv_m[0] + vmin_m[0]
+                            << ", "
+                            << fab(iv, 0)
+                            << std::endl;
+                    }
+                }
+                out.close();
+            }
+            amrex::ParallelDescriptor::Barrier();
+        }
+    }
 }
 #endif
