@@ -411,7 +411,7 @@ void PlasmaPIC::initAmrMG() {
     std::string prec = "NONE";
     bool rebalance = true;
     std::size_t nsweeps = 12;
-    solver_mp = new AmrMultiGrid(*(amropal_m.get()),
+    solver_mp = new AmrMultiGrid(amropal_m.get(),
                                  bs, prec, rebalance,
                                  "periodic", "periodic",
                                  "periodic", smoother,
