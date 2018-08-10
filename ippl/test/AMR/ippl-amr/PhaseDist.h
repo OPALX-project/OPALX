@@ -6,6 +6,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/mpi.hpp>
 
+#ifdef USE_IPPL
 #include "Particle/ParticleLayout.h"
 
 
@@ -32,7 +33,7 @@ public:
         throw std::runtime_error("Not provided");
     }
 };
-
+#endif
 
 
 class Particle {
@@ -88,7 +89,11 @@ public:
 };
 
 
-class PhaseDist : public IpplParticleBase<DummyLayout<double, AMREX_SPACEDIM> > {
+class PhaseDist
+#ifdef USE_IPPL
+    : public IpplParticleBase<DummyLayout<double, AMREX_SPACEDIM> >
+#endif
+{
     
 public:
     typedef AmrOpal::amrplayout_t amrplayout_t;
@@ -160,7 +165,7 @@ private:
     
     std::vector<Particle> particles_m;
     
-    
+#ifdef USE_IPPL
     typedef Cell                                        Center_t;
     typedef IntCIC                                      IntrplCIC_t;
     typedef UniformCartesian<2, double>                 Mesh2d_t;
@@ -174,6 +179,7 @@ private:
     
     ParticleAttrib<Vektor<double,2> > xphase_m;
     ParticleAttrib<double> q_m;
+#endif
 };
 
 #endif

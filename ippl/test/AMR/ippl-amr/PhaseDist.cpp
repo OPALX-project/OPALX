@@ -13,8 +13,10 @@ PhaseDist::PhaseDist()
     , nv_m(Vector_t())
     , dv_m(Vector_t())
 {
+#ifdef USE_IPPL
     this->addAttribute(xphase_m);
     this->addAttribute(q_m);
+#endif
 }
 
 PhaseDist::PhaseDist(const Vector_t& left,
