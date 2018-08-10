@@ -675,7 +675,7 @@ void PlasmaPIC::dump_m() {
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
         
         if (tcurrent_m < dt_m) {
-            csvout << "it, field energy, kinetic energy, "
+            csvout << "time, field energy, kinetic energy, "
                    << "total energy, potential energy" << std::endl;
         }
         
@@ -693,7 +693,7 @@ void PlasmaPIC::dump_m() {
         
         csvout.open(fname.str().c_str(), std::ios::out | std::ofstream::app);
         if (tcurrent_m < dt_m){
-                csvout << "it,max(|Ez|)" << std::endl;
+                csvout << "time, max(|Ex|)" << std::endl;
         }
         csvout << tcurrent_m << ", "
                 << ampl << std::endl;
