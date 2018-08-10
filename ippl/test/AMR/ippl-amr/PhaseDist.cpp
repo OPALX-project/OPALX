@@ -269,7 +269,7 @@ void PhaseDist::amrex_deposit_m()
     fmf.SumBoundary(periodicity);
     
     const amrex::Real vol = dx_m[0] * dv_m[0];
-    fmf.mult(-1.0/vol, 0, 1, fmf.nGrow()); // minus --> to make positive (charges < 0)
+    fmf.mult(-1.0 /*/ vol*/, 0, 1, fmf.nGrow()); // minus --> to make positive (charges < 0)
     
     amrex::MultiFab::Copy(fmf_m, fmf, 0, 0, 1, 0);
     
