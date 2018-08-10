@@ -13,6 +13,8 @@
 // #include "Solvers/AmrPoissonSolver.h"
 #include "../AmrOpal.h"
 
+#include "../AbstractSolver.h"
+
 #include "AmrMultiGridLevel.h"
 
 #include <fstream>
@@ -21,7 +23,7 @@
 #define AMR_MG_WRITE 0
 #define DEBUG 0
 
-class AmrMultiGrid /*: public AmrPoissonSolver< AmrOpal >*/ {
+class AmrMultiGrid : public AbstractSolver /*: public AmrPoissonSolver< AmrOpal >*/ {
     
 public:
     typedef amr::matrix_t         matrix_t;
@@ -177,6 +179,24 @@ public:
 //                  const std::size_t& nSweeps,
 //                  const std::string& interp,
 //                  const std::string& norm);
+    
+    /*!
+     * Plasma tests only
+     */
+    typedef AbstractSolver::amropal_p amropal_p;
+    
+    virtual
+    void solve(amropal_p& amropal,
+               AmrFieldContainer_t &rho,
+               AmrFieldContainer_t &phi,
+               AmrFieldContainer_t &efield,
+               unsigned short baseLevel,
+               unsigned short finestLevel,
+               bool prevAsGuess = true) {
+        this->solve(rho, phi, efield, baseLevel,
+                    finestLevel, prevAsGuess);
+    }
+    
     
     /*!
      * Used in OPAL
