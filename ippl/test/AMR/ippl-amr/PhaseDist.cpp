@@ -1,12 +1,13 @@
 #include "PhaseDist.h"
 
 #include <boost/mpi/collectives.hpp>
-#include <boost/mpi/status.hpp>
 
 #include <algorithm>
 
 PhaseDist::PhaseDist()
-    : left_m(Vector_t())
+    : env_m()
+    , world_m(Ippl::getComm(), boost::mpi::comm_attach)
+    , left_m(Vector_t())
     , nx_m(Vector_t())
     , dx_m(Vector_t())
     , vmin_m(Vector_t())
@@ -26,6 +27,8 @@ PhaseDist::PhaseDist(const Vector_t& left,
               const Vector_t& vmax,
               const Vector_t& nv,
               const int& maxgrid)
+    : env_m()
+    , world_m(Ippl::getComm(), boost::mpi::comm_attach)
 {
     this->define(left, right, nx,
                  vmin, vmax, nv,
@@ -151,18 +154,15 @@ void PhaseDist::redistribute_m()
     if ( Ippl::getNodes() < 2 )
         return;
     
-    boost::mpi::environment env;
-    boost::mpi::communicator world(Ippl::getComm(), boost::mpi::comm_duplicate);
-    
     typedef std::multimap<std::size_t, std::size_t> multimap_t;
     
     multimap_t p2n; //node ID, particle
     std::size_t N = Ippl::getNodes();
     
-    int *msgsend = new int[N];
-    std::fill(msgsend, msgsend+N, 0);
-    int *msgrecv = new int[N];
-    std::fill(msgrecv, msgrecv+N, 0);
+    std::unique_ptr<int[]> msgsend(new int[N]);
+    std::fill(msgsend.get(), msgsend.get() + N, 0);
+    std::unique_ptr<int[]> msgrecv(new int[N]);
+    std::fill(msgrecv.get(), msgrecv.get() + N, 0);
     
     std::vector<Particle> tmp;
     
@@ -181,7 +181,7 @@ void PhaseDist::redistribute_m()
     }
     
     
-    boost::mpi::all_reduce(world, msgsend, N, msgrecv, std::plus<int>());
+    boost::mpi::all_reduce(world_m, msgsend.get(), N, msgrecv.get(), std::plus<int>());
     
     std::vector<boost::mpi::request> requests;
     
@@ -198,22 +198,19 @@ void PhaseDist::redistribute_m()
             psend.push_back( particles_m[it->second] );
         }
         
-        requests.push_back( world.isend(cur_destination, tag, psend) );
+        requests.push_back( world_m.isend(cur_destination, tag, psend) );
     }
     
     
-    for (int k = 0; k < msgrecv[Ippl::myNode()]; ++k)
-    {
-        boost::mpi::status stat = world.probe(boost::mpi::any_source, tag);
-        
+    for (int k = 0; k < msgrecv[Ippl::myNode()]; ++k) {
         std::vector<Particle> precv;
         
-        world.recv(stat.source(), stat.tag(), precv);
+        world_m.recv(boost::mpi::any_source, tag, precv);
         
         std::copy(precv.begin(), precv.end(), std::back_inserter(tmp));
     }
     
-//     boost::mpi::wait_all(requests, requests.size());
+    boost::mpi::wait_all(requests.begin(), requests.end());
     particles_m.swap(tmp);
 }
 
@@ -238,8 +235,8 @@ void PhaseDist::ippl_deposit_m()
     
     q_m.scatter(field2d_m, xphase_m, IntCIC());
     
-    xphase_m.destroy(new_localnum, 0);
-    q_m.destroy(new_localnum, 0);
+    xphase_m.destroy(new_localnum, 0, true);
+    q_m.destroy(new_localnum, 0, true);
 }
 
 
