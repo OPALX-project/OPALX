@@ -6,7 +6,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/mpi.hpp>
 
-#define USE_IPPL 1
+// #define USE_IPPL 1
 
 #ifdef USE_IPPL
 #include "Particle/ParticleLayout.h"
