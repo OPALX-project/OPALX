@@ -6,6 +6,35 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/mpi.hpp>
 
+#include "Particle/ParticleLayout.h"
+
+
+template <class T, unsigned Dim>
+class DummyLayout : public ParticleLayout<T, Dim>
+{
+
+public:
+    // pair iterator definition ... this layout does not allow for pairlists
+    typedef int pair_t;
+    typedef pair_t* pair_iterator;
+    typedef typename ParticleLayout<T, Dim>::SingleParticlePos_t
+    SingleParticlePos_t;
+    typedef typename ParticleLayout<T, Dim>::Index_t Index_t;
+  
+    // type of attributes this layout should use for position and ID
+    typedef ParticleAttrib<SingleParticlePos_t> ParticlePos_t;
+    typedef ParticleAttrib<Index_t>             ParticleIndex_t;
+    
+    
+    void update(IpplParticleBase< DummyLayout<T,Dim> >& PData, 
+                const ParticleAttrib<char>* canSwap=0)
+    {
+        throw std::runtime_error("Not provided");
+    }
+};
+
+
+
 class Particle {
     
 public:
@@ -59,7 +88,7 @@ public:
 };
 
 
-class PhaseDist {
+class PhaseDist : public IpplParticleBase<DummyLayout<double, AMREX_SPACEDIM> > {
     
 public:
     typedef AmrOpal::amrplayout_t amrplayout_t;
@@ -108,6 +137,13 @@ private:
     void redistribute_m();
     
     
+    void amrex_deposit_m();
+    
+#ifdef USE_IPPL
+    void ippl_deposit_m();
+    
+    void ippl_init_m();
+#endif
     
 private:
     Vector_t left_m;
@@ -123,6 +159,21 @@ private:
     amrex::MultiFab fmf_m;
     
     std::vector<Particle> particles_m;
+    
+    
+    typedef Cell                                        Center_t;
+    typedef IntCIC                                      IntrplCIC_t;
+    typedef UniformCartesian<2, double>                 Mesh2d_t;
+    typedef CenteredFieldLayout<2, Mesh2d_t, Center_t>  FieldLayout2d_t;
+    typedef Field<double, 2, Mesh2d_t, Center_t>        Field2d_t;
+    
+    Mesh2d_t  mesh2d_m;
+    std::shared_ptr<FieldLayout2d_t> layout2d_m;
+    Field2d_t field2d_m;
+    
+    
+    ParticleAttrib<Vektor<double,2> > xphase_m;
+    ParticleAttrib<double> q_m;
 };
 
 #endif
