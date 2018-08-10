@@ -165,13 +165,15 @@ private:
     
     amrex::BoxArray fba_m;
     amrex::DistributionMapping fdmap_m;
+
+#ifndef USE_IPPL
     amrex::MultiFab fmf_m;
+#endif
     
     std::vector<Particle> particles_m;
     
 #ifdef USE_IPPL
-    typedef Cell                                        Center_t;
-    typedef IntCIC                                      IntrplCIC_t;
+    typedef Cell                                        Center_t;;
     typedef UniformCartesian<2, double>                 Mesh2d_t;
     typedef CenteredFieldLayout<2, Mesh2d_t, Center_t>  FieldLayout2d_t;
     typedef Field<double, 2, Mesh2d_t, Center_t>        Field2d_t;
