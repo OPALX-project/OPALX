@@ -186,9 +186,10 @@ void AmrOpenBoundary<Level>::abc1_m(const AmrIntVect_t& iv,
     // coordinate of inner cell
     scalar_t x = this->coordinate_m(niv, 0, mglevel, nr) + sign * dd_m * h;
     scalar_t y = this->coordinate_m(niv, 1, mglevel, nr) + sign * dd_m * h;
+#if AMREX_SPACEDIM == 3
     scalar_t z = this->coordinate_m(niv, 2, mglevel, nr) + sign * dd_m * h;
-    
-    scalar_t r = std::sqrt( x * x + y * y + z * z );
+#endif
+    scalar_t r = std::sqrt( AMREX_D_TERM(x * x, + y * y, + z * z) );
     
 //     // artificial distance
 //     scalar_t d = dd_m * nr[dir] * h; // + r;
@@ -231,9 +232,10 @@ void AmrOpenBoundary<Level>::abc2_m(const AmrIntVect_t& iv,
     // coordinate of inner cell
     scalar_t x = this->coordinate_m(niv, 0, mglevel, nr) + sign * dd_m * h;
     scalar_t y = this->coordinate_m(niv, 1, mglevel, nr) + sign * dd_m * h;
+#if AMREX_SPACEDIM == 3
     scalar_t z = this->coordinate_m(niv, 2, mglevel, nr) + sign * dd_m * h;
-    
-    scalar_t r = std::sqrt(x * x + y * y + z * z);
+#endif
+    scalar_t r = std::sqrt( AMREX_D_TERM(x * x, + y * y, + z * z) );
     
 //     scalar_t d = dd_m * nr[dir] * h; // + r;
     scalar_t d = r;
@@ -287,9 +289,11 @@ void AmrOpenBoundary<Level>::abc3_m(const AmrIntVect_t& iv,
     // coordinate of inner cell
     scalar_t x = this->coordinate_m(niv, 0, mglevel, nr);
     scalar_t y = this->coordinate_m(niv, 1, mglevel, nr);
+#if AMREX_SPACEDIM == 3
     scalar_t z = this->coordinate_m(niv, 2, mglevel, nr);
+#endif
     
-    scalar_t d = std::sqrt(x * x + y * y + z * z);
+    scalar_t d = std::sqrt( AMREX_D_TERM(x * x, + y * y, + z * z) );
     
     scalar_t hd = h + d;
     
