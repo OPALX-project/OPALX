@@ -236,7 +236,7 @@ void PhaseDist::ippl_deposit_m()
     
     field2d_m = 0;
     
-    q_m.scatter(field2d_m, xphase_m, IntrplCIC_t());
+    q_m.scatter(field2d_m, xphase_m, IntCIC());
     
     xphase_m.destroy(new_localnum, 0);
     q_m.destroy(new_localnum, 0);
