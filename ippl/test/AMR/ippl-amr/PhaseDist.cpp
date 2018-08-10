@@ -85,48 +85,13 @@ void PhaseDist::deposit(const ParticleAttrib<double>& q,
 }
 
 
-void PhaseDist::write(const std::string& fname) {
-    
-    std::ofstream out;
-    out.precision(10);
-    out.setf(std::ios::scientific, std::ios::floatfield);
-    
-    bool first = true;
-    
-    for (amrex::MFIter mfi(fmf_m); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
-        const amrex::FArrayBox& fab = fmf_m[mfi];
-        
-        for (int p = 0; p < amrex::ParallelDescriptor::NProcs(); ++p) {
-            
-            if ( p == amrex::ParallelDescriptor::MyProc() ) {
-            
-                if ( p == 0 && first) {
-                    first = false;
-                    out.open(fname.c_str(), std::ios::out);
-                    out << "x, vx, f" << std::endl;
-                } else {
-                    out.open(fname.c_str(), std::ios::app);
-                }
-                
-                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
-                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
-                        
-                        amrex::IntVect iv(D_DECL(i, j, 0));
-                        
-                        out << (i + 0.5) * dx_m[0]
-                            << ", "
-                            << (j + 0.5) * dv_m[0] + vmin_m[0]
-                            << ", "
-                            << fab(iv, 0)
-                            << std::endl;
-                    }
-                }
-                out.close();
-            }
-            amrex::ParallelDescriptor::Barrier();
-        }
-    }
+void PhaseDist::write(const std::string& fname)
+{    
+#ifdef USE_IPPL
+    this->ippl_write_m(fname);
+#else
+    this->amrex_write_m(fname);
+#endif
 }
 
 
@@ -313,6 +278,51 @@ void PhaseDist::amrex_deposit_m()
 }
 
 
+void PhaseDist::amrex_write_m(const std::string& fname) {
+    
+    std::ofstream out;
+    out.precision(10);
+    out.setf(std::ios::scientific, std::ios::floatfield);
+    
+    bool first = true;
+    
+    for (amrex::MFIter mfi(fmf_m); mfi.isValid(); ++mfi) {
+        const amrex::Box& bx = mfi.validbox();
+        const amrex::FArrayBox& fab = fmf_m[mfi];
+        
+        for (int p = 0; p < amrex::ParallelDescriptor::NProcs(); ++p) {
+            
+            if ( p == amrex::ParallelDescriptor::MyProc() ) {
+            
+                if ( p == 0 && first) {
+                    first = false;
+                    out.open(fname.c_str(), std::ios::out);
+                    out << "x, vx, f" << std::endl;
+                } else {
+                    out.open(fname.c_str(), std::ios::app);
+                }
+                
+                for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
+                    for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+                        
+                        amrex::IntVect iv(D_DECL(i, j, 0));
+                        
+                        out << (i + 0.5) * dx_m[0]
+                            << ", "
+                            << (j + 0.5) * dv_m[0] + vmin_m[0]
+                            << ", "
+                            << fab(iv, 0)
+                            << std::endl;
+                    }
+                }
+                out.close();
+            }
+            amrex::ParallelDescriptor::Barrier();
+        }
+    }
+}
+
+
 #ifdef USE_IPPL
 void PhaseDist::ippl_deposit_m()
 {
@@ -332,34 +342,6 @@ void PhaseDist::ippl_deposit_m()
     field2d_m = 0;
     
     q_m.scatter(field2d_m, xphase_m, IntrplCIC_t());
-    
-    std::ofstream out;
-    out.precision(10);
-    out.setf(std::ios::scientific, std::ios::floatfield);
-
-    std::stringstream fname;
-    fname << "blub_"; //(dir_m / "f_mesh_").string();
-    fname << std::setw(4) << std::setfill('0') << 0; //step;
-    fname << ".csv";
-    
-    // open a new data file for this iteration
-    // and start with header
-    out.open(fname.str().c_str(), std::ios::out);
-    out << "x, vx, f" << std::endl;
-    
-    NDIndex<2> lDom = layout2d_m->getDomain();
-    
-    for (int i=lDom[0].first(); i<=lDom[0].last(); i++) {
-    
-        for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
-        
-            out << (i+0.5) * dx_m[0] << ","
-                   << (j+0.5) * dv_m[0] + vmin_m[0]
-                   << "," << field2d_m[i][j].get() << std::endl;
-        }
-    }
-    
-    out.close();
     
     xphase_m.destroy(new_localnum, 0);
     q_m.destroy(new_localnum, 0);
@@ -419,5 +401,35 @@ void PhaseDist::ippl_init_m() {
                                                                       &nodes[0] + nodes.size()));
     
     field2d_m.initialize(mesh2d_m, *(layout2d_m.get()), GuardCellSizes<2>(1), bc);
+}
+
+
+void PhaseDist::ippl_write_m(const std::string& fname) {
+    std::ofstream out;
+    out.precision(10);
+    out.setf(std::ios::scientific, std::ios::floatfield);
+    
+    if ( Ippl::myNode() == 0 ) {
+        out.open(fname.c_str(), std::ios::out);
+        out << "x, vx, f" << std::endl;
+    }
+    
+    NDIndex<2> lDom = layout2d_m->getDomain();    
+    
+    for (int i=lDom[0].first(); i<=lDom[0].last(); i++) {
+        for (int j=lDom[1].first(); j<=lDom[1].last(); j++) {
+             // multiply by -1, since charge is < 0
+            double fval = -field2d_m[i][j].get();
+            
+            if ( Ippl::myNode() == 0 ) {
+                out << (i + 0.5) * dx_m[0] << ", "
+                    << (j + 0.5) * dv_m[0] + vmin_m[0] << ", "
+                    << fval<< std::endl;
+            }
+        }
+    }
+    
+    if ( Ippl::myNode() == 0 )
+        out.close();
 }
 #endif
