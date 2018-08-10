@@ -155,6 +155,9 @@ private:
 #endif
     
 private:
+    boost::mpi::environment env_m;
+    boost::mpi::communicator world_m;
+    
     Vector_t left_m;
     Vector_t nx_m;
     Vector_t dx_m;
