@@ -142,17 +142,16 @@ private:
     
     void redistribute_m();
     
-    
-    void amrex_deposit_m();
-    
-    void amrex_write_m(const std::string& fname);
-    
 #ifdef USE_IPPL
     void ippl_deposit_m();
     
     void ippl_init_m();
     
     void ippl_write_m(const std::string& fname);
+#else
+    void amrex_deposit_m();
+    
+    void amrex_write_m(const std::string& fname);
 #endif
     
 private:
