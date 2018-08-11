@@ -1,5 +1,6 @@
 #include "Algorithms/Vektor.h"
 #include "Utilities/MSLang.h"
+#include "Utilities/MSLang/QuadTree.h"
 
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"

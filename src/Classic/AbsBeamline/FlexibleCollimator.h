@@ -3,6 +3,7 @@
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/MSLang.h"
+#include "Utilities/MSLang/QuadTree.h"
 
 class BeamlineVisitor;
 class LossDataSink;
