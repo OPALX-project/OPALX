@@ -148,8 +148,9 @@ void AmrMultiGridLevel<MatrixType, VectorType>::applyBoundary(const AmrIntVect_t
 
 template <class MatrixType, class VectorType>
 void AmrMultiGridLevel<MatrixType, VectorType>::buildLevelMask_m() {
+    amrex::Periodicity period(AmrIntVect_t(D_DECL(0, 0, 0)));
     mask.reset(new mask_t(grids, dmap, 1, 1));
-    mask->BuildMask(geom.Domain(), geom.periodicity(),
+    mask->BuildMask(geom.Domain(), period,
                     Mask::COVERED, Mask::BNDRY,
                     Mask::PHYSBNDRY, Mask::INTERIOR);
 }
