@@ -2,7 +2,7 @@
 #define MESHER_H
 
 #include "Algorithms/Vektor.h"
-#include "Utilities/MSLang.h"
+#include "Utilities/MSLang/Triangle.h"
 
 class Mesher {
 public:
