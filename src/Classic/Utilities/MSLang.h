@@ -20,10 +20,6 @@ namespace mslang {
         return euclidean_norm(v);
     }
 
-
-    std::ostream & operator<< (std::ostream &out, const BoundingBox &bb);
-
-
     struct Base;
 
     struct Function {
@@ -74,7 +70,6 @@ namespace mslang {
             }
         }
     };
-
 
     bool parse(std::string str, Function* &fun);
 }

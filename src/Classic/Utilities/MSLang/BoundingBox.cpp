@@ -46,4 +46,9 @@ namespace mslang {
             << std::setw(18) << center_m[1] + 0.5 * height_m
             << std::endl;
     }
+
+    std::ostream & operator<< (std::ostream &out, const BoundingBox &bb) {
+        bb.print(out);
+        return out;
+    }
 }
