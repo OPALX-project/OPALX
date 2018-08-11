@@ -37,6 +37,8 @@ namespace mslang {
         virtual void writeGnuplot(std::ofstream &out) const;
         void print(std::ostream &out) const;
     };
+
+    std::ostream & operator<< (std::ostream &out, const BoundingBox &bb);
 }
 
 #endif

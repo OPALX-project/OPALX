@@ -34,11 +34,6 @@ namespace mslang {
     const std::string Function::UInt = "([0-9]+)";
     const std::string Function::FCall = "([a-z_]*)\\((.*)";
 
-    std::ostream & operator<< (std::ostream &out, const BoundingBox &bb) {
-        bb.print(out);
-        return out;
-    }
-
     bool parse(std::string str, Function* &fun) {
         iterator it = str.begin();
         iterator end = str.end();
@@ -136,6 +131,5 @@ namespace mslang {
         }
 
         return (it == end);
-
     }
 }
