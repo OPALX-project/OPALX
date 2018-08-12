@@ -458,10 +458,12 @@ void PlasmaPIC::depositCharge_m() {
     double totCharge = totalCharge(rho_m, finest_level, geom);
     double totCharge_composite = totalCharge_composite(rho_m, finest_level, geom);
     
+#if DEBUG
     if ( Ippl::myNode() == 0 ) {
         std::cout << "Total Charge (computed):  " << totCharge << " C" << std::endl
                   << "Total Charge (composite): " << totCharge_composite << " C" << std::endl;
     }
+#endif
     
     //subtract the background charge of the ions
     for (int i = 0; i <= finest_level; ++i) {
