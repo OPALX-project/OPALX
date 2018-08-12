@@ -89,8 +89,18 @@ void PlasmaPIC::execute(Inform& msg) {
             deposit2D_m(step);
         }
         
+        if ( amropal_m->maxLevel() > 0 ) {
+            for (int i = 0; i <= amropal_m->finestLevel() &&
+                            i < amropal_m->maxLevel(); ++i)
+            {
+                amropal_m->regrid(i, 0.0/*tcurrent_m*/);
+            }
+        }
+        
         msg << "Done." << endl;
     }
+    
+    msg << "Simulation finished at time " << tcurrent_m << endl; 
 }
 
 
@@ -471,6 +481,10 @@ void PlasmaPIC::solve_m() {
     /*
      * reset grid data
      */
+    rho_m.clear();
+    phi_m.clear();
+    efield_m.clear();
+    
     rho_m.resize(nlevel_m);
     phi_m.resize(nlevel_m);
     efield_m.resize(nlevel_m);
@@ -492,13 +506,13 @@ void PlasmaPIC::solve_m() {
     this->depositCharge_m();
     
     // subtract sum of rhs for periodic boundary conditions
-    double sum = 0.0;
-    double vol = 0.0;
+//     double sum = 0.0;
+//     double vol = 0.0;
     
     // FIXME: Check if needed
 //     this->volWeightedSum_m(sum , vol);
     
-    const amrex::Geometry& geom = amropal_m->Geom()[0];
+//     const amrex::Geometry& geom = amropal_m->Geom()[0];
     
     for (int i = 0; i <= finest_level; ++i) {
 //         rho_m[i]->plus(-sum / vol, 0, 1);
@@ -506,7 +520,7 @@ void PlasmaPIC::solve_m() {
     }
     
     // normalize each level
-    double l0norm = 1.0; //rho_m[finest_level]->norm0(0);
+    double l0norm = rho_m[finest_level]->norm0(0);
     for (int i = 0; i <= finest_level; ++i) {
         rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
@@ -588,12 +602,7 @@ void PlasmaPIC::applyPeriodicity_m()
                 bunch_m->R[j](d) = bunch_m->R[j](d) + right_m[d];
         }
     }
-    
-    if ( amropal_m->maxLevel() > 0 )
-        for (int k = 0; k <= amropal_m->finestLevel() && k < amropal_m->maxLevel(); ++k)
-            amropal_m->regrid(k /*lbase*/, tcurrent_m);
-    else
-        bunch_m->update();
+    bunch_m->update();
 }
 
 
