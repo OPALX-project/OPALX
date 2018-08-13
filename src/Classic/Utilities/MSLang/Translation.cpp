@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Translation.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 #include "Physics/Physics.h"
 
 #include <boost/regex.hpp>
@@ -38,19 +40,16 @@ namespace mslang {
         Translation *trans = static_cast<Translation*>(fun);
         if (!parse(it, end, trans->func_m)) return false;
 
-        boost::regex argumentList("," + Double + "," + Double + "\\)(.*)");
-        boost::smatch what;
+        ArgumentExtractor arguments(std::string(++ it, end));
+        try {
+            trans->shiftx_m = parseMathExpression(arguments.get(0));
+            trans->shifty_m = parseMathExpression(arguments.get(1));
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
+            return false;
+        }
 
-        std::string str(it, end);
-        if (!boost::regex_match(str, what, argumentList)) return false;
-
-        trans->shiftx_m = atof(std::string(what[1]).c_str());
-        trans->shifty_m = atof(std::string(what[3]).c_str());
-
-        std::string fullMatch = what[0];
-        std::string rest = what[5];
-
-        it += (fullMatch.size() - rest.size());
+        it += (arguments.getLengthConsumed() + 1);
 
         return true;
     }

@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Polygon.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 #include "Utilities/Mesher.h"
 #include "Physics/Physics.h"
 
@@ -13,42 +15,25 @@ namespace mslang {
     bool Polygon::parse_detail(iterator &it, const iterator &end, Function* &fun) {
         Polygon *poly = static_cast<Polygon*>(fun);
 
+        ArgumentExtractor arguments(std::string(it, end));
         std::vector<Vector_t> nodes;
-        std::string str(it, end);
-        boost::regex argument(Double + "," + Double + ";(.*)");
-        boost::regex argumentEnd(Double + "," + Double + "(\\).*)");
 
-        boost::smatch what;
-        while (boost::regex_match(str, what, argument)) {
-            Vector_t p(atof(std::string(what[1]).c_str()),
-                       atof(std::string(what[3]).c_str()),
-                       1.0);
-            nodes.push_back(p);
-
-            std::string fullMatch = what[0];
-            std::string rest = what[5];
-            it += (fullMatch.size() - rest.size());
-
-            str = std::string(it, end);
+        for (unsigned int i = 0; i + 1 < arguments.getNumArguments(); i += 2) {
+            try {
+                double x = parseMathExpression(arguments.get(i));
+                double y = parseMathExpression(arguments.get(i + 1));
+                nodes.push_back(Vector_t(x, y, 1.0));
+            } catch (std::runtime_error &e) {
+                std::cout << e.what() << std::endl;
+                return false;
+            }
         }
 
-        if (!boost::regex_match(str, what, argumentEnd) ||
-            nodes.size() < 2) return false;
-
-        Vector_t p(atof(std::string(what[1]).c_str()),
-                   atof(std::string(what[3]).c_str()),
-                   1.0);
-        nodes.push_back(p);
-
-
-        std::string fullMatch = what[0];
-        std::string rest = what[5];
-        it += (fullMatch.size() - rest.size() + 1);
-
-        str = std::string(it, end);
+        if (nodes.size() < 3) return false;
 
         poly->triangulize(nodes);
 
+        it += (arguments.getLengthConsumed() + 1);
         return true;
     }
 

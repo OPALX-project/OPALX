@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Shear.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 
 #include <boost/regex.hpp>
 
@@ -41,22 +43,16 @@ namespace mslang {
         Shear *shr = static_cast<Shear*>(fun);
         if (!parse(it, end, shr->func_m)) return false;
 
-        boost::regex argumentList("," + Double + "," + Double + "\\)(.*)");
-        boost::smatch what;
-
-        std::string str(it, end);
-        if (!boost::regex_match(str, what, argumentList)) return false;
-
-        shr->angleX_m = atof(std::string(what[1]).c_str());
-        shr->angleY_m = atof(std::string(what[3]).c_str());
-
-        if (std::abs(shr->angleX_m) > 0.0 && std::abs(shr->angleY_m) > 0.0)
+        ArgumentExtractor arguments(std::string(++ it, end));
+        try {
+            shr->angleX_m = parseMathExpression(arguments.get(0));
+            shr->angleY_m = parseMathExpression(arguments.get(1));
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
             return false;
+        }
 
-        std::string fullMatch = what[0];
-        std::string rest = what[5];
-
-        it += (fullMatch.size() - rest.size());
+        it += (arguments.getLengthConsumed() + 1);
 
         return true;
     }

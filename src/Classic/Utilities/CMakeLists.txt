@@ -17,11 +17,13 @@ set (_SRCS
   LogicalError.cpp
   Mesher.cpp
   MSLang.cpp
+  MSLang/ArgumentExtractor.cpp
   MSLang/BoundingBox.cpp
   MSLang/Difference.cpp
   MSLang/Ellipse.cpp
   MSLang/Intersection.cpp
   MSLang/Mask.cpp
+  MSLang/matheval.cpp
   MSLang/Polygon.cpp
   MSLang/QuadTree.cpp
   MSLang/Rectangle.cpp
@@ -69,12 +71,15 @@ set (HDRS
     LogicalError.h
     Mesher.h
     MSLang.h
+    MSLang/ArgumentExtractor.h
     MSLang/AffineTransformation.h
     MSLang/BoundingBox.h
     MSLang/Difference.h
     MSLang/Ellipse.h
     MSLang/Intersection.h
     MSLang/Mask.h
+    MSLang/matheval.h
+    MSLang/matheval.hpp
     MSLang/Polygon.h
     MSLang/QuadTree.h
     MSLang/Rectangle.h

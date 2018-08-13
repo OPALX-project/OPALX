@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Ellipse.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 #include "Physics/Physics.h"
 
 #include <boost/regex.hpp>
@@ -115,19 +117,35 @@ namespace mslang {
     }
 
     bool Ellipse::parse_detail(iterator &it, const iterator &end, Function* fun) {
-        std::string str(it, end);
-        boost::regex argumentList(UDouble + "," + UDouble + "(\\).*)");
-        boost::smatch what;
 
-        if (!boost::regex_match(str, what, argumentList)) return false;
+        ArgumentExtractor arguments(std::string(it, end));
+        double width, height;
+        try {
+            width = parseMathExpression(arguments.get(0));
+            height = parseMathExpression(arguments.get(1));
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
+            return false;
+        }
 
         Ellipse *elps = static_cast<Ellipse*>(fun);
-        elps->width_m = atof(std::string(what[1]).c_str());
-        elps->height_m = atof(std::string(what[3]).c_str());
+        elps->width_m = width;
+        elps->height_m = height;
 
-        std::string fullMatch = what[0];
-        std::string rest = what[5];
-        it += (fullMatch.size() - rest.size() + 1);
+        if (elps->width_m < 0.0) {
+            std::cout << "Ellipse: a negative width provided '"
+                      << arguments.get(0) << " = " << elps->width_m << "'"
+                      << std::endl;
+            return false;
+        }
+        if (elps->height_m < 0.0) {
+            std::cout << "Ellipse: a negative height provided '"
+                      << arguments.get(1) << " = " << elps->height_m << "'"
+                      << std::endl;
+            return false;
+        }
+
+        it += (arguments.getLengthConsumed() + 1);
 
         return true;
     }

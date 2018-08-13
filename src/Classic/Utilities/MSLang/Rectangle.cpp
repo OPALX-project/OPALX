@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Rectangle.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 #include "Physics/Physics.h"
 
 #include <boost/regex.hpp>
@@ -107,15 +109,30 @@ namespace mslang {
         boost::regex argumentList(UDouble + "," + UDouble + "(\\).*)");
         boost::smatch what;
 
-        if (!boost::regex_match(str, what, argumentList)) return false;
-
         Rectangle *rect = static_cast<Rectangle*>(fun);
-        rect->width_m = atof(std::string(what[1]).c_str());
-        rect->height_m = atof(std::string(what[3]).c_str());
+        ArgumentExtractor arguments(str);
+        try {
+            rect->width_m = parseMathExpression(arguments.get(0));
+            rect->height_m = parseMathExpression(arguments.get(1));
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
+            return false;
+        }
 
-        std::string fullMatch = what[0];
-        std::string rest = what[5];
-        it += (fullMatch.size() - rest.size() + 1);
+        if (rect->width_m < 0.0) {
+            std::cout << "Rectangle: a negative width provided '"
+                      << arguments.get(0) << " = " << rect->width_m << "'"
+                      << std::endl;
+            return false;
+        }
+        if (rect->height_m < 0.0) {
+            std::cout << "Rectangle: a negative height provided '"
+                      << arguments.get(1) << " = " << rect->height_m << "'"
+                      << std::endl;
+            return false;
+        }
+
+        it += (arguments.getLengthConsumed() + 1);
 
         return true;
     }
