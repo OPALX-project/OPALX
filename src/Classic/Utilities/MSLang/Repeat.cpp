@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Repeat.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 
 #include <boost/regex.hpp>
 
@@ -37,39 +39,36 @@ namespace mslang {
         Repeat *rep = static_cast<Repeat*>(fun);
         if (!parse(it, end, rep->func_m)) return false;
 
-        boost::regex argumentListTrans("," + UInt + "," + Double + "," + Double + "\\)(.*)");
-        boost::regex argumentListRot("," + UInt + "," + Double + "\\)(.*)");
-        boost::smatch what;
+        ArgumentExtractor arguments(std::string(++ it, end));
+        try {
+            if (arguments.getNumArguments() == 3) {
+                rep->N_m = parseMathExpression(arguments.get(0));
+                rep->shiftx_m = parseMathExpression(arguments.get(1));
+                rep->shifty_m = parseMathExpression(arguments.get(2));
+                rep->rot_m = 0.0;
 
-        std::string str(it, end);
-        if (boost::regex_match(str, what, argumentListTrans)) {
-            rep->N_m = atof(std::string(what[1]).c_str());
-            rep->shiftx_m = atof(std::string(what[2]).c_str());
-            rep->shifty_m = atof(std::string(what[4]).c_str());
-            rep->rot_m = 0.0;
-
-            std::string fullMatch = what[0];
-            std::string rest = what[6];
-
-            it += (fullMatch.size() - rest.size());
-
-            return true;
+            } else if (arguments.getNumArguments() == 2) {
+                rep->N_m = parseMathExpression(arguments.get(0));
+                rep->shiftx_m = 0.0;
+                rep->shifty_m = 0.0;
+                rep->rot_m = parseMathExpression(arguments.get(1));
+            } else {
+                std::cout << "Repeat: number of arguments not supported" << std::endl;
+                return false;
+            }
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
+            return false;
         }
 
-        if (boost::regex_match(str, what, argumentListRot)) {
-            rep->N_m = atof(std::string(what[1]).c_str());
-            rep->shiftx_m = 0.0;
-            rep->shifty_m = 0.0;
-            rep->rot_m = atof(std::string(what[2]).c_str());
-
-            std::string fullMatch = what[0];
-            std::string rest = what[4];
-
-            it += (fullMatch.size() - rest.size());
-
-            return true;
+        if (rep->N_m < 0) {
+            std::cout << "Repeat: a negative number of repetitions '"
+                      << arguments.get(0) << " = " << rep->N_m << "'"
+                      << std::endl;
         }
 
-        return false;
+        it += (arguments.getLengthConsumed() + 1);
+
+        return true;
     }
 }
