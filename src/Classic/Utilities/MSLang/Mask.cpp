@@ -1,4 +1,6 @@
 #include "Utilities/MSLang/Mask.h"
+#include "Utilities/MSLang/ArgumentExtractor.h"
+#include "Utilities/MSLang/matheval.h"
 #include "Utilities/PortableBitmapReader.h"
 
 #include <boost/regex.hpp>
@@ -8,12 +10,9 @@ namespace mslang {
     bool Mask::parse_detail(iterator &it, const iterator &end, Function* &fun) {
         Mask *pixmap = static_cast<Mask*>(fun);
 
-        std::string str(it, end);
-        boost::regex argument("'([^,]+)'," + UDouble + "," + UDouble + "(\\).*)");
-        boost::smatch what;
-        if (!boost::regex_match(str, what, argument)) return false;
+        ArgumentExtractor arguments(std::string(it, end));
+        std::string filename = arguments.get(0);
 
-        std::string filename = what[1];
         if (!boost::filesystem::exists(filename)) {
             ERRORMSG("file '" << filename << "' doesn't exists" << endl);
             return false;
@@ -22,8 +21,30 @@ namespace mslang {
         PortableBitmapReader reader(filename);
         unsigned int width = reader.getWidth();
         unsigned int height = reader.getHeight();
-        double pixel_width = atof(std::string(what[2]).c_str()) / width;
-        double pixel_height = atof(std::string(what[4]).c_str()) / height;
+
+        double pixel_width;
+        double pixel_height;
+        try {
+            pixel_width = parseMathExpression(arguments.get(1)) / width;
+            pixel_height = parseMathExpression(arguments.get(2)) / height;
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
+            return false;
+        }
+
+        if (pixel_width < 0.0) {
+            std::cout << "Mask: a negative width provided '"
+                      << arguments.get(0) << " = " << pixel_width * width << "'"
+                      << std::endl;
+            return false;
+        }
+
+        if (pixel_height < 0.0) {
+            std::cout << "Mask: a negative height provided '"
+                      << arguments.get(1) << " = " << pixel_height * height << "'"
+                      << std::endl;
+            return false;
+        }
 
         for (unsigned int i = 0; i < height; ++ i) {
             for (unsigned int j = 0; j < width; ++ j) {
@@ -40,9 +61,7 @@ namespace mslang {
             }
         }
 
-        std::string fullMatch = what[0];
-        std::string rest = what[6];
-        it += (fullMatch.size() - rest.size() + 1);
+        it += (arguments.getLengthConsumed() + 1);
 
         return true;
     }
