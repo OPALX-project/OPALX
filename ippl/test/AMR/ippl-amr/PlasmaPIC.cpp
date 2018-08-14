@@ -155,10 +155,11 @@ void PlasmaPIC::parseBoxInfo_m() {
     pp.get("nx", nx);
     bNx_m = Vector<int>(D_DECL(nx, nx, nx));
     
-    std::string dir = test_m + "-data-grid-" +
-                      AMREX_D_TERM(std::to_string(bNx_m[0]),
+    std::string dir = test_m + "-data-grid-"
+                    + AMREX_D_TERM(std::to_string(bNx_m[0]),
                                    + "-" + std::to_string(bNx_m[1]),
-                                   + "-" + std::to_string(bNx_m[2]));
+                                   + "-" + std::to_string(bNx_m[2]))
+                    + "-level-" + nlevel_m;
     
     dir_m = dir;
     if ( Ippl::myNode() == 0 )
