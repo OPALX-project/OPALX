@@ -100,6 +100,12 @@ void PlasmaPIC::execute(Inform& msg) {
         msg << "Done." << endl;
     }
     
+    this->dump_m();
+    
+    if ( test_m == "twostream" ) {
+        deposit2D_m(step);
+    }
+    
     msg << "Simulation finished at time " << tcurrent_m << endl; 
 }
 
