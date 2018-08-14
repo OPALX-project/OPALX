@@ -42,6 +42,17 @@ PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
     pd_m.define(left_m, right_m, pNx_m,
                 vmin_m, vmax_m, pNv_m,
                 maxgrid_m);
+    
+    std::string dir = test_m + "-data-grid-"
+                    + AMREX_D_TERM(std::to_string(bNx_m[0]),
+                                   + "-" + std::to_string(bNx_m[1]),
+                                   + "-" + std::to_string(bNx_m[2]))
+                    + "-level-" + nlevel_m
+                    + "-solver-" + stype_m;
+    
+    dir_m = dir;
+    if ( Ippl::myNode() == 0 )
+        boost::filesystem::create_directory(dir_m);
 }
 
 
@@ -154,16 +165,6 @@ void PlasmaPIC::parseBoxInfo_m() {
     int nx = 0;
     pp.get("nx", nx);
     bNx_m = Vector<int>(D_DECL(nx, nx, nx));
-    
-    std::string dir = test_m + "-data-grid-"
-                    + AMREX_D_TERM(std::to_string(bNx_m[0]),
-                                   + "-" + std::to_string(bNx_m[1]),
-                                   + "-" + std::to_string(bNx_m[2]))
-                    + "-level-" + nlevel_m;
-    
-    dir_m = dir;
-    if ( Ippl::myNode() == 0 )
-        boost::filesystem::create_directory(dir_m);
 }
 
 
