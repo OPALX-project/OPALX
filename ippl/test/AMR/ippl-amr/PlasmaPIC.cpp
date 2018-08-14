@@ -327,14 +327,14 @@ void PlasmaPIC::initDistribution_m() {
 void PlasmaPIC::initSolver_m() {
     amrex::ParmParse pp("solver");
     
-    std::string type = "AMReX_FMG";
+    stype_m = "AMReX_FMG";
     
-    pp.get("type", type);
+    pp.get("type", stype_m);
     
-    if ( type == "AMReX_FMG" )
+    if ( stype_m == "AMReX_FMG" )
         this->initAmrexFMG_m();
 #ifdef HAVE_AMR_MG_SOLVER
-    else if ( type == "AMR_MG" )
+    else if ( stype_m == "AMR_MG" )
         this->initAmrMG();
 #endif
 }
