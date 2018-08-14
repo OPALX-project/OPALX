@@ -92,6 +92,7 @@ private:
     
     double threshold_m;
     std::string test_m;
+    std::string stype_m;
     
     boost::filesystem::path dir_m;
     
