@@ -47,7 +47,7 @@ PlasmaPIC::PlasmaPIC() : tcurrent_m(0.0) {
                     + AMREX_D_TERM(std::to_string(bNx_m[0]),
                                    + "-" + std::to_string(bNx_m[1]),
                                    + "-" + std::to_string(bNx_m[2]))
-                    + "-level-" + nlevel_m
+                    + "-level-" + std::to_string(nlevel_m)
                     + "-solver-" + stype_m;
     
     dir_m = dir;
