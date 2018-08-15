@@ -114,7 +114,7 @@ void PlasmaPIC::execute(Inform& msg) {
         msg << "Done." << endl;
     }
     
-    msg << "Simulation finished at time " << tcurrent_m << endl; 
+    msg << "Simulation finished at time " << tcurrent_m << endl;
 }
 
 
