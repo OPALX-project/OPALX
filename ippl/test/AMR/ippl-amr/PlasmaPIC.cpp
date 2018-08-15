@@ -74,8 +74,11 @@ void PlasmaPIC::execute(Inform& msg) {
     
     int step = 0;
     
+    this->solve_m();
+    
+    this->dump_m();
+    
     if ( test_m == "twostream" ) {
-        this->solve_m();
         deposit2D_m(step);
     }
     
@@ -89,12 +92,11 @@ void PlasmaPIC::execute(Inform& msg) {
         
         this->integrate_m();
         
-        this->dump_m();
-        
         tcurrent_m += dt_m;
         
-        
         ++step;
+        
+        this->dump_m();
     
         if ( test_m == "twostream" ) {
             deposit2D_m(step);
@@ -108,13 +110,8 @@ void PlasmaPIC::execute(Inform& msg) {
             }
         }
         
+        
         msg << "Done." << endl;
-    }
-    
-    this->dump_m();
-    
-    if ( test_m == "twostream" ) {
-        deposit2D_m(step);
     }
     
     msg << "Simulation finished at time " << tcurrent_m << endl; 
