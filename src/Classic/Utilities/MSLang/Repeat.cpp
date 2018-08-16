@@ -62,9 +62,10 @@ namespace mslang {
         }
 
         if (rep->N_m < 0) {
-            std::cout << "Repeat: a negative number of repetitions '"
+            std::cout << "Repeat: a negative number of repetitions provided '"
                       << arguments.get(0) << " = " << rep->N_m << "'"
                       << std::endl;
+            return false;
         }
 
         it += (arguments.getLengthConsumed() + 1);
