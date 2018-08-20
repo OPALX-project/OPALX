@@ -11,7 +11,7 @@ set (_SRCS
   CavityAutophaser.cpp
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
-  ParallelSliceTracker.cpp
+  # ParallelSliceTracker.cpp
   StatisticalErrors.cpp
   StatisticalErrorsUtilities.cpp
   TransportMapper.cpp
