@@ -391,7 +391,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         double bt = - btint / rad * R[2];
         
         /* Bz */
-        double bz = bzint;
+        double bz = - bzint;
         
         if (std::abs(bz) > trimCoilThreshold_m)
             applyTrimCoil(rad, R[2], &br, &bz);
@@ -653,7 +653,7 @@ bool Cyclotron::interpolate(const double& rad,
     
     // the corresponding angle on the field map
     // Note: this does not work if the start point of field map does not equal zero.
-    double tet_map = fmod(tet_rad / pi * 180.0, 360.0 / symmetry_m);
+    double tet_map = fmod(tet_rad / Physics::pi * 180.0, 360.0 / symmetry_m);
     
     double xit = tet_map / BP.dtet;
 
@@ -699,25 +699,25 @@ bool Cyclotron::interpolate(const double& rad,
     if((it >= 0) && (ir >= 0) && (it < Bfield.ntetS) && (ir < Bfield.nrad)) {
 
         // B_{z}
-        bzf = (Bfield.bfld[r1t1] * wr2 * wt2 +
-               Bfield.bfld[r2t1] * wr1 * wt2 +
-               Bfield.bfld[r1t2] * wr2 * wt1 +
-               Bfield.bfld[r2t2] * wr1 * wt1);
+        bzf = Bfield.bfld[r1t1] * wr2 * wt2 +
+              Bfield.bfld[r2t1] * wr1 * wt2 +
+              Bfield.bfld[r1t2] * wr2 * wt1 +
+              Bfield.bfld[r2t2] * wr1 * wt1;
 
-        bzint = - bzf ;
+        bzint = /*- */bzf ;
 
         // dB_{z}/dr
-        brint = (Bfield.dbr[r1t1] * wr2 * wt2 +
-                 Bfield.dbr[r2t1] * wr1 * wt2 +
-                 Bfield.dbr[r1t2] * wr2 * wt1 +
-                 Bfield.dbr[r2t2] * wr1 * wt1);
+        brint = Bfield.dbr[r1t1] * wr2 * wt2 +
+                Bfield.dbr[r2t1] * wr1 * wt2 +
+                Bfield.dbr[r1t2] * wr2 * wt1 +
+                Bfield.dbr[r2t2] * wr1 * wt1;
 
 
         // dB_{z}/dtheta
-        btint = (Bfield.dbt[r1t1] * wr2 * wt2 +
-                 Bfield.dbt[r2t1] * wr1 * wt2 +
-                 Bfield.dbt[r1t2] * wr2 * wt1 +
-                 Bfield.dbt[r2t2] * wr1 * wt1);
+        btint = Bfield.dbt[r1t1] * wr2 * wt2 +
+                Bfield.dbt[r2t1] * wr1 * wt2 +
+                Bfield.dbt[r1t2] * wr2 * wt1 +
+                Bfield.dbt[r2t2] * wr1 * wt1;
 
         return true;
     }
