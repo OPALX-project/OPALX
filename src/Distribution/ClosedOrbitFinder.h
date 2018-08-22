@@ -317,7 +317,7 @@ ClosedOrbitFinder<Value_type,
 
 template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getInverseBendingRadius(const value_type& angle = 0)
+    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getInverseBendingRadius(const value_type& angle)
 {
     if (angle != 0.0)
         return rotate(angle, h_m);
@@ -327,7 +327,7 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
 
 template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getPathLength(const value_type& angle = 0)
+    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getPathLength(const value_type& angle)
 {
     if (angle != 0.0)
         return rotate(angle, ds_m);
@@ -337,7 +337,7 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
 
 template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getFieldIndex(const value_type& angle = 0)
+    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getFieldIndex(const value_type& angle)
 {
     if (angle != 0.0)
         return rotate(angle, fidx_m);
