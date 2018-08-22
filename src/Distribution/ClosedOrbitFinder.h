@@ -74,13 +74,13 @@ class ClosedOrbitFinder
                           bool domain = true);
 
         /// Returns the inverse bending radius (size of container N+1)
-        container_type& getInverseBendingRadius();
+        container_type getInverseBendingRadius(const value_type& angle = 0);
 
         /// Returns the step lengths of the path (size of container N+1)
-        container_type& getPathLength();
+        container_type getPathLength(const value_type& angle = 0);
 
         /// Returns the field index (size of container N+1)
-        container_type& getFieldIndex();
+        container_type getFieldIndex(const value_type& angle = 0);
 
         /// Returns the radial and vertical tunes (in that order)
         std::pair<value_type,value_type> getTunes();
@@ -137,6 +137,9 @@ class ClosedOrbitFinder
 
         /// This function computes nzcross_ which is used to compute the tune in z-direction and the frequency error
         void computeVerticalOscillations();
+        
+        /// This function rotates the calculated closed orbit finder properties to the initial angle
+        container_type rotate(value_type angle, container_type& orbitProperty);
 
         /// Stores current position in horizontal direction for the solutions of the ODE with different initial values
         std::array<value_type,2> x_m; // x_m = [x1, x2]
@@ -313,24 +316,32 @@ ClosedOrbitFinder<Value_type,
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
-inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type&
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getInverseBendingRadius()
+inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
+    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getInverseBendingRadius(const value_type& angle = 0)
 {
-    return h_m;
+    if (angle != 0.0)
+        return rotate(angle, h_m);
+    else
+        return h_m;
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
-inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type&
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getPathLength()
+inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
+    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getPathLength(const value_type& angle = 0)
 {
+    if (angle != 0.0)
+        return rotate(angle, ds_m);
+    else
+        return ds_m;
+}
+
+template<typename Value_type, typename Size_type, class Stepper>
+inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
+    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getFieldIndex(const value_type& angle = 0)
+{
+    if (angle != 0.0)
+        return rotate(angle, fidx_m);
     return ds_m;
-}
-
-template<typename Value_type, typename Size_type, class Stepper>
-inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type&
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getFieldIndex()
-{
-    return fidx_m;
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -352,23 +363,10 @@ template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
     ClosedOrbitFinder<Value_type, Size_type, Stepper>::getOrbit(value_type angle)
 {
-    container_type r = r_m;
-
-    if (angle != 0.0) {
-        // compute the number of steps per degree
-        value_type deg_step = N_m / 360.0;
-
-        // compute starting point
-        size_type start = deg_step * angle;
-
-        // copy end to start
-        std::copy(r_m.begin() + start, r_m.end(), r.begin());
-
-        // copy start to end
-        std::copy_n(r_m.begin(), start, r.end() - start);
-    }
-
-    return r;
+    if (angle != 0.0)
+        return rotate(angle, r_m);
+    else
+        return r_m;
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -376,19 +374,9 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
     ClosedOrbitFinder<Value_type, Size_type, Stepper>::getMomentum(value_type angle)
 {
     container_type pr = pr_m;
-
-    if (angle != 0.0) {
-        // compute the number of steps per degree
-        value_type deg_step = N_m / 360.0;
-
-        // compute starting point
-        size_type start = deg_step * angle;
-        // copy end to start
-        std::copy(pr_m.begin() + start, pr_m.end(), pr.begin());
-
-        // copy start to end
-        std::copy_n(pr_m.begin(), start, pr.end() - start);
-    }
+    
+    if (angle != 0.0)
+        pr = rotate(angle, pr);
     
     // change units from meters to \beta * \gamma
     /* in Gordon paper:
@@ -408,7 +396,7 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
      * The momentum in \beta * \gamma is obtained by dividing by "a"
      */
     value_type factor =  1.0 / acon_m(wo_m);
-    std::for_each(pr.begin(), pr.end(), [factor](value_type p) { return p * factor; });
+    std::for_each(pr.begin(), pr.end(), [factor](value_type& p) { p *= factor; });
     
     return pr;
 }
@@ -501,7 +489,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invptheta = 1.0 / ptheta;
 
         // interpolate values of magnetic field
-        bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
+        bField_m.interpolate(bint, brint, btint, y[0], theta);
 
         bint *= invbcon;
         brint *= invbcon;
@@ -743,7 +731,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        bField_m.interpolate(bint, brint, btint, r_m[i], theta * 180.0 / Physics::pi);
+        bField_m.interpolate(bint, brint, btint, r_m[i], theta);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -801,7 +789,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        bField_m.interpolate(bint, brint, btint, y[0], theta * 180.0 / Physics::pi);
+        bField_m.interpolate(bint, brint, btint, y[0], theta);
         
         bint *= invbcon;
         brint *= invbcon;
@@ -857,6 +845,28 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
      */
     if (domain_m)
         phase_m *= nSector_m;
+}
+
+template<typename Value_type, typename Size_type, class Stepper> 
+inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
+ClosedOrbitFinder<Value_type, Size_type, Stepper>::rotate(value_type angle, container_type &orbitProperty) {
+
+    container_type orbitPropertyCopy = orbitProperty;
+    
+    // compute the number of steps per degree
+    value_type deg_step = N_m / 360.0;
+
+    // compute starting point
+    size_type start = deg_step * angle;
+
+    // copy end to start
+    std::copy(orbitProperty.begin() + start, orbitProperty.end(), orbitPropertyCopy.begin());
+    
+    // copy start to end
+    std::copy_n(orbitProperty.begin(), start, orbitPropertyCopy.end() - start);
+
+    return orbitPropertyCopy;
+
 }
 
 #endif

@@ -185,7 +185,8 @@ namespace Attrib
             EX,                         // below is for the matched distribution
             EY,
             ET,
-            MAGSYM,                     // number of sector magnets
+            MAGSYM,                     // Matched-Gauss: number of sector magnets
+            SECTOR,                     // Matched-Gauss: single sector or full machine
             LINE,
             FMAPFN,
             FMTYPE,                     // field map type used in matched gauss distribution

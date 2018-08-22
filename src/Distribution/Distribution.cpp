@@ -1281,7 +1281,13 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         throw OpalException("Distribution::createMatchedGaussDistribution",
                             "didn't find any Cyclotron element in line");
     }
-    const Cyclotron* CyclotronElement = CyclotronVisitor.front();
+    
+    /* FIXME we need to remove const-ness otherwise we can't update the injection radius
+     * and injection radial momentum. However, there should be a better solution ..
+     */
+    Cyclotron* CyclotronElement = const_cast<Cyclotron*>(CyclotronVisitor.front());
+    
+    bool full = !Attributes::getBool(itsAttr[Attrib::Distribution::SECTOR]);
 
     *gmsg << "* ----------------------------------------------------" << endl;
     *gmsg << "* About to find closed orbit and matched distribution " << endl;
@@ -1290,8 +1296,12 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
           << "  EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
           << "  ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET]) << endl
           << "* FMAPFN= " << Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
-          << "* FMSYM= " << (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM])
-          << "  HN= "      << CyclotronElement->getCyclHarm()
+          << "* FMSYM= " << (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]) << endl;
+    if ( full )
+        *gmsg << "* SECTOR: " << "match using all sectors" << endl;
+    else
+        *gmsg << "* SECTOR: " << "match using single sector" << endl;
+    *gmsg << "  HN= "      << CyclotronElement->getCyclHarm()
           << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl;
     *gmsg << "* ----------------------------------------------------" << endl;
 
@@ -1334,7 +1344,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                       CyclotronElement->getPHIinit(),
                       Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]),
                       Attributes::getString(itsAttr[Attrib::Distribution::FMTYPE]),
-                      false))  {
+                      false, full))  {
 
         std::array<double,3> Emit = siggen->getEmittances();
 
@@ -1400,6 +1410,10 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
 
         createDistributionGauss(numberOfParticles, massIneV);
+        
+        // update injection radius and radial momentum
+        CyclotronElement->setRinit(siggen->getInjectionRadius());
+        CyclotronElement->setPRinit(siggen->getInjectionMomentum());
     }
     else {
         *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
@@ -3473,6 +3487,10 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
     itsAttr[Attrib::Distribution::MAGSYM]
         = Attributes::makeReal("MAGSYM", "Number of sector magnets ", 0);
+    itsAttr[Attrib::Distribution::SECTOR]
+        = Attributes::makeBool("SECTOR", "Match using single sector (true)"
+                               "(false: using all sectors) (default: true)",
+                               true);
 
     itsAttr[Attrib::Distribution::RGUESS]
         = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
