@@ -561,21 +561,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
      * fieldflag = 6, readin both median plane B field map and 3D E field map of RF cavity for compact cyclotron
      * fieldflag = 7, read in fields for Daniel's synchrocyclotron simulations
      */
-    int  fieldflag;
-    if(type == std::string("CARBONCYCL")) {
-        fieldflag = 2;
-    } else if(type == std::string("CYCIAE")) {
-        fieldflag = 3;
-    } else if(type == std::string("AVFEQ")) {
-        fieldflag = 4;
-    } else if(type == std::string("FFAG")) {
-        fieldflag = 5;
-    } else if(type == std::string("BANDRF")) {
-        fieldflag = 6;
-    } else if(type == std::string("SYNCHROCYCLOTRON")) {
-        fieldflag = 7;
-    } else //(type == "RING")
-        fieldflag = 1;
+    int fieldflag = elptr->getFieldFlag(type);
 
     // Read in cyclotron field maps (midplane + 3D fields if desired).
     elptr->initialise(itsBunch_m, fieldflag, elptr->getBScale());
