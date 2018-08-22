@@ -186,6 +186,7 @@ namespace Attrib
             EY,
             ET,
             SECTOR,                     // Matched-Gauss: single sector or full machine
+            NSTEPS,                     // Matched-Gauss: number of steps for closed orbit finder
             LINE,
             RESIDUUM,
             MAXSTEPSCO,

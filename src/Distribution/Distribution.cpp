@@ -1289,6 +1289,12 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     
     bool full = !Attributes::getBool(itsAttr[Attrib::Distribution::SECTOR]);
 
+    int Nint = (int)Attributes::getReal(itsAttr[Attrib::Distribution::NSTEPS]);
+    
+    if ( Nint < 0 )
+        throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                            "Negative number of integration steps");
+    
     *gmsg << "* ----------------------------------------------------" << endl;
     *gmsg << "* About to find closed orbit and matched distribution " << endl;
     *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
@@ -1299,9 +1305,10 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         *gmsg << "* SECTOR: " << "match using all sectors" << endl;
     else
         *gmsg << "* SECTOR: " << "match using single sector" << endl;
-    *gmsg << "* HN= "      << CyclotronElement->getCyclHarm()
-          << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl;
-    *gmsg << "* ----------------------------------------------------" << endl;
+    *gmsg << "* NSTEPS = " << Nint << endl
+          << "* HN= "      << CyclotronElement->getCyclHarm()
+          << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl
+          << "* ----------------------------------------------------" << endl;
 
     const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
 
@@ -1314,7 +1321,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                             "'CYCLOTRON' definition.");
     }
     
-    int Nint = 1000;
+    
     bool writeMap = true;
     
     typedef SigmaGenerator<double, unsigned int> sGenerator_t;
@@ -1409,7 +1416,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         createDistributionGauss(numberOfParticles, massIneV);
         
         // update injection radius and radial momentum
-        CyclotronElement->setRinit(siggen->getInjectionRadius());
+        CyclotronElement->setRinit(siggen->getInjectionRadius() * 1.0e3);
         CyclotronElement->setPRinit(siggen->getInjectionMomentum());
     }
     else {
@@ -3480,9 +3487,12 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
     itsAttr[Attrib::Distribution::SECTOR]
         = Attributes::makeBool("SECTOR", "Match using single sector (true)"
-                               "(false: using all sectors) (default: true)",
+                               " (false: using all sectors) (default: true)",
                                true);
-
+    itsAttr[Attrib::Distribution::NSTEPS]
+        = Attributes::makeReal("NSTEPS", "Number of integration steps of closed orbit finder (matched gauss)"
+                               " (default: 720)", 720);
+    
     itsAttr[Attrib::Distribution::RGUESS]
         = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
 
