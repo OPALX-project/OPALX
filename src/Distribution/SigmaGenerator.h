@@ -119,9 +119,10 @@ class SigmaGenerator
 	 * @param guess value of radius for closed orbit finder
          * @param type specifies the magnetic field format (e.g. CARBONCYCL)
          * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
+         * @param full match over full turn not just single sector
          */
         bool match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle,
-                   value_type guess, const std::string& type, bool harmonic);
+                   value_type guess, const std::string& type, bool harmonic, bool full);
 
         /// Block diagonalizes the symplex part of the one turn transfer matrix
         /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
@@ -154,6 +155,14 @@ class SigmaGenerator
 
         /// Returns the emittances (ex,ey,ez) in \f$ \pi\ mm\ mrad \f$ for which the code converged (since the whole simulation is done on normalized emittances)
         std::array<value_type,3> getEmittances() const;
+        
+        const double& getInjectionRadius() const {
+            return rinit_m;
+        }
+        
+        const double& getInjectionMomentum() const {
+            return prinit_m;
+        }
 
     private:
         /// Stores the value of the current, \f$ \left[I\right] = A \f$
@@ -188,6 +197,10 @@ class SigmaGenerator
         size_type N_m;
         /// Number of integration steps per sector (--> also: number of maps per sector)
         size_type nStepsPerSector_m;
+        
+        /// Number of integration steps in total
+        size_type nSteps_m;
+        
         /// Error of computation
         value_type error_m;
 
@@ -220,6 +233,9 @@ class SigmaGenerator
 
         /// All variables x, px, y, py, z, delta
         Series x_m, px_m, y_m, py_m, z_m, delta_m;
+        
+        double rinit_m;
+        double prinit_m;
 
         /// Initializes a first guess of the sigma matrix with the assumption of a spherical symmetric beam (ex = ey = ez). For each angle split the same initial guess is taken.
         /*!
@@ -300,13 +316,30 @@ template<typename Value_type, typename Size_type>
 SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez, value_type wo,
         value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSector,
         size_type N, const std::string& fieldmap, size_type truncOrder, value_type scaleFactor, bool write)
-: I_m(I), wo_m(wo), E_m(E),
-  gamma_m(E/m+1.0), gamma2_m(gamma_m*gamma_m),
-  nh_m(nh), beta_m(std::sqrt(1.0-1.0/gamma2_m)), m_m(m), niterations_m(0), converged_m(false),
-  Emin_m(Emin), Emax_m(Emax), nSector_m(nSector), N_m(N), nStepsPerSector_m(N/nSector),
-  error_m(std::numeric_limits<value_type>::max()),
-  fieldmap_m(fieldmap), truncOrder_m(truncOrder), write_m(write),
-  scaleFactor_m(scaleFactor), sigmas_m(nStepsPerSector_m)
+    : I_m(I)
+    , wo_m(wo)
+    , E_m(E)
+    , gamma_m(E/m+1.0)
+    , gamma2_m(gamma_m*gamma_m)
+    , nh_m(nh)
+    , beta_m(std::sqrt(1.0-1.0/gamma2_m))
+    , m_m(m)
+    , niterations_m(0)
+    , converged_m(false)
+    , Emin_m(Emin)
+    , Emax_m(Emax)
+    , nSector_m(nSector)
+    , N_m(N)
+    , nStepsPerSector_m(N/nSector)
+    , nSteps_m(N)
+    , error_m(std::numeric_limits<value_type>::max())
+    , fieldmap_m(fieldmap)
+    , truncOrder_m(truncOrder)
+    , write_m(write)
+    , scaleFactor_m(scaleFactor)
+    , sigmas_m(nStepsPerSector_m)
+    , rinit_m(0.0)
+    , prinit_m(0.0)
 {
     // set emittances (initialization like that due to old compiler version)
     // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = mm mrad
@@ -381,7 +414,7 @@ template<typename Value_type, typename Size_type>
                                                     value_type angle,
                                                     value_type rguess,
                                                     const std::string& type,
-                                                    bool harmonic)
+                                                    bool harmonic, bool full)
 {
     /* compute the equilibrium orbit for energy E_
      * and get the the following properties:
@@ -391,6 +424,8 @@ template<typename Value_type, typename Size_type>
      */
 
     try {
+        if ( !full )
+            nSteps_m = nStepsPerSector_m;
 
         // object for space charge map and cyclotron map
         MapGenerator<value_type,
@@ -398,12 +433,12 @@ template<typename Value_type, typename Size_type>
                      Series,
                      Map,
                      Hamiltonian,
-                     SpaceCharge> mapgen(nStepsPerSector_m);
+                     SpaceCharge> mapgen(nSteps_m);
 
         // compute cyclotron map and space charge map for each angle and store them into a vector
-        std::vector<matrix_type> Mcycs(nStepsPerSector_m), Mscs(nStepsPerSector_m);
+        std::vector<matrix_type> Mcycs(nSteps_m), Mscs(nSteps_m);
 
-        container_type h(nStepsPerSector_m), r(nStepsPerSector_m), ds(nStepsPerSector_m), fidx(nStepsPerSector_m);
+        container_type h(nSteps_m), r(nSteps_m), ds(nSteps_m), fidx(nSteps_m);
         value_type ravg = 0.0, const_ds = 0.0;
         std::pair<value_type,value_type> tunes;
 
@@ -415,14 +450,15 @@ template<typename Value_type, typename Size_type>
                                                                            type, scaleFactor_m, false);
 
             // properties of one turn
+            tunes = cof.getTunes();
+            ravg = cof.getAverageRadius();                   // average radius
+            
             container_type h_turn = cof.getInverseBendingRadius();
             container_type r_turn = cof.getOrbit(angle);
             container_type ds_turn = cof.getPathLength();
             container_type fidx_turn = cof.getFieldIndex();
-            tunes = cof.getTunes();
-            ravg = cof.getAverageRadius();                   // average radius
 
-	    container_type peo = cof.getMomentum(angle);
+            container_type peo = cof.getMomentum(angle);
             
             // write properties to file
             if (write_m)
@@ -441,16 +477,14 @@ template<typename Value_type, typename Size_type>
                   << "* vertical tune: " << tunes.second << endl
                   << "* ----------------------------" << endl << endl;
 
-            // compute the number of steps per degree
-            value_type deg_step = N_m / 360.0;
-            // compute starting point of computation
-            size_type start = deg_step * angle;
-
-            // copy properties of the length of one sector (--> nStepsPerSector_m)
-            std::copy_n(r_turn.begin()+start,nStepsPerSector_m, r.begin());
-            std::copy_n(h_turn.begin()+start,nStepsPerSector_m, h.begin());
-            std::copy_n(fidx_turn.begin()+start,nStepsPerSector_m, fidx.begin());
-            std::copy_n(ds_turn.begin()+start,nStepsPerSector_m, ds.begin());
+            // copy properties
+            std::copy_n(r_turn.begin(), nSteps_m, r.begin());
+            std::copy_n(h_turn.begin(), nSteps_m, h.begin());
+            std::copy_n(fidx_turn.begin(), nSteps_m, fidx.begin());
+            std::copy_n(ds_turn.begin(), nSteps_m, ds.begin());
+            
+            rinit_m = r[0];
+            prinit_m = peo[0];
             
         } else {
             *gmsg << "Not yet supported." << endl;
@@ -485,7 +519,7 @@ template<typename Value_type, typename Size_type>
         }
 
         // calculate only for a single sector (a nSector_-th) of the whole cyclotron
-        for (size_type i = 0; i < nStepsPerSector_m; ++i) {
+        for (size_type i = 0; i < nSteps_m; ++i) {
             if (!harmonic) {
                 Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
                 Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
@@ -543,7 +577,7 @@ template<typename Value_type, typename Size_type>
             }
 
             // compute new space charge maps
-            for (size_type i = 0; i < nStepsPerSector_m; ++i) {
+            for (size_type i = 0; i < nSteps_m; ++i) {
                 if (!harmonic) {
                     Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
                 } else {
@@ -807,7 +841,7 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega)) * mega;                  // formula (30), [sigma(5,5)] = rad * 10^{6} = mrad (and promille)
 
     // fill in initial guess of the sigma matrix (for each angle the same guess)
-    sigmas_m.resize(nStepsPerSector_m);
+    sigmas_m.resize(nSteps_m);
     for (typename std::vector<matrix_type>::iterator it = sigmas_m.begin(); it != sigmas_m.end(); ++it) {
         *it = sigma;
     }
@@ -1049,7 +1083,7 @@ void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix
     }
 
     // initial sigma is already computed
-    for (size_type i = 1; i < nStepsPerSector_m; ++i) {
+    for (size_type i = 1; i < nSteps_m; ++i) {
         // transfer matrix for one angle
         M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
         // transfer the matrix sigma
