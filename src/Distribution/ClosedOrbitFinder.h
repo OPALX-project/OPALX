@@ -266,10 +266,26 @@ ClosedOrbitFinder<Value_type,
                                               size_type nSector, const std::string& fmapfn,
                                               value_type rguess, const std::string& type,
                                               value_type scaleFactor, bool domain)
-: nxcross_m(0), nzcross_m(0), E_m(E), E0_m(E0), wo_m(wo), N_m(N), dtheta_m(Physics::two_pi/value_type(N)),
-  gamma_m(E/E0+1.0), ravg_m(0), phase_m(0), converged_m(false), Emin_m(Emin), Emax_m(Emax), nSector_m(nSector),
-  lastOrbitVal_m(0.0), lastMomentumVal_m(0.0),
-  vertOscDone_m(false), domain_m(domain), stepper_m(), rguess_m(rguess), bField_m(fmapfn, nSector)
+    : nxcross_m(0)
+    , nzcross_m(0)
+    , E_m(E)
+    , E0_m(E0)
+    , wo_m(wo)
+    , N_m(N)
+    , dtheta_m(Physics::two_pi/value_type(N))
+    , gamma_m(E/E0+1.0)
+    , ravg_m(0)
+    , phase_m(0)
+    , converged_m(false)
+    , Emin_m(Emin)
+    , Emax_m(Emax)
+    , nSector_m(nSector)
+    , lastOrbitVal_m(0.0)
+    , lastMomentumVal_m(0.0)
+    , vertOscDone_m(false)
+    , domain_m(domain)
+    , stepper_m()
+    , rguess_m(rguess)
 {
     
     if ( Emin_m > Emax_m )
@@ -306,7 +322,10 @@ ClosedOrbitFinder<Value_type,
     fidx_m.reserve(N_m);
     
     // read in magnetic fieldmap
-    bField_m.read(type, scaleFactor);
+    bField_m.setFieldMapFN(type);
+    bField_m.setSymmetry(nSector_m);
+    int fieldflag = bField_m.getFieldFlag(type);
+    bField_m.read(fieldflag, scaleFactor);
 
     // compute closed orbit
     converged_m = findOrbit(accuracy, maxit);
@@ -489,7 +508,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invptheta = 1.0 / ptheta;
 
         // interpolate values of magnetic field
-        bField_m.interpolate(bint, brint, btint, y[0], theta);
+        bField_m.interpolate(y[0], theta, brint, btint, bint);
 
         bint *= invbcon;
         brint *= invbcon;
@@ -731,7 +750,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        bField_m.interpolate(bint, brint, btint, r_m[i], theta);
+        bField_m.interpolate(r_m[i], theta, brint, btint, bint);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -789,7 +808,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        bField_m.interpolate(bint, brint, btint, y[0], theta);
+        bField_m.interpolate(y[0], theta, brint, btint, bint);
         
         bint *= invbcon;
         brint *= invbcon;
