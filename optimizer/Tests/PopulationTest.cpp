@@ -30,7 +30,7 @@ namespace {
         virtual void TearDown() {
             // Code here will be called immediately after each test (right
             // before the destructor).
-            population_->clean_population();
+            // population_->clean_population();
         }
 
         boost::shared_ptr<Individual> createIndividual(size_t num_genes) {

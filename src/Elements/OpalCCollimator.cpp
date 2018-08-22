@@ -100,13 +100,7 @@ void OpalCCollimator::update() {
     double zend = Attributes::getReal(itsAttr[ZEND]);
     double width = Attributes::getReal(itsAttr[WIDTH]);
     coll->setElementLength(length);
-    coll->setXStart(xstart);
-    coll->setXEnd(xend);
-    coll->setYStart(ystart);
-    coll->setYEnd(yend);
-    coll->setZStart(zstart);
-    coll->setZEnd(zend);
-    coll->setWidth(width);
+    coll->setDimensions(xstart, xend, ystart, yend, zstart, zend, width);
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {

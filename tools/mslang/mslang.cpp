@@ -1,5 +1,6 @@
 #include "Algorithms/Vektor.h"
 #include "Utilities/MSLang.h"
+#include "Utilities/MSLang/QuadTree.h"
 
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
@@ -40,7 +41,7 @@ int main(int argc, char *argv[])
     str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
     str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
 
-     if (parse(str, fun)) {
+    if (parse(str, fun)) {
         // fun->print(0);
         // std::cout << "\n" << std::endl;
 
@@ -50,7 +51,6 @@ int main(int argc, char *argv[])
         std::ofstream out("test.gpl");
         for (mslang::Base* bfun: baseBlocks) {
             // bfun->print(0);
-            // std::cout << std::endl;
             bfun->computeBoundingBox();
             bfun->writeGnuplot(out);
         }
