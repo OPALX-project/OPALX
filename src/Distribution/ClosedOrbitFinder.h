@@ -322,7 +322,7 @@ ClosedOrbitFinder<Value_type,
     fidx_m.reserve(N_m);
     
     // read in magnetic fieldmap
-    bField_m.setFieldMapFN(type);
+    bField_m.setFieldMapFN(fmapfn);
     bField_m.setSymmetry(nSector_m);
     int fieldflag = bField_m.getFieldFlag(type);
     bField_m.read(fieldflag, scaleFactor);

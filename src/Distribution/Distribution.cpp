@@ -1294,14 +1294,12 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
     *gmsg << "* EX= " << Attributes::getReal(itsAttr[Attrib::Distribution::EX])
           << "  EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
-          << "  ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET]) << endl
-          << "* FMAPFN= " << Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]) << endl //CyclotronElement->getFieldMapFN() << endl
-          << "* FMSYM= " << (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]) << endl;
+          << "  ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET]) << endl;
     if ( full )
         *gmsg << "* SECTOR: " << "match using all sectors" << endl;
     else
         *gmsg << "* SECTOR: " << "match using single sector" << endl;
-    *gmsg << "  HN= "      << CyclotronElement->getCyclHarm()
+    *gmsg << "* HN= "      << CyclotronElement->getCyclHarm()
           << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl;
     *gmsg << "* ----------------------------------------------------" << endl;
 
@@ -1317,9 +1315,8 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     }
     
     int Nint = 1000;
-    double scaleFactor = 1.0;
     bool writeMap = true;
-
+    
     typedef SigmaGenerator<double, unsigned int> sGenerator_t;
     sGenerator_t *siggen = new sGenerator_t(I_m,
                                             Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
@@ -1331,11 +1328,11 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             massIneV*1E-6,
                                             fmLowE,
                                             fmHighE,
-                                            (int)Attributes::getReal(itsAttr[Attrib::Distribution::MAGSYM]),
+                                            (int)CyclotronElement->getSymmetry(),
                                             Nint,
-                                            Attributes::getString(itsAttr[Attrib::Distribution::FMAPFN]),
+                                            CyclotronElement->getFieldMapFN(),
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
-                                            scaleFactor,
+                                            CyclotronElement->getBScale(),
                                             writeMap);
 
     if (siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
@@ -1343,7 +1340,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]),
                       CyclotronElement->getPHIinit(),
                       Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]),
-                      Attributes::getString(itsAttr[Attrib::Distribution::FMTYPE]),
+                      CyclotronElement->getCyclotronType(),
                       false, full))  {
 
         std::array<double,3> Emit = siggen->getEmittances();
@@ -3465,10 +3462,6 @@ void Distribution::setAttributes() {
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
     itsAttr[Attrib::Distribution::LINE]
         = Attributes::makeString("LINE", "Beamline that contains a cyclotron or ring ", "");
-    itsAttr[Attrib::Distribution::FMAPFN]
-        = Attributes::makeString("FMAPFN", "File for reading fieldmap used to create matched distribution ", "");
-    itsAttr[Attrib::Distribution::FMTYPE]
-        = Attributes::makeString("FMTYPE", "File format for reading fieldmap used to create matched distribution ", "");
     itsAttr[Attrib::Distribution::EX]
         = Attributes::makeReal("EX", "Projected normalized emittance EX (m-rad), used to create matched distribution ", 1E-6);
     itsAttr[Attrib::Distribution::EY]
@@ -3485,8 +3478,6 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",2000);
     itsAttr[Attrib::Distribution::ORDERMAPS]
         = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
-    itsAttr[Attrib::Distribution::MAGSYM]
-        = Attributes::makeReal("MAGSYM", "Number of sector magnets ", 0);
     itsAttr[Attrib::Distribution::SECTOR]
         = Attributes::makeBool("SECTOR", "Match using single sector (true)"
                                "(false: using all sectors) (default: true)",
