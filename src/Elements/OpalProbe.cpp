@@ -38,8 +38,6 @@ OpalProbe::OpalProbe():
                     ("XEND", " End of x coordinate [mm]");
     itsAttr[YSTART] = Attributes::makeReal
                       ("YSTART", "Start of y coordinate [mm]");
-    itsAttr[YEND1] = Attributes::makeReal
-                     ("YEND1", "Not used now");
     itsAttr[YEND] = Attributes::makeReal
                     ("YEND", "End of y coordinate [mm]");
     itsAttr[WIDTH] = Attributes::makeReal
@@ -50,7 +48,6 @@ OpalProbe::OpalProbe():
     registerRealAttribute("XSTART");
     registerRealAttribute("XEND");
     registerRealAttribute("YSTART");
-    registerRealAttribute("YEND1");
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
     registerRealAttribute("STEP");
@@ -80,7 +77,6 @@ OpalProbe *OpalProbe::clone(const std::string &name) {
 
 void OpalProbe::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
-
 }
 
 
@@ -93,7 +89,6 @@ void OpalProbe::update() {
     double xstart = Attributes::getReal(itsAttr[XSTART]);
     double xend   = Attributes::getReal(itsAttr[XEND]);
     double ystart = Attributes::getReal(itsAttr[YSTART]);
-    double yend1  = Attributes::getReal(itsAttr[YEND1]);
     double yend   = Attributes::getReal(itsAttr[YEND]);
     double width  = Attributes::getReal(itsAttr[WIDTH]);
     double step   = Attributes::getReal(itsAttr[STEP]);
@@ -103,13 +98,8 @@ void OpalProbe::update() {
         owk_m->initWakefunction(*prob);
         prob->setWake(owk_m->wf_m);
     }
-    prob->setElementLength(length);
-    prob->setXstart(xstart);
-    prob->setXend(xend);
-    prob->setYstart(ystart);
-    prob->setYend(yend1);
-    prob->setYend(yend);
-    prob->setWidth(width);
+    prob->setElementLength(length); // is this needed here?
+    prob->setDimensions(xstart, xend, ystart, yend, width);
     prob->setStep(step);
 
     // Transmit "unknown" attributes.

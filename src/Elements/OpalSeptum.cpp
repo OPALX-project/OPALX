@@ -38,8 +38,6 @@ OpalSeptum::OpalSeptum():
                     ("XEND", " End of x coordinate");
     itsAttr[YSTART] = Attributes::makeReal
                       ("YSTART", "Start of y coordinate");
-    itsAttr[YEND1] = Attributes::makeReal
-                     ("YEND1", "Not used now");
     itsAttr[YEND] = Attributes::makeReal
                     ("YEND", "End of y coordinate");
     itsAttr[WIDTH] = Attributes::makeReal
@@ -48,7 +46,6 @@ OpalSeptum::OpalSeptum():
     registerRealAttribute("XSTART");
     registerRealAttribute("XEND");
     registerRealAttribute("YSTART");
-    registerRealAttribute("YEND1");
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
 
@@ -91,7 +88,6 @@ void OpalSeptum::update() {
     double xstart = Attributes::getReal(itsAttr[XSTART]);
     double xend = Attributes::getReal(itsAttr[XEND]);
     double ystart = Attributes::getReal(itsAttr[YSTART]);
-    double yend1 = Attributes::getReal(itsAttr[YEND1]);
     double yend = Attributes::getReal(itsAttr[YEND]);
     double width = Attributes::getReal(itsAttr[WIDTH]);
 
@@ -101,12 +97,7 @@ void OpalSeptum::update() {
         sept->setWake(owk_m->wf_m);
     }
     sept->setElementLength(length);
-    sept->setXstart(xstart);
-    sept->setXend(xend);
-    sept->setYstart(ystart);
-    sept->setYend(yend1);
-    sept->setYend(yend);
-    sept->setWidth(width);
+    sept->setDimensions(xstart, xend, ystart, yend, width);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(sept);
