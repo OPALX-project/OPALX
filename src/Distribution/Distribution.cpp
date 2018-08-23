@@ -1322,6 +1322,50 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     }
     
     
+    std::size_t maxitCOF =
+        Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]);
+    
+    double rguess =
+        Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]);
+    
+    int nSector = (int)CyclotronElement->getSymmetry();
+    
+    double accuracy =
+        Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]);
+    
+    if ( Options::cloTuneOnly ) {
+        *gmsg << "* Stopping after closed orbit and tune calculation" << endl;
+        typedef std::vector<double> container_t;
+        typedef boost::numeric::odeint::runge_kutta4<container_t> rk4_t;
+        typedef ClosedOrbitFinder<double,unsigned int, rk4_t> cof_t;
+            
+        cof_t cof(E_m*1E-6, massIneV*1E-6, wo, Nint, accuracy,
+                  maxitCOF, fmLowE, fmHighE, nSector,
+                  CyclotronElement->getFieldMapFN(), rguess,
+                  CyclotronElement->getCyclotronType(),
+                  CyclotronElement->getBScale(), false);
+        
+        std::pair<double, double> tunes = cof.getTunes();
+        double ravg = cof.getAverageRadius(); // average radius
+            
+        container_t reo = cof.getOrbit(CyclotronElement->getPHIinit());
+        container_t peo = cof.getMomentum(CyclotronElement->getPHIinit());
+            
+
+        *gmsg << "* ----------------------------" << endl
+              << "* Closed orbit info (Gordon units):" << endl
+              << "*" << endl
+              << "* average radius:   " << ravg   << " [m]" << endl
+              << "* initial radius:   " << reo[0] << " [m]" << endl
+              << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
+              << "* frequency error:  " << cof.getFrequencyError() << endl
+              << "* horizontal tune:  " << tunes.first << endl
+              << "* vertical tune:    " << tunes.second << endl
+              << "* ----------------------------" << endl << endl;
+        
+        std::exit(0);
+    }
+    
     bool writeMap = true;
     
     typedef SigmaGenerator<double, unsigned int> sGenerator_t;
@@ -1335,25 +1379,25 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             massIneV*1E-6,
                                             fmLowE,
                                             fmHighE,
-                                            (int)CyclotronElement->getSymmetry(),
+                                            nSector,
                                             Nint,
                                             CyclotronElement->getFieldMapFN(),
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
                                             CyclotronElement->getBScale(),
                                             writeMap);
 
-    if (siggen->match(Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]),
+    if (siggen->match(accuracy,
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
-                      Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]),
+                      maxitCOF,
                       CyclotronElement->getPHIinit(),
-                      Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]),
+                      rguess,
                       CyclotronElement->getCyclotronType(),
                       false, full))  {
 
         std::array<double,3> Emit = siggen->getEmittances();
 
-        if (Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]) > 0)
-            *gmsg << "* RGUESS " << Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS])/1000.0 << " (m) " << endl;
+        if (rguess > 0)
+            *gmsg << "* RGUESS " << rguess/1000.0 << " (m) " << endl;
 
         *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
               << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
@@ -1376,10 +1420,6 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
           moment:  rad
 
         */
-
-        if (Options::cloTuneOnly)
-            throw OpalException("Do only CLO and tune calculation","... ");
-
 
         auto sigma = siggen->getSigma();
         // change units from mm to m
