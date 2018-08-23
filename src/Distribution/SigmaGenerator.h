@@ -1,16 +1,15 @@
 /**
  * @file SigmaGenerator.h
  * The SigmaGenerator class uses the class <b>ClosedOrbitFinder</b> to get the parameters (inverse bending radius, path length
- * field index and tunes) to initialize the sigma matrix. It further has a private class member of type
- * <b>RDM</b> for decoupling. \n
+ * field index and tunes) to initialize the sigma matrix.
  * The main function of this class is <b>match(value_type, size_type)</b>, where it iteratively tries to find a matched distribution for given
  * emittances, energy and current. The computation stops when the L2-norm is smaller than a user-defined tolerance. \n
  * In default mode it prints all space charge maps, cyclotron maps and second moment matrices. The orbit properties, i.e.
  * tunes, average radius, orbit radius, inverse bending radius, path length, field index and frequency error, are printed
  * as well.
  *
- * @author Matthias Frey
- * @version 1.0
+ * @author Matthias Frey, Cristopher Cortes
+ * @version 1.1
  */
 #ifndef SIGMAGENERATOR_H
 #define SIGMAGENERATOR_H
@@ -58,254 +57,262 @@ extern Inform *gmsg;
 template<typename Value_type, typename Size_type>
 class SigmaGenerator
 {
-    public:
-        /// Type of variables
-        typedef Value_type value_type;
-        /// Type of constant variables
-        typedef const value_type const_value_type;
-        /// Type for specifying sizes
-        typedef Size_type size_type;
-        /// Type for storing maps
-        typedef boost::numeric::ublas::matrix<value_type> matrix_type;
-        /// Type for storing the sparse maps
-        typedef boost::numeric::ublas::compressed_matrix<value_type,boost::numeric::ublas::row_major> sparse_matrix_type;
-        /// Type for storing vectors
-        typedef boost::numeric::ublas::vector<value_type> vector_type;
-        /// Container for storing the properties for each angle
-        typedef std::vector<value_type> container_type;
-        /// Type of the truncated powere series
-        typedef FTps<value_type,2*3> Series;
-        /// Type of a map
-        typedef FVps<value_type,2*3> Map;
-        /// Type of the Hamiltonian for the cyclotron
-        typedef std::function<Series(value_type,value_type,value_type)> Hamiltonian;
-        /// Type of the Hamiltonian for the space charge
-        typedef std::function<Series(value_type,value_type,value_type)> SpaceCharge;
+public:
+    /// Type of variables
+    typedef Value_type value_type;
+    /// Type of constant variables
+    typedef const value_type const_value_type;
+    /// Type for specifying sizes
+    typedef Size_type size_type;
+    /// Type for storing maps
+    typedef boost::numeric::ublas::matrix<value_type> matrix_type;
+    /// Type for storing the sparse maps
+    typedef boost::numeric::ublas::compressed_matrix<value_type,
+                                                     boost::numeric::ublas::row_major
+                                                     > sparse_matrix_type;
+    /// Type for storing vectors
+    typedef boost::numeric::ublas::vector<value_type> vector_type;
+    /// Container for storing the properties for each angle
+    typedef std::vector<value_type> container_type;
+    /// Type of the truncated powere series
+    typedef FTps<value_type,2*3> Series;
+    /// Type of a map
+    typedef FVps<value_type,2*3> Map;
+    /// Type of the Hamiltonian for the cyclotron
+    typedef std::function<Series(value_type,value_type,value_type)> Hamiltonian;
+    /// Type of the Hamiltonian for the space charge
+    typedef std::function<Series(value_type,value_type,value_type)> SpaceCharge;
 
-        /// Constructs an object of type SigmaGenerator
-        /*!
-         * @param I specifies the current for which a matched distribution should be found, \f$ [I] = A \f$
-         * @param ex is the emittance in x-direction (horizontal), \f$ \left[\varepsilon_{x}\right] = \pi\ mm\ mrad  \f$
-         * @param ey is the emittance in y-direction (longitudinal), \f$ \left[\varepsilon_{y}\right] = \pi\ mm\ mrad  \f$
-         * @param ez is the emittance in z-direction (vertical), \f$ \left[\varepsilon_{z}\right] = \pi\ mm\ mrad  \f$
-         * @param wo is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
-         * @param E is the energy, \f$ \left[E\right] = MeV \f$
-         * @param nh is the harmonic number
-         * @param m is the mass of the particles \f$ \left[m\right] = \frac{MeV}{c^{2}} \f$
-         * @param Emin is the minimum energy [MeV] needed in cyclotron, \f$ \left[E_{min}\right] = MeV \f$
-         * @param Emax is the maximum energy [MeV] reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
-         * @param nSector is the number of sectors (symmetry assumption)
-         * @param N is the number of integration steps (closed orbit computation). That's why its also the number
-         *        of maps (for each integration step a map)
-         * @param fieldmap is the location of the file that specifies the magnetic field
-         * @param truncOrder is the truncation order for power series of the Hamiltonian
-         * @param scaleFactor for the magnetic field (default: 1.0)
-         * @param write is a boolean (default: true). If true all maps of all iterations are stored, otherwise not.
-         */
-        SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez,
-                       value_type wo, value_type E, value_type nh, value_type m,
-                       value_type Emin, value_type Emax, size_type nSector,
-                       size_type N, const std::string& fieldmap,
-                       size_type truncOrder, value_type scaleFactor = 1.0, bool write = true);
+    /// Constructs an object of type SigmaGenerator
+    /*!
+     * @param I specifies the current for which a matched distribution should be found, \f$ [I] = A \f$
+     * @param ex is the emittance in x-direction (horizontal), \f$ \left[\varepsilon_{x}\right] = \pi\ mm\ mrad  \f$
+     * @param ey is the emittance in y-direction (longitudinal), \f$ \left[\varepsilon_{y}\right] = \pi\ mm\ mrad  \f$
+     * @param ez is the emittance in z-direction (vertical), \f$ \left[\varepsilon_{z}\right] = \pi\ mm\ mrad  \f$
+     * @param wo is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
+     * @param E is the energy, \f$ \left[E\right] = MeV \f$
+     * @param nh is the harmonic number
+     * @param m is the mass of the particles \f$ \left[m\right] = \frac{MeV}{c^{2}} \f$
+     * @param Emin is the minimum energy [MeV] needed in cyclotron, \f$ \left[E_{min}\right] = MeV \f$
+     * @param Emax is the maximum energy [MeV] reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
+     * @param nSector is the number of sectors (symmetry assumption)
+     * @param N is the number of integration steps (closed orbit computation). That's why its also the number
+     *    of maps (for each integration step a map)
+     * @param fieldmap is the location of the file that specifies the magnetic field
+     * @param truncOrder is the truncation order for power series of the Hamiltonian
+     * @param scaleFactor for the magnetic field (default: 1.0)
+     * @param write is a boolean (default: true). If true all maps of all iterations are stored, otherwise not.
+     */
+    SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez,
+                   value_type wo, value_type E, value_type nh, value_type m,
+                   value_type Emin, value_type Emax, size_type nSector,
+                   size_type N, const std::string& fieldmap,
+                   size_type truncOrder, value_type scaleFactor = 1.0, bool write = true);
 
-        /// Searches for a matched distribution.
-        /*!
-         * Returns "true" if a matched distribution within the accuracy could be found, returns "false" otherwise.
-         * @param accuracy is used for computing the equilibrium orbit (to a certain accuracy)
-         * @param maxit is the maximum number of iterations (the program stops if within this value no stationary
-         *        distribution was found)
-         * @param maxitOrbit is the maximum number of iterations for finding closed orbit
-         * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
+    /// Searches for a matched distribution.
+    /*!
+     * Returns "true" if a matched distribution within the accuracy could be found, returns "false" otherwise.
+     * @param accuracy is used for computing the equilibrium orbit (to a certain accuracy)
+     * @param maxit is the maximum number of iterations (the program stops if within this value no stationary
+     *    distribution was found)
+     * @param maxitOrbit is the maximum number of iterations for finding closed orbit
+     * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
 	 * @param guess value of radius for closed orbit finder
-         * @param type specifies the magnetic field format (e.g. CARBONCYCL)
-         * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
-         * @param full match over full turn not just single sector
-         */
-        bool match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle,
-                   value_type guess, const std::string& type, bool harmonic, bool full);
+     * @param type specifies the magnetic field format (e.g. CARBONCYCL)
+     * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
+     * @param full match over full turn not just single sector
+     */
+    bool match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle,
+               value_type guess, const std::string& type, bool harmonic, bool full);
 
-        /// Block diagonalizes the symplex part of the one turn transfer matrix
-        /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
-         * It returns a vector containing the four eigenvalues
-         * (alpha,beta,gamma,delta) (see formula (38), paper: Geometrical method of decoupling)
-         */
-        /*!
-         * @param Mturn is a 6x6 dimensional one turn transfer matrix
-         * @param R is the 4x4 dimensional transformation matrix (gets computed)
-         * @param invR is the 4x4 dimensional inverse transformation (gets computed)
-         */
-        vector_type decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
+    /// Block diagonalizes the symplex part of the one turn transfer matrix
+    /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
+     * It returns a vector containing the four eigenvalues
+     * (alpha,beta,gamma,delta) (see formula (38), paper: Geometrical method of decoupling)
+     */
+    /*!
+     * @param Mturn is a 6x6 dimensional one turn transfer matrix
+     * @param R is the 4x4 dimensional transformation matrix (gets computed)
+     * @param invR is the 4x4 dimensional inverse transformation (gets computed)
+     */
+    vector_type decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
 
-        /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
-        /*!
-         * The idea of this function is taken from Dr. Christian Baumgarten's program.
-         * @param Mturn is the one turn transfer matrix
-         * @param sigma is the sigma matrix to be tested
-         */
-        value_type isEigenEllipse(const matrix_type& Mturn, const matrix_type& sigma);
+    /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
+    /*!
+     * The idea of this function is taken from Dr. Christian Baumgarten's program.
+     * @param Mturn is the one turn transfer matrix
+     * @param sigma is the sigma matrix to be tested
+     */
+    value_type isEigenEllipse(const matrix_type& Mturn, const matrix_type& sigma);
 
-        /// Returns the converged stationary distribution
-        matrix_type& getSigma();
+    /// Returns the converged stationary distribution
+    matrix_type& getSigma();
 
-        /// Returns the number of iterations needed for convergence (if not converged, it returns zero)
-        size_type getIterations() const;
+    /// Returns the number of iterations needed for convergence (if not converged, it returns zero)
+    size_type getIterations() const;
 
-        /// Returns the error (if the program didn't converged, one can call this function to check the error)
-        value_type getError() const;
+    /// Returns the error (if the program didn't converged, one can call this function to check the error)
+    value_type getError() const;
 
-        /// Returns the emittances (ex,ey,ez) in \f$ \pi\ mm\ mrad \f$ for which the code converged (since the whole simulation is done on normalized emittances)
-        std::array<value_type,3> getEmittances() const;
-        
-        const double& getInjectionRadius() const {
-            return rinit_m;
-        }
-        
-        const double& getInjectionMomentum() const {
-            return prinit_m;
-        }
+    /// Returns the emittances (ex,ey,ez) in \f$ \pi\ mm\ mrad \f$ for which the code converged (since the whole simulation is done on normalized emittances)
+    std::array<value_type,3> getEmittances() const;
+    
+    const double& getInjectionRadius() const {
+        return rinit_m;
+    }
+    
+    const double& getInjectionMomentum() const {
+        return prinit_m;
+    }
 
     private:
-        /// Stores the value of the current, \f$ \left[I\right] = A \f$
-        value_type I_m;
-        /// Stores the desired emittances, \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = mm \ mrad \f$
-        std::array<value_type,3> emittance_m;
-        /// Is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
-        value_type wo_m;
-        /// Stores the user-define energy, \f$ \left[E\right] = MeV \f$
-        value_type E_m;
-        /// Relativistic factor (which can be computed out ot the kinetic energy and rest mass (potential energy)), \f$ \left[\gamma\right] = 1 \f$
-        value_type gamma_m;
-        /// Relativistic factor squared
-        value_type gamma2_m;
-        /// Harmonic number, \f$ \left[N_{h}\right] = 1 \f$
-        value_type nh_m;
-        /// Velocity (c/v), \f$ \left[\beta\right] = 1 \f$
-        value_type beta_m;
-        /// Is the mass of the particles, \f$ \left[m\right] = \frac{MeV}{c^{2}} \f$
-        value_type m_m;
-        /// Is the number of iterations needed for convergence
-        size_type niterations_m;
-        /// Is true if converged, false otherwise
-        bool converged_m;
-        /// Minimum energy needed in cyclotron, \f$ \left[E_{min}\right] = MeV \f$
-        value_type Emin_m;
-        /// Maximum energy reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
-        value_type Emax_m;
-        /// Number of (symmetric) sectors
-        size_type nSector_m;
-        /// Number of integration steps for closed orbit computation
-        size_type N_m;
-        /// Number of integration steps per sector (--> also: number of maps per sector)
-        size_type nStepsPerSector_m;
-        
-        /// Number of integration steps in total
-        size_type nSteps_m;
-        
-        /// Error of computation
-        value_type error_m;
+    /// Stores the value of the current, \f$ \left[I\right] = A \f$
+    value_type I_m;
+    /// Stores the desired emittances, \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = mm \ mrad \f$
+    std::array<value_type,3> emittance_m;
+    /// Is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
+    value_type wo_m;
+    /// Stores the user-define energy, \f$ \left[E\right] = MeV \f$
+    value_type E_m;
+    /// Relativistic factor (which can be computed out ot the kinetic energy and rest mass (potential energy)), \f$ \left[\gamma\right] = 1 \f$
+    value_type gamma_m;
+    /// Relativistic factor squared
+    value_type gamma2_m;
+    /// Harmonic number, \f$ \left[N_{h}\right] = 1 \f$
+    value_type nh_m;
+    /// Velocity (c/v), \f$ \left[\beta\right] = 1 \f$
+    value_type beta_m;
+    /// Is the mass of the particles, \f$ \left[m\right] = \frac{MeV}{c^{2}} \f$
+    value_type m_m;
+    /// Is the number of iterations needed for convergence
+    size_type niterations_m;
+    /// Is true if converged, false otherwise
+    bool converged_m;
+    /// Minimum energy needed in cyclotron, \f$ \left[E_{min}\right] = MeV \f$
+    value_type Emin_m;
+    /// Maximum energy reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
+    value_type Emax_m;
+    /// Number of (symmetric) sectors
+    size_type nSector_m;
+    /// Number of integration steps for closed orbit computation
+    size_type N_m;
+    /// Number of integration steps per sector (--> also: number of maps per sector)
+    size_type nStepsPerSector_m;
+    
+    /// Number of integration steps in total
+    size_type nSteps_m;
+    
+    /// Error of computation
+    value_type error_m;
 
-        /// Location of magnetic fieldmap
-        std::string fieldmap_m;
+    /// Location of magnetic fieldmap
+    std::string fieldmap_m;
 
-        /// Truncation order of the power series for the Hamiltonian (cyclotron and space charge)
-        size_type truncOrder_m;
+    /// Truncation order of the power series for the Hamiltonian (cyclotron and space charge)
+    size_type truncOrder_m;
 
-        /// Decides for writing output (default: true)
-        bool write_m;
-        
-        /// Scale the magnetic field values (default: 1.0)
-        value_type scaleFactor_m;
+    /// Decides for writing output (default: true)
+    bool write_m;
+    
+    /// Scale the magnetic field values (default: 1.0)
+    value_type scaleFactor_m;
 
-        /// Stores the stationary distribution (sigma matrix)
-        matrix_type sigma_m;
+    /// Stores the stationary distribution (sigma matrix)
+    matrix_type sigma_m;
 
-        /// Vector storing the second moment matrix for each angle
-        std::vector<matrix_type> sigmas_m;
+    /// Vector storing the second moment matrix for each angle
+    std::vector<matrix_type> sigmas_m;
 
-        /// <b>RDM</b>-class member used for decoupling
-        RDM<value_type, size_type> rdm_m;
+    /// <b>RDM</b>-class member used for decoupling
+    RDM<value_type, size_type> rdm_m;
 
-        /// Stores the Hamiltonian of the cyclotron
-        Hamiltonian H_m;
+    /// Stores the Hamiltonian of the cyclotron
+    Hamiltonian H_m;
 
-        /// Stores the Hamiltonian for the space charge
-        SpaceCharge Hsc_m;
+    /// Stores the Hamiltonian for the space charge
+    SpaceCharge Hsc_m;
 
-        /// All variables x, px, y, py, z, delta
-        Series x_m, px_m, y_m, py_m, z_m, delta_m;
-        
-        double rinit_m;
-        double prinit_m;
+    /// All variables x, px, y, py, z, delta
+    Series x_m, px_m, y_m, py_m, z_m, delta_m;
+    
+    double rinit_m;
+    double prinit_m;
 
-        /// Initializes a first guess of the sigma matrix with the assumption of a spherical symmetric beam (ex = ey = ez). For each angle split the same initial guess is taken.
-        /*!
-         * @param nuz is the vertical tune
-         * @param ravg is the average radius of the closed orbit
-         */
-        void initialize(value_type, value_type);
+    /*! Initializes a first guess of the sigma matrix with the assumption of
+     * a spherical symmetric beam (ex = ey = ez). For each angle split the
+     * same initial guess is taken.
+     * 
+     * @param nuz is the vertical tune
+     * @param ravg is the average radius of the closed orbit
+     */
+    void initialize(value_type, value_type);
 
-        /// Reduces the 6x6 matrix to a 4x4 matrix (for more explanations consider the source code comments)
-        template<class matrix>
-            void reduce(matrix&);
-        /// Expands the 4x4 matrix back to dimension 6x6 (for more explanations consider the source code comments)
-        template<class matrix>
-            void expand(matrix&);
+    /// Reduces the 6x6 matrix to a 4x4 matrix (for more explanations consider the source code comments)
+    template<class matrix>
+        void reduce(matrix&);
+    /// Expands the 4x4 matrix back to dimension 6x6 (for more explanations consider the source code comments)
+    template<class matrix>
+        void expand(matrix&);
 
-        /// Computes the new initial sigma matrix
-        /*!
-         * @param M is the 6x6 one turn transfer matrix
-         * @param eigen stores the 4 eigenvalues: alpha, beta, gamma, delta (in this order)
-         * @param R is the transformation matrix
-         * @param invR is the inverse transformation matrix
-         */
-        matrix_type updateInitialSigma(const matrix_type&, const vector_type&, sparse_matrix_type&, sparse_matrix_type&);
+    /// Computes the new initial sigma matrix
+    /*!
+     * @param M is the 6x6 one turn transfer matrix
+     * @param eigen stores the 4 eigenvalues: alpha, beta, gamma, delta (in this order)
+     * @param R is the transformation matrix
+     * @param invR is the inverse transformation matrix
+     */
+    matrix_type updateInitialSigma(const matrix_type&,
+                                   const vector_type&,
+                                   sparse_matrix_type&,
+                                   sparse_matrix_type&);
 
-        /// Computes new sigma matrices (one for each angle)
-        /*!
-         * Mscs is a vector of all space charge maps
-         * Mcycs is a vector of all cyclotron maps
-         */
-        void updateSigma(const std::vector<matrix_type>&, const std::vector<matrix_type>&);
+    /// Computes new sigma matrices (one for each angle)
+    /*!
+     * Mscs is a vector of all space charge maps
+     * Mcycs is a vector of all cyclotron maps
+     */
+    void updateSigma(const std::vector<matrix_type>&,
+                     const std::vector<matrix_type>&);
 
-        /// Returns the L2-error norm between the old and new sigma-matrix
-        /*!
-         * @param oldS is the old sigma matrix
-         * @param newS is the new sigma matrix
-         */
-        value_type L2ErrorNorm(const matrix_type&, const matrix_type&);
-        
-        
-        /// Returns the Lp-error norm between the old and new sigma-matrix
-        /*!
-         * @param oldS is the old sigma matrix
-         * @param newS is the new sigma matrix
-         */
-        value_type L1ErrorNorm(const matrix_type&, const matrix_type&);
+    /// Returns the L2-error norm between the old and new sigma-matrix
+    /*!
+     * @param oldS is the old sigma matrix
+     * @param newS is the new sigma matrix
+     */
+    value_type L2ErrorNorm(const matrix_type&, const matrix_type&);
+    
+    
+    /// Returns the Lp-error norm between the old and new sigma-matrix
+    /*!
+     * @param oldS is the old sigma matrix
+     * @param newS is the new sigma matrix
+     */
+    value_type L1ErrorNorm(const matrix_type&, const matrix_type&);
 
-        /// Transforms a floating point value to a string
-        /*!
-         * @param val is the floating point value which is transformed to a string
-         */
-        std::string float2string(value_type val);
-        
-        /// Called within SigmaGenerator::match().
-        /*!
-         * @param tunes
-         * @param ravg is the average radius [m]
-         * @param r_turn is the radius [m]
-         * @param peo is the momentum
-         * @param h_turn is the inverse bending radius
-         * @param fidx_turn is the field index
-         * @param ds_turn is the path length element
-         */
-        void writeOrbitOutput_m(const std::pair<value_type,value_type>& tunes,
-                                const value_type& ravg,
-                                const value_type& freqError,
-                                const container_type& r_turn,
-                                const container_type& peo,
-                                const container_type& h_turn,
-                                const container_type&  fidx_turn,
-                                const container_type&  ds_turn);
+    /// Transforms a floating point value to a string
+    /*!
+     * @param val is the floating point value which is transformed to a string
+     */
+    std::string float2string(value_type val);
+    
+    /// Called within SigmaGenerator::match().
+    /*!
+     * @param tunes
+     * @param ravg is the average radius [m]
+     * @param r_turn is the radius [m]
+     * @param peo is the momentum
+     * @param h_turn is the inverse bending radius
+     * @param fidx_turn is the field index
+     * @param ds_turn is the path length element
+     */
+    void writeOrbitOutput_m(const std::pair<value_type,value_type>& tunes,
+                            const value_type& ravg,
+                            const value_type& freqError,
+                            const container_type& r_turn,
+                            const container_type& peo,
+                            const container_type& h_turn,
+                            const container_type&  fidx_turn,
+                            const container_type&  ds_turn);
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -313,9 +320,22 @@ class SigmaGenerator
 // -----------------------------------------------------------------------------------------------------------------------
 
 template<typename Value_type, typename Size_type>
-SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez, value_type wo,
-        value_type E, value_type nh, value_type m, value_type Emin, value_type Emax, size_type nSector,
-        size_type N, const std::string& fieldmap, size_type truncOrder, value_type scaleFactor, bool write)
+SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I,
+                                                      value_type ex,
+                                                      value_type ey,
+                                                      value_type ez,
+                                                      value_type wo,
+                                                      value_type E,
+                                                      value_type nh,
+                                                      value_type m,
+                                                      value_type Emin,
+                                                      value_type Emax,
+                                                      size_type nSector,
+                                                      size_type N,
+                                                      const std::string& fieldmap,
+                                                      size_type truncOrder,
+                                                      value_type scaleFactor,
+                                                      bool write)
     : I_m(I)
     , wo_m(wo)
     , E_m(E)
@@ -521,10 +541,20 @@ template<typename Value_type, typename Size_type>
         // calculate only for a single sector (a nSector_-th) of the whole cyclotron
         for (size_type i = 0; i < nSteps_m; ++i) {
             if (!harmonic) {
-                Mcycs[i] = mapgen.generateMap(H_m(h[i],h[i]*h[i]+fidx[i],-fidx[i]),ds[i],truncOrder_m);
-                Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
+                Mcycs[i] = mapgen.generateMap(H_m(h[i],
+                                                  h[i]*h[i]+fidx[i],
+                                                  -fidx[i]),
+                                              ds[i],truncOrder_m);
+                
+                Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
+                                                    sigmas_m[i](2,2),
+                                                    sigmas_m[i](4,4)),
+                                              ds[i],truncOrder_m);
             } else {
-                Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),const_ds,truncOrder_m);
+                Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
+                                                   sigmas_m[i](2,2),
+                                                   sigmas_m[i](4,4)),
+                                             const_ds,truncOrder_m);
             }
 
             if (write_m) {
@@ -579,9 +609,15 @@ template<typename Value_type, typename Size_type>
             // compute new space charge maps
             for (size_type i = 0; i < nSteps_m; ++i) {
                 if (!harmonic) {
-                    Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),ds[i],truncOrder_m);
+                    Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
+                                                       sigmas_m[i](2,2),
+                                                       sigmas_m[i](4,4)),
+                                                 ds[i],truncOrder_m);
                 } else {
-                    Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),sigmas_m[i](2,2),sigmas_m[i](4,4)),const_ds,truncOrder_m);
+                    Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
+                                                       sigmas_m[i](2,2),
+                                                       sigmas_m[i](4,4)),
+                                                 const_ds,truncOrder_m);
                 }
 
                 if (write_m)
@@ -650,8 +686,11 @@ template<typename Value_type, typename Size_type>
 }
 
 template<typename Value_type, typename Size_type>
-typename SigmaGenerator<Value_type, Size_type>::vector_type SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn, sparse_matrix_type& R,
-        sparse_matrix_type& invR) {
+typename SigmaGenerator<Value_type, Size_type>::vector_type
+SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn,
+                                                sparse_matrix_type& R,
+                                                sparse_matrix_type& invR)
+{
     // copy one turn matrix
     matrix_type M(Mturn);
 
@@ -684,34 +723,50 @@ typename SigmaGenerator<Value_type, Size_type>::vector_type SigmaGenerator<Value
 }
 
 template<typename Value_type, typename Size_type>
-typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_type, Size_type>::isEigenEllipse(const matrix_type& Mturn, const matrix_type& sigma) {
+typename SigmaGenerator<Value_type, Size_type>::value_type
+SigmaGenerator<Value_type, Size_type>::isEigenEllipse(const matrix_type& Mturn,
+                                                      const matrix_type& sigma)
+{
     // compute sigma matrix after one turn
-    matrix_type newSigma = matt_boost::gemmm<matrix_type>(Mturn,sigma,boost::numeric::ublas::trans(Mturn));
+    matrix_type newSigma = matt_boost::gemmm<matrix_type>(Mturn,
+                                                          sigma,
+                                                          boost::numeric::ublas::trans(Mturn));
 
     // return L2 error
     return L2ErrorNorm(sigma,newSigma);
 }
 
 template<typename Value_type, typename Size_type>
-inline typename SigmaGenerator<Value_type, Size_type>::matrix_type& SigmaGenerator<Value_type, Size_type>::getSigma() {
+inline typename SigmaGenerator<Value_type, Size_type>::matrix_type&
+SigmaGenerator<Value_type, Size_type>::getSigma()
+{
     return sigma_m;
 }
 
 template<typename Value_type, typename Size_type>
-inline typename SigmaGenerator<Value_type, Size_type>::size_type SigmaGenerator<Value_type, Size_type>::getIterations() const {
+inline typename SigmaGenerator<Value_type, Size_type>::size_type
+SigmaGenerator<Value_type, Size_type>::getIterations() const
+{
     return (converged_m) ? niterations_m : size_type(0);
 }
 
 template<typename Value_type, typename Size_type>
-inline typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_type, Size_type>::getError() const {
+inline typename SigmaGenerator<Value_type, Size_type>::value_type
+SigmaGenerator<Value_type, Size_type>::getError() const
+{
     return error_m;
 }
 
 template<typename Value_type, typename Size_type>
-inline std::array<Value_type,3> SigmaGenerator<Value_type, Size_type>::getEmittances() const {
+inline std::array<Value_type,3>
+SigmaGenerator<Value_type, Size_type>::getEmittances() const
+{
     value_type bgam = gamma_m*beta_m;
     return std::array<value_type,3>{{
-		    emittance_m[0]/Physics::pi/bgam, emittance_m[1]/Physics::pi/bgam, emittance_m[2]/Physics::pi/bgam}};
+        emittance_m[0]/Physics::pi/bgam,
+        emittance_m[1]/Physics::pi/bgam,
+        emittance_m[2]/Physics::pi/bgam
+    }};
 }
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -719,9 +774,12 @@ inline std::array<Value_type,3> SigmaGenerator<Value_type, Size_type>::getEmitta
 // -----------------------------------------------------------------------------------------------------------------------
 
 template<typename Value_type, typename Size_type>
-void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_type ravg) {
+void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz,
+                                                       value_type ravg)
+{
     /*
-     * The initialization is based on the analytical solution of using a spherical symmetric beam in the paper:
+     * The initialization is based on the analytical solution of
+     * using a spherical symmetric beam in the paper:
      * Transverse-longitudinal coupling by space charge in cyclotrons
      * by Dr. Christian Baumgarten
      * (formulas: (46), (56), (57))
@@ -793,7 +851,8 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     } else if (alpha >= 0) {
         sig = sig0 * (1 + alpha * (0.25 - 0.03125 * alpha));
     } else {
-        throw OpalException("SigmaGenerator::initialize()", "Negative alpha value: " + std::to_string(alpha) + " < 0");
+        throw OpalException("SigmaGenerator::initialize()",
+                            "Negative alpha value: " + std::to_string(alpha) + " < 0");
     }
 
     // K = Kx = Ky = Kz
@@ -806,19 +865,23 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
 
     // b must be positive, otherwise no real-valued frequency
     if (b < 0)
-        throw OpalException("SigmaGenerator::initialize()", "Negative value --> No real-valued frequency.");
+        throw OpalException("SigmaGenerator::initialize()",
+                            "Negative value --> No real-valued frequency.");
 
     value_type tmp = a * a - b;           // [tmp] = 1/m^{4}
     if (tmp < 0)
-        throw OpalException("SigmaGenerator::initialize()", "Square root of negative number.");
+        throw OpalException("SigmaGenerator::initialize()",
+                            "Square root of negative number.");
 
     tmp = std::sqrt(tmp);               // [tmp] = 1/m^{2}
 
     if (a < tmp)
-        throw OpalException("Error in SigmaGenerator::initialize()", "Square root of negative number.");
+        throw OpalException("Error in SigmaGenerator::initialize()",
+                            "Square root of negative number.");
 
     if (h * h * nuz * nuz <= K)
-        throw OpalException("SigmaGenerator::initialize()", "h^{2} * nu_{z}^{2} <= K (i.e. square root of negative number)");
+        throw OpalException("SigmaGenerator::initialize()",
+                            "h^{2} * nu_{z}^{2} <= K (i.e. square root of negative number)");
 
     value_type Omega = std::sqrt(a + tmp);                // formula (22), [Omega] = 1/m
     value_type omega = std::sqrt(a - tmp);                // formula (22), [omega] = 1/m
@@ -831,14 +894,29 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
     // Remark: We multiply with 10^{6} (= mega) to convert emittances back.
     // 1 m^{2} = 10^{6} mm^{2}
     matrix_type sigma = boost::numeric::ublas::zero_matrix<value_type>(6);
-    sigma(0,0) = invAB * (B * ex / Omega + A * ez / omega) * mega;                      // formula (30), [sigma(0,0)] = m^2 rad * 10^{6} = mm^{2} rad = mm mrad
-    sigma(0,5) = sigma(5,0) = invAB * (ex / Omega + ez / omega) * mega;                 // [sigma(0,5)] = [sigma(5,0)] = m rad * 10^{6} = mm mrad	// 1000: m --> mm and 1000 to promille
-    sigma(1,1) = invAB * (B * ex * Omega + A * ez * omega) * mega;                      // [sigma(1,1)] = rad * 10^{6} = mrad (and promille)
-    sigma(1,4) = sigma(4,1) = invAB * (ex * Omega+ez * omega) / (K * gamma2_m) * mega;  // [sigma(1,4)] = [sigma(4,1)] = m rad * 10^{6} = mm mrad
-    sigma(2,2) = ey / (std::sqrt(h * h * nuz * nuz - K)) * mega;                        // formula (31), [sigma(2,2)] = m rad * 10^{6} = mm mrad
+    
+    // formula (30), [sigma(0,0)] = m^2 rad * 10^{6} = mm^{2} rad = mm mrad
+    sigma(0,0) = invAB * (B * ex / Omega + A * ez / omega) * mega;
+    
+    // [sigma(0,5)] = [sigma(5,0)] = m rad * 10^{6} = mm mrad	// 1000: m --> mm and 1000 to promille
+    sigma(0,5) = sigma(5,0) = invAB * (ex / Omega + ez / omega) * mega;
+    
+    // [sigma(1,1)] = rad * 10^{6} = mrad (and promille)
+    sigma(1,1) = invAB * (B * ex * Omega + A * ez * omega) * mega;
+    
+    // [sigma(1,4)] = [sigma(4,1)] = m rad * 10^{6} = mm mrad
+    sigma(1,4) = sigma(4,1) = invAB * (ex * Omega+ez * omega) / (K * gamma2_m) * mega;
+    
+    // formula (31), [sigma(2,2)] = m rad * 10^{6} = mm mrad
+    sigma(2,2) = ey / (std::sqrt(h * h * nuz * nuz - K)) * mega;
+    
     sigma(3,3) = (ey * mega) * (ey * mega) / sigma(2,2);
-    sigma(4,4) = invAB * (A * ex * Omega + B * ez * omega) / (K * gamma2_m) * mega;     // [sigma(4,4)] = m^{2} rad * 10^{6} = mm^{2} rad = mm mrad
-    sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega)) * mega;                  // formula (30), [sigma(5,5)] = rad * 10^{6} = mrad (and promille)
+    
+    // [sigma(4,4)] = m^{2} rad * 10^{6} = mm^{2} rad = mm mrad
+    sigma(4,4) = invAB * (A * ex * Omega + B * ez * omega) / (K * gamma2_m) * mega;
+    
+    // formula (30), [sigma(5,5)] = rad * 10^{6} = mrad (and promille)
+    sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega)) * mega;
 
     // fill in initial guess of the sigma matrix (for each angle the same guess)
     sigmas_m.resize(nSteps_m);
@@ -848,7 +926,8 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz, value_typ
 
     if (write_m) {
         std::string energy = float2string(E_m);
-        std::ofstream writeInit("data/maps/InitialSigmaPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
+        std::ofstream writeInit("data/maps/InitialSigmaPerAngleForEnergy" +
+                                energy + "MeV.dat", std::ios::app);
         writeInit << sigma << std::endl;
         writeInit.close();
     }
@@ -923,9 +1002,12 @@ void SigmaGenerator<Value_type, Size_type>::expand(matrix& M) {
 }
 
 template<typename Value_type, typename Size_type>
-typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value_type, Size_type>::updateInitialSigma(const matrix_type& M, const vector_type& eigen,
-        sparse_matrix_type& R, sparse_matrix_type& invR) {
-
+typename SigmaGenerator<Value_type, Size_type>::matrix_type
+SigmaGenerator<Value_type, Size_type>::updateInitialSigma(const matrix_type& M,
+                                                          const vector_type& eigen,
+                                                          sparse_matrix_type& R,
+                                                          sparse_matrix_type& invR)
+{
     /*
      * This function is based on the paper of Dr. Christian Baumgarten:
      * Transverse-Longitudinal Coupling by Space Charge in Cyclotrons (2012)
@@ -1058,7 +1140,8 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
 
     if (write_m) {
         std::string energy = float2string(E_m);
-        std::ofstream writeSigma("data/maps/SigmaPerAngleForEnergy"+energy+"MeV.dat",std::ios::app);
+        std::ofstream writeSigma("data/maps/SigmaPerAngleForEnergy" +
+                                 energy + "MeV.dat", std::ios::app);
 
         writeSigma << "--------------------------------" << std::endl;
         writeSigma << "Iteration: " << niterations_m + 1 << std::endl;
@@ -1072,7 +1155,9 @@ typename SigmaGenerator<Value_type, Size_type>::matrix_type SigmaGenerator<Value
 }
 
 template<typename Value_type, typename Size_type>
-void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix_type>& Mscs, const std::vector<matrix_type>& Mcycs) {
+void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix_type>& Mscs,
+                                                        const std::vector<matrix_type>& Mcycs)
+{
     matrix_type M = boost::numeric::ublas::matrix<value_type>(6,6);
 
     std::ofstream writeSigma;
@@ -1087,7 +1172,8 @@ void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix
         // transfer matrix for one angle
         M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
         // transfer the matrix sigma
-        sigmas_m[i] = matt_boost::gemmm<matrix_type>(M,sigmas_m[i - 1],boost::numeric::ublas::trans(M));
+        sigmas_m[i] = matt_boost::gemmm<matrix_type>(M,sigmas_m[i - 1],
+                                                     boost::numeric::ublas::trans(M));
 
         if (write_m)
             writeSigma << sigmas_m[i] << std::endl;
@@ -1100,12 +1186,18 @@ void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix
 }
 
 template<typename Value_type, typename Size_type>
-typename SigmaGenerator<Value_type, Size_type>::value_type SigmaGenerator<Value_type, Size_type>::L2ErrorNorm(const matrix_type& oldS, const matrix_type& newS) {
+typename SigmaGenerator<Value_type, Size_type>::value_type
+SigmaGenerator<Value_type, Size_type>::L2ErrorNorm(const matrix_type& oldS,
+                                                   const matrix_type& newS)
+{
     // compute difference
     matrix_type diff = newS - oldS;
 
     // sum squared error up and take square root
-    return std::sqrt(std::inner_product(diff.data().begin(),diff.data().end(),diff.data().begin(),0.0));
+    return std::sqrt(std::inner_product(diff.data().begin(),
+                                        diff.data().end(),
+                                        diff.data().begin(),
+                                        0.0));
 }
 
 template<typename Value_type, typename Size_type>
