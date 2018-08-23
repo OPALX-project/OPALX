@@ -40,6 +40,7 @@
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 #include <boost/numeric/ublas/lu.hpp>
+#include <boost/numeric/ublas/io.hpp>
 
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_math.h>
@@ -55,7 +56,6 @@
 #include "MapGenerator.h"
 #include "Harmonics.h"
 
-#include <boost/numeric/ublas/io.hpp>
 
 extern Inform *gmsg;
 
@@ -485,10 +485,10 @@ template<typename Value_type, typename Size_type>
             tunes = cof.getTunes();
             ravg = cof.getAverageRadius();                   // average radius
             
-            container_type h_turn = cof.getInverseBendingRadius();
+            container_type h_turn = cof.getInverseBendingRadius(angle);
             container_type r_turn = cof.getOrbit(angle);
-            container_type ds_turn = cof.getPathLength();
-            container_type fidx_turn = cof.getFieldIndex();
+            container_type ds_turn = cof.getPathLength(angle);
+            container_type fidx_turn = cof.getFieldIndex(angle);
 
             container_type peo = cof.getMomentum(angle);
             
@@ -522,11 +522,7 @@ template<typename Value_type, typename Size_type>
             *gmsg << "Not yet supported." << endl;
             return false;
         }
-
-
-        if(Options::cloTuneOnly)
-            throw OpalException("Do only CLO and tune calculation","... ");
-
+        
         // initialize sigma matrices (for each angle one) (first guess)
         initialize(tunes.second,ravg);
 
@@ -583,10 +579,7 @@ template<typename Value_type, typename Size_type>
             writeMturn << Mturn << std::endl;
 
         // (inverse) transformation matrix
-        sparse_matrix_type R, invR;
-
-        // eigenvalues
-        vector_type eigen(4);
+        sparse_matrix_type R(6, 6), invR(6, 6);
 
         // new initial sigma matrix
         matrix_type newSigma(6,6);
@@ -594,7 +587,7 @@ template<typename Value_type, typename Size_type>
         // for exiting loop
         bool stop = false;
 
-        value_type weight = 0.05;
+        value_type weight = 0.5;
 
         while (error_m > accuracy && !stop) {
             // decouple transfer matrix and compute (inverse) tranformation matrix
@@ -719,17 +712,17 @@ void SigmaGenerator<Value_type, Size_type>::eigsolve_m(const matrix_type& Mturn,
         }
     }
     
-    int status = gsl_eigen_nonsymmv(M, evals, evecs, wspace);
+    /*int status = */gsl_eigen_nonsymmv(M, evals, evecs, wspace);
     
-    if ( !status )
-        throw OpalException("SigmaGenerator::eigsolve_m()",
-                            "Couldn't perform eigendecomposition!");
+//     if ( !status )
+//         throw OpalException("SigmaGenerator::eigsolve_m()",
+//                             "Couldn't perform eigendecomposition!");
     
-    status = gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
+    /*status = */gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
     
-    if ( !status )
-        throw OpalException("SigmaGenerator::eigsolve_m()",
-                            "Couldn't sort eigenvalues and eigenvectors!");
+//     if ( !status )
+//         throw OpalException("SigmaGenerator::eigsolve_m()",
+//                             "Couldn't sort eigenvalues and eigenvectors!");
     
     // go to UBLAS
     for( size_type i = 0; i < 6; i++){
