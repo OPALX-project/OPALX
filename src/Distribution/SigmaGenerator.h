@@ -37,12 +37,18 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 
+#include <boost/numeric/ublas/vector_proxy.hpp>
+#include <boost/numeric/ublas/triangular.hpp>
+#include <boost/numeric/ublas/lu.hpp>
+
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_eigen.h>
+
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
 #if BOOST_VERSION >= 106000
 #include <boost/numeric/odeint/integrate/check_adapter.hpp>
 #endif
-
-#include "rdm.h"
 
 #include "matrix_vector_operation.h"
 #include "ClosedOrbitFinder.h"
@@ -66,8 +72,14 @@ public:
     typedef Size_type size_type;
     /// Type for storing maps
     typedef boost::numeric::ublas::matrix<value_type> matrix_type;
+    
+    typedef std::complex<value_type> complex_t;
+    
+    /// Type for storing complex matrices
+    typedef boost::numeric::ublas::matrix<complex_t> cmatrix_type;
+    
     /// Type for storing the sparse maps
-    typedef boost::numeric::ublas::compressed_matrix<value_type,
+    typedef boost::numeric::ublas::compressed_matrix<complex_t,
                                                      boost::numeric::ublas::row_major
                                                      > sparse_matrix_type;
     /// Type for storing vectors
@@ -124,18 +136,30 @@ public:
      */
     bool match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle,
                value_type guess, const std::string& type, bool harmonic, bool full);
+    
+    /*!
+     * Eigenvalue / eigenvector solver
+     * @param Mturn is a 6x6 dimensional one turn transfer matrix
+     * @param R is the 6x6 dimensional transformation matrix (gets computed)
+     */
+    void eigsolve_m(const matrix_type& Mturn, sparse_matrix_type& R);
+    
+    /*!
+     * @param R is the 6x6 dimensional transformation matrix
+     * @param invR is the 6x6 dimensional inverse transformation (gets computed)
+     * @return true if success
+     */
+    bool invertMatrix_m(const sparse_matrix_type& R,
+                        sparse_matrix_type& invR);
 
     /// Block diagonalizes the symplex part of the one turn transfer matrix
-    /** It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
-     * It returns a vector containing the four eigenvalues
-     * (alpha,beta,gamma,delta) (see formula (38), paper: Geometrical method of decoupling)
-     */
-    /*!
+    /*! It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
+     * 
      * @param Mturn is a 6x6 dimensional one turn transfer matrix
-     * @param R is the 4x4 dimensional transformation matrix (gets computed)
-     * @param invR is the 4x4 dimensional inverse transformation (gets computed)
+     * @param R is the 6x6 dimensional transformation matrix (gets computed)
+     * @param invR is the 6x6 dimensional inverse transformation (gets computed)
      */
-    vector_type decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
+    void decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
 
     /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
     /*!
@@ -223,9 +247,6 @@ public:
     /// Vector storing the second moment matrix for each angle
     std::vector<matrix_type> sigmas_m;
 
-    /// <b>RDM</b>-class member used for decoupling
-    RDM<value_type, size_type> rdm_m;
-
     /// Stores the Hamiltonian of the cyclotron
     Hamiltonian H_m;
 
@@ -246,23 +267,14 @@ public:
      * @param ravg is the average radius of the closed orbit
      */
     void initialize(value_type, value_type);
-
-    /// Reduces the 6x6 matrix to a 4x4 matrix (for more explanations consider the source code comments)
-    template<class matrix>
-        void reduce(matrix&);
-    /// Expands the 4x4 matrix back to dimension 6x6 (for more explanations consider the source code comments)
-    template<class matrix>
-        void expand(matrix&);
-
+    
     /// Computes the new initial sigma matrix
     /*!
      * @param M is the 6x6 one turn transfer matrix
-     * @param eigen stores the 4 eigenvalues: alpha, beta, gamma, delta (in this order)
      * @param R is the transformation matrix
      * @param invR is the inverse transformation matrix
      */
     matrix_type updateInitialSigma(const matrix_type&,
-                                   const vector_type&,
                                    sparse_matrix_type&,
                                    sparse_matrix_type&);
 
@@ -586,10 +598,10 @@ template<typename Value_type, typename Size_type>
 
         while (error_m > accuracy && !stop) {
             // decouple transfer matrix and compute (inverse) tranformation matrix
-            eigen = decouple(Mturn,R,invR);
+            decouple(Mturn,R,invR);
 
             // construct new initial sigma-matrix
-            newSigma = updateInitialSigma(Mturn,eigen,R,invR);
+            newSigma = updateInitialSigma(Mturn, R, invR);
 
             // compute new sigma matrices for all angles (except for initial sigma)
             updateSigma(Mscs,Mcycs);
@@ -685,41 +697,98 @@ template<typename Value_type, typename Size_type>
     return converged_m;
 }
 
+
 template<typename Value_type, typename Size_type>
-typename SigmaGenerator<Value_type, Size_type>::vector_type
-SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn,
-                                                sparse_matrix_type& R,
-                                                sparse_matrix_type& invR)
+void SigmaGenerator<Value_type, Size_type>::eigsolve_m(const matrix_type& Mturn,
+                                                       sparse_matrix_type& R)
 {
-    // copy one turn matrix
-    matrix_type M(Mturn);
+    typedef gsl_matrix*                   gsl_matrix_t;
+    typedef gsl_vector_complex*           gsl_cvector_t;
+    typedef gsl_matrix_complex*           gsl_cmatrix_t;
+    typedef gsl_eigen_nonsymmv_workspace* gsl_wspace_t;
+    
+    gsl_cvector_t evals = gsl_vector_complex_alloc(6);
+    gsl_cmatrix_t evecs = gsl_matrix_complex_alloc(6, 6);
+    gsl_wspace_t wspace = gsl_eigen_nonsymmv_alloc(6);
+    gsl_matrix_t      M = gsl_matrix_alloc(6, 6);
+    
+    // go to GSL
+    for (size_type i = 0; i < 6; ++i){
+        for (size_type j = 0; j < 6; ++j) {
+            gsl_matrix_set(M, i, j, Mturn(i,j));
+        }
+    }
+    
+    int status = gsl_eigen_nonsymmv(M, evals, evecs, wspace);
+    
+    if ( !status )
+        throw OpalException("SigmaGenerator::eigsolve_m()",
+                            "Couldn't perform eigendecomposition!");
+    
+    status = gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
+    
+    if ( !status )
+        throw OpalException("SigmaGenerator::eigsolve_m()",
+                            "Couldn't sort eigenvalues and eigenvectors!");
+    
+    // go to UBLAS
+    for( size_type i = 0; i < 6; i++){
+        gsl_vector_complex_view evec_i = gsl_matrix_complex_column(evecs, i);
+        
+        for(size_type j = 0;j < 6; j++){
+            gsl_complex zgsl = gsl_vector_complex_get(&evec_i.vector, j);
+            complex_t z(GSL_REAL(zgsl), GSL_IMAG(zgsl));
+            R(i,j) = z;
+        }
+    }
+    
+    gsl_vector_complex_free(evals);
+    gsl_matrix_complex_free(evecs);
+    gsl_eigen_nonsymmv_free(wspace);
+    gsl_matrix_free(M);
+}
 
-    // reduce 6x6 matrix to 4x4 matrix
-    reduce<matrix_type>(M);
 
-    // compute symplex part
-    matrix_type Ms = rdm_m.symplex(M);
+template<typename Value_type, typename Size_type>
+bool SigmaGenerator<Value_type, Size_type>::invertMatrix_m(const sparse_matrix_type& R,
+                                                           sparse_matrix_type& invR)
+{
+    typedef boost::numeric::ublas::permutation_matrix<size_type> pmatrix_t;
+    
+    //creates a working copy of R
+    cmatrix_type A(R);
+    
+    //permutation matrix for the LU-factorization
+    pmatrix_t pm(A.size1());
+    
+    //LU-factorization
+    int res = lu_factorize(A,pm);
+    
+    if( res != 0)
+        return false;
+    
+    // create identity matrix of invR
+    invR.assign(boost::numeric::ublas::identity_matrix<complex_t>(A.size1()));
+    
+    // backsubstitute to get the inverse
+    boost::numeric::ublas::lu_substitute(A, pm, invR);
+    
+    return true;
+}
 
-    // diagonalize and compute transformation matrices
-    rdm_m.diagonalize(Ms,R,invR);
 
-    /*
-     * formula (38) in paper of Dr. Christian Baumgarten:
-     * Geometrical method of decoupling
-     *
-     * 		[0, 	alpha, 	0, 	0;
-     * F_{d} =	-beta, 	0, 	0, 	0;
-     * 		0, 	0, 	0, 	gamma;
-     * 		0, 	0, 	-delta,	0]
-     *
-     *
-     */
-    vector_type eigen(4);
-    eigen(0) =   Ms(0,1);       // alpha
-    eigen(1) = - Ms(1,0);       // beta
-    eigen(2) =   Ms(2,3);       // gamma
-    eigen(3) = - Ms(3,2);       // delta
-    return eigen;
+template<typename Value_type, typename Size_type>
+void SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn,
+                                                     sparse_matrix_type& R,
+                                                     sparse_matrix_type& invR)
+{
+    typedef gsl_complex gsl_complex_t;
+    
+    this->eigsolve_m(Mturn, R);
+    
+    if ( !this->invertMatrix_m(R, invR) )
+        throw OpalException("SigmaGenerator::decouple()",
+                            "Couldn't compute inverse matrix!");
 }
 
 template<typename Value_type, typename Size_type>
@@ -933,90 +1002,16 @@ void SigmaGenerator<Value_type, Size_type>::initialize(value_type nuz,
     }
 }
 
-template<typename Value_type, typename Size_type>
-template<class matrix>
-void SigmaGenerator<Value_type, Size_type>::reduce(matrix& M) {
-    /* The 6x6 matrix gets reduced to a 4x4 matrix in the following way:
-     *
-     * a11 a12 a13 a14 a15 a16
-     * a21 a22 a23 a24 a25 a26          a11 a12 a15 a16
-     * a31 a32 a33 a34 a35 a36  -->     a21 a22 a25 a26
-     * a41 a42 a43 a44 a45 a46          a51 a52 a55 a56
-     * a51 a52 a53 a54 a55 a56          a61 a62 a65 a66
-     * a61 a62 a63 a64 a65 a66
-     */
-
-    // copy x- and z-direction to a 4x4 matrix_type
-    matrix_type M4x4(4,4);
-    for (size_type i = 0; i < 2; ++i) {
-        // upper left 2x2 [a11,a12;a21,a22]
-        M4x4(i,0) = M(i,0);
-        M4x4(i,1) = M(i,1);
-        // lower left 2x2 [a51,a52;a61,a62]
-        M4x4(i + 2,0) = M(i + 4,0);
-        M4x4(i + 2,1) = M(i + 4,1);
-        // upper right 2x2 [a15,a16;a25,a26]
-        M4x4(i,2) = M(i,4);
-        M4x4(i,3) = M(i,5);
-        // lower right 2x2 [a55,a56;a65,a66]
-        M4x4(i + 2,2) = M(i + 4,4);
-        M4x4(i + 2,3) = M(i + 4,5);
-    }
-
-    M.resize(4,4,false);
-    M.swap(M4x4);
-}
-
-template<typename Value_type, typename Size_type>
-template<class matrix>
-void SigmaGenerator<Value_type, Size_type>::expand(matrix& M) {
-    /* The 4x4 matrix gets expanded to a 6x6 matrix in the following way:
-     *
-     *                          a11 a12 0 0 a13 a14
-     * a11 a12 a13 a14          a21 a22 0 0 a23 a24
-     * a21 a22 a23 a24  -->     0   0   1 0 0   0
-     * a31 a32 a33 a34          0   0   0 1 0   0
-     * a41 a42 a43 a44          a31 a32 0 0 a33 a34
-     *                          a41 a42 0 0 a43 a44
-     */
-
-    matrix M6x6 = boost::numeric::ublas::identity_matrix<value_type>(6,6);
-
-    for (size_type i = 0; i < 2; ++i) {
-        // upper left 2x2 [a11,a12;a21,a22]
-        M6x6(i,0) = M(i,0);
-        M6x6(i,1) = M(i,1);
-        // lower left 2x2 [a31,a32;a41,a42]
-        M6x6(i + 4,0) = M(i + 2,0);
-        M6x6(i + 4,1) = M(i + 2,1);
-        // upper right 2x2 [a13,a14;a23,a24]
-        M6x6(i,4) = M(i,2);
-        M6x6(i,5) = M(i,3);
-        // lower right 2x2 [a22,a34;a43,a44]
-        M6x6(i + 4,4) = M(i + 2,2);
-        M6x6(i + 4,5) = M(i + 2,3);
-    }
-
-    // exchange
-    M.swap(M6x6);
-}
 
 template<typename Value_type, typename Size_type>
 typename SigmaGenerator<Value_type, Size_type>::matrix_type
 SigmaGenerator<Value_type, Size_type>::updateInitialSigma(const matrix_type& M,
-                                                          const vector_type& eigen,
                                                           sparse_matrix_type& R,
                                                           sparse_matrix_type& invR)
 {
     /*
-     * This function is based on the paper of Dr. Christian Baumgarten:
-     * Transverse-Longitudinal Coupling by Space Charge in Cyclotrons (2012)
-     */
-
-    /*
      * Function input:
      * - M: one turn transfer matrix
-     * - eigen = {alpha, beta, gamma, delta}
      * - R: transformation matrix (in paper: E)
      * - invR: inverse transformation matrix (in paper: E^{-1}
      */
@@ -1026,117 +1021,42 @@ SigmaGenerator<Value_type, Size_type>::updateInitialSigma(const matrix_type& M,
      * with diagonal matrix D (stores eigenvalues of sigma*S (emittances apart from +- i),
      * skew-symmetric matrix (formula (13)), and tranformation matrices E, E^{-1}
      */
-
-    // normalize emittances
-    value_type invbg = 1.0 / (beta_m * gamma_m);
-    value_type ex = emittance_m[0] * invbg;
-    value_type ey = emittance_m[1] * invbg;
-    value_type ez = emittance_m[2] * invbg;
-
-
-    // alpha^2-beta*gamma = 1
-
-    /* 0        eigen(0) 0        0
-     * eigen(1) 0        0        0
-     * 0        0        0        eigen(2)
-     * 0        0        eigen(3) 0
-     *
-     * M = cos(mux)*[1, 0; 0, 1] + sin(mux)*[alpha, beta; -gamma, -alpha], Book, p. 242
-     *
-     * -----------------------------------------------------------------------------------
-     * X-DIRECTION and Z-DIRECTION
-     * -----------------------------------------------------------------------------------
-     * --> eigen(0) = sin(mux)*betax
-     * --> eigen(1) = -gammax*sin(mux)
-     *
-     * What is sin(mux)?   --> alphax = 0 --> -alphax^2+betax*gammax = betax*gammax = 1
-     *
-     * Convention: betax > 0
-     *
-     * 1) betax = 1/gammax
-     * 2) eig0 = sin(mux)*betax
-     * 3) eig1 = -gammax*sin(mux)
-     *
-     * eig0 = sin(mux)/gammax
-     * eig1 = -gammax*sin(mux) <--> 1/gammax = -sin(mux)/eig1
-     *
-     * eig0 = -sin(mux)^2/eig1 --> -sin(mux)^2 = eig0*eig1      --> sin(mux) = sqrt(-eig0*eig1)
-     *                                                          --> gammax = -eig1/sin(mux)
-     *                                                          --> betax = eig0/sin(mux)
-     */
-
-
-    // x-direction
-    //value_type alphax = 0.0;
-    value_type betax  = std::sqrt(std::fabs(eigen(0) / eigen(1)));
-    value_type gammax = 1.0 / betax;
-
-    // z-direction
-    //value_type alphaz = 0.0;
-    value_type betaz  = std::sqrt(std::fabs(eigen(2) / eigen(3)));
-    value_type gammaz = 1.0 / betaz;
-
-    /*
-     * -----------------------------------------------------------------------------------
-     * Y-DIRECTION
-     * -----------------------------------------------------------------------------------
-     *
-     * m22 m23
-     * m32 m33
-     *
-     * m22 = cos(muy) + alpha*sin(muy)
-     * m33 = cos(muy) - alpha*sin(muy)
-     *
-     * --> cos(muy) = 0.5*(m22 + m33)
-     *     sin(muy) = sign(m32)*sqrt(1-cos(muy)^2)
-     *
-     * m22-m33 = 2*alpha*sin(muy) --> alpha = 0.5*(m22-m33)/sin(muy)
-     *
-     * m23 = betay*sin(muy)     --> betay = m23/sin(muy)
-     * m32 = -gammay*sin(muy)   --> gammay = -m32/sin(muy)
-     */
-
-    value_type cosy = 0.5 * (M(2,2) + M(3,3));
-
-    value_type sign = (std::signbit(M(2,3))) ? value_type(-1) : value_type(1);
-
-    value_type invsiny = sign / std::sqrt(std::fabs( 1.0 - cosy * cosy));
-
-    value_type alphay = 0.5 * (M(2,2) - M(3,3)) * invsiny;
-    value_type betay  =   M(2,3) * invsiny;
-    value_type gammay = - M(3,2) * invsiny;
-
-    // Convention beta>0
-    if (std::signbit(betay))    // singbit = true if beta<0, else false
-        betay  *= -1.0;
-
-    // diagonal matrix with eigenvalues
-    matrix_type D = boost::numeric::ublas::zero_matrix<value_type>(6,6);
-    // x-direction
-    D(0,1) =   betax  * ex;
-    D(1,0) = - gammax * ex;
-    // y-direction
-    D(2,2) =   alphay * ey;
-    D(3,3) = - alphay * ey;
-    D(2,3) =   betay  * ey;
-    D(3,2) = - gammay * ey;
-    // z-direction
-    D(4,5) =   betaz  * ez;
-    D(5,4) = - gammaz * ez;
-
-    // expand 4x4 transformation matrices to 6x6
-    expand<sparse_matrix_type>(R);
-    expand<sparse_matrix_type>(invR);
-
-    // symplectic matrix
-    sparse_matrix_type S(6,6,6);
+    
+    cmatrix_type S = boost::numeric::ublas::zero_matrix<complex_t>(6,6);
     S(0,1) = S(2,3) = S(4,5) = 1;
     S(1,0) = S(3,2) = S(5,4) = -1;
-
-    // --> get D (formula (18), paper: Transverse-Longitudinal Coupling by Space Charge in Cyclotrons
+    
+    // Build new D-Matrix
+    // Section 2.4 Eq. 18 in M. Frey Semester thesis
+    // D = diag(i*emx,-i*emx,i*emy,-i*emy,i*emz, -i*emz) 
+    
+    
+    cmatrix_type D = boost::numeric::ublas::zero_matrix<complex_t>(6,6);
+    value_type invbg = 1.0 / (beta_m * gamma_m);
+    complex_t im(0,1);
+    for(size_type i = 0; i < 3; ++i){
+        D(2*i, 2*i) = emittance_m[i] * invbg * im;
+        D(2*i+1, 2*i+1) = -emittance_m[i] * invbg * im;
+    }
+    
+    // Computing of new Sigma
     // sigma = -R*D*R^{-1}*S
-    matrix_type sigma = matt_boost::gemmm<matrix_type>(-invR,D,R);
-    sigma = boost::numeric::ublas::prod(sigma,S);
+    cmatrix_type csigma(6, 6);
+    csigma = boost::numeric::ublas::prod(invR, S);
+    csigma = boost::numeric::ublas::prod(D, csigma);
+    csigma = boost::numeric::ublas::prod(-R, csigma);
+    
+    matrix_type sigma(6,6);
+    for (size_type i = 0; i < 6; ++i){
+        for (size_type j = 0; j < 6; ++j){
+            sigma(i,j) = csigma(i,j).real(); 
+        }
+    }
+
+    for (size_type i = 0; i < 6; ++i) {
+        if(sigma(i,i) < 0.)
+            sigma(i,i) *= -1.0;
+    }
 
     if (write_m) {
         std::string energy = float2string(E_m);
