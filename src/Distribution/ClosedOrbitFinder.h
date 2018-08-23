@@ -360,7 +360,7 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
 {
     if (angle != 0.0)
         return rotate(angle, fidx_m);
-    return ds_m;
+    return fidx_m;
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -754,7 +754,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
-
+        
         // inverse bending radius
         h_m[i] = bint / p;
 
