@@ -1384,7 +1384,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             CyclotronElement->getFieldMapFN(),
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
                                             CyclotronElement->getBScale(),
-                                            writeMap);$
+                                            writeMap);
                                                           
     if (siggen->match(accuracy,
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
@@ -1406,7 +1406,13 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         for (unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
             *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
             for (unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
-                *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
+                if (siggen->getSigma()(i,j) < 10e-12){
+                    *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << 0.0;
+                }
+                else{
+                   *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j); 
+                }
+                
             }
             *gmsg << " \\\\" << endl;
         }
@@ -2535,9 +2541,35 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
         *gmsg << " \\\\" << endl;
     }
 #endif
-
+    //Sets the GSL error handler off, exception will be handled internaly with a renormalization method
+    gsl_set_error_handler_off();
     int errcode = gsl_linalg_cholesky_decomp(corMat);
+    double rn = 1e-12;
 
+    while (errcode == GSL_EDOM) {
+        
+        // Resets the correlation matrix
+        for (unsigned int i = 0; i < 6; ++ i) {
+            gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
+            for (unsigned int j = 0; j < i; ++ j) {
+                gsl_matrix_set(corMat, i, j, correlationMatrix_m(i, j));
+                gsl_matrix_set(corMat, j, i, correlationMatrix_m(i, j));
+            }
+        }
+        // Applying a renormalization method corMat = corMat + rn*Unitymatrix
+        // This is the renormalization
+        for(int i = 0; i < 6; i++){
+            double corMati = gsl_matrix_get(corMat, i , i);
+            gsl_matrix_set(corMat, i, i, corMati + rn);
+        }
+        //Just to be sure that the renormalization worked
+        errcode = gsl_linalg_cholesky_decomp(corMat);
+        if(errcode != GSL_EDOM) *gmsg << "* WARNING: Correlation matrix had to be renormalized"<<endl;
+        else rn *= 10;
+    }
+    //Sets again the standard GSL error handler on
+    gsl_set_error_handler(NULL);
+    //Just to be sure
     if (errcode == GSL_EDOM) {
         throw OpalException("Distribution::GenerateGaussZ",
                             "gsl_linalg_cholesky_decomp failed");
@@ -3525,7 +3557,7 @@ void Distribution::setAttributes() {
     itsAttr[Attrib::Distribution::MAXSTEPSCO]
         = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
     itsAttr[Attrib::Distribution::MAXSTEPSSI]
-        = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",2000);
+        = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",500);
     itsAttr[Attrib::Distribution::ORDERMAPS]
         = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
     itsAttr[Attrib::Distribution::SECTOR]
