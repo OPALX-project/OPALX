@@ -499,12 +499,12 @@ template<typename Value_type, typename Size_type>
 
             // write to terminal
             *gmsg << "* ----------------------------" << endl
-                  << "* Closed orbit info (Gordon units):" << endl
+                  << "* Closed orbit info:" << endl
                   << "*" << endl
                   << "* average radius: " << ravg << " [m]" << endl
                   << "* initial radius: " << r_turn[0] << " [m]" << endl
                   << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
-                  << "* frequency error: " << cof.getFrequencyError() << endl
+                  << "* frequency error: " << cof.getFrequencyError()*100 <<" [ % ] "<< endl
                   << "* horizontal tune: " << tunes.first << endl
                   << "* vertical tune: " << tunes.second << endl
                   << "* ----------------------------" << endl << endl;
@@ -552,7 +552,7 @@ template<typename Value_type, typename Size_type>
                 Mcycs[i] = mapgen.generateMap(H_m(h[i],
                                                   h[i]*h[i]+fidx[i],
                                                   -fidx[i]),
-                                              ds[i],truncOrder_m);
+					      ds[i],truncOrder_m);
                 
                 Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
                                                     sigmas_m[i](2,2),
@@ -699,6 +699,7 @@ void SigmaGenerator<Value_type, Size_type>::eigsolve_m(const matrix_type& Mturn,
     typedef gsl_vector_complex*           gsl_cvector_t;
     typedef gsl_matrix_complex*           gsl_cmatrix_t;
     typedef gsl_eigen_nonsymmv_workspace* gsl_wspace_t;
+    typedef boost::numeric::ublas::vector<complex_t> complex_vector_type;
     
     gsl_cvector_t evals = gsl_vector_complex_alloc(6);
     gsl_cmatrix_t evecs = gsl_matrix_complex_alloc(6, 6);
@@ -718,7 +719,7 @@ void SigmaGenerator<Value_type, Size_type>::eigsolve_m(const matrix_type& Mturn,
 //         throw OpalException("SigmaGenerator::eigsolve_m()",
 //                             "Couldn't perform eigendecomposition!");
     
-    /*status = */gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
+    /*status = *///gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
     
 //     if ( !status )
 //         throw OpalException("SigmaGenerator::eigsolve_m()",
@@ -733,6 +734,61 @@ void SigmaGenerator<Value_type, Size_type>::eigsolve_m(const matrix_type& Mturn,
             complex_t z(GSL_REAL(zgsl), GSL_IMAG(zgsl));
             R(i,j) = z;
         }
+    }
+    
+    // Sorting the Eigenvectors
+    // This is an arbitrary threshold that has worked for me. (We should fix this)
+    value_type threshold = 10e-12;
+    bool isZdirection = false;
+    std::vector<complex_vector_type> zVectors{};
+    std::vector<complex_vector_type> xyVectors{};
+    
+    for(size_type i = 0; i < 6; i++){
+        complex_t z = R(i,0);
+	if(std::abs(z) < threshold) z = 0.;
+	if(z == 0.) isZdirection = true;
+	complex_vector_type v(6);
+	if(isZdirection){
+	    for(size_type j = 0;j < 6; j++){
+	        complex_t z = R(i,j);
+		v(j) = z;
+	    }
+	    zVectors.push_back(v);
+	}
+	else{
+	    for(size_type j = 0; j < 6; j++){
+	        complex_t z = R(i,j);
+		v(j) = z;
+	    }
+	    xyVectors.push_back(v);
+	}
+	isZdirection = false;
+    }
+    
+    //if z-direction not found, then the system does not behave as expected
+    if(zVectors.size() != 2)
+        throw OpalException("SigmaGenerator::eigsolve_m()",
+                            "Couldn't find the vertical Eigenvectors.");
+    
+    // Norms the Eigenvectors
+     for(size_type i = 0; i < 4; i++){
+        value_type norm{0};
+        for(size_type j = 0; j < 6; j++) norm += std::norm(xyVectors[i](j));
+	for(size_type j = 0; j < 6; j++) xyVectors[i](j) /= std::sqrt(norm);
+    }
+    for(size_type i = 0; i < 2; i++){
+        value_type norm{0};
+        for(size_type j = 0; j < 6; j++) norm += std::norm(zVectors[i](j));
+	for(size_type j = 0; j < 6; j++) zVectors[i](j) /= std::sqrt(norm);
+    }
+    
+    for(value_type i = 0; i < 6; i++){
+        R(i,0) = xyVectors[0](i);
+        R(i,1) = xyVectors[1](i);
+        R(i,2) = zVectors[0](i);
+        R(i,3) = zVectors[1](i);
+        R(i,4) = xyVectors[2](i);
+        R(i,5) = xyVectors[3](i); 
     }
     
     gsl_vector_complex_free(evals);
