@@ -1384,8 +1384,8 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             CyclotronElement->getFieldMapFN(),
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
                                             CyclotronElement->getBScale(),
-                                            writeMap);
-
+                                            writeMap);$
+                                                          
     if (siggen->match(accuracy,
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
                       maxitCOF,
@@ -1420,30 +1420,33 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
           moment:  rad
 
         */
+        double gamma = E_m / massIneV + 1.0;
+        double beta = std::sqrt(1.0 - 1.0 / (gamma * gamma));
 
         auto sigma = siggen->getSigma();
         // change units from mm to m
-        for (unsigned int i = 0; i < 3; ++ i) {
-            for (unsigned int j = 0; j < 6; ++ j) {
-                sigma(2 * i, j) *= 1e-3;
-                sigma(j, 2 * i) *= 1e-3;
-            }
-        }
-
+        for (unsigned int i = 0; i < 6; ++ i)
+            for (unsigned int j = 0; j < 6; ++ j) sigma(i, j) *= 1e-6;
+                
         for (unsigned int i = 0; i < 3; ++ i) {
             if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
                 throw OpalException("Distribution::CreateMatchedGaussDistribution()",
-                                    "Negative value on the diagonal of the sigma matrix.");
-
-            sigmaR_m[i] = std::sqrt(sigma(2 * i, 2 * i));
-            sigmaP_m[i] = std::sqrt(sigma(2 * i + 1, 2 * i + 1));
+                                    "Negative value on the diagonal of the sigma matrix.");   
         }
-
-        if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-            for (unsigned int i = 0; i < 3; ++ i) {
-                sigmaP_m[i] = converteVToBetaGamma(sigmaP_m[i], massIneV);
-            }
-        }
+        
+        sigmaR_m[0] = std::sqrt(sigma(0, 0));
+        sigmaP_m[0] = std::sqrt(sigma(1, 1))*beta*gamma;
+        sigmaR_m[2] = std::sqrt(sigma(2, 2));
+        sigmaP_m[2] = std::sqrt(sigma(3, 3))*beta*gamma;
+        sigmaR_m[1] = std::sqrt(sigma(4, 4));
+        
+        //p_l^2 = [(delta+1)*beta*gamma]^2 - px^2 - pz^2
+         
+        double pl2 = (std::sqrt(sigma(5,5)) + 1)*(std::sqrt(sigma(5,5)) + 1)*beta*gamma*beta*gamma -
+                      sigmaP_m[0]*sigmaP_m[0] - sigmaP_m[2]*sigmaP_m[2];
+        
+        double pl = std::sqrt(pl2);
+        sigmaP_m[1] = gamma*(pl - beta*gamma);
 
         correlationMatrix_m(1, 0) = sigma(0, 1) / (sqrt(sigma(0, 0) * sigma(1, 1)));
         correlationMatrix_m(3, 2) = sigma(2, 3) / (sqrt(sigma(2, 2) * sigma(3, 3)));
