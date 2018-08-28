@@ -2541,9 +2541,12 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
         *gmsg << " \\\\" << endl;
     }
 #endif
+/*
     //Sets the GSL error handler off, exception will be handled internaly with a renormalization method
     gsl_set_error_handler_off();
+*/
     int errcode = gsl_linalg_cholesky_decomp(corMat);
+/*
     double rn = 1e-12;
 
     while (errcode == GSL_EDOM) {
@@ -2569,6 +2572,7 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
     }
     //Sets again the standard GSL error handler on
     gsl_set_error_handler(NULL);
+*/
     //Just to be sure
     if (errcode == GSL_EDOM) {
         throw OpalException("Distribution::GenerateGaussZ",
@@ -2580,7 +2584,6 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
             gsl_matrix_set (corMat, i, j, 0.0);
         }
     }
-
 #define DISTDBG2
 #ifdef DISTDBG2
     *gmsg << "* m after gsl_linalg_cholesky_decomp" << endl;
