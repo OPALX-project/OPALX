@@ -185,10 +185,9 @@ namespace Attrib
             EX,                         // below is for the matched distribution
             EY,
             ET,
-            MAGSYM,                     // number of sector magnets
+            SECTOR,                     // Matched-Gauss: single sector or full machine
+            NSTEPS,                     // Matched-Gauss: number of steps for closed orbit finder
             LINE,
-            FMAPFN,
-            FMTYPE,                     // field map type used in matched gauss distribution
             RESIDUUM,
             MAXSTEPSCO,
             MAXSTEPSSI,
