@@ -173,6 +173,36 @@ void Cyclotron::setRFVCoeffFN(vector<string> f) {
     RFVCoeff_fn_m = f;
 }
 
+int Cyclotron::getFieldFlag(const std::string& type) const {
+    /**
+     * To ease the initialise() function, set a integral parameter fieldflag internally.
+     * Its value is  by the option "TYPE" of the element  "CYCLOTRON"
+     * fieldflag = 1, readin PSI format measured field file (default)
+     * fieldflag = 2, readin carbon cyclotron field file created by Jianjun Yang, TYPE=CARBONCYCL
+     * fieldflag = 3, readin ANSYS format file for CYCIAE-100 created by Jianjun Yang, TYPE=CYCIAE
+     * fieldflag = 4, readin AVFEQ format file for Riken cyclotrons
+     * fieldflag = 5, readin FFAG format file for MSU/FNAL FFAG
+     * fieldflag = 6, readin both median plane B field map and 3D E field map of RF cavity for compact cyclotron
+     * fieldflag = 7, read in fields for Daniel's synchrocyclotron simulations
+     */
+    int  fieldflag;
+    if(type == std::string("CARBONCYCL")) {
+        fieldflag = 2;
+    } else if(type == std::string("CYCIAE")) {
+        fieldflag = 3;
+    } else if(type == std::string("AVFEQ")) {
+        fieldflag = 4;
+    } else if(type == std::string("FFAG")) {
+        fieldflag = 5;
+    } else if(type == std::string("BANDRF")) {
+        fieldflag = 6;
+    } else if(type == std::string("SYNCHROCYCLOTRON")) {
+        fieldflag = 7;
+    } else //(type == "RING")
+        fieldflag = 1;
+    return fieldflag;
+}
+
 void Cyclotron::setRfPhi(vector<double> f) {
     rfphi_m = f;
 }
@@ -330,18 +360,8 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
 bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
 
     const double rad = sqrt(R[0] * R[0] + R[1] * R[1]);
-    const double xir = (rad - BP.rmin) / BP.delr;
-
-    // ir : the number of path whose radius is less than the 4 points of cell which surround the particle.
-    const int ir = (int)xir;
-
-    // wr1 : the relative distance to the inner path radius
-    const double wr1 = xir - (double)ir;
-    // wr2 : the relative distance to the outer path radius
-    const double wr2 = 1.0 - wr1;
-
     const double tempv = atan(R[1] / R[0]);
-    double tet = tempv, tet_map, xit;
+    double tet = tempv;
 
     /* if((R[0] > 0) && (R[1] >= 0)) tet = tempv;
        else*/
@@ -358,100 +378,21 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 
     // Necessary for gap phase output -DW
     if (0 <= tet && tet <= 45) waiting_for_gap = 1;
-
-    // the corresponding angle on the field map
-    // Note: this does not work if the start point of field map does not equal zero.
-    tet_map = fmod(tet, 360.0 / symmetry_m);
-
-    xit = tet_map / BP.dtet;
-
-    int it = (int) xit;
-
-    //    *gmsg << R << " tet_map= " << tet_map << " ir= " << ir << " it= " << it << " bf= " << Bfield.bfld[idx(ir,it)] << endl;
-
-    const double wt1 = xit - (double)it;
-    const double wt2 = 1.0 - wt1;
-
-    // it : the number of point on the inner path whose angle is less than the particle' corresponding angle.
-    // include zero degree point
-    it = it + 1;
-
-    int r1t1, r2t1, r1t2, r2t2;
-    int ntetS = Bfield.ntet + 1;
-
-    // r1t1 : the index of the "min angle, min radius" point in the 2D field array.
-    // considering  the array start with index of zero, minus 1.
-
-    if(myBFieldType_m != FFAGBF) {
-        /*
-          For FFAG this does not work
-        */
-        r1t1 = it + ntetS * ir - 1;
-        r1t2 = r1t1 + 1;
-        r2t1 = r1t1 + ntetS;
-        r2t2 = r2t1 + 1 ;
-
-    } else {
-        /*
-          With this we have B-field AND this is far more
-          intuitive for me ....
-        */
-        r1t1 = idx(ir, it);
-        r2t1 = idx(ir + 1, it);
-        r1t2 = idx(ir, it + 1);
-        r2t2 = idx(ir + 1, it + 1);
-    }
-
-    double bzf = 0.0, bz = 0.0 /*, bzcub = 0.0*/;
-    double brf = 0.0, br = 0.0 /*, brcub = 0.0*/;
-    double btf = 0.0, bt = 0.0 /*, btcub = 0.0*/;
-
-    if((it >= 0) && (ir >= 0) && (it < Bfield.ntetS) && (ir < Bfield.nrad)) {
-
-        /* Bz */
-        bzf = (Bfield.bfld[r1t1] * wr2 * wt2 + Bfield.bfld[r2t1] * wr1 * wt2 +
-               Bfield.bfld[r1t2] * wr2 * wt1 + Bfield.bfld[r2t2] * wr1 * wt1);
-
-        // bzcub = (Bfield.f2[r1t1] * wr2 * wt2 +
-        //          Bfield.f2[r2t1] * wr1 * wt2 +
-        //          Bfield.f2[r1t2] * wr2 * wt1 +
-        //          Bfield.f2[r2t2] * wr1 * wt1) * pow(R[2], 2.0);
-
-        // bz = -( bzf - bzcub );
-        bz = - bzf ;
-
-
+    
+    // dB_{z}/dr, dB_{z}/dtheta, B_{z}
+    double brint = 0.0, btint = 0.0, bzint = 0.0;
+    
+    if ( this->interpolate(rad, tet_rad, brint, btint, bzint) ) {
+        
         /* Br */
-        brf = (Bfield.dbr[r1t1] * wr2 * wt2 +
-               Bfield.dbr[r2t1] * wr1 * wt2 +
-               Bfield.dbr[r1t2] * wr2 * wt1 +
-               Bfield.dbr[r2t2] * wr1 * wt1) * R[2];
-
-
-        // brcub = (Bfield.f3[r1t1] * wr2 * wt2 +
-        //          Bfield.f3[r2t1] * wr1 * wt2 +
-        //          Bfield.f3[r1t2] * wr2 * wt1 +
-        //          Bfield.f3[r2t2] * wr1 * wt1) * pow(R[2], 3.0);
-
-        // br = -( brf - brcub );
-        br = - brf;
-
-
+        double br = - brint * R[2];
+        
         /* Btheta */
-        btf = (Bfield.dbt[r1t1] * wr2 * wt2 +
-               Bfield.dbt[r2t1] * wr1 * wt2 +
-               Bfield.dbt[r1t2] * wr2 * wt1 +
-               Bfield.dbt[r2t2] * wr1 * wt1) / rad * R[2];
-
-
-        // btcub = (Bfield.g3[r1t1] * wr2 * wt2 +
-        //          Bfield.g3[r2t1] * wr1 * wt2 +
-        //          Bfield.g3[r1t2] * wr2 * wt1 +
-        //          Bfield.g3[r2t2] * wr1 * wt1) / rad * pow(R[2], 3.0);
-
-        // bt = -( btf - btcub );
-        bt = - btf;
-
+        double bt = - btint / rad * R[2];
+        
+        /* Bz */
+        double bz = - bzint;
+        
         if (std::abs(bz) > trimCoilThreshold_m)
             applyTrimCoil(rad, R[2], &br, &bz);
         else {
@@ -459,14 +400,11 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
             applyTrimCoil(rad, R[2], &br, &tmp_bz);
             bz += tmp_bz * std::abs(bz) / trimCoilThreshold_m;
         }
-
+        
         /* Br Btheta -> Bx By */
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
         B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
         B[2] = bz;
-
-        //*gmsg << "R = " << rad << ", Theta = " << tet << ", B = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
-
     } else {
         return true;
     }
@@ -696,6 +634,145 @@ double Cyclotron::gutdf5d(double *f, double dx, const int kor, const int krl, co
     return result / (FAC[kor] * pow(dx, (kor + 1)));
 }
 
+
+bool Cyclotron::interpolate(const double& rad,
+                            const double& tet_rad,
+                            double& brint,
+                            double& btint,
+                            double& bzint)
+{
+    const double xir = (rad - BP.rmin) / BP.delr;
+
+    // ir : the number of path whose radius is less than the 4 points of cell which surround the particle.
+    const int ir = (int)xir;
+
+    // wr1 : the relative distance to the inner path radius
+    const double wr1 = xir - (double)ir;
+    // wr2 : the relative distance to the outer path radius
+    const double wr2 = 1.0 - wr1;
+    
+    // the corresponding angle on the field map
+    // Note: this does not work if the start point of field map does not equal zero.
+    double tet_map = fmod(tet_rad / Physics::pi * 180.0, 360.0 / symmetry_m);
+    
+    double xit = tet_map / BP.dtet;
+
+    int it = (int) xit;
+
+    //    *gmsg << R << " tet_map= " << tet_map << " ir= " << ir << " it= " << it << " bf= " << Bfield.bfld[idx(ir,it)] << endl;
+
+    const double wt1 = xit - (double)it;
+    const double wt2 = 1.0 - wt1;
+
+    // it : the number of point on the inner path whose angle is less than the particle' corresponding angle.
+    // include zero degree point
+    it = it + 1;
+
+    int r1t1, r2t1, r1t2, r2t2;
+    int ntetS = Bfield.ntet + 1;
+
+    // r1t1 : the index of the "min angle, min radius" point in the 2D field array.
+    // considering  the array start with index of zero, minus 1.
+
+    if(myBFieldType_m != FFAGBF) {
+        /*
+          For FFAG this does not work
+        */
+        r1t1 = it + ntetS * ir - 1;
+        r1t2 = r1t1 + 1;
+        r2t1 = r1t1 + ntetS;
+        r2t2 = r2t1 + 1 ;
+
+    } else {
+        /*
+          With this we have B-field AND this is far more
+          intuitive for me ....
+        */
+        r1t1 = idx(ir, it);
+        r2t1 = idx(ir + 1, it);
+        r1t2 = idx(ir, it + 1);
+        r2t2 = idx(ir + 1, it + 1);
+    }
+
+    double bzf = 0.0 /*, bzcub = 0.0*/;
+
+    if((it >= 0) && (ir >= 0) && (it < Bfield.ntetS) && (ir < Bfield.nrad)) {
+
+        // B_{z}
+        bzf = Bfield.bfld[r1t1] * wr2 * wt2 +
+              Bfield.bfld[r2t1] * wr1 * wt2 +
+              Bfield.bfld[r1t2] * wr2 * wt1 +
+              Bfield.bfld[r2t2] * wr1 * wt1;
+
+        bzint = /*- */bzf ;
+
+        // dB_{z}/dr
+        brint = Bfield.dbr[r1t1] * wr2 * wt2 +
+                Bfield.dbr[r2t1] * wr1 * wt2 +
+                Bfield.dbr[r1t2] * wr2 * wt1 +
+                Bfield.dbr[r2t2] * wr1 * wt1;
+
+
+        // dB_{z}/dtheta
+        btint = Bfield.dbt[r1t1] * wr2 * wt2 +
+                Bfield.dbt[r2t1] * wr1 * wt2 +
+                Bfield.dbt[r1t2] * wr2 * wt1 +
+                Bfield.dbt[r2t2] * wr1 * wt1;
+
+        return true;
+    }
+    return false;
+}
+
+
+void Cyclotron::read(const int &fieldflag, const double &scaleFactor) {
+    //    PSIBF, AVFEQBF, ANSYSBF, FFAGBF
+    // for your own format field, you should add your own getFieldFromFile() function by yourself.
+
+    if(fieldflag == 1) {
+        //*gmsg<<"Read field data from PSI format field map file."<<endl;
+        myBFieldType_m = PSIBF;
+        getFieldFromFile(scaleFactor);
+
+    } else if(fieldflag == 2) {
+        // *gmsg<<"Read data from 450MeV Carbon cyclotron field file"<<endl
+        myBFieldType_m = CARBONBF;
+        getFieldFromFile_Carbon(scaleFactor);
+
+    } else if(fieldflag == 3) {
+        // *gmsg<<"Read data from 100MeV H- cyclotron CYCIAE-100 field file"<<endl;
+        myBFieldType_m = ANSYSBF;
+        getFieldFromFile_CYCIAE(scaleFactor);
+
+    } else if(fieldflag == 4) {
+        *gmsg << "* Read AVFEQ data (Riken) use bfield scale factor bs = " << getBScale() << endl;
+        myBFieldType_m = AVFEQBF;
+        getFieldFromFile_AVFEQ(scaleFactor);
+
+    } else if(fieldflag == 5) {
+        *gmsg << "* Read FFAG data MSU/FNAL " << getBScale() << endl;
+        myBFieldType_m = FFAGBF;
+        getFieldFromFile_FFAG(scaleFactor);
+
+    } else if(fieldflag == 6) {
+        *gmsg << "* Read both median plane B field map and 3D E field map of RF cavity for compact cyclotron" << getBScale() << endl;
+        myBFieldType_m = BANDRF;
+        getFieldFromFile_BandRF(scaleFactor);
+
+    } else if(fieldflag == 7) {
+        *gmsg << "* Read midplane B-field, 3D RF fieldmaps, and text files with RF frequency/Voltage coefficients for Synchrocyclotron. (Midplane scaling = " << getBScale() << ")" << endl;
+        myBFieldType_m = SYNCHRO;
+        getFieldFromFile_Synchrocyclotron(scaleFactor);
+
+    } else
+        ERRORMSG("* The field reading function of this TYPE of CYCLOTRON has not implemented yet!" << endl);
+
+    // calculate the radii of initial grid.
+    initR(BP.rmin, BP.delr, Bfield.nrad);
+
+    // calculate the remaining derivatives
+    getdiffs();
+}
 
 // evaluate other derivative of magnetic field.
 void Cyclotron::getdiffs() {
@@ -947,53 +1024,7 @@ void Cyclotron::initialise(PartBunchBase<double, 3> *bunch, const int &fieldflag
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
 
-    //    PSIBF, AVFEQBF, ANSYSBF, FFAGBF
-    // for your own format field, you should add your own getFieldFromFile() function by yourself.
-
-    if(fieldflag == 1) {
-        //*gmsg<<"Read field data from PSI format field map file."<<endl;
-        myBFieldType_m = PSIBF;
-        getFieldFromFile(scaleFactor);
-
-    } else if(fieldflag == 2) {
-        // *gmsg<<"Read data from 450MeV Carbon cyclotron field file"<<endl
-        myBFieldType_m = CARBONBF;
-        getFieldFromFile_Carbon(scaleFactor);
-
-    } else if(fieldflag == 3) {
-        // *gmsg<<"Read data from 100MeV H- cyclotron CYCIAE-100 field file"<<endl;
-        myBFieldType_m = ANSYSBF;
-        getFieldFromFile_CYCIAE(scaleFactor);
-
-    } else if(fieldflag == 4) {
-        *gmsg << "* Read AVFEQ data (Riken) use bfield scale factor bs = " << getBScale() << endl;
-        myBFieldType_m = AVFEQBF;
-        getFieldFromFile_AVFEQ(scaleFactor);
-
-    } else if(fieldflag == 5) {
-        *gmsg << "* Read FFAG data MSU/FNAL " << getBScale() << endl;
-        myBFieldType_m = FFAGBF;
-        getFieldFromFile_FFAG(scaleFactor);
-
-    } else if(fieldflag == 6) {
-        *gmsg << "* Read both median plane B field map and 3D E field map of RF cavity for compact cyclotron" << getBScale() << endl;
-        myBFieldType_m = BANDRF;
-        getFieldFromFile_BandRF(scaleFactor);
-
-    } else if(fieldflag == 7) {
-        *gmsg << "* Read midplane B-field, 3D RF fieldmaps, and text files with RF frequency/Voltage coefficients for Synchrocyclotron. (Midplane scaling = " << getBScale() << ")" << endl;
-        myBFieldType_m = SYNCHRO;
-        getFieldFromFile_Synchrocyclotron(scaleFactor);
-
-    } else
-        ERRORMSG("* The field reading function of this TYPE of CYCLOTRON has not implemented yet!" << endl);
-
-    // calculate the radii of initial grid.
-    initR(BP.rmin, BP.delr, Bfield.nrad);
-
-    // calculate the remaining derivatives
-    getdiffs();
-
+    this->read(fieldflag, scaleFactor);
 }
 
 
