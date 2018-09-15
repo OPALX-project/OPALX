@@ -1112,8 +1112,8 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
     // Data input file is only read by node 0.
     std::ifstream inputFile;
+    std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
     if (Ippl::myNode() == 0) {
-        std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
         inputFile.open(fileName.c_str());
         if (inputFile.fail())
             throw OpalException("Distribution::create()",
@@ -1127,36 +1127,38 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
      * We read in the particle information using node zero, but save the particle
      * data to each processor in turn.
      */
-    int saveProcessor = -1;
+    unsigned int saveProcessor = 0;
 
     pmean_m = 0.0;
 
     size_t numPartsToSend = 0;
     unsigned int distributeFrequency = 1000;
-    size_t singleDataSize = (sizeof(int) + 6 * sizeof(double));
-    size_t dataSize = distributeFrequency * singleDataSize;
+    size_t singleDataSize = (/*sizeof(int) +*/ 6 * sizeof(double));
+    unsigned int dataSize = distributeFrequency * singleDataSize;
     std::vector<char> data;
 
     data.reserve(dataSize);
 
     const char* buffer;
-    for (size_t particleIndex = 0; particleIndex < numberOfParticlesRead; ++ particleIndex) {
+    if (Ippl::myNode() == 0) {
+        char lineBuffer[1024];
+        unsigned int numParts = 0;
+        while (!inputFile.eof()) {
+            inputFile.getline(lineBuffer, 1024);
 
-        // Read particle.
-        Vector_t R(0.0);
-        Vector_t P(0.0);
+            Vector_t R(0.0), P(0.0);
 
-        ++ saveProcessor;
-        if (saveProcessor >= Ippl::getNodes())
-            saveProcessor = 0;
+            std::istringstream line(lineBuffer);
+            line >> R(0);
+            if (line.rdstate()) break;
+            line >> P(0);
+            line >> R(1);
+            line >> P(1);
+            line >> R(2);
+            line >> P(2);
 
-        if (Ippl::myNode() == 0) {
-            inputFile >> R(0)
-                      >> P(0)
-                      >> R(1)
-                      >> P(1)
-                      >> R(2)
-                      >> P(2);
+            if (saveProcessor >= (unsigned)Ippl::getNodes())
+                saveProcessor = 0;
 
             if (inputMoUnits_m == InputMomentumUnitsT::EV) {
                 P(0) = converteVToBetaGamma(P(0), massIneV);
@@ -1166,9 +1168,7 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
             pmean_m += P;
 
-            if (saveProcessor > 0) {
-                buffer = reinterpret_cast<const char*>(&saveProcessor);
-                data.insert(data.end(), buffer, buffer + sizeof(int));
+            if (saveProcessor > 0u) {
                 buffer = reinterpret_cast<const char*>(&R[0]);
                 data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
                 buffer = reinterpret_cast<const char*>(&P[0]);
@@ -1182,66 +1182,67 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
                 pyDist_m.push_back(P(1));
                 pzDist_m.push_back(P(2));
             }
-        } else {
-            if (saveProcessor > 0) {
-                ++ numPartsToSend;
-            }
-        }
 
-        // split distribution of particles onto cores such that each time
-        // <distributionFrequency> number of particles are sent
-        if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
-            MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
-            numPartsToSend = 0;
+            ++ numParts;
+            ++ saveProcessor;
 
-            if (Ippl::myNode() == 0) {
+            if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
+                MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+                MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+                numPartsToSend = 0;
+
                 std::vector<char>().swap(data);
                 data.reserve(dataSize);
-            } else {
-                size_t i = 0;
-                while (i < dataSize) {
-                    int saveProcessor = *reinterpret_cast<const int*>(&data[i]);
+            }
+        }
 
-                    if (saveProcessor == Ippl::myNode()) {
-                        i += sizeof(int);
-                        const double *tmp = reinterpret_cast<const double*>(&data[i]);
-                        xDist_m.push_back(tmp[0]);
-                        yDist_m.push_back(tmp[1]);
-                        tOrZDist_m.push_back(tmp[2]);
-                        pxDist_m.push_back(tmp[3]);
-                        pyDist_m.push_back(tmp[4]);
-                        pzDist_m.push_back(tmp[5]);
-                        i += 6 * sizeof(double);
-                    } else {
-                        i += singleDataSize;
-                    }
+        dataSize = (numberOfParticlesRead == numParts? data.size(): std::numeric_limits<unsigned int>::max());
+        MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+        if (numberOfParticlesRead != numParts) {
+            throw OpalException("Distribution::createDistributionFromFile",
+                                "Found " +
+                                std::to_string(numParts) +
+                                " particles in file '" +
+                                fileName +
+                                "' instead of " +
+                                std::to_string(numberOfParticlesRead));
+        }
+        MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+
+    } else {
+        do {
+            size_t i = 0;
+            MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+            if (dataSize == std::numeric_limits<unsigned int>::max()) {
+                throw OpalException("Distribution::createDistributionFromFile",
+                                    "Couldn't find " +
+                                    std::to_string(numberOfParticlesRead) +
+                                    " particles in file '" +
+                                    fileName + "'");
+            }
+            MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+
+            while (i < dataSize) {
+
+                if (saveProcessor + 1 == (unsigned) Ippl::myNode()) {
+                    const double *tmp = reinterpret_cast<const double*>(&data[i]);
+                    xDist_m.push_back(tmp[0]);
+                    yDist_m.push_back(tmp[1]);
+                    tOrZDist_m.push_back(tmp[2]);
+                    pxDist_m.push_back(tmp[3]);
+                    pyDist_m.push_back(tmp[4]);
+                    pzDist_m.push_back(tmp[5]);
+                    i += 6 * sizeof(double);
+                } else {
+                    i += singleDataSize;
+                }
+
+                ++ saveProcessor;
+                if (saveProcessor + 1 >= (unsigned) Ippl::getNodes()) {
+                    saveProcessor = 0;
                 }
             }
-        }
-    }
-
-    // send remaining particles (less than <distributionFrequency>)
-    MPI_Bcast(&data[0], numPartsToSend * singleDataSize, MPI_CHAR, 0, Ippl::getComm());
-
-    if (Ippl::myNode() > 0) {
-        size_t i = 0;
-        while (i < numPartsToSend * singleDataSize) {
-            int saveProcessor = *reinterpret_cast<const int*>(&data[i]);
-
-            if (saveProcessor == Ippl::myNode()) {
-                i += sizeof(int);
-                const double *tmp = reinterpret_cast<const double*>(&data[i]);
-                xDist_m.push_back(tmp[0]);
-                yDist_m.push_back(tmp[1]);
-                tOrZDist_m.push_back(tmp[2]);
-                pxDist_m.push_back(tmp[3]);
-                pyDist_m.push_back(tmp[4]);
-                pzDist_m.push_back(tmp[5]);
-                i += 6 * sizeof(double);
-            } else {
-                i += singleDataSize;
-            }
-        }
+        } while (dataSize == distributeFrequency * singleDataSize);
     }
 
     pmean_m /= numberOfParticlesRead;
@@ -1281,20 +1282,20 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         throw OpalException("Distribution::createMatchedGaussDistribution",
                             "didn't find any Cyclotron element in line");
     }
-    
+
     /* FIXME we need to remove const-ness otherwise we can't update the injection radius
      * and injection radial momentum. However, there should be a better solution ..
      */
     Cyclotron* CyclotronElement = const_cast<Cyclotron*>(CyclotronVisitor.front());
-    
+
     bool full = !Attributes::getBool(itsAttr[Attrib::Distribution::SECTOR]);
 
     int Nint = (int)Attributes::getReal(itsAttr[Attrib::Distribution::NSTEPS]);
-    
+
     if ( Nint < 0 )
         throw OpalException("Distribution::CreateMatchedGaussDistribution()",
                             "Negative number of integration steps");
-    
+
     *gmsg << "* ----------------------------------------------------" << endl;
     *gmsg << "* About to find closed orbit and matched distribution " << endl;
     *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
@@ -1320,37 +1321,37 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                             "Missing attributes 'FMLOWE' and/or 'FMHIHGE' in "
                             "'CYCLOTRON' definition.");
     }
-    
-    
+
+
     std::size_t maxitCOF =
         Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]);
-    
+
     double rguess =
         Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]);
-    
+
     int nSector = (int)CyclotronElement->getSymmetry();
-    
+
     double accuracy =
         Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]);
-    
+
     if ( Options::cloTuneOnly ) {
         *gmsg << "* Stopping after closed orbit and tune calculation" << endl;
         typedef std::vector<double> container_t;
         typedef boost::numeric::odeint::runge_kutta4<container_t> rk4_t;
         typedef ClosedOrbitFinder<double,unsigned int, rk4_t> cof_t;
-            
+
         cof_t cof(E_m*1E-6, massIneV*1E-6, wo, Nint, accuracy,
                   maxitCOF, fmLowE, fmHighE, nSector,
                   CyclotronElement->getFieldMapFN(), rguess,
                   CyclotronElement->getCyclotronType(),
                   CyclotronElement->getBScale(), false);
-        
+
         std::pair<double, double> tunes = cof.getTunes();
         double ravg = cof.getAverageRadius(); // average radius
-            
+
         container_t reo = cof.getOrbit(CyclotronElement->getPHIinit());
         container_t peo = cof.getMomentum(CyclotronElement->getPHIinit());
-            
+
 
         *gmsg << "* ----------------------------" << endl
               << "* Closed orbit info (Gordon units):" << endl
@@ -1362,12 +1363,12 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
               << "* horizontal tune:  " << tunes.first << endl
               << "* vertical tune:    " << tunes.second << endl
               << "* ----------------------------" << endl << endl;
-        
+
         std::exit(0);
     }
-    
+
     bool writeMap = true;
-    
+
     typedef SigmaGenerator<double, unsigned int> sGenerator_t;
     sGenerator_t *siggen = new sGenerator_t(I_m,
                                             Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
@@ -1385,7 +1386,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
                                             CyclotronElement->getBScale(),
                                             writeMap);
-                                                          
+
     if (siggen->match(accuracy,
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
                       maxitCOF,
@@ -1410,9 +1411,9 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                     *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << 0.0;
                 }
                 else{
-                   *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j); 
+                   *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
                 }
-                
+
             }
             *gmsg << " \\\\" << endl;
         }
@@ -1433,24 +1434,24 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         // change units from mm to m
         for (unsigned int i = 0; i < 6; ++ i)
             for (unsigned int j = 0; j < 6; ++ j) sigma(i, j) *= 1e-6;
-                
+
         for (unsigned int i = 0; i < 3; ++ i) {
             if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
                 throw OpalException("Distribution::CreateMatchedGaussDistribution()",
-                                    "Negative value on the diagonal of the sigma matrix.");   
+                                    "Negative value on the diagonal of the sigma matrix.");
         }
-        
+
         sigmaR_m[0] = std::sqrt(sigma(0, 0));
         sigmaP_m[0] = std::sqrt(sigma(1, 1))*beta*gamma;
         sigmaR_m[2] = std::sqrt(sigma(2, 2));
         sigmaP_m[2] = std::sqrt(sigma(3, 3))*beta*gamma;
         sigmaR_m[1] = std::sqrt(sigma(4, 4));
-        
+
         //p_l^2 = [(delta+1)*beta*gamma]^2 - px^2 - pz^2
-         
+
         double pl2 = (std::sqrt(sigma(5,5)) + 1)*(std::sqrt(sigma(5,5)) + 1)*beta*gamma*beta*gamma -
                       sigmaP_m[0]*sigmaP_m[0] - sigmaP_m[2]*sigmaP_m[2];
-        
+
         double pl = std::sqrt(pl2);
         sigmaP_m[1] = gamma*(pl - beta*gamma);
 
@@ -1463,7 +1464,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         correlationMatrix_m(5, 1) = sigma(1, 5) / (sqrt(sigma(1, 1) * sigma(5, 5)));
 
         createDistributionGauss(numberOfParticles, massIneV);
-        
+
         // update injection radius and radial momentum
         CyclotronElement->setRinit(siggen->getInjectionRadius() * 1.0e3);
         CyclotronElement->setPRinit(siggen->getInjectionMomentum());
@@ -2550,7 +2551,7 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
     double rn = 1e-12;
 
     while (errcode == GSL_EDOM) {
-        
+
         // Resets the correlation matrix
         for (unsigned int i = 0; i < 6; ++ i) {
             gsl_matrix_set(corMat, i, i, correlationMatrix_m(i, i));
@@ -3570,7 +3571,7 @@ void Distribution::setAttributes() {
     itsAttr[Attrib::Distribution::NSTEPS]
         = Attributes::makeReal("NSTEPS", "Number of integration steps of closed orbit finder (matched gauss)"
                                " (default: 720)", 720);
-    
+
     itsAttr[Attrib::Distribution::RGUESS]
         = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
 
