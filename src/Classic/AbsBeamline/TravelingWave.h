@@ -98,6 +98,12 @@ public:
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     virtual bool isInside(const Vector_t &r) const;
+
+    virtual double getElementLength() const;
+    virtual void getElementDimensions(double &begin,
+                                      double &end) const;
+
+
 private:
     Fieldmap *CoreFieldmap_m;
     /*   Fieldmap *EntryFringeField_m; */

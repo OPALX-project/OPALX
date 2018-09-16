@@ -171,6 +171,9 @@ void RFCavity::accept(BeamlineVisitor &visitor) const {
 void RFCavity::addKR(int i, double t, Vector_t &K) {
 
     double pz = RefPartBunch_m->getZ(i) - startField_m;
+    if (pz < 0.0 ||
+        pz >= length_m) return;
+
     const Vector_t tmpR(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
     double k = -Physics::q_e / (2.0 * RefPartBunch_m->getGamma(i) * Physics::EMASS);
 
@@ -183,6 +186,9 @@ void RFCavity::addKR(int i, double t, Vector_t &K) {
 
     double wtf = frequency_m * t + phase_m;
     double kj = k * scale_m * (tmpE(2) * cos(wtf) - RefPartBunch_m->getBeta(i) * frequency_m * Ez * sin(wtf) / Physics::c);
+
+    *gmsg << __DBGMSG__ << std::scientific << tmpE(2) << "\t" << Ez << "\t" << kj << "\t" << frequency_m << "\t" << scale_m << "\t" << k << endl;
+
     K += Vector_t(kj, kj, 0.0);
 }
 
@@ -196,12 +202,15 @@ void RFCavity::addKT(int i, double t, Vector_t &K) {
 
     RefPartBunch_m->actT();
 
+    double pz = RefPartBunch_m->getZ(i) - startField_m;
+    if (pz < 0.0 ||
+        pz >= length_m) return;
+
     //XXX: BET parameter, default is 1.
     //If cxy != 1, then cxy = true
     bool cxy = false; // default
     double kx = 0.0, ky = 0.0;
     if(cxy) {
-        double pz = RefPartBunch_m->getZ(i) - startField_m;
         const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
 
         Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
@@ -834,4 +843,21 @@ bool RFCavity::isInside(const Vector_t &r) const {
     }
 
     return false;
+}
+
+double RFCavity::getElementLength() const {
+    double length = ElementBase::getElementLength();
+    if (length < 1e-10 && fieldmap_m != NULL) {
+        double start, end, tmp;
+        fieldmap_m->getFieldDimensions(start, end, tmp, tmp);
+        length = end - start;
+    }
+
+    return length;
+}
+
+void RFCavity::getElementDimensions(double &begin,
+                                    double &end) const {
+    double tmp;
+    fieldmap_m->getFieldDimensions(begin, end, tmp, tmp);
 }
