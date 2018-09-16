@@ -222,6 +222,12 @@ public:
     //  This may be the arc length or the straight length.
     virtual void setElementLength(double length);
 
+    virtual void getElementDimensions(double &begin,
+                                      double &end) const {
+        begin = 0.0;
+        end = getElementLength();
+    }
+
     /// Get origin position.
     //  Return the arc length from the entrance to the origin of the element
     //  (origin >= 0)
