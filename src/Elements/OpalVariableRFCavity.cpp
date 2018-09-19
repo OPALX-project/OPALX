@@ -42,15 +42,15 @@ const std::string OpalVariableRFCavity::doc_string =
 OpalVariableRFCavity::OpalVariableRFCavity():
     OpalElement(SIZE, "VARIABLE_RF_CAVITY", doc_string.c_str()) {
     itsAttr[PHASE_MODEL] = Attributes::makeString("PHASE_MODEL",
-                "The name of the phase time dependence model.");
+                "The name of the phase time dependence model, which should give the phase in [rad].");
     itsAttr[AMPLITUDE_MODEL] = Attributes::makeString("AMPLITUDE_MODEL",
-                "The name of the amplitude time dependence model.");
+                "The name of the amplitude time dependence model, which should give the field in [MV/m]");
     itsAttr[FREQUENCY_MODEL] = Attributes::makeString("FREQUENCY_MODEL",
-                "The name of the frequency time dependence model.");
+                "The name of the frequency time dependence model, which should give the field in [MHz].");
     itsAttr[WIDTH] = Attributes::makeReal("WIDTH",
-                "Full width of the cavity.");
+                "Full width of the cavity [m].");
     itsAttr[HEIGHT] = Attributes::makeReal("HEIGHT",
-                "Full height of the cavity.");
+                "Full height of the cavity [m].");
     registerStringAttribute("PHASE_MODEL");
     registerStringAttribute("AMPLITUDE_MODEL");
     registerStringAttribute("FREQUENCY_MODEL");
