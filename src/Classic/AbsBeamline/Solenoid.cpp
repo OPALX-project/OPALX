@@ -101,9 +101,12 @@ bool Solenoid::getFast() const {
 void Solenoid::addKR(int i, double t, Vector_t &K) {
     Inform msg("Solenoid::addKR()");
 
+    double pz = RefPartBunch_m->getZ(i) - startField_m;
+    if (pz < 0.0 ||
+        pz >= length_m) return;
+
     Vector_t tmpE(0.0, 0.0, 0.0);
     Vector_t tmpB(0.0, 0.0, 0.0);
-    double pz = RefPartBunch_m->getZ(i) - startField_m;
     const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
 
     myFieldmap_m->getFieldstrength(tmpA, tmpE, tmpB);
@@ -121,11 +124,14 @@ void Solenoid::addKT(int i, double t, Vector_t &K) {
     Inform msg("Solenoid::addKT()");
     double dbdz, emg;
 
+    double pz = RefPartBunch_m->getZ(i) - startField_m;
+    if (pz < 0.0 ||
+        pz >= length_m) return;
+
     Vector_t tmpE(0.0, 0.0, 0.0);
     Vector_t tmpB(0.0, 0.0, 0.0);
     Vector_t tmpE_diff(0.0, 0.0, 0.0);
     Vector_t tmpB_diff(0.0, 0.0, 0.0);
-    double pz = RefPartBunch_m->getZ(i) - startField_m;
     const Vector_t tmpA(RefPartBunch_m->getX(i), RefPartBunch_m->getY(i), pz);
 
     // define z direction:
@@ -252,4 +258,15 @@ ElementBase::ElementType Solenoid::getType() const {
 
 bool Solenoid::isInside(const Vector_t &r) const {
     return (r(2) >= startField_m && r(2) < startField_m + length_m && isInsideTransverse(r) && myFieldmap_m->isInside(r));
+}
+
+
+double Solenoid::getElementLength() const {
+    return length_m;
+}
+
+void Solenoid::getElementDimensions(double &begin,
+                                         double &end) const {
+    begin = startField_m;
+    end = begin + length_m;
 }

@@ -73,7 +73,6 @@ namespace {
     // The attributes of class TrackRun.
     enum {
         METHOD,       // Tracking method to use.
-        FNAME,        // The name of file to be written.
         TURNS,        // The number of turns to be tracked.
         MBMODE,       // The working way for multi-bunch mode for OPAL-cycl: "FORCE" or "AUTO"
         PARAMB,       // The control parameter for "AUTO" mode of multi-bunch,
@@ -111,13 +110,10 @@ TrackRun::TrackRun():
 
     itsAttr[PARAMB] = Attributes::makeReal
                       ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
-    
+
     itsAttr[MB_ETA] = Attributes::makeReal("MB_ETA",
                                            "The scale parameter for binning in multi-bunch mode",
                                            0.01);
-
-    itsAttr[FNAME] = Attributes::makeString
-                     ("FILE", "Name of file to be written", "TRACK");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
@@ -197,7 +193,7 @@ void TrackRun::execute() {
                                      Track::block->bunch, Track::block->reference,
                                      false, false);
     } else if(method == "THICK") {
-	setupThickTracker();
+        setupThickTracker();
     // } else if(method == "PARALLEL-SLICE" || method == "OPAL-E") {
     //     setupSliceTracker();
     } else if(method == "PARALLEL-T" || method == "OPAL-T") {
@@ -212,15 +208,6 @@ void TrackRun::execute() {
     }
 
     if(method == "THIN" || method == "THICK") {
-        //
-        std::string file = Attributes::getString(itsAttr[FNAME]);
-        std::ofstream os(file.c_str());
-
-        if(os.bad()) {
-            throw OpalException("TrackRun::execute()",
-                                "Unable to open output file \"" + file + "\".");
-        }
-
         int turns = int(Round(Attributes::getReal(itsAttr[TURNS])));
 
         // Track for the all but last turn.
@@ -228,7 +215,7 @@ void TrackRun::execute() {
             itsTracker->execute();
         }
 
-	// Track the last turn.
+        // Track the last turn.
         itsTracker->execute();
 
     } else {
@@ -471,8 +458,8 @@ void TrackRun::setupThickTracker()
 
     itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
                                   Track::block->bunch, *ds, Track::block->reference,
-				  false, false, Track::block->localTimeSteps,
-				  Track::block->zstart, Track::block->zstop, Track::block->dT,
+                                  false, false, Track::block->localTimeSteps,
+                                  Track::block->zstart, Track::block->zstop, Track::block->dT,
                                   Track::block->truncOrder);
 }
 
@@ -824,10 +811,10 @@ void TrackRun::setupCyclotronTracker(){
                 itsTracker->setMultiBunchMode("FORCE");
             }
         } else {
-            std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));            
+            std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));
             itsTracker->setMultiBunchMode(mbmode);
         }
-        
+
         dynamic_cast<ParallelCyclotronTracker*>(itsTracker)->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
     }
 }

@@ -203,6 +203,11 @@ public:
     void setFrequencyModelName(std::string name);
     std::string getFrequencyModelName();
 
+    virtual double getElementLength() const;
+    virtual void getElementDimensions(double &begin,
+                                      double &end) const;
+
+
 protected:
     std::shared_ptr<AbstractTimeDependence> phase_td_m;
     std::string phase_name_m;

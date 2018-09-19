@@ -2,8 +2,6 @@
 #include "Utilities/MSLang/ArgumentExtractor.h"
 #include "Utilities/MSLang/matheval.h"
 
-#include <boost/regex.hpp>
-
 namespace mslang {
     void Repeat::print(int indentwidth) {
         std::string indent(indentwidth, ' ');
@@ -24,7 +22,7 @@ namespace mslang {
         const unsigned int size = bfuncs.size();
 
         AffineTransformation current_trafo = trafo;
-        for (unsigned int i = 0; i < N_m; ++ i) {
+        for (int i = 0; i < N_m; ++ i) {
             for (unsigned int j = 0; j < size; ++ j) {
                 Base *obj = bfuncs[j]->clone();
                 obj->trafo_m = obj->trafo_m.mult(current_trafo);
