@@ -212,10 +212,10 @@ TEST(DumpEMFieldsTest, writeFieldsCartTest) {
 
 TEST(DumpEMFieldsTest, writeFieldsCylTest) {
     OpalTestUtilities::SilenceTest silencer;
-
+    const double rad = M_PI/180.;
     clear_files();
     DumpEMFields dump;
-    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90., 45., 16,   0.2, 0.3, 2.,   1., 1., 2.,  "testCyl");
+    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90.*rad, 45.*rad, 16,   0.2, 0.3, 2.,   1., 1., 2.,  "testCyl");
     dump.execute();
     // depending on execution order, this might write cartesian tests as well... never mind
     MockComponent comp;

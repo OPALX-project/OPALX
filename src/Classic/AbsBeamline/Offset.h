@@ -58,6 +58,7 @@
  *  so unless I keep that alive in Offset I get memory errors (seg fault)
  *  @float_tolerance bends() and operator==(...) use float_tolerance when
  *  evaluating equality between doubles.
+ *  @lengthUnits_m conversion factor from user interface to get to mm
  *
  *  WARNING: this object uses a default aperture that is large. It will screw up
  *  any calculation based on aperture (e.g. wakefields etc)
@@ -209,6 +210,7 @@ class Offset : public Component {
     bool     _is_local;
     // The offset's geometry.
     Euclid3DGeometry* geometry_m;
+    static const double lengthUnits_m;
 };
 
 /** Return true if off1 is equal to off2 within static floating point tolerance
