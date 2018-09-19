@@ -85,6 +85,10 @@ public:
     virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     virtual bool isInside(const Vector_t &r) const;
+
+    virtual double getElementLength() const;
+
+    virtual void getElementDimensions(double &zBegin, double &zEnd) const;
 private:
 
     //  std::string name;                   /**< The name of the object*/
