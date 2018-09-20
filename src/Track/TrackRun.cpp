@@ -351,7 +351,6 @@ void TrackRun::setupSliceTracker() {
 
 void TrackRun::setupThickTracker()
 {
-    OpalData::getInstance()->setInOPALThickTrackerMode();
     bool isFollowupTrack = opal->hasBunchAllocated();
 
     if(isFollowupTrack) {
@@ -457,7 +456,7 @@ void TrackRun::setupThickTracker()
           << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
 
     itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
-                                  Track::block->bunch, *ds, Track::block->reference,
+                                  Track::block->bunch, *beam, *ds, Track::block->reference,
                                   false, false, Track::block->localTimeSteps,
                                   Track::block->zstart, Track::block->zstop, Track::block->dT,
                                   Track::block->truncOrder);

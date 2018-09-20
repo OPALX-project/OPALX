@@ -32,6 +32,7 @@
 #include <gtest/gtest_prod.h>
 #endif
 
+#include <array>
 #include <vector>
 
 class Fieldmap;
@@ -138,6 +139,14 @@ public:
 
     //set number of slices for map tracking
     std::size_t getNSlices() const;
+
+    /// Get entrance fringe field length.
+    //  Used to create fringe fields in ThickTracker, (before edge[m], after edge[m])
+    std::array<double,2> getEntranceFringeFieldLength() const;
+
+   /// Get exit fringe field length.
+   //  Used to create fringe fields in ThickTracker, (before edge[m], after edge[m])
+   std::array<double,2> getExitFringeFieldLength() const;
 
 protected:
     void setMessageHeader(const std::string & header);

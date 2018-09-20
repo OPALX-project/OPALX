@@ -57,6 +57,9 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     std::string fn = OpalData::getInstance()->getInputBasename();
 
     statFileName_m = fn + std::string(".stat");
+//    mapStatFileName_m = fn + std::string("-map.stat"); //<---
+
+
     lBalFileName_m = fn + std::string(".lbal");
     memFileName_m  = fn + std::string(".mem");
 #ifdef ENABLE_AMR
@@ -73,6 +76,16 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     } else {
         INFOMSG("Creating new file for statistical data: " << statFileName_m << endl);
     }
+
+//    if (fs::exists(mapStatFileName_m)) //<--
+//            mode_m = std::ios::app;
+//            INFOMSG("Appending statistical data to existing data file: " << mapStatFileName_m << endl);
+//            double spos = h5wrapper->getLastPosition();
+//            linesToRewind = rewindSDDStoSPos(spos);
+//            replaceVersionString(mapStatFileName_m);
+//        } else {
+//            INFOMSG("Creating new file for statistical data: " << statFileName_m << endl);
+//        }
 
     if (fs::exists(lBalFileName_m)) {
         INFOMSG("Appending load balance data to existing data file: " << lBalFileName_m << endl);
@@ -913,6 +926,24 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                    << indent << "description=\"" << columnStart ++ << "Number of lost particles in element\"\n"
                    << "&end\n";
     }
+
+//    std::string method = Util::toUpper(Attributes::getString(itsAttr[METHOD])); //<--
+//    if (method == "THICK") {
+//        outputFile << "&column\n"
+//               << indent << "name=mapD_x,\n"
+//               << indent << "type=double,\n"
+//               << indent << "units=1,\n"
+//               << indent << "description=\"49 Dx dispersion of beamline"\n"
+//               << "&end\n";
+//        outputFile << "&column\n"
+//               << indent << "name=mapD_y,\n"
+//               << indent << "type=double,\n"
+//               << indent << "units=1,\n"
+//               << indent << "description=\"50 Dy dispersion of beamline"\n"
+//               << "&end\n";
+//        columnStart = 51;
+//    }
+
     outputFile << "&data\n"
                << indent << "mode=ascii,\n"
                << indent << "no_row_counts=1\n"
