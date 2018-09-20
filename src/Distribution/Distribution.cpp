@@ -4508,7 +4508,6 @@ void Distribution::shiftDistCoordinates(double massIneV) {
             if (Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETZ]) != 0.0)
                 deltaTOrZ = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETZ]);
 
-
         double deltaPx = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPX]);
         double deltaPy = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPY]);
         double deltaPz = Attributes::getReal(currDist->itsAttr[Attrib::Distribution::OFFSETPZ]);

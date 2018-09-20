@@ -15,7 +15,7 @@ REAL Coll_aftrgap_size=0.0140;
 REAL Coll_atgap_size = 0.005;
 
 
-REAL NProt = 100;
+REAL NProt = 1000;
 
 //OPTION, ECHO=FALSE;
 //OPTION, PSDUMPFREQ=1500;
@@ -51,7 +51,7 @@ REAL fact_delp=2.30;
 //--------------------------------------------------------------------------------
 //Input beam parameters    AT STEP 474, SPOS 31.5926
 //--------------------------------------------------------------------------------
-DISTRIB2: DISTRIBUTION, 
+DISTRIB1: DISTRIBUTION, 
 	TYPE=GAUSS,
 //Energy MeV =  73.6503
 	SIGMAX = 0.00253256*fact_x,     SIGMAPX = 0.00231138*gambet*fact_xd  ,
@@ -65,7 +65,6 @@ DISTRIB2: DISTRIBUTION,
 	OFFSETX = 0, OFFSETY =0, OFFSETZ = 0,
 	INPUTMOUNITS = NONE, WRITETOFILE= TRUE;
 
-DISTRIB1: DISTRIBUTION, TYPE = FROMFILE, FNAME= "data/70MeV_Gantry2_DISTRIB1.dat"; // "bunch_x.dat";
 
 //--------------------------------------------------------------------------------
 // Beamline elements
@@ -165,9 +164,9 @@ QMF2: QUADRUPOLE, K1=4.73565, L=0.32, ELEMEDGE=38.2802, NSLICES=10;
 D83: DRIFT, L=0.436, ELEMEDGE=38.6002, NSLICES=1;
 AMF1: SBEND, K0=0.804307, L=1.4929, ELEMEDGE=39.0362,
          //ANGLE=1.01229, HAPERT=46.5*2/1000,  K1=0,
-         //E1=0.188146, E2=0.188146,
+         E1=0.188146, E2=0.188146,
         FMAPFN="HardEdge.t7",//"1DPROFILE1-DEFAULT",
-         DESIGNENERGY=7.381e+01, GAP=30*2/1000, NSLICES=30;
+         DESIGNENERGY=7.381e+01, GAP=30*2/1000, NSLICES=35;
 //AMF1_r0: ECOLLIMATOR, XSIZE=0.0465, YSIZE=0.0275, L=1.5586, ELEMEDGE=39.0362;
 D84: DRIFT, L=0.395, ELEMEDGE=40.5948, NSLICES=1;
 MMFP3X: MONITOR, OUTFN="MMFP3X.h5", ELEMEDGE=40.9898;
@@ -182,9 +181,9 @@ QMF4: QUADRUPOLE, K1=5.77077, L=0.32, ELEMEDGE=41.9165, NSLICES=10;
 D88: DRIFT, L=0.425, ELEMEDGE=42.2365, NSLICES=1;
 AMF2: SBEND, K0=-0.804017, L=1.4929, ELEMEDGE=42.6615,
          //ANGLE=1.01229, HAPERT=46.5*2/1000,  K1=0,
-         //E1=0.188146, E2=0.188146,
+        E1=0.188146, E2=0.188146,
         FMAPFN="HardEdge.t7",//"1DPROFILE1-DEFAULT",
-         DESIGNENERGY=7.381e+01, GAP=30*2/1000, NSLICES=30;
+         DESIGNENERGY=7.381e+01, GAP=30*2/1000, NSLICES=35;
 //AMF2_r0: ECOLLIMATOR, XSIZE=0.0465, YSIZE=0.0275, L=1.5586, ELEMEDGE=42.6615;
 D89: DRIFT, L=0.395, ELEMEDGE=44.2201, NSLICES=1;
 MMFP5X: MONITOR, OUTFN="MMFP5X.h5", ELEMEDGE=44.6151;
@@ -206,9 +205,9 @@ WMFU: DRIFT, L=0.34, ELEMEDGE=46.9706, NSLICES=1;
 D97: DRIFT, L=0.5473, ELEMEDGE=47.3106, NSLICES=1;
 AMF3: SBEND, K0=-0.811531, L=2.17747, ELEMEDGE=47.8579,
          //ANGLE=1.5708, HAPERT=75*2/1000,  K1=0,
-         //E1=0.207694, E2=0.401426,
+         E1=0.207694, E2=0.401426,
         FMAPFN="HardEdge.t7",//"1DPROFILE1-DEFAULT",
-         DESIGNENERGY=7.381e+01, GAP=75*2/1000, NSLICES=30;
+         DESIGNENERGY=7.381e+01, GAP=75*2/1000, NSLICES=35;
 //AMF3_r0: ECOLLIMATOR, XSIZE=0.075, YSIZE=0.075, L=2.41856, ELEMEDGE=47.8579;
 
 
@@ -237,14 +236,14 @@ REAL edge_air = 51.006980 + total_Mylaar_thick;
 D100b_air: Drift, L=Len_air , ELEMEDGE=edge_air ; 
 
 
-Drift_isoa: Drift, L=0.150, ELEMEDGE= 51.006980+Len_air+total_Mylaar_thick, NSLICES=1; 
+Drift_isoa: Drift, L=0.150, ELEMEDGE= 51.006980+Len_air+total_Mylaar_thick, NSLICES=10; 
 Mon_ISO: MONITOR, ELEMEDGE= edge_air + Len_air + 0.150,  OUTFN="Mon_ISO.h5";
 Drift_isob: Drift, L=0.200, ELEMEDGE=edge_air + Len_air + 0.150, NSLICES=10; 
 
 Nozz_air: LINE=( D100a_vac, Mylar_win1, D100b_air, Drift_isoa, Mon_ISO, Drift_isob);
 //---------------------------------//
 
-Drift_cosy: Drift, L=0.84758, ELEMEDGE= 51.65242, NSLICES=1;
+Drift_cosy: Drift, L=0.84758, ELEMEDGE= 51.65242, NSLICES=10;
 
 //--------------------------------------------------------------------------------
 // Define Beamline
