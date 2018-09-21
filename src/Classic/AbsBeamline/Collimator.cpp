@@ -263,27 +263,28 @@ bool Collimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 }
 
 
-// rectangle collimators in cyclotron cyclindral coordiantes
+// rectangle collimators in cyclotron cyclindral coordinates
 // without surfacephysics, the particle hitting collimator is deleted directly
 bool Collimator::checkCollimator(PartBunch &bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
     Vector_t rmin, rmax;
-
+    // bunch bounds for fast preliminary check if bunch is close
     bunch.get_bounds(rmin, rmax);
-    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
 
     if(rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-//        if( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-        if( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
+        double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
+        double r_end   = sqrt(  xend_m * xend_m   +   yend_m * yend_m);
+        double rbunch_min = sqrt(rmin(0) * rmin(0) + rmin(1) * rmin(1));
+        double rbunch_max = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+        //        if( rbunch_max > r_start - 100.0 && rbunch_max < r_end + 100.0 ){ // old check, only checks outer bound
+        if( rbunch_max > r_start && rbunch_min < r_end ){ // check similar to z
             size_t tempnum = bunch.getLocalNum();
             int pflag = 0;
             for(unsigned int i = 0; i < tempnum; ++i) {
                 if(bunch.PType[i] == ParticleType::REGULAR && bunch.R[i](2) < zend_m && bunch.R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch.R[i](0), bunch.R[i](1));
-		    /// bunch.Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
+                    // bunch.Bin[i] != -1 makes sure the particle is not stored in more than one collimator
                     if ((pflag != 0) && (bunch.Bin[i] != -1))  {
                         if (!sphys_m)
                             lossDs_m->addParticle(bunch.R[i], bunch.P[i], bunch.ID[i]);
