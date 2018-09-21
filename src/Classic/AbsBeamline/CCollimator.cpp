@@ -116,14 +116,17 @@ bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int tur
     Vector_t rmin, rmax;
 
     bunch->get_bounds(rmin, rmax);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     std::pair<Vector_t, double> boundingSphere;
     boundingSphere.first = 0.5 * (rmax + rmin);
     boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        // if ( r1 > rstart_m - 10.0 && r1 < rend_m + 10.0 ){
-        if ( r1 > rstart_m - 100.0 && r1 < rend_m + 100.0 ){
+        double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
+        double r_end   = sqrt(  xend_m * xend_m   +   yend_m * yend_m);
+        double rbunch_min = sqrt(rmin(0) * rmin(0) + rmin(1) * rmin(1));
+        double rbunch_max = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+        // if ( rbunch_max > rstart_m - 100.0 && rbunch_max < rend_m + 100.0 ){ // old check, only checks outer bound
+        if( rbunch_max > r_start && rbunch_min < r_end ){ // check similar to z
             size_t tempnum = bunch->getLocalNum();
             int pflag = 0;
             for (unsigned int i = 0; i < tempnum; ++i) {
