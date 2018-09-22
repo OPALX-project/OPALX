@@ -176,7 +176,7 @@ private:
 
         bool success = phrase_parse(iter, end, expression, skipper, ast_);
 
-        if (success && iter != end) {
+        if (!success || iter != end) {
             std::cout << "Parsing failed!" << std::endl;
             throw new OptPilotException("Expression::parse()",
                                         "Parsing failed!");
