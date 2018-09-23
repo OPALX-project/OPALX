@@ -291,7 +291,7 @@ void ParallelSliceTracker::execute() {
 
         for (; step < localTrackSteps_m.front(); ++step) {
 
-            globalEOL_m = true;
+            globalEOL_m = false;
 
             switchElements();
             computeExternalFields(oth);
@@ -320,9 +320,18 @@ void ParallelSliceTracker::execute() {
 
             dumpStats(step);
 
+            if (hasEndOfLineReached())
+                break;
+
+            double gamma = itsBunch_m->Eavg() / (Physics::m_e * 1e9) + 1.0;
+            double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+
+            double driftPerTimeStep = itsBunch_m->getdT() * Physics::c * beta;
+            if (std::abs(zStop_m.front() - itsBunch_m->zAvg()) < 0.5 * driftPerTimeStep)
+                localTrackSteps_m.front() = step;
         }
 
-        if (hasEndOfLineReached())
+        if (globalEOL_m)
             break;
 
         dtAllTracks_m.pop();
