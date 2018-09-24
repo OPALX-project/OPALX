@@ -178,8 +178,9 @@ private:
 
         if (!success || iter != end) {
             std::cout << "Parsing failed!" << std::endl;
+            std::string here = (iter != end ? std::string(iter, end): expr_);
             throw new OptPilotException("Expression::parse()",
-                                        "Parsing failed!");
+                                         "Parsing failed here: " + here + "!");
         }
 
         // store the functions and variables required to evaluate this
