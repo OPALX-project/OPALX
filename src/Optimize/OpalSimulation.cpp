@@ -429,6 +429,9 @@ void OpalSimulation::collectResults() {
         } catch(SDDSParserException &e) {
             std::cout << "Evaluation of objectives or constraints threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
             invalidBunch();
+        } catch(OptPilotException &e) {
+            std::cout << "Evaluation of objectives or constraints threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+            invalidBunch();
         } catch(...) {
             std::cout << "Evaluation of objectives or constraints threw an exception!" << std::endl;
             invalidBunch();
