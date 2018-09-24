@@ -22,6 +22,11 @@ struct SDDSVariable {
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
 
+        if (args.size() != 3) {
+            throw OptPilotException("SDDSVariable::operator()",
+                                    "sddsVariableAt expects 3 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         var_name_      = boost::get<std::string>(args[0]);
         spos_          = boost::get<double>(args[1]);
         stat_filename_ = boost::get<std::string>(args[2]);
@@ -79,6 +84,11 @@ struct sameSDDSVariable {
     }
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 2) {
+            throw OptPilotException("sameSDDSVariable::operator()",
+                                    "statVariableAt expects 2 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         args.push_back(stat_filename_);
         return var_(args);
     }
