@@ -9,6 +9,7 @@
 
 #include "Util/Types.h"
 #include "Util/SDDSReader.h"
+#include "Util/SDDSParser/SDDSParserException.h"
 #include "Expression/Parser/function.hpp"
 
 
@@ -36,7 +37,7 @@ struct SDDSVariable {
         boost::scoped_ptr<SDDSReader> sim_stats(new SDDSReader(stat_filename_));
         try {
             sim_stats->parseFile();
-        } catch (OptPilotException &ex) {
+        } catch (SDDSParserException &ex) {
             std::cout << "Caught exception: " << ex.what() << std::endl;
             is_valid = false;
         }
@@ -44,9 +45,14 @@ struct SDDSVariable {
         double sim_value = 0.0;
         try {
             sim_stats->getInterpolatedValue(spos_, var_name_, sim_value);
-        } catch(OptPilotException &e) {
+        } catch(SDDSParserException &e) {
             std::cout << "Exception while getting value "
                       << "from SDDS file: " << e.what()
+                      << std::endl;
+            is_valid = false;
+        } catch(...) {
+            std::cout << "Exception while getting '" + var_name_ + "' "
+                      << "from SDDS file. "
                       << std::endl;
             is_valid = false;
         }
