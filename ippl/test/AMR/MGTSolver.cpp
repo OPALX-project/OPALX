@@ -233,7 +233,7 @@ void MGTSolver::solve(const container_t& rho,
         }
         
         for (int lev = baseLevel; lev <= finestLevel; ++lev) {
-            efield[lev]->mult(-1.0, 0, 3);
+            efield[lev]->mult(-1.0, 0, AMREX_SPACEDIM);
         }
 //         average_fine_ec_onto_crse_ec(lev-1,is_new);
     

@@ -1,7 +1,7 @@
 
 #include "Ippl.h"
 
-#include "AmrParticle/AmrParticleBase.h"
+#include "AmrParticle/AmrParticleBase1.h"
 #include "AmrParticle/ParticleAmrLayout.h"
 
 #include <memory>
@@ -24,7 +24,7 @@ public:
     BoxLibLayout() { }
     
     
-    void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData, int lev_min = 0,
+    void update(AmrParticleBase1< BoxLibLayout<T,Dim> >& PData, int lev_min = 0,
                 const ParticleAttrib<char>* canSwap = 0)
     {
         std::cout << "BoxLibLayout::update()" << std::endl;
@@ -34,13 +34,13 @@ public:
                 const ParticleAttrib<char>* canSwap=0)
     {
         std::cout << "IpplBase update" << std::endl;
-        //TODO: exit since we need AmrParticleBase with grids and levels for particles for this layout
+        //TODO: exit since we need AmrParticleBase1 with grids and levels for particles for this layout
         //if IpplParticleBase is used something went wrong
     }
 };
 
 template <class PLayout>
-class BoxLibParticle : public AmrParticleBase<PLayout>
+class BoxLibParticle : public AmrParticleBase1<PLayout>
 {
 public:
     BoxLibParticle() {

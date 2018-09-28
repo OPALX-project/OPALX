@@ -44,16 +44,19 @@ double domainMapping(amrbase_t& PData, const double& scale, bool inverse = false
     double absmax = scale;
     
     if ( !inverse ) {
-        Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
-                                std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
-                                std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+        Vector_t tmp = Vector_t(D_DECL(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
+                                       std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
+                                       std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
+                                )
                                );
         
         absmax = std::max( tmp[0], tmp[1] );
+#if AMREX_SPACEDIM == 3
         absmax = std::max( absmax, tmp[2] );
+#endif
     }
     
-    Vector_t vscale = Vector_t(absmax, absmax, absmax);
+    Vector_t vscale = Vector_t(D_DECL(absmax, absmax, absmax));
     
     for (unsigned int i = 0; i < PData.getLocalNum(); ++i) {
         PData.R[i] /= vscale;
@@ -85,12 +88,20 @@ inline void writeScalarField(const container_t& scalfield, std::string filename,
                 
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
-                            IntVect ivec(i, j, k);
+#endif
+                            IntVect ivec(D_DECL(i, j, k));
                             // add one in order to have same convention as PartBunch::computeSelfField()
-                            out << i + 1 << " " << j + 1 << " " << k + 1 << " "
+                            out << i + 1 << " "
+                                << j + 1 << " "
+#if AMREX_SPACEDIM == 3
+                                << k + 1 << " "
+#endif
                                 << lhs(ivec, 0)  << std::endl;
+#if AMREX_SPACEDIM == 3
                         }
+#endif
                     }
                 }
                 out.close();
@@ -133,7 +144,7 @@ inline void writeScalarField(const container_t& scalfield,
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
 //                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
 //                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
-                            IntVect ivec(i, j, k);
+                            IntVect ivec(D_DECL(i, j, k));
                             // add one in order to have same convention as PartBunch::computeSelfField()
                             out << i + 1 << " " << j + 1 << " " << k + 1 << " " << dlow + dx * i << " "
                                 << lhs(ivec, 0)  << std::endl;
@@ -179,7 +190,7 @@ inline void writeVectorField(const container_t& vecfield,
                 for (int i = bx.loVect()[0]; i <= bx.hiVect()[0]; ++i) {
 //                     for (int j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
 //                         for (int k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
-                            IntVect ivec(i, j, k);
+                            IntVect ivec(D_DECL(i, j, k));
                             // add one in order to have same convention as PartBunch::computeSelfField()
                             out << i + 1 << " " << j + 1 << " " << k + 1 << " " << dlow + dx * i << " "
                                 << lhs(ivec, 0) << " " << lhs(ivec, 1) << " " << lhs(ivec, 2) << std::endl;
@@ -202,7 +213,7 @@ inline void writeVectorField(const container_t& vecfield,
 inline double totalFieldEnergy(container_t& efield, const Vector<int>& rr) {
     
     for (int lev = efield.size() - 2; lev >= 0; lev--)
-        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, 3, rr[lev]);
+        amrex::average_down(*(efield[lev+1].get()), *(efield[lev].get()), 0, AMREX_SPACEDIM, rr[lev]);
     
     double fieldEnergy = 0.0;
 //     long volume = 0;
@@ -210,7 +221,7 @@ inline double totalFieldEnergy(container_t& efield, const Vector<int>& rr) {
         long nPoints = 0;
 
         int l = 0;
-        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, 3, 0);
+        fieldEnergy += MultiFab::Dot(*efield[l], 0, *efield[l], 0, AMREX_SPACEDIM, 0);
         for (unsigned int b = 0; b < efield[l]->boxArray().size(); ++b) {
 //             volume += efield[l]->box(b).volume(); // cell-centered --> volume() == numPts
             nPoints += efield[l]->box(b).numPts();
@@ -238,7 +249,7 @@ inline void init(RealBox& domain,
                  Vector<DistributionMapping>& dmap,
                  Vector<Geometry>& geom,
                  Vector<int>& rr,
-                 const Vektor<size_t, 3>& nr,
+                 const Vektor<size_t, AMREX_SPACEDIM>& nr,
                  int nLevels,
                  size_t maxBoxSize,
                  const std::array<double, AMREX_SPACEDIM>& lower,
@@ -252,8 +263,8 @@ inline void init(RealBox& domain,
     /*
      * set up the geometry
      */
-    IntVect low(0, 0, 0);
-    IntVect high(nr[0] - 1, nr[1] - 1, nr[2] - 1);    
+    IntVect low(D_DECL(0, 0, 0));
+    IntVect high(D_DECL(nr[0] - 1, nr[1] - 1, nr[2] - 1));    
     Box bx(low, high);
     
     // box
@@ -263,7 +274,7 @@ inline void init(RealBox& domain,
     }
     
     // Dirichlet boundary conditions in all directions
-    int bc[AMREX_SPACEDIM] = {0, 0, 0};
+    int bc[AMREX_SPACEDIM] = {D_DECL(0, 0, 0)};
     
     geom.resize(nLevels);
     
@@ -303,7 +314,7 @@ inline void init(RealBox& domain,
  * @param upper is the physical upper bound of the domain
  */
 inline void init(RealBox& domain,
-                 const Vektor<size_t, 3>& nr,
+                 const Vektor<size_t, AMREX_SPACEDIM>& nr,
                  const std::array<double, AMREX_SPACEDIM>& lower,
                  const std::array<double, AMREX_SPACEDIM>& upper)
 {
@@ -379,6 +390,8 @@ inline void initGridData(container_t& rhs,
 
 /*!
  * Compute the total charge from the grid data
+ * (only coarsest level -> averaged down from fine
+ * levels)
  * @param rhs is the charge density on the grid
  * @param finest_level of AMR
  * @param geom are the geometries of each level
@@ -401,6 +414,53 @@ inline double totalCharge(const container_t& rhs,
     Real totCharge = 0.0;
     Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     totCharge = (scale) ? rhs[0]->sum(0) * vol : rhs[0]->sum(0);
+    return totCharge;
+}
+
+/*!
+ * Compute the total charge from the grid data on the
+ * composite domain.
+ * @param rhs is the charge density on the grid
+ * @param finest_level of AMR
+ * @param geom are the geometries of each level
+ * @param scale with the cell volume
+ */
+inline double totalCharge_composite(const container_t& rhs,
+                          int finest_level,
+                          const Vector<Geometry>& geom,
+                          bool scale = true)
+{
+    
+    std::vector<amrex::MultiFab> cp_rhs(rhs.size());
+    
+    for (uint lev = 0; lev < rhs.size(); ++lev) {
+        
+        cp_rhs[lev].define(rhs[lev]->boxArray(),
+                           rhs[lev]->DistributionMap(), 1, 1);
+        
+        
+        amrex::MultiFab::Copy(cp_rhs[lev], *rhs[lev], 0, 0, 1, 1);
+    }
+    
+    /* set the values of all refined cells to zero
+     * (AssignDensityFort averages down)
+     */
+    for (uint lev = 0; lev < cp_rhs.size() - 1; ++lev) {
+        // get boxarray with refined cells
+        amrex::BoxArray ba = cp_rhs[lev].boxArray();
+        ba.refine(2);
+        ba = amrex::intersect(cp_rhs[lev+1].boxArray(), ba);
+        ba.coarsen(2);
+        for ( uint b = 0; b < ba.size(); ++b)
+            cp_rhs[lev].mult(0.0, ba[b], 0, 1, 1);
+    }
+    
+    long double totCharge = 0.0;
+    for (uint i = 0; i < cp_rhs.size(); ++i) {
+        long double vol = (*(geom[i].CellSize()) * *(geom[i].CellSize()) * *(geom[i].CellSize()) );        
+        totCharge += cp_rhs[i].sum(0) * vol;
+    }
+    
     return totCharge;
 }
 

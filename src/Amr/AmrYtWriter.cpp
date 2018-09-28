@@ -12,8 +12,7 @@
 #include "Utilities/OpalException.h"
 
 
-AmrYtWriter::AmrYtWriter(int step)
-    : step_m(step)
+AmrYtWriter::AmrYtWriter(int step, int bin)
 {
     intData_m.resize(1);
 //     intData_m[0] = "id";
@@ -50,6 +49,8 @@ AmrYtWriter::AmrYtWriter(int step)
     fs::path dir = OpalData::getInstance()->getInputBasename();
     boost::filesystem::path path = dir.parent_path() / "data" / "amr" / "yt";
     dir_m = amrex::Concatenate((path / "plt").string(), step, 10);
+    dir_m += "-";
+    dir_m = amrex::Concatenate(dir_m, bin, 3);
     
     if ( Ippl::myNode() == 0 && !fs::exists(path) ) {
         try {

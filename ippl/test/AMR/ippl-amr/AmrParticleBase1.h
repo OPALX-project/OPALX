@@ -33,10 +33,18 @@
 
 #include "LevelNumCounter.h"
 
+#include <type_traits>
+
+template<typename T>
+struct is_Vektor : std::false_type {};
+ 
+template<typename T/*, int N*/>
+struct is_Vektor<Vektor<T, AMREX_SPACEDIM> > : std::true_type {};
+
 
 //AMRPArticleBase class definition. Template parameter is the specific AmrParticleLayout-derived
 //class which determines how the particles are distribute amoung processors.
-//AmrParticleBase is derived from IpplParticle base and 
+//AmrParticleBase1 is derived from IpplParticle base and 
 
 typedef double RealType;
 
@@ -46,11 +54,11 @@ typedef std::vector<ParticleAttribBase *>      attrib_container_t;
 
 typedef std::deque<amrex::ParticleCommData> C;
 typedef std::deque<amrex::ParticleCommData> PBox;
-typedef amrex::ParticleCommData ParticleType;
+typedef amrex::ParticleCommData ParticleType1;
 typedef typename std::map<int,PBox> PMap;
 
 template<class PLayout>
-class AmrParticleBase : public IpplParticleBase<PLayout> {
+class AmrParticleBase1 : public IpplParticleBase<PLayout> {
     
 public:
      
@@ -72,11 +80,11 @@ public:
     
     LevelNumCounter_t LocalNumPerLevel_m;
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     static void CIC_Cells_Fracs_Basic (const SingleParticlePos_t &R, const amrex::Real* plo, 
                                        const amrex::Real* dx, amrex::Real* fracs,  amrex::IntVect* cells);
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     static int CIC_Cells_Fracs (const SingleParticlePos_t &R,
                                 const amrex::Real*         plo,
                                 const amrex::Real*         dx_geom,
@@ -96,7 +104,7 @@ public:
                      amrex::Vector<amrex::IntVect>&                    pshifts,
                      std::vector< std::pair<int,amrex::Box> >& isects);
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     void FineCellsToUpdateFromCrse (const int ip,
                                     int lev,
                                     const amrex::IntVect& ccell,
@@ -106,12 +114,12 @@ public:
                                     amrex::Vector<amrex::IntVect>& fcells,
                                     std::vector< std::pair<int,amrex::Box> >& isects);
 
-    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     //sends/receivs the particles that are needed by other processes to during AssignDensity
     void AssignDensityDoit(int level, amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf, PMap& data,
                            int ncomp, int lev_min = 0);
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     // Assign values from grid back to particles
     void Interp(const SingleParticlePos_t &R, const amrex::Geometry &geom, const amrex::FArrayBox& fab, 
                 const int* idx, amrex::Real* val, int cnt);
@@ -160,16 +168,16 @@ public:
 public: 
 
     //constructor: initializes timers and default variables
-    AmrParticleBase() : allow_particles_near_boundary(false), LocalNumPerLevel_m() { 
+    AmrParticleBase1() : allow_particles_near_boundary(false), LocalNumPerLevel_m() { 
         AssignDensityTimer_m = IpplTimings::getTimer("AMR AssignDensity");
         SortParticlesTimer_m = IpplTimings::getTimer("AMR sort particles");
         UpdateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
     }
 
     // destructor - delete the layout if necessary
-    ~AmrParticleBase() { }
+    ~AmrParticleBase1() { }
 
-    //initialize AmrParticleBase class - add level and grid variables to attribute list
+    //initialize AmrParticleBase1 class - add level and grid variables to attribute list
     void initializeAmr() {
         this->addAttribute(m_lev);
         this->addAttribute(m_grid);
@@ -319,6 +327,20 @@ public:
             (*abeg)->sort(sortlist);
     }
     
+    
+    template <class AType,
+              typename std::enable_if<std::is_scalar<AType>::value>::type* = nullptr>
+    double& get(ParticleAttrib<AType>& pa, int i, int nc) {
+        return pa[i];
+    }
+    
+    
+    template <class AType,
+              typename std::enable_if<is_Vektor<AType>::value>::type* = nullptr >
+    double& get(ParticleAttrib<AType>& pa, int i, int nc) {
+        return pa[i](nc);
+    }
+    
     template <class AType>
     void AssignDensityFort (ParticleAttrib<AType> &pa,
                             amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
@@ -337,7 +359,7 @@ public:
 					   int ncomp=1, int particle_lvl_offset = 0) const;
 
 
-    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     //Scatter the particle attribute pa on the grid 
     template <class AType>
         void AssignDensity(ParticleAttrib<AType> &pa,
@@ -451,7 +473,7 @@ public:
             amrex::Vector<amrex::Real>    fracs(M),  cfracs(M);
             amrex::Vector<amrex::IntVect> cells(M),  ccells(M), cfshifts(M);
 
-            ParticleType pb;
+            ParticleType1 pb;
 
             //
             // I'm going to allocate these badboys here & pass'm into routines that use'm.
@@ -1080,7 +1102,7 @@ public:
             IpplTimings::stopTimer(AssignDensityTimer_m);
         }
 
-    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     //Assign density for a single level
     template <class AType> 
         void AssignDensitySingleLevel (ParticleAttrib<AType> &pa, 
@@ -1097,7 +1119,7 @@ public:
             }
         }
 
-    // Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    // Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     template <class AType>
         void AssignCellDensitySingleLevel(ParticleAttrib<AType> &pa,
                                           amrex::MultiFab& mf_to_be_filled,
@@ -1208,7 +1230,7 @@ public:
     
         }
 
-    //Function from AMReX adjusted to work with Ippl AmrParticleBase class
+    //Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
     template<class AType>
         void NodalDepositionSingleLevel(ParticleAttrib<AType> &pa,
                                         amrex::MultiFab& mf_to_be_filled,
@@ -1267,43 +1289,52 @@ public:
                     
                     amrex::IntVect m_cell = Layout->Index(this->R[ip], this->m_lev[ip]);
                     cells[0] = m_cell;
-                    cells[1] = m_cell+amrex::IntVect(1,0,0);
-                    cells[2] = m_cell+amrex::IntVect(0,1,0);
-                    cells[3] = m_cell+amrex::IntVect(1,1,0);
-                    cells[4] = m_cell+amrex::IntVect(0,0,1);
-                    cells[5] = m_cell+amrex::IntVect(1,0,1);
-                    cells[6] = m_cell+amrex::IntVect(0,1,1);
-                    cells[7] = m_cell+amrex::IntVect(1,1,1);
+                    cells[1] = m_cell+amrex::IntVect(D_DECL(1,0,0));
+                    cells[2] = m_cell+amrex::IntVect(D_DECL(0,1,0));
+                    cells[3] = m_cell+amrex::IntVect(D_DECL(1,1,0));
+#if AMREX_SPACEDIM == 3
+                    cells[4] = m_cell+amrex::IntVect(D_DECL(0,0,1));
+                    cells[5] = m_cell+amrex::IntVect(D_DECL(1,0,1));
+                    cells[6] = m_cell+amrex::IntVect(D_DECL(0,1,1));
+                    cells[7] = m_cell+amrex::IntVect(D_DECL(1,1,1));
+#endif
 
                     amrex::Real x = this->R[ip][0] / dx[0];
                     amrex::Real y = this->R[ip][1] / dx[1];
+#if AMREX_SPACEDIM == 3
                     amrex::Real z = this->R[ip][2] / dx[2];
-
+#endif
+                    
                     int i = m_cell[0];
                     int j = m_cell[1];
+#if AMREX_SPACEDIM == 3
                     int k = m_cell[2];
+#endif
 
                     amrex::Real xint = x - i;
                     amrex::Real yint = y - j;
+#if AMREX_SPACEDIM == 3
                     amrex::Real zint = z - k;
-
+#endif
                     sx[0] = 1.0-xint;
                     sx[1] = xint;
                     sy[0] = 1.0-yint;
                     sy[1] = yint;
+#if AMREX_SPACEDIM == 3
                     sz[0] = 1.0-zint;
                     sz[1] = zint;
-
-                    fracs[0] = sx[0] * sy[0] * sz[0];
-                    fracs[1] = sx[1] * sy[0] * sz[0];
-                    fracs[2] = sx[0] * sy[1] * sz[0];
-                    fracs[3] = sx[1] * sy[1] * sz[0];
+#endif
+                    fracs[0] = AMREX_D_TERM(sx[0], * sy[0], * sz[0]);
+                    fracs[1] = AMREX_D_TERM(sx[1], * sy[0], * sz[0]);
+                    fracs[2] = AMREX_D_TERM(sx[0], * sy[1], * sz[0]);
+                    fracs[3] = AMREX_D_TERM(sx[1], * sy[1], * sz[0]);
+#if AMREX_SPACEDIM == 3
                     fracs[4] = sx[0] * sy[0] * sz[1];
                     fracs[5] = sx[1] * sy[0] * sz[1];
                     fracs[6] = sx[0] * sy[1] * sz[1];
                     fracs[7] = sx[1] * sy[1] * sz[1];
-
-                    for (int i = 0; i < 8; i++)
+#endif
+                    for (int i = 0; i < AMREX_D_TERM(2, * 2, * 2); i++)
                         fab(cells[i],0) += pa[ip] * fracs[i];
 
                 }
@@ -1365,6 +1396,6 @@ public:
  
 };
 
-#include "AmrParticleBase.hpp"
+#include "AmrParticleBase1.hpp"
 
 #endif
