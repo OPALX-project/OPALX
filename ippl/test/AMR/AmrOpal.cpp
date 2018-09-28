@@ -428,7 +428,7 @@ AmrOpal::MakeNewLevel (int lev, amrex::Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(new_grids, dmap[lev], 1, 1));
+    nChargePerCell_m[lev] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(new_grids, new_dmap, 1, 1));
 }
 
 void AmrOpal::ClearLevel(int lev) {
