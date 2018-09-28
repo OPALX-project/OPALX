@@ -10,68 +10,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-using Physics::pi;
-
 extern Inform *gmsg;
-
-// template <class T, unsigned Dim>
-// PartBunchBase<T, Dim>::PartBunchBase()
-//     : pbase(nullptr),
-//       myNode_m(Ippl::myNode()),
-//       nodes_m(Ippl::getNodes()),
-//       fixed_grid(false),
-//       pbin_m(nullptr),
-//       lossDs_m(nullptr),
-//       pmsg_m(nullptr),
-//       f_stream(nullptr),
-//       unit_state_(units),
-//       stateOfLastBoundP_(unitless),
-//       moments_m(),
-//       dt_m(0.0),
-//       t_m(0.0),
-//       eKin_m(0.0),
-//       dE_m(0.0),
-//       spos_m(0.0),
-//       rmax_m(0.0),
-//       rmin_m(0.0),
-//       rrms_m(0.0),
-//       prms_m(0.0),
-//       rmean_m(0.0),
-//       pmean_m(0.0),
-//       eps_m(0.0),
-//       eps_norm_m(0.0),
-//       rprms_m(0.0),
-//       Dx_m(0.0),
-//       Dy_m(0.0),
-//       DDx_m(0.0),
-//       DDy_m(0.0),
-//       hr_m(-1.0),
-//       nr_m(0),
-//       fs_m(nullptr),
-//       couplingConstant_m(0.0),
-//       qi_m(0.0),
-//       distDump_m(0),
-//       fieldDBGStep_m(0),
-//       dh_m(1e-12),
-//       tEmission_m(0.0),
-//       bingamma_m(nullptr),
-//       binemitted_m(nullptr),
-//       lPath_m(0.0),
-//       stepsPerTurn_m(0),
-//       localTrackStep_m(0),
-//       globalTrackStep_m(0),
-//       numBunch_m(1),
-//       SteptoLastInj_m(0),
-//       globalPartPerNode_m(nullptr),
-//       dist_m(nullptr),
-//       globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-//       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-//       lowParticleCount_m(false),
-//       dcBeam_m(false)
-// {
-//     R(*(pbase->R_p));   // undefined behaviour due to reference to null pointer
-//     ID(*(pbase->ID_p));   // undefined behaviour due to reference to null pointer
-// }
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
@@ -163,229 +102,10 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
 
 template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref)
-    : R(*(pb->R_p)),
-      ID(*(pb->ID_p)),
-      myNode_m(Ippl::myNode()),
-      nodes_m(Ippl::getNodes()),
-      fixed_grid(false),
-      pbin_m(nullptr),
-      lossDs_m(nullptr),
-      pmsg_m(nullptr),
-      f_stream(nullptr),
-      lowParticleCount_m(false),
-      reference(ref),
-      unit_state_(units),
-      stateOfLastBoundP_(unitless),
-      moments_m(),
-      dt_m(0.0),
-      t_m(0.0),
-      eKin_m(0.0),
-      dE_m(0.0),
-      spos_m(0.0),
-      globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-      globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-      rmax_m(0.0),
-      rmin_m(0.0),
-      rrms_m(0.0),
-      prms_m(0.0),
-      rmean_m(0.0),
-      pmean_m(0.0),
-      eps_m(0.0),
-      eps_norm_m(0.0),
-      rprms_m(0.0),
-      Dx_m(0.0),
-      Dy_m(0.0),
-      DDx_m(0.0),
-      DDy_m(0.0),
-      hr_m(-1.0),
-      nr_m(0),
-      fs_m(nullptr),
-      couplingConstant_m(0.0),
-      qi_m(0.0),
-      distDump_m(0),
-      fieldDBGStep_m(0),
-      dh_m(1e-12),
-      tEmission_m(0.0),
-      bingamma_m(nullptr),
-      binemitted_m(nullptr),
-      lPath_m(0.0),
-      stepsPerTurn_m(0),
-      localTrackStep_m(0),
-      globalTrackStep_m(0),
-      numBunch_m(1),
-      SteptoLastInj_m(0),
-      globalPartPerNode_m(nullptr),
-      dist_m(nullptr),
-      dcBeam_m(false),
-      periodLength_m(Physics::c / 1e9),
-      pbase(pb)
+    : PartBunchBase(pb)
 {
-    setup(pb);
-
-    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
-    boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
-    boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
-    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-
-    histoTimer_m = IpplTimings::getTimer("Histogram");
-
-    distrCreate_m = IpplTimings::getTimer("Create Distr");
-    distrReload_m = IpplTimings::getTimer("Load Distr");
-
-    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
-
-    pmsg_m.release();
-    //    f_stream.release();
-    /*
-      if(Ippl::getNodes() == 1) {
-          f_stream = std::unique_ptr<ofstream>(new ofstream);
-          f_stream->open("data/dist.dat", ios::out);
-          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
-      }
-    */
+    reference = ref;
 }
-
-template <class T, unsigned Dim>
-PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb,
-                                     const std::vector<OpalParticle>& rhs,
-                                     const PartData *ref):
-    R(*(pb->R_p)),
-    ID(*(pb->ID_p)),
-    myNode_m(Ippl::myNode()),
-    nodes_m(Ippl::getNodes()),
-    fixed_grid(false),
-    pbin_m(nullptr),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
-    lowParticleCount_m(false),
-    reference(ref),
-    unit_state_(units),
-    stateOfLastBoundP_(unitless),
-    moments_m(),
-    dt_m(0.0),
-    t_m(0.0),
-    eKin_m(0.0),
-    dE_m(0.0),
-    spos_m(0.0),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    rmax_m(0.0),
-    rmin_m(0.0),
-    rrms_m(0.0),
-    prms_m(0.0),
-    rmean_m(0.0),
-    pmean_m(0.0),
-    eps_m(0.0),
-    eps_norm_m(0.0),
-    rprms_m(0.0),
-    Dx_m(0.0),
-    Dy_m(0.0),
-    DDx_m(0.0),
-    DDy_m(0.0),
-    hr_m(-1.0),
-    nr_m(0),
-    fs_m(nullptr),
-    couplingConstant_m(0.0),
-    qi_m(0.0),
-    distDump_m(0),
-    fieldDBGStep_m(0),
-    dh_m(1e-12),
-    tEmission_m(0.0),
-    bingamma_m(nullptr),
-    binemitted_m(nullptr),
-    lPath_m(0.0),
-    stepsPerTurn_m(0),
-    localTrackStep_m(0),
-    globalTrackStep_m(0),
-    numBunch_m(1),
-    SteptoLastInj_m(0),
-    globalPartPerNode_m(nullptr),
-    dist_m(nullptr),
-    dcBeam_m(false),
-    periodLength_m(Physics::c / 1e9),
-    pbase(pb)
-{
-
-}
-
-
-template <class T, unsigned Dim>
-PartBunchBase<T, Dim>::PartBunchBase(const PartBunchBase<T, Dim>& rhs):
-    R(rhs.R),
-    ID(rhs.ID),
-    myNode_m(Ippl::myNode()),
-    nodes_m(Ippl::getNodes()),
-    fixed_grid(rhs.fixed_grid),
-    pbin_m(nullptr),
-    lossDs_m(nullptr),
-    pmsg_m(nullptr),
-    f_stream(nullptr),
-    lowParticleCount_m(rhs.lowParticleCount_m),
-    reference(rhs.reference),
-    unit_state_(rhs.unit_state_),
-    stateOfLastBoundP_(rhs.stateOfLastBoundP_),
-    moments_m(rhs.moments_m),
-    dt_m(rhs.dt_m),
-    t_m(rhs.t_m),
-    eKin_m(rhs.eKin_m),
-    dE_m(rhs.dE_m),
-    spos_m(0.0),
-    globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
-    globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
-    rmax_m(rhs.rmax_m),
-    rmin_m(rhs.rmin_m),
-    rrms_m(rhs.rrms_m),
-    prms_m(rhs.prms_m),
-    rmean_m(rhs.rmean_m),
-    pmean_m(rhs.pmean_m),
-    eps_m(rhs.eps_m),
-    eps_norm_m(rhs.eps_norm_m),
-    rprms_m(rhs.rprms_m),
-    Dx_m(rhs.Dx_m),
-    Dy_m(rhs.Dy_m),
-    DDx_m(rhs.DDx_m),
-    DDy_m(rhs.DDy_m),
-    hr_m(rhs.hr_m),
-    nr_m(rhs.nr_m),
-    fs_m(nullptr),
-    couplingConstant_m(rhs.couplingConstant_m),
-    qi_m(rhs.qi_m),
-    distDump_m(rhs.distDump_m),
-    fieldDBGStep_m(rhs.fieldDBGStep_m),
-    dh_m(rhs.dh_m),
-    tEmission_m(rhs.tEmission_m),
-    bingamma_m(nullptr),
-    binemitted_m(nullptr),
-    lPath_m(rhs.lPath_m),
-    stepsPerTurn_m(rhs.stepsPerTurn_m),
-    localTrackStep_m(rhs.localTrackStep_m),
-    globalTrackStep_m(rhs.globalTrackStep_m),
-    numBunch_m(rhs.numBunch_m),
-    SteptoLastInj_m(rhs.SteptoLastInj_m),
-    globalPartPerNode_m(nullptr),
-    dist_m(nullptr),
-    dcBeam_m(rhs.dcBeam_m),
-    periodLength_m(rhs.periodLength_m),
-    pbase(rhs.pbase)
-{
-}
-
-
-// template <class T, unsigned Dim>
-// AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() {
-//     return pbase;
-// }
-//
-//
-// template <class T, unsigned Dim>
-// const AbstractParticle<T, Dim>* PartBunchBase<T, Dim>::getParticleBase() const {
-//     return pbase;
-// }
-
 
 /*
  * Bunch common member functions
@@ -1900,12 +1620,12 @@ double PartBunchBase<T, Dim>::calcMeanPhi() {
     for(int ii = 0; ii < emittedBins; ii++) {
         phi[ii] = calculateAngle(px[ii], py[ii]);
         meanPhi += phi[ii];
-        INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * 180.0 / pi - 90.0 << "[degree]" << endl);
+        INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * 180.0 / Physics::pi - 90.0 << "[degree]" << endl);
     }
 
     meanPhi /= emittedBins;
 
-    INFOMSG("mean phi of all particles " <<  meanPhi * 180.0 / pi - 90.0 << "[degree]" << endl);
+    INFOMSG("mean phi of all particles " <<  meanPhi * 180.0 / Physics::pi - 90.0 << "[degree]" << endl);
 
     return meanPhi;
 }
@@ -2472,12 +2192,12 @@ const ParticleLayout<T, Dim>& PartBunchBase<T, Dim>::getLayout() const {
 }
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::getUpdateFlag(UpdateFlags f) const {
+bool PartBunchBase<T, Dim>::getUpdateFlag(UpdateFlags_t f) const {
     return pbase->getUpdateFlag(f);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setUpdateFlag(UpdateFlags f, bool val) {
+void PartBunchBase<T, Dim>::setUpdateFlag(UpdateFlags_t f, bool val) {
     pbase->setUpdateFlag(f, val);
 }
 
@@ -2538,7 +2258,7 @@ void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
 
 template <class T, unsigned Dim>
 FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
-    const double  N =  static_cast<double>(this->getTotalNum());
+    //const double  N =  static_cast<double>(this->getTotalNum());
 
     Vektor<double, 2*Dim> rpmean;
     for (unsigned int i = 0; i < Dim; i++) {
@@ -2546,7 +2266,7 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
         rpmean((2*i)+1)= pmean_m(i);
     }
     
-    FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix = moments_m / N;
+    FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix;// = moments_m / N;
     for (unsigned int i = 0; i < 2 * Dim; i++) {
         for (unsigned int j = 0; j <= i; j++) {
             sigmaMatrix[i][j] = moments_m(i, j) -  rpmean(i) * rpmean(j);
