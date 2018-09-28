@@ -21,6 +21,8 @@
 
 #include "../Solver.h"
 
+#include <AMReX_AmrParticles.H>
+
 using namespace amrex;
 
 

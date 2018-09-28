@@ -514,7 +514,8 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     IpplTimings::startTimer(this->amrSolveTimer_m);
     
-    solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
+    // in case of binning we reset phi every time
+    solver->solve(rho_m, phi_m, efield_m, 0, finest_level, false);
     
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
@@ -554,7 +555,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      * dumping only
      */
     if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
-        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
+        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep(), bin);
         
         int nLevel = finest_level + 1;
         
@@ -742,6 +743,9 @@ void AmrBoxLib::ClearLevel(int lev) {
     efield_m[lev].reset(nullptr);
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
+    
+//     layout_mp->ClearParticleBoxArray(lev);
+//     layout_mp->ClearParticleDistributionMap(lev);
 }
 
 

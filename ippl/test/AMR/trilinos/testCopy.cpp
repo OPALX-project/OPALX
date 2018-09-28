@@ -465,5 +465,7 @@ int main(int argc, char* argv[]) {
 
     IpplTimings::print();
     
+    amrex::Finalize(true);
+    
     return 0;
 }

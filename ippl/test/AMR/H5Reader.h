@@ -81,7 +81,7 @@ public:
     /*!
      * Write a particle distribution to a file
      */
-    void write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch);
+    void write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch, int step=0);
 #endif
     
     /*!

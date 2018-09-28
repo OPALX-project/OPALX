@@ -32,7 +32,7 @@
 
 #include <AMReX_ParmParse.H>
 
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 #include "ParticleAmrLayout.h"
 #include "PartBunchAmr.h"
 
@@ -55,7 +55,7 @@ using namespace amrex;
 typedef Vektor<double, AMREX_SPACEDIM> Vector_t;
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
-typedef AmrParticleBase<amrplayout_t> amrbase_t;
+typedef AmrParticleBase1<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
 void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
@@ -336,6 +336,8 @@ int main(int argc, char *argv[]) {
     }
     
     IpplTimings::print(timefile.str());
+    
+    amrex::Finalize(true);
     
     return 0;
 }

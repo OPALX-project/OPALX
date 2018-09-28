@@ -19,7 +19,6 @@
 
 #define AMR_MG_TIMER true
 #define AMR_MG_WRITE false
-#define DEBUG false
 
 class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     
@@ -227,11 +226,11 @@ private:
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
-     * @param previous solution as initial guess
+     * @param regrid was performed
      */
     void initLevels_m(const amrex::Vector<AmrField_u>& rho,
                       const amrex::Vector<AmrGeometry_t>& geom,
-                      bool previous);
+                      bool regrid);
     
     /*!
      * Clear masks (required to build matrices) no longer needed.
@@ -240,9 +239,9 @@ private:
     
     /*!
      * Reset potential to zero (currently)
-     * @param previous solution as initial guess
+     * @param reset solution to initial guess (zero)
      */
-    void initGuess_m(bool previous);
+    void initGuess_m(bool reset);
     
     /*!
      * Actual solve.

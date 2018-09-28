@@ -18,6 +18,8 @@
 #include <AMReX_Particles.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <AMReX_AmrParticles.H>
+
 using namespace amrex;
 
 struct TestParams {

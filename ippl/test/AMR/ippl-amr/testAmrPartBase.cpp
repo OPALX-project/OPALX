@@ -44,16 +44,18 @@ Usage:
 
 #include <cmath>
 
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 #include "ParticleAmrLayout.h"
 #include "PartBunchAmr.h"
+
+#include <AMReX_AmrParticles.H>
 
 #define Dim 3
 
 using namespace amrex;
 
 typedef ParticleAmrLayout<double,Dim> amrplayout_t;
-typedef AmrParticleBase<amrplayout_t> amrbase_t;
+typedef AmrParticleBase1<amrplayout_t> amrbase_t;
 typedef PartBunchAmr<amrplayout_t> amrbunch_t;
 
 typedef std::deque<Particle<4,0> > PBox4;
@@ -523,6 +525,8 @@ int main(int argc, char *argv[]) {
   }
 
   IpplTimings::print();
+  
+  amrex::Finalize(true);
 
   return 0;
 }
