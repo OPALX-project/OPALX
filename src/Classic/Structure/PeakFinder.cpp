@@ -7,15 +7,16 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
-
-PeakFinder::PeakFinder(std::string elem):
-    element_m(elem), nBins_m(10), binWidth_m(1.0 /*mm*/),
-    globMin_m(0.0),globMax_m(5000.0)
-{}
-
-
-PeakFinder::PeakFinder() : PeakFinder(std::string("NULL"))
-{ }
+PeakFinder::PeakFinder(std::string elem, double min, double max, double binWidth, bool singlemode):
+    element_m(elem), binWidth_m(binWidth),
+    min_m(min), max_m(max), singlemode_m(singlemode)
+{
+    if (min_m > max_m) {
+        std::swap(min_m, max_m);
+    }
+    // calculate bins, round up so that histogram is large enough (add one for safety)
+    nBins_m = static_cast<unsigned int>(std::ceil(( max_m - min_m ) / binWidth_m)) + 1;
+}
 
 
 void PeakFinder::addParticle(const Vector_t& R) {
@@ -28,14 +29,20 @@ void PeakFinder::save() {
     
     createHistogram_m();
 
-    bool found = findPeaks(smoothingNumber_m,
-                           minArea_m,
-                           minFractionalArea_m,
-                           minAreaAboveNoise_m,
-                           minSlope_m);
+    bool found = false;
+    
+    if ( Ippl::getNodes() == 1 && singlemode_m == true) {
+        found = findPeaks();
+    } else {
+        found = findPeaks(smoothingNumber_m,
+                          minArea_m,
+                          minFractionalArea_m,
+                          minAreaAboveNoise_m,
+                          minSlope_m);
+    }
     
     if ( found ) {
-        fn_m = element_m + std::string(".peaks");
+        fn_m   = element_m + std::string(".peaks");
         hist_m = element_m + std::string(".hist");
         
         INFOMSG("Save " << fn_m << " and " << hist_m << endl);
@@ -56,6 +63,13 @@ void PeakFinder::save() {
     globHist_m.clear();
     peakRadii_m.clear();
     fourSigmaPeaks_m.clear();
+}
+
+
+bool PeakFinder::findPeaks() {
+    for (const auto &radius : radius_m)
+        peakRadii_m.push_back(radius);
+    return !peakRadii_m.empty();
 }
 
 
@@ -175,7 +189,7 @@ bool PeakFinder::findPeaks(int smoothingNumber,
     positions.reserve(nBins_m);
     
     for (unsigned int i = 0; i < nBins_m; i++) {
-        positions.push_back(globMin_m + (i + 0.5) * binWidth_m);
+        positions.push_back(min_m + (i + 0.5) * binWidth_m);
     }
     
     for (int i = 1; i < (int)(peakSeparatingIndices.size()); i++) {
@@ -272,42 +286,17 @@ void PeakFinder::analysePeak(const container_t& values,
 
 
 void PeakFinder::createHistogram_m() {
-    /* A core might have no particles, thus, using initial high values
-     * in order to find real global minimum and maximum among all cores.
-     * It might happen that no particles hit the probe and subsequently the
-     * container radius_m would be empty for all MPI processes. In that case we
-     * fix the number of bins to a small value in order to avoid a drastic memory
-     * increase.
-     */
-    double locMin = 1e10, locMax = -1e10;
-    if (!radius_m.empty()) {
-        // compute global minimum and maximum radius
-        auto result = std::minmax_element(radius_m.begin(), radius_m.end());
-    
-        locMin = *result.first;
-        locMax = *result.second;
-    }
-    
-    reduce(locMin, globMin_m, OpMinAssign());
-    reduce(locMax, globMax_m, OpMaxAssign());
-    
     /*
      * create local histograms
      */
-
-    if (globMax_m < -1e9)
-        nBins_m = 10; // no particles in probe
-    else {
-        // calculate bins, round up so that histogram is large enough (add one for safety)
-        nBins_m = static_cast<unsigned int>(std::ceil(( globMax_m - globMin_m ) / binWidth_m)) + 1;
-    }
     
     globHist_m.resize(nBins_m);
     container_t locHist(nBins_m,0.0);
 
     double invBinWidth = 1.0 / binWidth_m;
     for(container_t::iterator it = radius_m.begin(); it != radius_m.end(); ++it) {
-        int bin = static_cast<int>(std::abs(*it - globMin_m ) * invBinWidth);
+        int bin = static_cast<int>(std::abs(*it - min_m ) * invBinWidth);
+        if (bin < 0 || (unsigned int)bin >= nBins_m) continue; // Probe might save particles outside its boundary
         ++locHist[bin];
     }
     
@@ -350,8 +339,8 @@ void PeakFinder::saveASCII_m() {
             os_m << radius << std::endl;
         
         hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
-              << globMin_m << " mm "
-              << globMax_m << " mm "
+              << min_m << " mm "
+              << max_m << " mm "
               << nBins_m << " "
               << binWidth_m << " mm" << std::endl;
         for (auto binCount : globHist_m)

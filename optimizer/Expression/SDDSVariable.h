@@ -9,6 +9,7 @@
 
 #include "Util/Types.h"
 #include "Util/SDDSReader.h"
+#include "Util/SDDSParser/SDDSParserException.h"
 #include "Expression/Parser/function.hpp"
 
 
@@ -22,6 +23,11 @@ struct SDDSVariable {
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
 
+        if (args.size() != 3) {
+            throw OptPilotException("SDDSVariable::operator()",
+                                    "sddsVariableAt expects 3 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         var_name_      = boost::get<std::string>(args[0]);
         spos_          = boost::get<double>(args[1]);
         stat_filename_ = boost::get<std::string>(args[2]);
@@ -31,7 +37,7 @@ struct SDDSVariable {
         boost::scoped_ptr<SDDSReader> sim_stats(new SDDSReader(stat_filename_));
         try {
             sim_stats->parseFile();
-        } catch (OptPilotException &ex) {
+        } catch (SDDSParserException &ex) {
             std::cout << "Caught exception: " << ex.what() << std::endl;
             is_valid = false;
         }
@@ -39,9 +45,14 @@ struct SDDSVariable {
         double sim_value = 0.0;
         try {
             sim_stats->getInterpolatedValue(spos_, var_name_, sim_value);
-        } catch(OptPilotException &e) {
+        } catch(SDDSParserException &e) {
             std::cout << "Exception while getting value "
                       << "from SDDS file: " << e.what()
+                      << std::endl;
+            is_valid = false;
+        } catch(...) {
+            std::cout << "Exception while getting '" + var_name_ + "' "
+                      << "from SDDS file. "
                       << std::endl;
             is_valid = false;
         }
@@ -79,6 +90,11 @@ struct sameSDDSVariable {
     }
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 2) {
+            throw OptPilotException("sameSDDSVariable::operator()",
+                                    "statVariableAt expects 2 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         args.push_back(stat_filename_);
         return var_(args);
     }

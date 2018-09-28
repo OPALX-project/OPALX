@@ -52,15 +52,8 @@ public:
 
     virtual void goOffline();
 
-    void setXstart(double xstart);
-
-    void setXend(double xend);
-
-    void setYstart(double ystart);
-    void setYend(double yend);
-
-
-    void setWidth(double width);
+    /// Set dimensions and consistency checks
+    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
 
     virtual double getXstart() const;
 
@@ -81,11 +74,16 @@ public:
 private:
     std::string filename_m;             /**< The name of the inputfile*/
     double position_m;
+    ///@{ input geometry positions
     double xstart_m;
     double xend_m;
     double ystart_m;
     double yend_m;
+    double rstart_m;
+    double rend_m;
     double width_m;
+    ///@}
+
     // Not implemented.
     void operator=(const Septum &);
 };

@@ -25,6 +25,11 @@ public:
      */
     void getPeak(int nPeak, double& radius);
     
+    /**
+     * @returns the number of peaks in the file
+     */
+    std::size_t getNumberOfPeaks();
+    
 private:
     /// Peak filename
     std::string filename_m;

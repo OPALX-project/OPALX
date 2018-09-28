@@ -13,6 +13,7 @@
 
 #include "Physics/Physics.h"
 
+#include "Algorithms/OrbitThreader.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/CCollimator.h"
@@ -54,10 +55,16 @@ public:
 
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelSliceTracker(const Beamline &bl, EnvelopeBunch &bunch,
-                                  DataSink &ds, const PartData &data,
-                                  bool revBeam, bool revTrack, int maxSTEPS,
-                                  double zstop);
+    explicit ParallelSliceTracker(const Beamline &bl,
+                                  EnvelopeBunch &bunch,
+                                  DataSink &ds,
+                                  const PartData &data,
+                                  bool revBeam,
+                                  bool revTrack,
+                                  const std::vector<unsigned long long> &maxSTEPS,
+                                  double zstart,
+                                  const std::vector<double> &zstop,
+                                  const std::vector<double> &dt);
 
     virtual ~ParallelSliceTracker();
 
@@ -82,6 +89,7 @@ public:
     virtual void visitSeparator(const Separator &);
     virtual void visitSeptum(const Septum &);
     virtual void visitSolenoid(const Solenoid &);
+    virtual void visitSource(const Source &);
     virtual void visitParallelPlate(const ParallelPlate &);
     virtual void visitCyclotronValley(const CyclotronValley &);
 
@@ -98,22 +106,41 @@ private:
     ParallelSliceTracker(const ParallelSliceTracker &);
     void operator=(const ParallelSliceTracker &);
 
+    void saveCavityPhases();
+    void restoreCavityPhases();
     void updateRFElement(std::string elName, double maxPhi);
     void printRFPhases();
+
+    void findStartPosition(const BorisPusher &pusher);
+    void autophaseCavities(const BorisPusher &pusher);
 
     double currentSimulationTime_m;
     bool globalEOL_m;
 
-    std::unique_ptr<OpalBeamline> itsOpalBeamline_m;
+    OpalBeamline itsOpalBeamline_m;
 
     EnvelopeBunch *itsBunch_m;
 
     DataSink *itsDataSink_m;
 
-    /// The maximal number of steps the system is integrated
-    unsigned long long maxSteps_m;
+    Vector_t RefPartR_m;
+    Vector_t RefPartP_m;
 
-    double zstop_m;
+    double pathLength_m;
+
+    /// where to start
+    double zstart_m;
+
+    /// where to stop
+    std::queue<double> zStop_m;
+
+    double dtCurrentTrack_m;
+    std::queue<double> dtAllTracks_m;
+
+    /// The maximal number of steps the system is integrated per TRACK
+    std::queue<unsigned long long> localTrackSteps_m;
+
+    CoordinateSystemTrafo referenceToLabCSTrafo_m;
 
     // Fringe fields for entrance and exit of magnetic elements.
     void applyEntranceFringe(double edge, double curve,
@@ -126,7 +153,8 @@ private:
 
     void kickParticles();
 
-    void updateReferenceParticle();
+    void updateReferenceParticle(const BorisPusher &pusher);
+    // void updateReferenceParticle();
     void updateSpaceOrientation(const bool &move = false);
     void kickReferenceParticle(const Vector_t &externalE,
                                const Vector_t &externalB);
@@ -136,7 +164,7 @@ private:
     void prepareSections();
     void handleAutoPhasing();
     void timeIntegration();
-    void computeExternalFields();
+    void computeExternalFields(OrbitThreader &oth);
     void switchElements(double scaleMargin = 3.0);
     void computeSpaceChargeFields();
     void dumpStats(long long step);
@@ -144,7 +172,9 @@ private:
     void handleRestartRun();
     void setTime();
     void setLastStep();
-
+    unsigned long long getMaxSteps(std::queue<unsigned long long> numSteps);
+    void selectDT();
+    void changeDT();
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef timeFieldEvaluation_m ;
@@ -152,101 +182,104 @@ private:
     IpplTimings::TimerRef WakeFieldTimer_m;
 };
 
-inline void ParallelSliceTracker::visitBeamline(const Beamline &bl) {
-    itsBeamline_m.iterate(*dynamic_cast<BeamlineVisitor *>(this), false);
-}
-
 inline void ParallelSliceTracker::visitAlignWrapper(const AlignWrapper &wrap) {
-    itsOpalBeamline_m->visit(wrap, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(wrap, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitBeamBeam(const BeamBeam &bb) {
-    itsOpalBeamline_m->visit(bb, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(bb, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitCCollimator(const CCollimator &coll) {
-    itsOpalBeamline_m->visit(coll, *this, itsBunch_m);
+    // itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
 }
 
+inline void ParallelSliceTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+    // itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
+}
 
 inline void ParallelSliceTracker::visitCorrector(const Corrector &corr) {
-    itsOpalBeamline_m->visit(corr, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(corr, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitDegrader(const Degrader &deg) {
-    itsOpalBeamline_m->visit(deg, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(deg, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitDiagnostic(const Diagnostic &diag) {
-    itsOpalBeamline_m->visit(diag, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(diag, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitDrift(const Drift &drift) {
-    itsOpalBeamline_m->visit(drift, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitLambertson(const Lambertson &lamb) {
-    itsOpalBeamline_m->visit(lamb, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(lamb, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitMarker(const Marker &marker) {
-    itsOpalBeamline_m->visit(marker, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitMonitor(const Monitor &mon) {
-    itsOpalBeamline_m->visit(mon, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(mon, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitMultipole(const Multipole &mult) {
-    itsOpalBeamline_m->visit(mult, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitProbe(const Probe &prob) {
-    itsOpalBeamline_m->visit(prob, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(prob, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitRBend(const RBend &bend) {
-    itsOpalBeamline_m->visit(bend, *this, itsBunch_m);
+    // itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitRFCavity(const RFCavity &as) {
-    itsOpalBeamline_m->visit(as, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitTravelingWave(const TravelingWave &as) {
-    itsOpalBeamline_m->visit(as, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    itsOpalBeamline_m->visit(rfq, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(rfq, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitSBend(const SBend &bend) {
-    itsOpalBeamline_m->visit(bend, *this, itsBunch_m);
+    // itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitSeparator(const Separator &sep) {
-    itsOpalBeamline_m->visit(sep, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(sep, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitSeptum(const Septum &sept) {
-    itsOpalBeamline_m->visit(sept, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(sept, *this, itsBunch_m);
 }
 
 
 inline void ParallelSliceTracker::visitSolenoid(const Solenoid &solenoid) {
-    itsOpalBeamline_m->visit(solenoid, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(solenoid, *this, itsBunch_m);
+}
+
+inline void ParallelSliceTracker::visitSource(const Source &source) {
+    itsOpalBeamline_m.visit(source, *this, itsBunch_m);
 }
 
 inline void ParallelSliceTracker::visitParallelPlate(const ParallelPlate &pplate) {
@@ -258,11 +291,6 @@ inline void ParallelSliceTracker::visitCyclotronValley(const CyclotronValley &cv
 }
 
 inline void ParallelSliceTracker::kickParticles() {
-}
-
-inline void ParallelSliceTracker::updateReferenceParticle() {
-    itsBunch_m->calcBeamParameters();
-
 }
 
 inline void ParallelSliceTracker::updateSpaceOrientation(const bool &move) {
@@ -294,7 +322,7 @@ inline void ParallelSliceTracker::writePhaseSpace(const long long step, const do
         externalB = Vector_t(0.0);
         externalE = Vector_t(0.0);
         double bunch_time = itsBunch_m->getT() - 0.5 * itsBunch_m->getdT();
-        itsOpalBeamline_m->getFieldAt(pos[k], itsBunch_m->get_rmean(),
+        itsOpalBeamline_m.getFieldAt(pos[k], itsBunch_m->get_rmean(),
                                       bunch_time, externalE, externalB);
 
         FDext[2*k]   = externalB;
@@ -338,5 +366,17 @@ inline void ParallelSliceTracker::writeLastStepPhaseSpace(const long long step, 
     } else
         INFOMSG("* Invalid bunch! No statistics dumped." << endl);
 }
+
+inline unsigned long long ParallelSliceTracker::getMaxSteps(std::queue<unsigned long long> numSteps) {
+    unsigned long long totalNumSteps = 0;
+
+    while (numSteps.size() > 0) {
+        totalNumSteps += numSteps.front();
+        numSteps.pop();
+    }
+
+    return totalNumSteps;
+}
+
 
 #endif

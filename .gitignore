@@ -15,6 +15,7 @@ src/OPALrevision.h
 src/opal
 tests/tools/gtest
 tests/opal_unit_tests
+tests/OpalSourcePath.h
 doc/user_guide/opal_user_guide.bcf
 doc/user_guide/opal_user_guide.idx
 doc/user_guide/opal_user_guide.lof

@@ -61,11 +61,13 @@ public:
      *  @param[in] dim number of objectives
      *  @param[in] comms available to the optimizer
      *  @param[in] args the user passed on the command line
+     *  @param[in] hypervolRef hypervolume reference point
      */
     FixedPisaNsga2(Expressions::Named_t objectives,
                    Expressions::Named_t constraints,
                    DVarContainer_t dvars, size_t dim, Comm::Bundle_t comms,
-                   CmdArguments_t args);
+                   CmdArguments_t args,
+                   std::vector<double> hypervolRef);
 
     ~FixedPisaNsga2();
 
@@ -162,7 +164,7 @@ private:
     std::string execAlgo_m;
 
     /// indicating if initial population has been created
-    bool notInitialized_m;
+    bool initialized_m;
 
 
     /// bounds on each specified gene
@@ -175,10 +177,12 @@ private:
     DVarContainer_t dvars_m;
 
     /// command line arguments specified by the user
-    CmdArguments_t args_;
+    CmdArguments_t args_m;
 
     /// size of initial population
     size_t alpha_m;
+    /// initial population optimization flag (doubles initial population)
+    bool initialOptimization_m;
     /// number of parents the selector chooses
     //size_t mu_m;
     /// number of children the variator produces
@@ -205,6 +209,9 @@ private:
     double conv_hvol_progress_;
     double hvol_progress_;
 
+    /// hypervolume reference point
+    std::vector<double> hvol_ref_m;
+
     /// file header for result files contains this parameter description
     std::string file_param_descr_;
 
@@ -222,8 +229,8 @@ private:
     /// executes one loop of the PISA state machine
     void runStateMachine();
 
-    /// passes num_individuals to the selector
-    void toSelectorAndCommit(int num_individuals);
+    /// passes finished individuals to the selector
+    void toSelectorAndCommit();
 
     /// how often do we exchange solutions with other optimizers
     size_t exchangeSolStateFreq_m;

@@ -28,6 +28,11 @@
 
 #include <boost/filesystem.hpp>
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 extern Inform *gmsg;
 
 namespace {
@@ -41,6 +46,7 @@ namespace {
         NUMCOWORKERS,
         TEMPLATEDIR,
         FIELDMAPDIR,
+        DISTDIR,
         RASTER,
         SEED,
         SIZE
@@ -68,6 +74,8 @@ SampleCmd::SampleCmd():
         ("TEMPLATEDIR", "Directory where templates are stored");
     itsAttr[FIELDMAPDIR] = Attributes::makeString
         ("FIELDMAPDIR", "Directory where field maps are stored");
+    itsAttr[DISTDIR] = Attributes::makeString
+        ("DISTDIR", "Directory where distributions are stored");
     itsAttr[RASTER] = Attributes::makeBool
         ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
@@ -123,7 +131,11 @@ void SampleCmd::execute() {
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
 
-        vars[var] = std::make_pair(lowerbound, upperbound);
+        auto ret = vars.insert(std::make_pair(var,std::make_pair(lowerbound, upperbound)));
+        if (ret.second == false) {
+            throw OpalException("SampleCmd::execute",
+                                "There is already a design variable with the variable " + var + " defined");
+        }
 
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
@@ -133,10 +145,11 @@ void SampleCmd::execute() {
     size_t modulo = 1;
     unsigned int nSample = std::numeric_limits<unsigned int>::max();
 
+    std::set<std::string> names; // check if all unique variables
     for (size_t i = 0; i < sampling.size(); ++i) {
         // corresponding sampling method
         OpalSample *s = OpalSample::find(sampling[i]);
-        if (s == 0) {
+        if (s == nullptr) {
             throw OpalException("SampleCmd::execute",
                                 "Sampling method not found.");
         }
@@ -146,6 +159,12 @@ void SampleCmd::execute() {
         if ( vars.find(name) == vars.end() ) {
             throw OpalException("SampleCmd::execute",
                                 "Variable '" + name + "' not a DVAR.");
+        }
+
+        auto ret = names.insert(name);
+        if (ret.second == false) {
+            throw OpalException("SampleCmd::execute",
+                                "There is already a sampling method with the variable " + name + " defined");
         }
 
         s->initialize(name,
@@ -258,6 +277,17 @@ void SampleCmd::execute() {
         }
 
         setenv("FIELDMAPS", dir.c_str(), 1);
+    }
+    
+    if (Attributes::getString(itsAttr[DISTDIR]) != "") {
+        fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
+        if (dir.is_relative()) {
+            fs::path path = fs::path(std::string(getenv("PWD")));
+            path /= dir;
+            dir = path;
+        }
+
+        setenv("DISTRIBUTIONS", dir.c_str(), 1);
     }
 
     *gmsg << endl;
