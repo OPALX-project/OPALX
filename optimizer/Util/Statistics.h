@@ -5,9 +5,6 @@
 #include <string>
 #include <iostream>
 
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
-
 template<typename T>
 class Statistics {
 
@@ -42,8 +39,7 @@ public:
         std::cout << "Statistics: " << stat_name_ << std::endl;
 
         T sum = 0;
-        std::pair<std::string, T> stat;
-        foreach(stat, statistics_) {
+        for(std::pair<std::string, T> stat : statistics_) {
             sum += stat.second;
             std::cout << "\t" << stat.first << " = " << stat.second << std::endl;
         }
@@ -56,8 +52,7 @@ public:
         stream << "Statistics: " << stat_name_ << std::endl;
 
         T sum = 0;
-        std::pair<std::string, T> stat;
-        foreach(stat, statistics_) {
+        for (std::pair<std::string, T> stat : statistics_) {
             sum += stat.second;
             stream << "\t" << stat.first << " = " << stat.second << std::endl;
         }

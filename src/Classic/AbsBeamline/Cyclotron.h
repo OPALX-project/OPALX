@@ -119,6 +119,8 @@ public:
     void setRfFieldMapFN(std::vector<std::string> rffmapfn);
     void setRFFCoeffFN(std::vector<std::string> rff_coeff_fn);
     void setRFVCoeffFN(std::vector<std::string> rfv_coeff_fn);
+    
+    int getFieldFlag(const std::string& type) const;
 
     void setType(std::string t);
     const std::string &getCyclotronType() const;
@@ -179,6 +181,9 @@ public:
     void setFMHighE(double e);
     virtual double getFMHighE() const;
 
+    void setTrimCoilThreshold(double);
+    virtual double getTrimCoilThreshold() const;
+
     void setSpiralFlag(bool spiral_flag);
     virtual bool getSpiralFlag() const;
 
@@ -198,7 +203,18 @@ public:
 
     virtual double getRmin() const;
 
+    
+    bool interpolate(const double& rad,
+                     const double& tet_rad,
+                     double& br,
+                     double& bt,
+                     double& bz);
+    
+    void read(const int &fieldflag, const double &scaleFactor);
+    
 protected:
+    
+    
     void   getdiffs();
 
     double gutdf5d(double *f, double dx, const int kor, const int krl, const int lpr);
@@ -235,6 +251,7 @@ private:
     double pzinit_m;
 
     bool spiral_flag_m;
+    double trimCoilThreshold_m; ///< B-field threshold for applying trim coil
 
     std::string type_m; /* what type of field we use */
     double harm_m;

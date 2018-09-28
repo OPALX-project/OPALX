@@ -190,17 +190,19 @@ void FM1DProfile1::readMap() {
 
     }
 
-    if (computeEntranceFringe(entranceParameter1_m) < computeEntranceFringe(entranceParameter3_m))
-        throw GeneralClassicException("FM1DProfile1::readMap",
-                                      "The entry fringe field should be defined such that\n"
-                                      "the field is bigger at z = 'Entrance Parameter 1' than at\n"
-                                      "z = 'Entrance Parameter 3'");
+    if (computeEntranceFringe(entranceParameter1_m) < computeEntranceFringe(entranceParameter3_m)) {
+        for (int index = 0; index < polyOrderEntry_m + 1; ++ index) {
+            if (index % 2 == 0) continue;
+            engeCoeffsEntry_m[index] *= -1;
+        }
+    }
 
-    if (computeExitFringe(exitParameter1_m) < computeExitFringe(exitParameter3_m))
-        throw GeneralClassicException("FM1DProfile1::readMap",
-                                      "The exit fringe field should be defined such that\n"
-                                      "the field is bigger at z = 'Exit Parameter 1' than at\n"
-                                      "z = 'Exit Parameter 3'");
+    if (computeExitFringe(exitParameter1_m) < computeExitFringe(exitParameter3_m)) {
+        for (int index = 0; index < polyOrderExit_m + 1; ++ index) {
+            if (index % 2 == 0) continue;
+            engeCoeffsExit_m[index] *= -1;
+        }
+    }
 }
 
 void FM1DProfile1::freeMap() {

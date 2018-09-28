@@ -1,5 +1,6 @@
 #include "Algorithms/Vektor.h"
 #include "Utilities/MSLang.h"
+#include "Utilities/MSLang/QuadTree.h"
 
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
@@ -33,7 +34,6 @@ int main(int argc, char *argv[])
                     std::istreambuf_iterator<char>());
 
     const unsigned int method = (atoi(argv[2]) == 0 ? 0: 1);
-    std::cout << method << std::endl;
     const unsigned int N = atoi(argv[3]);
 
     // std::string str("repeat( translate(union(rectangle(0.1, 0.1), ellipse(0.1, 0.1)), -0.01, -0.02), 2, 0.1, 0.2)");
@@ -41,9 +41,9 @@ int main(int argc, char *argv[])
     str = boost::regex_replace(str, boost::regex("//.*?\\n"), std::string(""), boost::match_default | boost::format_all);
     str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
 
-     if (parse(str, fun)) {
-        fun->print(0);
-        std::cout << "\n" << std::endl;
+    if (parse(str, fun)) {
+        // fun->print(0);
+        // std::cout << "\n" << std::endl;
 
         std::vector<mslang::Base*> baseBlocks;
         fun->apply(baseBlocks);
@@ -51,7 +51,6 @@ int main(int argc, char *argv[])
         std::ofstream out("test.gpl");
         for (mslang::Base* bfun: baseBlocks) {
             // bfun->print(0);
-            // std::cout << std::endl;
             bfun->computeBoundingBox();
             bfun->writeGnuplot(out);
         }
@@ -86,6 +85,7 @@ int main(int argc, char *argv[])
 
             mslang::QuadTree tree;
             tree.bb_m = mslang::BoundingBox(llc, urc);
+
             tree.objects_m.insert(tree.objects_m.end(), baseBlocks.begin(), baseBlocks.end());
             tree.buildUp();
 
@@ -94,51 +94,52 @@ int main(int argc, char *argv[])
 
             out.close();
 
-            out.open("particles.gpl");
-            gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
+            if (true) {
+                out.open("particles.gpl");
+                gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
-            unsigned int n = 0;
-            IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
-            IpplTimings::startTimer(mainTimer);
+                unsigned int n = 0;
+                IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
+                IpplTimings::startTimer(mainTimer);
 
-            for (unsigned int i = 0; i < N; ++ i) {
-                Vector_t X(0.0);
-                X[0] = llc[0] + (urc[0] - llc[0]) * gsl_rng_uniform(rng);
-                X[1] = llc[1] + (urc[1] - llc[1]) * gsl_rng_uniform(rng);
+                for (unsigned int i = 0; i < N; ++ i) {
+                    Vector_t X(0.0);
+                    X[0] = llc[0] + (urc[0] - llc[0]) * gsl_rng_uniform(rng);
+                    X[1] = llc[1] + (urc[1] - llc[1]) * gsl_rng_uniform(rng);
 
 
-                if (method == 0) {
-                    if (tree.isInside(X)) {
-                        ++ n;
-                        out << std::setw(14) << X[0]
-                            << std::setw(14) << X[1]
-                            << std::endl;
-                    }
-                } else {
-                    for (mslang::Base* func: baseBlocks) {
-                        if (func->isInside(X)) {
+                    if (method == 0) {
+                        if (tree.isInside(X)) {
                             ++ n;
                             out << std::setw(14) << X[0]
                                 << std::setw(14) << X[1]
                                 << std::endl;
-                            break;
+                        }
+                    } else {
+                        for (mslang::Base* func: baseBlocks) {
+                            if (func->isInside(X)) {
+                                ++ n;
+                                out << std::setw(14) << X[0]
+                                    << std::setw(14) << X[1]
+                                    << std::endl;
+                                break;
+                            }
                         }
                     }
                 }
+                IpplTimings::stopTimer(mainTimer);
+
+                std::cout << (double)n / N * 100 << " % of particles passed" << std::endl;
+
+                std::map<std::string, unsigned int> characteristicValues;
+                characteristicValues.insert(std::make_pair("method", method));
+                characteristicValues.insert(std::make_pair("num particles", N));
+                characteristicValues.insert(std::make_pair("num base functions", baseBlocks.size()));
+                std::stringstream ss;
+                ss << "timing__m_=_" << method << "__np_=_" << N << "__nbf_=_" << baseBlocks.size() << ".dat";
+                IpplTimings::print(ss.str(), characteristicValues);
+                gsl_rng_free(rng);
             }
-            IpplTimings::stopTimer(mainTimer);
-
-            std::cout << (double)n / N * 100 << " % of particles passed" << std::endl;
-
-            std::map<std::string, unsigned int> characteristicValues;
-            characteristicValues.insert(std::make_pair("method", method));
-            characteristicValues.insert(std::make_pair("num particles", N));
-            characteristicValues.insert(std::make_pair("num base functions", baseBlocks.size()));
-            std::stringstream ss;
-            ss << "timing__m_=_" << method << "__np_=_" << N << "__nbf_=_" << baseBlocks.size() << ".dat";
-            IpplTimings::print(ss.str(), characteristicValues);
-            gsl_rng_free(rng);
-
 
             for (mslang::Base* func: baseBlocks) {
                 delete func;

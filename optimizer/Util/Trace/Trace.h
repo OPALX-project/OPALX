@@ -7,8 +7,6 @@
 #include <map>
 
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "Util/Trace/TraceComponent.h"
 
@@ -35,7 +33,7 @@ public:
     }
 
     void log(std::ostringstream &dump) {
-        foreach(boost::shared_ptr<TraceComponent> component, pipeline_) {
+        for(boost::shared_ptr<TraceComponent> component : pipeline_) {
             component->execute(dump);
         }
     }

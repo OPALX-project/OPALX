@@ -39,13 +39,15 @@
 #include <iostream>
 #include <sstream>
 
+const double units=1e3;
+
 // generate a set of weird, but closed, elements
 // reaches theta sum after 16 elements
 class OffsetFactory {
   public:
     OffsetFactory(double radius=1., int start=0, double thetaSum=-1.) {
         i_m = start;
-        radius_m = radius;
+        radius_m = radius/units;
         thetaSum_m = thetaSum;
         if (thetaSum_m < 0.)
             thetaSum_m = 2.*Physics::pi;
@@ -71,11 +73,11 @@ class OffsetFactory {
     Component* yieldComp1() {
         nextIsMock_m = !nextIsMock_m;
         if (nextIsMock_m) {
-            Offset* off = new Offset(Offset::localCylindricalOffset("offset2", Physics::pi/6., Physics::pi/6., 2.));
+            Offset* off = new Offset(Offset::localCylindricalOffset("offset2", Physics::pi/6., Physics::pi/6., 2./units));
             offVec_m.push_back(off);
             return off;
         }
-        Offset* off = new Offset(Offset::localCylindricalOffset("offset3", 0., 0., 1.));
+        Offset* off = new Offset(Offset::localCylindricalOffset("offset3", 0., 0., 1./units));
         offVec_m.push_back(off);
         MockComponent* mock = new MockComponent();
         mock->geom_m = &off->getGeometry();
@@ -121,7 +123,7 @@ TEST(RingTest, TestAppend1) {
         ring.setLatticeThetaInit(0.);
         ring.setSymmetry(1);
         ring.setIsClosed(true);
-        Offset off = Offset::localCylindricalOffset("cyl1", 0., Physics::pi/6., 1.);
+        Offset off = Offset::localCylindricalOffset("cyl1", 0., Physics::pi/6., 1./units);
         ring.appendElement(off);
         for (int i = 0; i < 3; ++i) {
             EXPECT_NEAR(ring.getNextPosition()(i), Vector_t(5., -1., 0.)(i), 1e-6);
@@ -156,7 +158,7 @@ TEST(RingTest, TestAppend2) {
         ring.setLatticeThetaInit(0.);
         ring.setSymmetry(1);
         ring.setIsClosed(true);
-        Offset off = Offset::localCylindricalOffset("cyl1", Physics::pi/24., Physics::pi/8., 1.);
+        Offset off = Offset::localCylindricalOffset("cyl1", Physics::pi/24., Physics::pi/8., 1./units);
         ring.appendElement(off);
         for (int i = 0; i < 3; ++i) {
             EXPECT_NEAR(ring.getNextPosition()(i),
