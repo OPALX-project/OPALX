@@ -10,8 +10,6 @@
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "Util/Types.h"
 #include "Util/SDDSReader.h"
@@ -40,6 +38,11 @@ struct SumErrSq {
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
 
+        if (args.size() != 3) {
+            throw OptPilotException("SumErrSq::operator()",
+                                    "sumErrSq expects 3 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         std::string measurement_filename = boost::get<std::string>(args[0]);
         var_name_                        = boost::get<std::string>(args[1]);
         stat_filename_                   = boost::get<std::string>(args[2]);
@@ -58,7 +61,7 @@ struct SumErrSq {
 
         double sum = 0;
 
-        foreach(Measurement measurement, measurements_) {
+        for(Measurement measurement : measurements_) {
             double sim_value = 0.0;
             try {
                 sim_stats->getInterpolatedValue(

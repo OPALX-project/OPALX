@@ -11,8 +11,6 @@
 #include <fstream>
 
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "extlib/wfgHypervolume/hypervolume.h"
 
@@ -33,12 +31,9 @@ class Population {
 public:
     Population() {
         last_identity = 0;
-        hypervolume_  = 0.0;
     }
 
-    ~Population() {
-        clean_population();
-    }
+    ~Population() {}
 
     typedef typename Individual_t::genes_t          genes_t;
     typedef boost::shared_ptr<Individual_t>         individual;
@@ -119,7 +114,7 @@ public:
 
     void commit_individuals(std::set<unsigned int> ids) {
 
-        foreach(unsigned int id, ids) {
+        for (unsigned int id : ids) {
             //std::cout << "--+ committing id = " << id << "\xd";
             individual ind = get_staging(id);
             individuals.insert(ind_t(id, ind));
@@ -128,9 +123,9 @@ public:
     }
 
     /**
-     *  Remove all non-surviving individuals from the population and put ID's
-     *  back in pool of free ID's.
-     *  @param surviors to keep for next generation
+     *  Remove all non-surviving individuals from the population and put IDs
+     *  back in pool of free IDs.
+     *  @param survivors to keep for next generation
      */
     void keepSurvivors(std::set<unsigned int> survivors) {
 
@@ -153,7 +148,7 @@ public:
     //XXX: currently O(n): add a fast look-up table?
     bool isRepresentedInPopulation(genes_t ind_genes) {
 
-        foreach(ind_t ind, individuals) {
+        for(ind_t ind : individuals) {
             if( ind_genes == ind.second->genes )
                 return true;
         }
@@ -162,7 +157,9 @@ public:
     }
 
 
-    double computeHypervolume(size_t island_id) {
+    double computeHypervolume(size_t island_id, const std::vector<double>& referencePoint) {
+        // protection check
+        if (individuals.empty() == true) return -1;
 
         std::ofstream file;
         std::ostringstream filename;
@@ -186,8 +183,7 @@ public:
         file.flush();
         file.close();
 
-        hypervolume_ = Hypervolume::FromFile(filename.str());
-        return hypervolume_;
+        return Hypervolume::FromFile(filename.str(), referencePoint);
     }
 
 
@@ -214,12 +210,12 @@ public:
     /// iterator end on population container
     indItr_t end()   { return individuals.end(); }
 
-    /// Remove (and cleanup) all individuals in the population
-    void clean_population() {
+    /* /// Remove (and cleanup) all individuals in the population */
+    /* void clean_population() { */
 
-        stagingArea.clear();
-        individuals.clear();
-    }
+    /*     stagingArea.clear(); */
+    /*     individuals.clear(); */
+    /* } */
 
 private:
 
@@ -229,16 +225,14 @@ private:
     /// staging area for individuals probably joining population
     std::map<unsigned int, individual > stagingArea;
 
-    /// queue to handle free individual ID's
+    /// queue to handle free individual IDs
     std::queue<unsigned int> freeids;
 
     /// last used (= next free) ID
     unsigned int last_identity;
 
-    double hypervolume_;
-
     /**
-     *  Manages free individual ID's
+     *  Manages free individual IDs
      *  @return lowest free ID
      */
     unsigned int getFreeID() {

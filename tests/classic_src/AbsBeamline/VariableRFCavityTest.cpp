@@ -143,12 +143,12 @@ TEST(VariableRFCavityTest, TestInitialiseFinalise) {
 
 TEST(VariableRFCavityTest, TestGetGeometry) {
     OpalTestUtilities::SilenceTest silencer;
-
+    const double units = 1e-3;
     VariableRFCavity cav1;
     const VariableRFCavity& cav2(cav1);
     EXPECT_EQ(&cav1.getGeometry(), &cav2.getGeometry());
     cav1.setLength(99.);
-    EXPECT_EQ(cav1.getGeometry().getElementLength(), cav1.getLength());
+    EXPECT_EQ(cav1.getGeometry().getElementLength()*units, cav1.getLength());
 }
 
 TEST(VariableRFCavityTest, TestBends) {
@@ -199,7 +199,7 @@ TEST(VariableRFCavityTest, TestApplyField) {
 
 TEST(VariableRFCavityTest, TestApplyBoundingBox) {
     OpalTestUtilities::SilenceTest silencer;
-
+    const double units = 1e-3;
     VariableRFCavity cav1;
     std::shared_ptr<AbstractTimeDependence> poly1(new PolynomialTimeDependence(std::vector<double>(1, 1.)));
     std::shared_ptr<AbstractTimeDependence> poly2(new PolynomialTimeDependence(std::vector<double>(2, 2.)));
@@ -207,9 +207,9 @@ TEST(VariableRFCavityTest, TestApplyBoundingBox) {
     cav1.setAmplitudeModel(poly1);
     cav1.setFrequencyModel(poly2);
     cav1.setPhaseModel(poly3);
-    cav1.setLength(2.);
-    cav1.setHeight(3.);
-    cav1.setWidth(4.);
+    cav1.setLength(2.*units);
+    cav1.setHeight(3.*units);
+    cav1.setWidth(4.*units);
     Vector_t R(0., 0., 1.);
     Vector_t centroid(0., 0., 0.);
     Vector_t B(0., 0., 0.);

@@ -21,6 +21,10 @@ struct RadialPeak {
     static const std::string name;
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 2) {
+            throw OptPilotException("RadialPeak::operator()",
+                                    "radialPeak expects 2 arguments, " + std::to_string(args.size()) + " given");
+        }
 
         peak_filename_ = boost::get<std::string>(args[0]);
         turn_number_   = boost::get<double>(args[1]);

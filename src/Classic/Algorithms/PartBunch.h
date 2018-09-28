@@ -37,13 +37,12 @@ public:
 
     /// Default constructor.
     //  Construct empty bunch.
-    PartBunch(const PartData *ref);
+    explicit PartBunch(const PartData *ref);
 
-    /// Conversion.
-    PartBunch(const std::vector<OpalParticle> &,
-              const PartData *ref);
+    PartBunch() = delete;
+    PartBunch(const PartBunch &) = delete;
+    PartBunch &operator=(const PartBunch &) = delete;
 
-    PartBunch(const PartBunch &);
     ~PartBunch();
 
 //     pbase_t* clone();
@@ -124,10 +123,6 @@ private:
     bool interpolationCacheSet_m;
 
     ParticleAttrib<CacheDataCIC<double, 3U> > interpolationCache_m;
-
-
-
-    PartBunch &operator=(const PartBunch &) = delete;
 
     //FIXME
     ParticleLayout<double, 3> & getLayout() {

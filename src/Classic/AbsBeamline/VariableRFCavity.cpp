@@ -32,6 +32,8 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/GeneralClassicException.h"
 
+const double VariableRFCavity::lengthUnit_m = 1e3; // metres -> mm
+
 VariableRFCavity::VariableRFCavity(const std::string &name) : Component(name) {
     initNull();  // initialise everything to NULL
 }
@@ -65,24 +67,16 @@ VariableRFCavity& VariableRFCavity::operator=(const VariableRFCavity& rhs) {
     frequencyName_m = rhs.frequencyName_m;
     halfWidth_m = rhs.halfWidth_m;
     halfHeight_m = rhs.halfHeight_m;
-    setLength(rhs._length);
+    setLength(rhs._length/lengthUnit_m);
     return *this;
 }
 
 VariableRFCavity::~VariableRFCavity() {
-    // if (_phase_td != NULL)
-    //     delete _phase_td;
-    // if (_amplitude_td != NULL)
-    //     delete _amplitude_td;
-    // if (_frequency_td != NULL)
-    //     delete _frequency_td;
+  // shared_ptr should self-destruct when they are ready
 }
 
 void VariableRFCavity::initNull() {
   _length = 0.;
-  // _phase_td = NULL;
-  // _amplitude_td = NULL;
-  // _frequency_td = NULL;
   phaseName_m = "";
   amplitudeName_m = "";
   frequencyName_m = "";
@@ -104,20 +98,14 @@ std::shared_ptr<AbstractTimeDependence> VariableRFCavity::getFrequencyModel() co
 }
 
 void VariableRFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitude_td) {
-    // if (_amplitude_td != NULL && amplitude_td != _amplitude_td)
-    //     delete _amplitude_td;
     _amplitude_td = amplitude_td;
 }
 
 void VariableRFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phase_td) {
-    // if (_phase_td != NULL && phase_td != _phase_td)
-    //     delete _phase_td;
     _phase_td = phase_td;
 }
 
 void VariableRFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequency_td) {
-    // if (_frequency_td != NULL && frequency_td != _frequency_td)
-    //     delete _frequency_td;
     _frequency_td = frequency_td;
 }
 
@@ -153,7 +141,6 @@ bool VariableRFCavity::apply(const size_t &i, const double &t,
 // "length".
 bool VariableRFCavity::apply(const Vector_t &R, const Vector_t &P,
                              const double &t, Vector_t &E, Vector_t &B) {
-    // std::cerr << "VariableRFCavity::apply " << R[0] << " " << R[1] << " " << R[2] << " * " << halfWidth_m << " " << halfHeight_m << std::endl;
     if (R[2] >= 0. && R[2] < _length) {
         if (std::abs(R[0]) > halfWidth_m || std::abs(R[1]) > halfHeight_m) {
             return true;
@@ -164,27 +151,13 @@ bool VariableRFCavity::apply(const Vector_t &R, const Vector_t &P,
         double phi = _phase_td->getValue(t);
         E = Vector_t(0., 0., E0*sin(Physics::two_pi * f * t + phi));
         return false;
-    // std::cerr << "                        t: " << t << " f: " << f << " phi: " << phi << " E0: " << E0 << " E[2]: " << E[2] << std::endl;
     }
     return true;
 }
 
 bool VariableRFCavity::applyToReferenceParticle(const Vector_t &R, const Vector_t &P,
                                                 const double &t, Vector_t &E, Vector_t &B) {
-    // std::cerr << "VariableRFCavity::apply " << R[0] << " " << R[1] << " " << R[2] << " * " << halfWidth_m << " " << halfHeight_m << std::endl;
-    if (R[2] >= 0. && R[2] < _length) {
-        if (std::abs(R[0]) > halfWidth_m || std::abs(R[1]) > halfHeight_m) {
-            return true;
-        }
-
-        double E0 = _amplitude_td->getValue(t);
-        double f = _frequency_td->getValue(t);
-        double phi = _phase_td->getValue(t);
-        E = Vector_t(0., 0., E0*sin(Physics::two_pi * f * t + phi));
-        return false;
-    // std::cerr << "                        t: " << t << " f: " << f << " phi: " << phi << " E0: " << E0 << " E[2]: " << E[2] << std::endl;
-    }
-    return true;
+    return apply(R, P, t, E, B);
 }
 
 void VariableRFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
@@ -218,6 +191,6 @@ void VariableRFCavity::accept(BeamlineVisitor& visitor) const {
 }
 
 void VariableRFCavity::setLength(double length) {
-    _length = length;
-    geometry.setElementLength(length);
+    _length = length*lengthUnit_m;
+    geometry.setElementLength(_length);
 }

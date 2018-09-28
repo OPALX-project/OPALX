@@ -48,21 +48,21 @@ DumpEMFields::DumpEMFields() :
                     grid_m(NULL), filename_m("") {
     // would be nice if "steps" could be integer
     itsAttr[0] = Attributes::makeReal
-                 ("X_START", "(Cartesian) Start point in the grid in x [mm]");
+                 ("X_START", "(Cartesian) Start point in the grid in x [m]");
     itsAttr[1] = Attributes::makeReal
-                 ("DX", "(Cartesian) Grid step size in x [mm]");
+                 ("DX", "(Cartesian) Grid step size in x [m]");
     itsAttr[2] = Attributes::makeReal
                  ("X_STEPS", "(Cartesian) Number of steps in x");
     itsAttr[3] = Attributes::makeReal
-                 ("Y_START", "(Cartesian) Start point in the grid in y [mm]");
+                 ("Y_START", "(Cartesian) Start point in the grid in y [m]");
     itsAttr[4] = Attributes::makeReal
-                 ("DY", "(Cartesian) Grid step size in y [mm]");
+                 ("DY", "(Cartesian) Grid step size in y [m]");
     itsAttr[5] = Attributes::makeReal
                  ("Y_STEPS", "(Cartesian) Number of steps in y");
     itsAttr[6] = Attributes::makeReal
-                 ("Z_START", "Start point in the grid in z [mm]");
+                 ("Z_START", "Start point in the grid in z [m]");
     itsAttr[7] = Attributes::makeReal
-                 ("DZ", "Grid step size in z [mm]");
+                 ("DZ", "Grid step size in z [m]");
     itsAttr[8] = Attributes::makeReal
                  ("Z_STEPS", "Number of steps in z");
     itsAttr[9] = Attributes::makeReal
@@ -76,15 +76,15 @@ DumpEMFields::DumpEMFields() :
     itsAttr[13] = Attributes::makeString("COORDINATE_SYSTEM",
                 "Choose to use 'Cartesian' or 'Cylindrical' coordinates");
     itsAttr[14] = Attributes::makeReal
-                 ("R_START", "(Cylindrical) Start point in the grid in radius [mm]");
+                 ("R_START", "(Cylindrical) Start point in the grid in radius [m]");
     itsAttr[15] = Attributes::makeReal
-                 ("DR", "(Cylindrical) Grid step size in radius [mm]");
+                 ("DR", "(Cylindrical) Grid step size in radius [m]");
     itsAttr[16] = Attributes::makeReal
                  ("R_STEPS", "(Cylindrical) Number of steps in radius");
     itsAttr[17] = Attributes::makeReal
-                 ("PHI_START", "(Cylindrical) Start point in the grid in phi [degree]");
+                 ("PHI_START", "(Cylindrical) Start point in the grid in phi [rad]");
     itsAttr[18] = Attributes::makeReal
-                 ("DPHI", "(Cylindrical) Grid step size in phi [degree]");
+                 ("DPHI", "(Cylindrical) Grid step size in phi [rad]");
     itsAttr[19] = Attributes::makeReal
                  ("PHI_STEPS", "(Cylindrical) Number of steps in phi");
 }
@@ -149,8 +149,8 @@ void DumpEMFields::buildGrid() {
         checkInt(nr, "R_STEPS");
         gridSize[0] = nr;
 
-        origin[1] = Attributes::getReal(itsAttr[17])/DEGREE;
-        spacing[1] = Attributes::getReal(itsAttr[18])/DEGREE;
+        origin[1] = Attributes::getReal(itsAttr[17]);
+        spacing[1] = Attributes::getReal(itsAttr[18]);
         double nphi = Attributes::getReal(itsAttr[19]);
         checkInt(nphi, "PHI_STEPS");
         gridSize[1] = nphi;
@@ -227,13 +227,13 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
     }
     fout << 7 << " Bz [kGauss]\n";
     if (coordinates_m == CYLINDRICAL) {
-        fout << 5 << " Er [?]\n";
-        fout << 6 << " Ephi [?]\n";
+        fout << 5 << " Er [MV/m]\n";
+        fout << 6 << " Ephi [MV/m]\n";
     } else {
-        fout << 5 << " Ex [?]\n";
-        fout << 6 << " Ey [?]\n";
+        fout << 5 << " Ex [MV/m]\n";
+        fout << 6 << " Ey [MV/m]\n";
     }
-    fout << 10 << " Ez [?]\n";
+    fout << 10 << " Ez [MV/m]\n";
     fout << 0 << std::endl;
 }
 

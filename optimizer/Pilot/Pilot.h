@@ -113,13 +113,15 @@ public:
           functionDictionary_t known_expr_funcs,
           const DVarContainer_t &dvar,
           const Expressions::Named_t &obj,
-          const Expressions::Named_t &cons)
+          const Expressions::Named_t &cons,
+          std::vector<double> hypervolRef = {})
         : Poller(comm->mpiComm())
         , comm_(comm)
         , cmd_args_(args)
         , objectives_(obj)
         , constraints_(cons)
         , dvars_(dvar)
+        , hypervolRef_(hypervolRef)
     {
         setup(known_expr_funcs);
     }
@@ -157,9 +159,11 @@ protected:
     bool has_opt_converged_;
     bool continue_polling_;
 
-    Expressions::Named_t objectives_;
-    Expressions::Named_t constraints_;
-    DVarContainer_t      dvars_;
+    Expressions::Named_t objectives_;  ///< objectives
+    Expressions::Named_t constraints_; ///< constraints
+    DVarContainer_t      dvars_;       ///< design variables
+    std::vector<double> hypervolRef_;  ///< hypervolume reference point
+
 
     // keep track of state of all workers
     std::vector<bool> is_worker_idle_;
@@ -248,7 +252,7 @@ protected:
 
         boost::scoped_ptr<Opt_t> opt(
                 new Opt_t(objectives_, constraints_, dvars_, objectives_.size(),
-                    comm_->getBundle(), cmd_args_));
+                          comm_->getBundle(), cmd_args_, hypervolRef_));
         opt->initialize();
 
         std::cout << "Stop Opt.." << std::endl;

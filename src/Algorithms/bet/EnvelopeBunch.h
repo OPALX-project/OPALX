@@ -58,7 +58,7 @@ enum EnvelopeBunchShape {
  * implementation
  */
 class EnvelopeBunch : public PartBunch {
-    
+
 public:
     /// Default constructor
     EnvelopeBunch(const PartData *ref);
@@ -67,8 +67,8 @@ public:
     EnvelopeBunch(const std::vector<OpalParticle> &,
                   const PartData *ref);
 
-    /// Copy constructor
-    EnvelopeBunch(const EnvelopeBunch &);
+    /// Copy constructor (implement if needed)
+    EnvelopeBunch(const EnvelopeBunch &) = delete;
 
     virtual ~EnvelopeBunch();
 
@@ -92,10 +92,10 @@ public:
                     double current, double center, double bX, double bY, double mX, double mY, double Bz, int nbin);
 
     /// check if solver includes radial
-    bool isRadial() { return solver & sv_radial; }
+    bool isRadial() { return solver_m & sv_radial; }
 
     /// check if solver includes off-axis tracking
-    bool isOffaxis() { return solver & sv_offaxis; }
+    bool isOffaxis() { return solver_m & sv_offaxis; }
 
     /// calculates envelope statistics
     void calcBeamParameters();
@@ -129,22 +129,29 @@ public:
     /// calculate the head of the bunch [m]
     double zHead();
     /// read time-stamp of bunch
-    double time() { return t; }
+    double time() { return t_m; }
 
     /// set emittance X
-    void setEx(double emi) { emtnx0 = emi; }
+    void setEx(double emi) { emtnx0_m = emi; }
     /// set emittance Y
-    void setEy(double emi) { emtny0 = emi; }
+    void setEy(double emi) { emtny0_m = emi; }
     /// set the DE solver flag
-    void setSolverParameter(int s) { solver = s; }
+    void setSolverParameter(int s) { solver_m = s; }
     // set particle energy of bunch in [eV] and optional the correlated energy spread [eV/m]
     void setEnergy(double, double = 0.0);
 
-    void setExternalFields(int i, Vector_t EF, Vector_t BF, Vector_t KR, Vector_t KT) {
+    void setExternalFields(int i, const Vector_t &EF, const Vector_t &BF, const Vector_t &KR, const Vector_t &KT) {
         this->EF[i] = EF;
         this->BF[i] = BF;
         this->KR[i] = KR;
         this->KT[i] = KT;
+    }
+
+    void getExternalFields(int i, Vector_t &EF, Vector_t &BF, Vector_t &KR, Vector_t &KT) const {
+        EF = this->EF[i];
+        BF = this->BF[i];
+        KR = this->KR[i];
+        KT = this->KT[i];
     }
 
     /// return reference position
@@ -158,7 +165,7 @@ public:
     /// returns the total number of slices
     int getTotalNum() { return numSlices_m; }
     /// returns the current time of the bunch
-    double getT() { return t; }
+    double getT() { return t_m; }
     /// returns the mean energy
     double get_meanKineticEnergy() { return Eavg(); }
     /// returns the energy spread
@@ -194,122 +201,156 @@ public:
 
     /// set the charge of the bunch
     void setCharge(double _Q) {
-        sign = _Q < 0.0 ? -1 : 1;
+        sign_m = _Q < 0.0 ? -1 : 1;
         Q_m = std::abs(_Q);
     }
 
     /// returns gamma of slice i
     double getGamma(int i) {
         assert(i < numMySlices_m);
-        return s[i]->computeGamma();
+        return slices_m[i]->computeGamma();
     }
 
     /// returns beta of slice i
     double getBeta(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_beta];
+        return slices_m[i]->p[SLI_beta];
     }
     void setBeta(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_beta] = val;
+        slices_m[i]->p[SLI_beta] = val;
+    }
+
+    void setR(int i, const Vector_t &R) {
+        assert(i < numMySlices_m);
+        slices_m[i]->p[SLI_x] = R[0];
+        slices_m[i]->p[SLI_y] = R[1];
+        slices_m[i]->p[SLI_z] = R[2];
+    }
+
+    Vector_t getR(int i) {
+        assert(i < numMySlices_m);
+        Vector_t R;
+        R[0] = slices_m[i]->p[SLI_x];
+        R[1] = slices_m[i]->p[SLI_y];
+        R[2] = slices_m[i]->p[SLI_z];
+
+        return R;
+    }
+
+    void setP(int i, const Vector_t &P) {
+        assert(i < numMySlices_m);
+        slices_m[i]->p[SLI_px] = P[0];
+        slices_m[i]->p[SLI_py] = P[1];
+        slices_m[i]->p[SLI_beta] = P[2] / sqrt(P[2]*P[2] + 1.0);
+    }
+
+    Vector_t getP(int i) {
+        assert(i < numMySlices_m);
+        Vector_t P;
+        P[0] = slices_m[i]->p[SLI_px];
+        P[1] = slices_m[i]->p[SLI_py];
+        P[2] = slices_m[i]->p[SLI_beta] * slices_m[i]->computeGamma();
+
+        return P;
     }
 
     /// set Z coordinate of slice i
     void setZ(int i, double coo) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_z] = coo;
+        slices_m[i]->p[SLI_z] = coo;
     }
 
     /// returns Z coordinate of slice i
     double getZ(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_z];
+        return slices_m[i]->p[SLI_z];
     }
 
     /// returns X coordinate of slice i
     double getX(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_x];
+        return slices_m[i]->p[SLI_x];
     }
     void setX(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_x] = val;
+        slices_m[i]->p[SLI_x] = val;
     }
 
     /// returns Y coordinate of slice i
     double getY(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_y];
+        return slices_m[i]->p[SLI_y];
     }
     void setY(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_y] = val;
+        slices_m[i]->p[SLI_y] = val;
     }
 
     /// returns X coordinate of the centroid of slice i
     double getX0(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_x0];
+        return slices_m[i]->p[SLI_x0];
     }
     void setX0(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_x0] = val;
+        slices_m[i]->p[SLI_x0] = val;
     }
 
     /// returns Y coordinate of the centroid of slice i
     double getY0(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_y0];
+        return slices_m[i]->p[SLI_y0];
     }
     void setY0(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_y0] = val;
+        slices_m[i]->p[SLI_y0] = val;
     }
 
     /// returns X momenta of slice i
     double getPx(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_px];
+        return slices_m[i]->p[SLI_px];
     }
     void setPx(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_px] = val;
+        slices_m[i]->p[SLI_px] = val;
     }
 
     /// returns Y momenta of slice i
     double getPy(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_py];
+        return slices_m[i]->p[SLI_py];
     }
     void setPy(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_py] = val;
+        slices_m[i]->p[SLI_py] = val;
     }
 
     /// returns Z momenta of slice i
     double getPz(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_beta] * Physics::m_e * s[i]->computeGamma();
+        return slices_m[i]->p[SLI_beta] * Physics::m_e * slices_m[i]->computeGamma();
     }
 
     /// returns angular deflection centroid in x of slice i
     double getPx0(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_px0];
+        return slices_m[i]->p[SLI_px0];
     }
     void setPx0(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_px0] = val;
+        slices_m[i]->p[SLI_px0] = val;
     }
 
     /// returns angular deflection centroid in y of slice i
     double getPy0(int i) {
         assert(i < numMySlices_m);
-        return s[i]->p[SLI_py0];
+        return slices_m[i]->p[SLI_py0];
     }
     void setPy0(int i, double val) {
         assert(i < numMySlices_m);
-        s[i]->p[SLI_py0] = val;
+        slices_m[i]->p[SLI_py0] = val;
     }
 
     /// returns bounds of envelope bunch
@@ -324,8 +365,6 @@ public:
 
 
 private:
-    const PartData *reference;
-
     /// number of total slices in bunch
     int numSlices_m;
     /// number of my slices in bunch
@@ -350,35 +389,35 @@ private:
     int activeSlices_m;
 
     /// see enum SolverParameters
-    int solver;
+    int solver_m;
     /// see enum DataStatus
-    int dStat;
+    int dStat_m;
     /// local time in bunch [s]
-    double t;
+    double t_m;
     /// accumulated time offset by tReset function
-    double t_offset;
+    double t_offset_m;
     /// intrinsic normalized emittance of slice [m rad]
-    double emtnx0, emtny0;
+    double emtnx0_m, emtny0_m;
     /// intrinsic normalized emittance Bush effect [m rad]
-    double emtbx0, emtby0;
+    double emtbx0_m, emtby0_m;
     /// offset of the coordinate system when tracking along the s-axis [m]
-    double dx0, dy0;
+    double dx0_m, dy0_m;
     /// rotation of coordinate system when tracking along the s-axis [rad]
-    double dfi_x, dfi_y;
+    double dfi_x_m, dfi_y_m;
     /// magnetic field on cathode [T]
-    double Bz0;
+    double Bz0_m;
     /// total bunch charge [C]
     double Q_m;
     /// average current on creation of bunch (see setLshape)
-    double I0avg;
+    double I0avg_m;
     /// electric field
-    Vector_t Esl;
+    Vector_t Esl_m;
     /// magnetic field
-    Vector_t Bsl;
+    Vector_t Bsl_m;
     /// radial focussing term beam
-    Vector_t KRsl;
+    Vector_t KRsl_m;
     /// transverse kick of beam
-    Vector_t KTsl;
+    Vector_t KTsl_m;
     /// define value of radial kick for each slice
     std::unique_ptr<Vector_t[]> KR;
     /// define value of transversal kick for each slice
@@ -388,27 +427,28 @@ private:
     /// external B fields
     std::unique_ptr<Vector_t[]> BF;
     /// array of slices
-    std::vector< std::shared_ptr<EnvelopeSlice> > s;
+    std::vector< std::shared_ptr<EnvelopeSlice> > slices_m;
+    unsigned int activeSlice_m;
     /// gives the sign of charge Q
-    int sign;
+    int sign_m;
     /// current Slice set in run() & cSpaceCharge() and used in derivs() & zcsI()
-    int cS;
+    int currentSlice_m;
     /// cathode position
-    double zCat;
+    double zCat_m;
     /// transverse wake field x
-    std::vector<double> Exw;
+    std::vector<double> Exw_m;
     /// transverse wake field y
-    std::vector<double> Eyw;
+    std::vector<double> Eyw_m;
     /// longitudinal wake field
-    std::vector<double> Ezw;
+    std::vector<double> Ezw_m;
     /// Longitudinal Space-charge field
-    std::vector<double> Esct;
+    std::vector<double> Esct_m;
     /// Transverse Space-charge term: Eq.(9)
-    std::vector<double> G;
+    std::vector<double> G_m;
 
     int nValid_m;
     double z0_m;
-    double emission_time_step_;
+    double emission_time_step_m;
     size_t lastEmittedBin_m;
     double E_m;
     double dEdt_m;
@@ -430,10 +470,10 @@ private:
     double y0Max_m;
     double x0Min_m;
     double y0Min_m;
-    double dx0_m;
-    double dy0_m;
-    double dfi_x_m;
-    double dfi_y_m;
+    // double dx02_m;
+    // double dy02_m;
+    // double dfi_x_m;
+    // double dfi_y_m;
     double Ez_m;
     double Bz_m;
     Vector_t maxX_m;
@@ -526,7 +566,7 @@ private:
 
     /// backup slice values
     void backup() {
-        for (auto & slice : s)
+        for (auto & slice : slices_m)
             slice->backup();
     }
 
@@ -550,4 +590,3 @@ inline Inform &operator<<(Inform &os, EnvelopeBunch &p) {
     return p.slprint(os);
 }
 #endif
-

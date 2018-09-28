@@ -47,13 +47,13 @@ OpalLocalCartesianOffset::OpalLocalCartesianOffset()
                      "LOCAL_CARTESIAN_OFFSET",
                      doc_string.c_str()) {
     itsAttr[END_POSITION_X] = Attributes::makeReal("END_POSITION_X",
-             "x component of position of end of the offset in coordinate system of the end of the upstream element.");
+             "x component of position of end of the offset in coordinate system of the end of the upstream element [m].");
     itsAttr[END_POSITION_Y] = Attributes::makeReal("END_POSITION_Y",
-             "y component of position of end of the offset in coordinate system of the end of the upstream element.");
+             "y component of position of end of the offset in coordinate system of the end of the upstream element [m].");
     itsAttr[END_NORMAL_X] = Attributes::makeReal("END_NORMAL_X",
-             "x component of normal of end of the offset in coordinate system of the end of the upstream element.");
+             "x component of normal of end of the offset in coordinate system of the end of the upstream element [m].");
     itsAttr[END_NORMAL_Y] = Attributes::makeReal("END_NORMAL_Y",
-             "y component of normal of end of the offset in coordinate system of the end of the upstream element.");
+             "y component of normal of end of the offset in coordinate system of the end of the upstream element [m].");
     registerRealAttribute("END_POSITION_X");
     registerRealAttribute("END_POSITION_Y");
     registerRealAttribute("END_NORMAL_X");

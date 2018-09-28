@@ -70,7 +70,7 @@ OpalCyclotron::OpalCyclotron():
                         ("ESCALE", "Scale factor for the RF field(s)");
 
     itsAttr[SUPERPOSE]= Attributes::makeBoolArray
- 	                ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF");
+                        ("SUPERPOSE", "If TRUE, all of the electric field maps are superposed, only used when TYPE = BANDRF");
 
     itsAttr[RFMAPFN]  = Attributes::makeStringArray
                         ("RFMAPFN", "Filename(s) for the RF fieldmap(s)");
@@ -110,7 +110,10 @@ OpalCyclotron::OpalCyclotron():
 
     itsAttr[SPIRAL]     = Attributes::makeBool
                         ("SPIRAL","Flag whether or not this is a spiral inflector simulation", false);
-    
+
+    itsAttr[TRIMCOILTHRESHOLD] = Attributes::makeReal
+                        ("TRIMCOILTHRESHOLD","Minimum magnetic field [T] for which trim coils are applied", 0.0);
+
     itsAttr[TRIMCOIL]   = Attributes::makeStringArray
                         ("TRIMCOIL", "List of trim coils");
 
@@ -138,6 +141,7 @@ OpalCyclotron::OpalCyclotron():
     registerRealAttribute("MAXR");
     registerRealAttribute("FMLOWE");
     registerRealAttribute("FMHIGHE");
+    registerRealAttribute("TRIMCOILTHRESHOLD");
 
     registerOwnership();
 
@@ -192,6 +196,7 @@ void OpalCyclotron::update() {
     double fmHighE = Attributes::getReal(itsAttr[FMHIGHE]);
 
     bool spiral_flag = Attributes::getBool(itsAttr[SPIRAL]);
+    double trimCoilThreshold = Attributes::getReal(itsAttr[TRIMCOILTHRESHOLD]);
 
     cycl->setFieldMapFN(fmapfm);
     cycl->setSymmetry(symmetry);
@@ -216,6 +221,7 @@ void OpalCyclotron::update() {
     cycl->setFMHighE(fmHighE);
 
     cycl->setSpiralFlag(spiral_flag);
+    cycl->setTrimCoilThreshold(trimCoilThreshold);
 
     std::vector<std::string> fm_str     = Attributes::getStringArray(itsAttr[RFMAPFN]);
     std::vector<std::string> rffcfn_str = Attributes::getStringArray(itsAttr[RFFCFN]);

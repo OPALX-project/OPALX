@@ -427,6 +427,16 @@ void TravelingWave::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
+double TravelingWave::getElementLength() const {
+    return length_m;
+}
+
+void TravelingWave::getElementDimensions(double &begin,
+                                         double &end) const {
+    begin = -0.5 * PeriodLength_m;
+    end = begin + length_m;
+}
+
 ElementBase::ElementType TravelingWave::getType() const {
     return TRAVELINGWAVE;
 }

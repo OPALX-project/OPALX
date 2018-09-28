@@ -149,12 +149,10 @@ public:
     bool isInOPALCyclMode();
     bool isInOPALTMode();
     bool isInOPALEnvMode();
-    bool isInOPALThickTrackerMode();
 
     void setInOPALCyclMode();
     void setInOPALTMode();
     void setInOPALEnvMode();
-    void setInOPALThickTrackerMode();
 
     bool isInPrepState();
     void setInPrepState(bool state);
