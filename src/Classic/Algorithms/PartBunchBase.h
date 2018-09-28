@@ -31,10 +31,10 @@ template <class T, unsigned Dim>
 class PartBunchBase
 {
 public:
-    typedef typename AbstractParticle<T, Dim>::ParticlePos_t ParticlePos_t;
+    typedef typename AbstractParticle<T, Dim>::ParticlePos_t   ParticlePos_t;
     typedef typename AbstractParticle<T, Dim>::ParticleIndex_t ParticleIndex_t;
-    typedef typename AbstractParticle<T, Dim>::UpdateFlags UpdateFlags;
-    typedef typename AbstractParticle<T, Dim>::Position_t Position_t;
+    typedef typename AbstractParticle<T, Dim>::UpdateFlags     UpdateFlags_t;
+    typedef typename AbstractParticle<T, Dim>::Position_t      Position_t;
 
     typedef std::pair<Vector_t, Vector_t> VectorPair_t;
 
@@ -44,22 +44,17 @@ public:
 
 public:
 
-    PartBunchBase(AbstractParticle<T, Dim>* pb);
+    explicit PartBunchBase(AbstractParticle<T, Dim>* pb);
 
     virtual ~PartBunchBase() { }
+
+    PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref);
+
+    PartBunchBase(const PartBunchBase &rhs) = delete; // implement if needed
 
     /*
      * Bunch common member functions
      */
-
-    PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref);
-
-    /// Conversion.
-    PartBunchBase(AbstractParticle<T, Dim>* pb,
-                  const std::vector<OpalParticle> &,
-                  const PartData *ref); //TODO
-
-    PartBunchBase(const PartBunchBase &rhs); //TODO
 
     // This is required since we initialize the Layout and the RegionLayout with default constructor
     virtual void initialize(FieldLayout_t *fLayout) = 0;
@@ -413,8 +408,8 @@ public:
     ParticleLayout<T, Dim> & getLayout();
     const ParticleLayout<T, Dim>& getLayout() const;
 
-    bool getUpdateFlag(UpdateFlags f) const;
-    void setUpdateFlag(UpdateFlags f, bool val);
+    bool getUpdateFlag(UpdateFlags_t f) const;
+    void setUpdateFlag(UpdateFlags_t f, bool val);
 
 
     ParticleBConds<Position_t, Dimension>& getBConds() {

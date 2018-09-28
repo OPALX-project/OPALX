@@ -33,10 +33,16 @@
 #include "Expression/SDDSVariable.h"
 #include "Expression/RadialPeak.h"
 #include "Expression/MaxNormRadialPeak.h"
+#include "Expression/NumberOfPeaks.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
 
 #include <boost/filesystem.hpp>
+
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 extern Inform *gmsg;
 
@@ -58,6 +64,7 @@ namespace {
         MAXGENERATIONS,
         EPSILON,
         EXPECTEDHYPERVOL,
+        HYPERVOLREFERENCE,
         CONVHVOLPROG,
         ONEPILOTCONVERGE,
         SOLSYNCH,
@@ -65,9 +72,11 @@ namespace {
         MUTATIONPROBABILITY,
         RECOMBINATIONPROBABILITY,
         SIMBINCROSSOVERNU,
+        INITIALOPTIMIZATION,
         SIMTMPDIR,
         TEMPLATEDIR,
         FIELDMAPDIR,
+        DISTDIR,
         SIZE
     };
 }
@@ -104,30 +113,35 @@ OptimizeCmd::OptimizeCmd():
     itsAttr[MAXGENERATIONS] = Attributes::makeReal
         ("MAXGENERATIONS", "Number of generations to run");
     itsAttr[EPSILON] = Attributes::makeReal
-        ("EPSILON", "Tolerance of hypervolume criteria");
+        ("EPSILON", "Tolerance of hypervolume criteria, default 0.001");
     itsAttr[EXPECTEDHYPERVOL] = Attributes::makeReal
-        ("EXPECTED_HYPERVOL", "The reference hypervolume");
+        ("EXPECTED_HYPERVOL", "The reference hypervolume, default 0");
+    itsAttr[HYPERVOLREFERENCE] = Attributes::makeRealArray
+        ("HYPERVOLREFERENCE", "The reference point (real array) for the hypervolume, default empty (origin)");
     itsAttr[CONVHVOLPROG] = Attributes::makeReal
-        ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller");
+        ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller, default 0");
     itsAttr[ONEPILOTCONVERGE] = Attributes::makeBool
-        ("ONE_PILOT_CONVERGE", "");
+        ("ONE_PILOT_CONVERGE", "default false");
     itsAttr[SOLSYNCH] = Attributes::makeReal
-        ("SOL_SYNCH", "Solution exchange frequency");
+        ("SOL_SYNCH", "Solution exchange frequency, default 0");
     itsAttr[GENEMUTATIONPROBABILITY] = Attributes::makeReal
         ("GENE_MUTATION_PROBABILITY", "Mutation probability of individual gene, default: 0.5");
     itsAttr[MUTATIONPROBABILITY] = Attributes::makeReal
-        ("MUTATION_PROBABILITY", "Mutation probability of genom, default: 0.5");
+        ("MUTATION_PROBABILITY", "Mutation probability of genome, default: 0.5");
     itsAttr[RECOMBINATIONPROBABILITY] = Attributes::makeReal
         ("RECOMBINATION_PROBABILITY", "Probability for genes to recombine, default: 0.5");
     itsAttr[SIMBINCROSSOVERNU] = Attributes::makeReal
-        ("SIMBIN_CROSSOVER_NU", "Simulated binary crossover");
+        ("SIMBIN_CROSSOVER_NU", "Simulated binary crossover, default: 2.0");
+    itsAttr[INITIALOPTIMIZATION] = Attributes::makeBool
+        ("INITIAL_OPTIMIZATION", "Optimize speed of initial generation, default: false");
     itsAttr[SIMTMPDIR] = Attributes::makeString
         ("SIMTMPDIR", "Directory where simulations are run");
     itsAttr[TEMPLATEDIR] = Attributes::makeString
         ("TEMPLATEDIR", "Directory where templates are stored");
     itsAttr[FIELDMAPDIR] = Attributes::makeString
         ("FIELDMAPDIR", "Directory where field maps are stored");
-
+    itsAttr[DISTDIR] = Attributes::makeString
+        ("DISTDIR", "Directory where distributions are stored", "");
     registerOwnership(AttributeHandler::COMMAND);
 }
 
@@ -190,7 +204,11 @@ void OptimizeCmd::execute() {
     ff = MaxNormRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
                  ("maxNormRadialPeak", ff));
-
+    
+    ff = NumberOfPeaks();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("numberOfPeaks", ff));
+    
     ff = SumErrSqRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
                  ("sumErrSqRadialPeak", ff));
@@ -228,7 +246,8 @@ void OptimizeCmd::execute() {
             {GENEMUTATIONPROBABILITY, "gene-mutation-probability"},
             {MUTATIONPROBABILITY, "mutation-probability"},
             {RECOMBINATIONPROBABILITY, "recombination-probability"},
-            {SIMBINCROSSOVERNU, "simbin-crossover-nu"}
+            {SIMBINCROSSOVERNU, "simbin-crossover-nu"},
+            {INITIALOPTIMIZATION, "initial-optimization"}
         });
 
     auto it = argumentMapper.end();
@@ -257,6 +276,7 @@ void OptimizeCmd::execute() {
             }
         }
     }
+    // sanity checks
     if (Attributes::getString(itsAttr[INPUT]) == "") {
         throw OpalException("OptimizeCmd::execute",
                             "The argument INPUT has to be provided");
@@ -268,6 +288,11 @@ void OptimizeCmd::execute() {
     if (Attributes::getReal(itsAttr[MAXGENERATIONS]) <= 0) {
         throw OpalException("OptimizeCmd::execute",
                             "The argument MAXGENERATIONS has to be provided");
+    }
+    if (Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]).empty() == false &&
+        Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]).size()  != objectivesstr.size()) {
+        throw OpalException("OptimizeCmd::execute",
+                            "The hypervolume reference point should have the same dimension as the objectives");
     }
 
     if (Attributes::getString(itsAttr[SIMTMPDIR]) != "") {
@@ -309,6 +334,18 @@ void OptimizeCmd::execute() {
         setenv("FIELDMAPS", dir.c_str(), 1);
     }
 
+    if (Attributes::getString(itsAttr[DISTDIR]) != "") {
+        fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
+        if (dir.is_relative()) {
+            fs::path path = fs::path(std::string(getenv("PWD")));
+            path /= dir;
+            dir = path;
+        }
+
+        setenv("DISTRIBUTIONS", dir.c_str(), 1);
+    }
+
+
     *gmsg << endl;
     for (size_t i = 0; i < arguments.size(); ++ i) {
         argv.push_back(const_cast<char*>(arguments[i].c_str()));
@@ -316,6 +353,7 @@ void OptimizeCmd::execute() {
     }
     *gmsg << endl;
 
+    std::set<std::string> vars; // check if all unique vars
     for (const std::string &name: dvarsstr) {
         Object *obj = opal->find(name);
         DVar* dvar = dynamic_cast<DVar*>(obj);
@@ -330,7 +368,13 @@ void OptimizeCmd::execute() {
 
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
+        auto ret = vars.insert(var);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a design variable with the variable " + var + " defined");
+        }
     }
+    std::set<std::string> objExpressions; // check if all unique objective expressions
     for (const std::string &name: objectivesstr) {
         Object *obj = opal->find(name);
         Objective* objective = dynamic_cast<Objective*>(obj);
@@ -342,7 +386,13 @@ void OptimizeCmd::execute() {
         std::string expr = objective->getExpression();
         objectives.insert(Expressions::SingleNamed_t(
                    name, new Expressions::Expr_t(expr, funcs)));
+        auto ret = objExpressions.insert(expr);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a objective with the expression " + expr + " defined");
+        }
     }
+    std::set<std::string> constraintExpressions; // check if all unique constraint expressions
     for (const std::string &name: constraintsstr) {
         Object *obj = opal->find(name);
         Constraint* constraint = dynamic_cast<Constraint*>(obj);
@@ -354,6 +404,11 @@ void OptimizeCmd::execute() {
         std::string expr = constraint->getExpression();
         constraints.insert(Expressions::SingleNamed_t(
                     name, new Expressions::Expr_t(expr, funcs)));
+        auto ret = constraintExpressions.insert(expr);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a constraint with the expression " + expr + " defined");
+        }
     }
 
     Inform *origGmsg = gmsg;
@@ -363,7 +418,7 @@ void OptimizeCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, constraints));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, constraints, Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;

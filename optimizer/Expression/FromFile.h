@@ -11,8 +11,6 @@
 #include "boost/variant/get.hpp"
 #include "boost/variant/variant.hpp"
 #include "boost/smart_ptr.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 #include "Util/Types.h"
 #include "Util/OptPilotException.h"
@@ -31,6 +29,10 @@ struct FromFile {
     static const std::string name;
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("FromFile::operator()",
+                                    "fromFile expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
 
         filename_   = boost::get<std::string>(args[0]);
 
@@ -43,7 +45,7 @@ struct FromFile {
             return boost::make_tuple(0.0, false);
         }
 
-        foreach(double obj_value, values_)
+        for(double obj_value : values_)
             sum += obj_value;
 
         return boost::make_tuple(sum, is_valid);

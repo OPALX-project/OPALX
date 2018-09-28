@@ -38,6 +38,8 @@
 
 class SRotatedGeometry;
 
+const double units = 1e3;
+
 TEST(OffsetTest, TestConstructDestruct) {
     OpalTestUtilities::SilenceTest silencer;
 
@@ -228,16 +230,15 @@ TEST(OffsetTest, TestRotateGetTheta) {
 
 TEST(OffsetTest, TestBends) {
     OpalTestUtilities::SilenceTest silencer;
-
     double theta1 = Offset::float_tolerance*10.; // precision not great
     double theta2 = Offset::float_tolerance/1000.;
-    Offset off = Offset::localCylindricalOffset("lco", theta1, 0., 3.);
+    Offset off = Offset::localCylindricalOffset("lco", theta1, 0., 3./units);
     EXPECT_TRUE(off.bends());
-    off = Offset::localCylindricalOffset("lco", 0., theta1, 3.);
+    off = Offset::localCylindricalOffset("lco", 0., theta1, 3./units);
     EXPECT_TRUE(off.bends());
-    off = Offset::localCylindricalOffset("lco", theta1, -theta1, 3.);
+    off = Offset::localCylindricalOffset("lco", theta1, -theta1, 3./units);
     EXPECT_TRUE(off.bends());  // a chicane is considered to "bend"
-    off = Offset::localCylindricalOffset("lco", theta2, theta2, 3.);
+    off = Offset::localCylindricalOffset("lco", theta2, theta2, 3./units);
     EXPECT_FALSE(off.bends());
 }
 
@@ -245,7 +246,7 @@ TEST(OffsetTest, TestLocalCylindricalOffset) {
     OpalTestUtilities::SilenceTest silencer;
 
     double theta = Physics::pi/3.;
-    Offset off1 = Offset::localCylindricalOffset("lco", theta, 0., 3.);
+    Offset off1 = Offset::localCylindricalOffset("lco", theta, 0., 3./units);
     EXPECT_EQ(off1.getName(), "lco");
     EXPECT_TRUE(off1.getIsLocal());
     for (int i = 0; i<3; ++i)
@@ -255,14 +256,14 @@ TEST(OffsetTest, TestLocalCylindricalOffset) {
         EXPECT_DOUBLE_EQ(off1.getEndDirection()(i),
                          Vector_t(cos(theta), sin(theta), 0.)(i));
 
-    Offset off2 = Offset::localCylindricalOffset("lco", 0., theta, 3.);
+    Offset off2 = Offset::localCylindricalOffset("lco", 0., theta, 3./units);
     for (int i = 0; i<3; ++i)
         EXPECT_DOUBLE_EQ(off2.getEndPosition()(i), Vector_t(3., 0., 0.)(i)) << i;
     for (int i = 0; i<3; ++i)
         EXPECT_DOUBLE_EQ(off2.getEndDirection()(i),
                          Vector_t(cos(theta), sin(theta), 0.)(i)) << i;
 
-    Offset off3 = Offset::localCylindricalOffset("lco", theta, theta/3., 3.);
+    Offset off3 = Offset::localCylindricalOffset("lco", theta, theta/3., 3./units);
     for (int i = 0; i<3; ++i)
         EXPECT_DOUBLE_EQ(off3.getEndPosition()(i),
                          3.*Vector_t(cos(theta), sin(theta), 0.)(i)) << i;
@@ -278,7 +279,7 @@ TEST(OffsetTest, TestGlobalCylindricalOffset) {
     double radius = 7.;
     double phi = Physics::pi/3.;
     double theta = Physics::pi/4.;
-    Offset off1 = Offset::globalCylindricalOffset("gco", radius, phi, theta);
+    Offset off1 = Offset::globalCylindricalOffset("gco", radius/units, phi, theta);
     EXPECT_EQ(off1.getName(), "gco");
     EXPECT_FALSE(off1.getIsLocal());
     for (int i = 0; i<3; ++i)
@@ -295,7 +296,7 @@ TEST(OffsetTest, TestLocalCartesianOffset) {
 
     double theta = Physics::pi/6.;
     Offset off1 = Offset::localCartesianOffset("lco",
-                          3.*Vector_t(cos(theta), sin(theta), 0.),
+                          3./units*Vector_t(cos(theta), sin(theta), 0.),
                           10.*Vector_t(cos(theta/3.), sin(theta/3.), 0.));
     EXPECT_EQ(off1.getName(), "lco");
     EXPECT_TRUE(off1.getIsLocal());
@@ -313,7 +314,7 @@ TEST(OffsetTest, TestGlobalCartesianOffset) {
 
     double theta = Physics::pi/3.;
     Offset off1 = Offset::globalCartesianOffset("gco",
-                          3.*Vector_t(cos(theta), sin(theta), 0.),
+                          3./units*Vector_t(cos(theta), sin(theta), 0.),
                           10.*Vector_t(cos(theta/3.), sin(theta/3.), 0.));
     EXPECT_EQ(off1.getName(), "gco");
     EXPECT_FALSE(off1.getIsLocal());

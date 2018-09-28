@@ -222,6 +222,12 @@ public:
     //  This may be the arc length or the straight length.
     virtual void setElementLength(double length);
 
+    virtual void getElementDimensions(double &begin,
+                                      double &end) const {
+        begin = 0.0;
+        end = getElementLength();
+    }
+
     /// Get origin position.
     //  Return the arc length from the entrance to the origin of the element
     //  (origin >= 0)
@@ -388,10 +394,11 @@ public:
     //  "*this".  The return value [b]true[/b] indicates success.
     bool update(const AttributeSet &);
 
+    ///@{ Access to ELEMEDGE attribute
     void setElementPosition(double elemedge);
     double getElementPosition() const;
     bool isElementPositionSet() const;
-
+    ///@}
     /// attach a boundary geometry field to the element
     virtual void setBoundaryGeometry(BoundaryGeometry *geo);
 
@@ -483,10 +490,10 @@ private:
     ElemType elType_m;
 
     bool positionIsFixed;
-
+    ///@{ ELEMEDGE attribute
     double elementPosition_m;
     bool elemedgeSet_m;
-
+    ///@}
     std::queue<std::pair<double, double> > actionRange_m;
 };
 

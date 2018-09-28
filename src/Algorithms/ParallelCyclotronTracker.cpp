@@ -561,21 +561,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
      * fieldflag = 6, readin both median plane B field map and 3D E field map of RF cavity for compact cyclotron
      * fieldflag = 7, read in fields for Daniel's synchrocyclotron simulations
      */
-    int  fieldflag;
-    if(type == std::string("CARBONCYCL")) {
-        fieldflag = 2;
-    } else if(type == std::string("CYCIAE")) {
-        fieldflag = 3;
-    } else if(type == std::string("AVFEQ")) {
-        fieldflag = 4;
-    } else if(type == std::string("FFAG")) {
-        fieldflag = 5;
-    } else if(type == std::string("BANDRF")) {
-        fieldflag = 6;
-    } else if(type == std::string("SYNCHROCYCLOTRON")) {
-	fieldflag = 7;
-    } else //(type == "RING")
-        fieldflag = 1;
+    int fieldflag = elptr->getFieldFlag(type);
 
     // Read in cyclotron field maps (midplane + 3D fields if desired).
     elptr->initialise(itsBunch_m, fieldflag, elptr->getBScale());
@@ -2477,13 +2463,13 @@ void ParallelCyclotronTracker::singleParticleDump() {
         if(myNode_m == 0) {
             int notReceived = Ippl::getNodes() - 1;
             int numberOfPart = 0;
-
+            // receive other nodes
             while(notReceived > 0) {
 
                 int node = COMM_ANY_NODE;
                 Message *rmsg =  Ippl::Comm->receive_block(node, tag);
 
-                if(rmsg == 0)
+                if(rmsg == nullptr)
                     ERRORMSG("Could not receive from client nodes in main." << endl);
 
                 --notReceived;
@@ -2491,25 +2477,16 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 rmsg->get(&numberOfPart);
 
                 for(int i = 0; i < numberOfPart; ++i) {
-
                     rmsg->get(&id);
                     tmpi.push_back(id);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
-                    rmsg->get(&x);
-                    tmpr.push_back(x);
+                    for(int ii = 0; ii < 6; ii++) {
+                        rmsg->get(&x);
+                        tmpr.push_back(x);
+                    }
                 }
                 delete rmsg;
             }
-
+            // own node
             for(int i = 0; i < counter; ++i) {
 
                 tmpi.push_back(itsBunch_m->ID[found[i]]);
@@ -2520,13 +2497,21 @@ void ParallelCyclotronTracker::singleParticleDump() {
                     tmpr.push_back(itsBunch_m->P[found[i]](j));
                 }
             }
-
+            // store
             dvector_t::iterator itParameter = tmpr.begin();
 
             for(auto id : tmpi) {
 
                 outfTrackOrbit_m << "ID" << id;
 
+                if (id == 0) { // for stat file
+                    itsBunch_m->RefPartR_m[0] = *itParameter;
+                    itsBunch_m->RefPartR_m[1] = *(itParameter + 2);
+                    itsBunch_m->RefPartR_m[2] = *(itParameter + 4);
+                    itsBunch_m->RefPartP_m[0] = *(itParameter + 1);
+                    itsBunch_m->RefPartP_m[1] = *(itParameter + 3);
+                    itsBunch_m->RefPartP_m[2] = *(itParameter + 5);
+                }
                 for(int ii = 0; ii < 6; ii++) {
 
                     outfTrackOrbit_m << " " << *itParameter;
@@ -2536,7 +2521,6 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 outfTrackOrbit_m << std::endl;
             }
         } else {
-
             // for other nodes
             Message *smsg = new Message();
             smsg->put(counter);
@@ -2568,6 +2552,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
                 outfTrackOrbit_m << itsBunch_m->R[i](0) << " " << itsBunch_m->P[i](0) << " ";
                 outfTrackOrbit_m << itsBunch_m->R[i](1) << " " << itsBunch_m->P[i](1) << " ";
                 outfTrackOrbit_m << itsBunch_m->R[i](2) << " " << itsBunch_m->P[i](2) << std::endl;
+
+                if (itsBunch_m->ID[i] == 0) { // for stat file
+                    itsBunch_m->RefPartR_m = itsBunch_m->R[i];
+                    itsBunch_m->RefPartP_m = itsBunch_m->P[i];
+                }
             }
         }
     }
@@ -3065,7 +3054,6 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
 void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
                                             bool& dumpEachTurn, double& oldReferenceTheta) {
     // 1 particle: Trigger single particle mode
-    bool flagNoDeletion = true;
 
     // ********************************************************************************** //
     // * This was moved here b/c collision should be tested before the actual           * //
@@ -3111,14 +3099,8 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     Vector_t Pold = itsBunch_m->P[i]; // [px,py,pz] (beta*gamma)
 
     // integrate for one step in the lab Cartesian frame (absolute value).
-    flagNoDeletion = itsStepper_mp->advance(itsBunch_m, i, t, dt);
-
-    if ( !flagNoDeletion ) {
-        *gmsg << "* SPT: The particle was lost at step "
-              << step_m << "!" << endl;
-        throw OpalException("ParallelCyclotronTracker",
-                            "The particle is out of the region of interest.");
-    }
+    /*bool flagNoDeletion = */
+    itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
     // If gap crossing happens, do momenta kicking
     gapCrossKick_m(i, t, dt, Rold, Pold);

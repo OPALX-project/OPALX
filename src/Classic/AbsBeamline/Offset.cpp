@@ -34,7 +34,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Physics/Physics.h"
 
-
+const double Offset::lengthUnits_m = 1e3;
 double Offset::float_tolerance = 1e-12;
 
 Offset::Offset(const std::string& name)
@@ -259,6 +259,7 @@ Offset Offset::localCylindricalOffset(std::string name,
                                       double phi_out,
                                       double displacement) {
     Offset off(name);
+    displacement *= lengthUnits_m;
     off.setEndPosition(Vector_t(cos(phi_in)*displacement,
                                 sin(phi_in)*displacement,
                                 0.));
@@ -273,6 +274,7 @@ Offset Offset::globalCylindricalOffset(std::string name,
                                        double phi_out,
                                        double theta_out) {
     Offset off(name);
+    radius_out *= lengthUnits_m;
     off.setEndPosition(Vector_t(cos(phi_out)*radius_out,
                                 sin(phi_out)*radius_out,
                                 0.));
@@ -287,6 +289,7 @@ Offset Offset::localCartesianOffset(std::string name,
                                     Vector_t end_position,
                                     Vector_t end_direction) {
     Offset off(name);
+    end_position *= lengthUnits_m;
     off.setEndPosition(end_position);
     off.setEndDirection(end_direction);
     off.setIsLocal(true);
@@ -298,6 +301,7 @@ Offset Offset::globalCartesianOffset(std::string name,
                                      Vector_t end_position,
                                      Vector_t end_direction) {
     Offset off(name);
+    end_position *= lengthUnits_m;
     off.setEndPosition(end_position);
     off.setEndDirection(end_direction);
     off.setIsLocal(false);

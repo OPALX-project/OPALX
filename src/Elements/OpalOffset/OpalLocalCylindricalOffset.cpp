@@ -46,10 +46,10 @@ OpalLocalCylindricalOffset::OpalLocalCylindricalOffset()
                      "LOCAL_CYLINDRICAL_OFFSET",
                      doc_string.c_str()) {
     itsAttr[THETA_IN] = Attributes::makeReal("THETA_IN",
-             "Angle between the previous element and the displacement vector.");
+             "Angle between the previous element and the displacement vector [rad].");
     itsAttr[THETA_OUT] = Attributes::makeReal("THETA_OUT",
-             "Angle between the displacement vector and the next element.");
-    itsAttr[LENGTH] = Attributes::makeReal("LENGTH", "Length of the offset.");
+             "Angle between the displacement vector and the next element [rad].");
+    itsAttr[LENGTH] = Attributes::makeReal("LENGTH", "Length of the offset [m].");
     registerRealAttribute("THETA_IN");
     registerRealAttribute("THETA_OUT");
     registerRealAttribute("LENGTH");

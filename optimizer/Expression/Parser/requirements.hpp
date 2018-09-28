@@ -60,8 +60,7 @@ namespace client { namespace code_gen
         bool operator()(ast::function_call const& x) {
             functions_.insert(x.function_name.name);
 
-            BOOST_FOREACH(ast::function_call_argument const& arg, x.args) {
-
+            for(ast::function_call_argument const& arg: x.args) {
                 if (!boost::apply_visitor(*this, arg))
                     return false;
                 //if (!(*this)(arg))
@@ -75,7 +74,7 @@ namespace client { namespace code_gen
             if (!boost::apply_visitor(*this, x.first))
                 return false;
 
-            BOOST_FOREACH(ast::operation const& oper, x.rest) {
+            for(ast::operation const& oper: x.rest) {
                 if (!(*this)(oper))
                     return false;
         }

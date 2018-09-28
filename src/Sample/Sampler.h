@@ -51,7 +51,8 @@ public:
             Expressions::Named_t constraints,
             DVarContainer_t dvars,
             size_t dim, Comm::Bundle_t comms,
-            CmdArguments_t args);
+            CmdArguments_t args,
+            std::vector<double> hypervolRef);
 
 
     /**

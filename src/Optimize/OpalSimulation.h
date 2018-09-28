@@ -103,6 +103,10 @@ private:
 
     /// check if we already have simulated the current set of design vars
     bool hasResultsAvailable();
+    
+    /// create symbolic links
+    void createSymlink_m(const std::string& path);
+
     /// create directories, input files, fieldmaps...
     void setupSimulation();
 
