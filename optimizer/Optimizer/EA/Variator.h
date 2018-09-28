@@ -24,12 +24,10 @@ class Variator : public CrossoverOperator<ind_t>,
 
 public:
 
-    Variator(size_t sizeInitial,
-             std::vector<std::string> dNames,
+    Variator(std::vector<std::string> dNames,
              Optimizer::bounds_t dVarBounds, Expressions::Named_t constraints,
              CmdArguments_t args)
-        : sizeInitial_m(sizeInitial)
-        , dNames_m(dNames)
+        : dNames_m(dNames)
         , dVarBounds_m(dVarBounds)
     {
         // add constraints, if only design variables are needed for evaluation
@@ -70,8 +68,8 @@ public:
     }
 
     /// create an initial population
-    void initial_population() {
-        for(size_t i = 0; i < sizeInitial_m; i++)
+    void initial_population(size_t sizeInitial) {
+      for(size_t i = 0; i < sizeInitial; i++)
             new_individual();
 
     }
@@ -191,8 +189,6 @@ private:
 
     /// population of individuals
     boost::shared_ptr< Population<ind_t> > population_m;
-    /// number of individuals in initial population
-    size_t sizeInitial_m;
 
     /// user specified command line arguments
     CmdArguments_t args_;

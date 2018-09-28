@@ -83,31 +83,13 @@ public:
 
     unsigned int getLosses() const;
 
-    // void setXsize(double a) ;
-
-    // void setYsize(double b) ;
-
-    // void setXpos(double x0) ;
-
-    // void setYpos(double y0) ;
-
-    // double getXsize(double a) ;
-
-    // double getYsize(double b) ;
-
-    // double getXpos() ;
-
-    // double getYpos() ;
-
     // --------Cyclotron collimator
 
-    void setXStart(double xstart) ;
-    void setYStart(double ystart) ;
-    void setZStart(double zstart) ;
-    void setXEnd(double xend) ;
-    void setYEnd(double yend) ;
-    void setZEnd(double zend) ;
-    void setWidth(double width) ;
+    /// Set dimensions and consistency checks
+    void setDimensions(double xstart, double xend,
+                       double ystart, double yend,
+                       double zstart, double zend,
+                       double width);
 
     double getXStart() ;
     double getYStart() ;
@@ -128,14 +110,17 @@ private:
 
     bool informed_m;
 
-    //parameters for CCollimator
+    ///@{ input geometry positions
     double xstart_m;
     double xend_m;
     double ystart_m;
     double yend_m;
     double zstart_m;
     double zend_m;
+    double rstart_m;
+    double rend_m;
     double width_m;
+    ///@}
 
     Point  geom_m[5];
     void setGeom();
@@ -150,41 +135,6 @@ private:
 inline
 unsigned int CCollimator::getLosses() const {
     return losses_m;
-}
-
-inline
-void CCollimator::setXStart(double xstart) {
-    xstart_m = xstart;
-}
-
-inline
-void CCollimator::setXEnd(double xend) {
-    xend_m = xend;
-}
-
-inline
-void CCollimator::setYStart(double ystart) {
-    ystart_m = ystart;
-}
-
-inline
-void CCollimator::setYEnd(double yend) {
-    yend_m = yend;
-}
-
-inline
-void CCollimator::setZStart(double zstart) {
-    zstart_m = zstart;
-}
-
-inline
-void CCollimator::setZEnd(double zend) {
-    zend_m = zend;
-}
-
-inline
-void CCollimator::setWidth(double width) {
-    width_m = width;
 }
 
 inline

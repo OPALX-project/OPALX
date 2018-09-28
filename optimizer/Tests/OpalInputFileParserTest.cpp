@@ -6,8 +6,6 @@
 
 #include "boost/smart_ptr.hpp"
 #include "boost/tuple/tuple.hpp"
-#include "boost/foreach.hpp"
-#define foreach BOOST_FOREACH
 
 namespace {
 
@@ -80,7 +78,7 @@ namespace {
         names.push_back("obj1");
         names.push_back("ob3");
         names.push_back("o2");
-        foreach(Expressions::SingleNamed_t expr, obj) {
+        for(Expressions::SingleNamed_t expr : obj) {
             std::string expected_name = names.back();
             EXPECT_EQ(expected_name, expr.first);
             names.pop_back();
