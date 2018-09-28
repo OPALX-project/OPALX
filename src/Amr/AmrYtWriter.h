@@ -21,7 +21,11 @@ class AmrYtWriter : public AbstractAmrWriter {
     
 public:
     
-    AmrYtWriter(int step);
+    /*!
+     * @param step we write
+     * @param bin energy bin we write (multi-bunch simulation)
+     */
+    AmrYtWriter(int step, int bin = 0);
     
     /*!
      * Write yt files to the simulation subdirectory
@@ -66,7 +70,6 @@ private:
     
 private:
     std::string dir_m;                      ///< directory where to write files
-    int step_m;                             ///< that we write
     
     std::vector<std::string> intData_m;     ///< integer bunch data
     std::vector<std::string> realData_m;    ///< real bunch data

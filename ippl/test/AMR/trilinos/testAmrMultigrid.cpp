@@ -446,6 +446,8 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
+    
+    amrex::Finalize(true);
 
     return 0;
 }

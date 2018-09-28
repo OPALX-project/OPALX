@@ -5,6 +5,8 @@
 
 #include "Ippl.h"
 
+#include <iostream>
+
 #define DEFAULT_VERBOSITY       H5_VERBOSE_DEFAULT
 
 H5Reader::H5Reader(const std::string& filename)
@@ -77,10 +79,12 @@ void H5Reader::read(Distribution::container_t& x,
         z[n] = f64buffer[n];
     }
 
+#if AMREX_SPACEDIM == 3
     READDATA(Float64, file_m, "z", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         y[n] = f64buffer[n];
     }
+#endif
 
     READDATA(Float64, file_m, "px", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
@@ -92,10 +96,12 @@ void H5Reader::read(Distribution::container_t& x,
         pz[n] = f64buffer[n];
     }
 
+#if AMREX_SPACEDIM == 3
     READDATA(Float64, file_m, "pz", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         py[n] = f64buffer[n];
     }
+#endif
 
     READDATA(Float64, file_m, "q", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
@@ -112,22 +118,28 @@ void H5Reader::read(Distribution::container_t& x,
 void H5Reader::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
+#if AMREX_SPACEDIM == 3
     WRITESTRINGFILEATTRIB(file_m, "zUnit", "m");
+#endif
     WRITESTRINGFILEATTRIB(file_m, "pxUnit", "#beta#gamma");
     WRITESTRINGFILEATTRIB(file_m, "pyUnit", "#beta#gamma");
+#if AMREX_SPACEDIM == 3
     WRITESTRINGFILEATTRIB(file_m, "pzUnit", "#beta#gamma");
+#endif
     WRITESTRINGFILEATTRIB(file_m, "MASSUnit", "GeV");
     WRITESTRINGFILEATTRIB(file_m, "CHARGEUnit", "C");
     WRITESTRINGFILEATTRIB(file_m, "NumPartUnit", "1");
 }
 
-void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch)
+void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch, int step)
 {
     const size_t numLocalParticles = bunch->getLocalNum();
     
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
     h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    
+    H5SetStep (file_m, step);
     
     H5PartSetNumParticles(file_m, numLocalParticles);
     
@@ -141,11 +153,13 @@ void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* 
 
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
+#if AMREX_SPACEDIM == 3
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch->R[i](2);
 
     WRITEDATA(Float64, file_m, "z", f64buffer);
-
+#endif
+    
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch->P[i](0);
 
@@ -156,11 +170,13 @@ void H5Reader::write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* 
 
     WRITEDATA(Float64, file_m, "py", f64buffer);
 
+#if AMREX_SPACEDIM == 3
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch->P[i](2);
 
     WRITEDATA(Float64, file_m, "pz", f64buffer);
-
+#endif
+    
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch->qm[i];
 
@@ -216,7 +232,11 @@ void H5Reader::writeScalarField(const container_t& scalfield,
 
             h5_int64_t i_dims = bx.hiVect()[0] - bx.loVect()[0] + 1;
             h5_int64_t j_dims = bx.hiVect()[1] - bx.loVect()[1] + 1;
+#if AMREX_SPACEDIM == 3
             h5_int64_t k_dims = bx.hiVect()[2] - bx.loVect()[2] + 1;
+#else
+            h5_int64_t k_dims = 1;
+#endif
 //             h5_int64_t size = i_dims * j_dims * k_dims;
             
             if ( Ippl::myNode() == 0)
@@ -237,16 +257,26 @@ void H5Reader::writeScalarField(const container_t& scalfield,
                 h5_int64_t jj = 0;
                 for (h5_int64_t j = bx.loVect()[1]; j <= bx.hiVect()[1]; ++j) {
                     h5_int64_t kk = 0;
+#if AMREX_SPACEDIM == 3
                     for (h5_int64_t k = bx.loVect()[2]; k <= bx.hiVect()[2]; ++k) {
-                        IntVect ivec(i, j, k);
+#endif
+                        IntVect ivec(D_DECL(i, j, k));
                         h5_int64_t idx = _calc_index (ii, i_dims, jj, j_dims, kk, k_dims );
 //                         std::cout << idx << " " << ii << " " << jj << " " << kk << " "
 //                                   << ivec << " " << field(ivec, 0) << " " << Ippl::myNode() << std::endl; //std::cin.get();
                         if ( Ippl::myNode() == 0)
-                            std::cout << idx << " " << i << " " << j << " " << k << " " << Ippl::myNode() << std::endl;
+                            std::cout << idx << " "
+                                      << i << " "
+                                      << j << " "
+#if AMREX_SPACEDIM == 3
+                                      << k << " "
+#endif
+                                      << Ippl::myNode() << std::endl;
                         data[idx] = field(ivec, 0 /*component*/);
+#if AMREX_SPACEDIM == 3
                         ++kk;
                     }
+#endif
                     ++jj;
                 }
                 ++ii;
@@ -282,6 +312,7 @@ void H5Reader::writeScalarField(const container_t& scalfield,
             
             RealBox rb = geom[l].ProbDomain();
             
+#if AMREX_SPACEDIM == 3
             //FIXME Different origins for different grids of same level
             H5Block3dSetFieldOrigin(file, group.c_str(),
                                     (h5_float64_t)rb.lo(0),
@@ -293,6 +324,7 @@ void H5Reader::writeScalarField(const container_t& scalfield,
                                      (h5_float64_t)(geom[0].CellSize(0)),
                                      (h5_float64_t)(geom[0].CellSize(1)),
                                      (h5_float64_t)(geom[0].CellSize(2)));
+#endif
             
             ++gridnr;
         }

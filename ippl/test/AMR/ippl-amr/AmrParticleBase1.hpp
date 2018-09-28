@@ -4,9 +4,9 @@
 #include <AMReX_ParmParse.H>
 #include <limits>
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
+void AmrParticleBase1<PLayout>::Interp(const SingleParticlePos_t &R,
 				      const amrex::Geometry &geom,
 				      const amrex::FArrayBox& fab,
 				      const int* idx,
@@ -32,9 +32,9 @@ void AmrParticleBase<PLayout>::Interp(const SingleParticlePos_t &R,
   }
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
+void AmrParticleBase1<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &R, 
 						     const amrex::Real* plo, 
 						     const amrex::Real* dx, 
 						     amrex::Real* fracs,  
@@ -55,22 +55,22 @@ void AmrParticleBase<PLayout>::CIC_Cells_Fracs_Basic(const SingleParticlePos_t &
 
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
+int AmrParticleBase1<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
 					       const amrex::Real*         plo,
 					       const amrex::Real*         dx_geom,
 					       const amrex::Real*         dx_part,
 					       amrex::Vector<amrex::Real>&        fracs,
 					       amrex::Vector<amrex::IntVect>&     cells)
 {
-    BL_PROFILE("AmrParticleBase::CIC_Cells_Fracs()");
+    BL_PROFILE("AmrParticleBase1::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
     {
         const int M = D_TERM(2,+2,+4);
         fracs.resize(M);
         cells.resize(M);
-        AmrParticleBase::CIC_Cells_Fracs_Basic(R,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
+        AmrParticleBase1::CIC_Cells_Fracs_Basic(R,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
         return M;
     }
     //
@@ -119,9 +119,9 @@ int AmrParticleBase<PLayout>::CIC_Cells_Fracs (const SingleParticlePos_t &R,
     return M;
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
+bool AmrParticleBase1<PLayout>::FineToCrse (const int ip,
 					   int                               flev,
 					   const amrex::Vector<amrex::IntVect>&              fcells,
 					   const amrex::BoxArray&                    fvalid,
@@ -136,7 +136,7 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     PLayout *Layout = &this->getLayout();
     const amrex::ParGDBBase* m_gdb = Layout->GetParGDB();
     
-    BL_PROFILE("AmrParticleBase::FineToCrse()");
+    BL_PROFILE("AmrParticleBase1::FineToCrse()");
     BL_ASSERT(m_gdb != 0);
     BL_ASSERT(flev > 0);
     //
@@ -240,9 +240,9 @@ bool AmrParticleBase<PLayout>::FineToCrse (const int ip,
     return result;
 }
 
-// Function from BoxLib adjusted to work with Ippl AmrParticleBase class
+// Function from BoxLib adjusted to work with Ippl AmrParticleBase1 class
 template<class PLayout>
-void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
+void AmrParticleBase1<PLayout>::FineCellsToUpdateFromCrse (
   const int ip,
   int lev,
   const amrex::IntVect& ccell,
@@ -368,7 +368,7 @@ void AmrParticleBase<PLayout>::FineCellsToUpdateFromCrse (
 
 
 template<class PLayout>
-void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
+void AmrParticleBase1<PLayout>::AssignDensityDoit(int rho_index,
 						 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf,
 						 PMap&             data,
 						 int               ncomp,
@@ -572,7 +572,7 @@ void AmrParticleBase<PLayout>::AssignDensityDoit(int rho_index,
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
                                                   amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_to_be_filled, 
                                                   int lev_min, int ncomp, int finest_level) const
 {
@@ -633,7 +633,7 @@ void AmrParticleBase<PLayout>::AssignDensityFort (ParticleAttrib<AType> &pa,
 // This is the single-level version for cell-centered density
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<AType> &pa,
                                                                  amrex::MultiFab& mf_to_be_filled,
                                                                  int       lev,
                                                                  int       ncomp,
@@ -687,11 +687,11 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
     //loop trough particles and distribute values on the grid
     size_t LocalNum = this->getLocalNum();
     
-    amrex::Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
-    double lxyz[3] = { 0.0, 0.0, 0.0 };
-    double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
-    double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
-    int ijk[3] = {0, 0, 0};
+    amrex::Real inv_dx[AMREX_SPACEDIM] = { D_DECL(1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2]) };
+    double lxyz[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    double wxyz_hi[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    double wxyz_lo[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    int ijk[AMREX_SPACEDIM] = { D_DECL(0, 0, 0) };
     
     size_t lBegin = LocalNumPerLevel_m.begin(lev);
     size_t lEnd   = LocalNumPerLevel_m.end(lev);
@@ -704,7 +704,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
         
         // not callable:
         // begin amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             lxyz[i] = ( this->R[ip](i) - plo[i] ) * inv_dx[i] + 0.5;
             ijk[i] = lxyz[i];
             wxyz_hi[i] = lxyz[i] - ijk[i];
@@ -713,25 +713,33 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
         
         int& i = ijk[0];
         int& j = ijk[1];
+#if AMREX_SPACEDIM == 3
         int& k = ijk[2];
+#endif
         
-        amrex::IntVect i1(i-1, j-1, k-1);
-        amrex::IntVect i2(i-1, j-1, k);
-        amrex::IntVect i3(i-1, j,   k-1);
-        amrex::IntVect i4(i-1, j,   k);
-        amrex::IntVect i5(i,   j-1, k-1);
-        amrex::IntVect i6(i,   j-1, k);
-        amrex::IntVect i7(i,   j,   k-1);
-        amrex::IntVect i8(i,   j,   k);
+        amrex::IntVect i1(D_DECL(i-1, j-1, k-1));
+        amrex::IntVect i3(D_DECL(i-1, j,   k-1));
+        amrex::IntVect i5(D_DECL(i,   j-1, k-1));
+        amrex::IntVect i7(D_DECL(i,   j,   k-1));
         
-        fab(i1, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*pa[ip];
-        fab(i2, 0) += wxyz_lo[0]*wxyz_lo[1]*wxyz_hi[2]*pa[ip];
-        fab(i3, 0) += wxyz_lo[0]*wxyz_hi[1]*wxyz_lo[2]*pa[ip];
-        fab(i4, 0) += wxyz_lo[0]*wxyz_hi[1]*wxyz_hi[2]*pa[ip];
-        fab(i5, 0) += wxyz_hi[0]*wxyz_lo[1]*wxyz_lo[2]*pa[ip];
-        fab(i6, 0) += wxyz_hi[0]*wxyz_lo[1]*wxyz_hi[2]*pa[ip];
-        fab(i7, 0) += wxyz_hi[0]*wxyz_hi[1]*wxyz_lo[2]*pa[ip];
-        fab(i8, 0) += wxyz_hi[0]*wxyz_hi[1]*wxyz_hi[2]*pa[ip];
+#if AMREX_SPACEDIM == 3
+        amrex::IntVect i4(D_DECL(i-1, j,   k));
+        amrex::IntVect i2(D_DECL(i-1, j-1, k));
+        amrex::IntVect i6(D_DECL(i,   j-1, k));
+        amrex::IntVect i8(D_DECL(i,   j,   k));
+#endif
+        
+        fab(i1, 0) += AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_lo[2]) * pa[ip];
+        fab(i3, 0) += AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_lo[2]) * pa[ip];
+        fab(i5, 0) += AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_lo[2]) * pa[ip];
+        fab(i7, 0) += AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_lo[2]) * pa[ip];
+        
+#if AMREX_SPACEDIM == 3
+        fab(i2, 0) += AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_hi[2]) * pa[ip];
+        fab(i4, 0) += AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_hi[2]) * pa[ip];
+        fab(i6, 0) += AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_hi[2]) * pa[ip];
+        fab(i8, 0) += AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_hi[2]) * pa[ip];
+#endif
         // end of amrex_deposit_cic
     }
     
@@ -755,7 +763,7 @@ void AmrParticleBase<PLayout>::AssignCellDensitySingleLevelFort (ParticleAttrib<
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
                                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mesh_data, 
                                                 int lev_min, int lev_max)
 {
@@ -766,7 +774,7 @@ void AmrParticleBase<PLayout>::InterpolateFort (ParticleAttrib<AType> &pa,
 
 template<class PLayout>
 template <class AType>
-void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType> &pa,
+void AmrParticleBase1<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType> &pa,
                                                            amrex::MultiFab& mesh_data, int lev)
 {
     if (mesh_data.nGrow() < 1)
@@ -782,14 +790,17 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
     //loop trough particles and distribute values on the grid
     size_t LocalNum = this->getLocalNum();
     
-    amrex::Real inv_dx[3] = { 1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2] };
-    double lxyz[3] = { 0.0, 0.0, 0.0 };
-    double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
-    double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
-    int ijk[3] = {0, 0, 0};
+    amrex::Real inv_dx[AMREX_SPACEDIM] = { D_DECL(1.0 / dx[0], 1.0 / dx[1], 1.0 / dx[2]) };
+    double lxyz[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    double wxyz_hi[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    double wxyz_lo[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    int ijk[AMREX_SPACEDIM] = { D_DECL(0, 0, 0) };
     
     size_t lBegin = this->LocalNumPerLevel_m.begin(lev);
     size_t lEnd   = this->LocalNumPerLevel_m.end(lev);
+    
+    // make sure that boundaries are filled!
+    mesh_data.FillBoundary(gm.periodicity());
     
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
@@ -800,7 +811,7 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
         
         // not callable
         // begin amrex_interpolate_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             lxyz[i] = ( this->R[ip](i) - plo[i] ) * inv_dx[i] + 0.5;
             ijk[i] = lxyz[i];
             wxyz_hi[i] = lxyz[i] - ijk[i];
@@ -809,26 +820,36 @@ void AmrParticleBase<PLayout>::InterpolateSingleLevelFort (ParticleAttrib<AType>
         
         int& i = ijk[0];
         int& j = ijk[1];
+#if AMREX_SPACEDIM == 3
         int& k = ijk[2];
+#endif
         
-        amrex::IntVect i1(i-1, j-1, k-1);
-        amrex::IntVect i2(i-1, j-1, k);
-        amrex::IntVect i3(i-1, j,   k-1);
-        amrex::IntVect i4(i-1, j,   k);
-        amrex::IntVect i5(i,   j-1, k-1);
-        amrex::IntVect i6(i,   j-1, k);
-        amrex::IntVect i7(i,   j,   k-1);
-        amrex::IntVect i8(i,   j,   k);
+        amrex::IntVect i1(D_DECL(i-1, j-1, k-1));
+        amrex::IntVect i3(D_DECL(i-1, j,   k-1));
+        amrex::IntVect i5(D_DECL(i,   j-1, k-1));
+        amrex::IntVect i7(D_DECL(i,   j,   k-1));
+        
+#if AMREX_SPACEDIM == 3
+        amrex::IntVect i2(D_DECL(i-1, j-1, k));
+        amrex::IntVect i4(D_DECL(i-1, j,   k));
+        amrex::IntVect i6(D_DECL(i,   j-1, k));
+        amrex::IntVect i8(D_DECL(i,   j,   k));
+#endif
         
         for (int nc = 0; nc < nComp; ++nc) {
-            pa[ip](nc) = wxyz_lo[0]*wxyz_lo[1]*wxyz_lo[2]*fab(i1, nc) +
-                         wxyz_lo[0]*wxyz_lo[1]*wxyz_hi[2]*fab(i2, nc) +
-                         wxyz_lo[0]*wxyz_hi[1]*wxyz_lo[2]*fab(i3, nc) +
-                         wxyz_lo[0]*wxyz_hi[1]*wxyz_hi[2]*fab(i4, nc) +
-                         wxyz_hi[0]*wxyz_lo[1]*wxyz_lo[2]*fab(i5, nc) +
-                         wxyz_hi[0]*wxyz_lo[1]*wxyz_hi[2]*fab(i6, nc) +
-                         wxyz_hi[0]*wxyz_hi[1]*wxyz_lo[2]*fab(i7, nc) +
-                         wxyz_hi[0]*wxyz_hi[1]*wxyz_hi[2]*fab(i8, nc);
+            /*pa[ip](nc)*/
+            this->get(pa, ip, nc) =  AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_lo[2]) * fab(i1, nc) +
+                                     AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_lo[2]) * fab(i3, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_lo[2]) * fab(i5, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_lo[2]) * fab(i7, nc)
+#if AMREX_SPACEDIM == 3
+                                  +  AMREX_D_TERM(wxyz_lo[0], * wxyz_lo[1], * wxyz_hi[2]) * fab(i2, nc) +
+                                     AMREX_D_TERM(wxyz_lo[0], * wxyz_hi[1], * wxyz_hi[2]) * fab(i4, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_lo[1], * wxyz_hi[2]) * fab(i6, nc) +
+                                     AMREX_D_TERM(wxyz_hi[0], * wxyz_hi[1], * wxyz_hi[2]) * fab(i8, nc);
+#else
+                                    ;
+#endif
         }
         // end amrex_interpolate_cic
     }

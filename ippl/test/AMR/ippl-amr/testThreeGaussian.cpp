@@ -1,8 +1,10 @@
 /*!
- * @file testUnifBox.cpp
+ * @file testThreeGaussian.cpp
  * @author Matthias Frey
- * @date 6. Dec. 2017
- * @brief Solve the electrostatic potential for a cube.
+ * @date 10. July 2018
+ * @brief Solve the electrostatic potential for a cube
+ *        with Dirichlet boundary condition.
+ *        Test for paper 1.
  */
 #include "Ippl.h"
 #include <string>
@@ -17,7 +19,6 @@
 #include "../Solver.h"
 #include "../MGTSolver.h"
 #include "../AmrOpal.h"
-#include "../Distribution.h"
 
 #include "../helper_functions.h"
 
@@ -26,7 +27,9 @@
 #include <cmath>
 
 #include "Physics/Physics.h"
-#include <random>
+
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
 
 #ifdef HAVE_AMR_MG_SOLVER
     #include "../trilinos/AmrMultiGrid.h"
@@ -43,15 +46,11 @@ struct param_t {
     Vektor<size_t, 3> nr;
     size_t nLevels;
     size_t maxBoxSize;
-    double lower;
-    double upper;
-    double length;
+    size_t blocking_factor;
     size_t nParticles;
     double pCharge;
-    bool isFixedCharge;
     bool isWriteYt;
     bool isWriteCSV;
-    bool isWriteParticles;
     bool isHelp;
     bool useMgtSolver;
 #ifdef HAVE_AMR_MG_SOLVER
@@ -64,6 +63,9 @@ struct param_t {
     std::string smoother;
     std::string prec;
     bool rebalance;
+    double bboxincr;
+    int inc;
+    double dd;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -78,9 +80,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
      */
     
     params.isWriteYt = false;
-    params.isFixedCharge = false;
     params.isWriteCSV = false;
-    params.isWriteParticles = false;
     params.isHelp = false;
     params.useMgtSolver = false;
     params.criteria = AmrOpal::kChargeDensity;
@@ -103,47 +103,47 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 9;
+    int required = 11;
     
     while ( true ) {
         static struct option long_options[] = {
-            { "gridx",          required_argument, 0, 'x' },
-            { "gridy",          required_argument, 0, 'y' },
-            { "gridz",          required_argument, 0, 'z' },
-            { "level",          required_argument, 0, 'l' },
-            { "maxgrid",        required_argument, 0, 'm' },
-            { "lower",          required_argument, 0, 'r' },
-            { "upper",          required_argument, 0, 'd' },
-            { "boxlength",      required_argument, 0, 'b' },
-            { "nparticles",     required_argument, 0, 'n' },
-            { "writeYt",        no_argument,       0, 'w' },
-            { "help",           no_argument,       0, 'h' },
-            { "pcharge",        required_argument, 0, 'c' },
-            { "writeCSV",       no_argument,       0, 'v' },
-            { "writeParticles", no_argument,       0, 'p' },
-            { "use-mgt-solver", no_argument,       0, 's' },
+            { "gridx",           required_argument, 0, 'x' },
+            { "gridy",           required_argument, 0, 'y' },
+            { "gridz",           required_argument, 0, 'z' },
+            { "level",           required_argument, 0, 'l' },
+            { "maxgrid",         required_argument, 0, 'm' },
+            { "blocking_factor", required_argument, 0, 'd' },
+            { "nparticles",      required_argument, 0, 'n' },
+            { "writeYt",         no_argument,       0, 'w' },
+            { "help",            no_argument,       0, 'h' },
+            { "pcharge",         required_argument, 0, 'c' },
+            { "writeCSV",        no_argument,       0, 'v' },
+            { "use-mgt-solver",  no_argument,       0, 's' },
 #ifdef HAVE_AMR_MG_SOLVER
-            { "use-trilinos",   no_argument,       0, 'a' },
-            { "nsweeps",        required_argument, 0, 'g' },
-            { "smoother",       required_argument, 0, 'q' },
-            { "prec",           required_argument, 0, 'o' },
-            { "bcx",            required_argument, 0, 'i' },
-            { "bcy",            required_argument, 0, 'j' },
-            { "bcz",            required_argument, 0, 'k' },
-            { "basesolver",     required_argument, 0, 'u' },
+            { "use-trilinos",    no_argument,       0, 'a' },
+            { "nsweeps",         required_argument, 0, 'g' },
+            { "smoother",        required_argument, 0, 'q' },
+            { "prec",            required_argument, 0, 'o' },
+            { "bcx",             required_argument, 0, 'i' },
+            { "bcy",             required_argument, 0, 'j' },
+            { "bcz",             required_argument, 0, 'k' },
+            { "basesolver",      required_argument, 0, 'u' },
             { "rebalance",      no_argument,       0, 'R' },
 #endif
-            { "tagging",        required_argument, 0, 't' },
-            { "tagging-factor", required_argument, 0, 'f' },
-            { 0,                0,                 0,  0  }
+            { "tagging",         required_argument, 0, 't' },
+            { "tagging-factor",  required_argument, 0, 'f' },
+            { "bboxincr",        required_argument, 0, 'b' },
+            { "inc",        required_argument, 0, 'I' },
+            { "dd",        required_argument, 0, 'D' },
+            { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:R:d:b:n:whcvpst:f:a:g:q:o:u:i:j:k:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:D:a:b:cd:f:g:hi:j:k:l:m:n:o:q:R:st:u:vwx:y:z:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:d:b:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:D:b:x:y:z:l:m:n:whcvst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -191,6 +191,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 break;
             }
 #endif
+            case 'b':
+                params.bboxincr = std::atof(optarg); ++cnt; break;
+            case 'I':
+                params.inc = std::atoi(optarg); ++cnt; break;
+            case 'D':
+                params.dd = std::atoi(optarg); ++cnt; break;
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -201,26 +207,17 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 params.nLevels = std::atoi(optarg) + 1; ++cnt; break;
             case 'm':
                 params.maxBoxSize = std::atoi(optarg); ++cnt; break;
-            case 'r':
-                params.lower = std::atof(optarg); ++cnt; break;
             case 'd':
-                params.upper = std::atof(optarg); ++cnt; break;
-            case 'b':
-                params.length = std::atof(optarg); ++cnt; break;
+                params.blocking_factor = std::atoi(optarg); ++cnt; break;
             case 'n':
                 params.nParticles = std::atoi(optarg); ++cnt; break;
             case 'c':
-                params.pCharge = std::atof(optarg);
-                params.isFixedCharge = true;
-                break;
+                params.pCharge = std::atof(optarg); ++cnt; break;
             case 'w':
                 params.isWriteYt = true;
                 break;
             case 'v':
                 params.isWriteCSV = true;
-                break;
-            case 'p':
-                params.isWriteParticles = true;
                 break;
             case 's':
                 params.useMgtSolver = true;
@@ -242,14 +239,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--gridz [#gridpoints in z]" << endl
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
-                    << "--lower [box bound]" << endl
-                    << "--upper [box bound]" << endl
-                    << "--boxlength [cube side length]" << endl
+                    << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
+                    << "--bboxincr [value] (increase box size by [value] percent)" << endl
                     << "--nparticles [#particles]" << endl
-                    << "--pcharge [charge per particle] (optional)" << endl
+                    << "--pcharge [charge per particle]" << endl
                     << "--writeYt (optional)" << endl
                     << "--writeCSV (optional)" << endl
-                    << "--writeParticles (optional)" << endl
                     << "--use-mgt-solver (optional)" << endl
 #ifdef HAVE_AMR_MG_SOLVER
                     << "--use-trilinos (optional)" << endl
@@ -360,7 +355,7 @@ void writeYt(container_t& rho,
              const amrex::Vector<int>& rr,
              const double& scalefactor)
 {
-    std::string dir = "yt-testUnifBox";
+    std::string dir = "yt-testUnifSphere";
     
     double time = 0.0;
     
@@ -368,6 +363,84 @@ void writeYt(container_t& rho,
         rho[i]->mult(- Physics::epsilon_0 / scalefactor, 0, 1);
     
     writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
+}
+
+void initSources(std::unique_ptr<amrbunch_t>& bunch,
+                 int nParticles,
+                 double charge)
+{
+    if ( nParticles % Ippl::getNodes() )
+        throw std::runtime_error("Number of particles not a multiple of "
+                                 + std::to_string(Ippl::getNodes()) + ".");
+    
+    
+    int nLocParticles = nParticles / Ippl::getNodes();
+    
+    if ( nLocParticles % 3 )
+        throw std::runtime_error("Number of particles not a multiple of 3.");
+    
+    int nLocParticlesPerBunch = nLocParticles / 3;
+    
+    bunch->create(nLocParticles);
+    
+    
+    typedef std::vector<double> vector_t;
+    typedef std::vector<vector_t> matrix_t;
+    
+    matrix_t covs;
+    covs.push_back({ 0.83135114,  0.58282051,  0.68282562,
+                     0.58282051,  0.48288763,  0.55939651,
+                     0.68282562,  0.55939651,  0.77440051 });
+    
+    covs.push_back({ 1.46100156,  0.88168882,  0.42594743,
+                     0.88168882,  0.97367099,  0.58850888,
+                     0.42594743,  0.58850888,  0.37608084 });
+    
+    covs.push_back({ 0.84078024,  0.80728535,  1.06558982,
+                     0.80728535,  1.0778594,   1.18093691,
+                     1.06558982,  1.18093691,  1.44583337 });
+    
+    matrix_t mus;
+    mus.push_back({ -8.0, -2.0,  0.0 });
+    mus.push_back({  0.0,  0.0,  0.0 });
+    mus.push_back({  8.0,  2.0,  0.0 });
+    
+    
+    gsl_vector* mu    = gsl_vector_calloc(3);
+    gsl_matrix* sigma = gsl_matrix_calloc(3, 3);
+    gsl_vector* coord = gsl_vector_calloc(3);
+    
+    
+    gsl_rng* eng = gsl_rng_alloc(gsl_rng_mt19937);
+    gsl_rng_set(eng, 42);
+    
+    long double qi = charge;
+    
+    for (int k = 0; k < 3; ++k) {
+        for (int i = 0; i < 3; ++i) {
+            gsl_vector_set(mu, i, mus[k][i]);
+            for (int j = 0; j < 3; ++j) {
+                gsl_matrix_set(sigma, i, j, covs[k][j + 3 * i]);
+            }
+        }
+        
+        for (int i = 0; i < nLocParticlesPerBunch; ++i) {
+            if ( gsl_ran_multivariate_gaussian(eng, mu, sigma, coord) ) {
+                std::cerr << "Error:" << std::endl;
+                MPI_Abort(MPI_COMM_WORLD, 1);
+            }
+            bunch->R[ i + k * nLocParticlesPerBunch] = Vector_t( gsl_vector_get(coord, 0),
+                                                                 gsl_vector_get(coord, 1),
+                                                                 gsl_vector_get(coord, 2));
+            bunch->qm[i + k * nLocParticlesPerBunch] = qi;   // C
+        }
+    }
+    
+    gsl_vector_free(mu);
+    gsl_matrix_free(sigma);
+    gsl_vector_free(coord);
+    
+    gsl_rng_free(eng);
 }
 
 void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
@@ -531,21 +604,20 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     // solve
 #ifdef HAVE_AMR_MG_SOLVER
     if ( params.useTrilinos ) {
-	std::string interp="PC";
-	std::string norm="LINF";
+	std::string interp = "PC";
+        std::string norm = "LINF";
         AmrMultiGrid sol(&myAmrOpal, params.bs, params.prec,
                          params.rebalance, params.bcx, params.bcy,
                          params.bcz, params.smoother, params.nsweeps,
-                         interp, norm);
-    
+                         interp, norm, params.inc, params.dd);
+        
         IpplTimings::startTimer(solvTimer);
         
         sol.solve(rhs,            // [V m]
                   phi,            // [V m^3]
                   efield,       // [V m^2]
                   base_level,
-                  finest_level,
-                  false);
+                  finest_level, false);
     
         IpplTimings::stopTimer(solvTimer);
         
@@ -591,18 +663,6 @@ void doAMReX(const param_t& params, Inform& msg)
     // 1. initialize physical domain (just single-level)
     // ========================================================================
     
-//     double halflength = 0.5 * params.length;
-//     
-//     std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-//     std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-//     
-//     amrex::RealBox domain;
-//     
-//     // in helper_functions.h
-//     init(domain, params.nr, lower, upper);
-//     
-//     msg << "Domain: " << domain << endl;
-    
     /*
      * create an Amr object
      */
@@ -610,6 +670,9 @@ void doAMReX(const param_t& params, Inform& msg)
     pp.add("max_grid_size", int(params.maxBoxSize));
     
     amrex::Vector<int> error_buf(params.nLevels, 0);
+    
+    amrex::Vector<int> bf(params.nLevels, int(params.blocking_factor));
+    pp.addarr("blocking_factor", bf);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
@@ -632,8 +695,11 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::RealBox amr_domain;
     
-    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
-    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    double incr = params.bboxincr * 0.01;
+    double blen = 1.0 + incr;
+    
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{-blen, -blen, -blen}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{ blen,  blen,  blen}}; // m
     
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
@@ -664,25 +730,16 @@ void doAMReX(const param_t& params, Inform& msg)
     bunch->setAllowParticlesNearBoundary(true);
     
     // initialize a particle distribution
-    Distribution dist;
-    size_t nloc = params.nParticles / Ippl::getNodes();
-    dist.uniform(params.lower, params.upper, nloc, 0);
-    dist.injectBeam(*bunch);
+    initSources(bunch,
+                params.nParticles,
+                params.pCharge);
     
     bunch->update();
-
-    long double charge = Physics::q_e; // in [C]
-    
-    if ( params.isFixedCharge )
-        charge = params.pCharge;
-    
-    for (size_t i = 0; i < bunch->getLocalNum(); ++i)
-        bunch->qm[i] = charge;  // in [C]
     
     msg << "#Particles: " << bunch->getTotalNum() << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
-    
+        
     // map particles
     double scale = 1.0;
     
@@ -713,7 +770,7 @@ void doAMReX(const param_t& params, Inform& msg)
     msg << "#Particles: " << params.nParticles << endl
         << "Charge per particle: " << bunch->qm[0] << " C" << endl
         << "Total charge: " << params.nParticles * bunch->qm[0] << " C" << endl;
-    
+        
     for (int i = 0; i <= myAmrOpal.finestLevel() && i < myAmrOpal.maxLevel(); ++i)
         myAmrOpal.regrid(i /*lbase*/, scale/*0.0*/ /*time*/);
     
@@ -728,8 +785,9 @@ void doAMReX(const param_t& params, Inform& msg)
     IpplTimings::startTimer(statisticsTimer);
     bunch->dumpStatistics(statistics);
     IpplTimings::stopTimer(statisticsTimer);
-
-    msg << "#boxes: " <<  myAmrOpal.boxArray(0).size() << endl;
+    
+    for (int i = 0; i <= myAmrOpal.finestLevel(); ++i)
+        msg << "#boxes: " <<  myAmrOpal.boxArray(i).size() << endl;
     
     doSolve(myAmrOpal, bunch.get(), rhs, phi, efield, rrr, msg, scale, params);
     
@@ -751,26 +809,8 @@ void doAMReX(const param_t& params, Inform& msg)
     if (params.isWriteCSV && Ippl::getNodes() == 1 && myAmrOpal.maxGridSize(0) == (int)params.nr[0] )
         writeCSV(phi, efield, amr_domain.lo(0) / scale, geom[0].CellSize(0) / scale);
     
-    if ( params.isWriteYt ) {
-//         double halflength = 0.5 * params.length;
-//     
-//         std::array<double, AMREX_SPACEDIM> lower = {{-halflength, -halflength, -halflength}}; // m
-//         std::array<double, AMREX_SPACEDIM> upper = {{ halflength,  halflength,  halflength}}; // m
-//     
-//         amrex::RealBox domain;
-//         
-//         init(domain, params.nr, lower, upper);
-//         
-//         amrex::RealBox orig = geom[0].ProbDomain();
-//         geom[0].ProbDomain(domain);
-//         
-//         amrex::IntVect low(0, 0, 0);
-//         amrex::IntVect high(params.nr[0] - 1, params.nr[1] - 1, params.nr[2] - 1);    
-//         Box bx(low, high);
-//         geom[0].Domain(bx);
-        
+    if ( params.isWriteYt )
         writeYt(rhs, phi, efield, geom, rrr, scale);
-    }
 }
 
 
@@ -804,16 +844,13 @@ int main(int argc, char *argv[]) {
         msg << "Particle test running with" << endl
             << "- grid                  = " << params.nr << endl
             << "- max. grid             = " << params.maxBoxSize << endl
+            << "- blocking factor       = " << params.blocking_factor << endl
             << "- #level                = " << params.nLevels - 1 << endl
-            << "- lower [m]             = " << params.lower << endl
-            << "- upper [m]             = " << params.upper << endl
-            << "- cube side length [m]  = " << params.length << endl
             << "- #particles            = " << params.nParticles << endl
+            << "- bboxincr              = " << params.bboxincr << endl
             << "- tagging               = " << tagging << endl
-            << "- tagging factor        = " << params.tagfactor << endl;
-
-        if ( params.isFixedCharge )
-            msg << "- charge per particle   = " << params.pCharge << endl;
+            << "- tagging factor        = " << params.tagfactor << endl
+            << "- charge per particle   = " << params.pCharge << endl;
         
         if ( params.useMgtSolver )
             msg << "- MGT solver is used" << endl;
@@ -836,6 +873,18 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
+    
+    std::string fn = std::string(argv[0]) + "-timing.dat";
+    
+    std::map<std::string, unsigned int> problemSize;
+    
+    problemSize["level"] = params.nLevels;
+    problemSize["maxgrid"] = params.maxBoxSize;
+    problemSize["gridx"] = params.nr[0];
+    problemSize["gridy"] = params.nr[1];
+    problemSize["gridz"] = params.nr[2];
+    
+    IpplTimings::print(fn, problemSize);
     
     amrex::Finalize(true);
 

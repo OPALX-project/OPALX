@@ -1,5 +1,21 @@
 #include "Solver.h"
 
+
+void Solver::solve(amropal_p& amropal,
+                   amr::AmrFieldContainer_t &rho,
+                   amr::AmrFieldContainer_t &phi,
+                   amr::AmrFieldContainer_t &efield,
+                   unsigned short baseLevel,
+                   unsigned short finestLevel,
+                   bool prevAsGuess)
+{
+    const amrex::Vector<amrex::Geometry>& geom = amropal->Geom();
+    this->solve_for_accel(rho, phi, efield, geom,
+                          baseLevel, finestLevel,
+                          0.0, false, true);
+}
+
+
 void 
 Solver::solve_for_accel(const container_t& rhs,
                         const container_t& phi,
@@ -69,15 +85,18 @@ Solver::solve_for_accel(const container_t& rhs,
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level; lev++)
         {
+            
+            phi[lev]->FillBoundary(geom[lev].periodicity());
+            
             amrex::average_face_to_cellcenter(*(grad_phi[lev].get()),
                                               amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
                                               geom[lev]);
         
-            grad_phi[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev]->FillBoundary(/*0,AMREX_SPACEDIM,*/geom[lev].periodicity());
         }
         
         for (int lev = base_level; lev <= finest_level; ++lev) {
-            grad_phi[lev]->mult(-1.0, 0, 3);
+            grad_phi[lev]->mult(-1.0, 0, AMREX_SPACEDIM);
         }
     }
 

@@ -619,5 +619,7 @@ int main(int argc, char *argv[]) {
         msg << ex.what() << endl;
     }
     
+    amrex::Finalize(true);
+    
     return 0;
 }

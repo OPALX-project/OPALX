@@ -94,18 +94,32 @@ void AmrParticleBase<PLayout>::performDestroy(bool updateLocalNum) {
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::create(size_t M) {
+    
+//     size_t localnum = LocalNumPerLevel_m[0];
+    
     // particles are created at the coarsest level
     LocalNumPerLevel_m[0] += M;
     
     IpplParticleBase<PLayout>::create(M);
+    
+//     for (size_t i = localnum; i < LocalNumPerLevel_m[0]; ++i) {
+//         this->Grid[i] = 0;
+//         this->Level[i] = 0;
+//     }
 }
 
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::createWithID(unsigned id) {
+    
+//     size_t localnum = LocalNumPerLevel_m[0];
+    
     ++LocalNumPerLevel_m[0];
     
     IpplParticleBase<PLayout>::createWithID(id);
+    
+//     this->Grid[localnum] = 0;
+//     this->Level[localnum] = 0;
 }
 
 
