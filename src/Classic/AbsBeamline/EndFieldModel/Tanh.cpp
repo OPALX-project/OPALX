@@ -104,5 +104,11 @@ std::vector< std::vector<int> > Tanh::getTanhDiffIndices(size_t n) {
   return _tdi[n];
 }
 
+
+std::ostream& Tanh::print(std::ostream& out) const {
+    out << "Tanh model with centre length: " << _x0 
+        << " end length: " << _lambda;
+    return out;
+}
 }
 
