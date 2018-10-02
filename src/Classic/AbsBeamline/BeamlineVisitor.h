@@ -54,6 +54,7 @@ class RBend;
 class RBend3D;
 class RFCavity;
 class VariableRFCavity;
+class VariableRFCavityFringeField;
 class TravelingWave;
 class RFQuadrupole;
 class SBend;
@@ -170,6 +171,10 @@ public:
 
     /// Apply the algorithm to a variable RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity &) = 0;
+
+    /// Apply the algorithm to a variable RF cavity with Fringe Field.
+    virtual void visitVariableRFCavityFringeField
+                                      (const VariableRFCavityFringeField &) = 0;
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &) = 0;

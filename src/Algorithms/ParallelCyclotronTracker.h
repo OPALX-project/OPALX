@@ -33,6 +33,7 @@ class PlanarArcGeometry;
 class Ring;
 class SBend3D;
 class VariableRFCavity;
+class VariableRFCavityFringeField;
 class Offset;
 
 // Class ParallelCyclotronTracker
@@ -176,6 +177,10 @@ public:
 
     /// Apply the algorithm to a VariabelRFCavity.
     virtual void visitVariableRFCavity(const VariableRFCavity &cav);
+
+    /// Apply the algorithm to a VariabelRFCavity.
+    virtual void visitVariableRFCavityFringeField
+                                      (const VariableRFCavityFringeField &cav);
 
     /// Apply the algorithm to the top-level beamline.
     //  overwrite the execute-methode from DefaultVisitor

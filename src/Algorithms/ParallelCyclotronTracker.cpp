@@ -53,6 +53,7 @@
 #include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "AbsBeamline/VariableRFCavityFringeField.h"
 
 #include "AbstractObjects/Element.h"
 
@@ -826,6 +827,16 @@ void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity &cav
         opalRing_m->appendElement(cav);
     else
         throw OpalException("ParallelCyclotronTracker::visitVariableRFCavity",
+                            "Need to define a RINGDEFINITION to use VariableRFCavity element");
+}
+
+void ParallelCyclotronTracker::visitVariableRFCavityFringeField
+                                  (const VariableRFCavityFringeField &cav) {
+    *gmsg << "Adding Variable RF Cavity with Fringe Field" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(cav);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitVariableRFCavityFringeField",
                             "Need to define a RINGDEFINITION to use VariableRFCavity element");
 }
 
