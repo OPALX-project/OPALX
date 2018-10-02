@@ -7,6 +7,7 @@ set (_SRCS
     ScalingFFAGMagnetTest.cpp
     TrimCoilTest.cpp
     VariableRFCavityTest.cpp
+    VariableRFCavityFringeFieldTest.cpp
 )
 
 include_directories (

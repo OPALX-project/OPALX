@@ -39,7 +39,7 @@ class Fieldmap;
  *
  *  Generates a field like
  *      E = E0*a(t)*sin{f(t)*t-q(t)}
- *      B = B0*a(t)*cos{f(t)*t-q(t)}
+ *      B = 0
  *  where E0, B0 are user defined fields, a(t), f(t), q(t) are time
  *  dependent amplitude, frequency, phase respectively; it is assumed that these
  *  quantities vary sufficiently slowly that Maxwell is satisfied.
@@ -208,9 +208,11 @@ class VariableRFCavity: public Component {
     /// Not implemented
     virtual const EMField &getField() const;
   protected:
-    std::shared_ptr<AbstractTimeDependence> _phase_td;
-    std::shared_ptr<AbstractTimeDependence> _amplitude_td;
-    std::shared_ptr<AbstractTimeDependence> _frequency_td;
+    void initNull();
+    void initialise() const;
+    std::shared_ptr<AbstractTimeDependence> phaseTD_m;
+    std::shared_ptr<AbstractTimeDependence> amplitudeTD_m;
+    std::shared_ptr<AbstractTimeDependence> frequencyTD_m;
     std::string phaseName_m;
     std::string amplitudeName_m;
     std::string frequencyName_m;
@@ -221,21 +223,19 @@ class VariableRFCavity: public Component {
     StraightGeometry geometry;
     static const double lengthUnit_m;
 
-  private:
-    void initNull();
-
+private:
 };
 
 double VariableRFCavity::getAmplitude(double time) const {
-    return _amplitude_td->getValue(time);
+    return amplitudeTD_m->getValue(time);
 }
 
 double VariableRFCavity::getPhase(double time) const {
-    return _phase_td->getValue(time);
+    return phaseTD_m->getValue(time);
 }
 
 double VariableRFCavity::getFrequency(double time) const {
-    return _frequency_td->getValue(time);
+    return frequencyTD_m->getValue(time);
 }
 
 double VariableRFCavity::getHeight() const {
