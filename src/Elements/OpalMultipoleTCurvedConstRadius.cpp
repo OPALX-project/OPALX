@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
+ *  Copyright (c) 2018, Martin Duy Tat
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -26,7 +27,7 @@
  */
 
 
-#include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalMultipoleTCurvedConstRadius.h"
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
@@ -45,12 +46,12 @@
 #include <vector>
 
 
-// Class OpalMultipoleT
+// Class OpalMultipoleTCurvedConstRadius
 // ------------------------------------------------------------------------
 
-OpalMultipoleT::OpalMultipoleT():
-    OpalElement(SIZE, "MULTIPOLET",
-    "The \"MULTIPOLET\" element defines a combined function multipole.") {
+OpalMultipoleTCurvedConstRadius::OpalMultipoleTCurvedConstRadius():
+    OpalElement(SIZE, "MULTIPOLETCURVEDCONSTRADIUS",
+    "The \"MULTIPOLETCURVEDCONSTRADIUS\" element defines a curved combined function multipole magnet of constant curvature.") {
     itsAttr[TP] = Attributes::makeRealArray
                   ("TP", "Transverse Profile derivatives in m^(-k)");
     itsAttr[LFRINGE] = Attributes::makeReal
@@ -74,46 +75,44 @@ OpalMultipoleT::OpalMultipoleT():
     itsAttr[ROTATION] = Attributes::makeReal
                   ("ROTATION", 
                    "Rotation angle about its axis for skew elements (rad)");
-    itsAttr[VARRADIUS] = Attributes::makeBool
-                  ("VARRADIUS",
-                   "Set true if radius of magnet is variable");
     itsAttr[BBLENGTH] = Attributes::makeReal
                   ("BBLENGTH",
                    "Distance between centre of magnet and entrance in m");
-    //registerRealAttribute("FRINGELEN");
 
     registerOwnership();
 
-    setElement((new MultipoleT("MULTIPOLET"))->makeWrappers());
+
+    setElement((new MultipoleTCurvedConstRadius("MULTIPOLETCURVEDCONSTRADIUS"))->makeWrappers());
 }
 
 
-OpalMultipoleT::OpalMultipoleT(const std::string &name, 
-			       OpalMultipoleT *parent):
+OpalMultipoleTCurvedConstRadius::OpalMultipoleTCurvedConstRadius(const std::string &name, 
+			       OpalMultipoleTCurvedConstRadius *parent):
     OpalElement(name, parent) {
-    setElement((new MultipoleT(name))->makeWrappers());
+    setElement((new MultipoleTCurvedConstRadius(name))->makeWrappers());
 }
 
 
-OpalMultipoleT::~OpalMultipoleT()
+OpalMultipoleTCurvedConstRadius::~OpalMultipoleTCurvedConstRadius()
 {}
 
 
-OpalMultipoleT *OpalMultipoleT::clone(const std::string &name) {
-    return new OpalMultipoleT(name, this);
+OpalMultipoleTCurvedConstRadius *OpalMultipoleTCurvedConstRadius::clone(const std::string &name) {
+    return new OpalMultipoleTCurvedConstRadius(name, this);
 }
 
 
-void OpalMultipoleT::print(std::ostream &os) const {
+void OpalMultipoleTCurvedConstRadius::print(std::ostream &os) const {
     OpalElement::print(os);
 }
 
 
-void OpalMultipoleT::
+void OpalMultipoleTCurvedConstRadius::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);   
-    const MultipoleT *multT = 
-        dynamic_cast<const MultipoleT*>(base.removeAlignWrapper());
+    const MultipoleTCurvedConstRadius *multT = 
+        dynamic_cast<const MultipoleTCurvedConstRadius*>(base.removeAlignWrapper());
+    
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
 	ss << order;
@@ -129,19 +128,19 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     registerRealAttribute("MAXFORDER")->setReal(multT->getMaxOrder());
     registerRealAttribute("MAXXORDER")->setReal(multT->getMaxXOrder());
     registerRealAttribute("ROTATION")->setReal(multT->getRotation());
+    registerRealAttribute("ANGLE")->setReal(multT->getBendAngle());
     registerRealAttribute("EANGLE")->setReal(multT->getEntranceAngle());
-    //registerRealAttribute("VARRADIUS")->setBool(multT->getVarRadius());
     registerRealAttribute("BBLENGTH")->setReal(multT->getBoundingBoxLength());
     
 }
 
 
-void OpalMultipoleT::update() {
+void OpalMultipoleTCurvedConstRadius::update() {
     OpalElement::update();
 
     // Magnet length.
-    MultipoleT *multT =
-    dynamic_cast<MultipoleT*>(getElement()->removeWrappers());
+    MultipoleTCurvedConstRadius *multT =
+    dynamic_cast<MultipoleTCurvedConstRadius*>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle = Attributes::getReal(itsAttr[ANGLE]);
     double boundingBoxLength = Attributes::getReal(itsAttr[BBLENGTH]);
@@ -154,33 +153,30 @@ void OpalMultipoleT::update() {
     multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])/2,
                           Attributes::getReal(itsAttr[LFRINGE]),
                           Attributes::getReal(itsAttr[RFRINGE])); 
-    if (Attributes::getBool(itsAttr[VARRADIUS])) {
-        multT->setVarRadius();
-    }
     multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH]));
     const std::vector<double> transProfile = 
                               Attributes::getRealArray(itsAttr[TP]);
-    int transSize = transProfile.size();
-
+    std::size_t transSize = transProfile.size();
     if (transSize == 0) {
         multT->setTransMaxOrder(0);
     } else {
         multT->setTransMaxOrder(transSize - 1);
     }
+
     multT->setMaxOrder(Attributes::getReal(itsAttr[MAXFORDER]));
     multT->setMaxXOrder(Attributes::getReal(itsAttr[MAXXORDER]));
     multT->setRotation(Attributes::getReal(itsAttr[ROTATION]));
     multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
 
     PlanarArcGeometry &geometry = multT->getGeometry();
-
+    
     if(length) {
         geometry = PlanarArcGeometry(2 * boundingBoxLength, angle / length);
     } else {
         geometry = PlanarArcGeometry(angle);
     }
     
-    for(int comp = 0; comp < transSize; comp++) {
+    for(std::size_t comp = 0; comp < transSize; comp++) {
         multT->setTransProfile(comp, transProfile[comp]);
     }
     // Transmit "unknown" attributes.

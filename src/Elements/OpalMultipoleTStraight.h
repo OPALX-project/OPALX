@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
+ *  Copyright (c) 2018, Martin Duy Tat
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -26,21 +27,21 @@
  */
 
 
-#ifndef OPAL_OPALMULTIPOLET_HH
-#define OPAL_OPALMULTIPOLET_HH
+#ifndef OPAL_OPALMULTIPOLET_STRAIGHT_HH
+#define OPAL_OPALMULTIPOLET_STRAIGHT_HH
 
 #include "Elements/OpalElement.h"
-#include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/MultipoleTStraight.h"
 
-/** OpalMultipoleT provides user interface information for the MultipoleT object
+/** OpalMultipoleTStraight provides user interface information for the MultipoleTStraight object
  *
  *  Defines input parameters 
  */
-class OpalMultipoleT: public OpalElement {
+class OpalMultipoleTStraight: public OpalElement {
 
 public:
 
-    // The attributes of class OpalMultipoleT
+    // The attributes of class OpalMultipoleTStraight
     enum {
         TP = COMMON,     // Transverse field components
 	RFRINGE,         // Length of right fringe field
@@ -48,23 +49,20 @@ public:
 	HAPERT,          // Aperture horizontal dimension
 	VAPERT,          // Aperture vertical dimension
 	MAXFORDER,       // Maximum order in the field expansion
-        MAXXORDER,       // Maximum order in x in polynomial expansions
-	ANGLE,           // Bending angle of a sector magnet
 	ROTATION,        // Rotation angle about central axis for skew elements
 	EANGLE,          // Entrance angle
-	VARRADIUS,       // Variable radius flag
         BBLENGTH,        // Distance between centre of magnet and entrance
 	SIZE             // size of the enum
     };
     
     /** Default constructor initialises UI parameters. */
-    OpalMultipoleT();
+    OpalMultipoleTStraight();
 
     /** Destructor does nothing */
-    virtual ~OpalMultipoleT();
+    virtual ~OpalMultipoleTStraight();
 
     /** Inherited copy constructor */
-    virtual OpalMultipoleT *clone(const std::string &name);
+    virtual OpalMultipoleTStraight *clone(const std::string &name);
 
     /** Fill in all registered attributes
      *
@@ -79,14 +77,14 @@ public:
 
   private:
     // Not implemented.
-    OpalMultipoleT(const OpalMultipoleT &);
-    void operator=(const OpalMultipoleT &);
+    OpalMultipoleTStraight(const OpalMultipoleTStraight &);
+    void operator=(const OpalMultipoleTStraight &);
 
     // Clone constructor.
-    OpalMultipoleT(const std::string &name, OpalMultipoleT *parent);
+    OpalMultipoleTStraight(const std::string &name, OpalMultipoleTStraight *parent);
 };
 
-#endif // OPAL_OpalMultipoleT_HH
+#endif
    
  
   
