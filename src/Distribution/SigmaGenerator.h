@@ -418,7 +418,7 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I,
         value_type milli = 1.0e-3;
 
         // formula (30), (31)
-        // [sigma(0,0)] = mm^{2} rad --> [sx] = [sy] = [sz] = mm
+        // [sigma(0,0)] = mm^{2} --> [sx] = [sy] = [sz] = mm
         // multiply with 0.001 to get meter --> [sx] = [sy] = [sz] = m
         value_type sx = std::sqrt(std::fabs(sigx)) * milli;
         value_type sy = std::sqrt(std::fabs(sigy)) * milli;

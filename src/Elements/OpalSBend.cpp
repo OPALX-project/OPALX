@@ -39,7 +39,7 @@ OpalSBend::OpalSBend():
 
     registerOwnership();
 
-    setElement((new SBendRep("SBEND"))->makeWrappers());
+    setElement((new SBendRep("SBEND")));
 }
 
 
@@ -47,7 +47,7 @@ OpalSBend::OpalSBend(const std::string &name, OpalSBend *parent):
     OpalBend(name, parent),
     owk_m(NULL),
     parmatint_m(NULL) {
-    setElement((new SBendRep(name))->makeWrappers());
+    setElement((new SBendRep(name)));
 }
 
 

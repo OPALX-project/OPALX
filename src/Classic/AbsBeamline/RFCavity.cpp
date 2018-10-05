@@ -187,8 +187,6 @@ void RFCavity::addKR(int i, double t, Vector_t &K) {
     double wtf = frequency_m * t + phase_m;
     double kj = k * scale_m * (tmpE(2) * cos(wtf) - RefPartBunch_m->getBeta(i) * frequency_m * Ez * sin(wtf) / Physics::c);
 
-    *gmsg << __DBGMSG__ << std::scientific << tmpE(2) << "\t" << Ez << "\t" << kj << "\t" << frequency_m << "\t" << scale_m << "\t" << k << endl;
-
     K += Vector_t(kj, kj, 0.0);
 }
 

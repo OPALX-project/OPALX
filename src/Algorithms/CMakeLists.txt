@@ -1,8 +1,10 @@
 set (_SRCS
+  Hamiltonian.cpp
   IndexMap.cpp
   OrbitThreader.cpp
   BeamBeam3D.cpp
   LieMapper.cpp
+  MapAnalyser.cpp
   NilTracker.cpp
   MPSplitIntegrator.cpp
   ThickMapper.cpp
@@ -11,7 +13,7 @@ set (_SRCS
   CavityAutophaser.cpp
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
-  # ParallelSliceTracker.cpp
+  ParallelSliceTracker.cpp
   StatisticalErrors.cpp
   StatisticalErrorsUtilities.cpp
   TransportMapper.cpp
@@ -42,10 +44,12 @@ set (HDRS
     CavityAutophaser.h
     Ctunes.h
     Ctunes.hpp
+    Hamiltonian.h
     IndexMap.h
     LieMapper.h
     lomb.h
     lomb.hpp
+    MapAnalyser.h
     MPSplitIntegrator.h
     NilTracker.h
     OrbitThreader.h

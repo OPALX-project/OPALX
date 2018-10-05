@@ -152,16 +152,16 @@ void OpalSimulation::createSymlink_m(const std::string& path) {
     int count = scandir(path.c_str(), &files, 0, alphasort);
 
     for(int i=0; i<count; i++) {
-	if (files[i]->d_name == std::string(".") ||
-	    files[i]->d_name == std::string("..")) continue;
-	std::string source = path + "/" + files[i]->d_name;
-	std::string target = simulationDirName_ + '/' + files[i]->d_name;
-	int err = symlink(source.c_str(), target.c_str());
-	if (err != 0) {
-	    throw OptPilotException("OpalSimulation::createSymlink()",
-				    "Cannot create symbolic link '" + source + "' to " +
-				    target);
-	}
+        if (files[i]->d_name == std::string(".") ||
+            files[i]->d_name == std::string("..")) continue;
+        std::string source = path + "/" + files[i]->d_name;
+        std::string target = simulationDirName_ + '/' + files[i]->d_name;
+        int err = symlink(source.c_str(), target.c_str());
+        if (err != 0) {
+            throw OptPilotException("OpalSimulation::createSymlink()",
+                                    "Cannot create symbolic link '" + source + "' to " +
+                                    target);
+        }
     }
 }
 
@@ -195,12 +195,12 @@ void OpalSimulation::setupSimulation() {
         }
 
         std::string fieldmapPath = getenv("FIELDMAPS");
-	this->createSymlink_m(fieldmapPath);
+        this->createSymlink_m(fieldmapPath);
 
         if ( getenv("DISTRIBUTIONS") != NULL ) {
-	    std::string distPath = getenv("DISTRIBUTIONS");
-	    this->createSymlink_m(distPath);
-	}
+            std::string distPath = getenv("DISTRIBUTIONS");
+            this->createSymlink_m(distPath);
+        }
     }
 
     MPI_Barrier(comm_);
@@ -333,7 +333,7 @@ void OpalSimulation::run() {
 
 void OpalSimulation::collectResults() {
 
-    std::cout << "collectResults" << std::endl;
+    // std::cout << "collectResults" << std::endl;
 
     // clear old solutions
     requestedVars_.clear();
@@ -355,11 +355,11 @@ void OpalSimulation::collectResults() {
     if(stat(fn.c_str(), &fileInfo) != 0) {
         invalidBunch();
     } else {
-
+        Expressions::Named_t::iterator namedIt;
         try {
-            for(auto namedObjective : objectives_) {
+            for(namedIt=objectives_.begin(); namedIt!=objectives_.end(); ++namedIt) {
 
-                Expressions::Expr_t *objective = namedObjective.second;
+                Expressions::Expr_t *objective = namedIt->second;
 
                 // find out which variables we need in order to evaluate the
                 // objective
@@ -378,14 +378,14 @@ void OpalSimulation::collectResults() {
 
                 reqVarInfo_t tmps = {EVALUATE, values, is_valid};
                 requestedVars_.insert(
-                                      std::pair<std::string, reqVarInfo_t>(namedObjective.first, tmps));
+                                      std::pair<std::string, reqVarInfo_t>(namedIt->first, tmps));
 
             }
 
             // .. and constraints
-            for(auto namedConstraint : constraints_) {
+            for(namedIt=constraints_.begin(); namedIt!=constraints_.end(); ++namedIt) {
 
-                Expressions::Expr_t *constraint = namedConstraint.second;
+                Expressions::Expr_t *constraint = namedIt->second;
 
                 // find out which variables we need in order to evaluate the
                 // objective
@@ -423,14 +423,17 @@ void OpalSimulation::collectResults() {
 
                 reqVarInfo_t tmps = {EVALUATE, values, is_valid};
                 requestedVars_.insert(
-                                      std::pair<std::string, reqVarInfo_t>(namedConstraint.first, tmps));
+                                      std::pair<std::string, reqVarInfo_t>(namedIt->first, tmps));
 
             }
         } catch(SDDSParserException &e) {
-            std::cout << "Evaluation of objectives or constraints threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+            std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+            invalidBunch();
+        } catch(OptPilotException &e) {
+            std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
             invalidBunch();
         } catch(...) {
-            std::cout << "Evaluation of objectives or constraints threw an exception!" << std::endl;
+            std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception!" << std::endl;
             invalidBunch();
         }
 

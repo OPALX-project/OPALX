@@ -38,6 +38,11 @@ struct SumErrSq {
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
 
+        if (args.size() != 3) {
+            throw OptPilotException("SumErrSq::operator()",
+                                    "sumErrSq expects 3 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         std::string measurement_filename = boost::get<std::string>(args[0]);
         var_name_                        = boost::get<std::string>(args[1]);
         stat_filename_                   = boost::get<std::string>(args[2]);

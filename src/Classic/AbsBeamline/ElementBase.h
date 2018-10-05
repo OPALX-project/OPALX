@@ -394,10 +394,11 @@ public:
     //  "*this".  The return value [b]true[/b] indicates success.
     bool update(const AttributeSet &);
 
+    ///@{ Access to ELEMEDGE attribute
     void setElementPosition(double elemedge);
     double getElementPosition() const;
     bool isElementPositionSet() const;
-
+    ///@}
     /// attach a boundary geometry field to the element
     virtual void setBoundaryGeometry(BoundaryGeometry *geo);
 
@@ -489,10 +490,10 @@ private:
     ElemType elType_m;
 
     bool positionIsFixed;
-
+    ///@{ ELEMEDGE attribute
     double elementPosition_m;
     bool elemedgeSet_m;
-
+    ///@}
     std::queue<std::pair<double, double> > actionRange_m;
 };
 

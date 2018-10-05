@@ -1066,6 +1066,7 @@ void Bend::print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << endl;
 }
 
+
 void Bend::readFieldMap(Inform &msg) {
     msg << level2 << getName() << " using file ";
     fieldmap_m->getInfo(&msg);
@@ -1865,3 +1866,51 @@ void Bend::setNSlices(const std::size_t& nSlices) {
 std::size_t Bend::getNSlices() const {
     return nSlices_m;
 }
+
+/// Get entrance fringe field length.
+//  Used to create fringe fields in ThickTracker, (before edge[m], after edge[m])
+std::array<double,2> Bend::getEntranceFringeFieldLength() const {
+    double entrParam1, entrParam2, entrParam3;
+
+    fieldmap_m->get1DProfile1EntranceParam(entrParam1,
+                entrParam2,
+                entrParam3);
+
+    std::array<double,2> entFFL;
+    entFFL[0]=entrParam2-entrParam1; //before edge
+    entFFL[1]=entrParam3-entrParam2; //after edge
+
+
+    entFFL[0] = ( entranceParameter2_m - entranceParameter1_m ); //before edge
+    entFFL[1] = ( entranceParameter3_m - entranceParameter2_m ); //after edge
+
+    return entFFL;
+}
+
+/// Get exit fringe field length.
+//  Used to create fringe fields in ThickTracker, (after edge[m], before edge[m])
+std::array<double,2> Bend::getExitFringeFieldLength() const {
+    std::array<double,2> extFFL;
+
+    double exitParam1, exitParam2, exitParam3;
+
+    fieldmap_m->get1DProfile1ExitParam(exitParam1,
+                exitParam2,
+                exitParam3);
+
+    extFFL[0]=exitParam3-exitParam2; //after edge
+    extFFL[1]=exitParam2-exitParam1; //before edge
+
+    extFFL[0] = ( exitParameter3_m-exitParameter2_m ); //after edge
+    extFFL[1] = ( exitParameter2_m-exitParameter1_m ); //before edge
+
+
+
+    return extFFL;
+}
+
+
+
+
+
+
