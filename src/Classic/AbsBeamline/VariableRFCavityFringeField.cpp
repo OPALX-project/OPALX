@@ -141,7 +141,7 @@ bool VariableRFCavityFringeField::apply(const Vector_t &R, const Vector_t &P, co
         B[0] += B_cos_t*y_power[n]*hCoeff;
         //std::cerr << "APPLY B " << n << " " << B[0] << " " << hCoeff << std::endl;
     }
-    B *= 1e4; //B natural units are kT; convert to kGauss
+    B *= 1e1; //B converted to kGauss
     return false;
 }
 
@@ -191,10 +191,10 @@ void VariableRFCavityFringeField::initialiseCoefficients() {
         std::vector<double> f_np2 = std::vector<double>(f_n.size()+2, 0.); // f_{n+2}
         double n_const = 1./(n+1.)/(n+2.);
         for (size_t j = 0; j < f_n.size(); ++j) {
-            f_np2[j] += f_n[j]*n_const/c_l/c_l;
+            f_np2[j] -= f_n[j]*n_const/c_l/c_l;
         }
         for (size_t j = 0; j < f_n.size(); ++j) {
-            f_np2[j+2] += f_n[j]*n_const;
+            f_np2[j+2] -= f_n[j]*n_const;
         }
         f_m.push_back(f_np2);
     }
@@ -224,8 +224,6 @@ void VariableRFCavityFringeField::printCoefficients(std::ostream& out) const {
     printVector(out, h_m);
     out << std::endl;
 }
-
-
 
 void VariableRFCavityFringeField::setEndField(
                             std::shared_ptr<endfieldmodel::EndFieldModel> end) {

@@ -39,8 +39,6 @@
 class VariableRFCavityFringeFieldTest : public ::testing::Test { 
 public:
     VariableRFCavityFringeFieldTest() {
-        // OpalTestUtilities::SilenceTest silencer;
-
         cav1 = VariableRFCavityFringeField("bob");
         // centre, end, max_order
         shared = std::shared_ptr<endfieldmodel::EndFieldModel>
@@ -72,10 +70,10 @@ public:
     VariableRFCavityFringeField cav1;
     VariableRFCavityFringeField cav2;
     std::shared_ptr<endfieldmodel::EndFieldModel> shared;
+    OpalTestUtilities::SilenceTest silencer;
 };
 
 TEST_F(VariableRFCavityFringeFieldTest, TestConstructor) {
-    OpalTestUtilities::SilenceTest silencer;
     VariableRFCavityFringeField cav("bob");
     EXPECT_FLOAT_EQ(cav.getCavityCentre(), 0.);
     endfieldmodel::EndFieldModel* null = NULL;
@@ -83,7 +81,6 @@ TEST_F(VariableRFCavityFringeFieldTest, TestConstructor) {
 }
 
 TEST_F(VariableRFCavityFringeFieldTest, TestSetGet) {
-    OpalTestUtilities::SilenceTest silencer;
     EXPECT_FLOAT_EQ(cav1.getCavityCentre(), 0.5); // mm
     EXPECT_FLOAT_EQ(cav1.getWidth(), 0.2); // metres
     EXPECT_EQ(&(*(cav1.getEndField())), &(*shared));
@@ -207,7 +204,7 @@ Vector_t testMaxwell4(VariableRFCavityFringeField& cav, Vector_t pos, double t, 
         dBdx[1] - dBdy[0]
     );
     double c_l = Physics::c*1e-6; // 3e8 m/s = 300 mm/ns
-    Vector_t result = dEdt - curlB*1e-4*c_l*c_l;
+    Vector_t result = dEdt - curlB*1e-1*c_l*c_l;
 
     if (verbose) {
         std::cerr << "dBdx           " << dBdx*1e-3 << std::endl;
@@ -236,7 +233,7 @@ Vector_t testMaxwell3(VariableRFCavityFringeField& cav, Vector_t pos, double t, 
         dEdz[0] - dEdx[2],
         dEdx[1] - dEdy[0]
     );
-    Vector_t result = dBdt*1e-4 - curlE;
+    Vector_t result = dBdt*1e-1 + curlE;
 
     if (verbose) {
         std::cerr << "maxwell3 at R: " << pos << " t: " << t << " with dx: " 
@@ -271,13 +268,37 @@ std::vector<double> testMaxwell1and2(VariableRFCavityFringeField& cav, Vector_t 
     if (verbose) {
         std::cerr << "maxwell1+2 at R: " << pos << " t: " << t << " with dx: " 
                   << deltaPos << std::endl;
-        std::cerr << "  dEidi          " << dEdx[0] << " " << dEdy[1] << " " << dEdz[2] << std::endl;
-        std::cerr << "  dBidi          " << dBdx[0] << " " << dBdy[1] << " " << dBdz[2] << std::endl;
+        std::cerr << "  dEidi          "
+                  << dEdx[0] << " " << dEdy[1] << " " << dEdz[2] << std::endl;
+        std::cerr << "  dBidi          "
+                  << dBdx[0] << " " << dBdy[1] << " " << dBdz[2] << std::endl;
         std::cerr << "  divE           " << divE << std::endl;
         std::cerr << "  divB           " << divB << std::endl;
     }
     std::vector<double> result = {divE, divB};
     return result;
+}
+
+
+TEST_F(VariableRFCavityFringeFieldTest, TestField) {
+    Vector_t centroid(0., 0., 0.);
+    double t = 0.;
+    cav2.setMaxOrder(4);
+    std::cerr << "\nOff midplane, 45 degree phase, in fringe field" << std::endl;
+    std::cerr << "order B        E   max1   max2   maxwell3    maxwell4" << std::endl;
+    t = 0.125;
+    for (double s = 0; s < 1000.; s += 10.) {
+        Vector_t B0(0., 0., 0.);
+        Vector_t E0(0., 0., 0.);
+        Vector_t B10(0., 0., 0.);
+        Vector_t E10(0., 0., 0.);
+        Vector_t R(0., 0., 0.);
+        R = Vector_t(0., 0., s);
+        cav2.apply(R, centroid, t, E0, B0);
+        R = Vector_t(0., 10., s);
+        cav2.apply(R, centroid, t, E10, B10);
+        std::cerr << s << " " << E0 << " " << E10 << " " << B10 << std::endl;
+    }
 }
 
 TEST_F(VariableRFCavityFringeFieldTest, TestMaxwell) {
@@ -291,14 +312,20 @@ TEST_F(VariableRFCavityFringeFieldTest, TestMaxwell) {
     std::cerr << "order B        E   max1   max2   maxwell3    maxwell4" << std::endl;
     R = Vector_t(0., 1., 750.);
     t = 0.125;
-    for (size_t i = 0; i < 5; ++i) {
+    for (size_t i = 0; i < 8; ++i) {
         cav2.setMaxOrder(i);
         cav2.apply(R, centroid, t, E, B);
         Vector_t result1 = testMaxwell3(cav2, R, t, 0.01, 0.0001);
         Vector_t result2 = testMaxwell4(cav2, R, t, 0.01, 0.0001);
         std::vector<double> div = testMaxwell1and2(cav2, R, t, 0.01);
-        std::cerr << i << " ** " << B << " " << E << " " << div[0] << " " << div[1] << " " << result1 << " " << result2 << std::endl;
+        std::cerr << i << " ** " << B << " " << E << " " << div[0] << " "
+                  << div[1] << " " << result1 << " " << result2 << std::endl;
 
-      
+        if (i > 0 and i < 5) {
+            EXPECT_LT(div[0], 1e-3);
+            EXPECT_LT(div[1], 1e-3);
+            EXPECT_LT(euclidean_norm(result1), 1e-3);
+            EXPECT_LT(euclidean_norm(result2), 1e-3);
+        }
     }
 }
