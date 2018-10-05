@@ -22,7 +22,7 @@ namespace mslang {
         const unsigned int size = bfuncs.size();
 
         AffineTransformation current_trafo = trafo;
-        for (int i = 0; i < N_m; ++ i) {
+        for (unsigned int i = 0; i < N_m; ++ i) {
             for (unsigned int j = 0; j < size; ++ j) {
                 Base *obj = bfuncs[j]->clone();
                 obj->trafo_m = obj->trafo_m.mult(current_trafo);
@@ -37,16 +37,17 @@ namespace mslang {
         Repeat *rep = static_cast<Repeat*>(fun);
         if (!parse(it, end, rep->func_m)) return false;
 
+        int numRepetitions = 0;
         ArgumentExtractor arguments(std::string(++ it, end));
         try {
             if (arguments.getNumArguments() == 3) {
-                rep->N_m = parseMathExpression(arguments.get(0));
+                numRepetitions = parseMathExpression(arguments.get(0));
                 rep->shiftx_m = parseMathExpression(arguments.get(1));
                 rep->shifty_m = parseMathExpression(arguments.get(2));
                 rep->rot_m = 0.0;
 
             } else if (arguments.getNumArguments() == 2) {
-                rep->N_m = parseMathExpression(arguments.get(0));
+                numRepetitions = parseMathExpression(arguments.get(0));
                 rep->shiftx_m = 0.0;
                 rep->shifty_m = 0.0;
                 rep->rot_m = parseMathExpression(arguments.get(1));
@@ -59,12 +60,14 @@ namespace mslang {
             return false;
         }
 
-        if (rep->N_m < 0) {
+        if (numRepetitions < 0) {
             std::cout << "Repeat: a negative number of repetitions provided '"
                       << arguments.get(0) << " = " << rep->N_m << "'"
                       << std::endl;
             return false;
         }
+
+        rep->N_m = numRepetitions;
 
         it += (arguments.getLengthConsumed() + 1);
 

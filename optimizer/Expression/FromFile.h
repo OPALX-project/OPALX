@@ -29,6 +29,10 @@ struct FromFile {
     static const std::string name;
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("FromFile::operator()",
+                                    "fromFile expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
 
         filename_   = boost::get<std::string>(args[0]);
 

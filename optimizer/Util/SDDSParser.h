@@ -16,6 +16,9 @@
 
 #include "Util/SDDSParser/SDDSParserException.h"
 
+
+#include "boost/optional/optional_io.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -122,8 +125,32 @@ namespace SDDS {
                         size_t prev_row = 0;
                         if(this_row > 0) prev_row = this_row - 1;
 
-                        value_before = boost::get<T>(col_values[prev_row]);
-                        value_after  = boost::get<T>(col_values[this_row]);
+                        try {
+                            switch (*sddsData_m.sddsColumns_m[index].type_m) {
+                            case ast::FLOAT:
+                                value_before = boost::get<float>(col_values[prev_row]);
+                                value_after  = boost::get<float>(col_values[this_row]);
+                                break;
+                            case ast::DOUBLE:
+                                value_before = boost::get<double>(col_values[prev_row]);
+                                value_after  = boost::get<double>(col_values[this_row]);
+                                break;
+                            case ast::SHORT:
+                                value_before = boost::get<short>(col_values[prev_row]);
+                                value_after  = boost::get<short>(col_values[this_row]);
+                                break;
+                            case ast::LONG:
+                                value_before = boost::get<long>(col_values[prev_row]);
+                                value_after  = boost::get<long>(col_values[this_row]);
+                                break;
+                            default:
+                                throw SDDSParserException("SDDSParser::getInterpolatedValue",
+                                                          "can't convert value to double");
+                            }
+                        } catch (...) {
+                            throw SDDSParserException("SDDSParser::getInterpolatedValue",
+                                                      "can't convert value");
+                        }
 
                         value_before_spos = boost::get<double>(spos_values[prev_row]);
                         value_after_spos  = boost::get<double>(spos_values[this_row]);
@@ -138,7 +165,7 @@ namespace SDDS {
 
             } else {
                 throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                        "unknown column name: '" + col_name + "'!");
+                                          "unknown column name: '" + col_name + "'!");
             }
 
             // simple linear interpolation
