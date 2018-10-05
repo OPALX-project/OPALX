@@ -29,6 +29,10 @@ struct MaxNormRadialPeak {
     static const std::string name;
 
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 4) {
+            throw OptPilotException("MaxNormRadialPeak::operator()",
+                                    "maxNormRadialPeak expects 4 arguments, " + std::to_string(args.size()) + " given");
+        }
 
         meas_filename_ = boost::get<std::string>(args[0]);
         sim_filename_  = boost::get<std::string>(args[1]);
@@ -53,7 +57,7 @@ struct MaxNormRadialPeak {
         }
 
         double maximum = -1.0;
-        
+
         for (int turn = begin_; turn < end_ + 1; ++turn) {
             double sim_value = 0.0, meas_value = 0.0;
             try {

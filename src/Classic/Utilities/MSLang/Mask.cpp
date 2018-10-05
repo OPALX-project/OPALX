@@ -12,6 +12,9 @@ namespace mslang {
 
         ArgumentExtractor arguments(std::string(it, end));
         std::string filename = arguments.get(0);
+        if (filename[0] == '\'' && filename.back() == '\'') {
+            filename = filename.substr(1, filename.length() - 2);
+        }
 
         if (!boost::filesystem::exists(filename)) {
             ERRORMSG("file '" << filename << "' doesn't exists" << endl);

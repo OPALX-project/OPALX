@@ -16,6 +16,7 @@ MeshGenerator::MeshGenerator():
 
 void MeshGenerator::add(const ElementBase &element) {
     auto apert = element.getAperture();
+    double start = 0.0;
 
     MeshData mesh;
     if (element.getType() == ElementBase::SBEND ||
@@ -31,7 +32,10 @@ void MeshGenerator::add(const ElementBase &element) {
     } else if (element.getType() == ElementBase::DRIFT) {
         return;
     } else {
-        double length = element.getElementLength();
+        double end, length;
+        element.getElementDimensions(start, end);
+        length = end - start;
+
         switch (apert.first) {
         case ElementBase::RECTANGULAR:
         case ElementBase::CONIC_RECTANGULAR:
@@ -78,13 +82,14 @@ void MeshGenerator::add(const ElementBase &element) {
     }
 
     CoordinateSystemTrafo trafo = element.getCSTrafoGlobal2Local().inverted();
+    Vector_t z = trafo.rotateTo(Vector_t(0, 0, 1));
     for (unsigned int i = 0; i < mesh.vertices_m.size(); ++ i) {
-        mesh.vertices_m[i] = trafo.transformTo(mesh.vertices_m[i]);
+        mesh.vertices_m[i] = trafo.transformTo(mesh.vertices_m[i]) + start * z;
     }
 
     for (unsigned int i = 0; i < mesh.decorations_m.size(); ++ i) {
-        mesh.decorations_m[i].first = trafo.transformTo(mesh.decorations_m[i].first);
-        mesh.decorations_m[i].second = trafo.transformTo(mesh.decorations_m[i].second);
+        mesh.decorations_m[i].first = trafo.transformTo(mesh.decorations_m[i].first) + start * z;
+        mesh.decorations_m[i].second = trafo.transformTo(mesh.decorations_m[i].second) + start * z;
     }
 
     elements_m.push_back(mesh);

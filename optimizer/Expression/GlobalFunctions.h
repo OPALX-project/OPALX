@@ -60,6 +60,11 @@ struct _stat_sum {
 
 struct _sqrt {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_sqrt::operator()",
+                                    "sqrt expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(sqrt(value), true);
     }
@@ -67,6 +72,11 @@ struct _sqrt {
 
 struct _sq {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_sq::operator()",
+                                    "sq expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(value * value, true);
     }
@@ -74,6 +84,11 @@ struct _sq {
 
 struct _pow {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 2) {
+            throw OptPilotException("_pow::operator()",
+                                    "pow expects 2 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         double exp   = boost::get<double>(args[1]);
         return boost::make_tuple(pow(value, exp), true);
@@ -82,6 +97,11 @@ struct _pow {
 
 struct _exp {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_exp::operator()",
+                                    "exp expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(exp(value), true);
     }
@@ -89,6 +109,11 @@ struct _exp {
 
 struct _log {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_log::operator()",
+                                    "log expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(log(value), true);
     }
@@ -98,6 +123,11 @@ struct _log {
 
 struct _ceil {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_ceil::operator()",
+                                    "ceil expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(ceil(value), true);
     }
@@ -105,6 +135,11 @@ struct _ceil {
 
 struct _fabs {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_fabs::operator()",
+                                    "fabs expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(fabs(value), true);
     }
@@ -112,6 +147,11 @@ struct _fabs {
 
 struct _floor {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_floor::operator()",
+                                    "floor expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(floor(value), true);
     }
@@ -119,6 +159,11 @@ struct _floor {
 
 struct _fmod {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 2) {
+            throw OptPilotException("_fmod::operator()",
+                                    "fmod expects 2 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         double val2  = boost::get<double>(args[1]);
         return boost::make_tuple(fmod(value, val2), true);
@@ -129,6 +174,11 @@ struct _fmod {
 
 struct _sin {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_sin::operator()",
+                                    "sin expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(sin(value), true);
     }
@@ -136,6 +186,11 @@ struct _sin {
 
 struct _asin {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_asin::operator()",
+                                    "asin expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(asin(value), true);
     }
@@ -143,6 +198,11 @@ struct _asin {
 
 struct _cos {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_cos::operator()",
+                                    "cos expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(cos(value), true);
     }
@@ -150,6 +210,11 @@ struct _cos {
 
 struct _acos {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_acos::operator()",
+                                    "acos expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(acos(value), true);
     }
@@ -157,6 +222,11 @@ struct _acos {
 
 struct _tan {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_tan::operator()",
+                                    "tan expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(tan(value), true);
     }
@@ -164,6 +234,11 @@ struct _tan {
 
 struct _atan {
     Expressions::Result_t operator()(client::function::arguments_t args) {
+        if (args.size() != 1) {
+            throw OptPilotException("_atan::operator()",
+                                    "atan expects 1 arguments, " + std::to_string(args.size()) + " given");
+        }
+
         double value = boost::get<double>(args[0]);
         return boost::make_tuple(atan(value), true);
     }

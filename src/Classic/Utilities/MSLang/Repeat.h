@@ -6,7 +6,7 @@
 namespace mslang {
     struct Repeat: public Function {
         Function* func_m;
-        signed int N_m;
+        unsigned int N_m;
         double shiftx_m;
         double shifty_m;
         double rot_m;

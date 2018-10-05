@@ -64,14 +64,14 @@ OpalQuadrupole::OpalQuadrupole():
 
     registerOwnership();
 
-    setElement((new MultipoleRep("QUADRUPOLE"))->makeWrappers());
+    setElement((new MultipoleRep("QUADRUPOLE")));
 }
 
 
 OpalQuadrupole::OpalQuadrupole(const std::string &name, OpalQuadrupole *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new MultipoleRep(name))->makeWrappers());
+    setElement((new MultipoleRep(name)));
 }
 
 

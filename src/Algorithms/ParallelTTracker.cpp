@@ -230,10 +230,6 @@ void ParallelTTracker::execute() {
 
     prepareSections();
 
-    itsOpalBeamline_m.compute3DLattice();
-    itsOpalBeamline_m.save3DLattice();
-    itsOpalBeamline_m.save3DInput();
-
     std::queue<double> timeStepSizes(dtAllTracks_m);
     std::queue<unsigned long long> numSteps(localTrackSteps_m);
     double minTimeStep = timeStepSizes.front();
@@ -429,6 +425,10 @@ void ParallelTTracker::prepareSections() {
 
     itsBeamline_m.accept(*this);
     itsOpalBeamline_m.prepareSections();
+
+    itsOpalBeamline_m.compute3DLattice();
+    itsOpalBeamline_m.save3DLattice();
+    itsOpalBeamline_m.save3DInput();
 }
 
 void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
