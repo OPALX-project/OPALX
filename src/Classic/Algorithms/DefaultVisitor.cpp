@@ -22,6 +22,7 @@
 
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
+#include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
@@ -94,6 +95,11 @@ void DefaultVisitor::execute() {
 
 void DefaultVisitor::visitBeamBeam(const BeamBeam &bb) {
     applyDefault(bb);
+}
+
+
+void DefaultVisitor::visitBeamStripping(const BeamStripping &bstp) {
+    applyDefault(bstp);
 }
 
 

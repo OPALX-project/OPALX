@@ -27,6 +27,7 @@
 #include <vector>
 #include "AbstractObjects/OpalData.h"
 
+#include "AbsBeamLine/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
@@ -603,6 +604,39 @@ void ParallelCyclotronTracker::visitBeamBeam(const BeamBeam &) {
     *gmsg << "In BeamBeam tracker is missing " << endl;
 }
 
+
+void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
+    *gmsg << "* --------- Beam Stripping --------------------------" << endl;
+
+    BeamStripping* elptr = dynamic_cast<BeamStripping *>(bstp.clone());
+    myElements.push_back(elptr);
+
+    double pressure = elptr->getPressure();
+    *gmsg << "* Pressure	= " << pressure << " [mbar]" << endl;
+
+    double temperature = elptr->getTemperature();
+    *gmsg << "* Temperature (fixed)	= " << temperature << " [K]" << endl;
+
+//    double sigma = elptr->getCrossSection();
+//    *gmsg << "* Cross Section	= " << sigma << " [cm2]" << endl;
+
+//    double NumMolecules = elptr->getNumMolecules();
+//    *gmsg << "* Number of Molecules	= " << NumMolecules << " [molecules/m3]" << endl;
+
+    elptr->initialise(itsBunch_m);
+
+    double BcParameter[8];
+    for(int i = 0; i < 8; i++)
+        BcParameter[i] = 0.0;
+
+    BcParameter[0] = pressure;
+    BcParameter[1] = temperature;
+//    BcParameter[2] = sigma;
+//    BcParameter[1] = NumMolecules;
+
+    buildupFieldList(BcParameter, ElementBase::BEAMSTRIPPING, elptr);
+}
+
 /**
  *
  *
@@ -616,25 +650,25 @@ void ParallelCyclotronTracker::visitCCollimator(const CCollimator &coll) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXStart();
-    *gmsg << "* Xstart= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXEnd();
-    *gmsg << "* Xend= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYStart();
-    *gmsg << "* Ystart= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYEnd();
-    *gmsg << "* Yend= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
 
     double zstart = elptr->getZStart();
-    *gmsg << "* Zstart= " << zstart << " [mm]" << endl;
+    *gmsg << "* Zstart	= " << zstart << " [mm]" << endl;
 
     double zend = elptr->getZEnd();
-    *gmsg << "* Zend= " << zend << " [mm]" << endl;
+    *gmsg << "* Zend	= " << zend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "* Width= " << width << " [mm]" << endl;
+    *gmsg << "* Width	= " << width << " [mm]" << endl;
 
     elptr->initialise(itsBunch_m);
 
@@ -783,20 +817,19 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    *gmsg << "XStart= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    *gmsg << "XEnd= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    *gmsg << "YStart= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    *gmsg << "YEnd= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
-
+    *gmsg << "* Width	= " << width << " [mm]" << endl;
 
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
@@ -983,26 +1016,25 @@ void ParallelCyclotronTracker::visitSeparator(const Separator &sep) {
  */
 void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
 
-    *gmsg << endl << "* -----------------------------  Septum ------------------------------- *" << endl;
+    *gmsg << endl << "* ----------------------------- Septum ------------------------------- *" << endl;
 
     Septum *elptr = dynamic_cast<Septum *>(sept.clone());
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    *gmsg << "XStart = " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    *gmsg << "XEnd = " << xend << " [mm]" << endl;
+    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    *gmsg << "YStart = " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    *gmsg << "YEnd = " << yend << " [mm]" << endl;
+    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "Width = " << width << " [mm]" << endl;
-
+    *gmsg << "* Width	= " << width << " [mm]" << endl;
 
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
@@ -1077,28 +1109,28 @@ void ParallelCyclotronTracker::applyEntranceFringe(double angle, double curve,
 
 void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
-    *gmsg << "* ---------Stripper------------------------------" << endl;
+    *gmsg << "* ---------- Stripper ------------------------------" << endl;
 
     Stripper *elptr = dynamic_cast<Stripper *>(stripper.clone());
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    *gmsg << "XStart= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    *gmsg << "XEnd= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    *gmsg << "YStart= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    *gmsg << "YEnd= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
+    *gmsg << "* Width	= " << width << " [mm]" << endl;
 
     double opcharge = elptr->getOPCharge();
-    *gmsg << "Charge of outcoming particle = +e * " << opcharge << endl;
+    *gmsg << "* Charge of outcoming particle = +e * " << opcharge << endl;
 
     double opmass = elptr->getOPMass();
     *gmsg << "* Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
@@ -1199,13 +1231,13 @@ void ParallelCyclotronTracker::execute() {
         opalRing_m->lockRing();
 
     // Display the selected elements
-    *gmsg << "* -------------------------------------" << endl;
+    *gmsg << "* ---------------------------------------------------" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
 
     for(auto fd : FieldDimensions)
         *gmsg << "* -> " <<  ElementBase::getTypeString(fd->first) << endl;
 
-    *gmsg << "* -------------------------------------" << endl;
+    *gmsg << "* ---------------------------------------------------" << endl;
 
     // Don't initializeBoundaryGeometry()
     // Get BoundaryGeometry that is already initialized
