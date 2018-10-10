@@ -1,0 +1,154 @@
+#ifndef CLASSIC_BeamStripping_HH
+#define CLASSIC_BeamStripping_HH
+
+// Class category: AbsBeamline
+// ------------------------------------------------------------------------
+//
+// $Date: 2000/03/27 09:32:31 $
+// $Author: fci $
+// Copyright: see Copyright.readme
+// ------------------------------------------------------------------------
+//
+// Class: BeamStripping
+//   Defines the abstract interface for a beam BeamStripping.
+//   *** MISSING *** BeamStripping interface is still incomplete.
+//
+// ------------------------------------------------------------------------
+// Class category: AbsBeamline
+// ------------------------------------------------------------------------
+//
+// $Date: 2000/03/27 09:32:31 $
+// $Author: fci $
+//
+// ------------------------------------------------------------------------
+
+#include "AbsBeamline/Component.h"
+
+#include "gsl/gsl_spline.h"
+#include "gsl/gsl_interp.h"
+
+#include <string>
+#include <vector>
+
+class BeamlineVisitor;
+class LossDataSink;
+
+// Class BeamStripping
+// ------------------------------------------------------------------------
+
+class BeamStripping: public Component {
+
+public:
+
+    /// Constructor with given name.
+    explicit BeamStripping(const std::string &name);
+
+    BeamStripping();
+    BeamStripping(const BeamStripping &rhs);
+    virtual ~BeamStripping();
+
+    /// Apply visitor to BeamStripping.
+    virtual void accept(BeamlineVisitor &) const;
+
+    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+
+    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
+
+    virtual bool checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
+
+    virtual bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
+
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+
+    virtual void initialise(PartBunchBase<double, 3> *bunch);
+
+    virtual void finalise();
+
+    virtual bool bends() const;
+
+    virtual void goOnline(const double &kineticEnergy);
+
+    virtual void goOffline();
+
+    virtual ElementBase::ElementType getType() const;
+
+    virtual void getDimensions(double &zBegin, double &zEnd) const;
+
+    void print();
+
+    std::string  getBeamStrippingShape();
+    void setOutputFN(std::string fn);
+    std::string getOutputFN();
+
+    unsigned int getLosses() const;
+
+    // --------Cyclotron beam stripping
+
+    void setPressure(double pressure) ;
+    double getPressure() const;
+
+    void setTemperature(double temperature) ;
+    double getTemperature() const;
+
+    void setCrossSection(std::vector<double> sigma);
+    std::vector<double> getCrossSection() const;
+
+    void setEnergyCS(std::vector<double> energycs);
+    double getEnergyCS() const;
+
+    int checkPoint(const double & x, const double & y );
+
+//    std::vector<double> sigma;
+
+private:
+
+    // Not implemented.
+    void operator=(const BeamStripping &);
+
+    std::string filename_m;               /**< The name of the outputfile*/
+
+    bool informed_m;
+
+    //parameters for BeamStripping
+    double pressure_m;
+    double temperature_m;
+    std::vector<double> sigma_m;
+	std::vector<double> energycs_m;
+
+
+    Point  geom_m[5];
+    void setGeom();
+
+    unsigned int losses_m;
+
+    std::unique_ptr<LossDataSink> lossDs_m;
+
+    ParticleMatterInteractionHandler *parmatint_m;
+};
+
+inline
+unsigned int BeamStripping::getLosses() const {
+    return losses_m;
+}
+
+inline
+void BeamStripping::setPressure(double pressure) {
+    pressure_m = pressure;
+}
+inline
+double BeamStripping::getPressure() const {
+    return pressure_m;
+}
+
+
+inline
+void BeamStripping::setTemperature(double temperature) {
+	temperature = 300.0;
+    temperature_m = temperature;
+}
+inline
+double BeamStripping::getTemperature() const {
+    return temperature_m;
+}
+
+#endif // CLASSIC_BeamStripping_HH
