@@ -1127,38 +1127,36 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
      * We read in the particle information using node zero, but save the particle
      * data to each processor in turn.
      */
-    unsigned int saveProcessor = 0;
+    int saveProcessor = -1;
 
     pmean_m = 0.0;
 
     size_t numPartsToSend = 0;
     unsigned int distributeFrequency = 1000;
-    size_t singleDataSize = (/*sizeof(int) +*/ 6 * sizeof(double));
-    unsigned int dataSize = distributeFrequency * singleDataSize;
+    size_t singleDataSize = (sizeof(int) + 6 * sizeof(double));
+    size_t dataSize = distributeFrequency * singleDataSize;
     std::vector<char> data;
 
     data.reserve(dataSize);
 
     const char* buffer;
-    if (Ippl::myNode() == 0) {
-        char lineBuffer[1024];
-        unsigned int numParts = 0;
-        while (!inputFile.eof()) {
-            inputFile.getline(lineBuffer, 1024);
+    for (size_t particleIndex = 0; particleIndex < numberOfParticlesRead; ++ particleIndex) {
 
-            Vector_t R(0.0), P(0.0);
+        // Read particle.
+        Vector_t R(0.0);
+        Vector_t P(0.0);
 
-            std::istringstream line(lineBuffer);
-            line >> R(0);
-            if (line.rdstate()) break;
-            line >> P(0);
-            line >> R(1);
-            line >> P(1);
-            line >> R(2);
-            line >> P(2);
+        ++ saveProcessor;
+        if (saveProcessor >= Ippl::getNodes())
+            saveProcessor = 0;
 
-            if (saveProcessor >= (unsigned)Ippl::getNodes())
-                saveProcessor = 0;
+        if (Ippl::myNode() == 0) {
+            inputFile >> R(0)
+                      >> P(0)
+                      >> R(1)
+                      >> P(1)
+                      >> R(2)
+                      >> P(2);
 
             if (inputMoUnits_m == InputMomentumUnitsT::EV) {
                 P(0) = converteVToBetaGamma(P(0), massIneV);
@@ -1168,7 +1166,9 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
             pmean_m += P;
 
-            if (saveProcessor > 0u) {
+            if (saveProcessor > 0) {
+                buffer = reinterpret_cast<const char*>(&saveProcessor);
+                data.insert(data.end(), buffer, buffer + sizeof(int));
                 buffer = reinterpret_cast<const char*>(&R[0]);
                 data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
                 buffer = reinterpret_cast<const char*>(&P[0]);
@@ -1182,67 +1182,66 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
                 pyDist_m.push_back(P(1));
                 pzDist_m.push_back(P(2));
             }
+        } else {
+            if (saveProcessor > 0) {
+                ++ numPartsToSend;
+            }
+        }
 
-            ++ numParts;
-            ++ saveProcessor;
+        // split distribution of particles onto cores such that each time
+        // <distributionFrequency> number of particles are sent
+        if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
+            MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+            numPartsToSend = 0;
 
-            if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
-                MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
-                MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
-                numPartsToSend = 0;
-
+            if (Ippl::myNode() == 0) {
                 std::vector<char>().swap(data);
                 data.reserve(dataSize);
-            }
-        }
+            } else {
+                size_t i = 0;
+                while (i < dataSize) {
+                    int saveProcessor = *reinterpret_cast<const int*>(&data[i]);
 
-        dataSize = (numberOfParticlesRead == numParts? data.size(): std::numeric_limits<unsigned int>::max());
-        MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
-        if (numberOfParticlesRead != numParts) {
-            throw OpalException("Distribution::createDistributionFromFile",
-                                "Found " +
-                                std::to_string(numParts) +
-                                " particles in file '" +
-                                fileName +
-                                "' instead of " +
-                                std::to_string(numberOfParticlesRead));
-        }
-        MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
-
-    } else {
-        do {
-            size_t i = 0;
-            MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
-            if (dataSize == std::numeric_limits<unsigned int>::max()) {
-                throw OpalException("Distribution::createDistributionFromFile",
-                                    "Couldn't find " +
-                                    std::to_string(numberOfParticlesRead) +
-                                    " particles in file '" +
-                                    fileName + "'");
-            }
-            MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
-
-            while (i < dataSize) {
-
-                if (saveProcessor + 1 == (unsigned) Ippl::myNode()) {
-                    const double *tmp = reinterpret_cast<const double*>(&data[i]);
-                    xDist_m.push_back(tmp[0]);
-                    yDist_m.push_back(tmp[1]);
-                    tOrZDist_m.push_back(tmp[2]);
-                    pxDist_m.push_back(tmp[3]);
-                    pyDist_m.push_back(tmp[4]);
-                    pzDist_m.push_back(tmp[5]);
-                    i += 6 * sizeof(double);
-                } else {
-                    i += singleDataSize;
-                }
-
-                ++ saveProcessor;
-                if (saveProcessor + 1 >= (unsigned) Ippl::getNodes()) {
-                    saveProcessor = 0;
+                    if (saveProcessor == Ippl::myNode()) {
+                        i += sizeof(int);
+                        const double *tmp = reinterpret_cast<const double*>(&data[i]);
+                        xDist_m.push_back(tmp[0]);
+                        yDist_m.push_back(tmp[1]);
+                        tOrZDist_m.push_back(tmp[2]);
+                        pxDist_m.push_back(tmp[3]);
+                        pyDist_m.push_back(tmp[4]);
+                        pzDist_m.push_back(tmp[5]);
+                        i += 6 * sizeof(double);
+                    } else {
+                        i += singleDataSize;
+                    }
                 }
             }
-        } while (dataSize == distributeFrequency * singleDataSize);
+        }
+    }
+
+    // send remaining particles (less than <distributionFrequency>)
+    MPI_Bcast(&data[0], numPartsToSend * singleDataSize, MPI_CHAR, 0, Ippl::getComm());
+
+    if (Ippl::myNode() > 0) {
+        size_t i = 0;
+        while (i < numPartsToSend * singleDataSize) {
+            int saveProcessor = *reinterpret_cast<const int*>(&data[i]);
+
+            if (saveProcessor == Ippl::myNode()) {
+                i += sizeof(int);
+                const double *tmp = reinterpret_cast<const double*>(&data[i]);
+                xDist_m.push_back(tmp[0]);
+                yDist_m.push_back(tmp[1]);
+                tOrZDist_m.push_back(tmp[2]);
+                pxDist_m.push_back(tmp[3]);
+                pyDist_m.push_back(tmp[4]);
+                pzDist_m.push_back(tmp[5]);
+                i += 6 * sizeof(double);
+            } else {
+                i += singleDataSize;
+            }
+        }
     }
 
     pmean_m /= numberOfParticlesRead;
@@ -1250,6 +1249,129 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
     if (Ippl::myNode() == 0)
         inputFile.close();
+    // unsigned int saveProcessor = 0;
+
+    // pmean_m = 0.0;
+
+    // size_t numPartsToSend = 0;
+    // unsigned int distributeFrequency = 1000;
+    // size_t singleDataSize = (/*sizeof(int) +*/ 6 * sizeof(double));
+    // unsigned int dataSize = distributeFrequency * singleDataSize;
+    // std::vector<char> data;
+
+    // data.reserve(dataSize);
+
+    // const char* buffer;
+    // if (Ippl::myNode() == 0) {
+    //     char lineBuffer[1024];
+    //     unsigned int numParts = 0;
+    //     while (!inputFile.eof()) {
+    //         inputFile.getline(lineBuffer, 1024);
+
+    //         Vector_t R(0.0), P(0.0);
+
+    //         std::istringstream line(lineBuffer);
+    //         line >> R(0);
+    //         if (line.rdstate()) break;
+    //         line >> P(0);
+    //         line >> R(1);
+    //         line >> P(1);
+    //         line >> R(2);
+    //         line >> P(2);
+
+    //         if (saveProcessor >= (unsigned)Ippl::getNodes())
+    //             saveProcessor = 0;
+
+    //         if (inputMoUnits_m == InputMomentumUnitsT::EV) {
+    //             P(0) = converteVToBetaGamma(P(0), massIneV);
+    //             P(1) = converteVToBetaGamma(P(1), massIneV);
+    //             P(2) = converteVToBetaGamma(P(2), massIneV);
+    //         }
+
+    //         pmean_m += P;
+
+    //         if (saveProcessor > 0u) {
+    //             buffer = reinterpret_cast<const char*>(&R[0]);
+    //             data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
+    //             buffer = reinterpret_cast<const char*>(&P[0]);
+    //             data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
+    //             ++ numPartsToSend;
+    //         } else {
+    //             xDist_m.push_back(R(0));
+    //             yDist_m.push_back(R(1));
+    //             tOrZDist_m.push_back(R(2));
+    //             pxDist_m.push_back(P(0));
+    //             pyDist_m.push_back(P(1));
+    //             pzDist_m.push_back(P(2));
+    //         }
+
+    //         ++ numParts;
+    //         ++ saveProcessor;
+
+    //         if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
+    //             MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+    //             MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+    //             numPartsToSend = 0;
+
+    //             std::vector<char>().swap(data);
+    //             data.reserve(dataSize);
+    //         }
+    //     }
+
+    //     dataSize = (numberOfParticlesRead == numParts? data.size(): std::numeric_limits<unsigned int>::max());
+    //     MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+    //     if (numberOfParticlesRead != numParts) {
+    //         throw OpalException("Distribution::createDistributionFromFile",
+    //                             "Found " +
+    //                             std::to_string(numParts) +
+    //                             " particles in file '" +
+    //                             fileName +
+    //                             "' instead of " +
+    //                             std::to_string(numberOfParticlesRead));
+    //     }
+    //     MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+
+    // } else {
+    //     do {
+    //         size_t i = 0;
+    //         MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+    //         if (dataSize == std::numeric_limits<unsigned int>::max()) {
+    //             throw OpalException("Distribution::createDistributionFromFile",
+    //                                 "Couldn't find " +
+    //                                 std::to_string(numberOfParticlesRead) +
+    //                                 " particles in file '" +
+    //                                 fileName + "'");
+    //         }
+    //         MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+
+    //         while (i < dataSize) {
+
+    //             if (saveProcessor + 1 == (unsigned) Ippl::myNode()) {
+    //                 const double *tmp = reinterpret_cast<const double*>(&data[i]);
+    //                 xDist_m.push_back(tmp[0]);
+    //                 yDist_m.push_back(tmp[1]);
+    //                 tOrZDist_m.push_back(tmp[2]);
+    //                 pxDist_m.push_back(tmp[3]);
+    //                 pyDist_m.push_back(tmp[4]);
+    //                 pzDist_m.push_back(tmp[5]);
+    //                 i += 6 * sizeof(double);
+    //             } else {
+    //                 i += singleDataSize;
+    //             }
+
+    //             ++ saveProcessor;
+    //             if (saveProcessor + 1 >= (unsigned) Ippl::getNodes()) {
+    //                 saveProcessor = 0;
+    //             }
+    //         }
+    //     } while (dataSize == distributeFrequency * singleDataSize);
+    // }
+
+    // pmean_m /= numberOfParticlesRead;
+    // reduce(pmean_m, pmean_m, OpAddAssign());
+
+    // if (Ippl::myNode() == 0)
+    //     inputFile.close();
 }
 
 
