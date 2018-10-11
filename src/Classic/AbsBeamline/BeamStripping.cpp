@@ -32,6 +32,18 @@
 
 #include <memory>
 #include <fstream>
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+
+#include "Ippl.h"
+
+using Physics::m_p;
+using Physics::m_e;
+using Physics::r_e;
+using Physics::z_p;
+using Physics::kB;
+using Physics::q_e;
 
 extern Inform *gmsg;
 
@@ -47,9 +59,12 @@ BeamStripping::BeamStripping():
 	pressure_m(0.0),
 	temperature_m(0.0),
 	sigma_m(0.0),
+	energycs_m(0.0),
+//	Eng(0.0),
+//	CS(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatintbst_m(NULL)
 {}
 
 BeamStripping::BeamStripping(const BeamStripping &right):
@@ -59,9 +74,12 @@ BeamStripping::BeamStripping(const BeamStripping &right):
 	pressure_m(right.pressure_m),
 	temperature_m(right.temperature_m),
 	sigma_m(right.sigma_m),
+	energycs_m(right.energycs_m),
+//	Eng(right.Eng),
+//	CS(right.CS),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatintbst_m(NULL)
 {
     setGeom();
 }
@@ -73,9 +91,12 @@ BeamStripping::BeamStripping(const std::string &name):
     pressure_m(0.0),
 	temperature_m(0.0),
 	sigma_m(0.0),
+	energycs_m(0.0),
+//	Eng(0.0),
+//	CS(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatintbst_m(NULL)
 {}
 
 
@@ -101,9 +122,49 @@ vector<double> BeamStripping::getCrossSection() const {
 void BeamStripping::setEnergyCS(vector<double> energycs) {
     energycs_m = energycs;
 }
-double BeamStripping::getEnergyCS() const {
-  return energycs_m[0];
+vector<double> BeamStripping::getEnergyCS() const {
+  return energycs_m;
 }
+
+//double BeamStripping::CrossSection(){
+//
+//	double CS;
+//	double Eng;
+//	double m;
+//	double n;
+//	int a = energycs_m.size();
+//	Eng=60000;
+//	*gmsg << "* Energy = " << Eng << endl;
+//
+//	if(Eng < energycs_m[0]) {
+//		m = (sigma_m[1]-sigma_m[0]) / (energycs_m[1]-energycs_m[0]);
+//		n = sigma_m[0] - m * energycs_m[0];
+//		CS = m * Eng + n;
+//	}
+//	else if(Eng > energycs_m[a-1]) {
+//		m = (sigma_m[a-1]-sigma_m[a-2]) / (energycs_m[a-1]-energycs_m[a-2]);
+//		n = sigma_m[a-1] - m * energycs_m[a-1];
+//		CS = m * Eng + n;
+//	}
+//	else if(Eng > energycs_m[0] && Eng < energycs_m[a-1]){
+//		for (int i=0; i<a; i++){
+//			if(Eng == energycs_m[i]) {
+//				CS = sigma_m[i];
+//			}
+//			else if(Eng > energycs_m[i] && Eng < energycs_m[i+1]) {
+//				m = (sigma_m[i+1]-sigma_m[i]) / (energycs_m[i+1]-energycs_m[i]);
+//				n = sigma_m[i] - m * energycs_m[i];
+//				CS = m * Eng + n;
+//			}
+//		}
+//	}
+//	else {
+//		*gmsg << "**Cross section not calculated**" << endl;
+//	}
+//	*gmsg << "* Cross section = " << CS << endl;
+//	return CS;
+//}
+
 
 
 bool BeamStripping::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
@@ -114,7 +175,7 @@ bool BeamStripping::applyToReferenceParticle(const Vector_t &R, const Vector_t &
     return false;
 }
 
-bool BeamStripping::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
+bool BeamStripping::checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
 //    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
 //    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
@@ -134,19 +195,18 @@ bool BeamStripping::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
 // rectangle collimators in cyclotron cyclindral coordinates
 // without particlematterinteraction, the particle hitting collimator is deleted directly
-bool BeamStripping::checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
-    bool flagNeedUpdate = false;
-//    Vector_t rmin, rmax;
-//
-//    bunch->get_bounds(rmin, rmax);
+    bool flagNeedUpdate = true;
+    Vector_t rmin, rmax;
+    bunch->get_bounds(rmin, rmax);
 //    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
 //    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
 //    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-//    std::pair<Vector_t, double> boundingSphere;
-//    boundingSphere.first = 0.5 * (rmax + rmin);
-//    boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
-//
+    std::pair<Vector_t, double> boundingSphere;
+    boundingSphere.first = 0.5 * (rmax + rmin);
+    boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
+
 //    if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
 //        // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
 //        if ( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
@@ -157,7 +217,7 @@ bool BeamStripping::checkCollimator(PartBunchBase<double, 3> *bunch, const int t
 //                    pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
 //		    /// bunch->Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
 //                    if ((pflag != 0) && (bunch->Bin[i] != -1))  {
-//		      if (!parmatint_m)
+//		      if (!parmatintbst_m)
 //			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
 //		      bunch->Bin[i] = -1;
 //		      flagNeedUpdate = true;
@@ -166,10 +226,10 @@ bool BeamStripping::checkCollimator(PartBunchBase<double, 3> *bunch, const int t
 //            }
 //        }
 //    }
-//    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-//    if (flagNeedUpdate && parmatint_m) {
-//        parmatint_m->apply(bunch, boundingSphere);
-//    }
+    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+    if (flagNeedUpdate && parmatintbst_m) {
+        parmatintbst_m->apply(bunch, boundingSphere);
+    }
     return flagNeedUpdate;
 }
 
@@ -181,26 +241,25 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, double &startFie
 void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
     RefPartBunch_m = bunch;
 
-    parmatint_m = getParticleMatterInteraction();
+    parmatintbst_m = getParticleMatterInteraction();
 
-    // if (!parmatint_m) {
+    // if (!parmatintbst_m) {
     if (filename_m == std::string(""))
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
     else
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     // }
-
     goOnline(-1e6);
 }
 
-void BeamStripping::finalise()
-{
+void BeamStripping::finalise() {
     if (online_m)
         goOffline();
     *gmsg << "* Finalize Beam Stripping" << endl;
 }
 
 void BeamStripping::goOnline(const double &) {
+//    CrossSection();
     print();
 //    // PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
 //    // PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
@@ -227,13 +286,10 @@ void BeamStripping::print() {
         }
         return;
     }
-
-    int a = sigma_m.size();
-    *gmsg << "* Accelerator pressure " << a<< " (mbar) " << endl;
-    *gmsg << "* Accelerator pressure " << sigma_m[1] << endl;
-    for (int i=0; i<a; i++){
-    	*gmsg << sigma_m[i]  << endl;
-    }
+//    int a = sigma_m.size();
+//    for (int i=0; i<a; i++){
+//    	*gmsg << "Energy - cross section  " << energycs_m[i] << "  -  " << sigma_m[i] << endl;
+//    }
 }
 
 void BeamStripping::goOffline() {
@@ -272,7 +328,6 @@ std::string BeamStripping::getBeamStrippingShape() {
 }
 
 void BeamStripping::setGeom() {
-
 //    double slope;
 //    if (xend_m == xstart_m)
 //        slope = 1.0e12;
@@ -304,10 +359,8 @@ void BeamStripping::setGeom() {
 //    }
 }
 
-
-int BeamStripping::checkPoint(const double &x, const double &y) {
+int BeamStripping::checkPoint() {
     int cn = 1;
-//
 //    for (int i = 0; i < 4; i++) {
 //        if (((geom_m[i].y <= y) && (geom_m[i+1].y > y))
 //            || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {

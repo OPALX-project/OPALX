@@ -48,19 +48,16 @@ namespace {
 BeamStrippingRep::BeamStrippingRep():
     BeamStripping(),
 	geometry()
-//	p(0.0)
 {}
 
 BeamStrippingRep::BeamStrippingRep(const BeamStrippingRep &right):
     BeamStripping(right),
 	geometry()
-//	p(0.0)
 {}
 
 BeamStrippingRep::BeamStrippingRep(const std::string &name):
     BeamStripping(name),
 	geometry()
-//	p(0.0)
 {}
 
 BeamStrippingRep::~BeamStrippingRep()
@@ -81,13 +78,6 @@ Channel *BeamStrippingRep::getChannel(const std::string &aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-//double BeamStrippingRep::getPressure() const {
-//    return p;
-//}
-//
-//void BeamStrippingRep::setPressure(double pressure) {
-//    p = pressure;
-//}
 
 NullField &BeamStrippingRep::getField() {
     return field;

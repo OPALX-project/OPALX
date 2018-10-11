@@ -80,8 +80,6 @@ private:
     // Not implemented.
     void operator=(const BeamStrippingRep &);
 
-    double p;
-
     // The zero magnetic field.
     NullField field;
 

@@ -28,6 +28,8 @@
 #include <fstream>
 #include <algorithm>
 
+using namespace std;
+
 using Physics::pi;
 using Physics::m_p;
 using Physics::m_e;
@@ -55,9 +57,8 @@ namespace {
         BeamStrippingInsideTester(ElementBase * el) {
             bstp_m = static_cast<BeamStripping*>(el);
         }
-        virtual
-        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
-            return bstp_m->checkPoint(R(0), R(1));
+        virtual bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+            return bstp_m->checkPoint();
         }
 
     private:
@@ -101,9 +102,9 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 //#endif
 {
 
-    gsl_rng_env_setup(); // @suppress("Function cannot be resolved")
-    rGen_m = gsl_rng_alloc(gsl_rng_default); // @suppress("Function cannot be resolved") // @suppress("Symbol is not resolved")
-    gsl_rng_set(rGen_m, Options::seed); // @suppress("Function cannot be resolved")
+    gsl_rng_env_setup();
+    rGen_m = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(rGen_m, Options::seed);
 
     Material();
     bstpshape_m = element_ref_m->getType();
@@ -119,12 +120,12 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 //        curandInitSet = -1;
 //    }
 //
-//    DegraderInitTimer_m = IpplTimings::getTimer("DegraderInit");
+//    BeamStrippingInitTimer_m = IpplTimings::getTimer("BeamStrippingInit");
 //#endif
 
-//    DegraderApplyTimer_m = IpplTimings::getTimer("DegraderApply");
-//    DegraderLoopTimer_m = IpplTimings::getTimer("DegraderLoop");
-//    DegraderDestroyTimer_m = IpplTimings::getTimer("DegraderDestroy");
+    BeamStrippingApplyTimer_m = IpplTimings::getTimer("BeamStrippingApply");
+    BeamStrippingLoopTimer_m = IpplTimings::getTimer("BeamStrippingLoop");
+    BeamStrippingDestroyTimer_m = IpplTimings::getTimer("BeamStrippingDestroy");
 }
 
 
@@ -132,7 +133,7 @@ BeamStrippingPhysics::~BeamStrippingPhysics() {
     locParts_m.clear();
     lossDs_m->save();
     if (rGen_m)
-        gsl_rng_free(rGen_m); // @suppress("Function cannot be resolved")
+        gsl_rng_free(rGen_m);
 
 #ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
@@ -153,13 +154,16 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
         Particle goes back to beam if
         -- not absorbed and out of material
     */
+
+	*gmsg << "* BeamStrippingPhysics::doPhysics " << endl;
+
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
     BeamStripping *bstp = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
-
 	double pressure = bstp->getPressure();
 	double temperature = bstp->getTemperature();
+
 	calcNumMolecules(pressure, temperature);
 
     for (size_t i = 0; i < locParts_m.size(); ++i) {
@@ -167,6 +171,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
         Vector_t &P = locParts_m[i].Pincol;
 
         double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
+        CrossSection(Eng);
         if (locParts_m[i].label != -1) {
             if (tester->checkHit(R, P, dT_m)) {
 //                bool pdead = EnergyLoss(Eng, dT_m);
@@ -209,10 +214,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 
 double BeamStrippingPhysics::calcNumMolecules(double &pressure, double &temperature) {
 
-//	BeamStripping* elptr = dynamic_cast<BeamStripping *>(bstp.clone());
-//
-//	double pressure = elptr->getPressure();
-//	double temperature = elptr->getTemperature();
+	*gmsg << "* BeamStrippingPhysics::calcNumMolecules " << endl;
 
 	if(pressure == 0.0)
         throw LogicalError("BeamStrippingPhysics::setPressure()", "Pressure must not be zero");
@@ -220,21 +222,52 @@ double BeamStrippingPhysics::calcNumMolecules(double &pressure, double &temperat
 		throw LogicalError("BeamStrippingPhysics::setTemperature()", "Temperature must not be zero");
 
     NumMolecules_m = 100 * pressure / (kB * q_e * temperature);
-    *gmsg << "* NumberMolecules	= " << NumMolecules_m << " []" << endl;
+    *gmsg << "* NumberMolecules	= " << NumMolecules_m  << endl;
     return NumMolecules_m;
 }
 
 void BeamStrippingPhysics::CrossSection(double &Eng){
-	/// Eng GeV
+
+	*gmsg << "* BeamStrippingPhysics::CrossSection " << endl;
 
     BeamStripping *bstp = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
-    std::vector<double> s = bstp->getCrossSection();
+    vector<double> sigma = bstp->getCrossSection();
+    vector<double> energycs = bstp->getEnergyCS();
 
-//    BeamStripping *bstp =dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
+	double CS;
+	double m;
+	double n;
 
+	int a = energycs.size();
+	*gmsg << "* Energy = " << Eng << endl;
+
+	if(Eng < energycs[0]) {
+		m = (sigma[1]-sigma[0]) / (energycs[1]-energycs[0]);
+		n = sigma[0] - m * energycs[0];
+		CS = m * Eng + n;
+	}
+	else if(Eng > energycs[a-1]) {
+		m = (sigma[a-1]-sigma[a-2]) / (energycs[a-1]-energycs[a-2]);
+		n = sigma[a-1] - m * energycs[a-1];
+		CS = m * Eng + n;
+	}
+	else if(Eng > energycs[0] && Eng < energycs[a-1]){
+		for (int i=0; i<a; i++){
+			if(Eng == energycs[i]) {
+				CS = sigma[i];
+			}
+			else if(Eng > energycs[i] && Eng < energycs[i+1]) {
+				m = (sigma[i+1]-sigma[i]) / (energycs[i+1]-energycs[i]);
+				n = sigma[i] - m * energycs[i];
+				CS = m * Eng + n;
+			}
+		}
+	}
+	else {
+		*gmsg << "**Cross section not calculated**" << endl;
+	}
+	*gmsg << "* Cross section = " << CS << endl;
 }
-
-
 
 
 ///// Energy Loss:  using the Bethe-Bloch equation.
@@ -287,14 +320,17 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
                               const std::pair<Vector_t, double> &boundingSphere,
                               size_t numParticlesInSimulation) {
-//    IpplTimings::startTimer(DegraderApplyTimer_m);
+
+//	IpplTimings::startTimer(BeamStrippingApplyTimer_m);
+
+	*gmsg << "* BeamStrippingPhysics::apply " << endl;
 
     Inform m ("BeamStrippingPhysics::apply ", INFORM_ALL_NODES);
     /*
       Particles that have entered material are flagged as Bin[i] == -1.
       Fixme: should use PType
 
-      Flagged particles are copied to a local structue within Collimator Physics locParts_m.
+      Flagged particles are copied to a local structue within Beam Stripping Physics locParts_m.
 
       Particles in that structure will be pushed in the material and either come
       back to the bunch or will be fully stopped in the material. For the push in the
@@ -446,13 +482,13 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
 //#else
 
     do {
-//        IpplTimings::startTimer(DegraderLoopTimer_m);
+//        IpplTimings::startTimer(BeamStrippingLoopTimer_m);
         doPhysics(bunch);
         /*
           delete absorbed particles and particles that went to the bunch
         */
         deleteParticleFromLocalVector();
-//        IpplTimings::stopTimer(DegraderLoopTimer_m);
+//        IpplTimings::stopTimer(BeamStrippingLoopTimer_m);
 
         /*
           if we are not looping copy newly arrived particles
@@ -477,7 +513,7 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
 
 //#endif
 
-//    IpplTimings::stopTimer(DegraderApplyTimer_m);
+//    IpplTimings::stopTimer(BeamStrippingApplyTimer_m);
 }
 
 
@@ -485,7 +521,7 @@ const std::string BeamStrippingPhysics::getType() const {
     return "BeamStrippingPhysics";
 }
 
-/// The material of the collimator
+/// The material of the vacuum for beam stripping
 //  ------------------------------------------------------------------------
 void  BeamStrippingPhysics::Material() {
 
@@ -631,12 +667,10 @@ void  BeamStrippingPhysics::Material() {
 void BeamStrippingPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsigned i) {
 
     bunch->createWithID(locParts_m[i].IDincol);
-
     /*
       Binincol is still <0, but now the particle is rediffused
       from the material and hence this is not a "lost" particle anymore
     */
-
     const unsigned int last = bunch->getLocalNum() - 1;
     bunch->Bin[last] = 1;
     bunch->R[last]   = locParts_m[i].Rincol;
@@ -652,7 +686,6 @@ void BeamStrippingPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsig
       the particle will be deleted.
     */
     locParts_m[i].label = -1.0;
-
     ++ rediffusedStat_m;
 }
 
@@ -663,11 +696,11 @@ void BeamStrippingPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     const size_t nL = bunch->getLocalNum();
     if (nL == 0) return;
 
-//    IpplTimings::startTimer(DegraderDestroyTimer_m);
+//    IpplTimings::startTimer(BeamStrippingDestroyTimer_m);
 //    double zmax = boundingSphere.first(2) + boundingSphere.second;
 //    double zmin = boundingSphere.first(2) - boundingSphere.second;
 //    if (zmax < 0.0 || zmin > element_ref_m->getElementLength()) {
-//        IpplTimings::stopTimer(DegraderDestroyTimer_m);
+//        IpplTimings::stopTimer(BeamStrippingDestroyTimer_m);
 //        return;
 //    }
 
@@ -677,8 +710,7 @@ void BeamStrippingPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
         tester = new BeamStrippingInsideTester(element_ref_m);
         break;
     default:
-        throw OpalException("CollimatorPhysics::doPhysics",
-                            "Unsupported element type");
+        throw OpalException("BeamStrippingPhysics::doPhysics","Unsupported element type");
     }
 
     size_t ne = 0;
@@ -718,32 +750,25 @@ void BeamStrippingPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     }
 
     delete tester;
-//    IpplTimings::stopTimer(DegraderDestroyTimer_m);
+//    IpplTimings::stopTimer(BeamStrippingDestroyTimer_m);
 }
 
-void BeamStrippingPhysics::print(Inform &msg) {
+void BeamStrippingPhysics::print(Inform& msg) {
     Inform::FmtFlags_t ff = msg.flags();
 
     // ToDo: need to move that to a statistics function
-#ifdef OPAL_DKS
-    if (strippingshape_m == DEGRADER && IpplInfo::DKSEnabled)
-        locPartsInMat_m = numparticles + dksParts_m.size();
-    else
-        locPartsInMat_m = locParts_m.size();
-#else
-    locPartsInMat_m = locParts_m.size();
-#endif
+//#ifdef OPAL_DKS
+//    if (strippingshape_m == DEGRADER && IpplInfo::DKSEnabled)
+//        locPartsInMat_m = numparticles + dksParts_m.size();
+//    else
+//        locPartsInMat_m = locParts_m.size();
+//#else
+//    locPartsInMat_m = locParts_m.size();
+//#endif
     reduce(locPartsInMat_m, locPartsInMat_m, OpAddAssign());
     reduce(bunchToMatStat_m, bunchToMatStat_m, OpAddAssign());
     reduce(rediffusedStat_m, rediffusedStat_m, OpAddAssign());
     reduce(stoppedPartStat_m, stoppedPartStat_m, OpAddAssign());
-
-    /*
-      Degrader   *deg  = NULL;
-      deg = dynamic_cast<Degrader *>(element_ref_m);
-      double zBegin, zEnd;
-      deg->getDimensions(zBegin, zEnd);
-    */
 
     if (locPartsInMat_m + bunchToMatStat_m + rediffusedStat_m + stoppedPartStat_m > 0) {
         OPALTimer::Timer time;
@@ -756,11 +781,10 @@ void BeamStrippingPhysics::print(Inform &msg) {
             << std::setw(21) << "stopped: " << Util::toStringWithThousandSep(stoppedPartStat_m) << "\n"
             << std::setw(21) << "total in material: " << Util::toStringWithThousandSep(locPartsInMat_m)
             << endl;
-        // msg << "Coll/Deg statistics: "
-        //     << " bunch to material " << bunchToMatStat_m << " rediffused " << rediffusedStat_m
-        //     << " stopped " << stoppedPartStat_m << endl;
+//         msg << "BeamStripping statistics: "
+//             << " bunch to material " << bunchToMatStat_m << " rediffused " << rediffusedStat_m
+//             << " stopped " << stoppedPartStat_m << endl;
     }
-
     msg.flags(ff);
 }
 
@@ -769,32 +793,8 @@ bool BeamStrippingPhysics::stillActive() {
 }
 
 bool BeamStrippingPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
-
     bool degraderAlive = true;
-
-    //free GPU memory in case element is degrader, it is empty and bunch has moved past it
-//    if (strippingshape_m == ElementBase::DEGRADER && locPartsInMat_m == 0) {
-//        Degrader *deg = static_cast<Degrader *>(element_ref_m);
-//
-//        //get the size of the degrader
-//        double zBegin, zEnd;
-//        deg->getDimensions(zBegin, zEnd);
-//
-//        //get the average Z position of the bunch
-//        Vector_t bunchOrigin = bunch->get_origin();
-//
-//        //if bunch has moved past degrader free GPU memory
-//        if (bunchOrigin[2] > zBegin) {
-//            degraderAlive = false;
-//#ifdef OPAL_DKS
-//            if (IpplInfo::DKSEnabled)
-//                clearCollimatorDKS();
-//#endif
-//        }
-//    }
-
     return degraderAlive;
-
 }
 
 namespace {

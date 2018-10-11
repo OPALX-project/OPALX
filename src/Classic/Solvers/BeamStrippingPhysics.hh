@@ -85,7 +85,7 @@ public:
 
     virtual const std::string getType() const;
 
-    void print(Inform& os);
+    void print(Inform& msg);
     bool stillActive();
     bool stillAlive(PartBunchBase<double, 3> *bunch);
 
@@ -190,12 +190,12 @@ private:
 //
 //    static const int numpar;
 //#endif
-//
-//    IpplTimings::TimerRef DegraderApplyTimer_m;
-//    IpplTimings::TimerRef DegraderLoopTimer_m;
-//    // :FIXME: remove unused declaration
-//    // IpplTimings::TimerRef DegraderInitTimer_m;
-//    IpplTimings::TimerRef DegraderDestroyTimer_m;
+
+    IpplTimings::TimerRef BeamStrippingApplyTimer_m;
+    IpplTimings::TimerRef BeamStrippingLoopTimer_m;
+    // :FIXME: remove unused declaration
+    // IpplTimings::TimerRef DegraderInitTimer_m;
+    IpplTimings::TimerRef BeamStrippingDestroyTimer_m;
 };
 
 //inline
