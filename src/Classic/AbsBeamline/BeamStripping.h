@@ -30,6 +30,8 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 class BeamlineVisitor;
 class LossDataSink;
 
@@ -54,9 +56,9 @@ public:
 
     virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
+    virtual bool checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
 
-    virtual bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
+    virtual bool checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax);
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
@@ -76,11 +78,13 @@ public:
 
     void print();
 
-    std::string  getBeamStrippingShape();
-    void setOutputFN(std::string fn);
-    std::string getOutputFN();
+    string  getBeamStrippingShape();
+    void setOutputFN(string fn);
+    string getOutputFN();
 
     unsigned int getLosses() const;
+
+    int checkPoint();
 
     // --------Cyclotron beam stripping
 
@@ -90,46 +94,46 @@ public:
     void setTemperature(double temperature) ;
     double getTemperature() const;
 
-    void setCrossSection(std::vector<double> sigma);
-    std::vector<double> getCrossSection() const;
+    void setCrossSection(vector<double> sigma);
+    vector<double> getCrossSection() const;
 
-    void setEnergyCS(std::vector<double> energycs);
-    double getEnergyCS() const;
+    void setEnergyCS(vector<double> energycs);
+    vector<double> getEnergyCS() const;
 
-    int checkPoint(const double & x, const double & y );
+//    double CrossSection();
 
-//    std::vector<double> sigma;
 
 private:
 
     // Not implemented.
     void operator=(const BeamStripping &);
 
-    std::string filename_m;               /**< The name of the outputfile*/
-
+    string filename_m;               /**< The name of the outputfile*/
     bool informed_m;
 
     //parameters for BeamStripping
     double pressure_m;
     double temperature_m;
-    std::vector<double> sigma_m;
-	std::vector<double> energycs_m;
+    vector<double> sigma_m;
+	vector<double> energycs_m;
 
+//	double CS;
+//	double Eng;
 
     Point  geom_m[5];
     void setGeom();
 
     unsigned int losses_m;
+    unique_ptr<LossDataSink> lossDs_m;
 
-    std::unique_ptr<LossDataSink> lossDs_m;
-
-    ParticleMatterInteractionHandler *parmatint_m;
+    ParticleMatterInteractionHandler *parmatintbst_m;
 };
 
 inline
 unsigned int BeamStripping::getLosses() const {
     return losses_m;
 }
+
 
 inline
 void BeamStripping::setPressure(double pressure) {
