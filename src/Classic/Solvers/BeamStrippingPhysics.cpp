@@ -33,8 +33,6 @@ using namespace std;
 using Physics::pi;
 using Physics::m_p;
 using Physics::m_e;
-using Physics::h_bar;
-using Physics::epsilon_0;
 using Physics::r_e;
 using Physics::z_p;
 using Physics::Avo;
@@ -58,7 +56,7 @@ namespace {
             bstp_m = static_cast<BeamStripping*>(el);
         }
         virtual bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
-            return bstp_m->checkPoint();
+            return bstp_m->checkPoint(R(0), R(1), R(2));
         }
 
     private:
