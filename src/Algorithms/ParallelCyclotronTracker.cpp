@@ -2257,11 +2257,11 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
             collim->checkCollimator(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
         }
 
-//        if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
-//        	BeamStripping * bstp;
-//            bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
-//            bstp->checkBeamStripping(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
-//        }
+        if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
+        	BeamStripping * bstp;
+            bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
+            bstp->checkBeamStripping(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
+        }
     }
 
     itsBunch_m->R *= Vector_t(0.001);

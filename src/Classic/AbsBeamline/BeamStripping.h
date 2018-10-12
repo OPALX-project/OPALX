@@ -84,7 +84,7 @@ public:
 
     unsigned int getLosses() const;
 
-    int checkPoint();
+    int checkPoint(const double &x, const double &y, const double &z);
 
     // --------Cyclotron beam stripping
 
@@ -99,6 +99,16 @@ public:
 
     void setEnergyCS(vector<double> energycs);
     vector<double> getEnergyCS() const;
+
+    void setMinR(double r);
+    double getMinR() const;
+    void setMaxR(double r);
+    double getMaxR() const;
+
+    void setMinZ(double z);
+    double getMinZ() const;
+    void setMaxZ(double z);
+    double getMaxZ() const;
 
 //    double CrossSection();
 
@@ -117,11 +127,15 @@ private:
     vector<double> sigma_m;
 	vector<double> energycs_m;
 
+    double minr_m;
+    double maxr_m;
+    double minz_m;
+    double maxz_m;
+    double rpos;
+    double zpos;
+
 //	double CS;
 //	double Eng;
-
-    Point  geom_m[5];
-    void setGeom();
 
     unsigned int losses_m;
     unique_ptr<LossDataSink> lossDs_m;
@@ -132,27 +146,6 @@ private:
 inline
 unsigned int BeamStripping::getLosses() const {
     return losses_m;
-}
-
-
-inline
-void BeamStripping::setPressure(double pressure) {
-    pressure_m = pressure;
-}
-inline
-double BeamStripping::getPressure() const {
-    return pressure_m;
-}
-
-
-inline
-void BeamStripping::setTemperature(double temperature) {
-	temperature = 300.0;
-    temperature_m = temperature;
-}
-inline
-double BeamStripping::getTemperature() const {
-    return temperature_m;
 }
 
 #endif // CLASSIC_BeamStripping_HH

@@ -47,17 +47,17 @@ namespace {
 
 BeamStrippingRep::BeamStrippingRep():
     BeamStripping(),
-	geometry()
+	geometry(0.0, 0.0)
 {}
 
 BeamStrippingRep::BeamStrippingRep(const BeamStrippingRep &right):
     BeamStripping(right),
-	geometry()
+	geometry(0.0, 0.0)
 {}
 
 BeamStrippingRep::BeamStrippingRep(const std::string &name):
     BeamStripping(name),
-	geometry()
+	geometry(0.0, 0.0)
 {}
 
 BeamStrippingRep::~BeamStrippingRep()
@@ -88,11 +88,11 @@ const NullField &BeamStrippingRep::getField() const {
 }
 
 
-NullGeometry &BeamStrippingRep::getGeometry() {
+PlanarArcGeometry &BeamStrippingRep::getGeometry() {
     return geometry;
 }
 
-const NullGeometry &BeamStrippingRep::getGeometry() const {
+const PlanarArcGeometry &BeamStrippingRep::getGeometry() const {
     return geometry;
 }
 

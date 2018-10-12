@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamStripping.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Fields/NullField.h"
 
 
@@ -63,11 +63,11 @@ public:
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual NullGeometry &getGeometry();
+    virtual PlanarArcGeometry &getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const NullGeometry &getGeometry() const;
+    virtual const PlanarArcGeometry &getGeometry() const;
 
     /// Construct an image.
     //  Return the image of the element, containing the name and type string
@@ -84,7 +84,7 @@ private:
     NullField field;
 
     // The geometry.
-    NullGeometry geometry;
+    PlanarArcGeometry geometry;
 
 };
 

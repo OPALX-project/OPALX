@@ -38,10 +38,6 @@
 
 #include "Ippl.h"
 
-using Physics::m_p;
-using Physics::m_e;
-using Physics::r_e;
-using Physics::z_p;
 using Physics::kB;
 using Physics::q_e;
 
@@ -60,8 +56,10 @@ BeamStripping::BeamStripping():
 	temperature_m(0.0),
 	sigma_m(0.0),
 	energycs_m(0.0),
-//	Eng(0.0),
-//	CS(0.0),
+    minr_m(0.0),
+    maxr_m(0.0),
+    minz_m(0.0),
+    maxz_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
     parmatintbst_m(NULL)
@@ -75,14 +73,14 @@ BeamStripping::BeamStripping(const BeamStripping &right):
 	temperature_m(right.temperature_m),
 	sigma_m(right.sigma_m),
 	energycs_m(right.energycs_m),
-//	Eng(right.Eng),
-//	CS(right.CS),
+    minr_m(right.minr_m),
+    maxr_m(right.maxr_m),
+    minz_m(right.minz_m),
+    maxz_m(right.maxz_m),
     losses_m(0),
     lossDs_m(nullptr),
     parmatintbst_m(NULL)
-{
-    setGeom();
-}
+{}
 
 BeamStripping::BeamStripping(const std::string &name):
     Component(name),
@@ -92,8 +90,10 @@ BeamStripping::BeamStripping(const std::string &name):
 	temperature_m(0.0),
 	sigma_m(0.0),
 	energycs_m(0.0),
-//	Eng(0.0),
-//	CS(0.0),
+    minr_m(0.0),
+    maxr_m(0.0),
+    minz_m(0.0),
+    maxz_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
     parmatintbst_m(NULL)
@@ -112,6 +112,22 @@ void BeamStripping::accept(BeamlineVisitor &visitor) const {
 
 
 
+void BeamStripping::setPressure(double pressure) {
+    pressure_m = pressure;
+}
+double BeamStripping::getPressure() const {
+    return pressure_m;
+}
+
+void BeamStripping::setTemperature(double temperature) {
+	temperature = 300.0;
+    temperature_m = temperature;
+}
+double BeamStripping::getTemperature() const {
+    return temperature_m;
+}
+
+
 void BeamStripping::setCrossSection(vector<double> sigma) {
     sigma_m = sigma;
 }
@@ -124,6 +140,35 @@ void BeamStripping::setEnergyCS(vector<double> energycs) {
 }
 vector<double> BeamStripping::getEnergyCS() const {
   return energycs_m;
+}
+
+
+void BeamStripping::setMinR(double r) {
+    minr_m = r;
+}
+double BeamStripping::getMinR() const {
+    return minr_m;
+}
+
+void BeamStripping::setMaxR(double r) {
+    maxr_m = r;
+}
+double BeamStripping::getMaxR() const {
+    return maxr_m;
+}
+
+void  BeamStripping::setMinZ(double z) {
+    minz_m = z;
+}
+double BeamStripping::getMinZ() const {
+    return minz_m;
+}
+
+void BeamStripping::setMaxZ(double z) {
+    maxz_m = z;
+}
+double BeamStripping::getMaxZ() const {
+    return maxz_m;
 }
 
 //double BeamStripping::CrossSection(){
@@ -193,45 +238,49 @@ bool BeamStripping::checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax)
 }
 
 
-// rectangle collimators in cyclotron cyclindral coordinates
-// without particlematterinteraction, the particle hitting collimator is deleted directly
+// Without particlematterinteraction, the particle hitting collimator is deleted directly
 bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
-    bool flagNeedUpdate = true;
+    bool flagNeedUpdate = false;
+
     Vector_t rmin, rmax;
     bunch->get_bounds(rmin, rmax);
-//    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-//    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
-//    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
     std::pair<Vector_t, double> boundingSphere;
     boundingSphere.first = 0.5 * (rmax + rmin);
     boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
-//    if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-//        // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-//        if ( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
-//            size_t tempnum = bunch->getLocalNum();
-//            int pflag = 0;
-//            for (unsigned int i = 0; i < tempnum; ++i) {
-//                if (bunch->PType[i] == ParticleType::REGULAR && bunch->R[i](2) < zend_m && bunch->R[i](2) > zstart_m ) {
-//                    pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
-//		    /// bunch->Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
-//                    if ((pflag != 0) && (bunch->Bin[i] != -1))  {
-//		      if (!parmatintbst_m)
-//			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
-//		      bunch->Bin[i] = -1;
-//		      flagNeedUpdate = true;
-//                    }
-//                }
-//            }
-//        }
-//    }
+    int pflag;
+
+    size_t tempnum = bunch->getLocalNum();
+    for (unsigned int i = 0; i < tempnum; ++i) {
+    	pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
+		if ((pflag != 0) && (bunch->Bin[i] != -1))  {
+			if (!parmatintbst_m)
+				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+			flagNeedUpdate = true;
+		}
+		else if (pflag == 0) {
+    		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+    		gmsgALL << "pflag == 0" << endl;
+    		gmsgALL << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
+    		gmsgALL << getName() << ": Coords: "<< bunch->R[i] << endl;
+
+    	}
+    	else if (bunch->Bin[i] == -1) {
+    		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+    		gmsgALL << "bunch->Bin[i] == -1" << endl;
+    		gmsgALL << getName() << ": particle "<< i <<" is marked for deletion"<< endl;
+    		gmsgALL << getName() << ": Coords: "<< bunch->R[i] << endl;
+    	}
+    }
+
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && parmatintbst_m) {
         parmatintbst_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
 }
+
 
 void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
@@ -327,48 +376,14 @@ std::string BeamStripping::getBeamStrippingShape() {
     return "BeamStripping";
 }
 
-void BeamStripping::setGeom() {
-//    double slope;
-//    if (xend_m == xstart_m)
-//        slope = 1.0e12;
-//    else
-//        slope = (yend_m - ystart_m) / (xend_m - xstart_m);
-//
-//    double coeff2 = sqrt(1 + slope * slope);
-//    double coeff1 = slope / coeff2;
-//    double halfdist = width_m / 2.0;
-//    geom_m[0].x = xstart_m - halfdist * coeff1;
-//    geom_m[0].y = ystart_m + halfdist / coeff2;
-//
-//    geom_m[1].x = xstart_m + halfdist * coeff1;
-//    geom_m[1].y = ystart_m - halfdist / coeff2;
-//
-//    geom_m[2].x = xend_m + halfdist * coeff1;
-//    geom_m[2].y = yend_m - halfdist / coeff2;
-//
-//    geom_m[3].x = xend_m - halfdist * coeff1;
-//    geom_m[3].y = yend_m + halfdist / coeff2;
-//
-//    geom_m[4].x = geom_m[0].x;
-//    geom_m[4].y = geom_m[0].y;
-//
-//    if (zstart_m > zend_m){
-//        double tempz = zstart_m;
-//        zstart_m = zend_m;
-//        zend_m = tempz;
-//    }
-}
 
-int BeamStripping::checkPoint() {
-    int cn = 1;
-//    for (int i = 0; i < 4; i++) {
-//        if (((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-//            || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
-//
-//            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-//            if (x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
-//                ++cn;
-//        }
-//    }
-    return (cn & 1);  // 0 if even (out), and 1 if odd (in)
+int BeamStripping::checkPoint(const double &x, const double &y, const double &z) {
+	int cn;
+	rpos = sqrt(x * x + y * y);
+	zpos = z;
+	if (zpos >= maxz_m || zpos <= minz_m || rpos >= maxr_m || rpos <= minr_m)
+		cn = 0;
+	else
+		cn = 1;
+	return (cn);  // 0 if even (out), and 1 if odd (in)
 }

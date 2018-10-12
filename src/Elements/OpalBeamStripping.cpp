@@ -39,6 +39,14 @@ OpalBeamStripping::OpalBeamStripping():
                         		("CROSSSECTION", "Cross Section [cm2]");
     itsAttr[ENERGYCS]   	= Attributes::makeRealArray
                         		("ENERGYCS", "Energies available for cross section [GeV]");
+    itsAttr[MINZ]     		= Attributes::makeReal
+                        		("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
+    itsAttr[MAXZ]     		= Attributes::makeReal
+                        		("MAXZ","Maximal vertical extent of the machine [mm]",10000.0);
+    itsAttr[MINR]     		= Attributes::makeReal
+                        		("MINR","Minimal radial extent of the machine [mm]", 0.0);
+    itsAttr[MAXR]     		= Attributes::makeReal
+                        		("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
     itsAttr[OUTFN] 			= Attributes::makeString
     							("OUTFN", "BeamStripping output filename");
 
@@ -46,6 +54,10 @@ OpalBeamStripping::OpalBeamStripping():
     registerRealAttribute("TEMPERATURE");
     registerRealAttribute("CROSSSECTION");
     registerRealAttribute("ENERGYCS");
+    registerRealAttribute("MINZ");
+    registerRealAttribute("MAXZ");
+    registerRealAttribute("MINR");
+    registerRealAttribute("MAXR");
     registerStringAttribute("OUTFN");
 
     registerOwnership();
@@ -88,10 +100,21 @@ void OpalBeamStripping::update() {
     std::vector<double> sigma 		= Attributes::getRealArray(itsAttr[CROSSSECTION]);
     std::vector<double> energycs	= Attributes::getRealArray(itsAttr[ENERGYCS]);
 
+    double minz = Attributes::getReal(itsAttr[MINZ]);
+    double maxz = Attributes::getReal(itsAttr[MAXZ]);
+    double minr = Attributes::getReal(itsAttr[MINR]);
+    double maxr = Attributes::getReal(itsAttr[MAXR]);
+
     bstp->setPressure(pressure);
     bstp->setTemperature(temperature);
     bstp->setCrossSection(sigma);
     bstp->setEnergyCS(energycs);
+
+    bstp->setMinR(minr);
+    bstp->setMaxR(maxr);
+    bstp->setMinZ(minz);
+    bstp->setMaxZ(maxz);
+
     bstp->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
