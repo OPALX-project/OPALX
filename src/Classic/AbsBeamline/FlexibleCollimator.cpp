@@ -29,7 +29,7 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     Component(right),
     description_m(right.description_m),
     bb_m(right.bb_m),
-    tree_m(right.tree_m),
+    tree_m(/*right.tree_m*/),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
     losses_m(0),
@@ -39,6 +39,10 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     for (const mslang::Base *obj: right.holes_m) {
         holes_m.push_back(obj->clone());
     }
+
+    tree_m.bb_m = bb_m;
+    tree_m.objects_m.insert(tree_m.objects_m.end(), holes_m.begin(), holes_m.end());
+    tree_m.buildUp();
 }
 
 

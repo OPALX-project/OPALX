@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <vector>
 #include <ctime>
+#include <exception>
 
 #include "Optimize/OpalSimulation.h"
 
@@ -431,6 +432,9 @@ void OpalSimulation::collectResults() {
             invalidBunch();
         } catch(OptPilotException &e) {
             std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
+            invalidBunch();
+        } catch(std::exception &e) {
+            std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception ('" << e.what() << "')!" << std::endl;
             invalidBunch();
         } catch(...) {
             std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception!" << std::endl;
