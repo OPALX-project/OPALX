@@ -84,7 +84,7 @@ struct sameSDDSVariable {
         std::string tmplfile = base_filename;
         if(pos != std::string::npos)
             tmplfile = base_filename.substr(pos+1);
-        pos = tmplfile.find(".");
+        pos = tmplfile.find_last_of(".");
         // std::string simName =
         stat_filename_ = tmplfile.substr(0,pos) + ".stat";
     }
