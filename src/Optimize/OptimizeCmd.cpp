@@ -204,11 +204,11 @@ void OptimizeCmd::execute() {
     ff = MaxNormRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
                  ("maxNormRadialPeak", ff));
-    
+
     ff = NumberOfPeaks();
     funcs.insert(std::pair<std::string, client::function::type>
             ("numberOfPeaks", ff));
-    
+
     ff = SumErrSqRadialPeak();
     funcs.insert(std::pair<std::string, client::function::type>
                  ("sumErrSqRadialPeak", ff));
@@ -303,7 +303,6 @@ void OptimizeCmd::execute() {
             dir = path;
         }
 
-        *gmsg << dir.native() << endl;
         if (!fs::exists(dir)) {
             fs::create_directory(dir);
         }
