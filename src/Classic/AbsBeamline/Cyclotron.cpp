@@ -396,6 +396,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         if (std::abs(bz) > trimCoilThreshold_m)
             applyTrimCoil(rad, R[2], &br, &bz);
         else {
+            // make sure to have a smooth transition
             double tmp_bz = 0.0;
             applyTrimCoil(rad, R[2], &br, &tmp_bz);
             bz += tmp_bz * std::abs(bz) / trimCoilThreshold_m;
@@ -435,9 +436,9 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 
         (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
         bool SuperPose = *superposei;
-        if (fcount > 0 && !SuperPose) {
+        if (fcount > 0 && SuperPose == false) {
             //INFOMSG ("Field maps taken : " << fcount << "Superpose false" << endl);
-            break;
+            continue;
         }
 
         // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
