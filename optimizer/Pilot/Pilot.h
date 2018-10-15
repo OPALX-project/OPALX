@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 
 #include "boost/smart_ptr.hpp"
 //#include "boost/dynamic_bitset.hpp"
@@ -246,7 +247,7 @@ protected:
     void startOptimizer() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << global_rank_ << " ▶ Opt"
+        os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Opt"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
@@ -262,7 +263,7 @@ protected:
     void startWorker() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << global_rank_ << " ▶ Worker"
+        os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
@@ -284,7 +285,7 @@ protected:
     void startPilot() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << global_rank_ << " ▶ Pilot"
+        os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Pilot"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
