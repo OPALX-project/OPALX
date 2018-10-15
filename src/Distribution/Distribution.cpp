@@ -1176,9 +1176,6 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
                 ++ numPartsToSend;
 
                 if (numPartsToSend % distributeFrequency == 0) {
-                    std::cout << std::setw(8) << numParts
-                              << std::setw(8) << data.size() / singleDataSize
-                              << std::endl;
                     MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
                     MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
                     numPartsToSend = 0;
