@@ -2602,7 +2602,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     if (Options::psDumpFrame == Options::BUNCH_MEAN) {
         meanR = calcMeanR();
         meanP = calcMeanP();
-    } else {
+    } else if (itsBunch_m->getLocalNum() > 0) {
         meanR = itsBunch_m->R[0];
         meanP = itsBunch_m->P[0];
     }
@@ -2674,7 +2674,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     if (Options::psDumpFrame == Options::BUNCH_MEAN || multiBunchMode_m != MB_MODE::NONE ) {
         meanR = calcMeanR();
         meanP = calcMeanP();
-    } else {
+    } else if (itsBunch_m->getLocalNum() > 0) {
         meanR = itsBunch_m->R[0];
         meanP = itsBunch_m->P[0];
     }
@@ -2791,16 +2791,20 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
                                         const bool& dumpEachTurn)
 {
     // Reference parameters
+    t += dt;
+    itsBunch_m->setT(t * 1.0e-9);
+    itsBunch_m->setLocalTrackStep((step_m + 1));
+    if (!(step_m + 1 % 1000))
+        *gmsg << "Step " << step_m + 1 << endl;
+
+    if (itsBunch_m->getLocalNum() == 0) return;
+
     double tempP2 = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
     double tempGamma = sqrt(1.0 + tempP2);
     double tempBeta = sqrt(tempP2) / tempGamma;
 
     PathLength_m += c_mmtns * dt / 1000.0 * tempBeta; // unit: m
-
-    t += dt;
-    itsBunch_m->setT(t * 1.0e-9);
     itsBunch_m->setLPath(PathLength_m);
-    itsBunch_m->setLocalTrackStep((step_m + 1)); // TEMP moved this here from inside if statement below -DW
 
     // Here is global frame, don't do itsBunch_m->boundp();
 
@@ -2821,9 +2825,6 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
             bunchDumpStatData();
         }
     }
-
-    if (!(step_m + 1 % 1000))
-        *gmsg << "Step " << step_m + 1 << endl;
 }
 
 
@@ -3073,9 +3074,11 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     // apply the plugin elements: probe, collimator, stripper, septum
     applyPluginElements(dt);
 
-    // check if we loose particles at the boundary
+    // check if we lose particles at the boundary
     bgf_main_collision_test();
     // ********************************************************************************** //
+
+    if (itsBunch_m->getLocalNum() == 0) return; // might happen if particle is in collimator
 
     IpplTimings::startTimer(IntegrationTimer_m);
 
@@ -3178,7 +3181,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     // Apply the plugin elements: probe, collimator, stripper, septum
     applyPluginElements(dt);
 
-    // check if we loose particles at the boundary
+    // check if we lose particles at the boundary
     bgf_main_collision_test();
 
     IpplTimings::startTimer(IntegrationTimer_m);
