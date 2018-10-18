@@ -18,7 +18,11 @@
 #include "Algorithms/Vektor.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 #include <vector>
+
+#include <iostream>
+#include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
+#include <sys/time.h>
 
 #include "Utility/IpplTimings.h"
 
@@ -95,20 +99,18 @@ public:
     unsigned getRediffused() {return rediffusedStat_m;}
 
 
-    double calcNumMolecules(double &pressure, double &temperature);
+
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
 
 
 private:
 
     void Material();
-    void CrossSection(double &Eng);
-//    void CoulombScat(Vector_t &R, Vector_t &P, const double &deltat);
-//    void EnergyLoss(double &Eng, bool &pdead, const double &deltat);
-//    bool EnergyLoss(double &Eng, const double &deltat);
-//
-//    void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
-//	     double thetacou, double deltas, int coord);
+    void calcNumMolecules(double &pressure, double &temperature);
+    void CrossSection(double &Eng, vector<double> &sigma, vector<double> &energycs);
+    void FractionLost(double &Eng);
+    bool GasStripping(double &r);
+    double Random();
 
     void copyFromBunch(PartBunchBase<double, 3> *bunch,
                        const std::pair<Vector_t, double> &boundingSphere);
@@ -139,10 +141,12 @@ private:
     double  T_m;                     // own time, maybe larger than in the bunch object
     double dT_m;                     // dt from bunch
     
+    double mass;
     double NumMolecules_m;
-//    std::vector<double> sigma;
+    double CS;
+    double fg;
 
-    gsl_rng *rGen_m; // @suppress("Type cannot be resolved")
+//    gsl_rng *rGen_m;
 
     std::string material_m;
     std::string FN_m;
@@ -166,7 +170,6 @@ private:
     size_t locPartsInMat_m;
 
     // some statistics
-
     double Eavg_m;
     double Emax_m;
     double Emin_m;
@@ -206,10 +209,10 @@ private:
 //    if (Emax_m < Eng)
 //	Emax_m = Eng;
 //}
-//
+
 //inline
-//void BeamStrippingPhysics::EnergyLoss(double &Eng, bool &pdead, const double &deltat) {
-//    pdead = EnergyLoss(Eng, deltat);
+//void BeamStrippingPhysics::FractionLost(double &Eng, bool &pdead, const double &deltat) {
+//    pdead = FractionLost(Eng, deltat);
 //}
 
 #endif //BEAMSTRIPPINGPHYSICS_HH
