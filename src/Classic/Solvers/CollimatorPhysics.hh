@@ -101,7 +101,7 @@ private:
     bool EnergyLoss(double &Eng, const double &deltat);
 
     void Rot(double &px, double &pz, double &x, double &z, double xplane, double Norm_P,
-	     double thetacou, double deltas, int coord);
+             double thetacou, double deltas, int coord);
 
     void copyFromBunch(PartBunchBase<double, 3> *bunch,
                        const std::pair<Vector_t, double> &boundingSphere);
@@ -109,7 +109,7 @@ private:
 
 #ifdef OPAL_DKS
   void copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
-			const std::pair<Vector_t, double> &boundingSphere);
+                        const std::pair<Vector_t, double> &boundingSphere);
     void addBackToBunchDKS(PartBunchBase<double, 3> *bunch, unsigned i);
 
     void setupCollimatorDKS(PartBunchBase<double, 3> *bunch, size_t numParticlesInSimulation);
@@ -125,9 +125,6 @@ private:
     void deleteParticleFromLocalVector();
 
     void calcStat(double Eng);
-
-    // :FIXME: remove unused declaration
-    //bool allParticlesIn_m;
 
     double  T_m;                     // own time, maybe larger than in the bunch object
 
@@ -195,9 +192,9 @@ inline
 void CollimatorPhysics::calcStat(double Eng) {
     Eavg_m += Eng;
     if (Emin_m > Eng)
-	Emin_m = Eng;
+        Emin_m = Eng;
     if (Emax_m < Eng)
-	Emax_m = Eng;
+        Emax_m = Eng;
 }
 
 inline

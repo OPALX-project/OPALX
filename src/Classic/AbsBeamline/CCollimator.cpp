@@ -108,7 +108,7 @@ bool CCollimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 }
 
 
-// rectangle collimators in cyclotron cyclindral coordinates
+// rectangle collimators in cyclotron cylindrical coordinates
 // without particlematterinteraction, the particle hitting collimator is deleted directly
 bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
@@ -132,12 +132,12 @@ bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int tur
             for (unsigned int i = 0; i < tempnum; ++i) {
                 if (bunch->PType[i] == ParticleType::REGULAR && bunch->R[i](2) < zend_m && bunch->R[i](2) > zstart_m ) {
                     pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
-                    /// bunch->Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
+                    /// bunch->Bin[i] != -1 makes sure the particle is not stored in more than one collimator
                     if ((pflag != 0) && (bunch->Bin[i] != -1))  {
-                      if (!parmatint_m)
-                        lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
-                      bunch->Bin[i] = -1;
-                      flagNeedUpdate = true;
+                        if (!parmatint_m)
+                            lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+                        bunch->Bin[i] = -1;
+                        flagNeedUpdate = true;
                     }
                 }
             }
