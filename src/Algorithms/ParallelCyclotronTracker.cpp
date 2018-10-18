@@ -75,13 +75,13 @@
 #include "Physics/Physics.h"
 
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include "BasicActions/DumpFields.h"
 #include "BasicActions/DumpEMFields.h"
 
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
-#include "Utilities/Options.h"
 
 #include "Ctunes.h"
 #include <cassert>
@@ -462,11 +462,11 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
             if(insqrt > -1.0e-10) {
 
-	        referencePt = 0.0;
+                referencePt = 0.0;
 
             } else {
 
-	        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
+                throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "Pt imaginary!");
             }
 
@@ -773,10 +773,6 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     double yend = elptr->getYend();
     *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
-    double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
-
-
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
 
@@ -786,7 +782,7 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     BcParameter[1] = 0.001 * xend;
     BcParameter[2] = 0.001 * ystart ;
     BcParameter[3] = 0.001 * yend;
-    BcParameter[4] = 0.001 * width ;
+    BcParameter[4] = 0.001 ; // width
 
     // store probe parameters in the list
     buildupFieldList(BcParameter, ElementBase::PROBE, elptr);
@@ -1077,9 +1073,6 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     double yend = elptr->getYend();
     *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
-    double width = elptr->getWidth();
-    *gmsg << "Width= " << width << " [mm]" << endl;
-
     double opcharge = elptr->getOPCharge();
     *gmsg << "Charge of outcoming particle = +e * " << opcharge << endl;
 
@@ -1094,7 +1087,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     BcParameter[1] = 0.001 * xend;
     BcParameter[2] = 0.001 * ystart ;
     BcParameter[3] = 0.001 * yend;
-    BcParameter[4] = 0.001 * width ;
+    BcParameter[4] = 0.001; // width
     BcParameter[5] = opcharge;
     BcParameter[6] = opmass;
 
@@ -1222,9 +1215,8 @@ void ParallelCyclotronTracker::execute() {
             *gmsg << "* Multiple time stepping (MTS) integrator" << endl;
             break;
         case stepper::INTEGRATOR::UNDEFINED:
-            itsStepper_mp.reset(nullptr);
-            // continue here and throw exception
         default:
+            itsStepper_mp.reset(nullptr);
             throw OpalException("ParallelCyclotronTracker::execute",
                                 "Invalid name of TIMEINTEGRATOR in Track command");
     }
@@ -1996,8 +1988,8 @@ inline void ParallelCyclotronTracker::rotateAroundX(ParticleAttrib<Vector_t> & p
     // Clockwise rotation of particles 'particleVectors' by 'psi' around X axis
 
     Tenzor<double, 3> const rotation(1,  0,          0,
-				     0,  cos(psi), sin(psi),
-				     0, -sin(psi), cos(psi));
+                                     0,  cos(psi), sin(psi),
+                                     0, -sin(psi), cos(psi));
 
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
 
@@ -2009,8 +2001,8 @@ inline void ParallelCyclotronTracker::rotateAroundX(Vector_t & myVector, double 
     // Clockwise rotation of single vector 'myVector' by 'psi' around X axis
 
     Tenzor<double, 3> const rotation(1,  0,          0,
-				     0,  cos(psi), sin(psi),
-				     0, -sin(psi), cos(psi));
+                                     0,  cos(psi), sin(psi),
+                                     0, -sin(psi), cos(psi));
 
     myVector = dot(rotation, myVector);
 }
@@ -2034,9 +2026,9 @@ inline void ParallelCyclotronTracker::getQuaternionTwoVectors(Vector_t u, Vector
         resultVectorComponent = cross(u, xaxis);
 
         // If by chance u is parallel to xaxis, use zaxis instead
-	if (dot(resultVectorComponent, resultVectorComponent) < tolerance2) {
+        if (dot(resultVectorComponent, resultVectorComponent) < tolerance2) {
 
-	    resultVectorComponent = cross(u, zaxis);
+            resultVectorComponent = cross(u, zaxis);
         }
 
         double halfAngle = 0.5 * pi;
@@ -2164,12 +2156,10 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     push(0.5 * h);
 
     // apply the plugin elements: probe, collimator, stripper, septum
-    //itsBunch_m->R *= Vector_t(1000.0); // applyPluginElements expects [R] = mm
     applyPluginElements(h);
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
     bool const flagNeedUpdate = deleteParticle();
 
-    //itsBunch_m->R *= Vector_t(0.001);
     if(itsBunch_m->weHaveBins() && flagNeedUpdate) itsBunch_m->resetPartBinID2(eta_m);
 }
 
@@ -2208,7 +2198,6 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
     }
 
     itsBunch_m->R *= Vector_t(0.001);
-
 }
 
 bool ParallelCyclotronTracker::deleteParticle(){
@@ -2290,7 +2279,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         double const initialReferenceTheta = referenceTheta * Physics::deg2rad;
         PathLength_m = 0.0;
 
-	// TODO: Replace with TracerParticle
+        // TODO: Replace with TracerParticle
         // Force the initial phase space values of the particle with ID = 0 to zero,
         // to set it as a reference particle.
         if(initialTotalNum_m > 2) {
@@ -2305,7 +2294,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Initialize global R
         //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
-	// NEW OPAL 2.0: Immediately change to m -DW
+        // NEW OPAL 2.0: Immediately change to m -DW
         Vector_t const initMeanR = Vector_t(0.001 * referenceR * cosRefTheta_m, // mm --> m
                                             0.001 * referenceR * sinRefTheta_m, // mm --> m
                                             0.001 * referenceZ);                // mm --> m
@@ -2967,11 +2956,7 @@ void ParallelCyclotronTracker::finalizeTracking_m(dvector_t& Ttime,
             closeFiles();
             // no break, continue here!
         }
-        case MODE::BUNCH:
-        {
-            // we do nothing
-            // no break, continue here!
-        }
+        case MODE::BUNCH:  // we do nothing
         case MODE::UNDEFINED:
         default:
         {
@@ -2992,16 +2977,9 @@ void ParallelCyclotronTracker::finalizeTracking_m(dvector_t& Ttime,
     *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
 
     if (itsBunch_m->getTotalNum() > 0){
-        // Print out the Bunch information at end of the run. Because the bunch information
-        // displays in units of m we have to change back and forth one more time.
-        // Furthermore it is my opinion that the same units should be used throughout OPAL. -DW
-        //itsBunch_m->R *= Vector_t(0.001); // mm --> m
-
+        // Print out the Bunch information at end of the run.
         itsBunch_m->calcBeamParameters();
-
         *gmsg << *itsBunch_m << endl;
-
-        //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
     } else {
 
