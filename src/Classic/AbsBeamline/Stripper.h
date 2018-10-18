@@ -52,7 +52,7 @@ public:
     virtual void goOffline();
 
     /// Set dimensions and consistency checks
-    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
+    void setDimensions(double xstart, double xend, double ystart, double yend);
 
     virtual double getXstart() const;
 
@@ -70,9 +70,6 @@ public:
 
     void setOPYield(double yield);
     virtual double getOPYield() const;
-
-    void setWidth(double width);
-    virtual double getWidth() const;
 
     void setStop(bool stopflag);
     virtual bool getStop() const;
@@ -93,7 +90,6 @@ private:
     double yend_m;
     double rstart_m;
     double rend_m;
-    double width_m;
     ///@}
     double opcharge_m;
     double opmass_m;
