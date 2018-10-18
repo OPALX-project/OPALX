@@ -220,23 +220,12 @@ bool BeamStripping::applyToReferenceParticle(const Vector_t &R, const Vector_t &
     return false;
 }
 
+
 bool BeamStripping::checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax) {
-
-//    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-//    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
-//    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-    bool isDead = false;
-//    if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-//        if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-//            if (r(2) < zend_m && r(2) > zstart_m ) {
-//                int pflag = checkPoint(r(0), r(1));
-//                isDead = (pflag != 0);
-//            }
-//        }
-//    }
-    return isDead;
+	int pflag = checkPoint(r(0), r(1), r(2));
+	bool isDead = (pflag != 0);
+	return isDead;
 }
-
 
 // Without particlematterinteraction, the particle hitting collimator is deleted directly
 bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
@@ -251,10 +240,13 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const in
 
     int pflag;
 
+//    double m = bunch->getM();
+//    *gmsg << "* m = " << m << endl;
+
     size_t tempnum = bunch->getLocalNum();
     for (unsigned int i = 0; i < tempnum; ++i) {
     	pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
-		if ((pflag != 0) && (bunch->Bin[i] != -1))  {
+		if ( (pflag != 0) && (bunch->Bin[i] != -1) && (bunch->PType[i] == ParticleType::REGULAR) )  {
 			if (!parmatintbst_m)
 				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
 			flagNeedUpdate = true;

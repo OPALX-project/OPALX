@@ -7,15 +7,11 @@
 // $Author: Bi, Yang Stachel, Adelmann$
 //-------------------------------------------------------------------------
 
-//#include "AbsBeamline/Degrader.h"
-//#include "AbsBeamline/Drift.h"
-//#include "AbsBeamline/SBend.h"
-//#include "AbsBeamline/RBend.h"
-//#include "AbsBeamline/Multipole.h"
 #include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartData.h"
 #include "Physics/Physics.h"
 #include "Solvers/BeamStrippingPhysics.hh"
-#include "Structure/LossDataSink.h" // OPAL file
+#include "Structure/LossDataSink.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
@@ -30,35 +26,28 @@
 
 using namespace std;
 
-using Physics::pi;
-using Physics::m_p;
-using Physics::m_e;
-using Physics::r_e;
-using Physics::z_p;
-using Physics::Avo;
 using Physics::kB;
 using Physics::q_e;
+using Physics::Avo;
+using Physics::c;
 
 #ifdef OPAL_DKS
 const int BeamStrippingPhysics::numpar = 13;
 #endif
 
-
 namespace {
     struct InsideTester {
         virtual ~InsideTester() {}
 
-        virtual bool checkHit(const Vector_t &R, const Vector_t &P, double dt) = 0;
+        virtual bool checkHit(const Vector_t &R) = 0;
     };
-
     struct BeamStrippingInsideTester: public InsideTester {
         BeamStrippingInsideTester(ElementBase * el) {
             bstp_m = static_cast<BeamStripping*>(el);
         }
-        virtual bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+        virtual bool checkHit(const Vector_t &R) {
             return bstp_m->checkPoint(R(0), R(1), R(2));
         }
-
     private:
         BeamStripping *bstp_m;
     };
@@ -100,9 +89,9 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 //#endif
 {
 
-    gsl_rng_env_setup();
-    rGen_m = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(rGen_m, Options::seed);
+//    gsl_rng_env_setup();
+//    rGen_m = gsl_rng_alloc(gsl_rng_default);
+//    gsl_rng_set(rGen_m, Options::seed);
 
     Material();
     bstpshape_m = element_ref_m->getType();
@@ -130,8 +119,8 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 BeamStrippingPhysics::~BeamStrippingPhysics() {
     locParts_m.clear();
     lossDs_m->save();
-    if (rGen_m)
-        gsl_rng_free(rGen_m);
+//    if (rGen_m)
+//        gsl_rng_free(rGen_m);
 
 #ifdef OPAL_DKS
     if (IpplInfo::DKSEnabled)
@@ -142,7 +131,7 @@ BeamStrippingPhysics::~BeamStrippingPhysics() {
 
 
 void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
-    /***
+    /*
         Do physics if
         -- particle in material
         -- particle not dead (locParts_m[i].label != -1.0)
@@ -153,66 +142,49 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
         -- not absorbed and out of material
     */
 
-	*gmsg << "* BeamStrippingPhysics::doPhysics " << endl;
-
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
     BeamStripping *bstp = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
-	double pressure = bstp->getPressure();
-	double temperature = bstp->getTemperature();
+	double pressure = bstp->getPressure();				// mbar
+	double temperature = bstp->getTemperature();		// K
+    vector<double> sigma = bstp->getCrossSection(); 	// cm2
+    vector<double> energycs = bstp->getEnergyCS();		// eV
 
-	calcNumMolecules(pressure, temperature);
+    calcNumMolecules(pressure, temperature);
 
-    for (size_t i = 0; i < locParts_m.size(); ++i) {
-        Vector_t &R = locParts_m[i].Rincol;
-        Vector_t &P = locParts_m[i].Pincol;
+    mass = bunch->getM()*1E-9;
 
-        double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
-        CrossSection(Eng);
-        if (locParts_m[i].label != -1) {
-            if (tester->checkHit(R, P, dT_m)) {
-//                bool pdead = EnergyLoss(Eng, dT_m);
-//                if (!pdead) {
-//                    double ptot = sqrt((m_p + Eng) * (m_p + Eng) - (m_p) * (m_p)) / m_p;
-//                    P = ptot * P / sqrt(dot(P, P));
-//                    /*
-//                      Now scatter and transport particle in material.
-//                      The checkInColl call just above will detect if the
-//                      particle is rediffused from the material into vacuum.
-//                    */
-//                    // INFOMSG("final energy: " << (sqrt(1.0  + dot(P, P)) - 1) * m_p /1000 << " MeV" <<endl);
-//                    CoulombScat(R, P, dT_m);
-//                } else {
-//                    // The particle is stopped in the material, set lable_m to -1
-//                    locParts_m[i].label = -1.0;
-//                    stoppedPartStat_m++;
-//                    lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
-//                }
-            } else {
-                /* The particle exits the material but is still in the loop of the substep,
-                   Finish the timestep by letting the particle drift and after the last
-                   substep call addBackToBunch
-                */
-                double gamma = (Eng + m_p) / m_p;
-                double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-                if (bstpshape_m == ElementBase::BEAMSTRIPPING) {
-                    R = R + dT_m * beta * Physics::c * P / sqrt(dot(P, P)) * 1000;
-                } else {
-                    R = R + dT_m * Physics::c * P / sqrt(1.0 + dot(P, P)) ;
-                    addBackToBunch(bunch, i);
-                }
-            }
-        }
-    }
+    double r = Random();
 
-    delete tester;
+	size_t tempnum = bunch->getLocalNum();
+//	*gmsg << "bunch->getLocalNum()" << bunch->getLocalNum() << endl;
+	for (unsigned int i = 0; i < tempnum; ++i) {
+		*gmsg << "* bunch->Bin[i]" << bunch->Bin[i] << endl;
+		if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
+			double Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass;
+
+			CrossSection(Eng, sigma, energycs);
+
+			FractionLost(Eng);
+
+			bool pdead = GasStripping(r);
+
+			if (pdead) {
+				// The particle is stripped in the residual gas, set lable_m to -1
+				*gmsg << "* The particle is stripped in the residual gas" << endl;
+				bunch->Bin[i] = -1;
+				stoppedPartStat_m++;
+				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+			}
+		}
+	}
+	delete tester;
+
 }
 
 
-double BeamStrippingPhysics::calcNumMolecules(double &pressure, double &temperature) {
-
-	*gmsg << "* BeamStrippingPhysics::calcNumMolecules " << endl;
+void BeamStrippingPhysics::calcNumMolecules(double &pressure, double &temperature) {
 
 	if(pressure == 0.0)
         throw LogicalError("BeamStrippingPhysics::setPressure()", "Pressure must not be zero");
@@ -221,23 +193,16 @@ double BeamStrippingPhysics::calcNumMolecules(double &pressure, double &temperat
 
     NumMolecules_m = 100 * pressure / (kB * q_e * temperature);
     *gmsg << "* NumberMolecules	= " << NumMolecules_m  << endl;
-    return NumMolecules_m;
 }
 
-void BeamStrippingPhysics::CrossSection(double &Eng){
+void BeamStrippingPhysics::CrossSection(double &Eng, vector<double> &sigma, vector<double> &energycs){
 
-	*gmsg << "* BeamStrippingPhysics::CrossSection " << endl;
-
-    BeamStripping *bstp = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
-    vector<double> sigma = bstp->getCrossSection();
-    vector<double> energycs = bstp->getEnergyCS();
-
-	double CS;
 	double m;
 	double n;
 
 	int a = energycs.size();
-	*gmsg << "* Energy = " << Eng << endl;
+	Eng *= 1E9; // Eng eV
+	*gmsg << "* Energy = " << Eng << " eV" << endl;
 
 	if(Eng < energycs[0]) {
 		m = (sigma[1]-sigma[0]) / (energycs[1]-energycs[0]);
@@ -251,9 +216,8 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 	}
 	else if(Eng > energycs[0] && Eng < energycs[a-1]){
 		for (int i=0; i<a; i++){
-			if(Eng == energycs[i]) {
+			if(Eng == energycs[i])
 				CS = sigma[i];
-			}
 			else if(Eng > energycs[i] && Eng < energycs[i+1]) {
 				m = (sigma[i+1]-sigma[i]) / (energycs[i+1]-energycs[i]);
 				n = sigma[i] - m * energycs[i];
@@ -267,68 +231,64 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 	*gmsg << "* Cross section = " << CS << endl;
 }
 
+void BeamStrippingPhysics::FractionLost(double &Eng) {
 
-///// Energy Loss:  using the Bethe-Bloch equation.
-///// Energy straggling: For relatively thick absorbers such that the number of collisions is large,
-///// the energy loss distribution is shown to be Gaussian in form.
-//// -------------------------------------------------------------------------
-//bool BeamStrippingPhysics::EnergyLoss(double &Eng, const double &deltat) {
-//    /// Eng GeV
-//
-//    double dEdx = 0.0;
-//    const double gamma = (Eng + m_p) / m_p;
-//    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-//    const double gamma2 = gamma * gamma;
-//    const double beta2 = beta * beta;
-//
-//    const double deltas = deltat * beta * Physics::c;
-//    const double deltasrho = deltas * 100 * rho_m;
-//    const double K = 4.0 * pi * Avo * r_e * r_e * m_e * 1e7;
-//    const double sigma_E = sqrt(K * m_e * rho_m * (Z_m / A_m) * deltas * 1e5);
-//
-//    if ((Eng > 0.00001) && (Eng < 0.0006)) {
-//        const double Ts = (Eng * 1e6) / 1.0073; // 1.0073 is the proton mass divided by the atomic mass number. T is in KeV
-//        const double epsilon_low = A2_c * pow(Ts, 0.45);
-//        const double epsilon_high = (A3_c / Ts) * log(1 + (A4_c / Ts) + (A5_c * Ts));
-//        const double epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
-//        dEdx = -epsilon / (1e21 * (A_m / Avo)); // Stopping_power is in MeV INFOMSG("stopping power: " << dEdx << " MeV" << endl);
-//        const double delta_Eave = deltasrho * dEdx;
-//        const double delta_E = delta_Eave + gsl_ran_gaussian(rGen_m, sigma_E);
-//        Eng = Eng + delta_E / 1e3;
-//    }
-//
-//    if (Eng >= 0.0006) {
-//        const double Tmax = (2.0 * m_e * 1e9 * beta2 * gamma2 /
-//                             (1.0 + 2.0 * gamma * m_e / m_p + (m_e / m_p) * (m_e / m_p)));
-//        dEdx = (-K * z_p * z_p * Z_m / (A_m * beta2) *
-//                (1.0 / 2.0 * std::log(2 * m_e * 1e9 * beta2 * gamma2 * Tmax / I_m / I_m) - beta2));
-//
-//        // INFOMSG("stopping power_BB: " << dEdx << " MeV" << endl);
-//        const double delta_Eave = deltasrho * dEdx;
-//        double tmp = gsl_ran_gaussian(rGen_m, sigma_E);
-//        const double delta_E = delta_Eave + tmp;
-//        Eng = Eng + delta_E / 1e3;
-//    }
-//
-//    // INFOMSG("final energy: " << Eng/1000 << " MeV" <<endl);
-//    return ((Eng < 1e-4) || (dEdx > 0));
-//}
-//
-//
+	Eng *= 1E-9; // Eng GeV
+    const double gamma = (Eng + mass) / mass;
+    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+    const double deltas = dT_m * beta * c;
+    *gmsg << "* deltas =    " << deltas << endl;
+
+    fg = 1 - exp(-(CS * NumMolecules_m * deltas));
+    *gmsg << "* fg =    " << fg << endl;
+
+}
+
+
+bool BeamStrippingPhysics::GasStripping(double &r) {
+
+//	double r = gsl_rng_uniform (rGen_m);
+    *gmsg << "random uniform number = " << r << endl;
+
+//	double r = gsl_rng_uniform(rGen_m);
+//	double rg = gsl_ran_gaussian(rGen_m, 1.0);
+//    *gmsg << "random uniform number = " << r  << "    " << rg << endl;
+
+    return (fg > r);
+
+
+}
+
+double BeamStrippingPhysics::Random() {
+    // Random number function based on the GNU Scientific Library
+    // Returns a random float between 0 and 1, exclusive; e.g., (0,1)
+    const gsl_rng_type * T;
+    gsl_rng * r;
+    gsl_rng_env_setup();
+    struct timeval tv; // Seed generation based on time
+    gettimeofday(&tv,0);
+    unsigned long mySeed = tv.tv_sec + tv.tv_usec;
+//    *gmsg << "mySeed = " << mySeed << endl;
+    T = gsl_rng_default; // Generator setup
+    r = gsl_rng_alloc (T);
+    gsl_rng_set(r, mySeed);
+    double u = gsl_rng_uniform(r); // Generate it!
+    gsl_rng_free (r);
+    return (double)u;
+}
+
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
                               const std::pair<Vector_t, double> &boundingSphere,
                               size_t numParticlesInSimulation) {
 
-//	IpplTimings::startTimer(BeamStrippingApplyTimer_m);
-
-	*gmsg << "* BeamStrippingPhysics::apply " << endl;
+	IpplTimings::startTimer(BeamStrippingApplyTimer_m);
 
     Inform m ("BeamStrippingPhysics::apply ", INFORM_ALL_NODES);
     /*
       Particles that have entered material are flagged as Bin[i] == -1.
       Fixme: should use PType
 
-      Flagged particles are copied to a local structue within Beam Stripping Physics locParts_m.
+      Flagged particles are copied to a local structure within Beam Stripping Physics locParts_m.
 
       Particles in that structure will be pushed in the material and either come
       back to the bunch or will be fully stopped in the material. For the push in the
@@ -480,13 +440,13 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
 //#else
 
     do {
-//        IpplTimings::startTimer(BeamStrippingLoopTimer_m);
+        IpplTimings::startTimer(BeamStrippingLoopTimer_m);
         doPhysics(bunch);
         /*
           delete absorbed particles and particles that went to the bunch
         */
         deleteParticleFromLocalVector();
-//        IpplTimings::stopTimer(BeamStrippingLoopTimer_m);
+        IpplTimings::stopTimer(BeamStrippingLoopTimer_m);
 
         /*
           if we are not looping copy newly arrived particles
@@ -501,17 +461,16 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
 
         int maxPerNode = bunch->getLocalNum();
         reduce(maxPerNode, maxPerNode, OpMaxAssign());
-        if (allParticleInMat_m) {
-            onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch->getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
-        } else {
-            onlyOneLoopOverParticles = true;
-        }
+        if (allParticleInMat_m)
+        	onlyOneLoopOverParticles = ( (unsigned)maxPerNode > bunch->getMinimumNumberOfParticlesPerCore() || locPartsInMat_m <= 0);
+        else
+        	onlyOneLoopOverParticles = true;
 
     } while (onlyOneLoopOverParticles == false);
 
 //#endif
 
-//    IpplTimings::stopTimer(BeamStrippingApplyTimer_m);
+    IpplTimings::stopTimer(BeamStrippingApplyTimer_m);
 }
 
 
@@ -563,104 +522,6 @@ void  BeamStrippingPhysics::Material() {
         I_m = 9.76 * Z_m + (Z_m * 58.8 * std::pow(Z_m, -1.19));
 }
 
-//// Implement the rotation in 2 dimensions here
-//// For details: see J. Beringer et al. (Particle Data Group), Phys. Rev. D 86, 010001 (2012), "Passage of particles through matter"
-//void  BeamStrippingPhysics::Rot(double &px, double &pz, double &x, double &z, double xplane, double normP, double thetacou, double deltas, int coord) {
-//    // Calculate the angle between the px and pz momenta to change from beam coordinate to lab coordinate
-//    double Psixz = std::fmod(std::atan2(px,pz) + Physics::two_pi, Physics::two_pi);
-//
-//    // Apply the rotation about the random angle thetacou & change from beam
-//    // coordinate system to the lab coordinate system using Psixz (2 dimensions)
-//    if (coord == 1) {
-//        x = x + deltas * px / normP + xplane * cos(Psixz);
-//        z = z - xplane * sin(Psixz);
-//    }
-//    if (coord == 2) {
-//        x = x + deltas * px / normP + xplane * cos(Psixz);
-//        z = z - xplane * sin(Psixz) + deltas * pz / normP;
-//    }
-//
-//    double pxz = sqrt(px * px + pz * pz);
-//    px = pxz * cos(Psixz) * sin(thetacou) + pxz * sin(Psixz) * cos(thetacou);
-//    pz = -pxz * sin(Psixz) * sin(thetacou) + pxz * cos(Psixz) * cos(thetacou);
-//}
-//
-///// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
-///// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
-////--------------------------------------------------------------------------
-//void  BeamStrippingPhysics::CoulombScat(Vector_t &R, Vector_t &P, const double &deltat) {
-//
-//    const double Eng = sqrt(dot(P, P) + 1.0) * m_p - m_p;
-//    const double gamma = (Eng + m_p) / m_p;
-//    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-//    const double normP = sqrt(dot(P, P));
-//    const double deltas = deltat * beta * Physics::c;
-//    const double theta0 = 13.6e6 / (beta * normP * m_p * 1e9) * z_p * sqrt(deltas / X0_m) * (1.0 + 0.038 * log(deltas / X0_m));
-//
-//    // x-direction: See Physical Review, "Multiple Scattering"
-//    double z1 = gsl_ran_gaussian(rGen_m, 1.0);
-//    double z2 = gsl_ran_gaussian(rGen_m, 1.0);
-//    double thetacou = z2 * theta0;
-//
-//    while(fabs(thetacou) > 3.5 * theta0) {
-//        z1 = gsl_ran_gaussian(rGen_m, 1.0);
-//        z2 = gsl_ran_gaussian(rGen_m, 1.0);
-//        thetacou = z2 * theta0;
-//    }
-//    double xplane = (z1 / sqrt(3.0) + z2) * deltas * theta0 / 2.0;
-//    // Apply change in coordinates for multiple scattering but not for Rutherford
-//    // scattering (take the deltas step only once each turn)
-//    int coord = 1;
-//    Rot(P(0), P(2), R(0), R(2), xplane, normP, thetacou, deltas, coord);
-//
-//
-//    // Rutherford-scattering in x-direction
-//    if (collshape_m == ElementBase::CCOLLIMATOR)
-//        R = R * 1e-3;
-//
-//    double P2 = gsl_rng_uniform(rGen_m);
-//    if (P2 < 0.0047) {
-//        double P3 = gsl_rng_uniform(rGen_m);
-//        double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
-//        double P4 = gsl_rng_uniform(rGen_m);
-//        if (P4 > 0.5)
-//            thetaru = -thetaru;
-//        coord = 0; // no change in coordinates but one in momenta-direction
-//        Rot(P(0), P(2), R(0), R(2), xplane, normP, thetaru, deltas, coord);
-//    }
-//
-//    // y-direction: See Physical Review, "Multiple Scattering"
-//    z1 = gsl_ran_gaussian(rGen_m, 1.0);
-//    z2 = gsl_ran_gaussian(rGen_m, 1.0);
-//    thetacou = z2 * theta0;
-//
-//    while(fabs(thetacou) > 3.5 * theta0) {
-//        z1 = gsl_ran_gaussian(rGen_m, 1.0);
-//        z2 = gsl_ran_gaussian(rGen_m, 1.0);
-//        thetacou = z2 * theta0;
-//    }
-//    double yplane = z1 * deltas * theta0 / sqrt(12.0) + z2 * deltas * theta0 / 2.0;
-//    // Apply change in coordinates for multiple scattering but not for Rutherford
-//    // scattering (take the deltas step only once each turn)
-//    coord = 2;
-//    Rot(P(1), P(2), R(1), R(2), yplane, normP, thetacou, deltas, coord);
-//
-//    // Rutherford-scattering in x-direction
-//    if (collshape_m == ElementBase::CCOLLIMATOR)
-//        R = R * 1e3;
-//
-//    P2 = gsl_rng_uniform(rGen_m);
-//    if (P2 < 0.0047) {
-//        double P3 = gsl_rng_uniform(rGen_m);
-//        double thetaru = 2.5 * sqrt(1 / P3) * sqrt(2.0) * theta0;
-//        double P4 = gsl_rng_uniform(rGen_m);
-//        if (P4 > 0.5)
-//            thetaru = -thetaru;
-//        coord = 0; // no change in coordinates but one in momenta-direction
-//        Rot(P(1), P(2), R(1), R(2), yplane, normP, thetaru, deltas, coord);
-//    }
-//}
-
 
 void BeamStrippingPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsigned i) {
 
@@ -677,10 +538,9 @@ void BeamStrippingPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsig
     bunch->Bf[last]  = locParts_m[i].Bfincol;
     bunch->Ef[last]  = locParts_m[i].Efincol;
     bunch->dt[last]  = locParts_m[i].DTincol;
-
     /*
-      This particle is back to the bunch, by set
-      ting the lable to -1.0
+      This particle is back to the bunch,
+      by setting the label to -1.0
       the particle will be deleted.
     */
     locParts_m[i].label = -1.0;
@@ -694,7 +554,7 @@ void BeamStrippingPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     const size_t nL = bunch->getLocalNum();
     if (nL == 0) return;
 
-//    IpplTimings::startTimer(BeamStrippingDestroyTimer_m);
+    IpplTimings::startTimer(BeamStrippingDestroyTimer_m);
 //    double zmax = boundingSphere.first(2) + boundingSphere.second;
 //    double zmin = boundingSphere.first(2) - boundingSphere.second;
 //    if (zmax < 0.0 || zmin > element_ref_m->getElementLength()) {
@@ -715,10 +575,9 @@ void BeamStrippingPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     std::set<size_t> partsToDel;
     const unsigned int minNumOfParticlesPerCore = bunch->getMinimumNumberOfParticlesPerCore();
     for (size_t i = 0; i < nL; ++ i) {
-        if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
-            ((nL - ne) > minNumOfParticlesPerCore) &&
-            tester->checkHit(bunch->R[i], bunch->P[i], dT_m))
-        {
+    	if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
+    	            ((nL - ne) > minNumOfParticlesPerCore) &&
+    	            tester->checkHit(bunch->R[i])) {
             PARTbstp x;
             x.localID      = i;
             x.DTincol      = bunch->dt[i];
@@ -748,7 +607,7 @@ void BeamStrippingPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     }
 
     delete tester;
-//    IpplTimings::stopTimer(BeamStrippingDestroyTimer_m);
+    IpplTimings::stopTimer(BeamStrippingDestroyTimer_m);
 }
 
 void BeamStrippingPhysics::print(Inform& msg) {
