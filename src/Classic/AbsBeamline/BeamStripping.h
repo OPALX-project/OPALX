@@ -110,8 +110,6 @@ public:
     void setMaxZ(double z);
     double getMaxZ() const;
 
-//    double CrossSection();
-
 
 private:
 
@@ -131,11 +129,6 @@ private:
     double maxr_m;
     double minz_m;
     double maxz_m;
-    double rpos;
-    double zpos;
-
-//	double CS;
-//	double Eng;
 
     unsigned int losses_m;
     unique_ptr<LossDataSink> lossDs_m;

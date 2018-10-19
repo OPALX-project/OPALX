@@ -617,12 +617,6 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
     double temperature = elptr->getTemperature();
     *gmsg << "* Temperature (fixed)	= " << temperature << " [K]" << endl;
 
-//    double sigma = elptr->getCrossSection();
-//    *gmsg << "* Cross Section	= " << sigma << " [cm2]" << endl;
-
-//    double NumMolecules = elptr->getNumMolecules();
-//    *gmsg << "* Number of Molecules	= " << NumMolecules << " [molecules/m3]" << endl;
-
     elptr->initialise(itsBunch_m);
 
     double BcParameter[8];
@@ -631,8 +625,6 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
 
     BcParameter[0] = pressure;
     BcParameter[1] = temperature;
-//    BcParameter[2] = sigma;
-//    BcParameter[1] = NumMolecules;
 
     buildupFieldList(BcParameter, ElementBase::BEAMSTRIPPING, elptr);
 }
@@ -2313,7 +2305,7 @@ bool ParallelCyclotronTracker::deleteParticle(){
         localToGlobal(itsBunch_m->P, phi, psi, Vector_t(0.0));
 
         reduce(lostParticleNum, lostParticleNum, OpAddAssign());
-        INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl);
+        INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, out of cyclotron aperture, or by the beam stripping" << endl);
     }
     return flagNeedUpdate;
 }

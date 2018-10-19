@@ -171,46 +171,6 @@ double BeamStripping::getMaxZ() const {
     return maxz_m;
 }
 
-//double BeamStripping::CrossSection(){
-//
-//	double CS;
-//	double Eng;
-//	double m;
-//	double n;
-//	int a = energycs_m.size();
-//	Eng=60000;
-//	*gmsg << "* Energy = " << Eng << endl;
-//
-//	if(Eng < energycs_m[0]) {
-//		m = (sigma_m[1]-sigma_m[0]) / (energycs_m[1]-energycs_m[0]);
-//		n = sigma_m[0] - m * energycs_m[0];
-//		CS = m * Eng + n;
-//	}
-//	else if(Eng > energycs_m[a-1]) {
-//		m = (sigma_m[a-1]-sigma_m[a-2]) / (energycs_m[a-1]-energycs_m[a-2]);
-//		n = sigma_m[a-1] - m * energycs_m[a-1];
-//		CS = m * Eng + n;
-//	}
-//	else if(Eng > energycs_m[0] && Eng < energycs_m[a-1]){
-//		for (int i=0; i<a; i++){
-//			if(Eng == energycs_m[i]) {
-//				CS = sigma_m[i];
-//			}
-//			else if(Eng > energycs_m[i] && Eng < energycs_m[i+1]) {
-//				m = (sigma_m[i+1]-sigma_m[i]) / (energycs_m[i+1]-energycs_m[i]);
-//				n = sigma_m[i] - m * energycs_m[i];
-//				CS = m * Eng + n;
-//			}
-//		}
-//	}
-//	else {
-//		*gmsg << "**Cross section not calculated**" << endl;
-//	}
-//	*gmsg << "* Cross section = " << CS << endl;
-//	return CS;
-//}
-
-
 
 bool BeamStripping::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
@@ -227,7 +187,6 @@ bool BeamStripping::checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax)
 	return isDead;
 }
 
-// Without particlematterinteraction, the particle hitting collimator is deleted directly
 bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
@@ -238,34 +197,30 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const in
     boundingSphere.first = 0.5 * (rmax + rmin);
     boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
-    int pflag;
-
-//    double m = bunch->getM();
-//    *gmsg << "* m = " << m << endl;
+    int pflag = 0;
 
     size_t tempnum = bunch->getLocalNum();
     for (unsigned int i = 0; i < tempnum; ++i) {
-    	pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
-		if ( (pflag != 0) && (bunch->Bin[i] != -1) && (bunch->PType[i] == ParticleType::REGULAR) )  {
-			if (!parmatintbst_m)
-				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
-			flagNeedUpdate = true;
+    	if (bunch->PType[i] == ParticleType::REGULAR)
+    		pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
+    	if ( (pflag != 0) && (bunch->Bin[i] != -1) )  {
+    		if (!parmatintbst_m)
+    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+    		//    		bunch->Bin[i] = -1;
+    		flagNeedUpdate = true;
 		}
 		else if (pflag == 0) {
-    		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-    		gmsgALL << "pflag == 0" << endl;
-    		gmsgALL << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
-    		gmsgALL << getName() << ": Coords: "<< bunch->R[i] << endl;
+    		*gmsg << "pflag == 0" << endl;
+    		*gmsg << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
+    		*gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
 
     	}
-    	else if (bunch->Bin[i] == -1) {
-    		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-    		gmsgALL << "bunch->Bin[i] == -1" << endl;
-    		gmsgALL << getName() << ": particle "<< i <<" is marked for deletion"<< endl;
-    		gmsgALL << getName() << ": Coords: "<< bunch->R[i] << endl;
-    	}
+//    	else if (bunch->Bin[i] == -1) {
+//    		*gmsg << "bunch->Bin[i] == -1" << endl;
+//    		*gmsg << getName() << ": particle "<< i <<" is marked for deletion"<< endl;
+//    		*gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
+//    	}
     }
-
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && parmatintbst_m) {
         parmatintbst_m->apply(bunch, boundingSphere);
@@ -300,37 +255,23 @@ void BeamStripping::finalise() {
 }
 
 void BeamStripping::goOnline(const double &) {
-//    CrossSection();
     print();
-//    // PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    // PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    // PosZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    // MomentumX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    // MomentumY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    // MomentumZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    // time_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-////    id_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-//    online_m = true;
 }
 
 void BeamStripping::print() {
-    if (RefPartBunch_m == NULL) {
-        if (!informed_m) {
-            std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
-            ERRORMSG(errormsg << endl);
-            if (Ippl::myNode() == 0) {
-                std::ofstream omsg("errormsg.txt", std::ios_base::app);
-                omsg << errormsg << std::endl;
-                omsg.close();
-            }
-            informed_m = true;
-        }
-        return;
-    }
-//    int a = sigma_m.size();
-//    for (int i=0; i<a; i++){
-//    	*gmsg << "Energy - cross section  " << energycs_m[i] << "  -  " << sigma_m[i] << endl;
-//    }
+	if (RefPartBunch_m == NULL) {
+		if (!informed_m) {
+			std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
+			ERRORMSG(errormsg << endl);
+			if (Ippl::myNode() == 0) {
+				std::ofstream omsg("errormsg.txt", std::ios_base::app);
+				omsg << errormsg << std::endl;
+				omsg.close();
+			}
+			informed_m = true;
+		}
+		return;
+	}
 }
 
 void BeamStripping::goOffline() {
@@ -371,8 +312,8 @@ std::string BeamStripping::getBeamStrippingShape() {
 
 int BeamStripping::checkPoint(const double &x, const double &y, const double &z) {
 	int cn;
-	rpos = sqrt(x * x + y * y);
-	zpos = z;
+	double rpos = sqrt(x * x + y * y);
+	double zpos = z;
 	if (zpos >= maxz_m || zpos <= minz_m || rpos >= maxr_m || rpos <= minr_m)
 		cn = 0;
 	else
