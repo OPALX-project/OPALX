@@ -28,6 +28,8 @@ public:
     typedef std::vector<double> genes_t;
     /// gene names
     typedef std::vector<std::string> names_t;
+    /// objectives array
+    typedef std::vector<double> objectives_t;
 
     SampleIndividual()
     {}
@@ -42,11 +44,14 @@ public:
     template<class Archive>
     void serialize(Archive & ar, const unsigned int version) {
         ar & genes;
+        ar & objectives;
         ar & id;
     }
 
     /// genes of an individual
     genes_t      genes;
+    /// values of objectives of an individual
+    objectives_t objectives;
     /// id
     unsigned int id = 0;
 

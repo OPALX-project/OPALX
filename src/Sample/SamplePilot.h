@@ -3,6 +3,7 @@
 
 #include "Pilot/Pilot.h"
 #include "Sample/SampleWorker.h"
+#include "Expression/Parser/function.hpp"
 
 
 
@@ -44,7 +45,9 @@ class SamplePilot : protected Pilot<Input_t,
 public:
 
     SamplePilot(CmdArguments_t args, boost::shared_ptr<Comm_t> comm,
+                functionDictionary_t known_expr_funcs,
                 const DVarContainer_t &dvar,
+                const Expressions::Named_t &obj,
                 const std::map< std::string,
                 std::shared_ptr<SamplingMethod>
                 >& sampleMethods)
@@ -54,15 +57,22 @@ public:
                 SolPropagationGraph_t,
                 Comm_t>(args,
                         comm,
-                        dvar)
+                        known_expr_funcs,
+                        dvar,
+                        obj,
+                        Expressions::Named_t(),
+                        {},
+                        false)
         , sampleMethods_m(sampleMethods)
     {
+        if (obj.size() == 0) {
         // create a dummy objective, base class requires at least 1 objective
-        this->objectives_ = {
-            {"dummy", new Expressions::Expr_t("dummy")}
-        };
+            this->objectives_ = {
+                {"dummy", new Expressions::Expr_t("dummy")}
+            };
+        }
 
-        setup();
+        this->setup(known_expr_funcs);
     }
 
     ~SamplePilot()
@@ -79,10 +89,11 @@ protected:
 
 
     virtual
-    void setup() {
+    void setup(functionDictionary_t known_expr_funcs) {
         this->global_rank_ = this->comm_->globalRank();
 
-        this->parseInputFile(functionDictionary_t());
+        this->parseInputFile(known_expr_funcs, false);
+
         MPI_Barrier(MPI_COMM_WORLD);
 
         // here the control flow starts to diverge
@@ -95,16 +106,16 @@ protected:
     void startSampler() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << this->global_rank_ << " ▶ Sampler"
+        os << "\033[01;35m" << "  " << this->global_rank_ << " (PID: " << getpid() << ") ▶ Sampler"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
         boost::scoped_ptr<Opt_t> opt(
-                                     new Opt_t(sampleMethods_m, this->dvars_,
+                                     new Opt_t(sampleMethods_m, this->objectives_, this->dvars_,
                                                this->comm_->getBundle(), this->cmd_args_));
         opt->initialize();
 
-        std::cout << "Stop Opt.." << std::endl;
+        std::cout << "Stop Sampler.." << std::endl;
     }
 
 
@@ -112,7 +123,7 @@ protected:
     void startWorker() /*override*/ {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << this->global_rank_ << " ▶ Worker"
+        os << "\033[01;35m" << "  " << this->global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
@@ -124,7 +135,7 @@ protected:
         std::string simName = tmplfile.substr(0,pos);
 
         boost::scoped_ptr< SampleWorker<Sim_t> > w(
-                                                   new SampleWorker<Sim_t>(this->constraints_, simName,
+                                                   new SampleWorker<Sim_t>(this->objectives_, this->constraints_, simName,
                                                                            this->comm_->getBundle(), this->cmd_args_));
 
         std::cout << "Stop Worker.." << std::endl;
@@ -144,10 +155,10 @@ protected:
 
             if (i == this->my_rank_in_worker_comm_) continue;
 
-            all_worker_idle = all_worker_idle && this->is_worker_idle_[i];
-
             if (this->is_worker_idle_[i] && request_queue_.size() > 0)
                 sendNewJobToWorker(i);
+
+            all_worker_idle = all_worker_idle && this->is_worker_idle_[i];
         }
 
         // when all workers have been notified we can stop polling
@@ -203,6 +214,9 @@ protected:
             MPI_Send(&dummy, 1, MPI_UNSIGNED_LONG, status.MPI_SOURCE,
                      MPI_WORKER_FINISHED_ACK_TAG, this->worker_comm_);
 
+            reqVarContainer_t res;
+            MPI_Recv_reqvars(res, status.MPI_SOURCE, this->worker_comm_);
+
             running_job_list_.erase(job_id);
             this->is_worker_idle_[status.MPI_SOURCE] = true;
 
@@ -217,6 +231,8 @@ protected:
             int opt_master_rank = this->comm_->getLeader();
             MPI_Send(&job_id, 1, MPI_UNSIGNED_LONG, opt_master_rank,
                      MPI_OPT_JOB_FINISHED_TAG, this->opt_comm_);
+
+            MPI_Send_reqvars(res, opt_master_rank, this->opt_comm_);
 
             // we keep worker busy _after_ results have been sent to sampler
             if (request_queue_.size() > 0)
