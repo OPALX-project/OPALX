@@ -60,7 +60,7 @@ public:
     virtual void goOffline();
 
     /// Set dimensions and consistency checks
-    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
+    void setDimensions(double xstart, double xend, double ystart, double yend);
 
     void setStep(double step);
 
@@ -70,7 +70,6 @@ public:
     virtual double getYstart() const;
     virtual double getYend() const;
 
-    virtual double getWidth() const;
     virtual double getStep() const;
 
     bool  checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
@@ -89,7 +88,6 @@ private:
     double rstart_m;
     double rend_m;
     ///@}
-    double width_m;   ///< bin width, not used
     Point  geom_m[5]; ///< actual geometry positions with adaptive width such that each particle hits probe once per turn
     double step_m; ///< Step size of the probe (bin width in histogram file)
 

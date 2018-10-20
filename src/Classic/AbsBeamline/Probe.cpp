@@ -39,7 +39,7 @@ Probe::Probe():
     filename_m(""),
     position_m(0.0),
     step_m(0.0){
-    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
+    setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
 
@@ -48,7 +48,7 @@ Probe::Probe(const Probe &right):
     filename_m(right.filename_m),
     position_m(right.position_m),
     step_m(right.step_m){
-    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m, right.width_m);
+    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
 }
 
 
@@ -57,7 +57,7 @@ Probe::Probe(const std::string &name):
     filename_m(""),
     position_m(0.0),
     step_m(0.0){
-    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
+    setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
 Probe::~Probe() {}
@@ -103,12 +103,11 @@ void Probe::goOffline() {
     lossDs_m->save();
 }
 
-void Probe::setDimensions(double xstart, double xend, double ystart, double yend, double width) {
+void Probe::setDimensions(double xstart, double xend, double ystart, double yend) {
     xstart_m = xstart;
     ystart_m = ystart;
     xend_m   = xend;
     yend_m   = yend;
-    width_m  = width;
     rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
     rend_m   = std::sqrt(xend * xend   + yend * yend);
     // start position is the one with lowest radius
@@ -144,10 +143,6 @@ double  Probe::getYend() const {
     return yend_m;
 }
 
-double  Probe::getWidth() const {
-    return width_m;
-}
-
 double  Probe::getStep() const {
     return step_m;
 }
@@ -179,7 +174,7 @@ void Probe::setGeom(const double dist) {
     geom_m[4].y = geom_m[0].y;
 }
 
-bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagprobed = false;
     Vector_t rmin, rmax, probepoint;
@@ -200,6 +195,7 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
         reduce(meanP, meanP, OpAddAssign());
         meanP = meanP / Vector_t(bunch->getTotalNum());
 
+        // change probe width depending on step size and angle of particle
         double sk1, sk2, stangle = 0.0;
         if ( B_m == 0.0 ){
             sk1 = meanP(1)/meanP(0);
@@ -218,7 +214,6 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
             sk2 = - A_m/B_m;
             stangle = std::abs(( sk1-sk2 )/(1 + sk1*sk2));
         }
-        // change probe width depending on step size on angle of particle
         double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
         double Swidth = lstep / sqrt( 1 + 1/stangle/stangle );
         setGeom(Swidth);
@@ -254,7 +249,7 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
                 probepoint(2) = bunch->R[i](2);
                 lossDs_m->addParticle(probepoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
                 flagprobed = true;
-            
+
                 peakfinder_m->addParticle(bunch->R[i]);
             }
         }

@@ -92,8 +92,6 @@ namespace {
 
 CollimatorPhysics::CollimatorPhysics(const std::string &name, ElementBase *element, std::string &material):
     ParticleMatterInteractionHandler(name, element),
-    // :FIXME: unused
-    //allParticlesIn_m(false),
     T_m(0.0),
     dT_m(0.0),
     material_m(material),
@@ -197,6 +195,7 @@ void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 
         double Eng = (sqrt(1.0  + dot(P, P)) - 1) * m_p;
         if (locParts_m[i].label != -1) {
+
             if (tester->checkHit(R, P, dT_m)) {
                 bool pdead = EnergyLoss(Eng, dT_m);
                 if (!pdead) {
@@ -210,7 +209,7 @@ void CollimatorPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
                     // INFOMSG("final energy: " << (sqrt(1.0  + dot(P, P)) - 1) * m_p /1000 << " MeV" <<endl);
                     CoulombScat(R, P, dT_m);
                 } else {
-                    // The particle is stopped in the material, set lable_m to -1
+                    // The particle is stopped in the material, set label to -1
                     locParts_m[i].label = -1.0;
                     stoppedPartStat_m++;
                     lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
@@ -292,13 +291,13 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
       Particles that have entered material are flagged as Bin[i] == -1.
       Fixme: should use PType
 
-      Flagged particles are copied to a local structue within Collimator Physics locParts_m.
+      Flagged particles are copied to a local structure within Collimator Physics locParts_m.
 
       Particles in that structure will be pushed in the material and either come
       back to the bunch or will be fully stopped in the material. For the push in the
       material we use sub-timesteps.
 
-      Newely entered particles will be copied to locParts_m at the end of apply.
+      Newly entered particles will be copied to locParts_m at the end of apply.
     */
 
     Eavg_m = 0.0;
@@ -316,7 +315,7 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
     T_m  = bunch->getT();
 
     /*
-      Because this is not propper set in the Component class when calling in the Constructor
+      Because this is not properly set in the Component class when calling in the Constructor
     */
 
 #ifdef OPAL_DKS
@@ -387,7 +386,7 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
             IpplTimings::stopTimer(DegraderLoopTimer_m);
 
             if (onlyOneLoopOverParticles)
-	      copyFromBunchDKS(bunch, boundingSphere);
+                copyFromBunchDKS(bunch, boundingSphere);
 
             T_m += dT_m;
 
@@ -470,7 +469,6 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
         } else {
             onlyOneLoopOverParticles = true;
         }
-
     } while (onlyOneLoopOverParticles == false);
 
 #endif
@@ -834,7 +832,7 @@ void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch, unsigned
 
     /*
       This particle is back to the bunch, by set
-      ting the lable to -1.0
+      ting the label to -1.0
       the particle will be deleted.
     */
     locParts_m[i].label = -1.0;
@@ -868,7 +866,7 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
         tester = new FlexCollimatorInsideTester(element_ref_m);
         break;
     default:
-        throw OpalException("CollimatorPhysics::doPhysics",
+        throw OpalException("CollimatorPhysics::copyFromBunch",
                             "Unsupported element type");
     }
 
@@ -890,7 +888,7 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
             x.Qincol       = bunch->Q[i];
             x.Bfincol      = bunch->Bf[i];
             x.Efincol      = bunch->Ef[i];
-            x.label        = 0;            // allive in matter
+            x.label        = 0;            // alive in matter
 
             locParts_m.push_back(x);
             ne++;
@@ -1055,7 +1053,7 @@ void CollimatorPhysics::addBackToBunchDKS(PartBunchBase<double, 3> *bunch, unsig
 }
 
 void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
-					 const std::pair<Vector_t, double> &boundingSphere)
+                                         const std::pair<Vector_t, double> &boundingSphere)
 {
     const size_t nL = bunch->getLocalNum();
     if (nL == 0) return;
@@ -1080,7 +1078,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
         tester = new FlexCollimatorInsideTester(element_ref_m);
         break;
     default:
-        throw OpalException("CollimatorPhysics::doPhysics",
+        throw OpalException("CollimatorPhysics::copyFromBunchDKS",
                             "Unsupported element type");
     }
 
@@ -1103,7 +1101,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
             x.Qincol       = bunch->Q[i];
             x.Bfincol      = bunch->Bf[i];
             x.Efincol      = bunch->Ef[i];
-            x.label        = 0;            // allive in matter
+            x.label        = 0;            // alive in matter
 
             PART_DKS x_gpu;
             x_gpu.label = x.label;
@@ -1130,7 +1128,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
 }
 
 void CollimatorPhysics::setupCollimatorDKS(PartBunchBase<double, 3> *bunch,
-        size_t numParticlesInSimulation)
+                                           size_t numParticlesInSimulation)
 {
 
     if (curandInitSet == -1) {

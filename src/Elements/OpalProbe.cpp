@@ -90,7 +90,6 @@ void OpalProbe::update() {
     double xend   = Attributes::getReal(itsAttr[XEND]);
     double ystart = Attributes::getReal(itsAttr[YSTART]);
     double yend   = Attributes::getReal(itsAttr[YEND]);
-    double width  = Attributes::getReal(itsAttr[WIDTH]);
     double step   = Attributes::getReal(itsAttr[STEP]);
 
     if(itsAttr[WAKEF] && owk_m == nullptr) {
@@ -99,7 +98,7 @@ void OpalProbe::update() {
         prob->setWake(owk_m->wf_m);
     }
     prob->setElementLength(length); // is this needed here?
-    prob->setDimensions(xstart, xend, ystart, yend, width);
+    prob->setDimensions(xstart, xend, ystart, yend);
     prob->setStep(step);
 
     // Transmit "unknown" attributes.
