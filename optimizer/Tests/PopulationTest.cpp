@@ -55,8 +55,8 @@ namespace {
 
         boost::shared_ptr<Individual> ind = createIndividual(1);
         unsigned int id = population_->add_individual(ind);
-        double gene = ind->genes[0];
-        double obj  = ind->objectives[0];
+        double gene = ind->genes_m[0];
+        double obj  = ind->objectives_m[0];
 
         EXPECT_EQ(static_cast<size_t>(0), id) << "first individuals id should be 0";
 
@@ -64,8 +64,8 @@ namespace {
         EXPECT_EQ(0, tmp.get()) << "no committed individuals after insert";
 
         tmp = population_->get_staging(id);
-        EXPECT_EQ(gene, tmp->genes[0])      << "gene should have specified value";
-        EXPECT_EQ(obj,  tmp->objectives[0]) << "objective should have specified value";
+        EXPECT_EQ(gene, tmp->genes_m[0])      << "gene should have specified value";
+        EXPECT_EQ(obj,  tmp->objectives_m[0]) << "objective should have specified value";
 
         size_t my_size = population_->size();
         EXPECT_EQ(static_cast<size_t>(0), my_size)
@@ -77,8 +77,8 @@ namespace {
 
         boost::shared_ptr<Individual> ind = createIndividual(1);
         unsigned int id = population_->add_individual(ind);
-        double gene = ind->genes[0];
-        double obj  = ind->objectives[0];
+        double gene = ind->genes_m[0];
+        double obj  = ind->objectives_m[0];
 
         EXPECT_EQ(static_cast<size_t>(0), id) << "first individuals id should be 0";
 
@@ -88,8 +88,8 @@ namespace {
         EXPECT_EQ(0, tmp.get()) << "no staging individuals after commit";
 
         tmp = population_->get_individual(id);
-        EXPECT_EQ(gene, tmp->genes[0]);
-        EXPECT_EQ(obj,  tmp->objectives[0]);
+        EXPECT_EQ(gene, tmp->genes_m[0]);
+        EXPECT_EQ(obj,  tmp->objectives_m[0]);
 
         size_t my_size = population_->size();
         EXPECT_EQ(static_cast<size_t>(1), my_size);
@@ -124,8 +124,8 @@ namespace {
         EXPECT_EQ(survivors.size(), size);
 
         boost::shared_ptr<Individual> tmp = population_->get_individual(id1);
-        EXPECT_EQ(ind2->genes[0], tmp->genes[0]);
-        EXPECT_EQ(ind2->objectives[0], tmp->objectives[0]);
+        EXPECT_EQ(ind2->genes_m[0], tmp->genes_m[0]);
+        EXPECT_EQ(ind2->objectives_m[0], tmp->objectives_m[0]);
     }
 
     TEST_F(PopulationTest, IDsContinuous) {
@@ -152,8 +152,8 @@ namespace {
         EXPECT_EQ(individual_to_be_removed_id, id_new);
 
         boost::shared_ptr<Individual> tmp = population_->get_staging(id_new);
-        EXPECT_EQ(newind->genes[0], tmp->genes[0]);
-        EXPECT_EQ(newind->objectives[0], tmp->objectives[0]);
+        EXPECT_EQ(newind->genes_m[0], tmp->genes_m[0]);
+        EXPECT_EQ(newind->objectives_m[0], tmp->objectives_m[0]);
     }
 
     TEST_F(PopulationTest, FindNonExistingStaging) {
@@ -176,7 +176,7 @@ namespace {
         population_->add_individual(ind);
         population_->commit_individuals();
 
-        bool represented = population_->isRepresentedInPopulation(ind->genes);
+        bool represented = population_->isRepresentedInPopulation(ind->genes_m);
         EXPECT_TRUE(represented);
 
         std::vector<double> tmp_genes;
