@@ -45,7 +45,7 @@ namespace {
                     std::pair<double, double>(lower_bound_, upper_bound_));
                 names.push_back("dvar"+std::to_string(i));
             }
-            if (constraint.empty() == false) 
+            if (constraint.empty() == false)
                 constraints.insert(std::pair<std::string,Expressions::Expr_t*>
                                    ("constraint0",new Expressions::Expr_t(constraint)));
 
@@ -61,12 +61,12 @@ namespace {
 
         size_t num_genes = 1;
         boost::shared_ptr<Individual> ind = createIndividual(num_genes);
-        double gene = ind->genes[0];
+        double gene = ind->genes_m[0];
 
         EXPECT_LE(lower_bound_, gene) << "gene should respect lower bound";
         EXPECT_GE(upper_bound_, gene) << "gene should respect upper bound";
 
-        size_t my_size = ind->genes.size();
+        size_t my_size = ind->genes_m.size();
         EXPECT_EQ(static_cast<size_t>(num_genes), my_size)
             << "individual should only have " << num_genes << " gene(s)";
 
@@ -77,7 +77,7 @@ namespace {
         size_t num_genes = 12;
         boost::shared_ptr<Individual> ind = createIndividual(num_genes);
 
-        size_t my_size = ind->genes.size();
+        size_t my_size = ind->genes_m.size();
         EXPECT_EQ(static_cast<size_t>(num_genes), my_size)
             << "individual should only have " << num_genes << " gene(s)";
 
@@ -87,7 +87,7 @@ namespace {
 
         size_t num_genes = 1;
         boost::shared_ptr<Individual> ind = createIndividual(num_genes);
-        double gene = ind->genes[0];
+        double gene = ind->genes_m[0];
         double new_gene = ind->new_gene(0);
 
         EXPECT_NE(gene, new_gene) << "new gene should be different";
@@ -97,13 +97,13 @@ namespace {
 
         size_t num_genes = 2;
         double half = (lower_bound_ + upper_bound_) / 2.;
-        std::string constraint  = "(dvar0 + dvar1)/2. <=" + std::to_string(half);  
+        std::string constraint  = "(dvar0 + dvar1)/2. <=" + std::to_string(half);
 
         // create several individuals to test
         for (int i=0; i<10; i++) {
             boost::shared_ptr<Individual> ind = createIndividual(num_genes,constraint);
-            double gene0 = ind->genes[0];
-            double gene1 = ind->genes[1];
+            double gene0 = ind->genes_m[0];
+            double gene1 = ind->genes_m[1];
             EXPECT_LE((gene0+gene1)/2, half) << "constraint should be respected";
         }
     }
