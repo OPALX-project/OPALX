@@ -31,9 +31,11 @@ template <class Sim_t>
 class Worker : protected Poller {
 
 public:
-    
+
     Worker(Expressions::Named_t constraints,
-           std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
+           std::string simName,
+           Comm::Bundle_t comms,
+           CmdArguments_t args)
         : Poller(comms.worker)
         , cmd_args_(args)
     {
@@ -42,13 +44,16 @@ public:
         pilot_rank_      = comms.master_local_pid;
         is_idle_         = true;
         coworker_comm_   = comms.coworkers;
-        
+
         leader_pid_      = 0;
         MPI_Comm_size(coworker_comm_, &num_coworkers_);
     }
 
-    Worker(Expressions::Named_t objectives, Expressions::Named_t constraints,
-           std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
+    Worker(Expressions::Named_t objectives,
+           Expressions::Named_t constraints,
+           std::string simName,
+           Comm::Bundle_t comms,
+           CmdArguments_t args)
         : Poller(comms.worker)
         , cmd_args_(args)
     {
