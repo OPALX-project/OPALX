@@ -670,7 +670,6 @@ protected:
             postPoll();
         }
 
-        std::cout << std::boolalpha << pending_opt_request << ", " << pending_worker_request << ", " << pending_pilot_request << std::endl;
         if(pending_opt_request)     MPI_Cancel( &opt_request );
         if(pending_worker_request)  MPI_Cancel( &worker_request );
         if(pending_pilot_request)   MPI_Cancel( &pilot_request );

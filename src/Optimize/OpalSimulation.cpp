@@ -359,7 +359,7 @@ void OpalSimulation::collectResults() {
         Expressions::Named_t::iterator namedIt;
         try {
             for(namedIt=objectives_.begin(); namedIt!=objectives_.end(); ++namedIt) {
-
+                if (namedIt->first == "dummy") continue;
                 Expressions::Expr_t *objective = namedIt->second;
 
                 // find out which variables we need in order to evaluate the
