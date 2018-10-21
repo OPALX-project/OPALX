@@ -269,7 +269,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
             if(!itr->second.is_valid || (itr->second.value.size() > 1 && !itr->second.value[0])) {
                 std::ostringstream dump;
                 if (!itr->second.is_valid) {
-                    dump << "invalid individual, objective or constraint\"" << itr->first
+                    dump << "invalid individual, objective or constraint \"" << itr->first
                          << "\" failed to be evaluated correctly"
                          << std::endl;
                 } else {
