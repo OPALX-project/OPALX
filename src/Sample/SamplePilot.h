@@ -49,8 +49,9 @@ public:
                 const DVarContainer_t &dvar,
                 const Expressions::Named_t &obj,
                 const std::map< std::string,
-                std::shared_ptr<SamplingMethod>
-                >& sampleMethods)
+                                std::shared_ptr<SamplingMethod>
+                              >& sampleMethods,
+                const std::vector<std::string> &storeobjstr)
         : Pilot<Input_t,
                 Opt_t,
                 Sim_t,
@@ -72,7 +73,7 @@ public:
             };
         }
 
-        this->setup(known_expr_funcs);
+        this->setup(known_expr_funcs, storeobjstr);
     }
 
     ~SamplePilot()
@@ -89,7 +90,7 @@ protected:
 
 
     virtual
-    void setup(functionDictionary_t known_expr_funcs) {
+    void setup(functionDictionary_t known_expr_funcs, const std::vector<std::string> &storeobjstr) {
         this->global_rank_ = this->comm_->globalRank();
 
         this->parseInputFile(known_expr_funcs, false);
@@ -98,7 +99,7 @@ protected:
 
         // here the control flow starts to diverge
         if      ( this->comm_->isOptimizer() ) { startSampler(); }
-        else if ( this->comm_->isWorker()    ) { startWorker();    }
+        else if ( this->comm_->isWorker()    ) { startWorker(storeobjstr);    }
         else if ( this->comm_->isPilot()     ) { this->startPilot();     }
     }
 
@@ -120,7 +121,7 @@ protected:
 
 
     virtual
-    void startWorker() /*override*/ {
+    void startWorker(const std::vector<std::string> &storeobjstr) /*override*/ {
 
         std::ostringstream os;
         os << "\033[01;35m" << "  " << this->global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
@@ -136,7 +137,8 @@ protected:
 
         boost::scoped_ptr< SampleWorker<Sim_t> > w(
                                                    new SampleWorker<Sim_t>(this->objectives_, this->constraints_, simName,
-                                                                           this->comm_->getBundle(), this->cmd_args_));
+                                                                           this->comm_->getBundle(), this->cmd_args_,
+                                                                           storeobjstr));
 
         std::cout << "Stop Worker.." << std::endl;
     }

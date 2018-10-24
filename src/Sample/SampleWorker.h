@@ -25,8 +25,10 @@ public:
                  Expressions::Named_t constraints,
                  std::string simName,
                  Comm::Bundle_t comms,
-                 CmdArguments_t args)
-        : Worker<Sim_t>(objectives, constraints, simName, comms, args, false)
+                 CmdArguments_t args,
+                 const std::vector<std::string> &storeobjstr)
+        : Worker<Sim_t>(objectives, constraints, simName, comms, args, false),
+          statVariablesToStore_m(storeobjstr)
     {
 
         int my_local_pid = 0;
@@ -43,6 +45,7 @@ public:
     {}
 
 protected:
+    const std::vector<std::string> statVariablesToStore_m;
 
     /// notify coworkers of incoming broadcast
     void notifyCoWorkers(size_t job_id, int tag) {
@@ -143,6 +146,13 @@ protected:
 
                 // run simulation in a "blocking" fashion
                 sim->run();
+
+                // this is requests the columns from the stat file and stores them
+                // in a map with the column names as key and the columns as values; for #250
+                //
+                // std::map<std::string,
+                //          std::vector<double> > data = sim->getData(statVariablesToStore_m);
+
                 sim->collectResults();
                 requested_results = sim->getResults();
 

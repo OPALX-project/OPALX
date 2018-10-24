@@ -52,6 +52,8 @@ public:
     /// either failed or finished.
     void run();
 
+    std::map<std::string, std::vector<double> > getData(const std::vector<std::string> &statVariables);
+
     /// Parse SDDS stat file and build up requested variable dictionary.
     void collectResults();
 
