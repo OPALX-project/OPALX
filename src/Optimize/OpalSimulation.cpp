@@ -14,6 +14,7 @@
 #include "Optimize/OpalSimulation.h"
 
 #include "Util/SDDSReader.h"
+#include "Util/SDDSParser.h"
 #include "Util/SDDSParser/SDDSParserException.h"
 #include "Util/OptPilotException.h"
 #include "Util/NativeHashGenerator.h"
@@ -331,6 +332,51 @@ void OpalSimulation::run() {
     }
 }
 
+
+std::map<std::string, std::vector<double> > OpalSimulation::getData(const std::vector<std::string> &statVariables) {
+    std::map<std::string, std::vector<double> > ret;
+    SDDS::SDDSParser parser(simulationDirName_ + "/" + simulationName_ + ".stat");
+    parser.run();
+    for (const std::string &var : statVariables) {
+        SDDS::ast::columnData_t column;
+        try {
+            column = parser.getColumnData(var);
+        } catch (SDDSParserException &e) {
+            std::cout << "failed to read data: " << e.what() << " in " << e.where() << std::endl;
+            continue;
+        }
+
+        std::vector<double> values;
+        auto type = parser.getColumnType(var);
+        switch (type) {
+        case SDDS::ast::FLOAT:
+            for (const auto val: column) {
+                values.push_back(static_cast<double>(boost::get<float>(val)));
+            }
+            break;
+        case SDDS::ast::DOUBLE:
+            for (const auto val: column) {
+                values.push_back(boost::get<double>(val));
+            }
+            break;
+        case SDDS::ast::SHORT:
+            for (const auto val: column) {
+                values.push_back(static_cast<double>(boost::get<short>(val)));
+            }
+            break;
+        case SDDS::ast::LONG:
+            for (const auto val: column) {
+                values.push_back(static_cast<double>(boost::get<long>(val)));
+            }
+            break;
+        default:
+            break;
+        }
+        ret.insert(std::make_pair(var, values));
+    }
+
+    return ret;
+}
 
 void OpalSimulation::collectResults() {
 

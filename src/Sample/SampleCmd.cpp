@@ -51,6 +51,7 @@ namespace {
         OUTPUT,
         OUTDIR,
         OBJECTIVES,
+        STOREOBJECTIVES,
         DVARS,
         SAMPLINGS,
         NUMMASTERS,
@@ -75,6 +76,8 @@ SampleCmd::SampleCmd():
         ("OUTDIR", "Name of directory used to run and store sample output files");
     itsAttr[OBJECTIVES] = Attributes::makeStringArray
         ("OBJECTIVES", "List of expressions to evaluate and store");
+    itsAttr[STOREOBJECTIVES] = Attributes::makeStringArray
+        ("STOREOBJECTIVES", "List of stat variables to store");
     itsAttr[DVARS] = Attributes::makeStringArray
         ("DVARS", "List of sampling variables to be used");
     itsAttr[SAMPLINGS] = Attributes::makeStringArray
@@ -119,6 +122,7 @@ void SampleCmd::execute() {
     RNGStream::setGlobalSeed(seed);
 
     std::vector<std::string> objectivesstr  = Attributes::getStringArray(itsAttr[OBJECTIVES]);
+    std::vector<std::string> storeobjstr  = Attributes::getStringArray(itsAttr[STOREOBJECTIVES]);
     std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
     Expressions::Named_t objectives;
     DVarContainer_t dvars;
@@ -383,7 +387,7 @@ void SampleCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods, storeobjstr));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;
