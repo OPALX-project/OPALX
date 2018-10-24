@@ -58,8 +58,8 @@ public:
 private:
 
     void Material();
-    void calcNumMolecules(double &pressure, double &temperature);
-    void CrossSection(double &Eng, vector<double> &sigma, vector<double> &energycs);
+    void GasDensity(double &pressure, double &temperature, int &iComp);
+    void CrossSection(double &Eng);
     void FractionLost(double &Eng);
     bool GasStripping(double &r);
     double RandomGenerator();
@@ -68,8 +68,8 @@ private:
     double dT_m;                     // dt from bunch
     
     double mass;
-    double NumMolecules_m;
-    double CS;
+    double gasDensity[3];
+    double CS[3];
     double fg;
 
 //    gsl_rng *rGen_m;
@@ -79,16 +79,12 @@ private:
     ElementBase::ElementType bstpshape_m;
     std::string strippingStr_m;
 
-    double Z_m;
-    double A_m;
-    double A2_c;
-    double A3_c;
-    double A4_c;
-    double A5_c;
-    double rho_m;
-    double X0_m;
-    double I_m;
-    double n_m;
+	int NbComponents;
+	static const double fMolarFraction[3];
+	static const double fCrossSectionSingle[3][48];
+	static const double fEnergyCSSingle[3][48];
+	static const double fCrossSectionDouble[3][40];
+	static const double fEnergyCSDouble[3][40];
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;

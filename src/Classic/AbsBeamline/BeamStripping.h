@@ -94,12 +94,6 @@ public:
     void setTemperature(double temperature) ;
     double getTemperature() const;
 
-    void setCrossSection(vector<double> sigma);
-    vector<double> getCrossSection() const;
-
-    void setEnergyCS(vector<double> energycs);
-    vector<double> getEnergyCS() const;
-
     void setMinR(double r);
     double getMinR() const;
     void setMaxR(double r);
@@ -122,8 +116,6 @@ private:
     //parameters for BeamStripping
     double pressure_m;
     double temperature_m;
-    vector<double> sigma_m;
-	vector<double> energycs_m;
 
     double minr_m;
     double maxr_m;

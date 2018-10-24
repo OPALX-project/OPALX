@@ -54,8 +54,6 @@ BeamStripping::BeamStripping():
     informed_m(false),
 	pressure_m(0.0),
 	temperature_m(0.0),
-	sigma_m(0.0),
-	energycs_m(0.0),
     minr_m(0.0),
     maxr_m(0.0),
     minz_m(0.0),
@@ -71,8 +69,6 @@ BeamStripping::BeamStripping(const BeamStripping &right):
     informed_m(right.informed_m),
 	pressure_m(right.pressure_m),
 	temperature_m(right.temperature_m),
-	sigma_m(right.sigma_m),
-	energycs_m(right.energycs_m),
     minr_m(right.minr_m),
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
@@ -88,8 +84,6 @@ BeamStripping::BeamStripping(const std::string &name):
     informed_m(false),
     pressure_m(0.0),
 	temperature_m(0.0),
-	sigma_m(0.0),
-	energycs_m(0.0),
     minr_m(0.0),
     maxr_m(0.0),
     minz_m(0.0),
@@ -125,21 +119,6 @@ void BeamStripping::setTemperature(double temperature) {
 }
 double BeamStripping::getTemperature() const {
     return temperature_m;
-}
-
-
-void BeamStripping::setCrossSection(vector<double> sigma) {
-    sigma_m = sigma;
-}
-vector<double> BeamStripping::getCrossSection() const {
-  return sigma_m;
-}
-
-void BeamStripping::setEnergyCS(vector<double> energycs) {
-    energycs_m = energycs;
-}
-vector<double> BeamStripping::getEnergyCS() const {
-  return energycs_m;
 }
 
 
