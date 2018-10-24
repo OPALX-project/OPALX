@@ -211,6 +211,7 @@ protected:
                 // run simulation in a "blocking" fashion
                 sim->run();
                 sim->collectResults();
+                sim->cleanUp();
                 requested_results = sim->getResults();
             } catch(OptPilotException &ex) {
                 std::cout << "Exception while running simulation: "
