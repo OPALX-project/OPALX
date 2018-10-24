@@ -448,8 +448,6 @@ void OpalSimulation::collectResults() {
         std::cout << "Cannot chdir to "
                   << simulationDirName_.c_str() << std::endl;
     }
-
-    cleanUp();
 }
 
 bool OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,
