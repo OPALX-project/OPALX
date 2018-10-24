@@ -35,10 +35,6 @@ OpalBeamStripping::OpalBeamStripping():
     							("PRESSURE", " Pressure os the accelerator, [mbar]");
     itsAttr[TEMPERATURE] 	= Attributes::makeReal
     							("TEMPERATURE", " Temperature of the accelerator, [K]");
-    itsAttr[CROSSSECTION]   = Attributes::makeRealArray
-                        		("CROSSSECTION", "Cross Section [cm2]");
-    itsAttr[ENERGYCS]   	= Attributes::makeRealArray
-                        		("ENERGYCS", "Energies available for cross section [GeV]");
     itsAttr[MINZ]     		= Attributes::makeReal
                         		("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
     itsAttr[MAXZ]     		= Attributes::makeReal
@@ -52,8 +48,6 @@ OpalBeamStripping::OpalBeamStripping():
 
     registerRealAttribute("PRESSURE");
     registerRealAttribute("TEMPERATURE");
-    registerRealAttribute("CROSSSECTION");
-    registerRealAttribute("ENERGYCS");
     registerRealAttribute("MINZ");
     registerRealAttribute("MAXZ");
     registerRealAttribute("MINR");
@@ -97,8 +91,6 @@ void OpalBeamStripping::update() {
 
     double pressure 				= Attributes::getReal(itsAttr[PRESSURE]);
     double temperature 				= Attributes::getReal(itsAttr[TEMPERATURE]);
-    std::vector<double> sigma 		= Attributes::getRealArray(itsAttr[CROSSSECTION]);
-    std::vector<double> energycs	= Attributes::getRealArray(itsAttr[ENERGYCS]);
 
     double minz = Attributes::getReal(itsAttr[MINZ]);
     double maxz = Attributes::getReal(itsAttr[MAXZ]);
@@ -107,8 +99,6 @@ void OpalBeamStripping::update() {
 
     bstp->setPressure(pressure);
     bstp->setTemperature(temperature);
-    bstp->setCrossSection(sigma);
-    bstp->setEnergyCS(energycs);
 
     bstp->setMinR(minr);
     bstp->setMaxR(maxr);

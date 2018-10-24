@@ -2726,7 +2726,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     }
 
     double const betagamma_temp = sqrt(dot(meanP, meanP));
-    double const E = itsBunch_m->get_meanKineticEnergy();
+    double E;
+
+    if (mode_m == MODE::SINGLE) {
+    	E  = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM() *1e-6;
+    }
+    else {
+    	E = itsBunch_m->get_meanKineticEnergy();
+    }
 
     // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
     double const theta = atan2(meanR(1), meanR(0));
@@ -2844,7 +2851,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     // Print dump information on screen
     *gmsg << "* T = " << temp_t << " ns"
           << ", Live Particles: " << itsBunch_m->getTotalNum() << endl;
-    *gmsg << "* E = " << E << " MeV"
+    *gmsg << "* E = " << Util::getEnergyString(E) //<< " MeV"
           << ", beta * gamma = " << betagamma_temp << endl;
     *gmsg << "* Bunch position: R =  " << referenceR << " mm"
           << ", Theta = " << referenceTheta << " Deg"

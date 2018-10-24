@@ -33,8 +33,6 @@ public:
     enum {
         PRESSURE = COMMON,
 		TEMPERATURE,
-		CROSSSECTION,
-		ENERGYCS,
         MINZ,      // minimal vertical extend of the machine
         MAXZ,      // maximal vertical extend of the machine
         MINR,      // minimal radial extend of the machine
