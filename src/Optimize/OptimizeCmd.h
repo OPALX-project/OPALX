@@ -3,6 +3,10 @@
 
 #include "AbstractObjects/Action.h"
 
+#include "Util/CmdArguments.h"
+#include "Optimize/DVar.h"
+#include "Expression/Expression.h"
+
 #include <string>
 
 // Class OptimizeCmd
@@ -35,6 +39,28 @@ private:
 
     void stashEnvironment();
     void popEnvironment();
+    
+    enum CrossOver {
+        Blend = 0,
+        NaiveOnePoint,
+        NaiveUniform,
+        SimulatedBinary
+    };
+    
+    CrossOver crossoverSelection(std::string crossover);
+    
+    enum Mutation {
+        IndependentBit = 10,
+        OneBit = 20
+    };
+    
+    Mutation mutationSelection(std::string mutation);
+    
+    void run(const CmdArguments_t& args,
+             const functionDictionary_t& funcs,
+             const DVarContainer_t& dvars,
+             const Expressions::Named_t& objectives,
+             const Expressions::Named_t& constraints);
 };
 
 #endif
