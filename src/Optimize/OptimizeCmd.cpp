@@ -475,8 +475,8 @@ OptimizeCmd::Mutation OptimizeCmd::mutationSelection(std::string mutation) {
     mutation = Util::toUpper(mutation);
     
     std::map<std::string, Mutation> map;
-    map["BLEND"] = Mutation::IndependentBit;
-    map["NAIVEONEPOINT"] = Mutation::OneBit;
+    map["INDEPENDENTBIT"] = Mutation::IndependentBit;
+    map["ONEBIT"] = Mutation::OneBit;
     
     Mutation mut = Mutation::IndependentBit;
     
