@@ -213,10 +213,12 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;
     Vector_t rmin, rmax, strippoint;
-    bunch->get_bounds(rmin, rmax);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+    // interested in absolute maximum
+    double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+    double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+    double rbunch_max = std::hypot(xmax, ymax);
 
-    if(r1 > rstart_m - 10.0 ){
+    if(rbunch_max > rstart_m - 10.0 ){
 
         size_t count = 0;
         size_t tempnum = bunch->getLocalNum();
