@@ -34,7 +34,7 @@ OpalSample::OpalSample():
     , size_m(1)
 {
     itsAttr[TYPE]       = Attributes::makeString
-                          ("TYPE", "UNIFORM_INT, UNIFORM_REAL, SEQUENCE, FROMFILE");
+                          ("TYPE", "UNIFORM_INT, UNIFORM, GAUSSIAN, FROMFILE");
 
     itsAttr[VARIABLE]   = Attributes::makeString
                           ("VARIABLE", "Name of design variable");
@@ -111,7 +111,7 @@ void OpalSample::initialize(const std::string &dvarName,
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
        } else {
             throw OpalException("OpalSample::initOpalSample()",
-                                "Unkown sampling method: '" + type + "'.");
+                                "Unknown sampling method: '" + type + "'.");
         }
     } else {
         if (type == "UNIFORM_INT") {
@@ -138,7 +138,7 @@ void OpalSample::initialize(const std::string &dvarName,
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
         } else {
             throw OpalException("OpalSample::initOpalSample()",
-                                "Unkown sampling method: '" + type + "'.");
+                                "Unknown sampling method: '" + type + "'.");
         }
     }
 }
