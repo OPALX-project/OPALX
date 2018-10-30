@@ -184,10 +184,15 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
     bool flagprobed = false;
     Vector_t rmin, rmax, probepoint;
     bunch->get_bounds(rmin, rmax);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-    double r2 = sqrt(rmin(0) * rmin(0) + rmin(1) * rmin(1));
+    // interested in absolute minimum and maximum
+    double xmin = std::min(std::abs(rmin(0)), std::abs(rmax(0)));
+    double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+    double ymin = std::min(std::abs(rmin(1)), std::abs(rmax(1)));
+    double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+    double rbunch_min = std::hypot(xmin, ymin);
+    double rbunch_max = std::hypot(xmax, ymax);
 
-    if( r1 > rstart_m - 10.0 && r2 < rend_m + 10.0 ) {
+    if( rbunch_max > rstart_m - 10.0 && rbunch_min < rend_m + 10.0 ) {
         size_t tempnum = bunch->getLocalNum();
         int pflag = 0;
 
