@@ -129,8 +129,12 @@ bool  Septum::checkSeptum(PartBunchBase<double, 3> *bunch) {
     Vector_t rmin;
     Vector_t rmax;
     bunch->get_bounds(rmin, rmax);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-    if(r1 > rstart_m - 100)  {
+    // interested in absolute maximum
+    double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+    double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+    double rbunch_max = std::hypot(xmax, ymax);
+
+    if(rbunch_max > rstart_m - 100)  {
         for(unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
             Vector_t R = bunch->R[i];
             double slope = (yend_m - ystart_m) / (xend_m - xstart_m);
