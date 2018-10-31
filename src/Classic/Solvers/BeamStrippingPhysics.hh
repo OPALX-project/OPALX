@@ -10,9 +10,11 @@
 //-------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
+#include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
+#include "Distribution/MagneticField.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 #include <vector>
 
@@ -33,7 +35,9 @@ class LossDataSink;
 class Inform;
 
 class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
+
 public:
+
     BeamStrippingPhysics(const std::string &name, ElementBase *element, std::string &mat);
     ~BeamStrippingPhysics();
 
@@ -54,23 +58,22 @@ public:
 
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
 
-
 private:
 
     void Material();
-    void GasDensity(double &pressure, double &temperature, int &iComp);
+    void MolecularDensity(const double &pressure, const double &temperature, int &iComp);
     void CrossSection(double &Eng);
-    void FractionLost(double &Eng);
-    bool GasStripping(double &r);
+    bool GasStripping(double &deltas, double &r);
     double RandomGenerator();
+
+    bool LorentzStripping(double &gamma, double &E, double &r);
 
     double  T_m;                     // own time, maybe larger than in the bunch object
     double dT_m;                     // dt from bunch
     
     double mass;
-    double gasDensity[3];
+    double molecularDensity[3];
     double CS[3];
-    double fg;
 
 //    gsl_rng *rGen_m;
 
@@ -92,6 +95,12 @@ private:
     size_t locPartsInMat_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
+
+    // external field arrays for dumping
+//    Vector_t extE_m, extB_m;
+//    Component *comp;
+//    Cyclotron *cycl;
+//    MagneticField *magn;
 };
 
 #endif //BEAMSTRIPPINGPHYSICS_HH
