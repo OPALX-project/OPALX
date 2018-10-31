@@ -28,8 +28,12 @@ using namespace std;
 
 using Physics::kB;
 using Physics::q_e;
+using Physics::m_e;
 using Physics::Avo;
 using Physics::c;
+using Physics::h_bar;
+using Physics::alpha;
+
 
 namespace {
     struct InsideTester {
@@ -89,29 +93,69 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
         Delete particle i: bunch->Bin[i] != -1;
     */
 
+	double Eng = 0.0;
+	double gamma = 0.0;
+	double beta = 0.0;
+	double deltas = 0.0;
+
+	double B = 4.0;
+	double E = 0.0;
+
+//    extE_m = Vector_t(0.0, 0.0, 0.0);
+//    extB_m = Vector_t(0.0, 0.0, 0.0);
+
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
     mass = bunch->getM()*1E-9;
 
-    double r = RandomGenerator();
+    double r1 = RandomGenerator();
+    double r2 = RandomGenerator();
+    *gmsg << "random uniform number = " << r1 << endl;
+    *gmsg << "random uniform number = " << r2 << endl;
 
-	size_t tempnum = bunch->getLocalNum();
-	for (unsigned int i = 0; i < tempnum; ++i) {
+	for (unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
+
+//		cycl->apply(bunch->R[i], bunch->P[i], T_m, extE_m, extB_m);
+//		BMultipoleField field = bstp->getField();
+//		BVector B = field.Bfield(Point3D(bunch->R[i](0),bunch->R[i](1),bunch->R[i](2)));
+//		BVector B = comp->Bfield(Point3D(bunch->R[i](0),bunch->R[i](1),bunch->R[i](2)));
+//		double Bz = B.getBz();
+//		*gmsg << "* Bz " << Bz << endl;
+
+//		*gmsg << "* R " << bunch->R[i] << endl;
+
 		if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
-			double Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass;
+		Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass;
 
 			CrossSection(Eng);
 
-			FractionLost(Eng);
+			Eng *= 1E-9; // Eng GeV
+		    gamma = (Eng + mass) / mass;
+		    beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+		    deltas = dT_m * beta * c;
+		    E = gamma * beta * c * B;
 
-			bool pdead = GasStripping(r);
-			if (pdead) {
+		    *gmsg << "* gamma =    " << gamma  << endl;
+		    *gmsg << "* beta =    " << beta  << endl;
+		    *gmsg << "* deltas =    " << deltas  << endl;
+
+			bool pdead_GS = GasStripping(deltas, r1);
+			bool pdead_LS = LorentzStripping(gamma, E, r2);
+
+			if (pdead_GS == true) {
 				// The particle is stripped in the residual gas, set lable_m to -1
 				bunch->Bin[i] = -1;
 				stoppedPartStat_m++;
 				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
 				*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
+			}
+			if (pdead_LS == true) {
+				// The particle is stripped by electromagnetic field, set lable_m to -1
+				bunch->Bin[i] = -1;
+				stoppedPartStat_m++;
+				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+				*gmsg << "* The particle " << bunch->ID[i] << " is stripped by electromagnetic field" << endl;
 			}
 		}
 	}
@@ -119,15 +163,15 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 }
 
 
-void BeamStrippingPhysics::GasDensity(double &pressure, double &temperature, int &iComp) {
+void BeamStrippingPhysics::MolecularDensity(const double &pressure, const double &temperature, int &iComp) {
 	if(pressure == 0.0)
         throw LogicalError("BeamStrippingPhysics::setPressure()", "Pressure must not be zero");
 	if(temperature == 0.0)
 		throw LogicalError("BeamStrippingPhysics::setTemperature()", "Temperature must not be zero");
 
-//    double TotalgasDensity_m = 100 * pressure / (kB * q_e * temperature);
-	gasDensity[iComp] = 100 * pressure * fMolarFraction[iComp] / (kB * q_e * temperature);
-//    *gmsg << "* Gas Density	= " << gasDensity[iComp]  << endl;
+//    double TotalmolecularDensity_m = 100 * pressure / (kB * q_e * temperature);
+	molecularDensity[iComp] = 100 * pressure * fMolarFraction[iComp] / (kB * q_e * temperature);
+//    *gmsg << "* Molecular Density	= " << molecularDensity[iComp]  << endl;
 }
 
 void BeamStrippingPhysics::CrossSection(double &Eng){
@@ -219,33 +263,6 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 		 CS[i] = CS_single[i] + CS_double[i];
 //		 *gmsg << "* CS[i] = " << CS[i] << " cm2" << endl;
 	 }
-
-}
-
-void BeamStrippingPhysics::FractionLost(double &Eng) {
-
-	Eng *= 1E-9; // Eng GeV
-    const double gamma = (Eng + mass) / mass;
-    const double beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-    const double deltas = dT_m * beta * c;
-//    *gmsg << "* deltas =    " << deltas << " m" << endl;
-
-    double NCS = 0.0;
-    for (int i = 0; i < NbComponents; ++i) {
-    	CS[i] *= 1E-4; // CS en m2
-    	NCS += CS[i] * gasDensity[i];
-    }
-    fg = 1 - exp(-(NCS * deltas));
-//    *gmsg << "* fg =    " << fg << endl;
-}
-
-
-bool BeamStrippingPhysics::GasStripping(double &r) {
-
-//	double r = gsl_rng_uniform (rGen_m);
-//    *gmsg << "random uniform number = " << r << endl;
-
-    return (fg > r);
 }
 
 double BeamStrippingPhysics::RandomGenerator() {
@@ -263,6 +280,63 @@ double BeamStrippingPhysics::RandomGenerator() {
     double u = gsl_rng_uniform(r); // Generate it!
     gsl_rng_free (r);
     return (double)u;
+}
+
+bool BeamStrippingPhysics::GasStripping(double &deltas, double &r1) {
+
+	double fg = 0.0;
+    double NCS = 0.0;
+    for (int i = 0; i < NbComponents; ++i) {
+    	CS[i] *= 1E-4; // CS en m2
+    	NCS += CS[i] * molecularDensity[i];
+    }
+    fg = 1 - exp(-NCS * deltas);
+//    *gmsg << "* fg =    " << fg << endl;
+
+    return (fg > r1);
+}
+
+
+bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E, double &r2) {
+
+	double tau = 0.0;
+	double fL = 0.0;
+
+	//Parametrization 1
+	const double A1 = 3.073E-6;
+	const double A2 = 4.414E9;
+	tau = (A1/E) * exp(A2/E);
+//	*gmsg << "* tau =    " << tau << " s"<< endl;
+	fL = 1 - exp( - dT_m / (gamma * tau));
+//	*gmsg << "* fL =    " << fL << endl;
+
+//	//Parametrization 2
+//	double fL2 = 0.0;
+//	const double aF = 2.653E-6;
+//	const double bF = 4.448E9;
+//	const double eta = 1.4901E-10;
+//	tau = ( aF / (E * (1-eta * E)) ) * exp(bF/E);
+//	*gmsg << "* tau =    " << tau << " s"<< endl;
+//	fL = 1 - exp( - dT_m / (gamma * tau));
+//	*gmsg << "* fL =    " << fL << endl;
+//
+//	//Parametrization 3 (theoretical)
+//	const double eps0 = 0.75419 * q_e;
+//	const double hbar = h_bar*1E9*q_e;
+//	const double me = m_e*1E9*q_e/(c*c);
+//	const double a0 = hbar / (me * c * alpha);
+//	const double p = 0.0126;
+//	const double S0 = 0.783;
+//	const double a = 2.01407/a0;
+//	const double k0 = sqrt(2 * me * eps0)/hbar;
+//	const double N = (sqrt(2 * k0 * (k0+a) * (2*k0+a)))/a;
+//	double zT = eps0 / (q_e * E);
+//	tau = (4 * me * zT)/(S0 * N * N * hbar * (1+p)*(1+p) * (1-1/(2*k0*zT))) * exp(4*k0*zT/3);
+//	*gmsg << "* tau =    " << tau << " s" << endl;
+//	fL = 1 - exp( - dT_m / (gamma * tau));
+//	*gmsg << "* fL =    " << fL << endl;
+
+    return (fL > r2);
 }
 
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
@@ -303,7 +377,6 @@ bool BeamStrippingPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
     return beamstrippingAlive;
 }
 
-
 //  ------------------------------------------------------------------------
 /// The material of the vacuum for beam stripping
 //  ------------------------------------------------------------------------
@@ -312,12 +385,12 @@ void  BeamStrippingPhysics::Material() {
 	material_m == "VACUUM";
 
     BeamStripping *bstp = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
-	double pressure = bstp->getPressure();				// mbar
-	double temperature = bstp->getTemperature();		// K
+    const double pressure = bstp->getPressure();				// mbar
+	const double temperature = bstp->getTemperature();		// K
 
 	for(int iComp = 0; iComp<NbComponents; ++iComp) {
 //		*gmsg << "fMolarFraction = " << fMolarFraction[iComp] << endl;
-		GasDensity(pressure, temperature, iComp);
+		MolecularDensity(pressure, temperature, iComp);
 	}
 }
 
@@ -484,6 +557,100 @@ const double BeamStrippingPhysics::fCrossSectionSingle[3][48] = {
 				3.270E-16,
 				5.560E-17
 		}
+//		//Hydrogen (molecular)
+//		{
+//			0.000E+00,
+//			1.270E-17,
+//			8.330E-17,
+//			1.430E-16,
+//			1.940E-16,
+//			2.840E-16,
+//			3.140E-16,
+//			3.510E-16,
+//			3.760E-16,
+//			4.040E-16,
+//			4.120E-16,
+//			4.240E-16,
+//			4.250E-16,
+//			4.180E-16,
+//			4.250E-16,
+//			4.250E-16,
+//			4.350E-16,
+//			4.390E-16,
+//			4.480E-16,
+//			4.510E-16,
+//			4.510E-16,
+//			4.540E-16,
+//			4.630E-16,
+//			4.720E-16,
+//			4.750E-16,
+//			4.820E-16,
+//			4.800E-16,
+//			4.880E-16,
+//			4.850E-16,
+//			4.940E-16,
+//			5.050E-16,
+//			5.130E-16,
+//			5.140E-16,
+//			5.150E-16,
+//			5.260E-16,
+//			5.410E-16,
+//			7.450E-16,
+//			8.280E-16,
+//			8.850E-16,
+//			9.260E-16,
+//			9.520E-16,
+//			9.830E-16,
+//			1.010E-15,
+//			1.040E-15,
+//			1.046E-15,
+//			1.070E-15,
+//			1.086E-15,
+//			1.070E-15,
+//			1.075E-15,
+//			1.103E-15,
+//			1.120E-15,
+//			1.053E-15,
+//			9.900E-16,
+//			9.570E-16,
+//			8.907E-16,
+//			8.440E-16,
+//			8.070E-16
+//			7.690E-16,
+//			7.677E-16,
+//			7.203E-16,
+//			6.600E-16,
+//			5.960E-16,
+//			5.577E-16,
+//			4.650E-16,
+//			4.230E-16,
+//			3.850E-16,
+//			3.310E-16,
+//			2.840E-16,
+//			2.430E-16,
+//			2.340E-16,
+//			1.690E-16,
+//			1.345E-16,
+//			1.170E-16,
+//			8.650E-17,
+//			6.820E-17,
+//			6.760E-17,
+//			5.840E-17,
+//			5.500E-17,
+//			4.810E-17,
+//			4.400E-17,
+//			3.860E-17,
+//			3.440E-17,
+//			3.000E-17,
+//			2.490E-17,
+//			2.070E-17,
+//			1.570E-17,
+//			5.770E-18,
+//			3.430E-18,
+//			2.070E-18,
+//			1.600E-18,
+//			1.290E-18,
+//		}
 };
 
 const double BeamStrippingPhysics::fEnergyCSSingle[3][48] = {
@@ -640,6 +807,100 @@ const double BeamStrippingPhysics::fEnergyCSSingle[3][48] = {
 				1.750E+06,
 				1.460E+07
 		}
+//		//Hydrogen (molecular)
+//		{
+//			1.450E+00,
+//			1.520E+00,
+//			2.150E+00,
+//			2.650E+00,
+//			3.260E+00,
+//			4.560E+00,
+//			5.110E+00,
+//			6.510E+00,
+//			7.960E+00,
+//			1.030E+01,
+//			1.150E+01,
+//			1.280E+01,
+//			1.410E+01,
+//			1.550E+01,
+//			1.670E+01,
+//			1.800E+01,
+//			2.150E+01,
+//			2.460E+01,
+//			2.810E+01,
+//			3.140E+01,
+//			3.430E+01,
+//			3.760E+01,
+//			4.090E+01,
+//			4.440E+01,
+//			4.760E+01,
+//			5.070E+01,
+//			5.400E+01,
+//			5.770E+01,
+//			6.380E+01,
+//			7.030E+01,
+//			7.720E+01,
+//			8.410E+01,
+//			9.020E+01,
+//			9.800E+01,
+//			1.090E+02,
+//			1.220E+02,
+//			2.000E+02,
+//			3.000E+02,
+//			4.000E+02,
+//			5.000E+02,
+//			6.000E+02,
+//			7.000E+02,
+//			8.000E+02,
+//			9.000E+02,
+//			3.000E+03,
+//			4.000E+03,
+//			5.000E+03,
+//			6.000E+03,
+//			7.000E+03,
+//			8.000E+03,
+//			9.000E+03,
+//			1.000E+04,
+//			1.100E+04,
+//			1.300E+04,
+//			1.500E+04,
+//			1.800E+04,
+//			2.000E+04,
+//			2.300E+04,
+//			2.500E+04,
+//			3.000E+04,
+//			3.300E+04,
+//			4.000E+04,
+//			5.000E+04,
+//			6.500E+04,
+//			8.000E+04,
+//			1.000E+05,
+//			1.300E+05,
+//			1.500E+05,
+//			2.000E+05,
+//			2.500E+05,
+//			3.000E+05,
+//			4.000E+05,
+//			5.000E+05,
+//			6.000E+05,
+//			8.000E+05,
+//			9.000E+05,
+//			1.000E+06,
+//			1.100E+06,
+//			1.250E+06,
+//			1.300E+06,
+//			1.500E+06,
+//			1.750E+06,
+//			2.000E+06,
+//			2.500E+06,
+//			3.000E+06,
+//			3.500E+06,
+//			4.200E+06,
+//			7.400E+06,
+//			9.800E+06,
+//			1.460E+07,
+//			1.790E+07
+//		}
 };
 
 const double BeamStrippingPhysics::fCrossSectionDouble[3][40] = {
@@ -772,6 +1033,37 @@ const double BeamStrippingPhysics::fCrossSectionDouble[3][40] = {
 				3.480E-17,
 				1.960E-18
 		}
+//		//Hydrogen 9molecular)
+//		{
+//			1.24E-17,
+//			2.89E-17,
+//			3.57E-17,
+//			3.78E-17,
+//			3.88E-17,
+//			3.90E-17,
+//			3.96E-17,
+//			4.08E-17,
+//			4.10E-17,
+//			4.09E-17,
+//			4.12E-17,
+//			4.14E-17,
+//			4.19E-17,
+//			4.16E-17,
+//			4.16E-17,
+//			4.20E-17,
+//			4.18E-17,
+//			3.80E-17,
+//			3.39E-17,
+//			2.88E-17,
+//			2.81E-17,
+//			2.32E-17,
+//			2.14E-17,
+//			1.53E-17,
+//			1.45E-17,
+//			1.00E-17,
+//			4.30E-18,
+//			3.00E-18
+//		}
 };
 
 const double BeamStrippingPhysics::fEnergyCSDouble[3][40] = {
@@ -904,4 +1196,35 @@ const double BeamStrippingPhysics::fEnergyCSDouble[3][40] = {
 				5.000E+05,
 				1.460E+07
 		}
+		//Hydrogen (molecular)
+//		{
+//			1.000E+03,
+//			2.000E+03,
+//			3.000E+03,
+//			4.000E+03,
+//			5.000E+03,
+//			7.000E+03,
+//			9.000E+03,
+//			1.100E+04,
+//			1.300E+04,
+//			1.500E+04,
+//			1.800E+04,
+//			2.000E+04,
+//			2.300E+04,
+//			2.500E+04,
+//			3.000E+04,
+//			3.300E+04,
+//			4.000E+04,
+//			5.000E+04,
+//			6.500E+04,
+//			8.000E+04,
+//			1.000E+05,
+//			1.300E+05,
+//			1.600E+05,
+//			2.000E+05,
+//			2.500E+05,
+//			3.000E+05,
+//			9.000E+05,
+//			1.100E+06
+//		}
 };
