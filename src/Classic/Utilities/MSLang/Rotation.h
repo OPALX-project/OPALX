@@ -13,8 +13,8 @@ namespace mslang {
         }
 
         virtual void print(int indentwidth);
-        void applyRotation(std::vector<Base*> &bfuncs);
-        virtual void apply(std::vector<Base*> &bfuncs);
+        void applyRotation(std::vector<std::shared_ptr<Base> > &bfuncs);
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs);
         static bool parse_detail(iterator &it, const iterator &end, Function* &fun);
     };
 }

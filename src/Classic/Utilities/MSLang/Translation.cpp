@@ -17,13 +17,13 @@ namespace mslang {
                   << indent2 << "dy: " << shifty_m;
     }
 
-    void Translation::applyTranslation(std::vector<Base*> &bfuncs) {
+    void Translation::applyTranslation(std::vector<std::shared_ptr<Base> > &bfuncs) {
         AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
                                    Vector_t(0.0, 1.0, -shifty_m));
 
         const unsigned int size = bfuncs.size();
         for (unsigned int j = 0; j < size; ++ j) {
-            Base *obj = bfuncs[j];
+            std::shared_ptr<Base> &obj = bfuncs[j];
             obj->trafo_m = obj->trafo_m.mult(shift);
 
             if (obj->divisor_m.size() > 0)
@@ -31,7 +31,7 @@ namespace mslang {
         }
     }
 
-    void Translation::apply(std::vector<Base*> &bfuncs) {
+    void Translation::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         func_m->apply(bfuncs);
         applyTranslation(bfuncs);
     }

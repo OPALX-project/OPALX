@@ -14,7 +14,7 @@ namespace mslang {
                   << indent2 << "dy: " << shifty_m;
     }
 
-    void Repeat::apply(std::vector<Base*> &bfuncs) {
+    void Repeat::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         AffineTransformation trafo(Vector_t(cos(rot_m), sin(rot_m), -shiftx_m),
                                    Vector_t(-sin(rot_m), cos(rot_m), -shifty_m));
 
@@ -24,9 +24,9 @@ namespace mslang {
         AffineTransformation current_trafo = trafo;
         for (unsigned int i = 0; i < N_m; ++ i) {
             for (unsigned int j = 0; j < size; ++ j) {
-                Base *obj = bfuncs[j]->clone();
+                std::shared_ptr<Base> obj(bfuncs[j]->clone());
                 obj->trafo_m = obj->trafo_m.mult(current_trafo);
-                bfuncs.push_back(obj);
+                bfuncs.emplace_back(std::move(obj));
             }
 
             current_trafo = current_trafo.mult(trafo);

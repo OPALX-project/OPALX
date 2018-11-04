@@ -86,22 +86,22 @@ namespace mslang {
         // bb_m.writeGnuplot(out);
     }
 
-    void Rectangle::apply(std::vector<Base*> &bfuncs) {
-        bfuncs.push_back(this->clone());
+    void Rectangle::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        bfuncs.emplace_back(std::move(this->clone()));
     }
 
-    Base* Rectangle::clone() const {
-        Rectangle *rect = new Rectangle;
+    std::shared_ptr<Base> Rectangle::clone() const {
+        std::shared_ptr<Rectangle> rect(new Rectangle);
         rect->width_m = width_m;
         rect->height_m = height_m;
         rect->trafo_m = trafo_m;
         rect->bb_m = bb_m;
 
         for (auto item: divisor_m) {
-            rect->divisor_m.push_back(item->clone());
+            rect->divisor_m.emplace_back(std::move(item->clone()));
         }
 
-        return rect;
+        return std::static_pointer_cast<Base>(rect);
     }
 
     bool Rectangle::parse_detail(iterator &it, const iterator &end, Function* fun) {

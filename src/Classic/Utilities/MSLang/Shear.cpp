@@ -19,14 +19,14 @@ namespace mslang {
         }
     }
 
-    void Shear::applyShear(std::vector<Base*> &bfuncs) {
+    void Shear::applyShear(std::vector<std::shared_ptr<Base> > &bfuncs) {
         AffineTransformation shear(Vector_t(1.0, tan(angleX_m), 0.0),
                                    Vector_t(-tan(angleY_m), 1.0, 0.0));
 
         const unsigned int size = bfuncs.size();
 
         for (unsigned int j = 0; j < size; ++ j) {
-            Base *obj = bfuncs[j];
+            std::shared_ptr<Base> &obj = bfuncs[j];
             obj->trafo_m = obj->trafo_m.mult(shear);
 
             if (obj->divisor_m.size() > 0)
@@ -34,7 +34,7 @@ namespace mslang {
         }
     }
 
-    void Shear::apply(std::vector<Base*> &bfuncs) {
+    void Shear::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         func_m->apply(bfuncs);
         applyShear(bfuncs);
     }

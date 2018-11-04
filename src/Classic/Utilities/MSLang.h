@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <memory>
 
 namespace mslang {
     typedef std::string::iterator iterator;
@@ -26,7 +27,7 @@ namespace mslang {
         virtual ~Function() {};
 
         virtual void print(int indent) = 0;
-        virtual void apply(std::vector<Base*> &bfuncs) = 0;
+        virtual void apply(std::vector<std::shared_ptr<Base>> &bfuncs) = 0;
 
         static bool parse(iterator &it, const iterator &end, Function* &fun);
 
@@ -39,7 +40,7 @@ namespace mslang {
     struct Base: public Function {
         AffineTransformation trafo_m;
         BoundingBox bb_m;
-        std::vector<Base*> divisor_m;
+        std::vector<std::shared_ptr<Base> > divisor_m;
 
         Base():
             trafo_m()
@@ -51,21 +52,20 @@ namespace mslang {
         { }
 
         virtual ~Base() {
-            for (auto item: divisor_m) {
-                delete item;
-                item = NULL;
-            }
+            // for (auto item: divisor_m) {
+            //     item.reset();
+            // }
             divisor_m.clear();
         }
 
-        virtual Base* clone() const = 0;
+        virtual std::shared_ptr<Base> clone() const = 0;
         virtual void writeGnuplot(std::ofstream &out) const = 0;
         virtual void computeBoundingBox() = 0;
         virtual bool isInside(const Vector_t &R) const = 0;
-        virtual void divideBy(std::vector<Base*> &divisors) {
+        virtual void divideBy(std::vector<std::shared_ptr<Base> > &divisors) {
             for (auto item: divisors) {
                 if (bb_m.doesIntersect(item->bb_m)) {
-                    divisor_m.push_back(item->clone());
+                    divisor_m.emplace_back(std::move(item->clone()));
                 }
             }
         }

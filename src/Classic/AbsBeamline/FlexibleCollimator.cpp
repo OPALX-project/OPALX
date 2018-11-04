@@ -36,8 +36,8 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {
-    for (const mslang::Base *obj: right.holes_m) {
-        holes_m.push_back(obj->clone());
+    for (const std::shared_ptr<mslang::Base> obj: right.holes_m) {
+        holes_m.emplace_back(obj->clone());
     }
 
     tree_m.bb_m = bb_m;
@@ -61,9 +61,9 @@ FlexibleCollimator::~FlexibleCollimator() {
     if (online_m)
         goOffline();
 
-    for (mslang::Base *obj: holes_m) {
-        delete obj;
-    }
+    // for (mslang::Base *obj: holes_m) {
+    //     delete obj;
+    // }
 }
 
 
@@ -214,7 +214,7 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
         it->computeBoundingBox();
     }
 
-    mslang::Base *first = holes_m.front();
+    std::shared_ptr<mslang::Base> &first = holes_m.front();
     const mslang::BoundingBox &bb = first->bb_m;
 
     Vector_t llc(bb.center_m[0] - 0.5 * bb.width_m,
@@ -246,8 +246,10 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
     tree_m.objects_m.insert(tree_m.objects_m.end(), holes_m.begin(), holes_m.end());
     tree_m.buildUp();
 
-    if (Ippl::myNode() == 0) {
-        std::ofstream out("data/quadtree.gpl");
-        tree_m.writeGnuplot(out);
-    }
+    // if (Ippl::myNode() == 0) {
+    //     std::ofstream out("data/quadtree.gpl");
+    //     tree_m.writeGnuplot(out);
+    // }
+
+    delete fun;
 }

@@ -1,4 +1,5 @@
 #include "Utilities/MSLang/QuadTree.h"
+#include <utility>
 
 namespace mslang {
     QuadTree::QuadTree(const QuadTree &right):
@@ -6,24 +7,22 @@ namespace mslang {
         objects_m(right.objects_m.begin(),
                   right.objects_m.end()),
         bb_m(right.bb_m),
-        nodes_m(0)
+        nodes_m()
     {
-        if (right.nodes_m != 0) {
-            nodes_m = new QuadTree[4];
+        if (right.nodes_m.size() != 0) {
+            nodes_m.resize(4);
             for (unsigned int i = 0; i < 4u; ++ i) {
-                nodes_m[i] = right.nodes_m[i];
+                *nodes_m[i] = *right.nodes_m[i];
             }
         }
     }
 
     QuadTree::~QuadTree() {
-        for (Base *&obj: objects_m)
-            obj = 0; // memory isn't handled by QuadTree class
+        // for (std::shared_ptr<Base> &obj: objects_m)
+        //     obj.reset();
 
-        if (nodes_m != 0) {
-            delete[] nodes_m;
-        }
-        nodes_m = 0;
+        objects_m.clear();
+        nodes_m.clear();
     }
 
     void QuadTree::operator=(const QuadTree &right) {
@@ -33,81 +32,57 @@ namespace mslang {
                          right.objects_m.end());
         bb_m = right.bb_m;
 
-        if (nodes_m != 0) delete[] nodes_m;
-        nodes_m = 0;
+        if (nodes_m.size() != 0) nodes_m.clear();
 
-        if (right.nodes_m != 0) {
-            nodes_m = new QuadTree[4];
+        if (right.nodes_m.size() != 0) {
+            nodes_m.resize(4);
             for (unsigned int i = 0; i < 4u; ++ i) {
-                nodes_m[i] = right.nodes_m[i];
+                *nodes_m[i] = *right.nodes_m[i];
             }
         }
     }
 
-    void QuadTree::transferIfInside(std::list<Base*> &objs) {
-        for (Base* &obj: objs) {
+    void QuadTree::transferIfInside(std::list<std::shared_ptr<Base> > &objs) {
+        for (std::shared_ptr<Base> &obj: objs) {
             if (bb_m.isInside(obj->bb_m)) {
-                objects_m.push_back(obj);
-                obj = 0;
+                objects_m.emplace_back(std::move(obj));
             }
         }
 
-        objs.remove_if([](const Base *obj) { return obj == 0; });
+        objs.remove_if([](const std::shared_ptr<Base> obj) { return !obj; });
     }
 
     void QuadTree::buildUp() {
-        QuadTree *next = new QuadTree[4];
-        next[0] = QuadTree(level_m + 1,
-                           BoundingBox(bb_m.center_m,
-                                       Vector_t(bb_m.center_m[0] + 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1] + 0.5 * bb_m.height_m,
-                                                0.0)));
-        next[1] = QuadTree(level_m + 1,
-                           BoundingBox(Vector_t(bb_m.center_m[0],
-                                                bb_m.center_m[1] - 0.5 * bb_m.height_m,
-                                                0.0),
-                                       Vector_t(bb_m.center_m[0] + 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1],
-                                                0.0)));
-        next[2] = QuadTree(level_m + 1,
-                           BoundingBox(Vector_t(bb_m.center_m[0] - 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1],
-                                                0.0),
-                                       Vector_t(bb_m.center_m[0],
-                                                bb_m.center_m[1] + 0.5 * bb_m.height_m,
-                                                0.0)));
-        next[3] = QuadTree(level_m + 1,
-                           BoundingBox(Vector_t(bb_m.center_m[0] - 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1] - 0.5 * bb_m.height_m,
-                                                0.0),
-                                       bb_m.center_m));
-
-        for (unsigned int i = 0; i < 4u; ++ i) {
-            next[i].transferIfInside(objects_m);
-        }
+        double X[] = {bb_m.center_m[0] - 0.5 * bb_m.width_m,
+                      bb_m.center_m[0],
+                      bb_m.center_m[0] + 0.5 * bb_m.width_m};
+        double Y[] = {bb_m.center_m[1] - 0.5 * bb_m.height_m,
+                      bb_m.center_m[1],
+                      bb_m.center_m[1] + 0.5 * bb_m.height_m};
 
         bool allEmpty = true;
+
+        nodes_m.reserve(4);
         for (unsigned int i = 0; i < 4u; ++ i) {
-            if (next[i].objects_m.size() != 0) {
+            nodes_m.emplace_back(new QuadTree(level_m + 1,
+                                              BoundingBox(Vector_t(X[i / 2], Y[i % 2], 0.0),
+                                                          Vector_t(X[i / 2 + 1], Y[i % 2 + 1], 0.0))));
+
+            nodes_m.back()->transferIfInside(objects_m);
+
+            if (nodes_m.back()->objects_m.size() != 0) {
                 allEmpty = false;
-                break;
             }
         }
 
         if (allEmpty) {
-            for (unsigned int i = 0; i < 4u; ++ i) {
-                objects_m.merge(next[i].objects_m);
-            }
-
-            delete[] next;
+            nodes_m.clear();
             return;
         }
 
         for (unsigned int i = 0; i < 4u; ++ i) {
-            next[i].buildUp();
+            nodes_m[i]->buildUp();
         }
-
-        nodes_m = next;
     }
 
     void QuadTree::writeGnuplot(std::ofstream &out) const {
@@ -119,30 +94,40 @@ namespace mslang {
         // }
         out << std::endl;
 
-        if (nodes_m != 0) {
+        if (nodes_m.size() != 0) {
             for (unsigned int i = 0; i < 4u; ++ i) {
-                nodes_m[i].writeGnuplot(out);
+                nodes_m[i]->writeGnuplot(out);
             }
         }
     }
 
     bool QuadTree::isInside(const Vector_t &R) const {
-        if (nodes_m != 0) {
+        if (nodes_m.size() != 0) {
             Vector_t X = R - bb_m.center_m;
-            unsigned int idx = (X[1] >= 0.0 ? 0: 1);
-            idx += (X[0] >= 0.0 ? 0: 2);
+            unsigned int idx = (X[1] < 0.0 ? 0: 1);
+            idx += (X[0] < 0.0 ? 0: 2);
 
-            if (nodes_m[idx].isInside(R)) {
+            if (nodes_m[idx]->isInside(R)) {
                 return true;
             }
         }
 
-        for (Base* obj: objects_m) {
+        for (const std::shared_ptr<Base> & obj: objects_m) {
             if (obj->isInside(R)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    void QuadTree::getDepth(unsigned int &d) const {
+        if (nodes_m.size() > 0) {
+            for (const auto & node: nodes_m) {
+                node->getDepth(d);
+            }
+        } else {
+            if ((unsigned int)level_m > d) d = level_m;
+        }
     }
 }
