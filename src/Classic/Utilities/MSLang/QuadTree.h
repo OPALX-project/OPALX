@@ -3,23 +3,25 @@
 
 #include "Utilities/MSLang.h"
 
+#include <memory>
+
 namespace mslang {
     struct QuadTree {
         int level_m;
-        std::list<Base*> objects_m;
+        std::list<std::shared_ptr<Base> > objects_m;
         BoundingBox bb_m;
-        QuadTree *nodes_m;
+        std::vector<std::shared_ptr<QuadTree> > nodes_m;
 
         QuadTree():
             level_m(0),
             bb_m(),
-            nodes_m(0)
+            nodes_m()
         { }
 
         QuadTree(int l, const BoundingBox &b):
             level_m(l),
             bb_m(b),
-            nodes_m(0)
+            nodes_m()
         { }
 
         QuadTree(const QuadTree &right);
@@ -28,12 +30,14 @@ namespace mslang {
 
         void operator=(const QuadTree &right);
 
-        void transferIfInside(std::list<Base*> &objs);
+        void transferIfInside(std::list<std::shared_ptr<Base> > &objs);
         void buildUp();
 
         void writeGnuplot(std::ofstream &out) const;
 
         bool isInside(const Vector_t &R) const;
+
+        void getDepth(unsigned int &d) const;
     };
 }
 
