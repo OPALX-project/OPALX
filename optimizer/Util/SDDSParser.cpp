@@ -96,15 +96,23 @@ std::string SDDS::SDDSParser::readFile() {
     return std::string("");
 }
 
-
 SDDS::ast::columnData_t SDDS::SDDSParser::getColumnData(const std::string &columnName) {
-    for (const SDDS::column &col: sddsData_m.sddsColumns_m) {
-        if (*col.name_m == columnName) {
-            return col.values_m;
-        }
+    int idx = getColumnIndex(columnName);
+
+    return sddsData_m.sddsColumns_m[idx].values_m;
+}
+
+
+int SDDS::SDDSParser::getColumnIndex(std::string col_name) const {
+    fixCaseSensitivity(col_name);
+    auto it = columnNameToID_m.find(col_name);
+    if (it != columnNameToID_m.end()) {
+        return it->second;
     }
-    throw SDDSParserException("StatisticalErrors::getColumnData",
-                            "could not find column '" + columnName + "'");
+
+    throw SDDSParserException("SDDSParser::getColumnIndex",
+                              "could not find column '" + col_name + "'");
+
 }
 
 //XXX use either all upper, or all lower case chars

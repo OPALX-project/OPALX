@@ -39,7 +39,7 @@ OpalStripper::OpalStripper():
     itsAttr[YEND] = Attributes::makeReal
                     ("YEND", "End of y coordinate, [mm]");
     itsAttr[WIDTH] = Attributes::makeReal
-                     ("WIDTH", "Width of the stripper [mm], NOT used yet");
+                     ("WIDTH", "Width of the stripper [mm], NOT used");
     itsAttr[OPCHARGE] = Attributes::makeReal
                      ("OPCHARGE", "Charge number of the outcome particle");
     itsAttr[OPMASS] = Attributes::makeReal
@@ -94,14 +94,13 @@ void OpalStripper::update() {
     double xend = Attributes::getReal(itsAttr[XEND]);
     double ystart = Attributes::getReal(itsAttr[YSTART]);
     double yend = Attributes::getReal(itsAttr[YEND]);
-    double width = Attributes::getReal(itsAttr[WIDTH]);
     double opcharge = Attributes::getReal(itsAttr[OPCHARGE]);
     double opmass = Attributes::getReal(itsAttr[OPMASS]);
     double opyield = Attributes::getReal(itsAttr[OPYIELD]);
     bool   stop = Attributes::getBool(itsAttr[STOP]);
 
     strp->setElementLength(length);
-    strp->setDimensions(xstart, xend, ystart, yend, width);
+    strp->setDimensions(xstart, xend, ystart, yend);
     strp->setOPCharge(opcharge);
     strp->setOPMass(opmass);
     strp->setOPYield(opyield);

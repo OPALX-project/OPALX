@@ -897,7 +897,7 @@ void LossDataSink::writeStatistics() {
                 << indent << "name=ypy, \n"
                 << indent << "type=double, \n"
                 << indent << "units=1, \n"
-                << indent << "description=\"29 Correlation ypyy\"\n"
+                << indent << "description=\"29 Correlation ypy\"\n"
                 << "&end\n";
         statOut << "&column \n"
                 << indent << "name=zpz, \n"
