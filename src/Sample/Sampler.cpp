@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <limits>
 
 #include "Sample/Sampler.h"
 
@@ -26,12 +27,15 @@ Sampler::Sampler(Expressions::Named_t objectives,
 Sampler::Sampler(const std::map<std::string,
                                 std::shared_ptr<SamplingMethod>
                     >& sampleMethods,
-                 DVarContainer_t dvars, Comm::Bundle_t comms,
+                 Expressions::Named_t objectives,
+                 DVarContainer_t dvars,
+                 Comm::Bundle_t comms,
                  CmdArguments_t args)
     : Optimizer(comms.opt)
     , sampleMethods_m(sampleMethods)
     , comms_(comms)
     , dvars_m(dvars)
+    , objectives_m(objectives)
     , args_(args)
 {
     my_local_pid_ = 0;
@@ -93,6 +97,25 @@ bool Sampler::onMessage(MPI_Status status, size_t length) {
 
             boost::shared_ptr<Individual_t> ind = it->second;
 
+            reqVarContainer_t res;
+            MPI_Recv_reqvars(res, status.MPI_SOURCE, comms_.opt);
+
+            ind->objectives.clear();
+
+            reqVarContainer_t::iterator itr = res.begin();
+            for(; itr != res.end(); ++itr) {
+                // mark invalid if expression could not be evaluated or constraint does not hold
+                if(!itr->second.is_valid || (itr->second.value.size() > 1 && !itr->second.value[0])) {
+                    ind->objectives.push_back(std::numeric_limits<double>::infinity());
+                } else {
+                    // update objective value for valid objective
+                    if(itr->second.value.size() == 1)
+                        ind->objectives.push_back(itr->second.value[0]);
+                }
+            }
+
+            addIndividualToJSON_m(ind);
+
             jobmapping_m.erase(it);
 
             done_sample_m++;
@@ -139,8 +162,6 @@ void Sampler::createNewIndividual_m() {
     // FIXME does not work with more than 1 master
     ind->id = gid++;
 
-    addIndividualToJSON_m(ind);
-
     individuals_m.push(ind);
 }
 
@@ -181,6 +202,14 @@ void Sampler::addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind) 
         std::string name = boost::get<VAR_NAME>(itr->second);
         int i = ind->getIndex(name);
         sample.put("dvar." + name, ind->genes[i]);
+    }
+
+    Expressions::Named_t::iterator expr_it;
+    expr_it = objectives_m.begin();
+
+    for(size_t i=0; i < ind->objectives.size(); i++, expr_it++) {
+        std::string name = expr_it->first;
+        sample.put("obj." + name, ind->objectives[i]);
     }
 
     samples_m.push_back(std::make_pair("", sample));

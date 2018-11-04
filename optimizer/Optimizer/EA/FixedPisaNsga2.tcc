@@ -210,12 +210,12 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
         for (individual ind : new_states) {
 
             // only insert individual if not already in population
-            if(variator_m->population()->isRepresentedInPopulation(ind.genes))
+            if(variator_m->population()->isRepresentedInPopulation(ind.genes_m))
                 continue;
 
             boost::shared_ptr<individual> new_ind(new individual);
-            new_ind->genes = ind.genes;
-            new_ind->objectives = ind.objectives;
+            new_ind->genes_m = ind.genes_m;
+            new_ind->objectives_m = ind.objectives_m;
 
             //XXX:   can we pass more than lambda_m files to selector?
             unsigned int id =
@@ -260,7 +260,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
         reqVarContainer_t res;
         MPI_Recv_reqvars(res, status.MPI_SOURCE, comms_.opt);
 
-        ind->objectives.clear();
+        ind->objectives_m.clear();
 
         //XXX: check order of genes
         reqVarContainer_t::iterator itr = res.begin();
@@ -269,7 +269,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
             if(!itr->second.is_valid || (itr->second.value.size() > 1 && !itr->second.value[0])) {
                 std::ostringstream dump;
                 if (!itr->second.is_valid) {
-                    dump << "invalid individual, objective or constraint\"" << itr->first
+                    dump << "invalid individual, objective or constraint \"" << itr->first
                          << "\" failed to be evaluated correctly"
                          << std::endl;
                 } else {
@@ -285,7 +285,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
             } else {
                  // update objective value for valid objective
                  if(itr->second.value.size() == 1)
-                    ind->objectives.push_back(itr->second.value[0]);
+                    ind->objectives_m.push_back(itr->second.value[0]);
             }
         }
 
@@ -388,8 +388,8 @@ void FixedPisaNsga2<CO, MO>::exchangeSolutionStates() {
         itr != variator_m->population()->end(); itr++) {
 
         individual ind;
-        ind.genes = std::vector<double>(itr->second->genes);
-        ind.objectives = std::vector<double>(itr->second->objectives);
+        ind.genes_m = std::vector<double>(itr->second->genes_m);
+        ind.objectives_m = std::vector<double>(itr->second->objectives_m);
         population.push_back(ind);
     }
 
@@ -465,10 +465,10 @@ void FixedPisaNsga2<CO, MO>::dispatch_forward_solves() {
             params.insert(
                 std::pair<std::string, double>
                     (boost::get<VAR_NAME>(itr->second),
-                     ind->genes[i]));
+                     ind->genes_m[i]));
         }
 
-        size_t jid = static_cast<size_t>(ind->id);
+        size_t jid = static_cast<size_t>(ind->id_m);
         int pilot_rank = comms_.master_local_pid;
 
         // now send the request to the pilot
@@ -711,11 +711,11 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToFile() {
         file << std::setw(numDigits + 1) << it->first << " ";
 
         temp = it->second;
-        for(size_t i=0; i<temp->objectives.size(); i++)
-            file << std::setw(14) << temp->objectives[i] << " ";
+        for(size_t i=0; i<temp->objectives_m.size(); i++)
+            file << std::setw(14) << temp->objectives_m[i] << " ";
         file << "      ";
-        for(size_t i=0; i<temp->genes.size(); i++)
-            file << std::setw(14) << temp->genes[i] << " ";
+        for(size_t i=0; i<temp->genes_m.size(); i++)
+            file << std::setw(14) << temp->genes_m[i] << " ";
 
         file << std::endl;
     }
@@ -739,7 +739,7 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
 
     file << "{" << std::endl;
     file << "\t" << "\"name\": " << "\"opt-pilot\"," << std::endl;
-    
+
     file << "\t" << "\"dvar-bounds\": {" << std::endl;
     DVarContainer_t::iterator itr = dvars_m.begin();
     for ( bounds_t::iterator it = dVarBounds_m.begin();
@@ -747,13 +747,13 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
     {
          file << "\t\t\"" << boost::get<VAR_NAME>(itr->second) << "\": "
               << "[ " << it->first << ", " << it->second << " ]";
-         
+
          if ( it != dVarBounds_m.end() - 1 )
              file << ",";
          file << "\n";
     }
     file << "\t}\n\t," << std::endl;
-    
+
     file << "\t" << "\"constraints\": [" << std::endl;
     for ( Expressions::Named_t::iterator it = constraints_m.begin();
           it != constraints_m.end(); ++it )
@@ -763,13 +763,13 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
         s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
 
         file << "\t\t\"" << s << "\"";
-        
+
         if ( it != std::prev(constraints_m.end(), 1) )
             file << ",";
         file << "\n";
     }
     file << "\t]\n\t," << std::endl;
-    
+
     file << "\t" << "\"solutions\": " << "[" << std::endl;
 
     typename std::map<unsigned int, boost::shared_ptr<individual> >::iterator it;
@@ -785,12 +785,12 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
         Expressions::Named_t::iterator expr_it;
         expr_it = objectives_m.begin();
         temp = it->second;
-        
+
         file << "\t\t\"obj\":\n" << "\t\t{\n";
-        for(size_t i=0; i < temp->objectives.size(); i++, expr_it++) {
+        for(size_t i=0; i < temp->objectives_m.size(); i++, expr_it++) {
             file << "\t" << "\t" << "\t" << "\"" << expr_it->first << "\": "
-                 << temp->objectives[i];
-            if( i + 1 != temp->objectives.size())
+                 << temp->objectives_m[i];
+            if( i + 1 != temp->objectives_m.size())
                 file << ",";
             file << std::endl;
         }
@@ -798,8 +798,8 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
         size_t i = 0;
         for(itr = dvars_m.begin(); itr != dvars_m.end(); ++i, ++itr) {
             file << "\t\t\t\"" << boost::get<VAR_NAME>(itr->second) << "\": "
-                 << temp->genes[i];
-            if ( i + 1 != temp->genes.size())
+                 << temp->genes_m[i];
+            if ( i + 1 != temp->genes_m.size())
                 file << ",";
             file << "\n";
         }
@@ -933,7 +933,7 @@ void FixedPisaNsga2<CO, MO>::calcDistances()
                 size_t idx1 = pp_all[front[l][i]];
                 boost::shared_ptr<individual> ind1 =
                     variator_m->population()->get_individual(idx1);
-                double obj_min = ind1->objectives[d];
+                double obj_min = ind1->objectives_m[d];
 
                 for (j = i + 1; j < copies[l]; j++) {
 
@@ -943,8 +943,8 @@ void FixedPisaNsga2<CO, MO>::calcDistances()
                     //     variator_m->population()->get_individual(idx1);
                     boost::shared_ptr<individual> ind2 =
                         variator_m->population()->get_individual(idx2);
-                    // double obj1 = ind1->objectives[d];
-                    double obj2 = ind2->objectives[d];
+                    // double obj1 = ind1->objectives_m[d];
+                    double obj2 = ind2->objectives_m[d];
 
                     if ( obj2 < obj_min ) {
                         min = j;
@@ -967,8 +967,8 @@ void FixedPisaNsga2<CO, MO>::calcDistances()
                         variator_m->population()->get_individual(idx1);
                     boost::shared_ptr<individual> ind2 =
                         variator_m->population()->get_individual(idx2);
-                    double obj1 = ind1->objectives[d];
-                    double obj2 = ind2->objectives[d];
+                    double obj1 = ind1->objectives_m[d];
+                    double obj2 = ind2->objectives_m[d];
 
                     dist[front[l][i]] += obj1 - obj2;
                 }
@@ -1038,11 +1038,11 @@ int FixedPisaNsga2<CO, MO>::dominates(unsigned int p_ind_a, unsigned int p_ind_b
     boost::shared_ptr<individual> ind2 =
         variator_m->population()->get_individual(p_ind_b);
 
-    for (size_t i = 0; i < ind1->objectives.size()/* && !a_is_worse*/; i++) {
-        if (ind1->objectives[i] > ind2->objectives[i]) a_is_worse = 1;
-        if (ind1->objectives[i] < ind2->objectives[i]) b_is_worse = 1;
-        // a_is_worse = ind1->objectives[i] > ind2->objectives[i];
-        // equal = (ind1->objectives[i] == ind2->objectives[i]) && equal;
+    for (size_t i = 0; i < ind1->objectives_m.size()/* && !a_is_worse*/; i++) {
+        if (ind1->objectives_m[i] > ind2->objectives_m[i]) a_is_worse = 1;
+        if (ind1->objectives_m[i] < ind2->objectives_m[i]) b_is_worse = 1;
+        // a_is_worse = ind1->objectives_m[i] > ind2->objectives_m[i];
+        // equal = (ind1->objectives_m[i] == ind2->objectives_m[i]) && equal;
     }
 
     return (b_is_worse && !a_is_worse);

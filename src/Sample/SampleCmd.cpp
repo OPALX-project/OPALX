@@ -4,11 +4,13 @@
 #include "Sample/RNGStream.h"
 
 #include "Optimize/DVar.h"
+#include "Optimize/Objective.h"
 #include "Optimize/OpalSimulation.h"
 
 #include "Attributes/Attributes.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
@@ -25,6 +27,14 @@
 #include "Comm/MasterGraph/SocialNetworkGraph.h"
 
 #include "Expression/Parser/function.hpp"
+#include "Expression/FromFile.h"
+#include "Expression/SumErrSq.h"
+#include "Expression/SDDSVariable.h"
+#include "Expression/RadialPeak.h"
+#include "Expression/MaxNormRadialPeak.h"
+#include "Expression/NumberOfPeaks.h"
+#include "Expression/SumErrSqRadialPeak.h"
+#include "Expression/ProbeVariable.h"
 
 #include <boost/filesystem.hpp>
 
@@ -40,6 +50,8 @@ namespace {
         INPUT,
         OUTPUT,
         OUTDIR,
+        OBJECTIVES,
+        STOREOBJECTIVES,
         DVARS,
         SAMPLINGS,
         NUMMASTERS,
@@ -62,6 +74,10 @@ SampleCmd::SampleCmd():
         ("OUTPUT", "Name used in output file sample");
     itsAttr[OUTDIR] = Attributes::makeString
         ("OUTDIR", "Name of directory used to run and store sample output files");
+    itsAttr[OBJECTIVES] = Attributes::makeStringArray
+        ("OBJECTIVES", "List of expressions to evaluate and store");
+    itsAttr[STOREOBJECTIVES] = Attributes::makeStringArray
+        ("STOREOBJECTIVES", "List of stat variables to store");
     itsAttr[DVARS] = Attributes::makeStringArray
         ("DVARS", "List of sampling variables to be used");
     itsAttr[SAMPLINGS] = Attributes::makeStringArray
@@ -105,7 +121,10 @@ void SampleCmd::execute() {
     unsigned int seed = Attributes::getReal(itsAttr[SEED]);
     RNGStream::setGlobalSeed(seed);
 
+    std::vector<std::string> objectivesstr  = Attributes::getStringArray(itsAttr[OBJECTIVES]);
+    std::vector<std::string> storeobjstr  = Attributes::getStringArray(itsAttr[STOREOBJECTIVES]);
     std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
+    Expressions::Named_t objectives;
     DVarContainer_t dvars;
 
     std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
@@ -119,7 +138,8 @@ void SampleCmd::execute() {
 
     std::map<std::string, std::pair<double, double> > vars;
 
-    for (std::string& name : dvarsstr) {
+    for (std::string &name : dvarsstr) {
+        name = Util::toUpper(name);
         Object *obj = opal->find(name);
         DVar* dvar = dynamic_cast<DVar*>(obj);
         if (dvar == nullptr) {
@@ -131,7 +151,7 @@ void SampleCmd::execute() {
         double lowerbound = dvar->getLowerBound();
         double upperbound = dvar->getUpperBound();
 
-        auto ret = vars.insert(std::make_pair(var,std::make_pair(lowerbound, upperbound)));
+        auto ret = vars.insert(std::make_pair(var, std::make_pair(lowerbound, upperbound)));
         if (ret.second == false) {
             throw OpalException("SampleCmd::execute",
                                 "There is already a design variable with the variable " + var + " defined");
@@ -139,6 +159,69 @@ void SampleCmd::execute() {
 
         DVar_t tmp = boost::make_tuple(var, lowerbound, upperbound);
         dvars.insert(namedDVar_t(name, tmp));
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+
+    functionDictionary_t funcs;
+    client::function::type ff;
+    ff = FromFile();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("fromFile", ff));
+
+    ff = SumErrSq();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("sumErrSq", ff));
+
+    ff = SDDSVariable();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("sddsVariableAt", ff));
+
+    ff = RadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("radialPeak", ff));
+
+    ff = MaxNormRadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("maxNormRadialPeak", ff));
+
+    ff = NumberOfPeaks();
+    funcs.insert(std::pair<std::string, client::function::type>
+            ("numberOfPeaks", ff));
+
+    ff = SumErrSqRadialPeak();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("sumErrSqRadialPeak", ff));
+
+    ff = ProbeVariable();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("probVariableWithID", ff));
+
+    std::string fname = inputfile.stem().native();
+    ff = sameSDDSVariable(fname);
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("statVariableAt", ff));
+
+    //////////////////////////////////////////////////////////////////////////
+
+    std::set<std::string> objExpressions; // check if all unique objective expressions
+    for (std::string name: objectivesstr) {
+        name = Util::toUpper(name);
+        Object *obj = opal->find(name);
+        Objective* objective = dynamic_cast<Objective*>(obj);
+        if (objective == nullptr) {
+            throw OpalException("OptimizeCmd::execute",
+                                "The objective " + name + " is not known");
+
+        }
+        std::string expr = objective->getExpression();
+        objectives.insert(Expressions::SingleNamed_t(
+                   name, new Expressions::Expr_t(expr, funcs)));
+        auto ret = objExpressions.insert(expr);
+        if (ret.second == false) {
+            throw OpalException("OptimizeCmd::execute",
+                                "There is already a objective with the expression " + expr + " defined");
+        }
     }
 
     bool raster = Attributes::getBool(itsAttr[RASTER]);
@@ -154,7 +237,7 @@ void SampleCmd::execute() {
                                 "Sampling method not found.");
         }
 
-        std::string name = s->getVariable();
+        std::string name = Util::toUpper(s->getVariable());
 
         if ( vars.find(name) == vars.end() ) {
             throw OpalException("SampleCmd::execute",
@@ -278,7 +361,7 @@ void SampleCmd::execute() {
 
         setenv("FIELDMAPS", dir.c_str(), 1);
     }
-    
+
     if (Attributes::getString(itsAttr[DISTDIR]) != "") {
         fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
         if (dir.is_relative()) {
@@ -304,7 +387,7 @@ void SampleCmd::execute() {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, dvars, sampleMethods));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods, storeobjstr));
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;

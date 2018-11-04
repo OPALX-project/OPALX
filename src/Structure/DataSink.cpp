@@ -790,7 +790,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << indent << "name=ypy,\n"
                << indent << "type=double,\n"
                << indent << "units=1,\n"
-               << indent << "description=\"28 Correlation ypyy\"\n"
+               << indent << "description=\"28 Correlation ypy\"\n"
                << "&end\n";
     outputFile << "&column\n"
                << indent << "name=zpz,\n"

@@ -534,11 +534,11 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
 
     if(PID == 0) {
 
-      Inform  m("OPAL",Ippl::myNode());
+        Inform  m("OPAL", *gmsg, Ippl::myNode());
 
-      m << "* Cavity " << getName() << " Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
-            << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
-            << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV] Time dep freq = " << frequency_td_m->getValue(t) << endl;
+        m << "* Cavity " << getName() << " Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
+          << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
+          << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV] Time dep freq = " << frequency_td_m->getValue(t) << endl;
     }
 
 }

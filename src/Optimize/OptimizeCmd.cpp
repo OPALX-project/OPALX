@@ -1,5 +1,4 @@
 #include "Optimize/OptimizeCmd.h"
-#include "Optimize/DVar.h"
 #include "Optimize/Objective.h"
 #include "Optimize/Constraint.h"
 #include "Optimize/OpalSimulation.h"
@@ -7,6 +6,7 @@
 #include "Attributes/Attributes.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
 //#include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
@@ -14,13 +14,16 @@
 #include "Track/Track.h"
 
 #include "Pilot/Pilot.h"
-#include "Util/CmdArguments.h"
 #include "Util/OptPilotException.h"
 #include "Util/OpalInputFileParser.h"
 
 #include "Optimizer/EA/FixedPisaNsga2.h"
 #include "Optimizer/EA/BlendCrossover.h"
+#include "Optimizer/EA/SimulatedBinaryCrossover.h"
+#include "Optimizer/EA/NaiveOnePointCrossover.h"
+#include "Optimizer/EA/NaiveUniformCrossover.h"
 #include "Optimizer/EA/IndependentBitMutation.h"
+#include "Optimizer/EA/OneBitMutation.h"
 
 #include "Comm/CommSplitter.h"
 #include "Comm/Topology/NoCommTopology.h"
@@ -77,6 +80,8 @@ namespace {
         TEMPLATEDIR,
         FIELDMAPDIR,
         DISTDIR,
+        CROSSOVER,
+        MUTATION,
         SIZE
     };
 }
@@ -142,6 +147,10 @@ OptimizeCmd::OptimizeCmd():
         ("FIELDMAPDIR", "Directory where field maps are stored");
     itsAttr[DISTDIR] = Attributes::makeString
         ("DISTDIR", "Directory where distributions are stored", "");
+    itsAttr[CROSSOVER] = Attributes::makeString
+        ("CROSSOVER", "Type of cross over (default: Blend)", "Blend");
+    itsAttr[MUTATION] = Attributes::makeString
+        ("MUTATION", "Type of bit mutation (default: IndependentBit)", "IndependentBit");
     registerOwnership(AttributeHandler::COMMAND);
 }
 
@@ -171,15 +180,6 @@ void OptimizeCmd::execute() {
 
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
-    typedef OpalInputFileParser Input_t;
-    typedef OpalSimulation Sim_t;
-
-    typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
-
-    typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
-    typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
-
-    typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
     // prepare function dictionary and add all available functions in
     // expressions
@@ -415,9 +415,8 @@ void OptimizeCmd::execute() {
     stashEnvironment();
     try {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
-
-        boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, constraints, Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+        
+        this->run(args, funcs, dvars, objectives, constraints);
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;
@@ -439,4 +438,170 @@ void OptimizeCmd::popEnvironment() {
     IpplTimings::pop();
     OpalData::popInstance();
     Track::pop();
+}
+
+OptimizeCmd::CrossOver OptimizeCmd::crossoverSelection(std::string crossover) {
+    crossover = Util::toUpper(crossover);
+    
+    std::map<std::string, CrossOver> map;
+    map["BLEND"] = CrossOver::Blend;
+    map["NAIVEONEPOINT"] = CrossOver::NaiveOnePoint;
+    map["NAIVEUNIFORM"] = CrossOver::NaiveUniform;
+    map["SIMULATEDBINARY"] = CrossOver::SimulatedBinary;
+    
+    CrossOver co = CrossOver::Blend;
+    
+    switch ( map[crossover] ) {
+        case CrossOver::Blend:
+            break;
+        case CrossOver::NaiveOnePoint:
+            co = CrossOver::NaiveOnePoint;
+            break;
+        case CrossOver::NaiveUniform:
+            co = CrossOver::NaiveUniform;
+            break;
+        case CrossOver::SimulatedBinary:
+            co = CrossOver::SimulatedBinary;
+            break;
+        default:
+            throw OpalException("OptimizeCmd::crossoverSelection",
+                                "No cross over '" + crossover + "' supported.");
+    }
+    
+    return co;
+}
+
+OptimizeCmd::Mutation OptimizeCmd::mutationSelection(std::string mutation) {
+    mutation = Util::toUpper(mutation);
+    
+    std::map<std::string, Mutation> map;
+    map["INDEPENDENTBIT"] = Mutation::IndependentBit;
+    map["ONEBIT"] = Mutation::OneBit;
+    
+    Mutation mut = Mutation::IndependentBit;
+    
+    switch ( map[mutation] ) {
+        case Mutation::IndependentBit:
+            break;
+        case Mutation::OneBit:
+            mut = Mutation::OneBit;
+            break;
+        default:
+            throw OpalException("OptimizeCmd::mutationSelection",
+                                "No mutation '" + mutation + "' supported.");
+    }
+    
+    return mut;
+}
+
+void OptimizeCmd::run(const CmdArguments_t& args,
+                      const functionDictionary_t& funcs,
+                      const DVarContainer_t& dvars,
+                      const Expressions::Named_t& objectives,
+                      const Expressions::Named_t& constraints)
+{
+    typedef OpalInputFileParser Input_t;
+    typedef OpalSimulation Sim_t;
+
+    typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
+    typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
+    
+    boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
+    
+    CrossOver crossover = this->crossoverSelection(Attributes::getString(itsAttr[CROSSOVER]));
+    Mutation mutation = this->mutationSelection(Attributes::getString(itsAttr[MUTATION]));
+    
+    switch ( crossover + mutation ) {
+        case CrossOver::Blend + Mutation::IndependentBit:
+        {
+            typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::Blend + Mutation::OneBit:
+        {
+            typedef FixedPisaNsga2< BlendCrossover, OneBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::NaiveOnePoint + Mutation::IndependentBit:
+        {
+            typedef FixedPisaNsga2< NaiveOnePointCrossover, IndependentBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::NaiveOnePoint + Mutation::OneBit:
+        {
+            typedef FixedPisaNsga2< NaiveOnePointCrossover, OneBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::NaiveUniform + Mutation::IndependentBit:
+        {
+            typedef FixedPisaNsga2< NaiveUniformCrossover, IndependentBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::NaiveUniform + Mutation::OneBit:
+        {
+            typedef FixedPisaNsga2< NaiveUniformCrossover, OneBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::SimulatedBinary + Mutation::IndependentBit:
+        {
+            typedef FixedPisaNsga2< SimulatedBinaryCrossover, IndependentBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        case CrossOver::SimulatedBinary + Mutation::OneBit:
+        {
+            typedef FixedPisaNsga2< SimulatedBinaryCrossover, OneBitMutation > Opt_t;
+            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            
+            boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
+                                              funcs, dvars,
+                                              objectives, constraints,
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+            break;
+        }
+        default:
+            throw OpalException("OptimizeCmd::run",
+                                "No such cross over and mutation combination supported.");
+    }
 }

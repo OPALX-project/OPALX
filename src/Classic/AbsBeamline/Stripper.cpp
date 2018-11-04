@@ -43,7 +43,7 @@ Stripper::Stripper():
     opyield_m(1.0),
     stop_m(true),
     step_m(0) {
-    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
+    setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
 
@@ -56,7 +56,7 @@ Stripper::Stripper(const Stripper &right):
     opyield_m(right.opyield_m),
     stop_m(right.stop_m),
     step_m(right.step_m) {
-    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m, right.width_m);
+    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
 }
 
 
@@ -69,7 +69,7 @@ Stripper::Stripper(const std::string &name):
     opyield_m(1.0),
     stop_m(true),
     step_m(0){
-    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
+    setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
 void Stripper::setGeom(const double dist) {
@@ -137,12 +137,11 @@ void Stripper::goOffline() {
     lossDs_m->save();
 }
 
-void Stripper::setDimensions(double xstart, double xend, double ystart, double yend, double width) {
+void Stripper::setDimensions(double xstart, double xend, double ystart, double yend) {
     xstart_m = xstart;
     ystart_m = ystart;
     xend_m   = xend;
     yend_m   = yend;
-    width_m  = width;
     rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
     rend_m   = std::sqrt(xend * xend   + yend * yend);
     // start position is the one with lowest radius
@@ -190,9 +189,6 @@ double  Stripper::getYstart() const {
 double  Stripper::getYend() const {
     return yend_m;
 }
-double  Stripper::getWidth() const {
-    return width_m;
-}
 
 double  Stripper::getOPCharge() const {
     return opcharge_m;
@@ -217,10 +213,12 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;
     Vector_t rmin, rmax, strippoint;
-    bunch->get_bounds(rmin, rmax);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+    // interested in absolute maximum
+    double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+    double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+    double rbunch_max = std::hypot(xmax, ymax);
 
-    if(r1 > rstart_m - 10.0 ){
+    if(rbunch_max > rstart_m - 10.0 ){
 
         size_t count = 0;
         size_t tempnum = bunch->getLocalNum();
