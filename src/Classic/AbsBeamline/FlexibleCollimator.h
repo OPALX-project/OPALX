@@ -62,6 +62,8 @@ public:
 
     bool isStopped(const Vector_t &R, const Vector_t &P, double recpgamma);
 
+    void writeHolesAndQuadtree(const std::string &baseFilename) const;
+
 private:
 
     // Not implemented.

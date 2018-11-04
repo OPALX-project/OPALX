@@ -25,6 +25,11 @@ namespace mslang {
         nodes_m.clear();
     }
 
+    void QuadTree::reset() {
+        objects_m.clear();
+        nodes_m.clear();
+    }
+
     void QuadTree::operator=(const QuadTree &right) {
         level_m = right.level_m;
         objects_m.insert(objects_m.end(),
@@ -85,13 +90,10 @@ namespace mslang {
         }
     }
 
-    void QuadTree::writeGnuplot(std::ofstream &out) const {
+    void QuadTree::writeGnuplot(std::ostream &out) const {
         out << "# level: " << level_m << ", size: " << objects_m.size() << std::endl;
         bb_m.writeGnuplot(out);
         out << "# num holes: " << objects_m.size() << std::endl;
-        // for (const Base *obj: objects_m) {
-        //     obj->writeGnuplot(out);
-        // }
         out << std::endl;
 
         if (nodes_m.size() != 0) {

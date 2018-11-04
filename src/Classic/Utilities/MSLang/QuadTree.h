@@ -28,12 +28,14 @@ namespace mslang {
 
         ~QuadTree();
 
+        void reset();
+
         void operator=(const QuadTree &right);
 
         void transferIfInside(std::list<std::shared_ptr<Base> > &objs);
         void buildUp();
 
-        void writeGnuplot(std::ofstream &out) const;
+        void writeGnuplot(std::ostream &out) const;
 
         bool isInside(const Vector_t &R) const;
 
