@@ -92,6 +92,7 @@ private:
 
     Expressions::Named_t objectives_;
     Expressions::Named_t constraints_;
+    std::set<std::string> dvarNames_;
 
     MPI_Comm comm_;
 
