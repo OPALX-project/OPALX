@@ -412,6 +412,46 @@ void OptimizeCmd::execute() {
         }
     }
 
+    {
+        std::string tmplFile = Attributes::getString(itsAttr[INPUT]);
+        size_t pos = tmplFile.find_last_of("/");
+        if(pos != std::string::npos)
+            tmplFile = tmplFile.substr(pos+1);
+        pos = tmplFile.find(".");
+        tmplFile = tmplFile.substr(0,pos);
+        tmplFile = Attributes::getString(itsAttr[TEMPLATEDIR]) + "/" + tmplFile + ".tmpl";
+
+        std::ifstream infile(tmplFile.c_str());
+
+        std::map<std::string, short> dvarCheck;
+        auto itr = dvars.begin();
+        for (; itr != dvars.end(); ++ itr) {
+            dvarCheck.insert(std::make_pair(boost::get<0>(itr->second), 0));
+        }
+
+        while(infile.good()) {
+            std::string line;
+            std::getline(infile, line, '\n');
+
+            //XXX doing the inverse would be better
+            for(auto &check: dvarCheck) {
+                size_t pos = line.find("_" + check.first + "_");
+                if (pos != std::string::npos &&
+                    dvarCheck.find(check.first) != dvarCheck.end()) {
+                    dvarCheck.at(check.first) = 1;
+                }
+            }
+        }
+        infile.close();
+
+        for (auto itr = dvarCheck.begin(); itr != dvarCheck.end(); ++ itr) {
+            if (itr->second == 0) {
+                throw OpalException("SampleCmd::execute()",
+                                    "Couldn't find the design variable '" + itr->first + "' in '" + tmplFile + "'!");
+            }
+        }
+    }
+
     Inform *origGmsg = gmsg;
     gmsg = 0;
     stashEnvironment();

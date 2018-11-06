@@ -189,7 +189,7 @@ void OpalSimulation::setupSimulation() {
 
         std::string infile = simulationDirName_ + "/" +
                              simulationName_ + ".in";
-        gs_->writeInputFile(infile, dvarNames_);
+        gs_->writeInputFile(infile);
 
         // linking fieldmaps + distributions
         if(getenv("FIELDMAPS") == NULL) {
