@@ -125,7 +125,7 @@ void Stripper::initialise(PartBunchBase<double, 3> *bunch) {
 }
 
 void Stripper::finalise() {
-    *gmsg << "* Finalize probe" << endl;
+    *gmsg << "* Finalize stripper " << getName() << endl;
 }
 
 bool Stripper::bends() const {

@@ -178,7 +178,7 @@ void CCollimator::finalise()
 {
     if (online_m)
         goOffline();
-    *gmsg << "* Finalize probe" << endl;
+    *gmsg << "* Finalize cyclotron collimator " << getName() << endl;
 }
 
 void CCollimator::goOnline(const double &) {
