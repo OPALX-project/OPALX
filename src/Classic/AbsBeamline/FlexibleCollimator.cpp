@@ -156,7 +156,7 @@ void FlexibleCollimator::finalise()
 {
     if (online_m)
         goOffline();
-    *gmsg << "* Finalize probe" << endl;
+    *gmsg << "* Finalize flexible collimator " << getName() << endl;
 }
 
 void FlexibleCollimator::goOnline(const double &) {
