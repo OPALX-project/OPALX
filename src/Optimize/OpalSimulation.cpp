@@ -64,6 +64,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
         std::ostringstream tmp;
         tmp.precision(15);
         tmp << parameter.first << "=" << parameter.second;
+        dvarNames_.insert(parameter.first);
         dict.push_back(tmp.str());
 
         std::ostringstream value;
@@ -188,7 +189,7 @@ void OpalSimulation::setupSimulation() {
 
         std::string infile = simulationDirName_ + "/" +
                              simulationName_ + ".in";
-        gs_->writeInputFile(infile);
+        gs_->writeInputFile(infile, dvarNames_);
 
         // linking fieldmaps + distributions
         if(getenv("FIELDMAPS") == NULL) {
