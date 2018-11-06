@@ -14,7 +14,6 @@
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
-#include "Distribution/MagneticField.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 #include <vector>
 
@@ -33,6 +32,7 @@ class PartBunchBase;
 class LogicalError;
 class LossDataSink;
 class Inform;
+class Cyclotron;
 
 class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
 
@@ -57,6 +57,8 @@ public:
     unsigned getRediffused() {return rediffusedStat_m;}
 
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
+
+    void setCyclotron(Cyclotron* cycl) { cycl_m = cycl; };
 
 private:
 
@@ -96,11 +98,8 @@ private:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    // external field arrays for dumping
-//    Vector_t extE_m, extB_m;
-//    Component *comp;
-//    Cyclotron *cycl;
-//    MagneticField *magn;
+    Vector_t extE_m, extB_m;
+    Cyclotron *cycl_m;
 };
 
 #endif //BEAMSTRIPPINGPHYSICS_HH

@@ -236,6 +236,8 @@ private:
 
     BoundaryGeometry *bgf_m;
 
+    Cyclotron *cycl_m;
+
     /// The maximal number of steps the system is integrated
     int maxSteps_m;
 

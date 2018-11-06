@@ -23,6 +23,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
+#include "AbsBeamline/Cyclotron.h"
 
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_interp.h"
@@ -56,7 +57,7 @@ public:
 
     virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
+    virtual bool checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl, const int turnnumber, const double t, const double tstep);
 
     virtual bool checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax);
 
