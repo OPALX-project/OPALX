@@ -65,16 +65,11 @@ public:
      *
      *  @param[in] outputFile write resulting input file to this file
      */
-    void writeInputFile(std::string outputFile, const std::set<std::string> &dvarNames) {
+    void writeInputFile(std::string outputFile) {
 
         std::ifstream infile(tmplFile_.c_str());
         std::ostringstream outdata;
         outdata.precision(15);
-
-        std::map<std::string, short> dvarCheck;
-        for (auto itr = dvarNames.begin(); itr != dvarNames.end(); ++ itr) {
-            dvarCheck.insert(std::make_pair(*itr, 0));
-        }
 
         while(infile.good()) {
             std::string line;
@@ -84,10 +79,6 @@ public:
             std::map<std::string, std::string>::iterator itr = dictionary_.begin();
             for(;itr != dictionary_.end(); itr++) {
                 size_t pos = line.find("_" + itr->first + "_");
-                if (pos != std::string::npos &&
-                    dvarCheck.find(itr->first) != dvarCheck.end()) {
-                    dvarCheck.at(itr->first) = 1;
-                }
                 while(pos != std::string::npos) {
                     line.replace(pos, itr->first.length() + 2, itr->second);
                     pos = line.find("_" + itr->first + "_");
@@ -97,13 +88,6 @@ public:
             outdata << line << std::endl;
         }
         infile.close();
-
-        for (auto itr = dvarCheck.begin(); itr != dvarCheck.end(); ++ itr) {
-            if (itr->second == 0) {
-                throw OptPilotException("GenerateOpalSimulation::writeInputFile()",
-                                        "Couldn't find the design variable '" + itr->first + "' in '" + tmplFile_ + "'!");
-            }
-        }
 
         // ensure the contents are written to disk
         std::ofstream outfile(outputFile.c_str());
