@@ -25,6 +25,7 @@
 #include "Fields/FMDummy.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Options.h"
+#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 
 #include "H5hut.h"
@@ -367,7 +368,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         h5_file_t file = H5OpenFile (Filename.c_str(), H5_O_RDONLY, props);
 	assert (file != (h5_file_t)H5_ERR);
 	H5CloseProp (props);
-	
+
 	h5err = H5SetStep(file, 0);
         assert (h5err != H5_ERR);
 
@@ -469,8 +470,9 @@ void Fieldmap::checkMap(unsigned int accuracy,
     size_t lastSlash = Filename_m.find_last_of("/");
     lastSlash = (lastSlash == std::string::npos)? 0: lastSlash + 1;
 
+    auto opal = OpalData::getInstance();
     std::ofstream out;
-    if (Ippl::myNode() == 0) {
+    if (Ippl::myNode() == 0 && !opal->isOptimizerRun()) {
         out.open("data/" + Filename_m.substr(lastSlash, lastDot) + ".check");
         out << "# z  original reproduced\n";
     }
@@ -492,10 +494,13 @@ void Fieldmap::checkMap(unsigned int accuracy,
         ezMax = std::abs(ez) > ezMax? std::abs(ez): ezMax;
         error += std::pow(difference, 2.0);
         ezSquare += std::pow(ez, 2.0);
-        out << std::setw(16) << std::setprecision(8) << *it
-            << std::setw(16) << std::setprecision(8) << ez
-            << std::setw(16) << std::setprecision(8) << onAxisFieldCheck
-            << std::endl;
+
+        if (Ippl::myNode() == 0 && !opal->isOptimizerRun()) {
+            out << std::setw(16) << std::setprecision(8) << *it
+                << std::setw(16) << std::setprecision(8) << ez
+                << std::setw(16) << std::setprecision(8) << onAxisFieldCheck
+                << std::endl;
+        }
     }
     out.close();
 

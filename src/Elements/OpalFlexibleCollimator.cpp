@@ -36,7 +36,9 @@ OpalFlexibleCollimator::OpalFlexibleCollimator():
     itsAttr[DESC] = Attributes::makeString
                     ("DESCRIPTION", "String describing the distribution of holes");
     itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "File name of log file for deleted particles");
+                    ("OUTFN", "File name of log file for deleted particles");
+    itsAttr[DUMP] = Attributes::makeBool
+                    ("DUMP", "Save quadtree and holes of collimator", false);
 
     registerStringAttribute("OUTFN");
     registerStringAttribute("DESC");
@@ -107,6 +109,10 @@ void OpalFlexibleCollimator::update() {
         partMatInt_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
         partMatInt_m->initParticleMatterInteractionHandler(*coll);
         coll->setParticleMatterInteraction(partMatInt_m->handler_m);
+    }
+
+    if (Attributes::getBool(itsAttr[DUMP])) {
+        coll->writeHolesAndQuadtree(getOpalName());
     }
 
     // Transmit "unknown" attributes.

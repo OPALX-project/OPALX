@@ -392,7 +392,8 @@ void OpalBeamline::compute3DLattice() {
 }
 
 void OpalBeamline::plot3DLattice() {
-    if (Ippl::myNode() != 0) return;
+    auto opal = OpalData::getInstance();
+    if (opal->isOptimizerRun() || Ippl::myNode() != 0) return;
 
     elements_m.sort([](const ClassicField& a, const ClassicField& b) {
             double edgeA = 0.0, edgeB = 0.0;
@@ -455,13 +456,6 @@ void OpalBeamline::plot3DLattice() {
         }
     }
 
-    it = elements_m.begin();
-
-    double tau = (minX(0) - origin(0) - 0.3) / direction(0);
-    origin += tau * direction;
-    if (origin(0) < minX(0)) minX(0) = origin(0);
-    if (origin(1) < minX(1)) minX(1) = origin(1);
-
     std::ofstream gpl;
     std::string fileName = "data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.gpl";
     if (Options::openMode == Options::APPEND && boost::filesystem::exists(fileName)) {
@@ -471,6 +465,7 @@ void OpalBeamline::plot3DLattice() {
     }
     gpl.precision(8);
 
+    it = elements_m.begin();
     for (; it != end; ++ it) {
         std::shared_ptr<Component> element = (*it).getElement();
 
@@ -492,7 +487,7 @@ void OpalBeamline::plot3DLattice() {
 }
 
 void OpalBeamline::save3DLattice() {
-    if (Ippl::myNode() != 0) return;
+    if (Ippl::myNode() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
     elements_m.sort([](const ClassicField& a, const ClassicField& b) {
             return a.order_m < b.order_m;
@@ -647,7 +642,7 @@ namespace {
 }
 
 void OpalBeamline::save3DInput() {
-    if (Ippl::myNode() != 0) return;
+    if (Ippl::myNode() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
     FieldList::iterator it = elements_m.begin();
     FieldList::iterator end = elements_m.end();

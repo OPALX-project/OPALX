@@ -169,6 +169,8 @@ void OptimizeCmd::execute() {
     namespace fs = boost::filesystem;
 
     auto opal = OpalData::getInstance();
+    opal->setOptimizerFlag();
+
     fs::path inputfile(Attributes::getString(itsAttr[INPUT]));
 
     std::vector<std::string> dvarsstr       = Attributes::getStringArray(itsAttr[DVARS]);
@@ -415,7 +417,7 @@ void OptimizeCmd::execute() {
     stashEnvironment();
     try {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
-        
+
         this->run(args, funcs, dvars, objectives, constraints);
 
     } catch (OptPilotException &e) {
@@ -442,15 +444,15 @@ void OptimizeCmd::popEnvironment() {
 
 OptimizeCmd::CrossOver OptimizeCmd::crossoverSelection(std::string crossover) {
     crossover = Util::toUpper(crossover);
-    
+
     std::map<std::string, CrossOver> map;
     map["BLEND"] = CrossOver::Blend;
     map["NAIVEONEPOINT"] = CrossOver::NaiveOnePoint;
     map["NAIVEUNIFORM"] = CrossOver::NaiveUniform;
     map["SIMULATEDBINARY"] = CrossOver::SimulatedBinary;
-    
+
     CrossOver co = CrossOver::Blend;
-    
+
     switch ( map[crossover] ) {
         case CrossOver::Blend:
             break;
@@ -467,19 +469,19 @@ OptimizeCmd::CrossOver OptimizeCmd::crossoverSelection(std::string crossover) {
             throw OpalException("OptimizeCmd::crossoverSelection",
                                 "No cross over '" + crossover + "' supported.");
     }
-    
+
     return co;
 }
 
 OptimizeCmd::Mutation OptimizeCmd::mutationSelection(std::string mutation) {
     mutation = Util::toUpper(mutation);
-    
+
     std::map<std::string, Mutation> map;
     map["INDEPENDENTBIT"] = Mutation::IndependentBit;
     map["ONEBIT"] = Mutation::OneBit;
-    
+
     Mutation mut = Mutation::IndependentBit;
-    
+
     switch ( map[mutation] ) {
         case Mutation::IndependentBit:
             break;
@@ -490,7 +492,7 @@ OptimizeCmd::Mutation OptimizeCmd::mutationSelection(std::string mutation) {
             throw OpalException("OptimizeCmd::mutationSelection",
                                 "No mutation '" + mutation + "' supported.");
     }
-    
+
     return mut;
 }
 
@@ -505,18 +507,18 @@ void OptimizeCmd::run(const CmdArguments_t& args,
 
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
-    
+
     boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
-    
+
     CrossOver crossover = this->crossoverSelection(Attributes::getString(itsAttr[CROSSOVER]));
     Mutation mutation = this->mutationSelection(Attributes::getString(itsAttr[MUTATION]));
-    
+
     switch ( crossover + mutation ) {
         case CrossOver::Blend + Mutation::IndependentBit:
         {
             typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -527,7 +529,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< BlendCrossover, OneBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -538,7 +540,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< NaiveOnePointCrossover, IndependentBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -549,7 +551,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< NaiveOnePointCrossover, OneBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -560,7 +562,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< NaiveUniformCrossover, IndependentBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -571,7 +573,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< NaiveUniformCrossover, OneBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -582,7 +584,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< SimulatedBinaryCrossover, IndependentBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
@@ -593,7 +595,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         {
             typedef FixedPisaNsga2< SimulatedBinaryCrossover, OneBitMutation > Opt_t;
             typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
-            
+
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,

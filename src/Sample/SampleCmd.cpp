@@ -116,6 +116,8 @@ void SampleCmd::execute() {
     namespace fs = boost::filesystem;
 
     auto opal = OpalData::getInstance();
+    opal->setOptimizerFlag();
+
     fs::path inputfile(Attributes::getString(itsAttr[INPUT]));
 
     unsigned int seed = Attributes::getReal(itsAttr[SEED]);
