@@ -166,7 +166,8 @@ bool BeamStripping::checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax)
 	return isDead;
 }
 
-bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl,
+		const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
 
@@ -184,7 +185,7 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const in
     		pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
     	if ( (pflag != 0) && (bunch->Bin[i] != -1) )  {
     		if (!parmatintbst_m)
-    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], t, turnnumber);
     		//    		bunch->Bin[i] = -1;
     		flagNeedUpdate = true;
 		}
@@ -202,6 +203,7 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, const in
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && parmatintbst_m) {
+    	dynamic_cast<BeamStrippingPhysics*>(parmatintbst_m)->setCyclotron(cycl);
         parmatintbst_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
@@ -231,6 +233,7 @@ void BeamStripping::finalise() {
     if (online_m)
         goOffline();
     *gmsg << "* Finalize Beam Stripping" << endl;
+    lossDs_m->save();
 }
 
 void BeamStripping::goOnline(const double &) {

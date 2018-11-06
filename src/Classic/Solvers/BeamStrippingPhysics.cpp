@@ -73,7 +73,6 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
     Material();
     bstpshape_m = element_ref_m->getType();
     FN_m = element_ref_m->getName();
-
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
 }
 
@@ -98,35 +97,26 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 	double beta = 0.0;
 	double deltas = 0.0;
 
-	double B = 4.0;
-	double E = 0.0;
+	double r1 = 0.0;
+	double r2 = 0.0;
 
-//    extE_m = Vector_t(0.0, 0.0, 0.0);
-//    extB_m = Vector_t(0.0, 0.0, 0.0);
+	double E = 0.0;
+	double B = 0.0;
+    extE_m = Vector_t(0.0, 0.0, 0.0); //kG
+    extB_m = Vector_t(0.0, 0.0, 0.0);
 
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
     mass = bunch->getM()*1E-9;
 
-    double r1 = RandomGenerator();
-    double r2 = RandomGenerator();
-    *gmsg << "random uniform number = " << r1 << endl;
-    *gmsg << "random uniform number = " << r2 << endl;
-
 	for (unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
-
-//		cycl->apply(bunch->R[i], bunch->P[i], T_m, extE_m, extB_m);
-//		BMultipoleField field = bstp->getField();
-//		BVector B = field.Bfield(Point3D(bunch->R[i](0),bunch->R[i](1),bunch->R[i](2)));
-//		BVector B = comp->Bfield(Point3D(bunch->R[i](0),bunch->R[i](1),bunch->R[i](2)));
-//		double Bz = B.getBz();
-//		*gmsg << "* Bz " << Bz << endl;
-
-//		*gmsg << "* R " << bunch->R[i] << endl;
-
 		if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
-		Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass;
+
+			cycl_m->apply(bunch->R[i]*0.001, bunch->P[i], T_m, extE_m, extB_m);
+//			*gmsg << "* extB_m " << extB_m << endl;
+
+			Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass;
 
 			CrossSection(Eng);
 
@@ -134,11 +124,20 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 		    gamma = (Eng + mass) / mass;
 		    beta = sqrt(1.0 - 1.0 / (gamma * gamma));
 		    deltas = dT_m * beta * c;
+
+		    B = 0.1 * sqrt(extB_m[0]*extB_m[0] + extB_m[1]*extB_m[1] + extB_m[2]*extB_m[2]); //T
 		    E = gamma * beta * c * B;
 
-		    *gmsg << "* gamma =    " << gamma  << endl;
-		    *gmsg << "* beta =    " << beta  << endl;
-		    *gmsg << "* deltas =    " << deltas  << endl;
+//		    *gmsg << "* B =    " << B  << endl;
+//		    *gmsg << "* E =    " << E  << endl;
+//		    *gmsg << "* gamma =    " << gamma  << endl;
+//		    *gmsg << "* beta =    " << beta  << endl;
+//		    *gmsg << "* deltas =    " << deltas  << endl;
+
+		    r1 = RandomGenerator();
+		    r2 = RandomGenerator();
+//		    *gmsg << "random uniform number = " << r1 << endl;
+//		    *gmsg << "random uniform number = " << r2 << endl;
 
 			bool pdead_GS = GasStripping(deltas, r1);
 			bool pdead_LS = LorentzStripping(gamma, E, r2);
@@ -147,14 +146,14 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 				// The particle is stripped in the residual gas, set lable_m to -1
 				bunch->Bin[i] = -1;
 				stoppedPartStat_m++;
-				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], T_m);
 				*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
 			}
 			if (pdead_LS == true) {
 				// The particle is stripped by electromagnetic field, set lable_m to -1
 				bunch->Bin[i] = -1;
 				stoppedPartStat_m++;
-				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], T_m);
 				*gmsg << "* The particle " << bunch->ID[i] << " is stripped by electromagnetic field" << endl;
 			}
 		}
@@ -172,6 +171,9 @@ void BeamStrippingPhysics::MolecularDensity(const double &pressure, const double
 //    double TotalmolecularDensity_m = 100 * pressure / (kB * q_e * temperature);
 	molecularDensity[iComp] = 100 * pressure * fMolarFraction[iComp] / (kB * q_e * temperature);
 //    *gmsg << "* Molecular Density	= " << molecularDensity[iComp]  << endl;
+
+
+
 }
 
 void BeamStrippingPhysics::CrossSection(double &Eng){
@@ -284,12 +286,14 @@ double BeamStrippingPhysics::RandomGenerator() {
 
 bool BeamStrippingPhysics::GasStripping(double &deltas, double &r1) {
 
+//	double tau = 0.0;
 	double fg = 0.0;
     double NCS = 0.0;
     for (int i = 0; i < NbComponents; ++i) {
     	CS[i] *= 1E-4; // CS en m2
     	NCS += CS[i] * molecularDensity[i];
     }
+//    tau = 1/(NCS*beta*c);
     fg = 1 - exp(-NCS * deltas);
 //    *gmsg << "* fg =    " << fg << endl;
 

@@ -27,7 +27,7 @@
 #include <vector>
 #include "AbstractObjects/OpalData.h"
 
-#include "AbsBeamLine/BeamStripping.h"
+#include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
@@ -414,12 +414,12 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     *gmsg << "* -------------------------- Adding Cyclotron ---------------------------- *" << endl;
 
-    Cyclotron *elptr = dynamic_cast<Cyclotron *>(cycl.clone());
-    myElements.push_back(elptr);
+    cycl_m = dynamic_cast<Cyclotron *>(cycl.clone());
+    myElements.push_back(cycl_m);
 
     // Is this a Spiral Inflector Simulation? If yes, we'll give the user some
     // useful information
-    spiral_flag = elptr->getSpiralFlag();
+    spiral_flag = cycl_m->getSpiralFlag();
 
     if(spiral_flag) {
 
@@ -444,11 +444,11 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
         // Get reference values from cyclotron element
         // For now, these are still stored in mm. should be the only ones. -DW
-        referenceR     = elptr->getRinit();
-        referenceTheta = elptr->getPHIinit();
-        referenceZ     = elptr->getZinit();
-        referencePr    = elptr->getPRinit();
-        referencePz    = elptr->getPZinit();
+        referenceR     = cycl_m->getRinit();
+        referenceTheta = cycl_m->getPHIinit();
+        referenceZ     = cycl_m->getZinit();
+        referencePr    = cycl_m->getPRinit();
+        referencePz    = cycl_m->getPZinit();
 
         if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
             throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
@@ -529,29 +529,29 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << "* Reference axial momentum (Pz) = " << referencePz * 1000.0 << " [MCU]" << endl;
     *gmsg << endl;
 
-    double sym = elptr->getSymmetry();
+    double sym = cycl_m->getSymmetry();
     *gmsg << "* " << sym << "-fold field symmetry " << endl;
 
     // ckr: this just returned the default value as defined in Component.h
-    // double rff = elptr->getRfFrequ();
+    // double rff = cycl_m->getRfFrequ();
     // *gmsg << "* Rf frequency= " << rff << " [MHz]" << endl;
 
-    std::string fmfn = elptr->getFieldMapFN();
+    std::string fmfn = cycl_m->getFieldMapFN();
     *gmsg << "* Field map file name = " << fmfn << " " << endl;
 
-    std::string type = elptr->getCyclotronType();
+    std::string type = cycl_m->getCyclotronType();
     *gmsg << "* Type of cyclotron = " << type << " " << endl;
 
-    double rmin = elptr->getMinR();
-    double rmax = elptr->getMaxR();
+    double rmin = cycl_m->getMinR();
+    double rmax = cycl_m->getMaxR();
     *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [m] "<< endl;
 
-    double zmin = elptr->getMinZ();
-    double zmax = elptr->getMaxZ();
+    double zmin = cycl_m->getMinZ();
+    double zmax = cycl_m->getMaxZ();
     *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [m]"<< endl;
 
-    double h = elptr->getCyclHarm();
-    *gmsg << "* Number of trimcoils = " << elptr->getNumberOfTrimcoils() << endl;
+    double h = cycl_m->getCyclHarm();
+    *gmsg << "* Number of trimcoils = " << cycl_m->getNumberOfTrimcoils() << endl;
     *gmsg << "* Harmonic number h = " << h << " " << endl;
 
     /**
@@ -582,18 +582,18 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         fieldflag = 1;
 
     // Read in cyclotron field maps (midplane + 3D fields if desired).
-    elptr->initialise(itsBunch_m, fieldflag, elptr->getBScale());
+    cycl_m->initialise(itsBunch_m, fieldflag, cycl_m->getBScale());
 
     double BcParameter[8];
 
     for(int i = 0; i < 8; i++)
         BcParameter[i] = 0.0;
 
-    BcParameter[0] = 0.001 * elptr->getRmin();
-    BcParameter[1] = 0.001 * elptr->getRmax();
+    BcParameter[0] = 0.001 * cycl_m->getRmin();
+    BcParameter[1] = 0.001 * cycl_m->getRmax();
 
     // Store inner radius and outer radius of cyclotron field map in the list
-    buildupFieldList(BcParameter, ElementBase::CYCLOTRON, elptr);
+    buildupFieldList(BcParameter, ElementBase::CYCLOTRON, cycl_m);
 }
 
 /**
@@ -2252,7 +2252,9 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
         	BeamStripping * bstp;
             bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
-            bstp->checkBeamStripping(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
+//			Cyclotron *cycl;
+//            cycl = cycl->clone();
+            bstp->checkBeamStripping(itsBunch_m, cycl_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
         }
     }
 
