@@ -144,6 +144,7 @@ struct OpalDataImpl {
     bool isInOPALCyclMode_m;
     bool isInOPALTMode_m;
     bool isInOPALEnvMode_m;
+    bool isOptimizerFlag_m;
     bool isInPrepState_m;
 
     std::map<std::string, unsigned int> problemSize_m;
@@ -167,6 +168,7 @@ OpalDataImpl::OpalDataImpl():
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
     isInOPALEnvMode_m(false),
+    isOptimizerFlag_m(true),
     isInPrepState_m(false)
 {
     bunch_m    = nullptr;
@@ -280,6 +282,7 @@ void OpalData::reset() {
     p->isInOPALTMode_m = false;
     p->isInOPALEnvMode_m = false;
     p->isInPrepState_m = false;
+    p->isOptimizerFlag_m = false;
 }
 
 bool OpalData::isInOPALCyclMode() {
@@ -294,6 +297,10 @@ bool OpalData::isInOPALEnvMode() {
     return p->isInOPALEnvMode_m;
 }
 
+bool OpalData::isOptimizerRun() {
+    return p->isOptimizerFlag_m;
+}
+
 void OpalData::setInOPALCyclMode() {
     p->isInOPALCyclMode_m = true;
 }
@@ -304,6 +311,10 @@ void OpalData::setInOPALTMode() {
 
 void OpalData::setInOPALEnvMode() {
     p->isInOPALEnvMode_m = true;
+}
+
+void OpalData::setOptimizerFlag() {
+    p->isOptimizerFlag_m = true;
 }
 
 bool OpalData::isInPrepState() {
