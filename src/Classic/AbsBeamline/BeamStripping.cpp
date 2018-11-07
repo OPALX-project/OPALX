@@ -122,35 +122,6 @@ double BeamStripping::getTemperature() const {
 }
 
 
-void BeamStripping::setMinR(double r) {
-    minr_m = r;
-}
-double BeamStripping::getMinR() const {
-    return minr_m;
-}
-
-void BeamStripping::setMaxR(double r) {
-    maxr_m = r;
-}
-double BeamStripping::getMaxR() const {
-    return maxr_m;
-}
-
-void  BeamStripping::setMinZ(double z) {
-    minz_m = z;
-}
-double BeamStripping::getMinZ() const {
-    return minz_m;
-}
-
-void BeamStripping::setMaxZ(double z) {
-    maxz_m = z;
-}
-double BeamStripping::getMaxZ() const {
-    return maxz_m;
-}
-
-
 bool BeamStripping::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
@@ -178,6 +149,11 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
     boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
     int pflag = 0;
+
+    maxr_m = 1000 * cycl->getMaxR();
+    minr_m = 1000 * cycl->getMinR();
+    maxz_m = 1000 * cycl->getMaxZ();
+    minz_m = 1000 * cycl->getMinZ();
 
     size_t tempnum = bunch->getLocalNum();
     for (unsigned int i = 0; i < tempnum; ++i) {
@@ -278,10 +254,7 @@ std::string BeamStripping::getOutputFN() {
         return filename_m.substr(0, filename_m.rfind("."));
 }
 
-void BeamStripping::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = 0.0;
-    zEnd = getElementLength();
-}
+void BeamStripping::getDimensions(double &zBegin, double &zEnd) const { }
 
 ElementBase::ElementType BeamStripping::getType() const {
     return BEAMSTRIPPING;

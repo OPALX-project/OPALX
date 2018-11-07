@@ -86,6 +86,10 @@ private:
 
 	int NbComponents;
 	static const double fMolarFraction[3];
+
+	static const double CSCoefSingle[3][7];
+	static const double CSCoefDouble[3][5];
+
 	static const double fCrossSectionSingle[3][48];
 	static const double fEnergyCSSingle[3][48];
 	static const double fCrossSectionDouble[3][40];

@@ -23,6 +23,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <math.h>
 
 using namespace std;
 
@@ -171,100 +172,129 @@ void BeamStrippingPhysics::MolecularDensity(const double &pressure, const double
 //    double TotalmolecularDensity_m = 100 * pressure / (kB * q_e * temperature);
 	molecularDensity[iComp] = 100 * pressure * fMolarFraction[iComp] / (kB * q_e * temperature);
 //    *gmsg << "* Molecular Density	= " << molecularDensity[iComp]  << endl;
-
-
-
 }
 
 void BeamStrippingPhysics::CrossSection(double &Eng){
 
-	Eng *= 1E9; // Eng eV
-//	*gmsg << "* Energy = " << Eng << " eV" << endl;
+//	Eng *= 1E9; // Eng eV
+//
+//	int size_single = (sizeof(fCrossSectionSingle[0])/sizeof(fCrossSectionSingle[0][0]));
+//	int size_double = (sizeof(fCrossSectionDouble[0])/sizeof(fCrossSectionDouble[0][0]));
+//
+//	double max_single = 0.0;
+//	int max_index_single = 0;
+//	double max_double = 0.0;
+//	int max_index_double = 0;
+//	double m = 0.0;
+//	double n = 0.0;
+//
+//	for (int i = 0; i < NbComponents; ++i) {
+//		// Single-electron detachment
+//		double CS_L_single[i+1];
+//
+//		for (int j = 0; j < size_single; ++j){
+//			if (fEnergyCSSingle[i][j] > max_single){
+//				max_single = fEnergyCSSingle[i][j];
+//				max_index_single = j;
+//			}
+//		}
+//		if(Eng < fEnergyCSSingle[i][0]) {
+//			m = (fCrossSectionSingle[i][1]-fCrossSectionSingle[i][0]) /
+//					(fEnergyCSSingle[i][1]-fEnergyCSSingle[i][0]);
+//			n = fCrossSectionSingle[i][0] - m * fEnergyCSSingle[i][0];
+//			CS_L_single[i] = m * Eng + n;
+//		}
+//		else if(Eng > fEnergyCSSingle[i][max_index_single]) {
+//			m = (fCrossSectionSingle[i][max_index_single]-fCrossSectionSingle[i][max_index_single-1]) /
+//					(fEnergyCSSingle[i][max_index_single]-fEnergyCSSingle[i][max_index_single-1]);
+//			n = fCrossSectionSingle[i][max_index_single] - m * fEnergyCSSingle[i][max_index_single];
+//			CS_L_single[i] = m * Eng + n;
+//		}
+//		else if(Eng > fEnergyCSSingle[i][0] && Eng < fEnergyCSSingle[i][max_index_single]){
+//			for (int j=0; j<(max_index_single); ++j){
+//				if(Eng == fEnergyCSSingle[i][j])
+//					CS_L_single[i] = fEnergyCSSingle[i][j];
+//				else if(Eng > fEnergyCSSingle[i][j] && Eng < fEnergyCSSingle[i][j+1]) {
+//					m = (fCrossSectionSingle[i][j+1]-fCrossSectionSingle[i][j]) /
+//							(fEnergyCSSingle[i][j+1]-fEnergyCSSingle[i][j]);
+//					n = fCrossSectionSingle[i][j] - m * fEnergyCSSingle[i][j];
+//					CS_L_single[i] = m * Eng + n;
+//				}
+//			}
+//		}
+////		*gmsg << "* CS_L_single[i] 	= " << CS_L_single[i]   << endl;
+//
+//		// Double-electron detachment
+//		double CS_L_double[i+1];
+//		for (int j = 0; j < size_double; ++j){
+//			if (fEnergyCSDouble[i][j] > max_double){
+//				max_double = fEnergyCSDouble[i][j];
+//				max_index_double = j;
+//			}
+//		}
+//		if(Eng < fEnergyCSDouble[i][0]) {
+//			m = (fCrossSectionDouble[i][1]-fCrossSectionDouble[i][0]) /
+//					(fEnergyCSDouble[i][1]-fEnergyCSDouble[i][0]);
+//			n = fCrossSectionDouble[i][0] - m * fEnergyCSDouble[i][0];
+//			CS_L_double[i] = m * Eng + n;
+//		}
+//		else if(Eng > fEnergyCSDouble[i][max_index_double]) {
+//			m = (fCrossSectionDouble[i][max_index_double]-fCrossSectionDouble[i][max_index_double-1]) /
+//					(fEnergyCSDouble[i][max_index_double]-fEnergyCSDouble[i][max_index_double-1]);
+//			n = fCrossSectionDouble[i][max_index_double] - m * fEnergyCSDouble[i][max_index_double];
+//			CS_L_double[i] = m * Eng + n;
+//		}
+//		else if(Eng > fEnergyCSDouble[i][0] && Eng < fEnergyCSDouble[i][max_index_double]){
+//			for (int j=0; j<(max_index_double); ++j){
+//				if(Eng == fEnergyCSDouble[i][j])
+//					CS_L_double[i] = fEnergyCSDouble[i][j];
+//				else if(Eng > fEnergyCSDouble[i][j] && Eng < fEnergyCSDouble[i][j+1]) {
+//					m = (fCrossSectionDouble[i][j+1]-fCrossSectionDouble[i][j]) /
+//							(fEnergyCSDouble[i][j+1]-fEnergyCSDouble[i][j]);
+//					n = fCrossSectionDouble[i][j] - m * fEnergyCSDouble[i][j];
+//					CS_L_double[i] = m * Eng + n;
+//				}
+//			}
+//		}
+////		*gmsg << "* CS_L_double[i] 	= " << CS_L_double[i]   << endl;
+//
+//		CS[i] = CS_L_single[i] + CS_L_double[i];
+////		*gmsg << "* CS[i] = " << CS_L[i] << " cm2" << endl;
+//	 }
 
-	 int size_single = (sizeof(fCrossSectionSingle[0])/sizeof(fCrossSectionSingle[0][0]));
-	 int size_double = (sizeof(fCrossSectionDouble[0])/sizeof(fCrossSectionDouble[0][0]));
+	// Analytic function
+	Eng *=1E-3; //keV
 
-	 // Single-electron detachment
-	 for (int i = 0; i < NbComponents; ++i) {
-		 double CS_single[i+1];
+	double E_R = 25.00;
+	double sigma_0 = 1E-16;
+	double E1 = 0.0;
+	double num = 0.0;
+	double den = 0.0;
 
-		 double max_single = 0.0;
-		 int max_index_single = 0;
-		 double max_double = 0.0;
-		 int max_index_double = 0;
+	for (int i = 0; i < NbComponents; ++i) {
+		// Single-electron detachment
+		double CS_single[i+1] = {0.0};
+		if(Eng > CSCoefSingle[i][0]) {
+			E1 = (Eng-CSCoefSingle[i][0]);
+			num = sigma_0 * CSCoefSingle[i][1] * pow((E1/E_R),CSCoefSingle[i][2]);
+			den = 1+pow((E1/CSCoefSingle[i][3]),(CSCoefSingle[i][2]+CSCoefSingle[i][4]))+pow((E1/CSCoefSingle[i][5]),(CSCoefSingle[i][2]+CSCoefSingle[i][6]));
+			CS_single[i] = num / den;
+		}
+//		*gmsg << "* CS_single[i] 	= " << CS_single[i]   << endl;
 
-		 double m = 0.0;
-		 double n = 0.0;
+		// Double-electron detachment
+		double CS_double[i+1] = {0.0};
+		if(Eng > CSCoefDouble[i][0]) {
+			E1 = (Eng-CSCoefDouble[i][0]);
+			num = sigma_0 * CSCoefDouble[i][1] * pow((E1/E_R),CSCoefSingle[i][2]);
+			den = 1+pow((E1/CSCoefDouble[i][3]),(CSCoefDouble[i][2]+CSCoefDouble[i][4]));
+			CS_double[i] = num / den;
+		}
+//		*gmsg << "* CS_double[i] 	= " << CS_double[i]   << endl;
 
-		 for (int j = 0; j < size_single; ++j){
-			 if (fEnergyCSSingle[i][j] > max_single){
-				 max_single = fEnergyCSSingle[i][j];
-				 max_index_single = j;
-			 }
-		 }
-		 if(Eng < fEnergyCSSingle[i][0]) {
-			 m = (fCrossSectionSingle[i][1]-fCrossSectionSingle[i][0]) /
-					 (fEnergyCSSingle[i][1]-fEnergyCSSingle[i][0]);
-			 n = fCrossSectionSingle[i][0] - m * fEnergyCSSingle[i][0];
-			 CS_single[i] = m * Eng + n;
-		 }
-		 else if(Eng > fEnergyCSSingle[i][max_index_single]) {
-			 m = (fCrossSectionSingle[i][max_index_single]-fCrossSectionSingle[i][max_index_single-1]) /
-					 (fEnergyCSSingle[i][max_index_single]-fEnergyCSSingle[i][max_index_single-1]);
-			 n = fCrossSectionSingle[i][max_index_single] - m * fEnergyCSSingle[i][max_index_single];
-			 CS_single[i] = m * Eng + n;
-		 }
-		 else if(Eng > fEnergyCSSingle[i][0] && Eng < fEnergyCSSingle[i][max_index_single]){
-			 for (int j=0; j<(max_index_single); ++j){
-				 if(Eng == fEnergyCSSingle[i][j])
-					 CS_single[i] = fEnergyCSSingle[i][j];
-				 else if(Eng > fEnergyCSSingle[i][j] && Eng < fEnergyCSSingle[i][j+1]) {
-					 m = (fCrossSectionSingle[i][j+1]-fCrossSectionSingle[i][j]) /
-							 (fEnergyCSSingle[i][j+1]-fEnergyCSSingle[i][j]);
-					 n = fCrossSectionSingle[i][j] - m * fEnergyCSSingle[i][j];
-					 CS_single[i] = m * Eng + n;
-				 }
-			 }
-		 }
-//		 *gmsg << "* CS_single[i] 	= " << CS_single[i]   << endl;
-
-	 // Double-electron detachment
-		 double CS_double[i+1];
-		 for (int j = 0; j < size_double; ++j){
-			 if (fEnergyCSDouble[i][j] > max_double){
-				 max_double = fEnergyCSDouble[i][j];
-				 max_index_double = j;
-			 }
-		 }
-		 if(Eng < fEnergyCSDouble[i][0]) {
-			 m = (fCrossSectionDouble[i][1]-fCrossSectionDouble[i][0]) /
-					 (fEnergyCSDouble[i][1]-fEnergyCSDouble[i][0]);
-			 n = fCrossSectionDouble[i][0] - m * fEnergyCSDouble[i][0];
-			 CS_double[i] = m * Eng + n;
-		 }
-		 else if(Eng > fEnergyCSDouble[i][max_index_double]) {
-			 m = (fCrossSectionDouble[i][max_index_double]-fCrossSectionDouble[i][max_index_double-1]) /
-					 (fEnergyCSDouble[i][max_index_double]-fEnergyCSDouble[i][max_index_double-1]);
-			 n = fCrossSectionDouble[i][max_index_double] - m * fEnergyCSDouble[i][max_index_double];
-			 CS_double[i] = m * Eng + n;
-		 }
-		 else if(Eng > fEnergyCSDouble[i][0] && Eng < fEnergyCSDouble[i][max_index_double]){
-			 for (int j=0; j<(max_index_double); ++j){
-				 if(Eng == fEnergyCSDouble[i][j])
-					 CS_double[i] = fEnergyCSDouble[i][j];
-				 else if(Eng > fEnergyCSDouble[i][j] && Eng < fEnergyCSDouble[i][j+1]) {
-					 m = (fCrossSectionDouble[i][j+1]-fCrossSectionDouble[i][j]) /
-							 (fEnergyCSDouble[i][j+1]-fEnergyCSDouble[i][j]);
-					 n = fCrossSectionDouble[i][j] - m * fEnergyCSDouble[i][j];
-					 CS_double[i] = m * Eng + n;
-				 }
-			 }
-		 }
-//		 *gmsg << "* CS_double[i] 	= " << CS_double[i]   << endl;
-
-		 CS[i] = CS_single[i] + CS_double[i];
-//		 *gmsg << "* CS[i] = " << CS[i] << " cm2" << endl;
-	 }
+		CS[i] = CS_single[i] + CS_double[i];
+//		*gmsg << "* CS[i] = " << CS[i] << " cm2" << endl;
+	}
 }
 
 double BeamStrippingPhysics::RandomGenerator() {
@@ -406,6 +436,25 @@ const double BeamStrippingPhysics::fMolarFraction[3] = {
 		//Argon
 		0.934/100
 };
+
+const double BeamStrippingPhysics::CSCoefSingle[3][7] = {
+		// Nitrogen
+		{7.50E-04, 4.38E+02, 7.28E-01, 8.40E-01, 2.82E-01, 4.10E+01, 1.37E+00},
+		//Oxygen
+		{-2.00E-04, 3.45E+02, 4.80E-01, 5.30E-02, 8.40E-02, 1.00E+01, 9.67E-01},
+		//Argon
+		{1.70E-3, 2.47E+01, 3.36E-01, 7.00E+01, 5.00E-01, 9.90E+01, 7.80E-01}
+};
+
+const double BeamStrippingPhysics::CSCoefDouble[3][5] = {
+		// Nitrogen
+		{1.40E-02, 1.77e+00, 4.80E-01, 1.52E+02, 1.52E+00},
+		//Oxygen
+		{1.30E-02, 1.90E+00, 6.20E-01, 5.20E+01, 9.93E-01},
+		//Argon
+		{1.50E-02, 1.97E+00, 8.90E-01, 5.10E+01, 9.37E-01}
+};
+
 
 const double BeamStrippingPhysics::fCrossSectionSingle[3][48] = {
 		// Nitrogen

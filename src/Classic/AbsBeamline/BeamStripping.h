@@ -95,16 +95,6 @@ public:
     void setTemperature(double temperature) ;
     double getTemperature() const;
 
-    void setMinR(double r);
-    double getMinR() const;
-    void setMaxR(double r);
-    double getMaxR() const;
-
-    void setMinZ(double z);
-    double getMinZ() const;
-    void setMaxZ(double z);
-    double getMaxZ() const;
-
 
 private:
 

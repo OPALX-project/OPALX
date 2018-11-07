@@ -2252,8 +2252,6 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
         	BeamStripping * bstp;
             bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
-//			Cyclotron *cycl;
-//            cycl = cycl->clone();
             bstp->checkBeamStripping(itsBunch_m, cycl_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
         }
     }
