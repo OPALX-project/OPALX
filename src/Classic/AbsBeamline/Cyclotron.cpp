@@ -1006,7 +1006,7 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
 
 
 
-// Calculates Radiae of initial grid.
+// Calculates Radii of initial grid.
 // dimensions in [m]!
 void Cyclotron::initR(double rmin, double dr, int nrad) {
     BP.rarr.resize(nrad);
