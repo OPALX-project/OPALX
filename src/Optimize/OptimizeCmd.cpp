@@ -446,7 +446,7 @@ void OptimizeCmd::execute() {
 
         for (auto itr = dvarCheck.begin(); itr != dvarCheck.end(); ++ itr) {
             if (itr->second == 0) {
-                throw OpalException("SampleCmd::execute()",
+                throw OpalException("OptimizeCmd::execute()",
                                     "Couldn't find the design variable '" + itr->first + "' in '" + tmplFile + "'!");
             }
         }

@@ -1116,7 +1116,7 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
     if (Ippl::myNode() == 0) {
         inputFile.open(fileName.c_str());
         if (inputFile.fail())
-            throw OpalException("Distribution::create()",
+            throw OpalException("Distribution::createDistributionFromFile",
                                 "Open file operation failed, please check if \""
                                 + fileName
                                 + "\" really exists.");

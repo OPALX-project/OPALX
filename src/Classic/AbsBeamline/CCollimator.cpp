@@ -298,7 +298,7 @@ void CCollimator::setGeom() {
     geom_m[4].y = geom_m[0].y;
 
     // calculate maximum and mininum r from these
-    // current implementation not perfect minimum does not need to lie on corner, on in middle
+    // current implementation not perfect minimum does not need to lie on corner, or in middle
     rmin_m = std::hypot(xstart_m, ystart_m);
     rmax_m = -std::numeric_limits<double>::max();
     for (int i=0; i<4; i++) {
