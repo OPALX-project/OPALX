@@ -35,23 +35,11 @@ OpalBeamStripping::OpalBeamStripping():
     							("PRESSURE", " Pressure os the accelerator, [mbar]");
     itsAttr[TEMPERATURE] 	= Attributes::makeReal
     							("TEMPERATURE", " Temperature of the accelerator, [K]");
-    itsAttr[MINZ]     		= Attributes::makeReal
-                        		("MINZ","Minimal vertical extent of the machine [mm]",-10000.0);
-    itsAttr[MAXZ]     		= Attributes::makeReal
-                        		("MAXZ","Maximal vertical extent of the machine [mm]",10000.0);
-    itsAttr[MINR]     		= Attributes::makeReal
-                        		("MINR","Minimal radial extent of the machine [mm]", 0.0);
-    itsAttr[MAXR]     		= Attributes::makeReal
-                        		("MAXR","Maximal radial extent of the machine [mm]", 10000.0);
     itsAttr[OUTFN] 			= Attributes::makeString
     							("OUTFN", "BeamStripping output filename");
 
     registerRealAttribute("PRESSURE");
     registerRealAttribute("TEMPERATURE");
-    registerRealAttribute("MINZ");
-    registerRealAttribute("MAXZ");
-    registerRealAttribute("MINR");
-    registerRealAttribute("MAXR");
     registerStringAttribute("OUTFN");
 
     registerOwnership();
@@ -92,18 +80,8 @@ void OpalBeamStripping::update() {
     double pressure 				= Attributes::getReal(itsAttr[PRESSURE]);
     double temperature 				= Attributes::getReal(itsAttr[TEMPERATURE]);
 
-    double minz = Attributes::getReal(itsAttr[MINZ]);
-    double maxz = Attributes::getReal(itsAttr[MAXZ]);
-    double minr = Attributes::getReal(itsAttr[MINR]);
-    double maxr = Attributes::getReal(itsAttr[MAXR]);
-
     bstp->setPressure(pressure);
     bstp->setTemperature(temperature);
-
-    bstp->setMinR(minr);
-    bstp->setMaxR(maxr);
-    bstp->setMinZ(minz);
-    bstp->setMaxZ(maxz);
 
     bstp->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
