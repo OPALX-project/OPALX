@@ -129,8 +129,14 @@ public:
             setup(known_expr_funcs);
     }
 
-    ~Pilot()
-    {}
+    virtual ~Pilot()
+    {
+        for (auto itr = objectives_.begin(); itr != objectives_.end(); ++ itr)
+            delete itr->second;
+
+        for (auto itr = constraints_.begin(); itr != constraints_.end(); ++ itr)
+            delete itr->second;
+    }
 
 
 protected:

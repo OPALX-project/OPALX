@@ -60,10 +60,12 @@ void Inform::setup(const char *myname, int pnode) {
     MsgLevel = MIN_INFORM_LEVEL;
     PrintNode = pnode;
 
-    if ( myname != 0 )
-        Name = strcpy(new char[strlen(myname) + 1], myname);
-    else
+    if ( myname != 0 ) {
+        Name = new char[strlen(myname) + 1];
+        strcpy(Name, myname);
+    } else {
         Name = 0;
+    }
 }
 
 
