@@ -76,7 +76,7 @@ public:
         this->setup(known_expr_funcs, storeobjstr);
     }
 
-    ~SamplePilot()
+    virtual ~SamplePilot()
     {}
 
 
