@@ -61,8 +61,7 @@ void Inform::setup(const char *myname, int pnode) {
     PrintNode = pnode;
 
     if ( myname != 0 ) {
-        Name = new char[strlen(myname) + 1];
-        strcpy(Name, myname);
+        Name = strcpy(new char[strlen(myname) + 1], myname);
     } else {
         Name = 0;
     }

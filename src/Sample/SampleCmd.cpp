@@ -423,18 +423,21 @@ void SampleCmd::execute() {
 
     Inform *origGmsg = gmsg;
     gmsg = 0;
-    stashEnvironment();
     try {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
+        if (comm->isWorker())
+            stashEnvironment();
+
         boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods, storeobjstr));
+        if (comm->isWorker())
+            popEnvironment();
 
     } catch (OptPilotException &e) {
         std::cout << "Exception caught: " << e.what() << std::endl;
         MPI_Abort(MPI_COMM_WORLD, -100);
     }
-    popEnvironment();
     gmsg = origGmsg;
 }
 
