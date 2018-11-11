@@ -166,6 +166,12 @@ void OpalSimulation::createSymlink_m(const std::string& path) {
                                     target);
         }
     }
+
+    for(int i=0; i<count; i++) {
+        free(files[i]);
+    }
+
+    free(files);
 }
 
 void OpalSimulation::setupSimulation() {
