@@ -454,7 +454,6 @@ void OptimizeCmd::execute() {
 
     Inform *origGmsg = gmsg;
     gmsg = 0;
-    stashEnvironment();
     try {
         CmdArguments_t args(new CmdArguments(argv.size(), &argv[0]));
 
@@ -464,7 +463,6 @@ void OptimizeCmd::execute() {
         std::cout << "Exception caught: " << e.what() << std::endl;
         MPI_Abort(MPI_COMM_WORLD, -100);
     }
-    popEnvironment();
     gmsg = origGmsg;
 }
 
@@ -549,6 +547,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
 
     boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
+    if (comm->isWorker())
+        stashEnvironment();
 
     CrossOver crossover = this->crossoverSelection(Attributes::getString(itsAttr[CROSSOVER]));
     Mutation mutation = this->mutationSelection(Attributes::getString(itsAttr[MUTATION]));
@@ -646,4 +646,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             throw OpalException("OptimizeCmd::run",
                                 "No such cross over and mutation combination supported.");
     }
+
+    if (comm->isWorker())
+        popEnvironment();
 }

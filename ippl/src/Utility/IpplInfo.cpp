@@ -641,7 +641,6 @@ IpplInfo::~IpplInfo() {
              // dbgmsg << "  Deleting comm object, since now NumCreated = ";
              // dbgmsg << NumCreated << endl;
              delete Comm;
-             Comm = new Communicate();
 
              NeedDeleteComm = false;
         }
@@ -1091,6 +1090,10 @@ void IpplInfo::stash() {
 
     obj.Comm =                Comm;
     obj.Stats =               Stats;
+    obj.Info =                Info;
+    obj.Warn =                Warn;
+    obj.Error =               Error;
+    obj.Debug =               Debug;
     obj.deferGuardCellFills = deferGuardCellFills;
     obj.noFieldCompression =  noFieldCompression;
     obj.offsetStorage =       offsetStorage;
@@ -1120,8 +1123,13 @@ void IpplInfo::stash() {
 
     stashedStaticMembers.push(obj);
 
-    Comm = new Communicate();
-    Stats = new IpplStats();
+    Comm = 0;
+    Stats = 0;
+    // can't set Info and Warn to zero since
+    //  IpplInfoWrapper requires valid objects
+    Error = 0;
+    Debug = 0;
+
     deferGuardCellFills = false;
     noFieldCompression = false;
     offsetStorage = false;
@@ -1153,14 +1161,22 @@ void IpplInfo::pop() {
     stashedStaticMembers.pop();
     // Delete the communications object, if necessary, to shut down parallel
     // environment
-    delete Comm;
+    // Comm is deleted in destructor
     delete [] MyArgv;
     delete [] SMPIDList;
     delete [] SMPNodeList;
+    delete Info;
+    delete Warn;
+    delete Error;
+    delete Debug;
     delete Stats;
 
     Comm =                obj.Comm;
     Stats =               obj.Stats;
+    Info =                obj.Info;
+    Warn =                obj.Warn;
+    Error =               obj.Error;
+    Debug =               obj.Debug;
     deferGuardCellFills = obj.deferGuardCellFills;
     noFieldCompression =  obj.noFieldCompression;
     offsetStorage =       obj.offsetStorage;
