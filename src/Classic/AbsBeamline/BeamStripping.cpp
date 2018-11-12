@@ -157,8 +157,7 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
 
     size_t tempnum = bunch->getLocalNum();
     for (unsigned int i = 0; i < tempnum; ++i) {
-    	if (bunch->PType[i] == ParticleType::REGULAR)
-    		pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
+    	pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
     	if ( (pflag != 0) && (bunch->Bin[i] != -1) )  {
     		if (!parmatintbst_m)
     			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], t, turnnumber);
