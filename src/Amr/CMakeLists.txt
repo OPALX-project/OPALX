@@ -2,7 +2,6 @@ set (_SRCS
     AmrBoxLib.cpp
     AmrObject.cpp
     AmrYtWriter.cpp
-    Tagging_nd.f90
 )
 
 include_directories (
@@ -11,10 +10,6 @@ include_directories (
 
 add_opal_sources(${_SRCS})
 
-set (CMAKE_Fortran_FLAGS
-     ${CMAKE_Fortran_FLAGS}
-     -Wno-c-binding-type)
-
 add_compile_options (-Wno-unused-variable
                      -Wno-unused-but-set-variable
                      -Wno-maybe-uninitialized)
@@ -22,7 +17,6 @@ add_compile_options (-Wno-unused-variable
 set (HDRS
     AbstractAmrWriter.h
     AmrBoxLib.h
-    AmrBoxLib_F.h
     AmrObject.h
     AmrYtWriter.h
     BoxLibLayout.h

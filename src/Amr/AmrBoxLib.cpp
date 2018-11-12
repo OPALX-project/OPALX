@@ -6,10 +6,10 @@
 
 #include "Amr/AmrYtWriter.h"
     
-#include "AmrBoxLib_F.h"
 #include <AMReX_MultiFabUtil.H>
 
 #include <AMReX_ParmParse.H> // used in initialize function
+#include <AMReX_BCUtil.H>
 
 #include <map>
 
@@ -281,7 +281,7 @@ void AmrBoxLib::computeSelfFields() {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    this->fillPhysbc_m(this->phi_m[0], 0);
+    this->fillPhysbc_m(*(this->phi_m[0]), 0);
     
     /* apply scale of electric-field in order to undo the transformation
      * + undo normalization
@@ -408,7 +408,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    this->fillPhysbc_m(this->phi_m[0], 0);
+    this->fillPhysbc_m(*(this->phi_m[0]), 0);
     
     /* apply scale of electric-field in order to undo the transformation
      * + undo normalization
@@ -523,7 +523,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
-    this->fillPhysbc_m(this->phi_m[0], 0);
+    this->fillPhysbc_m(*(this->phi_m[0]), 0);
     
     
     /* apply scale of electric-field in order to undo the transformation
@@ -823,37 +823,32 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
     const int clearval = TagBox_t::CLEAR;
     const int   tagval = TagBox_t::SET;
 
-    const AmrReal_t* dx      = geom[lev].CellSize();
-    const AmrReal_t* prob_lo = geom[lev].ProbLo();
-    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        AmrIntArray_t  itags;
         for (MFIter_t mfi(*rho_m[lev], true); mfi.isValid(); ++mfi) {
             const Box_t&  tilebx  = mfi.tilebox();
             
             TagBox_t&     tagfab  = tags[mfi];
+            FArrayBox_t&  fab = (*rho_m[lev])[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*rho_m[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &chargedensity_m);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( std::abs( fab(iv) ) >= chargedensity_m )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+                    }
+                }
+            }
         }
     }
 }
@@ -878,9 +873,6 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
     const int clearval = TagBox_t::CLEAR;
     const int   tagval = TagBox_t::SET;
 
-    const AmrReal_t* dx      = geom[lev].CellSize();
-    const AmrReal_t* prob_lo = geom[lev].ProbLo();
-    
     AmrReal_t threshold = phi_m[lev]->norm0(0, 0 /*nghost*/, false /*local*/);
     
     
@@ -888,30 +880,28 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
 #pragma omp parallel
 #endif
     {
-        AmrIntArray_t  itags;
         for (MFIter_t mfi(*phi_m[lev], true); mfi.isValid(); ++mfi) {
             
             const Box_t&  tilebx  = mfi.tilebox();
             TagBox_t&     tagfab  = tags[mfi];
+            FArrayBox_t&  fab     = (*phi_m[lev])[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            tag_potential_strength(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*phi_m[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &threshold);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( std::abs( fab(iv) ) >= threshold )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+                    }
+                }
+            }
         }
     }
 }
@@ -1457,7 +1447,7 @@ void AmrBoxLib::initParmParse_m(const AmrInfo& info, AmrLayout_t* layout_p) {
 }
 
 
-void AmrBoxLib::fillPhysbc_m(MultiFab& mf, int lev) {
+void AmrBoxLib::fillPhysbc_m(AmrField_t& mf, int lev) {
     /* Copied from one of the miniapps:
      * 
      * amrex/Src/AmrTask/tutorials/MiniApps/HeatEquation/physbc.cpp
@@ -1468,15 +1458,15 @@ void AmrBoxLib::fillPhysbc_m(MultiFab& mf, int lev) {
      * Author: Weiqun Zhang <weiqunzhang@lbl.gov>
      * Date:   Mon Jul 2 10:40:21 2018 -0700
      */
-    if (Geometry::isAllPeriodic())
+    if (AmrGeometry_t::isAllPeriodic())
         return;
     // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
-    Vector<amrex::BCRec> bc(mf.nComp());
+    amrex::Vector<amrex::BCRec> bc(mf.nComp());
     for (int n = 0; n < mf.nComp(); ++n)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            if (Geometry::isPeriodic(idim))
+            if (AmrGeometry_t::isPeriodic(idim))
             {
                 bc[n].setLo(idim, amrex::BCType::int_dir); // interior
                 bc[n].setHi(idim, amrex::BCType::int_dir);
