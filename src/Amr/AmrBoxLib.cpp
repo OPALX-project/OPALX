@@ -281,6 +281,12 @@ void AmrBoxLib::computeSelfFields() {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
+    // make sure ghost cells are filled
+    for (int i = 0; i <= finest_level; ++i) {
+        phi_m[i]->FillBoundary(geom[i].periodicity());
+        efield_m[i]->FillBoundary(geom[i].periodicity());
+    }
+    
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
     
     /* apply scale of electric-field in order to undo the transformation
@@ -408,6 +414,12 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
+    // make sure ghost cells are filled
+    for (int i = 0; i <= finest_level; ++i) {
+        phi_m[i]->FillBoundary(geom[i].periodicity());
+        efield_m[i]->FillBoundary(geom[i].periodicity());
+    }
+    
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
     
     /* apply scale of electric-field in order to undo the transformation
@@ -522,6 +534,12 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level, false);
     
     IpplTimings::stopTimer(this->amrSolveTimer_m);
+    
+    // make sure ghost cells are filled
+    for (int i = 0; i <= finest_level; ++i) {
+        phi_m[i]->FillBoundary(geom[i].periodicity());
+        efield_m[i]->FillBoundary(geom[i].periodicity());
+    }
     
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
     
