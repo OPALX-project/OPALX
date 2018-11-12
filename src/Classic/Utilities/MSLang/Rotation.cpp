@@ -14,7 +14,7 @@ namespace mslang {
                   << indent2 << "angle: " << angle_m;
     }
 
-    void Rotation::applyRotation(std::vector<Base*> &bfuncs) {
+    void Rotation::applyRotation(std::vector<std::shared_ptr<Base> > &bfuncs) {
 
         AffineTransformation rotation(Vector_t(cos(angle_m), sin(angle_m), 0.0),
                                       Vector_t(-sin(angle_m), cos(angle_m), 0.0));
@@ -22,7 +22,7 @@ namespace mslang {
         const unsigned int size = bfuncs.size();
 
         for (unsigned int j = 0; j < size; ++ j) {
-            Base *obj = bfuncs[j];
+            std::shared_ptr<Base> &obj = bfuncs[j];
             obj->trafo_m = obj->trafo_m.mult(rotation);
 
             if (obj->divisor_m.size() > 0)
@@ -30,7 +30,7 @@ namespace mslang {
         }
     }
 
-    void Rotation::apply(std::vector<Base*> &bfuncs) {
+    void Rotation::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         func_m->apply(bfuncs);
         applyRotation(bfuncs);
     }

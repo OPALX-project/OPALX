@@ -13,31 +13,31 @@ namespace mslang {
         secondOperand_m->print(indentwidth + 8);
     }
 
-    void SymmetricDifference::apply(std::vector<Base*> &bfuncs) {
-        std::vector<Base*> first, second;
+    void SymmetricDifference::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        std::vector<std::shared_ptr<Base> > first, second;
 
         firstOperand_m->apply(first);
         secondOperand_m->apply(second);
         for (auto item: first) {
             item->divideBy(second);
-            bfuncs.push_back(item->clone());
+            bfuncs.emplace_back(std::move(item->clone()));
         }
 
         for (auto item: first)
-            delete item;
+            item.reset();
 
         first.clear();
 
         firstOperand_m->apply(first);
         for (auto item: second) {
             item->divideBy(first);
-            bfuncs.push_back(item->clone());
+            bfuncs.emplace_back(std::move(item->clone()));
         }
 
         for (auto item: first)
-            delete item;
+            item.reset();
         for (auto item: second)
-            delete item;
+            item.reset();
     }
 
     bool SymmetricDifference::parse_detail(iterator &it, const iterator &end, Function* &fun) {

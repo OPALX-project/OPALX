@@ -116,6 +116,9 @@ public:
     virtual void visitVariableRFCavity(const VariableRFCavity &vcav);
 
     /// Apply the algorithm to a RF cavity.
+    virtual void visitVariableRFCavityFringeField(const VariableRFCavityFringeField &vcav);
+
+    /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
 
     /// Apply the algorithm to a RF cavity.

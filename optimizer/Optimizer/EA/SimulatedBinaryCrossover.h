@@ -20,7 +20,7 @@ template <class T> struct SimulatedBinaryCrossover
         } catch(OptPilotException &e)
         {}
 
-        for(int i = 0; i < ind1->genes.size(); i++) {
+        for(std::size_t i = 0; i < ind1->genes_m.size(); i++) {
 
             double ui = (double) rand() / (RAND_MAX + 1.0);
             double beta_qi = 0.0;
@@ -30,11 +30,11 @@ template <class T> struct SimulatedBinaryCrossover
                 beta_qi = pow(1.0/(2 * (1.0 - ui)), 1.0/(nu_c + 1.0));
             }
 
-            double ming = min(ind1->genes[i], ind2->genes[i]);
-            double maxg = max(ind1->genes[i], ind2->genes[i]);
+            double ming = std::min(ind1->genes_m[i], ind2->genes_m[i]);
+            double maxg = std::max(ind1->genes_m[i], ind2->genes_m[i]);
 
-            ind1->genes[i] = 0.5 * ((1 + beta_qi) * ming + (1 - beta_qi) * maxg);
-            ind2->genes[i] = 0.5 * ((1 - beta_qi) * ming + (1 + beta_qi) * maxg);
+            ind1->genes_m[i] = 0.5 * ((1 + beta_qi) * ming + (1 - beta_qi) * maxg);
+            ind2->genes_m[i] = 0.5 * ((1 - beta_qi) * ming + (1 + beta_qi) * maxg);
         }
     }
 };

@@ -57,8 +57,7 @@ OpalRCollimator::OpalRCollimator(const std::string &name, OpalRCollimator *paren
 
 
 OpalRCollimator::~OpalRCollimator() {
-    if(parmatint_m)
-        delete parmatint_m;
+    delete parmatint_m;
 }
 
 
@@ -97,7 +96,7 @@ void OpalRCollimator::update() {
     coll->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
 
     if (getOpalName() != "RCOLLIMATOR") {
-        double width = 2 * Attributes::getReal(itsAttr[XSIZE]);
+        double width  = 2 * Attributes::getReal(itsAttr[XSIZE]);
         double height = 2 * Attributes::getReal(itsAttr[YSIZE]);
         std::stringstream description;
         description << "rectangle(" << width << "," << height << ")";

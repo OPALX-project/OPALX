@@ -43,6 +43,7 @@ set (_SRCS
   Stripper.cpp
   TravelingWave.cpp
   VariableRFCavity.cpp
+  VariableRFCavityFringeField.cpp
   )
 
 include_directories (
@@ -96,6 +97,7 @@ set (HDRS
     Stripper.h
     TravelingWave.h
     VariableRFCavity.h
+    VariableRFCavityFringeField.h
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline")

@@ -1116,7 +1116,7 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
     if (Ippl::myNode() == 0) {
         inputFile.open(fileName.c_str());
         if (inputFile.fail())
-            throw OpalException("Distribution::create()",
+            throw OpalException("Distribution::createDistributionFromFile",
                                 "Open file operation failed, please check if \""
                                 + fileName
                                 + "\" really exists.");
@@ -1174,6 +1174,15 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
                 buffer = reinterpret_cast<const char*>(&P[0]);
                 data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
                 ++ numPartsToSend;
+
+                if (numPartsToSend % distributeFrequency == 0) {
+                    MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+                    MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+                    numPartsToSend = 0;
+
+                    std::vector<char>().swap(data);
+                    data.reserve(dataSize);
+                }
             } else {
                 xDist_m.push_back(R(0));
                 yDist_m.push_back(R(1));
@@ -1185,15 +1194,6 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
             ++ numParts;
             ++ saveProcessor;
-
-            if (numPartsToSend % distributeFrequency == distributeFrequency - 1) {
-                MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
-                MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
-                numPartsToSend = 0;
-
-                std::vector<char>().swap(data);
-                data.reserve(dataSize);
-            }
         }
 
         dataSize = (numberOfParticlesRead == numParts? data.size(): std::numeric_limits<unsigned int>::max());
@@ -1211,7 +1211,6 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
 
     } else {
         do {
-            size_t i = 0;
             MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
             if (dataSize == std::numeric_limits<unsigned int>::max()) {
                 throw OpalException("Distribution::createDistributionFromFile",
@@ -1222,6 +1221,7 @@ void Distribution::createDistributionFromFile(size_t numberOfParticles, double m
             }
             MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
 
+            size_t i = 0;
             while (i < dataSize) {
 
                 if (saveProcessor + 1 == (unsigned) Ippl::myNode()) {

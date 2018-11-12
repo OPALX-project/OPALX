@@ -42,6 +42,7 @@
 #include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
@@ -177,6 +178,11 @@ void DefaultVisitor::visitRBend3D(const RBend3D &bend) {
 }
 
 void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity &vcav) {
+    applyDefault(vcav);
+}
+
+void DefaultVisitor::visitVariableRFCavityFringeField
+                                (const VariableRFCavityFringeField &vcav) {
     applyDefault(vcav);
 }
 

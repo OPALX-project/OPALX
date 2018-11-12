@@ -27,6 +27,7 @@
 #include "AbsBeamline/Ring.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
@@ -138,6 +139,10 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity &vcav);
+
+    /// Apply the algorithm to a RF cavity.
+    virtual void visitVariableRFCavityFringeField
+                                      (const VariableRFCavityFringeField &vcav);
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
@@ -348,8 +353,16 @@ void SpecificElementVisitor<ELEM>::visitRBend3D(const RBend3D &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitVariableRFCavity(const VariableRFCavity &element) {
+void SpecificElementVisitor<ELEM>::visitVariableRFCavity
+                                             (const VariableRFCavity &element) {
     CastsTrait<ELEM, VariableRFCavity>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitVariableRFCavityFringeField
+                                  (const VariableRFCavityFringeField &element) {
+    CastsTrait<ELEM, VariableRFCavityFringeField>::apply(allElementsOfTypeE,
+                                                         element);
 }
 
 template<class ELEM>

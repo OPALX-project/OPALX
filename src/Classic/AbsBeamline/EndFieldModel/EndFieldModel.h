@@ -32,7 +32,7 @@
 #include <vector>
 
 namespace endfieldmodel {
-
+  
 class EndFieldModel {
  public:
   virtual ~EndFieldModel() {;}

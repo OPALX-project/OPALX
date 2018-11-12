@@ -121,8 +121,11 @@ private:
     double rend_m;
     double width_m;
     ///@}
-
+    /// 4 end points in (x,y) (5th point == 1st)
     Point  geom_m[5];
+    double rmin_m; ///< minimum extend in r
+    double rmax_m; ///< maximum extend in r
+    /// Sets geom_m and maximal radii
     void setGeom();
 
     unsigned int losses_m;

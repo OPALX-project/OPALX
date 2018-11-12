@@ -13,8 +13,8 @@ namespace mslang {
         secondOperand_m->print(indentwidth + 8);
     }
 
-    void Intersection::apply(std::vector<Base*> &bfuncs) {
-        std::vector<Base*> first, firstrep, second;
+    void Intersection::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        std::vector<std::shared_ptr<Base> > first, firstrep, second;
 
         firstOperand_m->apply(first);
         firstOperand_m->apply(firstrep);
@@ -26,15 +26,15 @@ namespace mslang {
 
         for (auto item: first) {
             item->divideBy(firstrep);
-            bfuncs.push_back(item->clone());
+            bfuncs.emplace_back(std::move(item->clone()));
         }
 
         for (auto item: first)
-            delete item;
+            item.reset();
         for (auto item: firstrep)
-            delete item;
+            item.reset();
         for (auto item: second)
-            delete item;
+            item.reset();
     }
 
     bool Intersection::parse_detail(iterator &it, const iterator &end, Function* &fun) {
