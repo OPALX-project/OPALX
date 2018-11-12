@@ -13,11 +13,11 @@ public:
     
     AmrPartBunch(const PartData *ref);
 
-    /// Conversion.
-    AmrPartBunch(const std::vector<OpalParticle> &,
-                 const PartData *ref);
+//     /// Conversion.
+//     AmrPartBunch(const std::vector<OpalParticle> &,
+//                  const PartData *ref);
 
-    AmrPartBunch(const AmrPartBunch &);
+//     AmrPartBunch(const AmrPartBunch &);
     
     ~AmrPartBunch();
     

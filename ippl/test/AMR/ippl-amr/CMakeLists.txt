@@ -49,25 +49,24 @@ SET (LIBS
     ${IPPL_LIBRARY}
     ippl
     ${Boost_LIBRARIES}
+    ${MPI_LIBRARIES}
     ${MPI_CXX_LIBRARIES}
     ${MPI_Fortran_LIBRARIES}
     ${Fortran_LIBS}
     ${AMREX_EXTRA_Fortran_LINK_LINE}
     ${AMREX_LIBRARIES}
     ${GSL_LIBRARY}
+    ${GSL_CLBAS_LIBRARY}
     m
     z
 )
 
-set(F90_source_files ../Tagging_nd.f90)
 
 add_library(amropal
             ../AmrOpal.cpp
-            ../AmrOpal_F.h
             AmrParticleBase1.hpp
             ../Distribution.cpp
             ../H5Reader.cpp
-            ${F90_source_files}
             ../Solver.cpp
             ../MGTSolver.cpp)
 
@@ -133,7 +132,6 @@ IF ( ${AMREX_DIM} EQUAL 3 )
 #                 AmrParticleBase1.hpp
 #                 ../Distribution.cpp
 #                 ../H5Reader.cpp
-#                 ${F90_source_files}
 #                 ${CMAKE_SOURCE_DIR}/src/Classic/Physics/Physics.cpp
 #                 ../Solver.cpp)
 
@@ -152,7 +150,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     target_link_libraries (testPerformance ${TESTLIBS}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
-    target_link_libraries (testPlasma ${TESTLIBS}
+    target_link_libraries (testPlasma ${TESTLIBS} -lboost_mpi
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
 
     target_link_libraries (testTagging ${TESTLIBS}
@@ -219,7 +217,7 @@ IF ( ${AMREX_DIM} EQUAL 2 )
                     PlasmaPIC.cpp
                     testPlasma.cpp)
     
-    target_link_libraries (testPlasma ${TESTLIBS} -lgslcblas -lboost_mpi
+    target_link_libraries (testPlasma ${TESTLIBS} -lboost_mpi
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     set (EXECS testPlasma)
 ENDIF ( ${AMREX_DIM} EQUAL 2 )

@@ -1,5 +1,4 @@
 #include "AmrOpal.h"
-#include "AmrOpal_F.h"
 #include <AMReX_PlotFileUtil.H>
 // #include <MultiFabUtil.H>
 
@@ -480,30 +479,31 @@ void AmrOpal::tagForChargeDensity_m(int lev, amrex::TagBoxArray& tags, amrex::Re
 #pragma omp parallel
 #endif
     {
-        amrex::Vector<int>  itags;
-        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev], false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
+            amrex::FArrayBox&  fab     = (*nChargePerCell_m[lev])[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &scale, &nCharge_m);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( std::abs( fab(iv) ) >= nCharge_m )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
         }
     }
 }
@@ -596,30 +596,31 @@ void AmrOpal::tagForPotentialStrength_m(int lev, amrex::TagBoxArray& tags, amrex
 #pragma omp parallel
 #endif
     {
-        amrex::Vector<int>  itags;
-        for (amrex::MFIter mfi(*phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*phi[lev], false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
+            amrex::FArrayBox&  fab     = (*phi[lev])[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            tag_potential_strength(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*phi[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &scale, &value);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( std::abs( fab(iv) ) >= value )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
         }
     }
     
@@ -987,30 +988,37 @@ void AmrOpal::tagForCenteredRegion_m(int lev, amrex::TagBoxArray& tags, amrex::R
 #pragma omp parallel
 #endif
     {
-        amrex::Vector<int>  itags;
         for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            centered_region(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                double x = prob_lo[0] + i * dx[0] + 0.5 * dx[0];
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    double y = prob_lo[1] + j * dx[1] + 0.5 * dx[1];
+#if AMREX_SPACEDIM == 3
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        double z = prob_lo[2] + k * dx[2] + 0.5 * dx[2];
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( AMREX_D_TERM(   x >= -0.125 && x < 0.125,
+                                          && y >= -0.125 && y < 0.125,
+                                          && z >= -0.125 && z < 0.125 ) )
+                        {
+                            tagfab(iv) = tagval;
+                        } else {
+                            tagfab(iv) = clearval;
+                        }
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
         }
     }
 }

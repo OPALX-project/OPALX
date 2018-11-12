@@ -30,6 +30,7 @@ include_directories (
     ${BOOST_INCLUDE_DIR}
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
+    ${GSL_INCLUDE_DIR}
 )
     
 link_directories (
@@ -42,23 +43,8 @@ link_directories (
     ${BOOST_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
+    ${GSL_LIBRARY_DIR}
 )
-    
-SET (LIBS
-    ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARIES}
-    ${IPPL_LIBRARY}
-    ippl
-    ${Boost_LIBRARIES}
-    ${MPI_CXX_LIBRARIES}
-    ${MPI_Fortran_LIBRARIES}
-    ${Fortran_LIBS}
-    ${AMREX_LIBRARIES}
-    m
-    z
-)
-
-set(F90_source_files ../Tagging_nd.f90)
 
 set (TESTLIBS amropal multigrid)
 
@@ -87,18 +73,16 @@ IF ( ${AMREX_DIM} EQUAL 2 )
 ENDIF ( ${AMREX_DIM} EQUAL 2 )
 
 # add_executable( testAmrMultigrid
-#                 testAmrMultigrid.cpp
-#                 ${F90_source_files})
+#                 testAmrMultigrid.cpp)
 
 # add_executable( testSolverComparison
 #                 testSolverComparison.cpp
-#                 ../Solver.cpp
-#                 ${F90_source_files})
+#                 ../Solver.cpp)
 
 IF ( ${AMREX_DIM} EQUAL 3 )
     add_executable( testCopy testCopy.cpp)
 
-    target_link_libraries (testCopy ${TESTLIBS}
+    target_link_libraries (testCopy ${TESTLIBS} ${GSL_LIBRARY} ${GSL_CLBAS_LIBRARY}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     
@@ -108,7 +92,7 @@ IF ( ${AMREX_DIM} EQUAL 3 )
     
     add_executable( trilinos2ippl trilinos2ippl.cpp)
     
-    target_link_libraries (trilinos2ippl ${TESTLIBS}
+    target_link_libraries (trilinos2ippl ${TESTLIBS} ${GSL_LIBRARY} ${GSL_CLBAS_LIBRARY}
                            ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
                            ${OTHER_CMAKE_EXE_LINKER_FLAGS} ${CMAKE_DL_LIBS})
     

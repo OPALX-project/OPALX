@@ -108,7 +108,7 @@ private:
     double boxlength_m;
     Vector_t left_m;
     Vector_t right_m;
-    Vector<int> bNx_m;
+    amrex::Vector<int> bNx_m;
     
     amropal_p amropal_m;
     amrbunch_p bunch_m;

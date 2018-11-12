@@ -161,7 +161,7 @@ void PlasmaPIC::parseBoxInfo_m() {
     
     int nx = 0;
     pp.get("nx", nx);
-    bNx_m = Vector<int>(D_DECL(nx, nx, nx));
+    bNx_m = { D_DECL(nx, nx, nx) };
 }
 
 

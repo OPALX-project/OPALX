@@ -40,7 +40,7 @@
 
 #include "../helper_functions.h"
 
-#include "../boxlib-amr/writePlotFile.H"
+// #include "../boxlib-amr/writePlotFile.H"
 
 #include <cmath>
 
