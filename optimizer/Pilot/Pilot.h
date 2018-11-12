@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 
 #include "boost/smart_ptr.hpp"
 //#include "boost/dynamic_bitset.hpp"
@@ -114,7 +115,8 @@ public:
           const DVarContainer_t &dvar,
           const Expressions::Named_t &obj,
           const Expressions::Named_t &cons,
-          std::vector<double> hypervolRef = {})
+          std::vector<double> hypervolRef = {},
+          bool isOptimizerRun = true)
         : Poller(comm->mpiComm())
         , comm_(comm)
         , cmd_args_(args)
@@ -123,11 +125,18 @@ public:
         , dvars_(dvar)
         , hypervolRef_(hypervolRef)
     {
-        setup(known_expr_funcs);
+        if (isOptimizerRun)
+            setup(known_expr_funcs);
     }
 
-    ~Pilot()
-    {}
+    virtual ~Pilot()
+    {
+        for (auto itr = objectives_.begin(); itr != objectives_.end(); ++ itr)
+            delete itr->second;
+
+        for (auto itr = constraints_.begin(); itr != constraints_.end(); ++ itr)
+            delete itr->second;
+    }
 
 
 protected:
@@ -200,7 +209,7 @@ private:
         }
 
         MPI_Barrier(MPI_COMM_WORLD);
-        parseInputFile(known_expr_funcs);
+        parseInputFile(known_expr_funcs, true);
 
         // here the control flow starts to diverge
         if      ( comm_->isOptimizer() ) { startOptimizer(); }
@@ -210,7 +219,7 @@ private:
 
 protected:
 
-    void parseInputFile(functionDictionary_t known_expr_funcs) {
+    void parseInputFile(functionDictionary_t known_expr_funcs, bool isOptimizationRun) {
 
         try {
             input_file_ = cmd_args_->getArg<std::string>("inputfile", true);
@@ -220,7 +229,7 @@ protected:
             MPI_Abort(comm_m, -101);
         }
 
-        if(objectives_.size() == 0 || dvars_.size() == 0) {
+        if((isOptimizationRun && objectives_.size() == 0) || dvars_.size() == 0) {
             throw OptPilotException("Pilot::Pilot()",
                     "No objectives or dvars specified");
         }
@@ -230,8 +239,10 @@ protected:
             os << "\033[01;35m";
             os << "  ✔ " << objectives_.size()
                << " objectives" << std::endl;
-            os << "  ✔ " << constraints_.size()
-               << " constraints" << std::endl;
+            if (isOptimizationRun) {
+                os << "  ✔ " << constraints_.size()
+                   << " constraints" << std::endl;
+            }
             os << "  ✔ " << dvars_.size()
                << " dvars" << std::endl;
             os << "\e[0m";
@@ -246,7 +257,7 @@ protected:
     void startOptimizer() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << global_rank_ << " ▶ Opt"
+        os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Opt"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
@@ -262,7 +273,7 @@ protected:
     void startWorker() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << global_rank_ << " ▶ Worker"
+        os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 
@@ -284,7 +295,7 @@ protected:
     void startPilot() {
 
         std::ostringstream os;
-        os << "\033[01;35m" << "  " << global_rank_ << " ▶ Pilot"
+        os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Pilot"
            << "\e[0m" << std::endl;
         std::cout << os.str() << std::flush;
 

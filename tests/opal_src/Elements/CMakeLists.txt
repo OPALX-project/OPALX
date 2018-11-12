@@ -2,6 +2,7 @@ set (_SRCS
     OpalOffsetTest.cpp
     OpalPolynomialTimeDependenceTest.cpp
     OpalVariableRFCavityTest.cpp
+    OpalVariableRFCavityFringeFieldTest.cpp
 )
 
 include_directories (

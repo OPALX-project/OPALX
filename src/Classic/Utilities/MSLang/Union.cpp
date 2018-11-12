@@ -19,9 +19,9 @@ namespace mslang {
                   << indent2 << "} ";
     }
 
-    void Union::apply(std::vector<Base*> &bfuncs) {
+    void Union::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         for (unsigned int i = 0; i < funcs_m.size(); ++ i) {
-            std::vector<Base*> children;
+            std::vector<std::shared_ptr<Base> > children;
             Function *func = funcs_m[i];
             func->apply(children);
             bfuncs.insert(bfuncs.end(), children.begin(), children.end());

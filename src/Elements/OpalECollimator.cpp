@@ -96,7 +96,7 @@ void OpalECollimator::update() {
     coll->setElementLength(length);
 
     if (getOpalName() != "ECOLLIMATOR") {
-        double width = 2 * Attributes::getReal(itsAttr[XSIZE]);
+        double width  = 2 * Attributes::getReal(itsAttr[XSIZE]);
         double height = 2 * Attributes::getReal(itsAttr[YSIZE]);
         std::stringstream description;
         description << "ellipse(" << width << "," << height << ")";

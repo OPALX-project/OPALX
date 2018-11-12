@@ -9,7 +9,7 @@ template <class T> struct IndependentBitMutation
         const double probability =
             args->getArg<double>("gene-mutation-probability", 0.5);
 
-        for(size_t i = 0; i < ind->genes.size(); i++) {
+        for(size_t i = 0; i < ind->genes_m.size(); i++) {
             double rval = static_cast<double>(rand() / (RAND_MAX + 1.0));
             if(rval < probability) {
                 ind->new_gene(i);

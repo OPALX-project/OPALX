@@ -9,10 +9,12 @@
 #include <cstdlib>
 #include <vector>
 #include <ctime>
+#include <exception>
 
 #include "Optimize/OpalSimulation.h"
 
 #include "Util/SDDSReader.h"
+#include "Util/SDDSParser.h"
 #include "Util/SDDSParser/SDDSParserException.h"
 #include "Util/OptPilotException.h"
 #include "Util/NativeHashGenerator.h"
@@ -62,6 +64,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
         std::ostringstream tmp;
         tmp.precision(15);
         tmp << parameter.first << "=" << parameter.second;
+        dvarNames_.insert(parameter.first);
         dict.push_back(tmp.str());
 
         std::ostringstream value;
@@ -163,6 +166,12 @@ void OpalSimulation::createSymlink_m(const std::string& path) {
                                     target);
         }
     }
+
+    for(int i=0; i<count; i++) {
+        free(files[i]);
+    }
+
+    free(files);
 }
 
 void OpalSimulation::setupSimulation() {
@@ -331,6 +340,51 @@ void OpalSimulation::run() {
 }
 
 
+std::map<std::string, std::vector<double> > OpalSimulation::getData(const std::vector<std::string> &statVariables) {
+    std::map<std::string, std::vector<double> > ret;
+    SDDS::SDDSParser parser(simulationDirName_ + "/" + simulationName_ + ".stat");
+    parser.run();
+    for (const std::string &var : statVariables) {
+        SDDS::ast::columnData_t column;
+        try {
+            column = parser.getColumnData(var);
+        } catch (SDDSParserException &e) {
+            std::cout << "failed to read data: " << e.what() << " in " << e.where() << std::endl;
+            continue;
+        }
+
+        std::vector<double> values;
+        auto type = parser.getColumnType(var);
+        switch (type) {
+        case SDDS::ast::FLOAT:
+            for (const auto val: column) {
+                values.push_back(static_cast<double>(boost::get<float>(val)));
+            }
+            break;
+        case SDDS::ast::DOUBLE:
+            for (const auto val: column) {
+                values.push_back(boost::get<double>(val));
+            }
+            break;
+        case SDDS::ast::SHORT:
+            for (const auto val: column) {
+                values.push_back(static_cast<double>(boost::get<short>(val)));
+            }
+            break;
+        case SDDS::ast::LONG:
+            for (const auto val: column) {
+                values.push_back(static_cast<double>(boost::get<long>(val)));
+            }
+            break;
+        default:
+            break;
+        }
+        ret.insert(std::make_pair(var, values));
+    }
+
+    return ret;
+}
+
 void OpalSimulation::collectResults() {
 
     // std::cout << "collectResults" << std::endl;
@@ -358,7 +412,7 @@ void OpalSimulation::collectResults() {
         Expressions::Named_t::iterator namedIt;
         try {
             for(namedIt=objectives_.begin(); namedIt!=objectives_.end(); ++namedIt) {
-
+                if (namedIt->first == "dummy") continue;
                 Expressions::Expr_t *objective = namedIt->second;
 
                 // find out which variables we need in order to evaluate the
@@ -432,6 +486,9 @@ void OpalSimulation::collectResults() {
         } catch(OptPilotException &e) {
             std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception ('" << e.what() << "' in " << e.where() << ")!" << std::endl;
             invalidBunch();
+        } catch(std::exception &e) {
+            std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception ('" << e.what() << "')!" << std::endl;
+            invalidBunch();
         } catch(...) {
             std::cout << "Evaluation of objective or constraint " << namedIt->first << " threw an exception!" << std::endl;
             invalidBunch();
@@ -444,8 +501,6 @@ void OpalSimulation::collectResults() {
         std::cout << "Cannot chdir to "
                   << simulationDirName_.c_str() << std::endl;
     }
-
-    cleanUp();
 }
 
 bool OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,

@@ -50,22 +50,22 @@ namespace mslang {
         // bb_m.writeGnuplot(out);
     }
 
-    void Ellipse::apply(std::vector<Base*> &bfuncs) {
-        bfuncs.push_back(this->clone());
+    void Ellipse::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        bfuncs.emplace_back(std::move(this->clone()));
     }
 
-    Base* Ellipse::clone() const{
-        Ellipse *elps = new Ellipse;
+    std::shared_ptr<Base> Ellipse::clone() const{
+        std::shared_ptr<Ellipse> elps(new Ellipse);
         elps->width_m = width_m;
         elps->height_m = height_m;
         elps->trafo_m = trafo_m;
         elps->bb_m = bb_m;
 
         for (auto item: divisor_m) {
-            elps->divisor_m.push_back(item->clone());
+            elps->divisor_m.emplace_back(std::move(item->clone()));
         }
 
-        return elps;
+        return std::static_pointer_cast<Base>(elps);
     }
 
     void Ellipse::computeBoundingBox() {

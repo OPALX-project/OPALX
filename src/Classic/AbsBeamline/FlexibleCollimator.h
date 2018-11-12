@@ -5,6 +5,8 @@
 #include "Utilities/MSLang.h"
 #include "Utilities/MSLang/QuadTree.h"
 
+#include <memory>
+
 class BeamlineVisitor;
 class LossDataSink;
 // Class FlexibleCollimator
@@ -60,13 +62,15 @@ public:
 
     bool isStopped(const Vector_t &R, const Vector_t &P, double recpgamma);
 
+    void writeHolesAndQuadtree(const std::string &baseFilename) const;
+
 private:
 
     // Not implemented.
     void operator=(const FlexibleCollimator &);
 
     std::string description_m;
-    std::vector<mslang::Base*> holes_m;
+    std::vector<std::shared_ptr<mslang::Base> > holes_m;
     mslang::BoundingBox bb_m;
     mslang::QuadTree tree_m;
 

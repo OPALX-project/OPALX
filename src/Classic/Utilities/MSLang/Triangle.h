@@ -20,8 +20,8 @@ namespace mslang {
         { }
 
         virtual void print(int indentwidth);
-        virtual void apply(std::vector<Base*> &bfuncs);
-        virtual Base* clone() const;
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs);
+        virtual std::shared_ptr<Base> clone() const;
         virtual void writeGnuplot(std::ofstream &out) const;
         virtual void computeBoundingBox();
         double crossProduct(const Vector_t &pt, unsigned int nodeNum) const;

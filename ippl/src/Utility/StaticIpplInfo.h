@@ -5,6 +5,7 @@
 
 class Communicate;
 class IpplStats;
+class Inform;
 //DKS include
 #ifdef IPPL_DKS
 class DKSOPAL;
@@ -25,6 +26,11 @@ public:
 
     // the statistics collection object
     IpplStats *Stats;
+
+    Inform *Info;
+    Inform *Warn;
+    Inform *Error;
+    Inform *Debug;
 
 #ifdef IPPL_DKS
     DKSOPAL *DKS;
