@@ -298,6 +298,12 @@ private:
      */
     static void initParmParse_m(const AmrInfo& info, AmrLayout_t* layout_p);
     
+    /*!
+     * Fill the physical / mesh boundary values
+     * 
+     * @param mf multifab to fill boundary values
+     */
+    void fillPhysbc_m(MultiFab& mf, int lev = 0);
     
 private:
     /// bunch used for tagging strategies

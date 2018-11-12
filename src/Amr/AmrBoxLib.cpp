@@ -281,6 +281,8 @@ void AmrBoxLib::computeSelfFields() {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
+    this->fillPhysbc_m(this->phi_m[0], 0);
+    
     /* apply scale of electric-field in order to undo the transformation
      * + undo normalization
      */
@@ -406,6 +408,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
     
+    this->fillPhysbc_m(this->phi_m[0], 0);
+    
     /* apply scale of electric-field in order to undo the transformation
      * + undo normalization
      */
@@ -518,6 +522,8 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level, false);
     
     IpplTimings::stopTimer(this->amrSolveTimer_m);
+    
+    this->fillPhysbc_m(this->phi_m[0], 0);
     
     
     /* apply scale of electric-field in order to undo the transformation
@@ -1448,4 +1454,40 @@ void AmrBoxLib::initParmParse_m(const AmrInfo& info, AmrLayout_t* layout_p) {
      *  - RRSFC
      */
     pDmap.add("strategy", "SFC");
+}
+
+
+void AmrBoxLib::fillPhysbc_m(MultiFab& mf, int lev) {
+    /* Copied from one of the miniapps:
+     * 
+     * amrex/Src/AmrTask/tutorials/MiniApps/HeatEquation/physbc.cpp
+     * 
+     * AMReX - Revision:
+     * 
+     * commit 8174212e898677d6413cf5e4db44148a52b4b732
+     * Author: Weiqun Zhang <weiqunzhang@lbl.gov>
+     * Date:   Mon Jul 2 10:40:21 2018 -0700
+     */
+    if (Geometry::isAllPeriodic())
+        return;
+    // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+    Vector<amrex::BCRec> bc(mf.nComp());
+    for (int n = 0; n < mf.nComp(); ++n)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            if (Geometry::isPeriodic(idim))
+            {
+                bc[n].setLo(idim, amrex::BCType::int_dir); // interior
+                bc[n].setHi(idim, amrex::BCType::int_dir);
+            }
+            else
+            {
+                bc[n].setLo(idim, amrex::BCType::foextrap); // first-order extrapolation.
+                bc[n].setHi(idim, amrex::BCType::foextrap);
+            }
+        }
+    }
+    
+    amrex::FillDomainBoundary(mf, this->geom[lev], bc);
 }
