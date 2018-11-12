@@ -63,10 +63,16 @@ public:
 private:
 
     void Material();
+
     void MolecularDensity(const double &pressure, const double &temperature, int &iComp);
     void CrossSection(double &Eng);
-    bool GasStripping(double &deltas, double &r);
+
+    double CSAnalyticFunction(double Eng, double Eth,
+    		double a1, double a2, double a3, double a4, double a5, double a6);
+
     double RandomGenerator();
+
+    bool GasStripping(double &deltas, double &r);
 
     bool LorentzStripping(double &gamma, double &E, double &r);
 
@@ -74,10 +80,9 @@ private:
     double dT_m;                     // dt from bunch
     
     double mass;
+    double charge;
     double molecularDensity[3];
     double CS[3];
-
-//    gsl_rng *rGen_m;
 
     std::string material_m;
     std::string FN_m;
@@ -87,13 +92,17 @@ private:
 	int NbComponents;
 	static const double fMolarFraction[3];
 
-	static const double CSCoefSingle[3][7];
-	static const double CSCoefDouble[3][5];
+	static const double CSCoefSingle_Hminus[3][7];
+	static const double CSCoefDouble_Hminus[3][7];
+	static const double CSCoefSingle_Hplus[3][9];
+	static const double CSCoefDouble_Hplus[3][9];
 
+	/*
 	static const double fCrossSectionSingle[3][48];
 	static const double fEnergyCSSingle[3][48];
 	static const double fCrossSectionDouble[3][40];
 	static const double fEnergyCSDouble[3][40];
+	*/
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
