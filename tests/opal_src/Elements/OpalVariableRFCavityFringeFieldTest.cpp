@@ -25,14 +25,24 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Algorithms/PolynomialTimeDependence.h"
+#include "gtest/gtest.h"
 
-Inform &PolynomialTimeDependence::print(Inform &os) {
-  Inform::FmtFlags_t ff = os.flags();
-  os << std::scientific;
-  for (unsigned int i=0; i<this->coeffs.size(); i++)
-    os << "c" << i << "= " << this->coeffs[i] << " ";
-  os << endl;
-  os.flags(ff);
-  return os;
+#include "Elements/OpalVariableRFCavityFringeField.h"
+
+#include "opal_test_utilities/SilenceTest.h"
+
+TEST(OpalVariableRFCavityFringeFieldTest, TestConstructorDestructor) {
+    OpalTestUtilities::SilenceTest silencer;
+
+    OpalVariableRFCavityFringeField cav1;
+    EXPECT_EQ((&cav1)->getOpalName(), "VARIABLE_RF_CAVITY_FRINGE_FIELD");
+    OpalVariableRFCavityFringeField cav2("name", &cav1);
+    EXPECT_EQ((&cav2)->getOpalName(), "name");
+    OpalVariableRFCavityFringeField* cav3 = cav2.clone();
+    EXPECT_EQ(cav3->getOpalName(), "name");
+    OpalVariableRFCavityFringeField* cav4 = cav2.clone("other_name");
+    EXPECT_EQ(cav4->getOpalName(), "other_name");
+
+    delete cav4;
+    delete cav3;
 }

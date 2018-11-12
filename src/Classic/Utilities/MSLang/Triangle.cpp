@@ -19,20 +19,20 @@ namespace mslang {
                   << indent << indentbase << trafo_m(1, 0) << "\t" << trafo_m(1, 1) << "\t" << trafo_m(1, 2) << "\n"
                   << indent << indentbase << trafo_m(2, 0) << "\t" << trafo_m(2, 1) << "\t" << trafo_m(2, 2) << std::endl;
     }
-    void Triangle::apply(std::vector<Base*> &bfuncs) {
-        bfuncs.push_back(this->clone());
+    void Triangle::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        bfuncs.emplace_back(std::move(this->clone()));
     }
 
-    Base* Triangle::clone() const {
-        Triangle *tri = new Triangle(*this);
+    std::shared_ptr<Base>  Triangle::clone() const {
+        std::shared_ptr<Triangle> tri(new Triangle(*this));
         tri->trafo_m = trafo_m;
         tri->bb_m = bb_m;
 
         for (auto item: divisor_m) {
-            tri->divisor_m.push_back(item->clone());
+            tri->divisor_m.emplace_back(std::move(item->clone()));
         }
 
-        return tri;
+        return std::static_pointer_cast<Base>(tri);
     }
 
     void Triangle::writeGnuplot(std::ofstream &out) const {

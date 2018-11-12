@@ -68,7 +68,9 @@ public:
     Sampler(const std::map< std::string,
                             std::shared_ptr<SamplingMethod>
                 >& sampleMethods,
-            DVarContainer_t dvars, Comm::Bundle_t comms,
+            Expressions::Named_t objectives,
+            DVarContainer_t dvars,
+            Comm::Bundle_t comms,
             CmdArguments_t args);
 
     /// Starting selection algorithm and variator PISA state machine
@@ -118,6 +120,8 @@ private:
     /// design variables
     DVarContainer_t dvars_m;
 
+    /// objectives
+    Expressions::Named_t objectives_m;
 
     int nSamples_m;
 

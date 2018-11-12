@@ -3,6 +3,7 @@
 *.o
 *.a
 *.aux
+optimizer/Tests/*.exe
 build
 CMakeCache.txt
 CMakeFiles

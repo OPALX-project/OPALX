@@ -51,7 +51,7 @@ public:
 
         unsigned int id = getFreeID();
         stagingArea.insert(ind_t(id, ind));
-        ind->id = id;
+        ind->id_m = id;
         //std::cout << "+++ staging    id = " << id << "\xd";
         return id;
     }
@@ -149,7 +149,7 @@ public:
     bool isRepresentedInPopulation(genes_t ind_genes) {
 
         for(ind_t ind : individuals) {
-            if( ind_genes == ind.second->genes )
+            if( ind_genes == ind.second->genes_m )
                 return true;
         }
 
@@ -172,9 +172,9 @@ public:
         for(it = individuals.begin(); it != individuals.end(); it++) {
 
             individual temp = it->second;
-            for(size_t i=0; i<temp->objectives.size(); i++)
-                file << temp->objectives[i] << " ";
-            if (temp->objectives.size() > 0)
+            for(size_t i=0; i<temp->objectives_m.size(); i++)
+                file << temp->objectives_m[i] << " ";
+            if (temp->objectives_m.size() > 0)
                 file << std::endl;
         }
 

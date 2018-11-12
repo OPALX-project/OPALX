@@ -41,8 +41,8 @@ namespace mslang {
         // for (auto pix: pixels_m) pix.print(ident);
     }
 
-    void Polygon::apply(std::vector<Base*> &bfuncs) {
+    void Polygon::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         for (Triangle &tri: triangles_m)
-            bfuncs.push_back(tri.clone());
+            bfuncs.push_back(std::shared_ptr<Base>(tri.clone()));
     }
 }

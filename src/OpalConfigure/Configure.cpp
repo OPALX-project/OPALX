@@ -137,6 +137,7 @@
 #include "Elements/OpalStripper.h"
 #include "Elements/OpalRingDefinition.h"
 #include "Elements/OpalVariableRFCavity.h"
+#include "Elements/OpalVariableRFCavityFringeField.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -278,6 +279,7 @@ namespace {
         opal->create(new OpalSRot());
         opal->create(new OpalTravelingWave());
         opal->create(new OpalVariableRFCavity());
+        opal->create(new OpalVariableRFCavityFringeField());
         opal->create(new OpalVKicker());
         opal->create(new OpalVMonitor());
         // opal->create(new OpalWire());

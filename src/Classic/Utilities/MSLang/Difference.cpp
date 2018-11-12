@@ -13,20 +13,20 @@ namespace mslang {
         divisor_m->print(indentwidth + 8);
     }
 
-    void Difference::apply(std::vector<Base*> &bfuncs) {
-        std::vector<Base*> nom, denom;
+    void Difference::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        std::vector<std::shared_ptr<Base> > nom, denom;
 
         dividend_m->apply(nom);
         divisor_m->apply(denom);
         for (auto item: nom) {
             item->divideBy(denom);
-            bfuncs.push_back(item->clone());
+            bfuncs.emplace_back(std::move(item->clone()));
         }
 
         for (auto item: nom)
-            delete item;
+            item.reset();
         for (auto item: denom)
-            delete item;
+            item.reset();
     }
 
     bool Difference::parse_detail(iterator &it, const iterator &end, Function* &fun) {

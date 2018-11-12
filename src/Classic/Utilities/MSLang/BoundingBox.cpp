@@ -23,7 +23,7 @@ namespace mslang {
                 isInside(b.center_m + 0.5 * Vector_t( b.width_m, -b.height_m, 0.0)));
     }
 
-    void BoundingBox::writeGnuplot(std::ofstream &out) const {
+    void BoundingBox::writeGnuplot(std::ostream &out) const {
         std::vector<Vector_t> pts({Vector_t(center_m[0] + 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
                     Vector_t(center_m[0] - 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
                     Vector_t(center_m[0] - 0.5 * width_m, center_m[1] - 0.5 * height_m, 0),

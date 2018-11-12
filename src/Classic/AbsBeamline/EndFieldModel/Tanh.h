@@ -101,7 +101,7 @@ class Tanh : public EndFieldModel {
     inline void setX0(double x0)     {_x0 = x0;}
 
     /** Bug - does nothing */
-    std::ostream& print(std::ostream& out) const {return out;}
+    std::ostream& print(std::ostream& out) const;
   private:
     double _x0, _lambda;
 

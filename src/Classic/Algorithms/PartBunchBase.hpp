@@ -899,21 +899,18 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
 
     this->getLocalBounds(rmin, rmax);
 
-    double min[Dim];
-    double max[Dim];
+    double min[2*Dim];
 
     for (unsigned int i = 0; i < Dim; ++i) {
-        min[i] = rmin[i];
-        max[i] = rmax[i];
+        min[2*i] = rmin[i];
+        min[2*i + 1] = -rmax[i];
     }
 
-    //FIXME use a min-max function
-    allreduce(&min[0], Dim, std::less<double>());
-    allreduce(&max[0], Dim, std::greater<double>());
+    allreduce(min, 2*Dim, std::less<double>());
 
     for (unsigned int i = 0; i < Dim; ++i) {
-        rmin[i] = min[i];
-        rmax[i] = max[i];
+        rmin[i] = min[2*i];
+        rmax[i] = -min[2*i + 1];
     }
 }
 
@@ -1310,7 +1307,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     for(size_t i = 0; i < locNp; i++)
         gamma += sqrt(1.0 + dot(P[i], P[i]));
 
-    allreduce(gamma, 1, std::plus<double>());
+    allreduce(&gamma, 1, std::plus<double>());
     gamma /= N;
 
     calcEMean();
@@ -1960,7 +1957,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         }
     }
 
-    allreduce(&loc_moments[0], loc_moments.size(), std::plus<double>());
+    allreduce(loc_moments.data(), loc_moments.size(), std::plus<double>());
 
     // copy to member variables
     for (unsigned int i = 0; i< 2 * Dim; ++i)
@@ -2265,7 +2262,7 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
         rpmean(2*i)= rmean_m(i);
         rpmean((2*i)+1)= pmean_m(i);
     }
-    
+
     FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix;// = moments_m / N;
     for (unsigned int i = 0; i < 2 * Dim; i++) {
         for (unsigned int j = 0; j <= i; j++) {

@@ -41,7 +41,7 @@ std::unordered_set<DumpEMFields*> DumpEMFields::dumpsSet_m;
 std::string DumpEMFields::dumpemfields_docstring =
 std::string("The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined")+
 std::string(" field file, for checking that fields are generated correctly.")+
-std::string(" The fields are written out on a grid in Cartesian space and time.");
+std::string(" The fields are written out on a grid in space and time.");
 
 DumpEMFields::DumpEMFields() :
                     Action(20, "DUMPEMFIELDS", dumpemfields_docstring.c_str()),
@@ -196,7 +196,8 @@ void DumpEMFields::writeFields(Component* field) {
 }
 
 void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
-    if (fabs(floor(real) - real) > tolerance) {
+    real += tolerance; // prevent rounding error
+    if (fabs(floor(real) - real) > 2*tolerance) {
         throw OpalException("DumpEMFields::checkInt",
                             "Value for "+name+
                             " should be an integer but a real value was found");
@@ -210,30 +211,29 @@ void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
 void DumpEMFields::writeHeader(std::ofstream& fout) const {
     fout << grid_m->end().toInteger() << "\n";
     if (coordinates_m == CYLINDRICAL) {
-        fout << 1 << " r [mm]\n";
-        fout << 2 << " phi [degree]\n";
+        fout << 1 << "  r [mm]\n";
+        fout << 2 << "  phi [degree]\n";
     } else {
-        fout << 1 << " x [mm]\n";
-        fout << 2 << " y [mm]\n";
+        fout << 1 << "  x [mm]\n";
+        fout << 2 << "  y [mm]\n";
     }
-    fout << 3 << " z [mm]\n";
-    fout << 4 << " t [ns]\n";
+    fout << 3 << "  z [mm]\n";
+    fout << 4 << "  t [ns]\n";
     if (coordinates_m == CYLINDRICAL) {
-        fout << 5 << " Br [kGauss]\n";
-        fout << 6 << " Bphi [kGauss]\n";
+        fout << 5 << "  Br [kGauss]\n";
+        fout << 6 << "  Bphi [kGauss]\n";
+        fout << 7 << "  Bz [kGauss]\n";
+        fout << 8 << "  Er [MV/m]\n";
+        fout << 9 << "  Ephi [MV/m]\n";
+        fout << 10 << " Ez [MV/m]\n";
     } else {
-        fout << 5 << " Bx [kGauss]\n";
-        fout << 6 << " By [kGauss]\n";
+        fout << 5 << "  Bx [kGauss]\n";
+        fout << 6 << "  By [kGauss]\n";
+        fout << 7 << "  Bz [kGauss]\n";
+        fout << 8 << "  Ex [MV/m]\n";
+        fout << 9 << "  Ey [MV/m]\n";
+        fout << 10 << " Ez [MV/m]\n";
     }
-    fout << 7 << " Bz [kGauss]\n";
-    if (coordinates_m == CYLINDRICAL) {
-        fout << 5 << " Er [MV/m]\n";
-        fout << 6 << " Ephi [MV/m]\n";
-    } else {
-        fout << 5 << " Ex [MV/m]\n";
-        fout << 6 << " Ey [MV/m]\n";
-    }
-    fout << 10 << " Ez [MV/m]\n";
     fout << 0 << std::endl;
 }
 

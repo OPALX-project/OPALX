@@ -21,18 +21,19 @@ class SampleWorker : protected Worker<Sim_t> {
 
 public:
 
-    SampleWorker(Expressions::Named_t constraints,
-           std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
-        : Worker<Sim_t>(constraints, simName, comms, args)
+    SampleWorker(Expressions::Named_t objectives,
+                 Expressions::Named_t constraints,
+                 std::string simName,
+                 Comm::Bundle_t comms,
+                 CmdArguments_t args,
+                 const std::vector<std::string> &storeobjstr)
+        : Worker<Sim_t>(objectives, constraints, simName, comms, args, false),
+          statVariablesToStore_m(storeobjstr)
     {
-        // simulation pointer requires at least 1 objective --> provide dummy
-        this->objectives_ = {
-            {"dummy", new Expressions::Expr_t("dummy") }
-        };
-        
+
         int my_local_pid = 0;
         MPI_Comm_rank(this->coworker_comm_, &my_local_pid);
-        
+
         // distinction between leader and coworkers
         if(my_local_pid == this->leader_pid_)
             this->run();
@@ -44,7 +45,8 @@ public:
     {}
 
 protected:
-    
+    const std::vector<std::string> statVariablesToStore_m;
+
     /// notify coworkers of incoming broadcast
     void notifyCoWorkers(size_t job_id, int tag) {
 
@@ -55,7 +57,7 @@ protected:
             MPI_Send(&job_id, 1, MPI_UNSIGNED_LONG, i, tag, this->coworker_comm_);
         }
     }
-    
+
     /// coworkers simply wait on a job broadcast from the leader and then
     /// start a simulation..
     void runSlave() {
@@ -94,9 +96,9 @@ protected:
                                     this->cmd_args_));
 
                             sim->setFilename(job_id);
-                            
+
                             sim->run();
-                            
+
                         } catch(OptPilotException &ex) {
                             std::cout << "Exception while running simulation: "
                                       << ex.what() << std::endl;
@@ -113,9 +115,9 @@ protected:
             }
         }
     }
-    
+
     bool onMessage(MPI_Status status, size_t recv_value) override {
-        
+
         if(status.MPI_TAG == MPI_WORK_JOBID_TAG) {
 
             this->is_idle_ = false;
@@ -131,6 +133,7 @@ protected:
                 MPI_Bcast_params(params, this->leader_pid_, this->coworker_comm_);
             }
 
+            reqVarContainer_t requested_results;
             try {
                 typename Worker<Sim_t>::SimPtr_t sim(new Sim_t(this->objectives_,
                                        this->constraints_,
@@ -138,12 +141,21 @@ protected:
                                        this->simulation_name_,
                                        this->coworker_comm_,
                                        this->cmd_args_));
-                
+
                 sim->setFilename(job_id);
-                
+
                 // run simulation in a "blocking" fashion
                 sim->run();
-                
+
+                // this is requests the columns from the stat file and stores them
+                // in a map with the column names as key and the columns as values; for #250
+                //
+                // std::map<std::string,
+                //          std::vector<double> > data = sim->getData(statVariablesToStore_m);
+
+                sim->collectResults();
+                requested_results = sim->getResults();
+
             } catch(OptPilotException &ex) {
                 std::cout << "Exception while running simulation: "
                           << ex.what() << std::endl;
@@ -155,7 +167,9 @@ protected:
             size_t dummy = 0;
             MPI_Recv(&dummy, 1, MPI_UNSIGNED_LONG, this->pilot_rank_,
                      MPI_WORKER_FINISHED_ACK_TAG, this->comm_m, &status);
-            
+
+            MPI_Send_reqvars(requested_results, (size_t)this->pilot_rank_, this->comm_m);
+
             this->is_idle_ = true;
             return true;
 

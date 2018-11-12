@@ -149,10 +149,12 @@ public:
     bool isInOPALCyclMode();
     bool isInOPALTMode();
     bool isInOPALEnvMode();
+    bool isOptimizerRun();
 
     void setInOPALCyclMode();
     void setInOPALTMode();
     void setInOPALEnvMode();
+    void setOptimizerFlag();
 
     bool isInPrepState();
     void setInPrepState(bool state);

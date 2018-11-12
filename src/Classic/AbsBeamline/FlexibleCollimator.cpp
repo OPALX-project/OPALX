@@ -29,16 +29,20 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     Component(right),
     description_m(right.description_m),
     bb_m(right.bb_m),
-    tree_m(right.tree_m),
+    tree_m(/*right.tree_m*/),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
     losses_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {
-    for (const mslang::Base *obj: right.holes_m) {
-        holes_m.push_back(obj->clone());
+    for (const std::shared_ptr<mslang::Base> obj: right.holes_m) {
+        holes_m.emplace_back(obj->clone());
     }
+
+    tree_m.bb_m = bb_m;
+    tree_m.objects_m.insert(tree_m.objects_m.end(), holes_m.begin(), holes_m.end());
+    tree_m.buildUp();
 }
 
 
@@ -57,9 +61,9 @@ FlexibleCollimator::~FlexibleCollimator() {
     if (online_m)
         goOffline();
 
-    for (mslang::Base *obj: holes_m) {
-        delete obj;
-    }
+    // for (mslang::Base *obj: holes_m) {
+    //     delete obj;
+    // }
 }
 
 
@@ -152,7 +156,7 @@ void FlexibleCollimator::finalise()
 {
     if (online_m)
         goOffline();
-    *gmsg << "* Finalize probe" << endl;
+    *gmsg << "* Finalize flexible collimator " << getName() << endl;
 }
 
 void FlexibleCollimator::goOnline(const double &) {
@@ -196,6 +200,9 @@ ElementBase::ElementType FlexibleCollimator::getType() const {
 }
 
 void FlexibleCollimator::setDescription(const std::string &desc) {
+    tree_m.reset();
+    holes_m.clear();
+
     mslang::Function *fun;
 
     if (!mslang::parse(desc, fun))
@@ -206,11 +213,11 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
 
     if (holes_m.size() == 0) return;
 
-    for (auto it: holes_m) {
+    for (std::shared_ptr<mslang::Base> & it: holes_m) {
         it->computeBoundingBox();
     }
 
-    mslang::Base *first = holes_m.front();
+    std::shared_ptr<mslang::Base> &first = holes_m.front();
     const mslang::BoundingBox &bb = first->bb_m;
 
     Vector_t llc(bb.center_m[0] - 0.5 * bb.width_m,
@@ -220,7 +227,7 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
                  bb.center_m[1] + 0.5 * bb.height_m,
                  0.0);
 
-    for (auto it: holes_m) {
+    for (const std::shared_ptr<mslang::Base> & it: holes_m) {
         const mslang::BoundingBox &bb = it->bb_m;
         llc[0] = std::min(llc[0], bb.center_m[0] - 0.5 * bb.width_m);
         llc[1] = std::min(llc[1], bb.center_m[1] - 0.5 * bb.height_m);
@@ -242,8 +249,21 @@ void FlexibleCollimator::setDescription(const std::string &desc) {
     tree_m.objects_m.insert(tree_m.objects_m.end(), holes_m.begin(), holes_m.end());
     tree_m.buildUp();
 
+    delete fun;
+}
+
+void FlexibleCollimator::writeHolesAndQuadtree(const std::string &baseFilename) const {
     if (Ippl::myNode() == 0) {
-        std::ofstream out("data/quadtree.gpl");
+        std::ofstream out("data/" + baseFilename + "_quadtree.gpl");
         tree_m.writeGnuplot(out);
+        out.close();
+
+        out.open("data/" + baseFilename + "_holes.gpl");
+        for (const std::shared_ptr<mslang::Base> &obj: holes_m) {
+            obj->writeGnuplot(out);
+        }
+        out.close();
     }
+
+
 }

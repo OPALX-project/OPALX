@@ -34,7 +34,7 @@ namespace mslang {
         bool doesIntersect(const BoundingBox &bb) const;
         bool isInside(const Vector_t &X) const;
         bool isInside(const BoundingBox &b) const;
-        virtual void writeGnuplot(std::ofstream &out) const;
+        virtual void writeGnuplot(std::ostream &out) const;
         void print(std::ostream &out) const;
     };
 

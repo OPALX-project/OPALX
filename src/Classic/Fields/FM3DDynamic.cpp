@@ -3,6 +3,7 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 #include "Utilities/Options.h"
+#include "AbstractObjects/OpalData.h"
 
 #include "Physics/Physics.h"
 
@@ -364,13 +365,17 @@ void FM3DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
         -- index_y;
     }
 
-    std::ofstream out("data/" + Filename_m);
     unsigned int ii = (index_y + index_x * num_gridpy_m) * num_gridpz_m;
     for(unsigned int i = 0; i < num_gridpz_m; ++ i) {
         F[i].first = hz_m * i;
         F[i].second = FieldstrengthEz_m[ii ++] / 1e6;
+    }
 
+    auto opal = OpalData::getInstance();
+    if (opal->isOptimizerRun()) return;
 
+    std::ofstream out("data/" + Filename_m);
+    for(unsigned int i = 0; i < num_gridpz_m; ++ i) {
         Vector_t R(0,0,zbegin_m + F[i].first), B(0.0), E(0.0);
         getFieldstrength(R, E, B);
         out << std::setw(16) << std::setprecision(8) << F[i].first

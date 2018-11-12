@@ -137,6 +137,8 @@ enum elements {
 };
 
 void IndexMap::saveSDDS(double startS) const {
+    auto opal = OpalData::getInstance();
+    if (opal->isOptimizerRun()) return;
 
     std::string fileName("data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds");
     std::ofstream sdds;

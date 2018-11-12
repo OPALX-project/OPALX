@@ -76,8 +76,8 @@ public:
             std::getline(infile, line, '\n');
 
             //XXX doing the inverse would be better
-            for(std::map<std::string, std::string>::iterator itr = dictionary_.begin();
-                itr != dictionary_.end(); itr++) {
+            std::map<std::string, std::string>::iterator itr = dictionary_.begin();
+            for(;itr != dictionary_.end(); itr++) {
                 size_t pos = line.find("_" + itr->first + "_");
                 while(pos != std::string::npos) {
                     line.replace(pos, itr->first.length() + 2, itr->second);

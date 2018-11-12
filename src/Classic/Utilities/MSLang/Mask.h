@@ -8,7 +8,7 @@ namespace mslang {
     struct Mask: public Function {
         static bool parse_detail(iterator &it, const iterator &end, Function* &fun);
         virtual void print(int ident);
-        virtual void apply(std::vector<Base*> &bfuncs);
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs);
 
         std::vector<Rectangle> pixels_m;
     };

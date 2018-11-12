@@ -31,9 +31,11 @@ template <class Sim_t>
 class Worker : protected Poller {
 
 public:
-    
+
     Worker(Expressions::Named_t constraints,
-           std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
+           std::string simName,
+           Comm::Bundle_t comms,
+           CmdArguments_t args)
         : Poller(comms.worker)
         , cmd_args_(args)
     {
@@ -42,13 +44,17 @@ public:
         pilot_rank_      = comms.master_local_pid;
         is_idle_         = true;
         coworker_comm_   = comms.coworkers;
-        
+
         leader_pid_      = 0;
         MPI_Comm_size(coworker_comm_, &num_coworkers_);
     }
 
-    Worker(Expressions::Named_t objectives, Expressions::Named_t constraints,
-           std::string simName, Comm::Bundle_t comms, CmdArguments_t args)
+    Worker(Expressions::Named_t objectives,
+           Expressions::Named_t constraints,
+           std::string simName,
+           Comm::Bundle_t comms,
+           CmdArguments_t args,
+           bool isOptimizer = true)
         : Poller(comms.worker)
         , cmd_args_(args)
     {
@@ -60,9 +66,11 @@ public:
         coworker_comm_   = comms.coworkers;
 
         leader_pid_      = 0;
+        MPI_Comm_size(coworker_comm_, &num_coworkers_);
+
+        if (!isOptimizer) return;
         int my_local_pid = 0;
         MPI_Comm_rank(coworker_comm_, &my_local_pid);
-        MPI_Comm_size(coworker_comm_, &num_coworkers_);
 
         // distinction between leader and coworkers
         if(my_local_pid == leader_pid_)
@@ -170,7 +178,6 @@ protected:
     {}
 
     void onStop() {
-
         if(num_coworkers_ > 1)
             notifyCoWorkers(MPI_STOP_TAG);
     }
@@ -204,6 +211,7 @@ protected:
                 // run simulation in a "blocking" fashion
                 sim->run();
                 sim->collectResults();
+                sim->cleanUp();
                 requested_results = sim->getResults();
             } catch(OptPilotException &ex) {
                 std::cout << "Exception while running simulation: "

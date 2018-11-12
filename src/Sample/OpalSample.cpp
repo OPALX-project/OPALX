@@ -34,7 +34,7 @@ OpalSample::OpalSample():
     , size_m(1)
 {
     itsAttr[TYPE]       = Attributes::makeString
-                          ("TYPE", "UNIFORM_INT, UNIFORM_REAL, SEQUENCE, FROMFILE");
+                          ("TYPE", "UNIFORM_INT, UNIFORM, GAUSSIAN, FROMFILE");
 
     itsAttr[VARIABLE]   = Attributes::makeString
                           ("VARIABLE", "Name of design variable");
@@ -88,8 +88,8 @@ void OpalSample::initialize(const std::string &dvarName,
                             bool sequence) {
 
     if ( lower >= upper )
-        throw OpalException("OpalSample::initOpalSample()",
-                                "Lower bound >= upper bound.");
+        throw OpalException("OpalSample::initialize()",
+                            "Lower bound >= upper bound.");
 
     std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
 
@@ -110,8 +110,8 @@ void OpalSample::initialize(const std::string &dvarName,
             sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
        } else {
-            throw OpalException("OpalSample::initOpalSample()",
-                                "Unkown sampling method: '" + type + "'.");
+            throw OpalException("OpalSample::initialize()",
+                                "Unknown sampling method: '" + type + "'.");
         }
     } else {
         if (type == "UNIFORM_INT") {
@@ -137,8 +137,8 @@ void OpalSample::initialize(const std::string &dvarName,
             sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
         } else {
-            throw OpalException("OpalSample::initOpalSample()",
-                                "Unkown sampling method: '" + type + "'.");
+            throw OpalException("OpalSample::initialize()",
+                                "Unknown sampling method: '" + type + "'.");
         }
     }
 }

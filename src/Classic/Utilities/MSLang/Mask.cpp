@@ -73,7 +73,7 @@ namespace mslang {
         for (auto pix: pixels_m) pix.print(ident);
     }
 
-    void Mask::apply(std::vector<Base*> &bfuncs) {
+    void Mask::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
         for (auto pix: pixels_m) pix.apply(bfuncs);
     }
 }

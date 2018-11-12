@@ -35,6 +35,7 @@ public:
         FNAME = COMMON,  // The horizontal half-size.
         DESC,
         OUTFN,
+        DUMP,
         SIZE
     };
 

@@ -56,6 +56,11 @@ namespace SDDS {
         file getData();
         ast::columnData_t getColumnData(const std::string &columnName);
 
+        ast::datatype getColumnType(const std::string &col_name) {
+            int index = getColumnIndex(col_name);
+            return *sddsData_m.sddsColumns_m[index].type_m;
+        }
+
         /**
          *  Converts the string value of a parameter at timestep t to a value of
          *  type T.
@@ -69,13 +74,7 @@ namespace SDDS {
 
             fixCaseSensitivity(column_name);
 
-            int col_idx;
-            if(columnNameToID_m.count(column_name) > 0) {
-                col_idx = columnNameToID_m[column_name];
-            } else {
-                throw SDDSParserException("SDDSParser::getValue",
-                                        "unknown column name: '" + column_name + "'!");
-            }
+            int col_idx = getColumnIndex(column_name);
 
             // round timestep to last if not in range
             size_t row_idx = 0;
@@ -101,72 +100,64 @@ namespace SDDS {
         template <typename T>
         void getInterpolatedValue(double spos, std::string col_name, T& nval) {
 
-            fixCaseSensitivity(col_name);
-
             T value_before = 0;
             T value_after  = 0;
             double value_before_spos = 0;
             double value_after_spos  = 0;
 
 
-            size_t col_idx_spos = columnNameToID_m["s"];
+            size_t col_idx_spos = getColumnIndex("s");
             ast::columnData_t &spos_values = sddsData_m.sddsColumns_m[col_idx_spos].values_m;
-            if(columnNameToID_m.count(col_name) > 0) {
-                int index = columnNameToID_m[col_name];
-                ast::columnData_t &col_values = sddsData_m.sddsColumns_m[index].values_m;
+            int index = getColumnIndex(col_name);
+            ast::columnData_t &col_values = sddsData_m.sddsColumns_m[index].values_m;
 
-                size_t this_row = 0;
-                size_t num_rows = spos_values.size();
-                for(this_row = 0; this_row < num_rows; this_row++) {
-                    value_after_spos = boost::get<double>(spos_values[this_row]);
+            size_t this_row = 0;
+            size_t num_rows = spos_values.size();
+            for(this_row = 0; this_row < num_rows; this_row++) {
+                value_after_spos = boost::get<double>(spos_values[this_row]);
 
-                    if(spos < value_after_spos) {
+                if(spos < value_after_spos) {
 
-                        size_t prev_row = 0;
-                        if(this_row > 0) prev_row = this_row - 1;
+                    size_t prev_row = 0;
+                    if(this_row > 0) prev_row = this_row - 1;
 
-                        try {
-                            switch (*sddsData_m.sddsColumns_m[index].type_m) {
-                            case ast::FLOAT:
-                                value_before = boost::get<float>(col_values[prev_row]);
-                                value_after  = boost::get<float>(col_values[this_row]);
-                                break;
-                            case ast::DOUBLE:
-                                value_before = boost::get<double>(col_values[prev_row]);
-                                value_after  = boost::get<double>(col_values[this_row]);
-                                break;
-                            case ast::SHORT:
-                                value_before = boost::get<short>(col_values[prev_row]);
-                                value_after  = boost::get<short>(col_values[this_row]);
-                                break;
-                            case ast::LONG:
-                                value_before = boost::get<long>(col_values[prev_row]);
-                                value_after  = boost::get<long>(col_values[this_row]);
-                                break;
-                            default:
-                                throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                                          "can't convert value to double");
-                            }
-                        } catch (...) {
+                    try {
+                        switch (*sddsData_m.sddsColumns_m[index].type_m) {
+                        case ast::FLOAT:
+                            value_before = boost::get<float>(col_values[prev_row]);
+                            value_after  = boost::get<float>(col_values[this_row]);
+                            break;
+                        case ast::DOUBLE:
+                            value_before = boost::get<double>(col_values[prev_row]);
+                            value_after  = boost::get<double>(col_values[this_row]);
+                            break;
+                        case ast::SHORT:
+                            value_before = boost::get<short>(col_values[prev_row]);
+                            value_after  = boost::get<short>(col_values[this_row]);
+                            break;
+                        case ast::LONG:
+                            value_before = boost::get<long>(col_values[prev_row]);
+                            value_after  = boost::get<long>(col_values[this_row]);
+                            break;
+                        default:
                             throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                                      "can't convert value");
+                                                      "can't convert value to double");
                         }
-
-                        value_before_spos = boost::get<double>(spos_values[prev_row]);
-                        value_after_spos  = boost::get<double>(spos_values[this_row]);
-
-                        break;
+                    } catch (...) {
+                        throw SDDSParserException("SDDSParser::getInterpolatedValue",
+                                                  "can't convert value");
                     }
+
+                    value_before_spos = boost::get<double>(spos_values[prev_row]);
+                    value_after_spos  = boost::get<double>(spos_values[this_row]);
+
+                    break;
                 }
-
-                if(this_row == num_rows)
-                    throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                            "all values < specified spos");
-
-            } else {
-                throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                          "unknown column name: '" + col_name + "'!");
             }
+
+            if(this_row == num_rows)
+                throw SDDSParserException("SDDSParser::getInterpolatedValue",
+                                          "all values < specified spos");
 
             // simple linear interpolation
             if(spos - value_before_spos < 1e-8)
@@ -192,6 +183,8 @@ namespace SDDS {
         }
 
     private:
+
+        int getColumnIndex(std::string col_name) const;
     };
 
     inline

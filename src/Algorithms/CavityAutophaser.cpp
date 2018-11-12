@@ -128,9 +128,14 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
 
         newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
-	std::ofstream out("data/" + itsCavity_m->getName() + "_AP.dat");
-        track(initialR_m, initialP_m, t + tErr, dt, newPhase, &out);
-	out.close();
+        auto opal = OpalData::getInstance();
+        if (!opal->isOptimizerRun()) {
+            std::ofstream out("data/" + itsCavity_m->getName() + "_AP.dat");
+            track(initialR_m, initialP_m, t + tErr, dt, newPhase, &out);
+            out.close();
+        } else {
+            track(initialR_m, initialP_m, t + tErr, dt, newPhase, NULL);
+        }
 
         INFOMSG(level1 << std::fixed << std::setprecision(4)
                 << itsCavity_m->getName() << "_phi = "  << newPhase * Physics::rad2deg <<  " [deg], "
