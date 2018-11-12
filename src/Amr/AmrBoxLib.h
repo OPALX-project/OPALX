@@ -301,9 +301,9 @@ private:
     /*!
      * Fill the physical / mesh boundary values
      * 
-     * @param mf multifab to fill boundary values
+     * @param mf field to fill boundary values
      */
-    void fillPhysbc_m(MultiFab& mf, int lev = 0);
+    void fillPhysbc_m(AmrField_t& mf, int lev = 0);
     
 private:
     /// bunch used for tagging strategies

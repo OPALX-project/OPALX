@@ -16,7 +16,6 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include <AMReX_AmrMesh.H>
-#include "../AmrOpal_F.h"
 
 #include <random>
 
@@ -213,30 +212,31 @@ public:
         #pragma omp parallel
         #endif
         {
-            Vector<int>  itags;
-            for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-                const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            for (amrex::MFIter mfi(*nChargePerCell_m[lev], false/*true*/); mfi.isValid(); ++mfi) {
+                const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
                 
-                TagBox&     tagfab  = tags[mfi];
+                amrex::TagBox&     tagfab  = tags[mfi];
+                amrex::FArrayBox&  fab     = (*nChargePerCell_m[lev])[mfi];
                 
-                // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-                // So we are going to get a temporary integer array.
-                tagfab.get_itags(itags, tilebx);
-                
-                // data pointer and index space
-                int*        tptr    = itags.dataPtr();
                 const int*  tlo     = tilebx.loVect();
                 const int*  thi     = tilebx.hiVect();
-    
-                state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                            BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
-                            &tagval, &clearval, 
-                            ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                            ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
-                //
-                // Now update the tags in the TagBox.
-                //
-                tagfab.tags_and_untags(itags, tilebx);
+                
+                for (int i = tlo[0]; i <= thi[0]; ++i) {
+                    for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                        for (int k = tlo[2]; k <= thi[2]; ++k) {
+#endif
+                            amrex::IntVect iv(D_DECL(i,j,k));
+                            
+                            if ( std::abs( fab(iv) ) >= nCharge_m )
+                                tagfab(iv) = tagval;
+                            else
+                                tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
+                        }
+#endif
+                    }
+                }
             }
         }
     }
