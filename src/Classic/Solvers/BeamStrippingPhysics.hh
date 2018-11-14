@@ -5,8 +5,8 @@
 // ------------------------------------------------------------------------
 // Class category:
 // ------------------------------------------------------------------------
-// $Date: 2009/07/20 09:32:31 $
-// $Author: Bi, Yang, Stachel, Adelmann$
+// $Date: 2018/11 $
+// $Author: PedroCalvo$
 //-------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
@@ -33,6 +33,7 @@ class LogicalError;
 class LossDataSink;
 class Inform;
 class Cyclotron;
+class BeamStripping;
 
 class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
 
@@ -70,49 +71,66 @@ private:
     double CSAnalyticFunction(double Eng, double Eth,
     		double a1, double a2, double a3, double a4, double a5, double a6);
 
+    bool GasStripping(double &deltas);
+
+    bool LorentzStripping(double &gamma, double &E);
+
+    void ResetMQ(PartBunchBase<double, 3> *bunch);
+
     double RandomGenerator();
 
-    bool GasStripping(double &deltas, double &r);
-
-    bool LorentzStripping(double &gamma, double &E, double &r);
-
-    double  T_m;                     // own time, maybe larger than in the bunch object
-    double dT_m;                     // dt from bunch
-    
-    double mass;
-    double charge;
-    double molecularDensity[3];
-    double CS[3];
+    Cyclotron *cycl_m;
+    BeamStripping *bstp_m;
 
     std::string material_m;
     std::string FN_m;
     ElementBase::ElementType bstpshape_m;
-    std::string strippingStr_m;
+
+    double  T_m;
+    double dT_m;
+
+    double mass;
+    double charge;
+
+	double m_h;
 
 	int NbComponents;
-	static const double fMolarFraction[3];
+	//    double totalmolecularDensity_m;
+	double molecularDensity[3];
 
-	static const double CSCoefSingle_Hminus[3][7];
-	static const double CSCoefDouble_Hminus[3][7];
-	static const double CSCoefSingle_Hplus[3][9];
-	static const double CSCoefDouble_Hplus[3][9];
+    std::unique_ptr<LossDataSink> lossDs_m;
 
 	/*
-	static const double fCrossSectionSingle[3][48];
-	static const double fEnergyCSSingle[3][48];
-	static const double fCrossSectionDouble[3][40];
-	static const double fEnergyCSDouble[3][40];
-	*/
+    double CS_single[3];
+    double CS_double[3];
+    double CS_total[3];
+
+	double NCS_single[3];
+	double NCS_double[3];
+	double NCS_total[3];
+    */
+
+    double NCS_single_all;
+    double NCS_double_all;
+    double NCS_total_all;
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
     unsigned rediffusedStat_m;
     size_t locPartsInMat_m;
 
-    std::unique_ptr<LossDataSink> lossDs_m;
+    static const double fMolarFraction[3];
+	static const double CSCoefSingle_Hminus[3][7];
+	static const double CSCoefDouble_Hminus[3][7];
+	static const double CSCoefSingle_Hplus[3][9];
+	static const double CSCoefDouble_Hplus[3][9];
 
-    Vector_t extE_m, extB_m;
-    Cyclotron *cycl_m;
+    /*
+	static const double fCrossSectionSingle[3][48];
+	static const double fEnergyCSSingle[3][48];
+	static const double fCrossSectionDouble[3][40];
+	static const double fEnergyCSDouble[3][40];
+	*/
 };
 
 #endif //BEAMSTRIPPINGPHYSICS_HH

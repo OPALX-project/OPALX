@@ -7,13 +7,11 @@
 // ------------------------------------------------------------------------
 //
 // Class: OpalBeamStripping
-//   The class of OPAL Cyclotron collimators.
+//   The class of OPAL Cyclotron beam stripping.
 //
 // ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann, Jianjun Yang $
-//
+// $Date: 2018/11 $
+// $Author: PedroCalvo$
 // ------------------------------------------------------------------------
 
 #include "Attributes/Attributes.h"
@@ -35,6 +33,8 @@ OpalBeamStripping::OpalBeamStripping():
     							("PRESSURE", " Pressure os the accelerator, [mbar]");
     itsAttr[TEMPERATURE] 	= Attributes::makeReal
     							("TEMPERATURE", " Temperature of the accelerator, [K]");
+    itsAttr[STOP] 			= Attributes::makeBool
+    							("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
     itsAttr[OUTFN] 			= Attributes::makeString
     							("OUTFN", "BeamStripping output filename");
 
@@ -77,11 +77,13 @@ void OpalBeamStripping::update() {
     BeamStrippingRep *bstp =
         dynamic_cast<BeamStrippingRep *>(getElement()->removeWrappers());
 
-    double pressure 				= Attributes::getReal(itsAttr[PRESSURE]);
-    double temperature 				= Attributes::getReal(itsAttr[TEMPERATURE]);
+    double pressure 	= Attributes::getReal(itsAttr[PRESSURE]);
+    double temperature 	= Attributes::getReal(itsAttr[TEMPERATURE]);
+    bool   stop 		= Attributes::getBool(itsAttr[STOP]);
 
     bstp->setPressure(pressure);
     bstp->setTemperature(temperature);
+    bstp->setStop(stop);
 
     bstp->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 

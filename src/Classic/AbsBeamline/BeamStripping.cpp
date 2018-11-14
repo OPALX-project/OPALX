@@ -12,10 +12,8 @@
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline
 // ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-//
+// $Date: 2018/11 $
+// $Author: PedroCalvo$
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -54,6 +52,7 @@ BeamStripping::BeamStripping():
     informed_m(false),
 	pressure_m(0.0),
 	temperature_m(0.0),
+	stop_m(true),
     minr_m(0.0),
     maxr_m(0.0),
     minz_m(0.0),
@@ -69,6 +68,7 @@ BeamStripping::BeamStripping(const BeamStripping &right):
     informed_m(right.informed_m),
 	pressure_m(right.pressure_m),
 	temperature_m(right.temperature_m),
+	stop_m(right.stop_m),
     minr_m(right.minr_m),
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
@@ -84,6 +84,7 @@ BeamStripping::BeamStripping(const std::string &name):
     informed_m(false),
     pressure_m(0.0),
 	temperature_m(0.0),
+	stop_m(true),
     minr_m(0.0),
     maxr_m(0.0),
     minz_m(0.0),
@@ -121,6 +122,12 @@ double BeamStripping::getTemperature() const {
     return temperature_m;
 }
 
+void BeamStripping::setStop(bool stopflag) {
+    stop_m = stopflag;
+}
+bool BeamStripping::getStop() const {
+    return stop_m;
+}
 
 bool BeamStripping::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return false;
