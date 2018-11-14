@@ -124,6 +124,8 @@ private:
 	static const double CSCoefDouble_Hminus[3][7];
 	static const double CSCoefSingle_Hplus[3][9];
 	static const double CSCoefDouble_Hplus[3][9];
+	static const double CSCoefSingleLoss_H[3][7];
+	static const double CSCoefSingleCapt_H[3][9];
 
     /*
 	static const double fCrossSectionSingle[3][48];

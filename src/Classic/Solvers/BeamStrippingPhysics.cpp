@@ -198,10 +198,8 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 
 	if(!stop) {
 		reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
-		if(flagresetMQ) {
-			*gmsg << "flagresetMQ = " << flagresetMQ << endl;
+		if(flagresetMQ)
 			ResetMQ(bunch);
-		}
 	}
 
 	delete tester;
@@ -231,6 +229,8 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 	double a4 = 0.0;
 	double a5 = 0.0;
 	double a6 = 0.0;
+	double a7 = 0.0;
+	double a8 = 0.0;
 
     double CS_single[3];
     double CS_double[3];
@@ -268,7 +268,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 			CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 		}
 		else if(mass-m_p < 1E-10 && charge == z_p) {
-			// Single-electron detachment
+			// Single-electron capture
 			Eth = CSCoefSingle_Hplus[i][0];
 			a1 = CSCoefSingle_Hplus[i][1];
 			a2 = CSCoefSingle_Hplus[i][2];
@@ -276,9 +276,12 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 			a4 = CSCoefSingle_Hplus[i][4];
 			a5 = CSCoefSingle_Hplus[i][5];
 			a6 = CSCoefSingle_Hplus[i][6];
-			CS_single[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
+			a7 = CSCoefSingle_Hplus[i][7];
+			a8 = CSCoefSingle_Hplus[i][8];
+			CS_single[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6) +
+					a7 * CSAnalyticFunction(Eng/a8, Eth, a1, a2, a3, a4, a5, a6);
 
-			// Double-electron detachment
+			// Double-electron capture
 			Eth = CSCoefDouble_Hplus[i][0];
 			a1 = CSCoefDouble_Hplus[i][1];
 			a2 = CSCoefDouble_Hplus[i][2];
@@ -286,11 +289,50 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 			a4 = CSCoefDouble_Hplus[i][4];
 			a5 = CSCoefDouble_Hplus[i][5];
 			a6 = CSCoefDouble_Hplus[i][6];
-			CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
+			a7 = CSCoefDouble_Hplus[i][7];
+			a8 = CSCoefDouble_Hplus[i][8];
+			if(a8 != 0) {
+				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6) +
+						a7 * CSAnalyticFunction(Eng, Eth/a8, a1, a2, a3, a4, a5, a6);
+			}
+			else {
+				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
+			}
+		}
+		else if(mass-m_h < 1E-10 && charge == 0.0) {
+			// Single-electron detachment
+			Eth = CSCoefSingleLoss_H[i][0];
+			a1 = CSCoefSingleLoss_H[i][1];
+			a2 = CSCoefSingleLoss_H[i][2];
+			a3 = CSCoefSingleLoss_H[i][3];
+			a4 = CSCoefSingleLoss_H[i][4];
+			a5 = CSCoefSingleLoss_H[i][5];
+			a6 = CSCoefSingleLoss_H[i][6];
+			CS_single[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
+
+			// Single-electron capture
+			Eth = CSCoefSingleCapt_H[i][0];
+			a1 = CSCoefSingleCapt_H[i][1];
+			a2 = CSCoefSingleCapt_H[i][2];
+			a3 = CSCoefSingleCapt_H[i][3];
+			a4 = CSCoefSingleCapt_H[i][4];
+			a5 = CSCoefSingleCapt_H[i][5];
+			a6 = CSCoefSingleCapt_H[i][6];
+			a7 = CSCoefSingleCapt_H[i][7];
+			a8 = CSCoefSingleCapt_H[i][8];
+			if(a8 != 0) {
+				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6) +
+						a7 * CSAnalyticFunction(Eng, Eth/a8, a1, a2, a3, a4, a5, a6);
+			}
+			else {
+				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
+			}
 		}
 		else if(mass != m_p || mass != m_hm) {
 			CS_single[i] = {0.0};
 			CS_double[i] = {0.0};
+			Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+			gmsgALL << getName() << ": Unsupported type of particle for residual gas interactions!"<< endl;
 		}
 
 		CS_total[i] = CS_single[i] + CS_double[i];
@@ -346,17 +388,10 @@ double BeamStrippingPhysics::CSAnalyticFunction(double Eng, double Eth,
 
 bool BeamStrippingPhysics::GasStripping(double &deltas) {
 
-	if(mass != m_p || mass != m_hm) {
-		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-		gmsgALL << getName() << ": Unsupported type of particle for residual gas interactions!"<< endl;
-	}
-
-    double r = RandomGenerator();
-
-    double fg = 1 - exp(-NCS_total_all * deltas);
-//    *gmsg << "* fg =    " << fg << endl;
-
-    return (fg > r);
+	double r = RandomGenerator();
+	double fg = 1 - exp(-NCS_total_all * deltas);
+//	*gmsg << "* fg =    " << fg << endl;
+	return (fg > r);
 }
 
 
@@ -367,40 +402,36 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
 
     double r = RandomGenerator();
 
-	//Parametrization 1
-	const double A1 = 3.073E-6;
-	const double A2 = 4.414E9;
-	tau = (A1/E) * exp(A2/E);
-//	*gmsg << "* tau =    " << tau << " s"<< endl;
-	fL = 1 - exp( - dT_m / (gamma * tau));
-//	*gmsg << "* fL =    " << fL << endl;
+    if(mass-m_hm < 1E-5 && charge == -z_p) {
+    	//Parametrization 1
+    	const double A1 = 3.073E-6;
+    	const double A2 = 4.414E9;
+    	tau = (A1/E) * exp(A2/E);
+    	fL = 1 - exp( - dT_m / (gamma * tau));
 
-//	//Parametrization 2
-//	double fL2 = 0.0;
-//	const double aF = 2.653E-6;
-//	const double bF = 4.448E9;
-//	const double eta = 1.4901E-10;
-//	tau = ( aF / (E * (1-eta * E)) ) * exp(bF/E);
-//	*gmsg << "* tau =    " << tau << " s"<< endl;
-//	fL = 1 - exp( - dT_m / (gamma * tau));
-//	*gmsg << "* fL =    " << fL << endl;
+//    	//Parametrization 2
+//    	double fL2 = 0.0;
+//    	const double aF = 2.653E-6;
+//    	const double bF = 4.448E9;
+//    	const double eta = 1.4901E-10;
+//    	tau = ( aF / (E * (1-eta * E)) ) * exp(bF/E);
+//    	fL = 1 - exp( - dT_m / (gamma * tau));
 //
-//	//Parametrization 3 (theoretical)
-//	const double eps0 = 0.75419 * q_e;
-//	const double hbar = h_bar*1E9*q_e;
-//	const double me = m_e*1E9*q_e/(c*c);
-//	const double a0 = hbar / (me * c * alpha);
-//	const double p = 0.0126;
-//	const double S0 = 0.783;
-//	const double a = 2.01407/a0;
-//	const double k0 = sqrt(2 * me * eps0)/hbar;
-//	const double N = (sqrt(2 * k0 * (k0+a) * (2*k0+a)))/a;
-//	double zT = eps0 / (q_e * E);
-//	tau = (4 * me * zT)/(S0 * N * N * hbar * (1+p)*(1+p) * (1-1/(2*k0*zT))) * exp(4*k0*zT/3);
-//	*gmsg << "* tau =    " << tau << " s" << endl;
-//	fL = 1 - exp( - dT_m / (gamma * tau));
+//    	//Parametrization 3 (theoretical)
+//    	const double eps0 = 0.75419 * q_e;
+//    	const double hbar = h_bar*1E9*q_e;
+//    	const double me = m_e*1E9*q_e/(c*c);
+//    	const double a0 = hbar / (me * c * alpha);
+//    	const double p = 0.0126;
+//    	const double S0 = 0.783;
+//    	const double a = 2.01407/a0;
+//    	const double k0 = sqrt(2 * me * eps0)/hbar;
+//    	const double N = (sqrt(2 * k0 * (k0+a) * (2*k0+a)))/a;
+//    	double zT = eps0 / (q_e * E);
+//    	tau = (4 * me * zT)/(S0 * N * N * hbar * (1+p)*(1+p) * (1-1/(2*k0*zT))) * exp(4*k0*zT/3);
+//    	fL = 1 - exp( - dT_m / (gamma * tau));
+    }
 //	*gmsg << "* fL =    " << fL << endl;
-
     return (fL > r);
 }
 
@@ -408,6 +439,8 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
 void BeamStrippingPhysics::ResetMQ(PartBunchBase<double, 3> *bunch) {
 
     double r = RandomGenerator();
+//    *gmsg << "* NCS_single_all/NCS_total_all 	= " << NCS_single_all/NCS_total_all << endl;
+//    *gmsg << "* NCS_double_all/NCS_total_all	= " << NCS_double_all/NCS_total_all << endl;
 
 	if(mass-m_hm < 1E-10 && charge == -z_p) {
 		if(r > NCS_double_all/NCS_total_all) {
@@ -423,6 +456,16 @@ void BeamStrippingPhysics::ResetMQ(PartBunchBase<double, 3> *bunch) {
 		if(r > NCS_double_all/NCS_total_all) {
 			bunch->resetM(m_h * 1.0e9);
 			bunch->resetQ(0.0);
+		}
+		else {
+			bunch->resetM(m_hm * 1.0e9);
+			bunch->resetQ(-z_p);
+		}
+	}
+	else if(mass-m_h < 1E-10 && charge == 0.0) {
+		if(r > NCS_double_all/NCS_total_all) {
+			bunch->resetM(m_p * 1.0e9);
+			bunch->resetQ(z_p);
 		}
 		else {
 			bunch->resetM(m_hm * 1.0e9);
@@ -519,6 +562,24 @@ const double BeamStrippingPhysics::CSCoefDouble_Hplus[3][9] = {
 		{2.20E-02, 2.64E-01, 1.50E+00, 1.40E+01, 1.70E+00, 4.00E+01, 5.80E+00, 0.00E+00, 0.00E+00},
 		//Argon
 		{2.90E-02, 1.40E-01, 1.87E+00, 2.40E+01, 1.60E+00, 3.37E+01, 4.93E+00, 4.50E-01, 2.00E-01}
+};
+
+const double BeamStrippingPhysics::CSCoefSingleLoss_H[3][7] = {
+		// Nitrogen
+		{1.36E-02, 2.59E+03, 1.78E+00, 2.69E-01, -3.52E-01, 5.60E+00, 8.99E-01},
+		//Oxygen
+		{1.36E-02, 3.29E+03, 1.85E+00, 2.89E-01, -2.72E-01, 8.20E+00, 1.09E+00},
+		//Argon
+		{1.36E-02, 1.16E+12, 7.40E+00, 5.36E-01, -5.42E-01, 1.23E+00, 7.26E-01}
+};
+
+const double BeamStrippingPhysics::CSCoefSingleCapt_H[3][9] = {
+		// Nitrogen
+		{1.48E-02, 1.15E+00, 1.18E+00, 1.15E+01, 1.19E+00, 3.88E+01, 3.38E+00, 1.00E-01, 2.82E-02},
+		//Oxygen
+		{1.13E-02, 3.26E+00, 1.02E+00, 2.99E+00, 4.50E-01, 1.90E+01, 3.42E+00, 0.00E+00, 0.00E+00},
+		//Argon
+		{1.50E-02, 1.24E+03, 3.38E+00, 2.46E+00, 5.20E-01, 7.00E+00, 2.56E+00, 9.10E-02, 1.95E-02}
 };
 
 /*
