@@ -10,12 +10,9 @@
 // ------------------------------------------------------------------------
 //
 // Class: OpalBeamStripping
-//
 // ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann, Jianjun Yang $
-//
+// $Date: 2018/11 $
+// $Author: PedroCalvo$
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalElement.h"
@@ -33,6 +30,7 @@ public:
     enum {
         PRESSURE = COMMON,
 		TEMPERATURE,
+		STOP,
 		OUTFN,
 		SIZE
     };

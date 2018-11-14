@@ -2239,7 +2239,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
                 -> checkStripper(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
             if(flag_stripper) {
                 itsBunch_m->updateNumTotal();
-                *gmsg << "* Total number of particles after stripping = " << itsBunch_m->getTotalNum() << endl;
+                *gmsg << "* Total number of particles collide with stripper = " << itsBunch_m->getTotalNum() << endl;
             }
         }
 

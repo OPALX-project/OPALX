@@ -16,10 +16,8 @@
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline
 // ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-//
+// $Date: 2018/11 $
+// $Author: PedroCalvo$
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
@@ -95,6 +93,8 @@ public:
     void setTemperature(double temperature) ;
     double getTemperature() const;
 
+    void setStop(bool stopflag);
+    virtual bool getStop() const;
 
 private:
 
@@ -107,6 +107,8 @@ private:
     //parameters for BeamStripping
     double pressure_m;
     double temperature_m;
+
+    double stop_m;
 
     double minr_m;
     double maxr_m;
