@@ -36,6 +36,14 @@ namespace Options {
     //  If true, print informative messages.
     extern bool info;
 
+    extern int infoLevel;
+
+    /// Warn flag.
+    //  If true, print warning messages.
+    extern bool warn;
+
+    extern int warnLevel;
+
     extern bool csrDump;
 
     /// ppdebug flag.
@@ -65,10 +73,6 @@ namespace Options {
     /// Trace flag.
     //  If true, print CPU time before and after each command.
     extern bool mtrace;
-
-    /// Warn flag.
-    //  If true, print warning messages.
-    extern bool warn;
 
     /// Random generator.
     //  The global random generator.

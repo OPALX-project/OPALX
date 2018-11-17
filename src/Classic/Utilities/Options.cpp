@@ -6,6 +6,9 @@ namespace Options {
     // The global program options.
     bool echo = false;
     bool info = true;
+    int infoLevel = 1;
+    bool warn = true;
+    int warnLevel = 1;
     bool csrDump = false;
     bool ppdebug = false;
 
@@ -27,7 +30,6 @@ namespace Options {
 
     // The global program options.
     bool mtrace = false;
-    bool warn = true;
     bool psDumpEachTurn = false;
     DumpFrame psDumpFrame = GLOBAL;
     bool rhoDump = false;
