@@ -15,7 +15,7 @@ extern Inform *gmsg;
 #include "OPALconfig.h"
 
 
-int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm) {
+int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel, int warnLevel, MPI_Comm comm) {
 
     std::string::size_type startExtension    = inputfile.find_last_of('.');
     // std::string::size_type startRelativePath = inputfile.find_last_of('/');
@@ -28,7 +28,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, MPI_Comm comm)
 
     MPI_Barrier(comm);
 
-    IpplInfoWrapper *newippl = new IpplInfoWrapper(inputfile, comm);
+    IpplInfoWrapper *newippl = new IpplInfoWrapper(inputfile, infoLevel, warnLevel, comm);
     gmsg = new Inform("OPAL ", output);
     IpplInfo::Info->setDestination(output);
     IpplInfo::Error->setDestination(output);

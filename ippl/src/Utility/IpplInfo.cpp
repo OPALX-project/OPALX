@@ -63,6 +63,22 @@ void IpplInfo::instantiateGlobals() {
         Debug = new Inform("**DEBUG**", std::cerr, INFORM_ALL_NODES);
 }
 
+void IpplInfo::deleteGlobals() {
+    delete Comm;
+    delete Stats;
+    delete Info;
+    delete Warn;
+    delete Error;
+    delete Debug;
+
+    Comm = 0;
+    Stats = 0;
+    Info = 0;
+    Warn = 0;
+    Error = 0;
+    Debug = 0;
+}
+
 std::stack<StaticIpplInfo> IpplInfo::stashedStaticMembers;
 
 //dks base member of IpplInfo initialized to default values
@@ -641,7 +657,7 @@ IpplInfo::~IpplInfo() {
              // dbgmsg << "  Deleting comm object, since now NumCreated = ";
              // dbgmsg << NumCreated << endl;
              delete Comm;
-
+             Comm = 0;
              NeedDeleteComm = false;
         }
         CommInitialized = false;
@@ -1125,8 +1141,8 @@ void IpplInfo::stash() {
 
     Comm = 0;
     Stats = 0;
-    // can't set Info and Warn to zero since
-    //  IpplInfoWrapper requires valid objects
+    Info = 0;
+    Warn = 0;
     Error = 0;
     Debug = 0;
 
