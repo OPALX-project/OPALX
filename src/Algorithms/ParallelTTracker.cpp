@@ -965,13 +965,13 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
 void ParallelTTracker::setOptionalVariables() {
     Inform msg("ParallelTTracker ", *gmsg);
 
-    minBinEmitted_m  = 10;
+    minBinEmitted_m  = Options::minBinEmitted;
     RealVariable *ar = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINBINEMITTED"));
     if (ar)
         minBinEmitted_m = static_cast<size_t>(ar->getReal());
     msg << level2 << "MINBINEMITTED " << minBinEmitted_m << endl;
 
-    minStepforReBin_m  = 200;
+    minStepforReBin_m  = Options::minStepForRebin;
     RealVariable *br = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINSTEPFORREBIN"));
     if (br)
         minStepforReBin_m = static_cast<int>(br->getReal());
@@ -981,7 +981,7 @@ void ParallelTTracker::setOptionalVariables() {
     if (Ippl::getNodes() == 1) {
         repartFreq_m = numeric_limits<unsigned int>::max();
     } else {
-        repartFreq_m = 1000;
+        repartFreq_m = Options::repartFreq * 100;
         RealVariable *rep = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("REPARTFREQ"));
         if (rep)
             repartFreq_m = static_cast<int>(rep->getReal());
