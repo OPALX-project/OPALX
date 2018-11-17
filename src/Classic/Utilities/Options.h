@@ -89,6 +89,12 @@ namespace Options {
     /// The frequency to do particles repartition for better load balance between nodes
     extern int repartFreq;
 
+    /// The number of bins that have to be emitted before the bin are squashed into a single bin
+    extern int minBinEmitted;
+
+    /// The number of steps into the simulation before the bins are squashed into a single bin
+    extern int minStepForRebin;
+
     /// The frequency to reset energy bin ID for all particles
     extern int rebinFreq;
 
