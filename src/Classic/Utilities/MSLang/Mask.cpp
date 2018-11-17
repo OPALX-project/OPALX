@@ -7,6 +7,116 @@
 #include <boost/filesystem.hpp>
 
 namespace mslang {
+    void Mask::updateCache(const std::vector<bool> &pixels, std::vector<unsigned int> &cache, unsigned int y) const {
+        const unsigned int M = cache.size();
+        unsigned int idx = y * M;
+        for (unsigned int x = 0; x < M; ++ x, ++ idx) {
+            if (pixels[idx]) {
+                ++ cache[x];
+            } else {
+                cache[x] = 0;
+            }
+        }
+    }
+
+    unsigned int Mask::computeArea(const Mask::IntPoint &ll, const Mask::IntPoint &ur) const {
+        if ((ur.x_m > ll.x_m) && (ur.y_m > ll.y_m))
+            return (ur.x_m - ll.x_m) * (ur.y_m - ll.y_m);
+
+        return 0;
+    }
+
+    std::pair<Mask::IntPoint, Mask::IntPoint> Mask::findMaximalRectangle(const std::vector<bool> &pixels,
+                                                                         unsigned int N, /* height */
+                                                                         unsigned int M /* width */) const {
+
+        // This algorithm was presented in
+        // http://www.drdobbs.com/database/the-maximal-rectangle-problem/184410529
+        // by David Vandevoorde, April 01, 1998
+
+        unsigned int bestArea = 0;
+        IntPoint bestLL(0, 0), bestUR(0,0);
+        std::vector<unsigned int> cache(M, 0);
+        std::stack<std::pair<unsigned int, unsigned int> > stack;
+        for (unsigned int y = N - 1; y + 1 > 0; -- y) {
+            updateCache(pixels, cache, y);
+            unsigned int height = 0;
+            for (unsigned int x = 0; x < M; ++ x) {
+                if (cache[x] > height) {
+                    stack.push(std::make_pair(x, height));
+                    height = cache[x];
+                } else if (cache[x] < height) {
+                    std::pair<unsigned int, unsigned int> tmp;
+                    do {
+                        tmp = stack.top();
+                        stack.pop();
+                        if (x > tmp.first && height * (x - tmp.first) > bestArea) {
+                            bestLL.x_m = tmp.first; bestLL.y_m = y;
+                            bestUR.x_m = x; bestUR.y_m = y + height;
+                            bestArea = height * (x - tmp.first);
+                        }
+                        height = tmp.second;
+                    } while (stack.size() > 0 && cache[x] < height);
+                    height = cache[x];
+                    if (height != 0) {
+                        stack.push(std::make_pair(tmp.first, height));
+                    }
+                }
+            }
+
+            if (stack.size() > 0) {
+                std::pair<unsigned int, unsigned int> tmp = stack.top();
+                stack.pop();
+                if (M > tmp.first && height * (M - tmp.first) > bestArea) {
+                    bestLL.x_m = tmp.first; bestLL.y_m = y;
+                    bestUR.x_m = M; bestUR.y_m = y + height;
+                    bestArea = height * (M - tmp.first);
+                }
+            }
+        }
+
+        return std::make_pair(bestLL, bestUR);
+    }
+
+    std::vector<Mask::IntPixel_t> Mask::minimizeNumberOfRectangles(std::vector<bool> pixels,
+                                                                   unsigned int N,/* height */
+                                                                   unsigned int M /* width */)
+    {
+        std::vector<IntPixel_t> rectangles;
+
+        unsigned int maxArea = 0;
+        while (true) {
+            IntPixel_t pix = findMaximalRectangle(pixels, N, M);
+            unsigned int area = computeArea(pix.first, pix.second);
+            if (area > maxArea) maxArea = area;
+            if (1000 * area < maxArea || area <= 1) {
+                break;
+            }
+
+            rectangles.push_back(pix);
+
+            for (int y = pix.first.y_m; y < pix.second.y_m; ++ y) {
+                unsigned int idx = y * M + pix.first.x_m;
+                for (int x = pix.first.x_m; x < pix.second.x_m; ++ x, ++ idx) {
+                    pixels[idx] = false;
+                }
+            }
+        }
+
+        unsigned int idx = 0;
+        for (unsigned int y = 0; y < N; ++ y) {
+            for (unsigned int x = 0; x < M; ++ x, ++idx) {
+                if (pixels[idx]) {
+                    IntPoint ll(x, y);
+                    IntPoint ur(x + 1, y + 1);
+                    rectangles.push_back(IntPixel_t(ll, ur));
+                }
+            }
+        }
+
+        return rectangles;
+    }
+
     bool Mask::parse_detail(iterator &it, const iterator &end, Function* &fun) {
         Mask *pixmap = static_cast<Mask*>(fun);
 
@@ -49,19 +159,23 @@ namespace mslang {
             return false;
         }
 
-        for (unsigned int i = 0; i < height; ++ i) {
-            for (unsigned int j = 0; j < width; ++ j) {
-                if (reader.isBlack(i, j)) {
-                    Rectangle rect;
-                    rect.width_m = pixel_width;
-                    rect.height_m = pixel_height;
-                    rect.trafo_m = AffineTransformation(Vector_t(1, 0, (0.5 * width - j) * pixel_width),
-                                                        Vector_t(0, 1, (i - 0.5 * height) * pixel_height));
+        auto maxRect = pixmap->minimizeNumberOfRectangles(reader.getPixels(), height, width);
 
-                    pixmap->pixels_m.push_back(rect);
-                    pixmap->pixels_m.back().computeBoundingBox();
-                }
-            }
+        for (const IntPixel_t &pix: maxRect) {
+            const IntPoint &ll = pix.first;
+            const IntPoint &ur = pix.second;
+
+            Rectangle rect;
+            rect.width_m = (ur.x_m - ll.x_m) * pixel_width;
+            rect.height_m = (ur.y_m - ll.y_m) * pixel_height;
+
+            double midX = 0.5 * (ur.x_m + ll.x_m);
+            double midY = 0.5 * (ur.y_m + ll.y_m);
+            rect.trafo_m = AffineTransformation(Vector_t(1, 0, (0.5 * width - midX) * pixel_width),
+                                                Vector_t(0, 1, (midY - 0.5 * height) * pixel_height));
+
+            pixmap->pixels_m.push_back(rect);
+            pixmap->pixels_m.back().computeBoundingBox();
         }
 
         it += (arguments.getLengthConsumed() + 1);
