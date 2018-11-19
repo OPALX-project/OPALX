@@ -291,7 +291,7 @@ void OpalSimulation::run() {
         // std::cerr.setstate(std::ios::failbit);
 #endif
         // now we can run the simulation
-        run_opal(arg, inputFileName.str(), -1, comm_);
+        run_opal(arg, inputFileName.str(), -1, Options::infoLevel, Options::warnLevel, comm_);
 
         //restoreOut();
 #ifdef SUPRESS_OUTPUT

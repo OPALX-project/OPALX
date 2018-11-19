@@ -86,6 +86,8 @@ namespace {
         AMR_YT_DUMP_FREQ,
 #endif
         MEMORYDUMP,
+        MINBINEMITTED,
+        MINSTEPFORREBIN,
         SIZE
     };
 }
@@ -160,7 +162,15 @@ Option::Option():
     itsAttr[REPARTFREQ] = Attributes::makeReal
                           ("REPARTFREQ", "The frequency to do particles repartition "
                            "for better load balance between nodes, its "
-                           "default value is 10.", repartFreq);
+                           "default value is " + std::to_string(repartFreq) + ".", repartFreq);
+
+    itsAttr[MINBINEMITTED] = Attributes::makeReal
+                             ("MINBINEMITTED", "The number of bins that have to be emitted before the bins are squashed into "
+                              "a single bin; the default value is " + std::to_string(minBinEmitted) + ".", minBinEmitted);
+
+    itsAttr[MINSTEPFORREBIN] = Attributes::makeReal
+                            ("MINSTEPFORREBIN", "The number of steps into the simulation before the bins are squashed into "
+                             "a single bin; the default value is " + std::to_string(minStepForRebin) + ".", minStepForRebin);
 
     itsAttr[REBINFREQ] = Attributes::makeReal
                          ("REBINFREQ", "The frequency to reset energy bin ID for "
