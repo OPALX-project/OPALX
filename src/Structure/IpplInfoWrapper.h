@@ -13,7 +13,7 @@
 
 class IpplInfoWrapper {
 public:
-    IpplInfoWrapper(const std::string &inputFileName, MPI_Comm comm);
+    IpplInfoWrapper(const std::string &inputFileName, int infoLevel, int warnLevel, MPI_Comm comm);
     ~IpplInfoWrapper();
 
 private:

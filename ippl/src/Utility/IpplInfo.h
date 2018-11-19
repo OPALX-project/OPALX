@@ -318,6 +318,7 @@ public:
   static void printStatistics(Inform&);
 
   static void instantiateGlobals();
+  static void deleteGlobals();
 private:
 
   static MPI_Comm communicator_m;

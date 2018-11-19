@@ -4,6 +4,6 @@
 #include "Ippl.h"
 
 
-int run_opal(char *arg[], std::string inputfile, int restartStep = -1, MPI_Comm comm = MPI_COMM_WORLD);
+int run_opal(char *arg[], std::string inputfile, int restartStep = -1, int infoLevel = 1, int warnLevel = 1, MPI_Comm comm = MPI_COMM_WORLD);
 
 #endif

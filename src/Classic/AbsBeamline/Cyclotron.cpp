@@ -392,8 +392,9 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         
         /* Bz */
         double bz = - bzint;
-        
-        if (std::abs(bz) > trimCoilThreshold_m)
+
+        //Changed from > to >= to include case where bz == 0 and trimCoilThreshold_m == 0 -DW
+        if (std::abs(bz) >= trimCoilThreshold_m) 
             applyTrimCoil(rad, R[2], &br, &bz);
         else {
             // make sure to have a smooth transition
