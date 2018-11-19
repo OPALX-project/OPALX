@@ -148,7 +148,7 @@ void StatisticalErrors::execute() {
 }
 
 void StatisticalErrors::runSimulation(const std::string &inputFileName, MPI_Comm comm) {
-    IpplInfoWrapper *newippl = new IpplInfoWrapper(inputFileName, comm);
+    IpplInfoWrapper *newippl = new IpplInfoWrapper(inputFileName, Options::infoLevel, Options::warnLevel, comm);
     std::string::size_type startExtension    = inputFileName.find_last_of('.');
     std::string::size_type startRelativePath = inputFileName.find_last_of('/');
     std::string relativePath("");

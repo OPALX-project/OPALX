@@ -15,6 +15,7 @@ public:
     unsigned int getHeight() const;
 
     bool isBlack(unsigned int i, unsigned int j) const;
+    std::vector<bool> getPixels() const;
     void print(std::ostream &out) const;
 
 private:
@@ -51,6 +52,11 @@ unsigned int PortableBitmapReader::getHeight() const {
 inline
 bool PortableBitmapReader::isBlack(unsigned int i, unsigned int j) const {
     return pixels_m[getIdx(i, j)];
+}
+
+inline
+std::vector<bool> PortableBitmapReader::getPixels() const {
+    return pixels_m;
 }
 
 inline
