@@ -74,14 +74,15 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
     rediffusedStat_m(0),
     locPartsInMat_m(0)
 {
-
-	beam_m = dynamic_cast<Beam *>(OpalData::getInstance()->find("beam1"));
 	bstp_m = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
 	NbComponents = 3;
     Material();
     bstpshape_m = element_ref_m->getType();
     FN_m = element_ref_m->getName();
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
+
+	double uam = 0.9314940954;	// Unified atomic mass unit in GeV
+	m_h = 1.00794 * uam;		// Hydrogen atom mass in GeV
 }
 
 
@@ -99,10 +100,6 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
 
     Inform m ("BeamStrippingPhysics::apply ", INFORM_ALL_NODES);
 
-
-    if ( beam_m )
-    	*gmsg << "inside Beam class " << endl;
-
     bunchToMatStat_m  = 0;
     rediffusedStat_m   = 0;
     stoppedPartStat_m = 0;
@@ -113,19 +110,16 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
     dT_m = bunch->getdT();  // own time, maybe larger than in the bunch object
     T_m  = bunch->getT(); 	// dt from bunch
 
-//    mass = bunch->getM()*1E-9;
-//    charge = bunch->getQ();
-//    *gmsg << "* Global bunch mass =    " << bunch->getM()*1E-9  << endl;
-//    *gmsg << "* Global bunch charge =    " << bunch->getQ()  << endl;
-
-//    *gmsg << "* mass beam =    " << beam_m->getMass()  << endl;
-//    *gmsg << "* charge beam =    " << beam_m->getCharge()  << endl;
-
-	double uam = 0.9314940954;	// Unified atomic mass unit in GeV
-	m_h = 1.00794 * uam;	// Hydrogen atom mass in GeV
+    double mass = bunch->getM()*1E-9;
 
     do {
-        doPhysics(bunch);
+    	if(mass == m_hm || mass == m_p || mass == m_h)
+    		doPhysics(bunch);
+        else {
+    		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+    		gmsgALL << getName() << ": Unsupported type of particle for residual gas interactions!"<< endl;
+    		gmsgALL << getName() << "-> Beam Stripping Physics not apply"<< endl;
+        }
         lossDs_m->save();
     } while (onlyOneLoopOverParticles == false);
 }
@@ -153,72 +147,63 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 	bool pdead_LS = false;
 
 	bool stop = bstp_m->getStop();
-//	bool flagresetMQ = false;
 	double r = 0.0;
 //	r = RandomGenerator();
 
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
-	for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
-		if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
+    for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
+    	if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
 
-			mass_m = bunch->M[i];
-			charge_m = bunch->Q[i];
+    		mass_m = bunch->M[i];
+    		charge_m = bunch->Q[i];
+//    		*gmsg << "* bunch->M[" << bunch->ID[i] << "] = " << bunch->M[i]
+//				  << "  bunch->Q[" << bunch->ID[i] << "] = " << bunch->Q[i] << endl;
 
-			*gmsg << "* bunch->M[" << bunch->ID[i] << "] = " << bunch->M[i]
-			      << "  bunch->Q[" << bunch->ID[i] << "] = " << bunch->Q[i] << endl;
+    		cycl_m->apply(bunch->R[i]*0.001, bunch->P[i], T_m, extE, extB);
+    		//			*gmsg << "* extB_m " << extB_m << endl;
 
-			cycl_m->apply(bunch->R[i]*0.001, bunch->P[i], T_m, extE, extB);
-//			*gmsg << "* extB_m " << extB_m << endl;
+    		Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass_m;
 
-			Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass_m;
+    		CrossSection(Eng);
 
-			CrossSection(Eng);
+    		Eng *= 1E-9; // Eng GeV
+    		gamma = (Eng + mass_m) / mass_m;
+    		beta = sqrt(1.0 - 1.0 / (gamma * gamma));
+    		deltas = dT_m * beta * c;
 
-			Eng *= 1E-9; // Eng GeV
-		    gamma = (Eng + mass_m) / mass_m;
-		    beta = sqrt(1.0 - 1.0 / (gamma * gamma));
-		    deltas = dT_m * beta * c;
+    		B = 0.1 * sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
+    		E = gamma * beta * c * B;
+    		//		    *gmsg << "* B =    " << B  << endl;
+    		//		    *gmsg << "* E =    " << E  << endl;
+    		//		    *gmsg << "* gamma =    " << gamma  << endl;
+    		//		    *gmsg << "* beta =    " << beta  << endl;
+    		//		    *gmsg << "* deltas =    " << deltas  << endl;
 
-		    B = 0.1 * sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
-		    E = gamma * beta * c * B;
+    		pdead_GS = GasStripping(deltas);
 
-//		    *gmsg << "* B =    " << B  << endl;
-//		    *gmsg << "* E =    " << E  << endl;
-//		    *gmsg << "* gamma =    " << gamma  << endl;
-//		    *gmsg << "* beta =    " << beta  << endl;
-//		    *gmsg << "* deltas =    " << deltas  << endl;
+    		if(mass_m == m_hm && charge_m == -q_e)
+    			pdead_LS = LorentzStripping(gamma, E);
+    		//			*gmsg << "pdead_GS = " << pdead_GS << endl;
+    		//			*gmsg << "pdead_LS = " << pdead_LS << endl;
 
-			pdead_GS = GasStripping(deltas);
-			pdead_LS = LorentzStripping(gamma, E);
-//			*gmsg << "pdead_GS = " << pdead_GS << endl;
-//			*gmsg << "pdead_LS = " << pdead_LS << endl;
-
-			if (pdead_GS == true || pdead_LS == true) {
-				*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
-				lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], T_m);
-                if (stop) {
-                    bunch->Bin[i] = -1;
-                    stoppedPartStat_m++;
-                }
-                else {
-                	bunch->updateNumTotal();
-                	*gmsg << "* Total number of particles after beam stripping = " << bunch->getTotalNum() << endl;
-//                    if(bunch->ID[i] == 0)
-//                      flagresetMQ = true;
-                    r = RandomGenerator();
-                    SecondaryParticles(bunch, i, r);
-                }
-			}
-		}
-	}
-
-//	if(!stop) {
-//		reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
-//		if(flagresetMQ)
-//			ResetMQ(bunch, r);
-//	}
+    		if (pdead_GS == true || pdead_LS == true) {
+    			*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
+    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], T_m);
+    			if (stop) {
+    				bunch->Bin[i] = -1;
+    				stoppedPartStat_m++;
+    			}
+    			else {
+    				bunch->updateNumTotal();
+    				*gmsg << "* Total number of particles after beam stripping = " << bunch->getTotalNum() << endl;
+    				r = RandomGenerator();
+    				SecondaryParticles(bunch, i, r);
+    			}
+    		}
+    	}
+    }
 
 	delete tester;
 }
@@ -264,7 +249,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 
 	for (int i = 0; i < NbComponents; ++i) {
 
-		if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
+		if(mass_m == m_hm && charge_m == -q_e) {
 			// Single-electron detachment
 			Eth = CSCoefSingle_Hminus[i][0];
 			a1 = CSCoefSingle_Hminus[i][1];
@@ -285,7 +270,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 			a6 = CSCoefDouble_Hminus[i][6];
 			CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 		}
-		else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
+		else if(mass_m == m_p && charge_m == q_e) {
 			// Single-electron capture
 			Eth = CSCoefSingle_Hplus[i][0];
 			a1 = CSCoefSingle_Hplus[i][1];
@@ -317,7 +302,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 			}
 		}
-		else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
+		else if(mass_m == m_h && charge_m == 0.0) {
 			// Single-electron detachment
 			Eth = CSCoefSingleLoss_H[i][0];
 			a1 = CSCoefSingleLoss_H[i][1];
@@ -346,11 +331,10 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 			}
 		}
-		else if(mass_m != m_p || mass_m != m_hm || mass_m != m_h) {
+//		else if(mass_m != m_hm || mass_m != m_p || mass_m != m_h) {
+		else {
 			CS_single[i] = {0.0};
 			CS_double[i] = {0.0};
-			Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-			gmsgALL << getName() << ": Unsupported type of particle for residual gas interactions!"<< endl;
 		}
 
 		CS_total[i] = CS_single[i] + CS_double[i];
@@ -375,7 +359,6 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 	    NCS_double_all += NCS_double[i];
 	    NCS_total_all += NCS_total[i];
 	}
-
 //	*gmsg << "* NCS_single_all 	= " << NCS_single_all << endl;
 //	*gmsg << "* NCS_double_all 	= " << NCS_double_all << endl;
 //	*gmsg << "* NCS_total_all	= " << NCS_total_all << endl;
@@ -417,15 +400,13 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
 
 	double tau = 0.0;
 	double fL = 0.0;
+	double r = RandomGenerator();
 
-    double r = RandomGenerator();
-
-    if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
-    	//Parametrization 1
-    	const double A1 = 3.073E-6;
-    	const double A2 = 4.414E9;
-    	tau = (A1/E) * exp(A2/E);
-    	fL = 1 - exp( - dT_m / (gamma * tau));
+	//Parametrization 1
+	const double A1 = 3.073E-6;
+	const double A2 = 4.414E9;
+	tau = (A1/E) * exp(A2/E);
+	fL = 1 - exp( - dT_m / (gamma * tau));
 
 //    	//Parametrization 2
 //    	double fL2 = 0.0;
@@ -448,7 +429,7 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
 //    	double zT = eps0 / (q_e * E);
 //    	tau = (4 * me * zT)/(S0 * N * N * hbar * (1+p)*(1+p) * (1-1/(2*k0*zT))) * exp(4*k0*zT/3);
 //    	fL = 1 - exp( - dT_m / (gamma * tau));
-    }
+
 //	*gmsg << "* fL =    " << fL << endl;
     return (fL > r);
 }
@@ -464,7 +445,7 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
 //    *gmsg << "* NCS_double_all/NCS_total_all	= " << NCS_double_all/NCS_total_all << endl;
 
 	// change the mass_m and charge_m
-	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
+	if(mass_m == m_hm && charge_m == -q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
 			*gmsg << "Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
 			bunch->M[i] = m_h;
@@ -476,7 +457,7 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
 			bunch->Q[i] = q_e;
 		}
 	}
-	else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
+	else if(mass_m == m_p && charge_m == q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
 			*gmsg << "Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
 			bunch->M[i] = m_h;
@@ -488,7 +469,7 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
 			bunch->Q[i] = -q_e;
 		}
 	}
-	else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
+	else if(mass_m == m_h && charge_m == 0.0) {
 		if(r > NCS_double_all/NCS_total_all) {
 			*gmsg << "Particle " << bunch->ID[i] << " is transformed to proton" << endl;
 			bunch->M[i] = m_p;

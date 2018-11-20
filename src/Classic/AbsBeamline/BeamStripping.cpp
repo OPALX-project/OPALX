@@ -209,6 +209,16 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
     // }
     goOnline(-1e6);
+
+    // change the mass and charge to simulate real particles
+	*gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
+	size_t tempnum = bunch->getLocalNum();
+    for (size_t i = 0; i < tempnum; ++i) {
+    	bunch->M[i] = bunch->getM()*1E-9;
+    	bunch->Q[i] = bunch->getQ() * q_e;
+    	if(bunch->weHaveBins())
+    		bunch->Bin[bunch->getLocalNum()-1] = bunch->Bin[i];
+    }
 }
 
 void BeamStripping::finalise() {

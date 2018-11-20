@@ -15,7 +15,6 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
-#include "Structure/Beam.h"
 #include <vector>
 
 #include <iostream>
@@ -28,8 +27,8 @@
 class ElementBase;
 
 template <class T, unsigned Dim>
+
 class PartBunchBase;
-class Beam;
 class LogicalError;
 class LossDataSink;
 class Inform;
@@ -81,7 +80,6 @@ private:
 
     double RandomGenerator();
 
-    Beam *beam_m;
     Cyclotron *cycl_m;
     BeamStripping *bstp_m;
 
