@@ -15,6 +15,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Structure/Beam.h"
 #include <vector>
 
 #include <iostream>
@@ -28,7 +29,7 @@ class ElementBase;
 
 template <class T, unsigned Dim>
 class PartBunchBase;
-
+class Beam;
 class LogicalError;
 class LossDataSink;
 class Inform;
@@ -75,10 +76,12 @@ private:
 
     bool LorentzStripping(double &gamma, double &E);
 
-    void ResetMQ(PartBunchBase<double, 3> *bunch);
+    void SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i, double &r);
+//    void ResetMQ(PartBunchBase<double, 3> *bunch, double &r);
 
     double RandomGenerator();
 
+    Beam *beam_m;
     Cyclotron *cycl_m;
     BeamStripping *bstp_m;
 
@@ -89,8 +92,8 @@ private:
     double  T_m;
     double dT_m;
 
-    double mass;
-    double charge;
+    double mass_m;
+    double charge_m;
 
 	double m_h;
 
