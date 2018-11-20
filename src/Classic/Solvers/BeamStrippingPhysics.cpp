@@ -62,8 +62,8 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 	material_m(material),
 	T_m(0.0),
     dT_m(0.0),
-	mass(0.0),
-    charge(0.0),
+	mass_m(0.0),
+    charge_m(0.0),
 	m_h(0.0),
 	NbComponents(0.0),
 	NCS_single_all(0.0),
@@ -74,6 +74,8 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
     rediffusedStat_m(0),
     locPartsInMat_m(0)
 {
+
+	beam_m = dynamic_cast<Beam *>(OpalData::getInstance()->find("beam1"));
 	bstp_m = dynamic_cast<BeamStripping *>(getElement()->removeWrappers());
 	NbComponents = 3;
     Material();
@@ -97,6 +99,10 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
 
     Inform m ("BeamStrippingPhysics::apply ", INFORM_ALL_NODES);
 
+
+    if ( beam_m )
+    	*gmsg << "inside Beam class " << endl;
+
     bunchToMatStat_m  = 0;
     rediffusedStat_m   = 0;
     stoppedPartStat_m = 0;
@@ -107,11 +113,13 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
     dT_m = bunch->getdT();  // own time, maybe larger than in the bunch object
     T_m  = bunch->getT(); 	// dt from bunch
 
-    mass = bunch->getM()*1E-9;
-    charge = bunch->getQ();
+//    mass = bunch->getM()*1E-9;
+//    charge = bunch->getQ();
+//    *gmsg << "* Global bunch mass =    " << bunch->getM()*1E-9  << endl;
+//    *gmsg << "* Global bunch charge =    " << bunch->getQ()  << endl;
 
-    *gmsg << "* mass =    " << mass  << endl;
-    *gmsg << "* charge =    " << charge  << endl;
+//    *gmsg << "* mass beam =    " << beam_m->getMass()  << endl;
+//    *gmsg << "* charge beam =    " << beam_m->getCharge()  << endl;
 
 	double uam = 0.9314940954;	// Unified atomic mass unit in GeV
 	m_h = 1.00794 * uam;	// Hydrogen atom mass in GeV
@@ -145,7 +153,9 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 	bool pdead_LS = false;
 
 	bool stop = bstp_m->getStop();
-	bool flagresetMQ = false;
+//	bool flagresetMQ = false;
+	double r = 0.0;
+//	r = RandomGenerator();
 
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
@@ -153,15 +163,21 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 	for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
 		if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
 
+			mass_m = bunch->M[i];
+			charge_m = bunch->Q[i];
+
+			*gmsg << "* bunch->M[" << bunch->ID[i] << "] = " << bunch->M[i]
+			      << "  bunch->Q[" << bunch->ID[i] << "] = " << bunch->Q[i] << endl;
+
 			cycl_m->apply(bunch->R[i]*0.001, bunch->P[i], T_m, extE, extB);
 //			*gmsg << "* extB_m " << extB_m << endl;
 
-			Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass;
+			Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass_m;
 
 			CrossSection(Eng);
 
 			Eng *= 1E-9; // Eng GeV
-		    gamma = (Eng + mass) / mass;
+		    gamma = (Eng + mass_m) / mass_m;
 		    beta = sqrt(1.0 - 1.0 / (gamma * gamma));
 		    deltas = dT_m * beta * c;
 
@@ -189,18 +205,20 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
                 else {
                 	bunch->updateNumTotal();
                 	*gmsg << "* Total number of particles after beam stripping = " << bunch->getTotalNum() << endl;
-                    if(bunch->ID[i] == 0)
-                      flagresetMQ = true;
+//                    if(bunch->ID[i] == 0)
+//                      flagresetMQ = true;
+                    r = RandomGenerator();
+                    SecondaryParticles(bunch, i, r);
                 }
 			}
 		}
 	}
 
-	if(!stop) {
-		reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
-		if(flagresetMQ)
-			ResetMQ(bunch);
-	}
+//	if(!stop) {
+//		reduce(&flagresetMQ, &flagresetMQ + 1, &flagresetMQ, OpBitwiseOrAssign());
+//		if(flagresetMQ)
+//			ResetMQ(bunch, r);
+//	}
 
 	delete tester;
 }
@@ -246,7 +264,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 
 	for (int i = 0; i < NbComponents; ++i) {
 
-		if(mass-m_hm < 1E-10 && charge == -z_p) {
+		if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
 			// Single-electron detachment
 			Eth = CSCoefSingle_Hminus[i][0];
 			a1 = CSCoefSingle_Hminus[i][1];
@@ -267,7 +285,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 			a6 = CSCoefDouble_Hminus[i][6];
 			CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 		}
-		else if(mass-m_p < 1E-10 && charge == z_p) {
+		else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
 			// Single-electron capture
 			Eth = CSCoefSingle_Hplus[i][0];
 			a1 = CSCoefSingle_Hplus[i][1];
@@ -299,7 +317,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 			}
 		}
-		else if(mass-m_h < 1E-10 && charge == 0.0) {
+		else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
 			// Single-electron detachment
 			Eth = CSCoefSingleLoss_H[i][0];
 			a1 = CSCoefSingleLoss_H[i][1];
@@ -328,7 +346,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 			}
 		}
-		else if(mass != m_p || mass != m_hm) {
+		else if(mass_m != m_p || mass_m != m_hm || mass_m != m_h) {
 			CS_single[i] = {0.0};
 			CS_double[i] = {0.0};
 			Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
@@ -402,7 +420,7 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
 
     double r = RandomGenerator();
 
-    if(mass-m_hm < 1E-5 && charge == -z_p) {
+    if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
     	//Parametrization 1
     	const double A1 = 3.073E-6;
     	const double A2 = 4.414E9;
@@ -435,44 +453,106 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
     return (fL > r);
 }
 
+void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i, double &r) {
 
-void BeamStrippingPhysics::ResetMQ(PartBunchBase<double, 3> *bunch) {
+	double opyield_m = 1.0;
+    size_t tempnum = bunch->getLocalNum();
+	size_t count = 0;
 
-    double r = RandomGenerator();
+//	*gmsg << "* random number 	= " << r << endl;
 //    *gmsg << "* NCS_single_all/NCS_total_all 	= " << NCS_single_all/NCS_total_all << endl;
 //    *gmsg << "* NCS_double_all/NCS_total_all	= " << NCS_double_all/NCS_total_all << endl;
 
-	if(mass-m_hm < 1E-10 && charge == -z_p) {
+	// change the mass_m and charge_m
+	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
-			bunch->resetM(m_h * 1.0e9);
-			bunch->resetQ(0.0);
+			*gmsg << "Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
+			bunch->M[i] = m_h;
+			bunch->Q[i] = 0.0;
 		}
 		else {
-			bunch->resetM(m_p * 1.0e9);
-			bunch->resetQ(z_p);
+			*gmsg << "Particle " << bunch->ID[i] << " is transformed to proton" << endl;
+			bunch->M[i] = m_p;
+			bunch->Q[i] = q_e;
 		}
 	}
-	else if(mass-m_p < 1E-10 && charge == z_p) {
+	else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
-			bunch->resetM(m_h * 1.0e9);
-			bunch->resetQ(0.0);
+			*gmsg << "Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
+			bunch->M[i] = m_h;
+			bunch->Q[i] = 0.0;
 		}
 		else {
-			bunch->resetM(m_hm * 1.0e9);
-			bunch->resetQ(-z_p);
+			*gmsg << "Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
+			bunch->M[i] = m_hm;
+			bunch->Q[i] = -q_e;
 		}
 	}
-	else if(mass-m_h < 1E-10 && charge == 0.0) {
+	else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
 		if(r > NCS_double_all/NCS_total_all) {
-			bunch->resetM(m_p * 1.0e9);
-			bunch->resetQ(z_p);
+			*gmsg << "Particle " << bunch->ID[i] << " is transformed to proton" << endl;
+			bunch->M[i] = m_p;
+			bunch->Q[i] = q_e;
 		}
 		else {
-			bunch->resetM(m_hm * 1.0e9);
-			bunch->resetQ(-z_p);
+			*gmsg << "Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
+			bunch->M[i] = m_hm;
+			bunch->Q[i] = -q_e;
 		}
 	}
+	bunch->PType[i] = ParticleType::NEWSECONDARY;
+
+    int j = 1;
+    //create new particles
+    while (j < opyield_m){
+      bunch->create(1);
+      bunch->R[tempnum+count] = bunch->R[i];
+      bunch->P[tempnum+count] = bunch->P[i];
+      bunch->Q[tempnum+count] = bunch->Q[i];
+      bunch->M[tempnum+count] = bunch->M[i];
+      // once the particle is stripped, change PType from 0 to 1 as a flag so as to avoid repetitive stripping.
+      bunch->PType[tempnum+count] = ParticleType::NEWSECONDARY;
+      count++;
+      j++;
+    }
+
+    if(bunch->weHaveBins())
+        bunch->Bin[bunch->getLocalNum()-1] = bunch->Bin[i];
 }
+
+//void BeamStrippingPhysics::ResetMQ(PartBunchBase<double, 3> *bunch, double &r) {
+//
+//	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
+//		if(r > NCS_double_all/NCS_total_all) {
+//			bunch->resetM(m_h * 1.0e9);
+//			bunch->resetQ(0.0);
+//		}
+//		else {
+//			bunch->resetM(m_p * 1.0e9);
+//			bunch->resetQ(z_p);
+//		}
+//	}
+//	else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
+//		if(r > NCS_double_all/NCS_total_all) {
+//			bunch->resetM(m_h * 1.0e9);
+//			bunch->resetQ(0.0);
+//		}
+//		else {
+//			bunch->resetM(m_hm * 1.0e9);
+//			bunch->resetQ(-z_p);
+//		}
+//	}
+//	else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
+//		if(r > NCS_double_all/NCS_total_all) {
+//			bunch->resetM(m_p * 1.0e9);
+//			bunch->resetQ(z_p);
+//		}
+//		else {
+//			bunch->resetM(m_hm * 1.0e9);
+//			bunch->resetQ(-z_p);
+//		}
+//	}
+//}
 
 double BeamStrippingPhysics::RandomGenerator() {
     // Random number function based on the GNU Scientific Library
