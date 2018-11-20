@@ -286,7 +286,7 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
         setGeom(Swidth);
 
         for(unsigned int i = 0; i < tempnum; ++i) {
-            if(bunch->PType[i] == ParticleType::REGULAR || bunch->PType[i] == ParticleType::STRIPPED) {
+            if(bunch->PType[i] == ParticleType::REGULAR) {
                 pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
                 if(pflag != 0) {
                     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
