@@ -2611,9 +2611,9 @@ void ParallelCyclotronTracker::singleParticleDump() {
             if(itsBunch_m->ID[i] == 0 || itsBunch_m->ID[i] == 1) {
 
                 outfTrackOrbit_m << "ID" << itsBunch_m->ID[i] << " ";
-                outfTrackOrbit_m << itsBunch_m->R[i](0) << " " << itsBunch_m->P[i](0) << " ";
-                outfTrackOrbit_m << itsBunch_m->R[i](1) << " " << itsBunch_m->P[i](1) << " ";
-                outfTrackOrbit_m << itsBunch_m->R[i](2) << " " << itsBunch_m->P[i](2) << std::endl;
+                outfTrackOrbit_m << itsBunch_m->R[i](0)*1000 << " " << itsBunch_m->P[i](0) << " ";
+                outfTrackOrbit_m << itsBunch_m->R[i](1)*1000 << " " << itsBunch_m->P[i](1) << " ";
+                outfTrackOrbit_m << itsBunch_m->R[i](2)*1000 << " " << itsBunch_m->P[i](2) << std::endl;
             }
         }
     }
