@@ -113,7 +113,7 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
     double mass = bunch->getM()*1E-9;
 
     do {
-    	if(mass == m_hm || mass == m_p || mass == m_h)
+    	if(mass-m_hm < 1E-6 || mass-m_p < 1E-6 || mass-m_h < 1E-6)
     		doPhysics(bunch);
         else {
     		Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
@@ -183,13 +183,13 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 
     		pdead_GS = GasStripping(deltas);
 
-    		if(mass_m == m_hm && charge_m == -q_e)
+//    		if(mass_m-m_hm < 1E-6 && charge_m == -q_e)
     			pdead_LS = LorentzStripping(gamma, E);
     		//			*gmsg << "pdead_GS = " << pdead_GS << endl;
     		//			*gmsg << "pdead_LS = " << pdead_LS << endl;
 
     		if (pdead_GS == true || pdead_LS == true) {
-    			*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
+//    			*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
     			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], T_m);
     			if (stop) {
     				bunch->Bin[i] = -1;
@@ -249,7 +249,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 
 	for (int i = 0; i < NbComponents; ++i) {
 
-		if(mass_m == m_hm && charge_m == -q_e) {
+		if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
 			// Single-electron detachment
 			Eth = CSCoefSingle_Hminus[i][0];
 			a1 = CSCoefSingle_Hminus[i][1];
@@ -270,7 +270,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 			a6 = CSCoefDouble_Hminus[i][6];
 			CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 		}
-		else if(mass_m == m_p && charge_m == q_e) {
+		else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
 			// Single-electron capture
 			Eth = CSCoefSingle_Hplus[i][0];
 			a1 = CSCoefSingle_Hplus[i][1];
@@ -302,7 +302,7 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 				CS_double[i] = CSAnalyticFunction(Eng, Eth, a1, a2, a3, a4, a5, a6);
 			}
 		}
-		else if(mass_m == m_h && charge_m == 0.0) {
+		else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
 			// Single-electron detachment
 			Eth = CSCoefSingleLoss_H[i][0];
 			a1 = CSCoefSingleLoss_H[i][1];
@@ -388,10 +388,9 @@ double BeamStrippingPhysics::CSAnalyticFunction(double Eng, double Eth,
 
 
 bool BeamStrippingPhysics::GasStripping(double &deltas) {
-
 	double r = RandomGenerator();
 	double fg = 1 - exp(-NCS_total_all * deltas);
-//	*gmsg << "* fg =    " << fg << endl;
+//	*gmsg << "* fg = " << fg << "    Random number = " << r << endl;
 	return (fg > r);
 }
 
@@ -445,38 +444,38 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
 //    *gmsg << "* NCS_double_all/NCS_total_all	= " << NCS_double_all/NCS_total_all << endl;
 
 	// change the mass_m and charge_m
-	if(mass_m == m_hm && charge_m == -q_e) {
+	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
-			*gmsg << "Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
+			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
 			bunch->M[i] = m_h;
 			bunch->Q[i] = 0.0;
 		}
 		else {
-			*gmsg << "Particle " << bunch->ID[i] << " is transformed to proton" << endl;
+			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to proton" << endl;
 			bunch->M[i] = m_p;
 			bunch->Q[i] = q_e;
 		}
 	}
-	else if(mass_m == m_p && charge_m == q_e) {
+	else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
-			*gmsg << "Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
+			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
 			bunch->M[i] = m_h;
 			bunch->Q[i] = 0.0;
 		}
 		else {
-			*gmsg << "Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
+			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
 			bunch->M[i] = m_hm;
 			bunch->Q[i] = -q_e;
 		}
 	}
-	else if(mass_m == m_h && charge_m == 0.0) {
+	else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
 		if(r > NCS_double_all/NCS_total_all) {
-			*gmsg << "Particle " << bunch->ID[i] << " is transformed to proton" << endl;
+			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to proton" << endl;
 			bunch->M[i] = m_p;
 			bunch->Q[i] = q_e;
 		}
 		else {
-			*gmsg << "Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
+			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
 			bunch->M[i] = m_hm;
 			bunch->Q[i] = -q_e;
 		}
