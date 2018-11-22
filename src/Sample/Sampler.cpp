@@ -4,6 +4,9 @@
 
 #include "Sample/Sampler.h"
 
+#include "OPALconfig.h"
+#include "Utilities/Util.h"
+
 #include "Util/OptPilotException.h"
 #include "Util/MPIHelper.h"
 
@@ -168,7 +171,8 @@ void Sampler::createNewIndividual_m() {
 void Sampler::dumpIndividualsToJSON_m() {
 
     tree_m.put("name", "sampler");
-    tree_m.put("version", "1.1");
+    tree_m.put(OPAL_PROJECT_NAME " version", OPAL_PROJECT_VERSION);
+    tree_m.put("git revision", Util::getGitRevision());
 
     std::stringstream bounds;
     DVarContainer_t::iterator itr = dvars_m.begin();
