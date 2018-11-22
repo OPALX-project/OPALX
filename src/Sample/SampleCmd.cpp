@@ -239,7 +239,7 @@ void SampleCmd::execute() {
                                 "Sampling method not found.");
         }
 
-        std::string name = Util::toUpper(s->getVariable());
+        std::string name = s->getVariable();
 
         if ( vars.find(name) == vars.end() ) {
             throw OpalException("SampleCmd::execute",
