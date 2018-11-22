@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.1)
-project (OPAL VERSION 2.0.0)
+project (OPAL VERSION 2.1.0)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
 string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PROJECT_VERSION})
