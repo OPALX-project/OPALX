@@ -16,6 +16,12 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/map.hpp>
 
+#include "OPALconfig.h"
+#include "Utilities/Util.h"
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include "Util/OptPilotException.h"
 #include "Util/MPIHelper.h"
 
@@ -729,88 +735,78 @@ template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
 
     typedef typename FixedPisaNsga2::Individual_t individual;
-    boost::shared_ptr<individual> temp;
-
-    std::ofstream file;
-    std::ostringstream filename;
-    filename << resultDir_m << "/" << act_gen << "_" << resultFile_m
-             << "_" << comms_.island_id << ".json";
-    file.open(filename.str().c_str(), std::ios::out);
-
-    file << "{" << std::endl;
-    file << "\t" << "\"name\": " << "\"opt-pilot\"," << std::endl;
-
-    file << "\t" << "\"dvar-bounds\": {" << std::endl;
+    typedef boost::property_tree::ptree ptree_t;
+    
+    
+    ptree_t tree;
+    
+    tree.put("name", "opt-pilot");
+    tree.put(OPAL_PROJECT_NAME " version", OPAL_PROJECT_VERSION);
+    tree.put("git revision", Util::getGitRevision());
+    
+    std::stringstream bounds;
     DVarContainer_t::iterator itr = dvars_m.begin();
-    for ( bounds_t::iterator it = dVarBounds_m.begin();
-          it != dVarBounds_m.end(); ++it, ++itr )
+    for (bounds_t::iterator it = dVarBounds_m.begin();
+         it != dVarBounds_m.end(); ++it, ++itr)
     {
-         file << "\t\t\"" << boost::get<VAR_NAME>(itr->second) << "\": "
-              << "[ " << it->first << ", " << it->second << " ]";
-
-         if ( it != dVarBounds_m.end() - 1 )
-             file << ",";
-         file << "\n";
+        std::string dvar = boost::get<VAR_NAME>(itr->second);
+        bounds << "[ " << it->first << ", " << it->second << " ]";
+        tree.put("dvar-bounds." + dvar, bounds.str());
+        bounds.str("");
     }
-    file << "\t}\n\t," << std::endl;
-
-    file << "\t" << "\"constraints\": [" << std::endl;
+    
+    
+    ptree_t constraints;
+    
     for ( Expressions::Named_t::iterator it = constraints_m.begin();
           it != constraints_m.end(); ++it )
     {
+        
+        
         std::string s = it->second->toString();
         /// cleanup string to make json reader happy
         s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
-
-        file << "\t\t\"" << s << "\"";
-
-        if ( it != std::prev(constraints_m.end(), 1) )
-            file << ",";
-        file << "\n";
+        
+        // 22. November 2018
+        // https://stackoverflow.com/questions/2114466/creating-json-arrays-in-boost-using-property-trees
+        ptree_t constraint;
+        constraint.put("", s);
+        constraints.push_back(std::make_pair("", constraint));
     }
-    file << "\t]\n\t," << std::endl;
-
-    file << "\t" << "\"solutions\": " << "[" << std::endl;
-
+    
+    
+    tree.add_child("constraints", constraints);
+    
+    boost::shared_ptr<individual> ind;
+    
     typename std::map<unsigned int, boost::shared_ptr<individual> >::iterator it;
     for(it = variator_m->population()->begin();
         it != variator_m->population()->end(); it++) {
-
-        if(it != variator_m->population()->begin())
-            file << "\t" << "," << std::endl;
-
-        file << "\t" << "{" << std::endl;
-        file << "\t" << "\t" << "\"ID\": " << it->first << "," << std::endl;
-
+        
+        std::string id = std::to_string(it->first);
+        
         Expressions::Named_t::iterator expr_it;
         expr_it = objectives_m.begin();
-        temp = it->second;
-
-        file << "\t\t\"obj\":\n" << "\t\t{\n";
-        for(size_t i=0; i < temp->objectives_m.size(); i++, expr_it++) {
-            file << "\t" << "\t" << "\t" << "\"" << expr_it->first << "\": "
-                 << temp->objectives_m[i];
-            if( i + 1 != temp->objectives_m.size())
-                file << ",";
-            file << std::endl;
+        ind = it->second;
+        
+    
+        for(size_t i=0; i < ind->objectives_m.size(); i++, expr_it++) {
+            std::string name = expr_it->first;
+            tree.put("population." + id + ".obj." + name, ind->objectives_m[i]);
         }
-        file << "\t\t}\n" << "\t\t,\n" << "\t\t\"dvar\":\n" << "\t\t{\n";
+        
         size_t i = 0;
         for(itr = dvars_m.begin(); itr != dvars_m.end(); ++i, ++itr) {
-            file << "\t\t\t\"" << boost::get<VAR_NAME>(itr->second) << "\": "
-                 << temp->genes_m[i];
-            if ( i + 1 != temp->genes_m.size())
-                file << ",";
-            file << "\n";
+            std::string name = boost::get<VAR_NAME>(itr->second);
+            tree.put("population." + id + ".dvar." + name, ind->genes_m[i]);
         }
-        file << "\t\t}\n";
-
-        file << "\t" << "}" << std::endl;
     }
+    
+    std::ostringstream filename;
+    filename << resultDir_m << "/" << act_gen << "_" << resultFile_m
+             << "_" << comms_.island_id << ".json";
 
-    file << "\t" << "]" << std::endl;
-    file << "}" << std::endl;
-    file.close();
+    boost::property_tree::write_json(filename.str(), tree);
 }
 
 
