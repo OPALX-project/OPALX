@@ -146,7 +146,7 @@ private:
     std::string resultFile_m;
     std::string resultDir_m;
 
-    boost::property_tree::ptree samples_m;
+    boost::property_tree::ptree tree_m;
 
     void dumpIndividualsToJSON_m();
 
