@@ -4,6 +4,9 @@
 
 #include "Sample/Sampler.h"
 
+#include "OPALconfig.h"
+#include "Utilities/Util.h"
+
 #include "Util/OptPilotException.h"
 #include "Util/MPIHelper.h"
 
@@ -167,9 +170,9 @@ void Sampler::createNewIndividual_m() {
 
 void Sampler::dumpIndividualsToJSON_m() {
 
-    boost::property_tree::ptree tree;
-
-    tree.put("name", "sampler");
+    tree_m.put("name", "sampler");
+    tree_m.put(OPAL_PROJECT_NAME " version", OPAL_PROJECT_VERSION);
+    tree_m.put("git revision", Util::getGitRevision());
 
     std::stringstream bounds;
     DVarContainer_t::iterator itr = dvars_m.begin();
@@ -178,30 +181,26 @@ void Sampler::dumpIndividualsToJSON_m() {
     {
         std::string dvar = boost::get<VAR_NAME>(itr->second);
         bounds << "[ " << it->first << ", " << it->second << " ]";
-        tree.put("dvar-bounds." + dvar, bounds.str());
+        tree_m.put("dvar-bounds." + dvar, bounds.str());
         bounds.str("");
     }
-
-    tree.add_child("samples", samples_m);
-
 
     std::ostringstream filename;
     filename << resultDir_m << "/" << resultFile_m
              << "_samples.json";
 
-    boost::property_tree::write_json(filename.str(), tree);
+    boost::property_tree::write_json(filename.str(), tree_m);
 }
 
 void Sampler::addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind) {
-    boost::property_tree::ptree sample;
-
-    sample.put("ID", ind->id);
-
+    
+    std::string id = std::to_string(ind->id);
+    
     DVarContainer_t::iterator itr;
     for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
         std::string name = boost::get<VAR_NAME>(itr->second);
         int i = ind->getIndex(name);
-        sample.put("dvar." + name, ind->genes[i]);
+        tree_m.put("samples." + id + ".dvar." + name, ind->genes[i]);
     }
 
     Expressions::Named_t::iterator expr_it;
@@ -209,10 +208,8 @@ void Sampler::addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind) 
 
     for(size_t i=0; i < ind->objectives.size(); i++, expr_it++) {
         std::string name = expr_it->first;
-        sample.put("obj." + name, ind->objectives[i]);
+        tree_m.put("samples." + id + ".obj." + name, ind->objectives[i]);
     }
-
-    samples_m.push_back(std::make_pair("", sample));
 }
 
 
