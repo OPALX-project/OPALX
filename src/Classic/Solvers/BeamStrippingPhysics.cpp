@@ -87,7 +87,7 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 
 
 BeamStrippingPhysics::~BeamStrippingPhysics() {
-//    lossDs_m->save();
+    lossDs_m->save();
 }
 
 const std::string BeamStrippingPhysics::getType() const {
@@ -101,7 +101,7 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
     Inform m ("BeamStrippingPhysics::apply ", INFORM_ALL_NODES);
 
     bunchToMatStat_m  = 0;
-    rediffusedStat_m   = 0;
+    rediffusedStat_m  = 0;
     stoppedPartStat_m = 0;
     locPartsInMat_m   = 0;
 
@@ -120,7 +120,7 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
     		gmsgALL << getName() << ": Unsupported type of particle for residual gas interactions!"<< endl;
     		gmsgALL << getName() << "-> Beam Stripping Physics not apply"<< endl;
         }
-        lossDs_m->save();
+//        lossDs_m->save();
     } while (onlyOneLoopOverParticles == false);
 }
 
@@ -439,9 +439,9 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
     size_t tempnum = bunch->getLocalNum();
 	size_t count = 0;
 
-//	*gmsg << "* random number 	= " << r << endl;
-//    *gmsg << "* NCS_single_all/NCS_total_all 	= " << NCS_single_all/NCS_total_all << endl;
-//    *gmsg << "* NCS_double_all/NCS_total_all	= " << NCS_double_all/NCS_total_all << endl;
+//	*gmsg << "* random number = " << r
+//		  << " NCS_single_all/NCS_total_all = " << NCS_single_all/NCS_total_all
+//    	  << " NCS_double_all/NCS_total_all = " << NCS_double_all/NCS_total_all << endl;
 
 	// change the mass_m and charge_m
 	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
