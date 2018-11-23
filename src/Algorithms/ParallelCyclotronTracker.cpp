@@ -617,14 +617,18 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
     double temperature = elptr->getTemperature();
     *gmsg << "* Temperature (fixed)	= " << temperature << " [K]" << endl;
 
+    bool stop = elptr->getStop();
+    *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
+
     elptr->initialise(itsBunch_m);
 
     double BcParameter[8];
-    for(int i = 0; i < 8; i++)
+    for(int i = 0; i < 4; i++)
         BcParameter[i] = 0.0;
 
     BcParameter[0] = pressure;
     BcParameter[1] = temperature;
+    BcParameter[2] = stop;
 
     buildupFieldList(BcParameter, ElementBase::BEAMSTRIPPING, elptr);
 }
@@ -3161,11 +3165,11 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     if ( step_m % Options::sptDumpFreq == 0 ) {
 
         outfTrackOrbit_m << "ID" <<itsBunch_m->ID[i]
-                         << " " << itsBunch_m->R[i](0)
+                         << " " << itsBunch_m->R[i](0)*1000
                          << " " << itsBunch_m->P[i](0)
-                         << " " << itsBunch_m->R[i](1)
+                         << " " << itsBunch_m->R[i](1)*1000
                          << " " << itsBunch_m->P[i](1)
-                         << " " << itsBunch_m->R[i](2)
+                         << " " << itsBunch_m->R[i](2)*1000
                          << " " << itsBunch_m->P[i](2)
                          << std::endl;
     }
