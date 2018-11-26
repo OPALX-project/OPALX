@@ -194,6 +194,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
     			if (stop) {
     				bunch->Bin[i] = -1;
     				stoppedPartStat_m++;
+    				*gmsg << "* Particle " << bunch->ID[i] << " is deleted by beam stripping" << endl;
     			}
     			else {
     				bunch->updateNumTotal();
@@ -389,7 +390,7 @@ double BeamStrippingPhysics::CSAnalyticFunction(double Eng, double Eth,
 
 bool BeamStrippingPhysics::GasStripping(double &deltas) {
 	double r = RandomGenerator();
-	double fg = 1 - exp(-NCS_total_all * deltas);
+	double fg = (1 - exp(-NCS_total_all * deltas)) / deltas;
 //	*gmsg << "* fg = " << fg << "    Random number = " << r << endl;
 	return (fg > r);
 }
