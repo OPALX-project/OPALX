@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
+ *  Copyright (c) 2018, Martin Duy Tat
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -29,6 +30,10 @@
 #include "Algorithms/PartBunch.h"
 #include "MultipoleT.h"
 #include <gsl/gsl_math.h>
+#include "MultipoleTFunctions/RecursionRelation.h"
+#include "MultipoleTFunctions/RecursionRelationTwo.h"
+#include "MultipoleTFunctions/tanhDeriv.h"
+#include "MultipoleTFunctions/CoordinateTransform.h"
 
 using namespace endfieldmodel;
 
@@ -37,14 +42,15 @@ MultipoleT::MultipoleT(const std::string &name):
     fringeField_l(endfieldmodel::Tanh()),
     fringeField_r(endfieldmodel::Tanh()),
     maxOrder_m(5),
+    maxOrderX_m(10),
     transMaxOrder_m(0),
     planarArcGeometry_m(1., 1.),
-    varStep_m(0.1),
     length_m(1.0),
     angle_m(0.0),
     entranceAngle_m(0.0),
     rotation_m(0.0),
     variableRadius_m(false),
+    boundingBoxLength_m(0.0),
     verticalApert_m(0.5),
     horizApert_m(0.5) {
 }
@@ -54,15 +60,18 @@ MultipoleT::MultipoleT(const MultipoleT &right):
     fringeField_l(right.fringeField_l),
     fringeField_r(right.fringeField_r),
     maxOrder_m(right.maxOrder_m),
+    maxOrderX_m(right.maxOrderX_m),
+    recursion_VarRadius_m(right.recursion_VarRadius_m),
+    recursion_ConstRadius_m(right.recursion_ConstRadius_m),
     transMaxOrder_m(right.transMaxOrder_m),
     transProfile_m(right.transProfile_m),
     planarArcGeometry_m(right.planarArcGeometry_m),
-    varStep_m(right.varStep_m),
     length_m(right.length_m),
     angle_m(right.angle_m),
     entranceAngle_m(right.entranceAngle_m),
     rotation_m(right.rotation_m),
     variableRadius_m(right.variableRadius_m),
+    boundingBoxLength_m(right.boundingBoxLength_m),
     verticalApert_m(right.verticalApert_m),
     horizApert_m(right.horizApert_m),
     dummy() {
@@ -85,15 +94,34 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &P,
                const double &t,Vector_t &E, Vector_t &B) {
     /** Rotate coordinates around the central axis of the magnet */
     Vector_t R_prime = rotateFrame(R);
-    /** If magnet is not straight go to coords along the magnet */
-    if(angle_m != 0.0) {
-        Vector_t X = R_prime;
-        R_prime = transformCoords(X);
-    }
+    /** If magnet is not straight go to local Frenet-Serret coordinates */
+    R_prime[2] *= -1; //OPAL uses different sign convention...
+    Vector_t X = R_prime;
+    R_prime = transformCoords(X);
     if (insideAperture(R_prime)) {
-        B[0] = getBx(R_prime);
+        /** Transform B-field from local to lab coordinates */
+        double theta;
+        double prefactor = (length_m / angle_m) * (tanh((fringeField_l.getX0())
+                           / fringeField_l.getLambda()) +
+                           tanh((fringeField_r.getX0())
+                           / fringeField_r.getLambda()));
+        if (angle_m == 0.0) {
+            theta = 0.0;
+        } else if (!variableRadius_m) {
+            theta = R_prime[2] * angle_m / length_m;
+        } else if (variableRadius_m) {
+            theta = fringeField_l.getLambda() * log(cosh((R_prime[2] +
+                    fringeField_l.getX0()) / fringeField_l.getLambda())) -
+                    fringeField_r.getLambda() * log(cosh((R_prime[2] -
+                    fringeField_r.getX0()) / fringeField_r.getLambda()));
+            theta /= prefactor;
+        }
+        double Bx = getBx(R_prime);
+        double Bs = getBs(R_prime);
+        B[0] = Bx * cos(theta) - Bs * sin(theta);
+        B[2] = Bx * sin(theta) + Bs * cos(theta);
         B[1] = getBz(R_prime);
-        B[2] = getBs(R_prime);
+        B[2] *= -1; //OPAL uses different sign convention
         return false;
     } else {
         for(int i = 0; i < 3; i++) {
@@ -110,9 +138,9 @@ bool MultipoleT::apply(const size_t &i, const double &t,
 
 Vector_t MultipoleT::rotateFrame(const Vector_t &R) {
   Vector_t R_prime(3), R_pprime(3);
-    /** Apply two 2D rotation matrices to coords vector
-      * -> rotate around central axis => skew fields
-      * -> rotate azymuthaly => entrance angle
+    /** Apply two 2D rotation matrices to coordinate vector
+      * Rotate around central axis => skew fields
+      * Rotate azymuthaly => entrance angle
       */
     // 1st rotation
     R_prime[0] = R[0] * cos(rotation_m) + R[1] * sin(rotation_m);
@@ -131,7 +159,7 @@ Vector_t MultipoleT::rotateFrame(const Vector_t &R) {
 Vector_t MultipoleT::rotateFrameInverse(Vector_t &B) {
     /** This function represents the inverse of the rotation 
       * around the central axis performed by rotateFrame() method
-      * -> used to rotate B field back to global coord system
+      * Used to rotate B field back to global coordinate system
       */
     Vector_t B_prime(3);
     B_prime[0] = B[0] * cos(rotation_m) + B[1] * sin(rotation_m);
@@ -150,53 +178,60 @@ bool MultipoleT::insideAperture(const Vector_t &R) {
 }
 
 Vector_t MultipoleT::transformCoords(const Vector_t &R) {
-    Vector_t X(3), Y(3);
-    // if radius not variable
-    if (not variableRadius_m) {
+    Vector_t X(3);
+    // If radius is constant
+    if (!variableRadius_m) {
         double radius = length_m / angle_m;
-        // Transform from Cartesian to Frenet-Seret along the magnet
+        // Transform from Cartesian to Frenet-Serret along the magnet
         double alpha = atan(R[2] / (R[0] + radius ));
-        if (alpha != 0.0) {
-                X[0] = R[2] / sin(alpha) - radius;
+        if (alpha != 0.0 && angle_m != 0.0) {
+            X[0] = R[2] / sin(alpha) - radius;
             X[1] = R[1];
-            X[2] = radius * alpha;
+            X[2] = radius * alpha;// + boundingBoxLength_m;
         } else {
-                X = R;
+            X[0] = R[0];
+            X[1] = R[1];
+            X[2] = R[2];// + boundingBoxLength_m;
         }
     } else {
-        // if radius is variable need to transform coordinates at each
-        // point along the trajectory
-        double deltaAlpha, S = 0.0, localRadius;
-        double stepSize = varStep_m; // mm -> has a big effect on tracking time
-        if (std::abs(R[2]) <= stepSize) {
-            return R; // no transformation around origin
-        }
-        Y = R;
-        Vector_t temp;
-        while (std::abs(Y[2]) > stepSize and getRadius(S) != -1) {
-            localRadius = getRadius(S);
-            deltaAlpha = stepSize / localRadius;
-            if (R[2] < 0) {
-                deltaAlpha *= - 1.; // rotate in the other direction
-            }
-            temp = Y;
-            // translation
-            temp[0] += localRadius * (1 - cos(deltaAlpha));
-            temp[2] -= localRadius * sin(deltaAlpha);
-            // + rotation along the ideal trajectory
-            Y[2] = temp[2] * cos(deltaAlpha) - temp[0] * sin(deltaAlpha);
-            Y[0] = temp[2] * sin(deltaAlpha) + temp[0] * cos(deltaAlpha);  
-            S += localRadius * deltaAlpha;
-            // until we reach the actual point from Cartesian coordinates
-        }
-        X[0] = Y[0];
-        X[1] = Y[1];
-        X[2] = S;
+        // If radius is variable
+        coordinatetransform::CoordinateTransform t(R[0], R[1], R[2],
+                                                   fringeField_l.getX0(),
+                                                   fringeField_l.getLambda(),
+                                                   fringeField_r.getLambda(),
+                                                   (length_m / angle_m));
+        std::vector<double> r = t.getTransformation();
+        X[0] = r[0];
+        X[1] = r[1];
+        X[2] = r[2];
     }
     return X;
 }
 
-void MultipoleT::setTransProfile(unsigned int n, double dTn) {
+void MultipoleT::setMaxOrder(std::size_t maxOrder) {
+    if (variableRadius_m && angle_m != 0.0) {
+        std::size_t N = recursion_VarRadius_m.size();
+        while (maxOrder >= N) {
+            polynomial::RecursionRelationTwo r(N, 2 * (N + maxOrderX_m + 1));
+            r.resizeX(transMaxOrder_m);
+            r.truncate(maxOrderX_m);
+            recursion_VarRadius_m.push_back(r);
+            N = recursion_VarRadius_m.size();
+        }
+    } else if (!variableRadius_m && angle_m != 0.0) {
+        std::size_t N = recursion_ConstRadius_m.size();
+        while (maxOrder >= N) {
+            polynomial::RecursionRelation r(N, 2 * (N + maxOrderX_m + 1));
+            r.resizeX(transMaxOrder_m);
+            r.truncate(maxOrderX_m);
+            recursion_ConstRadius_m.push_back(r);
+            N = recursion_ConstRadius_m.size();
+        }
+    }
+    maxOrder_m = maxOrder; 
+}
+
+void MultipoleT::setTransProfile(std::size_t n, double dTn) {
     if (n > transMaxOrder_m) {
       transMaxOrder_m = n;
       transProfile_m.resize(n+1, 0.0);
@@ -218,14 +253,14 @@ bool MultipoleT::setFringeField(double s0, double lambda_l, double lambda_r) {
 
 double MultipoleT::getBz(const Vector_t &R) {
     /** Returns the vertical field component
-      * -> sum_n  f_n * z^(2n) / (2n)!
+      * sum_n  f_n * z^(2n) / (2n)!
       */
     double Bz = 0.0;
     if (angle_m == 0.0) {
-        // Straight geometry -> use corresponding field expansion 
-        for(unsigned int n = 0; n <= maxOrder_m; n++) {
+        // Straight geometry -> Use corresponding field expansion directly
+        for(std::size_t n = 0; n <= maxOrder_m; n++) {
             double f_n = 0.0;
-            for(unsigned int i = 0; i <= n; i++)  {
+            for(std::size_t i = 0; i <= n; i++)  {
                 f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) * 
                        getFringeDeriv(2 * n - 2 * i, R[2]);
             }
@@ -234,12 +269,12 @@ double MultipoleT::getBz(const Vector_t &R) {
         }
     } else {
         if (variableRadius_m == true and getFringeDeriv(0, R[2]) < 1.0e-12) {
-            // return 0 if end of fringe field is reached
-            // this is to avoid functions being called at infinite radius
+            // Return 0 if end of fringe field is reached
+            // This is to avoid functions being called at infinite radius
             return 0.0; 
         }
-        // Curved geometry -> use corresponding field expansion
-        for(unsigned int n = 0; n <= maxOrder_m; n++) {
+        // Curved geometry -> Use full machinery of differential operators
+        for(std::size_t n = 0; n <= maxOrder_m; n++) {
             double f_n = getFn(n, R[0], R[2]);
             Bz += gsl_sf_pow_int(R[1], 2 * n) / gsl_sf_fact(2 * n) * f_n;
         }
@@ -249,14 +284,14 @@ double MultipoleT::getBz(const Vector_t &R) {
 
 double MultipoleT::getBx(const Vector_t &R) {
     /** Returns the radial component of the field
-      * -> sum_n z^(2n+1) / (2n+1)! * \partial_x f_n 
+      * sum_n z^(2n+1) / (2n+1)! * \partial_x f_n 
       */
     double Bx = 0.0;
     if (angle_m == 0.0) {
-        // Straight geometry -> use corresponding field expansion
-        for(unsigned int n = 0; n <= maxOrder_m; n++) {
+        // Straight geometry -> Use corresponding field expansion directly
+        for(std::size_t n = 0; n <= maxOrder_m; n++) {
             double f_n = 0.0;
-            for(unsigned int i = 0; i <= n; i++) {
+            for(std::size_t i = 0; i <= n; i++) {
                 f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i + 1, R[0]) * 
                    getFringeDeriv(2 * n - 2 * i, R[2]);
             }
@@ -266,15 +301,15 @@ double MultipoleT::getBx(const Vector_t &R) {
         }
     } else {
         if (variableRadius_m == true and getFringeDeriv(0, R[2]) < 1.0e-12) {
-            // return 0 if end of fringe field is reached
-            // this is to avoid functions being called at infinite radius
+            // Return 0 if end of fringe field is reached
+            // This is to avoid functions being called at infinite radius
             return 0.0; 
         }
-        // Curved geometry -> use corresponding field expansion
-        for(unsigned int n = 0; n <= maxOrder_m; n++) {
+        // Curved geometry -> Use full machinery of differential operators
+        for(std::size_t n = 0; n <= maxOrder_m; n++) {
             double partialX_fn = getFnDerivX(n, R[0], R[2]);
-            Bx += gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1); 
-            Bx *= partialX_fn;
+            Bx += partialX_fn * gsl_sf_pow_int(R[1], 2 * n + 1)
+                  / gsl_sf_fact(2 * n + 1); 
         }
     }
     return Bx;
@@ -282,14 +317,14 @@ double MultipoleT::getBx(const Vector_t &R) {
 
 double MultipoleT::getBs(const Vector_t &R) {
     /** Returns the component of the field along the central axis 
-      * -> 1/h_s * sum_n z^(2n+1) / (2n+1)! \partial_s f_n
+      * 1/h_s * sum_n z^(2n+1) / (2n+1)! \partial_s f_n
       */
     double Bs = 0.0;
     if (angle_m == 0.0) {
-        // Straight geometry -> use corresponding field expansion 
-        for(unsigned int n = 0; n <= maxOrder_m; n++) {
+        // Straight geometry -> Use corresponding field expansion directly
+        for(std::size_t n = 0; n <= maxOrder_m; n++) {
             double f_n = 0.0;
-            for(unsigned int i = 0; i <= n; i++) {
+            for(std::size_t i = 0; i <= n; i++) {
                 f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) *
                        getFringeDeriv(2 * n - 2 * i + 1, R[2]);
             }
@@ -299,15 +334,15 @@ double MultipoleT::getBs(const Vector_t &R) {
         }
     } else {
         if (variableRadius_m == true and getFringeDeriv(0, R[2]) < 1.0e-12) {
-            // return 0 if end of fringe field is reached
-            // this is to avoid functions being called at infinite radius
+            // Return 0 if end of fringe field is reached
+            // This is to avoid functions being called at infinite radius
             return 0.0; 
         }
-        // Curved geometry -> use corresponding field expansion
-        for(unsigned int n = 0; n <= maxOrder_m; n++) {
+        // Curved geometry -> Use full machinery of differential operators
+        for(std::size_t n = 0; n <= maxOrder_m; n++) {
             double partialS_fn = getFnDerivS(n, R[0], R[2]);
-            Bs += gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1);
-            Bs *= partialS_fn;
+            Bs += partialS_fn * gsl_sf_pow_int(R[1], 2 * n + 1)
+                  / gsl_sf_fact(2 * n + 1);
         }
         Bs /= getScaleFactor(R[0], R[2]);
     }
@@ -315,14 +350,19 @@ double MultipoleT::getBs(const Vector_t &R) {
 }
 
 double MultipoleT::getFringeDeriv(int n, double s) {
-    // Wraps around the getTanh method of endfield 
-    double temp;
-    temp = fringeField_l.getTanh(s, n) - fringeField_r.getNegTanh(s, n);
-    temp /= 2;
-    return temp;
+    if (n <= 10) {
+        return (fringeField_l.getTanh(s, n) - fringeField_r.getNegTanh(s, n))
+                / 2;
+    } else {
+        return tanhderiv::integrate(s,
+                                    fringeField_l.Tanh::getX0(),
+                                    fringeField_l.Tanh::getLambda(),
+                                    fringeField_r.Tanh::getLambda(),
+                                    n);
+    }
 }
 
-double MultipoleT::getTransDeriv(unsigned int n, double x) {
+double MultipoleT::getTransDeriv(std::size_t n, double x) {
     /** Sets a vector of the coefficients in the polynomial expansion
       * of transverse profile; shifts them to the left and multiply by
       * corresponding power each time to take derivative once; 
@@ -332,20 +372,20 @@ double MultipoleT::getTransDeriv(unsigned int n, double x) {
     std::vector<double> temp = transProfile_m;
     if (n <= transMaxOrder_m) {
         if (n != 0) {
-            for(unsigned int i = 1; i <= n; i++) {
-                for(unsigned int j = 0; j <= transMaxOrder_m; j++) {
+            for(std::size_t i = 1; i <= n; i++) {
+                for(std::size_t j = 0; j <= transMaxOrder_m; j++) {
                     if (j <= transMaxOrder_m - i) {
-                        // move terms to the left and multiply by power
+                        // Move terms to the left and multiply by power
                         temp[j] = temp[j + 1] * (j + 1);
                         } else {
-                        // put 0 at the end for missing higher powers
+                        // Put 0 at the end for missing higher powers
                         temp[j] = 0.0;
                     }
                 }
             }
         }
         // Now use the vector to calculate value of the function
-        for(unsigned int k = 0; k <= transMaxOrder_m; k++) {
+        for(std::size_t k = 0; k <= transMaxOrder_m; k++) {
             func += temp[k] * gsl_sf_pow_int(x, k);
         }
     }
@@ -386,185 +426,115 @@ std::vector<double> MultipoleT::getFringeLength() const {
 }
 
 double MultipoleT::getRadius(double s) {
-    /** The radius is calculated to be inverse proportional to the field on
-      * the refrence trajectory (central axis of magnet)
-      * @f$ \rho (s) = \rho(0) * S(0) / S(s) @f$
-      */
     double centralRadius = length_m / angle_m;
-    // at the centre of the magnet
-    double propCoeff = centralRadius * getFringeDeriv(0, 0);
-    // move to current position on central axis
-    if (getFringeDeriv(0, s) != 0.0) {
-       return propCoeff / getFringeDeriv(0, s);
-    } else {
-       return -1; // return -1 if radius is infinite 
+    if (!variableRadius_m) {
+        return centralRadius;
     }
-}
-
-double MultipoleT::getRadiusFirstDeriv(double s) {
-    /** @return The derivative of the function which describes the radius
-      * as a function of s; 
-      */
-    return  -1.0 * getRadius(s) * getFringeDeriv(1, s) / getFringeDeriv(0, s);
-}
-
-double MultipoleT::getRadiusSecDeriv(double s) {
-    /** @return The second derivative of radius function
-      */
-    double deriv = 0.0;
-    deriv += gsl_pow_2(getFringeDeriv(1, s)) / getFringeDeriv(0, s);
-    deriv -= getFringeDeriv(2, s);
-    deriv *= getRadius(s);
-    return deriv;
+    if (getFringeDeriv(0, s) != 0.0) {
+       return centralRadius * getFringeDeriv(0, 0) / getFringeDeriv(0, s);
+    } else {
+       return -1; // Return -1 if radius is infinite 
+    }
 }
 
 double MultipoleT::getScaleFactor(double x, double s) {
-    /** @return The scale factor h_s = [(1 + x / rho)^2 + (d rho / ds)^2]^0.5
-      * rho -> radius
-      * used in field expansion, comes from Laplacian when curvature is variable
-      * if radius is fixed returns h_s = 1 + x / rho
-      */
-    if (not variableRadius_m) {
-        double rho = length_m / angle_m;
-        return 1 + x / rho;
+    if (!variableRadius_m) {
+        return 1 + x * angle_m/ length_m;
     } else {
-        double temp = 0.0;
-        temp += gsl_pow_2(getRadiusFirstDeriv(s));
-        temp += gsl_pow_2(1 + x / getRadius(s));
-        return std::pow(temp, 0.5);
+        return 1 + x / getRadius(s);
     }
 }
 
-double MultipoleT::getScaleFactorDerivX(double x, double s) {
-    /** Helper function to bunch terms together
-      * -> returns the partial deriv of the scale factor wrt. x
-      * -> partial h_s / partial x#include "Algorithms/PartBunch.h"
-      * -> = (1 + x / rho) / (rho * h_s ^ 0.5)
-      */
-    double temp = 0.0;
-    temp += (1 + x / getRadius(s)) / getRadius(s);
-    temp /= std::pow(getScaleFactor(x, s), 0.5);
-    return temp;
-}
-
-double MultipoleT::getScaleFactorDerivS(double x, double s) {
-    /** Helper function to bunch terms together
-      * -> returns partial h_s / partial s
-      * -> = (h_s)^(-1/2) * partial rho / partial s *
-      * -> * [-(1+x/rho)*x/rho^2 + partial^2 rho / partial^x]
-      */ 
-    double temp = 0.0;
-    temp -= (1 + x /getRadius(s)) * x / gsl_pow_2(getRadius(s));
-    temp += getRadiusSecDeriv(s);
-    temp *= getRadiusFirstDeriv(s) / std::pow(getScaleFactor(x, s), -0.5);
-    return temp;
-}
-
-double MultipoleT::getFnDerivX(unsigned int n, double x, double s) {
-    /** Returns the partial derivative of f_n(x, s) wrt x
-      * -> numerical differentiation
-      * -> 5-points formula
-      * -> error of order stepSize ^ 4
-      */
+double MultipoleT::getFnDerivX(std::size_t n, double x, double s) {
     if (n == 0) {
       return getTransDeriv(1, x) * getFringeDeriv(0, s);
     }
     double deriv = 0.0;
     double stepSize = 1e-3;
-    deriv += getFn(n, x - 2. * stepSize, s) - 8. * getFn(n, x - stepSize, s);
-    deriv += 8. * getFn(n, x + stepSize, s) - getFn(n, x + 2. * stepSize, s);
-    deriv /= 12.0 * stepSize;
+    deriv += 1. * getFn(n, x - 2. * stepSize, s);
+    deriv += -8. * getFn(n, x - stepSize, s);
+    deriv += 8. * getFn(n, x + stepSize, s);
+    deriv += -1. * getFn(n, x + 2. * stepSize, s);
+    deriv /= 12 * stepSize;
     return deriv;
 }
 
-double MultipoleT::getFnDerivS(unsigned int n, double x, double s) {
-    /** Returns the partial derivative of f_n(x, s) wrt s
-      * -> numerical differentiation
-      * -> 5-points formula
-      * -> error of order stepSize ^ 4
-      */
+double MultipoleT::getFnDerivS(std::size_t n, double x, double s) {
     if (n == 0) {
       return getTransDeriv(0, x) * getFringeDeriv(1, s);
     }
     double deriv = 0.0;
     double stepSize = 1e-3;
-    deriv += getFn(n, x, s - 2. * stepSize) - 8. * getFn(n, x, s - stepSize);
-    deriv += 8. * getFn(n, x, s + stepSize) - getFn(n, x, s + 2. * stepSize);
-    deriv /= 12.0 * stepSize;
+    deriv += 1. * getFn(n, x, s - 2. * stepSize);
+    deriv += -8. * getFn(n, x, s - stepSize);
+    deriv += 8. * getFn(n, x, s + stepSize);
+    deriv += -1. * getFn(n, x, s + 2. * stepSize);
+    deriv /= 12 * stepSize;
     return deriv;
 }
 
-double MultipoleT::getFnSecDerivX(unsigned int n, double x, double s) {
-    /** Returns the second partial derivative of f_n(x, s) wrt x
-      * -> numerical differentiation
-      * -> 5-points formula
-      * -> error of order stepSize ^ 4
-      */
-    if (n == 0) {
-      return getTransDeriv(2, x) * getFringeDeriv(0, s);
-    }
-    double deriv = 0.0;
-    double stepSize = 1e-3;
-    deriv += getFn(n, x + 2. * stepSize, s) + getFn(n, x - 2. * stepSize, s);
-    deriv -= getFn(n, x + stepSize, s) + getFn(n, x - stepSize, s);
-    deriv /= 3. * gsl_pow_2(stepSize);
-    return deriv;
-}
-
-double MultipoleT::getFnSecDerivS(unsigned int n, double x, double s) {
-    /** Returns the second partial derivative of f_n(x, s) wrt s
-      * -> numerical differentiation
-      * -> 5-points formula
-      * -> error of order stepSize ^ 4
-      */
-    if (n == 0) {
-      return getTransDeriv(0, x) * getFringeDeriv(2, s);
-    }
-    double deriv = 0.0;
-    double stepSize = 1e-3;
-    deriv += getFn(n, x, s + 2. * stepSize) + getFn(n, x, s - 2. * stepSize);
-    deriv -= getFn(n, x, s + stepSize) + getFn(n, x, s - stepSize);
-    deriv /= 3. * gsl_pow_2(stepSize);
-    return deriv;
-}
-
-double MultipoleT::getFn(unsigned int n, double x, double s) {
-    /** Returns the function f_n(x, s) for curved geometry
-      * -> based on recursion
-      */
+double MultipoleT::getFn(std::size_t n, double x, double s) {
     if (n == 0) {
         return getTransDeriv(0, x) * getFringeDeriv(0, s);
     }
-    // If radius is constant use corresponding recursion
-    if (not variableRadius_m) {
+    if (!variableRadius_m) {
         double rho = length_m / angle_m;
-        double h_s = 1 + x / rho;
-        double temp = 0.0;
-        temp += getFnDerivX(n - 1, x, s) / (h_s * rho);
-        temp += getFnSecDerivX(n - 1, x, s);
-        temp += getFnSecDerivS(n - 1, x, s) / gsl_pow_2(h_s);
-        temp *= -1.0;
-        return temp;
-    } else {
-        // If radius is variable use corresponding recursion 
-        double temp = 0.0;
-        double h_s = getScaleFactor(x, s);
-        temp += getScaleFactorDerivX(x, s) * getFnDerivX(n - 1, x, s);
-        temp -= getScaleFactorDerivS(x, s) * getFnDerivS(n - 1, x, s) / 
-                gsl_pow_2(h_s);
-        temp += getFnSecDerivX(n - 1, x, s) * h_s;
-        temp += getFnSecDerivS(n - 1, x, s) / h_s;
-        temp *= -1.0 / h_s; 
-        return temp;
-    }
-}    
+        double func = 0.0;
         
-
+        for (std::size_t j = 0;
+             j <= recursion_ConstRadius_m.at(n).getMaxSDerivatives();
+             j++) {
+            double FringeDerivj = getFringeDeriv(2 * j, s);
+            for (std::size_t i = 0;
+                 i <= recursion_ConstRadius_m.at(n).getMaxXDerivatives();
+                 i++) {
+                if (recursion_ConstRadius_m.at(n).isPolynomialZero(i, j)) {
+                    continue;
+                }
+                func += (recursion_ConstRadius_m.at(n)
+                        .evaluatePolynomial(x / rho, i, j) *
+                        getTransDeriv(i, x) * FringeDerivj) /
+                        gsl_sf_pow_int(rho, 2 * n - i - 2 * j);
+            }
+        }
+        func *= gsl_sf_pow_int(-1.0, n);
+        return func;
+    } else {
+        double rho = length_m / angle_m;
+        double S_0 = getFringeDeriv(0, 0);
+        double y = getFringeDeriv(0, s) / (S_0 * rho);
+        double func = 0.0;
+        std::vector<double> fringeDerivatives;
+        for (std::size_t j = 0;
+             j <= recursion_VarRadius_m.at(n).getMaxSDerivatives();
+             j++) {
+            fringeDerivatives.push_back(getFringeDeriv(j, s) / (S_0 * rho));
+        }
+        for (std::size_t i = 0;
+             i <= recursion_VarRadius_m.at(n).getMaxXDerivatives();
+             i++) {
+            double temp = 0.0;
+            for (std::size_t j = 0;
+                 j <= recursion_VarRadius_m.at(n).getMaxSDerivatives();
+                 j++) {
+                temp += recursion_VarRadius_m.at(n)
+                        .evaluatePolynomial(x, y, i, j, fringeDerivatives)
+                        * fringeDerivatives.at(j);
+            }
+            func += temp * getTransDeriv(i, x);
+        }
+        func *= gsl_sf_pow_int(-1.0, n) * S_0 * rho;
+        return func;
+    }
+}
+ 
 inline
 void MultipoleT::initialise(PartBunchBase<double, 3>* bunch, 
                 double &startField, 
                 double &endField) {
     RefPartBunch_m = bunch;
+    planarArcGeometry_m.setElementLength(2 * boundingBoxLength_m);
+    planarArcGeometry_m.setCurvature(angle_m / length_m);
 }
 
 inline
