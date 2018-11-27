@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
+ *  Copyright (c) 2018, Martin Duy Tat
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -26,7 +27,7 @@
  */
 
 
-#include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalMultipoleTStraight.h"
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
@@ -45,12 +46,12 @@
 #include <vector>
 
 
-// Class OpalMultipoleT
+// Class OpalMultipoleTStraight
 // ------------------------------------------------------------------------
 
-OpalMultipoleT::OpalMultipoleT():
-    OpalElement(SIZE, "MULTIPOLET",
-    "The \"MULTIPOLET\" element defines a combined function multipole.") {
+OpalMultipoleTStraight::OpalMultipoleTStraight():
+    OpalElement(SIZE, "MULTIPOLETSTRAIGHT",
+    "The \"MULTIPOLETSTRAIGHT\" element defines a straight, combined function multipole magnet.") {
     itsAttr[TP] = Attributes::makeRealArray
                   ("TP", "Transverse Profile derivatives in m^(-k)");
     itsAttr[LFRINGE] = Attributes::makeReal
@@ -61,59 +62,51 @@ OpalMultipoleT::OpalMultipoleT():
                   ("HAPERT", "The aperture width in m");
     itsAttr[VAPERT] = Attributes::makeReal
                   ("VAPERT", "The aperture height in m");
-    itsAttr[ANGLE] = Attributes::makeReal
-                  ("ANGLE", "The azimuthal angle of the magnet in ring (rad)");
     itsAttr[EANGLE] = Attributes::makeReal
                   ("EANGLE", "The entrance angle (rad)");
     itsAttr[MAXFORDER] = Attributes::makeReal
                   ("MAXFORDER", 
                    "Number of terms used in each field component");
-    itsAttr[MAXXORDER] = Attributes::makeReal
-                  ("MAXXORDER", 
-                   "Number of terms used in polynomial expansions");
     itsAttr[ROTATION] = Attributes::makeReal
                   ("ROTATION", 
                    "Rotation angle about its axis for skew elements (rad)");
-    itsAttr[VARRADIUS] = Attributes::makeBool
-                  ("VARRADIUS",
-                   "Set true if radius of magnet is variable");
     itsAttr[BBLENGTH] = Attributes::makeReal
                   ("BBLENGTH",
                    "Distance between centre of magnet and entrance in m");
-    //registerRealAttribute("FRINGELEN");
 
     registerOwnership();
 
-    setElement((new MultipoleT("MULTIPOLET"))->makeWrappers());
+    setElement((new MultipoleTStraight("MULTIPOLETSTRAIGHT"))->makeWrappers());
 }
 
 
-OpalMultipoleT::OpalMultipoleT(const std::string &name, 
-			       OpalMultipoleT *parent):
+OpalMultipoleTStraight::OpalMultipoleTStraight(const std::string &name, 
+			       OpalMultipoleTStraight *parent):
     OpalElement(name, parent) {
-    setElement((new MultipoleT(name))->makeWrappers());
+    setElement((new MultipoleTStraight(name))->makeWrappers());
 }
 
 
-OpalMultipoleT::~OpalMultipoleT()
+OpalMultipoleTStraight::~OpalMultipoleTStraight()
 {}
 
 
-OpalMultipoleT *OpalMultipoleT::clone(const std::string &name) {
-    return new OpalMultipoleT(name, this);
+OpalMultipoleTStraight *OpalMultipoleTStraight::clone(const std::string &name) {
+    return new OpalMultipoleTStraight(name, this);
 }
 
 
-void OpalMultipoleT::print(std::ostream &os) const {
+void OpalMultipoleTStraight::print(std::ostream &os) const {
     OpalElement::print(os);
 }
 
 
-void OpalMultipoleT::
+void OpalMultipoleTStraight::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);   
-    const MultipoleT *multT = 
-        dynamic_cast<const MultipoleT*>(base.removeAlignWrapper());
+    const MultipoleTStraight *multT = 
+        dynamic_cast<const MultipoleTStraight*>(base.removeAlignWrapper());
+    
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
 	ss << order;
@@ -127,58 +120,42 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     registerRealAttribute("VAPERT")->setReal(multT->getAperture()[0]);
     registerRealAttribute("HAPERT")->setReal(multT->getAperture()[1]);
     registerRealAttribute("MAXFORDER")->setReal(multT->getMaxOrder());
-    registerRealAttribute("MAXXORDER")->setReal(multT->getMaxXOrder());
     registerRealAttribute("ROTATION")->setReal(multT->getRotation());
     registerRealAttribute("EANGLE")->setReal(multT->getEntranceAngle());
-    //registerRealAttribute("VARRADIUS")->setBool(multT->getVarRadius());
     registerRealAttribute("BBLENGTH")->setReal(multT->getBoundingBoxLength());
     
 }
 
 
-void OpalMultipoleT::update() {
+void OpalMultipoleTStraight::update() {
     OpalElement::update();
 
     // Magnet length.
-    MultipoleT *multT =
-    dynamic_cast<MultipoleT*>(getElement()->removeWrappers());
+    MultipoleTStraight *multT =
+    dynamic_cast<MultipoleTStraight*>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
-    double angle = Attributes::getReal(itsAttr[ANGLE]);
     double boundingBoxLength = Attributes::getReal(itsAttr[BBLENGTH]);
     multT->setElementLength(length);
     multT->setLength(length);
-    multT->setBendAngle(angle);
     multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), 
 		       Attributes::getReal(itsAttr[HAPERT]));
   
     multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])/2,
                           Attributes::getReal(itsAttr[LFRINGE]),
                           Attributes::getReal(itsAttr[RFRINGE])); 
-    if (Attributes::getBool(itsAttr[VARRADIUS])) {
-        multT->setVarRadius();
-    }
     multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH]));
     const std::vector<double> transProfile = 
                               Attributes::getRealArray(itsAttr[TP]);
     int transSize = transProfile.size();
 
-    if (transSize == 0) {
-        multT->setTransMaxOrder(0);
-    } else {
-        multT->setTransMaxOrder(transSize - 1);
-    }
+    multT->setTransMaxOrder(transSize - 1);
     multT->setMaxOrder(Attributes::getReal(itsAttr[MAXFORDER]));
-    multT->setMaxXOrder(Attributes::getReal(itsAttr[MAXXORDER]));
     multT->setRotation(Attributes::getReal(itsAttr[ROTATION]));
     multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
 
-    PlanarArcGeometry &geometry = multT->getGeometry();
-
-    if(length) {
-        geometry = PlanarArcGeometry(2 * boundingBoxLength, angle / length);
-    } else {
-        geometry = PlanarArcGeometry(angle);
-    }
+    StraightGeometry &geometry = multT->getGeometry();
+    
+    geometry = StraightGeometry(2 * boundingBoxLength);
     
     for(int comp = 0; comp < transSize; comp++) {
         multT->setTransProfile(comp, transProfile[comp]);

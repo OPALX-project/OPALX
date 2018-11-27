@@ -21,6 +21,9 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/MultipoleTStraight.h"
+#include "AbsBeamline/MultipoleTCurvedConstRadius.h"
+#include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
@@ -121,6 +124,15 @@ public:
 
     /// Apply the algorithm to a multipoleT.
     virtual void visitMultipoleT(const MultipoleT &);
+
+    /// Apply the algorithm to a multipoleTStraight.
+    virtual void visitMultipoleTStraight(const MultipoleTStraight &);
+
+    /// Apply the algorithm to a multipoleT.
+    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &);
+
+    /// Apply the algorithm to a multipoleT.
+    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
 
     /// Apply the algorithm to an Offset.
     virtual void visitOffset(const Offset &);
@@ -325,6 +337,21 @@ void SpecificElementVisitor<ELEM>::visitMultipole(const Multipole &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipoleT(const MultipoleT &element) {
     CastsTrait<ELEM, MultipoleT>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleTStraight(const MultipoleTStraight &element) {
+    CastsTrait<ELEM, MultipoleTStraight>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &element) {
+    CastsTrait<ELEM, MultipoleTCurvedConstRadius>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &element) {
+    CastsTrait<ELEM, MultipoleTCurvedVarRadius>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

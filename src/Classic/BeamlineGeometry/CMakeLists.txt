@@ -6,6 +6,7 @@ set (_SRCS
   NullGeometry.cpp
   OffsetGeometry.cpp
   PlanarArcGeometry.cpp
+  VarRadiusGeometry.cpp
   RBendGeometry.cpp
   Rotation3D.cpp
   SRotatedGeometry.cpp
@@ -27,6 +28,7 @@ set (HDRS
     NullGeometry.h
     OffsetGeometry.h
     PlanarArcGeometry.h
+    VarRadiusGeometry.h
     RBendGeometry.h
     Rotation3D.h
     SRotatedGeometry.h

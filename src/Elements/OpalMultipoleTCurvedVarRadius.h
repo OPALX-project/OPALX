@@ -1,5 +1,6 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
+ *  Copyright (c) 2018, Martin Duy Tat
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -26,21 +27,21 @@
  */
 
 
-#ifndef OPAL_OPALMULTIPOLET_HH
-#define OPAL_OPALMULTIPOLET_HH
+#ifndef OPAL_OPALMULTIPOLET_CURVED_VAR_RADIUS_HH
+#define OPAL_OPALMULTIPOLET_CURVED_VAR_RADIUS_HH
 
 #include "Elements/OpalElement.h"
-#include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 
-/** OpalMultipoleT provides user interface information for the MultipoleT object
+/** OpalMultipoleTCurvedVarRadius provides user interface information for the MultipoleTCurvedVarRadius object
  *
  *  Defines input parameters 
  */
-class OpalMultipoleT: public OpalElement {
+class OpalMultipoleTCurvedVarRadius: public OpalElement {
 
 public:
 
-    // The attributes of class OpalMultipoleT
+    // The attributes of class OpalMultipoleTCurvedVarRadius
     enum {
         TP = COMMON,     // Transverse field components
 	RFRINGE,         // Length of right fringe field
@@ -52,19 +53,18 @@ public:
 	ANGLE,           // Bending angle of a sector magnet
 	ROTATION,        // Rotation angle about central axis for skew elements
 	EANGLE,          // Entrance angle
-	VARRADIUS,       // Variable radius flag
         BBLENGTH,        // Distance between centre of magnet and entrance
 	SIZE             // size of the enum
     };
     
     /** Default constructor initialises UI parameters. */
-    OpalMultipoleT();
+    OpalMultipoleTCurvedVarRadius();
 
     /** Destructor does nothing */
-    virtual ~OpalMultipoleT();
+    virtual ~OpalMultipoleTCurvedVarRadius();
 
     /** Inherited copy constructor */
-    virtual OpalMultipoleT *clone(const std::string &name);
+    virtual OpalMultipoleTCurvedVarRadius *clone(const std::string &name);
 
     /** Fill in all registered attributes
      *
@@ -72,21 +72,21 @@ public:
      */
     virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
 
-    /** Update the MultipoleT with new parameters from UI parser */
+    /** Update the MultipoleTCurvedVarRadius with new parameters from UI parser */
     virtual void update();
 
     void print(std::ostream &os) const;
 
   private:
     // Not implemented.
-    OpalMultipoleT(const OpalMultipoleT &);
-    void operator=(const OpalMultipoleT &);
+    OpalMultipoleTCurvedVarRadius(const OpalMultipoleTCurvedVarRadius &);
+    void operator=(const OpalMultipoleTCurvedVarRadius &);
 
     // Clone constructor.
-    OpalMultipoleT(const std::string &name, OpalMultipoleT *parent);
+    OpalMultipoleTCurvedVarRadius(const std::string &name, OpalMultipoleTCurvedVarRadius *parent);
 };
 
-#endif // OPAL_OpalMultipoleT_HH
+#endif
    
  
   
