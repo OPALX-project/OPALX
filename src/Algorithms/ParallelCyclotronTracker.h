@@ -135,6 +135,15 @@ public:
 
     /// Apply the algorithm to a MultipoleT
     virtual void visitMultipoleT (const MultipoleT &);
+
+    /// Apply the algorithm to a MultipoleTStraight
+    virtual void visitMultipoleTStraight (const MultipoleTStraight &);
+
+    /// Apply the algorithm to a MultipoleTCurvedConstRadius
+    virtual void visitMultipoleTCurvedConstRadius (const MultipoleTCurvedConstRadius &);
+
+    /// Apply the algorithm to a MultipoleTCurvedVarRadius
+    virtual void visitMultipoleTCurvedVarRadius (const MultipoleTCurvedVarRadius &);
     
     /// Apply the algorithm to a Offset.
     virtual void visitOffset(const Offset &);

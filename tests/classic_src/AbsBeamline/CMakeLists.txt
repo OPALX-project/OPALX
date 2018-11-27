@@ -2,6 +2,7 @@ set (_SRCS
     DipoleFieldTest.cpp
     MultipoleTTest.cpp
     OffsetTest.cpp
+    PolynomialTest.cpp
     RingTest.cpp
     SBend3DTest.cpp
     ScalingFFAGMagnetTest.cpp
