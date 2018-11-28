@@ -176,7 +176,7 @@ void OpalFilter::initOpalFilter() {
         } else if (type == "RELATIVEFFTLOWPASS") {
             filter_m = new RelativeFFTLowPassFilter(std::abs(Attributes::getReal(itsAttr[THRESHOLD])));
         } else if (type == "STENCIL") {
-            filter_m = new IlyaPogorelovFilter();
+            filter_m = new StencilFilter();
         } else {
             filter_m = 0;
             INFOMSG("no filter attached" << endl);
