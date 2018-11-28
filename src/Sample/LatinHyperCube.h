@@ -5,6 +5,7 @@
 #include "Sample/RNGStream.h"
 
 #include <algorithm>
+#include <deque>
 
 class LatinHyperCube : public SamplingMethod
 {
@@ -56,14 +57,11 @@ private:
         std::size_t bin = bin_m.back();
         bin_m.pop_back();
         
-        if ( bin_m.size() + 1e4 < bin_m.capacity() )
-            bin_m.shrink_to_fit();
-        
         return  binsize_m * (val + bin);
     }
     
     void fillBins_m(std::size_t n) {
-        bin_m.reserve(n);
+        bin_m.resize(n);
         std::iota(bin_m.begin(), bin_m.end(), 0);
         
         std::random_device rd;
@@ -74,7 +72,7 @@ private:
 private:
     RNGStream *RNGInstance_m;
     
-    std::vector<std::size_t> bin_m;
+    std::deque<std::size_t> bin_m;
     double binsize_m;
     
     dist_t dist_m;
