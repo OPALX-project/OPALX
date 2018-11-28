@@ -59,10 +59,7 @@ private:
         if ( bin_m.size() + 1e4 < bin_m.capacity() )
             bin_m.shrink_to_fit();
         
-        double high = (bin + 1) * binsize_m;
-        double low  = bin * binsize_m;
-        
-        return  (high - low) * val + low;
+        return  binsize_m * (val + bin);
     }
     
     void fillBins_m(std::size_t n) {
