@@ -4,6 +4,8 @@
 #include "Sample/SamplingMethod.h"
 #include "Sample/RNGStream.h"
 
+#include <algorithm>
+
 class LatinHyperCube : public SamplingMethod
 {
 
@@ -11,18 +13,20 @@ public:
     typedef typename std::uniform_real_distribution<double> dist_t;
 
     LatinHyperCube(double lower, double upper, std::size_t n)
-        : bin_m(0)
-        , binsize_m((upper - lower) / double(n))
+        : binsize_m((upper - lower) / double(n))
         , dist_m(0.0, 1.0)
     {
+        this->fillBins_m(n);
+        
         RNGInstance_m = RNGStream::getInstance();
     }
     
     LatinHyperCube(double lower, double upper, int seed, std::size_t n)
-        : bin_m(0)
-        , binsize_m((upper - lower) / double(n))
+        : binsize_m((upper - lower) / double(n))
         , dist_m(0.0, 1.0)
     {
+        this->fillBins_m(n);
+        
         RNGInstance_m = RNGStream::getInstance(seed);
     }
 
@@ -48,18 +52,32 @@ private:
          * where a and b are the lower, respectively, upper
          * bound of the current bin.
          */
-        double high = (bin_m + 1) * binsize_m;
-        double low  = bin_m * binsize_m;
         
-        ++bin_m;
+        std::size_t bin = bin_m.back();
+        bin_m.pop_back();
+        
+        if ( bin_m.size() + 1e4 < bin_m.capacity() )
+            bin_m.shrink_to_fit();
+        
+        double high = (bin + 1) * binsize_m;
+        double low  = bin * binsize_m;
         
         return  (high - low) * val + low;
+    }
+    
+    void fillBins_m(std::size_t n) {
+        bin_m.reserve(n);
+        std::iota(bin_m.begin(), bin_m.end(), 0);
+        
+        std::random_device rd;
+        std::mt19937_64 eng(rd());
+        std::shuffle(bin_m.begin(), bin_m.end(), eng);
     }
 
 private:
     RNGStream *RNGInstance_m;
     
-    std::size_t bin_m;
+    std::vector<std::size_t> bin_m;
     double binsize_m;
     
     dist_t dist_m;
