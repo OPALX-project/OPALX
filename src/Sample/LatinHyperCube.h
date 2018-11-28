@@ -15,6 +15,7 @@ public:
 
     LatinHyperCube(double lower, double upper, std::size_t n)
         : binsize_m((upper - lower) / double(n))
+        , lower_m(lower)
         , dist_m(0.0, 1.0)
     {
         this->fillBins_m(n);
@@ -24,6 +25,7 @@ public:
     
     LatinHyperCube(double lower, double upper, int seed, std::size_t n)
         : binsize_m((upper - lower) / double(n))
+        , lower_m(lower)
         , dist_m(0.0, 1.0)
     {
         this->fillBins_m(n);
@@ -57,7 +59,7 @@ private:
         std::size_t bin = bin_m.back();
         bin_m.pop_back();
         
-        return  binsize_m * (val + bin);
+        return  binsize_m * (val + bin) + lower_m;
     }
     
     void fillBins_m(std::size_t n) {
@@ -74,6 +76,8 @@ private:
     
     std::deque<std::size_t> bin_m;
     double binsize_m;
+    
+    double lower_m;
     
     dist_t dist_m;
 };
