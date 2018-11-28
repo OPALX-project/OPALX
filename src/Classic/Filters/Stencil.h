@@ -3,9 +3,9 @@
 
 #include "Filters/Filter.h"
 
-class IlyaPogorelovFilter: public Filter {
+class StencilFilter: public Filter {
 public:
-    IlyaPogorelovFilter() { ;}
+    StencilFilter() { ;}
     void apply(std::vector<double> &histogram);
     void calc_derivative(std::vector<double> &histogram, const double &h);
 };
