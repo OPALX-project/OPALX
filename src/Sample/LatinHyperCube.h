@@ -61,7 +61,6 @@ private:
     
     std::size_t bin_m;
     double binsize_m;
-    std::size_t sampled_m;
     
     dist_t dist_m;
 };
