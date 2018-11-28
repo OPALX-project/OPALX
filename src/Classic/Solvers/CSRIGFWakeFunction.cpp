@@ -132,7 +132,7 @@ void CSRIGFWakeFunction::calculateLineDensity(PartBunchBase<double, 3> *bunch, s
         (*fit)->apply(lineDensity_m);
     }
     dlineDensitydz_m.assign(lineDensity_m.begin(), lineDensity_m.end());
-    filters_m.back()->calc_derivative(dlineDensitydz_m, meshInfo.second);
+    diffOp_m.calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
 void CSRIGFWakeFunction::calculateGreenFunction(PartBunchBase<double, 3> *bunch, double meshSpacing)
