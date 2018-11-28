@@ -4,8 +4,6 @@
 #include "Sample/SamplingMethod.h"
 #include "Sample/RNGStream.h"
 
-#include <type_traits>
-
 class LatinHyperCube : public SamplingMethod
 {
 
