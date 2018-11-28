@@ -1,0 +1,71 @@
+#ifndef OPAL_LATIN_HYPERCUBE_H
+#define OPAL_LATIN_HYPERCUBE_H
+
+#include "Sample/SamplingMethod.h"
+#include "Sample/RNGStream.h"
+
+#include <type_traits>
+
+class LatinHyperCube : public SamplingMethod
+{
+
+public:
+    typedef typename std::uniform_real_distribution<double> dist_t;
+
+    LatinHyperCube(double lower, double upper, std::size_t n)
+        : bin_m(0)
+        , binsize_m((upper - lower) / double(n))
+        , dist_m(0.0, 1.0)
+    {
+        RNGInstance_m = RNGStream::getInstance();
+    }
+    
+    LatinHyperCube(double lower, double upper, int seed, std::size_t n)
+        : bin_m(0)
+        , binsize_m((upper - lower) / double(n))
+        , dist_m(0.0, 1.0)
+    {
+        RNGInstance_m = RNGStream::getInstance(seed);
+    }
+
+    ~LatinHyperCube() {
+        RNGStream::deleteInstance(RNGInstance_m);
+    }
+
+    void create(boost::shared_ptr<SampleIndividual>& ind, std::size_t i) {
+        /* values are created within [0, 1], thus, they need to be mapped
+         * the domain [lower, upper]
+         */
+        ind->genes[i] = map2domain_m(RNGInstance_m->getNext(dist_m));
+    }
+    
+private:
+    double map2domain_m(double val) {
+        /* y = mx + q
+         * 
+         * [0, 1] --> [a, b]
+         * 
+         * y = (b - a) * x + a
+         * 
+         * where a and b are the lower, respectively, upper
+         * bound of the current bin.
+         */
+        double high = (bin_m + 1) * binsize_m;
+        double low  = bin_m * binsize_m;
+        
+        ++bin_m;
+        
+        return  (high - low) * val + low;
+    }
+
+private:
+    RNGStream *RNGInstance_m;
+    
+    std::size_t bin_m;
+    double binsize_m;
+    std::size_t sampled_m;
+    
+    dist_t dist_m;
+};
+
+#endif

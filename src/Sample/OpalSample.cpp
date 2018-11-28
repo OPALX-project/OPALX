@@ -10,6 +10,7 @@
 #include "Sample/SampleSequence.h"
 #include "Sample/SampleGaussianSequence.h"
 #include "Sample/FromFile.h"
+#include "Sample/LatinHyperCube.h"
 
 
 // Class OpalSample
@@ -34,7 +35,7 @@ OpalSample::OpalSample():
     , size_m(1)
 {
     itsAttr[TYPE]       = Attributes::makeString
-                          ("TYPE", "UNIFORM_INT, UNIFORM, GAUSSIAN, FROMFILE");
+                          ("TYPE", "UNIFORM_INT, UNIFORM, GAUSSIAN, FROMFILE, LATIN_HYPERCUBE");
 
     itsAttr[VARIABLE]   = Attributes::makeString
                           ("VARIABLE", "Name of design variable");
@@ -136,6 +137,12 @@ void OpalSample::initialize(const std::string &dvarName,
             std::string fname = Attributes::getString(itsAttr[FNAME]);
             sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
+        } else if (type == "LATIN_HYPERCUBE") {
+            if (Attributes::getReal(itsAttr[SEED])) {
+                sampleMethod_m.reset( new LatinHyperCube(lower, upper, seed, size_m) );
+            } else {
+                sampleMethod_m.reset( new LatinHyperCube(lower, upper, size_m) );
+            }
         } else {
             throw OpalException("OpalSample::initialize()",
                                 "Unknown sampling method: '" + type + "'.");
