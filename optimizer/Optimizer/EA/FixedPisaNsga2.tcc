@@ -253,7 +253,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
             job_trace_->log(dump);
             std::cout << "NON-EXISTING JOB with ID = " << jid << std::endl;
             throw OptPilotException("FixedPisaNsga2::onMessage",
-                    "non-existing job");
+                                    "non-existing job");
         }
 
         boost::shared_ptr<individual> ind = it->second;
@@ -624,7 +624,7 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         typedef typename FixedPisaNsga2::Individual_t individual;
         typename std::map<unsigned int, boost::shared_ptr<individual> >
             ::iterator it;
-        for(it = variator_m->population()->begin();
+        for(it =  variator_m->population()->begin();
             it != variator_m->population()->end(); it++) {
             //archive_.insert(it->first);
             pp_all.push_back(it->first);
@@ -687,12 +687,13 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToFile() {
 
     typename std::map<unsigned int, boost::shared_ptr<individual> >::iterator it;
     it = variator_m->population()->begin();
+    // find maximum length of ID
     auto maxID = it->first;
     for(it ++; it != variator_m->population()->end(); it++) {
         if (it->first > maxID)
             maxID = it->first;
     }
-    size_t numDigits = std::to_string(maxID).length();
+    const size_t numDigits = std::to_string(maxID).length();
     size_t next = 0, last = 0;
     std::string delimiter = ",";
     next = file_param_descr_.find(delimiter, last);
@@ -711,7 +712,7 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToFile() {
 
     file.precision(6);
     file << std::scientific;
-    for(it = variator_m->population()->begin();
+    for(it =  variator_m->population()->begin();
         it != variator_m->population()->end(); it++) {
 
         file << std::setw(numDigits + 1) << it->first << " ";
@@ -862,38 +863,35 @@ void FixedPisaNsga2<CO, MO>::calcFitnesses()
     int i, j, l;
     int size = pp_all.size();
 
-    std::vector<int> d(size);
-    std::vector<int> f(size);
+    std::vector<int> d(size,0); // 1 if dominated by another ind, 0 if not
+    std::vector<int> f(size,1); // 1 if not yet in a front, -1 if in a front
 
     /* initialize fitness and strength values */
     for (i = 0; i < size; i++) {
         fitness_.insert(std::pair<size_t, double>(pp_all[i], 0.0));
-        d[i] = 1;
-        f[i] = 1;
         copies[i] = 0;
     }
 
     /* calculate strength values */
-    int num = size;
-    for (l = 0; l < size; l++) {
+    int num = size; // number of individuals not yet in a front
+    for (l = 0; l < size; l++) { // loop over fronts, there can be maximally `size` fronts
         /* find next front */
         for (i = 0; i < size; i++) {
-            d[i] = 0;
-            if (f[i] != -1) {
-                for (j = 0; j < i && d[i] == 0; j++)
-                    if (f[j] != -1)
-                        if (dominates(pp_all[j], pp_all[i]))
-                            d[i] = 1;
-                for(j = i+1; j < size && d[i] == 0; j++)
-                    if (f[j] != -1)
-                        if (dominates(pp_all[j], pp_all[i]))
-                            d[i] = 1;
+            d[i] = 0; // reset dominate flag
+            if (f[i] == -1) continue; // don't consider if already in a front
+            for (j = 0; j < size && j != i; j++) {
+                if (f[j] == -1) continue;
+                if (dominates(pp_all[j], pp_all[i])) {
+                    d[i] = 1;
+                    break;
+                }
             }
         }
 
         /* extract front */
         for (i = 0; i < size; i++) {
             if (f[i] != -1 && d[i] == 0) {
+                // add to front
                 fitness_[pp_all[i]] = l;
                 f[i] = -1;
                 num--;
@@ -982,18 +980,19 @@ void FixedPisaNsga2<CO, MO>::environmentalSelection() {
     for (int i = 0; i < size; i++)
         fitness_[pp_all[i]] += 1.0 / dist[i];
 
+    // get alpha_m fittest individuals
     for (size_t i = 0; i < alpha_m; i++) {
         int min = i;
         for (int j = i + 1; j < size; j++) {
             if (fitness_[pp_all[j]] < fitness_[pp_all[min]])
                 min = j;
         }
-
+        // swap
         unsigned int p_min = pp_all[min];
         pp_all[min] = pp_all[i];
         pp_all[i] = p_min;
     }
-
+    // erase others
     pp_all.erase(pp_all.begin() + alpha_m, pp_all.end());
 }
 
@@ -1003,12 +1002,12 @@ template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::matingSelection() {
 
     //FIXME:
-    int tournament = 2;
+    int tournament = 1; ///< number of opponents
 
     for (size_t i = 0; i < selector_mu_; i++) {
         int winner = irand(pp_all.size());
 
-        for (int j = 1; j < tournament; j++) {
+        for (int j = 0; j < tournament; j++) {
             int opponent = irand(pp_all.size());
             if (fitness_[pp_all[opponent]] < fitness_[pp_all[winner]]
                 || winner == opponent) {
