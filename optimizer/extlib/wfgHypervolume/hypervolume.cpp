@@ -81,13 +81,13 @@ namespace Hypervolume {
     POINT p = *(POINT*)v1;
     POINT q = *(POINT*)v2;
 #if hyper_opt == 1
-    for (int i = n - fr - 1; i >= 0; i--)
+    for (int i = n - fr - 1; i >= 0; i--) {
 #else
-      for (int i = n - 1; i >= 0; i--)
+    for (int i = n - 1; i >= 0; i--) {
 #endif
-        if BEATS(p.objectives[i],q.objectives[i]) return  1;
-        else
-          if BEATS(q.objectives[i],p.objectives[i]) return -1;
+        if      BEATS(p.objectives[i],q.objectives[i]) return  1;
+        else if BEATS(q.objectives[i],p.objectives[i]) return -1;
+    }
     return 0;
   }
 
