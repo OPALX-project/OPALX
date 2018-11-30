@@ -139,9 +139,9 @@ void OpalSample::initialize(const std::string &dvarName,
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
         } else if (type == "LATIN_HYPERCUBE") {
             if (Attributes::getReal(itsAttr[SEED])) {
-                sampleMethod_m.reset( new LatinHyperCube(lower, upper, seed, size_m) );
+                sampleMethod_m.reset( new LatinHyperCube(lower, upper, seed) );
             } else {
-                sampleMethod_m.reset( new LatinHyperCube(lower, upper, size_m) );
+                sampleMethod_m.reset( new LatinHyperCube(lower, upper) );
             }
         } else {
             throw OpalException("OpalSample::initialize()",
