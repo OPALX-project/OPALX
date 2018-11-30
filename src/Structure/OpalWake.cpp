@@ -176,12 +176,22 @@ void OpalWake::initWakefunction(ElementBase &element) {
 
     if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "1D-CSR") {
 
+        if (filters.size() == 0 && Attributes::getReal(itsAttr[NBIN]) <= 7) {
+            throw OpalException("OpalWake::initWakeFunction",
+                                "At least 8 bins have to be used, ideally far more");
+        }
+
         wf_m = new CSRWakeFunction(getOpalName(),
                                    itsElement_m,
                                    filters,
                                    (int)(Attributes::getReal(itsAttr[NBIN])));
 
     } else if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "1D-CSR-IGF") {
+
+        if (filters.size() == 0 && Attributes::getReal(itsAttr[NBIN]) <= 7) {
+            throw OpalException("OpalWake::initWakeFunction",
+                                "At least 8 bins have to be used, ideally far more");
+        }
 
         wf_m = new CSRIGFWakeFunction(getOpalName(),
                                       itsElement_m,
