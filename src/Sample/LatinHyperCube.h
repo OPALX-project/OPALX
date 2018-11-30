@@ -13,23 +13,21 @@ class LatinHyperCube : public SamplingMethod
 public:
     typedef typename std::uniform_real_distribution<double> dist_t;
 
-    LatinHyperCube(double lower, double upper, std::size_t n)
-        : binsize_m((upper - lower) / double(n))
+    LatinHyperCube(double lower, double upper)
+        : binsize_m(0.0)
+        , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
     {
-        this->fillBins_m(n);
-        
         RNGInstance_m = RNGStream::getInstance();
     }
     
-    LatinHyperCube(double lower, double upper, int seed, std::size_t n)
-        : binsize_m((upper - lower) / double(n))
+    LatinHyperCube(double lower, double upper, int seed)
+        : binsize_m(0.0)
+        , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
     {
-        this->fillBins_m(n);
-        
         RNGInstance_m = RNGStream::getInstance(seed);
     }
 
@@ -42,6 +40,13 @@ public:
          * the domain [lower, upper]
          */
         ind->genes[i] = map2domain_m(RNGInstance_m->getNext(dist_m));
+    }
+    
+    void allocate(std::size_t n) {
+        
+        binsize_m = ( upper_m - lower_m ) / double(n);
+        
+        this->fillBins_m(n);
     }
     
 private:
@@ -77,6 +82,7 @@ private:
     std::deque<std::size_t> bin_m;
     double binsize_m;
     
+    double upper_m;
     double lower_m;
     
     dist_t dist_m;
