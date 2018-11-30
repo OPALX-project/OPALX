@@ -3,11 +3,11 @@
 
 #include "Solvers/WakeFunction.hh"
 
-#include "Filters/Stencil.h"
-
+#include <memory>
 #include <vector>
 #include <string>
 
+class Filter;
 class ElementBase;
 
 class CSRWakeFunction: public WakeFunction {
@@ -28,7 +28,8 @@ private:
     double calcPsi(const double &psiInitial, const double &x, const double &Ds) const;
 
     std::vector<Filter *> filters_m;
-    StencilFilter diffOp_m;
+    std::shared_ptr<Filter> defaultFilter_m;
+    Filter *diffOp_m;
 
     LineDensity lineDensity_m;
     LineDensity dlineDensitydz_m;
