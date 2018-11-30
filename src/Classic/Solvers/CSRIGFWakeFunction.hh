@@ -2,11 +2,13 @@
 #define CSRIGFWAKEFUNCTION_HH
 
 #include "Solvers/WakeFunction.hh"
+
+#include "Filters/Stencil.h"
+
 #include <vector>
 #include <string>
 
 class ElementBase;
-class Filter;
 
 class CSRIGFWakeFunction: public WakeFunction {
 public:
@@ -27,6 +29,7 @@ private:
     double calcPsi(const double &psiInitial, const double &x, const double &Ds) const;
 
     std::vector<Filter *> filters_m;
+    StencilFilter diffOp_m;
     LineDensity lineDensity_m;
     LineDensity dlineDensitydz_m;
 

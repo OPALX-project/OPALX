@@ -31,6 +31,9 @@ public:
         addArguments(argc, argv);
     }
 
+    CmdArguments()
+    {}
+
     ~CmdArguments()
     {}
 
@@ -84,6 +87,36 @@ public:
         return value;
     }
 
+    template <class T>
+    void addArgument(const std::string &name, const T &value) {
+        std::ostringstream oss;
+        oss << value;
+
+        if (arguments_.find(name) != arguments_.end()) {
+            throw OptPilotException("CmdArguments::addArgument",
+                                    "Argument '" + name + "' exists");
+        }
+
+        arguments_.insert(std::make_pair(name, oss.str()));
+    }
+
+    template <class T>
+    void replaceArgument(const std::string &name, const T &value) {
+        std::ostringstream oss;
+        oss << value;
+
+        if (arguments_.find(name) == arguments_.end()) {
+            arguments_.insert(std::make_pair(name, oss.str()));
+            return;
+        }
+
+        arguments_.at(name) = oss.str();
+    }
+
+    char** getArguments() const;
+    unsigned int getNumArguments() const {
+        return arguments_.size();
+    }
     //template<>
     //size_t getArg<size_t>(const std::string name, bool isFatal = false) {
         //return getArg<size_t>(name, 0, isFatal);
