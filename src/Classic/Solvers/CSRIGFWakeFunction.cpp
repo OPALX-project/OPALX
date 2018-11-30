@@ -1,6 +1,7 @@
 #include "Solvers/CSRIGFWakeFunction.hh"
 #include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
+#include "Filters/SavitzkyGolay.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
@@ -19,7 +20,14 @@ CSRIGFWakeFunction::CSRIGFWakeFunction(const std::string &name, ElementBase *ele
     dlineDensitydz_m(),
     bendRadius_m(0.0),
     totalBendAngle_m(0.0)
-{ }
+{
+    if (filters_m.size() == 0) {
+        defaultFilter_m.reset(new SavitzkyGolayFilter(7, 3, 3, 3));
+        filters_m.push_back(defaultFilter_m.get());
+    }
+
+    diffOp_m = filters_m.back();
+}
 
 void CSRIGFWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
     Inform msg("CSRWake ");
@@ -132,7 +140,7 @@ void CSRIGFWakeFunction::calculateLineDensity(PartBunchBase<double, 3> *bunch, s
         (*fit)->apply(lineDensity_m);
     }
     dlineDensitydz_m.assign(lineDensity_m.begin(), lineDensity_m.end());
-    diffOp_m.calc_derivative(dlineDensitydz_m, meshInfo.second);
+    diffOp_m->calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
 void CSRIGFWakeFunction::calculateGreenFunction(PartBunchBase<double, 3> *bunch, double meshSpacing)
