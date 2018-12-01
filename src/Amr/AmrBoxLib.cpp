@@ -730,6 +730,8 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
      */
      layout_mp->SetParticleBoxArray(lev, new_grids);
      layout_mp->SetParticleDistributionMap(lev, new_dmap);
+     
+     layout_mp->buildLevelMask(lev, this->nErrorBuf(lev));
 }
 
 
@@ -758,6 +760,8 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
      */
     layout_mp->SetParticleBoxArray(lev, new_grids);
     layout_mp->SetParticleDistributionMap(lev, new_dmap);
+    
+    layout_mp->buildLevelMask(lev, this->nErrorBuf(lev));
 }
 
 
@@ -1417,7 +1421,8 @@ void AmrBoxLib::initParmParse_m(const AmrInfo& info, AmrLayout_t* layout_p) {
     int nlev = info.maxlevel + 1;
     
     // Buffer cells around each tagged cell.
-    AmrIntArray_t error_buf(nlev, 0);
+    AmrIntArray_t error_buf(nlev, 4 /*buffer*/);
+    error_buf[0] = 0;
     pAmr.addarr("n_error_buf", error_buf);
     
     // chop up grids to have more grids than the number of procs
