@@ -272,7 +272,10 @@ void BoxLibParticle<PLayout>::InterpolateFort(ParticleAttrib<AType> &pa,
                                               int lev_min, int lev_max)
 {
     for (int lev = lev_min; lev <= lev_max; ++lev) {
-        InterpolateSingleLevelFort(pa, *mesh_data[lev], lev); 
+        if ( lev > 0 )
+            InterpolateMultiLevelFort(pa, mesh_data, lev);
+        else
+            InterpolateSingleLevelFort(pa, *mesh_data[lev], lev); 
     }
 }
 
@@ -347,5 +350,131 @@ void BoxLibParticle<PLayout>::InterpolateSingleLevelFort(ParticleAttrib<AType> &
     }
 }
 
+
+template<class PLayout>
+template <class AType>
+void BoxLibParticle<PLayout>::InterpolateMultiLevelFort(ParticleAttrib<AType> &pa,
+                                                        AmrFieldContainer_t& mesh_data,
+                                                        int lev)
+{
+    if (mesh_data[lev]->nGrow() < 1)
+        throw OpalException("BoxLibParticle::InterpolateMultiLevelFort()",
+                            "Must have at least one ghost cell when in InterpolateMultiLevelFort");
+    
+    PLayout *layout_p = &this->getLayout();
+    
+    const AmrGeometry_t& gm   = layout_p->Geom(lev);
+    const AmrReal_t*     plo  = gm.ProbLo();
+    const AmrReal_t*     fdx  = gm.CellSize();
+    const AmrReal_t*     cdx  = layout_p->Geom(lev-1).CellSize();
+    const AmrReal_t*     cplo = layout_p->Geom(lev-1).ProbLo();
+    
+    //loop trough particles and distribute values on the grid
+    const ParticleLevelCounter_t& LocalNumPerLevel = this->getLocalNumPerLevel();
+    size_t lBegin = LocalNumPerLevel.begin(lev);
+    size_t lEnd   = LocalNumPerLevel.end(lev);    
+    
+    // make sure that boundaries are filled!
+    mesh_data[lev]->FillBoundary(gm.periodicity());
+    
+    AmrReal_t inv_fdx[3] = { 1.0 / fdx[0], 1.0 / fdx[1], 1.0 / fdx[2] };
+    AmrReal_t inv_cdx[3] = { 1.0 / cdx[0], 1.0 / cdx[1], 1.0 / cdx[2] };
+    double lxyz[3] = { 0.0, 0.0, 0.0 };
+    double wxyz_hi[3] = { 0.0, 0.0, 0.0 };
+    double wxyz_lo[3] = { 0.0, 0.0, 0.0 };
+    int ijk[3] = { 0, 0, 0 };
+    
+    const AmrGrid_t& fba = mesh_data[lev]->boxArray();
+    const AmrProcMap_t& fdmap = mesh_data[lev]->DistributionMap();
+    AmrGrid_t cba = fba;
+    cba.coarsen(AmrIntVect_t(2, 2, 2));
+
+    AmrField_t cmesh_data(cba, fdmap,
+                          mesh_data[lev]->nComp(),
+                          mesh_data[lev]->nGrow());
+    
+    cmesh_data.copy(*mesh_data[lev-1], 0, 0,
+                    mesh_data[lev-1]->nComp(),
+                    mesh_data[lev]->nGrow(),
+                    mesh_data[lev]->nGrow());
+    
+    cmesh_data.FillBoundary(gm.periodicity());
+    
+    for (size_t ip = lBegin; ip < lEnd; ++ip) {
+        
+        const int grid = this->Grid[ip];
+        
+        amrex::FArrayBox& fab = (*(mesh_data[lev]))[grid];
+        int nComp = fab.nComp();
+        
+        amrex::FArrayBox& cfab = cmesh_data[grid];
+        
+        const typename PLayout::basefab_t& mfab = (*layout_p->getLevelMask(lev))[grid];
+        
+        // not callable
+        // begin amrex_interpolate_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
+        for (int ii = 0; ii < 3; ++ii) {
+            lxyz[ii] = ( this->R[ip](ii) - plo[ii] ) * inv_fdx[ii] + 0.5;
+            ijk[ii] = lxyz[ii];
+            wxyz_hi[ii] = lxyz[ii] - ijk[ii];
+            wxyz_lo[ii] = 1.0 - wxyz_hi[ii];
+        }
+        
+        int& i = ijk[0];
+        int& j = ijk[1];
+        int& k = ijk[2];
+        
+        bool use_coarse = false;
+        
+        // AMReX: electrostatic_pic_3d.f90
+        // use the coarse E near the level boundary
+        if ( mfab(AmrIntVect_t(i-1, j-1, k-1)) == 1 ) {
+            
+            
+            for (int ii = 0; ii < 3; ++ii) {
+                lxyz[ii] = ( this->R[ip](ii) - cplo[ii] ) * inv_cdx[ii] + 0.5;
+                ijk[ii] = lxyz[ii];
+                wxyz_hi[ii] = lxyz[ii] - ijk[ii];
+                wxyz_lo[ii] = 1.0 - wxyz_hi[ii];
+            }
+            use_coarse = true;
+        }
+        
+        AmrIntVect_t i1(i-1, j-1, k-1);
+        AmrIntVect_t i3(i-1, j,   k-1);
+        AmrIntVect_t i5(i,   j-1, k-1);
+        AmrIntVect_t i7(i,   j,   k-1);
+        
+        AmrIntVect_t i2(i-1, j-1, k);
+        AmrIntVect_t i4(i-1, j,   k);
+        AmrIntVect_t i6(i,   j-1, k);
+        AmrIntVect_t i8(i,   j,   k);
+        if ( use_coarse ) {
+            for (int nc = 0; nc < nComp; ++nc) {
+                pa[ip](nc) = wxyz_lo[0] * wxyz_lo[1] * wxyz_lo[2] * cfab(i1, nc) +
+                             wxyz_lo[0] * wxyz_hi[1] * wxyz_lo[2] * cfab(i3, nc) +
+                             wxyz_hi[0] * wxyz_lo[1] * wxyz_lo[2] * cfab(i5, nc) +
+                             wxyz_hi[0] * wxyz_hi[1] * wxyz_lo[2] * cfab(i7, nc) +
+                             wxyz_lo[0] * wxyz_lo[1] * wxyz_hi[2] * cfab(i2, nc) +
+                             wxyz_lo[0] * wxyz_hi[1] * wxyz_hi[2] * cfab(i4, nc) +
+                             wxyz_hi[0] * wxyz_lo[1] * wxyz_hi[2] * cfab(i6, nc) +
+                             wxyz_hi[0] * wxyz_hi[1] * wxyz_hi[2] * cfab(i8, nc);
+            }
+            
+        } else {
+            for (int nc = 0; nc < nComp; ++nc) {
+                pa[ip](nc) =  wxyz_lo[0] * wxyz_lo[1] * wxyz_lo[2] * fab(i1, nc) +
+                              wxyz_lo[0] * wxyz_hi[1] * wxyz_lo[2] * fab(i3, nc) +
+                              wxyz_hi[0] * wxyz_lo[1] * wxyz_lo[2] * fab(i5, nc) +
+                              wxyz_hi[0] * wxyz_hi[1] * wxyz_lo[2] * fab(i7, nc) +
+                              wxyz_lo[0] * wxyz_lo[1] * wxyz_hi[2] * fab(i2, nc) +
+                              wxyz_lo[0] * wxyz_hi[1] * wxyz_hi[2] * fab(i4, nc) +
+                              wxyz_hi[0] * wxyz_lo[1] * wxyz_hi[2] * fab(i6, nc) +
+                              wxyz_hi[0] * wxyz_hi[1] * wxyz_hi[2] * fab(i8, nc);
+            }
+        }
+        // end amrex_interpolate_cic
+    }
+}
 
 #endif
