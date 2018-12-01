@@ -323,6 +323,77 @@ typename BoxLibLayout<T, Dim>::AmrIntVect_t
     return iv;
 }
 
+template <class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::buildLevelMask(int lev, const int ncells) {
+    int covered = 0;
+    int notcovered = 1;
+    int physbnd = 1;
+    int interior = 0;
+    
+    if ( lev >= (int)masks_m.size() )
+        masks_m.resize(lev + 1);
+    
+    masks_m[lev].reset(new mask_t(ParticleBoxArray(lev),
+                                  ParticleDistributionMap(lev), 1, 1));
+    
+    masks_m[lev]->setVal(1, 1);
+    
+    mask_t tmp_mask(ParticleBoxArray(lev),
+                    ParticleDistributionMap(lev),
+                    1, ncells);
+    
+    tmp_mask.setVal(0, ncells);
+    
+    tmp_mask.BuildMask(Geom(lev).Domain(), Geom(lev).periodicity(),
+                       covered, notcovered, physbnd, interior);
+    
+    tmp_mask.FillBoundary(Geom(lev).periodicity());
+    
+    for (amrex::MFIter mfi(tmp_mask); mfi.isValid(); ++mfi) {
+        const AmrBox_t& bx = mfi.validbox();
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        basefab_t& mfab = (*masks_m[lev])[mfi];
+        const basefab_t& fab = tmp_mask[mfi];
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+                    int total = 0;
+                    
+                    for (int ii = i - ncells; ii <= i + ncells; ++ii) {
+                        for (int jj = j - ncells; jj <= j + ncells; ++jj) {
+                            for (int kk = k - ncells; kk <= k + ncells; ++kk) {
+                                AmrIntVect_t iv(ii, jj, kk);
+                                total += fab(iv);
+                            }
+                        }
+                    }
+                    
+                    AmrIntVect_t iv(i, j, k);
+                    if (total == 0) {
+                        mfab(iv) = 0;
+                    }
+                }
+            }
+        }
+    }
+    
+    masks_m[lev]->FillBoundary(Geom(lev).periodicity());
+}
+
+
+template <class T, unsigned Dim>
+const std::unique_ptr<typename BoxLibLayout<T, Dim>::mask_t>& 
+BoxLibLayout<T, Dim>::getLevelMask(int lev) const {
+    if ( lev >= (int)masks_m.size() ) {
+        throw OpalException("BoxLibLayout::getLevelMask()",
+                            "Unable to access level " + std::to_string(lev) + ".");
+    }
+    return masks_m[lev];
+}
+
 
 // template <class T, unsigned Dim>
 // int BoxLibLayout<T, Dim>::getTileIndex(const AmrIntVect_t& iv, const Box& box, Box& tbx) {
