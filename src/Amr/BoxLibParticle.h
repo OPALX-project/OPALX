@@ -138,6 +138,20 @@ private:
     template <class AType>
     void InterpolateSingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mesh_data, int lev);
     
+    
+    /*!
+     * Multi-level gather.
+     * 
+     * @param pa is the attribute to be updated
+     * @param mesh_data where the information is taken from
+     * @param lev for which we get the mesh data
+     */
+    template <class AType>
+    void InterpolateMultiLevelFort(ParticleAttrib<AType> &pa,
+                                   AmrFieldContainer_t& mesh_data,
+                                   int lev);
+    
+    
     /*!
      * Single-level scatter (adjusted from AMReX).
      * 
@@ -152,8 +166,6 @@ private:
                                           int ncomp=1, int particle_lvl_offset = 0) const;
     
 private:
-    bool allow_particles_near_boundary_m;       ///< This is for scattering
-    
     IpplTimings::TimerRef AssignDensityTimer_m;
 };
 

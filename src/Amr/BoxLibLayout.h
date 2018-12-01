@@ -55,6 +55,9 @@ public:
     typedef amr::AmrBox_t               AmrBox_t;
     typedef amr::AmrReal_t              AmrReal_t;
     
+    typedef amrex::BaseFab<int>         basefab_t;
+    typedef amrex::FabArray<basefab_t>  mask_t;
+    
     /*!
      * Lower physical domain boundary (each dimension). It has to be
      * smaller than -1 since all particles are within \f$[-1, 1]^3\f$.
@@ -176,6 +179,17 @@ public:
     /*
      * Additional methods
      */
+    
+    
+    /*!
+     * Build mask for a level used for interpolation from
+     * grid to particles to reduce spurious self field
+     * forces near coarse-fine interfaces.
+     */
+    void buildLevelMask(int lev, const int ncells = 1);
+    
+    const std::unique_ptr<mask_t>& getLevelMask(int lev) const;
+    
     
     /*!
      * The particles live initially on the coarsest level.
@@ -333,6 +347,11 @@ private:
     
     // don't use m_rr from ParGDB since it is the same refinement in all directions
     AmrIntVectContainer_t refRatio_m;   /// Refinement ratios [0:finest_level-1]
+    
+    /* mask to reduce spurious self-field forces at
+     * coarse-fine interfaces
+     */
+    std::vector<std::unique_ptr<mask_t> > masks_m;
 };
 
 #include "BoxLibLayout.hpp"
