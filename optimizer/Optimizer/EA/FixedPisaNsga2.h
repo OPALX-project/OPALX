@@ -83,20 +83,20 @@ protected:
     /// Write the variator config file
     void writeVariatorCfg();
 
-    // implementing poller hooks
-    bool onMessage(MPI_Status status, size_t length);
-    void postPoll();
+    ///@{ implementing poller hooks
+    virtual bool onMessage(MPI_Status status, size_t length);
+    virtual void postPoll();
 
-    void setupPoll() {}
-    void prePoll() {
+    virtual void setupPoll() {}
+    virtual void prePoll() {
         // std::ostringstream debug;
         // debug << "IN PRE POLL: ";
         // debug << getStateString(curState_m) << std::endl;
         // progress_->log(debug);
     }
-    void onStop() {}
-
-    // helper sending evaluation requests to the pilot
+    virtual void onStop() {}
+    ///@}
+    /// helper sending evaluation requests to the pilot
     void dispatch_forward_solves();
 
 
@@ -140,16 +140,16 @@ private:
         Variator_t;
     boost::scoped_ptr<Variator_t> variator_m;
 
-    std::vector<unsigned int> pp_all;
-    std::vector<unsigned int> parent_queue_;
-    std::set<unsigned int> archive_;
-    std::set<unsigned int> to_selector_;
+    std::vector<unsigned int> pp_all;        ///< IDs of population
+    std::vector<unsigned int> parent_queue_; ///< IDs that will make new offspring
+    // std::set<unsigned int> archive_;
+    std::set<unsigned int> to_selector_;     ///< Successfully run IDs to go into population
 
     // to compute the front
-    std::vector<int> copies;
+    std::vector<int> copies; ///< number of individuals in the n-th front
     std::vector<double> dist;
-    std::vector< std::vector<int> > front;
-    std::map<size_t, double> fitness_;
+    std::vector< std::vector<int> > front; ///< individuals in each front
+    std::map<size_t, double> fitness_; ///< map between id and fitness (sum of front number and dist)
 
     /// communicator bundle for the optimizer
     Comm::Bundle_t comms_;

@@ -135,8 +135,8 @@ void SampleCmd::execute() {
         throw OpalException("SampleCmd::execute",
                             "Number of sampling methods != number of design variables.");
 
-
-    std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods;
+    typedef std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods_t;
+    sampleMethods_t sampleMethods;
 
     std::map<std::string, std::pair<double, double> > vars;
 
@@ -429,6 +429,14 @@ void SampleCmd::execute() {
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
         if (comm->isWorker())
             stashEnvironment();
+        
+        if ( comm->isOptimizer() ) {
+            for (sampleMethods_t::iterator it = sampleMethods.begin();
+                 it != sampleMethods.end(); ++it)
+            {
+                it->second->allocate(nSample);
+            }
+        }
 
         boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods, storeobjstr));
         if (comm->isWorker())
