@@ -1,6 +1,7 @@
 #include "Solvers/CSRWakeFunction.hh"
 #include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
+#include "Filters/SavitzkyGolay.h"
 #include "Physics/Physics.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
@@ -17,10 +18,16 @@ CSRWakeFunction::CSRWakeFunction(const std::string &name, ElementBase *element, 
     filters_m(filters.begin(), filters.end()),
     lineDensity_m(),
     dlineDensitydz_m(),
-    d2lineDensitydz2_m(),
     bendRadius_m(0.0),
     totalBendAngle_m(0.0)
-{ }
+{
+    if (filters_m.size() == 0) {
+        defaultFilter_m.reset(new SavitzkyGolayFilter(7, 3, 3, 3));
+        filters_m.push_back(defaultFilter_m.get());
+    }
+
+    diffOp_m = filters_m.back();
+}
 
 void CSRWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
     Inform msg("CSRWake ");
@@ -126,7 +133,7 @@ void CSRWakeFunction::calculateLineDensity(PartBunchBase<double, 3> *bunch, std:
     }
 
     dlineDensitydz_m.assign(lineDensity_m.begin(), lineDensity_m.end());
-    filters_m.back()->calc_derivative(dlineDensitydz_m, meshInfo.second);
+    diffOp_m->calc_derivative(dlineDensitydz_m, meshInfo.second);
 }
 
 void CSRWakeFunction::calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing) {

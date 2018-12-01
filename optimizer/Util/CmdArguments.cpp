@@ -21,3 +21,25 @@ void CmdArguments::split(std::string &name,
     boost::trim(name);
     boost::trim(value);
 }
+
+char** CmdArguments::getArguments() const {
+    const unsigned int size = arguments_.size();
+    char** args = new char*[2 * size];
+
+    unsigned int i = 0;
+    auto it = arguments_.cbegin();
+    const auto end = arguments_.cend();
+    for (; it != end; ++ it) {
+        const std::string &key = it->first;
+        char* argname = new char[key.length() + 1];
+        strcpy(argname, key.c_str());
+        args[i ++] = argname;
+
+        const std::string &value = it->second;
+        char* argvalue = new char[value.length() + 1];
+        strcpy(argvalue, value.c_str());
+        args[i ++] = argvalue;
+    }
+
+    return args;
+}
