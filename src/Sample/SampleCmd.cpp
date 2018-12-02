@@ -98,7 +98,7 @@ SampleCmd::SampleCmd():
     itsAttr[SEED] = Attributes::makeReal
         ("SEED", "Seed for global random number generator (default: 42)", 42);
     itsAttr[KEEP] = Attributes::makeStringArray
-        ("KEEP", "List of files to keep for each simulation. (default: all files deleted)");
+        ("KEEP", "List of files to keep for each simulation. (default: all files kept)");
 
     registerOwnership(AttributeHandler::COMMAND);
 }
