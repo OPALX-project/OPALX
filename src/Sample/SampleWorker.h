@@ -157,8 +157,12 @@ protected:
                 sim->collectResults();
                 requested_results = sim->getResults();
 
-                // if empty, we keep all files
-                sim->cleanUp(filesToKeep_m);
+                if ( !this->objectives_.empty() ) {
+                    sim->cleanUp();
+                } else {
+                    // if empty, we keep all files
+                    sim->cleanUp(filesToKeep_m);
+                }
 
             } catch(OptPilotException &ex) {
                 std::cout << "Exception while running simulation: "
