@@ -61,6 +61,7 @@ namespace {
         DISTDIR,
         RASTER,
         SEED,
+        KEEP,
         SIZE
     };
 }
@@ -96,6 +97,8 @@ SampleCmd::SampleCmd():
         ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
         ("SEED", "Seed for global random number generator (default: 42)", 42);
+    itsAttr[KEEP] = Attributes::makeStringArray
+        ("KEEP", "List of files to keep for each simulation. (default: all files deleted)");
 
     registerOwnership(AttributeHandler::COMMAND);
 }
@@ -129,6 +132,7 @@ void SampleCmd::execute() {
     Expressions::Named_t objectives;
     DVarContainer_t dvars;
 
+    std::vector<std::string> filesToKeep = Attributes::getStringArray(itsAttr[KEEP]);
     std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
 
     if ( sampling.size() != dvarsstr.size() )
@@ -438,7 +442,9 @@ void SampleCmd::execute() {
             }
         }
 
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods, storeobjstr));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars,
+                                                  objectives, sampleMethods,
+                                                  storeobjstr, filesToKeep));
         if (comm->isWorker())
             popEnvironment();
 

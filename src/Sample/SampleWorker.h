@@ -26,9 +26,11 @@ public:
                  std::string simName,
                  Comm::Bundle_t comms,
                  CmdArguments_t args,
-                 const std::vector<std::string> &storeobjstr)
-        : Worker<Sim_t>(objectives, constraints, simName, comms, args, false),
-          statVariablesToStore_m(storeobjstr)
+                 const std::vector<std::string> &storeobjstr,
+                 const std::vector<std::string> &filesToKeep)
+        : Worker<Sim_t>(objectives, constraints, simName, comms, args, false)
+        , statVariablesToStore_m(storeobjstr)
+        , filesToKeep_m(filesToKeep)
     {
 
         int my_local_pid = 0;
@@ -98,7 +100,6 @@ protected:
                             sim->setFilename(job_id);
 
                             sim->run();
-
                         } catch(OptPilotException &ex) {
                             std::cout << "Exception while running simulation: "
                                       << ex.what() << std::endl;
@@ -156,6 +157,9 @@ protected:
                 sim->collectResults();
                 requested_results = sim->getResults();
 
+                // if empty, we keep all files
+                sim->cleanUp(filesToKeep_m);
+
             } catch(OptPilotException &ex) {
                 std::cout << "Exception while running simulation: "
                           << ex.what() << std::endl;
@@ -180,6 +184,9 @@ protected:
             throw OptPilotException("Worker::onMessage", os.str());
         }
     }
+
+private:
+    const std::vector<std::string> filesToKeep_m;
 };
 
 #endif
