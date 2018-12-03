@@ -157,7 +157,7 @@ protected:
                 sim->collectResults();
                 requested_results = sim->getResults();
 
-                if ( !this->objectives_.empty() ) {
+                if ( !this->objectives_.empty() && filesToKeep_m.empty() ) {
                     sim->cleanUp();
                 } else {
                     // if empty, we keep all files
