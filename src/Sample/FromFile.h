@@ -65,6 +65,7 @@ public:
         int nLocSamples = nSamples / nMasters;
         int rest = nSamples - nMasters * nLocSamples;
 
+        int id = comm.island_id;
         if ( id < rest )
             nLocSamples++;
 
