@@ -12,12 +12,15 @@ public:
 
     static void setGlobalSeed(unsigned int seed);
 
+    static unsigned int getGlobalSeed();
+    
     std::mt19937_64 & getGenerator();
 
     template <class DISTR>
     typename DISTR::result_type getNext(DISTR & RNGDist) {
         return RNGDist(RNGenerator_m);
     }
+    
 private:
     RNGStream():
         RNGenerator_m(globalSeed_sm),

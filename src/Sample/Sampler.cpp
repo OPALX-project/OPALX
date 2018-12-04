@@ -75,9 +75,8 @@ void Sampler::initialize() {
     if ( nMasters > nSamples_m )
         throw OptPilotException("Sampler::initialize",
                                 "More masters than samples.");
-
     
-    // unique job id, FIXME does not work with more than 1 sampler
+    // unique job id
     int nLocSamples = nSamples_m / nMasters;
     int rest = nSamples_m - nMasters * nLocSamples;
     
