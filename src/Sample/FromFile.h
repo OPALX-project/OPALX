@@ -27,12 +27,20 @@ public:
         : n_m(0)
         , counter_m(0)
         , mod_m(modulo)
-    {
-        std::ifstream in(filename);
+        , filename_m(filename)
+        , dvarName_m(dvarName)
+    {}
+
+    void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
+        ind->genes[i] = getNext();
+    }
+
+    void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
+        std::ifstream in(filename_m);
 
         if ( !in.is_open() ) {
             throw OpalException("FromFile()",
-                                "Couldn't open file \"" + filename + "\".");
+                                "Couldn't open file \"" + filename_m + "\".");
         }
 
         std::string header;
@@ -42,18 +50,44 @@ public:
                                         std::istream_iterator<std::string>{}});
         size_t j = 0;
         for (const std::string str: dvars) {
-            if (str == dvarName) break;
+            if (str == dvarName_m) break;
             ++ j;
         }
 
         if (j == dvars.size()) {
             throw OpalException("FromFile()",
-                                "Couldn't find the dvar '" + dvarName + "' in the file '" + filename + "'");
+                                "Couldn't find the dvar '" + dvarName_m + "' in the file '" + filename_m + "'");
+        }
+
+        int nSamples = args->getArg<int>("nsamples", true);
+        int nMasters = args->getArg<int>("num-masters", true);
+
+        int nLocSamples = nSamples / nMasters;
+        int rest = nSamples - nMasters * nLocSamples;
+
+        if ( id < rest )
+            nLocSamples++;
+
+        int skip = 0;
+
+        if ( rest == 0 )
+            skip = nLocSamples * id;
+        else {
+            if ( id < rest ) {
+                skip = nLocSamples * id;
+            } else {
+                skip = (nLocSamples + 1) * rest + (id - rest) * nLocSamples;
+            }
+        }
+
+        while ( skip > 0 ) {
+            skip--;
+            in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
 
         std::string line;
         std::getline(in, line);
-        while (in.good() && !in.eof()) {
+        while (nSamples > 0 && in.good() && !in.eof()) {
             std::istringstream iss(line);
             std::vector<std::string> numbers({std::istream_iterator<std::string>{iss},
                                               std::istream_iterator<std::string>{}});
@@ -61,11 +95,9 @@ public:
             chain_m.push_back(std::stod(numbers[j]));
 
             std::getline(in, line);
-        }
-    }
 
-    void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
-        ind->genes[i] = getNext();
+            --nSamples;
+        }
     }
 
     double getNext() {
@@ -84,6 +116,8 @@ private:
     unsigned int n_m;
     size_t counter_m;
     size_t mod_m;
+    std::string filename_m;
+    std::string dvarName_m;
 
     void incrementCounter() {
         ++ counter_m;
