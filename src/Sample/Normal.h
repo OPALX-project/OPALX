@@ -15,30 +15,33 @@ public:
 
     Normal(double lower, double upper)
         : dist_m(0.5 * (lower + upper), (upper - lower) / 10)
+        , RNGInstance_m(nullptr)
 
-    {
-        RNGInstance_m = RNGStream::getInstance();
-    }
+    {}
 
     Normal(double lower, double upper, double seed)
         : dist_m(0.5 * (lower + upper), (upper - lower) / 10)
+        , RNGInstance_m(nullptr)
 
-    {
-        RNGInstance_m = RNGStream::getInstance(seed);
-    }
+    {}
 
     ~Normal() {
-        RNGStream::deleteInstance(RNGInstance_m);
+        if ( RNGInstance_m)
+            RNGStream::deleteInstance(RNGInstance_m);
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
         ind->genes[i] = RNGInstance_m->getNext(dist_m);
     }
+    
+    void allocate(std::size_t n, std::size_t seed) {
+        RNGInstance_m = RNGStream::getInstance(seed);
+    }
 
 private:
-    RNGStream *RNGInstance_m;
-
     dist_t dist_m;
+
+    RNGStream *RNGInstance_m;
 };
 
 #endif

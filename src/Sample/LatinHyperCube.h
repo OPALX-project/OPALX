@@ -18,21 +18,20 @@ public:
         , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
-    {
-        RNGInstance_m = RNGStream::getInstance();
-    }
+        , RNGInstance_m(nullptr)
+    {}
     
     LatinHyperCube(double lower, double upper, int seed)
         : binsize_m(0.0)
         , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
-    {
-        RNGInstance_m = RNGStream::getInstance(seed);
-    }
+        , RNGInstance_m(nullptr)
+    {}
 
     ~LatinHyperCube() {
-        RNGStream::deleteInstance(RNGInstance_m);
+        if ( RNGInstance_m )
+            RNGStream::deleteInstance(RNGInstance_m);
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, std::size_t i) {
@@ -42,11 +41,13 @@ public:
         ind->genes[i] = map2domain_m(RNGInstance_m->getNext(dist_m));
     }
     
-    void allocate(std::size_t n) {
+    void allocate(std::size_t n, std::size_t seed) {
+        
+        RNGInstance_m = RNGStream::getInstance(seed);
         
         binsize_m = ( upper_m - lower_m ) / double(n);
         
-        this->fillBins_m(n);
+        this->fillBins_m(n, seed);
     }
     
 private:
@@ -67,18 +68,15 @@ private:
         return  binsize_m * (val + bin) + lower_m;
     }
     
-    void fillBins_m(std::size_t n) {
+    void fillBins_m(std::size_t n, std::size_t seed) {
         bin_m.resize(n);
         std::iota(bin_m.begin(), bin_m.end(), 0);
         
-        std::random_device rd;
-        std::mt19937_64 eng(rd());
+        std::mt19937_64 eng(seed);
         std::shuffle(bin_m.begin(), bin_m.end(), eng);
     }
 
 private:
-    RNGStream *RNGInstance_m;
-    
     std::deque<std::size_t> bin_m;
     double binsize_m;
     
@@ -86,6 +84,8 @@ private:
     double lower_m;
     
     dist_t dist_m;
+    
+    RNGStream *RNGInstance_m;
 };
 
 #endif
