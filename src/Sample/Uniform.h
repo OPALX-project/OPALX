@@ -19,29 +19,36 @@ public:
 
     Uniform(T lower, T upper)
         : dist_m(lower, upper)
+        , RNGInstance_m(nullptr)
     {
-        RNGInstance_m = RNGStream::getInstance();
+        
     }
 
     Uniform(T lower, T upper, int seed)
         : dist_m(lower, upper)
+        , RNGInstance_m(nullptr)
 
     {
-        RNGInstance_m = RNGStream::getInstance(seed);
+        
     }
 
     ~Uniform() {
-        RNGStream::deleteInstance(RNGInstance_m);
+        if ( RNGInstance_m )
+            RNGStream::deleteInstance(RNGInstance_m);
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
         ind->genes[i] = RNGInstance_m->getNext(dist_m);
     }
+    
+    void allocate(std::size_t n, std::size_t seed) {
+        RNGInstance_m = RNGStream::getInstance(seed);
+    }
 
 private:
-    RNGStream *RNGInstance_m;
-
     dist_t dist_m;
+    
+    RNGStream *RNGInstance_m;
 };
 
 #endif
