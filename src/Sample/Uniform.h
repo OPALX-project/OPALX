@@ -19,18 +19,15 @@ public:
 
     Uniform(T lower, T upper)
         : dist_m(lower, upper)
-        , RNGInstance_m(nullptr)
-    {
-        
-    }
+        , RNGInstance_m(RNGStream::getInstance())
+        , seed_m(RNGStream::getGlobalSeed())
+    {}
 
-    Uniform(T lower, T upper, int seed)
+    Uniform(T lower, T upper, std::size_t seed)
         : dist_m(lower, upper)
         , RNGInstance_m(nullptr)
-
-    {
-        
-    }
+        , seed_m(seed)
+    {}
 
     ~Uniform() {
         if ( RNGInstance_m )
@@ -41,14 +38,17 @@ public:
         ind->genes[i] = RNGInstance_m->getNext(dist_m);
     }
     
-    void allocate(std::size_t n, std::size_t seed) {
-        RNGInstance_m = RNGStream::getInstance(seed);
+    void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
+        if ( !RNGInstance_m )
+            RNGInstance_m = RNGStream::getInstance(seed_m + comm.island_id);
     }
 
 private:
     dist_t dist_m;
     
     RNGStream *RNGInstance_m;
+    
+    std::size_t seed_m;
 };
 
 #endif

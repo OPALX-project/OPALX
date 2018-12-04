@@ -18,7 +18,8 @@ public:
         , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
-        , RNGInstance_m(nullptr)
+        , RNGInstance_m(RNGStream::getInstance())
+        , seed_m(RNGStream::getGlobalSeed())
     {}
     
     LatinHyperCube(double lower, double upper, int seed)
@@ -27,6 +28,7 @@ public:
         , lower_m(lower)
         , dist_m(0.0, 1.0)
         , RNGInstance_m(nullptr)
+        , seed_m(seed)
     {}
 
     ~LatinHyperCube() {
@@ -41,13 +43,36 @@ public:
         ind->genes[i] = map2domain_m(RNGInstance_m->getNext(dist_m));
     }
     
-    void allocate(std::size_t n, std::size_t seed) {
+    void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
+        int id = comm.island_id;
         
-        RNGInstance_m = RNGStream::getInstance(seed);
+        if ( !RNGInstance_m )
+            RNGInstance_m = RNGStream::getInstance(seed_m + id);
         
-        binsize_m = ( upper_m - lower_m ) / double(n);
+        int nSamples = args->getArg<int>("nsamples", true);
+        int nMasters = args->getArg<int>("num-masters", true);
         
-        this->fillBins_m(n, seed);
+        int nLocSamples = nSamples / nMasters;
+        int rest = nSamples - nMasters * nLocSamples;
+        
+        if ( id < rest )
+            nLocSamples++;
+        
+        int startBin = 0;
+        
+        if ( rest == 0 )
+            startBin = nLocSamples * id;
+        else {
+            if ( id < rest ) {
+                startBin = nLocSamples * id;
+            } else {
+                startBin = (nLocSamples + 1) * rest + (id - rest) * nLocSamples;
+            }
+        }
+        
+        binsize_m = ( upper_m - lower_m ) / double(nSamples);
+        
+        this->fillBins_m(nSamples, startBin, seed_m + id);
     }
     
 private:
@@ -68,9 +93,9 @@ private:
         return  binsize_m * (val + bin) + lower_m;
     }
     
-    void fillBins_m(std::size_t n, std::size_t seed) {
+    void fillBins_m(std::size_t n, int startBin, std::size_t seed) {
         bin_m.resize(n);
-        std::iota(bin_m.begin(), bin_m.end(), 0);
+        std::iota(bin_m.begin(), bin_m.end(), startBin);
         
         std::mt19937_64 eng(seed);
         std::shuffle(bin_m.begin(), bin_m.end(), eng);
@@ -86,6 +111,8 @@ private:
     dist_t dist_m;
     
     RNGStream *RNGInstance_m;
+    
+    std::size_t seed_m;
 };
 
 #endif
