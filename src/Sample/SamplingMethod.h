@@ -21,7 +21,7 @@ public:
      * 
      * @param n number of samples
      */
-    virtual void allocate(std::size_t n) {
+    virtual void allocate(std::size_t n, std::size_t seed) {
         /* Some sampling methods require a container.
          * In order to reduce memory only samplers should allocate
          * the memory
