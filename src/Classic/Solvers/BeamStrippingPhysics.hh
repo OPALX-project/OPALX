@@ -71,17 +71,16 @@ private:
     double CSAnalyticFunction(double Eng, double Eth,
     		double a1, double a2, double a3, double a4, double a5, double a6);
 
-    bool GasStripping(double &deltas);
+    bool GasStripping(double &deltas, double &Lpath);
 
     bool LorentzStripping(double &gamma, double &E);
 
-    void SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i, double &r);
-//    void ResetMQ(PartBunchBase<double, 3> *bunch, double &r);
-
-    double RandomGenerator();
+    void SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i);
 
     Cyclotron *cycl_m;
     BeamStripping *bstp_m;
+
+    gsl_rng * r_m;
 
     std::string material_m;
     std::string FN_m;
@@ -100,16 +99,6 @@ private:
 	double molecularDensity[3];
 
     std::unique_ptr<LossDataSink> lossDs_m;
-
-	/*
-    double CS_single[3];
-    double CS_double[3];
-    double CS_total[3];
-
-	double NCS_single[3];
-	double NCS_double[3];
-	double NCS_total[3];
-    */
 
     double NCS_single_all;
     double NCS_double_all;

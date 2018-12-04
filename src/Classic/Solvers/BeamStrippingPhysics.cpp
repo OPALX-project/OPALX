@@ -83,11 +83,22 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 
 	double uam = 0.9314940954;	// Unified atomic mass unit in GeV
 	m_h = 1.00794 * uam;		// Hydrogen atom mass in GeV
+
+    const gsl_rng_type * T;
+    gsl_rng_env_setup();
+    struct timeval tv; // Seed generation based on time
+    gettimeofday(&tv,0);
+    unsigned long mySeed = tv.tv_sec + tv.tv_usec;
+    T = gsl_rng_default; // Generator setup
+    r_m = gsl_rng_alloc (T);
+    gsl_rng_set(r_m, mySeed);
 }
 
 
 BeamStrippingPhysics::~BeamStrippingPhysics() {
     lossDs_m->save();
+    if(r_m)
+    	gsl_rng_free(r_m);
 }
 
 const std::string BeamStrippingPhysics::getType() const {
@@ -120,7 +131,6 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
     		gmsgALL << getName() << ": Unsupported type of particle for residual gas interactions!"<< endl;
     		gmsgALL << getName() << "-> Beam Stripping Physics not apply"<< endl;
         }
-//        lossDs_m->save();
     } while (onlyOneLoopOverParticles == false);
 }
 
@@ -137,6 +147,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 	double gamma = 0.0;
 	double beta = 0.0;
 	double deltas = 0.0;
+	double Lpath = bunch->getLPath();
 
     Vector_t extE = Vector_t(0.0, 0.0, 0.0);
     Vector_t extB = Vector_t(0.0, 0.0, 0.0); //kG
@@ -147,49 +158,37 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
 	bool pdead_LS = false;
 
 	bool stop = bstp_m->getStop();
-	double r = 0.0;
-//	r = RandomGenerator();
 
     InsideTester *tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
     for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
-    	if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) ) {
+    	if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i])) && (Lpath != 0) ) {
 
     		mass_m = bunch->M[i];
     		charge_m = bunch->Q[i];
 //    		*gmsg << "* bunch->M[" << bunch->ID[i] << "] = " << bunch->M[i]
 //				  << "  bunch->Q[" << bunch->ID[i] << "] = " << bunch->Q[i] << endl;
+//    		*gmsg << "* R =  " << bunch->R[i]  << endl;
+    		Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass_m; //GeV
+//    		*gmsg << "* Energy =  " << Eng  << endl;
 
-    		cycl_m->apply(bunch->R[i]*0.001, bunch->P[i], T_m, extE, extB);
-    		//			*gmsg << "* extB_m " << extB_m << endl;
-
-    		Eng = (sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass_m;
-
-    		CrossSection(Eng);
-
-    		Eng *= 1E-9; // Eng GeV
     		gamma = (Eng + mass_m) / mass_m;
     		beta = sqrt(1.0 - 1.0 / (gamma * gamma));
     		deltas = dT_m * beta * c;
 
-    		B = 0.1 * sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
-    		E = gamma * beta * c * B;
-    		//		    *gmsg << "* B =    " << B  << endl;
-    		//		    *gmsg << "* E =    " << E  << endl;
-    		//		    *gmsg << "* gamma =    " << gamma  << endl;
-    		//		    *gmsg << "* beta =    " << beta  << endl;
-    		//		    *gmsg << "* deltas =    " << deltas  << endl;
+    		CrossSection(Eng);
 
-    		pdead_GS = GasStripping(deltas);
+    		pdead_GS = GasStripping(deltas, Lpath);
 
-//    		if(mass_m-m_hm < 1E-6 && charge_m == -q_e)
+    		if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
+    			cycl_m->apply(bunch->R[i]*0.001, bunch->P[i], T_m, extE, extB);
+    			B = 0.1 * sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
+    			E = gamma * beta * c * B;
     			pdead_LS = LorentzStripping(gamma, E);
-    		//			*gmsg << "pdead_GS = " << pdead_GS << endl;
-    		//			*gmsg << "pdead_LS = " << pdead_LS << endl;
+    		}
 
     		if (pdead_GS == true || pdead_LS == true) {
-//    			*gmsg << "* The particle " << bunch->ID[i] << " is stripped in remainder gas" << endl;
     			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], T_m);
     			if (stop) {
     				bunch->Bin[i] = -1;
@@ -199,13 +198,11 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
     			else {
     				bunch->updateNumTotal();
     				*gmsg << "* Total number of particles after beam stripping = " << bunch->getTotalNum() << endl;
-    				r = RandomGenerator();
-    				SecondaryParticles(bunch, i, r);
+    				SecondaryParticles(bunch, i);
     			}
     		}
     	}
     }
-
 	delete tester;
 }
 
@@ -223,7 +220,6 @@ void BeamStrippingPhysics::MolecularDensity(const double &pressure, const double
 
 void BeamStrippingPhysics::CrossSection(double &Eng){
 
-	// Analytic function
 	Eng *=1E6; //keV
 
 	double Eth = 0.0;
@@ -340,9 +336,9 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 
 		CS_total[i] = CS_single[i] + CS_double[i];
 
-//		*gmsg << "* CS_single[i] 	= " << CS_single[i] << " cm2" << endl;
-//		*gmsg << "* CS_double[i] 	= " << CS_double[i] << " cm2" << endl;
-//		*gmsg << "* CS_total[i] 	= " << CS_total[i] << " cm2" << endl;
+//		*gmsg << "* CS_single[" << i <<"] 	= " << CS_single[i] << " cm2" << endl;
+//		*gmsg << "* CS_double[" << i <<"] 	= " << CS_double[i] << " cm2" << endl;
+//		*gmsg << "* CS_total[" << i <<"] 	= " << CS_total[i] << " cm2" << endl;
 
 	    CS_single[i] *= 1E-4;
 	    CS_double[i] *= 1E-4;
@@ -352,9 +348,9 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 	    NCS_double[i] = CS_double[i] * molecularDensity[i];
 	    NCS_total[i] = CS_total[i] * molecularDensity[i];
 
-//		*gmsg << "* NCS_single[i] 	= " << NCS_single[i] << endl;
-//		*gmsg << "* NCS_double[i] 	= " << NCS_double[i] << endl;
-//		*gmsg << "* NCS_total[i] 	= " << NCS_total[i]  << endl;
+//		*gmsg << "* NCS_single[" << i <<"] 	= " << NCS_single[i] << endl;
+//		*gmsg << "* NCS_double[" << i <<"] 	= " << NCS_double[i] << endl;
+//		*gmsg << "* NCS_total[" << i <<"] 	= " << NCS_total[i]  << endl;
 
 	    NCS_single_all += NCS_single[i];
 	    NCS_double_all += NCS_double[i];
@@ -377,22 +373,34 @@ double BeamStrippingPhysics::CSAnalyticFunction(double Eng, double Eth,
 	if(Eng > Eth) {
 		E1 = (Eng-Eth);
 		f1 = sigma_0 * a1 * pow((E1/E_R),a2);
-		if(a3 != 0.0 && a4 != 0.0){
+		if(a3 != 0.0 && a4 != 0.0)
 			f = f1 / (1 + pow((E1/a3),(a2+a4)) + pow((E1/a5),(a2+a6)));
-		}
-		else {
+		else
 			f = f1 / (1 + pow((E1/a5),(a2+a6)));
-		}
 	}
 	return f;
 }
 
 
-bool BeamStrippingPhysics::GasStripping(double &deltas) {
-	double r = RandomGenerator();
-	double fg = (1 - exp(-NCS_total_all * deltas)) / deltas;
-//	*gmsg << "* fg = " << fg << "    Random number = " << r << endl;
-	return (fg > r);
+bool BeamStrippingPhysics::GasStripping(double &deltas, double &Lpath) {
+
+	double xi = gsl_rng_uniform(r_m);
+
+	//Parametrization 1
+//	double fg = 1-exp(-NCS_total_all*deltas);
+
+	//Parametrization 2
+//	double fg = (1-exp(-NCS_total_all*Lpath))*deltas/Lpath;
+
+	//Parametrization 3
+	double fg = exp(-NCS_total_all*Lpath)*NCS_total_all*deltas;
+
+//	*gmsg << "* deltas = " << deltas << endl;
+//	*gmsg << "* Lpath =    " << Lpath  << endl;
+//	*gmsg << "* 1/lambda = " << NCS_total_all << endl;
+//	*gmsg << "* fg = " << fg << "    Random number = " << xi << endl;
+
+	return (fg >= xi);
 }
 
 
@@ -400,7 +408,7 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
 
 	double tau = 0.0;
 	double fL = 0.0;
-	double r = RandomGenerator();
+	double r = gsl_rng_uniform(r_m);
 
 	//Parametrization 1
 	const double A1 = 3.073E-6;
@@ -434,11 +442,13 @@ bool BeamStrippingPhysics::LorentzStripping(double &gamma, double &E) {
     return (fL > r);
 }
 
-void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i, double &r) {
+void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i) {
 
 	double opyield_m = 1.0;
     size_t tempnum = bunch->getLocalNum();
 	size_t count = 0;
+
+	double r = gsl_rng_uniform(r_m);
 
 //	*gmsg << "* random number = " << r
 //		  << " NCS_single_all/NCS_total_all = " << NCS_single_all/NCS_total_all
@@ -501,56 +511,6 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
         bunch->Bin[bunch->getLocalNum()-1] = bunch->Bin[i];
 }
 
-//void BeamStrippingPhysics::ResetMQ(PartBunchBase<double, 3> *bunch, double &r) {
-//
-//	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
-//		if(r > NCS_double_all/NCS_total_all) {
-//			bunch->resetM(m_h * 1.0e9);
-//			bunch->resetQ(0.0);
-//		}
-//		else {
-//			bunch->resetM(m_p * 1.0e9);
-//			bunch->resetQ(z_p);
-//		}
-//	}
-//	else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
-//		if(r > NCS_double_all/NCS_total_all) {
-//			bunch->resetM(m_h * 1.0e9);
-//			bunch->resetQ(0.0);
-//		}
-//		else {
-//			bunch->resetM(m_hm * 1.0e9);
-//			bunch->resetQ(-z_p);
-//		}
-//	}
-//	else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
-//		if(r > NCS_double_all/NCS_total_all) {
-//			bunch->resetM(m_p * 1.0e9);
-//			bunch->resetQ(z_p);
-//		}
-//		else {
-//			bunch->resetM(m_hm * 1.0e9);
-//			bunch->resetQ(-z_p);
-//		}
-//	}
-//}
-
-double BeamStrippingPhysics::RandomGenerator() {
-    // Random number function based on the GNU Scientific Library
-    // Returns a random float between 0 and 1, exclusive: (0,1)
-    const gsl_rng_type * T;
-    gsl_rng * r;
-    gsl_rng_env_setup();
-    struct timeval tv; // Seed generation based on time
-    gettimeofday(&tv,0);
-    unsigned long mySeed = tv.tv_sec + tv.tv_usec;
-    T = gsl_rng_default; // Generator setup
-    r = gsl_rng_alloc (T);
-    gsl_rng_set(r, mySeed);
-    double u = gsl_rng_uniform(r); // Generate it!
-    gsl_rng_free (r);
-    return (double)u;
-}
 
 void BeamStrippingPhysics::print(Inform& msg) {
 }
