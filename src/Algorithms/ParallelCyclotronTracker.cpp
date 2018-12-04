@@ -3303,11 +3303,12 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     if ( (step_m > 10) && ((step_m + 1) % setup_m.stepsPerTurn) == 0) {
         turnnumber_m++;
         dumpEachTurn = true;
-
-        *gmsg << endl;
-        *gmsg << "*** Finished turn " << turnnumber_m - 1
-              << ", Total number of live particles: "
-              << itsBunch_m->getTotalNum() << endl;
+        if(Options::psDumpEachTurn == true) {
+            *gmsg << endl;
+            *gmsg << "*** Finished turn " << turnnumber_m - 1
+                  << ", Total number of live particles: "
+                  << itsBunch_m->getTotalNum() << endl;
+        }
     }
 
     Ippl::Comm->barrier();
