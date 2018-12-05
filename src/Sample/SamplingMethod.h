@@ -31,9 +31,6 @@ public:
          * the memory
          */
     }
-    
-    // number of sequence sampling methods (important for multi-master case)
-    static int nSequenceSamplers;
 };
 
 #endif
