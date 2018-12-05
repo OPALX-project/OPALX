@@ -26,41 +26,47 @@ public:
     { }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
+        
+        unsigned int id = ind->id;
+        
+        sampleNr_m = int(id / volumeLowerDimensions_m) % numSamples_m;
+        
+        
         ind->genes[i] = static_cast<T>(lowerLimit_m + stepSize_m * sampleNr_m);
-        incrementCounter();
+//         incrementCounter();
     }
     
     void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
-        int nMasters = args->getArg<int>("num-masters", true);
-        
-        std::cout << "idim: " << idim_m << std::endl;
-        
-        if ( nMasters > 1 && idim_m == 0 ) {
-            int nLocSamples = numSamples_m / nMasters;
-            int rest = numSamples_m - nMasters * nLocSamples;
-            
-            int id = comm.island_id;
-            
-            if ( id < rest )
-                nLocSamples++;
-            
-            if ( rest == 0 )
-                shift_m = nLocSamples * id;
-            else {
-                if ( id < rest ) {
-                    shift_m = nLocSamples * id;
-                } else {
-                    shift_m = (nLocSamples + 1) * rest + (id - rest) * nLocSamples;
-                }
-            }
-            numSamples_m = nLocSamples;
-            
-            sampleNr_m = shift_m;
-            
-            std::cout << "shift:"  << shift_m << std::endl;
-        } else {
-            
-        }
+//         int nMasters = args->getArg<int>("num-masters", true);
+//         
+//         std::cout << "idim: " << idim_m << std::endl;
+//         
+//         if ( nMasters > 1 && idim_m == 0 ) {
+//             int nLocSamples = numSamples_m / nMasters;
+//             int rest = numSamples_m - nMasters * nLocSamples;
+//             
+//             int id = comm.island_id;
+//             
+//             if ( id < rest )
+//                 nLocSamples++;
+//             
+//             if ( rest == 0 )
+//                 shift_m = nLocSamples * id;
+//             else {
+//                 if ( id < rest ) {
+//                     shift_m = nLocSamples * id;
+//                 } else {
+//                     shift_m = (nLocSamples + 1) * rest + (id - rest) * nLocSamples;
+//                 }
+//             }
+//             numSamples_m = nLocSamples;
+//             
+//             sampleNr_m = shift_m;
+//             
+//             std::cout << "shift:"  << shift_m << std::endl;
+//         } else {
+//             
+//         }
     }
 
 private:
@@ -70,8 +76,8 @@ private:
             ++ sampleNr_m;
 
         sampleNr_m = sampleNr_m % numSamples_m + shift_m;
-        std::cout << idim_m << " " << sampleNr_m << " " << numSamples_m
-                  << " " << shift_m << " " << volumeLowerDimensions_m << std::endl;
+//         std::cout << idim_m << " " << sampleNr_m << " " << numSamples_m
+//                   << " " << shift_m << " " << volumeLowerDimensions_m << std::endl;
     }
 
     T lowerLimit_m;
