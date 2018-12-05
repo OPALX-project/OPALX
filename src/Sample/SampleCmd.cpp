@@ -232,6 +232,7 @@ void SampleCmd::execute() {
 
     bool raster = Attributes::getBool(itsAttr[RASTER]);
     size_t modulo = 1;
+    size_t tmp = 1;
     unsigned int nSample = std::numeric_limits<unsigned int>::max();
 
     std::set<std::string> names; // check if all unique variables
@@ -262,9 +263,14 @@ void SampleCmd::execute() {
                       modulo,
                       raster);
 
-        if ( raster )
+        if ( raster ) {
             modulo *= s->getSize();
-
+            tmp *= s->getSize();
+        }
+        
+        if ( SamplingMethod::nSequenceSamplers == 1)
+            modulo = 1;
+        
         nSample = std::min(nSample, s->getSize());
 
         sampleMethods[name] = s->sampleMethod_m;
@@ -320,7 +326,7 @@ void SampleCmd::execute() {
     }
 
     if ( raster )
-        nSample = modulo;
+        nSample = tmp/*modulo*/;
 
     arguments.push_back("--nsamples=" + std::to_string(nSample));
 
