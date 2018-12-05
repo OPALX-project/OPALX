@@ -61,6 +61,7 @@ namespace {
         DISTDIR,
         RASTER,
         SEED,
+        KEEP,
         SIZE
     };
 }
@@ -96,6 +97,8 @@ SampleCmd::SampleCmd():
         ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
         ("SEED", "Seed for global random number generator (default: 42)", 42);
+    itsAttr[KEEP] = Attributes::makeStringArray
+        ("KEEP", "List of files to keep for each simulation. (default: all files kept)");
 
     registerOwnership(AttributeHandler::COMMAND);
 }
@@ -129,14 +132,15 @@ void SampleCmd::execute() {
     Expressions::Named_t objectives;
     DVarContainer_t dvars;
 
+    std::vector<std::string> filesToKeep = Attributes::getStringArray(itsAttr[KEEP]);
     std::vector<std::string> sampling = Attributes::getStringArray(itsAttr[SAMPLINGS]);
 
     if ( sampling.size() != dvarsstr.size() )
         throw OpalException("SampleCmd::execute",
                             "Number of sampling methods != number of design variables.");
 
-
-    std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods;
+    typedef std::map< std::string, std::shared_ptr<SamplingMethod> > sampleMethods_t;
+    sampleMethods_t sampleMethods;
 
     std::map<std::string, std::pair<double, double> > vars;
 
@@ -429,8 +433,18 @@ void SampleCmd::execute() {
         boost::shared_ptr<Comm_t>  comm(new Comm_t(args, MPI_COMM_WORLD));
         if (comm->isWorker())
             stashEnvironment();
+        
+        if ( comm->isOptimizer() ) {
+            for (sampleMethods_t::iterator it = sampleMethods.begin();
+                 it != sampleMethods.end(); ++it)
+            {
+                it->second->allocate(nSample);
+            }
+        }
 
-        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars, objectives, sampleMethods, storeobjstr));
+        boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars,
+                                                  objectives, sampleMethods,
+                                                  storeobjstr, filesToKeep));
         if (comm->isWorker())
             popEnvironment();
 
