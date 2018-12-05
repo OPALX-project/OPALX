@@ -29,7 +29,39 @@ public:
         , mod_m(modulo)
         , filename_m(filename)
         , dvarName_m(dvarName)
-    {}
+    {
+        // we need to count the number of lines
+        std::ifstream in(filename_m);
+
+        if ( !in.is_open() ) {
+            throw OpalException("FromFile()",
+                                "Couldn't open file \"" + filename_m + "\".");
+        }
+
+        int nLines = std::count(std::istreambuf_iterator<char>(in),
+                                std::istreambuf_iterator<char>(), '\n');
+
+        // make sure we do not count empty lines at end
+        in.seekg(-1, std::ios_base::end);
+        std::size_t pos =  in.tellg();
+
+        std::string line;
+        std::getline(in, line);
+
+        while ( line.empty() ) {
+            --nLines;
+            --pos;
+            in.seekg(pos, std::ios_base::beg);
+            std::getline(in, line);
+        }
+
+        if ( nLines < 0 )
+            throw OpalException("FromFile()", "Empty file \"" + filename_m + "\".");
+
+        globalSize_m = nLines;
+
+        in.close();
+    }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
         ind->genes[i] = getNext();
@@ -88,7 +120,7 @@ public:
 
         std::string line;
         std::getline(in, line);
-        while (nSamples > 0 && in.good() && !in.eof()) {
+        while (nLocSamples-- > 0) {
             std::istringstream iss(line);
             std::vector<std::string> numbers({std::istream_iterator<std::string>{iss},
                                               std::istream_iterator<std::string>{}});
@@ -96,9 +128,8 @@ public:
             chain_m.push_back(std::stod(numbers[j]));
 
             std::getline(in, line);
-
-            --nSamples;
         }
+        in.close();
     }
 
     double getNext() {
@@ -109,7 +140,7 @@ public:
     }
 
     unsigned int getSize() const {
-        return chain_m.size();
+        return globalSize_m;
     }
 
 private:
@@ -119,6 +150,8 @@ private:
     size_t mod_m;
     std::string filename_m;
     std::string dvarName_m;
+
+    unsigned int globalSize_m;
 
     void incrementCounter() {
         ++ counter_m;
