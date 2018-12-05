@@ -72,7 +72,7 @@ public:
         
         binsize_m = ( upper_m - lower_m ) / double(nSamples);
         
-        this->fillBins_m(nSamples, startBin, seed_m + id);
+        this->fillBins_m(nSamples, nLocSamples, startBin, seed_m);
     }
     
 private:
@@ -93,12 +93,21 @@ private:
         return  binsize_m * (val + bin) + lower_m;
     }
     
-    void fillBins_m(std::size_t n, int startBin, std::size_t seed) {
-        bin_m.resize(n);
-        std::iota(bin_m.begin(), bin_m.end(), startBin);
-        
+    void fillBins_m(std::size_t nTotal, std::size_t nLocal, int startBin,
+                    std::size_t seed)
+    {
+        std::deque<std::size_t> tmp;
+        tmp.resize(nTotal);
+        std::iota(tmp.begin(), tmp.end(), 0);
+
+        // all masters need to shuffle the same way
         std::mt19937_64 eng(seed);
-        std::shuffle(bin_m.begin(), bin_m.end(), eng);
+        std::shuffle(tmp.begin(), tmp.end(), eng);
+
+        // each master takes its bins
+        std::copy(tmp.begin()+startBin,
+                  tmp.begin()+startBin+nLocal,
+                  std::back_inserter(bin_m));
     }
 
 private:
