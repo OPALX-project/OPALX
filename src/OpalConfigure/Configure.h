@@ -1,5 +1,5 @@
 #ifndef OPAL_Configure_HH
-#define OPAL_Configure_HH 1
+#define OPAL_Configure_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Configure.h,v $

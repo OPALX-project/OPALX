@@ -53,7 +53,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 
     H5PartTimer_m = IpplTimings::getTimer("Write H5-File");
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
-    
+
     std::string fn = OpalData::getInstance()->getInputBasename();
 
     statFileName_m = fn + std::string(".stat");
@@ -94,13 +94,15 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
         INFOMSG("Creating new file for load balance data: " << lBalFileName_m << endl);
     }
 
-    if (fs::exists(memFileName_m)) {
-        INFOMSG("Appending memory consumption to existing data file: " << memFileName_m << endl);
-        if (Ippl::myNode() == 0) {
-            rewindLines(memFileName_m, linesToRewind);
+    if (Options::memoryDump) {
+        if (fs::exists(memFileName_m)) {
+            INFOMSG("Appending memory consumption to existing data file: " << memFileName_m << endl);
+            if (Ippl::myNode() == 0) {
+                rewindLines(memFileName_m, linesToRewind);
+            }
+        } else {
+            INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
         }
-    } else {
-        INFOMSG("Creating new file for memory consumption data: " << memFileName_m << endl);
     }
 
 #ifdef ENABLE_AMR
@@ -113,7 +115,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
         INFOMSG("Creating new file for grid load balancing data: " << gridLBalFileName_m << endl);
     }
 #endif
-    
+
     h5wrapper_m->close();
 }
 
@@ -336,10 +338,10 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     }
 
     if (Ippl::myNode() == 0) {
-        
+
         open_m(os_statData, statFileName_m);
         open_m(os_lBalData, lBalFileName_m);
-        
+
         if ( Options::memoryDump )
             open_m(os_memData, memFileName_m);
 
@@ -439,16 +441,16 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
         os_statData << std::endl;
 
         os_statData.close();
-        
+
         writeLBalData(beam, os_lBalData, pwi);
-        
+
         os_lBalData.close();
-        
+
         if ( Options::memoryDump ) {
             writeMemoryData(beam, os_memData, pwi);
             os_memData.close();
         }
-        
+
 #ifdef ENABLE_AMR
         if ( dynamic_cast<AmrPartBunch*>(beam) != nullptr ) {
             writeGridLBalData(beam, os_gridLBalData, pwi);
@@ -489,23 +491,23 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
     }
 
     if (Ippl::myNode() == 0) {
-        
+
         open_m(os_statData, statFileName_m);
         open_m(os_lBalData, lBalFileName_m);
-        
+
         if ( Options::memoryDump )
             open_m(os_memData, memFileName_m);
-        
+
 #ifdef ENABLE_AMR
         if ( dynamic_cast<AmrPartBunch*>(&beam) != nullptr )
             open_m(os_gridLBalData, gridLBalFileName_m);
 #endif
-        
+
         if ( mode_m == std::ios::out ) {
             mode_m = std::ios::app;
             writeSDDSHeader(os_statData);
             writeLBalHeader(&beam, os_lBalData);
-            
+
             if ( Options::memoryDump )
                 writeMemoryHeader(os_memData);
 
@@ -573,7 +575,7 @@ void DataSink::writeStatData(EnvelopeBunch &beam, Vector_t FDext[], double sposH
 
         writeLBalData(&beam, os_lBalData, pwi);
         os_lBalData.close();
-        
+
         if ( Options::memoryDump ) {
             writeMemoryData(&beam, os_memData, pwi);
             os_memData.close();
@@ -1580,11 +1582,11 @@ void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
                                    std::ofstream &outputFile)
 {
     AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
-    
+
     if ( !amrbeam )
         throw OpalException("DataSink::writeGridLBalHeader()",
                             "Can not write grid load balancing for non-AMR runs.");
-    
+
     OPALTimer::Timer simtimer;
 
     std::string dateStr(simtimer.date());
@@ -1621,9 +1623,9 @@ void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
                << "&end\n";
 
     unsigned int columnStart = 2;
-    
+
     int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
-    
+
     for (int lev = 0; lev < nLevel; ++lev) {
         outputFile << "&column\n"
                    << indent << "name=level-" << lev << ",\n"
@@ -1634,8 +1636,8 @@ void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
                    << "&end\n";
         ++columnStart;
     }
-    
-    
+
+
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         outputFile << "&column\n"
                    << indent << "name=processor-" << p << ",\n"
@@ -1664,29 +1666,29 @@ void DataSink::writeGridLBalData(PartBunchBase<double, 3> *beam,
                                  unsigned int pwi)
 {
     AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
-    
+
     if ( !amrbeam )
         throw OpalException("DataSink::writeGridLBalData()",
                             "Can not write grid load balancing for non-AMR runs.");
-    
+
     os_gridLBalData << amrbeam->getT() * 1e9 << std::setw(pwi) << "\t";     // 1
-    
+
     std::map<int, int> gridsPerCore;
-    
+
     int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
     std::vector<int> gridsPerLevel;
-    
+
     amrbeam->getAmrObject()->getGridStatistics(gridsPerCore, gridsPerLevel);
-    
+
     os_gridLBalData << "\t";
     for (int lev = 0; lev < nLevel; ++lev) {
         os_gridLBalData << gridsPerLevel[lev] << std::setw(pwi) << "\t";
     }
-    
+
     int nProcs = Ippl::getNodes();
     for (int p = 0; p < nProcs; ++p) {
         os_gridLBalData << gridsPerCore[p] << std::setw(pwi);
-            
+
         if ( p < nProcs - 1 )
             os_gridLBalData << "\t";
     }
