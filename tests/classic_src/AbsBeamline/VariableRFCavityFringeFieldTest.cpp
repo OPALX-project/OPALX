@@ -74,10 +74,12 @@ public:
 };
 
 TEST_F(VariableRFCavityFringeFieldTest, TestConstructor) {
+    std::cerr << "Test Ctor" << std::endl;
     VariableRFCavityFringeField cav("bob");
     EXPECT_FLOAT_EQ(cav.getCavityCentre(), 0.);
     endfieldmodel::EndFieldModel* null = NULL;
     EXPECT_EQ(&(*(cav.getEndField())), null);
+    std::cerr << "Test Ctor 2" << std::endl;
 }
 
 TEST_F(VariableRFCavityFringeFieldTest, TestSetGet) {
