@@ -438,7 +438,7 @@ void SampleCmd::execute() {
             for (sampleMethods_t::iterator it = sampleMethods.begin();
                  it != sampleMethods.end(); ++it)
             {
-                it->second->allocate(nSample);
+                it->second->allocate(args, comm->getBundle());
             }
         }
 

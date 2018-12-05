@@ -22,10 +22,8 @@ class SampleGaussianSequence : public SamplingMethod
 public:
 
     SampleGaussianSequence(double lower, double upper, size_t modulo, int nSample)
-        : sampleNr_m(0)
-        , numSamples_m(nSample)
+        : numSamples_m(nSample)
         , volumeLowerDimensions_m(modulo)
-        , individualCounter_m(0)
     {
         double mean = 0.5 * (lower + upper);
         double sigma = (upper - lower) / 10; // +- 5 sigma
@@ -39,13 +37,13 @@ public:
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
-        ind->genes[i] = getNext();
+        ind->genes[i] = getNext(ind->id);
     }
 
-    double getNext() {
-        double sample = sampleChain_m[sampleNr_m];
-        incrementCounter();
-
+    double getNext(unsigned int id) {
+        int bin = int(id / volumeLowerDimensions_m) % numSamples_m;
+        
+        double sample = sampleChain_m[bin];
         return sample;
     }
 
@@ -54,18 +52,8 @@ private:
     FRIEND_TEST(GaussianSampleTest, ChainTest);
 #endif
     std::vector<double> sampleChain_m;
-    unsigned int sampleNr_m;
     unsigned int numSamples_m; // size of this "dimension"
     size_t volumeLowerDimensions_m; // the "volume" of the sampling space of the lower "dimensions"
-    size_t individualCounter_m; // counts how many "individuals" have been created
-
-    void incrementCounter() {
-        ++ individualCounter_m;
-        if (individualCounter_m % volumeLowerDimensions_m == 0)
-            ++ sampleNr_m;
-
-        sampleNr_m = sampleNr_m % numSamples_m;
-    }
 };
 
 #endif

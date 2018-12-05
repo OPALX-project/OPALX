@@ -75,9 +75,8 @@ void Sampler::initialize() {
     if ( nMasters > nSamples_m )
         throw OptPilotException("Sampler::initialize",
                                 "More masters than samples.");
-
     
-    // unique job id, FIXME does not work with more than 1 sampler
+    // unique job id
     int nLocSamples = nSamples_m / nMasters;
     int rest = nSamples_m - nMasters * nLocSamples;
     
@@ -174,14 +173,14 @@ void Sampler::createNewIndividual_m() {
 
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
 
+    ind->id = gid++;
+    
     for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
         std::string dName = boost::get<VAR_NAME>(itr->second);
         int i = ind->getIndex(dName);
         sampleMethods_m[dName]->create(ind, i);
     }
 
-    // FIXME does not work with more than 1 master
-    ind->id = gid++;
 
     individuals_m.push(ind);
 }
