@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void IlyaPogorelovFilter::apply(vector<double> &LineDensity) {
+void StencilFilter::apply(vector<double> &LineDensity) {
     int size = LineDensity.size();
     vector<double> temp1(size + 8, 0.0);
     vector<double> temp2(5, 0.0);
@@ -29,7 +29,7 @@ void IlyaPogorelovFilter::apply(vector<double> &LineDensity) {
         LineDensity[i] = (7. * (temp1[i+2] + temp1[i+6]) + 24. * (temp1[i+3] + temp1[i+5]) + 34.*temp1[i+4]) / 96.;
 }
 
-void IlyaPogorelovFilter::calc_derivative(vector<double> &LineDensity, const double &h) {
+void StencilFilter::calc_derivative(vector<double> &LineDensity, const double &h) {
     vector<double> temp(LineDensity.begin(), LineDensity.end());
     const double N = LineDensity.size();
     LineDensity[0] = (-25.*temp[0] + 48.*temp[1] - 36.*temp[2] + 16.*temp[3] + temp[4]) / (12.*h);
@@ -41,4 +41,3 @@ void IlyaPogorelovFilter::calc_derivative(vector<double> &LineDensity, const dou
     LineDensity[N-1] = (3.*temp[N-5] - 16.*temp[N-4] + 36.*temp[N-3] - 48.*temp[N-2] + 25.*temp[N-1]) / (12.*h);
     apply(LineDensity);
 }
-

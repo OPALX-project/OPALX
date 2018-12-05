@@ -51,7 +51,8 @@ public:
                 const std::map< std::string,
                                 std::shared_ptr<SamplingMethod>
                               >& sampleMethods,
-                const std::vector<std::string> &storeobjstr)
+                const std::vector<std::string> &storeobjstr,
+                const std::vector<std::string> &filesToKeep)
         : Pilot<Input_t,
                 Opt_t,
                 Sim_t,
@@ -73,7 +74,7 @@ public:
             };
         }
 
-        this->setup(known_expr_funcs, storeobjstr);
+        this->setup(known_expr_funcs, storeobjstr, filesToKeep);
     }
 
     virtual ~SamplePilot()
@@ -90,7 +91,10 @@ protected:
 
 
     virtual
-    void setup(functionDictionary_t known_expr_funcs, const std::vector<std::string> &storeobjstr) {
+    void setup(functionDictionary_t known_expr_funcs,
+               const std::vector<std::string> &storeobjstr,
+               const std::vector<std::string> &filesToKeep)
+    {
         this->global_rank_ = this->comm_->globalRank();
 
         this->parseInputFile(known_expr_funcs, false);
@@ -99,7 +103,7 @@ protected:
 
         // here the control flow starts to diverge
         if      ( this->comm_->isOptimizer() ) { startSampler(); }
-        else if ( this->comm_->isWorker()    ) { startWorker(storeobjstr);    }
+        else if ( this->comm_->isWorker()    ) { startWorker(storeobjstr, filesToKeep); }
         else if ( this->comm_->isPilot()     ) { this->startPilot();     }
     }
 
@@ -121,8 +125,9 @@ protected:
 
 
     virtual
-    void startWorker(const std::vector<std::string> &storeobjstr) /*override*/ {
-
+    void startWorker(const std::vector<std::string> &storeobjstr,
+                     const std::vector<std::string> &filesToKeep) /*override*/
+    {
         std::ostringstream os;
         os << "\033[01;35m" << "  " << this->global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
            << "\e[0m" << std::endl;
@@ -138,7 +143,7 @@ protected:
         boost::scoped_ptr< SampleWorker<Sim_t> > w(
                                                    new SampleWorker<Sim_t>(this->objectives_, this->constraints_, simName,
                                                                            this->comm_->getBundle(), this->cmd_args_,
-                                                                           storeobjstr));
+                                                                           storeobjstr, filesToKeep));
 
         std::cout << "Stop Worker.." << std::endl;
     }

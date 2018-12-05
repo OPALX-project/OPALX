@@ -13,6 +13,7 @@ add_opal_sources(${_SRCS})
 
 set (HDRS
     FromFile.h
+    LatinHyperCube.h
     Normal.h
     OpalSample.h
     RNGStream.h

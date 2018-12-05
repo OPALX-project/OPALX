@@ -33,6 +33,7 @@
 #include "opal.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                                Expressions::Named_t constraints,
@@ -566,5 +567,42 @@ void OpalSimulation::cleanUp() {
         std::cout << "Can't remove directory '" << simulationDirName_ << "', (" << ex.what() << ")" << std::endl;
     } catch(...) {
         std::cout << "Can't remove directory '" << simulationDirName_ << "'" << std::endl;
+    }
+}
+
+void OpalSimulation::cleanUp(const std::vector<std::string>& keep) {
+    namespace fs = boost::filesystem;
+
+    if ( keep.empty() ) {
+        // if empty we keep all files
+        return;
+    }
+
+    try {
+        int my_rank = 0;
+        MPI_Comm_rank(comm_, &my_rank);
+        if (my_rank == 0) {
+            fs::path p(simulationDirName_.c_str());
+            fs::directory_iterator it{p};
+            while ( it != fs::directory_iterator{} ) {
+                std::string extension = Util::toUpper(fs::extension(it->path().filename()));
+
+                // remove .
+                extension.erase(0, 1);
+
+                auto result = std::find(keep.begin(), keep.end(), extension);
+
+                if ( result == keep.end() ) {
+                    fs::remove(it->path());
+                }
+                ++it;
+            }
+        }
+    } catch(fs::filesystem_error &ex) {
+        std::cout << "Can't remove file in directory '" << simulationDirName_
+                  << "', (" << ex.what() << ")" << std::endl;
+    } catch(...) {
+        std::cout << "Can't remove file in directory '" << simulationDirName_
+                  << "'" << std::endl;
     }
 }
