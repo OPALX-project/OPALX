@@ -61,6 +61,9 @@ public:
     /// available, this call do nothing).
     void cleanUp();
 
+    /// remove temporary files except to the ones in 'keep'
+    void cleanUp(const std::vector<std::string>& keep);
+
     /// returns container containing all requested variables with results
     reqVarContainer_t getResults() { return requestedVars_; }
 

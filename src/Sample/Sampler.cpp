@@ -43,8 +43,10 @@ Sampler::Sampler(const std::map<std::string,
 {
     my_local_pid_ = 0;
     MPI_Comm_rank(comms_.opt, &my_local_pid_);
+    
+    std::string fname = "samples_" + std::to_string(comms_.island_id) + ".json";
 
-    resultFile_m = args->getArg<std::string>("outfile", "samples.json", false);
+    resultFile_m = args->getArg<std::string>("outfile", fname, false);
     resultDir_m = args->getArg<std::string>("outdir", "samples", false);
 
     if ( !boost::filesystem::exists(resultDir_m) ) {
@@ -70,14 +72,29 @@ void Sampler::initialize() {
 
     int nMasters = args_->getArg<int>("num-masters", true);
 
-    if ( nMasters > 1 )
+    if ( nMasters > nSamples_m )
         throw OptPilotException("Sampler::initialize",
-                                "Only single master execution currently supported.");
-
-
-    // unique job id, FIXME does not work with more than 1 sampler
-    gid = 0;
-
+                                "More masters than samples.");
+    
+    // unique job id
+    int nLocSamples = nSamples_m / nMasters;
+    int rest = nSamples_m - nMasters * nLocSamples;
+    
+    if ( comms_.island_id < rest )
+        nLocSamples++;
+    
+    if ( rest == 0 )
+        gid = nLocSamples * comms_.island_id;
+    else {
+        if ( comms_.island_id < rest ) {
+            gid = nLocSamples * comms_.island_id;
+        } else {
+            gid = (nLocSamples + 1) * rest + (comms_.island_id - rest) * nLocSamples;
+        }
+    }
+    
+    nSamples_m = nLocSamples;
+    
     // start poll loop
     run();
 }
@@ -156,14 +173,14 @@ void Sampler::createNewIndividual_m() {
 
     boost::shared_ptr<Individual_t> ind = boost::shared_ptr<Individual_t>( new Individual_t(dNames));
 
+    ind->id = gid++;
+    
     for(itr = dvars_m.begin(); itr != dvars_m.end(); itr++) {
         std::string dName = boost::get<VAR_NAME>(itr->second);
         int i = ind->getIndex(dName);
         sampleMethods_m[dName]->create(ind, i);
     }
 
-    // FIXME does not work with more than 1 master
-    ind->id = gid++;
 
     individuals_m.push(ind);
 }
@@ -187,7 +204,7 @@ void Sampler::dumpIndividualsToJSON_m() {
 
     std::ostringstream filename;
     filename << resultDir_m << "/" << resultFile_m
-             << "_samples.json";
+             << "_samples_" << comms_.island_id << ".json";
 
     boost::property_tree::write_json(filename.str(), tree_m);
 }

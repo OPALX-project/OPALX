@@ -18,21 +18,22 @@ public:
         , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
-    {
-        RNGInstance_m = RNGStream::getInstance();
-    }
+        , RNGInstance_m(RNGStream::getInstance())
+        , seed_m(RNGStream::getGlobalSeed())
+    {}
     
     LatinHyperCube(double lower, double upper, int seed)
         : binsize_m(0.0)
         , upper_m(upper)
         , lower_m(lower)
         , dist_m(0.0, 1.0)
-    {
-        RNGInstance_m = RNGStream::getInstance(seed);
-    }
+        , RNGInstance_m(nullptr)
+        , seed_m(seed)
+    {}
 
     ~LatinHyperCube() {
-        RNGStream::deleteInstance(RNGInstance_m);
+        if ( RNGInstance_m )
+            RNGStream::deleteInstance(RNGInstance_m);
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, std::size_t i) {
@@ -42,11 +43,36 @@ public:
         ind->genes[i] = map2domain_m(RNGInstance_m->getNext(dist_m));
     }
     
-    void allocate(std::size_t n) {
+    void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
+        int id = comm.island_id;
         
-        binsize_m = ( upper_m - lower_m ) / double(n);
+        if ( !RNGInstance_m )
+            RNGInstance_m = RNGStream::getInstance(seed_m + id);
         
-        this->fillBins_m(n);
+        int nSamples = args->getArg<int>("nsamples", true);
+        int nMasters = args->getArg<int>("num-masters", true);
+        
+        int nLocSamples = nSamples / nMasters;
+        int rest = nSamples - nMasters * nLocSamples;
+        
+        if ( id < rest )
+            nLocSamples++;
+        
+        int startBin = 0;
+        
+        if ( rest == 0 )
+            startBin = nLocSamples * id;
+        else {
+            if ( id < rest ) {
+                startBin = nLocSamples * id;
+            } else {
+                startBin = (nLocSamples + 1) * rest + (id - rest) * nLocSamples;
+            }
+        }
+        
+        binsize_m = ( upper_m - lower_m ) / double(nSamples);
+        
+        this->fillBins_m(nSamples, nLocSamples, startBin, seed_m);
     }
     
 private:
@@ -67,18 +93,24 @@ private:
         return  binsize_m * (val + bin) + lower_m;
     }
     
-    void fillBins_m(std::size_t n) {
-        bin_m.resize(n);
-        std::iota(bin_m.begin(), bin_m.end(), 0);
-        
-        std::random_device rd;
-        std::mt19937_64 eng(rd());
-        std::shuffle(bin_m.begin(), bin_m.end(), eng);
+    void fillBins_m(std::size_t nTotal, std::size_t nLocal, int startBin,
+                    std::size_t seed)
+    {
+        std::deque<std::size_t> tmp;
+        tmp.resize(nTotal);
+        std::iota(tmp.begin(), tmp.end(), 0);
+
+        // all masters need to shuffle the same way
+        std::mt19937_64 eng(seed);
+        std::shuffle(tmp.begin(), tmp.end(), eng);
+
+        // each master takes its bins
+        std::copy(tmp.begin()+startBin,
+                  tmp.begin()+startBin+nLocal,
+                  std::back_inserter(bin_m));
     }
 
 private:
-    RNGStream *RNGInstance_m;
-    
     std::deque<std::size_t> bin_m;
     double binsize_m;
     
@@ -86,6 +118,10 @@ private:
     double lower_m;
     
     dist_t dist_m;
+    
+    RNGStream *RNGInstance_m;
+    
+    std::size_t seed_m;
 };
 
 #endif

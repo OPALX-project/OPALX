@@ -74,10 +74,12 @@ public:
 };
 
 TEST_F(VariableRFCavityFringeFieldTest, TestConstructor) {
+    std::cerr << "Test Ctor" << std::endl;
     VariableRFCavityFringeField cav("bob");
     EXPECT_FLOAT_EQ(cav.getCavityCentre(), 0.);
     endfieldmodel::EndFieldModel* null = NULL;
     EXPECT_EQ(&(*(cav.getEndField())), null);
+    std::cerr << "Test Ctor 2" << std::endl;
 }
 
 TEST_F(VariableRFCavityFringeFieldTest, TestSetGet) {
@@ -169,7 +171,7 @@ void partial(VariableRFCavityFringeField& cav, Vector_t pos, double t, double de
     if (var == 3) {
         tMinus -= delta;
         tPlus += delta;
-    } else if (var >= 0 or var < 3) {
+    } else if (var >= 0 && var < 3) {
         posMinus[var] -= delta;
         posPlus[var] += delta;
     }

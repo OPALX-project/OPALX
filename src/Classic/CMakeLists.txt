@@ -25,3 +25,7 @@ install (FILES Utilities/ClassicException.h Utilities/ClassicRandom.h Utilities/
 )
 
 set(OPAL_SRCS "${OPAL_SRCS}" PARENT_SCOPE)
+
+#Turn on gcov
+set(CMAKE_CXX_FLAGS "-g -O0 -Wall -fprofile-arcs -ftest-coverage")
+set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)

@@ -48,12 +48,12 @@ public:
 	HAPERT,          // Aperture horizontal dimension
 	VAPERT,          // Aperture vertical dimension
 	MAXFORDER,       // Maximum order in the field expansion
+        MAXXORDER,       // Maximum order in x in polynomial expansions
 	ANGLE,           // Bending angle of a sector magnet
 	ROTATION,        // Rotation angle about central axis for skew elements
 	EANGLE,          // Entrance angle
 	VARRADIUS,       // Variable radius flag
-	VARSTEP,         // Step size used in rotating coords 
-	                 // along ref trajectory (mm)
+        BBLENGTH,        // Distance between centre of magnet and entrance
 	SIZE             // size of the enum
     };
     

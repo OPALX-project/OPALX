@@ -68,15 +68,18 @@ OpalMultipoleT::OpalMultipoleT():
     itsAttr[MAXFORDER] = Attributes::makeReal
                   ("MAXFORDER", 
                    "Number of terms used in each field component");
+    itsAttr[MAXXORDER] = Attributes::makeReal
+                  ("MAXXORDER", 
+                   "Number of terms used in polynomial expansions");
     itsAttr[ROTATION] = Attributes::makeReal
                   ("ROTATION", 
                    "Rotation angle about its axis for skew elements (rad)");
     itsAttr[VARRADIUS] = Attributes::makeBool
                   ("VARRADIUS",
                    "Set true if radius of magnet is variable");
-    itsAttr[VARSTEP] = Attributes::makeReal
-                  ("VARSTEP",
-                   "Step size used in rotating coords along ref trajectory");
+    itsAttr[BBLENGTH] = Attributes::makeReal
+                  ("BBLENGTH",
+                   "Distance between centre of magnet and entrance in m");
     //registerRealAttribute("FRINGELEN");
 
     registerOwnership();
@@ -111,7 +114,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);   
     const MultipoleT *multT = 
         dynamic_cast<const MultipoleT*>(base.removeAlignWrapper());
-    
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
 	ss << order;
@@ -125,10 +127,11 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     registerRealAttribute("VAPERT")->setReal(multT->getAperture()[0]);
     registerRealAttribute("HAPERT")->setReal(multT->getAperture()[1]);
     registerRealAttribute("MAXFORDER")->setReal(multT->getMaxOrder());
+    registerRealAttribute("MAXXORDER")->setReal(multT->getMaxXOrder());
     registerRealAttribute("ROTATION")->setReal(multT->getRotation());
     registerRealAttribute("EANGLE")->setReal(multT->getEntranceAngle());
-    registerRealAttribute("VARSTEP")->setReal(multT->getVarStep());
-    //registerRealAttribute("VARRADIUS")->setReal(multT->getVarRadius());
+    //registerRealAttribute("VARRADIUS")->setBool(multT->getVarRadius());
+    registerRealAttribute("BBLENGTH")->setReal(multT->getBoundingBoxLength());
     
 }
 
@@ -138,10 +141,11 @@ void OpalMultipoleT::update() {
 
     // Magnet length.
     MultipoleT *multT =
-        dynamic_cast<MultipoleT*>(getElement()->removeWrappers());
+    dynamic_cast<MultipoleT*>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle = Attributes::getReal(itsAttr[ANGLE]);
-    multT->setElementLength(length/2);
+    double boundingBoxLength = Attributes::getReal(itsAttr[BBLENGTH]);
+    multT->setElementLength(length);
     multT->setLength(length);
     multT->setBendAngle(angle);
     multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), 
@@ -152,23 +156,26 @@ void OpalMultipoleT::update() {
                           Attributes::getReal(itsAttr[RFRINGE])); 
     if (Attributes::getBool(itsAttr[VARRADIUS])) {
         multT->setVarRadius();
-	if(Attributes::getReal(itsAttr[VARSTEP])) {
-	    multT->setVarStep(Attributes::getReal(itsAttr[VARSTEP]));
-	}
     }
+    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH]));
     const std::vector<double> transProfile = 
                               Attributes::getRealArray(itsAttr[TP]);
     int transSize = transProfile.size();
 
-    multT->setTransMaxOrder(transSize - 1);
+    if (transSize == 0) {
+        multT->setTransMaxOrder(0);
+    } else {
+        multT->setTransMaxOrder(transSize - 1);
+    }
     multT->setMaxOrder(Attributes::getReal(itsAttr[MAXFORDER]));
+    multT->setMaxXOrder(Attributes::getReal(itsAttr[MAXXORDER]));
     multT->setRotation(Attributes::getReal(itsAttr[ROTATION]));
     multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
 
     PlanarArcGeometry &geometry = multT->getGeometry();
-    
+
     if(length) {
-        geometry = PlanarArcGeometry(length/2, angle / length);
+        geometry = PlanarArcGeometry(2 * boundingBoxLength, angle / length);
     } else {
         geometry = PlanarArcGeometry(angle);
     }

@@ -70,6 +70,7 @@ void VariableRFCavityFringeField::initNull() {
     VariableRFCavity::initNull();
     endField_m = std::shared_ptr<endfieldmodel::EndFieldModel>();
     zCentre_m = 0;
+    maxOrder_m = 1;
 }
 
 void VariableRFCavityFringeField::accept(BeamlineVisitor& visitor) const {
