@@ -46,6 +46,7 @@ include_directories (${GTEST_INCLUDE_DIRS}
     ${GSL_INCLUDE_DIR}
     ${OPAL_SOURCE_DIR}/src
     ${OPAL_SOURCE_DIR}/src/Classic
+    ${OPAL_SOURCE_DIR}/optimizer
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
@@ -71,4 +72,3 @@ target_link_libraries (
 	${GTEST_BOTH_LIBRARIES}
 	-lpthread
 )
-
