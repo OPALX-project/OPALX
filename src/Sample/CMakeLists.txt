@@ -3,7 +3,6 @@ set (_SRCS
     RNGStream.cpp
     SampleCmd.cpp
     Sampler.cpp
-    SamplingMethod.cpp
   )
 
 include_directories (
