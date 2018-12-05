@@ -40,6 +40,10 @@ void RNGStream::setGlobalSeed(unsigned int seed) {
         globalInstance_sm->RNGenerator_m.seed(seed);
 }
 
+unsigned int RNGStream::getGlobalSeed() {
+    return globalSeed_sm;
+}
+
 std::mt19937_64 & RNGStream::getGenerator() {
     return RNGenerator_m;
 }

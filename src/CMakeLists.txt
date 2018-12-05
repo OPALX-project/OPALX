@@ -193,3 +193,7 @@ install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/src")
 # cmake-tab-width: 4
 # indent-tabs-mode:nil
 # End:
+
+#Turn on gcov
+#set(CMAKE_CXX_FLAGS "-g -O0 -Wall -fprofile-arcs -ftest-coverage")
+#set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)

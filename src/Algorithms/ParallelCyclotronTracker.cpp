@@ -40,6 +40,10 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/MultipoleTBase.h"
+#include "AbsBeamline/MultipoleTStraight.h"
+#include "AbsBeamline/MultipoleTCurvedConstRadius.h"
+#include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
@@ -724,7 +728,6 @@ void ParallelCyclotronTracker::visitMonitor(const Monitor &corr) {
     //   applyDrift(flip_s * corr.getElementLength());
 }
 
-
 /**
  *
  *
@@ -749,6 +752,54 @@ void ParallelCyclotronTracker::visitMultipoleT(const MultipoleT &multT) {
                             "Need to define a RINGDEFINITION to use MultipoleT element");
     }
     myElements.push_back(dynamic_cast<MultipoleT *>(multT.clone()));
+}
+
+/**
+ *
+ *
+ * @param multTstraight
+ */
+void ParallelCyclotronTracker::visitMultipoleTStraight(const MultipoleTStraight &multTstraight) {
+    *gmsg << "Adding MultipoleTStraight" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(multTstraight);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitMultipoleTStraight",
+                            "Need to define a RINGDEFINITION to use MultipoleTStraight element");
+    }
+    myElements.push_back(dynamic_cast<MultipoleTStraight *>(multTstraight.clone()));
+}
+
+/**
+ *
+ *
+ * @param multTccurv
+ */
+void ParallelCyclotronTracker::visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &multTccurv) {
+    *gmsg << "Adding MultipoleTCurvedConstRadius" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(multTccurv);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitMultipoleTCurvedConstRadius",
+                            "Need to define a RINGDEFINITION to use MultipoleTCurvedConstRadius element");
+    }
+    myElements.push_back(dynamic_cast<MultipoleTCurvedConstRadius *>(multTccurv.clone()));
+}
+
+/**
+ *
+ *
+ * @param multTvcurv
+ */
+void ParallelCyclotronTracker::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &multTvcurv) {
+    *gmsg << "Adding MultipoleTCurvedVarRadius" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(multTvcurv);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitMultipoleTCurvedVarRadius",
+                            "Need to define a RINGDEFINITION to use MultipoleTCurvedVarRadius element");
+    }
+    myElements.push_back(dynamic_cast<MultipoleTCurvedVarRadius *>(multTvcurv.clone()));
 }
 
 /**

@@ -1,4 +1,5 @@
 add_subdirectory(EndFieldModel)
+add_subdirectory(MultipoleTFunctions)
 
 set (_SRCS
   AlignWrapper.cpp
@@ -24,6 +25,10 @@ set (_SRCS
   Monitor.cpp
   Multipole.cpp
   MultipoleT.cpp
+  MultipoleTBase.cpp
+  MultipoleTStraight.cpp
+  MultipoleTCurvedConstRadius.cpp
+  MultipoleTCurvedVarRadius.cpp
   Offset.cpp
   ParallelPlate.cpp
   Patch.cpp
@@ -76,6 +81,10 @@ set (HDRS
     Monitor.h
     Multipole.h
     MultipoleT.h
+    MultipoleTBase.h
+    MultipoleTStraight.h
+    MultipoleTCurvedConstRadius.h
+    MultipoleTCurvedVarRadius.h
     Offset.h
     ParallelPlate.h
     Patch.h
@@ -101,3 +110,7 @@ set (HDRS
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline")
+
+#Turn on gcov
+#set(CMAKE_CXX_FLAGS "-g -O0 -Wall -fprofile-arcs -ftest-coverage")
+#set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
