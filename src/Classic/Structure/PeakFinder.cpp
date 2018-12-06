@@ -20,7 +20,7 @@ PeakFinder::PeakFinder(std::string elem, double min, double max, double binWidth
 
 
 void PeakFinder::addParticle(const Vector_t& R) {
-    double radius = std::sqrt( dot(R, R) );
+    double radius = std::hypot(R(0),R(1));
     radius_m.push_back(radius);
 }
 
