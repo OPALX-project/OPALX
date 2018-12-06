@@ -47,6 +47,7 @@ public:
     {}
 
 protected:
+    // FIXME Open issue #250 (https://gitlab.psi.ch/OPAL/src/issues/250)
     const std::vector<std::string> statVariablesToStore_m;
 
     /// notify coworkers of incoming broadcast
