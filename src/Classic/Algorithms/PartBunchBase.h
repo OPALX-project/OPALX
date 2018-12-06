@@ -477,6 +477,7 @@ public:
 
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
+    ParticleAttrib< short >    cavityGapCrossed; ///< particle just crossed cavity gap (for ParallelCyclotronTracker)
 
 
     Vector_t RefPartR_m;
@@ -612,7 +613,7 @@ protected:
 
     double qi_m;
 
-    /// counter to store the distributin dump
+    /// counter to store the distribution dump
     int distDump_m;
 
     ///
