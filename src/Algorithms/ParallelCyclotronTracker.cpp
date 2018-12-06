@@ -3152,12 +3152,13 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     Vector_t Pold = itsBunch_m->P[i]; // [px,py,pz] (beta*gamma)
 
     // integrate for one step in the lab Cartesian frame (absolute value).
-    /*bool flagNoDeletion = */
     itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
-    // If gap crossing happens, do momenta kicking
-    gapCrossKick_m(i, t, dt, Rold, Pold);
-
+    // If gap crossing happens, do momenta kicking (not if gap crossing just happened)
+    if (itsBunch_m->cavityGapCrossed[i] == true)
+        itsBunch_m->cavityGapCrossed[i] = false;
+    else
+        gapCrossKick_m(i, t, dt, Rold, Pold);
 
     IpplTimings::stopTimer(IntegrationTimer_m);
 
@@ -3234,8 +3235,11 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
         // Integrate for one step in the lab Cartesian frame (absolute value).
         itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
-        // If gap crossing happens, do momenta kicking
-        gapCrossKick_m(i, t, dt, Rold, Pold);
+        // If gap crossing happens, do momenta kicking (not if gap crossing just happened)
+        if (itsBunch_m->cavityGapCrossed[i] == true)
+            itsBunch_m->cavityGapCrossed[i] = false;
+        else
+            gapCrossKick_m(i, t, dt, Rold, Pold);
     }
 
     IpplTimings::stopTimer(IntegrationTimer_m);
@@ -3288,6 +3292,7 @@ void ParallelCyclotronTracker::gapCrossKick_m(size_t i, double t,
         }
 
         if ( tag_crossing ) {
+            itsBunch_m->cavityGapCrossed[i] = true;
 
             double oldMomentum2  = dot(Pold, Pold);
             double oldBetgam = sqrt(oldMomentum2);

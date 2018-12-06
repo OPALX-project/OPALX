@@ -2371,6 +2371,7 @@ void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
     std::swap(dt[i], dt[j]);
     std::swap(PType[i], PType[j]);
     std::swap(TriID[i], TriID[j]);
+    std::swap(cavityGapCrossed[i], cavityGapCrossed[j]);
 }
 
 
@@ -2413,17 +2414,18 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     pb->addAttribute(dt);
     pb->addAttribute(PType);
     pb->addAttribute(TriID);
+    pb->addAttribute(cavityGapCrossed);
 
-    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    boundpTimer_m       = IpplTimings::getTimer("Boundingbox");
     boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
     boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
-    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
+    statParamTimer_m    = IpplTimings::getTimer("Compute Statistics");
+    selfFieldTimer_m    = IpplTimings::getTimer("SelfField total");
 
-    histoTimer_m = IpplTimings::getTimer("Histogram");
+    histoTimer_m        = IpplTimings::getTimer("Histogram");
 
-    distrCreate_m = IpplTimings::getTimer("Create Distr");
-    distrReload_m = IpplTimings::getTimer("Load Distr");
+    distrCreate_m       = IpplTimings::getTimer("Create Distr");
+    distrReload_m       = IpplTimings::getTimer("Load Distr");
 
 
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
