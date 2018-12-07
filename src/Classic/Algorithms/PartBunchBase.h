@@ -232,6 +232,7 @@ public:
     Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
+    Vector_t get_halo(std::size_t bin = 0) const;
     virtual Vector_t get_hr() const;
 
     double get_Dx() const;
@@ -590,6 +591,9 @@ protected:
 
     /// rms normalized emittance
     Vector_t eps_norm_m;
+
+    std::vector<Vector_t> halo_m;
+
     /// rms correlation
     Vector_t rprms_m;
 

@@ -757,13 +757,13 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* Phase space dump frequency = " << Options::psDumpFreq << endl;
     *gmsg << "* Statistics dump frequency  = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
     *gmsg << "* ********************************************************************************** " << endl;
+    
+    ds->setMaxNumBunches(specifiedNumBunch);
 
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                                               Track::block->bunch, *ds, Track::block->reference,
                                               false, false, Track::block->localTimeSteps.front(),
-                                              Track::block->timeIntegrator);
-
-    itsTracker->setNumBunch(specifiedNumBunch);
+                                              Track::block->timeIntegrator, specifiedNumBunch);
 
     if(opal->inRestartRun()) {
 
