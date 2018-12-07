@@ -87,7 +87,9 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelCyclotronTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch, DataSink &ds,
-                                      const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, int timeIntegrator);
+                                      const PartData &data, bool revBeam,
+                                      bool revTrack, int maxSTEPS,
+                                      int timeIntegrator, int numBunch);
 
     virtual ~ParallelCyclotronTracker();
 
