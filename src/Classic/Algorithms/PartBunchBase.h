@@ -22,6 +22,8 @@
 #include "Structure/FieldSolver.h"
 #include "Algorithms/ListElem.h"
 
+#include "Structure/MultiBunchDump.h"
+
 class Distribution;
 
 template <class T, int, int> class FMatrix;
@@ -250,6 +252,8 @@ public:
     void calcBeamParameters();
 
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
+
+    void calcBinBeamParameters(MultiBunchDump::beaminfo_t, int bin);
 
     double getCouplingConstant() const;
     void setCouplingConstant(double c);

@@ -2617,9 +2617,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
 
 void ParallelCyclotronTracker::bunchDumpStatData(){
 
-    // don't dump stat file in case of multi-bunch mode
-    if ( multiBunchMode_m != MB_MODE::NONE )
+    // dump stat file per bin in case of multi-bunch mode
+    if ( multiBunchMode_m != MB_MODE::NONE ) {
+        bunchDumpStatDataPerBin();
         return;
+    }
 
     IpplTimings::startTimer(DumpTimer_m);
 
@@ -2691,6 +2693,28 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
         localToGlobal(itsBunch_m->P, phi, psi);
     }
 
+    IpplTimings::stopTimer(DumpTimer_m);
+}
+
+
+void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
+    IpplTimings::startTimer(DumpTimer_m);
+    
+    itsBunch_m->R *= Vector_t(0.001); // mm --> m
+    
+    for (int bin = 0; bin < itsBunch_m->getNumBins(); ++bin) {
+        
+        beaminfo_t binfo;
+        
+        itsBunch_m->calcBinBeamParameters(binfo, bin);
+        
+        binfo.time = beam->getT() * 1e9;
+        
+        itsMBDump_m->writeData(binfo, bin);
+    }
+    
+    itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+    
     IpplTimings::stopTimer(DumpTimer_m);
 }
 
