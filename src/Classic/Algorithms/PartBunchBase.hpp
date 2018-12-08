@@ -1380,6 +1380,66 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
 
 template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t, int bin) {
+    if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
+        return
+    }
+    
+    const unsigned long localNum = getLocalNum();
+    
+    double part[2 * Dim];
+    
+    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments
+     * --> 1st order moments: 0, ..., 2 * Dim - 1
+     * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
+     * --> 3rd order moments: Dim * ( 2 * Dim + 1 ) + 1, Dim * ( 2 * Dim + 1 ) + 3
+     * --> 4th order moments: Dim * ( 2 * Dim + 1 ) + 4, Dim * ( 2 * Dim + 1 ) + 6
+     *
+     * in case of the 3rd and 4th order moments, we only compute
+     * <x^3>, <y^3>, <z^3>, respectively <x^4>, <y^4> and <z^4>
+     */
+    int len = 4 * Dim + Dim * ( 2 * Dim + 1 );
+    std::vector<double> loc_moments(len);
+    
+    long int binTotalNum = 0;
+    for(unsigned long k = 0; k < localNum; ++ k) {
+        if ( ID[k] == 0 || Bin[k] != bin) {
+            continue;
+        }
+        
+        ++binTotalNum;
+        
+        part[1] = P[k](0);
+        part[3] = P[k](1);
+        part[5] = P[k](2);
+        part[0] = R[k](0);
+        part[2] = R[k](1);
+        part[4] = R[k](2);
+        
+        unsigned int l = 2 * Dim;
+        for (unsigned int i = 0; i < 2 * Dim; ++i) {
+            loc_moments[i] += part[i];
+            for(unsigned int j = 0; j <= i; j++) {
+                loc_moments[l++] += part[i] * part[j];
+            }
+        }
+        
+        // 3rd and 4th order moments
+        int idx = len - 2 * Dim;
+        for (unsigned int i = 0; i < Dim; ++i) {
+            double r2 = R[k](i) * R[k](i);
+            loc_moments[idx + i]       = r2 * R[k](i);
+            loc_moments[idx + i + Dim] = r2 * r2;
+        }
+    }
+    
+    // inefficient
+    allreduce(binTotalNum, 1, std::plus<long int>());
+    allreduce(loc_moments.data(), loc_moments.size(), std::plus<double>());
+}
+
+
+template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getCouplingConstant() const {
     return couplingConstant_m;
 }
