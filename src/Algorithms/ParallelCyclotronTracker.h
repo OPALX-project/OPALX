@@ -26,6 +26,8 @@
 
 #include "Steppers/Steppers.h"
 
+#include "Structure/MultiBunchDump.h"
+
 class BMultipoleField;
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -244,6 +246,8 @@ private:
     Beamline *itsBeamline;
 
     DataSink *itsDataSink;
+    
+    std::unique_ptr<MultiBunchDump> itsMBDump_m;
 
     BoundaryGeometry *bgf_m;
 
