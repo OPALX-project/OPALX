@@ -12,7 +12,8 @@ public:
         unsigned int nParticles;
         double ekin;
         double dEkin;
-        double rms[3];
+        double rrms[3];
+        double prms[3];
         double emit[3];
         double mean[3];
         double halo[3];

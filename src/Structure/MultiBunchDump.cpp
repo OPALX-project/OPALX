@@ -7,6 +7,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Timer.h"
 
+#include "Ippl.h"
+
 MultiBunchDump::MultiBunchDump()
     : nBins_m(-1)
     , fbase_m(OpalData::getInstance()->getInputBasename())
@@ -82,64 +84,82 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
         << indent << "description=\"5 RMS Beamsize in y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=rms_s,\n"
+        << indent << "name=rms_z,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"6 RMS Beamsize in s\"\n"
+        << indent << "description=\"6 RMS Beamsize in z\"\n"
+        << "&end\n";
+    out << "&column\n"
+        << indent << "name=rms_px,\n"
+        << indent << "type=double,\n"
+        << indent << "units=1,\n"
+        << indent << "description=\"7 RMS Normalized Momenta in x\"\n"
+        << "&end\n";
+    out << "&column\n"
+        << indent << "name=rms_py,\n"
+        << indent << "type=double,\n"
+        << indent << "units=1,\n"
+        << indent << "description=\"8 RMS Normalized Momenta in y\"\n"
+               << "&end\n";
+    out << "&column\n"
+        << indent << "name=rms_ps,\n"
+        << indent << "type=double,\n"
+        << indent << "units=1,\n"
+        << indent << "description=\"9 RMS Normalized Momenta in z\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=emit_x,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"7 Normalized Emittance x\"\n"
+        << indent << "description=\"10 Normalized Emittance x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=emit_y,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"8 Normalized Emittance y\"\n"
+        << indent << "description=\"11 Normalized Emittance y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=emit_s,\n"
+        << indent << "name=emit_z,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"9 Normalized Emittance s\"\n"
+        << indent << "description=\"12 Normalized Emittance z\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=mean_x,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"10 Mean Beam Position in x\"\n"
+        << indent << "description=\"13 Mean Beam Position in x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=mean_y,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"11 Mean Beam Position in y\"\n"
+        << indent << "description=\"14 Mean Beam Position in y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=mean_s,\n"
+        << indent << "name=mean_z,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"12 Mean Beam Position in s\"\n"
+        << indent << "description=\"15 Mean Beam Position in z\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_x,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"13 Halo in x\"\n"
+        << indent << "description=\"16 Halo in x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_y,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"14 Halo in y\"\n"
+        << indent << "description=\"17 Halo in y\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_z,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"15 Halo in z\"\n"
+        << indent << "description=\"18 Halo in z\"\n"
         << "&end\n";
     
     close_m(out);
@@ -147,6 +167,9 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
 
 
 void MultiBunchDump::writeData(const beaminfo_t& binfo, int bin) {
+    
+    if ( Ippl::myNode() > 0 )
+        return;
     
     std::string fname = fbase_m + "-bin-" + std::to_string(bin) + fext_m;
     
@@ -161,9 +184,12 @@ void MultiBunchDump::writeData(const beaminfo_t& binfo, int bin) {
         << binfo.nParticles << std::setw(pwi) << "\t"
         << binfo.ekin       << std::setw(pwi) << "\t"
         << binfo.dEkin      << std::setw(pwi) << "\t"
-        << binfo.rms[0]     << std::setw(pwi) << "\t"
-        << binfo.rms[1]     << std::setw(pwi) << "\t"
-        << binfo.rms[2]     << std::setw(pwi) << "\t"
+        << binfo.rrms[0]    << std::setw(pwi) << "\t"
+        << binfo.rrms[1]    << std::setw(pwi) << "\t"
+        << binfo.rrms[2]    << std::setw(pwi) << "\t"
+        << binfo.prms[0]    << std::setw(pwi) << "\t"
+        << binfo.prms[1]    << std::setw(pwi) << "\t"
+        << binfo.prms[2]    << std::setw(pwi) << "\t"
         << binfo.emit[0]    << std::setw(pwi) << "\t"
         << binfo.emit[1]    << std::setw(pwi) << "\t"
         << binfo.emit[2]    << std::setw(pwi) << "\t"
