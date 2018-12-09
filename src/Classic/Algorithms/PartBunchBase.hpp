@@ -1382,7 +1382,7 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t, int bin) {
     if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
-        return
+        return;
     }
     
     const unsigned long localNum = getLocalNum();

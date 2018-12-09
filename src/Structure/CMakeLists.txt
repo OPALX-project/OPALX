@@ -12,6 +12,7 @@ set (_SRCS
   H5PartWrapperForPS.cpp
   H5PartWrapperForPT.cpp
 #  SDDSParser.cpp
+  MultiBunchDump.cpp
   OpalInputInterpreter.cpp
   IpplInfoWrapper.cpp
   TracerParticles.cpp
@@ -33,6 +34,7 @@ set (HDRS
     H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
+    MultiBunchDump.h
     OpalInputInterpreter.h
     OpalWake.h
     PriEmissionPhysics.h

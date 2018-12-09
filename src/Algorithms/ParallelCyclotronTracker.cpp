@@ -128,20 +128,22 @@ extern Inform *gmsg;
  */
 ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
-                                                   bool revBeam, bool revTrack):
-    Tracker(beamline, reference, revBeam, revTrack),
-    itsDataSink(nullptr),
-    bgf_m(nullptr),
-    lastDumpedStep_m(0),
-    eta_m(0.01),
-    myNode_m(Ippl::myNode()),
-    initialLocalNum_m(0),
-    initialTotalNum_m(0),
-    onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5"),
-    opalRing_m(nullptr),
-    itsStepper_mp(nullptr),
-    mode_m(MODE::UNDEFINED),
-    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
+                                                   bool revBeam, bool revTrack)
+    : Tracker(beamline, reference, revBeam, revTrack)
+    , itsDataSink(nullptr)
+    , itsMBDump_m(new MultiBunchDump())
+    , bgf_m(nullptr)
+    , lastDumpedStep_m(0)
+    , eta_m(0.01)
+    , myNode_m(Ippl::myNode())
+    , initialLocalNum_m(0)
+    , initialTotalNum_m(0)
+    , onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
+    , opalRing_m(nullptr)
+    , itsStepper_mp(nullptr)
+    , mode_m(MODE::UNDEFINED)
+    , stepper_m(stepper::INTEGRATOR::UNDEFINED)
+{
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -162,18 +164,20 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    DataSink &ds,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
-                                                   int maxSTEPS, int timeIntegrator):
-    Tracker(beamline, bunch, reference, revBeam, revTrack),
-    bgf_m(nullptr),
-    maxSteps_m(maxSTEPS),
-    lastDumpedStep_m(0),
-    eta_m(0.01),
-    myNode_m(Ippl::myNode()),
-    initialLocalNum_m(bunch->getLocalNum()),
-    initialTotalNum_m(bunch->getTotalNum()),
-    onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5"),
-    opalRing_m(nullptr),
-    itsStepper_mp(nullptr) {
+                                                   int maxSTEPS, int timeIntegrator)
+    : Tracker(beamline, bunch, reference, revBeam, revTrack)
+    , itsMBDump_m(new MultiBunchDump())
+    , bgf_m(nullptr)
+    , maxSteps_m(maxSTEPS)
+    , lastDumpedStep_m(0)
+    , eta_m(0.01)
+    , myNode_m(Ippl::myNode())
+    , initialLocalNum_m(bunch->getLocalNum())
+    , initialTotalNum_m(bunch->getTotalNum())
+    , onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
+    , opalRing_m(nullptr)
+    , itsStepper_mp(nullptr)
+{
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch_m->getdT() * c;
@@ -2704,11 +2708,11 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
     
     for (int bin = 0; bin < itsBunch_m->getNumBins(); ++bin) {
         
-        beaminfo_t binfo;
+        MultiBunchDump::beaminfo_t binfo;
         
         itsBunch_m->calcBinBeamParameters(binfo, bin);
         
-        binfo.time = beam->getT() * 1e9;
+        binfo.time = itsBunch_m->getT() * 1e9;
         
         itsMBDump_m->writeData(binfo, bin);
     }

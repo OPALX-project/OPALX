@@ -2,6 +2,11 @@
 
 #include <boost/filesystem.hpp>
 
+#include <iomanip>
+
+#include "AbstractObjects/OpalData.h"
+#include "Utilities/Timer.h"
+
 MultiBunchDump::MultiBunchDump()
     : nBins_m(-1)
     , fbase_m(OpalData::getInstance()->getInputBasename())
@@ -9,7 +14,7 @@ MultiBunchDump::MultiBunchDump()
 { }
 
 
-void MultiBunchDump::writeHeader(const std::string& fname) {
+void MultiBunchDump::writeHeader(const std::string& fname) const {
     
     if ( boost::filesystem::exists(fname) ) {
         return;
@@ -155,7 +160,7 @@ void MultiBunchDump::writeData(const beaminfo_t& binfo, int bin) {
     out << binfo.time       << std::setw(pwi) << "\t"
         << binfo.nParticles << std::setw(pwi) << "\t"
         << binfo.ekin       << std::setw(pwi) << "\t"
-        << binfo.dEkin      << std::setw(pwi) << "\t";
+        << binfo.dEkin      << std::setw(pwi) << "\t"
         << binfo.rms[0]     << std::setw(pwi) << "\t"
         << binfo.rms[1]     << std::setw(pwi) << "\t"
         << binfo.rms[2]     << std::setw(pwi) << "\t"
@@ -181,7 +186,7 @@ void MultiBunchDump::open_m(std::ofstream& out,
         mode = std::ios::app;
     }
     
-    out.open(fileName.c_str(), mode);
+    out.open(fname.c_str(), mode);
     out.precision(15);
     out.setf(std::ios::scientific, std::ios::floatfield);
 }
