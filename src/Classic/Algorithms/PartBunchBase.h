@@ -253,7 +253,7 @@ public:
 
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
 
-    void calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin);
+    bool calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin);
 
     double getCouplingConstant() const;
     void setCouplingConstant(double c);
