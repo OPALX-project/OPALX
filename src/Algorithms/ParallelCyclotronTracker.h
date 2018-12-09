@@ -485,6 +485,8 @@ private:
     void singleParticleDump();
 
     void bunchDumpStatData();
+    
+    void bunchDumpStatDataPerBin();
 
     void bunchDumpPhaseSpaceData();
 
