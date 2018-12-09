@@ -11,12 +11,12 @@ public:
         double time;
         unsigned int nParticles;
         double ekin;
-        double dE;
+        double dEkin;
         double rms[3];
         double emit[3];
         double mean[3];
         double halo[3];
-    }
+    };
     
 public:
     MultiBunchDump();
