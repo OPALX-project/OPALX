@@ -1380,62 +1380,119 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t, int bin) {
+void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin) {
     if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
         return;
     }
     
     const unsigned long localNum = getLocalNum();
-    
-    double part[2 * Dim];
-    
-    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments
-     * --> 1st order moments: 0, ..., 2 * Dim - 1
-     * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
-     * --> 3rd order moments: Dim * ( 2 * Dim + 1 ) + 1, Dim * ( 2 * Dim + 1 ) + 3
-     * --> 4th order moments: Dim * ( 2 * Dim + 1 ) + 4, Dim * ( 2 * Dim + 1 ) + 6
-     *
-     * in case of the 3rd and 4th order moments, we only compute
-     * <x^3>, <y^3>, <z^3>, respectively <x^4>, <y^4> and <z^4>
-     */
-    int len = 4 * Dim + Dim * ( 2 * Dim + 1 );
-    std::vector<double> loc_moments(len);
-    
+        
     long int binTotalNum = 0;
+    unsigned long binLocalNum = 0;
+    
+    /* container:
+     * 
+     * ekin, <x>, <y>, <z>, <p_x>, <p_y>, <p_z>,
+     * <x^2>, <y^2>, <z^2>, <p_x^2>, <p_y^2>, <p_z^2>,
+     * <xp_x>, <y_py>, <zp_z>,
+     * <x^3>, <y^3>, <z^3>, <x^4>, <y^4>, <z^4>
+     */
+    std::vector<double> local(7 * Dim + 1);
+    
     for(unsigned long k = 0; k < localNum; ++ k) {
         if ( ID[k] == 0 || Bin[k] != bin) {
             continue;
         }
         
         ++binTotalNum;
+        ++binLocalNum;
         
-        part[1] = P[k](0);
-        part[3] = P[k](1);
-        part[5] = P[k](2);
-        part[0] = R[k](0);
-        part[2] = R[k](1);
-        part[4] = R[k](2);
+        // ekin
+        local[0] += std::sqrt(dot(P[k], P[k]) + 1.0);
         
-        unsigned int l = 2 * Dim;
-        for (unsigned int i = 0; i < 2 * Dim; ++i) {
-            loc_moments[i] += part[i];
-            for(unsigned int j = 0; j <= i; j++) {
-                loc_moments[l++] += part[i] * part[j];
-            }
-        }
-        
-        // 3rd and 4th order moments
-        int idx = len - 2 * Dim;
         for (unsigned int i = 0; i < Dim; ++i) {
+            // <x>, <y>, <z>
+            local[i + 1] += R[k](i);
+            
+            // <p_x>, <p_y, <p_z>
+            local[i + Dim + 1] += P[k](i);
+            
+            // <x^2>, <y^2>, <z^2>
             double r2 = R[k](i) * R[k](i);
-            loc_moments[idx + i]       = r2 * R[k](i);
-            loc_moments[idx + i + Dim] = r2 * r2;
+            local[i + 2 * Dim + 1] += r2;
+            
+            // <p_x^2>, <p_y^2>, <p_z^2>
+            local[i + 3 * Dim + 1] += P[k](i) * P[k](i);
+            
+            // <xp_x>, <y_py>, <zp_z>
+            local[i + 4 * Dim + 1] += R[k](i) * P[k](i);
+            
+            // <x^3>, <y^3>, <z^3>
+            local[i + 5 * Dim + 1] += r2 * R[k](i);
+            
+            // <x^4>, <y^4>, <z^4>
+            local[i + 6 * Dim + 1] += r2 * r2;
         }
     }
     
     // inefficient
     allreduce(binTotalNum, 1, std::plus<long int>());
-    allreduce(loc_moments.data(), loc_moments.size(), std::plus<double>());
+    
+    if ( binTotalNum == 0 )
+        return;
+    
+    allreduce(local.data(), local.size(), std::plus<double>());
+    
+    const double m0 = getM() * 1.0e-6;
+    
+    double invN = 1.0 / double(binTotalNum);
+    double invN2 = invN * invN;
+    
+    // ekin
+    local[0] -= binLocalNum;
+    local[0] *= m0 * invN;
+    binfo.ekin = local[0];
+    
+    binfo.time       = getT() * 1e9;  // ns
+    binfo.nParticles = binTotalNum;
+    
+    for (unsigned int i = 0; i < Dim; ++i) {
+        
+        double w = local[i + 1];
+        double pw = local[i + Dim + 1];
+        double w2 = local[i + 2 * Dim + 1];
+        double pw2 = local[i + 3 * Dim + 1];
+        double wpw = local[i + 4 * Dim + 1];
+        double w3 = local[i + 5 * Dim + 1];
+        double w4 = local[i + 6 * Dim + 1];
+        
+        // <x>, <y>, <z>
+        binfo.mean[i] = w * invN;
+        
+        // sqrt(<p_w^2> - <p_w>^2) (w = x, y, z)
+        double tmp = pw * invN;
+        binfo.prms[i] = std::sqrt(pw2 * invN - tmp * tmp);
+        
+        // <w^2> - <w>^2 (w = x, y, z)
+        binfo.rrms[i] = w2 * invN - binfo.mean[i] * binfo.mean[i];
+        
+        // normalized emittance
+        binfo.emit[i] = w2 * pw2 - wpw * wpw * invN2;
+        binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
+        
+        // <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
+        tmp = w4 * invN
+            - 4.0 * w * w3 * invN2
+            + 6.0 * w * w * w2 * invN2 * invN
+            - 3.0 * w * w * w * w * invN2 * invN2;
+        binfo.halo[i] = tmp / ( binfo.rrms[i] * binfo.rrms[i] );
+        
+        // sqrt(<w^2>) (w = x, y, z)
+        binfo.rrms[i] = std::sqrt(binfo.rrms[i]);
+    }
+    
+    double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
+    binfo.dEkin = binfo.prms[1] * m0 * std::sqrt(1.0 - tmp);
 }
 
 
