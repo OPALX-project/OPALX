@@ -1380,9 +1380,9 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin) {
+bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin) {
     if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
-        return;
+        return false;
     }
     
     const unsigned long localNum = getLocalNum();
@@ -1400,7 +1400,7 @@ void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     std::vector<double> local(7 * Dim + 1);
     
     for(unsigned long k = 0; k < localNum; ++ k) {
-        if ( ID[k] == 0 || Bin[k] != bin) {
+        if ( Bin[k] != bin || ID[k] == 0 ) {
             continue;
         }
         
@@ -1439,7 +1439,7 @@ void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     allreduce(binTotalNum, 1, std::plus<long int>());
     
     if ( binTotalNum == 0 )
-        return;
+        return false;
     
     allreduce(local.data(), local.size(), std::plus<double>());
     
@@ -1477,7 +1477,7 @@ void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
         binfo.rrms[i] = w2 * invN - binfo.mean[i] * binfo.mean[i];
         
         // normalized emittance
-        binfo.emit[i] = w2 * pw2 - wpw * wpw * invN2;
+        binfo.emit[i] = (w2 * pw2 - wpw * wpw) * invN2;
         binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
         
         // <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
@@ -1493,6 +1493,8 @@ void PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     
     double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
     binfo.dEkin = binfo.prms[1] * m0 * std::sqrt(1.0 - tmp);
+    
+    return true;
 }
 
 

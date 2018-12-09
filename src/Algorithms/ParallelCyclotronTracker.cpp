@@ -2712,9 +2712,9 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
         
         MultiBunchDump::beaminfo_t binfo;
         
-        itsBunch_m->calcBinBeamParameters(binfo, bin);
-        
-        itsMBDump_m->writeData(binfo, bin);
+        if ( itsBunch_m->calcBinBeamParameters(binfo, bin) ) {
+            itsMBDump_m->writeData(binfo, bin);
+        }
     }
     
     itsBunch_m->R *= Vector_t(1000.0); // m --> mm
