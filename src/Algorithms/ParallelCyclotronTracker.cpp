@@ -2706,13 +2706,13 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
     
     itsBunch_m->R *= Vector_t(0.001); // mm --> m
     
-    for (int bin = 0; bin < itsBunch_m->getNumBins(); ++bin) {
+    int nBins = std::min(itsBunch_m->getNumBins(), BunchCount_m);
+    
+    for (int bin = 0; bin < nBins; ++bin) {
         
         MultiBunchDump::beaminfo_t binfo;
         
         itsBunch_m->calcBinBeamParameters(binfo, bin);
-        
-        binfo.time = itsBunch_m->getT() * 1e9;
         
         itsMBDump_m->writeData(binfo, bin);
     }
