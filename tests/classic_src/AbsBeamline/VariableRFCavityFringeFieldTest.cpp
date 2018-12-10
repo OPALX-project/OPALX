@@ -42,7 +42,7 @@ public:
         cav1 = VariableRFCavityFringeField("bob");
         // centre, end, max_order
         shared = std::shared_ptr<endfieldmodel::EndFieldModel>
-                                      (new endfieldmodel::Tanh(250., 50., 10));
+                                      (new endfieldmodel::Tanh(250., 50., 21));
         cav1.setCavityCentre(0.500);
         cav1.setEndField(shared);
         PolynomialTimeDependence* time =
@@ -314,7 +314,7 @@ TEST_F(VariableRFCavityFringeFieldTest, TestMaxwell) {
     std::cerr << "order B        E   max1   max2   maxwell3    maxwell4" << std::endl;
     R = Vector_t(0., 1., 750.);
     t = 0.125;
-    for (size_t i = 0; i < 8; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
         cav2.setMaxOrder(i);
         cav2.apply(R, centroid, t, E, B);
         Vector_t result1 = testMaxwell3(cav2, R, t, 0.01, 0.0001);
@@ -323,11 +323,24 @@ TEST_F(VariableRFCavityFringeFieldTest, TestMaxwell) {
         std::cerr << i << " ** " << B << " " << E << " " << div[0] << " "
                   << div[1] << " " << result1 << " " << result2 << std::endl;
 
-        if (i > 0 and i < 5) {
+        if (i > 0) {
             EXPECT_LT(div[0], 1e-3);
             EXPECT_LT(div[1], 1e-3);
             EXPECT_LT(euclidean_norm(result1), 1e-3);
             EXPECT_LT(euclidean_norm(result2), 1e-3);
         }
+    }
+}
+
+TEST_F(VariableRFCavityFringeFieldTest, TestOrder) {
+    Vector_t centroid(0., 0., 0.);
+    Vector_t B(0., 0., 0.);
+    Vector_t E(0., 0., 0.);
+    Vector_t R(0., 0., 500.);
+    double t = 0.;
+    for (size_t i = 0; i < 20; ++i) {
+        std::cerr << "Max Order " << i << std::endl;
+        cav2.setMaxOrder(i);
+        cav2.apply(R, centroid, t, E, B);
     }
 }
