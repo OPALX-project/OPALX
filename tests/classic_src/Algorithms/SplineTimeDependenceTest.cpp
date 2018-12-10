@@ -30,8 +30,6 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Algorithms/SplineTimeDependence.h"
 
-using interpolation::PolynomialPatch;
-
 class SplineTimeDependenceTest : public ::testing::Test { 
 public:
     SplineTimeDependenceTest() : times_m(10), values_m(10) {
