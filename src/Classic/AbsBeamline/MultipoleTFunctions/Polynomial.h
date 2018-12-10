@@ -118,7 +118,7 @@ private:
 
 inline
     int Polynomial::getCoefficient(const std::size_t &order) const {
-        if (order > maxXorder_m || order < 0) {
+        if (order > maxXorder_m) {
             return 0;
     }
         return coefficients_m[order];

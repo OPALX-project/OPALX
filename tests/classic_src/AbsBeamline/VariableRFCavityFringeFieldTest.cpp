@@ -171,7 +171,7 @@ void partial(VariableRFCavityFringeField& cav, Vector_t pos, double t, double de
     if (var == 3) {
         tMinus -= delta;
         tPlus += delta;
-    } else if (var >= 0 or var < 3) {
+    } else if (var >= 0 && var < 3) {
         posMinus[var] -= delta;
         posPlus[var] += delta;
     }
