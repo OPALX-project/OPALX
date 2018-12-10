@@ -1399,8 +1399,6 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
      */
     std::vector<double> local(7 * Dim + 1);
     
-//     std::cout << this->R[0] << std::endl;
-    
     for(unsigned long k = 0; k < localNum; ++ k) {
         if ( Bin[k] != bin || ID[k] == 0 ) {
             continue;
@@ -1414,9 +1412,7 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
         
         for (unsigned int i = 0; i < Dim; ++i) {
             
-            double r = R[k](i) * 0.001; // mm --> m
-            
-            std::cout << r << std::endl;
+            double r = R[k](i);
             
             // <x>, <y>, <z>
             local[i + 1] += r;
@@ -1456,8 +1452,6 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     allreduce(local.data(), local.size(), std::plus<double>());
     
     double invN = 1.0 / double(binTotalNum);
-    double invN2 = invN * invN;
-    
     binfo.ekin = local[0] * invN;
     
     binfo.time       = getT() * 1e9;  // ns
@@ -1465,33 +1459,32 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     
     for (unsigned int i = 0; i < Dim; ++i) {
         
-        double w = local[i + 1];
-        double pw = local[i + Dim + 1];
-        double w2 = local[i + 2 * Dim + 1];
-        double pw2 = local[i + 3 * Dim + 1];
-        double wpw = local[i + 4 * Dim + 1];
-        double w3 = local[i + 5 * Dim + 1];
-        double w4 = local[i + 6 * Dim + 1];
+        double w = local[i + 1] * invN;
+        double pw = local[i + Dim + 1] * invN;
+        double w2 = local[i + 2 * Dim + 1] * invN;
+        double pw2 = local[i + 3 * Dim + 1] * invN;
+        double wpw = local[i + 4 * Dim + 1] * invN;
+        double w3 = local[i + 5 * Dim + 1] * invN;
+        double w4 = local[i + 6 * Dim + 1] * invN;
         
         // <x>, <y>, <z>
-        binfo.mean[i] = w * invN;
+        binfo.mean[i] = w;
         
         // sqrt(<p_w^2> - <p_w>^2) (w = x, y, z)
-        double tmp = pw * invN;
-        binfo.prms[i] = std::sqrt(pw2 * invN - tmp * tmp);
+        binfo.prms[i] = std::sqrt(pw2 - pw * pw);
         
         // <w^2> - <w>^2 (w = x, y, z)
-        binfo.rrms[i] = w2 * invN - binfo.mean[i] * binfo.mean[i];
+        binfo.rrms[i] = w2 - w * w;
         
         // normalized emittance
-        binfo.emit[i] = (w2 * pw2 - wpw * wpw) * invN2;
+        binfo.emit[i] = (w2 * pw2 - wpw * wpw);
         binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
         
         // <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
-        tmp = w4 * invN
-            - 4.0 * w * w3 * invN2
-            + 6.0 * w * w * w2 * invN2 * invN
-            - 3.0 * w * w * w * w * invN2 * invN2;
+        double tmp = w4
+                   - 4.0 * w * w3
+                   + 6.0 * w * w * w2
+                   - 3.0 * w * w * w * w;
         binfo.halo[i] = tmp / ( binfo.rrms[i] * binfo.rrms[i] );
         
         // sqrt(<w^2>) (w = x, y, z)
