@@ -443,21 +443,10 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
 
         if (OpalData::getInstance()->isInOPALCyclMode()) {
 
-            int nBunch = beam->getNumBunch();
-
-            for (int bin = 0; bin < nBunch; ++bin) {
-                Vector_t halo = beam->get_halo(bin);
-                for (int i = 0; i < 3; ++i)
-                    os_statData << halo(i) << std::setw(pwi) << "\t";
-            }
-
-            for ( int bin = nBunch; bin < nMaxBunches_m; ++bin ) {
-                Vector_t halo = Vector_t(0.0, 0.0, 0.0);
-                for (int i = 0; i < 3; ++i)
-                    os_statData << halo(i) << std::setw(pwi) << "\t";
-            }
+            Vector_t halo = beam->get_halo();
+            for (int i = 0; i < 3; ++i)
+                os_statData << halo(i) << std::setw(pwi) << "\t";
         }
-
 
         for(size_t i = 0; i < losses.size(); ++ i) {
             os_statData << losses[i].second << std::setw(pwi) << "\t";
@@ -947,23 +936,15 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         char dir[] = { 'x', 'y', 'z' };
 
-        for (int bin = 0; bin < nMaxBunches_m; ++bin) {
-            for (int i = 0; i < 3; ++i) {
-                std::stringstream ss;
-                ss << "&column\n" << indent << "name=halo_" << dir[i];
-                
-                if ( nMaxBunches_m > 1 ) {
-                    ss << " (energy bin " << bin << "),\n";
-                } else {
-                    ss << ",\n";
-                }
-                ss << indent << "type=double,\n"
-                   << indent << "units=1,\n"
-                   << indent << "description=\"" << columnStart++ << " Halo in "
-                   << dir[i] << "\"\n"
-                   << "&end\n";
-                outputFile << ss.str();
-            }
+        for (int i = 0; i < 3; ++i) {
+            std::stringstream ss;
+            ss << "&column\n" << indent << "name=halo_" << dir[i] << ",\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"" << columnStart++ << " Halo in "
+               << dir[i] << "\"\n"
+               << "&end\n";
+               outputFile << ss.str();
         }
     }
 
