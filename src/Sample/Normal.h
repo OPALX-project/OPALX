@@ -15,30 +15,36 @@ public:
 
     Normal(double lower, double upper)
         : dist_m(0.5 * (lower + upper), (upper - lower) / 10)
+        , RNGInstance_m(RNGStream::getInstance())
+        , seed_m(RNGStream::getGlobalSeed())
+    {}
 
-    {
-        RNGInstance_m = RNGStream::getInstance();
-    }
-
-    Normal(double lower, double upper, double seed)
+    Normal(double lower, double upper, std::size_t seed)
         : dist_m(0.5 * (lower + upper), (upper - lower) / 10)
-
-    {
-        RNGInstance_m = RNGStream::getInstance(seed);
-    }
+        , RNGInstance_m(nullptr)
+        , seed_m(seed)
+    {}
 
     ~Normal() {
-        RNGStream::deleteInstance(RNGInstance_m);
+        if ( RNGInstance_m)
+            RNGStream::deleteInstance(RNGInstance_m);
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
         ind->genes[i] = RNGInstance_m->getNext(dist_m);
     }
+    
+    void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
+        if ( !RNGInstance_m )
+            RNGInstance_m = RNGStream::getInstance(seed_m + comm.island_id);
+    }
 
 private:
-    RNGStream *RNGInstance_m;
-
     dist_t dist_m;
+
+    RNGStream *RNGInstance_m;
+    
+    std::size_t seed_m;
 };
 
 #endif
