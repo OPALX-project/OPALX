@@ -1,5 +1,6 @@
 set (_SRCS
     PolynomialTimeDependenceTest.cpp
+    SplineTimeDependenceTest.cpp
 )
 
 include_directories (

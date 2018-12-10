@@ -33,12 +33,8 @@
 #include <gsl/gsl_spline.h>
 
 #include "Ippl.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Algorithms/AbstractTimeDependence.h"
-
-
-namespace interpolation {
-  class PolynomialPatch;
-}
 
 /** @class SplineTimeDependence
  * 
@@ -59,6 +55,10 @@ class SplineTimeDependence : public AbstractTimeDependence {
      *         with quadratic smoothing) 
      *  @param times the times of successive elements in the time dependence
      *  @param values the values at each time step.
+     *
+     *  It is an error if times and values are not of equal length, times and
+     *  values length < splineOrder + 1, or times do not increase strictly
+     *  monotonically.
      */
     SplineTimeDependence(size_t splineOrder,
                          std::vector<double> times,

@@ -16,6 +16,7 @@ set (_SRCS
   PartData.cpp
   OpalParticle.cpp
   PolynomialTimeDependence.cpp
+  SplineTimeDependence.cpp
   Surveyor.cpp
   ThinMapper.cpp
   ThinTracker.cpp
@@ -57,6 +58,7 @@ set (HDRS
     PolynomialTimeDependence.h
     Quaternion.h
     rbendmap.h
+    SplineTimeDependence.h
     Surveyor.h
     ThinMapper.h
     ThinTracker.h
