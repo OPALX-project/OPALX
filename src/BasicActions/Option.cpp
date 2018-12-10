@@ -86,6 +86,7 @@ namespace {
         AMR_YT_DUMP_FREQ,
 #endif
         MEMORYDUMP,
+        HALOSHIFT,
         MINBINEMITTED,
         MINSTEPFORREBIN,
         SIZE
@@ -260,6 +261,9 @@ Option::Option():
     itsAttr[MEMORYDUMP] = Attributes::makeBool
         ("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
 
+    itsAttr[HALOSHIFT] = Attributes::makeReal
+        ("HALOSHIFT", "Constant parameter to shift halo value (default: 0.0)", haloShift);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -307,6 +311,7 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[AMR_YT_DUMP_FREQ], amrYtDumpFreq);
 #endif
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
+    Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
 }
 
 
@@ -337,6 +342,7 @@ void Option::execute() {
     amrYtDumpFreq = Attributes::getReal(itsAttr[AMR_YT_DUMP_FREQ]);
 #endif
     memoryDump = Attributes::getBool(itsAttr[MEMORYDUMP]);
+    haloShift  = Attributes::getReal(itsAttr[HALOSHIFT]);
 
     if ( memoryDump ) {
         IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
