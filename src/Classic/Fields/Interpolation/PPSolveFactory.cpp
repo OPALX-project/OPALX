@@ -233,7 +233,7 @@ void PPSolveFactory::getDerivPoints() {
             }
         }
     }
-    
+
     int nPolyCoeffs = SquarePolynomialVector::NumberOfPolynomialCoefficients
                                                     (posDim, smoothingOrder_m);
     for (size_t i = 0; i < derivPoints_m.size(); ++i) {

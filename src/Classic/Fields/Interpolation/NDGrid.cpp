@@ -224,5 +224,22 @@ Mesh::Iterator NDGrid::getNearest(const double* position) const {
     return Mesh::Iterator(index, this);
 }
 
+
+Mesh* NDGrid::dual() const {
+    std::vector<std::vector<double> > coord(coord_m.size());
+    for (size_t i = 0; i < coord.size(); ++i) {
+        if (coord_m[i].size() <= 1) {
+            throw(OpalException("NDGrid::dual(...)",
+                                "ND Grid must be at least 2x2x...x2 grid"));
+        }
+        coord[i] = std::vector<double>(coord_m[i].size()-1);
+        for (size_t j = 0; j < coord[i].size(); ++j) {
+            coord[i][j] = (coord_m[i][j] + coord_m[i][j+1])/2.;
+        }
+    }
+    return new NDGrid(coord);
+}
+
+
 ////// NDGrid END ////////
 }

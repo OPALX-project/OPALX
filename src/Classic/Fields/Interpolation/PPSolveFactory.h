@@ -68,7 +68,8 @@ class PPSolveFactory {
      *
      *  \param points Set of points on which values are stored. Must be a
      *                rectangular grid. PPSolveFactory takes ownership of
-     *                points (will delete on exit).
+     *                points (will delete on exit). The solve will return a
+     *                wrong answer if the grid does not have regular spacing.
      *  \param values Set of values to which we fit. Must be one value per mesh
      *                point and each value must have the same size.
      *  \param polyPatchOrder The order of the fitted part of the polynomial.

@@ -62,7 +62,7 @@ class NDGrid : public Mesh {
     inline NDGrid* clone();
 
     /** Not implemented */
-    inline Mesh* dual() const;
+    Mesh* dual() const;
 
     /** Build a default, empty grid with zero dimension */
     NDGrid();
@@ -346,10 +346,6 @@ double NDGrid::max(const int& dimension) const {
 
 NDGrid* NDGrid::clone() {
     return new NDGrid(*this);
-}
-
-Mesh* NDGrid::dual() const {
-    return NULL;
 }
 
 void NDGrid::setCoord(int dimension, int nCoords, double * x) {
