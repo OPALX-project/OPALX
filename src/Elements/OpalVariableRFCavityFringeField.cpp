@@ -163,7 +163,7 @@ void OpalVariableRFCavityFringeField::update() {
     double endLength = Attributes::getReal(itsAttr[END_LENGTH])*1e3;
     endfieldmodel::Tanh* tanh = new endfieldmodel::Tanh(centreLength/2.,
                                                         endLength,
-                                                        (maxOrder+1)/2);
+                                                        maxOrder+1);
     std::shared_ptr<endfieldmodel::EndFieldModel> end(tanh);
     cavity->setEndField(end);
 
