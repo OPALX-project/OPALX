@@ -1399,6 +1399,8 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
      */
     std::vector<double> local(7 * Dim + 1);
     
+//     std::cout << this->R[0] << std::endl;
+    
     for(unsigned long k = 0; k < localNum; ++ k) {
         if ( Bin[k] != bin || ID[k] == 0 ) {
             continue;
@@ -1411,24 +1413,29 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
         local[0] += std::sqrt(dot(P[k], P[k]) + 1.0);
         
         for (unsigned int i = 0; i < Dim; ++i) {
+            
+            double r = R[k](i) * 0.001; // mm --> m
+            
+            std::cout << r << std::endl;
+            
             // <x>, <y>, <z>
-            local[i + 1] += R[k](i);
+            local[i + 1] += r;
             
             // <p_x>, <p_y, <p_z>
             local[i + Dim + 1] += P[k](i);
             
             // <x^2>, <y^2>, <z^2>
-            double r2 = R[k](i) * R[k](i);
+            double r2 = r * r;
             local[i + 2 * Dim + 1] += r2;
             
             // <p_x^2>, <p_y^2>, <p_z^2>
             local[i + 3 * Dim + 1] += P[k](i) * P[k](i);
             
             // <xp_x>, <y_py>, <zp_z>
-            local[i + 4 * Dim + 1] += R[k](i) * P[k](i);
+            local[i + 4 * Dim + 1] += r * P[k](i);
             
             // <x^3>, <y^3>, <z^3>
-            local[i + 5 * Dim + 1] += r2 * R[k](i);
+            local[i + 5 * Dim + 1] += r2 * r;
             
             // <x^4>, <y^4>, <z^4>
             local[i + 6 * Dim + 1] += r2 * r2;
@@ -1441,17 +1448,17 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     if ( binTotalNum == 0 )
         return false;
     
-    allreduce(local.data(), local.size(), std::plus<double>());
-    
+    // ekin
     const double m0 = getM() * 1.0e-6;
+    local[0] -= binLocalNum;
+    local[0] *= m0;
+    
+    allreduce(local.data(), local.size(), std::plus<double>());
     
     double invN = 1.0 / double(binTotalNum);
     double invN2 = invN * invN;
     
-    // ekin
-    local[0] -= binLocalNum;
-    local[0] *= m0 * invN;
-    binfo.ekin = local[0];
+    binfo.ekin = local[0] * invN;
     
     binfo.time       = getT() * 1e9;  // ns
     binfo.nParticles = binTotalNum;
