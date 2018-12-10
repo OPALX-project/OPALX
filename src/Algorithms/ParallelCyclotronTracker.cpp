@@ -2704,7 +2704,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
     IpplTimings::startTimer(DumpTimer_m);
     
-    itsBunch_m->R *= Vector_t(0.001); // mm --> m
+//     itsBunch_m->R *= Vector_t(0.001); // mm --> m
     
     int nBins = std::min(itsBunch_m->getNumBins(), BunchCount_m);
     
@@ -2717,7 +2717,7 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
         }
     }
     
-    itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+//     itsBunch_m->R *= Vector_t(1000.0); // m --> mm
     
     IpplTimings::stopTimer(DumpTimer_m);
 }
