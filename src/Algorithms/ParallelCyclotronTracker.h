@@ -66,7 +66,12 @@ public:
         FORCE  = 1,
         AUTO   = 2
     };
-
+    
+    // multi-bunch binning type
+    enum class MB_BINNING {
+        GAMMA = 0,
+        BUNCH = 1
+    };
 
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -210,6 +215,9 @@ public:
     /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
     void setMultiBunchMode(const std::string& mbmode);
     
+    // set binning type
+    void setMultiBunchBinning(std::string binning);
+    
     /// set the scale for binning in multi-bunch mode
     void setMultiBunchEta(const double& eta) { eta_m = eta; };
 
@@ -292,6 +300,10 @@ private:
     // 1 for FORCE,
     // 2 for AUTO
     MB_MODE multiBunchMode_m;
+    
+    // 0 for GAMMA (default),
+    // 1 for BUNCH
+    MB_BINNING binningType_m;
 
     // control parameter for AUTO multi-bunch mode
     double CoeffDBunches_m;
@@ -381,6 +393,8 @@ private:
 
     bool readOneBunchFromFile(const size_t BeamCount);
     void saveOneBunch();
+    
+    void updateParticleBins_m();
 
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);
     bool RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex);
