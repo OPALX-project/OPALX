@@ -266,6 +266,22 @@ void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
                             "MBMODE name \"" + mbmode + "\" unknown.");
 }
 
+void ParallelCyclotronTracker::setMultiBunchBinning(std::string binning) {
+    
+    binning = Util::toUpper(binning);
+    
+    if ( binning.compare("BUNCH") == 0 ) {
+        *gmsg << "Use 'BUNCH' injection for binnning." << endl;
+        binningType_m = MB_BINNING::BUNCH;
+    } else if ( binning.compare("GAMMA") == 0 ) {
+        *gmsg << "Use 'GAMMA' for binning." << endl;
+        binningType_m = MB_BINNING::GAMMA;
+    } else {
+        throw OpalException("ParallelCyclotronTracker::setMultiBunchBinning()",
+                            "MB_BINNING name \"" + binning + "\" unknown.");
+    }
+}
+
 /**
  *
  *
@@ -1374,7 +1390,7 @@ void ParallelCyclotronTracker::MtsTracker() {
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch_m->weHaveBins()) && BunchCount_m > 1) {
             if(step_m % Options::rebinFreq == 0) {
-                itsBunch_m->resetPartBinID2(eta_m);
+                updateParticleBins_m();
             }
         }
 
@@ -1411,7 +1427,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             if (itsBunch_m->weHaveBins() && BunchCount_m > 1 &&
                 step_m % Options::rebinFreq == 0)
             {
-                itsBunch_m->resetPartBinID2(eta_m);
+                updateParticleBins_m();
             }
         }
 
@@ -1801,6 +1817,23 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
 
     return true;
 }
+
+
+void ParallelCyclotronTracker::updateParticleBins_m() {
+    switch ( binningType_m ) {
+        case MB_BINNING::GAMMA:
+            itsBunch_m->resetPartBinID2(eta_m);
+            break;
+        case MB_BINNING::BUNCH:
+            /*
+             * do nothing
+             */
+            break;
+        default:
+            itsBunch_m->resetPartBinID2(eta_m);
+    }
+}
+
 
 double ParallelCyclotronTracker::getHarmonicNumber() const {
     if (opalRing_m != NULL)
@@ -2215,7 +2248,8 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
     bool const flagNeedUpdate = deleteParticle();
 
-    if(itsBunch_m->weHaveBins() && flagNeedUpdate) itsBunch_m->resetPartBinID2(eta_m);
+    if(itsBunch_m->weHaveBins() && flagNeedUpdate)
+        updateParticleBins_m();
 }
 
 
@@ -2938,7 +2972,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     initDistInGlobalFrame();
 
     if ( OpalData::getInstance()->inRestartRun() && numBunch_m > 1)
-        itsBunch_m->resetPartBinID2(eta_m);
+        updateParticleBins_m();
 
     turnnumber_m = 1;
 
@@ -3268,12 +3302,12 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
 
     // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
     if(itsBunch_m->weHaveBins() && flagNeedUpdate)
-        itsBunch_m->resetPartBinID2(eta_m);
+        updateParticleBins_m();
 
     // Recalculate bingamma and reset the BinID for each particles according to its current gamma
     if (itsBunch_m->weHaveBins() && BunchCount_m > 1 && step_m % Options::rebinFreq == 0)
     {
-        itsBunch_m->resetPartBinID2(eta_m);
+        updateParticleBins_m();
     }
 
     // Some status output for user after each turn
@@ -3585,7 +3619,7 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
             case MB_MODE::FORCE:
             case MB_MODE::AUTO:
                 readOneBunchFromFile(BunchCount_m - 1);
-                itsBunch_m->resetPartBinID2(eta_m);
+                updateParticleBins_m();
                 break;
             case MB_MODE::NONE:
                 // do nothing
