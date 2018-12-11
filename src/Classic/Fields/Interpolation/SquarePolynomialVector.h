@@ -63,6 +63,9 @@ namespace interpolation {
  *  n-dimensional square. The distinction should be made with a PolynomialVector
  *  where coefficients include all polynomial coefficients with 
  *  \f$ \Sigma(i_j) <= n. \f$
+ * 
+ *  Nb2: It is quite tricky to get right - mostly an excercise in indexing, but
+ *  that is very easy to get wrong.
  */
 
 class SquarePolynomialVector {
