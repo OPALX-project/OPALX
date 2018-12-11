@@ -71,7 +71,7 @@ private:
     double CSAnalyticFunction(double Eng, double Eth,
     		double a1, double a2, double a3, double a4, double a5, double a6);
 
-    bool GasStripping(double &deltas, double &Lpath);
+    bool GasStripping(double &deltas);
 
     bool LorentzStripping(double &gamma, double &E);
 
@@ -116,13 +116,6 @@ private:
 	static const double CSCoefDouble_Hplus[3][9];
 	static const double CSCoefSingleLoss_H[3][7];
 	static const double CSCoefSingleCapt_H[3][9];
-
-    /*
-	static const double fCrossSectionSingle[3][48];
-	static const double fEnergyCSSingle[3][48];
-	static const double fCrossSectionDouble[3][40];
-	static const double fEnergyCSDouble[3][40];
-	*/
 };
 
 #endif //BEAMSTRIPPINGPHYSICS_HH

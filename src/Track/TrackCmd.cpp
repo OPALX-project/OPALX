@@ -48,6 +48,10 @@ namespace {
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
         STEPSPERTURN, // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR, // the name of time integrator
+		DTINIT,
+		DTFINAL,
+		EINIT,
+		EFINAL,
         MAP_ORDER,    // Truncation order of maps for ThickTracker (default: 1 (linear))
         SIZE
     };
@@ -78,7 +82,14 @@ TrackCmd::TrackCmd():
                      ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
     itsAttr[TIMEINTEGRATOR] = Attributes::makeString
                               ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
-    
+    itsAttr[DTINIT] = Attributes::makeReal
+                      ("DTINIT", "Defines a initial time step [s]", 0.0e-9);
+    itsAttr[DTFINAL] = Attributes::makeReal
+                      ("DTFINAL", "Defines a initial time step [s]", 1.0e-9);
+    itsAttr[EINIT] = Attributes::makeReal
+                      ("EINIT", "Defines a initial energy [eV] for particles", 1.0);
+    itsAttr[EFINAL] = Attributes::makeReal
+                      ("EFINAL", "Defines a final energy [eV] for particles", 1.0e6);
     itsAttr[MAP_ORDER] = Attributes::makeReal
                      ("MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear)", 1);
 
@@ -135,6 +146,24 @@ std::vector<double> TrackCmd::getZSTOP() const {
     return zstop;
 }
 
+double TrackCmd::getDTINIT() const {
+    double dTi = Attributes::getReal(itsAttr[DTINIT]);
+    return dTi;
+}
+double TrackCmd::getDTFINAL() const {
+    double dTf = Attributes::getReal(itsAttr[DTFINAL]);
+    return dTf;
+}
+
+double TrackCmd::getEINIT() const {
+    double Ei = Attributes::getReal(itsAttr[EINIT]);
+    return Ei;
+}
+double TrackCmd::getEFINAL() const {
+    double Ef = Attributes::getReal(itsAttr[EFINAL]);
+    return Ef;
+}
+
 std::vector<unsigned long long> TrackCmd::getMAXSTEPS() const {
     std::vector<double> maxsteps_d = Attributes::getRealArray(itsAttr[MAXSTEPS]);
     std::vector<unsigned long long> maxsteps_i;
@@ -189,6 +218,11 @@ void TrackCmd::execute() {
     int timeintegrator = getTIMEINTEGRATOR();
     int nslices = beam->getNumberOfSlices();
 
+    double dtinit = getDTINIT();
+    double dtfinal = getDTFINAL();
+    double einit = getEINIT();
+    double efinal = getEFINAL();
+
     size_t numTracks = dt.size();
     numTracks = std::max(numTracks, maxsteps.size());
     numTracks = std::max(numTracks, zstop.size());
@@ -205,9 +239,12 @@ void TrackCmd::execute() {
    // Execute track block.
     Track::block = new Track(use, beam->getReference(), dt, maxsteps,
                              stepsperturn, zstart, zstop,
+							 dtinit, dtfinal, einit, efinal,
                              timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
-    
-    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
+//    Track::block = new Track(use, beam->getReference(), dt, maxsteps,
+//                             stepsperturn, zstart, zstop,
+//                             timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
+//    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
     
     Track::block->parser.run();
 

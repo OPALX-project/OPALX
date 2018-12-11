@@ -118,7 +118,7 @@ private:
     unsigned int losses_m;
     unique_ptr<LossDataSink> lossDs_m;
 
-    ParticleMatterInteractionHandler *parmatintbst_m;
+    ParticleMatterInteractionHandler *parmatint_m;
 };
 
 inline

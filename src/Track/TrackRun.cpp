@@ -702,6 +702,13 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* Mass of simulation particle= " << macromass << " GeV/c^2" << endl;
     *gmsg << "* Charge of simulation particle= " << macrocharge << " [C]" << endl;
 
+
+    Track::block->bunch->setdTinit(Track::block->dtInit);
+    Track::block->bunch->setdTfinal(Track::block->dtFinal);
+
+    Track::block->bunch->setEinit(Track::block->eInit);
+    Track::block->bunch->setEfinal(Track::block->eFinal);
+
     Track::block->bunch->setdT(1.0 / (Track::block->stepsPerTurn * beam->getFrequency() * 1.0e6));
     Track::block->bunch->setStepsPerTurn(Track::block->stepsPerTurn);
 

@@ -219,6 +219,7 @@ public:
 
     void bgf_main_collision_test();
     void initializeBoundaryGeometry();
+    double initializeTimeStep();
 
 private:
 

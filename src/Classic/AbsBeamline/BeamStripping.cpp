@@ -59,7 +59,7 @@ BeamStripping::BeamStripping():
     maxz_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatintbst_m(NULL)
+    parmatint_m(NULL)
 {}
 
 BeamStripping::BeamStripping(const BeamStripping &right):
@@ -75,7 +75,7 @@ BeamStripping::BeamStripping(const BeamStripping &right):
     maxz_m(right.maxz_m),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatintbst_m(NULL)
+    parmatint_m(NULL)
 {}
 
 BeamStripping::BeamStripping(const std::string &name):
@@ -91,7 +91,7 @@ BeamStripping::BeamStripping(const std::string &name):
     maxz_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatintbst_m(NULL)
+    parmatint_m(NULL)
 {}
 
 
@@ -100,11 +100,9 @@ BeamStripping::~BeamStripping() {
         goOffline();
 }
 
-
 void BeamStripping::accept(BeamlineVisitor &visitor) const {
     visitor.visitBeamStripping(*this);
 }
-
 
 
 void BeamStripping::setPressure(double pressure) {
@@ -115,7 +113,6 @@ double BeamStripping::getPressure() const {
 }
 
 void BeamStripping::setTemperature(double temperature) {
-	temperature = 300.0;
     temperature_m = temperature;
 }
 double BeamStripping::getTemperature() const {
@@ -166,17 +163,17 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
     for (unsigned int i = 0; i < tempnum; ++i) {
     	pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
     	if ( (pflag != 0) && (bunch->Bin[i] != -1) )  {
-    		if (!parmatintbst_m)
+    		if (!parmatint_m)
     			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], t, turnnumber);
     		//    		bunch->Bin[i] = -1;
     		flagNeedUpdate = true;
 		}
-		else if (pflag == 0) {
-    		*gmsg << "pflag == 0" << endl;
-    		*gmsg << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
-    		*gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
-
-    	}
+//		else if (pflag == 0) {
+//    		*gmsg << "pflag == 0" << endl;
+//    		*gmsg << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
+//    		*gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
+//
+//    	}
 //    	else if (bunch->Bin[i] == -1) {
 //    		*gmsg << "bunch->Bin[i] == -1" << endl;
 //    		*gmsg << getName() << ": particle "<< i <<" is marked for deletion"<< endl;
@@ -184,9 +181,9 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
 //    	}
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-    if (flagNeedUpdate && parmatintbst_m) {
-    	dynamic_cast<BeamStrippingPhysics*>(parmatintbst_m)->setCyclotron(cycl);
-        parmatintbst_m->apply(bunch, boundingSphere);
+    if (flagNeedUpdate && parmatint_m) {
+    	dynamic_cast<BeamStrippingPhysics*>(parmatint_m)->setCyclotron(cycl);
+    	parmatint_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
 }
@@ -200,7 +197,7 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, double &startFie
 void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
     RefPartBunch_m = bunch;
 
-    parmatintbst_m = getParticleMatterInteraction();
+    parmatint_m = getParticleMatterInteraction();
 
     // if (!parmatintbst_m) {
     if (filename_m == std::string(""))
