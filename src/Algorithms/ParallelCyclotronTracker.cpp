@@ -191,6 +191,8 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     } else
         mode_m = MODE::UNDEFINED;
 
+//    initializeTimeeStep();
+
     if ( timeIntegrator == 0 ) {
         stepper_m = stepper::INTEGRATOR::RK4;
     } else if ( timeIntegrator == 1) {
@@ -214,6 +216,60 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
     }
     delete itsBeamline;
     // delete opalRing_m;
+}
+
+
+double ParallelCyclotronTracker::initializeTimeStep() {
+
+	double E_mean = 0.0;
+	double dT = 0.0;
+
+	double dti = itsBunch_m->getdTinit();
+	double dtf = itsBunch_m->getdTfinal();
+
+	double Ei = itsBunch_m->getEinit();
+	double Ef = itsBunch_m->getEfinal();
+
+	if(dti > 0) {
+//		*gmsg << "* Time step changes in each step accordng to energy " << endl;
+        switch (mode_m)
+        {
+        	case MODE::SEO:
+        	{
+        	     E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
+        	     break;
+        	}
+            case MODE::SINGLE:
+            {
+            	E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
+                break;
+            }
+            case MODE::BUNCH:
+            {
+            	E_mean = itsBunch_m->get_meanKineticEnergy() * 1.0e6;
+                break;
+            }
+            case MODE::UNDEFINED:
+            default:
+                throw OpalException("ParallelCyclotronTracker::GenericTracker()",
+                                    "No such tracking mode.");
+        }
+		dT = dti * dtf * (Ef-Ei) / ( dtf*(Ef-E_mean) + dti*(E_mean-Ei) );
+	}
+	else {
+		dT = itsBunch_m->getdT();
+	}
+//	*gmsg << "* Energy mean =  " << E_mean  << endl;
+//	*gmsg << "* meanKineticEnergy =  " << itsBunch_m->get_meanKineticEnergy() * 1.0e6  << endl;
+//	*gmsg << "* dti =  " << dti  << endl;
+//	*gmsg << "*  dT =  " <<  dT  << endl;
+
+	itsBunch_m->setdT(dT);
+
+	 double harm = getHarmonicNumber();
+	 dT *= 1.0e9 * harm;
+
+	return dT;
 }
 
 /**
@@ -615,7 +671,7 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
     *gmsg << "* Pressure	= " << pressure << " [mbar]" << endl;
 
     double temperature = elptr->getTemperature();
-    *gmsg << "* Temperature (fixed)	= " << temperature << " [K]" << endl;
+    *gmsg << "* Temperature = " << temperature << " [K]" << endl;
 
     bool stop = elptr->getStop();
     *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
@@ -1325,6 +1381,8 @@ void ParallelCyclotronTracker::MtsTracker() {
 
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
+    	dt = initializeTimeStep();
+
         bool dumpEachTurn = false;
 
         if(step_m % Options::sptDumpFreq == 0) {
@@ -1476,6 +1534,8 @@ void ParallelCyclotronTracker::GenericTracker() {
     *gmsg << "* --------------------------------- Start tracking ------------------------------------ *" << endl;
 
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
+
+    	dt = initializeTimeStep();
 
         bool dumpEachTurn = false;
 
@@ -2615,9 +2675,9 @@ void ParallelCyclotronTracker::singleParticleDump() {
             if(itsBunch_m->ID[i] == 0 || itsBunch_m->ID[i] == 1) {
 
                 outfTrackOrbit_m << "ID" << itsBunch_m->ID[i] << " ";
-                outfTrackOrbit_m << itsBunch_m->R[i](0)*1000 << " " << itsBunch_m->P[i](0) << " ";
-                outfTrackOrbit_m << itsBunch_m->R[i](1)*1000 << " " << itsBunch_m->P[i](1) << " ";
-                outfTrackOrbit_m << itsBunch_m->R[i](2)*1000 << " " << itsBunch_m->P[i](2) << std::endl;
+                outfTrackOrbit_m << itsBunch_m->R[i](0) << " " << itsBunch_m->P[i](0) << " ";
+                outfTrackOrbit_m << itsBunch_m->R[i](1) << " " << itsBunch_m->P[i](1) << " ";
+                outfTrackOrbit_m << itsBunch_m->R[i](2) << " " << itsBunch_m->P[i](2) << std::endl;
             }
         }
     }
@@ -2918,9 +2978,9 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     setup_m.azimuth_angle1 = 22.5 * Physics::deg2rad;
     setup_m.azimuth_angle2 = 45.0 * Physics::deg2rad;
 
-
     double harm       = getHarmonicNumber();
     double dt         = itsBunch_m->getdT() * 1.0e9 * harm; // time step size (s --> ns)
+    dt = initializeTimeStep();
     double t          = itsBunch_m->getT() * 1.0e9;               // current time   (s --> ns)
 
 
@@ -3144,6 +3204,7 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
 
 void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
                                             bool& dumpEachTurn, double& oldReferenceTheta) {
+
     // 1 particle: Trigger single particle mode
     bool flagNoDeletion = true;
 
@@ -3165,11 +3226,11 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     if ( step_m % Options::sptDumpFreq == 0 ) {
 
         outfTrackOrbit_m << "ID" <<itsBunch_m->ID[i]
-                         << " " << itsBunch_m->R[i](0)*1000
+                         << " " << itsBunch_m->R[i](0)
                          << " " << itsBunch_m->P[i](0)
-                         << " " << itsBunch_m->R[i](1)*1000
+                         << " " << itsBunch_m->R[i](1)
                          << " " << itsBunch_m->P[i](1)
-                         << " " << itsBunch_m->R[i](2)*1000
+                         << " " << itsBunch_m->R[i](2)
                          << " " << itsBunch_m->P[i](2)
                          << std::endl;
     }

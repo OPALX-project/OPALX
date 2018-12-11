@@ -63,6 +63,12 @@ public:
     /// location at which the simulation stops
     std::vector<double> getZSTOP() const;
 
+    double getDTINIT() const;
+    double getDTFINAL() const;
+
+    double getEINIT() const;
+    double getEFINAL() const;
+
     /// return the name of time integrator
     int getTIMEINTEGRATOR() const;
 

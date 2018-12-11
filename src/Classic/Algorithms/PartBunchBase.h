@@ -211,6 +211,16 @@ public:
     void maximumAmplitudes(const FMatrix<double, 6, 6> &D,
                            double &axmax, double &aymax);
 
+    void   setdTinit(double dt);
+    double getdTinit() const;
+    void   setdTfinal(double dt);
+    double getdTfinal() const;
+
+    void   setEinit(double E);
+    double getEinit() const;
+    void   setEfinal(double E);
+    double getEfinal() const;
+
     void   setdT(double dt);
     double getdT() const;
 
@@ -556,6 +566,8 @@ protected:
 
     /// holds the timestep in seconds
     double dt_m;
+    double dti_m;
+    double dtf_m;
     /// holds the actual time of the integration
     double t_m;
     /// mean energy of the bunch (MeV)
@@ -564,6 +576,9 @@ protected:
     double dE_m;
     /// the position along design trajectory
     double spos_m;
+
+    double Ei_m;
+    double Ef_m;
 
     /// Initialize the translation vector and rotation quaternion
     /// here. Cyclotron tracker will reset these values each timestep

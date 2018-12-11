@@ -1329,8 +1329,45 @@ void PartBunchBase<T, Dim>::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
 
 
 template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setdTinit(double dt) {
+    dti_m = dt;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getdTinit() const {
+	return dti_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setdTfinal(double dt) {
+    dtf_m = dt;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getdTfinal() const {
+	return dtf_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setEinit(double E) {
+    Ei_m = E;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getEinit() const {
+	return Ei_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setEfinal(double E) {
+    Ef_m = E;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getEfinal() const {
+	return Ef_m;
+}
+
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setdT(double dt) {
-    dt_m = dt;
+	dt_m = dt;
 }
 
 
@@ -2101,6 +2138,8 @@ void PartBunchBase<T, Dim>::calcEMean() {
     const double totalNp = static_cast<double>(getTotalNum());
     const double locNp = static_cast<double>(getLocalNum());
 
+    *gmsg << "* totalNp =  " << totalNp << endl;
+    *gmsg << "* locNp =  " << locNp << endl;
     eKin_m = 0.0;
 
     for(unsigned int k = 0; k < locNp; k++) {
@@ -2111,6 +2150,7 @@ void PartBunchBase<T, Dim>::calcEMean() {
     eKin_m *= getM() * 1.0e-6;
 
     reduce(eKin_m, eKin_m, OpAddAssign());
+    *gmsg << "* eKin_m =  " << eKin_m << endl;
 
     eKin_m /= totalNp;
 }

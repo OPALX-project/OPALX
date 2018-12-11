@@ -42,8 +42,14 @@ otherwise a new bunch is allocated in the dictionary.
 
 Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & dt,
              const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
-             double zStart, const std::vector<double> & zStop, int timeintegrator,
+             double zStart, const std::vector<double> & zStop,
+			 double dtinit, double dtfinal, double einit, double efinal,
+			 int timeintegrator,
              int nslices, double t0, double dtScInit, double deltaTau):
+//Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & dt,
+//		const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
+//		double zStart, const std::vector<double> & zStop,int timeintegrator,
+//		int nslices, double t0, double dtScInit, double deltaTau):
     bunch(nullptr),
     slbunch(nullptr),
     reference(ref),
@@ -57,6 +63,10 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
     stepsPerTurn(stepsperturn),
     zstart(zStart),
     zstop(zStop),
+	dtInit(dtinit),
+	dtFinal(dtfinal),
+	eInit(einit),
+	eFinal(efinal),
     timeIntegrator(timeintegrator),
     truncOrder(1)
     {
