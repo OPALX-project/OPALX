@@ -63,7 +63,7 @@ public:
     void setDimensions(double xstart, double xend, double ystart, double yend);
 
     void setStep(double step);
-
+    ///@{ Member variable access
     virtual double getXstart() const;
     virtual double getXend() const;
 
@@ -71,7 +71,8 @@ public:
     virtual double getYend() const;
 
     virtual double getStep() const;
-
+    ///@}
+    /// Record probe hits when bunch particles pass
     bool  checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
     virtual ElementBase::ElementType getType() const;
 
@@ -91,13 +92,12 @@ private:
     Point  geom_m[5]; ///< actual geometry positions with adaptive width such that each particle hits probe once per turn
     double step_m; ///< Step size of the probe (bin width in histogram file)
 
-    double A_m, B_m,R_m, C_m;
-    void setGeom(const double dist);
-    int  checkPoint( const double & x, const double & y );
+    double A_m, B_m, R_m, C_m; ///< Geometric lengths used in calculations
+    void setGeom(const double dist); ///< Sets geometry geom_m with probe width dist
+    int  checkPoint( const double & x, const double & y ); ///< Checks if coordinate is within probe
 
-    std::unique_ptr<PeakFinder> peakfinder_m;
-
-    std::unique_ptr<LossDataSink> lossDs_m;
+    std::unique_ptr<PeakFinder> peakfinder_m; ///< Pointer to Peakfinder instance
+    std::unique_ptr<LossDataSink> lossDs_m;   ///< Pointer to Loss instance
 
     // Not implemented.
     void operator=(const Probe &);

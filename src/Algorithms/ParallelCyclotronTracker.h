@@ -26,6 +26,8 @@
 
 #include "Steppers/Steppers.h"
 
+#include "Structure/MultiBunchDump.h"
+
 class BMultipoleField;
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -64,7 +66,12 @@ public:
         FORCE  = 1,
         AUTO   = 2
     };
-
+    
+    // multi-bunch binning type
+    enum class MB_BINNING {
+        GAMMA = 0,
+        BUNCH = 1
+    };
 
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -87,7 +94,9 @@ public:
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
     explicit ParallelCyclotronTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch, DataSink &ds,
-                                      const PartData &data, bool revBeam, bool revTrack, int maxSTEPS, int timeIntegrator);
+                                      const PartData &data, bool revBeam,
+                                      bool revTrack, int maxSTEPS,
+                                      int timeIntegrator, int numBunch);
 
     virtual ~ParallelCyclotronTracker();
 
@@ -208,6 +217,9 @@ public:
     /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
     void setMultiBunchMode(const std::string& mbmode);
     
+    // set binning type
+    void setMultiBunchBinning(std::string binning);
+    
     /// set the scale for binning in multi-bunch mode
     void setMultiBunchEta(const double& eta) { eta_m = eta; };
 
@@ -244,6 +256,8 @@ private:
     Beamline *itsBeamline;
 
     DataSink *itsDataSink;
+    
+    std::unique_ptr<MultiBunchDump> itsMBDump_m;
 
     BoundaryGeometry *bgf_m;
 
@@ -288,6 +302,10 @@ private:
     // 1 for FORCE,
     // 2 for AUTO
     MB_MODE multiBunchMode_m;
+    
+    // 0 for GAMMA (default),
+    // 1 for BUNCH
+    MB_BINNING binningType_m;
 
     // control parameter for AUTO multi-bunch mode
     double CoeffDBunches_m;
@@ -377,6 +395,8 @@ private:
 
     bool readOneBunchFromFile(const size_t BeamCount);
     void saveOneBunch();
+    
+    void updateParticleBins_m();
 
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);
     bool RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex);
@@ -481,6 +501,8 @@ private:
     void singleParticleDump();
 
     void bunchDumpStatData();
+    
+    void bunchDumpStatDataPerBin();
 
     void bunchDumpPhaseSpaceData();
 
