@@ -76,14 +76,14 @@ class PolynomialPatch : public VectorMap {
     PolynomialPatch();
 
     /** Destructor delets validity_region_, grid_points_ and points_ */
-	  ~PolynomialPatch();
+    ~PolynomialPatch();
 
     /** Deep copy the PolynomialPatch
      *
      *  This is the polymorphic copy constructor. Always returns a
      *  PolynomialPatch.
      */
-  	VectorMap* clone() const; //copy function
+    VectorMap* clone() const; //copy function
 
     /** Get the value at a given point 
      *

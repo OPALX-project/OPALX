@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2012, Chris Rogers
+ *  Copyright (c) 2018, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -25,40 +25,40 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OPAL_OpalPolynomialTimeDependence_HH
-#define OPAL_OpalPolynomialTimeDependence_HH
+#ifndef OPAL_OpalSplineTimeDependence_HH
+#define OPAL_OpalSplineTimeDependence_HH
 
+#include "Algorithms/SplineTimeDependence.h"
 #include "Elements/OpalElement.h"
 
-/** OpalPolynomialTimeDependence provides UI wrapper for the
- *  PolynomialTimeDependence
+/** OpalSplineTimeDependence provides UI wrapper for the
+ *  SplineTimeDependence
  */
 
-class OpalPolynomialTimeDependence : public OpalElement {
+class OpalSplineTimeDependence : public OpalElement {
   public:
     /** Enumeration maps to UI parameters */
     enum {
-        P0 = COMMON,
-        P1,
-        P2,
-        P3,
+        ORDER = COMMON,
+        TIMES,
+        VALUES,
         SIZE // size of the enum
     };
 
     /** Define mapping from enum variables to string UI parameter names */
-    OpalPolynomialTimeDependence();
+    OpalSplineTimeDependence();
 
     /** No memory allocated so does nothing */
-    virtual ~OpalPolynomialTimeDependence();
+    virtual ~OpalSplineTimeDependence();
 
     /** Inherited copy constructor */
-    virtual OpalPolynomialTimeDependence *clone(const std::string &name);
+    virtual OpalSplineTimeDependence *clone(const std::string &name);
 
     /** Calls fillRegisteredAttributes on the OpalElement */
     void fillRegisteredAttributes(const ElementBase &base, ValueFlag flag);
 
     /** Receive parameters from the parser and hand them off to the
-     *  PolynomialTimeDependence
+     *  SplineTimeDependence
      */
     void update();
 
@@ -66,14 +66,14 @@ class OpalPolynomialTimeDependence : public OpalElement {
     virtual void print(std::ostream &) const;
   private:
     // Not implemented.
-    OpalPolynomialTimeDependence(const OpalPolynomialTimeDependence &);
-    void operator=(const OpalPolynomialTimeDependence &);
+    OpalSplineTimeDependence(const OpalSplineTimeDependence &);
+    void operator=(const OpalSplineTimeDependence &);
 
     // Clone constructor.
-    OpalPolynomialTimeDependence(const std::string &name,
-                                 OpalPolynomialTimeDependence *parent);
+    OpalSplineTimeDependence(const std::string &name,
+                             OpalSplineTimeDependence *parent);
 
     static const std::string doc_string;
 };
 
-#endif // OPAL_OpalPolynomialTimeDependence_HH
+#endif // OPAL_OpalSplineTimeDependence_HH
