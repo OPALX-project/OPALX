@@ -71,6 +71,8 @@ public:
      */
     void storeCavityInformation();
 
+    void setMaxNumBunches(int nBunches);
+
     /** \brief Write statistical data.
      *
      * Writes statistical beam data to proper output file. This is information such as RMS beam parameters
@@ -257,6 +259,8 @@ private:
      * reset to std::ios::app so that header information is only written once.
      */
     std::ios_base::openmode mode_m;
+
+    int nMaxBunches_m;
 
     /** \brief First write to the H5 surface loss file.
      *

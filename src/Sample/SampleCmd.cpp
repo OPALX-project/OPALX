@@ -127,6 +127,7 @@ void SampleCmd::execute() {
     RNGStream::setGlobalSeed(seed);
 
     std::vector<std::string> objectivesstr  = Attributes::getStringArray(itsAttr[OBJECTIVES]);
+    // FIXME Open issue #250 (https://gitlab.psi.ch/OPAL/src/issues/250)
     std::vector<std::string> storeobjstr  = Attributes::getStringArray(itsAttr[STOREOBJECTIVES]);
     std::vector<std::string> dvarsstr = Attributes::getStringArray(itsAttr[DVARS]);
     Expressions::Named_t objectives;

@@ -31,6 +31,7 @@
 extern Inform *gmsg;
 
 DataSink::DataSink() :
+    nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
     doHDF5_m(true),
@@ -39,6 +40,7 @@ DataSink::DataSink() :
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     mode_m(std::ios::out),
+    nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
     h5wrapper_m(h5wrapper)
@@ -121,6 +123,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
     mode_m(std::ios::out),
+    nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
     h5wrapper_m(h5wrapper)
@@ -157,6 +160,10 @@ void DataSink::storeCavityInformation() {
     if (!doHDF5_m) return;
 
     h5wrapper_m->storeCavityInformation();
+}
+
+void DataSink::setMaxNumBunches(int nBunches) {
+    nMaxBunches_m = nBunches;
 }
 
 void DataSink::writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[]) {
@@ -434,6 +441,12 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
             os_statData << beam->P[0](2) << std::setw(pwi) << "\t";         // 48 P0_z
         }
 
+        if (OpalData::getInstance()->isInOPALCyclMode()) {
+
+            Vector_t halo = beam->get_halo();
+            for (int i = 0; i < 3; ++i)
+                os_statData << halo(i) << std::setw(pwi) << "\t";
+        }
 
         for(size_t i = 0; i < losses.size(); ++ i) {
             os_statData << losses[i].second << std::setw(pwi) << "\t";
@@ -918,6 +931,21 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                    << indent << "description=\"48 R0 Particle momentum in z\"\n"
                    << "&end\n";
         columnStart = 49;
+    }
+
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        char dir[] = { 'x', 'y', 'z' };
+
+        for (int i = 0; i < 3; ++i) {
+            std::stringstream ss;
+            ss << "&column\n" << indent << "name=halo_" << dir[i] << ",\n"
+               << indent << "type=double,\n"
+               << indent << "units=1,\n"
+               << indent << "description=\"" << columnStart++ << " Halo in "
+               << dir[i] << "\"\n"
+               << "&end\n";
+               outputFile << ss.str();
+        }
     }
 
     for (size_t i = 0; i < losses.size(); ++ i) {
