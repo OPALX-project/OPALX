@@ -133,6 +133,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     , itsDataSink(nullptr)
     , itsMBDump_m(new MultiBunchDump())
     , bgf_m(nullptr)
+    , numBunch_m(1)
     , lastDumpedStep_m(0)
     , eta_m(0.01)
     , myNode_m(Ippl::myNode())
@@ -164,11 +165,13 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    DataSink &ds,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
-                                                   int maxSTEPS, int timeIntegrator)
+                                                   int maxSTEPS, int timeIntegrator,
+                                                   int numBunch):
     : Tracker(beamline, bunch, reference, revBeam, revTrack)
     , itsMBDump_m(new MultiBunchDump())
     , bgf_m(nullptr)
     , maxSteps_m(maxSTEPS)
+    , numBunch_m(numBunch)
     , lastDumpedStep_m(0)
     , eta_m(0.01)
     , myNode_m(Ippl::myNode())

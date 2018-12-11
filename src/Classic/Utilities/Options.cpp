@@ -107,4 +107,6 @@ namespace Options {
 #endif
 
     bool memoryDump = false;
+
+    double haloShift = 0.0;
 }
