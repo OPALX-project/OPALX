@@ -1975,8 +1975,8 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
         for (unsigned int i = 0; i < Dim; ++i) {
             double r2 = R[k](i) * R[k](i);
-            loc_moments[l] -= r2 * R[k](i);
-            loc_moments[Dim + l++] -= r2 * r2;
+            loc_moments[l] += r2 * R[k](i);
+            loc_moments[Dim + l++] += r2 * r2;
         }
     }
 
@@ -2008,7 +2008,8 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         double w4 = loc_moments[j + Dim + i] * invN;
 
         halo_m(i)  =  w4 + w1 * (-4.0 * w3 + w1 * (6.0 * w2 - 3.0 * w1 * w1));
-        halo_m(i) /= ( w2 * w2 );
+        double tmp = w2 - w1 * w1;
+        halo_m(i) /= ( tmp * tmp );
         halo_m(i) -= Options::haloShift;
     }
 
