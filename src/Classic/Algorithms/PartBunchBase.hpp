@@ -43,6 +43,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       pmean_m(0.0),
       eps_m(0.0),
       eps_norm_m(0.0),
+      halo_m(Vector_t(0.0, 0.0, 0.0)),
       rprms_m(0.0),
       Dx_m(0.0),
       Dy_m(0.0),
@@ -1184,6 +1185,12 @@ Vector_t PartBunchBase<T, Dim>::get_norm_emit() const {
 
 
 template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_halo() const {
+    return halo_m;
+}
+
+
+template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_hr() const {
     return hr_m;
 }
@@ -1905,17 +1912,21 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
     const unsigned long localNum = getLocalNum();
 
-    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments
+    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments + 2 * Dim (3rd and 4th order moments)
      * --> 1st order moments: 0, ..., 2 * Dim - 1
      * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
+     * --> 3rd order moments: Dim * ( 2 * Dim + 1 ) + 1, ..., Dim * ( 2 * Dim + 1 ) + Dim
+     * (only, <x^3>, <y^3> and <z^3>)
+     * --> 4th order moments: Dim * ( 2 * Dim + 1 ) + Dim + 1, ..., Dim * ( 2 * Dim + 1 ) + 2 * Dim
      *
      * For a 6x6 matrix we have each 2nd order moment (except diagonal
      * entries) twice. We only store the upper half of the matrix.
      */
-    std::vector<double> loc_moments(2 * Dim + Dim * ( 2 * Dim + 1 ));
+    std::vector<double> loc_moments(4 * Dim + Dim * ( 2 * Dim + 1 ));
 
     long int totalNum = this->getTotalNum();
     if (OpalData::getInstance()->isInOPALCyclMode()) {
+
         for(unsigned long k = 0; k < localNum; ++ k) {
             if (ID[k] == 0) {
                 part[1] = P[k](0);
@@ -1932,6 +1943,13 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                         loc_moments[l++] -= part[i] * part[j];
                     }
                 }
+
+                for (unsigned int i = 0; i < Dim; ++i) {
+                    double r2 = R[k](i) * R[k](i);
+                    loc_moments[l] -= r2 * R[k](i);
+                    loc_moments[Dim + l++] -= r2 * r2;
+                }
+
                 --totalNum;
                 break;
             }
@@ -1947,13 +1965,18 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         part[2] = R[k](1);
         part[4] = R[k](2);
 
-
         unsigned int l = 2 * Dim;
         for (unsigned int i = 0; i < 2 * Dim; ++i) {
             loc_moments[i] += part[i];
             for(unsigned int j = 0; j <= i; j++) {
                 loc_moments[l++] += part[i] * part[j];
             }
+        }
+
+        for (unsigned int i = 0; i < Dim; ++i) {
+            double r2 = R[k](i) * R[k](i);
+            loc_moments[l] += r2 * R[k](i);
+            loc_moments[Dim + l++] += r2 * r2;
         }
     }
 
@@ -1969,6 +1992,25 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
             moments_m(i, j) = loc_moments[l++];
             moments_m(j, i) = moments_m(i, j);
         }
+    }
+
+    /* 4th order central moment: <w^4> - 4<w><w^3> + 6<w>^2<w^2> - 3<w>^4
+     * 2nd order central moment: <w^2> - <w>^2
+     * 
+     * with w = x, y, z.
+     */
+    int j = 2 * Dim + Dim * ( 2 * Dim + 1 );
+    double invN = 1.0 / double(totalNum);
+    for (unsigned int i = 0; i < Dim; ++i) {
+        double w1 = centroid_m[2 * i] * invN;
+        double w2 = moments_m(2 * i, 2 * i) * invN;
+        double w3 = loc_moments[j + i] * invN;
+        double w4 = loc_moments[j + Dim + i] * invN;
+
+        halo_m(i)  =  w4 + w1 * (-4.0 * w3 + w1 * (6.0 * w2 - 3.0 * w1 * w1));
+        double tmp = w2 - w1 * w1;
+        halo_m(i) /= ( tmp * tmp );
+        halo_m(i) -= Options::haloShift;
     }
 
     return totalNum;
