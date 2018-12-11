@@ -132,6 +132,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     Tracker(beamline, reference, revBeam, revTrack),
     itsDataSink(nullptr),
     bgf_m(nullptr),
+    numBunch_m(1),
     lastDumpedStep_m(0),
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
@@ -162,10 +163,12 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    DataSink &ds,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
-                                                   int maxSTEPS, int timeIntegrator):
+                                                   int maxSTEPS, int timeIntegrator,
+                                                   int numBunch):
     Tracker(beamline, bunch, reference, revBeam, revTrack),
     bgf_m(nullptr),
     maxSteps_m(maxSTEPS),
+    numBunch_m(numBunch),
     lastDumpedStep_m(0),
     eta_m(0.01),
     myNode_m(Ippl::myNode()),
@@ -2618,8 +2621,8 @@ void ParallelCyclotronTracker::singleParticleDump() {
 void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // don't dump stat file in case of multi-bunch mode
-    if ( multiBunchMode_m != MB_MODE::NONE )
-        return;
+//     if ( multiBunchMode_m != MB_MODE::NONE )
+//         return;
 
     IpplTimings::startTimer(DumpTimer_m);
 
