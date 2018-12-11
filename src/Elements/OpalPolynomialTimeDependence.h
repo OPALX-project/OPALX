@@ -28,10 +28,7 @@
 #ifndef OPAL_OpalPolynomialTimeDependence_HH
 #define OPAL_OpalPolynomialTimeDependence_HH
 
-#include "Algorithms/PolynomialTimeDependence.h"
 #include "Elements/OpalElement.h"
-
-class PolynomialTimeDependence;
 
 /** OpalPolynomialTimeDependence provides UI wrapper for the
  *  PolynomialTimeDependence

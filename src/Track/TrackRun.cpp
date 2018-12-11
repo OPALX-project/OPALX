@@ -77,6 +77,7 @@ namespace {
         MBMODE,       // The working way for multi-bunch mode for OPAL-cycl: "FORCE" or "AUTO"
         PARAMB,       // The control parameter for "AUTO" mode of multi-bunch,
         MB_ETA,       // The scale parameter for binning in multi-bunch mode
+        MB_BINNING,   // The binning type in multi-bunch mode
         BEAM,         // The beam to track
         FIELDSOLVER,  // The field solver attached
         BOUNDARYGEOMETRY, // The boundary geometry
@@ -109,11 +110,14 @@ TrackRun::TrackRun():
                       ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl: FORCE or AUTO ", "FORCE");
 
     itsAttr[PARAMB] = Attributes::makeReal
-                      ("PARAMB", " Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
+                      ("PARAMB", "Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
 
     itsAttr[MB_ETA] = Attributes::makeReal("MB_ETA",
                                            "The scale parameter for binning in multi-bunch mode",
                                            0.01);
+    
+    itsAttr[MB_BINNING] = Attributes::makeString
+                          ("MB_BINNING", "The scale parameter for binning in multi-bunch mode", "GAMMA");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
@@ -757,13 +761,13 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* Phase space dump frequency = " << Options::psDumpFreq << endl;
     *gmsg << "* Statistics dump frequency  = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
     *gmsg << "* ********************************************************************************** " << endl;
+    
+    ds->setMaxNumBunches(specifiedNumBunch);
 
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                                               Track::block->bunch, *ds, Track::block->reference,
                                               false, false, Track::block->localTimeSteps.front(),
-                                              Track::block->timeIntegrator);
-
-    itsTracker->setNumBunch(specifiedNumBunch);
+                                              Track::block->timeIntegrator, specifiedNumBunch);
 
     if(opal->inRestartRun()) {
 
@@ -844,8 +848,12 @@ void TrackRun::setupCyclotronTracker(){
             std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));
             itsTracker->setMultiBunchMode(mbmode);
         }
-
-        dynamic_cast<ParallelCyclotronTracker*>(itsTracker)->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
+        
+        ParallelCyclotronTracker* tracker_p = dynamic_cast<ParallelCyclotronTracker*>(itsTracker);
+        
+        tracker_p->setMultiBunchEta(Attributes::getReal(itsAttr[MB_ETA]));
+        
+        tracker_p->setMultiBunchBinning(Attributes::getString(itsAttr[MB_BINNING]));
     }
 }
 
