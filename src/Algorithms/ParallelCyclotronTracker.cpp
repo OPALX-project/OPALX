@@ -166,7 +166,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
                                                    int maxSTEPS, int timeIntegrator,
-                                                   int numBunch):
+                                                   int numBunch)
     : Tracker(beamline, bunch, reference, revBeam, revTrack)
     , itsMBDump_m(new MultiBunchDump())
     , bgf_m(nullptr)
