@@ -46,6 +46,7 @@ set (_SRCS
   OpalSlit.cpp
   OpalSolenoid.cpp
   OpalSource.cpp
+  OpalSplineTimeDependence.cpp
   OpalSRot.cpp
   OpalVariableRFCavity.cpp
   OpalVariableRFCavityFringeField.cpp
@@ -108,6 +109,7 @@ set (HDRS
     OpalSlit.h
     OpalSolenoid.h
     OpalSource.h
+    OpalSplineTimeDependence.h
     OpalSRot.h
     OpalStripper.h
     OpalTravelingWave.h

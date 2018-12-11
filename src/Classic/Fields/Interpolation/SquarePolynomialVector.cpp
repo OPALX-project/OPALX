@@ -25,9 +25,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
+
 #include <iomanip>
 #include <sstream>
-#include <math.h>
+#include <algorithm>
 
 #include "gsl/gsl_sf_gamma.h"
 
@@ -244,5 +246,12 @@ void SquarePolynomialVector::PrintContainer(std::ostream& out, const Container& 
   for(int i=0; i<length - int(strstr2.str().size()); i++) out << str_separator;
   if(pad_at_start) out << strstr2.str();
 }
+
+unsigned int SquarePolynomialVector::PolynomialOrder() const {
+    std::vector<int> index = IndexByPower(_polyCoeffs.num_col(), _pointDim);
+    size_t maxPower = *std::max_element(index.begin(), index.end());
+    return maxPower;
+}
+
 
 }
