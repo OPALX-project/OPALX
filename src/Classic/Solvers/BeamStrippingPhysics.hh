@@ -66,6 +66,7 @@ private:
     void Material();
 
     void MolecularDensity(const double &pressure, const double &temperature, int &iComp);
+
     void CrossSection(double &Eng);
 
     double CSAnalyticFunction(double Eng, double Eth,
