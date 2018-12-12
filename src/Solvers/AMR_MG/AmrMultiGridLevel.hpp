@@ -153,6 +153,7 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildLevelMask_m() {
     mask->BuildMask(geom.Domain(), period,
                     Mask::COVERED, Mask::BNDRY,
                     Mask::PHYSBNDRY, Mask::INTERIOR);
+    mask->FillBoundary(period);
 }
 
 
