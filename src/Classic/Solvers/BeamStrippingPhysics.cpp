@@ -31,6 +31,7 @@ using Physics::kB;
 using Physics::q_e;
 using Physics::m_e;
 using Physics::Avo;
+using Physics::epsilon_0;
 using Physics::c;
 using Physics::h_bar;
 using Physics::alpha;
@@ -364,12 +365,14 @@ void BeamStrippingPhysics::CrossSection(double &Eng){
 double BeamStrippingPhysics::CSAnalyticFunction(double Eng, double Eth,
 		double a1, double a2, double a3, double a4, double a5, double a6) {
 
-	double E_R = 25.00;
-	double sigma_0 = 1E-16;
+	const double eps2 = epsilon_0*epsilon_0;
+	const double h = 2*pi*h_bar*1E9*q_e;
+	const double c2 = c*c;
+	const double E_R = m_h*1e6 * pow(q_e,4) / ( 8*c2*eps2*pow(h,2) ); //keV
+	const double sigma_0 = 1E-16;
 	double E1 = 0.0;
 	double f1 = 0.0;
 	double f = 0.0;
-
 	if(Eng > Eth) {
 		E1 = (Eng-Eth);
 		f1 = sigma_0 * a1 * pow((E1/E_R),a2);
@@ -510,7 +513,7 @@ bool BeamStrippingPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
 
 
 //  ------------------------------------------------------------------------
-/// The material of the vacuum for beam stripping
+/// Vacuum for beam stripping
 //  ------------------------------------------------------------------------
 void  BeamStrippingPhysics::Material() {
 
