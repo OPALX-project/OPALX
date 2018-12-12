@@ -208,6 +208,8 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
     
     mglevel_m.resize(nlevel_m);
     
+    amrex::Periodicity period(AmrIntVect_t(D_DECL(0, 0, 0)));
+    
     AmrIntVect_t rr = AmrIntVect_t(D_DECL(2, 2, 2));
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
@@ -229,7 +231,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
                                             mglevel_m[lev]->dmap, 1, 2)
             );
         mglevel_m[lev]->refmask->setVal(AmrMultiGridLevel_t::Refined::NO, 2);
-        mglevel_m[lev]->refmask->FillBoundary(false);
+        mglevel_m[lev]->refmask->FillBoundary(period);
 
         amrex::BoxArray ba = mglevel_m[lev]->grids;
         ba.coarsen(rr);
@@ -248,7 +250,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
         mglevel_m[lev]->crsemask->setDomainBndry(AmrMultiGridLevel_t::Mask::PHYSBNDRY,
                                                  mglevel_m[lev-1]->geom); //FIXME: geometry of lev - 1
         // really needed ?
-        mglevel_m[lev]->crsemask->FillBoundary(false);
+        mglevel_m[lev]->crsemask->FillBoundary(period);
     }
 
     /* to complete initialization we need to fill
@@ -276,7 +278,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
         mglevel_m[lev]->refmask->setDomainBndry(AmrMultiGridLevel_t::Mask::PHYSBNDRY,
                                                 mglevel_m[lev]->geom);
         
-        mglevel_m[lev]->refmask->FillBoundary(false);
+        mglevel_m[lev]->refmask->FillBoundary(period);
     }
 }
 
@@ -905,7 +907,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
         // number of internal stencil points
         int nIntBoundary = AMREX_SPACEDIM * interface_mp->getNumberOfPoints();
     
-        int nEntries = (AMREX_SPACEDIM << 1) + 1 /* plus boundaries */ + nPhysBoundary + nIntBoundary;
+        int nEntries = (AMREX_SPACEDIM << 1) + 2 /* plus boundaries */ + nPhysBoundary + nIntBoundary;
     
         mglevel_m[level]->Anf_p = Teuchos::rcp(
             new matrix_t(mglevel_m[level]->map_p, nEntries,
@@ -932,7 +934,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
         /*
          * gradient matrices
          */
-        nEntries = 5;
+        nEntries = 11;
     
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             mglevel_m[level]->G_p[d] = Teuchos::rcp(
