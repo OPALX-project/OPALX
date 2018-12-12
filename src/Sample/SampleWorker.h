@@ -159,7 +159,7 @@ protected:
                 requested_results = sim->getResults();
 
                 // base clase of SamplePilot requires at least 1 objective --> dummy objective (SamplePilot, line 72)
-                if ( !(this->objectives_.size() - 1) && filesToKeep_m.empty() ) {
+                if ( (this->objectives_.size() > 1) && filesToKeep_m.empty() ) {
                     sim->cleanUp();
                 } else {
                     // if empty, we keep all files
