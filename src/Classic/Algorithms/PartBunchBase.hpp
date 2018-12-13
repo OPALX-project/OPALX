@@ -2138,8 +2138,6 @@ void PartBunchBase<T, Dim>::calcEMean() {
     const double totalNp = static_cast<double>(getTotalNum());
     const double locNp = static_cast<double>(getLocalNum());
 
-    *gmsg << "* totalNp =  " << totalNp << endl;
-    *gmsg << "* locNp =  " << locNp << endl;
     eKin_m = 0.0;
 
     for(unsigned int k = 0; k < locNp; k++) {
@@ -2150,7 +2148,6 @@ void PartBunchBase<T, Dim>::calcEMean() {
     eKin_m *= getM() * 1.0e-6;
 
     reduce(eKin_m, eKin_m, OpAddAssign());
-    *gmsg << "* eKin_m =  " << eKin_m << endl;
 
     eKin_m /= totalNp;
 }
