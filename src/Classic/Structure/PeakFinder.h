@@ -41,22 +41,6 @@ public:
     
     void save();
     
-    /** 
-      * Find peaks of probe - function based on implementation in probe programs
-      * @param[in] smoothingNumber   Smooth nr measurements
-      * @param[in] minArea           Minimum Area for a single peak
-      * @param[in] minFractionalArea Minimum fractional Area
-      * @param[in] minAreaAboveNoise Minimum area above noise
-      * @param[in] minSlope          Minimum slope
-      * @returns true if at least one peak is found
-    */
-    bool findPeaks(int smoothingNumber,
-                   double minArea,
-                   double minFractionalArea,
-                   double minAreaAboveNoise,
-                   double minSlope);
-    
-    
     /**
      * Single particle peak finder.
      */
