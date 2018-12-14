@@ -22,6 +22,8 @@
 #include "Structure/FieldSolver.h"
 #include "Algorithms/ListElem.h"
 
+#include "Structure/MultiBunchDump.h"
+
 class Distribution;
 
 template <class T, int, int> class FMatrix;
@@ -232,6 +234,7 @@ public:
     Vector_t get_pmean_Distribution() const;
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
+    Vector_t get_halo() const;
     virtual Vector_t get_hr() const;
 
     double get_Dx() const;
@@ -250,6 +253,8 @@ public:
     void calcBeamParameters();
 
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
+
+    bool calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin);
 
     double getCouplingConstant() const;
     void setCouplingConstant(double c);
@@ -590,6 +595,9 @@ protected:
 
     /// rms normalized emittance
     Vector_t eps_norm_m;
+
+    Vector_t halo_m;
+
     /// rms correlation
     Vector_t rprms_m;
 

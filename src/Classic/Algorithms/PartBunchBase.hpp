@@ -43,6 +43,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       pmean_m(0.0),
       eps_m(0.0),
       eps_norm_m(0.0),
+      halo_m(Vector_t(0.0, 0.0, 0.0)),
       rprms_m(0.0),
       Dx_m(0.0),
       Dy_m(0.0),
@@ -1184,6 +1185,12 @@ Vector_t PartBunchBase<T, Dim>::get_norm_emit() const {
 
 
 template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_halo() const {
+    return halo_m;
+}
+
+
+template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_hr() const {
     return hr_m;
 }
@@ -1376,6 +1383,125 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
             rprms_m = rpsum * fac;
         }
     }
+}
+
+
+template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin) {
+    if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
+        return false;
+    }
+    
+    const unsigned long localNum = getLocalNum();
+        
+    long int binTotalNum = 0;
+    unsigned long binLocalNum = 0;
+    
+    /* container:
+     * 
+     * ekin, <x>, <y>, <z>, <p_x>, <p_y>, <p_z>,
+     * <x^2>, <y^2>, <z^2>, <p_x^2>, <p_y^2>, <p_z^2>,
+     * <xp_x>, <y_py>, <zp_z>,
+     * <x^3>, <y^3>, <z^3>, <x^4>, <y^4>, <z^4>
+     */
+    std::vector<double> local(7 * Dim + 1);
+    
+    for(unsigned long k = 0; k < localNum; ++ k) {
+        if ( Bin[k] != bin || ID[k] == 0 ) {
+            continue;
+        }
+        
+        ++binTotalNum;
+        ++binLocalNum;
+        
+        // ekin
+        local[0] += std::sqrt(dot(P[k], P[k]) + 1.0);
+        
+        for (unsigned int i = 0; i < Dim; ++i) {
+            
+            double r = R[k](i);
+            
+            // <x>, <y>, <z>
+            local[i + 1] += r;
+            
+            // <p_x>, <p_y, <p_z>
+            local[i + Dim + 1] += P[k](i);
+            
+            // <x^2>, <y^2>, <z^2>
+            double r2 = r * r;
+            local[i + 2 * Dim + 1] += r2;
+            
+            // <p_x^2>, <p_y^2>, <p_z^2>
+            local[i + 3 * Dim + 1] += P[k](i) * P[k](i);
+            
+            // <xp_x>, <y_py>, <zp_z>
+            local[i + 4 * Dim + 1] += r * P[k](i);
+            
+            // <x^3>, <y^3>, <z^3>
+            local[i + 5 * Dim + 1] += r2 * r;
+            
+            // <x^4>, <y^4>, <z^4>
+            local[i + 6 * Dim + 1] += r2 * r2;
+        }
+    }
+    
+    // inefficient
+    allreduce(binTotalNum, 1, std::plus<long int>());
+    
+    if ( binTotalNum == 0 )
+        return false;
+    
+    // ekin
+    const double m0 = getM() * 1.0e-6;
+    local[0] -= binLocalNum;
+    local[0] *= m0;
+    
+    allreduce(local.data(), local.size(), std::plus<double>());
+    
+    double invN = 1.0 / double(binTotalNum);
+    binfo.ekin = local[0] * invN;
+    
+    binfo.time       = getT() * 1e9;  // ns
+    binfo.nParticles = binTotalNum;
+    
+    for (unsigned int i = 0; i < Dim; ++i) {
+        
+        double w = local[i + 1] * invN;
+        double pw = local[i + Dim + 1] * invN;
+        double w2 = local[i + 2 * Dim + 1] * invN;
+        double pw2 = local[i + 3 * Dim + 1] * invN;
+        double wpw = local[i + 4 * Dim + 1] * invN;
+        double w3 = local[i + 5 * Dim + 1] * invN;
+        double w4 = local[i + 6 * Dim + 1] * invN;
+        
+        // <x>, <y>, <z>
+        binfo.mean[i] = w;
+        
+        // sqrt(<p_w^2> - <p_w>^2) (w = x, y, z)
+        binfo.prms[i] = std::sqrt(pw2 - pw * pw);
+        
+        // <w^2> - <w>^2 (w = x, y, z)
+        binfo.rrms[i] = w2 - w * w;
+        
+        // normalized emittance
+        binfo.emit[i] = (w2 * pw2 - wpw * wpw);
+        binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
+        
+        // <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
+        double tmp = w4
+                   - 4.0 * w * w3
+                   + 6.0 * w * w * w2
+                   - 3.0 * w * w * w * w;
+        binfo.halo[i] = tmp / ( binfo.rrms[i] * binfo.rrms[i] );
+        
+        // sqrt(<w^2>) (w = x, y, z)
+        binfo.rrms[i] = std::sqrt(binfo.rrms[i]);
+    }
+    
+    double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
+    binfo.dEkin = binfo.prms[1] * m0 * std::sqrt(1.0 - tmp);
+    
+    return true;
 }
 
 
@@ -1905,17 +2031,21 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
     const unsigned long localNum = getLocalNum();
 
-    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments
+    /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments + 2 * Dim (3rd and 4th order moments)
      * --> 1st order moments: 0, ..., 2 * Dim - 1
      * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
+     * --> 3rd order moments: Dim * ( 2 * Dim + 1 ) + 1, ..., Dim * ( 2 * Dim + 1 ) + Dim
+     * (only, <x^3>, <y^3> and <z^3>)
+     * --> 4th order moments: Dim * ( 2 * Dim + 1 ) + Dim + 1, ..., Dim * ( 2 * Dim + 1 ) + 2 * Dim
      *
      * For a 6x6 matrix we have each 2nd order moment (except diagonal
      * entries) twice. We only store the upper half of the matrix.
      */
-    std::vector<double> loc_moments(2 * Dim + Dim * ( 2 * Dim + 1 ));
+    std::vector<double> loc_moments(4 * Dim + Dim * ( 2 * Dim + 1 ));
 
     long int totalNum = this->getTotalNum();
     if (OpalData::getInstance()->isInOPALCyclMode()) {
+
         for(unsigned long k = 0; k < localNum; ++ k) {
             if (ID[k] == 0) {
                 part[1] = P[k](0);
@@ -1932,6 +2062,13 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                         loc_moments[l++] -= part[i] * part[j];
                     }
                 }
+
+                for (unsigned int i = 0; i < Dim; ++i) {
+                    double r2 = R[k](i) * R[k](i);
+                    loc_moments[l] -= r2 * R[k](i);
+                    loc_moments[Dim + l++] -= r2 * r2;
+                }
+
                 --totalNum;
                 break;
             }
@@ -1947,13 +2084,18 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         part[2] = R[k](1);
         part[4] = R[k](2);
 
-
         unsigned int l = 2 * Dim;
         for (unsigned int i = 0; i < 2 * Dim; ++i) {
             loc_moments[i] += part[i];
             for(unsigned int j = 0; j <= i; j++) {
                 loc_moments[l++] += part[i] * part[j];
             }
+        }
+
+        for (unsigned int i = 0; i < Dim; ++i) {
+            double r2 = R[k](i) * R[k](i);
+            loc_moments[l] += r2 * R[k](i);
+            loc_moments[Dim + l++] += r2 * r2;
         }
     }
 
@@ -1969,6 +2111,25 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
             moments_m(i, j) = loc_moments[l++];
             moments_m(j, i) = moments_m(i, j);
         }
+    }
+
+    /* 4th order central moment: <w^4> - 4<w><w^3> + 6<w>^2<w^2> - 3<w>^4
+     * 2nd order central moment: <w^2> - <w>^2
+     * 
+     * with w = x, y, z.
+     */
+    int j = 2 * Dim + Dim * ( 2 * Dim + 1 );
+    double invN = 1.0 / double(totalNum);
+    for (unsigned int i = 0; i < Dim; ++i) {
+        double w1 = centroid_m[2 * i] * invN;
+        double w2 = moments_m(2 * i, 2 * i) * invN;
+        double w3 = loc_moments[j + i] * invN;
+        double w4 = loc_moments[j + Dim + i] * invN;
+
+        halo_m(i)  =  w4 + w1 * (-4.0 * w3 + w1 * (6.0 * w2 - 3.0 * w1 * w1));
+        double tmp = w2 - w1 * w1;
+        halo_m(i) /= ( tmp * tmp );
+        halo_m(i) -= Options::haloShift;
     }
 
     return totalNum;
