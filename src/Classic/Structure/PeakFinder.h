@@ -20,6 +20,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <list>
 
 class PeakFinder {
     
@@ -36,7 +37,7 @@ public:
      * Append the particle coordinates to the container
      * @param R is a particle position (x, y, z)
      */
-    void addParticle(const Vector_t& R);
+    void addParticle(const Vector_t& R, const int& turn);
     
     void save();
     
@@ -78,20 +79,7 @@ private:
     /// Write to output file
     void saveASCII_m();
     
-    /** 
-     * Analyse single peak
-     * @param[in]  values     probe values
-     * @param[in]  positions  probe positions
-     * @param[in]  startIndex start position index
-     * @param[in]  endIndex   end   position index
-     * @param[out] peakRadius peak radius
-     * @param[out] fourSigma  four sigma width
-     */
-    void analysePeak(const container_t& values,
-                     const container_t& positions,
-                     const int startIndex, const int endIndex,
-                     double& peak,
-                     double& fourSigma)const;
+    void computeCentroid_m();
 
 private:
     container_t radius_m;
@@ -120,20 +108,13 @@ private:
     double binWidth_m;
     ///@{ histogram size
     double min_m, max_m;
-    ///@}
-    /// Single particle mode on (different peakfinder)
+    
+    int turn_m;
+    double peakRadius_m;
+    int registered_m;
+    std::list<double> peaks_m;
     bool singlemode_m;
-    ///@{ Peak analysis parameters (copied from RRI2 probe program for now, need to be tuned a bit)
-    const int    smoothingNumber_m   = 0;
-    const double minArea_m           = 0.025;
-    const double minFractionalArea_m = 0.6;
-    const double minAreaAboveNoise_m = 5e-5;
-    const double minSlope_m          = 1e-7;
-    ///@}
-    /// Radial position of peaks
-    container_t peakRadii_m;
-    /// Four sigma width of peaks
-    container_t fourSigmaPeaks_m;
+    bool first_m;
 };
 
 #endif
