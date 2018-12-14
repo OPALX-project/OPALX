@@ -128,20 +128,23 @@ extern Inform *gmsg;
  */
 ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    const PartData &reference,
-                                                   bool revBeam, bool revTrack):
-    Tracker(beamline, reference, revBeam, revTrack),
-    itsDataSink(nullptr),
-    bgf_m(nullptr),
-    lastDumpedStep_m(0),
-    eta_m(0.01),
-    myNode_m(Ippl::myNode()),
-    initialLocalNum_m(0),
-    initialTotalNum_m(0),
-    onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5"),
-    opalRing_m(nullptr),
-    itsStepper_mp(nullptr),
-    mode_m(MODE::UNDEFINED),
-    stepper_m(stepper::INTEGRATOR::UNDEFINED) {
+                                                   bool revBeam, bool revTrack)
+    : Tracker(beamline, reference, revBeam, revTrack)
+    , itsDataSink(nullptr)
+    , itsMBDump_m(new MultiBunchDump())
+    , bgf_m(nullptr)
+    , numBunch_m(1)
+    , lastDumpedStep_m(0)
+    , eta_m(0.01)
+    , myNode_m(Ippl::myNode())
+    , initialLocalNum_m(0)
+    , initialTotalNum_m(0)
+    , onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
+    , opalRing_m(nullptr)
+    , itsStepper_mp(nullptr)
+    , mode_m(MODE::UNDEFINED)
+    , stepper_m(stepper::INTEGRATOR::UNDEFINED)
+{
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
 }
 
@@ -162,18 +165,22 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    DataSink &ds,
                                                    const PartData &reference,
                                                    bool revBeam, bool revTrack,
-                                                   int maxSTEPS, int timeIntegrator):
-    Tracker(beamline, bunch, reference, revBeam, revTrack),
-    bgf_m(nullptr),
-    maxSteps_m(maxSTEPS),
-    lastDumpedStep_m(0),
-    eta_m(0.01),
-    myNode_m(Ippl::myNode()),
-    initialLocalNum_m(bunch->getLocalNum()),
-    initialTotalNum_m(bunch->getTotalNum()),
-    onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5"),
-    opalRing_m(nullptr),
-    itsStepper_mp(nullptr) {
+                                                   int maxSTEPS, int timeIntegrator,
+                                                   int numBunch)
+    : Tracker(beamline, bunch, reference, revBeam, revTrack)
+    , itsMBDump_m(new MultiBunchDump())
+    , bgf_m(nullptr)
+    , maxSteps_m(maxSTEPS)
+    , numBunch_m(numBunch)
+    , lastDumpedStep_m(0)
+    , eta_m(0.01)
+    , myNode_m(Ippl::myNode())
+    , initialLocalNum_m(bunch->getLocalNum())
+    , initialTotalNum_m(bunch->getTotalNum())
+    , onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
+    , opalRing_m(nullptr)
+    , itsStepper_mp(nullptr)
+{
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsDataSink = &ds;
     //  scaleFactor_m = itsBunch_m->getdT() * c;
@@ -260,6 +267,22 @@ void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
     else
         throw OpalException("ParallelCyclotronTracker::setMultiBunchMode()",
                             "MBMODE name \"" + mbmode + "\" unknown.");
+}
+
+void ParallelCyclotronTracker::setMultiBunchBinning(std::string binning) {
+    
+    binning = Util::toUpper(binning);
+    
+    if ( binning.compare("BUNCH") == 0 ) {
+        *gmsg << "Use 'BUNCH' injection for binnning." << endl;
+        binningType_m = MB_BINNING::BUNCH;
+    } else if ( binning.compare("GAMMA") == 0 ) {
+        *gmsg << "Use 'GAMMA' for binning." << endl;
+        binningType_m = MB_BINNING::GAMMA;
+    } else {
+        throw OpalException("ParallelCyclotronTracker::setMultiBunchBinning()",
+                            "MB_BINNING name \"" + binning + "\" unknown.");
+    }
 }
 
 /**
@@ -1370,7 +1393,7 @@ void ParallelCyclotronTracker::MtsTracker() {
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
         if((itsBunch_m->weHaveBins()) && BunchCount_m > 1) {
             if(step_m % Options::rebinFreq == 0) {
-                itsBunch_m->resetPartBinID2(eta_m);
+                updateParticleBins_m();
             }
         }
 
@@ -1407,7 +1430,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             if (itsBunch_m->weHaveBins() && BunchCount_m > 1 &&
                 step_m % Options::rebinFreq == 0)
             {
-                itsBunch_m->resetPartBinID2(eta_m);
+                updateParticleBins_m();
             }
         }
 
@@ -1797,6 +1820,23 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
 
     return true;
 }
+
+
+void ParallelCyclotronTracker::updateParticleBins_m() {
+    switch ( binningType_m ) {
+        case MB_BINNING::GAMMA:
+            itsBunch_m->resetPartBinID2(eta_m);
+            break;
+        case MB_BINNING::BUNCH:
+            /*
+             * do nothing
+             */
+            break;
+        default:
+            itsBunch_m->resetPartBinID2(eta_m);
+    }
+}
+
 
 double ParallelCyclotronTracker::getHarmonicNumber() const {
     if (opalRing_m != NULL)
@@ -2211,7 +2251,8 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
     bool const flagNeedUpdate = deleteParticle();
 
-    if(itsBunch_m->weHaveBins() && flagNeedUpdate) itsBunch_m->resetPartBinID2(eta_m);
+    if(itsBunch_m->weHaveBins() && flagNeedUpdate)
+        updateParticleBins_m();
 }
 
 
@@ -2617,9 +2658,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
 
 void ParallelCyclotronTracker::bunchDumpStatData(){
 
-    // don't dump stat file in case of multi-bunch mode
-    if ( multiBunchMode_m != MB_MODE::NONE )
+    // dump stat file per bin in case of multi-bunch mode
+    if ( multiBunchMode_m != MB_MODE::NONE ) {
+        bunchDumpStatDataPerBin();
         return;
+    }
 
     IpplTimings::startTimer(DumpTimer_m);
 
@@ -2691,6 +2734,28 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
         localToGlobal(itsBunch_m->P, phi, psi);
     }
 
+    IpplTimings::stopTimer(DumpTimer_m);
+}
+
+
+void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
+    IpplTimings::startTimer(DumpTimer_m);
+    
+//     itsBunch_m->R *= Vector_t(0.001); // mm --> m
+    
+    int nBins = std::min(itsBunch_m->getNumBins(), BunchCount_m);
+    
+    for (int bin = 0; bin < nBins; ++bin) {
+        
+        MultiBunchDump::beaminfo_t binfo;
+        
+        if ( itsBunch_m->calcBinBeamParameters(binfo, bin) ) {
+            itsMBDump_m->writeData(binfo, bin);
+        }
+    }
+    
+//     itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+    
     IpplTimings::stopTimer(DumpTimer_m);
 }
 
@@ -2910,7 +2975,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     initDistInGlobalFrame();
 
     if ( OpalData::getInstance()->inRestartRun() && numBunch_m > 1)
-        itsBunch_m->resetPartBinID2(eta_m);
+        updateParticleBins_m();
 
     turnnumber_m = 1;
 
@@ -3240,12 +3305,12 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
 
     // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
     if(itsBunch_m->weHaveBins() && flagNeedUpdate)
-        itsBunch_m->resetPartBinID2(eta_m);
+        updateParticleBins_m();
 
     // Recalculate bingamma and reset the BinID for each particles according to its current gamma
     if (itsBunch_m->weHaveBins() && BunchCount_m > 1 && step_m % Options::rebinFreq == 0)
     {
-        itsBunch_m->resetPartBinID2(eta_m);
+        updateParticleBins_m();
     }
 
     // Some status output for user after each turn
@@ -3557,7 +3622,7 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
             case MB_MODE::FORCE:
             case MB_MODE::AUTO:
                 readOneBunchFromFile(BunchCount_m - 1);
-                itsBunch_m->resetPartBinID2(eta_m);
+                updateParticleBins_m();
                 break;
             case MB_MODE::NONE:
                 // do nothing

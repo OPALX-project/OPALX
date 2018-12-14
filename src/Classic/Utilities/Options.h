@@ -158,6 +158,9 @@ namespace Options {
 #endif
 
     extern bool memoryDump;
+
+    /// The constant parameter C to shift halo, by < w^4 > / < w^2 > ^2 - C (w=x,y,z)
+    extern double haloShift;
 }
 
 #endif // OPAL_Options_HH
