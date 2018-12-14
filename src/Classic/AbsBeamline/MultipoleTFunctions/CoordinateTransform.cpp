@@ -25,13 +25,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream>
 #include <cmath>
 #include <vector>
+#include "gsl/gsl_errno.h"
 #include "gsl/gsl_integration.h"
 #include "gsl/gsl_sf_pow_int.h"
 #include "CoordinateTransform.h"
 
 namespace coordinatetransform {
+
+const double CoordinateTransform::error = 1e-10;
+const int CoordinateTransform::workspaceSize = 1000;
+const int CoordinateTransform::algorithm = GSL_INTEG_GAUSS61;
 
 CoordinateTransform::CoordinateTransform(): x_m(0), z_m(0), s_m(0) {
 }
@@ -106,20 +112,24 @@ std::vector<double> CoordinateTransform::calcReferenceTrajectory(
     FY.function = &getUnitTangentVectorY;
     FX.params = &params;
     FY.params = &params;
-    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
-    double error = gsl_sf_pow_int(10, -10);
-    double *resultX = new double;
-    double *resultY = new double;
-    double *abserr = new double;
-    gsl_integration_qag(&FX, 0, s, 0, error, 1000, 6, w, resultX, abserr);
-    gsl_integration_qag(&FY, 0, s, 0, error, 1000, 6, w, resultY, abserr);
-    gsl_integration_workspace_free(w); 
+    gsl_integration_workspace *w = gsl_integration_workspace_alloc(workspaceSize);
+    double resultX, resultY, absErrX, absErrY;
+    gsl_error_handler_t* err_default = gsl_set_error_handler_off();
+    int errX = gsl_integration_qag(&FX, 0, s, error, error, workspaceSize,
+                                   algorithm, w, &resultX, &absErrX);
+    int errY = gsl_integration_qag(&FY, 0, s, error, error, workspaceSize,
+                                   algorithm, w, &resultY, &absErrY);
+    if (errX || errY) {
+        std::cerr << "Warning - failed to reach specified error " << error 
+                  << " in multipoleT coordinateTransform" << std::endl;
+        std::cerr << "  X " << errX << " absErr: " << absErrX << " s: " << s << std::endl;
+        std::cerr << "  Y " << errY << " absErr: " << absErrY << " s: " << s << std::endl;
+    }
+    gsl_integration_workspace_free(w);
+    gsl_set_error_handler(err_default);
     std::vector<double> result;
-    result.push_back(*resultX);
-    result.push_back(*resultY);
-    delete resultX;
-    delete resultY;
-    delete abserr;
+    result.push_back(resultX);
+    result.push_back(resultY);
     return result;
 }
 

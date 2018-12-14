@@ -120,6 +120,9 @@ private:
     double x_m;
     double z_m;
     double s_m;
+    static const double error;
+    static const int workspaceSize;
+    static const int algorithm;
 };
 
 /** Internal function used for GSL numerical integration */
