@@ -98,7 +98,7 @@ private:
     int registered_m;
     std::list<double> peaks_m;
     bool singlemode_m;
-    bool first_m;    
+    bool first_m;
     bool finished_m;
 };
 
