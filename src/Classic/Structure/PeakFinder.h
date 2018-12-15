@@ -37,12 +37,12 @@ public:
      * Append the particle coordinates to the container
      * @param R is a particle position (x, y, z)
      */
-    void addParticle(const Vector_t& R, const int& turn);
+    void addParticle(const Vector_t& R);
     
     /*!
      * Evaluate the centroid of a turn.
      */
-    void evaluate(const unsigned int& localnum);
+    void evaluate(const int& turn);
     
     void save();
     
@@ -101,8 +101,6 @@ private:
     bool first_m;
     
     bool finished_m;
-    double fPeakRadius_m;
-    int fRegisered_m;
 };
 
 #endif
