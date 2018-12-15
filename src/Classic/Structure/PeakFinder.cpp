@@ -19,8 +19,6 @@ PeakFinder::PeakFinder(std::string elem, double min,
     , singlemode_m(singlemode)
     , first_m(true)
     , finished_m(false)
-    , fPeakRadius_m(0.0)
-    , fRegisered_m(0)
 {
     if (min_m > max_m) {
         std::swap(min_m, max_m);
@@ -30,10 +28,17 @@ PeakFinder::PeakFinder(std::string elem, double min,
 }
 
 
-void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
+void PeakFinder::addParticle(const Vector_t& R) {
     
     double radius = std::hypot(R(0),R(1));
     radius_m.push_back(radius);
+    
+    peakRadius_m += radius;
+    ++registered_m;
+}
+
+
+void PeakFinder::evaluate(const int& turn) {
     
     if ( first_m ) {
         turn_m = turn;
@@ -42,26 +47,9 @@ void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
     
     if ( turn_m != turn ) {
         finished_m = true;
-        turn_m = turn;
-        fPeakRadius_m = peakRadius_m;
-        fRegisered_m = registered_m;
-        
-        peakRadius_m = 0.0;
-        registered_m = 0;
     }
     
-    peakRadius_m += radius;
-    ++registered_m;
-}
-
-
-void PeakFinder::evaluate(const unsigned int& localnum) {
-    
     bool globFinished = false;
-    
-    // a core might have no particles, thus, never set finished_m = true
-    if ( localnum == 0 )
-        finished_m = true;
     
     if ( !singlemode_m )
         allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
@@ -69,11 +57,14 @@ void PeakFinder::evaluate(const unsigned int& localnum) {
         globFinished = finished_m;
     
     if ( globFinished ) {
+        
         this->computeCentroid_m();
         
+        turn_m = turn;
+        
         // reset
-        fPeakRadius_m = 0.0;
-        fRegisered_m = 0;
+        peakRadius_m = 0.0;
+        registered_m = 0;
         finished_m = false;
     }
 }
@@ -84,8 +75,6 @@ void PeakFinder::save() {
     createHistogram_m();
     
     // last turn is not yet computed
-    fPeakRadius_m = peakRadius_m;
-    fRegisered_m = registered_m;
     this->computeCentroid_m();
     
     if ( !peaks_m.empty() ) {
@@ -118,15 +107,16 @@ void PeakFinder::computeCentroid_m() {
     
     //FIXME inefficient
     if ( !singlemode_m ) {
-        reduce(fPeakRadius_m, globPeakRadius, 1, std::plus<double>());
-        reduce(fRegisered_m, globRegister, 1, std::plus<int>());
+        reduce(peakRadius_m, globPeakRadius, 1, std::plus<double>());
+        reduce(registered_m, globRegister, 1, std::plus<int>());
     } else {
-        globPeakRadius = fPeakRadius_m;
-        globRegister = fRegisered_m;
+        globPeakRadius = peakRadius_m;
+        globRegister = registered_m;
     }
     
     if ( Ippl::myNode() == 0 ) {
-        peaks_m.push_back(globPeakRadius / double(globRegister));
+        if ( globRegister > 0 )
+            peaks_m.push_back(globPeakRadius / double(globRegister));
     }
 }
 
