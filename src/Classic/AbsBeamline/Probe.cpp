@@ -262,7 +262,9 @@ bool Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, co
             peakfinder_m->addParticle(probepoint, turnnumber);
             flagprobed = true;
         }
-        peakfinder_m->evaluate();
+        
+        if ( bunch->getTotalNum() > 0)
+            peakfinder_m->evaluate(tempnum);
     }
 
     

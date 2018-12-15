@@ -16,7 +16,6 @@ PeakFinder::PeakFinder(std::string elem, double min,
     , turn_m(0)
     , peakRadius_m(0.0)
     , registered_m(0)
-    , peaks_m(0)
     , singlemode_m(singlemode)
     , first_m(true)
     , finished_m(false)
@@ -56,12 +55,20 @@ void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
 }
 
 
-void PeakFinder::evaluate() {
-
-    if ( !singlemode_m )
-        allreduce(finished_m, 1, std::logical_or<bool>());
+void PeakFinder::evaluate(const unsigned int& localnum) {
     
-    if ( finished_m ) {
+    bool globFinished = false;
+    
+    // a core might have no particles, thus, never set finished_m = true
+    if ( localnum == 0 )
+        finished_m = true;
+    
+    if ( !singlemode_m )
+        allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
+    else
+        globFinished = finished_m;
+    
+    if ( globFinished ) {
         this->computeCentroid_m();
         
         // reset
@@ -81,7 +88,7 @@ void PeakFinder::save() {
     fRegisered_m = registered_m;
     this->computeCentroid_m();
     
-    if ( findPeaks() ) {
+    if ( !peaks_m.empty() ) {
         // only rank 0 will go in here
         
         fn_m   = element_m + std::string(".peaks");
@@ -102,11 +109,6 @@ void PeakFinder::save() {
 
     radius_m.clear();
     globHist_m.clear();
-}
-
-
-bool PeakFinder::findPeaks() {
-    return !peaks_m.empty();
 }
 
 
