@@ -19,6 +19,9 @@ PeakFinder::PeakFinder(std::string elem, double min,
     , peaks_m(0)
     , singlemode_m(singlemode)
     , first_m(true)
+    , finished_m(false)
+    , fPeakRadius_m(0.0)
+    , fRegisered_m(0)
 {
     if (min_m > max_m) {
         std::swap(min_m, max_m);
@@ -39,8 +42,11 @@ void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
     }
     
     if ( turn_m != turn ) {
-        this->computeCentroid_m();
+        finished_m = true;
         turn_m = turn;
+        fPeakRadius_m = peakRadius_m;
+        fRegisered_m = registered_m;
+        
         peakRadius_m = 0.0;
         registered_m = 0;
     }
@@ -50,14 +56,34 @@ void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
 }
 
 
+void PeakFinder::evaluate() {
+
+    if ( !singlemode_m )
+        allreduce(finished_m, 1, std::logical_or<bool>());
+    
+    if ( finished_m ) {
+        this->computeCentroid_m();
+        
+        // reset
+        fPeakRadius_m = 0.0;
+        fRegisered_m = 0;
+        finished_m = false;
+    }
+}
+
+
 void PeakFinder::save() {
     
     createHistogram_m();
     
     // last turn is not yet computed
+    fPeakRadius_m = peakRadius_m;
+    fRegisered_m = registered_m;
     this->computeCentroid_m();
-
+    
     if ( findPeaks() ) {
+        // only rank 0 will go in here
+        
         fn_m   = element_m + std::string(".peaks");
         hist_m = element_m + std::string(".hist");
         
@@ -71,10 +97,9 @@ void PeakFinder::save() {
         this->saveASCII_m();
         
         this->close_m();
-        Ippl::Comm->barrier();
         
     }
-    
+
     radius_m.clear();
     globHist_m.clear();
 }
@@ -91,13 +116,12 @@ void PeakFinder::computeCentroid_m() {
     
     //FIXME inefficient
     if ( !singlemode_m ) {
-        reduce(peakRadius_m, globPeakRadius, 1, std::plus<double>());
-        reduce(registered_m, globRegister, 1, std::plus<int>());
+        reduce(fPeakRadius_m, globPeakRadius, 1, std::plus<double>());
+        reduce(fRegisered_m, globRegister, 1, std::plus<int>());
     } else {
-        globPeakRadius = peakRadius_m;
-        globRegister = registered_m;
+        globPeakRadius = fPeakRadius_m;
+        globRegister = fRegisered_m;
     }
-        
     
     if ( Ippl::myNode() == 0 ) {
         peaks_m.push_back(globPeakRadius / double(globRegister));
@@ -134,41 +158,33 @@ void PeakFinder::createHistogram_m() {
 
 
 void PeakFinder::open_m() {
-    if ( Ippl::myNode() == 0 ) {
-        os_m.open(fn_m.c_str(), std::ios::out);
-        hos_m.open(hist_m.c_str(), std::ios::out);
-    }
+    os_m.open(fn_m.c_str(), std::ios::out);
+    hos_m.open(hist_m.c_str(), std::ios::out);
 }
 
 
 void PeakFinder::append_m() {
-    if ( Ippl::myNode() == 0 ) {
-        os_m.open(fn_m.c_str(), std::ios::app);
-        hos_m.open(hist_m.c_str(), std::ios::app);
-    }
+    os_m.open(fn_m.c_str(), std::ios::app);
+    hos_m.open(hist_m.c_str(), std::ios::app);
 }
 
 
 void PeakFinder::close_m() {
-    if ( Ippl::myNode() == 0 ) {
-        os_m.close();
-        hos_m.close();
-    }
+    os_m.close();
+    hos_m.close();
 }
 
 
 void PeakFinder::saveASCII_m() {
-    if ( Ippl::myNode() == 0 )  {
-        os_m << "# Peak Radii (mm)" << std::endl;
-        for (auto &radius : peaks_m)
-            os_m << radius << std::endl;
+    os_m << "# Peak Radii (mm)" << std::endl;
+    for (auto &radius : peaks_m)
+        os_m << radius << std::endl;
         
-        hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
-              << min_m << " mm "
-              << max_m << " mm "
-              << nBins_m << " "
-              << binWidth_m << " mm" << std::endl;
-        for (auto binCount : globHist_m)
-            hos_m << binCount << std::endl;
-    }
+    hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
+          << min_m << " mm "
+          << max_m << " mm "
+          << nBins_m << " "
+          << binWidth_m << " mm" << std::endl;
+    for (auto binCount : globHist_m)
+        hos_m << binCount << std::endl;
 }

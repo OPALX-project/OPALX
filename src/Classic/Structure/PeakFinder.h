@@ -39,6 +39,11 @@ public:
      */
     void addParticle(const Vector_t& R, const int& turn);
     
+    /*!
+     * Evaluate the centroid of a turn
+     */
+    void evaluate();
+    
     void save();
     
     /**
@@ -99,6 +104,10 @@ private:
     std::list<double> peaks_m;
     bool singlemode_m;
     bool first_m;
+    
+    bool finished_m;
+    double fPeakRadius_m;
+    int fRegisered_m;
 };
 
 #endif
