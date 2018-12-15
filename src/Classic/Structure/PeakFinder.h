@@ -40,17 +40,12 @@ public:
     void addParticle(const Vector_t& R, const int& turn);
     
     /*!
-     * Evaluate the centroid of a turn
+     * Evaluate the centroid of a turn.
      */
-    void evaluate();
+    void evaluate(const unsigned int& localnum);
     
     void save();
     
-    /**
-     * Single particle peak finder.
-     */
-    bool findPeaks();
-
 private:
     
     // compute global histogram, involves some inter-node communication
