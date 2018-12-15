@@ -39,4 +39,7 @@ IPPL_MPI_OP(std::greater<size_t>, MPI_MAX);
 IPPL_MPI_OP(std::greater<float>, MPI_MAX);
 IPPL_MPI_OP(std::greater<long int>, MPI_MAX);
 
+IPPL_MPI_OP(std::logical_or<bool>, MPI_LOR);
+IPPL_MPI_OP(std::logical_and<bool>, MPI_LAND);
+
 #endif
