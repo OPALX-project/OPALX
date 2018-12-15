@@ -16,9 +16,9 @@ PeakFinder::PeakFinder(std::string elem, double min,
     , turn_m(0)
     , peakRadius_m(0.0)
     , registered_m(0)
-    , peaks_m(0)
     , singlemode_m(singlemode)
     , first_m(true)
+    , finished_m(false)
 {
     if (min_m > max_m) {
         std::swap(min_m, max_m);
@@ -28,10 +28,17 @@ PeakFinder::PeakFinder(std::string elem, double min,
 }
 
 
-void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
+void PeakFinder::addParticle(const Vector_t& R) {
     
     double radius = std::hypot(R(0),R(1));
     radius_m.push_back(radius);
+    
+    peakRadius_m += radius;
+    ++registered_m;
+}
+
+
+void PeakFinder::evaluate(const int& turn) {
     
     if ( first_m ) {
         turn_m = turn;
@@ -39,14 +46,27 @@ void PeakFinder::addParticle(const Vector_t& R, const int& turn) {
     }
     
     if ( turn_m != turn ) {
-        this->computeCentroid_m();
-        turn_m = turn;
-        peakRadius_m = 0.0;
-        registered_m = 0;
+        finished_m = true;
     }
     
-    peakRadius_m += radius;
-    ++registered_m;
+    bool globFinished = false;
+    
+    if ( !singlemode_m )
+        allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
+    else
+        globFinished = finished_m;
+    
+    if ( globFinished ) {
+        
+        this->computeCentroid_m();
+        
+        turn_m = turn;
+        
+        // reset
+        peakRadius_m = 0.0;
+        registered_m = 0;
+        finished_m = false;
+    }
 }
 
 
@@ -56,8 +76,10 @@ void PeakFinder::save() {
     
     // last turn is not yet computed
     this->computeCentroid_m();
-
-    if ( findPeaks() ) {
+    
+    if ( !peaks_m.empty() ) {
+        // only rank 0 will go in here
+        
         fn_m   = element_m + std::string(".peaks");
         hist_m = element_m + std::string(".hist");
         
@@ -71,17 +93,11 @@ void PeakFinder::save() {
         this->saveASCII_m();
         
         this->close_m();
-        Ippl::Comm->barrier();
         
     }
-    
+
     radius_m.clear();
     globHist_m.clear();
-}
-
-
-bool PeakFinder::findPeaks() {
-    return !peaks_m.empty();
 }
 
 
@@ -97,10 +113,10 @@ void PeakFinder::computeCentroid_m() {
         globPeakRadius = peakRadius_m;
         globRegister = registered_m;
     }
-        
     
     if ( Ippl::myNode() == 0 ) {
-        peaks_m.push_back(globPeakRadius / double(globRegister));
+        if ( globRegister > 0 )
+            peaks_m.push_back(globPeakRadius / double(globRegister));
     }
 }
 
@@ -134,41 +150,33 @@ void PeakFinder::createHistogram_m() {
 
 
 void PeakFinder::open_m() {
-    if ( Ippl::myNode() == 0 ) {
-        os_m.open(fn_m.c_str(), std::ios::out);
-        hos_m.open(hist_m.c_str(), std::ios::out);
-    }
+    os_m.open(fn_m.c_str(), std::ios::out);
+    hos_m.open(hist_m.c_str(), std::ios::out);
 }
 
 
 void PeakFinder::append_m() {
-    if ( Ippl::myNode() == 0 ) {
-        os_m.open(fn_m.c_str(), std::ios::app);
-        hos_m.open(hist_m.c_str(), std::ios::app);
-    }
+    os_m.open(fn_m.c_str(), std::ios::app);
+    hos_m.open(hist_m.c_str(), std::ios::app);
 }
 
 
 void PeakFinder::close_m() {
-    if ( Ippl::myNode() == 0 ) {
-        os_m.close();
-        hos_m.close();
-    }
+    os_m.close();
+    hos_m.close();
 }
 
 
 void PeakFinder::saveASCII_m() {
-    if ( Ippl::myNode() == 0 )  {
-        os_m << "# Peak Radii (mm)" << std::endl;
-        for (auto &radius : peaks_m)
-            os_m << radius << std::endl;
+    os_m << "# Peak Radii (mm)" << std::endl;
+    for (auto &radius : peaks_m)
+        os_m << radius << std::endl;
         
-        hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
-              << min_m << " mm "
-              << max_m << " mm "
-              << nBins_m << " "
-              << binWidth_m << " mm" << std::endl;
-        for (auto binCount : globHist_m)
-            hos_m << binCount << std::endl;
-    }
+    hos_m << "# Histogram bin counts (min, max, nbins, binsize) "
+          << min_m << " mm "
+          << max_m << " mm "
+          << nBins_m << " "
+          << binWidth_m << " mm" << std::endl;
+    for (auto binCount : globHist_m)
+        hos_m << binCount << std::endl;
 }
