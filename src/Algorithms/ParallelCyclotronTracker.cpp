@@ -2836,14 +2836,14 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
     if (!(step_m + 1 % 1000))
         *gmsg << "Step " << step_m + 1 << endl;
 
-    if (itsBunch_m->getLocalNum() == 0) return;
+    if (itsBunch_m->getLocalNum() > 0) {
+        double tempP2 = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
+        double tempGamma = sqrt(1.0 + tempP2);
+        double tempBeta = sqrt(tempP2) / tempGamma;
 
-    double tempP2 = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
-    double tempGamma = sqrt(1.0 + tempP2);
-    double tempBeta = sqrt(tempP2) / tempGamma;
-
-    PathLength_m += c_mmtns * dt / 1000.0 * tempBeta; // unit: m
-    itsBunch_m->setLPath(PathLength_m);
+        PathLength_m += c_mmtns * dt / 1000.0 * tempBeta; // unit: m
+        itsBunch_m->setLPath(PathLength_m);
+    }
 
     // Here is global frame, don't do itsBunch_m->boundp();
 
