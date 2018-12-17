@@ -117,7 +117,7 @@ TrackRun::TrackRun():
                                            0.01);
     
     itsAttr[MB_BINNING] = Attributes::makeString
-                          ("MB_BINNING", "The scale parameter for binning in multi-bunch mode", "GAMMA");
+                          ("MB_BINNING", "Type of energy binning in multi-bunch mode: GAMMA or BUNCH", "GAMMA");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
