@@ -80,7 +80,6 @@ OpalMultipoleT::OpalMultipoleT():
     itsAttr[BBLENGTH] = Attributes::makeReal
                   ("BBLENGTH",
                    "Distance between centre of magnet and entrance [m]");
-    //registerRealAttribute("FRINGELEN");
 
     registerOwnership();
 
@@ -89,7 +88,7 @@ OpalMultipoleT::OpalMultipoleT():
 
 
 OpalMultipoleT::OpalMultipoleT(const std::string &name, 
-			       OpalMultipoleT *parent):
+                               OpalMultipoleT *parent):
     OpalElement(name, parent) {
     setElement((new MultipoleT(name))->makeWrappers());
 }
@@ -116,10 +115,10 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
         dynamic_cast<const MultipoleT*>(base.removeAlignWrapper());
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
-	ss << order;
-	std::string orderString = ss.str();
+        ss << order;
+        std::string orderString = ss.str();
         std::string attrName = "TP" + orderString;
-	registerRealAttribute(attrName)->setReal(multT->getTransProfile(order));
+        registerRealAttribute(attrName)->setReal(multT->getTransProfile(order));
     }
 
     registerRealAttribute("LFRINGE")->setReal(multT->getFringeLength().at(0));
@@ -132,7 +131,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     registerRealAttribute("EANGLE")->setReal(multT->getEntranceAngle());
     //registerRealAttribute("VARRADIUS")->setBool(multT->getVarRadius());
     registerRealAttribute("BBLENGTH")->setReal(multT->getBoundingBoxLength());
-    
 }
 
 
@@ -149,7 +147,7 @@ void OpalMultipoleT::update() {
     multT->setLength(length);
     multT->setBendAngle(angle);
     multT->setAperture(Attributes::getReal(itsAttr[VAPERT])*mm, 
-		       Attributes::getReal(itsAttr[HAPERT])*mm);
+                       Attributes::getReal(itsAttr[HAPERT])*mm);
     multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])*mm/2,
                           Attributes::getReal(itsAttr[LFRINGE])*mm,
                           Attributes::getReal(itsAttr[RFRINGE])*mm); 
