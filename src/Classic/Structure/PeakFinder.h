@@ -37,15 +37,15 @@ public:
      * Append the particle coordinates to the container
      * @param R is a particle position (x, y, z)
      */
-    void addParticle(const Vector_t& R, const int& turn);
+    void addParticle(const Vector_t& R);
+    
+    /*!
+     * Evaluate the centroid of a turn.
+     */
+    void evaluate(const int& turn);
     
     void save();
     
-    /**
-     * Single particle peak finder.
-     */
-    bool findPeaks();
-
 private:
     
     // compute global histogram, involves some inter-node communication
@@ -99,6 +99,7 @@ private:
     std::list<double> peaks_m;
     bool singlemode_m;
     bool first_m;
+    bool finished_m;
 };
 
 #endif
