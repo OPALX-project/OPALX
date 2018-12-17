@@ -320,6 +320,8 @@ public:
     /// reset Bin[] for each particle according to the method given in paper PAST-AB(064402) by  G. Fubiani et al.
     bool resetPartBinID2(const double eta);
 
+    bool resetPartBinBunch();
+
     double getQ() const;
     double getM() const;
     double getP() const;

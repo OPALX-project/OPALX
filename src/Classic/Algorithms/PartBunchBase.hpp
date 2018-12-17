@@ -1812,6 +1812,28 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
 
 
 template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::resetPartBinBunch() {
+    int maxbin = pbin_m->getNBins();
+    std::size_t partInBin[maxbin];
+    for (int i = 0; i < maxbin; ++i) {
+        partInBin[i] = 0;
+    }
+
+    for (std::size_t i = 0; i < getLocalNum(); ++i) {
+        partInBin[Bin[i]]++;
+    }
+
+    // partInBin only count particle on the local node.
+    pbin_m->resetPartInBin_cyc(partInBin, numBunch_m - 1);
+
+    // after reset Particle Bin ID, update mass gamma of each bin again
+    calcGammas_cycl();
+
+    return true;
+}
+
+
+template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getQ() const {
     return reference->getQ();
 }
