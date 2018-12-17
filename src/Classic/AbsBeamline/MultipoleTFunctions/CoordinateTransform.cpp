@@ -25,13 +25,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
 #include <cmath>
 #include <vector>
 #include "gsl/gsl_errno.h"
 #include "gsl/gsl_integration.h"
 #include "gsl/gsl_sf_pow_int.h"
+#include "Utility/Inform.h" // ippl/src/
+
 #include "CoordinateTransform.h"
+
+extern Inform *gmsg;
 
 namespace coordinatetransform {
 
@@ -120,10 +123,10 @@ std::vector<double> CoordinateTransform::calcReferenceTrajectory(
     int errY = gsl_integration_qag(&FY, 0, s, error, error, workspaceSize,
                                    algorithm, w, &resultY, &absErrY);
     if (errX || errY) {
-        std::cerr << "Warning - failed to reach specified error " << error 
-                  << " in multipoleT coordinateTransform" << std::endl;
-        std::cerr << "  X " << errX << " absErr: " << absErrX << " s: " << s << std::endl;
-        std::cerr << "  Y " << errY << " absErr: " << absErrY << " s: " << s << std::endl;
+        *gmsg << "Warning - failed to reach specified error " << error 
+              << " in multipoleT coordinateTransform" << endl;
+        *gmsg << "  X " << errX << " absErr: " << absErrX << " s: " << s << endl;
+        *gmsg << "  Y " << errY << " absErr: " << absErrY << " s: " << s << endl;
     }
     gsl_integration_workspace_free(w);
     gsl_set_error_handler(err_default);
