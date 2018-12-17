@@ -3,6 +3,8 @@
 
 #include "AmrBoundary.h"
 
+#include "Utilities/OpalException.h"
+
 template <class Level>
 class AmrOpenBoundary : public AmrBoundary<Level> {
 
