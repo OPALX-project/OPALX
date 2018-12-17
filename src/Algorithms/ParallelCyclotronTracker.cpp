@@ -1828,9 +1828,7 @@ void ParallelCyclotronTracker::updateParticleBins_m() {
             itsBunch_m->resetPartBinID2(eta_m);
             break;
         case MB_BINNING::BUNCH:
-            /*
-             * do nothing
-             */
+            itsBunch_m->resetPartBinBunch();
             break;
         default:
             itsBunch_m->resetPartBinID2(eta_m);
