@@ -1828,9 +1828,7 @@ void ParallelCyclotronTracker::updateParticleBins_m() {
             itsBunch_m->resetPartBinID2(eta_m);
             break;
         case MB_BINNING::BUNCH:
-            /*
-             * do nothing
-             */
+            itsBunch_m->resetPartBinBunch();
             break;
         default:
             itsBunch_m->resetPartBinID2(eta_m);
@@ -2744,6 +2742,7 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
 //     itsBunch_m->R *= Vector_t(0.001); // mm --> m
     
     int nBins = std::min(itsBunch_m->getNumBins(), BunchCount_m);
+    //allreduce(nBins, 1, std::greater<int>());
     
     for (int bin = 0; bin < nBins; ++bin) {
         
@@ -2902,14 +2901,14 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
     if (!(step_m + 1 % 1000))
         *gmsg << "Step " << step_m + 1 << endl;
 
-    if (itsBunch_m->getLocalNum() == 0) return;
+    if (itsBunch_m->getLocalNum() > 0) {
+        double tempP2 = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
+        double tempGamma = sqrt(1.0 + tempP2);
+        double tempBeta = sqrt(tempP2) / tempGamma;
 
-    double tempP2 = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
-    double tempGamma = sqrt(1.0 + tempP2);
-    double tempBeta = sqrt(tempP2) / tempGamma;
-
-    PathLength_m += c_mmtns * dt / 1000.0 * tempBeta; // unit: m
-    itsBunch_m->setLPath(PathLength_m);
+        PathLength_m += c_mmtns * dt / 1000.0 * tempBeta; // unit: m
+        itsBunch_m->setLPath(PathLength_m);
+    }
 
     // Here is global frame, don't do itsBunch_m->boundp();
 
