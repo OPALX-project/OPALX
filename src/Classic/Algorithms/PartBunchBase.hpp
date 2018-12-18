@@ -1919,42 +1919,6 @@ double PartBunchBase<T, Dim>::getEmissionDeltaT() {
 
 
 template <class T, unsigned Dim>
-Quaternion_t PartBunchBase<T, Dim>::getQKs3D() {
-    return QKs3D_m;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setQKs3D(Quaternion_t q) {
-    QKs3D_m=q;
-}
-
-
-template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::getKs3DRefr() {
-    return Ks3DRefr_m;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setKs3DRefr(Vector_t r) {
-    Ks3DRefr_m=r;
-}
-
-
-template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::getKs3DRefp() {
-    return Ks3DRefp_m;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setKs3DRefp(Vector_t p) {
-    Ks3DRefp_m=p;
-}
-
-
-template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::iterateEmittedBin(int binNumber) {
     binemitted_m[binNumber]++;
 }

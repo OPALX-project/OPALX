@@ -13,6 +13,7 @@
 #include "H5hut.h"
 
 #include "Structure/PriEmissionPhysics.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/Options.h"
@@ -617,6 +618,7 @@ public:
         inv_direction = r.inv_direction;
         sign[0] = r.sign[0]; sign[1] = r.sign[1]; sign[2] = r.sign[2];
     }
+    const Ray &operator=(const Ray& a) = delete;
 
     Vector_t origin;
     Vector_t direction;
