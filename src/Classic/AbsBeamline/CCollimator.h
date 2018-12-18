@@ -24,13 +24,12 @@
 
 #include "AbsBeamline/Component.h"
 
-#include "gsl/gsl_spline.h"
-#include "gsl/gsl_interp.h"
-
-#include <vector>
+#include <memory>
+#include <string>
 
 class BeamlineVisitor;
 class LossDataSink;
+class ParticleMatterInteractionHandler;
 
 // Class CCollimator
 // ------------------------------------------------------------------------
@@ -47,6 +46,7 @@ public:
     CCollimator();
     CCollimator(const CCollimator &rhs);
     virtual ~CCollimator();
+    void operator=(const CCollimator &) = delete;
 
     /// Apply visitor to CCollimator.
     virtual void accept(BeamlineVisitor &) const;
@@ -102,9 +102,6 @@ public:
     int checkPoint(const double & x, const double & y );
 
 private:
-
-    // Not implemented.
-    void operator=(const CCollimator &);
 
     std::string filename_m;               /**< The name of the outputfile*/
 

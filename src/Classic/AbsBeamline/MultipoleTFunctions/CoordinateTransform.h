@@ -59,7 +59,7 @@ struct myParams {
 class CoordinateTransform {
 public:
     /** Default constructor, transforms everything to the origin */
-    CoordinateTransform();
+    CoordinateTransform() = delete;
     /** Constructor, calculates coordinate transformation from lab coordinates
      *  to Frenet-Serret coordinates, given fringe field parameters
      *  \param xlab -> x-coordinate in lab frame

@@ -19,15 +19,16 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/CCollimator.h"
-#include "Physics/Physics.h"
-#include "Algorithms/PartBunchBase.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Fields/Fieldmap.h"
+#include "Solvers/ParticleMatterInteractionHandler.hh"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
-#include "Utilities/Util.h"
 
+#include <cmath>
+#include <fstream>
 #include <memory>
 
 extern Inform *gmsg;

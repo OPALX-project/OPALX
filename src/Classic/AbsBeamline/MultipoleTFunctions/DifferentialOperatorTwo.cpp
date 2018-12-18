@@ -130,7 +130,7 @@ void DifferentialOperatorTwo::setPolynomial(const TwoPolynomial &poly,
     if (s > sDerivatives_m) {
         resizeS(s);
     }
-    polynomials_m[x][s] = TwoPolynomial(poly);
+    polynomials_m[x][s] = PolynomialSum(poly);
 }
 
 void DifferentialOperatorTwo::printOperator() const {

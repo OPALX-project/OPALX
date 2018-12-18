@@ -21,6 +21,7 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 
+#include <ostream>
 
 class Inform;
 

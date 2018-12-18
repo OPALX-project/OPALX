@@ -36,7 +36,7 @@ DifferentialOperator::DifferentialOperator():
     std::vector<int> temp;
     temp.push_back(1);
     polynomials_m.resize(1);
-    polynomials_m[0].push_back(temp);
+    polynomials_m[0].push_back(Polynomial(temp));
 }
 
 DifferentialOperator::DifferentialOperator(const std::size_t &xDerivatives,
