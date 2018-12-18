@@ -57,7 +57,7 @@ public:
      *  \param polynomial -> The polynomial sum is initialised with this \n
      *  polynomial as the first and only term
      */
-    PolynomialSum(const TwoPolynomial &polynomial);
+    explicit PolynomialSum(const TwoPolynomial &polynomial);
     /** Copy constructor */
     PolynomialSum(const PolynomialSum &polynomialSum);
     /** Desctructor, does nothing */
@@ -68,7 +68,7 @@ public:
     void differentiateX();
     /** Differentiate each term wrt s */
     void differentiateS();
-    /** Multiply term with input polynomial 
+    /** Multiply term with input polynomial
      *  \param poly -> Polynomial to be multiplied with this polynomial
      */
     void multiplyPolynomial(const TwoPolynomial &poly);
@@ -146,6 +146,6 @@ inline
         return polynomialSum_m[p].evaluatePolynomial(x, s);
 }
 
-} 
+}
 
 #endif

@@ -52,14 +52,14 @@ struct CavityCrossData {
 class ParallelCyclotronTracker: public Tracker {
 
 public:
-    
+
     enum class MODE {
         UNDEFINED = -1,
         SINGLE = 0,
         SEO = 1,
         BUNCH = 2
     };
-    
+
     // multi-bunch modes
     enum class MB_MODE {
         NONE   = 0,
@@ -153,7 +153,7 @@ public:
 
     /// Apply the algorithm to a MultipoleTCurvedVarRadius
     virtual void visitMultipoleTCurvedVarRadius (const MultipoleTCurvedVarRadius &);
-    
+
     /// Apply the algorithm to a Offset.
     virtual void visitOffset(const Offset &);
 
@@ -216,10 +216,10 @@ public:
 
     /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
     void setMultiBunchMode(const std::string& mbmode);
-    
+
     // set binning type
     void setMultiBunchBinning(std::string binning);
-    
+
     /// set the scale for binning in multi-bunch mode
     void setMultiBunchEta(const double& eta) { eta_m = eta; };
 
@@ -372,7 +372,7 @@ private:
     //store the data of the beam which are required for injecting a new bunch for multibunch
     /// filename
     std::string onebunch_m;
-    
+
     void openFiles(std::string fn);
     void closeFiles();
 
@@ -514,19 +514,19 @@ private:
 
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
-    
+
 
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;
-    
+
     typedef std::function<bool(const double&,
                                const size_t&,
                                Vector_t&,
                                Vector_t&)> function_t;
-    
+
     std::unique_ptr< Stepper<function_t> > itsStepper_mp;
-    
+
     struct settings {
         int scSolveFreq;
         int stepsPerTurn;
@@ -536,54 +536,54 @@ private:
         double deltaTheta;
         int stepsNextCheck;
     } setup_m;
-    
+
     MODE mode_m;
-    
+
     stepper::INTEGRATOR stepper_m;
-    
+
     void update_m(double& t, const double& dt, const bool& dumpEachTurn);
-    
+
     /*!
      * @returns the time t [ns], time step dt [ns] and the azimuth angle [rad]
      */
     std::tuple<double, double, double> initializeTracking_m();
-    
+
     void finalizeTracking_m(dvector_t& Ttime,
                             dvector_t& Tdeltr,
                             dvector_t& Tdeltz,
                             ivector_t& TturnNumber);
-    
+
     void seoMode_m(double& t, const double dt, bool& dumpEachTurn,
                    dvector_t& Ttime, dvector_t& Tdeltr,
                    dvector_t& Tdeltz, ivector_t& TturnNumber);
-    
+
     void singleMode_m(double& t, const double dt, bool& dumpEachTurn, double& oldReferenceTheta);
-    
+
     void bunchMode_m(double& t, const double dt, bool& dumpEachTurn);
-    
+
     void gapCrossKick_m(size_t i, double t, double dt,
                         const Vector_t& Rold, const Vector_t& Pold);
-    
-    
+
+
     inline void dumpAzimuthAngles_m(const double& t,
                                     const Vector_t& R,
                                     const Vector_t& P,
                                     const double& oldReferenceTheta,
                                     const double& temp_meanTheta);
-    
+
     inline void dumpThetaEachTurn_m(const double& t,
                                     const Vector_t& R,
                                     const Vector_t& P,
                                     const double& temp_meanTheta,
                                     bool& dumpEachTurn);
-    
+
     void computeSpaceChargeFields_m();
-    
+
     bool computeExternalFields_m(const size_t& i,
                                  const double& t,
                                  Vector_t& Efield,
                                  Vector_t& Bfield);
-    
+
     void injectBunch_m(bool& flagTransition);
 
 };

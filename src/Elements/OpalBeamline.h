@@ -3,9 +3,9 @@
 
 #include <list>
 #include <limits>
-#include <vector>
+#include <set>
+#include <string>
 
-#include "Algorithms/Tracker.h"
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
@@ -29,17 +29,12 @@
 class Tracker;
 template <class T, unsigned Dim>
 class PartBunchBase;
-class ParticleMaterInteractionHandler;
+class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 class WakeFunction;
-class Bend;
 
 #define BEAMLINE_EOL  0x80000000   // end of line
-#define BEAMLINE_OOB  0x40000000   // out of bounds
-#define BEAMLINE_GEOM 0x30000000   // has geometry
-#define BEAMLINE_WAKE 0x20000000   // has wake
-#define BEAMLINE_BEND 0x10000000   // bends
-#define BEAMLINE_PARTICLEMATTERINTERACTION 0x08000000 // has particle mater interaction
+#define BEAMLINE_PARTICLEMATTERINTERACTION 0x08000000 // has particle matter interaction
 
 class OpalBeamline {
 

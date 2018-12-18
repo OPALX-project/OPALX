@@ -997,17 +997,14 @@ void FixedPisaNsga2<CO, MO>::environmentalSelection() {
 }
 
 
-/* Fills mating pool 'pp_sel' */
+/* Fills mating pool 'parent_queue_' */
 template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::matingSelection() {
-
-    //FIXME:
-    int tournament = 1; ///< number of opponents
 
     for (size_t i = 0; i < selector_mu_; i++) {
         int winner = irand(pp_all.size());
 
-        for (int j = 0; j < tournament; j++) {
+        for (int j = 0; j < tournament_m; j++) {
             int opponent = irand(pp_all.size());
             if (fitness_[pp_all[opponent]] < fitness_[pp_all[winner]]
                 || winner == opponent) {

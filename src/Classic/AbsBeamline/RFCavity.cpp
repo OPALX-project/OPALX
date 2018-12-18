@@ -52,6 +52,7 @@ RFCavity::RFCavity():
     fast_m(true),
     autophaseVeto_m(false),
     designEnergy_m(-1.0),
+    fieldmap_m(nullptr),
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
@@ -90,6 +91,7 @@ RFCavity::RFCavity(const RFCavity &right):
     fast_m(right.fast_m),
     autophaseVeto_m(right.autophaseVeto_m),
     designEnergy_m(right.designEnergy_m),
+    fieldmap_m(right.fieldmap_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
     length_m(right.length_m),
@@ -125,6 +127,7 @@ RFCavity::RFCavity(const std::string &name):
     fast_m(true),
     autophaseVeto_m(false),
     designEnergy_m(-1.0),
+    fieldmap_m(nullptr),
     startField_m(0.0),
     endField_m(0.0),
     length_m(0.0),
@@ -480,7 +483,7 @@ double RFCavity::getCycFrequency()const {
    Is called from OPAL-cycl and can handle
    time dependent frequency, amplitude and phase
 
-   At the moment (test) only the frequence is time
+   At the moment (test) only the frequency is time
    dependent
 
  */

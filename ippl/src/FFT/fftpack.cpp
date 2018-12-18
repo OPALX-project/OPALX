@@ -65,8 +65,8 @@ extern "C" {
 	return res;
     }
 
-#define ALLOC(ptr,type,num)						\
-    do { (ptr)=(type *)util_malloc_((num)*sizeof(type)); } while (0)
+/* #define ALLOC(ptr,type,num)						\ */
+/*     do { (ptr)=(type *)util_malloc_((num)*sizeof(type)); } while (0) */
 
 #define RALLOC(type,num)			\
     ((type *)util_malloc_((num)*sizeof(type)))

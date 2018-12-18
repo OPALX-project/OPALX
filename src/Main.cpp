@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef OPAL_DKS
     *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version "
-	  << DKS_VERSION;
+          << DKS_VERSION;
     if (IpplInfo::DKSEnabled)
       *gmsg << " GPU present" << endl << endl;
     else

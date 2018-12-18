@@ -75,7 +75,7 @@ void PolynomialSum::differentiateS() {
             }
         }
         polynomialSum_m[i].differentiateS();
-    }      
+    }
 }
 
 void PolynomialSum::multiplyPolynomial(const TwoPolynomial &poly) {
