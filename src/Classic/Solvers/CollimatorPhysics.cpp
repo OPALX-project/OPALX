@@ -1088,7 +1088,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
     for (unsigned int i = 0; i < nL; ++i) {
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            tester->checkHit(bunch->R[i], bunch->P[i], dT_m);
+            tester->checkHit(bunch->R[i], bunch->P[i], dT_m))
         {
 
             PART x;
