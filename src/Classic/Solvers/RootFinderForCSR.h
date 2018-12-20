@@ -124,8 +124,6 @@ public:
             }
         while (status == GSL_CONTINUE && iter < max_iter && computeValue(root) > tol);
 
-        std::cout << iter << std::endl;
-
         gsl_root_fsolver_free (solver);
 
         return root;
