@@ -31,14 +31,14 @@ public:
 
     /// The attributes of class OpalCCollimator.
     enum {
-        XSTART = COMMON,           // Start of x coordinate
+        XSTART = COMMON,  // Start of x coordinate
         XEND,             // End of x coordinate
         YSTART,           // Start of y coordinate
         YEND,             // End of y coordinate
-        ZSTART,             // Top boundary
+        ZSTART,           // Top boundary
         ZEND,             // Bottom boundary
-        WIDTH, //The width of collimator
-        OUTFN,
+        WIDTH,            // The width of collimator
+        OUTFN,            // Output filename
         SIZE
     };
 
