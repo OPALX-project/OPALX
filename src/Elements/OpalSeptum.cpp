@@ -42,12 +42,15 @@ OpalSeptum::OpalSeptum():
                     ("YEND", "End of y coordinate");
     itsAttr[WIDTH] = Attributes::makeReal
                      ("WIDTH", "Width of the septum");
+    itsAttr[OUTFN] = Attributes::makeString
+                     ("OUTFN", "Output filename");
 
     registerRealAttribute("XSTART");
     registerRealAttribute("XEND");
     registerRealAttribute("YSTART");
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
+    registerStringAttribute("OUTFN");
 
     registerOwnership();
 
@@ -97,7 +100,9 @@ void OpalSeptum::update() {
         sept->setWake(owk_m->wf_m);
     }
     sept->setElementLength(length);
-    sept->setDimensions(xstart, xend, ystart, yend, width);
+    sept->setDimensions(xstart, xend, ystart, yend);
+    sept->setWidth(width);
+    sept->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(sept);
