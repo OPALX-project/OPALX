@@ -32,6 +32,7 @@ set (_SRCS
   Offset.cpp
   ParallelPlate.cpp
   Patch.cpp
+  PluginElement.cpp
   Probe.cpp
   RBend.cpp
   RBend3D.cpp
@@ -88,6 +89,7 @@ set (HDRS
     Offset.h
     ParallelPlate.h
     Patch.h
+    PluginElement.h
     Probe.h
     RBend.h
     RBend3D.h

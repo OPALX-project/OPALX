@@ -1,64 +1,25 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Probe.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Probe
-//   Defines the abstract interface for a septum magnet.
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2009/10/07 09:32:32 $
-// $Author: Bi, Yang $
-// 2012/03/01: fix bugs and change the algorithm in the checkProbe()
-//
-// ------------------------------------------------------------------------
-
 #include "AbsBeamline/Probe.h"
-#include "Algorithms/PartBunchBase.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include "Structure/PeakFinder.h"
-#include "Utilities/Options.h"
-#include <iostream>
-#include <fstream>
 
 extern Inform *gmsg;
 
-// Class Probe
-// ------------------------------------------------------------------------
-
-Probe::Probe():
-    Component(),
-    filename_m(""),
-    position_m(0.0),
-    step_m(0.0){
-    setDimensions(0.0, 0.0, 0.0, 0.0);
-}
-
-
-Probe::Probe(const Probe &right):
-    Component(right),
-    filename_m(right.filename_m),
-    position_m(right.position_m),
-    step_m(right.step_m){
-    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
-}
-
+Probe::Probe():Probe("")
+{}
 
 Probe::Probe(const std::string &name):
-    Component(name),
-    filename_m(""),
-    position_m(0.0),
-    step_m(0.0){
-    setDimensions(0.0, 0.0, 0.0, 0.0);
-}
+    PluginElement(name),
+    step_m(0.0)
+{}
+
+Probe::Probe(const Probe &right):
+    PluginElement(right),
+    step_m(right.step_m)
+{}
 
 Probe::~Probe() {}
 
@@ -66,115 +27,28 @@ void Probe::accept(BeamlineVisitor &visitor) const {
     visitor.visitProbe(*this);
 }
 
-void Probe::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
-    position_m = startField;
-    startField -= 0.005;
-    endField = position_m + 0.005;
-}
-
-void Probe::initialise(PartBunchBase<double, 3> *bunch) {
+void Probe::doInitialise(PartBunchBase<double, 3> *bunch) {
     *gmsg << "* Initialize probe" << endl;
-
-    std::string name;
-    if (filename_m == std::string(""))
-        name = getName();
-    else
-        name = filename_m.substr(0, filename_m.rfind("."));
-
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
-    peakfinder_m = std::unique_ptr<PeakFinder>  (new PeakFinder  (name, rstart_m, rend_m, step_m, singlemode));
-    lossDs_m     = std::unique_ptr<LossDataSink>(new LossDataSink(name, !Options::asciidump));
+    peakfinder_m = std::unique_ptr<PeakFinder> (new PeakFinder(getOutputFN(), rstart_m, rend_m, step_m, singlemode));
 }
 
-void Probe::finalise() {
-    *gmsg << "* Finalize probe " << getName() << endl;
-    peakfinder_m->save();
-    lossDs_m->save();
-}
-
-bool Probe::bends() const {
-    return false;
-}
-
-void Probe::goOffline() {
+void Probe::doGoOffline() {
     *gmsg << "* Probe goes offline " << getName() << endl;
-    online_m = false;
-    peakfinder_m->save();
-    lossDs_m->save();
+    if (online_m && peakfinder_m)
+        peakfinder_m->save();
+    peakfinder_m.reset(nullptr);
 }
 
-void Probe::setDimensions(double xstart, double xend, double ystart, double yend) {
-    xstart_m = xstart;
-    ystart_m = ystart;
-    xend_m   = xend;
-    yend_m   = yend;
-    rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
-    rend_m   = std::sqrt(xend * xend   + yend * yend);
-    // start position is the one with lowest radius
-    if (rstart_m > rend_m) {
-        std::swap(xstart_m, xend_m);
-        std::swap(ystart_m, yend_m);
-        std::swap(rstart_m, rend_m);
-    }
-
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = std::sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
-}
-
-void  Probe::setStep(double step) {
+void Probe::setStep(double step) {
     step_m = step;
 }
 
-double  Probe::getXstart() const {
-    return xstart_m;
-}
-
-double  Probe::getXend() const {
-    return xend_m;
-}
-
-double  Probe::getYstart() const {
-    return ystart_m;
-}
-
-double  Probe::getYend() const {
-    return yend_m;
-}
-
-double  Probe::getStep() const {
+double Probe::getStep() const {
     return step_m;
 }
 
-void Probe::setGeom(const double dist) {
-
-    double slope;
-    if (xend_m == xstart_m)
-      slope = 1.0e12;
-    else
-      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
-
-    double coeff2 = sqrt(1 + slope * slope);
-    double coeff1 = slope / coeff2;
-    double halfdist = dist / 2.0;
-    geom_m[0].x = xstart_m - halfdist * coeff1;
-    geom_m[0].y = ystart_m + halfdist / coeff2;
-
-    geom_m[1].x = xstart_m + halfdist * coeff1;
-    geom_m[1].y = ystart_m - halfdist / coeff2;
-
-    geom_m[2].x = xend_m + halfdist * coeff1;
-    geom_m[2].y = yend_m - halfdist  / coeff2;
-
-    geom_m[3].x = xend_m - halfdist * coeff1;
-    geom_m[3].y = yend_m + halfdist / coeff2;
-
-    geom_m[4].x = geom_m[0].x;
-    geom_m[4].y = geom_m[0].y;
-}
-
-bool Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
     bool flagprobed = false;
     Vector_t rmin, rmax;
     bunch->get_bounds(rmin, rmax);
@@ -188,7 +62,6 @@ bool Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, co
 
     if( rbunch_max > rstart_m - 10.0 && rbunch_min < rend_m + 10.0 ) {
         size_t tempnum = bunch->getLocalNum();
-        int pflag = 0;
 
         Vector_t meanP(0.0, 0.0, 0.0);
         for(unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
@@ -224,7 +97,7 @@ bool Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, co
         Vector_t probepoint;
 
         for(unsigned int i = 0; i < tempnum; ++i) {
-            pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
+            int pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
             if(pflag == 0) continue;
             // calculate closest point at probe -> better to use momentum direction
             // probe: y = -A/B * x - C/B
@@ -266,28 +139,8 @@ bool Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, co
         peakfinder_m->evaluate(turnnumber);
     }
 
-    
     reduce(&flagprobed, &flagprobed + 1, &flagprobed, OpBitwiseOrAssign());
     return flagprobed;
-}
-
-int Probe::checkPoint(const double &x, const double &y) {
-    int    cn = 0;
-    for(int i = 0; i < 4; i++) {
-        if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-           || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
-
-            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
-                ++cn;
-        }
-    }
-    return (cn & 1);  // 0 if even (out), and 1 if odd (in)
-}
-
-void Probe::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m - 0.005;
-    zEnd   = position_m + 0.005;
 }
 
 ElementBase::ElementType Probe::getType() const {
