@@ -1,34 +1,11 @@
 #ifndef CLASSIC_Probe_HH
 #define CLASSIC_Probe_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: Probe.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Probe
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2009/10/07 09:32:32 $
-// $Author: Bi, Yang $
-// 2012/03/01: fix bugs and change the algorithm in the checkProbe()
-//
-// ------------------------------------------------------------------------
+#include "AbsBeamline/PluginElement.h"
 
-#include "AbsBeamline/Component.h"
+#include <memory>
 #include <string>
-#include <utility>
 
-template <class T, unsigned Dim>
-class PartBunchBase;
-
-class LossDataSink;
 class PeakFinder;
 
 // Class Probe
@@ -36,71 +13,37 @@ class PeakFinder;
 /// Interface for probe.
 //  Class Probe defines the abstract interface for a probe.
 
-class Probe: public Component {
+class Probe: public PluginElement {
 
 public:
-
     /// Constructor with given name.
     explicit Probe(const std::string &name);
 
     Probe();
     Probe(const Probe &);
+    void operator=(const Probe &) = delete;
     virtual ~Probe();
 
     /// Apply visitor to Probe.
-    virtual void accept(BeamlineVisitor &) const;
+    virtual void accept(BeamlineVisitor &) const override;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
-
-    virtual void finalise();
-
-    virtual bool bends() const;
-
-    virtual void goOffline();
-
-    /// Set dimensions and consistency checks
-    void setDimensions(double xstart, double xend, double ystart, double yend);
-
+    /// Set probe histogram bin width
     void setStep(double step);
     ///@{ Member variable access
-    virtual double getXstart() const;
-    virtual double getXend() const;
-
-    virtual double getYstart() const;
-    virtual double getYend() const;
-
     virtual double getStep() const;
     ///@}
-    /// Record probe hits when bunch particles pass
-    bool  checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
-    virtual ElementBase::ElementType getType() const;
-
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
+    virtual ElementBase::ElementType getType() const override;
 
 private:
-    std::string filename_m;             /**< The name of the inputfile*/
-    double position_m;
-    ///@{ input geometry positions
-    double xstart_m;
-    double xend_m;
-    double ystart_m;
-    double yend_m;
-    double rstart_m;
-    double rend_m;
-    ///@}
-    Point  geom_m[5]; ///< actual geometry positions with adaptive width such that each particle hits probe once per turn
+    /// Initialise peakfinder file
+    virtual void doInitialise(PartBunchBase<double, 3> *bunch) override;
+    /// Record probe hits when bunch particles pass
+    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
+    /// Hook for goOffline
+    virtual void doGoOffline() override;
+
     double step_m; ///< Step size of the probe (bin width in histogram file)
-
-    double A_m, B_m, R_m, C_m; ///< Geometric lengths used in calculations
-    void setGeom(const double dist); ///< Sets geometry geom_m with probe width dist
-    int  checkPoint( const double & x, const double & y ); ///< Checks if coordinate is within probe
-
     std::unique_ptr<PeakFinder> peakfinder_m; ///< Pointer to Peakfinder instance
-    std::unique_ptr<LossDataSink> lossDs_m;   ///< Pointer to Loss instance
-
-    // Not implemented.
-    void operator=(const Probe &);
 };
 
 #endif // CLASSIC_Probe_HH

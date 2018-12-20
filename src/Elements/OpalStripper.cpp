@@ -48,6 +48,8 @@ OpalStripper::OpalStripper():
                      ("OPYIELD", "Yield (Particle number of the outcome particle) per income particle");
     itsAttr[STOP] = Attributes::makeBool
       ("STOP", "Option Whether stop tracking at the stripper. Default: true", true);
+    itsAttr[OUTFN] = Attributes::makeString
+                     ("OUTFN", "Output filename");
 
     registerRealAttribute("XSTART");
     registerRealAttribute("XEND");
@@ -57,6 +59,7 @@ OpalStripper::OpalStripper():
     registerRealAttribute("OPCHARGE");
     registerRealAttribute("OPMASS");
     registerRealAttribute("OPYIELD");
+    registerStringAttribute("OUTFN");
 
     registerOwnership();
 
@@ -105,6 +108,7 @@ void OpalStripper::update() {
     strp->setOPMass(opmass);
     strp->setOPYield(opyield);
     strp->setStop(stop);
+    strp->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(strp);

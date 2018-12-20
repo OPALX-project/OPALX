@@ -1,200 +1,62 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Stripper.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Stripper
-//   Defines the abstract interface for a stripper
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2011/07/08 11:16:04 $
-// $Author: Jianjun Yang $
-//
-// ------------------------------------------------------------------------
-
 #include "AbsBeamline/Stripper.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
-#include "Utilities/Options.h"
-#include <iostream>
-#include <fstream>
 
 extern Inform *gmsg;
 
-using namespace std;
+Stripper::Stripper():Stripper("")
+{}
 
-// Class Stripper
-// ------------------------------------------------------------------------
-
-Stripper::Stripper():
-    Component(),
-    filename_m(""),
-    position_m(0.0),
+Stripper::Stripper(const std::string &name):
+    PluginElement(name),
     opcharge_m(0.0),
     opmass_m(0.0),
     opyield_m(1.0),
-    stop_m(true),
-    step_m(0) {
-    setDimensions(0.0, 0.0, 0.0, 0.0);
-}
-
+    stop_m(true)
+{}
 
 Stripper::Stripper(const Stripper &right):
-    Component(right),
-    filename_m(right.filename_m),
-    position_m(right.position_m),
+    PluginElement(right),
     opcharge_m(right.opcharge_m),
     opmass_m(right.opmass_m),
     opyield_m(right.opyield_m),
-    stop_m(right.stop_m),
-    step_m(right.step_m) {
-    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
-}
+    stop_m(right.stop_m)
+{}
 
-
-Stripper::Stripper(const std::string &name):
-    Component(name),
-    filename_m(""),
-    position_m(0.0),
-    opcharge_m(0.0),
-    opmass_m(0.0),
-    opyield_m(1.0),
-    stop_m(true),
-    step_m(0){
-    setDimensions(0.0, 0.0, 0.0, 0.0);
-}
-
-void Stripper::setGeom(const double dist) {
-
-   double slope;
-    if (xend_m == xstart_m)
-      slope = 1.0e12;
-    else
-      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
-
-    double coeff2 = sqrt(1 + slope * slope);
-    double coeff1 = slope / coeff2;
-    double halfdist = dist / 2.0;
-    geom_m[0].x = xstart_m - halfdist * coeff1;
-    geom_m[0].y = ystart_m + halfdist / coeff2;
-
-    geom_m[1].x = xstart_m + halfdist * coeff1;
-    geom_m[1].y = ystart_m - halfdist / coeff2;
-
-    geom_m[2].x = xend_m + halfdist * coeff1;
-    geom_m[2].y = yend_m - halfdist  / coeff2;
-
-    geom_m[3].x = xend_m - halfdist * coeff1;
-    geom_m[3].y = yend_m + halfdist / coeff2;
-
-    geom_m[4].x = geom_m[0].x;
-    geom_m[4].y = geom_m[0].y;
-
-}
-
-
-Stripper::~Stripper() {
-    idrec_m.clear();
-}
-
+Stripper::~Stripper() {}
 
 void Stripper::accept(BeamlineVisitor &visitor) const {
     visitor.visitStripper(*this);
 }
 
-void Stripper::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-}
-
-void Stripper::initialise(PartBunchBase<double, 3> *bunch) {
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
-}
-
-void Stripper::finalise() {
+void Stripper::doFinalise() {
     *gmsg << "* Finalize stripper " << getName() << endl;
 }
 
-bool Stripper::bends() const {
-    return false;
-}
-
-void Stripper::goOffline() {
-    online_m = false;
-    lossDs_m->save();
-}
-
-void Stripper::setDimensions(double xstart, double xend, double ystart, double yend) {
-    xstart_m = xstart;
-    ystart_m = ystart;
-    xend_m   = xend;
-    yend_m   = yend;
-    rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
-    rend_m   = std::sqrt(xend * xend   + yend * yend);
-    // start position is the one with lowest radius
-    if (rstart_m > rend_m) {
-        std::swap(xstart_m, xend_m);
-        std::swap(ystart_m, yend_m);
-        std::swap(rstart_m, rend_m);
-    }
-
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = std::sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
-}
-
-void  Stripper::setOPCharge(double charge) {
+void Stripper::setOPCharge(double charge) {
     opcharge_m = charge;
 }
 
-void  Stripper::setOPMass(double mass) {
+void Stripper::setOPMass(double mass) {
     opmass_m = mass;
 }
 
-void  Stripper::setOPYield(double yield) {
+void Stripper::setOPYield(double yield) {
     opyield_m = yield;
 }
 
-void  Stripper::setStop(bool stopflag) {
+void Stripper::setStop(bool stopflag) {
     stop_m = stopflag;
-
 }
 
-double  Stripper::getXstart() const {
-    return xstart_m;
-}
-
-double  Stripper::getXend() const {
-    return xend_m;
-}
-
-double  Stripper::getYstart() const {
-    return ystart_m;
-}
-
-double  Stripper::getYend() const {
-    return yend_m;
-}
-
-double  Stripper::getOPCharge() const {
+double Stripper::getOPCharge() const {
     return opcharge_m;
 }
 
-double  Stripper::getOPMass() const {
+double Stripper::getOPMass() const {
     return opmass_m;
 }
 
@@ -206,9 +68,8 @@ bool  Stripper::getStop () const {
     return stop_m;
 }
 
-
 //change the stripped particles to outcome particles
-bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool Stripper::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;
@@ -336,29 +197,6 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
     return flagNeedUpdate;
 }
 
-
-void Stripper::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m - 0.005;
-    zEnd = position_m + 0.005;
-}
-
 ElementBase::ElementType Stripper::getType() const {
     return STRIPPER;
-}
-
-
-int Stripper::checkPoint(const double &x, const double &y) {
-    int    cn = 0;
-
-    for(int i = 0; i < 4; i++) {
-        if(((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-           || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
-
-            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
-                ++cn;
-        }
-    }
-    return (cn & 1);  // 0 if even (out), and 1 if odd (in)
-
 }
