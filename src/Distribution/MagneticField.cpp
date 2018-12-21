@@ -34,3 +34,14 @@ const BGeometryBase &MagneticField::getGeometry() const {
 BGeometryBase &MagneticField::getGeometry() {
     return nullGeom_m;
 }
+
+void MagneticField::interpolate(const double& rad,
+                                const double& tet_rad,
+                                double& br,
+                                double& bt,
+                                double& bz)
+{
+    Cyclotron::interpolate(rad, tet_rad, br, bt, bz);
+    double z = 0.0; // assume the reference particle
+    Cyclotron::applyTrimCoil_m(rad, z, br, bz);
+}
