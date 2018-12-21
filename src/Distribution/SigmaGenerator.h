@@ -127,7 +127,7 @@ public:
      * @param full match over full turn not just single sector
      */
     bool match(value_type accuracy, size_type maxit, size_type maxitOrbit,
-               const Cyclotron* cycl, value_type rguess, bool harmonic, bool full);
+               Cyclotron* cycl, value_type rguess, bool harmonic, bool full);
     
     /*!
      * Eigenvalue / eigenvector solver
@@ -429,7 +429,7 @@ template<typename Value_type, typename Size_type>
   bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy,
                                                     size_type maxit,
                                                     size_type maxitOrbit,
-                                                    const Cyclotron* cycl,
+                                                    Cyclotron* cycl,
                                                     value_type rguess,
                                                     bool harmonic, bool full)
 {

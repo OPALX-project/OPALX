@@ -29,7 +29,7 @@
 
 // #include "physics.h"
 
-#include "MagneticField.h"
+#include "AbsBeamline/Cyclotron.h"
 
 // include headers for integration
 #include <boost/numeric/odeint/integrate/integrate_n_steps.hpp>
@@ -58,7 +58,7 @@ class ClosedOrbitFinder
          * otherwise over 2*pi.
          */
         ClosedOrbitFinder(value_type E, value_type E0, size_type N,
-                          const Cyclotron* cycl, bool domain = true);
+                          Cyclotron* cycl, bool domain = true);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type getInverseBendingRadius(const value_type& angle = 0);
@@ -179,15 +179,6 @@ class ClosedOrbitFinder
         /// Is the phase
         value_type phase_m;
 
-        /// Minimum energy needed in cyclotron
-        value_type Emin_m;
-
-        /// Maximum energy reached in cyclotron
-        value_type Emax_m;
-
-        /// Number of sectors (symmetry)
-        size_type nSector_m;
-
         /**
          * Stores the last orbit value (since we have to return to the beginning to check the convergence in the
          * findOrbit() function. This last value is then deleted from the array but is stored in lastOrbitVal_m to
@@ -232,7 +223,7 @@ class ClosedOrbitFinder
             return e0 * 1.0e7 / (/* physics::q0 */ 1.0 * Physics::c * Physics::c / wo);
         };
         
-        MagneticField bField_m;
+        Cyclotron* cycl_m;
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -243,7 +234,7 @@ template<typename Value_type, typename Size_type, class Stepper>
 ClosedOrbitFinder<Value_type,
                   Size_type,
                   Stepper>::ClosedOrbitFinder(value_type E, value_type E0,
-                                              size_type N, const Cyclotron* cycl,
+                                              size_type N, Cyclotron* cycl,
                                               bool domain)
     : nxcross_m(0)
     , nzcross_m(0)
@@ -255,25 +246,23 @@ ClosedOrbitFinder<Value_type,
     , gamma_m(E/E0+1.0)
     , ravg_m(0)
     , phase_m(0)
-    , Emin_m(cycl->getFMLowE())
-    , Emax_m(cycl->getFMHighE())
-    , nSector_m(cycl->getSymmetry())
     , lastOrbitVal_m(0.0)
     , lastMomentumVal_m(0.0)
     , vertOscDone_m(false)
     , domain_m(domain)
     , stepper_m()
+    , cycl_m(cycl)
 {
     
-    if ( Emin_m > Emax_m )
+    if ( cycl_m->getFMLowE() > cycl_m->getFMHighE() )
         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
                             "Incorrect cyclotron energy (MeV) bounds: Maximum cyclotron energy smaller than minimum cyclotron energy.");
     
 //     // Even if the numbers are equal --> if statement is true.
-//     if ( E_m < Emin_m )
+//     if ( E_m < cycl_m->getFMLowE() )
 //         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy smaller than minimum cyclotron energy");
      
-    if ( E_m > Emax_m )
+    if ( E_m > cycl_m->getFMHighE() )
         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy exceeds cyclotron energy");
 
     // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
@@ -282,7 +271,7 @@ ClosedOrbitFinder<Value_type,
 
     // if domain_m = true --> integrate over a single sector
     if (domain_m) {
-        N_m /=  nSector_m;
+        N_m /=  cycl_m->getSymmetry();
     }
 
     // reserve storage for the orbit and momentum (--> size = 0, capacity = N_m+1)
@@ -297,12 +286,6 @@ ClosedOrbitFinder<Value_type,
     h_m.reserve(N_m);
     ds_m.reserve(N_m);
     fidx_m.reserve(N_m);
-    
-    // read in magnetic fieldmap
-    bField_m.setFieldMapFN(cycl->getFieldMapFN());
-    bField_m.setSymmetry(nSector_m);
-    int fieldflag = bField_m.getFieldFlag(cycl->getCyclotronType());
-    bField_m.read(fieldflag, cycl->getBScale());
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -477,7 +460,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         invptheta = 1.0 / ptheta;
 
         // interpolate values of magnetic field
-        bField_m.interpolate(y[0], theta, brint, btint, bint);
+        cycl_m->apply(y[0], 0.0, theta, brint, btint, bint);
 
         bint *= invbcon;
         brint *= invbcon;
@@ -521,13 +504,13 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // step size of energy
     value_type dE; 
 
-    if (Emin_m == Emax_m)
+    if (cycl_m->getFMLowE() == cycl_m->getFMHighE())
       dE = 0.0;
     else
-      dE = (E_m - Emin_m) / (Emax_m - Emin_m);
+      dE = (E_m - cycl_m->getFMLowE()) / (cycl_m->getFMHighE() - cycl_m->getFMLowE());
 
     // iterate until suggested energy (start with minimum energy)
-    value_type E = Emin_m;
+    value_type E = cycl_m->getFMLowE();
 
     // energy increase not more than 0.25
     dE = (dE > 0.25) ? 0.25 : dE;
@@ -684,11 +667,11 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 
     // nu = mu/theta, where theta = integration domain
 
-    /* domain_m = true --> only integrated over a single sector --> multiply by nSector_m to
+    /* domain_m = true --> only integrated over a single sector --> multiply by cycl_m->getSymmetry() to
      * get correct tune.
      */
     if (domain_m)
-        mu *= nSector_m;
+        mu *= cycl_m->getSymmetry();
 
     return mu * Physics::u_two_pi;
 }
@@ -719,7 +702,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        bField_m.interpolate(r_m[i], theta, brint, btint, bint);
+        cycl_m->apply(r_m[i], 0.0, theta, brint, btint, bint);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -777,7 +760,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        bField_m.interpolate(y[0], theta, brint, btint, bint);
+        cycl_m->apply(y[0], 0.0, theta, brint, btint, bint);
         
         bint *= invbcon;
         brint *= invbcon;
@@ -829,10 +812,10 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
     phase_m = y[6] * Physics::u_two_pi; // / (2.0 * Physics::pi);
 
     /* domain_m = true --> only integrated over a single sector
-     * --> multiply by nSector_m to get correct phase_m
+     * --> multiply by cycl_m->getSymmetry() to get correct phase_m
      */
     if (domain_m)
-        phase_m *= nSector_m;
+        phase_m *= cycl_m->getSymmetry();
 }
 
 template<typename Value_type, typename Size_type, class Stepper> 
