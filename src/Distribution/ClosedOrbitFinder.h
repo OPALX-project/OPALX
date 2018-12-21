@@ -52,26 +52,13 @@ class ClosedOrbitFinder
         /*!
          * @param E is the energy [MeV] to which the closed orbit should be found
          * @param E0 is the potential energy (particle energy at rest) [MeV].
-         * @param wo is the nominal orbital frequency (see paper of Dr. C. Baumgarten: "Transverse-Longitudinal
-         * Coupling by Space Charge in Cyclotrons" (2012), formula (1))
          * @param N specifies the number of splits (2pi/N), i.e number of integration steps
-         * @param accuracy specifies the accuracy of the closed orbit
-         * @param maxit is the maximal number of iterations done. Program stops if closed orbit not found within this time.
-         * @param Emin is the minimum energy [MeV] needed in cyclotron
-         * @param Emax is the maximum energy [MeV] reached in cyclotron
-         * @param nSector is the number of sectors (--> symmetry) of cyclotron
-         * @param fmapfn is the location of the file that specifies the magnetic field
-	 * @param guess value of radius for closed orbit finder
-         * @param type specifies the field format (e.g. CARBONCYCL)
-         * @param scaleFactor for the magnetic field (default: 1.0)
+         * @param cycl is the cyclotron element
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
-        ClosedOrbitFinder(value_type E, value_type E0, value_type wo, size_type N,
-                          value_type accuracy, size_type maxit, value_type Emin, value_type Emax,
-                          size_type nSector, const std::string& fmapfn, value_type guess,
-                          const std::string& type, value_type scaleFactor = 1.0,
-                          bool domain = true);
+        ClosedOrbitFinder(value_type E, value_type E0, size_type N,
+                          const Cyclotron* cycl, bool domain = true);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type getInverseBendingRadius(const value_type& angle = 0);
@@ -116,17 +103,18 @@ class ClosedOrbitFinder
         /// Returns true if a closed orbit could be found
         bool isConverged();
 
-    private:
         /// Computes the closed orbit
         /*!
          * @param accuracy specifies the accuracy of the closed orbit
          * @param maxit is the maximal number of iterations done for finding the closed orbit
+         * @param rguess initial radius guess in [mm]
          */
-        bool findOrbit(value_type, size_type);
+        bool findOrbit(value_type, size_type, value_type = -1.0);
 
-        /// Fills in the values of h_m, ds_m, fidx_m. It gets called by in by constructor.
+        /// Fills in the values of h_m, ds_m, fidx_m.
         void computeOrbitProperties();
 
+    private:
         /// This function is called by the function getTunes().
         /*! Transfer matrix Y = [y11, y12; y21, y22] (see Gordon paper for more details).
          * @param y are the positions (elements y11 and y12 of Y)
@@ -173,6 +161,9 @@ class ClosedOrbitFinder
         value_type E0_m;
         
         /// Is the nominal orbital frequency
+        /* (see paper of Dr. C. Baumgarten: "Transverse-Longitudinal
+         * Coupling by Space Charge in Cyclotrons" (2012), formula (1))
+         */
         value_type wo_m;
         /// Number of integration steps
         size_type N_m;
@@ -187,11 +178,6 @@ class ClosedOrbitFinder
 
         /// Is the phase
         value_type phase_m;
-
-        /**
-         * Boolean which tells if a closed orbit for this configuration could be found (get set by the function findOrbit)
-         */
-        bool converged_m;
 
         /// Minimum energy needed in cyclotron
         value_type Emin_m;
@@ -230,9 +216,6 @@ class ClosedOrbitFinder
 
         /// Defines the stepper for integration of the ODE's
         Stepper stepper_m;
-
-	/// a guesss for the clo finder
-	value_type rguess_m;
         
         /*!
          * This quantity is defined in the paper "Transverse-Longitudinal Coupling by Space Charge in Cyclotrons" 
@@ -260,32 +243,26 @@ template<typename Value_type, typename Size_type, class Stepper>
 ClosedOrbitFinder<Value_type,
                   Size_type,
                   Stepper>::ClosedOrbitFinder(value_type E, value_type E0,
-                                              value_type wo, size_type N,
-                                              value_type accuracy, size_type maxit,
-                                              value_type Emin, value_type Emax,
-                                              size_type nSector, const std::string& fmapfn,
-                                              value_type rguess, const std::string& type,
-                                              value_type scaleFactor, bool domain)
+                                              size_type N, const Cyclotron* cycl,
+                                              bool domain)
     : nxcross_m(0)
     , nzcross_m(0)
     , E_m(E)
     , E0_m(E0)
-    , wo_m(wo)
+    , wo_m(cycl->getRfFrequ()*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
     , N_m(N)
     , dtheta_m(Physics::two_pi/value_type(N))
     , gamma_m(E/E0+1.0)
     , ravg_m(0)
     , phase_m(0)
-    , converged_m(false)
-    , Emin_m(Emin)
-    , Emax_m(Emax)
-    , nSector_m(nSector)
+    , Emin_m(cycl->getFMLowE())
+    , Emax_m(cycl->getFMHighE())
+    , nSector_m(cycl->getSymmetry())
     , lastOrbitVal_m(0.0)
     , lastMomentumVal_m(0.0)
     , vertOscDone_m(false)
     , domain_m(domain)
     , stepper_m()
-    , rguess_m(rguess)
 {
     
     if ( Emin_m > Emax_m )
@@ -322,16 +299,10 @@ ClosedOrbitFinder<Value_type,
     fidx_m.reserve(N_m);
     
     // read in magnetic fieldmap
-    bField_m.setFieldMapFN(fmapfn);
+    bField_m.setFieldMapFN(cycl->getFieldMapFN());
     bField_m.setSymmetry(nSector_m);
-    int fieldflag = bField_m.getFieldFlag(type);
-    bField_m.read(fieldflag, scaleFactor);
-
-    // compute closed orbit
-    converged_m = findOrbit(accuracy, maxit);
-
-    // compute h, ds, fidx, rav (average radius)
-    computeOrbitProperties();
+    int fieldflag = bField_m.getFieldFlag(cycl->getCyclotronType());
+    bField_m.read(fieldflag, cycl->getBScale());
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
@@ -445,17 +416,15 @@ typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
     return phase_m;
 }
 
-template<typename Value_type, typename Size_type, class Stepper>
-inline bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::isConverged() {
-    return converged_m;
-}
-
 // -----------------------------------------------------------------------------------------------------------------------
 // PRIVATE MEMBER FUNCTIONS
 // -----------------------------------------------------------------------------------------------------------------------
 
 template<typename Value_type, typename Size_type, class Stepper>
-bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type accuracy, size_type maxit) {
+bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type accuracy,
+                                                                  size_type maxit,
+                                                                  value_type rguess)
+{
     /* REMARK TO GORDON
      * q' = 1/b = 1/bcon
      * a' = a = acon
@@ -576,10 +545,10 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // radial momentum; Gordon, formula (20)
 
     container_type init;
-    if (rguess_m < 0)
+    if (rguess < 0)
       init = {beta * acon, 0.0};
     else
-      init = {rguess_m/1000.0, 0.0};
+      init = {rguess * 0.001, 0.0};
 
     // store initial values for updating values for higher energies
     container_type previous_init = {0.0, 0.0};

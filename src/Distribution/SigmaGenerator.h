@@ -101,25 +101,17 @@ public:
      * @param ex is the emittance in x-direction (horizontal), \f$ \left[\varepsilon_{x}\right] = \pi\ mm\ mrad  \f$
      * @param ey is the emittance in y-direction (longitudinal), \f$ \left[\varepsilon_{y}\right] = \pi\ mm\ mrad  \f$
      * @param ez is the emittance in z-direction (vertical), \f$ \left[\varepsilon_{z}\right] = \pi\ mm\ mrad  \f$
-     * @param wo is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
      * @param E is the energy, \f$ \left[E\right] = MeV \f$
-     * @param nh is the harmonic number
      * @param m is the mass of the particles \f$ \left[m\right] = \frac{MeV}{c^{2}} \f$
-     * @param Emin is the minimum energy [MeV] needed in cyclotron, \f$ \left[E_{min}\right] = MeV \f$
-     * @param Emax is the maximum energy [MeV] reached in cyclotron, \f$ \left[E_{max}\right] = MeV \f$
-     * @param nSector is the number of sectors (symmetry assumption)
+     * @param cycl is the cyclotron element
      * @param N is the number of integration steps (closed orbit computation). That's why its also the number
      *    of maps (for each integration step a map)
-     * @param fieldmap is the location of the file that specifies the magnetic field
      * @param truncOrder is the truncation order for power series of the Hamiltonian
-     * @param scaleFactor for the magnetic field (default: 1.0)
      * @param write is a boolean (default: true). If true all maps of all iterations are stored, otherwise not.
      */
     SigmaGenerator(value_type I, value_type ex, value_type ey, value_type ez,
-                   value_type wo, value_type E, value_type nh, value_type m,
-                   value_type Emin, value_type Emax, size_type nSector,
-                   size_type N, const std::string& fieldmap,
-                   size_type truncOrder, value_type scaleFactor = 1.0, bool write = true);
+                   value_type E, value_type m, const Cyclotron* cycl,
+                   size_type N, size_type truncOrder, bool write = true);
 
     /// Searches for a matched distribution.
     /*!
@@ -129,13 +121,13 @@ public:
      *    distribution was found)
      * @param maxitOrbit is the maximum number of iterations for finding closed orbit
      * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
-	 * @param guess value of radius for closed orbit finder
+     * @param rguess value of radius for closed orbit finder
      * @param type specifies the magnetic field format (e.g. CARBONCYCL)
      * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
      * @param full match over full turn not just single sector
      */
-    bool match(value_type accuracy, size_type maxit, size_type maxitOrbit, value_type angle,
-               value_type guess, const std::string& type, bool harmonic, bool full);
+    bool match(value_type accuracy, size_type maxit, size_type maxitOrbit,
+               const Cyclotron* cycl, value_type rguess, bool harmonic, bool full);
     
     /*!
      * Eigenvalue / eigenvector solver
@@ -336,39 +328,33 @@ SigmaGenerator<Value_type, Size_type>::SigmaGenerator(value_type I,
                                                       value_type ex,
                                                       value_type ey,
                                                       value_type ez,
-                                                      value_type wo,
                                                       value_type E,
-                                                      value_type nh,
                                                       value_type m,
-                                                      value_type Emin,
-                                                      value_type Emax,
-                                                      size_type nSector,
+                                                      const Cyclotron* cycl,
                                                       size_type N,
-                                                      const std::string& fieldmap,
                                                       size_type truncOrder,
-                                                      value_type scaleFactor,
                                                       bool write)
     : I_m(I)
-    , wo_m(wo)
+    , wo_m(cycl->getRfFrequ()*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
     , E_m(E)
     , gamma_m(E/m+1.0)
     , gamma2_m(gamma_m*gamma_m)
-    , nh_m(nh)
+    , nh_m(cycl->getCyclHarm())
     , beta_m(std::sqrt(1.0-1.0/gamma2_m))
     , m_m(m)
     , niterations_m(0)
     , converged_m(false)
-    , Emin_m(Emin)
-    , Emax_m(Emax)
-    , nSector_m(nSector)
+    , Emin_m(cycl->getFMLowE())
+    , Emax_m(cycl->getFMHighE())
+    , nSector_m(cycl->getSymmetry())
     , N_m(N)
-    , nStepsPerSector_m(N/nSector)
+    , nStepsPerSector_m(N/cycl->getSymmetry())
     , nSteps_m(N)
     , error_m(std::numeric_limits<value_type>::max())
-    , fieldmap_m(fieldmap)
+    , fieldmap_m(cycl->getFieldMapFN())
     , truncOrder_m(truncOrder)
     , write_m(write)
-    , scaleFactor_m(scaleFactor)
+    , scaleFactor_m(cycl->getBScale())
     , sigmas_m(nStepsPerSector_m)
     , rinit_m(0.0)
     , prinit_m(0.0)
@@ -443,9 +429,8 @@ template<typename Value_type, typename Size_type>
   bool SigmaGenerator<Value_type, Size_type>::match(value_type accuracy,
                                                     size_type maxit,
                                                     size_type maxitOrbit,
-                                                    value_type angle,
+                                                    const Cyclotron* cycl,
                                                     value_type rguess,
-                                                    const std::string& type,
                                                     bool harmonic, bool full)
 {
     /* compute the equilibrium orbit for energy E_
@@ -476,15 +461,20 @@ template<typename Value_type, typename Size_type>
 
         if (!harmonic) {
             ClosedOrbitFinder<value_type, size_type,
-                boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, wo_m, N_m, accuracy,
-                                                                           maxitOrbit, Emin_m, Emax_m,
-                                                                           nSector_m, fieldmap_m, rguess,
-                                                                           type, scaleFactor_m, false);
+                boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, N_m, cycl, false);
+
+            if ( !cof.findOrbit(accuracy, maxitOrbit, rguess) ) {
+                throw OpalException("SigmaGenerator::match()",
+                                    "Closed orbit finder didn't converge.");
+            }
+
+            cof.computeOrbitProperties();
 
             // properties of one turn
             tunes = cof.getTunes();
             ravg = cof.getAverageRadius();                   // average radius
             
+            value_type angle = cycl->getPHIinit();
             container_type h_turn = cof.getInverseBendingRadius(angle);
             container_type r_turn = cof.getOrbit(angle);
             container_type ds_turn = cof.getPathLength(angle);
