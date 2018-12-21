@@ -62,6 +62,12 @@ public:
      */
     BGeometryBase &getGeometry();
     
+    void interpolate(const double& rad,
+                     const double& tet_rad,
+                     double& br,
+                     double& bt,
+                     double& bz);
+    
 private:
     NullGeometry nullGeom_m;
     NullField nullField_m;

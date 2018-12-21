@@ -203,7 +203,6 @@ public:
 
     virtual double getRmin() const;
 
-    
     bool interpolate(const double& rad,
                      const double& tet_rad,
                      double& br,
@@ -231,6 +230,11 @@ protected:
 
     inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
 
+protected:
+    double trimCoilThreshold_m; ///< B-field threshold for applying trim coil
+    
+    void applyTrimCoil_m(const double r, const double z, double& br, double& bz);
+    
 private:
 
     std::string fmapfn_m; /* stores the filename of the fieldmap */
@@ -251,7 +255,6 @@ private:
     double pzinit_m;
 
     bool spiral_flag_m;
-    double trimCoilThreshold_m; ///< B-field threshold for applying trim coil
 
     std::string type_m; /* what type of field we use */
     double harm_m;
