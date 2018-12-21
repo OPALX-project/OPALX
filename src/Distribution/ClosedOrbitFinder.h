@@ -413,7 +413,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      * a' = a = acon
      */
 
-    // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
+    cycl_m->read(cycl_m->getFieldFlag(cycl_m->getCyclotronType()),
+                 cycl_m->getBScale());
     
     value_type bint, brint, btint;
 
@@ -532,9 +533,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
       init = {beta * acon, 0.0};
     else
       init = {rguess * 0.001, 0.0};
-
-    // store initial values for updating values for higher energies
-    container_type previous_init = {0.0, 0.0};
 
     do {
         
@@ -760,7 +758,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillati
         invptheta = 1.0 / ptheta;
 
         // intepolate values of magnetic field
-        cycl_m->apply(y[0], 0.0, theta, brint, btint, bint);
+        cycl_m->apply(y[0], y[2], theta, brint, btint, bint);
         
         bint *= invbcon;
         brint *= invbcon;
