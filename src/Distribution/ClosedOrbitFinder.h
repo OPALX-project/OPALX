@@ -124,7 +124,7 @@ class ClosedOrbitFinder
         value_type computeTune(const std::array<value_type,2>&, value_type, size_type);
 
         /// This function computes nzcross_ which is used to compute the tune in z-direction and the frequency error
-        void computeVerticalOscillations();
+//         void computeVerticalOscillations();
         
         /// This function rotates the calculated closed orbit finder properties to the initial angle
         container_type rotate(value_type angle, container_type& orbitProperty);
@@ -144,8 +144,12 @@ class ClosedOrbitFinder
         container_type ds_m;
         /// Stores the radial orbit (size: N_m+1)
         container_type r_m;
+        /// Stores the vertical oribt (size: N_m+1)
+        container_type vz_m;
         /// Stores the radial momentum
         container_type pr_m;
+        /// Stores the vertical momentum
+        container_type vpz_m;
         /// Stores the field index
         container_type fidx_m;
 
@@ -197,7 +201,7 @@ class ClosedOrbitFinder
          * Boolean which is true if computeVerticalOscillations() executed, otherwise false. This is used for checking in
          * getTunes() and getFrequencyError().
          */
-        bool vertOscDone_m;
+//         bool vertOscDone_m;
 
         /**
          * Boolean which is true by default. "true": orbit integration over one sector only, "false": integration
@@ -248,7 +252,7 @@ ClosedOrbitFinder<Value_type,
     , phase_m(0)
     , lastOrbitVal_m(0.0)
     , lastMomentumVal_m(0.0)
-    , vertOscDone_m(false)
+//     , vertOscDone_m(false)
     , domain_m(domain)
     , stepper_m()
     , cycl_m(cycl)
@@ -281,6 +285,8 @@ ClosedOrbitFinder<Value_type,
      */
     r_m.reserve(N_m + 1);
     pr_m.reserve(N_m + 1);
+    vz_m.reserve(N_m + 1);
+    vpz_m.reserve(N_m + 1);
 
     // reserve memory of N_m for the properties (--> size = 0, capacity = N_m)
     h_m.reserve(N_m);
@@ -323,8 +329,8 @@ std::pair<Value_type,Value_type> ClosedOrbitFinder<Value_type, Size_type, Steppe
     value_type nur = computeTune(x_m,px_m[1],nxcross_m);
 
     // compute nzcross_m
-    if (!vertOscDone_m)
-        computeVerticalOscillations();
+//     if (!vertOscDone_m)
+//         computeVerticalOscillations();
 
     // compute vertical tune
     value_type nuz = computeTune(z_m,pz_m[1],nzcross_m);
@@ -393,8 +399,8 @@ typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
     ClosedOrbitFinder<Value_type, Size_type, Stepper>::getFrequencyError()
 {
     // if the vertical oscillations aren't computed, we have to, since there we also compuote the frequency error.
-    if(!vertOscDone_m)
-        computeVerticalOscillations();
+//     if(!vertOscDone_m)
+//         computeVerticalOscillations();
 
     return phase_m;
 }
@@ -421,6 +427,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // resize vectors (--> size = N_m+1, capacity = N_m+1), note: we do N_m+1 integration steps
     r_m.resize(N_m+1);
     pr_m.resize(N_m+1);
+    vz_m.resize(N_m+1);
+    vpz_m.resize(N_m+1);
 
     // store acon and bcon locally
     value_type acon = acon_m(wo_m);               // [acon] = m
@@ -432,6 +440,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     value_type ptheta, invptheta;                       // Gordon, formula (5c)
     value_type invdenom;                                // denominator for computing dr,dpr
     value_type xold = 0.0;                              // for counting nxcross
+    value_type zold = 0.0;                              // for counting nzcross
 
     // index for reaching next element of the arrays r and pr (no nicer way found yet)
     size_type idx = 0;
@@ -440,10 +449,17 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     {
         r_m[idx] = y[0];
         pr_m[idx] = y[1];
+        vz_m[idx] = y[6];
+        vpz_m[idx] = y[7];
 
         // count number of crossings (excluding starting point --> idx>0)
         nxcross_m += (idx > 0) * (y[4] * xold < 0);
         xold = y[4];
+        
+        // number of times z2 changes sign
+        nzcross_m += (idx > 0) * (y[10] * zold < 0);
+        zold = y[10];
+        
         ++idx;
     };
 
@@ -454,17 +470,20 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     {
         pr2 = y[1] * y[1];
         if (p2 < pr2)
-            throw OpalException("ClosedOrbitFinder::findOrbit()", "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
+            throw OpalException("ClosedOrbitFinder::findOrbit()",
+                                "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
 
         // Gordon, formula (5c)
         ptheta = std::sqrt(p2 - pr2);
         invptheta = 1.0 / ptheta;
-
         // interpolate values of magnetic field
-        cycl_m->apply(y[0], 0.0, theta, brint, btint, bint);
+        cycl_m->apply(y[0], y[6], theta, brint, btint, bint);
+        
+//         std::cout << y[6] << std::endl; std::cin.get();
 
         bint *= invbcon;
         brint *= invbcon;
+        btint *= invbcon;
 
         // Gordon, formula (5a)
         dydt[0] = y[0] * y[1] * invptheta;
@@ -475,10 +494,22 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             dydt[i] = (y[1] * y[i] + y[0] * p2 * y[i+1] * invptheta * invptheta) * invptheta;
             dydt[i+1] = - y[1] * y[i+1] * invptheta - (bint + y[0] * brint) * y[i];
         }
+        
+        // Gordon, formulas (22a) and (22b)
+        for (size_type i = 6; i < 12; i += 2) {
+            dydt[i] = y[0] * y[i+1] * invptheta;
+            dydt[i+1] = (y[0] * brint - y[1] * invptheta * btint) * y[i];
+        }
+
+        // integrate phase
+        dydt[12] = y[0] * invptheta * gamma_m - 1;
+        
     };
 
-    // define initial state container for integration: y = {r, pr, x1, px1, x2, px2}
-    state_type y(6);
+    // define initial state container for integration: y = {r, pr, x1, px1, x2, px2,
+    //                                                      z, pz, z1, pz1, z2, pz2,
+    //                                                      phase}
+    state_type y(11);
 
     // difference of last and first value of r (1. element) and pr (2. element)
     container_type err(2);
@@ -530,15 +561,17 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
 
     container_type init;
     if (rguess < 0)
-      init = {beta * acon, 0.0};
+      init = {beta * acon, 0.0, 0.0, 1.0};
     else
-      init = {rguess * 0.001, 0.0};
+      init = {rguess * 0.001, 0.0, 0.0, 1.0};
 
     do {
         
         // (re-)set inital values for r and pr
         r_m[0] = init[0];
         pr_m[0] = init[1];
+        vz_m[0] = init[2];
+        vpz_m[0] = init[3];
 
         // integrate until error smaller than user-define accuracy
         do {
@@ -548,10 +581,15 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             x_m[1]  = 0.0;               // x2; Gordon, formula (10)
             px_m[1] = 1.0;               // px2; Gordon, formula (10)
             nxcross_m = 0;               // counts the number of crossings of x-axis (excluding first step)
+            nzcross_m = 0;
             idx = 0;                     // index for looping over r and pr arrays
 
             // fill container with initial states
-            y = {init[0],init[1], x_m[0], px_m[0], x_m[1], px_m[1]};
+            y = {init[0],init[1],
+                 x_m[0], px_m[0], x_m[1], px_m[1],
+                 init[2], init[3],
+                 1.0, 0.0, 0.0, 1.0, 0.0
+            };
 
             // integrate from 0 to 2*pi (one has to get back to the "origin")
             boost::numeric::odeint::integrate_n_steps(stepper_m,orbit_integration,y,0.0,dtheta_m,N_m,store);
@@ -561,6 +599,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             px_m[0] = y[3];
             x_m[1] = y[4];
             px_m[1] = y[5];
+            
+            z_m[0] = y[8];
+            pz_m[0] = y[9];
+            z_m[1] = y[10];
+            pz_m[1] = y[11];
+            phase_m = y[12] * Physics::u_two_pi; // / (2.0 * Physics::pi);
 
             // compute error (compare values of orbit and momentum for theta = 0 and theta = 2*pi)
             // (Note: size = N_m+1 --> last entry is N_m)
@@ -611,6 +655,13 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // remove last entry (since we don't have to store [0,2pi], but [0,2pi[)  --> size = N_m, capacity = N_m+1
     r_m.pop_back();
     pr_m.pop_back();
+    
+    
+    /* domain_m = true --> only integrated over a single sector
+     * --> multiply by cycl_m->getSymmetry() to get correct phase_m
+     */
+    if (domain_m)
+        phase_m *= cycl_m->getSymmetry();
 
 
     // returns true if converged, otherwise false
@@ -700,7 +751,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
 
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
-        cycl_m->apply(r_m[i], 0.0, theta, brint, btint, bint);
+        cycl_m->apply(r_m[i], vz_m[i], theta, brint, btint, bint);
         bint *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
@@ -723,98 +774,98 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
     ravg_m = std::accumulate(r_m.begin(),r_m.end(),0.0) / value_type(r_m.size());
 }
 
-template<typename Value_type, typename Size_type, class Stepper>
-void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillations() {
-
-    vertOscDone_m = true;
-
-    // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
-    value_type bint, brint, btint; // B, dB/dr, dB/dtheta
-
-    value_type en = E_m / E0_m;                                  // en = E/E0 = E/(mc^2) with potential energy E0
-    value_type p = acon_m(wo_m) * std::sqrt(en *(en + 2.0));     // Gordon, formula (3)
-    value_type p2 = p * p;                                              // p^2 = p*p
-    size_type idx = 0;                                                  // index for going through container
-    value_type pr2;                                                     // pr^2 = pr*pr
-    value_type ptheta, invptheta;                                       // Gordon, formula (5c)
-    value_type zold = 0.0;                                              // for counting nzcross
-
-    // store bcon locally
-    value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);     // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
-
-    // define the ODEs (using lambda function)
-    std::function<void(const state_type&, state_type&, const double)> vertical = [&](const state_type &y,
-                                                                                     state_type &dydt,
-                                                                                     const double theta)
-    {
-        pr2 = y[1] * y[1];
-        if (p2 < pr2) {
-            throw OpalException("ClosedOrbitFinder::computeVerticalOscillations()",
-                                "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
-        }
-
-        // Gordon, formula (5c)
-        ptheta = std::sqrt(p2 - pr2);
-        invptheta = 1.0 / ptheta;
-
-        // intepolate values of magnetic field
-        cycl_m->apply(y[0], y[2], theta, brint, btint, bint);
-        
-        bint *= invbcon;
-        brint *= invbcon;
-        btint *= invbcon;
-
-        // We have to integrate r and pr again, otherwise we don't have the Runge-Kutta of the B-field
-        // Gordon, formula (5a)
-        dydt[0] = y[0] * y[1] * invptheta;
-        // Gordon, formula (5b)
-        dydt[1] = ptheta - y[0] * bint;
-
-        // Gordon, formulas (22a) and (22b)
-        for (size_type i = 2; i < 5; i += 2) {
-            dydt[i] = y[0] * y[i+1] * invptheta;
-            dydt[i+1] = (y[0] * brint - y[1] * invptheta * btint) * y[i];
-        }
-
-        // integrate phase
-        dydt[6] = y[0] * invptheta * gamma_m - 1;
-    };
-
-    // to get next index for r and pr (to iterate over container)
-    auto next = [&](state_type& y, const value_type t) {
-        // number of times z2 changes sign
-        nzcross_m += (idx > 0) * (y[4] * zold < 0);
-        zold = y[4];
-        ++idx;
-    };
-
-    // set initial state container for integration: y = {r, pr, z1, pz1, z2, pz2, phase}
-    state_type y = {r_m[0], pr_m[0], 1.0, 0.0, 0.0, 1.0, 0.0};
-
-    // add last element for integration (since we have to return to the initial point (--> size = N_m+1, capacity = N_m+1)
-    r_m.push_back(lastOrbitVal_m);
-    pr_m.push_back(lastMomentumVal_m);
-
-    // integrate: assume no imperfections --> only integrate over a single sector (dtheta_m = 2pi/N_m)
-    boost::numeric::odeint::integrate_n_steps(stepper_m,vertical,y,0.0,dtheta_m,N_m,next);
-
-    // remove last element again (--> size = N_m, capacity = N_m+1)
-    r_m.pop_back();
-    pr_m.pop_back();
-
-    // write new state
-    z_m[0] = y[2];
-    pz_m[0] = y[3];
-    z_m[1] = y[4];
-    pz_m[1] = y[5];
-    phase_m = y[6] * Physics::u_two_pi; // / (2.0 * Physics::pi);
-
-    /* domain_m = true --> only integrated over a single sector
-     * --> multiply by cycl_m->getSymmetry() to get correct phase_m
-     */
-    if (domain_m)
-        phase_m *= cycl_m->getSymmetry();
-}
+// template<typename Value_type, typename Size_type, class Stepper>
+// void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeVerticalOscillations() {
+// 
+// //     vertOscDone_m = true;
+// 
+//     // READ IN MAGNETIC FIELD: ONLY FOR STAND-ALONE PROGRAM
+//     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
+// 
+//     value_type en = E_m / E0_m;                                  // en = E/E0 = E/(mc^2) with potential energy E0
+//     value_type p = acon_m(wo_m) * std::sqrt(en *(en + 2.0));     // Gordon, formula (3)
+//     value_type p2 = p * p;                                              // p^2 = p*p
+//     size_type idx = 0;                                                  // index for going through container
+//     value_type pr2;                                                     // pr^2 = pr*pr
+//     value_type ptheta, invptheta;                                       // Gordon, formula (5c)
+//     value_type zold = 0.0;                                              // for counting nzcross
+// 
+//     // store bcon locally
+//     value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);     // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
+// 
+//     // define the ODEs (using lambda function)
+//     std::function<void(const state_type&, state_type&, const double)> vertical = [&](const state_type &y,
+//                                                                                      state_type &dydt,
+//                                                                                      const double theta)
+//     {
+//         pr2 = y[1] * y[1];
+//         if (p2 < pr2) {
+//             throw OpalException("ClosedOrbitFinder::computeVerticalOscillations()",
+//                                 "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
+//         }
+// 
+//         // Gordon, formula (5c)
+//         ptheta = std::sqrt(p2 - pr2);
+//         invptheta = 1.0 / ptheta;
+// 
+//         // intepolate values of magnetic field
+//         cycl_m->apply(y[0], y[2], theta, brint, btint, bint);
+//         
+//         bint *= invbcon;
+//         brint *= invbcon;
+//         btint *= invbcon;
+// 
+//         // We have to integrate r and pr again, otherwise we don't have the Runge-Kutta of the B-field
+//         // Gordon, formula (5a)
+//         dydt[0] = y[0] * y[1] * invptheta;
+//         // Gordon, formula (5b)
+//         dydt[1] = ptheta - y[0] * bint;
+// 
+//         // Gordon, formulas (22a) and (22b)
+//         for (size_type i = 2; i < 5; i += 2) {
+//             dydt[i] = y[0] * y[i+1] * invptheta;
+//             dydt[i+1] = (y[0] * brint - y[1] * invptheta * btint) * y[i];
+//         }
+// 
+//         // integrate phase
+//         dydt[6] = y[0] * invptheta * gamma_m - 1;
+//     };
+// 
+//     // to get next index for r and pr (to iterate over container)
+//     auto next = [&](state_type& y, const value_type t) {
+//         // number of times z2 changes sign
+//         nzcross_m += (idx > 0) * (y[4] * zold < 0);
+//         zold = y[4];
+//         ++idx;
+//     };
+// 
+//     // set initial state container for integration: y = {r, pr, z1, pz1, z2, pz2, phase}
+//     state_type y = {r_m[0], pr_m[0], 1.0, 0.0, 0.0, 1.0, 0.0};
+// 
+//     // add last element for integration (since we have to return to the initial point (--> size = N_m+1, capacity = N_m+1)
+//     r_m.push_back(lastOrbitVal_m);
+//     pr_m.push_back(lastMomentumVal_m);
+// 
+//     // integrate: assume no imperfections --> only integrate over a single sector (dtheta_m = 2pi/N_m)
+//     boost::numeric::odeint::integrate_n_steps(stepper_m,vertical,y,0.0,dtheta_m,N_m,next);
+// 
+//     // remove last element again (--> size = N_m, capacity = N_m+1)
+//     r_m.pop_back();
+//     pr_m.pop_back();
+// 
+//     // write new state
+//     z_m[0] = y[2];
+//     pz_m[0] = y[3];
+//     z_m[1] = y[4];
+//     pz_m[1] = y[5];
+//     phase_m = y[6] * Physics::u_two_pi; // / (2.0 * Physics::pi);
+// 
+//     /* domain_m = true --> only integrated over a single sector
+//      * --> multiply by cycl_m->getSymmetry() to get correct phase_m
+//      */
+//     if (domain_m)
+//         phase_m *= cycl_m->getSymmetry();
+// }
 
 template<typename Value_type, typename Size_type, class Stepper> 
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
