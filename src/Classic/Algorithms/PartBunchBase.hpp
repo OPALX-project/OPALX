@@ -1477,25 +1477,34 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
         // <x>, <y>, <z>
         binfo.mean[i] = w;
         
-        // sqrt(<p_w^2> - <p_w>^2) (w = x, y, z)
-        binfo.prms[i] = std::sqrt(pw2 - pw * pw);
+        // central: <p_w^2> - <p_w>^2 (w = x, y, z)
+        binfo.prms[i] = pw2 - pw * pw;
+        if ( binfo.prms[i] < 0 ) {
+            binfo.prms[i] = 0.0;
+        }
+
+        // central: <wp_w> - <w><p_w>
+        wpw = wpw - w * pw;
         
-        // <w^2> - <w>^2 (w = x, y, z)
+        // central: <w^2> - <w>^2 (w = x, y, z)
         binfo.rrms[i] = w2 - w * w;
         
-        // normalized emittance
-        binfo.emit[i] = (w2 * pw2 - wpw * wpw);
+        // central: normalized emittance
+        binfo.emit[i] = (binfo.rrms[i] * binfo.prms[i] - wpw * wpw);
         binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
         
-        // <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
+        // central: <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
         double tmp = w4
                    - 4.0 * w * w3
                    + 6.0 * w * w * w2
                    - 3.0 * w * w * w * w;
         binfo.halo[i] = tmp / ( binfo.rrms[i] * binfo.rrms[i] );
-        
-        // sqrt(<w^2>) (w = x, y, z)
+
+        // central: sqrt(<w^2> - <w>^2) (w = x, y, z)
         binfo.rrms[i] = std::sqrt(binfo.rrms[i]);
+
+        // central: sqrt(<p_w^2> - <p_w>^2)
+        binfo.prms[i] = std::sqrt(binfo.prms[i]);
     }
     
     double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
