@@ -338,7 +338,7 @@ void IndexMap::saveSDDS(double startS) const {
         }
     }
 
-    for (unsigned int j = 0; j < totalSize - 1; ++ j) {
+    for (unsigned int j = 0; j < totalSize; ++ j) {
         allItems[RFCAVITY][4 * j + 2] = -allItems[RFCAVITY][4 * j + 1];
     }
 

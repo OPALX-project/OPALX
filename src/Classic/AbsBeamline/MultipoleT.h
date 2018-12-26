@@ -133,6 +133,9 @@ public:
     void initialise(PartBunchBase<double, 3>*,
                     double &startField,
                     double &endField);
+    /** Initialises the geometry */
+    void initialise();
+
     /** Finalise the MultipoleT - sets bunch to NULL */
     void finalise();
     /** Return true if dipole component not zero */

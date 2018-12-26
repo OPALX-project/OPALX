@@ -44,6 +44,7 @@
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
+#include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
@@ -835,16 +836,16 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     Probe *elptr = dynamic_cast<Probe *>(prob.clone());
     myElements.push_back(elptr);
 
-    double xstart = elptr->getXstart();
+    double xstart = elptr->getXStart();
     *gmsg << "XStart= " << xstart << " [mm]" << endl;
 
-    double xend = elptr->getXend();
+    double xend = elptr->getXEnd();
     *gmsg << "XEnd= " << xend << " [mm]" << endl;
 
-    double ystart = elptr->getYstart();
+    double ystart = elptr->getYStart();
     *gmsg << "YStart= " << ystart << " [mm]" << endl;
 
-    double yend = elptr->getYend();
+    double yend = elptr->getYEnd();
     *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
     // initialise, do nothing
@@ -1043,16 +1044,16 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     Septum *elptr = dynamic_cast<Septum *>(sept.clone());
     myElements.push_back(elptr);
 
-    double xstart = elptr->getXstart();
+    double xstart = elptr->getXStart();
     *gmsg << "XStart = " << xstart << " [mm]" << endl;
 
-    double xend = elptr->getXend();
+    double xend = elptr->getXEnd();
     *gmsg << "XEnd = " << xend << " [mm]" << endl;
 
-    double ystart = elptr->getYstart();
+    double ystart = elptr->getYStart();
     *gmsg << "YStart = " << ystart << " [mm]" << endl;
 
-    double yend = elptr->getYend();
+    double yend = elptr->getYEnd();
     *gmsg << "YEnd = " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
@@ -1135,16 +1136,16 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     Stripper *elptr = dynamic_cast<Stripper *>(stripper.clone());
     myElements.push_back(elptr);
 
-    double xstart = elptr->getXstart();
+    double xstart = elptr->getXStart();
     *gmsg << "XStart= " << xstart << " [mm]" << endl;
 
-    double xend = elptr->getXend();
+    double xend = elptr->getXEnd();
     *gmsg << "XEnd= " << xend << " [mm]" << endl;
 
-    double ystart = elptr->getYstart();
+    double ystart = elptr->getYStart();
     *gmsg << "YStart= " << ystart << " [mm]" << endl;
 
-    double yend = elptr->getYend();
+    double yend = elptr->getYEnd();
     *gmsg << "YEnd= " << yend << " [mm]" << endl;
 
     double opcharge = elptr->getOPCharge();
@@ -2256,34 +2257,24 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
 
 void ParallelCyclotronTracker::applyPluginElements(const double dt) {
     // Plugin Elements are all defined in mm, change beam to mm before applying
-
     itsBunch_m->R *= Vector_t(1000.0);
 
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
-        if(((*sindex)->first) == ElementBase::SEPTUM)    {
-            (static_cast<Septum *>(((*sindex)->second).second))->checkSeptum(itsBunch_m);
-        }
+        ElementBase::ElementType type = ((*sindex)->first);
+        if( type == ElementBase::CCOLLIMATOR ||
+            type == ElementBase::PROBE       ||
+            type == ElementBase::SEPTUM      ||
+            type == ElementBase::STRIPPER) {
 
-        if(((*sindex)->first) == ElementBase::PROBE)    {
-            (static_cast<Probe *>(((*sindex)->second).second))->checkProbe(itsBunch_m,
-                                                                           turnnumber_m,
-                                                                           itsBunch_m->getT() * 1e9  /*[ns]*/,
-                                                                           dt);
-        }
-
-        if(((*sindex)->first) == ElementBase::STRIPPER)    {
-            bool flag_stripper = (static_cast<Stripper *>(((*sindex)->second).second))
-                -> checkStripper(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
-            if(flag_stripper) {
+            PluginElement* element = static_cast<PluginElement *>(((*sindex)->second).second);
+            bool flag = element->check(itsBunch_m,
+                                       turnnumber_m,
+                                       itsBunch_m->getT() * 1e9  /*[ns]*/,
+                                       dt);
+            if (type == ElementBase::STRIPPER && flag == true) {
                 itsBunch_m->updateNumTotal();
                 *gmsg << "* Total number of particles after stripping = " << itsBunch_m->getTotalNum() << endl;
             }
-        }
-
-        if(((*sindex)->first) == ElementBase::CCOLLIMATOR) {
-            CCollimator * collim;
-            collim = static_cast<CCollimator *>(((*sindex)->second).second);
-            collim->checkCollimator(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
         }
     }
 
@@ -2590,11 +2581,11 @@ void ParallelCyclotronTracker::singleParticleDump() {
             // store
             dvector_t::iterator itParameter = tmpr.begin();
 
-            for(auto id : tmpi) {
+            for(auto tmpid : tmpi) {
 
-                outfTrackOrbit_m << "ID" << id;
+                outfTrackOrbit_m << "ID" << tmpid;
 
-                if (id == 0) { // for stat file
+                if (tmpid == 0) { // for stat file
                     itsBunch_m->RefPartR_m[0] = *itParameter;
                     itsBunch_m->RefPartR_m[1] = *(itParameter + 2);
                     itsBunch_m->RefPartR_m[2] = *(itParameter + 4);
