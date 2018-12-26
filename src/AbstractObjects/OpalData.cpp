@@ -168,7 +168,7 @@ OpalDataImpl::OpalDataImpl():
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
     isInOPALEnvMode_m(false),
-    isOptimizerFlag_m(true),
+    isOptimizerFlag_m(false),
     isInPrepState_m(false)
 {
     bunch_m    = nullptr;

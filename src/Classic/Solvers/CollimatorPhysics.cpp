@@ -51,11 +51,11 @@ namespace {
     };
 
     struct DegraderInsideTester: public InsideTester {
-        DegraderInsideTester(ElementBase * el) {
+        explicit DegraderInsideTester(ElementBase * el) {
             deg_m = static_cast<Degrader*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) override {
             return deg_m->isInMaterial(R(2));
         }
 
@@ -64,11 +64,11 @@ namespace {
     };
 
     struct CollimatorInsideTester: public InsideTester {
-        CollimatorInsideTester(ElementBase * el) {
+        explicit CollimatorInsideTester(ElementBase * el) {
             col_m = static_cast<CCollimator*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt)  override {
             return col_m->checkPoint(R(0), R(1));
         }
 
@@ -77,11 +77,11 @@ namespace {
     };
 
     struct FlexCollimatorInsideTester: public InsideTester {
-        FlexCollimatorInsideTester(ElementBase * el) {
+        explicit FlexCollimatorInsideTester(ElementBase * el) {
             col_m = static_cast<FlexibleCollimator*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R, const Vector_t &P, double dt) {
+        bool checkHit(const Vector_t &R, const Vector_t &P, double dt)  override {
             return col_m->isStopped(R, P, Physics::c * dt / sqrt(1.0  + dot(P, P)));
         }
 
@@ -325,7 +325,6 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
         //if firs call to apply setup needed accelerator resources
         setupCollimatorDKS(bunch, numParticlesInSimulation);
 
-        int numaddback;
         do {
             IpplTimings::startTimer(DegraderLoopTimer_m);
 
@@ -348,7 +347,7 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
             }
 
             //sort device particles and get number of particles comming back to bunch
-            numaddback = 0;
+            int numaddback = 0;
             if (numparticles > 0) {
                 dksbase.callCollimatorPhysicsSort(mem_ptr, numparticles, numaddback);
             }
@@ -1088,7 +1087,7 @@ void CollimatorPhysics::copyFromBunchDKS(PartBunchBase<double, 3> *bunch,
     for (unsigned int i = 0; i < nL; ++i) {
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            tester->checkHit(bunch->R[i], bunch->P[i], dT_m);
+            tester->checkHit(bunch->R[i], bunch->P[i], dT_m))
         {
 
             PART x;

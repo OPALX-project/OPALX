@@ -52,19 +52,19 @@ OpalMultipoleT::OpalMultipoleT():
     OpalElement(SIZE, "MULTIPOLET",
     "The \"MULTIPOLET\" element defines a combined function multipole.") {
     itsAttr[TP] = Attributes::makeRealArray
-                  ("TP", "Transverse Profile derivatives in m^(-k)");
+                  ("TP", "Transverse Profile derivatives in T m^(-k)");
     itsAttr[LFRINGE] = Attributes::makeReal
-                  ("LFRINGE", "The length of the left end field in m");
+                  ("LFRINGE", "The length of the left end field [m]");
     itsAttr[RFRINGE] = Attributes::makeReal
-                  ("RFRINGE", "The length of the right end field in m");
+                  ("RFRINGE", "The length of the right end field [m]");
     itsAttr[HAPERT] = Attributes::makeReal
-                  ("HAPERT", "The aperture width in m");
+                  ("HAPERT", "The aperture width [m]");
     itsAttr[VAPERT] = Attributes::makeReal
-                  ("VAPERT", "The aperture height in m");
+                  ("VAPERT", "The aperture height [m]");
     itsAttr[ANGLE] = Attributes::makeReal
-                  ("ANGLE", "The azimuthal angle of the magnet in ring (rad)");
+                  ("ANGLE", "The azimuthal angle of the magnet in ring [rad]");
     itsAttr[EANGLE] = Attributes::makeReal
-                  ("EANGLE", "The entrance angle (rad)");
+                  ("EANGLE", "The entrance angle [rad]");
     itsAttr[MAXFORDER] = Attributes::makeReal
                   ("MAXFORDER", 
                    "Number of terms used in each field component");
@@ -73,14 +73,13 @@ OpalMultipoleT::OpalMultipoleT():
                    "Number of terms used in polynomial expansions");
     itsAttr[ROTATION] = Attributes::makeReal
                   ("ROTATION", 
-                   "Rotation angle about its axis for skew elements (rad)");
+                   "Rotation angle about its axis for skew elements [rad]");
     itsAttr[VARRADIUS] = Attributes::makeBool
                   ("VARRADIUS",
                    "Set true if radius of magnet is variable");
     itsAttr[BBLENGTH] = Attributes::makeReal
                   ("BBLENGTH",
-                   "Distance between centre of magnet and entrance in m");
-    //registerRealAttribute("FRINGELEN");
+                   "Distance between centre of magnet and entrance [m]");
 
     registerOwnership();
 
@@ -89,7 +88,7 @@ OpalMultipoleT::OpalMultipoleT():
 
 
 OpalMultipoleT::OpalMultipoleT(const std::string &name, 
-			       OpalMultipoleT *parent):
+                               OpalMultipoleT *parent):
     OpalElement(name, parent) {
     setElement((new MultipoleT(name))->makeWrappers());
 }
@@ -116,10 +115,10 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
         dynamic_cast<const MultipoleT*>(base.removeAlignWrapper());
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
-	ss << order;
-	std::string orderString = ss.str();
+        ss << order;
+        std::string orderString = ss.str();
         std::string attrName = "TP" + orderString;
-	registerRealAttribute(attrName)->setReal(multT->getTransProfile(order));
+        registerRealAttribute(attrName)->setReal(multT->getTransProfile(order));
     }
 
     registerRealAttribute("LFRINGE")->setReal(multT->getFringeLength().at(0));
@@ -132,7 +131,6 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     registerRealAttribute("EANGLE")->setReal(multT->getEntranceAngle());
     //registerRealAttribute("VARRADIUS")->setBool(multT->getVarRadius());
     registerRealAttribute("BBLENGTH")->setReal(multT->getBoundingBoxLength());
-    
 }
 
 
@@ -140,24 +138,23 @@ void OpalMultipoleT::update() {
     OpalElement::update();
 
     // Magnet length.
+    double mm = 1000.;
     MultipoleT *multT =
     dynamic_cast<MultipoleT*>(getElement()->removeWrappers());
-    double length = Attributes::getReal(itsAttr[LENGTH]);
+    double length = Attributes::getReal(itsAttr[LENGTH])*mm;
     double angle = Attributes::getReal(itsAttr[ANGLE]);
-    double boundingBoxLength = Attributes::getReal(itsAttr[BBLENGTH]);
     multT->setElementLength(length);
     multT->setLength(length);
     multT->setBendAngle(angle);
-    multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), 
-		       Attributes::getReal(itsAttr[HAPERT]));
-  
-    multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])/2,
-                          Attributes::getReal(itsAttr[LFRINGE]),
-                          Attributes::getReal(itsAttr[RFRINGE])); 
+    multT->setAperture(Attributes::getReal(itsAttr[VAPERT])*mm, 
+                       Attributes::getReal(itsAttr[HAPERT])*mm);
+    multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])*mm/2,
+                          Attributes::getReal(itsAttr[LFRINGE])*mm,
+                          Attributes::getReal(itsAttr[RFRINGE])*mm); 
     if (Attributes::getBool(itsAttr[VARRADIUS])) {
         multT->setVarRadius();
     }
-    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH]));
+    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH])*mm);
     const std::vector<double> transProfile = 
                               Attributes::getRealArray(itsAttr[TP]);
     int transSize = transProfile.size();
@@ -172,19 +169,13 @@ void OpalMultipoleT::update() {
     multT->setRotation(Attributes::getReal(itsAttr[ROTATION]));
     multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
 
-    PlanarArcGeometry &geometry = multT->getGeometry();
-
-    if(length) {
-        geometry = PlanarArcGeometry(2 * boundingBoxLength, angle / length);
-    } else {
-        geometry = PlanarArcGeometry(angle);
-    }
-    
     for(int comp = 0; comp < transSize; comp++) {
-        multT->setTransProfile(comp, transProfile[comp]);
+        double units = 10.*gsl_sf_pow_int(1e-3, comp); // T m^-comp -> kG mm^-comp
+        multT->setTransProfile(comp, transProfile[comp]*units);
     }
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(multT);
+    multT->initialise();
 
     setElement(multT->makeWrappers());
 }

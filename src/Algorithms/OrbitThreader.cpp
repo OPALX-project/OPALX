@@ -117,7 +117,7 @@ void OrbitThreader::execute() {
         setDesignEnergy(allElements, visitedElements);
 
         if (errorFlag_m == EVERYTHINGFINE) {
-            Vector_t nextR = r_m / (Physics::c * dt_m);
+            nextR = r_m / (Physics::c * dt_m);
             integrator_m.push(nextR, p_m, dt_m);
             nextR *= Physics::c * dt_m;
 

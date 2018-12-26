@@ -37,7 +37,7 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
     std::ofstream tplot;
     tplot.open ("tunePlot.txt",std::ios::app);
     tplot << std::setprecision(16);
-//================================
+    //================================
 
     IpplTimings::startTimer(mapAnalysis_m);
 
@@ -46,11 +46,11 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
 
     //get the EigenValues/-Vectors
     cfMatrix_t eigenValM, eigenVecM, invEigenVecM;
-	eigenDecomp_m(tMatrix, eigenValM, eigenVecM, invEigenVecM);
-        
-	//normalize eigen Vectors
-	for (int i=0; i <6 ; i++){
-	    double temp=0;
+    eigenDecomp_m(tMatrix, eigenValM, eigenVecM, invEigenVecM);
+
+    //normalize eigen Vectors
+    for (int i=0; i <6 ; i++){
+        double temp=0;
 
         for (int j=0; j <6 ; j+=2){
             temp += 2*(eigenVecM[j][i] * std::conj(eigenVecM[j+1][i])).imag();
@@ -65,30 +65,30 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
                 invEigenVecM[j][i] /= std::sqrt(temp);
             }
         }
-	}
+    }
 
-	//TODO pack transposition in a neat function
-	cfMatrix_t eigenVecMT;
-	for (int i=0; i <6 ; i++){
-	        for (int j=0; j <6 ; j++){
-	            eigenVecMT[i][j]= eigenVecM[j][i];
-	        }
-	    }
+    //TODO pack transposition in a neat function
+    cfMatrix_t eigenVecMT;
+    for (int i=0; i <6 ; i++){
+        for (int j=0; j <6 ; j++){
+            eigenVecMT[i][j]= eigenVecM[j][i];
+        }
+    }
 
-	double prec =0.01;
+    double prec =0.01;
 
-	int idx=0;
-	std::array<int,6> pairs;
+    int idx=0;
+    std::array<int,6> pairs;
 
-	fMatrix_t skewMatrix = createSkewMatrix_m();
-	cfMatrix_t cSkewMatrix = complexTypeMatrix_m(skewMatrix);
+    fMatrix_t skewMatrix = createSkewMatrix_m();
+    cfMatrix_t cSkewMatrix = complexTypeMatrix_m(skewMatrix);
 
-	fMatrix_t K = imagPartOfMatrix_m(eigenVecMT *cSkewMatrix* eigenVecM);
-        
-	for (int i=0; i<6;i++) pairs[i]=-1;
+    fMatrix_t K = imagPartOfMatrix_m(eigenVecMT *cSkewMatrix* eigenVecM);
 
-	//Printer
-	for (int i=0; i <6 ; i++){
+    for (int i=0; i<6;i++) pairs[i]=-1;
+
+    //Printer
+    for (int i=0; i <6 ; i++){
         for (int j=0; j <6 ; j++){
             if (K[i][j]>1-prec && K[i][j]<1+prec){
                 pairs[idx]=i;
@@ -98,18 +98,18 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
                 if (idx==6) break;
             }
         }
-	}
-	
+    }
 
-	//Fill empty elements in pairs
-	std::array<int,6>::iterator pairsIt;
 
-	//Compare eigenvalues
+    //Fill empty elements in pairs
+    std::array<int,6>::iterator pairsIt;
+
+    //Compare eigenvalues
     int negidx=6-1;
     for (int i=0; i<6; i++) {
         pairsIt = std::find (pairs.begin(), pairs.end(), i);
         if (pairsIt != pairs.end()){
-                    continue;
+            continue;
         }
 
         for (int j=0; i!=j && j <6 ; j++){
@@ -121,7 +121,7 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
             }
         }
     }
-    
+
     //Fill the paris vector
     for (int i=0; i < 6 && idx < 6; i++){
         pairsIt = std::find (pairs.begin(), pairs.end(), i);
@@ -133,23 +133,23 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
             idx++;
         }
     }
-    
-	cfMatrix_t tempM = eigenVecM ;
-	//cfMatrix_t tempInvM = eigenVecM ;
-	cfMatrix_t tempValM = eigenValM ;
+
+    cfMatrix_t tempM = eigenVecM ;
+    //cfMatrix_t tempInvM = eigenVecM ;
+    cfMatrix_t tempValM = eigenValM ;
 
 
-	for (int i=0; i <6 ; i++){
-	    eigenValM[i][i]=tempValM[pairs[i]][pairs[i]];
+    for (int i=0; i <6 ; i++){
+        eigenValM[i][i]=tempValM[pairs[i]][pairs[i]];
         for (int j=0; j <6 ; j++){
             eigenVecM[j][i]=tempM[j][pairs[i]];
             //eigenVecMT[i][j]=eigenVecM[j][i];
             //invEigenVecM[i][j]=tempInvM[pairs[i]][j];
         }
-	}
-	
+    }
+
     invEigenVecM= invertMatrix_m(eigenVecM);
-	cfMatrix_t cblocktMatrix = getBlockDiagonal_m(tMatrix, eigenVecM, invEigenVecM);
+    cfMatrix_t cblocktMatrix = getBlockDiagonal_m(tMatrix, eigenVecM, invEigenVecM);
 
 
 
@@ -157,36 +157,35 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
 
     }
 
-	FVector<std::complex<double>, 3> betaTunes, betaTunes2;
-	FVector<double, 3> betaTunes3;
+    FVector<std::complex<double>, 3> betaTunes, betaTunes2;
+    FVector<double, 3> betaTunes3;
 
 
-	//rearrangeEigen(eigenValM, eigenVecM);
+    //rearrangeEigen(eigenValM, eigenVecM);
 
-	double lenEigenVec;
-	for (int i = 0; i < 3; i++){
-	    betaTunes[i]=std::log(eigenValM[i*2][i*2])/ (2*Physics::pi * std::complex<double>(0, 1));
-	    betaTunes[i]= std::asin(cblocktMatrix[i*2][i*2+1])/(std::complex<double>(2*Physics::pi, 0));
+    for (int i = 0; i < 3; i++){
+        betaTunes[i]=std::log(eigenValM[i*2][i*2])/ (2*Physics::pi * std::complex<double>(0, 1));
+        betaTunes[i]= std::asin(cblocktMatrix[i*2][i*2+1])/(std::complex<double>(2*Physics::pi, 0));
 
-	    betaTunes2[i]= std::acos(cblocktMatrix[i*2][i*2])/(std::complex<double>(2*Physics::pi, 0));
-	    betaTunes2[i]= std::acos(cblocktMatrix[i*2][i*2].real())/(std::complex<double>(2*Physics::pi, 0));
+        betaTunes2[i]= std::acos(cblocktMatrix[i*2][i*2])/(std::complex<double>(2*Physics::pi, 0));
+        betaTunes2[i]= std::acos(cblocktMatrix[i*2][i*2].real())/(std::complex<double>(2*Physics::pi, 0));
 
-	    betaTunes3[i]= std::acos(eigenValM[i*2][i*2].real()) / (2*Physics::pi);
+        betaTunes3[i]= std::acos(eigenValM[i*2][i*2].real()) / (2*Physics::pi);
 
-	    lenEigenVec = 0;
-	    for (int j = 0; j < 3; j++){
-	        lenEigenVec += std::abs(eigenVecM[i][j]);
+        double lenEigenVec = 0;
+        for (int j = 0; j < 3; j++){
+            lenEigenVec += std::abs(eigenVecM[i][j]);
 
-	    }
-            lenEigenVec = std::sqrt(lenEigenVec);
-            tplot<<"1: "<<betaTunes[i] <<std::endl;
-            tplot<<"2: "<<betaTunes2[i]<< std::endl;
-            //tplot<<"3: "<<lenEigenVec<< std::endl;
-            tplot<<"3: ("<<betaTunes3[i]<< ",0)"<< std::endl;
+        }
+        lenEigenVec = std::sqrt(lenEigenVec);
+        tplot<<"1: "<<betaTunes[i] <<std::endl;
+        tplot<<"2: "<<betaTunes2[i]<< std::endl;
+        //tplot<<"3: "<<lenEigenVec<< std::endl;
+        tplot<<"3: ("<<betaTunes3[i]<< ",0)"<< std::endl;
 
-	IpplTimings::stopTimer(mapAnalysis_m);
-	//TODO: do something with the tunes etc
-	}
+        IpplTimings::stopTimer(mapAnalysis_m);
+        //TODO: do something with the tunes etc
+    }
 
 }
 
@@ -194,97 +193,97 @@ void MapAnalyser::linTAnalyze(const fMatrix_t& tMatrix){
 //Analyses the Sigma Matrix
 void MapAnalyser::linSigAnalyze(fMatrix_t& sigMatrix){
     IpplTimings::startTimer(bunchAnalysis_m);
-	fMatrix_t sigmaBlockM;
+    fMatrix_t sigmaBlockM;
 
-	fMatrix_t skewMatrix;
-	    for (int i=0; i <6 ; i=i+2){
-	    	skewMatrix[0+i][1+i]=1.;
-	    	skewMatrix[1+i][0+i]=-1.;
-	    }
+    fMatrix_t skewMatrix;
+    for (int i=0; i <6 ; i=i+2){
+        skewMatrix[0+i][1+i]=1.;
+        skewMatrix[1+i][0+i]=-1.;
+    }
 
-	sigMatrix=sigMatrix*skewMatrix;
+    sigMatrix=sigMatrix*skewMatrix;
 
-	cfMatrix_t eigenValM, eigenVecM, invEigenVecM;
+    cfMatrix_t eigenValM, eigenVecM, invEigenVecM;
 
-	eigenDecomp_m(sigMatrix,eigenValM, eigenVecM, invEigenVecM);
+    eigenDecomp_m(sigMatrix,eigenValM, eigenVecM, invEigenVecM);
 
-	cfMatrix_t cblocksigM = getBlockDiagonal_m(sigMatrix, eigenVecM,invEigenVecM);
-
-
-	for (int i=0; i<6; i++){
-			for (int j =0; j<6; j++){
-				sigmaBlockM[i][j]=cblocksigM[i][j].real();
-			}
-
-	}
-
-	cfMatrix_t teigenValM, teigenVecM, tinvEigenVecM;
-	eigenDecomp_m(sigmaBlockM, teigenValM, teigenVecM, tinvEigenVecM);
-
-	for (int i=0; i<6; i++){
-
-	}
+    cfMatrix_t cblocksigM = getBlockDiagonal_m(sigMatrix, eigenVecM,invEigenVecM);
 
 
-	//TODO: Where to go with EigenValues?
-	IpplTimings::stopTimer(bunchAnalysis_m);
+    for (int i=0; i<6; i++){
+        for (int j =0; j<6; j++){
+            sigmaBlockM[i][j]=cblocksigM[i][j].real();
+        }
+
+    }
+
+    cfMatrix_t teigenValM, teigenVecM, tinvEigenVecM;
+    eigenDecomp_m(sigmaBlockM, teigenValM, teigenVecM, tinvEigenVecM);
+
+    for (int i=0; i<6; i++){
+
+    }
+
+
+    //TODO: Where to go with EigenValues?
+    IpplTimings::stopTimer(bunchAnalysis_m);
 }
 
 
 //Returns the eigenDecomositon for the fMatrix M = eigenVec * eigenVal * invEigenVec
 void MapAnalyser::eigenDecomp_m(const fMatrix_t& M, cfMatrix_t& eigenVal, cfMatrix_t& eigenVec, cfMatrix_t& invEigenVec){
 
-	double data[36];
-	int idx, s;
-	for (int i = 0; i < 6; i++) {
-		for (int j = 0; j < 6; j++) {
-			idx = i * 6 + j;
-			data[idx] = M[i][j];
-		}
-	}
+    double data[36];
+    int idx, s;
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 6; j++) {
+            idx = i * 6 + j;
+            data[idx] = M[i][j];
+        }
+    }
 
 
-	gsl_matrix_view m = gsl_matrix_view_array(data, 6, 6);
-	gsl_vector_complex *eval = gsl_vector_complex_alloc(6);
-	gsl_matrix_complex *evec = gsl_matrix_complex_alloc(6, 6);
-	gsl_matrix_complex *eveci = gsl_matrix_complex_alloc(6, 6);
-	gsl_permutation * p = gsl_permutation_alloc(6);
-	gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc(6);
+    gsl_matrix_view m = gsl_matrix_view_array(data, 6, 6);
+    gsl_vector_complex *eval = gsl_vector_complex_alloc(6);
+    gsl_matrix_complex *evec = gsl_matrix_complex_alloc(6, 6);
+    gsl_matrix_complex *eveci = gsl_matrix_complex_alloc(6, 6);
+    gsl_permutation * p = gsl_permutation_alloc(6);
+    gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc(6);
 
-	//get Eigenvalues and Eigenvectors
-	gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
-	gsl_eigen_nonsymmv_free(w);
-	gsl_eigen_nonsymmv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
+    //get Eigenvalues and Eigenvectors
+    gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
+    gsl_eigen_nonsymmv_free(w);
+    gsl_eigen_nonsymmv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
 
-	for (int i = 0; i < 6; ++i) {
-		eigenVal[i][i] = std::complex<double>(
-				GSL_REAL(gsl_vector_complex_get(eval, i)),
-				GSL_IMAG(gsl_vector_complex_get(eval, i)));
-		for (int j = 0; j < 6; ++j) {
-			eigenVec[i][j] = std::complex<double>(
-					GSL_REAL(gsl_matrix_complex_get(evec, i, j)),
-					GSL_IMAG(gsl_matrix_complex_get(evec, i, j)));
-		}
-	}
+    for (int i = 0; i < 6; ++i) {
+        eigenVal[i][i] = std::complex<double>(
+                                              GSL_REAL(gsl_vector_complex_get(eval, i)),
+                                              GSL_IMAG(gsl_vector_complex_get(eval, i)));
+        for (int j = 0; j < 6; ++j) {
+            eigenVec[i][j] = std::complex<double>(
+                                                  GSL_REAL(gsl_matrix_complex_get(evec, i, j)),
+                                                  GSL_IMAG(gsl_matrix_complex_get(evec, i, j)));
+        }
+    }
 
-	//invert Eigenvectormatrix
-	gsl_linalg_complex_LU_decomp(evec, p, &s);
-	gsl_linalg_complex_LU_invert(evec, p, eveci);
+    //invert Eigenvectormatrix
+    gsl_linalg_complex_LU_decomp(evec, p, &s);
+    gsl_linalg_complex_LU_invert(evec, p, eveci);
 
-	//Create invEigenVecMatrix
-	for (int i = 0; i < 6; ++i) {
-		for (int j = 0; j < 6; ++j) {
-			invEigenVec[i][j] = std::complex<double>(
-					GSL_REAL(gsl_matrix_complex_get(eveci, i, j)),
-					GSL_IMAG(gsl_matrix_complex_get(eveci, i, j)));
-		}
-	}
+    //Create invEigenVecMatrix
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            invEigenVec[i][j] = std::complex<double>(
+                                                     GSL_REAL(gsl_matrix_complex_get(eveci, i, j)),
+                                                     GSL_IMAG(gsl_matrix_complex_get(eveci, i, j)));
+        }
+    }
 
 
-	//free space
-	gsl_vector_complex_free(eval);
-	gsl_matrix_complex_free(evec);
-	gsl_matrix_complex_free(eveci);
+    //free space
+    gsl_vector_complex_free(eval);
+    gsl_matrix_complex_free(evec);
+    gsl_matrix_complex_free(eveci);
 
 
 }
@@ -292,39 +291,37 @@ void MapAnalyser::eigenDecomp_m(const fMatrix_t& M, cfMatrix_t& eigenVal, cfMatr
 
 //Transforms the Matirx to a block diagonal rotation Matrix
 MapAnalyser::cfMatrix_t MapAnalyser::getBlockDiagonal_m(const fMatrix_t& M,
-        cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM){
+                                                        cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM){
 
-	cfMatrix_t cM, qMatrix, invqMatrix, nMatrix, invnMatrix, rMatrix;
+    cfMatrix_t cM, qMatrix, invqMatrix, nMatrix, invnMatrix, rMatrix;
 
-	std::ofstream tmap;
+    for (int i=0; i<6; i++){
+        for (int j =0; j<6; j++){
+            cM[i][j]=std::complex<double>(M[i][j],0);
+        }
+    }
 
-	for (int i=0; i<6; i++){
-		for (int j =0; j<6; j++){
-			cM[i][j]=std::complex<double>(M[i][j],0);
-		}
-	}
+    for (int i=0; i <6 ; i=i+2){
+        qMatrix[0+i][0+i]=std::complex<double>(1.,0);
+        qMatrix[0+i][1+i]=std::complex<double>(0,1.);
+        qMatrix[1+i][0+i]=std::complex<double>(1.,0);
+        qMatrix[1+i][1+i]=std::complex<double>(0,-1);
 
-	for (int i=0; i <6 ; i=i+2){
-		qMatrix[0+i][0+i]=std::complex<double>(1.,0);
-		qMatrix[0+i][1+i]=std::complex<double>(0,1.);
-		qMatrix[1+i][0+i]=std::complex<double>(1.,0);
-		qMatrix[1+i][1+i]=std::complex<double>(0,-1);
+        invqMatrix[0+i][0+i]=std::complex<double>(1.,0);
+        invqMatrix[0+i][1+i]=std::complex<double>(1.,0);
+        invqMatrix[1+i][0+i]=std::complex<double>(0.,-1.);
+        invqMatrix[1+i][1+i]=std::complex<double>(0,1.);
+    }
+    qMatrix/=std::sqrt(2.);
+    invqMatrix/=std::sqrt(2);
 
-		invqMatrix[0+i][0+i]=std::complex<double>(1.,0);
-		invqMatrix[0+i][1+i]=std::complex<double>(1.,0);
-		invqMatrix[1+i][0+i]=std::complex<double>(0.,-1.);
-		invqMatrix[1+i][1+i]=std::complex<double>(0,1.);
-		}
-	qMatrix/=std::sqrt(2.);
-	invqMatrix/=std::sqrt(2);
-
-	nMatrix=eigenVecM*qMatrix;
-	invnMatrix= invqMatrix* invEigenVecM;
+    nMatrix=eigenVecM*qMatrix;
+    invnMatrix= invqMatrix* invEigenVecM;
 
 
-	rMatrix= invnMatrix * cM * nMatrix;
+    rMatrix= invnMatrix * cM * nMatrix;
 
-	return rMatrix;
+    return rMatrix;
 
 }
 
@@ -334,10 +331,10 @@ void MapAnalyser::printPhaseShift_m(fMatrix_t& Sigma, fMatrix_t tM, cfMatrix_t& 
     fMatrix_t R1, S, sigmaS;
 
     for (int i=0; i<6; i++){
-                for (int j =0; j<6; j++){
-                    ctM[i][j]=std::complex<double>(tM[i][j],0);
-                }
-            }
+        for (int j =0; j<6; j++){
+            ctM[i][j]=std::complex<double>(tM[i][j],0);
+        }
+    }
 
     S = createSkewMatrix_m();
     sigmaS = Sigma*S;
@@ -371,35 +368,34 @@ void MapAnalyser::setNMatrix_m(fMatrix_t& M, cfMatrix_t& N, cfMatrix_t& invN){
 
     cfMatrix_t cM, qMatrix, invqMatrix, nMatrix, invnMatrix, rMatrix;
 
-        std::ofstream tmap;
-        //tmap.open ("TransferMap.txt",std::ios::app);
-        //tmap << std::setprecision(16);
+    //std::ofstream tmap;
+    //tmap.open ("TransferMap.txt",std::ios::app);
+    //tmap << std::setprecision(16);
 
 
-        for (int i=0; i<6; i++){
-            for (int j =0; j<6; j++){
-                cM[i][j]=std::complex<double>(M[i][j],0);
-            }
+    for (int i=0; i<6; i++){
+        for (int j =0; j<6; j++){
+            cM[i][j]=std::complex<double>(M[i][j],0);
         }
+    }
 
-        for (int i=0; i <6 ; i=i+2){
-            qMatrix[0+i][0+i]=std::complex<double>(1.,0);
-            qMatrix[0+i][1+i]=std::complex<double>(0,1.);
-            qMatrix[1+i][0+i]=std::complex<double>(1.,0);
-            qMatrix[1+i][1+i]=std::complex<double>(0,-1);
+    for (int i=0; i <6 ; i=i+2){
+        qMatrix[0+i][0+i]=std::complex<double>(1.,0);
+        qMatrix[0+i][1+i]=std::complex<double>(0,1.);
+        qMatrix[1+i][0+i]=std::complex<double>(1.,0);
+        qMatrix[1+i][1+i]=std::complex<double>(0,-1);
 
-            invqMatrix[0+i][0+i]=std::complex<double>(1.,0);
-            invqMatrix[0+i][1+i]=std::complex<double>(1.,0);
-            invqMatrix[1+i][0+i]=std::complex<double>(0.,-1.);
-            invqMatrix[1+i][1+i]=std::complex<double>(0,1.);
-            }
-        qMatrix/=std::sqrt(2.);
-        invqMatrix/=std::sqrt(2);
+        invqMatrix[0+i][0+i]=std::complex<double>(1.,0);
+        invqMatrix[0+i][1+i]=std::complex<double>(1.,0);
+        invqMatrix[1+i][0+i]=std::complex<double>(0.,-1.);
+        invqMatrix[1+i][1+i]=std::complex<double>(0,1.);
+    }
+    qMatrix/=std::sqrt(2.);
+    invqMatrix/=std::sqrt(2);
 
 
-        N=eigenVecM*qMatrix;
-        invN= invqMatrix* invEigenVecM;
-
+    N=eigenVecM*qMatrix;
+    invN= invqMatrix* invEigenVecM;
 }
 
 
@@ -430,36 +426,36 @@ MapAnalyser::fMatrix_t MapAnalyser::createSkewMatrix_m(){
 MapAnalyser::fMatrix_t MapAnalyser::realPartOfMatrix_m(cfMatrix_t cM){
     fMatrix_t M;
     for (int i=0; i<6; i++){
-            for (int j =0; j<6; j++){
-                M[i][j]=cM[i][j].real();
-            }
+        for (int j =0; j<6; j++){
+            M[i][j]=cM[i][j].real();
         }
+    }
     return M;
 }
 
 MapAnalyser::fMatrix_t MapAnalyser::imagPartOfMatrix_m(cfMatrix_t cM){
     fMatrix_t M;
     for (int i=0; i<6; i++){
-            for (int j =0; j<6; j++){
-                M[i][j]=cM[i][j].imag();
-            }
+        for (int j =0; j<6; j++){
+            M[i][j]=cM[i][j].imag();
         }
+    }
     return M;
 }
 
 MapAnalyser::cfMatrix_t MapAnalyser::complexTypeMatrix_m(fMatrix_t M){
     cfMatrix_t cM;
     for (int i=0; i<6; i++){
-            for (int j =0; j<6; j++){
-                cM[i][j]=std::complex<double>(M[i][j],0);
-            }
+        for (int j =0; j<6; j++){
+            cM[i][j]=std::complex<double>(M[i][j],0);
         }
+    }
     return cM;
 }
 
 
 MapAnalyser::cfMatrix_t MapAnalyser::invertMatrix_m(const cfMatrix_t& M){
-    
+
     gsl_set_error_handler_off();
     //gsl_vector_complex *m = gsl_vector_complex_alloc(6);
     gsl_matrix_complex *m = gsl_matrix_complex_alloc(6, 6);
@@ -483,29 +479,29 @@ MapAnalyser::cfMatrix_t MapAnalyser::invertMatrix_m(const cfMatrix_t& M){
         std::cout<< "This actually works" << std::endl;
         //gsl_set_error_handler (NULL);
 
-        }
-    
+    }
+
     int invertStatus = gsl_linalg_complex_LU_invert(m, p, invm);
-    
+
     if ( invertStatus ) {
         std::cout << "Error" << std::endl;
         std::exit(1);
     }
-    
-    
+
+
     if (invertStatus != 0){
         std::cout<< "This actually works" << std::endl;
         //gsl_set_error_handler (NULL);
 
-            }
+    }
 
     cfMatrix_t invM;
     //Create invEigenVecMatrix
     for (int i = 0; i < 6; ++i) {
         for (int j = 0; j < 6; ++j) {
             invM[i][j] = std::complex<double>(
-                    GSL_REAL(gsl_matrix_complex_get(invm, i, j)),
-                    GSL_IMAG(gsl_matrix_complex_get(invm, i, j)));
+                                              GSL_REAL(gsl_matrix_complex_get(invm, i, j)),
+                                              GSL_IMAG(gsl_matrix_complex_get(invm, i, j)));
         }
     }
 

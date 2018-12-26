@@ -571,13 +571,6 @@ protected:
     Vector_t globalMeanR_m;
     Quaternion_t globalToLocalQuaternion_m;
 
-    /// for coordinate transformation to Ks
-    /// Ks is the coordinate system to calculate statistics
-    Quaternion_t QKs3D_m;
-    /// holds the referernce particle
-    Vector_t     Ks3DRefr_m;
-    Vector_t     Ks3DRefp_m;
-
     /// maximal extend of particles
     Vector_t rmax_m;
     /// minimal extend of particles
