@@ -541,10 +541,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // radial momentum; Gordon, formula (20)
 
     container_type init;
-    if (rguess < 0)
-      init = {beta * acon, 0.0, 0.0, 1.0};
-    else
-      init = {rguess * 0.001, 0.0, 0.0, 1.0};
+    //      r            pr   z    pz
+    init = {beta * acon, 0.0, 0.0, 1.0};
+
+    if (rguess >= 0.0) {
+        init[0] = rguess * 0.001;
+    }
 
     do {
         
