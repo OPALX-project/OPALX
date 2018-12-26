@@ -18,20 +18,20 @@
 
 class Hamiltonian
 {
-    
+
 public:
     typedef FTps<double, PSdim> series_t;
-    
-    Hamiltonian(int truncOrder);
-    
+
+    explicit Hamiltonian(int truncOrder);
+
     series_t x;     /*!< Phase space 1st dimension */
     series_t px;    /*!< Phase space 2nd dimension */
     series_t y;     /*!< Phase space 3rd dimension */
     series_t py;    /*!< Phase space 4th dimension */
     series_t z;     /*!< Phase space 5th dimension */
     series_t delta; /*!< Phase space 6th dimension */
-    
-    
+
+
     /**Drift Space Hamiltonian
      *
      * \f[
@@ -42,7 +42,7 @@ public:
      * @param gamma0 Lorenz factor
      */
     Hamiltonian::series_t drift(const double& gamma0);
-    
+
     /**:TODO: WIP:Rectangular Bend Hamiltonian
      * \f[
      * H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
@@ -55,7 +55,7 @@ public:
                                 double& q,
                                 double& h,
                                 double& K0);
-    
+
     /**Sector Bend Hamiltonian
      *
      * \f[
@@ -74,7 +74,7 @@ public:
     Hamiltonian::series_t sbend(const double& gamma0,
                                 const double& h,
                                 const double& k0);
-               
+
     /**:TODO: WIP: Fringe Field SBend
      *
      * \f[H_{Dipole}= \frac{\delta}{\beta_0} - \left( 1+ hx \right)
@@ -116,8 +116,8 @@ public:
     Hamiltonian::series_t quadrupole(const double& gamma0,
                                      const double& q,
                                      const double& k1);
-    
-    
+
+
     /**Hamiltonian for a linear Thin Lens fringe field approximation
      * \f[
      * H_{ThinLens} = \frac{1}{2} (x^2 - y^2) k_0 \tan \left( \Psi \right)
@@ -129,7 +129,7 @@ public:
      */
     Hamiltonian::series_t fringeField(const double& phi,
                                       const double& k0);
-    
+
 private:
     /**
      * Calculate \f[\beta = \sqrt{1-\frac{1}{\gamma^2}}
@@ -137,10 +137,10 @@ private:
      * @param gamma Lorenz factor
      */
     double getBeta_m(const double& gamma);
-    
+
 private:
     int truncOrder_m;  ///< Map truncation order (= Hamiltonian truncOrd - 1)
-    
+
 };
 
 
@@ -155,30 +155,30 @@ private:
 // {
 //     //Derived form Distribution/SigmaGenerator.cpp
 //     // convert m from MeV/c^2 to eV*s^{2}/m^{2}
-// 
+//
 //     double m = bunch->getM() / (Physics::c * Physics::c);
-// 
+//
 //     // formula (57)
 //     double gamma = bunch->get_gamma();
 //     double beta = std::sqrt( 1. - 1/( gamma*gamma ) );
-// 
+//
 //     double gamma2=gamma * gamma;
-// 
+//
 //     double freq = itsBeam_m->getFrequency() * 1e6;              // [freq] = Hz (form MHz)
 //     double I = itsBeam_m->getCurrent();                         // [I] = A
 //     double q = bunch->getQ();                              // [q] = e
-// 
+//
 // #ifdef PHIL_WRITE
 //     std::ofstream dAngle;
 //     dAngle.open("dipoleAngle.txt", std::ios::app);
 // #endif
-// 
+//
 //     dAngle << "Freq:" <<  freq << std::endl;
 //     dAngle << "I: " <<  I << std::endl;
 //     dAngle << "SigmaMatirx" << bunch->getSigmaMatrix() << std::endl;
 //     dAngle << "mass" << bunch->getM()<< std::endl;
 //     dAngle << "charge" << q << std::endl;
-// 
+//
 //     //TODO check formula for lambda
 //     double lam = Physics::c / freq;                              // wavelength, [lam] = m
 //     double K3 = 3.0 * I * q * lam / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m *
@@ -189,33 +189,33 @@ private:
 //     dAngle << "beta:  " << beta << std::endl;
 //     // formula (30), (31)
 //     fMatrix_t sigmMatrix = bunch->getSigmaMatrix();
-// 
+//
 //     double sx = std::sqrt(std::fabs(sigmMatrix(0,0)));              //[sx] = m
 //     double sy = std::sqrt(std::fabs(sigmMatrix(2,2)));              //[sy] = m
 //     double sz = std::sqrt(std::fabs(sigmMatrix(4,4)));              //[sz] = m
-// 
+//
 //     dAngle << "sx:  " << sx << std::endl;
 //     dAngle << "sz:  " << sz << std::endl;
 //     double tmp = sx * sy;                                           // [tmp] = m^{2}
-// 
+//
 //     double f = std::sqrt(tmp) / (3.0 * gamma * sz);                 // [f] = 1
 //     double kxy = K3 * std::fabs(1.0 - f) / ((sx + sy) * sz);        // [kxy] = 1/m
-// 
+//
 //     dAngle << "f:  " << f << std::endl;
 //     dAngle << "kxy:  " << kxy << std::endl;
 //     double Kx = kxy / sx;                                           //[Kx] = 1/m^{2}
 //     double Ky = kxy / sy;                                           //[Ky] = 1/m^{2}
 //     double Kz = K3 * f / (tmp * sz);                                //[Kz] = 1/m^{2}
-// 
+//
 //     // Change units for application on [m], [p/p0] and [E/p0-1/b0]
 //     // (these units are for [mm], [mrad] and [promille])
 //     // according Hinterberger - Physik der Teilcherbeschleuniger Eq.4.8
-// 
+//
 //     double mm2m = 1e3;
 //     double mrad2pnorm= 1e3; // for small angles (tan(a) ~ a)
 //     double promille2delta = 1/(10 * bunch->getInitialBeta()); // [E/p0-1/b0] = [1/b0 * (E0 - E)/E0]
-// 
-// 
+//
+//
 //     H = ( -0.5 * Kx * x * x
 //           -0.5 * Ky * y * y ) * mm2m / mrad2pnorm
 //         - (0.5 * Kz * z * z * gamma2) * promille2delta ;
@@ -223,4 +223,3 @@ private:
 
 
 #endif
-

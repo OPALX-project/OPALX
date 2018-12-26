@@ -471,10 +471,12 @@ void GreenWakeFunction::CalcWakeFFT(double spacing) {
     }
 #endif
 
+#ifdef ENABLE_WAKE_TESTS_FFT_OUT
     std::vector<double> wf(2*NBin_m-1);
     for(int i = 0; i < 2 * NBin_m - 1; ++ i) {
         wf[i] = FftWField_m[i];
     }
+#endif
     // calculate the FFT of the Wakefield
     gsl_fft_real_transform(FftWField_m.data(), 1, M, real, work);
 
@@ -523,18 +525,15 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     fs.open(filename_m.c_str());
 
     if(fs.fail()) {
-        throw GeneralClassicException("GreenWakeFunction::setWake",
+        throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
                             "Open file operation failed, please check if \""
                             + filename_m +  "\" really exists.");
-
-        msg << "Open file operation failed, please check if " << filename_m <<  " really exists." << endl;
-        return;
     }
 
     fs >> name;
     msg << " SSDS1 read = " << name << endl;
     if(name.compare("SDDS1") != 0) {
-        throw GeneralClassicException("GreenWakeFunction::setWake",
+        throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
                             " No SDDS1 File. A SDDS1 file should start with a SDDS1 String. Check file \""
                             + filename_m +  "\" ");
     }
@@ -547,7 +546,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     fs >> Np;
     msg << " header read" << endl;
     if(Np <= 0) {
-        throw GeneralClassicException("GreenWakeFunction::setWake",
+        throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
                             " The particle number should be bigger than zero! Please check the first line of file \""
                             + filename_m +  "\".");
     }
@@ -562,7 +561,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
             fs >> dist[i] >> wake[i] >> dummy;
         }
         if(fs.eof()) {
-            throw GeneralClassicException("GreenWakeFunction::setWake",
+            throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
                                 " End of file reached before the whole wakefield is imported, please check file \""
                                 + filename_m +  "\".");
         }
@@ -593,6 +592,3 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
 const std::string GreenWakeFunction::getType() const {
     return "GreenWakeFunction";
 }
-
-
-//  LocalWords:  FftWField

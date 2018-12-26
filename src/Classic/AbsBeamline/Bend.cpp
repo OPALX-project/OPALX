@@ -72,7 +72,7 @@ Bend::Bend():
     sinEntranceAngle_m(0.0),
     tanEntranceAngle_m(0.0),
     tanExitAngle_m(0.0),
-	nSlices_m(1){
+    nSlices_m(1){
 
     setElType(isDipole);
 

@@ -40,7 +40,7 @@ OpalCavity::OpalCavity():
     itsAttr[DVOLT] = Attributes::makeReal
                      ("DVOLT", "RF voltage error in MV");
     itsAttr[FREQ] = Attributes::makeReal
-	            ("FREQ", "RF frequency in MHz");
+                    ("FREQ", "RF frequency in MHz");
     itsAttr[LAG] = Attributes::makeReal
                    ("LAG", "Phase lag (rad)");
     itsAttr[DLAG] = Attributes::makeReal
@@ -64,26 +64,26 @@ OpalCavity::OpalCavity():
     itsAttr[APVETO] = Attributes::makeBool
                     ("APVETO", "Do not use this cavity in the Autophase procedure", false);
     itsAttr[RMIN] = Attributes::makeReal
-                    ("RMIN", " Minimal Radius of a cyclotron cavity");
+                    ("RMIN", " Minimal Radius of a cyclotron cavity [mm]");
     itsAttr[RMAX] = Attributes::makeReal
-                    ("RMAX", " Maximal Radius of a cyclotron cavity");
+                    ("RMAX", " Maximal Radius of a cyclotron cavity [mm]");
     itsAttr[ANGLE] = Attributes::makeReal
-                     ("ANGLE", "Azimuth position of a cyclotron cavity");
+                     ("ANGLE", "Azimuth position of a cyclotron cavity [deg]");
     itsAttr[PDIS] = Attributes::makeReal
-                    ("PDIS", "Shift distance of cavity gap from center of cyclotron");
+                    ("PDIS", "Shift distance of cavity gap from center of cyclotron [mm]");
     itsAttr[GAPWIDTH] = Attributes::makeReal
-                        ("GAPWIDTH", "Gap width of a cyclotron cavity");
+                        ("GAPWIDTH", "Gap width of a cyclotron cavity [mm]");
     itsAttr[PHI0] = Attributes::makeReal
-                    ("PHI0", "initial phase of cavity");
+                    ("PHI0", "Initial phase of cavity [deg]");
     itsAttr[DESIGNENERGY] = Attributes::makeReal
                             ("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
     // attibutes for timedependent values
     itsAttr[PHASE_MODEL] = Attributes::makeString("PHASE_MODEL",
-						  "The name of the phase time dependence model.");
+                                                  "The name of the phase time dependence model.");
     itsAttr[AMPLITUDE_MODEL] = Attributes::makeString("AMPLITUDE_MODEL",
-						      "The name of the amplitude time dependence model.");
+                                                      "The name of the amplitude time dependence model.");
     itsAttr[FREQUENCY_MODEL] = Attributes::makeString("FREQUENCY_MODEL",
-						      "The name of the frequency time dependence model.");
+                                                      "The name of the frequency time dependence model.");
 
     registerRealAttribute("VOLT");
     registerRealAttribute("DVOLT");

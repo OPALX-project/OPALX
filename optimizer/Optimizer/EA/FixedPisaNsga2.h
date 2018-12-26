@@ -125,7 +125,7 @@ private:
     //FIXME:
     // selector parameters
     int seed;   /* seed for random number generator */
-    int tournament;  /* parameter for tournament selection */
+    const int tournament_m = 1;  /* number of opponents for mating selection */
     size_t selector_mu_;
 
     /// the current state of the state machine

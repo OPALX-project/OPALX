@@ -39,6 +39,7 @@ public:
         YEND,            // End of y coordinate
         WIDTH,           // Width of the probe
         STEP,            // Step size of the probe
+        OUTFN,           // Output filename
         SIZE
     };
     /// Exemplar constructor.

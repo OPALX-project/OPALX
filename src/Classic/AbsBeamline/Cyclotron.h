@@ -98,7 +98,7 @@ public:
     Cyclotron();
     Cyclotron(const Cyclotron &);
 
-    void applyTrimCoil(const double r, const double z, double *br, double *bz);
+    void applyTrimCoil(const double r, const double z, double& br, double& bz);
 
     virtual ~Cyclotron();
 
@@ -191,6 +191,10 @@ public:
 
     virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
+    virtual void apply(const double& rad, const double& z,
+                       const double& tet_rad, double& br,
+                       double& bt, double& bz);
+
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, const int &fieldflag, const double &scaleFactor);
@@ -203,7 +207,6 @@ public:
 
     virtual double getRmin() const;
 
-    
     bool interpolate(const double& rad,
                      const double& tet_rad,
                      double& br,
@@ -212,6 +215,9 @@ public:
     
     void read(const int &fieldflag, const double &scaleFactor);
     
+private:
+    void applyTrimCoil_m(const double r, const double z, double *br, double *bz);
+
 protected:
     
     
@@ -231,6 +237,7 @@ protected:
 
     inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
 
+    
 private:
 
     std::string fmapfn_m; /* stores the filename of the fieldmap */

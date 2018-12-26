@@ -27,14 +27,20 @@
 
 #include <cmath>
 #include <vector>
+#include "gsl/gsl_errno.h"
 #include "gsl/gsl_integration.h"
 #include "gsl/gsl_sf_pow_int.h"
+#include "Utility/Inform.h" // ippl/src/
+
 #include "CoordinateTransform.h"
+
+extern Inform *gmsg;
 
 namespace coordinatetransform {
 
-CoordinateTransform::CoordinateTransform(): x_m(0), z_m(0), s_m(0) {
-}
+const double CoordinateTransform::error = 1e-10;
+const int CoordinateTransform::workspaceSize = 1000;
+const int CoordinateTransform::algorithm = GSL_INTEG_GAUSS61;
 
 CoordinateTransform::CoordinateTransform(const double &xlab,
                                          const double &ylab,
@@ -106,20 +112,24 @@ std::vector<double> CoordinateTransform::calcReferenceTrajectory(
     FY.function = &getUnitTangentVectorY;
     FX.params = &params;
     FY.params = &params;
-    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
-    double error = gsl_sf_pow_int(10, -10);
-    double *resultX = new double;
-    double *resultY = new double;
-    double *abserr = new double;
-    gsl_integration_qag(&FX, 0, s, 0, error, 1000, 6, w, resultX, abserr);
-    gsl_integration_qag(&FY, 0, s, 0, error, 1000, 6, w, resultY, abserr);
-    gsl_integration_workspace_free(w); 
+    gsl_integration_workspace *w = gsl_integration_workspace_alloc(workspaceSize);
+    double resultX, resultY, absErrX, absErrY;
+    gsl_error_handler_t* err_default = gsl_set_error_handler_off();
+    int errX = gsl_integration_qag(&FX, 0, s, error, error, workspaceSize,
+                                   algorithm, w, &resultX, &absErrX);
+    int errY = gsl_integration_qag(&FY, 0, s, error, error, workspaceSize,
+                                   algorithm, w, &resultY, &absErrY);
+    if (errX || errY) {
+        *gmsg << "Warning - failed to reach specified error " << error 
+              << " in multipoleT coordinateTransform" << endl;
+        *gmsg << "  X " << errX << " absErr: " << absErrX << " s: " << s << endl;
+        *gmsg << "  Y " << errY << " absErr: " << absErrY << " s: " << s << endl;
+    }
+    gsl_integration_workspace_free(w);
+    gsl_set_error_handler(err_default);
     std::vector<double> result;
-    result.push_back(*resultX);
-    result.push_back(*resultY);
-    delete resultX;
-    delete resultY;
-    delete abserr;
+    result.push_back(resultX);
+    result.push_back(resultY);
     return result;
 }
 
@@ -136,11 +146,9 @@ void CoordinateTransform::calcSCoordinate(const double &xlab,
         s_m = 10 * s_0_m;
         return;
     }
-    if (eqn1 > 0 && eqn2 < 0) {
-        double temp = eqn2;
-        eqn2 = eqn1;
-        eqn1 = temp;
-    }
+    // if (eqn1 > 0 && eqn2 < 0) {
+    //     std::swap(eqn1, eqn2)
+    // }
     int n = 0;
     while (n < 10000 && fabs(s1 - s2) > 1e-12) {
         double stemp = (s2 + s1) / 2;
@@ -180,7 +188,7 @@ void CoordinateTransform::transformFromEntranceCoordinates(
                         calcReferenceTrajectory(-boundingBoxLength);
     std::vector<double> shat = getUnitTangentVector(-boundingBoxLength);
     double x = coordinates[0], z = coordinates[1];
-    coordinates[0] = x * shat[1] + z * shat[0] + r_entrance[0];
+    coordinates[0] =  x * shat[1] + z * shat[0] + r_entrance[0];
     coordinates[1] = -x * shat[0] + z * shat[1] + r_entrance[1];
 }
 

@@ -83,7 +83,9 @@ MultipoleT::~MultipoleT() {
 } 
 
 ElementBase* MultipoleT::clone() const {
-    return new MultipoleT(*this);
+    MultipoleT* newMultipole = new MultipoleT(*this);
+    newMultipole->initialise();
+    return newMultipole;
 }
 
 void MultipoleT::finalise() {
@@ -95,7 +97,7 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &P,
     /** Rotate coordinates around the central axis of the magnet */
     Vector_t R_prime = rotateFrame(R);
     /** If magnet is not straight go to local Frenet-Serret coordinates */
-    R_prime[2] *= -1; //OPAL uses different sign convention...
+    //R_prime[2] *= -1; //OPAL uses different sign convention...
     Vector_t X = R_prime;
     R_prime = transformCoords(X);
     if (insideAperture(R_prime)) {
@@ -109,7 +111,7 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &P,
             theta = 0.0;
         } else if (!variableRadius_m) {
             theta = R_prime[2] * angle_m / length_m;
-        } else if (variableRadius_m) {
+        } else { // variableRadius_m == true
             theta = fringeField_l.getLambda() * log(cosh((R_prime[2] +
                     fringeField_l.getX0()) / fringeField_l.getLambda())) -
                     fringeField_r.getLambda() * log(cosh((R_prime[2] -
@@ -121,7 +123,7 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &P,
         B[0] = Bx * cos(theta) - Bs * sin(theta);
         B[2] = Bx * sin(theta) + Bs * cos(theta);
         B[1] = getBz(R_prime);
-        B[2] *= -1; //OPAL uses different sign convention
+        // B[2] *= -1; //OPAL uses different sign convention
         return false;
     } else {
         for(int i = 0; i < 3; i++) {
@@ -527,37 +529,35 @@ double MultipoleT::getFn(std::size_t n, double x, double s) {
         return func;
     }
 }
- 
-inline
-void MultipoleT::initialise(PartBunchBase<double, 3>* bunch, 
-                double &startField, 
-                double &endField) {
-    RefPartBunch_m = bunch;
+
+void MultipoleT::initialise() {
     planarArcGeometry_m.setElementLength(2 * boundingBoxLength_m);
     planarArcGeometry_m.setCurvature(angle_m / length_m);
 }
 
-inline
+void MultipoleT::initialise(PartBunchBase<double, 3>* bunch, 
+                double &startField, 
+                double &endField) {
+    RefPartBunch_m = bunch;
+    initialise();
+}
+
 bool MultipoleT::bends() const {
     return (transProfile_m[0] != 0);
 }
 
-inline
 PlanarArcGeometry& MultipoleT::getGeometry() {
     return planarArcGeometry_m;
 }
 
-inline
 const PlanarArcGeometry& MultipoleT::getGeometry() const {
     return planarArcGeometry_m;
 }
 
-inline 
 EMField &MultipoleT::getField() {
     return dummy;
 }
 
-inline
 const EMField &MultipoleT::getField() const {
     return dummy;
 }

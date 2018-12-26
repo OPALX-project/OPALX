@@ -59,7 +59,7 @@ struct myParams {
 class CoordinateTransform {
 public:
     /** Default constructor, transforms everything to the origin */
-    CoordinateTransform();
+    CoordinateTransform() = delete;
     /** Constructor, calculates coordinate transformation from lab coordinates
      *  to Frenet-Serret coordinates, given fringe field parameters
      *  \param xlab -> x-coordinate in lab frame
@@ -120,6 +120,9 @@ private:
     double x_m;
     double z_m;
     double s_m;
+    static const double error;
+    static const int workspaceSize;
+    static const int algorithm;
 };
 
 /** Internal function used for GSL numerical integration */

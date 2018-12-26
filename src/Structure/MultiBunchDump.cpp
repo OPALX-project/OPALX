@@ -7,6 +7,9 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Timer.h"
 
+#include "OPALconfig.h"
+#include "Utilities/Util.h"
+
 #include "Ippl.h"
 
 MultiBunchDump::MultiBunchDump()
@@ -162,6 +165,16 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
         << indent << "description=\"19 Halo in z\"\n"
         << "&end\n";
     
+    out << "&data\n"
+        << indent << "mode=ascii,\n"
+        << indent << "no_row_counts=1\n"
+        << "&end\n";
+
+    out << Ippl::getNodes() << std::endl;
+    out << OPAL_PROJECT_NAME << " "
+        << OPAL_PROJECT_VERSION << " git rev. #"
+        << Util::getGitRevision() << std::endl;
+
     close_m(out);
 }
 

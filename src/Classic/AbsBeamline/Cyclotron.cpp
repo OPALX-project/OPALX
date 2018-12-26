@@ -87,10 +87,23 @@ Cyclotron::~Cyclotron() {
 }
 
 
-void Cyclotron::applyTrimCoil(const double r, const double z, double *br, double *bz) {
+void Cyclotron::applyTrimCoil_m(const double r, const double z, double *br, double *bz) {
      for (auto trimcoil : trimcoils_m) {
          trimcoil->applyField(r,z,br,bz);
      }
+}
+
+void Cyclotron::applyTrimCoil(const double r, const double z, double& br, double& bz) {
+    //Changed from > to >= to include case where bz == 0 and trimCoilThreshold_m == 0 -DW
+    if (std::abs(bz) >= trimCoilThreshold_m)  {
+        applyTrimCoil_m(r, z, &br, &bz);
+    }
+    else {
+        // make sure to have a smooth transition
+        double tmp_bz = 0.0;
+        applyTrimCoil_m(r, z, &br, &tmp_bz);
+        bz += tmp_bz * std::abs(bz) / trimCoilThreshold_m;
+    }
 }
 
 void Cyclotron::accept(BeamlineVisitor &visitor) const {
@@ -393,15 +406,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         /* Bz */
         double bz = - bzint;
 
-        //Changed from > to >= to include case where bz == 0 and trimCoilThreshold_m == 0 -DW
-        if (std::abs(bz) >= trimCoilThreshold_m) 
-            applyTrimCoil(rad, R[2], &br, &bz);
-        else {
-            // make sure to have a smooth transition
-            double tmp_bz = 0.0;
-            applyTrimCoil(rad, R[2], &br, &tmp_bz);
-            bz += tmp_bz * std::abs(bz) / trimCoilThreshold_m;
-        }
+        this->applyTrimCoil(rad, R[2], br, bz);
         
         /* Br Btheta -> Bx By */
         B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
@@ -509,6 +514,13 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
         }
     }
     return false;
+}
+
+void Cyclotron::apply(const double& rad, const double& z,
+                      const double& tet_rad, double& br,
+                      double& bt, double& bz) {
+    this->interpolate(rad, tet_rad, br, bt, bz);
+    this->applyTrimCoil(rad, z, br, bz);
 }
 
 void Cyclotron::finalise() {
