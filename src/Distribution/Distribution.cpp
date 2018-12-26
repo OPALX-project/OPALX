@@ -1311,12 +1311,9 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
           << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl
           << "* ----------------------------------------------------" << endl;
 
-    const double wo = CyclotronElement->getRfFrequ()*1E6/CyclotronElement->getCyclHarm()*2.0*Physics::pi;
-
-    const double fmLowE  = CyclotronElement->getFMLowE();
-    const double fmHighE = CyclotronElement->getFMHighE();
-
-    if ( fmLowE < 0 || fmHighE < 0 ) {
+    if ( CyclotronElement->getFMLowE() < 0 ||
+         CyclotronElement->getFMHighE() < 0 )
+    {
         throw OpalException("Distribution::CreateMatchedGaussDistribution()",
                             "Missing attributes 'FMLOWE' and/or 'FMHIHGE' in "
                             "'CYCLOTRON' definition.");
@@ -1329,8 +1326,6 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     double rguess =
         Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]);
 
-    int nSector = (int)CyclotronElement->getSymmetry();
-
     double accuracy =
         Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]);
 
@@ -1340,11 +1335,14 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         typedef boost::numeric::odeint::runge_kutta4<container_t> rk4_t;
         typedef ClosedOrbitFinder<double,unsigned int, rk4_t> cof_t;
 
-        cof_t cof(E_m*1E-6, massIneV*1E-6, wo, Nint, accuracy,
-                  maxitCOF, fmLowE, fmHighE, nSector,
-                  CyclotronElement->getFieldMapFN(), rguess,
-                  CyclotronElement->getCyclotronType(),
-                  CyclotronElement->getBScale(), false);
+        cof_t cof(E_m*1E-6, massIneV*1E-6, Nint, CyclotronElement, false);
+
+        if ( !cof.findOrbit(accuracy, maxitCOF, rguess) ) {
+            throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                                "Closed orbit finder didn't converge.");
+        }
+
+        cof.computeOrbitProperties();
 
         std::pair<double, double> tunes = cof.getTunes();
         double ravg = cof.getAverageRadius(); // average radius
@@ -1374,25 +1372,18 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                                             Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
                                             Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
-                                            wo,
                                             E_m*1E-6,
-                                            CyclotronElement->getCyclHarm(),
                                             massIneV*1E-6,
-                                            fmLowE,
-                                            fmHighE,
-                                            nSector,
+                                            CyclotronElement,
                                             Nint,
-                                            CyclotronElement->getFieldMapFN(),
                                             Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
-                                            CyclotronElement->getBScale(),
                                             writeMap);
 
     if (siggen->match(accuracy,
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
                       maxitCOF,
-                      CyclotronElement->getPHIinit(),
+                      CyclotronElement,
                       rguess,
-                      CyclotronElement->getCyclotronType(),
                       false, full))  {
 
         std::array<double,3> Emit = siggen->getEmittances();
