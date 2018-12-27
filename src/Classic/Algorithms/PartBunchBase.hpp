@@ -1202,8 +1202,9 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     const size_t localNum = getLocalNum();
     if (localNum == 0) {
-	rmin = Vector_t(0.0, 0.0, 0.0);
-	rmax = Vector_t(0.0, 0.0, 0.0);
+        double maxValue = 1e8;
+        rmin = Vector_t(maxValue, maxValue, maxValue);
+        rmax = Vector_t(-maxValue, -maxValue, -maxValue);
 	return;
     }
 
@@ -2569,7 +2570,7 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
         rpmean(2*i)= rmean_m(i);
         rpmean((2*i)+1)= pmean_m(i);
     }
-    
+
     FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix = moments_m / N;
     for (unsigned int i = 0; i < 2 * Dim; i++) {
         for (unsigned int j = 0; j <= i; j++) {
