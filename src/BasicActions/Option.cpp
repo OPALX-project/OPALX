@@ -227,7 +227,7 @@ Option::Option():
       ("BOUNDPDESTROYFQ", "The frequency to do boundp_destroy to delete lost particles. Default 10",10.0);
 
     itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal
-      ("BEAMHALOBOUNDARY", "Defines in therms of sigma where the halo starts. Default 0.0",0.0);
+      ("BEAMHALOBOUNDARY", "Defines in terms of sigma where the halo starts. Default 0.0",0.0);
 
     itsAttr[IDEALIZED] = Attributes::makeBool
         ("IDEALIZED", "Using the hard edge model for the calculation of path length. Default: false", false);

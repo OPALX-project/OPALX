@@ -30,27 +30,27 @@
 OpalProbe::OpalProbe():
     OpalElement(SIZE, "PROBE",
                 "The \"PROBE\" element defines a Probe."),
-    owk_m(NULL) {
+    owk_m(nullptr) {
 
     itsAttr[XSTART] = Attributes::makeReal
-                      ("XSTART", " Start of x coordinate ");
+                      ("XSTART", " Start of x coordinate [mm]");
     itsAttr[XEND] = Attributes::makeReal
-                    ("XEND", " End of x coordinate");
+                    ("XEND", " End of x coordinate [mm]");
     itsAttr[YSTART] = Attributes::makeReal
-                      ("YSTART", "Start of y coordinate");
-    itsAttr[YEND1] = Attributes::makeReal
-                     ("YEND1", "Not used now");
+                      ("YSTART", "Start of y coordinate [mm]");
     itsAttr[YEND] = Attributes::makeReal
-                    ("YEND", "End of y coordinate");
+                    ("YEND", "End of y coordinate [mm]");
     itsAttr[WIDTH] = Attributes::makeReal
-                     ("WIDTH", "Width of the probe");
+                     ("WIDTH", "Width of the probe, not used.");
+    itsAttr[STEP] = Attributes::makeReal
+                     ("STEP", "Step size of the probe [mm]", 1.0);
 
     registerRealAttribute("XSTART");
     registerRealAttribute("XEND");
     registerRealAttribute("YSTART");
-    registerRealAttribute("YEND1");
     registerRealAttribute("YEND");
     registerRealAttribute("WIDTH");
+    registerRealAttribute("STEP");
 
     registerOwnership();
 
@@ -60,14 +60,13 @@ OpalProbe::OpalProbe():
 
 OpalProbe::OpalProbe(const std::string &name, OpalProbe *parent):
     OpalElement(name, parent),
-    owk_m(NULL) {
+    owk_m(nullptr) {
     setElement((new ProbeRep(name))->makeAlignWrapper());
 }
 
 
 OpalProbe::~OpalProbe() {
-    if(owk_m)
-        delete owk_m;
+    delete owk_m;
 }
 
 
@@ -78,7 +77,6 @@ OpalProbe *OpalProbe::clone(const std::string &name) {
 
 void OpalProbe::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
-
 }
 
 
@@ -89,24 +87,20 @@ void OpalProbe::update() {
         dynamic_cast<ProbeRep *>(getElement()->removeWrappers());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double xstart = Attributes::getReal(itsAttr[XSTART]);
-    double xend = Attributes::getReal(itsAttr[XEND]);
+    double xend   = Attributes::getReal(itsAttr[XEND]);
     double ystart = Attributes::getReal(itsAttr[YSTART]);
-    double yend1 = Attributes::getReal(itsAttr[YEND1]);
-    double yend = Attributes::getReal(itsAttr[YEND]);
-    double width = Attributes::getReal(itsAttr[WIDTH]);
+    double yend   = Attributes::getReal(itsAttr[YEND]);
+    double width  = Attributes::getReal(itsAttr[WIDTH]);
+    double step   = Attributes::getReal(itsAttr[STEP]);
 
-    if(itsAttr[WAKEF] && owk_m == NULL) {
+    if(itsAttr[WAKEF] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*prob);
         prob->setWake(owk_m->wf_m);
     }
-    prob->setElementLength(length);
-    prob->setXstart(xstart);
-    prob->setXend(xend);
-    prob->setYstart(ystart);
-    prob->setYend(yend1);
-    prob->setYend(yend);
-    prob->setWidth(width);
+    prob->setElementLength(length); // is this needed here?
+    prob->setDimensions(xstart, xend, ystart, yend, width);
+    prob->setStep(step);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(prob);

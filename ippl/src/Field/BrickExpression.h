@@ -22,16 +22,6 @@
 #include "Field/AssignTags.h"
 
 //////////////////////////////////////////////////////////////////////
-/*
-class BrickExpressionBase : public RefCounted, public Pooled
-{
-public:
-  BrickExpressionBase() {}
-  virtual ~BrickExpressionBase() {}
-  virtual void apply() restrict =0;
-};
-*/
-//////////////////////////////////////////////////////////////////////
 
 // template<unsigned Dim, class LHS, class RHS, class OP>
 // class BrickExpression : public BrickExpressionBase
@@ -49,11 +39,7 @@ public:
       {
       }
 
-#ifdef IPPL_RESTRICT_BUG
   virtual void apply();
-#else
-  virtual void apply() restrict;
-#endif
 
 private:
   LHS Lhs;

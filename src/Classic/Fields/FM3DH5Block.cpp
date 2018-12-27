@@ -75,6 +75,7 @@ FM3DH5Block::~FM3DH5Block() {
     freeMap();
 }
 
+#if 0
 void FM3DH5Block::readMap() {
     if (!FieldstrengthEz_m.empty()) {
         return;
@@ -208,6 +209,59 @@ void FM3DH5Block::readMap() {
     INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
             << endl);
 }
+#endif
+
+void FM3DH5Block::readMap() {
+    if (!FieldstrengthEz_m.empty()) {
+        return;
+    }
+    h5_err_t h5err;
+#if defined (NDEBUG)
+    (void)h5err;
+#endif
+    h5_prop_t props = H5CreateFileProp ();
+    MPI_Comm comm = Ippl::getComm();
+    h5err = H5SetPropFileMPIOCollective (props, &comm);
+    assert (h5err != H5_ERR);
+    h5_file_t file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
+    assert (file != (h5_file_t)H5_ERR);
+    H5CloseProp (props);
+
+    long field_size = 0;
+
+    h5_int64_t last_step = H5GetNumSteps(file) - 1;
+    h5err = H5SetStep(file, last_step);
+    assert (h5err != H5_ERR);
+
+    field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
+    FieldstrengthEx_m.resize(field_size);
+    FieldstrengthEy_m.resize(field_size);
+    FieldstrengthEz_m.resize(field_size);
+    FieldstrengthHx_m.resize(field_size);
+    FieldstrengthHy_m.resize(field_size);
+    FieldstrengthHz_m.resize(field_size);
+    h5err = H5Block3dReadVector3dFieldFloat64(
+        file,
+        "Efield",
+        &(FieldstrengthEx_m[0]),
+        &(FieldstrengthEy_m[0]),
+        &(FieldstrengthEz_m[0]));
+    assert (h5err != H5_ERR);
+    h5err = H5Block3dReadVector3dFieldFloat64(
+        file,
+        "Hfield",
+        &(FieldstrengthHx_m[0]),
+        &(FieldstrengthHy_m[0]),
+        &(FieldstrengthHz_m[0]));
+    assert (h5err != H5_ERR);
+
+    h5err = H5CloseFile(file);
+    assert (h5err != H5_ERR);
+
+    INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+            << endl);
+}
+
 
 void FM3DH5Block::freeMap() {
     if(!FieldstrengthEz_m.empty()) {

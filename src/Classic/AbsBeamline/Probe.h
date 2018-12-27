@@ -22,6 +22,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
+#include <string>
 #include <utility>
 
 template <class T, unsigned Dim>
@@ -58,25 +59,20 @@ public:
 
     virtual void goOffline();
 
-    void setXstart(double xstart);
+    /// Set dimensions and consistency checks
+    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
 
-    void setXend(double xend);
-
-    void setYstart(double ystart);
-    void setYend(double yend);
-
-
-    void setWidth(double width);
+    void setStep(double step);
 
     virtual double getXstart() const;
-
     virtual double getXend() const;
 
     virtual double getYstart() const;
     virtual double getYend() const;
 
-
     virtual double getWidth() const;
+    virtual double getStep() const;
+
     bool  checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
     virtual ElementBase::ElementType getType() const;
 
@@ -85,18 +81,22 @@ public:
 private:
     std::string filename_m;             /**< The name of the inputfile*/
     double position_m;
+    ///@{ input geometry positions
     double xstart_m;
     double xend_m;
     double ystart_m;
     double yend_m;
-    double width_m;
-    Point  geom_m[5];
-    int step_m;
+    double rstart_m;
+    double rend_m;
+    ///@}
+    double width_m;   ///< bin width, not used
+    Point  geom_m[5]; ///< actual geometry positions with adaptive width such that each particle hits probe once per turn
+    int step_m; ///< Step size of the probe (bin width in histogram file)
 
     double A_m, B_m,R_m, C_m;
     void setGeom(const double dist);
     int  checkPoint( const double & x, const double & y );
-                             
+
     std::unique_ptr<PeakFinder> peakfinder_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;

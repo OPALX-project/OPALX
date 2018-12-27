@@ -63,7 +63,7 @@ public:
         FORCE  = 1,
         AUTO   = 2
     };
-        
+
 
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;

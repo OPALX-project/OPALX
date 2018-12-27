@@ -593,7 +593,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
     outputFile << "SDDS1" << std::endl;
     outputFile << "&description\n"
                << indent << "text=\"Statistics data '" << OpalData::getInstance()->getInputFn()
-               << "' " << dateStr << "" << timeStr << "\",\n"
+               << "' " << dateStr << " " << timeStr << "\",\n"
                << indent << "contents=\"stat parameters\"\n"
                << "&end\n";
     outputFile << "&parameter\n"
@@ -1215,7 +1215,7 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
         setInform(fid);
 
         fid.precision(6);
-        fid << setiosflags(std::ios::scientific);
+        fid << std::setiosflags(std::ios::scientific);
         double t = beam->getT() * 1.0e9;
         if(!nEmissionMode) {
 
