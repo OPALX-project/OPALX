@@ -39,32 +39,25 @@ CCollimator::CCollimator():
     Component(),
     filename_m(""),
     informed_m(false),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+}
 
 
 CCollimator::CCollimator(const CCollimator &right):
     Component(right),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
-    xstart_m(right.xstart_m),
-    xend_m(right.xend_m),
-    ystart_m(right.ystart_m),
-    yend_m(right.yend_m),
-    zstart_m(right.zstart_m),
-    zend_m(right.zend_m),
-    width_m(right.width_m),
     losses_m(0),
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {
+    setDimensions(right.xstart_m, right.xend_m,
+                  right.ystart_m, right.yend_m,
+                  right.zstart_m, right.zend_m,
+                  right.width_m);
     setGeom();
 }
 
@@ -73,17 +66,12 @@ CCollimator::CCollimator(const std::string &name):
     Component(name),
     filename_m(""),
     informed_m(false),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    zstart_m(0.0),
-    zend_m(0.0),
-    width_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    setGeom();
+}
 
 
 CCollimator::~CCollimator() {
@@ -107,12 +95,10 @@ bool CCollimator::applyToReferenceParticle(const Vector_t &R, const Vector_t &P,
 
 bool CCollimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
 
-    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
+    double r1 = std::hypot(rmax(0), rmax(1));
     bool isDead = false;
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
+        if ( r1 > rstart_m - 10.0 && r1 < rend_m + 10.0 ){
             if (r(2) < zend_m && r(2) > zstart_m ) {
                 int pflag = checkPoint(r(0), r(1));
                 isDead = (pflag != 0);
@@ -122,36 +108,37 @@ bool CCollimator::checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax) {
     return isDead;
 }
 
-
-// rectangle collimators in cyclotron cyclindral coordinates
+// rectangle collimators in cyclotron cylindrical coordinates
 // without particlematterinteraction, the particle hitting collimator is deleted directly
-bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int /*turnnumber*/, const double /*t*/, const double /*tstep*/) {
 
     bool flagNeedUpdate = false;
     Vector_t rmin, rmax;
-
     bunch->get_bounds(rmin, rmax);
-    double r_start = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r_end = sqrt(xend_m * xend_m + yend_m * yend_m);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
-    std::pair<Vector_t, double> boundingSphere;
-    boundingSphere.first = 0.5 * (rmax + rmin);
-    boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
 
     if (rmax(2) >= zstart_m && rmin(2) <= zend_m) {
-        // if ( r1 > r_start - 10.0 && r1 < r_end + 10.0 ){
-        if ( r1 > r_start - 100.0 && r1 < r_end + 100.0 ){
+        // interested in absolute minimum and maximum
+        double xmin = std::min(std::abs(rmin(0)), std::abs(rmax(0)));
+        double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+        double ymin = std::min(std::abs(rmin(1)), std::abs(rmax(1)));
+        double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+        double rbunch_min = std::hypot(xmin, ymin);
+        double rbunch_max = std::hypot(xmax, ymax);
+
+        if( rbunch_max > rmin_m && rbunch_min < rmax_m ){ // check similar to z
             size_t tempnum = bunch->getLocalNum();
             int pflag = 0;
+            // now check each particle in bunch
             for (unsigned int i = 0; i < tempnum; ++i) {
                 if (bunch->PType[i] == ParticleType::REGULAR && bunch->R[i](2) < zend_m && bunch->R[i](2) > zstart_m ) {
+                    // only now careful check in r
                     pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
-		    /// bunch->Bin[i] != -1 makes sure the partcile is not stored in more than one collimator
-                    if ((pflag != 0) && (bunch->Bin[i] != -1))  {
-		      if (!parmatint_m)
-			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
-		      bunch->Bin[i] = -1;
-		      flagNeedUpdate = true;
+                    /// bunch->Bin[i] != -1 makes sure the particle is not stored in more than one collimator
+                    if ((pflag != 0) && (bunch->Bin[i] != -1)) {
+                        if (!parmatint_m)
+                            lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i]);
+                        bunch->Bin[i] = -1;
+                        flagNeedUpdate = true;
                     }
                 }
             }
@@ -159,6 +146,9 @@ bool CCollimator::checkCollimator(PartBunchBase<double, 3> *bunch, const int tur
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && parmatint_m) {
+        std::pair<Vector_t, double> boundingSphere;
+        boundingSphere.first = 0.5 * (rmax + rmin);
+        boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
         parmatint_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
@@ -231,6 +221,28 @@ void CCollimator::goOffline() {
     online_m = false;
 }
 
+void CCollimator::setDimensions(double xstart, double xend, double ystart, double yend, double zstart, double zend, double width) {
+    xstart_m = xstart;
+    ystart_m = ystart;
+    xend_m   = xend;
+    yend_m   = yend;
+    zstart_m = zstart;
+    zend_m   = zend;
+    width_m  = width;
+    rstart_m = std::hypot(xstart, ystart);
+    rend_m   = std::hypot(xend,   yend);
+    // start position is the one with lowest radius
+    if (rstart_m > rend_m) {
+        std::swap(xstart_m, xend_m);
+        std::swap(ystart_m, yend_m);
+        std::swap(rstart_m, rend_m);
+    }
+    // zstart and zend are independent from x, y
+    if (zstart_m > zend_m){
+        std::swap(zstart_m, zend_m);
+    }
+}
+
 bool CCollimator::bends() const {
     return false;
 }
@@ -285,11 +297,20 @@ void CCollimator::setGeom() {
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
 
-    if (zstart_m > zend_m){
-        double tempz = zstart_m;
-        zstart_m = zend_m;
-        zend_m = tempz;
+    // calculate maximum and mininum r from these
+    // current implementation not perfect minimum does not need to lie on corner, on in middle
+    rmin_m = std::hypot(xstart_m, ystart_m);
+    rmax_m = -std::numeric_limits<double>::max();
+    for (int i=0; i<4; i++) {
+        double r = std::hypot(geom_m[i].x, geom_m[i].y);
+        rmin_m = std::min(rmin_m, r);
+        rmax_m = std::max(rmax_m, r);
     }
+    // some debug printout
+    // for (int i=0; i<4; i++) {
+    //     *gmsg << "point " << i << " ( " << geom_m[i].x << ", " << geom_m[i].y << ")" << endl;
+    // }
+    // *gmsg << "rmin " << rmin_m << " rmax " << rmax_m << endl;
 }
 
 
@@ -297,8 +318,8 @@ int CCollimator::checkPoint(const double &x, const double &y) {
     int cn = 0;
 
     for (int i = 0; i < 4; i++) {
-        if (((geom_m[i].y <= y) && (geom_m[i+1].y > y))
-            || ((geom_m[i].y > y) && (geom_m[i+1].y <= y))) {
+        if (((geom_m[i].y <= y) && (geom_m[i+1].y > y)) ||
+            ((geom_m[i].y > y)  && (geom_m[i+1].y <= y))) {
 
             float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
             if (x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
