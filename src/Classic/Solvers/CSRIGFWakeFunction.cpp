@@ -1,4 +1,5 @@
 #include "Solvers/CSRIGFWakeFunction.hh"
+#include "Solvers/RootFinderForCSR.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
 #include "Filters/SavitzkyGolay.h"
@@ -254,6 +255,11 @@ double CSRIGFWakeFunction::calcPsi(const double &psiInitial, const double &x, co
             return psi;
         psi -= residual / (4. * bendRadius_m * psi * psi * psi + 12. * x * bendRadius_m * psi * psi - 24. * Ds);
     }
+    RootFinderForCSR rootFinder(bendRadius_m, 4 * x * bendRadius_m, -24 * Ds, -24 * Ds * x);
+    if (rootFinder.hasPositiveRealRoots()) {
+        return rootFinder.searchRoot(eps);
+    }
+
     ERRORMSG("In CSRWakeFunction::calcPsi(): exceed maximum number of iterations!" << endl);
     return psi;
 }
