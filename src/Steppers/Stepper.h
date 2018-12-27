@@ -28,6 +28,7 @@ public:
                          const double dt,
                          Arguments& ... args) const = 0;
 
+    virtual ~Stepper() {}
 protected:
     const FieldFunction& fieldfunc_m;
 };
