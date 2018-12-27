@@ -275,8 +275,10 @@ void ParallelTTracker::execute() {
         }
     }
 
-    Vector_t rmin, rmax;
-    itsBunch_m->get_bounds(rmin, rmax);
+    Vector_t rmin(0.0), rmax(0.0);
+    if (itsBunch_m->getTotalNum() > 0) {
+        itsBunch_m->get_bounds(rmin, rmax);
+    }
     OrbitThreader oth(itsReference,
                       referenceToLabCSTrafo_m.transformTo(RefPartR_m),
                       referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
