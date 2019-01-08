@@ -78,11 +78,9 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     hvol_progress_      = std::numeric_limits<double>::max();
 
     //XXX: we can also set alpha_m to number of workers
-    size_t num_ind_in_generation = 2;
-    num_ind_in_generation = args->getArg<int>("num-ind-gen", 2, false);
+    lambda_m              = args->getArg<int>("num-ind-gen", 2, false);
     alpha_m               = args->getArg<int>("initialPopulation", true);
-    lambda_m              = num_ind_in_generation;
-    //mu_m                = num_ind_in_generation;
+    //mu_m                = lambda_m;
     initialOptimization_m = args->getArg<bool>("initial-optimization", false);
 
     file_param_descr_ = "%ID,";

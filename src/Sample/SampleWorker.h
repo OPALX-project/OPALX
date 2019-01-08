@@ -187,7 +187,7 @@ protected:
             std::stringstream os;
             os << "Unexpected MPI_TAG: " << status.MPI_TAG;
             std::cout << "(Worker) Error: " << os.str() << std::endl;
-            throw OptPilotException("Worker::onMessage", os.str());
+            throw OptPilotException("SampleWorker::onMessage", os.str());
         }
     }
 
