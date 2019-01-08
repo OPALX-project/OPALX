@@ -413,14 +413,12 @@ void OpalSimulation::collectResults() {
         Expressions::Named_t::iterator namedIt;
         try {
             for(namedIt=objectives_.begin(); namedIt!=objectives_.end(); ++namedIt) {
-                if (namedIt->first == "dummy") continue;
+                if (namedIt->first == "dummy") continue; // FIXME SamplePilot has default objective named dummy
                 Expressions::Expr_t *objective = namedIt->second;
 
-                // find out which variables we need in order to evaluate the
-                // objective
+                // find out which variables we need in order to evaluate the objective
                 variableDictionary_t variable_dictionary;
-                bool check = getVariableDictionary(variable_dictionary,fn,objective);
-                if (check == false) break;
+                getVariableDictionary(variable_dictionary,fn,objective);
 
                 // and evaluate the expression using the built dictionary of
                 // variable values
@@ -442,11 +440,9 @@ void OpalSimulation::collectResults() {
 
                 Expressions::Expr_t *constraint = namedIt->second;
 
-                // find out which variables we need in order to evaluate the
-                // objective
+                // find out which variables we need in order to evaluate the constraint
                 variableDictionary_t variable_dictionary;
-                bool check = getVariableDictionary(variable_dictionary,fn,constraint);
-                if (check == false) break;
+                getVariableDictionary(variable_dictionary,fn,constraint);
 
                 Expressions::Result_t result =
                     constraint->evaluate(variable_dictionary);
@@ -504,43 +500,37 @@ void OpalSimulation::collectResults() {
     }
 }
 
-bool OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,
+void OpalSimulation::getVariableDictionary(variableDictionary_t& dictionary,
                                            const std::string& filename,
                                            const Expressions::Expr_t* const expression) {
 
     std::set<std::string> req_vars = expression->getReqVars();
-    if(req_vars.empty()) return true;
 
-    boost::scoped_ptr<SDDSReader> sddsr(new SDDSReader(filename));
-    try {
-        sddsr->parseFile();
-    } catch(OptPilotException &e) {
-        std::cout << "Exception while parsing SDDS file: "
-                  << e.what() << std::endl;
-
-        //XXX: in this case we mark the bunch as invalid since
-        //     broken stat files can crash opt (why do they
-        //     exist?)
-        invalidBunch();
-        return false;
+    // first check if required variables are design variables
+    for (auto req_it = req_vars.begin(); req_it!=req_vars.end();) {
+        auto it = userVariables_.find(*req_it);
+        if (it==userVariables_.end()) { // not a design var
+            ++req_it;
+            continue;
+        }
+        double value = std::stod((*it).second);
+        dictionary.insert(std::pair<std::string, double>(*req_it, value));
+        req_it = req_vars.erase(req_it); // remove and update iterator to next
     }
 
-    // get all the required variable values from the stat file
+    if(req_vars.empty()) return;
+
+    // get remaining required variable values from the stat file
+    boost::scoped_ptr<SDDSReader> sddsr(new SDDSReader(filename));
+    sddsr->parseFile();
+
     for(std::string req_var : req_vars) {
         if(dictionary.count(req_var) != 0) continue;
 
-        try {
-            double value = 0.0;
-            sddsr->getValue(-1 /*atTime*/, req_var, value);
-            dictionary.insert(std::pair<std::string, double>(req_var, value));
-        } catch(OptPilotException &e) {
-            std::cout << "Exception while getting value "
-                      << "from SDDS file: " << e.what()
-                      << std::endl;
-            return false;
-        }
+        double value = 0.0;
+        sddsr->getValue(-1 /*atTime*/, req_var, value);
+        dictionary.insert(std::pair<std::string, double>(req_var, value));
     }
-    return true;
 }
 
 void OpalSimulation::invalidBunch() {
