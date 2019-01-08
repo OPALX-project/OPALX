@@ -134,7 +134,7 @@ private:
     // selector parameters
     int seed;   /* seed for random number generator */
     const int tournament_m = 1;  /* number of opponents for mating selection */
-    size_t selector_mu_;
+    size_t selector_mu_; ///< number of finished individuals in current generation
 
     /// the current state of the state machine
     PisaState_t curState_m;
@@ -164,12 +164,8 @@ private:
     /// mapping from unique job ID to individual
     std::map<size_t, boost::shared_ptr<Individual> > jobmapping_m;
 
-    /// string of executable of the selection algorithm
-    std::string execAlgo_m;
-
     /// indicating if initial population has been created
     bool initialized_m;
-
 
     /// bounds on each specified gene
     bounds_t dVarBounds_m;

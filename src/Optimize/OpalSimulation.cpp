@@ -200,7 +200,7 @@ void OpalSimulation::setupSimulation() {
 
         // linking fieldmaps + distributions
         if(getenv("FIELDMAPS") == NULL) {
-            throw OptPilotException("OpalSimulation::OpalSimulation",
+            throw OptPilotException("OpalSimulation::setupSimulation",
                 "Environment variable FIELDMAPS not defined!");
         }
 

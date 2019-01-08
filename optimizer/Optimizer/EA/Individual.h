@@ -153,7 +153,7 @@ private:
     bounds_t bounds_m;
     /// gene names
     names_t names_m;
-    /// constraints
+    /// constraints that depend only on design variables
     constraints_t constraints_m;
 };
 
