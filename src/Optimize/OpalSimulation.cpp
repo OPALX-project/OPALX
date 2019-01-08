@@ -355,30 +355,10 @@ std::map<std::string, std::vector<double> > OpalSimulation::getData(const std::v
         }
 
         std::vector<double> values;
+        values.reserve(column.size());
         auto type = parser.getColumnType(var);
-        switch (type) {
-        case SDDS::ast::FLOAT:
-            for (const auto val: column) {
-                values.push_back(static_cast<double>(boost::get<float>(val)));
-            }
-            break;
-        case SDDS::ast::DOUBLE:
-            for (const auto val: column) {
-                values.push_back(boost::get<double>(val));
-            }
-            break;
-        case SDDS::ast::SHORT:
-            for (const auto val: column) {
-                values.push_back(static_cast<double>(boost::get<short>(val)));
-            }
-            break;
-        case SDDS::ast::LONG:
-            for (const auto val: column) {
-                values.push_back(static_cast<double>(boost::get<long>(val)));
-            }
-            break;
-        default:
-            break;
+        for (const auto val: column) {
+            values.push_back(parser.getBoostVariantValue<double>(val,(int)type));
         }
         ret.insert(std::make_pair(var, values));
     }
