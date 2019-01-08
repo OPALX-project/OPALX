@@ -1016,8 +1016,8 @@ void FixedPisaNsga2<CO, MO>::environmentalSelection() {
 /* Fills mating pool 'parent_queue_' */
 template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::matingSelection() {
-
-    for (size_t i = 0; i < selector_mu_; i++) {
+    // select at least lambda_m parents
+    for (size_t i = 0; i < std::max(selector_mu_, lambda_m); i++) {
         int winner = irand(pp_all.size());
 
         for (int j = 0; j < tournament_m; j++) {
