@@ -1,7 +1,6 @@
 set (_SRCS
   Distribution.cpp
   LaserProfile.cpp
-  MagneticField.cpp
   )
 
 include_directories (
@@ -15,7 +14,6 @@ set (HDRS
     Distribution.h
     Harmonics.h
     LaserProfile.h
-    MagneticField.h
     MapGenerator.h
     matrix_vector_operation.h
     rdm.h

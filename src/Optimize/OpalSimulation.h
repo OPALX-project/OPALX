@@ -117,8 +117,8 @@ private:
     /// create directories, input files, fieldmaps...
     void setupSimulation();
 
-    /// get variables for expression evaluation from SDDS file. If failed returns false
-    bool getVariableDictionary(variableDictionary_t& dictionary,
+    /// get variables for expression evaluation from SDDS file. Can throw SDDSParserException
+    void getVariableDictionary(variableDictionary_t& dictionary,
                                const std::string& filename,
                                const Expressions::Expr_t* const expression);
 

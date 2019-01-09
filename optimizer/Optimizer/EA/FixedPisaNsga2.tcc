@@ -54,7 +54,9 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     //FIXME: proper rand gen initialization (use boost?!)
     srand(time(NULL) + comms_.island_id);
 
-    dump_freq_       = args->getArg<int>("dump-freq", 1, false);
+    dump_freq_m      = args->getArg<int>("dump-freq", 1, false);
+    dump_offspring_m = args->getArg<bool>("dump-offspring", true, false);
+
     maxGenerations_m = args->getArg<int>("maxGenerations", true);
     resultFile_m     = args->getArg<std::string>("outfile", "-th_generation.dat", false);
     resultDir_m      = args->getArg<std::string>("outdir", "generations", false);
@@ -76,11 +78,9 @@ FixedPisaNsga2<CO, MO>::FixedPisaNsga2(
     hvol_progress_      = std::numeric_limits<double>::max();
 
     //XXX: we can also set alpha_m to number of workers
-    size_t num_ind_in_generation = 2;
-    num_ind_in_generation = args->getArg<int>("num-ind-gen", 2, false);
+    lambda_m              = args->getArg<int>("num-ind-gen", 2, false);
     alpha_m               = args->getArg<int>("initialPopulation", true);
-    lambda_m              = num_ind_in_generation;
-    //mu_m                = num_ind_in_generation;
+    //mu_m                = lambda_m;
     initialOptimization_m = args->getArg<bool>("initial-optimization", false);
 
     file_param_descr_ = "%ID,";
@@ -183,8 +183,6 @@ void FixedPisaNsga2<CO, MO>::initialize() {
 template< template <class> class CO, template <class> class MO >
 bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
 
-    typedef typename FixedPisaNsga2::Individual_t individual;
-
     MPITag_t tag = MPITag_t(status.MPI_TAG);
     switch(tag) {
 
@@ -226,7 +224,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
             //XXX:   can we pass more than lambda_m files to selector?
             unsigned int id =
                 variator_m->population()->add_individual(new_ind);
-            finishedBuffer_m.push(id);
+            finishedBuffer_m.push_back(id);
 
             dump.clear();
             dump.str(std::string());
@@ -295,7 +293,7 @@ bool FixedPisaNsga2<CO, MO>::onMessage(MPI_Status status, size_t length) {
             }
         }
 
-        finishedBuffer_m.push(jid);
+        finishedBuffer_m.push_back(jid);
         statistics_->changeStatisticBy("accepted", 1);
 
         return true;
@@ -347,8 +345,8 @@ void FixedPisaNsga2<CO, MO>::postPoll() {
         stats << "__________________________________________" << std::endl;
         progress_->log(stats);
 
-        // dump parents of current generation for visualization purposes
-        if((act_gen + 1) % dump_freq_ == 0) {
+        // dump current generation (or their parents)
+        if((act_gen + 1) % dump_freq_m == 0) {
             dumpPopulationToFile();
             dumpPopulationToJSON();
         }
@@ -373,8 +371,6 @@ void FixedPisaNsga2<CO, MO>::postPoll() {
 
 template< template <class> class CO , template <class> class MO >
 void FixedPisaNsga2<CO, MO>::exchangeSolutionStates() {
-
-    typedef typename FixedPisaNsga2::Individual_t individual;
 
     size_t num_masters = args_m->getArg<size_t>("num-masters", 1, false);
 
@@ -432,7 +428,7 @@ void FixedPisaNsga2<CO, MO>::toSelectorAndCommit() {
     for(size_t i = 0; i < selector_mu_; i++) {
         unsigned int id = finishedBuffer_m.front();
         to_selector_.insert(id);
-        finishedBuffer_m.pop();
+        finishedBuffer_m.pop_front();
     }
 
     variator_m->population()->commit_individuals(to_selector_);
@@ -441,8 +437,6 @@ void FixedPisaNsga2<CO, MO>::toSelectorAndCommit() {
 
 template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::dispatch_forward_solves() {
-
-    typedef typename FixedPisaNsga2::Individual_t individual;
 
     while(variator_m->hasMoreIndividualsToEvaluate()) {
 
@@ -507,7 +501,7 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
     // in sel file.
     case Variate: {
 
-        if( (maxGenerations_m > 0 && act_gen >= maxGenerations_m) ||
+        if( (maxGenerations_m > 0 && act_gen > maxGenerations_m) ||
             (hvol_progress_ < conv_hvol_progress_) ||
             (expected_hvol_ > 0.0 && fabs(current_hvol_ - expected_hvol_) < hvol_eps_)
           ) {
@@ -555,8 +549,11 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         //XXX: wait till the first alpha_m individuals are ready then start
         //     the selector
         if(finishedBuffer_m.size() >= alpha_m) {
-
-            act_gen = 1;
+            if(dump_offspring_m == true) { // dump first generation - no parents yet
+                dumpPopulationToFile();
+                dumpPopulationToJSON();
+            }
+            act_gen = 2;
             toSelectorAndCommit();
             curState_m = InitializeSelector;
 
@@ -572,9 +569,10 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
     // State 4 of the FSM: stopping state for the variator.
     case Stop: {
         // variator_m->population()->keepSurvivors(archive_);
-        dumpPopulationToFile();
-        dumpPopulationToJSON();
-
+        if (dump_offspring_m == false) {
+            dumpPopulationToFile();
+            dumpPopulationToJSON();
+        }
         // don't clean population otherwise final hypervolume calculation can't be done
         //variator_m->population()->clean_population();
         curState_m = VariatorStopped;
@@ -621,7 +619,6 @@ void FixedPisaNsga2<CO, MO>::runStateMachine() {
         selection();
 
         // write arc file (all individuals that could ever be used again)
-        typedef typename FixedPisaNsga2::Individual_t individual;
         typename std::map<unsigned int, boost::shared_ptr<individual> >
             ::iterator it;
         for(it =  variator_m->population()->begin();
@@ -676,12 +673,11 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToFile() {
     // only dump old data format if the user requests it
     if(! args_m->getArg<bool>("dump-dat", false, false)) return;
 
-    typedef typename FixedPisaNsga2::Individual_t individual;
-    boost::shared_ptr<individual> temp;
-
     std::ofstream file;
     std::ostringstream filename;
-    filename << resultDir_m << "/" << act_gen << "_" << resultFile_m
+    int fileNumber = act_gen;
+    if (dump_offspring_m == false) fileNumber--; // parents are from generation earlier (keeping filenumbers the same)
+    filename << resultDir_m << "/" << fileNumber << "_" << resultFile_m
              << "_" << comms_.island_id;
     file.open(filename.str().c_str(), std::ios::out);
 
@@ -712,39 +708,52 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToFile() {
 
     file.precision(6);
     file << std::scientific;
-    for(it =  variator_m->population()->begin();
-        it != variator_m->population()->end(); it++) {
 
-        file << std::setw(numDigits + 1) << it->first << " ";
-
-        temp = it->second;
-        for(size_t i=0; i<temp->objectives_m.size(); i++)
-            file << std::setw(14) << temp->objectives_m[i] << " ";
-        file << "      ";
-        for(size_t i=0; i<temp->genes_m.size(); i++)
-            file << std::setw(14) << temp->genes_m[i] << " ";
-
-        file << std::endl;
+    if (dump_offspring_m == true) {
+        for (auto id : finishedBuffer_m) {
+            auto ind = variator_m->population()->get_staging(id); // get from staging area
+            if (ind) // pointer might be uninitialised (should not happen)
+                dumpIndividualToFile(id, ind, file, numDigits);
+            else
+                std::cout << "Individual " << id << " from buffer not found!" << std::endl;
+        }
+    } else {
+        for(it  = variator_m->population()->begin();
+            it != variator_m->population()->end(); it++) {
+            dumpIndividualToFile(it->first, it->second, file, numDigits);
+        }
     }
 
     file.close();
-
 }
 
+template< template <class> class CO, template <class> class MO >
+void FixedPisaNsga2<CO, MO>::dumpIndividualToFile(int idx,
+                                                  boost::shared_ptr<individual>& ind,
+                                                  std::ofstream& file,
+                                                  const size_t numDigits) {
+
+    file << std::setw(numDigits + 1) << idx << " ";
+
+    for(size_t i=0; i<ind->objectives_m.size(); i++)
+        file << std::setw(14) << ind->objectives_m[i] << " ";
+    file << "      ";
+    for(size_t i=0; i<ind->genes_m.size(); i++)
+        file << std::setw(14) << ind->genes_m[i] << " ";
+
+    file << std::endl;
+}
 
 template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
 
-    typedef typename FixedPisaNsga2::Individual_t individual;
     typedef boost::property_tree::ptree ptree_t;
-    
-    
     ptree_t tree;
-    
+
     tree.put("name", "opt-pilot");
     tree.put(OPAL_PROJECT_NAME " version", OPAL_PROJECT_VERSION);
     tree.put("git revision", Util::getGitRevision());
-    
+
     std::stringstream bounds;
     DVarContainer_t::iterator itr = dvars_m.begin();
     for (bounds_t::iterator it = dVarBounds_m.begin();
@@ -755,62 +764,70 @@ void FixedPisaNsga2<CO, MO>::dumpPopulationToJSON() {
         tree.put("dvar-bounds." + dvar, bounds.str());
         bounds.str("");
     }
-    
-    
+
     ptree_t constraints;
-    
+
     for ( Expressions::Named_t::iterator it = constraints_m.begin();
           it != constraints_m.end(); ++it )
     {
-        
-        
         std::string s = it->second->toString();
         /// cleanup string to make json reader happy
         s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
-        
+
         // 22. November 2018
         // https://stackoverflow.com/questions/2114466/creating-json-arrays-in-boost-using-property-trees
         ptree_t constraint;
         constraint.put("", s);
         constraints.push_back(std::make_pair("", constraint));
     }
-    
-    
+
     tree.add_child("constraints", constraints);
-    
-    boost::shared_ptr<individual> ind;
-    
-    typename std::map<unsigned int, boost::shared_ptr<individual> >::iterator it;
-    for(it = variator_m->population()->begin();
-        it != variator_m->population()->end(); it++) {
-        
-        std::string id = std::to_string(it->first);
-        
-        Expressions::Named_t::iterator expr_it;
-        expr_it = objectives_m.begin();
-        ind = it->second;
-        
-    
-        for(size_t i=0; i < ind->objectives_m.size(); i++, expr_it++) {
-            std::string name = expr_it->first;
-            tree.put("population." + id + ".obj." + name, ind->objectives_m[i]);
+
+    if (dump_offspring_m == true) {
+        for (auto id : finishedBuffer_m) {
+            auto ind = variator_m->population()->get_staging(id); // get from staging area
+            if (ind) // pointer might be uninitialised (should not happen)
+                dumpIndividualToJSON(id, ind, tree);
+            else
+                std::cout << "Individual " << id << " from buffer not found!" << std::endl;
         }
-        
-        size_t i = 0;
-        for(itr = dvars_m.begin(); itr != dvars_m.end(); ++i, ++itr) {
-            std::string name = boost::get<VAR_NAME>(itr->second);
-            tree.put("population." + id + ".dvar." + name, ind->genes_m[i]);
+    } else {
+        for (auto it = variator_m->population()->begin();
+             it != variator_m->population()->end(); it++) {
+            dumpIndividualToJSON(it->first, it->second, tree);
         }
     }
-    
+
     std::ostringstream filename;
-    filename << resultDir_m << "/" << act_gen << "_" << resultFile_m
+    int fileNumber = act_gen;
+    if (dump_offspring_m == false) fileNumber--; // parents are from generation earlier (keeping filenumbers the same)
+    filename << resultDir_m << "/" << fileNumber << "_" << resultFile_m
              << "_" << comms_.island_id << ".json";
 
     boost::property_tree::write_json(filename.str(), tree);
 }
 
+template< template <class> class CO, template <class> class MO >
+void FixedPisaNsga2<CO, MO>::dumpIndividualToJSON(int idx,
+                                                  boost::shared_ptr<individual>& ind,
+                                                  boost::property_tree::ptree& tree) {
 
+    std::string id = std::to_string(idx);
+
+    Expressions::Named_t::iterator expr_it;
+    expr_it = objectives_m.begin();
+
+    for(size_t i=0; i < ind->objectives_m.size(); i++, expr_it++) {
+        std::string name = expr_it->first;
+        tree.put("population." + id + ".obj." + name, ind->objectives_m[i]);
+    }
+
+    size_t i = 0;
+    for(DVarContainer_t::iterator itr = dvars_m.begin(); itr != dvars_m.end(); ++i, ++itr) {
+        std::string name = boost::get<VAR_NAME>(itr->second);
+        tree.put("population." + id + ".dvar." + name, ind->genes_m[i]);
+    }
+}
 
 
 /*-----------------------| selection functions|--------------------------*/
@@ -909,7 +926,6 @@ void FixedPisaNsga2<CO, MO>::calcFitnesses()
 template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::calcDistances()
 {
-    typedef typename FixedPisaNsga2::Individual_t individual;
     int i, j, l;
     int size = pp_all.size();
     double dmax = 1E99 / (dim_m + 1);
@@ -997,17 +1013,14 @@ void FixedPisaNsga2<CO, MO>::environmentalSelection() {
 }
 
 
-/* Fills mating pool 'pp_sel' */
+/* Fills mating pool 'parent_queue_' */
 template< template <class> class CO, template <class> class MO >
 void FixedPisaNsga2<CO, MO>::matingSelection() {
-
-    //FIXME:
-    int tournament = 1; ///< number of opponents
-
-    for (size_t i = 0; i < selector_mu_; i++) {
+    // select at least lambda_m parents
+    for (size_t i = 0; i < std::max(selector_mu_, lambda_m); i++) {
         int winner = irand(pp_all.size());
 
-        for (int j = 0; j < tournament; j++) {
+        for (int j = 0; j < tournament_m; j++) {
             int opponent = irand(pp_all.size());
             if (fitness_[pp_all[opponent]] < fitness_[pp_all[winner]]
                 || winner == opponent) {
@@ -1027,7 +1040,6 @@ int FixedPisaNsga2<CO, MO>::dominates(unsigned int p_ind_a, unsigned int p_ind_b
     int a_is_worse = 0, b_is_worse = 0;
     // int equal = 1;
 
-    typedef typename FixedPisaNsga2::Individual_t individual;
     boost::shared_ptr<individual> ind1 =
         variator_m->population()->get_individual(p_ind_a);
     boost::shared_ptr<individual> ind2 =

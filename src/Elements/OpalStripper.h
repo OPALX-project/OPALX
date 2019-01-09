@@ -40,6 +40,7 @@ public:
         OPMASS,           // Mass of the outcome particle
         OPYIELD,
         STOP,
+        OUTFN,            // Output filename
         SIZE
     };
 

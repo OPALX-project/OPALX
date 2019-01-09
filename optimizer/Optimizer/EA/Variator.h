@@ -113,7 +113,7 @@ public:
             unsigned int idx = tmp.front(); tmp.pop();
             boost::shared_ptr<ind_t> a = population_m->get_staging(idx);
 
-            // handle special case where we have an uneven number of offspring
+            // handle special case where we have an odd number of offspring
             if(tmp.empty()) {
                 if (drand(1) <= mutationProbability_m)
                     this->mutate(a, args_);
@@ -216,16 +216,6 @@ private:
     double drand(double range) {
         return (range * (double) rand() / (RAND_MAX + 1.0));
     }
-
-    /**
-     *  Get a random integer between [0, range]
-     *  @param[in] range of random number
-     *  @return random integer value between [0, range]
-     */
-    int irand(int range) {
-        return (int) ((double) range * (double) rand() / (RAND_MAX + 1.0));
-    }
-
 };
 
 #endif

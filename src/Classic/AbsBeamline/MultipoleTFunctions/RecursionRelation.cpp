@@ -49,8 +49,8 @@ RecursionRelation::RecursionRelation(const std::size_t &power,
 }
 
 RecursionRelation::RecursionRelation(const RecursionRelation &doperator):
-    power_m(doperator.power_m) {
-    operator_m = DifferentialOperator(doperator.operator_m);
+    operator_m(DifferentialOperator(doperator.operator_m)),
+    power_m(doperator.power_m), highestXorder_m(doperator.highestXorder_m) {
 }
 
 RecursionRelation::~RecursionRelation() {

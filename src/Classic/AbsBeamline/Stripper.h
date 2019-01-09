@@ -1,112 +1,50 @@
 #ifndef CLASSIC_Stripper_HH
 #define CLASSIC_Stripper_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: Stripper.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Stripper
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2011/07/08 11:14:04 $
-// $Author: Jianjun Yang $
-//
-// ------------------------------------------------------------------------
-
-#include "AbsBeamline/Component.h"
-
-class LossDataSink;
+#include "AbsBeamline/PluginElement.h"
 
 // Class Stripper
 // ------------------------------------------------------------------------
 //  Class Stripper defines the abstract interface for a striping foil.
 
-class Stripper: public Component {
+class Stripper: public PluginElement {
 
 public:
-
     /// Constructor with given name.
     explicit Stripper(const std::string &name);
 
     Stripper();
     Stripper(const Stripper &);
+    void operator=(const Stripper &) = delete;
     virtual ~Stripper();
 
     /// Apply visitor to Stripper.
     virtual void accept(BeamlineVisitor &) const;
+    ///@{ Override implementation of PluginElement
+    virtual ElementBase::ElementType getType() const override;
+    ///@}
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
-
-    virtual void finalise();
-
-    virtual bool bends() const;
-
-    virtual void goOffline();
-
-    /// Set dimensions and consistency checks
-    void setDimensions(double xstart, double xend, double ystart, double yend);
-
-    virtual double getXstart() const;
-
-    virtual double getXend() const;
-
-    virtual double getYstart() const;
-
-    virtual double getYend() const;
-
-    void setOPCharge(double charge);
-    virtual double getOPCharge() const;
-
-    void setOPMass(double mass);
-    virtual double getOPMass() const;
-
-    void setOPYield(double yield);
-    virtual double getOPYield() const;
-
-    void setStop(bool stopflag);
-    virtual bool getStop() const;
-
-    bool  checkStripper(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tsetp);
-
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
-
-    virtual ElementBase::ElementType getType() const;
+    ///@{ Member variable access
+    void   setOPCharge(double charge);
+    double getOPCharge() const;
+    void   setOPMass(double mass);
+    double getOPMass() const;
+    void   setOPYield(double yield);
+    double getOPYield() const;
+    void   setStop(bool stopflag);
+    bool   getStop() const;
+    ///@}
 
 private:
-    std::string filename_m;             /**< The name of the inputfile*/
-    double position_m;
-    ///@{ input geometry positions
-    double xstart_m;
-    double xend_m;
-    double ystart_m;
-    double yend_m;
-    double rstart_m;
-    double rend_m;
-    ///@}
-    double opcharge_m;
-    double opmass_m;
-    double opyield_m;
-    Point  geom_m[5];
-    bool   stop_m;
-    std::vector<int> idrec_m;
-    int step_m;
+    /// Record hits when bunch particles pass
+    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
+    /// Virtual hook for finalise
+    virtual void doFinalise() override;
 
-    double A_m, B_m,R_m, C_m;
-    void setGeom(const double dist);
-    int  checkPoint( const double & x, const double & y );
-
-    std::unique_ptr<LossDataSink> lossDs_m;
-
-    // Not implemented.
-    void operator=(const Stripper &);
+    double opcharge_m; ///< Charge number of the out-coming particle
+    double opmass_m;   ///< Mass of the out-coming particle
+    double opyield_m;  ///< Yield of the out-coming particle
+    bool   stop_m;     ///< Flag if particles should be stripped or stopped
 };
 
 #endif // CLASSIC_Stripper_HH

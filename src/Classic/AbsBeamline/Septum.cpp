@@ -1,60 +1,32 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Septum.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Septum
-//   Defines the abstract interface for a septum magnet.
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
 #include "AbsBeamline/Septum.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
-#include "Structure/LossDataSink.h" // OPAL file
+#include "Structure/LossDataSink.h"
 
 extern Inform *gmsg;
 
 // Class Septum
 // ------------------------------------------------------------------------
 
-Septum::Septum():
-    Component(),
-    filename_m(""),
-    position_m(0.0) {
-    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
-}
-
-
-Septum::Septum(const Septum &right):
-    Component(right),
-    filename_m(right.filename_m),
-    position_m(right.position_m) {
-    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m, right.width_m);}
-
+Septum::Septum():Septum("")
+{}
 
 Septum::Septum(const std::string &name):
-    Component(name),
-    filename_m(""),
-    position_m(0.0) {
-    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
+    PluginElement(name),
+    width_m(0.0) {
+    setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
-
-Septum::~Septum() {
+Septum::Septum(const Septum &right):
+    PluginElement(right),
+    width_m(right.width_m) {
+    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
+    setGeom(width_m);
 }
 
+Septum::~Septum() {}
 
 void Septum::accept(BeamlineVisitor &visitor) const {
     visitor.visitSeptum(*this);
@@ -67,63 +39,20 @@ void Septum::initialise(PartBunchBase<double, 3> *bunch, double &startField, dou
     initialise(bunch);
 }
 
-void Septum::initialise(PartBunchBase<double, 3> *bunch) {
-    RefPartBunch_m = bunch;
+void Septum::doInitialise(PartBunchBase<double, 3>* /*bunch*/) {
     *gmsg << "Septum initialise" << endl;
 }
 
-void Septum::finalise()
-{}
-
-bool Septum::bends() const {
-    return false;
-}
-
-void Septum::goOffline() {
-    online_m = false;
-}
-
-void Septum::setDimensions(double xstart, double xend, double ystart, double yend, double width) {
-    xstart_m = xstart;
-    ystart_m = ystart;
-    xend_m   = xend;
-    yend_m   = yend;
-    width_m  = width;
-    rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
-    rend_m   = std::sqrt(xend * xend   + yend * yend);
-    // start position is the one with lowest radius
-    if (rstart_m > rend_m) {
-        std::swap(xstart_m, xend_m);
-        std::swap(ystart_m, yend_m);
-        std::swap(rstart_m, rend_m);
-    }
-}
-
-double  Septum::getXstart() const {
-    return xstart_m;
-
-}
-
-double  Septum::getXend() const {
-    return xend_m;
-
-}
-
-double  Septum::getYstart() const {
-    return ystart_m;
-
-}
-
-double  Septum::getYend() const {
-    return yend_m;
-
-}
-double  Septum::getWidth() const {
+double Septum::getWidth() const {
     return width_m;
-
 }
 
-bool  Septum::checkSeptum(PartBunchBase<double, 3> *bunch) {
+void Septum::setWidth(double width) {
+    width_m = width;
+    setGeom(width_m);
+}
+
+bool Septum::doCheck(PartBunchBase<double, 3> *bunch, const int /*turnnumber*/, const double /*t*/, const double /*tstep*/) {
 
     bool flag = false;
     Vector_t rmin;
@@ -155,27 +84,6 @@ bool  Septum::checkSeptum(PartBunchBase<double, 3> *bunch) {
     }
     return flag;
 }
-
-
-
-// angle range [0~2PI) degree
-double Septum::calculateAngle(double x, double y) {
-    double thetaXY = atan2(y, x);
-
-    // if(x < 0)                   thetaXY = pi + atan(y / x);
-    // else if((x > 0) && (y >= 0))  thetaXY = atan(y / x);
-    // else if((x > 0) && (y < 0))   thetaXY = 2.0 * pi + atan(y / x);
-    // else if((x == 0) && (y > 0)) thetaXY = pi / 2.0;
-    // else if((x == 0) && (y < 0)) thetaXY = 3.0 / 2.0 * pi;
-
-    return thetaXY >= 0 ? thetaXY: thetaXY + Physics::two_pi;
-
-}
-void Septum::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m - 0.005;
-    zEnd = position_m + 0.005;
-}
-
 
 ElementBase::ElementType Septum::getType() const {
     return SEPTUM;
