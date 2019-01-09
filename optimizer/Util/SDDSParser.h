@@ -158,7 +158,7 @@ namespace SDDS {
             if (paramNameToID_m.count(parameter_name) > 0) {
                 size_t id = paramNameToID_m[parameter_name];
                 auto value = sddsData_m.sddsParameters_m[id].value_m;
-                nval = getBoostVariantValue<T>(value, (int)(*sddsData_m.sddsParameters_m[id].type_m));
+                nval = boost::get<T>(value);
             } else {
                 throw SDDSParserException("SDDSParser::getParameterValue",
                                         "unknown parameter name: '" + parameter_name + "'!");
