@@ -12,7 +12,6 @@
 #include "Util/SDDSParser/description.hpp"
 #include "Util/SDDSParser/include.hpp"
 #include "Util/SDDSParser/parameter.hpp"
-//#include "Util/SDDSParser/variant.h"
 
 #include "Util/SDDSParser/SDDSParserException.h"
 
@@ -66,7 +65,7 @@ namespace SDDS {
          *  type T.
          *
          *  @param t timestep (beginning at 1, -1 means last)
-         *  @param param parameter name
+         *  @param column_name parameter name
          *  @param nval store result of type T in nval
          */
         template <typename T>
@@ -85,7 +84,7 @@ namespace SDDS {
                 row_idx = static_cast<size_t>(t) - 1;
 
             ast::variant_t val = sddsData_m.sddsColumns_m[col_idx].values_m[row_idx];
-            nval = boost::get<T>(val);
+            nval = getBoostVariantValue<T>(val, (int)getColumnType(column_name));
         }
 
 
@@ -94,7 +93,7 @@ namespace SDDS {
          *  of type T.
          *
          *  @param spos interpolate value at spos
-         *  @param param parameter name
+         *  @param col_name parameter name
          *  @param nval store result of type T in nval
          */
         template <typename T>
@@ -113,6 +112,7 @@ namespace SDDS {
 
             size_t this_row = 0;
             size_t num_rows = spos_values.size();
+            int datatype = (int)getColumnType(col_name);
             for(this_row = 0; this_row < num_rows; this_row++) {
                 value_after_spos = boost::get<double>(spos_values[this_row]);
 
@@ -121,32 +121,8 @@ namespace SDDS {
                     size_t prev_row = 0;
                     if(this_row > 0) prev_row = this_row - 1;
 
-                    try {
-                        switch (*sddsData_m.sddsColumns_m[index].type_m) {
-                        case ast::FLOAT:
-                            value_before = boost::get<float>(col_values[prev_row]);
-                            value_after  = boost::get<float>(col_values[this_row]);
-                            break;
-                        case ast::DOUBLE:
-                            value_before = boost::get<double>(col_values[prev_row]);
-                            value_after  = boost::get<double>(col_values[this_row]);
-                            break;
-                        case ast::SHORT:
-                            value_before = boost::get<short>(col_values[prev_row]);
-                            value_after  = boost::get<short>(col_values[this_row]);
-                            break;
-                        case ast::LONG:
-                            value_before = boost::get<long>(col_values[prev_row]);
-                            value_after  = boost::get<long>(col_values[this_row]);
-                            break;
-                        default:
-                            throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                                      "can't convert value to double");
-                        }
-                    } catch (...) {
-                        throw SDDSParserException("SDDSParser::getInterpolatedValue",
-                                                  "can't convert value");
-                    }
+                    value_before = getBoostVariantValue<T>(col_values[prev_row], datatype);
+                    value_after  = getBoostVariantValue<T>(col_values[this_row], datatype);
 
                     value_before_spos = boost::get<double>(spos_values[prev_row]);
                     value_after_spos  = boost::get<double>(spos_values[this_row]);
@@ -168,6 +144,13 @@ namespace SDDS {
                     / (value_after_spos - value_before_spos);
         }
 
+        /**
+         *  Converts the string value of a parameter to a value
+         *  of type T.
+         *
+         *  @param parameter_name parameter name
+         *  @param nval store result of type T in nval
+         */
         template <typename T>
         void getParameterValue(std::string parameter_name, T& nval) {
             fixCaseSensitivity(parameter_name);
@@ -180,6 +163,38 @@ namespace SDDS {
                 throw SDDSParserException("SDDSParser::getParameterValue",
                                         "unknown parameter name: '" + parameter_name + "'!");
             }
+        }
+
+        /// Convert value from boost variant (only numeric types) to a value of type T
+        // use integer instead of ast::datatype enum since otherwise boost has ambigious overloads
+        // as tested on 8-1-2019, boost 1.68, gcc 7.3
+        template <typename T>
+            T getBoostVariantValue(const ast::variant_t& val, int datatype) const {
+            T value;
+            try {
+                switch (datatype) {
+                case ast::FLOAT:
+                    value = boost::get<float>(val);
+                    break;
+                case ast::DOUBLE:
+                    value = boost::get<double>(val);
+                    break;
+                case ast::SHORT:
+                    value = boost::get<short>(val);
+                    break;
+                case ast::LONG:
+                    value = boost::get<long>(val);
+                    break;
+                default:
+                    throw SDDSParserException("SDDSParser::getBoostVariantValue",
+                                              "can't convert value to type T");
+                }
+            }
+            catch (...) {
+                throw SDDSParserException("SDDSParser::getBoostVariantValue",
+                                          "can't convert value");
+            }
+            return value;
         }
 
     private:

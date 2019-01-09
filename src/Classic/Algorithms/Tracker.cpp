@@ -33,6 +33,7 @@
 
 #include <cfloat>
 #include <cmath>
+#include <limits>
 
 typedef FTps<double, 2> Series2;
 typedef FTps<double, 6> Series;
@@ -135,7 +136,7 @@ void Tracker::applyDrift(double length) {
 
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
         OpalParticle part = itsBunch_m->get_part(i);
-        if(part.x() != DBL_MAX) {
+        if(part.x() != std::numeric_limits<double>::max()) {
             double px = part.px();
             double py = part.py();
             double pt = part.pt() + 1.0;
@@ -156,7 +157,7 @@ void Tracker::applyThinMultipole
     if(order > 0) {
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
             OpalParticle part = itsBunch_m->get_part(i);
-            if(part.x() != DBL_MAX) {
+            if(part.x() != std::numeric_limits<double>::max()) {
                 double x = part.x();
                 double y = part.y();
                 double kx = + field.normal(order);

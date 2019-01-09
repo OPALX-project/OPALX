@@ -1,164 +1,75 @@
 #ifndef CLASSIC_CCollimator_HH
 #define CLASSIC_CCollimator_HH
 
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: CCollimator
-//   Defines the abstract interface for a beam CCollimator.
-//   *** MISSING *** CCollimator interface is still incomplete.
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
+#include "AbsBeamline/PluginElement.h"
 
-#include "AbsBeamline/Component.h"
-
-#include "gsl/gsl_spline.h"
-#include "gsl/gsl_interp.h"
-
-#include <vector>
-
-class BeamlineVisitor;
-class LossDataSink;
+class ParticleMatterInteractionHandler;
 
 // Class CCollimator
 // ------------------------------------------------------------------------
-/// Abstract collimator.
+/// Interface for cyclotron collimator.
 //  Class CCollimator defines the abstract interface for a collimator.
 
-class CCollimator: public Component {
+class CCollimator: public PluginElement {
 
 public:
-
     /// Constructor with given name.
     explicit CCollimator(const std::string &name);
 
     CCollimator();
     CCollimator(const CCollimator &rhs);
+    void operator=(const CCollimator &) = delete;
     virtual ~CCollimator();
 
     /// Apply visitor to CCollimator.
     virtual void accept(BeamlineVisitor &) const;
+    ///@{ Override implementation of PluginElement
+    virtual void goOnline(const double &kineticEnergy) override;
+    virtual ElementBase::ElementType getType() const override;
+    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    ///@}
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    /// unused check method
+    // bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
 
-    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
-
-    virtual bool checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
-
-    virtual bool checkCollimator(Vector_t r, Vector_t rmin, Vector_t rmax);
-
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
-
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
-
-    virtual void finalise();
-
-    virtual bool bends() const;
-
-    virtual void goOnline(const double &kineticEnergy);
-
-    virtual void goOffline();
-
-    virtual ElementBase::ElementType getType() const;
-
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
-
+    /// Some debug print
     void print();
-
-    std::string  getCollimatorShape();
-    void setOutputFN(std::string fn);
-    std::string getOutputFN();
-
-    unsigned int getLosses() const;
-
-    // --------Cyclotron collimator
 
     /// Set dimensions and consistency checks
     void setDimensions(double xstart, double xend,
                        double ystart, double yend,
                        double zstart, double zend,
                        double width);
+    /// unhide PluginElement::setDimensions(double xstart, double xend, double ystart, double yend)
+    using PluginElement::setDimensions;
 
-    double getXStart() ;
-    double getYStart() ;
+    ///@{ Member variable access
     double getZStart() ;
-    double getXEnd() ;
-    double getYEnd() ;
     double getZEnd() ;
     double getWidth() ;
-
-    int checkPoint(const double & x, const double & y );
-
+    ///@}
 private:
+    /// Initialise particle matter interaction
+    virtual void doInitialise(PartBunchBase<double, 3> *bunch) override;
+    /// Record hits when bunch particles pass
+    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
+    /// Calculate extend in r
+    virtual void doSetGeom() override;
+    /// Virtual hook for finalise
+    virtual void doFinalise() override;
 
-    // Not implemented.
-    void operator=(const CCollimator &);
-
-    std::string filename_m;               /**< The name of the outputfile*/
-
-    bool informed_m;
+    bool informed_m = false; ///< Flag if error information already printed
 
     ///@{ input geometry positions
-    double xstart_m;
-    double xend_m;
-    double ystart_m;
-    double yend_m;
     double zstart_m;
     double zend_m;
-    double rstart_m;
-    double rend_m;
     double width_m;
     ///@}
-    /// 4 end points in (x,y) (5th point == 1st)
-    Point  geom_m[5];
     double rmin_m; ///< minimum extend in r
     double rmax_m; ///< maximum extend in r
-    /// Sets geom_m and maximal radii
-    void setGeom();
 
-    unsigned int losses_m;
-
-    std::unique_ptr<LossDataSink> lossDs_m;
-
-    ParticleMatterInteractionHandler *parmatint_m;
+    ParticleMatterInteractionHandler *parmatint_m = nullptr;
 };
-
-inline
-unsigned int CCollimator::getLosses() const {
-    return losses_m;
-}
-
-inline
-double CCollimator::getXStart() {
-    return xstart_m;
-}
-
-inline
-double CCollimator::getXEnd() {
-    return xend_m;
-}
-
-inline
-double CCollimator::getYStart() {
-    return ystart_m;
-}
-
-inline
-double CCollimator::getYEnd() {
-    return yend_m;
-}
 
 inline
 double CCollimator::getZStart() {
