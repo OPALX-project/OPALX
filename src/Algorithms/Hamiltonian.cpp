@@ -2,9 +2,9 @@
 
 Hamiltonian::Hamiltonian(int truncOrder) : truncOrder_m(truncOrder)
 {
-        
+
     series_t::setGlobalTruncOrder(truncOrder+1);
-        
+
     x     = series_t::makeVariable(0);
     px    = series_t::makeVariable(1);
     y     = series_t::makeVariable(2);
@@ -16,7 +16,7 @@ Hamiltonian::Hamiltonian(int truncOrder) : truncOrder_m(truncOrder)
 Hamiltonian::series_t Hamiltonian::drift(const double& gamma0)
 {
     double beta0 = this->getBeta_m(gamma0);
-    
+
     return ( delta / beta0 )
             - sqrt((1./ beta0 + delta ) *(1./ beta0 + delta )
                     - ( px*px )
@@ -24,7 +24,7 @@ Hamiltonian::series_t Hamiltonian::drift(const double& gamma0)
                     - 1./( beta0 * beta0 * gamma0 * gamma0 ),truncOrder_m+1);
 }
 
-    
+
 Hamiltonian::series_t Hamiltonian::rbend(double& beta0,
                             double& gamma0,
                             double& q,
@@ -50,8 +50,8 @@ Hamiltonian::series_t Hamiltonian::rbend(double& beta0,
 
 
 }
-    
-    
+
+
 Hamiltonian::series_t Hamiltonian::sbend(const double& gamma0,
                                          const double& h,
                                          const double& K0)
@@ -118,7 +118,7 @@ Hamiltonian::series_t Hamiltonian::quadrupole(const double& gamma0,
                                               const double& k1)
 {
     double beta0 = this->getBeta_m(gamma0);
-    
+
     return ( delta / beta0 )
     - sqrt ((1./ beta0 + delta ) *(1./ beta0 + delta)
             - ( px*px )
@@ -136,7 +136,7 @@ Hamiltonian::series_t Hamiltonian::fringeField(const double& phi,
         //TODO higher order thin lens approximation
     }
     // else
-    
+
     double angle = phi;
     if ( k0 < 0.0 )
         angle = -phi;

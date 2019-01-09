@@ -42,9 +42,6 @@ const double CoordinateTransform::error = 1e-10;
 const int CoordinateTransform::workspaceSize = 1000;
 const int CoordinateTransform::algorithm = GSL_INTEG_GAUSS61;
 
-CoordinateTransform::CoordinateTransform(): x_m(0), z_m(0), s_m(0) {
-}
-
 CoordinateTransform::CoordinateTransform(const double &xlab,
                                          const double &ylab,
                                          const double &zlab,
@@ -149,11 +146,9 @@ void CoordinateTransform::calcSCoordinate(const double &xlab,
         s_m = 10 * s_0_m;
         return;
     }
-    if (eqn1 > 0 && eqn2 < 0) {
-        double temp = eqn2;
-        eqn2 = eqn1;
-        eqn1 = temp;
-    }
+    // if (eqn1 > 0 && eqn2 < 0) {
+    //     std::swap(eqn1, eqn2)
+    // }
     int n = 0;
     while (n < 10000 && fabs(s1 - s2) > 1e-12) {
         double stemp = (s2 + s1) / 2;
@@ -193,7 +188,7 @@ void CoordinateTransform::transformFromEntranceCoordinates(
                         calcReferenceTrajectory(-boundingBoxLength);
     std::vector<double> shat = getUnitTangentVector(-boundingBoxLength);
     double x = coordinates[0], z = coordinates[1];
-    coordinates[0] = x * shat[1] + z * shat[0] + r_entrance[0];
+    coordinates[0] =  x * shat[1] + z * shat[0] + r_entrance[0];
     coordinates[1] = -x * shat[0] + z * shat[1] + r_entrance[1];
 }
 

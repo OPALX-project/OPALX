@@ -84,7 +84,7 @@ public:
      *  x powers as first argument and s powers as second argument, starting
      *  with a constant term
      */
-    TwoPolynomial(const std::vector<std::vector<int>> &coefficients);
+    explicit TwoPolynomial(const std::vector<std::vector<int>> &coefficients);
     /** Copy constructor */
     TwoPolynomial(const TwoPolynomial &poly);
     /** Assigment operator */

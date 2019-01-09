@@ -645,9 +645,9 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                     /* delete the particle if the distance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
-		    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
-		        std::abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] ||
-		        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
+                    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
+                        std::abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] ||
+                        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
                     {
                         // put particle onto deletion list
                         destroy(1, ii);
@@ -669,8 +669,8 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                     /* delete the particle if the distance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
-		    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
-		        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
+                    if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
+                        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
                     {
                         // put particle onto deletion list
                         destroy(1, ii);
@@ -920,8 +920,9 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     const size_t localNum = getLocalNum();
     if (localNum == 0) {
-	rmin = Vector_t(0.0, 0.0, 0.0);
-	rmax = Vector_t(0.0, 0.0, 0.0);
+        double maxValue = 1e8;
+        rmin = Vector_t(maxValue, maxValue, maxValue);
+        rmax = Vector_t(-maxValue, -maxValue, -maxValue);
 	return;
     }
 
@@ -1391,81 +1392,81 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
         return false;
     }
-    
+
     const unsigned long localNum = getLocalNum();
-        
+
     long int binTotalNum = 0;
     unsigned long binLocalNum = 0;
-    
+
     /* container:
-     * 
+     *
      * ekin, <x>, <y>, <z>, <p_x>, <p_y>, <p_z>,
      * <x^2>, <y^2>, <z^2>, <p_x^2>, <p_y^2>, <p_z^2>,
      * <xp_x>, <y_py>, <zp_z>,
      * <x^3>, <y^3>, <z^3>, <x^4>, <y^4>, <z^4>
      */
     std::vector<double> local(7 * Dim + 1);
-    
+
     for(unsigned long k = 0; k < localNum; ++ k) {
         if ( Bin[k] != bin || ID[k] == 0 ) {
             continue;
         }
-        
+
         ++binTotalNum;
         ++binLocalNum;
-        
+
         // ekin
         local[0] += std::sqrt(dot(P[k], P[k]) + 1.0);
-        
+
         for (unsigned int i = 0; i < Dim; ++i) {
-            
+
             double r = R[k](i);
-            
+
             // <x>, <y>, <z>
             local[i + 1] += r;
-            
+
             // <p_x>, <p_y, <p_z>
             local[i + Dim + 1] += P[k](i);
-            
+
             // <x^2>, <y^2>, <z^2>
             double r2 = r * r;
             local[i + 2 * Dim + 1] += r2;
-            
+
             // <p_x^2>, <p_y^2>, <p_z^2>
             local[i + 3 * Dim + 1] += P[k](i) * P[k](i);
-            
+
             // <xp_x>, <y_py>, <zp_z>
             local[i + 4 * Dim + 1] += r * P[k](i);
-            
+
             // <x^3>, <y^3>, <z^3>
             local[i + 5 * Dim + 1] += r2 * r;
-            
+
             // <x^4>, <y^4>, <z^4>
             local[i + 6 * Dim + 1] += r2 * r2;
         }
     }
-    
+
     // inefficient
     allreduce(binTotalNum, 1, std::plus<long int>());
-    
+
     if ( binTotalNum == 0 )
         return false;
-    
+
     // ekin
     const double m0 = getM() * 1.0e-6;
     local[0] -= binLocalNum;
     local[0] *= m0;
-    
+
     allreduce(local.data(), local.size(), std::plus<double>());
-    
+
     double invN = 1.0 / double(binTotalNum);
     binfo.ekin = local[0] * invN;
-    
+
     binfo.time       = getT() * 1e9;  // ns
     binfo.nParticles = binTotalNum;
-    
+
     for (unsigned int i = 0; i < Dim; ++i) {
-        
+
         double w = local[i + 1] * invN;
         double pw = local[i + Dim + 1] * invN;
         double w2 = local[i + 2 * Dim + 1] * invN;
@@ -1473,34 +1474,43 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
         double wpw = local[i + 4 * Dim + 1] * invN;
         double w3 = local[i + 5 * Dim + 1] * invN;
         double w4 = local[i + 6 * Dim + 1] * invN;
-        
+
         // <x>, <y>, <z>
         binfo.mean[i] = w;
-        
-        // sqrt(<p_w^2> - <p_w>^2) (w = x, y, z)
-        binfo.prms[i] = std::sqrt(pw2 - pw * pw);
-        
-        // <w^2> - <w>^2 (w = x, y, z)
+
+        // central: <p_w^2> - <p_w>^2 (w = x, y, z)
+        binfo.prms[i] = pw2 - pw * pw;
+        if ( binfo.prms[i] < 0 ) {
+            binfo.prms[i] = 0.0;
+        }
+
+        // central: <wp_w> - <w><p_w>
+        wpw = wpw - w * pw;
+
+        // central: <w^2> - <w>^2 (w = x, y, z)
         binfo.rrms[i] = w2 - w * w;
-        
-        // normalized emittance
-        binfo.emit[i] = (w2 * pw2 - wpw * wpw);
+
+        // central: normalized emittance
+        binfo.emit[i] = (binfo.rrms[i] * binfo.prms[i] - wpw * wpw);
         binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
-        
-        // <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
+
+        // central: <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
         double tmp = w4
                    - 4.0 * w * w3
                    + 6.0 * w * w * w2
                    - 3.0 * w * w * w * w;
         binfo.halo[i] = tmp / ( binfo.rrms[i] * binfo.rrms[i] );
-        
-        // sqrt(<w^2>) (w = x, y, z)
+
+        // central: sqrt(<w^2> - <w>^2) (w = x, y, z)
         binfo.rrms[i] = std::sqrt(binfo.rrms[i]);
+
+        // central: sqrt(<p_w^2> - <p_w>^2)
+        binfo.prms[i] = std::sqrt(binfo.prms[i]);
     }
-    
+
     double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
     binfo.dEkin = binfo.prms[1] * m0 * std::sqrt(1.0 - tmp);
-    
+
     return true;
 }
 
@@ -1919,42 +1929,6 @@ double PartBunchBase<T, Dim>::getEmissionDeltaT() {
 
 
 template <class T, unsigned Dim>
-Quaternion_t PartBunchBase<T, Dim>::getQKs3D() {
-    return QKs3D_m;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setQKs3D(Quaternion_t q) {
-    QKs3D_m=q;
-}
-
-
-template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::getKs3DRefr() {
-    return Ks3DRefr_m;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setKs3DRefr(Vector_t r) {
-    Ks3DRefr_m=r;
-}
-
-
-template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::getKs3DRefp() {
-    return Ks3DRefp_m;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setKs3DRefp(Vector_t p) {
-    Ks3DRefp_m=p;
-}
-
-
-template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::iterateEmittedBin(int binNumber) {
     binemitted_m[binNumber]++;
 }
@@ -2137,7 +2111,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
     /* 4th order central moment: <w^4> - 4<w><w^3> + 6<w>^2<w^2> - 3<w>^4
      * 2nd order central moment: <w^2> - <w>^2
-     * 
+     *
      * with w = x, y, z.
      */
     int j = 2 * Dim + Dim * ( 2 * Dim + 1 );

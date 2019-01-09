@@ -148,16 +148,6 @@ namespace Util {
         return *this;
     }
 
-    KahanAccumulation KahanSum(KahanAccumulation accumulation, double value)
-    {
-        KahanAccumulation result;
-        long double y = value - accumulation.correction;
-        long double t = accumulation.sum + y;
-        result.correction = (t - accumulation.sum) - y;
-        result.sum = t;
-        return result;
-    }
-
     /** \brief
      *  rewind the SDDS file such that the spos of the last step is less or equal to maxSPos
      */

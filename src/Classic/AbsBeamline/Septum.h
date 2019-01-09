@@ -1,91 +1,47 @@
 #ifndef CLASSIC_Septum_HH
 #define CLASSIC_Septum_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: Septum.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Septum
-//   *** MISSING *** Septum interface is still incomplete.
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:32 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
-#include "AbsBeamline/Component.h"
-
+#include "AbsBeamline/PluginElement.h"
 
 // Class Septum
 // ------------------------------------------------------------------------
 /// Interface for septum magnet.
 //  Class Septum defines the abstract interface for a septum magnet.
 
-class Septum: public Component {
+class Septum: public PluginElement {
 
 public:
-
     /// Constructor with given name.
     explicit Septum(const std::string &name);
 
     Septum();
     Septum(const Septum &);
+    void operator=(const Septum &) = delete;
     virtual ~Septum();
 
     /// Apply visitor to Septum.
     virtual void accept(BeamlineVisitor &) const;
+    ///@{ Override implementation of PluginElement
+    virtual ElementBase::ElementType getType() const override;
+    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+    ///@}
+    /// unhide PluginElement::initialise(PartBunchBase<double, 3> *bunch)
+    using PluginElement::initialise;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
-
-    virtual void finalise();
-
-    virtual bool bends() const;
-
-    virtual void goOffline();
-
-    /// Set dimensions and consistency checks
-    void setDimensions(double xstart, double xend, double ystart, double yend, double width);
-
-    virtual double getXstart() const;
-
-    virtual double getXend() const;
-
-    virtual double getYstart() const;
-    virtual double getYend() const;
-
-
-    virtual double getWidth() const;
-    bool  checkSeptum(PartBunchBase<double, 3> *bunch);
-    double calculateAngle(double x, double y);
-
-    virtual ElementBase::ElementType getType() const;
-
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
-
-private:
-    std::string filename_m;             /**< The name of the inputfile*/
-    double position_m;
-    ///@{ input geometry positions
-    double xstart_m;
-    double xend_m;
-    double ystart_m;
-    double yend_m;
-    double rstart_m;
-    double rend_m;
-    double width_m;
+    ///@{ Member variable access
+    void   setWidth(double width);
+    double getWidth() const;
     ///@}
 
-    // Not implemented.
-    void operator=(const Septum &);
+private:
+    /// Hook for initialise
+    virtual void doInitialise(PartBunchBase<double, 3> *bunch) override;
+    /// Record hits when bunch particles pass
+    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
+
+    ///@{ input geometry positions
+    double width_m;
+    ///@}
 };
 
 #endif // CLASSIC_Septum_HH

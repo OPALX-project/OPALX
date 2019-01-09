@@ -10,8 +10,10 @@
 #include <type_traits>
 #include <functional>
 
+// ------- DON'T DELETE: start --------
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define __DBGMSG__ __FILENAME__ << ": " << __LINE__ << "\t"
+// ------- DON'T DELETE: end   --------
 
 namespace Util {
     std::string getGitRevision();
@@ -172,8 +174,6 @@ namespace Util {
 
         KahanAccumulation& operator+=(double value);
     };
-
-    KahanAccumulation KahanSum(KahanAccumulation accumulation, double value);
 
     unsigned int rewindLinesSDDS(const std::string &fileName, double maxSPos, bool checkForTime = true);
 

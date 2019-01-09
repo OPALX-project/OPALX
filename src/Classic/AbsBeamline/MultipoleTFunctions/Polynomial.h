@@ -59,7 +59,7 @@ public:
      *  \param coefficients -> List of polynomial coefficients, starting
      *  with the const term
      */
-    Polynomial(const std::vector<int> &coefficients);
+    explicit Polynomial(const std::vector<int> &coefficients);
     /** Copy constructor */
     Polynomial(const Polynomial &poly);
     /** Destructor, does nothing */

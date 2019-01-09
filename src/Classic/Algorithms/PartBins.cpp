@@ -2,6 +2,7 @@
 #include "Algorithms/PBunchDefs.h"
 #include "Physics/Physics.h"
 #include <cfloat>
+#include <limits>
 #include <vector>
 
 extern Inform *gmsg;
@@ -28,8 +29,8 @@ PartBins::PartBins(int bins, int sbins) :
 
     for(int i = 0; i < bins_m; i++) {
         nDelBin_m[i] = nBin_m[i] = 0;
-        xbinmax_m[i] = -DBL_MAX;
-        xbinmin_m[i] = DBL_MAX;
+        xbinmin_m[i] = std::numeric_limits<double>::max();
+        xbinmax_m[i] = -xbinmin_m[i];
         binsEmitted_m[i] = false;
     }
 }
@@ -189,8 +190,8 @@ size_t PartBins::getSum() {
 }
 
 void PartBins::calcGlobalExtrema() {
-    xmin_m = DBL_MAX;
-    xmax_m = -DBL_MAX;
+    xmin_m = std::numeric_limits<double>::max();
+    xmax_m = -xmin_m;
     for(unsigned int n = 0; n < tmppart_m.size(); n++) {
         if(tmppart_m[n][2] <= xmin_m)
             xmin_m = tmppart_m[n][2];

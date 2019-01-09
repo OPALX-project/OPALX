@@ -1,5 +1,3 @@
-
-
 #ifndef MAP_ANALYSER_H
 #define MAP_ANALYSER_H
 
@@ -15,16 +13,16 @@ class MapAnalyser
 public:
     typedef FMatrix<double, 6, 6> fMatrix_t;
     typedef FMatrix<std::complex<double>, 6, 6> cfMatrix_t;
-    
+
     MapAnalyser();
-    
+
     /*!
      * Analyzes the transfer matrix
      *
      * @param tMatrix Transfer matrix
      */
     void linTAnalyze(const fMatrix_t& tMatrix);
-    
+
 
     /*!
      * Analyzes the transfer matrix
@@ -33,7 +31,7 @@ public:
      */
     void linSigAnalyze(fMatrix_t& sigMatrix);
 private:
-    
+
     /*!
      * Eigen-decomposition of M
      *
@@ -47,7 +45,7 @@ private:
      * @param invEigenVec inverted EigenVectors of \f$\mathbf{M}\f$ \f$\mathbf{E}^{-1}\f$
      */
     void eigenDecomp_m(const fMatrix_t& M, cfMatrix_t& eigenVal, cfMatrix_t& eigenVec, cfMatrix_t& invEigenVec);
-    
+
     /*!
      * Returns the block diagonal form rotation matrix \f$ \mathbf{R}\f$. \n
      * This Matrix gets created by applying a symplectic and its inverse Matrix \f$U\f$ on M \f$ \mathbf{R} = \mathbf{UMU}^{-1}\f$
@@ -73,7 +71,7 @@ private:
      *
      */
     cfMatrix_t getBlockDiagonal_m(const fMatrix_t& M, cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM);
-    
+
 
     /*!
      * :TODO: WIP Prints phase shift
@@ -83,7 +81,7 @@ private:
      * @param oldN \f$\mathbf{N}\f$ matrix
      */
     void printPhaseShift_m(fMatrix_t& Sigma, fMatrix_t tM, cfMatrix_t& oldN);
-    
+
 
 
     /*!
@@ -95,24 +93,24 @@ private:
     * @param invN inverted symplectic \f$\mathbf{N}^{-1}\f$ matrix
     */
     void setNMatrix_m(fMatrix_t& M, cfMatrix_t& N, cfMatrix_t& invN);
-    
+
 
 
 
     fMatrix_t createRotMatrix_m(std::array<double, 3> phi);
-    
+
     fMatrix_t createSkewMatrix_m();
-    
+
     fMatrix_t realPartOfMatrix_m(cfMatrix_t cM);
-    
+
     fMatrix_t imagPartOfMatrix_m(cfMatrix_t cM);
-    
+
     cfMatrix_t complexTypeMatrix_m(fMatrix_t M);
 
     cfMatrix_t invertMatrix_m(const cfMatrix_t &M);
-    
+
     void rearrangeEigen_m(cfMatrix_t& EigenVal, cfMatrix_t& EigenVec);
-    
+
 private:
     IpplTimings::TimerRef mapAnalysis_m;
     IpplTimings::TimerRef bunchAnalysis_m;

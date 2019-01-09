@@ -46,7 +46,7 @@ OpalCCollimator::OpalCCollimator():
     itsAttr[WIDTH] = Attributes::makeReal
                      ("WIDTH", "Width of the collimator [mm]");
     itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "CCollimator output filename");
+                     ("OUTFN", "Output filename");
 
     registerRealAttribute("XSTART");
     registerRealAttribute("XEND");

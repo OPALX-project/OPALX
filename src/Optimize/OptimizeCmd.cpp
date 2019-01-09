@@ -63,6 +63,7 @@ namespace {
         SELECTOR,
         DUMPDAT,
         DUMPFREQ,
+        DUMPOFFSPRING,
         NUMINDGEN,
         MAXGENERATIONS,
         EPSILON,
@@ -112,7 +113,9 @@ OptimizeCmd::OptimizeCmd():
     itsAttr[DUMPDAT] = Attributes::makeReal
         ("DUMP_DAT", "Dump old generation data format with frequency (PISA only)");
     itsAttr[DUMPFREQ] = Attributes::makeReal
-        ("DUMP_FREQ", "Dump old generation data format with frequency (PISA only)");
+        ("DUMP_FREQ", "Dump generation data with frequency (PISA only)");
+    itsAttr[DUMPOFFSPRING] = Attributes::makeBool
+        ("DUMP_OFFSPRING", "Dump offspring (instead of parent population), default: true");
     itsAttr[NUMINDGEN] = Attributes::makeReal
         ("NUM_IND_GEN", "Number of individuals in a generation (PISA only)");
     itsAttr[MAXGENERATIONS] = Attributes::makeReal
@@ -238,6 +241,7 @@ void OptimizeCmd::execute() {
             {SELECTOR, "selector"},
             {DUMPDAT, "dump-dat"},
             {DUMPFREQ, "dump-freq"},
+            {DUMPOFFSPRING, "dump-offspring"},
             {NUMINDGEN, "num-ind-gen"},
             {MAXGENERATIONS, "maxGenerations"},
             {EPSILON, "epsilon"},

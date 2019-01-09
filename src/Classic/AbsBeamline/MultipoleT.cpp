@@ -111,7 +111,7 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &P,
             theta = 0.0;
         } else if (!variableRadius_m) {
             theta = R_prime[2] * angle_m / length_m;
-        } else if (variableRadius_m) {
+        } else { // variableRadius_m == true
             theta = fringeField_l.getLambda() * log(cosh((R_prime[2] +
                     fringeField_l.getX0()) / fringeField_l.getLambda())) -
                     fringeField_r.getLambda() * log(cosh((R_prime[2] -
