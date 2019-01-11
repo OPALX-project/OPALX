@@ -45,11 +45,11 @@ int main(int argc, char *argv[])
         fun->print(0);
         std::cout << "\n" << std::endl;
 
-        std::vector<mslang::Base*> baseBlocks;
+        std::vector<std::shared_ptr<mslang::Base> > baseBlocks;
         fun->apply(baseBlocks);
 
         std::ofstream out("test.gpl");
-        for (mslang::Base* bfun: baseBlocks) {
+        for (std::shared_ptr<mslang::Base> &bfun: baseBlocks) {
             // bfun->print(0);
             // std::cout << std::endl;
             bfun->computeBoundingBox();
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
         if (baseBlocks.size() > 0) {
             Vector_t llc, urc;
-            mslang::Base* first = baseBlocks.front();
+            std::shared_ptr<mslang::Base> &first = baseBlocks.front();
             const mslang::BoundingBox &bb = first->bb_m;
             llc = Vector_t(bb.center_m[0] - 0.5 * bb.width_m,
                            bb.center_m[1] - 0.5 * bb.height_m,
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
                             << std::endl;
                     }
                 } else {
-                    for (mslang::Base* func: baseBlocks) {
+                    for (std::shared_ptr<mslang::Base> &func: baseBlocks) {
                         if (func->isInside(X)) {
                             ++ n;
                             out << std::setw(14) << X[0]
@@ -140,8 +140,8 @@ int main(int argc, char *argv[])
             gsl_rng_free(rng);
 
 
-            for (mslang::Base* func: baseBlocks) {
-                delete func;
+            for (std::shared_ptr<mslang::Base> & func: baseBlocks) {
+                func.reset();
             }
         }
 
