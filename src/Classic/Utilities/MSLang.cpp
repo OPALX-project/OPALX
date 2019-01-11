@@ -11,6 +11,9 @@
 #include <cstdlib>
 #include <cmath>
 
+#define __DBGMSG__ "MSLang.cpp: " << __LINE__ << "\t"
+Inform msg("DBG");
+
 namespace mslang {
     std::string UDouble("([0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
     std::string Double("(-?[0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
@@ -108,17 +111,17 @@ namespace mslang {
             bb_m.writeGnuplot(out);
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
-            bfuncs.push_back(this->clone());
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+            bfuncs.emplace_back(std::move(this->clone()));
         }
 
-        virtual Base* clone() const {
-            Rectangle *rect = new Rectangle;
+        virtual std::shared_ptr<Base> clone() const {
+            std::shared_ptr<Rectangle> rect(new Rectangle);
             rect->width_m = width_m;
             rect->height_m = height_m;
             rect->trafo_m = trafo_m;
 
-            return rect;
+            return std::static_pointer_cast<Base>(rect);
         }
 
         static
@@ -200,17 +203,17 @@ namespace mslang {
             bb_m.writeGnuplot(out);
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
-            bfuncs.push_back(this->clone());
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+            bfuncs.emplace_back(this->clone());
         }
 
-        virtual Base* clone() const{
-            Ellipse *elps = new Ellipse;
+        virtual std::shared_ptr<Base> clone() const{
+            std::shared_ptr<Ellipse> elps(new Ellipse);
             elps->width_m = width_m;
             elps->height_m = height_m;
             elps->trafo_m = trafo_m;
 
-            return elps;
+            return std::static_pointer_cast<Base>(elps);
         }
 
         virtual void computeBoundingBox() {
@@ -293,7 +296,7 @@ namespace mslang {
                       << indent2 << "dy: " << shifty_m;
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
             AffineTransformation trafo(Vector_t(cos(rot_m), sin(rot_m), -shiftx_m),
                                        Vector_t(-sin(rot_m), cos(rot_m), -shifty_m));
 
@@ -303,9 +306,9 @@ namespace mslang {
             AffineTransformation current_trafo = trafo;
             for (unsigned int i = 0; i < N_m; ++ i) {
                 for (unsigned int j = 0; j < size; ++ j) {
-                    Base *obj = bfuncs[j]->clone();
+                    std::shared_ptr<Base> obj(bfuncs[j]->clone());
                     obj->trafo_m = obj->trafo_m.mult(current_trafo);
-                    bfuncs.push_back(obj);
+                    bfuncs.emplace_back(std::move(obj));
                 }
 
                 current_trafo = current_trafo.mult(trafo);
@@ -373,7 +376,7 @@ namespace mslang {
                       << indent2 << "dy: " << shifty_m;
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
             AffineTransformation shift(Vector_t(1.0, 0.0, -shiftx_m),
                                        Vector_t(0.0, 1.0, -shifty_m));
 
@@ -381,7 +384,7 @@ namespace mslang {
             const unsigned int size = bfuncs.size();
 
             for (unsigned int j = 0; j < size; ++ j) {
-                Base *obj = bfuncs[j];
+                std::shared_ptr<Base> &obj = bfuncs[j];
                 obj->trafo_m = obj->trafo_m.mult(shift);
             }
         }
@@ -427,7 +430,7 @@ namespace mslang {
                       << indent2 << "angle: " << angle_m;
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
             AffineTransformation rotation(Vector_t(cos(angle_m), sin(angle_m), 0.0),
                                           Vector_t(-sin(angle_m), cos(angle_m), 0.0));
 
@@ -435,7 +438,7 @@ namespace mslang {
             const unsigned int size = bfuncs.size();
 
             for (unsigned int j = 0; j < size; ++ j) {
-                Base *obj = bfuncs[j];
+                std::shared_ptr<Base> &obj = bfuncs[j];
                 obj->trafo_m = obj->trafo_m.mult(rotation);
             }
         }
@@ -485,7 +488,7 @@ namespace mslang {
             }
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
             AffineTransformation shear(Vector_t(1.0, tan(angleX_m), 0.0),
                                        Vector_t(-tan(angleY_m), 1.0, 0.0));
 
@@ -493,7 +496,7 @@ namespace mslang {
             const unsigned int size = bfuncs.size();
 
             for (unsigned int j = 0; j < size; ++ j) {
-                Base *obj = bfuncs[j];
+                std::shared_ptr<Base> &obj = bfuncs[j];
                 obj->trafo_m = obj->trafo_m.mult(shear);
             }
         }
@@ -549,9 +552,9 @@ namespace mslang {
                       << indent2 << "} ";
         }
 
-        virtual void apply(std::vector<Base*> &bfuncs) {
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
             for (unsigned int i = 0; i < funcs_m.size(); ++ i) {
-                std::vector<Base*> children;
+                std::vector<std::shared_ptr<Base> > children;
                 Function *func = funcs_m[i];
                 func->apply(children);
                 bfuncs.insert(bfuncs.end(), children.begin(), children.end());
@@ -597,118 +600,93 @@ namespace mslang {
         objects_m(right.objects_m.begin(),
                   right.objects_m.end()),
         bb_m(right.bb_m),
-        nodes_m(0)
+        nodes_m()
     {
-        if (right.nodes_m != 0) {
-            nodes_m = new QuadTree[4];
+        if (right.nodes_m.size() != 0) {
+            nodes_m.resize(4);
             for (unsigned int i = 0; i < 4u; ++ i) {
-                nodes_m[i] = right.nodes_m[i];
+                nodes_m[i].reset(new QuadTree(*right.nodes_m[i]));
             }
         }
     }
 
     QuadTree::~QuadTree() {
-        for (Base *&obj: objects_m)
-            obj = 0; // memory isn't handled by QuadTree class
-
-        if (nodes_m != 0) {
-            delete[] nodes_m;
-        }
-        nodes_m = 0;
+        objects_m.clear();
+        nodes_m.clear();
     }
 
     void QuadTree::operator=(const QuadTree &right) {
+        Inform msg("DBG ");
         level_m = right.level_m;
         objects_m.insert(objects_m.end(),
                          right.objects_m.begin(),
                          right.objects_m.end());
         bb_m = right.bb_m;
 
-        if (nodes_m != 0) delete[] nodes_m;
-        nodes_m = 0;
+        if (nodes_m.size() != 0) nodes_m.clear();
 
-        if (right.nodes_m != 0) {
-            nodes_m = new QuadTree[4];
+        if (right.nodes_m.size() != 0) {
+            nodes_m.resize(4);
             for (unsigned int i = 0; i < 4u; ++ i) {
-                nodes_m[i] = right.nodes_m[i];
+                *nodes_m[i] = *right.nodes_m[i];
             }
         }
     }
 
-    void QuadTree::transferIfInside(std::list<Base*> &objs) {
-        for (Base* &obj: objs) {
+    void QuadTree::transferIfInside(std::list<std::shared_ptr<Base> > &objs) {
+        for (std::shared_ptr<Base> &obj: objs) {
             if (bb_m.isInside(obj->bb_m)) {
-                objects_m.push_back(obj);
-                obj = 0;
+                objects_m.emplace_back(std::move(obj));
             }
         }
 
-        objs.remove_if([](const Base *obj) { return obj == 0; });
+        objs.remove_if([](const std::shared_ptr<Base> obj) { return !obj; });
     }
 
     void QuadTree::buildUp() {
-        QuadTree *next = new QuadTree[4];
-        next[0] = QuadTree(level_m + 1,
-                           BoundingBox(bb_m.center_m,
-                                       Vector_t(bb_m.center_m[0] + 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1] + 0.5 * bb_m.height_m,
-                                                0.0)));
-        next[1] = QuadTree(level_m + 1,
-                           BoundingBox(Vector_t(bb_m.center_m[0],
-                                                bb_m.center_m[1] - 0.5 * bb_m.height_m,
-                                                0.0),
-                                       Vector_t(bb_m.center_m[0] + 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1],
-                                                0.0)));
-        next[2] = QuadTree(level_m + 1,
-                           BoundingBox(Vector_t(bb_m.center_m[0] - 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1],
-                                                0.0),
-                                       Vector_t(bb_m.center_m[0],
-                                                bb_m.center_m[1] + 0.5 * bb_m.height_m,
-                                                0.0)));
-        next[3] = QuadTree(level_m + 1,
-                           BoundingBox(Vector_t(bb_m.center_m[0] - 0.5 * bb_m.width_m,
-                                                bb_m.center_m[1] - 0.5 * bb_m.height_m,
-                                                0.0),
-                                       bb_m.center_m));
+        double X[] = {bb_m.center_m[0] - 0.5 * bb_m.width_m,
+                      bb_m.center_m[0],
+                      bb_m.center_m[0] + 0.5 * bb_m.width_m};
+        double Y[] = {bb_m.center_m[1] - 0.5 * bb_m.height_m,
+                      bb_m.center_m[1],
+                      bb_m.center_m[1] + 0.5 * bb_m.height_m};
 
-        bool allNonEmpty = true;
+        bool allEmpty = true;
+
+        nodes_m.reserve(4);
         for (unsigned int i = 0; i < 4u; ++ i) {
-            next[i].transferIfInside(objects_m);
-            if (next[i].objects_m.size() == 0) {
-                allNonEmpty = false;
-                for (unsigned int j = 0; j < i; ++ j) {
-                    objects_m.merge(next[j].objects_m);
-                }
-                break;
+            nodes_m.emplace_back(new QuadTree(level_m + 1,
+                                              BoundingBox(Vector_t(X[i / 2], Y[i % 2], 0.0),
+                                                          Vector_t(X[i / 2 + 1], Y[i % 2 + 1], 0.0))));
+            nodes_m.back()->transferIfInside(objects_m);
+
+            if (nodes_m.back()->objects_m.size() != 0) {
+                allEmpty = false;
             }
         }
 
-        if (!allNonEmpty) {
-            delete[] next;
+        if (allEmpty) {
+            nodes_m.clear();
             return;
         }
 
         for (unsigned int i = 0; i < 4u; ++ i) {
-            next[i].buildUp();
+            nodes_m[i]->buildUp();
         }
-
-        nodes_m = next;
     }
 
     bool QuadTree::isInside(const Vector_t &R) const {
-        if (nodes_m != 0) {
+        if (nodes_m.size() != 0) {
             Vector_t X = R - bb_m.center_m;
-            unsigned int idx = (X[1] >= 0.0 ? 0: 1);
-            idx += (X[0] >= 0.0 ? 0: 2);
+            unsigned int idx = (X[1] < 0.0 ? 0: 1);
+            idx += (X[0] < 0.0 ? 0: 2);
 
-            if (nodes_m[idx].isInside(R)) {
+            if (nodes_m[idx]->isInside(R)) {
                 return true;
             }
         }
 
-        for (Base* obj: objects_m) {
+        for (const std::shared_ptr<Base> & obj: objects_m) {
             if (obj->isInside(R)) {
                 return true;
             }

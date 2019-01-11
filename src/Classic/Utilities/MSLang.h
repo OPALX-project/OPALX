@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <memory>
 
 namespace mslang {
     typedef std::string::iterator iterator;
@@ -48,7 +49,7 @@ namespace mslang {
                     isInside(b.center_m + 0.5 * Vector_t( b.width_m, -b.height_m, 0.0)));
         }
 
-        virtual void writeGnuplot(std::ofstream &out) const {
+        virtual void writeGnuplot(std::ostream &out) const {
             std::vector<Vector_t> pts({Vector_t(center_m[0] + 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
                         Vector_t(center_m[0] - 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
                         Vector_t(center_m[0] - 0.5 * width_m, center_m[1] - 0.5 * height_m, 0),
@@ -139,7 +140,7 @@ namespace mslang {
         virtual ~Function() {};
 
         virtual void print(int indent) = 0;
-        virtual void apply(std::vector<Base*> &bfuncs) = 0;
+        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs) = 0;
     };
 
     struct Base: public Function {
@@ -155,7 +156,7 @@ namespace mslang {
             bb_m(right.bb_m)
         { }
 
-        virtual Base* clone() const = 0;
+        virtual std::shared_ptr<Base> clone() const = 0;
         virtual void writeGnuplot(std::ofstream &out) const = 0;
         virtual void computeBoundingBox() = 0;
         virtual bool isInside(const Vector_t &R) const = 0;
@@ -164,20 +165,20 @@ namespace mslang {
 
     struct QuadTree {
         int level_m;
-        std::list<Base*> objects_m;
+        std::list<std::shared_ptr<Base> > objects_m;
         BoundingBox bb_m;
-        QuadTree *nodes_m;
+        std::vector<std::shared_ptr<QuadTree> > nodes_m;
 
         QuadTree():
             level_m(0),
             bb_m(),
-            nodes_m(0)
+            nodes_m()
         { }
 
         QuadTree(int l, const BoundingBox &b):
             level_m(l),
             bb_m(b),
-            nodes_m(0)
+            nodes_m()
         { }
 
         QuadTree(const QuadTree &right);
@@ -186,7 +187,7 @@ namespace mslang {
 
         void operator=(const QuadTree &right);
 
-        void transferIfInside(std::list<Base*> &objs);
+        void transferIfInside(std::list<std::shared_ptr<Base> > &objs);
         void buildUp();
 
 
@@ -194,14 +195,14 @@ namespace mslang {
             out << "# level: " << level_m << ", size: " << objects_m.size() << std::endl;
             bb_m.writeGnuplot(out);
             out << "# num holes: " << objects_m.size() << std::endl;
-            for (const Base *obj: objects_m) {
+            for (const std::shared_ptr<Base> &obj: objects_m) {
                 obj->writeGnuplot(out);
             }
             out << std::endl;
 
-            if (nodes_m != 0) {
+            if (nodes_m.size() != 0) {
                 for (unsigned int i = 0; i < 4u; ++ i) {
-                    nodes_m[i].writeGnuplot(out);
+                    nodes_m[i]->writeGnuplot(out);
                 }
             }
         }
