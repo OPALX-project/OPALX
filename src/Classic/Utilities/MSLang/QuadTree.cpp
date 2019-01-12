@@ -10,9 +10,8 @@ namespace mslang {
         nodes_m()
     {
         if (right.nodes_m.size() != 0) {
-            nodes_m.resize(4);
             for (unsigned int i = 0; i < 4u; ++ i) {
-                *nodes_m[i] = *right.nodes_m[i];
+                nodes_m.emplace_back(new QuadTree(*right.nodes_m[i]));
             }
         }
     }
@@ -40,9 +39,8 @@ namespace mslang {
         if (nodes_m.size() != 0) nodes_m.clear();
 
         if (right.nodes_m.size() != 0) {
-            nodes_m.resize(4);
             for (unsigned int i = 0; i < 4u; ++ i) {
-                *nodes_m[i] = *right.nodes_m[i];
+                nodes_m.emplace_back(new QuadTree(*right.nodes_m[i]));
             }
         }
     }
