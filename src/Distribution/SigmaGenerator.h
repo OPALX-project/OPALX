@@ -820,9 +820,7 @@ template<typename Value_type, typename Size_type>
 void SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn,
                                                      sparse_matrix_type& R,
                                                      sparse_matrix_type& invR)
-{
-    typedef gsl_complex gsl_complex_t;
-    
+{    
     this->eigsolve_m(Mturn, R);
     
     if ( !this->invertMatrix_m(R, invR) )
