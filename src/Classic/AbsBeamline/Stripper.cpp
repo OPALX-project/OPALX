@@ -100,17 +100,17 @@ bool Stripper::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, co
             if(sk1 == 0.0)
                 stangle =1.0e12;
             else
-                stangle = abs(1/sk1);
+                stangle = std::abs(1/sk1);
         }else if (meanP(0) == 0.0 ){
             sk2 = - A_m/B_m;
             if(sk2 == 0.0)
               stangle =1.0e12;
             else
-              stangle = abs(1/sk2);
+              stangle = std::abs(1/sk2);
         }else {
             sk1 = meanP(1)/meanP(0);
             sk2 = - A_m/B_m;
-            stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
+            stangle = std::abs(( sk1-sk2 )/(1 + sk1*sk2));
         }
         double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
         double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
@@ -128,17 +128,17 @@ bool Stripper::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, co
                         if (k1 == 0.0)
                             tangle = 1.0e12;
                         else
-                            tangle = abs(1/k1);
+                            tangle = std::abs(1/k1);
                     }else if (bunch->P[i](0) == 0.0 ){
                         k2 = -A_m/B_m;
                         if (k2 == 0.0)
                             tangle = 1.0e12;
                         else
-                            tangle = abs(1/k2);
+                            tangle = std::abs(1/k2);
                     }else {
                         k1 = bunch->P[i](1)/bunch->P[i](0);
                         k2 = -A_m/B_m;
-                        tangle = abs(( k1-k2 )/(1 + k1*k2));
+                        tangle = std::abs(( k1-k2 )/(1 + k1*k2));
                     }
                     double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
                     double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch->P[i], bunch->P[i]))) * Physics::c)*1.0e9;

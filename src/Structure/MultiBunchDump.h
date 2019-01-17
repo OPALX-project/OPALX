@@ -32,7 +32,6 @@ private:
     void close_m(std::ofstream& out) const;
     
 private:
-    int nBins_m;
     std::string fbase_m;
     std::string fext_m;
     
