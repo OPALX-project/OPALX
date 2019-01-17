@@ -228,27 +228,6 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
     // delete opalRing_m;
 }
 
-/**
- * AAA
- *
- * @param none
- */
-void ParallelCyclotronTracker::initializeBoundaryGeometry() {
-    for(Component * component : myElements) {
-        bgf_m = dynamic_cast<ElementBase *>(component)->getBoundaryGeometry();
-        if(!bgf_m)
-            continue;
-        else
-            break;
-    }
-    if (bgf_m) {
-        itsDataSink->writeGeomToVtk(*bgf_m, std::string("data/testGeometry-00000.vtk"));
-        OpalData::getInstance()->setGlobalGeometry(bgf_m);
-        *gmsg << "* Boundary geometry initialized " << endl;
-    }
-}
-
-
 /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
 inline
 void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
@@ -1110,18 +1089,6 @@ void ParallelCyclotronTracker::visitParallelPlate(const ParallelPlate &pplate) {
 void ParallelCyclotronTracker::visitCyclotronValley(const CyclotronValley &cv) {
     // Do nothing here.
 }
-/**
- * not used
- *
- * @param angle
- * @param curve
- * @param field
- * @param scale
- */
-void ParallelCyclotronTracker::applyEntranceFringe(double angle, double curve,
-                                                   const BMultipoleField &field, double scale) {
-
-}
 
 /**
  *
@@ -1168,13 +1135,6 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     buildupFieldList(BcParameter, ElementBase::STRIPPER, elptr);
 }
-
-
-void ParallelCyclotronTracker::applyExitFringe(double angle, double curve,
-                                               const BMultipoleField &field, double scale) {
-
-}
-
 
 /**
  *
@@ -1240,9 +1200,6 @@ void ParallelCyclotronTracker::execute() {
     // Record how many bunches have already been injected. ONLY FOR MPM
     BunchCount_m = itsBunch_m->getNumBunch();
 
-    // For the time being, we set bin number equal to bunch number. FixMe: not used
-    BinCount_m = BunchCount_m;
-
     itsBeamline->accept(*this);
     if (opalRing_m != NULL)
         opalRing_m->lockRing();
@@ -1256,7 +1213,6 @@ void ParallelCyclotronTracker::execute() {
 
     *gmsg << "* -------------------------------------" << endl;
 
-    // Don't initializeBoundaryGeometry()
     // Get BoundaryGeometry that is already initialized
     bgf_m = OpalData::getInstance()->getGlobalGeometry();
 
@@ -2948,7 +2904,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     // Record how many bunches have already been injected. ONLY FOR MBM
     BunchCount_m = itsBunch_m->getNumBunch();
-    BinCount_m = BunchCount_m;
 
     initTrackOrbitFile();
 
