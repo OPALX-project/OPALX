@@ -11,6 +11,8 @@ set (_SRCS
   ThickTracker.cpp
   # AutophaseTracker.cpp
   CavityAutophaser.cpp
+  Ctunes.cpp
+  lomb.cpp
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
   ParallelSliceTracker.cpp
@@ -39,16 +41,14 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
-    AutophaseTracker.h
+    #AutophaseTracker.h
     BeamBeam3D.h
     CavityAutophaser.h
     Ctunes.h
-    Ctunes.hpp
     Hamiltonian.h
     IndexMap.h
     LieMapper.h
     lomb.h
-    lomb.hpp
     MapAnalyser.h
     MPSplitIntegrator.h
     NilTracker.h
