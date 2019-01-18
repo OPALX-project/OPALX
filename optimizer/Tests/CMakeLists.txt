@@ -13,21 +13,14 @@ if(NOT PYTHONLIBS_FOUND OR NOT GTEST_FOUND)
     return()
 endif()
 
-IF (OPTP_USED_FROM_OPAL)
-    STRING (REGEX REPLACE "/[^/]+$" "/" GTEST_LIBRARY_DIRS ${GTEST_LIBRARY})
-    SET (RELATIVE_TO_OPAL "optimizer/")
-ENDIF()
-
 include_directories (
     ${GTEST_INCLUDE_DIRS}
-    $ENV{GTEST_PREFIX}/include
     ${Boost_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
     ${PYTHON_INCLUDE_DIRS}
 )
 
 link_directories (
-    $ENV{GTEST_PREFIX}/lib
     ${GTEST_LIBRARY_DIRS}
     ${PYTHON_LIBRARIES}
 )
@@ -125,7 +118,7 @@ set (PILOT_TESTS
 )
 
 set (TEST_LIBS
-    gtest
+    ${GTEST_BOTH_LIBRARIES}
     pthread
     ${Boost_LIBRARIES}
     ${MPI_LIBRARIES}
@@ -140,14 +133,13 @@ FOREACH(test ${PILOT_TESTS})
     SET( SRC ${${test}_SRC} )
     ADD_EXECUTABLE( ${test}.exe ${test}.cpp ${SRC} )
     TARGET_LINK_LIBRARIES( ${test}.exe ${TEST_LIBS} ${PYTHON_LIBS})
-    #target_link_libraries(foo ${GTEST_BOTH_LIBRARIES})
     ADD_TEST(${test} ${test}.exe)
 ENDFOREACH(test ${PILOT_TESTS})
 
-#HACK: link resources dir to test dir
-if (NOT EXISTS ${PROJECT_BINARY_DIR}/${RELATIVE_TO_OPAL}Tests/resources)
+#link resources dir to test dir
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/resources)
     EXECUTE_PROCESS(
-        COMMAND ln -s ${OPT_PILOT_SOURCE_DIR}/Tests/resources ${PROJECT_BINARY_DIR}/${RELATIVE_TO_OPAL}Tests/
+        COMMAND ln -s ${CMAKE_CURRENT_SOURCE_DIR}/resources ${CMAKE_CURRENT_BINARY_DIR}
         OUTPUT_VARIABLE LN_OUT OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 endif()
