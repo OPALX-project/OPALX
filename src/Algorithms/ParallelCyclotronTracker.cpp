@@ -16,7 +16,6 @@
 //
 // ------------------------------------------------------------------------
 
-#include <Algorithms/Ctunes.hpp>
 #include "Algorithms/ParallelCyclotronTracker.h"
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
@@ -88,7 +87,7 @@
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
 
-#include "Ctunes.h"
+#include "Algorithms/Ctunes.h"
 #include <cassert>
 
 #include <hdf5.h>
