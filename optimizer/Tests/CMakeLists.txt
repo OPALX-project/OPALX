@@ -1,14 +1,14 @@
-# gtest and python libraries are required for the tests
+# gtest libraries are required for the tests
 find_package(GTest)
-find_package(PythonLibs)
 
-if(NOT PYTHONLIBS_FOUND OR NOT GTEST_FOUND)
-    if (NOT PYTHONLIBS_FOUND)
-        message (STATUS "Python libraries not found.")
-    endif()
-    if (NOT GTEST_FOUND)
-        message (STATUS "gtest not found.")
-    endif()
+## PythonExprTest is disabled
+#find_package(PythonLibs)
+#if (NOT PYTHONLIBS_FOUND)
+#    message (STATUS "Python libraries not found.")
+#endif()
+
+if (NOT GTEST_FOUND)
+    message (STATUS "gtest not found.")
     message (STATUS "No testing possible.")
     return()
 endif()
@@ -17,12 +17,12 @@ include_directories (
     ${GTEST_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
-    ${PYTHON_INCLUDE_DIRS}
+#    ${PYTHON_INCLUDE_DIRS}
 )
 
 link_directories (
     ${GTEST_LIBRARY_DIRS}
-    ${PYTHON_LIBRARIES}
+#    ${PYTHON_LIBRARIES}
 )
 
 set (OPT_PILOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/optimizer)
@@ -59,10 +59,10 @@ set (FromFileExpressionTest_SRC
     ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
 )
 
-set (PythonExprTest_SRC
-    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
-)
+#set (PythonExprTest_SRC
+#    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
+#    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
+#)
 
 
 set (HashNameGeneratorTest_SRC
@@ -124,15 +124,15 @@ set (TEST_LIBS
     ${MPI_LIBRARIES}
 )
 
-set (PYTHON_LIBS
+#set (PYTHON_LIBS
 #    ${PYTHON_LIBRARIES}
 #    boost_python
-)
+#)
 
 FOREACH(test ${PILOT_TESTS})
     SET( SRC ${${test}_SRC} )
     ADD_EXECUTABLE( ${test}.exe ${test}.cpp ${SRC} )
-    TARGET_LINK_LIBRARIES( ${test}.exe ${TEST_LIBS} ${PYTHON_LIBS})
+    TARGET_LINK_LIBRARIES( ${test}.exe ${TEST_LIBS}) # ${PYTHON_LIBS})
     ADD_TEST(${test} ${test}.exe)
 ENDFOREACH(test ${PILOT_TESTS})
 
