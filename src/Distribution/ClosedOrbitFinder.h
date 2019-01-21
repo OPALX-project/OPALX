@@ -105,9 +105,10 @@ class ClosedOrbitFinder
         /*!
          * @param accuracy specifies the accuracy of the closed orbit
          * @param maxit is the maximal number of iterations done for finding the closed orbit
+         * @param energy step increase [MeV]
          * @param rguess initial radius guess in [mm]
          */
-        bool findOrbit(value_type, size_type, value_type = -1.0);
+        bool findOrbit(value_type, size_type, value_type = 1.0, value_type = -1.0);
 
         /// Fills in the values of h_m, ds_m, fidx_m.
         void computeOrbitProperties();
@@ -395,6 +396,7 @@ typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
 template<typename Value_type, typename Size_type, class Stepper>
 bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type accuracy,
                                                                   size_type maxit,
+                                                                  value_type dE,
                                                                   value_type rguess)
 {
     /* REMARK TO GORDON
@@ -514,19 +516,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      *
      */
 
-    // step size of energy
-    value_type dE; 
-
-    if (cycl_m->getFMLowE() == cycl_m->getFMHighE())
-      dE = 0.0;
-    else
-      dE = (E_m - cycl_m->getFMLowE()) / (cycl_m->getFMHighE() - cycl_m->getFMLowE());
-
     // iterate until suggested energy (start with minimum energy)
     value_type E = cycl_m->getFMLowE();
-
-    // energy increase not more than 0.25
-    dE = (dE > 0.25) ? 0.25 : dE;
 
     // energy dependent values
     value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
