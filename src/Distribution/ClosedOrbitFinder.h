@@ -48,14 +48,13 @@ class ClosedOrbitFinder
 
         /// Sets the initial values for the integration and calls findOrbit().
         /*!
-         * @param E is the energy [MeV] to which the closed orbit should be found
          * @param E0 is the potential energy (particle energy at rest) [MeV].
          * @param N specifies the number of splits (2pi/N), i.e number of integration steps
          * @param cycl is the cyclotron element
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
          */
-        ClosedOrbitFinder(value_type E, value_type E0, size_type N,
+        ClosedOrbitFinder(value_type E0, size_type N,
                           Cyclotron* cycl, bool domain = true);
 
         /// Returns the inverse bending radius (size of container N+1)
@@ -105,10 +104,12 @@ class ClosedOrbitFinder
         /*!
          * @param accuracy specifies the accuracy of the closed orbit
          * @param maxit is the maximal number of iterations done for finding the closed orbit
-         * @param energy step increase [MeV]
+         * @param ekin kinetic energy [MeV]
+         * @param dE step increase [MeV]
          * @param rguess initial radius guess in [mm]
          */
-        bool findOrbit(value_type, size_type, value_type = 1.0, value_type = -1.0);
+        bool findOrbit(value_type, size_type, value_type,
+                       value_type = 1.0, value_type = -1.0);
 
         /// Fills in the values of h_m, ds_m, fidx_m.
         void computeOrbitProperties();
@@ -230,17 +231,17 @@ class ClosedOrbitFinder
 template<typename Value_type, typename Size_type, class Stepper>
 ClosedOrbitFinder<Value_type,
                   Size_type,
-                  Stepper>::ClosedOrbitFinder(value_type E, value_type E0,
+                  Stepper>::ClosedOrbitFinder(value_type E0,
                                               size_type N, Cyclotron* cycl,
                                               bool domain)
     : nxcross_m(0)
     , nzcross_m(0)
-    , E_m(E)
+    , E_m(0.0)
     , E0_m(E0)
     , wo_m(cycl->getRfFrequ()*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
     , N_m(N)
     , dtheta_m(Physics::two_pi/value_type(N))
-    , gamma_m(E/E0+1.0)
+    , gamma_m(0.0)
     , ravg_m(0)
     , phase_m(0)
     , lastOrbitVal_m(0.0)
@@ -254,17 +255,6 @@ ClosedOrbitFinder<Value_type,
         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
                             "Incorrect cyclotron energy (MeV) bounds: Maximum cyclotron energy smaller than minimum cyclotron energy.");
     
-//     // Even if the numbers are equal --> if statement is true.
-//     if ( E_m < cycl_m->getFMLowE() )
-//         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy smaller than minimum cyclotron energy");
-     
-    if ( E_m > cycl_m->getFMHighE() )
-        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Kinetic energy exceeds cyclotron energy");
-
-    // velocity: beta = v/c = sqrt(1-1/(gamma*gamma))
-    if (gamma_m == 0)
-        throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()", "Relativistic factor equal zero.");
-
     // if domain_m = true --> integrate over a single sector
     if (domain_m) {
         N_m /=  cycl_m->getSymmetry();
@@ -399,6 +389,7 @@ typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
 template<typename Value_type, typename Size_type, class Stepper>
 bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type accuracy,
                                                                   size_type maxit,
+                                                                  value_type ekin,
                                                                   value_type dE,
                                                                   value_type rguess)
 {
@@ -406,6 +397,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      * q' = 1/b = 1/bcon
      * a' = a = acon
      */
+    
+    E_m = ekin;
+    gamma_m = E_m / E0_m + 1.0;
     
     value_type bint, brint, btint;
 
