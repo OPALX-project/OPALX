@@ -1325,6 +1325,13 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 
     double rguess =
         Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]);
+    
+    double denergy = 1000.0 *
+        Attributes::getReal(itsAttr[Attrib::Distribution::DENERGY]);
+    
+    if ( denergy < 0.0 )
+        throw OpalException("Distribution:CreateMatchedGaussDistribution()",
+                            "DENERGY < 0");
 
     double accuracy =
         Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]);
@@ -1337,7 +1344,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 
         cof_t cof(E_m*1E-6, massIneV*1E-6, Nint, CyclotronElement, false);
 
-        if ( !cof.findOrbit(accuracy, maxitCOF, rguess) ) {
+        if ( !cof.findOrbit(accuracy, maxitCOF, denergy, rguess) ) {
             throw OpalException("Distribution::CreateMatchedGaussDistribution()",
                                 "Closed orbit finder didn't converge.");
         }
@@ -1383,6 +1390,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
                       maxitCOF,
                       CyclotronElement,
+                      denergy,
                       rguess,
                       false, full))  {
 
@@ -3565,6 +3573,9 @@ void Distribution::setAttributes() {
 
     itsAttr[Attrib::Distribution::RGUESS]
         = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
+    
+    itsAttr[Attrib::Distribution::DENERGY]
+        = Attributes::makeReal("DENERGY", "Energy step size for closed orbit finder [GeV]", 0.001);
 
 
     itsAttr[Attrib::Distribution::FNAME]
