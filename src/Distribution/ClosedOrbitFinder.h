@@ -269,6 +269,9 @@ ClosedOrbitFinder<Value_type,
     if (domain_m) {
         N_m /=  cycl_m->getSymmetry();
     }
+    
+    cycl_m->read(cycl_m->getFieldFlag(cycl_m->getCyclotronType()),
+                 cycl_m->getBScale());
 
     // reserve storage for the orbit and momentum (--> size = 0, capacity = N_m+1)
     /*
@@ -403,9 +406,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      * q' = 1/b = 1/bcon
      * a' = a = acon
      */
-
-    cycl_m->read(cycl_m->getFieldFlag(cycl_m->getCyclotronType()),
-                 cycl_m->getBScale());
     
     value_type bint, brint, btint;
 
