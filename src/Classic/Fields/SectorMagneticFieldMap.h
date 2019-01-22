@@ -299,6 +299,8 @@ class SectorMagneticFieldMap::IO {
 
     // private destructor i.e. disabled
     ~IO();
+
+    static const std::string errMsg1;
 };
 
 #endif

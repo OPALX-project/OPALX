@@ -5,12 +5,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <deque>
+#include <fstream>
+#include <map>
 #include <string>
 #include <sstream>
-#include <vector>
-#include <map>
 #include <utility>
-#include <fstream>
+#include <vector>
 
 #include "Comm/types.h"
 #include "Util/Types.h"
@@ -23,6 +24,7 @@
 
 #include <boost/smart_ptr.hpp>
 #include <boost/chrono.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include "Util/Trace/Trace.h"
 
@@ -76,6 +78,12 @@ public:
 
     /// type used in solution state exchange with other optimizers
     typedef std::vector< Individual > SolutionState_t;
+    /// type of our variator
+    typedef Individual Individual_t;
+    typedef Variator< Individual_t, CrossoverOperator, MutationOperator >
+        Variator_t;
+    /// alias for usage in template
+    using individual = typename FixedPisaNsga2::Individual_t;
 
 
 protected:
@@ -126,7 +134,7 @@ private:
     // selector parameters
     int seed;   /* seed for random number generator */
     const int tournament_m = 1;  /* number of opponents for mating selection */
-    size_t selector_mu_;
+    size_t selector_mu_; ///< number of finished individuals in current generation
 
     /// the current state of the state machine
     PisaState_t curState_m;
@@ -134,10 +142,6 @@ private:
     /// collect some statistics of rejected and accepted individuals
     boost::scoped_ptr<Statistics<size_t> > statistics_;
 
-    /// type of our variator
-    typedef Individual Individual_t;
-    typedef Variator< Individual_t, CrossoverOperator, MutationOperator >
-        Variator_t;
     boost::scoped_ptr<Variator_t> variator_m;
 
     std::vector<unsigned int> pp_all;        ///< IDs of population
@@ -155,17 +159,13 @@ private:
     Comm::Bundle_t comms_;
 
     /// buffer holding all finished job id's
-    std::queue<unsigned int> finishedBuffer_m;
+    std::deque<unsigned int> finishedBuffer_m;
 
     /// mapping from unique job ID to individual
     std::map<size_t, boost::shared_ptr<Individual> > jobmapping_m;
 
-    /// string of executable of the selection algorithm
-    std::string execAlgo_m;
-
     /// indicating if initial population has been created
     bool initialized_m;
-
 
     /// bounds on each specified gene
     bounds_t dVarBounds_m;
@@ -190,7 +190,7 @@ private:
     /// number of objectives
     size_t dim_m;
     /// current generation
-    size_t act_gen;
+    size_t act_gen = 1;
     /// maximal generation (stopping criterion)
     size_t maxGenerations_m;
 
@@ -200,8 +200,9 @@ private:
 
 
     // dump frequency
-    int dump_freq_;
-
+    int dump_freq_m;
+    /// dump offspring / parents flag
+    bool dump_offspring_m;
     /// convergence accuracy if maxGenerations not set
     double hvol_eps_;
     double expected_hvol_;
@@ -251,6 +252,13 @@ private:
     /// global_population.
     void dumpPopulationToFile();
     void dumpPopulationToJSON();
+    void dumpIndividualToFile(int id,
+                              boost::shared_ptr<individual>& ind,
+                              std::ofstream& file,
+                              const size_t numDigits);
+    void dumpIndividualToJSON(int id,
+                              boost::shared_ptr<individual>& ind,
+                              boost::property_tree::ptree& tree);
 
     /**
      *  Get a random integer between [0, range]

@@ -65,18 +65,12 @@ private:
     std::string var_name_;
     std::string stat_filename_;
     double spos_;
-
-    // define a mapping to arguments in argument vector
-    boost::tuple<std::string, double> argument_types;
-    // :FIXME: unused
-#if 0
-    enum {
-          var_name
-        , spos
-        , stat_filename
-    } argument_type_id;
-#endif
 };
+
+/**
+ *  A simple expression to get value from stat file near a
+ *  specific spos (second argument) for a variable (name = first argument).
+ */
 
 struct sameSDDSVariable {
     sameSDDSVariable(const std::string & base_filename) {

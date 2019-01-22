@@ -56,7 +56,6 @@ public:
         return id;
     }
 
-
     void remove_individual(individual ind) {
 
         indItr_t it = stagingArea.begin();
@@ -75,11 +74,10 @@ public:
         }
     }
 
-
     /**
      *  Get an individual of the current population with a specific ID
      *  @param identity an ID of the individual in the population
-     *  @return the individual with the specified ID in the population, -1 if
+     *  @return the individual with the specified ID in the population, empty pointer if
      *  none found
      */
     individual get_individual(int identity) {
@@ -96,7 +94,12 @@ public:
         return it->second;
     }
 
-
+    /**
+     *  Get an individual of the 'stagingArea' with a specific ID
+     *  @param identity an ID of the individual in the stagingArea
+     *  @return the individual with the specified ID, empty pointer if
+     *  none found
+     */
     individual get_staging(int identity) {
 
         indItr_t it;

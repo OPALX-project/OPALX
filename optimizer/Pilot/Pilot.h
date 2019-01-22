@@ -201,7 +201,7 @@ private:
             std::cout << " \\___/| .__/ \\__|      | .__/|_|_|\\___/ \\__|" << std::endl;
             std::cout << "      | |              | |                  " << std::endl;
             std::cout << "      |_|              |_|                  " << std::endl;
-	    // ADA            std::cout << "☷ Version: \t"    << PACKAGE_VERSION << std::endl;
+            // ADA            std::cout << "☷ Version: \t"    << PACKAGE_VERSION << std::endl;
             //std::cout << "☷ Git: \t\t"      << GIT_VERSION     << std::endl;
             //std::cout << "☷ Build Date: \t" << BUILD_DATE      << std::endl;
             std::cout << "\e[0m";
@@ -359,7 +359,6 @@ protected:
 
     virtual
     void postPoll() {
-
         // terminating all workers is tricky since we do not know their state.
         // All workers are notified (to terminate) when opt has converged and
         // all workers are idle.

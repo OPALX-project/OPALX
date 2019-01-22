@@ -70,5 +70,5 @@ target_link_libraries (
 	${AMREX_LIBRARIES}
 	${OTHER_CMAKE_EXE_LINKER_FLAGS}
 	${GTEST_BOTH_LIBRARIES}
-	-lpthread
+	pthread
 )

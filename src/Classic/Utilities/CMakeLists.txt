@@ -39,6 +39,7 @@ set (_SRCS
   OverflowError.cpp
   ParseError.cpp
   PortableBitmapReader.cpp
+  PortableGraymapReader.cpp
   RingSection.cpp
   SingularMatrixError.cpp
   SizeError.cpp
@@ -96,6 +97,7 @@ set (HDRS
     OverflowError.h
     ParseError.h
     PortableBitmapReader.h
+    PortableGraymapReader.h
     RingSection.h
     SingularMatrixError.h
     SizeError.h

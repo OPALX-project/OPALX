@@ -194,6 +194,7 @@ namespace Attrib
             ORDERMAPS,
             //            E2,
             RGUESS,
+            DENERGY,
             ID1,                       // special particle that the user can set
             ID2,                       // special particle that the user can set
             SCALABLE,

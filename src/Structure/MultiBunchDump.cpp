@@ -13,8 +13,7 @@
 #include "Ippl.h"
 
 MultiBunchDump::MultiBunchDump()
-    : nBins_m(-1)
-    , fbase_m(OpalData::getInstance()->getInputBasename())
+    : fbase_m(OpalData::getInstance()->getInputBasename())
     , fext_m(".smb")
 { }
 

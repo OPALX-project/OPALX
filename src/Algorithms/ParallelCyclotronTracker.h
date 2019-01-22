@@ -31,16 +31,9 @@
 class BMultipoleField;
 template <class T, unsigned Dim>
 class PartBunchBase;
-class PlanarArcGeometry;
-class Ring;
-class SBend3D;
-class VariableRFCavity;
-class VariableRFCavityFringeField;
-class Offset;
 
 // Class ParallelCyclotronTracker
 // ------------------------------------------------------------------------
-enum CyclOperationModeT {SINGLEP, MULTIP, TUNECALC};
 
 struct CavityCrossData {
     RFCavity * cavity;
@@ -252,11 +245,10 @@ private:
 
     beamline_list FieldDimensions;
     std::list<Component *> myElements;
-    int LastVisited;
     Beamline *itsBeamline;
 
     DataSink *itsDataSink;
-    
+
     std::unique_ptr<MultiBunchDump> itsMBDump_m;
 
     BoundaryGeometry *bgf_m;
@@ -330,34 +322,14 @@ private:
 
     double eta_m; // parameter for reset bin in multi-bunch run
 
-    // temporal 6 phase space varibles of particle [x,y,z,px,py,pz]. Unit: mm & dimensionless
-    double variable_m[6];
-    // temporal 3 real space varibles of particle ID=0 [x,y,z]. for tune with SC.  Unit: mm
-    Vector_t variable_tune0_m;
-    // temporal 3 real space varibles of particle ID=1 [x,y,z]. for tune with SC.  Unit: mm
-    Vector_t variable_tune1_m;
-
-    // vector of [angle, x, y] of SEO read in from external file for tune with SC. Unit : rad, mm
-    std::vector<Vector_t> variable_SEO_m;
-
     // record how many bunches has already been injected. ONLY FOR MPM
     int BunchCount_m;
-
-    // decide how many energy bins. ONLY FOR MPM
-    // For the time being, we set bin number equal to bunch number.
-    int BinCount_m;
 
     // used for automatic injection in multi-bunch mode
     double RLastTurn_m , RThisTurn_m;
 
-    // start time to record tune data
-    double StartTime_m;
-
     // external field arrays for dumping
     Vector_t FDext_m[2], extE_m, extB_m;
-
-    // mark the dumpstep to inject new bunch from here for AUTO mode of restart run of multibunch
-    int backupDumpStep_m;
 
     const int myNode_m;
     const size_t initialLocalNum_m;
@@ -376,17 +348,7 @@ private:
     void openFiles(std::string fn);
     void closeFiles();
 
-    // Fringe fields for entrance and exit of magnetic elements.
-    void applyEntranceFringe(double edge, double curve,
-                             const BMultipoleField &field, double scale);
-    void applyExitFringe(double edge, double curve,
-                         const BMultipoleField &field, double scale);
-
     void buildupFieldList(double BcParameter[], ElementBase::ElementType elementType, Component *elptr);
-
-    bool derivate(double *y, const double &t, double *yp, const size_t &Pindex);
-
-    bool rk4(double x[], const double &t, const double &tau, const size_t &Pindex);
 
     // angle range [0~2PI) degree
     double calculateAngle(double x, double y);
