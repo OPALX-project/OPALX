@@ -13,6 +13,7 @@
 #include "Distribution/LaserProfile.h"
 #include "Utility/Inform.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/PortableGraymapReader.h"
 
 #include <boost/filesystem.hpp>
 
@@ -36,7 +37,8 @@ LaserProfile::LaserProfile(const std::string &fileName,
     centerMass_m(0.0),
     standardDeviation_m(0.0){
 
-    unsigned short *image = readFile(fileName, imageName, intensityCut);
+    unsigned short *image = readFile(fileName, imageName);
+    saveOrigData(image);
 
     if (flags & FLIPX) flipX(image);
     if (flags & FLIPY) flipY(image);
@@ -52,10 +54,6 @@ LaserProfile::LaserProfile(const std::string &fileName,
         swapXY(image);
         flipY(image);
     }
-
-#ifdef TESTLASEREMISSION
-    saveOrigData(image);
-#endif
 
     filterSpikes(image);
     normalizeProfileData(intensityCut, image);
@@ -81,14 +79,45 @@ LaserProfile::~LaserProfile() {
 }
 
 unsigned short * LaserProfile::readFile(const std::string &fileName,
-                                        const std::string &imageName,
-                                        double insCut) {
-
+                                        const std::string &imageName) {
     namespace fs = boost::filesystem;
     if (!fs::exists(fileName)) {
         throw OpalException("LaserProfile::readFile",
                             "given file '" + fileName + "' does not exist");
     }
+
+    size_t npos = fileName.find_last_of('.');
+    std::string ext = fileName.substr(npos + 1);
+
+    unsigned short *image;
+    if (ext == "pgm") {
+        image = readPGMFile(fileName);
+    } else {
+        image = readHDF5File(fileName, imageName);
+    }
+
+    return image;
+}
+
+unsigned short * LaserProfile::readPGMFile(const std::string &fileName) {
+    PortableGraymapReader reader(fileName);
+
+    sizeX_m = reader.getWidth();
+    sizeY_m = reader.getHeight();
+
+    unsigned short *image = new unsigned short[sizeX_m * sizeY_m];
+    unsigned int idx = 0;
+    for (unsigned int i = 0; i < sizeX_m; ++ i) {
+        for (unsigned int j = 0; j < sizeY_m; ++ j, ++ idx) {
+            image[idx] = reader.getPixel(j, i);
+        }
+    }
+
+    return image;
+}
+
+unsigned short * LaserProfile::readHDF5File(const std::string &fileName,
+                                            const std::string &imageName) {
 
     hid_t h5 = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     hid_t group = H5Gopen2 (h5, imageName.c_str(), H5P_DEFAULT);
@@ -211,8 +240,7 @@ void LaserProfile::filterSpikes(unsigned short *image) {
 }
 
 void LaserProfile::normalizeProfileData(double intensityCut, unsigned short *image) {
-    unsigned short int profileMax;
-    getProfileMax(profileMax, image);
+    unsigned short int profileMax = getProfileMax(image);
 
     unsigned int pixel = 0;
     for (unsigned int col = 0; col < sizeX_m; ++ col) {
@@ -309,12 +337,14 @@ void LaserProfile::printInfo() {
 }
 
 void LaserProfile::saveOrigData(unsigned short *image) {
-    std::ofstream out("data/originalLaserProfile.dat");
+    std::ofstream out("data/originalLaserProfile.pgm");
+    out << "P2" << std::endl;
+    out << sizeX_m << " " << sizeY_m << std::endl;
+    out << getProfileMax(image) << std::endl;
 
-    unsigned int index = 0;
-    for (unsigned int i = 0; i < sizeX_m; ++ i) {
-        for (unsigned int j = 0; j < sizeY_m; ++ j) {
-            out << image[index++] << "\t";
+    for (unsigned int j = 0; j < sizeY_m; ++ j) {
+        for (unsigned int i = 0; i < sizeX_m; ++ i) {
+            out << image[i * sizeY_m + j] << " ";
         }
         out << std::endl;
     }
@@ -344,13 +374,15 @@ void LaserProfile::getXY(double &x, double &y) {
     gsl_histogram2d_pdf_sample(pdf_m, u, v, &x, &y);
 }
 
-void LaserProfile::getProfileMax(unsigned short &maxIntensity, unsigned short *image) {
+unsigned short LaserProfile::getProfileMax(unsigned short *image) {
     unsigned int numberPixels = sizeX_m * sizeY_m;
 
-    maxIntensity = 0;
+    unsigned short maxIntensity = 0;
 
     for(unsigned int i = 0; i < numberPixels; i++) {
         if(image[i] > maxIntensity)
             maxIntensity = image[i];
     }
+
+    return maxIntensity;
 }
