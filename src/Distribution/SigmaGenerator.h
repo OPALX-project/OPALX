@@ -121,13 +121,14 @@ public:
      *    distribution was found)
      * @param maxitOrbit is the maximum number of iterations for finding closed orbit
      * @param angle defines the start of the sector (one can choose any angle between 0° and 360°)
+     * @param denergy energy step size for closed orbit finder [MeV]
      * @param rguess value of radius for closed orbit finder
      * @param type specifies the magnetic field format (e.g. CARBONCYCL)
      * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
      * @param full match over full turn not just single sector
      */
     bool match(value_type accuracy, size_type maxit, size_type maxitOrbit,
-               Cyclotron* cycl, value_type rguess, bool harmonic, bool full);
+               Cyclotron* cycl, value_type denergy, value_type rguess, bool harmonic, bool full);
     
     /*!
      * Eigenvalue / eigenvector solver
@@ -430,6 +431,7 @@ template<typename Value_type, typename Size_type>
                                                     size_type maxit,
                                                     size_type maxitOrbit,
                                                     Cyclotron* cycl,
+                                                    value_type denergy,
                                                     value_type rguess,
                                                     bool harmonic, bool full)
 {
@@ -463,7 +465,7 @@ template<typename Value_type, typename Size_type>
             ClosedOrbitFinder<value_type, size_type,
                 boost::numeric::odeint::runge_kutta4<container_type> > cof(E_m, m_m, N_m, cycl, false);
 
-            if ( !cof.findOrbit(accuracy, maxitOrbit, rguess) ) {
+            if ( !cof.findOrbit(accuracy, maxitOrbit, denergy, rguess) ) {
                 throw OpalException("SigmaGenerator::match()",
                                     "Closed orbit finder didn't converge.");
             }
@@ -820,9 +822,7 @@ template<typename Value_type, typename Size_type>
 void SigmaGenerator<Value_type, Size_type>::decouple(const matrix_type& Mturn,
                                                      sparse_matrix_type& R,
                                                      sparse_matrix_type& invR)
-{
-    typedef gsl_complex gsl_complex_t;
-    
+{    
     this->eigsolve_m(Mturn, R);
     
     if ( !this->invertMatrix_m(R, invR) )

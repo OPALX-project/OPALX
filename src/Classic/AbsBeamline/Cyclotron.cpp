@@ -225,7 +225,12 @@ void Cyclotron::setRfFrequ(vector<double> f) {
 }
 
 double Cyclotron::getRfFrequ() const {
-  return rffrequ_m[0];
+    if (rffrequ_m.empty() == false)
+        return rffrequ_m[0];
+    else {
+        throw GeneralClassicException("Cyclotron::getRfFrequ",
+                                      "RFFREQ not defined for CYCLOTRON!");
+    }
 }
 
 void Cyclotron::setSuperpose(std::vector<bool> flag) {
@@ -1246,11 +1251,11 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     for(int r = 0; r < Bfield.nrad; r++) {
       CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &tmp));   // over read
       for(int k = 0; k < Bfield.ntetS; k++) {
-	CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(r, k)])));
-	Bfield.bfld[idx(r, k)] *= BP.Bfact;
-	if((Ippl::getNodes()) == 1 && Options::info)
-	  fp << BP.rmin + (r * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(r, k)] << " idx= " << idx(r, k)  << endl;
-	count++;
+          CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(r, k)])));
+          Bfield.bfld[idx(r, k)] *= BP.Bfact;
+          if((Ippl::getNodes()) == 1 && Options::info)
+              fp << BP.rmin + (r * BP.delr) << " \t " << k*(BP.tetmin + BP.dtet) << " \t " << Bfield.bfld[idx(r, k)] << " idx= " << idx(r, k)  << endl;
+          count++;
       }
     }
     if((Ippl::getNodes()) == 1 && Options::info)
@@ -1415,7 +1420,7 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
     for(int i = 0; i < Bfield.nrad; i++) {
 
         for(int ii = 0; ii < 13; ii++)
-			CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+            CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
 
         for(int k = 0; k < nHalfPoints; k++) {
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
@@ -1452,8 +1457,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
                                           "failed to open file '" + *fm + "', please check if it exists");
         }
         f->readMap();
-	// if (IPPL::Comm->getOutputLevel() != 0)
-	//     f->getInfo(gmsg);
+        // if (IPPL::Comm->getOutputLevel() != 0)
+        //     f->getInfo(gmsg);
         RFfields_m.push_back(f);
     }
     // read CARBON type B field
@@ -1486,57 +1491,57 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
                                           "failed to open file '" + *fm + "', please check if it exists");
         }
         f->readMap();
-	// if (IPPL::Comm->getOutputLevel() != 0) f->getInfo(gmsg);
+        // if (IPPL::Comm->getOutputLevel() != 0) f->getInfo(gmsg);
         RFfields_m.push_back(f);
 
         // Read RF Frequency Coefficients from file
-	*gmsg << "RF Frequency Coefficient Filename: " << (*rffcfni) << endl;
+        *gmsg << "RF Frequency Coefficient Filename: " << (*rffcfni) << endl;
 
-	rffcf = fopen((*rffcfni).c_str(), "r");
+        rffcf = fopen((*rffcfni).c_str(), "r");
 
         if(rffcf == NULL) {
             throw GeneralClassicException("Cyclotron::getFieldFromFile_Synchrocyclotron",
                                           "failed to open file '" + *rffcfni + "', please check if it exists");
         }
 
-	vector<double> fcoeff;
+        vector<double> fcoeff;
 
-	int nc; //Number of coefficients
-	double value;
+        int nc; //Number of coefficients
+        double value;
 
         CHECK_CYC_FSCANF_EOF(fscanf(rffcf, "%d", &nc));
         *gmsg << "* Number of coefficients in file: " << nc << endl;
         for(int k = 0; k < nc; k++) {
-	    CHECK_CYC_FSCANF_EOF(fscanf(rffcf, "%16lE", &value));
-	    fcoeff.push_back(value);
+            CHECK_CYC_FSCANF_EOF(fscanf(rffcf, "%16lE", &value));
+            fcoeff.push_back(value);
             //*gmsg << "* Coefficient " << k << ": " << value << endl;
         }
-	rffc_m.push_back(fcoeff);
+        rffc_m.push_back(fcoeff);
 
-	fclose(rffcf);
+        fclose(rffcf);
 
         // Read RF Voltage Coefficients from file
-	*gmsg << "RF Voltage Coefficient Filename: " << (*rfvcfni) << endl;
+        *gmsg << "RF Voltage Coefficient Filename: " << (*rfvcfni) << endl;
 
-	rfvcf = fopen((*rfvcfni).c_str(), "r");
+        rfvcf = fopen((*rfvcfni).c_str(), "r");
 
         if(rfvcf == NULL) {
             throw GeneralClassicException("Cyclotron::getFieldFromFile_Synchrocyclotron",
                                           "failed to open file '" + *rfvcfni + "', please check if it exists");
         }
 
-	vector<double> vcoeff;
+        vector<double> vcoeff;
 
         CHECK_CYC_FSCANF_EOF(fscanf(rfvcf, "%d", &nc));
         *gmsg << "* Number of coefficients in file: " << nc << endl;
         for(int k = 0; k < nc; k++) {
-	    CHECK_CYC_FSCANF_EOF(fscanf(rfvcf, "%16lE", &value));
-	    vcoeff.push_back(value);
+            CHECK_CYC_FSCANF_EOF(fscanf(rfvcf, "%16lE", &value));
+            vcoeff.push_back(value);
             //*gmsg << "* Coefficient " << k << ": " << value << endl;
         }
-	rfvc_m.push_back(vcoeff);
+        rfvc_m.push_back(vcoeff);
 
-	fclose(rfvcf);
+        fclose(rfvcf);
     }
 
     // read CARBON type B field for mid-plane field

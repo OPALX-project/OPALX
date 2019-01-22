@@ -361,6 +361,16 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolatorPolyPatch(
 
 }
 
+const std::string SectorMagneticFieldMap::IO::errMsg1 =
+    std::string("field points during read ")+
+    std::string("operation; this could mean that the field ")+
+    std::string("map was not complete, or that OPAL could ")+
+    std::string("not calculate regular grid spacings properly. ")+
+    std::string("Check that the field map is on a cylindrical ")+
+    std::string("grid written in Cartesian coordinates and the ")+
+    std::string("grid points are written with enough precision (")+
+    std::string("check the grid size information above).");
+
 VectorMap* SectorMagneticFieldMap::IO::getInterpolator
                         (const std::vector< std::vector<double> > field_points,
                          ThreeDGrid* grid,
@@ -381,10 +391,11 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolator
             Bz[i][j] = new double[grid->zSize()];
             for (int k = 0; k < grid->zSize(); ++k) {
                 if (index >= int(field_points.size())) {
-                    throw(LogicalError(
-                                 "SectorMagneticFieldMap::IO::getInterpolator",
-                                 "Ran out of field points during read operation; check bounds and ordering"
-                           ));
+                    throw(
+                        LogicalError(
+                          "SectorMagneticFieldMap::IO::getInterpolator",
+                          "Ran out of "+errMsg1)
+                    );
                 }
                 Bx[i][j][k] = field_points[index][3];
                 By[i][j][k] = field_points[index][4];
@@ -396,7 +407,7 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolator
     if (index != int(field_points.size())) {
         throw(LogicalError(
                      "SectorMagneticFieldMap::IO::getInterpolator",
-                     "Too many field points during read operation; check bounds and ordering"
+                     "Too many "+errMsg1
                ));
     }
     Interpolator3dGridTo3d* interpolator = new Interpolator3dGridTo3d(grid, Bx, By, Bz);

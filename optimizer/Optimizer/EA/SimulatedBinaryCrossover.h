@@ -14,11 +14,7 @@ template <class T> struct SimulatedBinaryCrossover
     void crossover(boost::shared_ptr<T> ind1, boost::shared_ptr<T> ind2,
                    CmdArguments_t args) {
 
-        double nu_c = 2.0;
-        try {
-            nu_c = args->getArg<double>("simbin-crossover-nu");
-        } catch(OptPilotException &e)
-        {}
+        double nu_c = args->getArg<double>("simbin-crossover-nu", 2.0, false);
 
         for(std::size_t i = 0; i < ind1->genes_m.size(); i++) {
 
