@@ -51,7 +51,6 @@
 #include <sys/time.h>
 
 #include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
 
 extern Inform *gmsg;
 
@@ -1344,55 +1343,12 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         typedef ClosedOrbitFinder<double,unsigned int, rk4_t> cof_t;
 
         cof_t cof(massIneV*1E-6, Nint, CyclotronElement, false);
-        
-        namespace fs = boost::filesystem;
-        fs::path dir = OpalData::getInstance()->getInputBasename();
-        dir = dir.parent_path() / "data";
-        
-        std::string tunefile = (dir / "tunes.dat").string();
-        
-        std::ofstream out(tunefile);
-        
-        out << "energy [MeV] "
-            << "radius [m] "
-            << "horiziontal tune "
-            << "vertical tune"
-            << std::endl;
 
-        for (double en = CyclotronElement->getFMLowE();
-             en < CyclotronElement->getFMHighE(); en += denergy) {
-            
-            if ( !cof.findOrbit(accuracy, maxitCOF, en, denergy, rguess) ) {
-                throw OpalException("Distribution::CreateMatchedGaussDistribution()",
-                                    "Closed orbit finder didn't converge.");
-            }
-
-            cof.computeOrbitProperties();
-    
-            std::pair<double, double> tunes = cof.getTunes();
-            double ravg = cof.getAverageRadius(); // average radius
-    
-            container_t reo = cof.getOrbit(CyclotronElement->getPHIinit());
-            container_t peo = cof.getMomentum(CyclotronElement->getPHIinit());
-
-
-            *gmsg << "* ----------------------------" << endl
-                  << "* Closed orbit info (Gordon units):" << endl
-                  << "*" << endl
-                  << "* kinetic energy:   " << en     << " [MeV]" << endl
-                  << "* average radius:   " << ravg   << " [m]" << endl
-                  << "* initial radius:   " << reo[0] << " [m]" << endl
-                  << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
-                  << "* frequency error:  " << cof.getFrequencyError() << endl
-                  << "* horizontal tune:  " << tunes.first << endl
-                  << "* vertical tune:    " << tunes.second << endl
-                  << "* ----------------------------" << endl << endl;
-            
-            out << en << " " << reo[0] << " " << tunes.first << " " << tunes.second << std::endl;
+        if ( !cof.findOrbit(accuracy, maxitCOF, E_m*1E-6, denergy, rguess, true) ) {
+            throw OpalException("Distribution::CreateMatchedGaussDistribution()",
+                                "Closed orbit finder didn't converge.");
         }
         
-        out.close();
-
         std::exit(0);
     }
 
