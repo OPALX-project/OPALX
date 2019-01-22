@@ -60,9 +60,9 @@ namespace {
         INITIALPOPULATION,
         NUMMASTERS,
         NUMCOWORKERS,
-        SELECTOR,
         DUMPDAT,
         DUMPFREQ,
+        DUMPOFFSPRING,
         NUMINDGEN,
         MAXGENERATIONS,
         EPSILON,
@@ -107,12 +107,12 @@ OptimizeCmd::OptimizeCmd():
         ("NUM_MASTERS", "Number of master nodes");
     itsAttr[NUMCOWORKERS] = Attributes::makeReal
         ("NUM_COWORKERS", "Number processors per worker");
-    itsAttr[SELECTOR] = Attributes::makeString
-        ("SELECTOR", "Path of the selector (PISA only)");
     itsAttr[DUMPDAT] = Attributes::makeReal
         ("DUMP_DAT", "Dump old generation data format with frequency (PISA only)");
     itsAttr[DUMPFREQ] = Attributes::makeReal
-        ("DUMP_FREQ", "Dump old generation data format with frequency (PISA only)");
+        ("DUMP_FREQ", "Dump generation data with frequency (PISA only)");
+    itsAttr[DUMPOFFSPRING] = Attributes::makeBool
+        ("DUMP_OFFSPRING", "Dump offspring (instead of parent population), default: true");
     itsAttr[NUMINDGEN] = Attributes::makeReal
         ("NUM_IND_GEN", "Number of individuals in a generation (PISA only)");
     itsAttr[MAXGENERATIONS] = Attributes::makeReal
@@ -124,7 +124,7 @@ OptimizeCmd::OptimizeCmd():
     itsAttr[HYPERVOLREFERENCE] = Attributes::makeRealArray
         ("HYPERVOLREFERENCE", "The reference point (real array) for the hypervolume, default empty (origin)");
     itsAttr[CONVHVOLPROG] = Attributes::makeReal
-        ("CONV_HVOL_PROG", "converge if change in hypervolume is smaller, default 0");
+        ("CONV_HVOL_PROG", "Converge if change in hypervolume is smaller, default 0");
     itsAttr[ONEPILOTCONVERGE] = Attributes::makeBool
         ("ONE_PILOT_CONVERGE", "default false");
     itsAttr[SOLSYNCH] = Attributes::makeReal
@@ -235,9 +235,9 @@ void OptimizeCmd::execute() {
             {INITIALPOPULATION, "initialPopulation"},
             {NUMMASTERS, "num-masters"},
             {NUMCOWORKERS, "num-coworkers"},
-            {SELECTOR, "selector"},
             {DUMPDAT, "dump-dat"},
             {DUMPFREQ, "dump-freq"},
+            {DUMPOFFSPRING, "dump-offspring"},
             {NUMINDGEN, "num-ind-gen"},
             {MAXGENERATIONS, "maxGenerations"},
             {EPSILON, "epsilon"},

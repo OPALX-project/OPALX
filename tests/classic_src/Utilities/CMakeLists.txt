@@ -1,5 +1,6 @@
 set (_SRCS
     PortableBitmapReaderTest.cpp
+    PortableGraymapReaderTest.cpp
     RingSectionTest.cpp
   )
 
