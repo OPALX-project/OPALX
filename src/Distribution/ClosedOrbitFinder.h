@@ -27,10 +27,15 @@
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 
+#include "AbstractObjects/OpalData.h"
+
 #include "AbsBeamline/Cyclotron.h"
 
 // include headers for integration
 #include <boost/numeric/odeint/integrate/integrate_n_steps.hpp>
+#include <boost/filesystem.hpp>
+
+extern Inform *gmsg;
 
 /// Finds a closed orbit of a cyclotron for a given energy
 template<typename Value_type, typename Size_type, class Stepper>
@@ -45,6 +50,8 @@ class ClosedOrbitFinder
         typedef std::vector<value_type> container_type;
         /// Type for holding state of ODE values
         typedef std::vector<value_type> state_type;
+        
+        typedef std::function<void(const state_type&, state_type&, const double)> function_t;
 
         /// Sets the initial values for the integration and calls findOrbit().
         /*!
@@ -104,12 +111,16 @@ class ClosedOrbitFinder
         /*!
          * @param accuracy specifies the accuracy of the closed orbit
          * @param maxit is the maximal number of iterations done for finding the closed orbit
-         * @param ekin kinetic energy [MeV]
+         * @param ekin energy for which to find closed orbit (in tune mode: upper limit of range)
          * @param dE step increase [MeV]
          * @param rguess initial radius guess in [mm]
+         * @param isTuneMode comptute tunes of all energies in one sweep
          */
-        bool findOrbit(value_type, size_type, value_type,
-                       value_type = 1.0, value_type = -1.0);
+        bool findOrbit(value_type, size_type,
+                       value_type,
+                       value_type = 1.0, value_type = -1.0,
+                       bool= false);
+        
 
         /// Fills in the values of h_m, ds_m, fidx_m.
         void computeOrbitProperties();
@@ -123,6 +134,10 @@ class ClosedOrbitFinder
          */
         value_type computeTune(const std::array<value_type,2>&, value_type, size_type);
 
+        // Compute closed orbit for given energy
+        bool findOrbitOfEnergy_m(const value_type&, container_type&, value_type&,
+                                 const value_type&, size_type);
+        
         /// This function computes nzcross_ which is used to compute the tune in z-direction and the frequency error
 //         void computeVerticalOscillations();
         
@@ -386,12 +401,15 @@ typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
 // PRIVATE MEMBER FUNCTIONS
 // -----------------------------------------------------------------------------------------------------------------------
 
+
+
 template<typename Value_type, typename Size_type, class Stepper>
 bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type accuracy,
                                                                   size_type maxit,
                                                                   value_type ekin,
                                                                   value_type dE,
-                                                                  value_type rguess)
+                                                                  value_type rguess,
+                                                                  bool isTuneMode)
 {
     /* REMARK TO GORDON
      * q' = 1/b = 1/bcon
@@ -400,8 +418,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     
     E_m = ekin;
     gamma_m = E_m / E0_m + 1.0;
-    
-    value_type bint, brint, btint;
 
     // resize vectors (--> size = N_m+1, capacity = N_m+1), note: we do N_m+1 integration steps
     r_m.resize(N_m+1);
@@ -411,13 +427,145 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
 
     // store acon and bcon locally
     value_type acon = acon_m(wo_m);               // [acon] = m
-    value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);        // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
+    
+    // amplitude of error; Gordon, formula (18) (a = a')
+    value_type error = std::numeric_limits<value_type>::max();
 
-    // helper constants
-    value_type p2;                                      // p^2 = p*p
-    value_type pr2;                                     // squared radial momentum (pr^2 = pr*pr)
-    value_type ptheta, invptheta;                       // Gordon, formula (5c)
-    value_type invdenom;                                // denominator for computing dr,dpr
+    /*
+     * Christian:
+     * N = 1440 ---> N = 720 ---> dtheta = 2PI/720 --> nsteps = 721
+     *
+     * 0, 2, 4, ... ---> jeden zweiten berechnene: 1, 3, 5, ... interpolieren --> 1440 Werte
+     *
+     * Matthias:
+     * N = 1440 --> dtheta = 2PI/1440 --> nsteps = 1441
+     *
+     * 0, 1, 2, 3, 4, 5, ... --> 1440 Werte
+     *
+     */
+
+    // iterate until suggested energy (start with minimum energy)
+    value_type E = cycl_m->getFMLowE();
+
+    // energy dependent values
+    value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
+    value_type gamma2 = (1.0 + en) * (1.0 + en);          // = gamma^2
+    value_type beta = std::sqrt(1.0 - 1.0 / gamma2);
+
+    // set initial values for radius and radial momentum for lowest energy Emin
+    // orbit, [r] = m; Gordon, formula (20)
+    // radial momentum; Gordon, formula (20)
+
+    container_type init;
+    //      r            pr   z    pz
+    init = {beta * acon, 0.0, 0.0, 1.0};
+
+    if (rguess >= 0.0) {
+        init[0] = rguess * 0.001;
+    }
+    
+    namespace fs = boost::filesystem;
+    fs::path dir = OpalData::getInstance()->getInputBasename();
+    dir = dir.parent_path() / "data";
+    std::string tunefile = (dir / "tunes.dat").string();
+    
+    if ( isTuneMode ) {
+        std::ofstream out(tunefile, std::ios::out);
+        
+        out << std::left
+            << std::setw(15) << "energy [MeV]"
+            << std::setw(15) << "radius [m]"
+            << std::setw(15) << "nu_r"
+            << std::setw(15) << "nu_z"
+            << std::endl;
+    }
+
+    do {
+        
+        error = std::numeric_limits<value_type>::max();
+        
+        // (re-)set inital values for r and pr
+        r_m[0] = init[0];
+        pr_m[0] = init[1];
+        vz_m[0] = init[2];
+        vpz_m[0] = init[3];
+        
+        if ( !this->findOrbitOfEnergy_m(E, init, error, accuracy, maxit) ) {
+            throw OpalException("ClosedOrbitFinder::findOrbitOfEnergy()",
+                                "Didn't converge for energy " + std::to_string(E) + " MeV.");
+        }
+        
+        if ( isTuneMode ) {
+            this->computeOrbitProperties();
+    
+            std::pair<value_type , value_type > tunes = this->getTunes();
+    
+            value_type reo = this->getOrbit(cycl_m->getPHIinit())[0];
+            value_type  peo = this->getMomentum(cycl_m->getPHIinit())[0];
+
+
+            *gmsg << "* ----------------------------" << endl
+                  << "* Closed orbit info (Gordon units):" << endl
+                  << "*" << endl
+                  << "* kinetic energy:   " << E              << " [MeV]" << endl
+                  << "* average radius:   " << ravg_m         << " [m]" << endl
+                  << "* initial radius:   " << reo            << " [m]" << endl
+                  << "* initial momentum: " << peo            << " [Beta Gamma]" << endl
+                  << "* frequency error:  " << phase_m        << endl
+                  << "* horizontal tune:  " << tunes.first    << endl
+                  << "* vertical tune:    " << tunes.second   << endl
+                  << "* ----------------------------" << endl << endl;
+            
+            std::ofstream out(tunefile, std::ios::app);
+            out << std::left
+                << std::setw(15) << E
+                << std::setw(15) << reo
+                << std::setw(15) << tunes.first
+                << std::setw(15) << tunes.second << std::endl;
+            out.close();
+        }
+        
+        // increase energy by dE
+        if (E_m <= E + dE)
+            E = E_m;
+        else
+            E += dE;
+    
+    } while (E != E_m);
+
+    /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
+     * number of integrations steps there.
+     */
+    lastOrbitVal_m = r_m[N_m];           // needed in computeVerticalOscillations()
+    lastMomentumVal_m = pr_m[N_m];       // needed in computeVerticalOscillations()
+
+    // remove last entry (since we don't have to store [0,2pi], but [0,2pi[)  --> size = N_m, capacity = N_m+1
+    r_m.pop_back();
+    pr_m.pop_back();
+    
+    
+    /* domain_m = true --> only integrated over a single sector
+     * --> multiply by cycl_m->getSymmetry() to get correct phase_m
+     */
+    if (domain_m)
+        phase_m *= cycl_m->getSymmetry();
+
+
+    // returns true if converged, otherwise false
+    return error < accuracy;
+}
+
+template<typename Value_type, typename Size_type, class Stepper>
+bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
+    const value_type& E,
+    container_type& init,
+    value_type& error,
+    const value_type& accuracy,
+    size_type maxit)
+{
+    value_type bint, brint, btint;
+    value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);      // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
+    
     value_type xold = 0.0;                              // for counting nxcross
     value_type zold = 0.0;                              // for counting nzcross
 
@@ -441,11 +589,35 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         
         ++idx;
     };
+    
+    // define initial state container for integration: y = {r, pr, x1, px1, x2, px2,
+    //                                                      z, pz, z1, pz1, z2, pz2,
+    //                                                      phase}
+    state_type y(11);
+    
+    // difference of last and first value of r (1. element) and pr (2. element)
+    container_type err(2);
+    // correction term for initial values: r = r + dr, pr = pr + dpr; Gordon, formula (17)
+    container_type delta = {0.0, 0.0};
+    // if niterations > maxit --> stop iteration
+    size_type niterations = 0;
+    
+    // energy dependent values
+    value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
+    value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));     // momentum [p] = m; Gordon, formula (3)
+    value_type gamma2 = (1.0 + en) * (1.0 + en);          // = gamma^2
+    value_type invgamma4 = 1.0 / (gamma2 * gamma2);       // = 1/gamma^4
+    
+    
+    // helper constants
+    value_type p2 = p * p;                                // p^2 = p*p
+    value_type pr2;                                     // squared radial momentum (pr^2 = pr*pr)
+    value_type ptheta, invptheta;                       // Gordon, formula (5c)
 
     // define the six ODEs (using lambda function)
-    std::function<void(const state_type&, state_type&, const double)> orbit_integration = [&](const state_type &y,
-                                                                                              state_type &dydt,
-                                                                                              const double theta)
+    function_t orbit_integration = [&](const state_type &y,
+                                       state_type &dydt,
+                                       const double theta)
     {
         pr2 = y[1] * y[1];
         if (p2 < pr2)
@@ -483,163 +655,64 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         
     };
 
-    // define initial state container for integration: y = {r, pr, x1, px1, x2, px2,
-    //                                                      z, pz, z1, pz1, z2, pz2,
-    //                                                      phase}
-    state_type y(11);
-
-    // difference of last and first value of r (1. element) and pr (2. element)
-    container_type err(2);
-    // correction term for initial values: r = r + dr, pr = pr + dpr; Gordon, formula (17)
-    container_type delta = {0.0, 0.0};
-    // amplitude of error; Gordon, formula (18) (a = a')
-    value_type error = std::numeric_limits<value_type>::max();
-    // if niterations > maxit --> stop iteration
-    size_type niterations = 0;
-
-    /*
-     * Christian:
-     * N = 1440 ---> N = 720 ---> dtheta = 2PI/720 --> nsteps = 721
-     *
-     * 0, 2, 4, ... ---> jeden zweiten berechnene: 1, 3, 5, ... interpolieren --> 1440 Werte
-     *
-     * Matthias:
-     * N = 1440 --> dtheta = 2PI/1440 --> nsteps = 1441
-     *
-     * 0, 1, 2, 3, 4, 5, ... --> 1440 Werte
-     *
-     */
-
-    // iterate until suggested energy (start with minimum energy)
-    value_type E = cycl_m->getFMLowE();
-
-    // energy dependent values
-    value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
-    value_type p = acon * std::sqrt(en * (2.0 + en));     // momentum [p] = m; Gordon, formula (3)
-    value_type gamma2 = (1.0 + en) * (1.0 + en);          // = gamma^2
-    value_type beta = std::sqrt(1.0 - 1.0 / gamma2);
-    p2 = p * p;                                           // p^2 = p*p
-    value_type invgamma4 = 1.0 / (gamma2 * gamma2);       // = 1/gamma^4
-
-    // set initial values for radius and radial momentum for lowest energy Emin
-    // orbit, [r] = m; Gordon, formula (20)
-    // radial momentum; Gordon, formula (20)
-
-    container_type init;
-    //      r            pr   z    pz
-    init = {beta * acon, 0.0, 0.0, 1.0};
-
-    if (rguess >= 0.0) {
-        init[0] = rguess * 0.001;
-    }
-
+    // integrate until error smaller than user-define accuracy
     do {
+        // (re-)set inital values
+        x_m[0]  = 1.0;               // x1; Gordon, formula (10)
+        px_m[0] = 0.0;               // px1; Gordon, formula (10)
+        x_m[1]  = 0.0;               // x2; Gordon, formula (10)
+        px_m[1] = 1.0;               // px2; Gordon, formula (10)
+        z_m[0]  = 1.0;
+        pz_m[0] = 0.0;
+        z_m[1]  = 0.0;
+        pz_m[1] = 1.0;
+        phase_m = 0.0;
+        nxcross_m = 0;               // counts the number of crossings of x-axis (excluding first step)
+        nzcross_m = 0;
+        idx = 0;                     // index for looping over r and pr arrays
         
-        // (re-)set inital values for r and pr
-        r_m[0] = init[0];
-        pr_m[0] = init[1];
-        vz_m[0] = init[2];
-        vpz_m[0] = init[3];
+        // fill container with initial states
+        y = {init[0],init[1],
+             x_m[0], px_m[0], x_m[1], px_m[1],
+             init[2], init[3],
+             z_m[0], pz_m[0], z_m[1], pz_m[1],
+             phase_m
+        };
 
-        // integrate until error smaller than user-define accuracy
-        do {
-            // (re-)set inital values
-            x_m[0]  = 1.0;               // x1; Gordon, formula (10)
-            px_m[0] = 0.0;               // px1; Gordon, formula (10)
-            x_m[1]  = 0.0;               // x2; Gordon, formula (10)
-            px_m[1] = 1.0;               // px2; Gordon, formula (10)
-            z_m[0]  = 1.0;
-            pz_m[0] = 0.0;
-            z_m[1]  = 0.0;
-            pz_m[1] = 1.0;
-            phase_m = 0.0;
-            nxcross_m = 0;               // counts the number of crossings of x-axis (excluding first step)
-            nzcross_m = 0;
-            idx = 0;                     // index for looping over r and pr arrays
-
-            // fill container with initial states
-            y = {init[0],init[1],
-                 x_m[0], px_m[0], x_m[1], px_m[1],
-                 init[2], init[3],
-                 z_m[0], pz_m[0], z_m[1], pz_m[1],
-                 phase_m
-            };
-
-            // integrate from 0 to 2*pi (one has to get back to the "origin")
-            boost::numeric::odeint::integrate_n_steps(stepper_m,orbit_integration,y,0.0,dtheta_m,N_m,store);
-
-            // write new state
-            x_m[0] = y[2];
-            px_m[0] = y[3];
-            x_m[1] = y[4];
-            px_m[1] = y[5];
+        // integrate from 0 to 2*pi (one has to get back to the "origin")
+        boost::numeric::odeint::integrate_n_steps(stepper_m, orbit_integration,y,0.0,dtheta_m,N_m,store);
             
-            z_m[0] = y[8];
-            pz_m[0] = y[9];
-            z_m[1] = y[10];
-            pz_m[1] = y[11];
-            phase_m = y[12] * Physics::u_two_pi; // / (2.0 * Physics::pi);
+        // write new state
+        x_m[0] = y[2];
+        px_m[0] = y[3];
+        x_m[1] = y[4];
+        px_m[1] = y[5];
+        
+        z_m[0] = y[8];
+        pz_m[0] = y[9];
+        z_m[1] = y[10];
+        pz_m[1] = y[11];
+        phase_m = y[12] * Physics::u_two_pi; // / (2.0 * Physics::pi);
+        
+        // compute error (compare values of orbit and momentum for theta = 0 and theta = 2*pi)
+        // (Note: size = N_m+1 --> last entry is N_m)
+        err[0] = r_m[N_m] - r_m[0];      // Gordon, formula (14)
+        err[1] = pr_m[N_m] - pr_m[0];    // Gordon, formula (14)
 
-            // compute error (compare values of orbit and momentum for theta = 0 and theta = 2*pi)
-            // (Note: size = N_m+1 --> last entry is N_m)
-            err[0] = r_m[N_m] - r_m[0];      // Gordon, formula (14)
-            err[1] = pr_m[N_m] - pr_m[0];    // Gordon, formula (14)
+        // correct inital values of r and pr
+        value_type invdenom = 1.0 / (x_m[0] + px_m[1] - 2.0);
+        delta[0] = ((px_m[1] - 1.0) * err[0] - x_m[1] * err[1]) * invdenom; // dr; Gordon, formula (16a)
+        delta[1] = ((x_m[0] - 1.0) * err[1] - px_m[0] * err[0]) * invdenom; // dpr; Gordon, formula (16b)
 
-            // correct inital values of r and pr
-            invdenom = 1.0 / (x_m[0] + px_m[1] - 2.0);
-            delta[0] = ((px_m[1] - 1.0) * err[0] - x_m[1] * err[1]) * invdenom; // dr; Gordon, formula (16a)
-            delta[1] = ((x_m[0] - 1.0) * err[1] - px_m[0] * err[0]) * invdenom; // dpr; Gordon, formula (16b)
-
-            // improved initial values; Gordon, formula (17) (here it's used for higher energies)
-            init[0] += delta[0];
-            init[1] += delta[1];
-
-            // compute amplitude of the error
-            error = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1] * invgamma4) / r_m[0];
-        } while (error > accuracy && niterations++ < maxit);
-
-        // reset iteration counter
-        niterations = 0;
-
-        // reset correction term
-        delta[0] = delta[1] = 0.0;
-
-        // increase energy by dE
-        if (E_m <= E + dE)
-            E = E_m;
-        else
-            E += dE;
-
-        // set constants for new energy E
-        en = E / E0_m;                     // en = E/E0 = E/(mc^2) (E0 is potential energy)
-        p = acon * std::sqrt(en * (2.0 + en));    // momentum [p] = m; Gordon, formula (3)
-        p2 = p * p;                               // p^2 = p*p
-        gamma2 = (1.0 + en) * (1.0 + en);
-        invgamma4 = 1.0 / (gamma2 * gamma2);
-
-
-    } while (E != E_m);
-
-    /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
-     * number of integrations steps there.
-     */
-    lastOrbitVal_m = r_m[N_m];           // needed in computeVerticalOscillations()
-    lastMomentumVal_m = pr_m[N_m];       // needed in computeVerticalOscillations()
-
-    // remove last entry (since we don't have to store [0,2pi], but [0,2pi[)  --> size = N_m, capacity = N_m+1
-    r_m.pop_back();
-    pr_m.pop_back();
+        // improved initial values; Gordon, formula (17) (here it's used for higher energies)
+        init[0] += delta[0];
+        init[1] += delta[1];
+        
+        // compute amplitude of the error
+        error = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1] * invgamma4) / r_m[0];
+    } while (error > accuracy && niterations++ < maxit);
     
-    
-    /* domain_m = true --> only integrated over a single sector
-     * --> multiply by cycl_m->getSymmetry() to get correct phase_m
-     */
-    if (domain_m)
-        phase_m *= cycl_m->getSymmetry();
-
-
-    // returns true if converged, otherwise false
-    return error < accuracy;
+    return (error < accuracy);
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
