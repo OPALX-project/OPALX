@@ -417,7 +417,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      */
     
     E_m = ekin;
-    gamma_m = E_m / E0_m + 1.0;
 
     // resize vectors (--> size = N_m+1, capacity = N_m+1), note: we do N_m+1 integration steps
     r_m.resize(N_m+1);
@@ -445,7 +444,13 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      */
 
     // iterate until suggested energy (start with minimum energy)
-    value_type E = cycl_m->getFMLowE();
+    value_type E = E_m; //cycl_m->getFMLowE();
+    
+    if ( isTuneMode ) {
+        E_m = cycl_m->getFMHighE();
+    }
+    
+    gamma_m = E_m / E0_m + 1.0;
 
     // energy dependent values
     value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
