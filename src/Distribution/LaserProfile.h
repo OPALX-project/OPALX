@@ -39,8 +39,10 @@ public:
           ROTATE270 = 16};
 private:
     unsigned short * readFile(const std::string &fileName,
-                              const std::string &imageName,
-                              double intensityCut);
+                              const std::string &imageName);
+    unsigned short * readPGMFile(const std::string &fileName);
+    unsigned short * readHDF5File(const std::string &fileName,
+                                  const std::string &imageName);
     void flipX(unsigned short *image);
     void flipY(unsigned short *image);
     void swapXY(unsigned short *image);
@@ -55,7 +57,7 @@ private:
     void saveHistogram();
     void sampleDist();
 
-    void getProfileMax(unsigned short &profileMax_m, unsigned short *image);
+    unsigned short getProfileMax(unsigned short *image);
 
     hsize_t sizeX_m, sizeY_m;
     gsl_histogram2d *hist2d_m;

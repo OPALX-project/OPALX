@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <sstream>
 #include <cstdint>
-// #include <set>
 
 PortableGraymapReader::PortableGraymapReader(const std::string &input) {
 
@@ -75,31 +74,24 @@ void PortableGraymapReader::readHeader(std::istream &in) {
         conv.str(tmp);
         conv >> depth_m;
     }
-    // std::cout << width_m << "\t" << height_m << "\t" << depth_m << std::endl;
+
     char tmp;
     in.read(&tmp, 1);
 }
 
 void PortableGraymapReader::readImageAscii(std::istream &in) {
-    // std::set<unsigned int> values;
     unsigned int size = height_m * width_m;
     unsigned int i = 0;
     while (i < size) {
         unsigned int c;
         in >> c;
 
-        pixels_m[i] = c / (float)depth_m;
-        // values.insert(c);
+        pixels_m[i] = c;
         ++ i;
     }
-
-    // for (auto val: values) {
-    //     std::cout << val << "\t" << val / (float)depth_m << std::endl;
-    // }
 }
 
 void PortableGraymapReader::readImageBinary(std::istream &in) {
-    // static const unsigned int sizeChar = sizeof(char) * 8;
 
     unsigned int numPixels = 0;
     char c[] = {0, 0};
@@ -110,11 +102,11 @@ void PortableGraymapReader::readImageBinary(std::istream &in) {
                 in.read(&c[1], 1);
                 in.read(&c[0], 1);
                 const uint16_t *val = reinterpret_cast<const uint16_t*>(&c[0]);
-                pixels_m[numPixels] = val[0] / (float)depth_m;
+                pixels_m[numPixels] = val[0];
             } else {
                 in.read(&c[0], 1);
                 uc = c[0];
-                pixels_m[numPixels] = uc / (float)depth_m;
+                pixels_m[numPixels] = uc;
             }
             ++ numPixels;
         }
@@ -122,11 +114,11 @@ void PortableGraymapReader::readImageBinary(std::istream &in) {
 }
 
 void PortableGraymapReader::print(std::ostream &out) const {
-    unsigned int width = depth_m > 256? 5: 3;
+    const unsigned int printWidth = 5;
     for (unsigned int i = 0; i < height_m; ++ i) {
         for (unsigned int j = 0; j < width_m; ++ j) {
             unsigned int idx = getIdx(i, j);
-            std::cout << "  " << std::setw(width) << pixels_m[idx];
+            std::cout << "  " << std::setw(printWidth) << pixels_m[idx];
         }
         std::cout << std::endl;
     }
