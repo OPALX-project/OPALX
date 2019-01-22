@@ -87,10 +87,10 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
         << indent << "description=\"6 RMS Beamsize in y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=rms_z,\n"
+        << indent << "name=rms_s,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"7 RMS Beamsize in z\"\n"
+        << indent << "description=\"7 RMS Beamsize in s\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=rms_px,\n"
@@ -123,10 +123,10 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
         << indent << "description=\"12 Normalized Emittance y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=emit_z,\n"
+        << indent << "name=emit_s,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"13 Normalized Emittance z\"\n"
+        << indent << "description=\"13 Normalized Emittance s\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=mean_x,\n"
@@ -141,10 +141,10 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
         << indent << "description=\"15 Mean Beam Position in y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=mean_z,\n"
+        << indent << "name=mean_s,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"16 Mean Beam Position in z\"\n"
+        << indent << "description=\"16 Mean Beam Position in s\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_x,\n"
