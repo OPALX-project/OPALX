@@ -491,6 +491,12 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     /// get gamma of this bin
     double gamma = bunch_mp->getBinGamma(bin);
     
+    /* relativistic factor is always gamma >= 1
+     * --> if no particle --> gamma = 0 --> leave computation
+     */
+    if ( gamma < 1.0 )
+        return;
+
     /*
      * scatter charges onto grid
      */
