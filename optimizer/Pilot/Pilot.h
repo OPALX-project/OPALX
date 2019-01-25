@@ -14,7 +14,6 @@
 
 #include "Util/Types.h"
 #include "Util/CmdArguments.h"
-#include "Util/InputFileParser.h"
 #include "Util/OptPilotException.h"
 
 #include "Pilot/Poller.h"
@@ -71,7 +70,6 @@
  *  @see Worker
  *  @see Optimizer
  *
- *  @tparam Input_t type of the input file parser
  *  @tparam Opt_t type of the optimizer
  *  @tparam Sim_t type of the simulation
  *  @tparam SolPropagationGraph_t strategy to distribute solution between
@@ -79,8 +77,7 @@
  *  @tparam Comm_t comm splitter strategy
  */
 template <
-          class Input_t
-        , class Opt_t
+          class Opt_t
         , class Sim_t
         , class SolPropagationGraph_t
         , class Comm_t
