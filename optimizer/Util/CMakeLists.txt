@@ -5,7 +5,6 @@ SET (_UTIL_SRCS
 
     PeakReader.cpp
     ProbeReader.cpp
-    CommentAnnotatedInputFileParser.cpp
     SDDSParser.cpp
     SDDSParser/array.cpp
     SDDSParser/associate.cpp
