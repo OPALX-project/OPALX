@@ -102,7 +102,10 @@ void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
      * 
      * regrid_m is set in AmrBoxlib::regrid()
      */
-    bool reset = (this->regrid_m || prevAsGuess);
+    bool reset = !prevAsGuess;
+
+    if ( this->regrid_m )
+        reset = true;
     
     this->initLevels_m(rho, itsAmrObject_mp->Geom(), this->regrid_m);
     
