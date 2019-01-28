@@ -5,9 +5,6 @@
 #include "Sample/SampleWorker.h"
 #include "Expression/Parser/function.hpp"
 
-
-
-
 /**
  *  \class SamplePilot
  *  \brief The sample Pilot (Master): Coordinates requests by sampler
@@ -21,7 +18,6 @@
  *  @see SampleWorker
  *  @see Sampler
  *
- *  @tparam Input_t type of the input file parser
  *  @tparam Opt_t type of the sampler
  *  @tparam Sim_t type of the simulation
  *  @tparam SolPropagationGraph_t strategy to distribute solution between
@@ -29,14 +25,12 @@
  *  @tparam Comm_t comm splitter strategy
  */
 template <
-    class Input_t
-    , class Opt_t
+      class Opt_t
     , class Sim_t
     , class SolPropagationGraph_t
     , class Comm_t
     >
-class SamplePilot : protected Pilot<Input_t,
-                                    Opt_t,
+class SamplePilot : protected Pilot<Opt_t,
                                     Sim_t,
                                     SolPropagationGraph_t,
                                     Comm_t>
@@ -53,8 +47,7 @@ public:
                               >& sampleMethods,
                 const std::vector<std::string> &storeobjstr,
                 const std::vector<std::string> &filesToKeep)
-        : Pilot<Input_t,
-                Opt_t,
+        : Pilot<Opt_t,
                 Sim_t,
                 SolPropagationGraph_t,
                 Comm_t>(args,

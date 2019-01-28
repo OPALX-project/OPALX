@@ -55,7 +55,6 @@ Inform *gmsg;
 #include "Optimizer/EA/BlendCrossover.h"
 #include "Optimizer/EA/IndependentBitMutation.h"
 
-#include "Util/OpalInputFileParser.h"
 #include "Optimize/OpalSimulation.h"
 
 #include "Comm/CommSplitter.h"

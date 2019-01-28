@@ -19,7 +19,6 @@
 #include "Sample/SamplePilot.h"
 #include "Util/CmdArguments.h"
 #include "Util/OptPilotException.h"
-#include "Util/OpalInputFileParser.h"
 
 #include "Comm/CommSplitter.h"
 #include "Comm/Topology/NoCommTopology.h"
@@ -273,13 +272,12 @@ void SampleCmd::execute() {
 
     // Setup/Configuration
     //////////////////////////////////////////////////////////////////////////
-    typedef OpalInputFileParser Input_t;
     typedef OpalSimulation Sim_t;
 
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
     typedef SocialNetworkGraph< NoCommTopology > SolPropagationGraph_t;
 
-    typedef SamplePilot<Input_t, Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+    typedef SamplePilot<Sampler, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
     //////////////////////////////////////////////////////////////////////////
 
