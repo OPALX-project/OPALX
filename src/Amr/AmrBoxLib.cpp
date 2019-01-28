@@ -383,20 +383,18 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
-    for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(invGamma, 0 /*comp*/, 1 /*ncomp*/);
-        
-        if ( this->rho_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                                "NANs at level " + std::to_string(i) + ".");
-    }
+    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
+        bunch_mp->R[i](1) *= gamma;
     
     // mesh scaling for solver
-    meshScaling_m = Vector_t(1.0, gamma, 1.0);
+    meshScaling_m = Vector_t(1.0, 1.0, 1.0);
     
     // charge density is in rho_m
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
+        if ( this->rho_m[i]->contains_nan(false) )
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                "NANs at level " + std::to_string(i) + ".");
         this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
     }
     
@@ -442,9 +440,12 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // undo domain change
     amrpbase_p->domainMapping(true);
     
+    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
+        bunch_mp->R[i](1) *= invGamma;
+
     /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
-                             invGamma,
+                             1.0,
                              gamma);
     
     /// calculate coefficient
@@ -502,6 +503,10 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      */
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
 
+    // Lorentz transformation: apply Lorentz factor of that particle bin
+    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
+        bunch_mp->R[i](1) *= gamma;
+
     // map on Amr domain
     double scalefactor = amrpbase_p->domainMapping();
     
@@ -513,7 +518,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(-1.0 / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(-1.0 / (Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ",
@@ -530,7 +535,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     }
     
     // mesh scaling for solver
-    meshScaling_m = Vector_t(1.0, gamma, 1.0);
+    meshScaling_m = Vector_t(1.0, 1.0, 1.0);
     
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     
@@ -569,8 +574,12 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // undo domain change
     amrpbase_p->domainMapping(true);
     
+    // undo Lorentz factor of that particle bin
+    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
+        bunch_mp->R[i](1) /= gamma;
+
     /// Back Lorentz transformation
-    bunch_mp->Eftmp *= Vector_t(gamma, 1.0 / gamma, gamma);
+    bunch_mp->Eftmp *= Vector_t(gamma, 1.0, gamma);
 
     /// Calculate coefficient
     double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
