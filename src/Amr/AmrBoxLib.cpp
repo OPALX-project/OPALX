@@ -371,6 +371,11 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      */
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
+    /// Lorentz transformation
+    /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
+    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
+        bunch_mp->R[i](1) *= gamma;
+
     // map on Amr domain
     double scalefactor = amrpbase_p->domainMapping();
     
@@ -381,10 +386,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     int nLevel = finest_level + 1;
     double invGamma = 1.0 / gamma;
     
-    /// Lorentz transformation
-    /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
-    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-        bunch_mp->R[i](1) *= gamma;
     
     // mesh scaling for solver
     meshScaling_m = Vector_t(1.0, 1.0, 1.0);
