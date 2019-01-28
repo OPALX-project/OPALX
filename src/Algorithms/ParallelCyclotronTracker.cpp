@@ -1768,6 +1768,7 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
         itsBunch_m->Q[localNum] = tmpBunch->Q[ii];
         itsBunch_m->PType[localNum] = ParticleType::REGULAR;
         itsBunch_m->Bin[localNum] = BinID;
+        itsBunch_m->bunchNum[localNum] = BunchCount_m - 1;
     }
 
     itsBunch_m->boundp();
@@ -2685,21 +2686,14 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
     IpplTimings::startTimer(DumpTimer_m);
     
-//     itsBunch_m->R *= Vector_t(0.001); // mm --> m
-    
-    int nBins = std::min(itsBunch_m->getNumBins(), BunchCount_m);
-    //allreduce(nBins, 1, std::greater<int>());
-    
-    for (int bin = 0; bin < nBins; ++bin) {
+    for (short b = 0; b < BunchCount_m; ++b) {
         
         MultiBunchDump::beaminfo_t binfo;
         
-        if ( itsBunch_m->calcBinBeamParameters(binfo, bin) ) {
-            itsMBDump_m->writeData(binfo, bin);
+        if ( itsBunch_m->calcBunchBeamParameters(binfo, b) ) {
+            itsMBDump_m->writeData(binfo, b);
         }
     }
-    
-//     itsBunch_m->R *= Vector_t(1000.0); // m --> mm
     
     IpplTimings::stopTimer(DumpTimer_m);
 }

@@ -178,12 +178,12 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
 }
 
 
-void MultiBunchDump::writeData(const beaminfo_t& binfo, int bin) {
+void MultiBunchDump::writeData(const beaminfo_t& binfo, short bunch) {
     
     if ( Ippl::myNode() > 0 )
         return;
     
-    std::string fname = fbase_m + "-bin-" + std::to_string(bin) + fext_m;
+    std::string fname = fbase_m + "-bunch-" + std::to_string(bunch) + fext_m;
     
     writeHeader(fname);
     
