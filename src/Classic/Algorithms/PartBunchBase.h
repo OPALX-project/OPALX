@@ -254,7 +254,7 @@ public:
 
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
 
-    bool calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin);
+    bool calcBunchBeamParameters(MultiBunchDump::beaminfo_t& binfo, short bunch);
 
     double getCouplingConstant() const;
     void setCouplingConstant(double c);
@@ -485,6 +485,8 @@ public:
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
     ParticleAttrib< short >    cavityGapCrossed; ///< particle just crossed cavity gap (for ParallelCyclotronTracker)
+
+    ParticleAttrib< short >    bunchNum; // bunch number to which particle belongs (multi-bunch mode)
 
 
     Vector_t RefPartR_m;
