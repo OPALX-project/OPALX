@@ -58,6 +58,7 @@ namespace {
         DVARS,
         CONSTRAINTS,
         INITIALPOPULATION,
+        STARTPOPULATION,
         NUMMASTERS,
         NUMCOWORKERS,
         DUMPDAT,
@@ -103,6 +104,8 @@ OptimizeCmd::OptimizeCmd():
         ("CONSTRAINTS", "List of constraints to be used");
     itsAttr[INITIALPOPULATION] = Attributes::makeReal
         ("INITIALPOPULATION", "Size of the initial population");
+    itsAttr[STARTPOPULATION] = Attributes::makeString
+        ("STARTPOPULATION", "Generation file (JSON format) to be started from (optional)", "");
     itsAttr[NUMMASTERS] = Attributes::makeReal
         ("NUM_MASTERS", "Number of master nodes");
     itsAttr[NUMCOWORKERS] = Attributes::makeReal
@@ -233,6 +236,7 @@ void OptimizeCmd::execute() {
             {OUTPUT, "outfile"},
             {OUTDIR, "outdir"},
             {INITIALPOPULATION, "initialPopulation"},
+            {STARTPOPULATION, "start-population"},
             {NUMMASTERS, "num-masters"},
             {NUMCOWORKERS, "num-coworkers"},
             {DUMPDAT, "dump-dat"},
