@@ -111,6 +111,7 @@ void Stripper::setGeom(const double dist) {
     double coeff2 = sqrt(1 + slope * slope);
     double coeff1 = slope / coeff2;
     double halfdist = dist / 2.0;
+    
     geom_m[0].x = xstart_m - halfdist * coeff1;
     geom_m[0].y = ystart_m + halfdist / coeff2;
 
@@ -125,7 +126,6 @@ void Stripper::setGeom(const double dist) {
 
     geom_m[4].x = geom_m[0].x;
     geom_m[4].y = geom_m[0].y;
-
 }
 
 
@@ -244,77 +244,55 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;
     Vector_t rmin, rmax, strippoint;
-    bunch->get_bounds(rmin, rmax);
     double r_ref = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
-    double r1 = sqrt(rmax(0) * rmax(0) + rmax(1) * rmax(1));
 
-    if(r1 > r_ref - 10.0 ){
+	size_t count = 0;
+	int pflag = 0;
+	double rho = 0.0;
+	Vector_t meanP(0.0, 0.0, 0.0);
+	double sk1, sk2, stangle = 0.0;
+	double lstep, Swidth = 0.0;
+	double dist1, dist2, dt = 0.0;
+	double k1, k2, tangle = 0.0;
 
-        size_t count = 0;
-        size_t tempnum = bunch->getLocalNum();
-        int pflag = 0;
-
-        Vector_t meanP(0.0, 0.0, 0.0);
-        for(unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
-          for(int d = 0; d < 3; ++d) {
-              meanP(d) += bunch->P[i](d);
-          }
-        }
-        reduce(meanP, meanP, OpAddAssign());
-        meanP = meanP / Vector_t(bunch->getTotalNum());
-
-        double sk1, sk2, stangle = 0.0;
-        if ( B_m == 0.0 ){
-            sk1 = meanP(1)/meanP(0);
-            if(sk1 == 0.0)
-                stangle =1.0e12;
-            else
-                stangle = abs(1/sk1);
-        }else if (meanP(0) == 0.0 ){
-            sk2 = - A_m/B_m;
-            if(sk2 == 0.0)
-              stangle =1.0e12;
-            else
-              stangle = abs(1/sk2);
-        }else {
-            sk1 = meanP(1)/meanP(0);
-            sk2 = - A_m/B_m;
-            stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
-        }
-        double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
-        double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
-        setGeom(Swidth);
-
-        for(unsigned int i = 0; i < tempnum; ++i) {
-            if(bunch->PType[i] == ParticleType::REGULAR || bunch->PType[i] == ParticleType::NEWSECONDARY) {
+	size_t tempnum = bunch->getLocalNum();
+	for(unsigned int i = 0; i < tempnum; ++i) {
+		if(bunch->PType[i] == ParticleType::REGULAR || bunch->PType[i] == ParticleType::NEWSECONDARY) {
+			rho=sqrt(bunch->R[i](0) * bunch->R[i](0) + bunch->R[i](1) * bunch->R[i](1));
+			
+			if( rho > r_ref - 10.0 ) {
+				if ( B_m == 0.0 ){
+					sk1 = bunch->P[i](1)/bunch->P[i](0);
+					if(sk1 == 0.0)
+						stangle =1.0e12;
+					else
+						stangle = abs(1/sk1);
+				}else if (bunch->P[i](0) == 0.0 ){	
+					sk2 = - A_m/B_m;
+					if(sk2 == 0.0)
+					stangle =1.0e12;
+					else
+					stangle = abs(1/sk2);
+				}else {
+					sk1 = bunch->P[i](1)/bunch->P[i](0);
+					sk2 = - A_m/B_m;
+					stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
+				}
+				lstep = (sqrt(1.0-1.0/(1.0+dot(bunch->P[i], bunch->P[i]))) * Physics::c) * tstep*1.0e-6; // [mm]
+				Swidth = lstep /  sqrt( 1+1/stangle/stangle );
+				setGeom(Swidth); 
+		
                 pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
                 if(pflag != 0) {
                     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
-                    double dist1 = (A_m*bunch->R[i](0)+B_m*bunch->R[i](1)+C_m)/R_m/1000.0;
-                    double k1, k2, tangle = 0.0;
-                    if ( B_m == 0.0 ){
-                        k1 = bunch->P[i](1)/bunch->P[i](0);
-                        if (k1 == 0.0)
-                            tangle = 1.0e12;
-                        else
-                            tangle = abs(1/k1);
-                    }else if (bunch->P[i](0) == 0.0 ){
-                        k2 = -A_m/B_m;
-                        if (k2 == 0.0)
-                            tangle = 1.0e12;
-                        else
-                            tangle = abs(1/k2);
-                    }else {
-                        k1 = bunch->P[i](1)/bunch->P[i](0);
-                        k2 = -A_m/B_m;
-                        tangle = abs(( k1-k2 )/(1 + k1*k2));
-                    }
-                    double dist2 = dist1 * sqrt( 1+1/tangle/tangle );
-                    double dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch->P[i], bunch->P[i]))) * Physics::c)*1.0e9;
+                    dist1 = (A_m*bunch->R[i](0)+B_m*bunch->R[i](1)+C_m)/R_m/1000.0;
+                    dist2 = dist1 * sqrt( 1+1/stangle/stangle );
+                    dt = dist2/(sqrt(1.0-1.0/(1.0 + dot(bunch->P[i], bunch->P[i]))) * Physics::c)*1.0e9;
                     strippoint(0) = (B_m*B_m*bunch->R[i](0) - A_m*B_m*bunch->R[i](1)-A_m*C_m)/(R_m*R_m);
                     strippoint(1) = (A_m*A_m*bunch->R[i](1) - A_m*B_m*bunch->R[i](0)-B_m*C_m)/(R_m*R_m);
                     strippoint(2) = bunch->R[i](2);
                     lossDs_m->addParticle(strippoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
+                    *gmsg << "* Particle " << bunch->ID[i] << " collide in the stripper" << endl;
 
                     if (stop_m) {
                         bunch->Bin[i] = -1;
