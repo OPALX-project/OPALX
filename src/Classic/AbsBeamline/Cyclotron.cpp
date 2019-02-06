@@ -311,7 +311,7 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
   }
 
   if (flagNeedUpdate) {
-      lossDs_m->addParticle(RefPartBunch_m->R[id], RefPartBunch_m->P[id],id);
+      lossDs_m->addParticle(RefPartBunch_m->R[id], RefPartBunch_m->P[id], id, t);
       RefPartBunch_m->Bin[id] = -1;
   }
 
