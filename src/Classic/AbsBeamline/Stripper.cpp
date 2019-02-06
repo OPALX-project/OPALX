@@ -253,7 +253,6 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
 	double sk1, sk2, stangle = 0.0;
 	double lstep, Swidth = 0.0;
 	double dist1, dist2, dt = 0.0;
-	double k1, k2, tangle = 0.0;
 
 	size_t tempnum = bunch->getLocalNum();
 	for(unsigned int i = 0; i < tempnum; ++i) {
