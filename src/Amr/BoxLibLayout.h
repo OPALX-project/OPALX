@@ -37,8 +37,10 @@ public:
     typedef typename ParticleAmrLayout<T, Dim>::SingleParticlePos_t SingleParticlePos_t;
     typedef typename ParticleAmrLayout<T, Dim>::Index_t Index_t;
     
-    typedef amr::AmrField_t AmrField_t;
-    typedef amr::AmrFieldContainer_t AmrFieldContainer_t;
+    typedef amr::AmrField_t                AmrField_t;
+    typedef amr::AmrVectorField_t          AmrVectorField_t;
+    typedef amr::AmrScalarFieldContainer_t AmrScalarFieldContainer_t;
+    typedef amr::AmrVectorFieldContainer_t AmrVectorFieldContainer_t;
     typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef ParticleAttrib<Index_t> ParticleIndex_t;
     
@@ -149,8 +151,7 @@ public:
      * @param canSwap
      */
     void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                int lev_min = 0, int lev_max = -1,
-                const ParticleAttrib<char>* canSwap = 0);
+                int lev_min = 0, int lev_max = -1);
     
     
     /*
