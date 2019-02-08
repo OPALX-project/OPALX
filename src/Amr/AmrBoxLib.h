@@ -20,24 +20,25 @@ class AmrBoxLib : public AmrObject,
 {
     
 public:
-    typedef amr::AmrField_t             AmrField_t;
-    typedef amr::AmrFieldContainer_t    AmrFieldContainer_t;
-    typedef amr::AmrGeomContainer_t     AmrGeomContainer_t;
-    typedef amr::AmrGridContainer_t     AmrGridContainer_t;
-    typedef amr::AmrProcMapContainer_t  AmrProcMapContainer_t;
-    typedef amr::AmrDomain_t            AmrDomain_t;
-    typedef amr::AmrIntArray_t          AmrIntArray_t;
-    typedef amr::AmrReal_t              AmrReal_t;
-    typedef amr::AmrGrid_t              AmrGrid_t;
-    typedef amr::AmrProcMap_t           AmrProcMap_t;
-    typedef amr::AmrGeometry_t          AmrGeometry_t;
-    typedef amr::AmrIntVect_t           AmrIntVect_t;
+    typedef amr::AmrField_t                 AmrField_t;
+    typedef amr::AmrScalarFieldContainer_t  AmrScalarFieldContainer_t;
+    typedef amr::AmrVectorFieldContainer_t  AmrVectorFieldContainer_t;
+    typedef amr::AmrGeomContainer_t         AmrGeomContainer_t;
+    typedef amr::AmrGridContainer_t         AmrGridContainer_t;
+    typedef amr::AmrProcMapContainer_t      AmrProcMapContainer_t;
+    typedef amr::AmrDomain_t                AmrDomain_t;
+    typedef amr::AmrIntArray_t              AmrIntArray_t;
+    typedef amr::AmrReal_t                  AmrReal_t;
+    typedef amr::AmrGrid_t                  AmrGrid_t;
+    typedef amr::AmrProcMap_t               AmrProcMap_t;
+    typedef amr::AmrGeometry_t              AmrGeometry_t;
+    typedef amr::AmrIntVect_t               AmrIntVect_t;
     
-    typedef amrex::FArrayBox            FArrayBox_t;
-    typedef amrex::Box                  Box_t;
-    typedef amrex::TagBox               TagBox_t;
-    typedef amrex::TagBoxArray          TagBoxArray_t;
-    typedef amrex::MFIter               MFIter_t;
+    typedef amrex::FArrayBox                FArrayBox_t;
+    typedef amrex::Box                      Box_t;
+    typedef amrex::TagBox                   TagBox_t;
+    typedef amrex::TagBoxArray              TagBoxArray_t;
+    typedef amrex::MFIter                   MFIter_t;
     
     
     /*!
@@ -90,8 +91,9 @@ public:
      * @param lbase start of regridding.
      * @param lfine end of regridding.
      * @param time of simulation (step).
+     * @param bin is the energy bin
      */
-    void regrid(int lbase, int lfine, double time);
+    void regrid(int lbase, int lfine, double time, int bin = 0);
     
     
     VectorPair_t getEExtrema();
@@ -125,6 +127,7 @@ public:
     double getT() const;
     
     void redistributeGrids(int how);
+    
     
 protected:
     /*
@@ -305,6 +308,45 @@ private:
      */
     void fillPhysbc_m(AmrField_t& mf, int lev = 0);
     
+    
+//     void gradient(int lev) {
+//         
+//         phi_m[lev]->FillBoundary(geom[lev].periodicity());
+//         
+//         for (MFIter_t mfi(*phi_m[lev], true); mfi.isValid(); ++mfi) {
+//             const Box_t&  tilebx  = mfi.tilebox();
+//             FArrayBox_t&  fab = (*phi_m[lev])[mfi];
+//             FArrayBox_t& efab = (*efield_m[lev])[mfi];
+//             
+//             const int*  tlo     = tilebx.loVect();
+//             const int*  thi     = tilebx.hiVect();
+//             
+//             for (int i = tlo[0]; i <= thi[0]; ++i) {
+//                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+//                     for (int k = tlo[2]; k <= thi[2]; ++k) {
+//                         
+//                         amrex::IntVect iv(D_DECL(i,j,k));
+//                         
+//                         // x-field
+//                         amrex::IntVect liv(D_DECL(i-1,j,k));
+//                         amrex::IntVect riv(D_DECL(i+1,j,k));
+//                         efab(iv, 0) = 0.5 * (fab(liv) - fab(riv));
+//                         
+//                         // y-field
+//                         liv = amrex::IntVect(D_DECL(i,j-1,k));
+//                         riv = amrex::IntVect(D_DECL(i,j+1,k));
+//                         efab(iv, 1) = 0.5 * (fab(liv) - fab(riv));
+//                         
+//                         // z-field
+//                         liv = amrex::IntVect(D_DECL(i,j-1,k));
+//                         riv = amrex::IntVect(D_DECL(i,j+1,k));
+//                         efab(iv, 2) = 0.5 * (fab(liv) - fab(riv));
+//                     }
+//                 }
+//             }
+//         }
+//     }
+    
 private:
     /// bunch used for tagging strategies
     AmrPartBunch *bunch_mp;
@@ -313,13 +355,13 @@ private:
     AmrLayout_t  *layout_mp;
     
     /// charge density on the grid for all levels
-    AmrFieldContainer_t rho_m;
+    AmrScalarFieldContainer_t rho_m;
     
     /// scalar potential on the grid for all levels
-    AmrFieldContainer_t phi_m;
+    AmrScalarFieldContainer_t phi_m;
     
     /// vector field on the grid for all levels
-    AmrFieldContainer_t efield_m;
+    AmrVectorFieldContainer_t efield_m;
     
     /// in particle rest frame, the longitudinal length enlarged
     Vector_t meshScaling_m;

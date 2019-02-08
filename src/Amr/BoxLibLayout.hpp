@@ -98,8 +98,7 @@ void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
 template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                                  int lev_min, int lev_max,
-                                  const ParticleAttrib<char>* canSwap)
+                                  int lev_min, int lev_max)
 {
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
@@ -122,7 +121,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     else if ( lev_max > theEffectiveFinestLevel )
         lev_max = theEffectiveFinestLevel;
     
-    //loop trough the particles and assigne the grid and level where each particle belongs
+    //loop trough the particles and assign the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
     
     auto& LocalNumPerLevel = PData.getLocalNumPerLevel();

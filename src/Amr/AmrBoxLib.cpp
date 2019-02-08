@@ -156,7 +156,7 @@ void AmrBoxLib::initFineLevels() {
     }
 }
 
-void AmrBoxLib::regrid(int lbase, int lfine, double time) {
+void AmrBoxLib::regrid(int lbase, int lfine, double time, int bin) {
     int new_finest = 0;
     AmrGridContainer_t new_grids(finest_level+2);
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
@@ -188,8 +188,6 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     
     for (int lev = new_finest+1; lev <= finest_level; ++lev) {
         ClearLevel(lev);
-        ClearBoxArray(lev);
-        ClearDistributionMap(lev);
     }
     
     finest_level = new_finest;
@@ -211,10 +209,10 @@ AmrBoxLib::VectorPair_t AmrBoxLib::getEExtrema() {
              *  - max(comp, nghost (to search), local)
              *  - min(cmop, nghost, local)
              */
-            double max = efield_m[lev]->max(i, 0, false);
+            double max = efield_m[lev][i]->max(0, false);
             maxE[i] = (maxE[i] < max) ? max : maxE[i];
             
-            double min = efield_m[lev]->min(i, 0, false);
+            double min = efield_m[lev][i]->min(0, false);
             minE[i] = (minE[i] > min) ? min : minE[i];
         }
     }
@@ -284,7 +282,9 @@ void AmrBoxLib::computeSelfFields() {
     // make sure ghost cells are filled
     for (int i = 0; i <= finest_level; ++i) {
         phi_m[i]->FillBoundary(geom[i].periodicity());
-        efield_m[i]->FillBoundary(geom[i].periodicity());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->FillBoundary(geom[i].periodicity());
+        }
     }
     
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
@@ -294,14 +294,18 @@ void AmrBoxLib::computeSelfFields() {
      */
     for (int i = 0; i <= finest_level; ++i) {
         this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
-        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            this->efield_m[i][j]->mult(scalefactor * scalefactor * l0norm, 0, 1);
+        }
     }
     
     
     for (int i = 0; i <= finest_level; ++i) {
-        if ( this->efield_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields() ",
-                                "Ef: NANs at level " + std::to_string(i) + ".");
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            if ( this->efield_m[i][j]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields() ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
     }
     
     amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
@@ -373,11 +377,14 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
-    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-        bunch_mp->R[i](1) *= gamma;
-
+    bunch_mp->lorentzTransform(false);
+    
     // map on Amr domain
     double scalefactor = amrpbase_p->domainMapping();
+    
+    amrpbase_p->setForbidTransform(true);
+    amrpbase_p->update();
+    amrpbase_p->setForbidTransform(false);
     
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
@@ -416,7 +423,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // make sure ghost cells are filled
     for (int i = 0; i <= finest_level; ++i) {
         phi_m[i]->FillBoundary(geom[i].periodicity());
-        efield_m[i]->FillBoundary(geom[i].periodicity());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->FillBoundary(geom[i].periodicity());
+        }
     }
     
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
@@ -426,13 +435,17 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      */
     for (int i = 0; i <= finestLevel(); ++i) {
         this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
-        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            this->efield_m[i][j]->mult(scalefactor * scalefactor * l0norm, 0, 1);
+        }
     }
     
     for (int i = 0; i <= finest_level; ++i) {
-        if ( this->efield_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                                "Ef: NANs at level " + std::to_string(i) + ".");
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            if ( this->efield_m[i][j]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
     }
     
     
@@ -441,9 +454,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // undo domain change
     amrpbase_p->domainMapping(true);
     
-    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-        bunch_mp->R[i](1) *= invGamma;
-
     /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
                              1.0,
@@ -482,6 +492,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
     }
+    
+    bunch_mp->lorentzTransform(true);
 }
 
 
@@ -503,13 +515,20 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      * scatter charges onto grid
      */
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-
+    
     // Lorentz transformation: apply Lorentz factor of that particle bin
-    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-        bunch_mp->R[i](1) *= gamma;
-
-    // map on Amr domain
+    bunch_mp->lorentzTransform(false, bin);
+    
+    // map on Amr domain    
     double scalefactor = amrpbase_p->domainMapping();
+    
+    amrpbase_p->setForbidTransform(true);
+    
+    amrpbase_p->update();
+    
+    this->regrid(0, finest_level, bunch_mp->getT() * 1.0e9, bin);
+    
+    amrpbase_p->setForbidTransform(false);
     
     /// scatter particles charge onto grid.
     /// from charge (C) to charge density (C/m^3).
@@ -542,6 +561,13 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     IpplTimings::startTimer(this->amrSolveTimer_m);
     
+    for (int i = 0; i <= finest_level; ++i) {
+        phi_m[i]->setVal(0.0, 0, phi_m[i]->nComp(), phi_m[i]->nGrow());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->setVal(0.0, 0, efield_m[i][j]->nComp(), efield_m[i][j]->nGrow());
+        }
+    }
+    
     // in case of binning we reset phi every time
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level, false);
     
@@ -550,7 +576,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // make sure ghost cells are filled
     for (int i = 0; i <= finest_level; ++i) {
         phi_m[i]->FillBoundary(geom[i].periodicity());
-        efield_m[i]->FillBoundary(geom[i].periodicity());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->FillBoundary(geom[i].periodicity());
+        }
     }
     
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
@@ -561,13 +589,23 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      */
     for (int i = 0; i <= finestLevel(); ++i) {
         this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
-        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            this->efield_m[i][j]->mult(scalefactor * scalefactor * l0norm, 0, 1);
+        }
     }
 
     for (int i = 0; i <= finest_level; ++i) {
-        if ( this->efield_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                                "Ef: NANs at level " + std::to_string(i) + ".");
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            if ( this->efield_m[i][j]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
+    }
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            std::cout << i << " " << this->efield_m[i][j]->max(0, 1) << std::endl;
+        }
     }
     
     amrpbase_p->gather(bunch_mp->Eftmp, this->efield_m, bunch_mp->R, 0, finest_level);
@@ -575,13 +613,11 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // undo domain change
     amrpbase_p->domainMapping(true);
     
-    // undo Lorentz factor of that particle bin
-    for (std::size_t i = 0; i < bunch_mp->getLocalNum(); ++i)
-        bunch_mp->R[i](1) /= gamma;
-
     /// Back Lorentz transformation
     bunch_mp->Eftmp *= Vector_t(gamma, 1.0, gamma);
 
+    std::cout << min(bunch_mp->Eftmp) << " " << max(bunch_mp->Eftmp) << std::endl;
+    
     /// Calculate coefficient
     double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
@@ -615,6 +651,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
     }
+    
+    // undo Lorentz factor of that particle bin
+    bunch_mp->lorentzTransform(true, bin);
 }
 
 
@@ -733,12 +772,17 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     //                                                      #comp  #ghosts cells
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     0));
     phi_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
-    efield_m[lev].reset(new AmrField_t(new_grids, new_dmap, 3,     1));
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    }
     
     // including nghost = 1
     rho_m[lev]->setVal(0.0, 0);
     phi_m[lev]->setVal(0.0, 1);
-    efield_m[lev]->setVal(0.0, 1);
+    
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j]->setVal(0.0, 1);
+    }
     
     /*
      * particles need to know the BoxArray
@@ -761,12 +805,17 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     //                                                      #comp  #ghosts cells
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     0));
     phi_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
-    efield_m[lev].reset(new AmrField_t(new_grids, new_dmap, 3,     1));
+    
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    }
     
     // including nghost = 1
     rho_m[lev]->setVal(0.0, 0);
     phi_m[lev]->setVal(0.0, 1);
-    efield_m[lev]->setVal(0.0, 1);
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j]->setVal(0.0, 1);
+    }
     
     
     
@@ -784,12 +833,14 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
 void AmrBoxLib::ClearLevel(int lev) {
     rho_m[lev].reset(nullptr);
     phi_m[lev].reset(nullptr);
-    efield_m[lev].reset(nullptr);
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j].reset(nullptr);
+    }
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
     
-//     layout_mp->ClearParticleBoxArray(lev);
-//     layout_mp->ClearParticleDistributionMap(lev);
+    layout_mp->ClearParticleBoxArray(lev);
+    layout_mp->ClearParticleDistributionMap(lev);
 }
 
 
@@ -953,7 +1004,7 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
      * value of this level.
      */
     
-    if ( !efield_m[lev]->ok() || (time == 0 && !(efield_m[lev]->norm0(0) > 0)) ) {
+    if ( !efield_m[lev][0]->ok() || (time == 0 && !(efield_m[lev][0]->norm0(0) > 0)) ) {
         *gmsg << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
@@ -966,23 +1017,27 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
     const int   tagval = TagBox_t::SET;
     
     // obtain maximum absolute value
-    AmrIntArray_t comps = {0, 1, 2};
-    amrex::Vector<AmrReal_t> threshold = efield_m[lev]->norm0(comps,
-                                                             0 /*nghosts*/,
-                                                             false /*local*/);
+    amrex::Vector<AmrReal_t> threshold(AMREX_SPACEDIM);
     
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 3; ++i) {
+        threshold[i] = efield_m[lev][i]->norm0(0,
+                                            0 /*nghosts*/,
+                                            false /*local*/);
+    
         threshold[i] *= scaling_m;
+    }
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        for (MFIter_t mfi(*efield_m[lev], true); mfi.isValid(); ++mfi) {
+        for (MFIter_t mfi(this->grids[lev], this->dmap[lev], true); mfi.isValid(); ++mfi) {
             
             const Box_t&  tilebx  = mfi.tilebox();
             TagBox_t&     tagfab  = tags[mfi];
-            FArrayBox_t&  fab     = (*efield_m[lev])[mfi];
+            FArrayBox_t&  xfab     = (*efield_m[lev][0])[mfi];
+            FArrayBox_t&  yfab     = (*efield_m[lev][1])[mfi];
+            FArrayBox_t&  zfab     = (*efield_m[lev][2])[mfi];
 
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
@@ -991,11 +1046,11 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
                         AmrIntVect_t iv(i,j,k);
-                        if (std::abs(fab(iv, 0)) >= threshold[0])
+                        if (std::abs(xfab(iv)) >= threshold[0])
                             tagfab(iv) = tagval;
-                        else if (std::abs(fab(iv, 1)) >= threshold[1])
+                        else if (std::abs(yfab(iv)) >= threshold[1])
                             tagfab(iv) = tagval;
-                        else if (std::abs(fab(iv, 2)) >= threshold[2])
+                        else if (std::abs(zfab(iv)) >= threshold[2])
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;

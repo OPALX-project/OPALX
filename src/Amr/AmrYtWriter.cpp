@@ -65,9 +65,9 @@ AmrYtWriter::AmrYtWriter(int step, int bin)
 }
 
 
-void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
-                              const amr::AmrFieldContainer_t& phi,
-                              const amr::AmrFieldContainer_t& efield,
+void AmrYtWriter::writeFields(const amr::AmrScalarFieldContainer_t& rho,
+                              const amr::AmrScalarFieldContainer_t& phi,
+                              const amr::AmrVectorFieldContainer_t& efield,
                               const amr::AmrIntArray_t& refRatio,
                               const amr::AmrGeomContainer_t& geom,
                               const int& nLevel,
@@ -101,7 +101,11 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int nData = rho[0]->nComp() + phi[0]->nComp() + efield[0]->nComp();
+    int nData = rho[0]->nComp()
+              + phi[0]->nComp()
+              + efield[0][0]->nComp()
+              + efield[0][1]->nComp()
+              + efield[0][2]->nComp();
     
     if ( Ippl::myNode() == 0 )
     {
@@ -246,9 +250,11 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-        amr::AmrField_t::Copy(data, *rho[lev],    0, 0, 1, 0);
-        amr::AmrField_t::Copy(data, *phi[lev],    0, 1, 1, 0);
-        amr::AmrField_t::Copy(data, *efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+        amr::AmrField_t::Copy(data, *rho[lev],       0, 0, 1, 0);
+        amr::AmrField_t::Copy(data, *phi[lev],       0, 1, 1, 0);
+        amr::AmrField_t::Copy(data, *efield[lev][0], 0, 2, 1, 0); // Ex
+        amr::AmrField_t::Copy(data, *efield[lev][1], 0, 3, 1, 0); // Ey
+        amr::AmrField_t::Copy(data, *efield[lev][2], 0, 4, 1, 0); // Ez
         
         //
         // Use the Full pathname when naming the MultiFab.
