@@ -32,11 +32,13 @@ template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
 
 public:
-    typedef typename PLayout::ParticlePos_t         ParticlePos_t;
-    typedef typename PLayout::ParticleIndex_t       ParticleIndex_t;
-    typedef typename PLayout::SingleParticlePos_t   SingleParticlePos_t;
-    typedef typename PLayout::AmrField_t            AmrField_t;
-    typedef typename PLayout::AmrFieldContainer_t   AmrFieldContainer_t;
+    typedef typename PLayout::ParticlePos_t               ParticlePos_t;
+    typedef typename PLayout::ParticleIndex_t             ParticleIndex_t;
+    typedef typename PLayout::SingleParticlePos_t         SingleParticlePos_t;
+    typedef typename PLayout::AmrField_t                  AmrField_t;
+    typedef typename PLayout::AmrVectorField_t            AmrVectorField_t;
+    typedef typename PLayout::AmrScalarFieldContainer_t   AmrScalarFieldContainer_t;
+    typedef typename PLayout::AmrVectorFieldContainer_t   AmrVectorFieldContainer_t;
     
     typedef long                                    SortListIndex_t;
     typedef std::vector<SortListIndex_t>            SortList_t;

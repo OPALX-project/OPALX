@@ -13,7 +13,7 @@ set (_SRCS
 set(AMR_MG_DIR "")
 
 if ( ENABLE_AMR )
-    list(APPEND _SRCS BoxLibSolvers/FMGPoissonSolver.cpp)
+    list(APPEND _SRCS BoxLibSolvers/FMGPoissonSolver.cpp AMReXSolvers/MLPoissonSolver.cpp)
     
     if ( ENABLE_AMR_MG_SOLVER )
         add_subdirectory (AMR_MG)
@@ -44,7 +44,7 @@ set (HDRS
 )
 
 if ( ENABLE_AMR )
-    list(APPEND HDRS AmrPoissonSolver.h BoxLibSolvers/FMGPoissonSolver.h)
+    list(APPEND HDRS AmrPoissonSolver.h BoxLibSolvers/FMGPoissonSolver.h AMReXSolvers/MLPoissonSolver.h)
 endif (ENABLE_AMR )
 
 

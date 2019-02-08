@@ -3,10 +3,11 @@
 #include "Utilities/OpalException.h"
 
 AmrPartBunch::AmrPartBunch(const PartData *ref)
-    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref),
-      amrobj_mp(nullptr),
-      amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get())),
-      fieldlayout_m(nullptr)
+    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), ref)
+    , amrobj_mp(nullptr)
+    , amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get()))
+    , fieldlayout_m(nullptr)
+    , isLorentzTransformed_m(false)
 {
     amrpbase_mp->initializeAmr();
 }
@@ -75,6 +76,11 @@ void AmrPartBunch::do_binaryRepart() {
             bool isForbidTransform = amrpbase_mp->isForbidTransform();
             
             if ( !isForbidTransform ) {
+                /*
+                 * regrid in boosted frame
+                 */
+                this->lorentzTransform();
+                
                 amrpbase_mp->domainMapping();
                 amrpbase_mp->setForbidTransform(true);
             }
@@ -108,6 +114,8 @@ void AmrPartBunch::do_binaryRepart() {
                 amrpbase_mp->setForbidTransform(false);
                 // map particles back
                 amrpbase_mp->domainMapping(true);
+                
+                this->lorentzTransform(true);
             }
         }
     }
@@ -155,7 +163,7 @@ double AmrPartBunch::getRho(int x, int y, int z) {
 
 FieldLayout_t &AmrPartBunch::getFieldLayout() {
     //TODO Implement
-    throw OpalException("&AmrPartBunch::getFieldLayout() ", "Not yet Implemented.");
+    throw OpalException("AmrPartBunch::getFieldLayout() ", "Not yet Implemented.");
     return *fieldlayout_m;
 }
 
