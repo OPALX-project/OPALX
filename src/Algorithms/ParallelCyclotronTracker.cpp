@@ -232,14 +232,14 @@ inline
 void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
 {
     if ( mbmode.compare("FORCE") == 0 ) {
-        *gmsg << "FORCE mode: The multi bunches will be injected consecutively "
-              << "after each revolution, until get \"TURNS\" bunches." << endl;
+        *gmsg << "FORCE mode: The multi bunches will be injected consecutively" << endl
+              << "            after each revolution, until get \"TURNS\" bunches." << endl;
         multiBunchMode_m = MB_MODE::FORCE;
     } else if ( mbmode.compare("AUTO") == 0 ) {
-        *gmsg << "AUTO mode: The multi bunches will be injected only when "
-                      << "the distance between two neighboring bunches " << endl
-                      << "is below the limitation. The control parameter is set to "
-                      << CoeffDBunches_m << endl;
+        *gmsg << "AUTO mode: The multi bunches will be injected only when the" << endl
+              << "           distance between two neighboring bunches is below" << endl
+              << "           the limitation. The control parameter is set to "
+              << CoeffDBunches_m << endl;
         multiBunchMode_m = MB_MODE::AUTO;
     } else if ( mbmode.compare("NONE") == 0 )
         multiBunchMode_m = MB_MODE::NONE;
@@ -2912,8 +2912,9 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     initDistInGlobalFrame();
 
-    if ( OpalData::getInstance()->inRestartRun() && numBunch_m > 1)
+    if ( multiBunchMode_m != MB_MODE::NONE ) {
         updateParticleBins_m();
+    }
 
     turnnumber_m = 1;
 
