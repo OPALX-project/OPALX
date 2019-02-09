@@ -15,11 +15,11 @@ MLPoissonSolver::MLPoissonSolver(AmrBoxLib* itsAmrObject_p)
 { }
 
 void MLPoissonSolver::solve(AmrScalarFieldContainer_t& rho,
-                               AmrScalarFieldContainer_t& phi,
-                               AmrVectorFieldContainer_t& efield,
-                               unsigned short baseLevel,
-                               unsigned short finestLevel,
-                               bool prevAsGuess)
+                            AmrScalarFieldContainer_t& phi,
+                            AmrVectorFieldContainer_t& efield,
+                            unsigned short baseLevel,
+                            unsigned short finestLevel,
+                            bool prevAsGuess)
 {
     for (int i = 0; i <= finestLevel; ++i) {
         phi[i]->setVal(0.0, 1);
@@ -81,9 +81,9 @@ void MLPoissonSolver::mlmg_m(AmrScalarFieldContainer_t& rho,
      * amrex/Tutorials/LinearSolvers/ABecLaplacian_C/MyTest.H
      */
     amrex::LPInfo info;
-    info.setAgglomeration(1);
-    info.setConsolidation(1);
-    info.setMaxCoarseningLevel(4);
+    info.setAgglomeration(true);
+    info.setConsolidation(true);
+    info.setMaxCoarseningLevel(10);
     
     const GeomContainer_t& geom = itsAmrObject_mp->Geom();
     
