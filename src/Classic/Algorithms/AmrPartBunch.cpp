@@ -12,26 +12,15 @@ AmrPartBunch::AmrPartBunch(const PartData *ref)
     amrpbase_mp->initializeAmr();
 }
 
-
-// AmrPartBunch::AmrPartBunch(const std::vector<OpalParticle> &rhs,
-//                            const PartData *ref)
-//     : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t()), rhs, ref),
-//       amrobj_mp(nullptr),
-//       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get())),
-//       fieldlayout_m(nullptr)
-// {
-//     amrpbase_mp->initializeAmr();
-// }
-
-
-// AmrPartBunch::AmrPartBunch(const AmrPartBunch &rhs)
-//     : PartBunchBase<double, 3>(rhs),
-//       amrobj_mp(nullptr),
-//       amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get())),
-//       fieldlayout_m(nullptr)
-// {
-//     amrpbase_mp->initializeAmr();
-// }
+AmrPartBunch::AmrPartBunch(const PartData *ref, pbase_t* pbase_p)
+    : PartBunchBase<double, 3>(new AmrPartBunch::pbase_t(new AmrLayout_t(&pbase_p->getAmrLayout())), ref)
+    , amrobj_mp(nullptr)
+    , amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get()))
+    , fieldlayout_m(nullptr)
+    , isLorentzTransformed_m(false)
+{
+    amrpbase_mp->initializeAmr();
+}
 
 AmrPartBunch::~AmrPartBunch() {
     
@@ -183,6 +172,7 @@ void AmrPartBunch::boundp() {
         bool isForbidTransform = amrpbase_mp->isForbidTransform();
             
         if ( !isForbidTransform ) {
+            this->lorentzTransform();
             amrpbase_mp->domainMapping();
             amrpbase_mp->setForbidTransform(true);
         }
@@ -193,6 +183,7 @@ void AmrPartBunch::boundp() {
             amrpbase_mp->setForbidTransform(false);
             // map particles back
             amrpbase_mp->domainMapping(true);
+            this->lorentzTransform(true);
         }
         
     } else {

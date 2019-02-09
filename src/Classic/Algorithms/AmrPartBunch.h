@@ -10,21 +10,17 @@ public:
     typedef AmrParticle_t pbase_t;
     
 public:
-    
+
     AmrPartBunch(const PartData *ref);
 
-//     /// Conversion.
-//     AmrPartBunch(const std::vector<OpalParticle> &,
-//                  const PartData *ref);
+    AmrPartBunch(const PartData *ref, pbase_t* pbase_p);
 
-//     AmrPartBunch(const AmrPartBunch &);
-    
     ~AmrPartBunch();
-    
+
     pbase_t *getAmrParticleBase();
-    
+
     const pbase_t *getAmrParticleBase() const;
-    
+
     void initialize(FieldLayout_t *fLayout);
     
     // does actually another repartition
@@ -103,9 +99,11 @@ public:
             gamma = this->getBinGamma(bin);
         }
         
-        if ( gamma < 1.0 ) {
+        if ( getTotalNum() == 0 && gamma < 1.0 ) {
             throw OpalException("AmrPartBunch::lorentzTransform()", "Lorentz factor " +
                                 std::to_string(gamma) + " < 1");
+        } else {
+            gamma = 1.0;
         }
         
         if ( inverse ) {

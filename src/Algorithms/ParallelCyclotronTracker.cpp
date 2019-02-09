@@ -1748,9 +1748,11 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
 #ifdef ENABLE_AMR
-    if ( dynamic_cast<AmrPartBunch*>(itsBunch_m) != 0 )
-        tmpBunch.reset(new AmrPartBunch(&itsReference));
-    else
+    AmrPartBunch* amrbunch_p = dynamic_cast<AmrPartBunch*>(itsBunch_m);
+    if ( amrbunch_p != 0 ) {
+        tmpBunch.reset(new AmrPartBunch(&itsReference,
+                                        amrbunch_p->getAmrParticleBase()));
+    } else
 #endif
         tmpBunch.reset(new PartBunch(&itsReference));
 

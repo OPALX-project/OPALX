@@ -83,6 +83,11 @@ public:
     BoxLibLayout();
     
     /*!
+     * Given a layout it copies that.
+     */
+    BoxLibLayout(const BoxLibLayout* layout_p);
+
+    /*!
      * @param nGridPoints per dimension (nx, ny, nz / nt)
      * @param maxGridSize for all levels.
      */
