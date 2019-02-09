@@ -436,13 +436,7 @@ void BoxLibParticle<PLayout>::InterpolateMultiLevelFort(ParticleAttrib<AType> &p
     cmesh_ezdata.setVal(0.0, 0, 1, mesh_data[lev][2]->nGrow());
     cmesh_ezdata.copy(*mesh_data[lev-1][2], 0, 0, 1, 1, 1);
     cmesh_ezdata.FillBoundary(gm.periodicity());
-    
-    std::cout << "------------------------------------------------" << std::endl;
-    std::cout << cmesh_exdata.min(0) << " " << cmesh_exdata.max(0) << std::endl
-              << cmesh_eydata.min(0) << " " << cmesh_eydata.max(0) << std::endl
-              << cmesh_ezdata.min(0) << " " << cmesh_ezdata.max(0) << std::endl;
-    std::cout << "------------------------------------------------" << std::endl;
-    
+
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
         
         const int grid = this->Grid[ip];
