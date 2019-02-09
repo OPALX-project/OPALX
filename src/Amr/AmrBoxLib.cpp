@@ -191,8 +191,7 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time, int bin) {
     }
     
     finest_level = new_finest;
-    
-    
+
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     solver->hasToRegrid();
 }
@@ -274,7 +273,7 @@ void AmrBoxLib::computeSelfFields() {
     
     // charge density is in rho_m
     PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
+
     IpplTimings::startTimer(this->amrSolveTimer_m);
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
@@ -414,8 +413,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     for (int i = 0; i <= finest_level; ++i) {
         this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
-    
+
     PoissonSolver *solver = bunch_mp->getFieldSolver();
+
     IpplTimings::startTimer(this->amrSolveTimer_m);
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
@@ -558,7 +558,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     meshScaling_m = Vector_t(1.0, 1.0, 1.0);
     
     PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
+
     IpplTimings::startTimer(this->amrSolveTimer_m);
     
     for (int i = 0; i <= finest_level; ++i) {
@@ -602,12 +602,6 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
         }
     }
     
-    for (int i = 0; i <= finest_level; ++i) {
-        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
-            std::cout << i << " " << this->efield_m[i][j]->max(0, 1) << std::endl;
-        }
-    }
-    
     amrpbase_p->gather(bunch_mp->Eftmp, this->efield_m, bunch_mp->R, 0, finest_level);
     
     // undo domain change
@@ -616,10 +610,8 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     /// Back Lorentz transformation
     bunch_mp->Eftmp *= Vector_t(gamma, 1.0, gamma);
 
-    std::cout << min(bunch_mp->Eftmp) << " " << max(bunch_mp->Eftmp) << std::endl;
-    
     /// Calculate coefficient
-    double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+    double betaC = std::sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
     /// Calculate B_bin field from E_bin field accumulate B and E field
     bunch_mp->Bf(0) += betaC * bunch_mp->Eftmp(2);
