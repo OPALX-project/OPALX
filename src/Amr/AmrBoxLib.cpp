@@ -331,6 +331,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     // undo domain change
     amrpbase_p->domainMapping(true);
+    bunch_mp->lorentzTransform(true);
     
     /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
@@ -370,8 +371,6 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
     }
-    
-    bunch_mp->lorentzTransform(true);
 }
 
 
@@ -492,6 +491,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // undo domain change
     amrpbase_p->domainMapping(true);
     
+    // undo Lorentz factor of that particle bin
+    bunch_mp->lorentzTransform(true, bin);
+
     /// Back Lorentz transformation
     bunch_mp->Eftmp *= Vector_t(gamma, 1.0, gamma);
 
@@ -528,9 +530,6 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
     }
-    
-    // undo Lorentz factor of that particle bin
-    bunch_mp->lorentzTransform(true, bin);
 }
 
 
