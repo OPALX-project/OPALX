@@ -60,11 +60,14 @@ public:
      * @param pp particle position (not used for AMReX call)
      * @param lbase base level we want to start
      * @param lfine finest level we want to stop
+     * @param pbin the particle bin attribute
+     * @param bin to scatter (default: -1 --> scatter all particles)
      */
     template <class FT, unsigned Dim, class PT>
     void scatter(ParticleAttrib<FT>& attrib, AmrScalarFieldContainer_t& f,
                  ParticleAttrib<Vektor<PT, Dim> >& pp,
-                 int lbase, int lfine);
+                 int lbase, int lfine,
+                 const ParticleAttrib<int>& pbin, int bin = -1);
     
     
     /*!
@@ -80,6 +83,7 @@ public:
     template <class FT, unsigned Dim, class PT>
     void scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
                  ParticleAttrib<Vektor<PT, Dim> >& pp,
+                 const ParticleAttrib<int>& pbin, int bin = -1,
                  int level = 0);
     
     /*!
@@ -116,7 +120,8 @@ private:
     template <class AType>
     void AssignDensityFort(ParticleAttrib<AType> &pa,
                            AmrScalarFieldContainer_t& mf_to_be_filled, 
-                           int lev_min, int ncomp, int finest_level) const;
+                           int lev_min, int ncomp, int finest_level,
+                           const ParticleAttrib<int>& pbin, int bin = -1) const;
     
     /*!
      * Multi-level gather (adjusted from AMReX).
@@ -166,6 +171,7 @@ private:
      */
     template <class AType>
     void AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mf, int level,
+                                          const ParticleAttrib<int>& pbin, int bin = -1,
                                           int ncomp=1, int particle_lvl_offset = 0) const;
     
 private:
