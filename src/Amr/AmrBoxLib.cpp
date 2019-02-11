@@ -264,7 +264,7 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     amrpbase_p->setForbidTransform(false);
     
     /// from charge (C) to charge density (C/m^3).
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level, bunch_mp->Bin);
     
     int baseLevel = 0;
     int nLevel = finest_level + 1;
@@ -410,9 +410,14 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 
     amrpbase_p->setForbidTransform(false);
     
+    // make sure that charge density is zero
+    for (int i = 0; i <= finest_level; ++i) {
+        rho_m[i]->setVal(0.0, 0);
+    }
+    
     /// scatter particles charge onto grid.
     /// from charge (C) to charge density (C/m^3).
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level, bunch_mp->Bin, bin);
     
     /// Lorentz transformation
     // In particle rest frame, the longitudinal length (y for cyclotron) enlarged
@@ -774,7 +779,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
     
     // the new scatter function averages the value also down to the coarsest level
     amrpbase_p->scatter(bunch_mp->Q, rho_m,
-                        bunch_mp->R, lev, finest_level);
+                        bunch_mp->R, lev, finest_level, bunch_mp->Bin);
     
     const double& scalefactor = amrpbase_p->getScalingFactor();
     
