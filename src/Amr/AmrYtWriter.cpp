@@ -345,6 +345,11 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
               *globalPartPerLevel.get(),
               nLevel, std::plus<size_t>());
     
+    int finest_level = layout_p->finestLevel();
+    while ( !layout_p->LevelDefined(finest_level) ) {
+        --finest_level;
+    }
+    
     if ( Ippl::myNode() == 0 )
     {
         std::string HdrFileName = pdir;
@@ -399,11 +404,11 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
         //
         // Then the finest level of the AMR hierarchy.
         //
-        HdrFile << layout_p->finestLevel() << '\n';
+        HdrFile << finest_level << '\n';
         //
         // Then the number of grids at each level.
         //
-        for (int lev = 0; lev <= layout_p->finestLevel(); ++lev) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
             HdrFile << layout_p->ParticleBoxArray(lev).size() << '\n';
         }
     }
@@ -416,7 +421,7 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
 
     nOutFiles = std::max(1, std::min(nOutFiles, NProcs));
     
-    for (int lev = 0; lev <= layout_p->finestLevel(); ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev) {
         bool gotsome = (globalPartPerLevel[lev] > 0);
         //
         // We store the particles at each level in their own subdirectory.
