@@ -118,6 +118,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
         // we need to update on Amr domain, has to be undone at end of function
+        PData.lorentzTransform();
         PData.domainMapping();
     }
     
@@ -304,6 +305,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     if ( !PData.isForbidTransform() ) {
         // undo domain transformation
         PData.domainMapping(true);
+        PData.lorentzTransform(true);
     }
 }
 
@@ -646,7 +648,7 @@ void BoxLibLayout<T, Dim>::locateParticle(
                         || p.R[ip](2) <  AmrGeometry_t::ProbLo(2)
                         || p.R[ip](2) >= AmrGeometry_t::ProbHi(2));
         
-    bool success;
+    bool success = false;
     
     if (outside)
     {

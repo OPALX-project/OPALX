@@ -7,7 +7,6 @@ AmrPartBunch::AmrPartBunch(const PartData *ref)
     , amrobj_mp(nullptr)
     , amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get()))
     , fieldlayout_m(nullptr)
-    , isLorentzTransformed_m(false)
 {
     amrpbase_mp->initializeAmr();
 }
@@ -17,7 +16,6 @@ AmrPartBunch::AmrPartBunch(const PartData *ref, pbase_t* pbase_p)
     , amrobj_mp(nullptr)
     , amrpbase_mp(dynamic_cast<AmrPartBunch::pbase_t*>(pbase.get()))
     , fieldlayout_m(nullptr)
-    , isLorentzTransformed_m(false)
 {
     amrpbase_mp->initializeAmr();
 }
@@ -80,24 +78,27 @@ void AmrPartBunch::do_binaryRepart() {
              */
             this->update();
             
-            int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
+            if ( !(this->getLocalTrackStep() % Options::amrRegridFreq) ) {
             
-            *gmsg << "* Start regriding:" << endl
-                  << "*     Old finest level: "
-                  << amrobj_mp->finestLevel() << endl;
-            
-            /* ATTENTION: The bunch has to be updated during
-             * the regrid process!
-             * We regrid from base level 0 up to the finest level.
-             */
-            for (int i = 0; i <= lev_top; ++i) {
-                amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
-                lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
-            }
+                int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
                 
-            *gmsg << "*     New finest level: "
-                  << amrobj_mp->finestLevel() << endl
-                  << "* Finished regriding" << endl;
+                *gmsg << "* Start regriding:" << endl
+                      << "*     Old finest level: "
+                      << amrobj_mp->finestLevel() << endl;
+            
+                /* ATTENTION: The bunch has to be updated during
+                 * the regrid process!
+                 * We regrid from base level 0 up to the finest level.
+                 */
+                for (int i = 0; i <= lev_top; ++i) {
+                    amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
+                    lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
+                }
+                
+                *gmsg << "*     New finest level: "
+                      << amrobj_mp->finestLevel() << endl
+                      << "* Finished regriding" << endl;
+            }
             
             if ( !isForbidTransform ) {
                 amrpbase_mp->setForbidTransform(false);

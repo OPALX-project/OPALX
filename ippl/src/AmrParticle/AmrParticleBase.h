@@ -142,6 +142,11 @@ public:
      */
     inline const double& getScalingFactor() const;
     
+    
+    void setLorentzFactor(const Vector_t& lorentzFactor);
+    
+    void lorentzTransform(bool inverse = false);
+    
 protected:
     IpplTimings::TimerRef updateParticlesTimer_m;
     IpplTimings::TimerRef sortParticlesTimer_m;
@@ -154,6 +159,16 @@ protected:
      * (used for Poisson solve and particle-to-core distribution)
      */
     double scale_m;
+    
+    /*!
+     * Lorentz factor used for the domain mapping.
+     * Is updated in AmrBoxLib
+     * 
+     */
+    Vector_t lorentzFactor_m;
+    
+    bool isLorentzTransformed_m;
+    
     
 private:
     ParticleLevelCounter_t LocalNumPerLevel_m;

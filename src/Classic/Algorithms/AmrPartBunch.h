@@ -85,14 +85,7 @@ public:
     /*!
      * 
      */
-    void lorentzTransform(bool inverse=false, int bin=0) {
-        
-        if ( isLorentzTransformed_m && !inverse ) {
-            return;
-        }
-        
-        isLorentzTransformed_m = true;
-        
+    void setLorentzFactor(int bin=0) {
         double gamma = this->get_gamma();
         
         if ( this->weHaveBins() ) {
@@ -106,18 +99,20 @@ public:
             gamma = 1.0;
         }
         
-        if ( inverse ) {
-            gamma = 1.0 / gamma;
-            isLorentzTransformed_m = false;
-        }
+        Vector_t lorentzFactor(1.0, 1.0, 1.0);
         
         if (OpalData::getInstance()->isInOPALCyclMode()) {
-            for (std::size_t i = 0; i < this->getLocalNum(); ++i)
-                this->R[i](1) *= gamma;
+            lorentzFactor[1] = gamma;
         } else {
-            for (std::size_t i = 0; i < this->getLocalNum(); ++i)
-                this->R[i](2) *= gamma;
+            lorentzFactor[2] = gamma;
         }
+        
+        amrpbase_mp->setLorentzFactor(lorentzFactor);
+    }
+    
+    void lorentzTransform(bool inverse = false, int bin=0) {
+        this->setLorentzFactor(bin);
+        amrpbase_mp->lorentzTransform(inverse);
     }
     
     //FIXME BCs
@@ -147,8 +142,6 @@ private:
     FieldLayout_t* fieldlayout_m;
     
     std::unique_ptr<size_t[]> globalPartPerLevel_m;
-    
-    bool isLorentzTransformed_m;
 };
 
 #endif
