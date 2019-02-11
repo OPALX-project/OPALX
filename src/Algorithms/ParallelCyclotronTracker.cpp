@@ -3558,6 +3558,8 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
 
         BunchCount_m++;
 
+        itsBunch_m->setNumBunch(BunchCount_m);
+
         // read initial distribution from h5 file
         switch ( multiBunchMode_m ) {
             case MB_MODE::FORCE:
@@ -3571,8 +3573,6 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
                 throw OpalException("ParallelCyclotronTracker::injectBunch_m()",
                                     "We shouldn't be here in single bunch mode.");
         }
-
-        itsBunch_m->setNumBunch(BunchCount_m);
 
         setup_m.stepsNextCheck += setup_m.stepsPerTurn;
 
