@@ -409,11 +409,6 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
 
     amrpbase_p->setForbidTransform(false);
     
-    // make sure that charge density is zero
-    for (int i = 0; i <= finest_level; ++i) {
-        rho_m[i]->setVal(0.0, 0);
-    }
-    
     /// scatter particles charge onto grid.
     /// from charge (C) to charge density (C/m^3).
     amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level, bunch_mp->Bin, bin);
@@ -774,7 +769,7 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
 {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
-        rho_m[i]->setVal(0.0, 0);
+        rho_m[i]->setVal(0.0, rho_m[i]->nGrow());
     
     // the new scatter function averages the value also down to the coarsest level
     amrpbase_p->scatter(bunch_mp->Q, rho_m,
