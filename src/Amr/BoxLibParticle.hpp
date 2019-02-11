@@ -27,10 +27,11 @@ template<class PLayout>
 template<class FT, unsigned Dim, class PT>
 void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrScalarFieldContainer_t& f,
                                       ParticleAttrib<Vektor<PT, Dim> >& pp,
-                                      int lbase, int lfine)
+                                      int lbase, int lfine,
+                                      const ParticleAttrib<int>& pbin, int bin)
 {
     if ( lbase == lfine ) {
-        this->scatter(attrib, *(f[lbase].get()), pp, lbase);
+        this->scatter(attrib, *(f[lbase].get()), pp, pbin, bin, lbase);
         return;
     }
     
@@ -48,7 +49,7 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrScalarField
         tmp[lev]->setVal(0.0, nGrow);
     }
     
-    this->AssignDensityFort(attrib, tmp, lbase, 1, lfine);
+    this->AssignDensityFort(attrib, tmp, lbase, 1, lfine, pbin, bin);
     
     for (int lev = lbase; lev <= lfine; ++lev)
         AmrField_t::Copy(*f[lev], *tmp[lev], 0, 0, f[lev]->nComp(), f[lev]->nGrow());
@@ -59,6 +60,7 @@ template<class PLayout>
 template <class FT, unsigned Dim, class PT>
 void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
                                       ParticleAttrib<Vektor<PT, Dim> >& pp,
+                                      const ParticleAttrib<int>& pbin, int bin,
                                       int level)
 {
     const AmrGrid_t& ba      = f.boxArray();
@@ -67,7 +69,7 @@ void BoxLibParticle<PLayout>::scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
     AmrField_t tmp(ba, dmap, f.nComp(), 1);
     tmp.setVal(0.0, 1);
     
-    this->AssignCellDensitySingleLevelFort(attrib, tmp, level);
+    this->AssignCellDensitySingleLevelFort(attrib, tmp, level, pbin, bin);
     
     f.setVal(0.0, f.nGrow());
     
@@ -91,7 +93,8 @@ template<class PLayout>
 template <class AType>
 void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
                                                 AmrScalarFieldContainer_t& mf_to_be_filled, 
-                                                int lev_min, int ncomp, int finest_level) const
+                                                int lev_min, int ncomp, int finest_level,
+                                                const ParticleAttrib<int>& pbin, int bin) const
 {
 //     BL_PROFILE("AssignDensityFort()");
     IpplTimings::startTimer(AssignDensityTimer_m);
@@ -115,7 +118,7 @@ void BoxLibParticle<PLayout>::AssignDensityFort(ParticleAttrib<AType> &pa,
     }
     
     for (int lev = lev_min; lev <= finest_level; ++lev) {
-        AssignCellDensitySingleLevelFort(pa, *mf_to_be_filled[lev], lev, 1, 0);
+        AssignCellDensitySingleLevelFort(pa, *mf_to_be_filled[lev], lev, pbin, bin, 1, 0);
 
         if (lev < finest_level) {
             amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
@@ -153,6 +156,8 @@ template <class AType>
 void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa,
                                                                AmrField_t& mf_to_be_filled,
                                                                int       level,
+                                                               const     ParticleAttrib<int>& pbin,
+                                                               int       bin,
                                                                int       ncomp,
                                                                int       particle_lvl_offset) const
 {
@@ -209,6 +214,9 @@ void BoxLibParticle<PLayout>::AssignCellDensitySingleLevelFort(ParticleAttrib<AT
     int ijk[3] = {0, 0, 0};
     
     for (size_t ip = lBegin; ip < lEnd; ++ip) {
+        
+        if ( bin > -1 && pbin[ip] != bin )
+            continue;
         
         const int grid = this->Grid[ip];
         FArrayBox_t& fab = (*mf_pointer)[grid];

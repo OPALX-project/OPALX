@@ -129,10 +129,10 @@ public:
     double getBinGamma(int bin);
 
     /** \brief Set the charge of one bin to the value of q and all other to zero */
-    void setBinCharge(int bin, double q);
+    virtual void setBinCharge(int bin, double q);
 
     /** \brief Set the charge of all other the ones in bin to zero */
-    void setBinCharge(int bin);
+    virtual void setBinCharge(int bin);
 
     /** \brief returns the number of particles outside of a box defined by x */
     size_t calcNumPartsOutside(Vector_t x);
