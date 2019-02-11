@@ -403,9 +403,11 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     amrpbase_p->setForbidTransform(true);
     
     amrpbase_p->update();
-    
-    this->regrid(0, finest_level, bunch_mp->getT() * 1.0e9, bin);
-    
+
+    if ( !(bunch_mp->getLocalTrackStep() % Options::amrRegridFreq) ) {
+        this->regrid(0,  max_level - 1, bunch_mp->getT() * 1.0e9 /*time [ns] */);
+    }
+
     amrpbase_p->setForbidTransform(false);
     
     /// scatter particles charge onto grid.
@@ -709,8 +711,8 @@ void AmrBoxLib::ClearLevel(int lev) {
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
     
-    layout_mp->ClearParticleBoxArray(lev);
-    layout_mp->ClearParticleDistributionMap(lev);
+//     layout_mp->ClearParticleBoxArray(lev);
+//     layout_mp->ClearParticleDistributionMap(lev);
 }
 
 
