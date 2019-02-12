@@ -127,7 +127,8 @@ public:
     inline bool isForbidTransform() const;
     
     /*!
-     * Linear mapping to AMReX computation domain [-1, 1]^3. All dimensions
+     * Linear mapping to AMReX computation domain [-1, 1]^3 including the Lorentz
+     * transform. All dimensions
      * are mapped by the same scaling factor.
      * The potential and electric field need to be scaled afterwards appropriately.
      * @param PData is the particle data
@@ -145,7 +146,7 @@ public:
     
     void setLorentzFactor(const Vector_t& lorentzFactor);
     
-    void lorentzTransform(bool inverse = false);
+//     void lorentzTransform(bool inverse = false);
     
 protected:
     IpplTimings::TimerRef updateParticlesTimer_m;
@@ -167,7 +168,7 @@ protected:
      */
     Vector_t lorentzFactor_m;
     
-    bool isLorentzTransformed_m;
+//     bool isLorentzTransformed_m;
     
     
 private:

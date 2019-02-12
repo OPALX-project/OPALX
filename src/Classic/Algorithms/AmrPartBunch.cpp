@@ -66,8 +66,8 @@ void AmrPartBunch::do_binaryRepart() {
                 /*
                  * regrid in boosted frame
                  */
-                this->lorentzTransform();
-                
+                this->updateLorentzFactor();
+                // Lorentz transform + mapping to [-1,1]
                 amrpbase_mp->domainMapping();
                 amrpbase_mp->setForbidTransform(true);
             }
@@ -102,10 +102,8 @@ void AmrPartBunch::do_binaryRepart() {
             
             if ( !isForbidTransform ) {
                 amrpbase_mp->setForbidTransform(false);
-                // map particles back
+                // map particles back + undo Lorentz transform
                 amrpbase_mp->domainMapping(true);
-                
-                this->lorentzTransform(true);
             }
         }
     }
@@ -173,7 +171,8 @@ void AmrPartBunch::boundp() {
         bool isForbidTransform = amrpbase_mp->isForbidTransform();
             
         if ( !isForbidTransform ) {
-            this->lorentzTransform();
+            this->updateLorentzFactor();
+            // Lorentz transform + mapping to [-1,1]
             amrpbase_mp->domainMapping();
             amrpbase_mp->setForbidTransform(true);
         }
@@ -182,9 +181,8 @@ void AmrPartBunch::boundp() {
         
         if ( !isForbidTransform ) {
             amrpbase_mp->setForbidTransform(false);
-            // map particles back
+            // map particles back + undo Lorentz transform
             amrpbase_mp->domainMapping(true);
-            this->lorentzTransform(true);
         }
         
     } else {
@@ -256,6 +254,33 @@ void AmrPartBunch::gatherLevelStatistics() {
 
 const size_t& AmrPartBunch::getLevelStatistics(int l) const {
     return globalPartPerLevel_m[l];
+}
+
+
+void updateLorentzFactor(int bin=0) {
+    double gamma = this->get_gamma();
+
+    if ( this->weHaveBins() ) {
+        gamma = this->getBinGamma(bin);
+    }
+
+    if ( getTotalNum() > 0 && gamma < 1.0 ) {
+        throw OpalException("AmrPartBunch::updateLorentzFactor()", "Lorentz factor " +
+                            std::to_string(gamma) + " < 1");
+    } else {
+        gamma = 1.0;
+    }
+
+    // keep all 1.0, except longitudinal direction
+    Vector_t lorentzFactor(1.0, 1.0, 1.0);
+
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        lorentzFactor[1] = gamma;
+    } else {
+        lorentzFactor[2] = gamma;
+    }
+
+    amrpbase_mp->setLorentzFactor(lorentzFactor);
 }
 
 
