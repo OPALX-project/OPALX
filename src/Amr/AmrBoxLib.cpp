@@ -403,7 +403,24 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     amrpbase_p->update();
 
     if ( !(bunch_mp->getLocalTrackStep() % Options::amrRegridFreq) ) {
-        this->regrid(0,  max_level - 1, bunch_mp->getT() * 1.0e9 /*time [ns] */);
+        int lev_top = std::min(finest_level, max_level - 1);
+
+        *gmsg << "* Start regriding:" << endl
+              << "*     Old finest level: "
+              << finest_level << endl;
+
+        /* ATTENTION: The bunch has to be updated during
+         * the regrid process!
+         * We regrid from base level 0 up to the finest level.
+         */
+        for (int i = 0; i <= lev_top; ++i) {
+            this->regrid(i, lev_top, bunch_mp->getT() * 1.0e9 /*time [ns] */);
+            lev_top = std::min(finest_level, max_level - 1);
+        }
+
+        *gmsg << "*     New finest level: "
+              << finest_level << endl
+              << "* Finished regriding" << endl;
     }
 
     amrpbase_p->setForbidTransform(false);
@@ -714,7 +731,7 @@ void AmrBoxLib::ClearLevel(int lev) {
 void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags,
                          AmrReal_t time, int ngrow)
 {
-    *gmsg << "*         Start tagging of level " << lev << endl;
+    *gmsg << level2 << "*         Start tagging of level " << lev << endl;
     
     switch ( tagging_m ) {
         case CHARGE_DENSITY:
@@ -740,7 +757,7 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags,
             break;
     }
     
-    *gmsg << "*         Finished tagging of level " << lev << endl;
+    *gmsg << level2 << "*         Finished tagging of level " << lev << endl;
 }
 
 
@@ -818,7 +835,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
      * value of this level.
      */
     if ( !phi_m[lev]->ok() || (time == 0 && !(phi_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "* Level " << lev << ": We need to perform "
+        *gmsg << level2 << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
@@ -872,7 +889,7 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
      */
     
     if ( !efield_m[lev][0]->ok() || (time == 0 && !(efield_m[lev][0]->norm0(0) > 0)) ) {
-        *gmsg << "* Level " << lev << ": We need to perform "
+        *gmsg << level2 << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
