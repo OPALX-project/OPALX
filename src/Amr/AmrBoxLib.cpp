@@ -254,9 +254,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     /// Lorentz transformation
     /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
-    bunch_mp->lorentzTransform(false);
+    bunch_mp->updateLorentzFactor();
     
-    // map on Amr domain
+    // map on Amr domain + Lorentz transform
     double scalefactor = amrpbase_p->domainMapping();
     
     amrpbase_p->setForbidTransform(true);
@@ -329,9 +329,8 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     
     amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
     
-    // undo domain change
+    // undo domain change + undo Lorentz transform
     amrpbase_p->domainMapping(true);
-    bunch_mp->lorentzTransform(true);
     
     /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
@@ -394,9 +393,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
     // Lorentz transformation: apply Lorentz factor of that particle bin
-    bunch_mp->lorentzTransform(false, bin);
+    bunch_mp->updateLorentzFactor(bin);
     
-    // map on Amr domain    
+    // map on Amr domain + Lorentz transform 
     double scalefactor = amrpbase_p->domainMapping();
     
     amrpbase_p->setForbidTransform(true);
@@ -483,12 +482,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     
     amrpbase_p->gather(bunch_mp->Eftmp, this->efield_m, bunch_mp->R, 0, finest_level);
     
-    // undo domain change
+    // undo domain change + undo Lorentz transform
     amrpbase_p->domainMapping(true);
     
-    // undo Lorentz factor of that particle bin
-    bunch_mp->lorentzTransform(true, bin);
-
     /// Back Lorentz transformation
     bunch_mp->Eftmp *= Vector_t(gamma, 1.0, gamma);
 
