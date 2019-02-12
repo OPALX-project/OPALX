@@ -346,10 +346,7 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
               nLevel, std::plus<size_t>());
     
     int finest_level = layout_p->finestLevel();
-    while ( !layout_p->LevelDefined(finest_level) ) {
-        --finest_level;
-    }
-    
+
     if ( Ippl::myNode() == 0 )
     {
         std::string HdrFileName = pdir;
@@ -605,8 +602,7 @@ void AmrYtWriter::writeParticles_m(int level,
                 iptr[0] = bunch_p->ID[ip];
                 iptr[1] = Ippl::myNode();
                 iptr[2] = bunch_p->Bin[ip];
-                
-                iptr += 2 + intData_m.size();
+                iptr += iChunkSize;
             }
         }
 
