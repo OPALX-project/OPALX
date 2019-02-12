@@ -99,7 +99,7 @@ void AmrBoxLib::getGridStatistics(std::map<int, int>& gridsPerCore,
 
 
 void AmrBoxLib::initFineLevels() {
-    if ( !refined_m ) {
+    if ( bunch_mp->getNumBunch() > 1 && !refined_m ) {
         *gmsg << "* Initialization of all levels" << endl;
         
         AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
@@ -115,7 +115,7 @@ void AmrBoxLib::initFineLevels() {
             amrpbase_p->setForbidTransform(true);
         }
 
-        if ( max_level > 0 && bunch_mp->getNumBunch() > 1 ) {
+        if ( max_level > 0 ) {
             
             amrpbase_p->update(0, 0);
             
@@ -137,13 +137,8 @@ void AmrBoxLib::initFineLevels() {
             *gmsg << "*     New finest level: "
                   << finest_level << endl
                   << "* Finished regriding" << endl;
-        } else {
-            // we need to regrid solver anyway at the beginning
-            PoissonSolver *solver = bunch_mp->getFieldSolver();
-            solver->hasToRegrid();
         }
-    
-    
+
         if ( !isForbidTransform ) {
             amrpbase_p->setForbidTransform(false);
             // map particles back

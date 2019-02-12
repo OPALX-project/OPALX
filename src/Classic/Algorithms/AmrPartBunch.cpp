@@ -42,73 +42,33 @@ void AmrPartBunch::initialize(FieldLayout_t *fLayout) {
 
 void AmrPartBunch::do_binaryRepart() {
     
-    if ( amrobj_mp ) {
-        
-        const int& maxLevel = amrobj_mp->maxLevel();
-        
-        if ( !amrobj_mp->isRefined() ) {
-            /* In the first call to this function we
-             * intialize all fine levels
+    if ( amrobj_mp && !amrobj_mp->isRefined() ) {
+        /* In the first call to this function we
+         * intialize all fine levels
+         */
+        amrobj_mp->initFineLevels();
+
+    } else {
+        bool isForbidTransform = amrpbase_mp->isForbidTransform();
+
+        if ( !isForbidTransform ) {
+            /*
+             * regrid in boosted frame
              */
-            amrobj_mp->initFineLevels();
-            
-        } else if ( maxLevel > 0 && this->numBunch_m > 1 )  {
-            /* we do an explicit domain mapping of the particles and then
-             * forbid it during the regrid process, this way it's only
-             * executed ones --> saves computation
-             * 
-             * allow only multi-level in case of multi-bunch
-             * simulation
-             */
-            bool isForbidTransform = amrpbase_mp->isForbidTransform();
-            
-            if ( !isForbidTransform ) {
-                /*
-                 * regrid in boosted frame
-                 */
-                this->updateLorentzFactor();
-                // Lorentz transform + mapping to [-1,1]
-                amrpbase_mp->domainMapping();
-                amrpbase_mp->setForbidTransform(true);
-            }
-            
-            /* Update first in order to make
-             * sure that the particles belong to the right
-             * level and grid
-             */
-            this->update();
-            
-            if ( !(this->getLocalTrackStep() % Options::amrRegridFreq) ) {
-            
-                int lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
-                
-                *gmsg << "* Start regriding:" << endl
-                      << "*     Old finest level: "
-                      << amrobj_mp->finestLevel() << endl;
-            
-                /* ATTENTION: The bunch has to be updated during
-                 * the regrid process!
-                 * We regrid from base level 0 up to the finest level.
-                 */
-                for (int i = 0; i <= lev_top; ++i) {
-                    amrobj_mp->regrid(i, lev_top, t_m * 1.0e9 /*time [ns] */);
-                    lev_top = std::min(amrobj_mp->finestLevel(), maxLevel - 1);
-                }
-                
-                *gmsg << "*     New finest level: "
-                      << amrobj_mp->finestLevel() << endl
-                      << "* Finished regriding" << endl;
-            }
-            
-            if ( !isForbidTransform ) {
-                amrpbase_mp->setForbidTransform(false);
-                // map particles back + undo Lorentz transform
-                amrpbase_mp->domainMapping(true);
-            }
+            this->updateLorentzFactor();
+            // Lorentz transform + mapping to [-1,1]
+            amrpbase_mp->domainMapping();
+            amrpbase_mp->setForbidTransform(true);
+        }
+
+        this->update();
+
+        if ( !isForbidTransform ) {
+            amrpbase_mp->setForbidTransform(false);
+            // map particles back + undo Lorentz transform
+            amrpbase_mp->domainMapping(true);
         }
     }
-//     amrobj_mp->redistributeGrids(-1 /*KnapSack*/);
-//     update();
 }
 
 
@@ -226,13 +186,21 @@ void AmrPartBunch::computeSelfFields_cycl(double gamma) {
 
 void AmrPartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
+    
+    /* make sure it is refined in multi-bunch case
+     */
+    if ( !amrobj_mp->isRefined() ) {
+        amrobj_mp->initFineLevels();
+    }
+    
     amrobj_mp->computeSelfFields_cycl(bin);
+    
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
 
 
 void AmrPartBunch::gatherLevelStatistics() {
-    int nLevel = (&amrpbase_mp->getAmrLayout())->maxLevel() + 1;
+    int nLevel = amrobj_mp->maxLevel() + 1;
     
     std::unique_ptr<size_t[]> partPerLevel( new size_t[nLevel] );
     globalPartPerLevel_m.reset( new size_t[nLevel] );
