@@ -257,14 +257,14 @@ const size_t& AmrPartBunch::getLevelStatistics(int l) const {
 }
 
 
-void updateLorentzFactor(int bin=0) {
+void AmrPartBunch::updateLorentzFactor(int bin) {
     double gamma = this->get_gamma();
 
     if ( this->weHaveBins() ) {
         gamma = this->getBinGamma(bin);
     }
 
-    if ( getTotalNum() > 0 && gamma < 1.0 ) {
+    if ( this->getTotalNum() > 0 && gamma < 1.0 ) {
         throw OpalException("AmrPartBunch::updateLorentzFactor()", "Lorentz factor " +
                             std::to_string(gamma) + " < 1");
     } else {
