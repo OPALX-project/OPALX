@@ -53,7 +53,7 @@ public:
     bool stillAlive(PartBunchBase<double, 3> *bunch);
 
     inline double getTime() {return T_m;}
-    std::string getName() {return FN_m;}
+    std::string getName() {return element_ref_m->getName();}
     size_t getParticlesInMat() {return locPartsInMat_m;}
     unsigned getRediffused() {return rediffusedStat_m;}
 
@@ -84,7 +84,6 @@ private:
     gsl_rng * r_m;
 
     std::string material_m;
-    std::string FN_m;
     ElementBase::ElementType bstpshape_m;
 
     double  T_m;
