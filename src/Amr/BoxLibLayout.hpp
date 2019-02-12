@@ -117,8 +117,9 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 {
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
-        // we need to update on Amr domain, has to be undone at end of function
-        PData.lorentzTransform();
+        /* we need to update on Amr domain + boosted frame (Lorentz transform,
+         * has to be undone at end of function
+         */
         PData.domainMapping();
     }
     
@@ -303,9 +304,8 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                             "Local #particles disagrees with sum over levels");
     
     if ( !PData.isForbidTransform() ) {
-        // undo domain transformation
+        // undo domain transformation + undo Lorentz transform
         PData.domainMapping(true);
-        PData.lorentzTransform(true);
     }
 }
 

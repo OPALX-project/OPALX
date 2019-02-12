@@ -86,37 +86,13 @@ public:
     
     
     /*!
-     * 
+     * Update the Lorentz factor before every domainMapping in order
+     * to have the correct boosted frame for the particle redistribution,
+     * regrid and computation of the self-field forces
+     * @param bin is the energy bin
      */
-    void setLorentzFactor(int bin=0) {
-        double gamma = this->get_gamma();
-        
-        if ( this->weHaveBins() ) {
-            gamma = this->getBinGamma(bin);
-        }
-        
-        if ( getTotalNum() == 0 && gamma < 1.0 ) {
-            throw OpalException("AmrPartBunch::lorentzTransform()", "Lorentz factor " +
-                                std::to_string(gamma) + " < 1");
-        } else {
-            gamma = 1.0;
-        }
-        
-        Vector_t lorentzFactor(1.0, 1.0, 1.0);
-        
-        if (OpalData::getInstance()->isInOPALCyclMode()) {
-            lorentzFactor[1] = gamma;
-        } else {
-            lorentzFactor[2] = gamma;
-        }
-        
-        amrpbase_mp->setLorentzFactor(lorentzFactor);
-    }
+    void updateLorentzFactor(int bin=0);
     
-    void lorentzTransform(bool inverse = false, int bin=0) {
-        this->setLorentzFactor(bin);
-        amrpbase_mp->lorentzTransform(inverse);
-    }
     
     //FIXME BCs
     void setBCAllPeriodic() {}
