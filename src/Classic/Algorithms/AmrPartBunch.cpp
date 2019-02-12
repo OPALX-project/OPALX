@@ -263,11 +263,18 @@ void AmrPartBunch::updateLorentzFactor(int bin) {
     if ( this->weHaveBins() ) {
         gamma = this->getBinGamma(bin);
     }
-
-    if ( this->getTotalNum() > 0 && gamma < 1.0 ) {
-        throw OpalException("AmrPartBunch::updateLorentzFactor()", "Lorentz factor " +
-                            std::to_string(gamma) + " < 1");
-    } else {
+    
+    
+    /* At the beginning of simulation the Lorentz factor
+     * is not yet set since PartBunchBase::calcBeamParameters
+     * is not yet called. Therefore, we do this ugly workaround.
+     */
+    bool init = true;
+    if ( gamma >= 1.0 ) {
+        init = false;
+    }
+    
+    if ( init ) {
         gamma = 1.0;
     }
 
