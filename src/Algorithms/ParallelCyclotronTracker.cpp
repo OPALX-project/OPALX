@@ -81,6 +81,7 @@
 
 #include "Structure/H5PartWrapperForPC.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 
 #include "Ctunes.h"
@@ -208,6 +209,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  *
  */
 ParallelCyclotronTracker::~ParallelCyclotronTracker() {
+	lossDs_m->save();
     for(Component* component : myElements) {
         delete(component);
     }
@@ -319,7 +321,7 @@ void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
  *
  * @param fn Base file name
  */
-void ParallelCyclotronTracker::bgf_main_collision_test() {
+void ParallelCyclotronTracker::bgf_main_collision_test() {  
     if(!bgf_m) return;
 
     Inform msg("bgf_main_collision_test ");
@@ -336,9 +338,10 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
     int triId = 0;
     for(size_t i = 0; i < itsBunch_m->getLocalNum(); i++) {
         int res = bgf_m->partInside(itsBunch_m->R[i], itsBunch_m->P[i], dtime, itsBunch_m->PType[i], itsBunch_m->Q[i], intecoords, triId);
-        //int res = bgf_m->partInside(itsBunch_m->R[i]*1.0e-3, itsBunch_m->P[i], dtime, itsBunch_m->PType[i], itsBunch_m->Q[i], intecoords, triId);
         if(res >= 0) {
+			lossDs_m->addParticle(itsBunch_m->R[i]*1000, itsBunch_m->P[i], itsBunch_m->ID[i], itsBunch_m->getT()*1e9, turnnumber_m);
             itsBunch_m->Bin[i] = -1;
+            *gmsg << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;
         }
     }
 }
@@ -1282,6 +1285,15 @@ void ParallelCyclotronTracker::execute() {
     if (opalRing_m != NULL)
         opalRing_m->lockRing();
 
+    // Don't initializeBoundaryGeometry()
+    // Get BoundaryGeometry that is already initialized
+    bgf_m = OpalData::getInstance()->getGlobalGeometry();
+    if (bgf_m) {
+		lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink("GEOM",!Options::asciidump));
+		*gmsg << "* ---------------------------------------------------" << endl;
+        *gmsg << "* Boundary geometry initialized " << endl;
+    }
+    
     // Display the selected elements
     *gmsg << "* ---------------------------------------------------" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
@@ -1290,10 +1302,6 @@ void ParallelCyclotronTracker::execute() {
         *gmsg << "* -> " <<  ElementBase::getTypeString(fd->first) << endl;
 
     *gmsg << "* ---------------------------------------------------" << endl;
-
-    // Don't initializeBoundaryGeometry()
-    // Get BoundaryGeometry that is already initialized
-    bgf_m = OpalData::getInstance()->getGlobalGeometry();
 
     // External field arrays for dumping
     for(int k = 0; k < 2; k++)
@@ -1343,7 +1351,7 @@ void ParallelCyclotronTracker::execute() {
     for(auto fd : FieldDimensions) {
         ((fd->second).second)->finalise();
     }
-    *gmsg << "* ----------------------------------------------- *" << endl;
+    //*gmsg << "* ----------------------------------------------- *" << endl;
 }
 
 
@@ -2349,7 +2357,7 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
             if(itsBunch_m->Bin[i] < 0) {
                 lostParticleNum++;
                 itsBunch_m->destroy(1, i);
@@ -2369,7 +2377,7 @@ bool ParallelCyclotronTracker::deleteParticle(){
         localToGlobal(itsBunch_m->P, phi, psi, Vector_t(0.0));
 
         reduce(lostParticleNum, lostParticleNum, OpAddAssign());
-        INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, out of cyclotron aperture, or by the beam stripping" << endl);
+        INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, out of cyclotron aperture, geometry, or by the beam stripping" << endl);
     }
     return flagNeedUpdate;
 }
@@ -3257,8 +3265,8 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
     if ( !flagNoDeletion ) {
         *gmsg << "* SPT: The particle was lost at step "
               << step_m << "!" << endl;
-        throw OpalException("ParallelCyclotronTracker",
-                            "The particle is out of the region of interest.");
+        //throw OpalException("ParallelCyclotronTracker",
+        //                    "The particle is out of the region of interest.");
     }
 
     // If gap crossing happens, do momenta kicking
@@ -3274,7 +3282,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 
 
 void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
-
+	 
      // Flag for transition from single-bunch to multi-bunches mode
     bool flagTransition = false;
 

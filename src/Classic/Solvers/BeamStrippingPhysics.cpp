@@ -79,8 +79,7 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase 
 	NbComponents = 3;
     Material();
     bstpshape_m = element_ref_m->getType();
-    FN_m = element_ref_m->getName();
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(FN_m, !Options::asciidump));
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(element_ref_m->getName(), !Options::asciidump));
 
     const gsl_rng_type * T;
     gsl_rng_env_setup();

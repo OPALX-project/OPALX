@@ -34,6 +34,7 @@ class Ring;
 class SBend3D;
 class VariableRFCavity;
 class Offset;
+class LossDataSink;
 
 // Class ParallelCyclotronTracker
 // ------------------------------------------------------------------------
@@ -104,7 +105,7 @@ public:
 
     /// Apply the algorithm to a Beam Stripping.
     virtual void visitBeamStripping(const BeamStripping &);
-
+    
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator &);
 
@@ -485,7 +486,8 @@ private:
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
     
-
+	std::unique_ptr<LossDataSink> lossDs_m;
+	
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;
