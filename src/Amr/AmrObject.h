@@ -75,8 +75,9 @@ public:
      * @param lbase base level to regrid
      * @param lfine finest level to regrid
      * @param time of regrid
+     * @param bin is the energy bin
      */
-    virtual void regrid(int lbase, int lfine, double time) = 0;
+    virtual void regrid(int lbase, int lfine, double time, int bin = 0) = 0;
     
     /*!
      * Choose a new tagging strategy.

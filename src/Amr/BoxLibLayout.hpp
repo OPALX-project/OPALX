@@ -41,6 +41,21 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
 
 
 template<class T, unsigned Dim>
+BoxLibLayout<T, Dim>::BoxLibLayout(const BoxLibLayout* layout_p)
+    : ParticleAmrLayout<T, Dim>(),
+      ParGDB(layout_p->m_geom,
+             layout_p->m_dmap,
+             layout_p->m_ba,
+             layout_p->m_rr)
+{
+    this->maxLevel_m = layout_p->maxLevel_m;
+    refRatio_m.resize(layout_p->m_geom.size()-1);
+    for (int i = 0; i < refRatio_m.size(); ++i)
+        refRatio_m[i] = layout_p->refRatio(i);
+}
+
+
+template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
     : ParticleAmrLayout<T, Dim>(),
       ParGDB(),
@@ -98,12 +113,13 @@ void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
 template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                                  int lev_min, int lev_max,
-                                  const ParticleAttrib<char>* canSwap)
+                                  int lev_min, int lev_max)
 {
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
-        // we need to update on Amr domain, has to be undone at end of function
+        /* we need to update on Amr domain + boosted frame (Lorentz transform,
+         * has to be undone at end of function
+         */
         PData.domainMapping();
     }
     
@@ -122,7 +138,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     else if ( lev_max > theEffectiveFinestLevel )
         lev_max = theEffectiveFinestLevel;
     
-    //loop trough the particles and assigne the grid and level where each particle belongs
+    //loop trough the particles and assign the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
     
     auto& LocalNumPerLevel = PData.getLocalNumPerLevel();
@@ -288,7 +304,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                             "Local #particles disagrees with sum over levels");
     
     if ( !PData.isForbidTransform() ) {
-        // undo domain transformation
+        // undo domain transformation + undo Lorentz transform
         PData.domainMapping(true);
     }
 }
@@ -632,7 +648,7 @@ void BoxLibLayout<T, Dim>::locateParticle(
                         || p.R[ip](2) <  AmrGeometry_t::ProbLo(2)
                         || p.R[ip](2) >= AmrGeometry_t::ProbHi(2));
         
-    bool success;
+    bool success = false;
     
     if (outside)
     {
