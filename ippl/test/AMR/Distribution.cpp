@@ -149,24 +149,25 @@ void Distribution::gaussian(const double* mean, const double* stddev,
 
 
 void Distribution::special(const Vector_t& lower, const Vector_t& upper,
-                           const Vektor<std::size_t, 3>& nx, const Vektor<std::size_t, 3>& nv,
-                           const Vektor<double, 3>& vmax, Type type, double alpha, double kk)
+                           const Vektor<std::size_t, AMREX_SPACEDIM>& nx,
+                           const Vektor<std::size_t, AMREX_SPACEDIM>& nv,
+                           const Vektor<double, AMREX_SPACEDIM>& vmax,
+                           Type type, double alpha, double kk)
 {
-    Vektor<double, 3> hx = (upper - lower) / Vector_t(nx);
-    Vektor<double, 3> hv = 2.0 * vmax / Vector_t(nv);
+    Vektor<double, AMREX_SPACEDIM> hx = (upper - lower) / Vector_t(nx);
+    Vektor<double, AMREX_SPACEDIM> hv = 2.0 * vmax / Vector_t(nv);
     
 //     std::cout << hx << std::endl << hv << std::endl;
     
     double thr = 1.0e-12;
-    
-    double factor = 1.0 / ( M_PI * 30.0 );
     
     nloc_m = 0;
 
     /* we parallelize only the longitudinal direction
      * since there we use the most grid points
      */
-    int nMaxInitializer = std::min(nx[2], nv[2]);
+    int nMaxInitializer = std::min(nx[AMREX_SPACEDIM-1],
+                                   nv[AMREX_SPACEDIM-1]);
     if ( Ippl::myNode() < nMaxInitializer ) {
 
         // number of processes really used for initialization of particles
@@ -174,25 +175,32 @@ void Distribution::special(const Vector_t& lower, const Vector_t& upper,
 
         for (std::size_t i = 0; i < nx[0]; ++i) {
             for (std::size_t j = 0; j < nx[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                 for ( std::size_t k = 0; k < nx[2]; ++k) {
-
-                    Vektor<double, 3> pos = Vektor<double,3>(
+#endif
+                    Vektor<double, AMREX_SPACEDIM> pos = Vektor<double,AMREX_SPACEDIM>(
+                                        D_DECL(
                                                 (0.5 + i) * hx[0] + lower[0],
                                                 (0.5 + j) * hx[1] + lower[1],
                                                 (0.5 + k) * hx[2] + lower[2]
-                                            );
+                                        )
+                    );
                     
                     for (std::size_t iv = 0; iv < nv[0]; ++iv) {
                         for (std::size_t jv = 0; jv < nv[1]; ++jv) {
+#if AMREX_SPACEDIM == 3
                             for (std::size_t kv = 0; kv < nv[2]; ++kv) {
-
-                                if ( Ippl::myNode() != int(kv) % nInitializer )
+#endif
+                                if ( Ippl::myNode() != int(AMREX_D_PICK(iv, jv, kv)) % nInitializer )
                                     continue;
                                 
                                 Vektor<double, 3> vel = -vmax + hv *
-                                                        Vektor<double, 3>(iv + 0.5,
-                                                                          jv + 0.5,
-                                                                          kv + 0.5);
+                                                        Vektor<double, AMREX_SPACEDIM>(
+                                                            D_DECL(iv + 0.5,
+                                                                   jv + 0.5,
+                                                                   kv + 0.5
+                                                                   )
+                                );
                                 double f = 0.0;
                                 switch ( type ) {
                                     case kTwoStream:
@@ -209,38 +217,44 @@ void Distribution::special(const Vector_t& lower, const Vector_t& upper,
                                         break;
                                 }
                                 
-                                double m = hx[0] * hv[0] *
-                                           hx[1] * hv[1] *
-                                           hx[2] * hv[2] * f;
+                                double m = AMREX_D_TERM(  hx[0] * hv[0],
+                                                        * hx[1] * hv[1],
+                                                        * hx[2] * hv[2]) * f;
                                            
                                 
                                 if ( m > thr ) {
                                     ++nloc_m;
                                     x_m.push_back( pos[0] );
                                     y_m.push_back( pos[1] );
+#if AMREX_SPACEDIM == 3
                                     z_m.push_back( pos[2] );
-                                    
+#endif
                                     px_m.push_back( vel[0] );
                                     py_m.push_back( vel[1] );
+#if AMREX_SPACEDIM == 3
                                     pz_m.push_back( vel[2] );
-                                    
+#endif             
 //                                     total_charge += m;
                                     
                                     q_m.push_back( -m );
                                     mass_m.push_back( m );
                                 }
+#if AMREX_SPACEDIM == 3
                             }
+#endif
                         }
                     }
+#if AMREX_SPACEDIM == 3
                 }
+#endif
             }
         }
 //         std::cout << "Total charge: " << total_charge << std::endl;
     }
 }
 
-void Distribution::uniformPerCell(const Array<Geometry>& geom,
-                                  const Array<BoxArray>& ba,
+void Distribution::uniformPerCell(const Vector<Geometry>& geom,
+                                  const Vector<BoxArray>& ba,
                                   const Vektor<std::size_t, 3>& nr,
                                   std::size_t nParticles, int seed) {
     
@@ -248,25 +262,25 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
     
     std::mt19937_64 mt(0);
     std::uniform_real_distribution<> dist(0.0, 1.0);
-    std::vector< Vektor<double, 3> > rn(nParticles);
+    std::vector< Vektor<double, AMREX_SPACEDIM> > rn(nParticles);
         
     for (std::size_t i = 0; i < nParticles; ++i) {
-	for (int d = 0; d < 3; ++d) {
+	for (int d = 0; d < AMREX_SPACEDIM; ++d) {
 	    rn[i](d) = dist(mt);
 	}
     }
     
-    double dx[3] = {0.0, 0.0, 0.0};     // cell size (a bit smaller such that particles not a cell boundary)
-    double cidx[3] = {0, 0, 0}; // max. cell index for a level
+    double dx[AMREX_SPACEDIM] = {D_DECL(0.0, 0.0, 0.0)};     // cell size (a bit smaller such that particles not a cell boundary)
+    double cidx[AMREX_SPACEDIM] = {D_DECL(0, 0, 0)}; // max. cell index for a level
         
-    for (int d = 0; d < 3; ++d) 
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) 
 	dx[d] = geom[0].CellSize(d);
     
         // map [0, 1] --> to cell dimension [0 + 0.25 * dx, 0.75 * dx]
-    std::vector< Vektor<double, 3> > mapped2cell(nParticles);
+    std::vector< Vektor<double, AMREX_SPACEDIM> > mapped2cell(nParticles);
     
     for (std::size_t pi = 0; pi < nParticles; ++pi) {
-	for (int d = 0; d < 3; ++d)
+	for (int d = 0; d < AMREX_SPACEDIM; ++d)
 	    mapped2cell[pi](d) = dx[d] * (0.5 * rn[pi](d) + 0.25);
     }
     
@@ -280,30 +294,38 @@ void Distribution::uniformPerCell(const Array<Geometry>& geom,
 	
 	for (int k = bx.loVect()[0]; k <= bx.hiVect()[0]; ++k) {
 	    for (int l = bx.loVect()[1]; l <= bx.hiVect()[1]; ++l) {
+#if AMREX_SPACEDIM == 3
 		for (int m = bx.loVect()[2]; m <= bx.hiVect()[2]; ++m) {
+#endif
                         
-		    // assign particle position
-		    for (std::size_t pi = 0; pi < nParticles; ++pi) {
-			// [index space] --> [physical domain]
-			double kk = geom[0].ProbLength(0) / nr[0] * k + geom[0].ProbLo(0);
-			double ll = geom[0].ProbLength(1) / nr[1] * l + geom[0].ProbLo(1);
-			double mm = geom[0].ProbLength(2) / nr[2] * m + geom[0].ProbLo(2);
+                    // assign particle position
+                    for (std::size_t pi = 0; pi < nParticles; ++pi) {
+                        // [index space] --> [physical domain]
+                        double kk = geom[0].ProbLength(0) / nr[0] * k + geom[0].ProbLo(0);
+                        double ll = geom[0].ProbLength(1) / nr[1] * l + geom[0].ProbLo(1);
+#if AMREX_SPACEDIM == 3
+                        double mm = geom[0].ProbLength(2) / nr[2] * m + geom[0].ProbLo(2);
+#endif                  
+                        x_m.push_back( kk + mapped2cell[pi](0) );
+                        y_m.push_back( ll + mapped2cell[pi](1) );
+#if AMREX_SPACEDIM == 3
+                        z_m.push_back( mm  + mapped2cell[pi](2) );
+#endif 
+                        px_m.push_back( 1.0 );
+                        py_m.push_back( 1.0 );
+#if AMREX_SPACEDIM == 3
+                        pz_m.push_back( 1.0 );
+#endif
+                        q_m.push_back( 1.0 );
+                        mass_m.push_back( 1.0 );
                         
-			x_m.push_back( kk + mapped2cell[pi](0) );
-			y_m.push_back( ll + mapped2cell[pi](1) );
-			z_m.push_back( mm  + mapped2cell[pi](2) );
-                        
-			px_m.push_back( 1.0 );
-			py_m.push_back( 1.0 );
-			pz_m.push_back( 1.0 );
-			q_m.push_back( 1.0 );
-			mass_m.push_back( 1.0 );
-                        
-			++nloc_m;
-		    }
-		}
-	    }
-	}
+                        ++nloc_m;
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
+        }
     }
 }
 
@@ -376,24 +398,27 @@ void Distribution::injectBeam(
 
     for (int i = nloc_m - 1; i >= 0; --i) {
 #ifdef IPPL_AMR
-      bunch.R[i + prevnum] = Vector_t(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]);
-      bunch.P[i + prevnum] = Vector_t(px_m[i], py_m[i], pz_m[i]);
+      bunch.R[i + prevnum] = Vector_t(D_DECL(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]));
+      bunch.P[i + prevnum] = Vector_t(D_DECL(px_m[i], py_m[i], pz_m[i]));
       bunch.qm[i + prevnum] = q_m[i];
       bunch.mass[i + prevnum] = mass_m[i];
 #else
-        bunch.setR(Vector_t(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2]), i + prevnum);
-        bunch.setP(Vector_t(px_m[i], py_m[i], pz_m[i]), i + prevnum);
+        bunch.setR(Vector_t(D_DECL(x_m[i] + shift[0], y_m[i] + shift[1], z_m[i] + shift[2])), i + prevnum);
+        bunch.setP(Vector_t(D_DECL(px_m[i], py_m[i], pz_m[i])), i + prevnum);
         bunch.setQM(q_m[i], i + prevnum);
         bunch.setMass(mass_m[i], i + prevnum);
 #endif
         
         x_m.pop_back();
         y_m.pop_back();
+#if AMREX_SPACEDIM == 3
         z_m.pop_back();
+#endif
         px_m.pop_back();
         py_m.pop_back();
+#if AMREX_SPACEDIM == 3
         pz_m.pop_back();
-        
+#endif
         q_m.pop_back();
         mass_m.pop_back();
     }
@@ -413,9 +438,9 @@ void Distribution::setDistribution(
     
     for (unsigned int i = 0; i < bunch.getLocalNum(); ++i)
 #ifdef IPPL_AMR
-        bunch.R[i] = Vector_t(x_m[i], y_m[i], z_m[i]);
+        bunch.R[i] = Vector_t(D_DECL(x_m[i], y_m[i], z_m[i]));
 #else
-        bunch.setR(Vector_t(x_m[i], y_m[i], z_m[i]), i);
+        bunch.setR(Vector_t(D_DECL(x_m[i], y_m[i], z_m[i])), i);
 #endif
 }
 
@@ -439,7 +464,10 @@ void Distribution::print2file(std::string pathname) {
             for (std::size_t i = 0; i < x_m.size(); ++i)
                 out << x_m[i] << " " << px_m[i] << " "
                     << y_m[i] << " " << py_m[i] << " "
-                    << z_m[i] << " " << pz_m[i] << std::endl;
+#if AMREX_SPACEDIM == 3
+                    << z_m[i] << " " << pz_m[i]
+#endif
+                    << std::endl;
             
             out.close();
         }

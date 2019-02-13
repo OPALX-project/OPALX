@@ -5,10 +5,10 @@ bool ParticleAmrLayout<T, Dim>::do_tiling = false;
 template <class T, unsigned Dim>
 amrex::IntVect ParticleAmrLayout<T, Dim>::tile_size   { D_DECL(1024000,8,8) };
 
-// Function from AMReX adjusted to work with Ippl AmrParticleBase class
-//get the cell where particle is located - uses AmrParticleBase object and particle id
+// Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
+//get the cell where particle is located - uses AmrParticleBase1 object and particle id
 template <class T, unsigned Dim>
-amrex::IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+amrex::IntVect ParticleAmrLayout<T, Dim>::Index (AmrParticleBase1< ParticleAmrLayout<T,Dim> >& p,
 					  const unsigned int ip,
 					  int lev) const
 {
@@ -80,7 +80,7 @@ int ParticleAmrLayout<T, Dim>::getTileIndex(const amrex::IntVect& iv, const amre
 
 //sets the grid and level where particle belongs - returns false if particle is outside the domain
 template <class T, unsigned Dim>
-bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim> >& p,
+bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase1< ParticleAmrLayout<T,Dim> >& p,
 				       const unsigned int ip,
 				       int lev_min,
                                        int lev_max,
@@ -133,11 +133,11 @@ bool ParticleAmrLayout<T, Dim>::Where (AmrParticleBase< ParticleAmrLayout<T,Dim>
     return false;
 }
 
-//Function from AMReX adjusted to work with Ippl AmrParticleBase class
+//Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
 //Checks/sets whether the particle has crossed a periodic boundary in such a way
 //that it is on levels lev_min and higher.
 template <class T, unsigned Dim>
-bool ParticleAmrLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase<ParticleAmrLayout<T,Dim> >& p,
+bool ParticleAmrLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase1<ParticleAmrLayout<T,Dim> >& p,
                                                       const unsigned int ip,
                                                       int lev_min,
                                                       int lev_max) const
@@ -183,7 +183,7 @@ bool ParticleAmrLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase<ParticleAm
     return false;
 }
 
-// Function from AMReX adjusted to work with Ippl AmrParticleBase class
+// Function from AMReX adjusted to work with Ippl AmrParticleBase1 class
 // Returns true if the particle was shifted.
 template <class T, unsigned Dim>
 bool ParticleAmrLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const

@@ -6,7 +6,7 @@
 #include <AMReX_MultiFab.H>
 
 using amrex::MultiFab;
-using amrex::Array;
+using amrex::Vector;
 using amrex::Geometry;
 using amrex::VisMF;
 using amrex::Real;
@@ -36,8 +36,8 @@ writePlotFile (const std::string& dir,
                const std::vector<std::unique_ptr<MultiFab> >& rho,
                const std::vector<std::unique_ptr<MultiFab> >& phi,
                const std::vector<std::unique_ptr<MultiFab> >& efield,
-               const Array<int>& refRatio,
-               const Array<Geometry>& geom,
+               const Vector<int>& refRatio,
+               const Vector<Geometry>& geom,
 	       const Real&        time,
                double scale = 1.0)
 {

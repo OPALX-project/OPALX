@@ -7,15 +7,27 @@ IF ( ENABLE_AMR )
         set(MPI_CXX_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
     ENDIF (${HOSTNAME_BASE} MATCHES "daint")
     
+    set (CMAKE_Fortran_FLAGS
+         ${CMAKE_Fortran_FLAGS}
+        -Wno-c-binding-type)
+        
+    add_compile_options (-Wno-unused-variable
+                         -Wno-unused-but-set-variable
+                         -Wno-maybe-uninitialized)
+    
+    add_definitions(${AMREX_DEFINES})
+    
 #     add_subdirectory(boxlib-amr) still using BoxLib
-    add_subdirectory(amrex-only)
     add_subdirectory(ippl-amr)
-    add_subdirectory(ippl-bunch)
+    
+    IF ( ${AMREX_DIM} EQUAL 3 )
+        add_subdirectory(amrex-only)
+        add_subdirectory(ippl-bunch)
+    ENDIF ( ${AMREX_DIM} EQUAL 3 )
+    
     IF ( ENABLE_AMR_MG_SOLVER )
     
         add_subdirectory(trilinos)
-        
-        add_definitions(${AMREX_DEFINES})
         
         set (CMAKE_CXX_FLAGS
              "${IPPL_CMAKE_CXX_FLAGS} -DPARALLEL_IO ${CMAKE_CXX_FLAGS} -Wno-unused-function -DIPPL_AMR"

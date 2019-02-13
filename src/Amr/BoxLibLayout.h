@@ -37,8 +37,10 @@ public:
     typedef typename ParticleAmrLayout<T, Dim>::SingleParticlePos_t SingleParticlePos_t;
     typedef typename ParticleAmrLayout<T, Dim>::Index_t Index_t;
     
-    typedef amr::AmrField_t AmrField_t;
-    typedef amr::AmrFieldContainer_t AmrFieldContainer_t;
+    typedef amr::AmrField_t                AmrField_t;
+    typedef amr::AmrVectorField_t          AmrVectorField_t;
+    typedef amr::AmrScalarFieldContainer_t AmrScalarFieldContainer_t;
+    typedef amr::AmrVectorFieldContainer_t AmrVectorFieldContainer_t;
     typedef typename ParticleAmrLayout<T, Dim>::ParticlePos_t ParticlePos_t;
     typedef ParticleAttrib<Index_t> ParticleIndex_t;
     
@@ -54,6 +56,9 @@ public:
     typedef amr::AmrDomain_t            AmrDomain_t;
     typedef amr::AmrBox_t               AmrBox_t;
     typedef amr::AmrReal_t              AmrReal_t;
+    
+    typedef amrex::BaseFab<int>         basefab_t;
+    typedef amrex::FabArray<basefab_t>  mask_t;
     
     /*!
      * Lower physical domain boundary (each dimension). It has to be
@@ -77,6 +82,11 @@ public:
      */
     BoxLibLayout();
     
+    /*!
+     * Given a layout it copies that.
+     */
+    BoxLibLayout(const BoxLibLayout* layout_p);
+
     /*!
      * @param nGridPoints per dimension (nx, ny, nz / nt)
      * @param maxGridSize for all levels.
@@ -146,8 +156,7 @@ public:
      * @param canSwap
      */
     void update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                int lev_min = 0, int lev_max = -1,
-                const ParticleAttrib<char>* canSwap = 0);
+                int lev_min = 0, int lev_max = -1);
     
     
     /*
@@ -176,6 +185,17 @@ public:
     /*
      * Additional methods
      */
+    
+    
+    /*!
+     * Build mask for a level used for interpolation from
+     * grid to particles to reduce spurious self field
+     * forces near coarse-fine interfaces.
+     */
+    void buildLevelMask(int lev, const int ncells = 1);
+    
+    const std::unique_ptr<mask_t>& getLevelMask(int lev) const;
+    
     
     /*!
      * The particles live initially on the coarsest level.
@@ -333,6 +353,11 @@ private:
     
     // don't use m_rr from ParGDB since it is the same refinement in all directions
     AmrIntVectContainer_t refRatio_m;   /// Refinement ratios [0:finest_level-1]
+    
+    /* mask to reduce spurious self-field forces at
+     * coarse-fine interfaces
+     */
+    std::vector<std::unique_ptr<mask_t> > masks_m;
 };
 
 #include "BoxLibLayout.hpp"

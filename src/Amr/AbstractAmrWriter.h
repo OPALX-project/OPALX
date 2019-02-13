@@ -22,9 +22,9 @@ public:
      * @param time specifies the step.
      * @param scale used for mapping
      */
-    virtual void writeFields(const amr::AmrFieldContainer_t& rho,
-                             const amr::AmrFieldContainer_t& phi,
-                             const amr::AmrFieldContainer_t& efield,
+    virtual void writeFields(const amr::AmrScalarFieldContainer_t& rho,
+                             const amr::AmrScalarFieldContainer_t& phi,
+                             const amr::AmrVectorFieldContainer_t& efield,
                              const amr::AmrIntArray_t& refRatio,
                              const amr::AmrGeomContainer_t& geom,
                              const int& nLevel,

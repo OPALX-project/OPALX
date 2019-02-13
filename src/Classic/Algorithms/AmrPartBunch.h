@@ -10,21 +10,17 @@ public:
     typedef AmrParticle_t pbase_t;
     
 public:
-    
+
     AmrPartBunch(const PartData *ref);
 
-    /// Conversion.
-    AmrPartBunch(const std::vector<OpalParticle> &,
-                 const PartData *ref);
+    AmrPartBunch(const PartData *ref, pbase_t* pbase_p);
 
-    AmrPartBunch(const AmrPartBunch &);
-    
     ~AmrPartBunch();
-    
+
     pbase_t *getAmrParticleBase();
-    
+
     const pbase_t *getAmrParticleBase() const;
-    
+
     void initialize(FieldLayout_t *fLayout);
     
     // does actually another repartition
@@ -56,6 +52,9 @@ public:
         this->amrobj_mp = fs->getAmrObject();
     }
     
+    virtual void setBinCharge(int bin, double q) { };
+    virtual void setBinCharge(int bin) { };
+    
     /*
      * AmrPartBunch only
      */
@@ -84,6 +83,15 @@ public:
      * @param l is the level
      */
     const size_t& getLevelStatistics(int l) const;
+    
+    
+    /*!
+     * Update the Lorentz factor before every domainMapping in order
+     * to have the correct boosted frame for the particle redistribution,
+     * regrid and computation of the self-field forces
+     * @param bin is the energy bin
+     */
+    void updateLorentzFactor(int bin=0);
     
     
     //FIXME BCs

@@ -174,7 +174,6 @@ void AmrLagrangeInterpolater<Level>::crseLinear_m(
     const AmrIntVect_t& riv,
     Level* mglevel)
 {
-    //TODO Extend to 3D
 #if AMREX_SPACEDIM == 2
     bool top = (riv[(dir+1)%AMREX_SPACEDIM] % 2 == 1);
     
@@ -191,13 +190,13 @@ void AmrLagrangeInterpolater<Level>::crseLinear_m(
     
     if ( rfab(niv) != Level::Refined::YES ) {
         // check r / u / b --> 1: valid; 0: not valid
-        map[mglevel->serialize(iv)] += fac * lookup2[top];
-        map[mglevel->serialize(niv)] += fac * lookup1[top];
+        map[mglevel->serialize(iv)] += fac * lookup2_ms[top];
+        map[mglevel->serialize(niv)] += fac * lookup1_ms[top];
         
     } else if ( rfab(miv) != Level::Refined::YES ) {
         // check l / f --> 1: valid; 0: not valid
-        map[mglevel->serialize(iv)] += fac * lookup2[top];
-        map[mglevel->serialize(miv)] += fac * lookup1[top];
+        map[mglevel->serialize(iv)] += fac * lookup2_ms[top];
+        map[mglevel->serialize(miv)] += fac * lookup1_ms[top];
         
     } else
         throw OpalException("AmrLagrangeInterpolater::crseLinear_m()",
@@ -423,12 +422,12 @@ void AmrLagrangeInterpolater<Level>::crseQuadratic_m(
         map[mglevel->serialize(iv)] += 0.5 * scale;
         
         //                             y_t          y_b
-        scalar_t value = scale * (top) ? 1.0 / 12.0 : -0.05;
+        scalar_t value = scale * ((top) ? 1.0 / 12.0 : -0.05);
         if ( !mglevel->applyBoundary(niv, rfab, map, value) )
             map[mglevel->serialize(niv)] += value;
         
         //                      y_t     y_b
-        value = scale * (top) ? -0.05 : 1.0 / 12.0;
+        value = scale * ((top) ? -0.05 : 1.0 / 12.0);
         if ( !mglevel->applyBoundary(miv, rfab, map, value) )
             map[mglevel->serialize(miv)] += value;
         
@@ -437,16 +436,16 @@ void AmrLagrangeInterpolater<Level>::crseQuadratic_m(
          * corner case --> right / upper / back + 2nd right / upper / back
          */
         //                     y_t          y_b
-        scalar_t value = scale * (top) ? 7.0 / 20.0 : 0.75;
+        scalar_t value = scale * ((top) ? 7.0 / 20.0 : 0.75);
         map[mglevel->serialize(iv)] += value;
         
         //                      y_t          y_b
-        value = scale * (top) ? 7.0 / 30.0 : -0.3;
+        value = scale * ((top) ? 7.0 / 30.0 : -0.3);
         if ( !mglevel->applyBoundary(niv, rfab, map, value) )
             map[mglevel->serialize(niv)] += value;
         
         //                      y_t     y_b
-        value = scale * (top) ? -0.05 : 1.0 / 12.0;
+        value = scale * ((top) ? -0.05 : 1.0 / 12.0);
         if ( !mglevel->applyBoundary(n2iv, rfab, map, value) )
             map[mglevel->serialize(n2iv)] += value;
         
@@ -455,16 +454,16 @@ void AmrLagrangeInterpolater<Level>::crseQuadratic_m(
          * corner case --> left / lower / front + 2nd left / lower / front
          */
         //                             y_t    y_b
-        scalar_t value = scale * (top) ? 0.75 : 7.0 / 20.0;
+        scalar_t value = scale * ((top) ? 0.75 : 7.0 / 20.0);
         map[mglevel->serialize(iv)] += value;
         
         //                      y_t           y_b
-        value = scale * (top) ? -0.3 :  7.0 / 30;
+        value = scale * ((top) ? -0.3 :  7.0 / 30);
         if ( !mglevel->applyBoundary(miv, rfab, map, value) )
             map[mglevel->serialize(miv)] += value;
         
         //                      y_t          y_b
-        value = scale * (top) ? 1.0 / 12.0 : -0.05;
+        value = scale * ((top) ? 1.0 / 12.0 : -0.05);
         if ( !mglevel->applyBoundary(m2iv, rfab, map, value) )
             map[mglevel->serialize(m2iv)] += value;
         

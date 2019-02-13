@@ -21,6 +21,8 @@ typedef std::chrono::time_point<std::chrono::high_resolution_clock> chrono_t;
 
 #include <random>
 
+#include <AMReX_AmrParticles.H>
+
 using namespace amrex;
 
 /* NStructReal = 3 (mass, position are already reserved)
@@ -39,10 +41,10 @@ class MyParticleContainer
 {
  public:
 
-    MyParticleContainer(const Array<Geometry>            & geom, 
-                        const Array<DistributionMapping> & dmap,
-                        const Array<BoxArray>            & ba,
-                        const Array<int>                 & rr)
+    MyParticleContainer(const Vector<Geometry>            & geom, 
+                        const Vector<DistributionMapping> & dmap,
+                        const Vector<BoxArray>            & ba,
+                        const Vector<int>                 & rr)
 	: ParticleContainer<2 * AMREX_SPACEDIM> (geom, dmap, ba, rr), particles_rm(GetParticles())
         {
         }
@@ -76,7 +78,7 @@ class MyParticleContainer
         // positions no matter how many CPUs we have.  This is here
         // mainly for debugging purposes.  It's not really useful for
         // very large numbers of particles.
-        Array<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
+        Vector<typename ParticleType::RealType> pos(icount*AMREX_SPACEDIM);
         
         if (ParallelDescriptor::IOProcessor()) {
             for (unsigned long j = 0; j < icount; j++) {
@@ -132,7 +134,7 @@ class MyParticleContainer
     }
     
 private:
-    Array<ParticleLevel>& particles_rm;
+    Vector<ParticleLevel>& particles_rm;
 };
 
 struct TestParams {
@@ -161,7 +163,7 @@ void test_assign_density(TestParams& parms)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -174,14 +176,14 @@ void test_assign_density(TestParams& parms)
         is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, coord, is_per);
     }
 
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
     // Now we make the refined level be the center eighth of the domain
@@ -200,9 +202,9 @@ void test_assign_density(TestParams& parms)
         ba[lev].maxSize(parms.max_grid_size);
     }
 
-    Array<DistributionMapping> dmap(nlevs);
-    Array<std::unique_ptr<MultiFab> > partMF(nlevs);
-    Array<std::unique_ptr<MultiFab> > density(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
+    Vector<std::unique_ptr<MultiFab> > partMF(nlevs);
+    Vector<std::unique_ptr<MultiFab> > density(nlevs);
     
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};

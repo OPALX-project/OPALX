@@ -16,7 +16,7 @@
 
 using namespace amrex;
 
-typedef Array<std::unique_ptr<MultiFab> > container_t;
+typedef Vector<std::unique_ptr<MultiFab> > container_t;
 
 
 int serialize(const IntVect& iv, int* nr) {
@@ -120,8 +120,8 @@ void applyBoundary(const IntVect& iv,
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              const double& scalefactor,
              const std::string& filename)
 {
@@ -408,7 +408,7 @@ void trilinos2amrex(MultiFab& mf,
 void amrex2trilinos(const MultiFab& mf,
                     Teuchos::RCP<Epetra_Vector>& mv,
                     Teuchos::RCP<Epetra_Map>& map,
-                    const Array<Geometry>& geom, int level)
+                    const Vector<Geometry>& geom, int level)
 {
     
     int nr[AMREX_SPACEDIM];

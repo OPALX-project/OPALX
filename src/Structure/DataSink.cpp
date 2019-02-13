@@ -1621,8 +1621,6 @@ void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
     std::string timeStr(simtimer.time());
     std::string indent("        ");
 
-    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-
     outputFile << "SDDS1" << std::endl;
     outputFile << "&description\n"
                << indent << "text=\"Grid load balancing statistics '"
@@ -1716,7 +1714,6 @@ void DataSink::writeGridLBalData(PartBunchBase<double, 3> *beam,
     }
 
     int nProcs = Ippl::getNodes();
-    double total = 0.0;
     for (int p = 0; p < nProcs; ++p) {
         os_gridLBalData << gridsPerCore[p] << std::setw(pwi);
 
