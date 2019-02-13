@@ -157,8 +157,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              const double& scalefactor,
              std::string dir)
 {
@@ -219,16 +219,16 @@ void setup(AmrOpal* &myAmrOpal, std::unique_ptr<amrbunch_t>& bunch,
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
-    Array<int> error_buf(nLevels, 0);
+    Vector<int> error_buf(nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
     ParmParse pgeom("geometry");
-    Array<int> is_per = { 0, 0, 0};
+    Vector<int> is_per = { 0, 0, 0};
     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
@@ -239,11 +239,11 @@ void setup(AmrOpal* &myAmrOpal, std::unique_ptr<amrbunch_t>& bunch,
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal->boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal->DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal->Geom();
+    const Vector<BoxArray>& ba = myAmrOpal->boxArray();
+    const Vector<DistributionMapping>& dmap = myAmrOpal->DistributionMap();
+    const Vector<Geometry>& geom = myAmrOpal->Geom();
     
-    Array<int> rr(nLevels);
+    Vector<int> rr(nLevels);
     for (int i = 0; i < nLevels; ++i)
         rr[i] = 2;
     
@@ -452,7 +452,7 @@ void doWithScaling(const param_t& params, size_t nParticles, Inform& msg)
     
 //     AmrWriter writer;
 //     std::string dir = "grid-data";
-//     if ( !writer.save(dir, amrex::GetArrOfPtrs(phi), myAmrOpal->Geom(), rr, 0.0) )
+//     if ( !writer.save(dir, amrex::GetVecOfPtrs(phi), myAmrOpal->Geom(), rr, 0.0) )
 //         msg << "Couldn't write potential" << endl;
     
     for (int i = 0; i <= myAmrOpal->finestLevel(); ++i) {
@@ -486,12 +486,12 @@ void doWithScaling(const param_t& params, size_t nParticles, Inform& msg)
 //         Ippl::Comm->barrier();
 //     }
     
-    Array<int> rr(params.nLevels);
+    Vector<int> rr(params.nLevels);
     for (size_t i = 0; i < params.nLevels; ++i)
         rr[i] = 2;
     
     if ( params.isWriteYt ) {
-        const Array<Geometry>& geom = myAmrOpal->Geom();
+        const Vector<Geometry>& geom = myAmrOpal->Geom();
         writeYt(rhs, phi, efield, geom, rr, scale, "yt-scaling");
     }
     
@@ -568,12 +568,12 @@ void doWithoutScaling(const param_t& params, size_t nParticles, Inform& msg)
 //     }
     
     
-    Array<int> rr(params.nLevels);
+    Vector<int> rr(params.nLevels);
     for (size_t i = 0; i < params.nLevels; ++i)
         rr[i] = 2;
     
     if ( params.isWriteYt ) {
-        const Array<Geometry>& geom = myAmrOpal->Geom();
+        const Vector<Geometry>& geom = myAmrOpal->Geom();
         writeYt(rhs, phi, efield, geom, rr, scale, "yt-no-scaling");
     }
     
@@ -618,6 +618,8 @@ int main(int argc, char *argv[]) {
     } catch(const std::exception& ex) {
         msg << ex.what() << endl;
     }
+    
+    amrex::Finalize(true);
     
     return 0;
 }

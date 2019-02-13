@@ -6,12 +6,14 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 #include "AmrMultiGridCore.h"
 
 // #include "Solvers/AmrPoissonSolver.h"
 #include "../AmrOpal.h"
+
+#include "../AbstractSolver.h"
 
 #include "AmrMultiGridLevel.h"
 
@@ -21,7 +23,7 @@
 #define AMR_MG_WRITE 0
 #define DEBUG 0
 
-class AmrMultiGrid /*: public AmrPoissonSolver< AmrOpal >*/ {
+class AmrMultiGrid : public AbstractSolver /*: public AmrPoissonSolver< AmrOpal >*/ {
     
 public:
     typedef amr::matrix_t         matrix_t;
@@ -55,6 +57,7 @@ public:
     typedef BelosBottomSolver<AmrMultiGridLevel_t>      BelosSolver_t;
     typedef Amesos2BottomSolver<AmrMultiGridLevel_t>    Amesos2Solver_t;
     typedef MueLuBottomSolver<AmrMultiGridLevel_t>      MueLuSolver_t;
+//     typedef FFTBottomSolver<AmrMultiGridLevel_t>        FFTSolver_t;
     
     typedef AmrPreconditioner<matrix_t, AmrMultiGridLevel_t> preconditioner_t;
     
@@ -110,6 +113,7 @@ public:
         // all MueLu
         , SA
         // add others ...
+        , FFT
     };
     
     /// Supported physical boundaries
@@ -152,7 +156,8 @@ public:
                  const std::string& smoother,
                  const std::size_t& nSweeps,
                  const std::string& interp,
-                 const std::string& norm);
+                 const std::string& norm,
+                 int inc = 5, double dd = 0.5);
     
 //     /*!
 //      * Instantiation used in Structure/FieldSolver.cpp for
@@ -174,6 +179,24 @@ public:
 //                  const std::size_t& nSweeps,
 //                  const std::string& interp,
 //                  const std::string& norm);
+    
+    /*!
+     * Plasma tests only
+     */
+    typedef AbstractSolver::amropal_p amropal_p;
+    
+    virtual
+    void solve(amropal_p& amropal,
+               AmrFieldContainer_t &rho,
+               AmrFieldContainer_t &phi,
+               AmrFieldContainer_t &efield,
+               unsigned short baseLevel,
+               unsigned short finestLevel,
+               bool prevAsGuess = true) {
+        this->solve(rho, phi, efield, baseLevel,
+                    finestLevel, prevAsGuess);
+    }
+    
     
     /*!
      * Used in OPAL
@@ -250,8 +273,8 @@ private:
      * @param geom is the geometry
      * @param previous solution as initial guess
      */
-    void initLevels_m(const amrex::Array<AmrField_u>& rho,
-                      const amrex::Array<AmrGeometry_t>& geom,
+    void initLevels_m(const amrex::Vector<AmrField_u>& rho,
+                      const amrex::Vector<AmrGeometry_t>& geom,
                       bool previous);
     
     /*!
@@ -335,28 +358,28 @@ private:
     /*!
      * @param efield to compute
      */
-    void computeEfield_m(amrex::Array<AmrField_u>& efield);
+    void computeEfield_m(amrex::Vector<AmrField_u>& efield);
     
     /*!
      * Build all matrices and vectors, i.e. AMReX to Trilinos
      * @param matrices if we need to build matrices as well or only vectors.
      */
-    void setup_m(const amrex::Array<AmrField_u>& rho,
-                 const amrex::Array<AmrField_u>& phi,
+    void setup_m(const amrex::Vector<AmrField_u>& rho,
+                 const amrex::Vector<AmrField_u>& phi,
                  const bool& matrices = true);
     
     /*!
      * Build all matrices and vectors needed for single-level computation
      */
-    void buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
-                            const amrex::Array<AmrField_u>& phi,
+    void buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
+                            const amrex::Vector<AmrField_u>& phi,
                             const bool& matrices = true);
     
     /*!
      * Build all matrices and vectors needed for multi-level computation
      */
-    void buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
-                           const amrex::Array<AmrField_u>& phi,
+    void buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
+                           const amrex::Vector<AmrField_u>& phi,
                            const bool& matrices = true);
 
     /*!
@@ -708,6 +731,9 @@ private:
     IpplTimings::TimerRef bottomTimer_m;        ///< bottom solver timer
     IpplTimings::TimerRef dumpTimer_m;          ///< write SDDS file timer
 #endif
+
+    int inc_m;
+    double dd_m;
 };
 
 

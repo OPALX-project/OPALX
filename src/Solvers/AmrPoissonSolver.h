@@ -13,7 +13,7 @@ public:
      * @param itsAmrObject_p holds information about grids and domain
      */
     AmrPoissonSolver(AmrObject* itsAmrObject_p)
-        : itsAmrObject_mp(itsAmrObject_p), regrid_m(false) {}
+        : itsAmrObject_mp(itsAmrObject_p), regrid_m(true) {}
     
     virtual ~AmrPoissonSolver() {}
     

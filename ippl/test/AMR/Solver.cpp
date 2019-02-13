@@ -1,17 +1,33 @@
 #include "Solver.h"
 
+
+void Solver::solve(amropal_p& amropal,
+                   amr::AmrFieldContainer_t &rho,
+                   amr::AmrFieldContainer_t &phi,
+                   amr::AmrFieldContainer_t &efield,
+                   unsigned short baseLevel,
+                   unsigned short finestLevel,
+                   bool prevAsGuess)
+{
+    const amrex::Vector<amrex::Geometry>& geom = amropal->Geom();
+    this->solve_for_accel(rho, phi, efield, geom,
+                          baseLevel, finestLevel,
+                          0.0, false, true);
+}
+
+
 void 
 Solver::solve_for_accel(const container_t& rhs,
                         const container_t& phi,
                         const container_t& grad_phi, 
-                        const amrex::Array<amrex::Geometry>& geom,
+                        const amrex::Vector<amrex::Geometry>& geom,
                         int base_level,
                         int finest_level,
                         amrex::Real offset,
                         bool timing,
                         bool doGradient)
 {
-    using amrex::Array;
+    using amrex::Vector;
 
 //    static IpplTimings::TimerRef edge2centerTimer;
     
@@ -25,7 +41,7 @@ Solver::solve_for_accel(const container_t& rhs,
     amrex::Real reltol = 1.0e-14;
     amrex::Real abstol = 1.0e-10;
 
-    amrex::Array<container_t> grad_phi_edge(rhs.size());
+    amrex::Vector<container_t> grad_phi_edge(rhs.size());
     
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level ; lev++)
@@ -51,9 +67,9 @@ Solver::solve_for_accel(const container_t& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
     
-    solve_with_f90  (amrex::GetArrOfPtrs(rhs),
-                     amrex::GetArrOfPtrs(phi),
-                     amrex::GetArrOfArrOfPtrs(grad_phi_edge),
+    solve_with_f90  (amrex::GetVecOfPtrs(rhs),
+                     amrex::GetVecOfPtrs(phi),
+                     amrex::GetVecOfVecOfPtrs(grad_phi_edge),
                      geom,
                      base_level,
                      finest_level,
@@ -69,15 +85,18 @@ Solver::solve_for_accel(const container_t& rhs,
     if ( doGradient ) {
         for (int lev = base_level; lev <= finest_level; lev++)
         {
+            
+            phi[lev]->FillBoundary(geom[lev].periodicity());
+            
             amrex::average_face_to_cellcenter(*(grad_phi[lev].get()),
-                                              amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
+                                              amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
                                               geom[lev]);
         
-            grad_phi[lev]->FillBoundary(0,AMREX_SPACEDIM,geom[lev].periodicity());
+            grad_phi[lev]->FillBoundary(/*0,AMREX_SPACEDIM,*/geom[lev].periodicity());
         }
         
         for (int lev = base_level; lev <= finest_level; ++lev) {
-            grad_phi[lev]->mult(-1.0, 0, 3);
+            grad_phi[lev]->mult(-1.0, 0, AMREX_SPACEDIM);
         }
     }
 
@@ -89,8 +108,8 @@ Solver::solve_for_accel(const container_t& rhs,
 void 
 Solver::solve_with_f90(const container_pt& rhs,
                        const container_pt& phi,
-                       const amrex::Array<container_pt>& grad_phi_edge,
-                       const amrex::Array<amrex::Geometry>& geom,
+                       const amrex::Vector<container_pt>& grad_phi_edge,
+                       const amrex::Vector<amrex::Geometry>& geom,
                        int base_level,
                        int finest_level,
                        amrex::Real reltol,
@@ -148,7 +167,7 @@ Solver::solve_with_f90(const container_pt& rhs,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-    amrex::Array<amrex::Geometry> geom_p(nlevs);
+    amrex::Vector<amrex::Geometry> geom_p(nlevs);
     container_pt rhs_p(nlevs);
     container_pt phi_p(nlevs);
     
