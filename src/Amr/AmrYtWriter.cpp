@@ -65,9 +65,9 @@ AmrYtWriter::AmrYtWriter(int step, int bin)
 }
 
 
-void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
-                              const amr::AmrFieldContainer_t& phi,
-                              const amr::AmrFieldContainer_t& efield,
+void AmrYtWriter::writeFields(const amr::AmrScalarFieldContainer_t& rho,
+                              const amr::AmrScalarFieldContainer_t& phi,
+                              const amr::AmrVectorFieldContainer_t& efield,
                               const amr::AmrIntArray_t& refRatio,
                               const amr::AmrGeomContainer_t& geom,
                               const int& nLevel,
@@ -101,7 +101,11 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int nData = rho[0]->nComp() + phi[0]->nComp() + efield[0]->nComp();
+    int nData = rho[0]->nComp()
+              + phi[0]->nComp()
+              + efield[0][0]->nComp()
+              + efield[0][1]->nComp()
+              + efield[0][2]->nComp();
     
     if ( Ippl::myNode() == 0 )
     {
@@ -246,9 +250,11 @@ void AmrYtWriter::writeFields(const amr::AmrFieldContainer_t& rho,
         * dstcmop: the component where to copy
         * numcomp: how many components to copy
         */
-        amr::AmrField_t::Copy(data, *rho[lev],    0, 0, 1, 0);
-        amr::AmrField_t::Copy(data, *phi[lev],    0, 1, 1, 0);
-        amr::AmrField_t::Copy(data, *efield[lev], 0, 2, 3, 0); // (Ex, Ey, Ez)
+        amr::AmrField_t::Copy(data, *rho[lev],       0, 0, 1, 0);
+        amr::AmrField_t::Copy(data, *phi[lev],       0, 1, 1, 0);
+        amr::AmrField_t::Copy(data, *efield[lev][0], 0, 2, 1, 0); // Ex
+        amr::AmrField_t::Copy(data, *efield[lev][1], 0, 3, 1, 0); // Ey
+        amr::AmrField_t::Copy(data, *efield[lev][2], 0, 4, 1, 0); // Ez
         
         //
         // Use the Full pathname when naming the MultiFab.
@@ -339,6 +345,8 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
               *globalPartPerLevel.get(),
               nLevel, std::plus<size_t>());
     
+    int finest_level = layout_p->finestLevel();
+
     if ( Ippl::myNode() == 0 )
     {
         std::string HdrFileName = pdir;
@@ -393,11 +401,11 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
         //
         // Then the finest level of the AMR hierarchy.
         //
-        HdrFile << layout_p->finestLevel() << '\n';
+        HdrFile << finest_level << '\n';
         //
         // Then the number of grids at each level.
         //
-        for (int lev = 0; lev <= layout_p->finestLevel(); ++lev) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
             HdrFile << layout_p->ParticleBoxArray(lev).size() << '\n';
         }
     }
@@ -410,7 +418,7 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
 
     nOutFiles = std::max(1, std::min(nOutFiles, NProcs));
     
-    for (int lev = 0; lev <= layout_p->finestLevel(); ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev) {
         bool gotsome = (globalPartPerLevel[lev] > 0);
         //
         // We store the particles at each level in their own subdirectory.
@@ -594,8 +602,7 @@ void AmrYtWriter::writeParticles_m(int level,
                 iptr[0] = bunch_p->ID[ip];
                 iptr[1] = Ippl::myNode();
                 iptr[2] = bunch_p->Bin[ip];
-                
-                iptr += 2 + intData_m.size();
+                iptr += iChunkSize;
             }
         }
 

@@ -86,9 +86,9 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
 }
 
 
-void AmrMultiGrid::solve(AmrFieldContainer_t &rho,
-                         AmrFieldContainer_t &phi,
-                         AmrFieldContainer_t &efield,
+void AmrMultiGrid::solve(AmrScalarFieldContainer_t &rho,
+                         AmrScalarFieldContainer_t &phi,
+                         AmrVectorFieldContainer_t &efield,
                          unsigned short baseLevel,
                          unsigned short finestLevel,
                          bool prevAsGuess)
@@ -645,18 +645,18 @@ void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
 }
 
 
-void AmrMultiGrid::computeEfield_m(amrex::Vector<AmrField_u>& efield) {
+void AmrMultiGrid::computeEfield_m(AmrVectorFieldContainer_t& efield) {
     Teuchos::RCP<vector_t> efield_p = Teuchos::null;
     for (int lev = nlevel_m - 1; lev > -1; --lev) {
         int ilev = lbase_m + lev;
         
         efield_p = Teuchos::rcp( new vector_t(mglevel_m[lev]->map_p, false) );
         
-        efield[ilev]->setVal(0.0, efield[ilev]->nGrow());
         
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            efield[ilev][d]->setVal(0.0, efield[ilev][d]->nGrow());
             mglevel_m[lev]->G_p[d]->apply(*mglevel_m[lev]->phi_p, *efield_p);
-            this->trilinos2amrex_m(lev, d, *efield[ilev], efield_p);
+            this->trilinos2amrex_m(lev, 0, *efield[ilev][d], efield_p);
         }
     }
 }

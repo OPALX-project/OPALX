@@ -38,6 +38,7 @@
 #ifdef ENABLE_AMR
     #include "Amr/AmrBoxLib.h"
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
+    #include "Solvers/AMReXSolvers/MLPoissonSolver.h"
     #include "Amr/AmrDefs.h"
     #include "Algorithms/AmrPartBunch.h"
 #endif
@@ -699,6 +700,11 @@ void FieldSolver::initAmrSolver_m() {
 
         solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
 
+    } else if ( fsType == "ML" ) {
+        if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
+            throw OpalException("FieldSolver::initAmrSolver_m()",
+                                "ML solver requires AMReX.");
+        solver_m = new MLPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
     } else if (fsType == "HYPRE") {
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "HYPRE solver not yet implemented.");

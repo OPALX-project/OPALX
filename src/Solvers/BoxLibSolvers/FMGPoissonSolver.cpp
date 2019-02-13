@@ -19,9 +19,9 @@ FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     this->initParameters_m();
 }
 
-void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
-                             AmrFieldContainer_t& phi,
-                             AmrFieldContainer_t& efield,
+void FMGPoissonSolver::solve(AmrScalarFieldContainer_t& rho,
+                             AmrScalarFieldContainer_t& phi,
+                             AmrVectorFieldContainer_t& efield,
                              unsigned short baseLevel,
                              unsigned short finestLevel,
                              bool prevAsGuess)
@@ -42,7 +42,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         }
     }
     
-    amrex::Vector< AmrFieldContainer_t > grad_phi_edge(rho.size());
+    amrex::Vector< AmrScalarFieldContainer_t > grad_phi_edge(rho.size());
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
@@ -57,7 +57,9 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
 
     for (int i = 0; i <= finestLevel; ++i) {
         phi[i]->setVal(0.0, 1);
-        efield[i]->setVal(0.0, 1);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield[i][j]->setVal(0.0, 1);
+        }
     }
     
     double residNorm = this->solveWithF90_m(amrex::GetVecOfPtrs(rho),
@@ -76,13 +78,15 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
     }
     
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
-        amrex::average_face_to_cellcenter(*(efield[lev].get()),
-                                          amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
-                                          geom[lev]);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            amrex::average_face_to_cellcenter(*(efield[lev][j].get()),
+                                              amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
+                                              geom[lev]);
         
-        efield[lev]->FillBoundary(0, AMREX_SPACEDIM,geom[lev].periodicity());
-        // we need also minus sign due to \vec{E} = - \nabla\phi
-        efield[lev]->mult(-1.0, 0, 3);
+            efield[lev][j]->FillBoundary(0, 1, geom[lev].periodicity());
+            // we need also minus sign due to \vec{E} = - \nabla\phi
+            efield[lev][j]->mult(-1.0, 0, 1);
+        }
     }
 }
 
@@ -284,7 +288,7 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
 
 
 /*
-void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
+void FMGPoissonSolver::interpolate_m(AmrScalarFieldContainer_t& phi,
                                      const GeomContainer_t& geom,
                                      double l0norm,
                                      int finestLevel)

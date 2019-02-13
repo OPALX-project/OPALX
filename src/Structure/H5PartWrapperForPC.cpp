@@ -206,7 +206,7 @@ void H5PartWrapperForPC::readStepData(PartBunchBase<double, 3>* bunch,
         bunch->M[n] = f64buffer[n];
     }
     
-    if ( bunch->hasBinning() ) {
+    if ( bunch->getNumBunch() > 1 ) {
         std::vector<char> ibuffer(numParticles * sizeof(h5_int64_t));
         h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&ibuffer[0]);
         READDATA(Int64, file_m, "bin", i64buffer);

@@ -7,6 +7,8 @@
 template<class PLayout>
 AmrParticleBase<PLayout>::AmrParticleBase() : forbidTransform_m(false),
                                               scale_m(1.0),
+                                              lorentzFactor_m(1.0, 1.0, 1.0),
+//                                               isLorentzTransformed_m(false),
                                               LocalNumPerLevel_m()
 {
     updateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -20,6 +22,8 @@ AmrParticleBase<PLayout>::AmrParticleBase(PLayout* layout)
     : IpplParticleBase<PLayout>(layout),
       forbidTransform_m(false),
       scale_m(1.0),
+      lorentzFactor_m(1.0, 1.0, 1.0),
+//       isLorentzTransformed_m(false),
       LocalNumPerLevel_m()
 {
     updateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -228,9 +232,18 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
     
     double scale = scale_m;
     
+    Vector_t gamma = lorentzFactor_m;
+    
     if ( !inverse ) {
         Vector_t rmin, rmax;
         bounds(this->R, rmin, rmax);
+        
+        /* Lorentz transfomration factor
+         * is not equal 1.0 only in longitudinal
+         * direction
+         */
+        rmin *= gamma;
+        rmax *= gamma;
         
         Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
                                 std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
@@ -239,13 +252,16 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
         
         scale = std::max( tmp[0], tmp[1] );
         scale = std::max( scale, tmp[2] );
+    } else {
+        // inverse Lorentz transform
+        gamma = 1.0 / gamma;
     }
     
     Vector_t vscale = Vector_t(scale, scale, scale);
     
+    // Lorentz transform + mapping to [-1, 1]
     for (unsigned int i = 0; i < this->getLocalNum(); ++i)
-        this->R[i] /= vscale;
-    
+        this->R[i] = this->R[i] * gamma / vscale;
     
     scale_m = 1.0 / scale;
     
@@ -259,5 +275,31 @@ template<class PLayout>
 const double& AmrParticleBase<PLayout>::getScalingFactor() const {
     return scale_m;
 }
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::setLorentzFactor(const Vector_t& lorentzFactor) {
+    lorentzFactor_m = lorentzFactor;
+}
+
+
+// template<class PLayout>
+// void AmrParticleBase<PLayout>::lorentzTransform(bool inverse) {
+//     
+//     if ( isLorentzTransformed_m && !inverse ) {
+//         return;
+//     }
+//         
+//     isLorentzTransformed_m = true;
+//     
+//     Vector_t gamma = lorentzFactor_m;
+//     
+//     if ( inverse ) {
+//         gamma = 1.0 / gamma;
+//         isLorentzTransformed_m = false;
+//     }
+//     
+//     for (std::size_t i = 0; i < this->getLocalNum(); ++i)
+//         this->R[i] *= gamma;
+// }
 
 #endif
