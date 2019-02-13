@@ -163,9 +163,9 @@ public:
      * @param finestLevel for solve
      * @param prevAsGuess use of previous solution as initial guess
      */
-    void solve(AmrFieldContainer_t &rho,
-               AmrFieldContainer_t &phi,
-               AmrFieldContainer_t &efield,
+    void solve(AmrScalarFieldContainer_t &rho,
+               AmrScalarFieldContainer_t &phi,
+               AmrVectorFieldContainer_t &efield,
                unsigned short baseLevel,
                unsigned short finestLevel,
                bool prevAsGuess = true);
@@ -313,7 +313,7 @@ private:
     /*!
      * @param efield to compute
      */
-    void computeEfield_m(amrex::Vector<AmrField_u>& efield);
+    void computeEfield_m(AmrVectorFieldContainer_t& efield);
     
     /*!
      * Build all matrices and vectors, i.e. AMReX to Trilinos

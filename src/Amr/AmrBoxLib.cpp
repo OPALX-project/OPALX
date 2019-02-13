@@ -99,7 +99,7 @@ void AmrBoxLib::getGridStatistics(std::map<int, int>& gridsPerCore,
 
 
 void AmrBoxLib::initFineLevels() {
-    if ( !refined_m ) {
+    if ( bunch_mp->getNumBunch() > 1 && !refined_m ) {
         *gmsg << "* Initialization of all levels" << endl;
         
         AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
@@ -115,7 +115,7 @@ void AmrBoxLib::initFineLevels() {
             amrpbase_p->setForbidTransform(true);
         }
 
-        if ( max_level > 0 && bunch_mp->getNumBunch() > 1 ) {
+        if ( max_level > 0 ) {
             
             amrpbase_p->update(0, 0);
             
@@ -137,13 +137,8 @@ void AmrBoxLib::initFineLevels() {
             *gmsg << "*     New finest level: "
                   << finest_level << endl
                   << "* Finished regriding" << endl;
-        } else {
-            // we need to regrid solver anyway at the beginning
-            PoissonSolver *solver = bunch_mp->getFieldSolver();
-            solver->hasToRegrid();
         }
-    
-    
+
         if ( !isForbidTransform ) {
             amrpbase_p->setForbidTransform(false);
             // map particles back
@@ -156,7 +151,7 @@ void AmrBoxLib::initFineLevels() {
     }
 }
 
-void AmrBoxLib::regrid(int lbase, int lfine, double time) {
+void AmrBoxLib::regrid(int lbase, int lfine, double time, int bin) {
     int new_finest = 0;
     AmrGridContainer_t new_grids(finest_level+2);
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
@@ -188,13 +183,10 @@ void AmrBoxLib::regrid(int lbase, int lfine, double time) {
     
     for (int lev = new_finest+1; lev <= finest_level; ++lev) {
         ClearLevel(lev);
-        ClearBoxArray(lev);
-        ClearDistributionMap(lev);
     }
     
     finest_level = new_finest;
-    
-    
+
     PoissonSolver *solver = bunch_mp->getFieldSolver();
     solver->hasToRegrid();
 }
@@ -211,10 +203,10 @@ AmrBoxLib::VectorPair_t AmrBoxLib::getEExtrema() {
              *  - max(comp, nghost (to search), local)
              *  - min(cmop, nghost, local)
              */
-            double max = efield_m[lev]->max(i, 0, false);
+            double max = efield_m[lev][i]->max(0, false);
             maxE[i] = (maxE[i] < max) ? max : maxE[i];
             
-            double min = efield_m[lev]->min(i, 0, false);
+            double min = efield_m[lev][i]->min(0, false);
             minE[i] = (minE[i] > min) ? min : minE[i];
         }
     }
@@ -225,136 +217,20 @@ AmrBoxLib::VectorPair_t AmrBoxLib::getEExtrema() {
 
 double AmrBoxLib::getRho(int x, int y, int z) {
     //TODO
-//     for (int lev = phi_m.size() - 2; lev >= 0; lev--)
-//         BoxLib::average_down(phi_m[lev+1], phi_m[lev], 0, 1, this->refRatio(lev));
     throw OpalException("AmrBoxLib::getRho(x, y, z) ", "Not yet Implemented.");
     return 0.0;
 }
 
 
 void AmrBoxLib::computeSelfFields() {
-    
-    if ( !bunch_mp->hasFieldSolver() )
-        return;
-    
-    AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-    
-    // map on Amr domain
-    double scalefactor = amrpbase_p->domainMapping();
-    
-    /// from charge (C) to charge density (C/m^3).
-    bunch_mp->Q *= bunch_mp->dt;
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
-    bunch_mp->Q /= bunch_mp->dt;
-    
-    //calculating mesh-scale factor
-    double gammaz = sum(bunch_mp->P)[2] / bunch_mp->getTotalNum();
-    gammaz *= gammaz;
-    gammaz = std::sqrt(gammaz + 1.0);
-    
-    // mesh scaling for solver
-    meshScaling_m = Vector_t(1.0, 1.0, gammaz);
-    
-    // calculate Possion equation (with coefficient: -1/(eps))
-    double tmp = -1.0 / bunch_mp->getdT() / gammaz / Physics::epsilon_0;
-    for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(tmp, 0, 1);
-        
-        if ( this->rho_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields() ",
-                                "NANs at level " + std::to_string(i) + ".");
-    }
-    
-    // find maximum and normalize each level (faster convergence)
-    double l0norm = 1.0;
-    for (int i = 0; i <= finest_level; ++i)
-        l0norm = std::max(l0norm, this->rho_m[i]->norm0(0));
-    
-    for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
-    }
-    
-    // charge density is in rho_m
-    PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
-    IpplTimings::startTimer(this->amrSolveTimer_m);
-    solver->solve(rho_m, phi_m, efield_m, 0, finest_level);
-    IpplTimings::stopTimer(this->amrSolveTimer_m);
-    
-    // make sure ghost cells are filled
-    for (int i = 0; i <= finest_level; ++i) {
-        phi_m[i]->FillBoundary(geom[i].periodicity());
-        efield_m[i]->FillBoundary(geom[i].periodicity());
-    }
-    
-    this->fillPhysbc_m(*(this->phi_m[0]), 0);
-    
-    /* apply scale of electric-field in order to undo the transformation
-     * + undo normalization
-     */
-    for (int i = 0; i <= finest_level; ++i) {
-        this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
-        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
-    }
-    
-    
-    for (int i = 0; i <= finest_level; ++i) {
-        if ( this->efield_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields() ",
-                                "Ef: NANs at level " + std::to_string(i) + ".");
-    }
-    
-    amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
-    
-    // undo domain change
-    amrpbase_p->domainMapping(true);
-    
-    bunch_mp->Ef *= Vector_t(gammaz,
-                             gammaz,
-                             1.0 / gammaz);
-    
-    /** Magnetic field in x and y direction induced by the eletric field
-     *
-     *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
-     *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
-     *  \f[ B_z = B_z^{'} = 0 \f]
-     *
-     */
-    double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
-    
-    bunch_mp->Bf(0) = bunch_mp->Bf(0) - betaC * bunch_mp->Ef(1);
-    bunch_mp->Bf(1) = bunch_mp->Bf(1) + betaC * bunch_mp->Ef(0);
-    
-    /*
-     * dumping only
-     */
-    if ( !(bunch_mp->getLocalTrackStep()  % Options::amrYtDumpFreq) ) {
-        AmrYtWriter ytWriter(bunch_mp->getLocalTrackStep());
-        
-        int nLevel = finest_level + 1;
-        
-        AmrIntArray_t rr(finest_level);
-        for (int i = 0; i < finest_level; ++i)
-            rr[i] = this->MaxRefRatio(i);
-        
-        double time = bunch_mp->getT(); // in seconds
-        
-        // we need to undo coefficient when writing charge density
-        for (int i = 0; i <= finest_level; ++i)
-            this->rho_m[i]->mult(- Physics::epsilon_0 * l0norm, 0, 1);
-        
-        
-        ytWriter.writeFields(rho_m, phi_m, efield_m, rr, this->geom,
-                             nLevel, time, scalefactor);
-        
-        ytWriter.writeBunch(bunch_mp, time, scalefactor);
-    }
+    //TODO
+    throw OpalException("AmrBoxLib::computeSelfFields", "Not yet Implemented.");
 }
 
 
 void AmrBoxLib::computeSelfFields(int bin) {
     //TODO
-    throw OpalException("AmrBoxLib::computeSelfFields(int bin) ", "Not yet Implemented.");
+    throw OpalException("AmrBoxLib::computeSelfFields(int bin)", "Not yet Implemented.");
 }
 
 
@@ -371,32 +247,34 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      */
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     
-    // map on Amr domain
+    /// Lorentz transformation
+    /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
+    bunch_mp->updateLorentzFactor();
+    
+    // map on Amr domain + Lorentz transform
     double scalefactor = amrpbase_p->domainMapping();
     
+    amrpbase_p->setForbidTransform(true);
+    amrpbase_p->update();
+    amrpbase_p->setForbidTransform(false);
+    
     /// from charge (C) to charge density (C/m^3).
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level, bunch_mp->Bin);
     
     int baseLevel = 0;
     int nLevel = finest_level + 1;
     double invGamma = 1.0 / gamma;
     
-    /// Lorentz transformation
-    /// In particle rest frame, the longitudinal length (y for cyclotron) enlarged
-    for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(invGamma, 0 /*comp*/, 1 /*ncomp*/);
-        
-        if ( this->rho_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                                "NANs at level " + std::to_string(i) + ".");
-    }
     
     // mesh scaling for solver
-    meshScaling_m = Vector_t(1.0, gamma, 1.0);
+    meshScaling_m = Vector_t(1.0, 1.0, 1.0);
     
     // charge density is in rho_m
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
+        if ( this->rho_m[i]->contains_nan(false) )
+            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                "NANs at level " + std::to_string(i) + ".");
         this->rho_m[i]->mult(-1.0 / Physics::epsilon_0, 0, 1);
     }
     
@@ -408,8 +286,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     for (int i = 0; i <= finest_level; ++i) {
         this->rho_m[i]->mult(1.0 / l0norm, 0, 1);
     }
-    
+
     PoissonSolver *solver = bunch_mp->getFieldSolver();
+
     IpplTimings::startTimer(this->amrSolveTimer_m);
     solver->solve(rho_m, phi_m, efield_m, baseLevel, finest_level);
     IpplTimings::stopTimer(this->amrSolveTimer_m);
@@ -417,7 +296,9 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
     // make sure ghost cells are filled
     for (int i = 0; i <= finest_level; ++i) {
         phi_m[i]->FillBoundary(geom[i].periodicity());
-        efield_m[i]->FillBoundary(geom[i].periodicity());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->FillBoundary(geom[i].periodicity());
+        }
     }
     
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
@@ -427,24 +308,28 @@ void AmrBoxLib::computeSelfFields_cycl(double gamma) {
      */
     for (int i = 0; i <= finestLevel(); ++i) {
         this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
-        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            this->efield_m[i][j]->mult(scalefactor * scalefactor * l0norm, 0, 1);
+        }
     }
     
     for (int i = 0; i <= finest_level; ++i) {
-        if ( this->efield_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                                "Ef: NANs at level " + std::to_string(i) + ".");
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            if ( this->efield_m[i][j]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
     }
     
     
     amrpbase_p->gather(bunch_mp->Ef, this->efield_m, bunch_mp->R, 0, finest_level);
     
-    // undo domain change
+    // undo domain change + undo Lorentz transform
     amrpbase_p->domainMapping(true);
     
     /// Back Lorentz transformation
     bunch_mp->Ef *= Vector_t(gamma,
-                             invGamma,
+                             1.0,
                              gamma);
     
     /// calculate coefficient
@@ -501,19 +386,49 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      * scatter charges onto grid
      */
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
-
-    // map on Amr domain
+    
+    // Lorentz transformation: apply Lorentz factor of that particle bin
+    bunch_mp->updateLorentzFactor(bin);
+    
+    // map on Amr domain + Lorentz transform 
     double scalefactor = amrpbase_p->domainMapping();
+    
+    amrpbase_p->setForbidTransform(true);
+    
+    amrpbase_p->update();
+
+    if ( !(bunch_mp->getLocalTrackStep() % Options::amrRegridFreq) ) {
+        int lev_top = std::min(finest_level, max_level - 1);
+
+        *gmsg << "* Start regriding:" << endl
+              << "*     Old finest level: "
+              << finest_level << endl;
+
+        /* ATTENTION: The bunch has to be updated during
+         * the regrid process!
+         * We regrid from base level 0 up to the finest level.
+         */
+        for (int i = 0; i <= lev_top; ++i) {
+            this->regrid(i, lev_top, bunch_mp->getT() * 1.0e9 /*time [ns] */);
+            lev_top = std::min(finest_level, max_level - 1);
+        }
+
+        *gmsg << "*     New finest level: "
+              << finest_level << endl
+              << "* Finished regriding" << endl;
+    }
+
+    amrpbase_p->setForbidTransform(false);
     
     /// scatter particles charge onto grid.
     /// from charge (C) to charge density (C/m^3).
-    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level);
+    amrpbase_p->scatter(bunch_mp->Q, this->rho_m, bunch_mp->R, 0, finest_level, bunch_mp->Bin, bin);
     
     /// Lorentz transformation
     // In particle rest frame, the longitudinal length (y for cyclotron) enlarged
     // calculate Possion equation (with coefficient: -1/(eps))
     for (int i = 0; i <= finest_level; ++i) {
-        this->rho_m[i]->mult(-1.0 / (gamma * Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
+        this->rho_m[i]->mult(-1.0 / (Physics::epsilon_0), 0 /*comp*/, 1 /*ncomp*/);
         
         if ( this->rho_m[i]->contains_nan(false) )
             throw OpalException("AmrBoxLib::computeSelfFields_cycl(int bin) ",
@@ -530,11 +445,18 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     }
     
     // mesh scaling for solver
-    meshScaling_m = Vector_t(1.0, gamma, 1.0);
+    meshScaling_m = Vector_t(1.0, 1.0, 1.0);
     
     PoissonSolver *solver = bunch_mp->getFieldSolver();
-    
+
     IpplTimings::startTimer(this->amrSolveTimer_m);
+    
+    for (int i = 0; i <= finest_level; ++i) {
+        phi_m[i]->setVal(0.0, 0, phi_m[i]->nComp(), phi_m[i]->nGrow());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->setVal(0.0, 0, efield_m[i][j]->nComp(), efield_m[i][j]->nGrow());
+        }
+    }
     
     // in case of binning we reset phi every time
     solver->solve(rho_m, phi_m, efield_m, 0, finest_level, false);
@@ -544,7 +466,9 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     // make sure ghost cells are filled
     for (int i = 0; i <= finest_level; ++i) {
         phi_m[i]->FillBoundary(geom[i].periodicity());
-        efield_m[i]->FillBoundary(geom[i].periodicity());
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield_m[i][j]->FillBoundary(geom[i].periodicity());
+        }
     }
     
     this->fillPhysbc_m(*(this->phi_m[0]), 0);
@@ -555,25 +479,29 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
      */
     for (int i = 0; i <= finestLevel(); ++i) {
         this->phi_m[i]->mult(scalefactor * l0norm, 0, 1);
-        this->efield_m[i]->mult(scalefactor * scalefactor * l0norm, 0, 3);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            this->efield_m[i][j]->mult(scalefactor * scalefactor * l0norm, 0, 1);
+        }
     }
 
     for (int i = 0; i <= finest_level; ++i) {
-        if ( this->efield_m[i]->contains_nan(false) )
-            throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
-                                "Ef: NANs at level " + std::to_string(i) + ".");
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            if ( this->efield_m[i][j]->contains_nan(false) )
+                throw OpalException("AmrBoxLib::computeSelfFields_cycl(double gamma) ",
+                                    "Ef: NANs at level " + std::to_string(i) + ".");
+        }
     }
     
     amrpbase_p->gather(bunch_mp->Eftmp, this->efield_m, bunch_mp->R, 0, finest_level);
     
-    // undo domain change
+    // undo domain change + undo Lorentz transform
     amrpbase_p->domainMapping(true);
     
     /// Back Lorentz transformation
-    bunch_mp->Eftmp *= Vector_t(gamma, 1.0 / gamma, gamma);
+    bunch_mp->Eftmp *= Vector_t(gamma, 1.0, gamma);
 
     /// Calculate coefficient
-    double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+    double betaC = std::sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
     /// Calculate B_bin field from E_bin field accumulate B and E field
     bunch_mp->Bf(0) += betaC * bunch_mp->Eftmp(2);
@@ -723,12 +651,17 @@ void AmrBoxLib::RemakeLevel (int lev, AmrReal_t time,
     //                                                      #comp  #ghosts cells
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     0));
     phi_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
-    efield_m[lev].reset(new AmrField_t(new_grids, new_dmap, 3,     1));
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    }
     
     // including nghost = 1
     rho_m[lev]->setVal(0.0, 0);
     phi_m[lev]->setVal(0.0, 1);
-    efield_m[lev]->setVal(0.0, 1);
+    
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j]->setVal(0.0, 1);
+    }
     
     /*
      * particles need to know the BoxArray
@@ -751,12 +684,17 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
     //                                                      #comp  #ghosts cells
     rho_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     0));
     phi_m[lev].reset(new AmrField_t(new_grids, new_dmap,    1,     1));
-    efield_m[lev].reset(new AmrField_t(new_grids, new_dmap, 3,     1));
+    
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j].reset(new AmrField_t(new_grids, new_dmap, 1,     1));
+    }
     
     // including nghost = 1
     rho_m[lev]->setVal(0.0, 0);
     phi_m[lev]->setVal(0.0, 1);
-    efield_m[lev]->setVal(0.0, 1);
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j]->setVal(0.0, 1);
+    }
     
     
     
@@ -774,7 +712,9 @@ void AmrBoxLib::MakeNewLevel (int lev, AmrReal_t time,
 void AmrBoxLib::ClearLevel(int lev) {
     rho_m[lev].reset(nullptr);
     phi_m[lev].reset(nullptr);
-    efield_m[lev].reset(nullptr);
+    for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+        efield_m[lev][j].reset(nullptr);
+    }
     ClearBoxArray(lev);
     ClearDistributionMap(lev);
     
@@ -786,7 +726,7 @@ void AmrBoxLib::ClearLevel(int lev) {
 void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags,
                          AmrReal_t time, int ngrow)
 {
-    *gmsg << "*         Start tagging of level " << lev << endl;
+    *gmsg << level2 << "*         Start tagging of level " << lev << endl;
     
     switch ( tagging_m ) {
         case CHARGE_DENSITY:
@@ -812,7 +752,7 @@ void AmrBoxLib::ErrorEst(int lev, TagBoxArray_t& tags,
             break;
     }
     
-    *gmsg << "*         Finished tagging of level " << lev << endl;
+    *gmsg << level2 << "*         Finished tagging of level " << lev << endl;
 }
 
 
@@ -837,11 +777,11 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
 {
     AmrPartBunch::pbase_t* amrpbase_p = bunch_mp->getAmrParticleBase();
     for (int i = lev; i <= finest_level; ++i)
-        rho_m[i]->setVal(0.0, 0);
+        rho_m[i]->setVal(0.0, rho_m[i]->nGrow());
     
     // the new scatter function averages the value also down to the coarsest level
     amrpbase_p->scatter(bunch_mp->Q, rho_m,
-                        bunch_mp->R, lev, finest_level);
+                        bunch_mp->R, lev, finest_level, bunch_mp->Bin);
     
     const double& scalefactor = amrpbase_p->getScalingFactor();
     
@@ -890,7 +830,7 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
      * value of this level.
      */
     if ( !phi_m[lev]->ok() || (time == 0 && !(phi_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "* Level " << lev << ": We need to perform "
+        *gmsg << level2 << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
@@ -943,8 +883,8 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
      * value of this level.
      */
     
-    if ( !efield_m[lev]->ok() || (time == 0 && !(efield_m[lev]->norm0(0) > 0)) ) {
-        *gmsg << "* Level " << lev << ": We need to perform "
+    if ( !efield_m[lev][0]->ok() || (time == 0 && !(efield_m[lev][0]->norm0(0) > 0)) ) {
+        *gmsg << level2 << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
         
@@ -956,23 +896,27 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
     const int   tagval = TagBox_t::SET;
     
     // obtain maximum absolute value
-    AmrIntArray_t comps = {0, 1, 2};
-    amrex::Vector<AmrReal_t> threshold = efield_m[lev]->norm0(comps,
-                                                             0 /*nghosts*/,
-                                                             false /*local*/);
+    amrex::Vector<AmrReal_t> threshold(AMREX_SPACEDIM);
     
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 3; ++i) {
+        threshold[i] = efield_m[lev][i]->norm0(0,
+                                            0 /*nghosts*/,
+                                            false /*local*/);
+    
         threshold[i] *= scaling_m;
+    }
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        for (MFIter_t mfi(*efield_m[lev], true); mfi.isValid(); ++mfi) {
+        for (MFIter_t mfi(this->grids[lev], this->dmap[lev], true); mfi.isValid(); ++mfi) {
             
             const Box_t&  tilebx  = mfi.tilebox();
             TagBox_t&     tagfab  = tags[mfi];
-            FArrayBox_t&  fab     = (*efield_m[lev])[mfi];
+            FArrayBox_t&  xfab     = (*efield_m[lev][0])[mfi];
+            FArrayBox_t&  yfab     = (*efield_m[lev][1])[mfi];
+            FArrayBox_t&  zfab     = (*efield_m[lev][2])[mfi];
 
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
@@ -981,11 +925,11 @@ void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
                         AmrIntVect_t iv(i,j,k);
-                        if (std::abs(fab(iv, 0)) >= threshold[0])
+                        if (std::abs(xfab(iv)) >= threshold[0])
                             tagfab(iv) = tagval;
-                        else if (std::abs(fab(iv, 1)) >= threshold[1])
+                        else if (std::abs(yfab(iv)) >= threshold[1])
                             tagfab(iv) = tagval;
-                        else if (std::abs(fab(iv, 2)) >= threshold[2])
+                        else if (std::abs(zfab(iv)) >= threshold[2])
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;

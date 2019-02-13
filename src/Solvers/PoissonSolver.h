@@ -29,9 +29,9 @@ public:
      * @param finestLevel for solve
      * @param prevAsGuess use of previous solution as initial guess
      */
-    virtual void solve(AmrFieldContainer_t &rho,
-                       AmrFieldContainer_t &phi,
-                       AmrFieldContainer_t &efield,
+    virtual void solve(AmrScalarFieldContainer_t &rho,
+                       AmrScalarFieldContainer_t &phi,
+                       AmrVectorFieldContainer_t &efield,
                        unsigned short baseLevel,
                        unsigned short finestLevel,
                        bool prevAsGuess = true)

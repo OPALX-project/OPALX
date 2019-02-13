@@ -1748,9 +1748,11 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
 #ifdef ENABLE_AMR
-    if ( dynamic_cast<AmrPartBunch*>(itsBunch_m) != 0 )
-        tmpBunch.reset(new AmrPartBunch(&itsReference));
-    else
+    AmrPartBunch* amrbunch_p = dynamic_cast<AmrPartBunch*>(itsBunch_m);
+    if ( amrbunch_p != 0 ) {
+        tmpBunch.reset(new AmrPartBunch(&itsReference,
+                                        amrbunch_p->getAmrParticleBase()));
+    } else
 #endif
         tmpBunch.reset(new PartBunch(&itsReference));
 
@@ -3556,6 +3558,8 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
 
         BunchCount_m++;
 
+        itsBunch_m->setNumBunch(BunchCount_m);
+
         // read initial distribution from h5 file
         switch ( multiBunchMode_m ) {
             case MB_MODE::FORCE:
@@ -3569,8 +3573,6 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
                 throw OpalException("ParallelCyclotronTracker::injectBunch_m()",
                                     "We shouldn't be here in single bunch mode.");
         }
-
-        itsBunch_m->setNumBunch(BunchCount_m);
 
         setup_m.stepsNextCheck += setup_m.stepsPerTurn;
 
