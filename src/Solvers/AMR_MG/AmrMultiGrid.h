@@ -6,7 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 #include "AmrMultiGridCore.h"
 
@@ -19,7 +19,6 @@
 
 #define AMR_MG_TIMER true
 #define AMR_MG_WRITE false
-#define DEBUG false
 
 class AmrMultiGrid : public AmrPoissonSolver< AmrBoxLib > {
     
@@ -164,9 +163,9 @@ public:
      * @param finestLevel for solve
      * @param prevAsGuess use of previous solution as initial guess
      */
-    void solve(AmrFieldContainer_t &rho,
-               AmrFieldContainer_t &phi,
-               AmrFieldContainer_t &efield,
+    void solve(AmrScalarFieldContainer_t &rho,
+               AmrScalarFieldContainer_t &phi,
+               AmrVectorFieldContainer_t &efield,
                unsigned short baseLevel,
                unsigned short finestLevel,
                bool prevAsGuess = true);
@@ -227,11 +226,11 @@ private:
      * Instantiate all levels and set boundary conditions
      * @param rho is the charge density
      * @param geom is the geometry
-     * @param previous solution as initial guess
+     * @param regrid was performed
      */
-    void initLevels_m(const amrex::Array<AmrField_u>& rho,
-                      const amrex::Array<AmrGeometry_t>& geom,
-                      bool previous);
+    void initLevels_m(const amrex::Vector<AmrField_u>& rho,
+                      const amrex::Vector<AmrGeometry_t>& geom,
+                      bool regrid);
     
     /*!
      * Clear masks (required to build matrices) no longer needed.
@@ -240,9 +239,9 @@ private:
     
     /*!
      * Reset potential to zero (currently)
-     * @param previous solution as initial guess
+     * @param reset solution to initial guess (zero)
      */
-    void initGuess_m(bool previous);
+    void initGuess_m(bool reset);
     
     /*!
      * Actual solve.
@@ -314,28 +313,28 @@ private:
     /*!
      * @param efield to compute
      */
-    void computeEfield_m(amrex::Array<AmrField_u>& efield);
+    void computeEfield_m(AmrVectorFieldContainer_t& efield);
     
     /*!
      * Build all matrices and vectors, i.e. AMReX to Trilinos
      * @param matrices if we need to build matrices as well or only vectors.
      */
-    void setup_m(const amrex::Array<AmrField_u>& rho,
-                 const amrex::Array<AmrField_u>& phi,
+    void setup_m(const amrex::Vector<AmrField_u>& rho,
+                 const amrex::Vector<AmrField_u>& phi,
                  const bool& matrices = true);
     
     /*!
      * Build all matrices and vectors needed for single-level computation
      */
-    void buildSingleLevel_m(const amrex::Array<AmrField_u>& rho,
-                            const amrex::Array<AmrField_u>& phi,
+    void buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
+                            const amrex::Vector<AmrField_u>& phi,
                             const bool& matrices = true);
     
     /*!
      * Build all matrices and vectors needed for multi-level computation
      */
-    void buildMultiLevel_m(const amrex::Array<AmrField_u>& rho,
-                           const amrex::Array<AmrField_u>& phi,
+    void buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
+                           const amrex::Vector<AmrField_u>& phi,
                            const bool& matrices = true);
 
     /*!

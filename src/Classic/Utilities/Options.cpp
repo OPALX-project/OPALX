@@ -104,6 +104,8 @@ namespace Options {
 
     /// The frequency to dump AMR grid data and particles into file
     int amrYtDumpFreq = 10;
+    
+    int amrRegridFreq = 10;
 #endif
 
     bool memoryDump = false;

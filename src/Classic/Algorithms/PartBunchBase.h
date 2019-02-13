@@ -129,10 +129,10 @@ public:
     double getBinGamma(int bin);
 
     /** \brief Set the charge of one bin to the value of q and all other to zero */
-    void setBinCharge(int bin, double q);
+    virtual void setBinCharge(int bin, double q);
 
     /** \brief Set the charge of all other the ones in bin to zero */
-    void setBinCharge(int bin);
+    virtual void setBinCharge(int bin);
 
     /** \brief returns the number of particles outside of a box defined by x */
     size_t calcNumPartsOutside(Vector_t x);
@@ -254,7 +254,7 @@ public:
 
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
 
-    bool calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin);
+    bool calcBunchBeamParameters(MultiBunchDump::beaminfo_t& binfo, short bunch);
 
     double getCouplingConstant() const;
     void setCouplingConstant(double c);
@@ -485,6 +485,8 @@ public:
     ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
     ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
     ParticleAttrib< short >    cavityGapCrossed; ///< particle just crossed cavity gap (for ParallelCyclotronTracker)
+
+    ParticleAttrib< short >    bunchNum; // bunch number to which particle belongs (multi-bunch mode)
 
 
     Vector_t RefPartR_m;
