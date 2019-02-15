@@ -41,6 +41,10 @@
     #include "Solvers/AMReXSolvers/MLPoissonSolver.h"
     #include "Amr/AmrDefs.h"
     #include "Algorithms/AmrPartBunch.h"
+
+    #include <algorithm>
+    #include <cctype>
+    #include <functional>
 #endif
 
 #ifdef HAVE_AMR_MG_SOLVER
@@ -571,7 +575,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* AMR_BFX          " << Attributes::getReal(itsAttr[AMR_BFX]) << '\n'
            << "* AMR_BFY          " << Attributes::getReal(itsAttr[AMR_BFY]) << '\n'
            << "* AMR_BFZ          " << Attributes::getReal(itsAttr[AMR_BFZ]) << '\n'
-           << "* AMR_TAGGING      " << Attributes::getString(itsAttr[AMR_TAGGING]) <<'\n'
+           << "* AMR_TAGGING      " << this->getTagging_m() <<'\n'
            << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
            << "* AMR_MAX_NUM_PART " << Attributes::getReal(itsAttr[AMR_MAX_NUM_PART]) << '\n'
            << "* AMR_MIN_NUM_PART " << Attributes::getReal(itsAttr[AMR_MIN_NUM_PART]) << '\n'
@@ -645,6 +649,22 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 }
 
 #ifdef ENABLE_AMR
+std::string FieldSolver::getTagging_m() const {
+    std::string tagging = Attributes::getString(itsAttr[AMR_TAGGING]);
+
+    std::function<bool(const std::string&)> all_digits = [](const std::string& s) {
+        // 15. Feb. 2019
+        // https://stackoverflow.com/questions/19678572/how-to-validate-that-there-are-only-digits-in-a-string
+        return std::all_of(s.begin(),  s.end(), 
+        [](char c) { return std::isdigit(c); });
+    };
+
+    if ( all_digits(tagging) )
+        tagging = AmrObject::enum2string(std::stoi(tagging));
+    return tagging;
+}
+
+
 void FieldSolver::initAmrObject_m() {
 
     itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) * 0.01);
@@ -665,10 +685,9 @@ void FieldSolver::initAmrObject_m() {
     info.refratio[1] = Attributes::getReal(itsAttr[AMR_REFY]);
     info.refratio[2] = Attributes::getReal(itsAttr[AMR_REFZ]);
 
-
     itsAmrObject_mp = AmrBoxLib::create(info, dynamic_cast<AmrPartBunch*>(itsBunch_m));
 
-    itsAmrObject_mp->setTagging( Attributes::getString(itsAttr[AMR_TAGGING]) );
+    itsAmrObject_mp->setTagging( this->getTagging_m() );
 
     itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[AMR_SCALING]) );
 
