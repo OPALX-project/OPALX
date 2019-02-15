@@ -91,7 +91,6 @@ namespace {
         AMR_REFX,           // AMR, refinement ratio in x
         AMR_REFY,           // AMR, refinement ratio in y
         AMR_REFZ,           // AMR, refinement ration in z
-        AMR_SUBCYCLE,       // AMR, subcycling in time for refined levels (default: false)
         AMR_MAXGRIDX,       // AMR, maximum grid size in x (default: 16)
         AMR_MAXGRIDY,       // AMR, maximum grid size in y (default: 16)
         AMR_MAXGRIDZ,       // AMR, maximum grid size in z (default: 16)
@@ -220,10 +219,6 @@ FieldSolver::FieldSolver():
     itsAttr[AMR_REFZ] = Attributes::makeReal("AMR_REFZ",
                                              "Refinement ration in z-direction in AMR",
                                              2);
-
-    itsAttr[AMR_SUBCYCLE] = Attributes::makeBool("AMR_SUBCYCLE",
-                                                 "Subcycling in time for refined levels in AMR",
-                                                 false);
 
     itsAttr[AMR_MAXGRIDX] = Attributes::makeReal("AMR_MAXGRIDX",
                                                  "Maximum grid size in x for AMR",
@@ -570,7 +565,6 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* AMR_REFX         " << Attributes::getReal(itsAttr[AMR_REFX]) << '\n'
            << "* AMR_REFY         " << Attributes::getReal(itsAttr[AMR_REFY]) << '\n'
            << "* AMR_REFZ         " << Attributes::getReal(itsAttr[AMR_REFZ]) << '\n'
-           << "* AMR_SUBCYCLE     " << Attributes::getBool(itsAttr[AMR_SUBCYCLE]) << '\n'
            << "* AMR_MAXGRIDX     " << Attributes::getReal(itsAttr[AMR_MAXGRIDX]) << '\n'
            << "* AMR_MAXGRIDY     " << Attributes::getReal(itsAttr[AMR_MAXGRIDY]) << '\n'
            << "* AMR_MAXGRIDZ     " << Attributes::getReal(itsAttr[AMR_MAXGRIDZ]) << '\n'
