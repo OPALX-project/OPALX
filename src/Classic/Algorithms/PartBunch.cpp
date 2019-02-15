@@ -79,7 +79,7 @@ PartBunch::PartBunch(const PartBunch &rhs):
 
 
 PartBunch::~PartBunch() {
-
+	lossDs_m->save();
 }
 
 // PartBunch::pbase_t* PartBunch::clone() {
@@ -444,7 +444,7 @@ void PartBunch::resizeMesh() {
 
             if(R[n](0) < xmin || R[n](0) > xmax ||
                R[n](1) < ymin || R[n](1) > ymax) {
-
+				lossDs_m->addParticle(R[n]*1000, P[n], ID[n], getT()*1e9);
                 // delete the particle
                 INFOMSG(level2 << "destroyed particle with id=" << ID[n] << endl;);
                 destroy(1, n);
