@@ -72,6 +72,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
     delete parser;
     delete gmsg;
 
+
     //FIXME: strange side effects
     //ippl = 0;
     //delete aippl;
