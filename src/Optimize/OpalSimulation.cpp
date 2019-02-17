@@ -175,6 +175,30 @@ void OpalSimulation::createSymlink_m(const std::string& path) {
     free(files);
 }
 
+
+void OpalSimulation::copyH5_m() {
+    CmdArguments_t args = getArgs();
+    std::string restartfile = args->getArg<std::string>("restartfile", "", false);
+
+    if ( !restartfile.empty() ) {
+        namespace fs = boost::filesystem;
+        if ( !fs::exists(restartfile) ) {
+            throw OptPilotException("OpalSimulation::copyH5_m()",
+                                    "H5 file '" + restartfile + "' doesn't exist.");
+        }
+
+        try {
+            fs::path srcfile(restartfile);
+            fs::path targetfile(simulationDirName_ + "/" + simulationName_ + ".h5");
+            fs::copy_file(srcfile, targetfile);
+        } catch (fs::filesystem_error &ex) {
+            throw OptPilotException("OpalSimulation::copyH5_m()",
+                                    ex.what());
+        }
+    }
+}
+
+
 void OpalSimulation::setupSimulation() {
     namespace fs = boost::filesystem;
 
@@ -211,6 +235,8 @@ void OpalSimulation::setupSimulation() {
             std::string distPath = getenv("DISTRIBUTIONS");
             this->createSymlink_m(distPath);
         }
+
+        this->copyH5_m();
     }
 
     MPI_Barrier(comm_);
@@ -282,6 +308,9 @@ void OpalSimulation::run() {
 
     int seed = Options::seed;
 
+    CmdArguments_t args = getArgs();
+    int restartStep= args->getArg<int>("restartstep", -2, false);
+
     try {
 
         //FIXME: this seems to crash OPAL in some cases
@@ -292,7 +321,7 @@ void OpalSimulation::run() {
         // std::cerr.setstate(std::ios::failbit);
 #endif
         // now we can run the simulation
-        run_opal(arg, inputFileName.str(), -1, Options::infoLevel, Options::warnLevel, comm_);
+        run_opal(arg, inputFileName.str(), restartStep, Options::infoLevel, Options::warnLevel, comm_);
 
         //restoreOut();
 #ifdef SUPRESS_OUTPUT
