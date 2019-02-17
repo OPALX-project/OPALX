@@ -115,6 +115,9 @@ public:
 
 private:
 #ifdef ENABLE_AMR
+
+    std::string getTagging_m() const;
+
     void initAmrObject_m();
     
     void initAmrSolver_m();

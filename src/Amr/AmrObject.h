@@ -160,6 +160,14 @@ public:
      */
     const bool& isRefined() const;
     
+    /*!
+     * Used in Fieldsolver in order to convert a number that
+     * specifies the tagging to the corresponding string. Check
+     * enum TaggingCriteria for ordering.
+     * @param number of tagging
+     */
+    static std::string enum2string(int number);
+
 protected:
     TaggingCriteria tagging_m;  ///< Tagging strategy
     
