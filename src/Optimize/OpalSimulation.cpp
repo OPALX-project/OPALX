@@ -313,7 +313,7 @@ void OpalSimulation::run() {
     std::string restartfile = args->getArg<std::string>("restartfile", "", false);
 
     try {
-        if ( restartstep > -2 && restartfile.empty() ) {
+        if ( restartStep > -2 && restartfile.empty() ) {
             throw OpalException("OpalSimulation::run()",
                                 "Restart specified but no restart H5 file available.");
         }
