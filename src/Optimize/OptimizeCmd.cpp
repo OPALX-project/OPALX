@@ -82,6 +82,8 @@ namespace {
         DISTDIR,
         CROSSOVER,
         MUTATION,
+        RESTART_FILE,
+        RESTART_STEP,
         SIZE
     };
 }
@@ -153,6 +155,10 @@ OptimizeCmd::OptimizeCmd():
         ("CROSSOVER", "Type of cross over (default: Blend)", "Blend");
     itsAttr[MUTATION] = Attributes::makeString
         ("MUTATION", "Type of bit mutation (default: IndependentBit)", "IndependentBit");
+    itsAttr[RESTART_FILE] = Attributes::makeString
+        ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
+    itsAttr[RESTART_STEP] = Attributes::makeReal
+        ("RESTART_STEP", "Restart from given H5 step (default: -1, i.e. last step) (optional)", -2);
     registerOwnership(AttributeHandler::COMMAND);
 }
 
@@ -252,7 +258,9 @@ void OptimizeCmd::execute() {
             {MUTATIONPROBABILITY, "mutation-probability"},
             {RECOMBINATIONPROBABILITY, "recombination-probability"},
             {SIMBINCROSSOVERNU, "simbin-crossover-nu"},
-            {INITIALOPTIMIZATION, "initial-optimization"}
+            {INITIALOPTIMIZATION, "initial-optimization"},
+            {RESTART_FILE, "restartfile"},
+            {RESTART_STEP, "restartstep"}
         });
 
     auto it = argumentMapper.end();
