@@ -310,8 +310,13 @@ void OpalSimulation::run() {
 
     CmdArguments_t args = getArgs();
     int restartStep= args->getArg<int>("restartstep", -2, false);
+    std::string restartfile = args->getArg<std::string>("restartfile", "", false);
 
     try {
+        if ( restartstep > -2 && restartfile.empty() ) {
+            throw OpalException("OpalSimulation::run()",
+                                "Restart specified but no restart H5 file available.");
+        }
 
         //FIXME: this seems to crash OPAL in some cases
         //redirectOutToFile();
