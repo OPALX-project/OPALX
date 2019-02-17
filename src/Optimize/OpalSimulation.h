@@ -114,6 +114,9 @@ private:
     /// create symbolic links
     void createSymlink_m(const std::string& path);
 
+    /// copy H5 file
+    void copyH5_m();
+
     /// create directories, input files, fieldmaps...
     void setupSimulation();
 
