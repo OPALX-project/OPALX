@@ -61,6 +61,8 @@ namespace {
         RASTER,
         SEED,
         KEEP,
+        RESTART_FILE,
+        RESTART_STEP,
         SIZE
     };
 }
@@ -98,7 +100,10 @@ SampleCmd::SampleCmd():
         ("SEED", "Seed for global random number generator (default: 42)", 42);
     itsAttr[KEEP] = Attributes::makeStringArray
         ("KEEP", "List of files to keep for each simulation. (default: all files kept)");
-
+    itsAttr[RESTART_FILE] = Attributes::makeString
+        ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
+    itsAttr[RESTART_STEP] = Attributes::makeReal
+        ("RESTART_STEP", "Restart from given H5 step (default: -1, i.e. last step) (optional)", -2);
     registerOwnership(AttributeHandler::COMMAND);
 }
 
@@ -288,7 +293,9 @@ void SampleCmd::execute() {
             {OUTPUT, "outfile"},
             {OUTDIR, "outdir"},
             {NUMMASTERS, "num-masters"},
-            {NUMCOWORKERS, "num-coworkers"}
+            {NUMCOWORKERS, "num-coworkers"},
+            {RESTART_FILE, "restartfile"},
+            {RESTART_STEP, "restartstep"}
         });
 
     auto it = argumentMapper.end();
