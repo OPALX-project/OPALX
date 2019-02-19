@@ -134,7 +134,7 @@ bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const
             // peak finder uses millimetre not metre
             peakfinder_m->addParticle(probepoint);
 
-            /*FIXME mm --> m (when OPAL-Cycl uses metre insteas of millimetre,
+            /*FIXME Issue #45: mm --> m (when OPAL-Cycl uses metre insteas of millimetre,
              * this can be removed.
              */
             probepoint *= 0.001;
