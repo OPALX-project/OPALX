@@ -137,7 +137,7 @@ bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const
             /*FIXME mm --> m (when OPAL-Cycl uses metre insteas of millimetre,
              * this can be removed.
              */
-            probepoint /= 1000.0;
+            probepoint *= 0.001;
 
             lossDs_m->addParticle(probepoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
             flagprobed = true;
