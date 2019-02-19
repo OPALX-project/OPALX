@@ -103,7 +103,8 @@ SampleCmd::SampleCmd():
     itsAttr[RESTART_FILE] = Attributes::makeString
         ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
     itsAttr[RESTART_STEP] = Attributes::makeReal
-        ("RESTART_STEP", "Restart from given H5 step (default: -1, i.e. last step) (optional)", -2);
+        ("RESTART_STEP", "Restart from given H5 step (optional)",
+         std::numeric_limits<int>::min());
     registerOwnership(AttributeHandler::COMMAND);
 }
 
