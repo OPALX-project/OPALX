@@ -160,7 +160,7 @@ private:
         }
 
         allreduce(min, 6, std::less<double>());
-
+        
         for (unsigned int i = 0; i < 3; ++i) {
             rmin[i] = min[2*i];
             rmax[i] = -min[2*i + 1];

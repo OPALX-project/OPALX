@@ -237,12 +237,6 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
     if ( !inverse ) {
         if ( !this->DestroyList.empty() ) {
             this->performDestroy(true);
-            size_t totnum = 0;
-            size_t locnum = this->getLocalNum();
-            MPI_Allreduce(&locnum, &totnum, 1, MPI_INT, MPI_SUM, Ippl::getComm());
-
-            // update our particle number counts
-            this->setTotalNum(totnum);
         }
         
         Vector_t rmin = Vector_t(0.0, 0.0, 0.0);
