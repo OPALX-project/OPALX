@@ -115,9 +115,6 @@ template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   int lev_min, int lev_max)
 {
-    // delete particles that are in destroy list
-    PData.performDestroy(true);
-
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
         /* we need to update on Amr domain + boosted frame (Lorentz transform,

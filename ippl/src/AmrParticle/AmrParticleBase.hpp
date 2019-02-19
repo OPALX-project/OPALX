@@ -235,9 +235,32 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
     Vector_t gamma = lorentzFactor_m;
     
     if ( !inverse ) {
-        Vector_t rmin, rmax;
-        bounds(this->R, rmin, rmax);
+        if ( !this->DestroyList.empty() ) {
+            this->performDestroy(true);
+            size_t totnum = 0;
+            size_t locnum = this->getLocalNum();
+            MPI_Allreduce(&locnum, &totnum, 1, MPI_INT, MPI_SUM, Ippl::getComm());
+
+            // update our particle number counts
+            this->setTotalNum(totnum);
+        }
         
+        Vector_t rmin = Vector_t(0.0, 0.0, 0.0);
+        Vector_t rmax = Vector_t(0.0, 0.0, 0.0);
+        
+        getGlobalBounds(rmin, rmax);
+        
+        /* FIXME Ugly workaround - if only a single particle is left
+         * it could be on the coordinate (0, 0, 0), thus, we get NANs
+         * when scaling.
+         */
+        if ( rmin == Vector_t(0.0, 0.0, 0.0) && rmax == Vector_t(0.0, 0.0, 0.0) ) {
+            rmin = -Vector_t(1.0, 1.0, 1.0);
+            rmax =  Vector_t(1.0, 1.0, 1.0);
+        }
+        
+//         std::cout << "rmin: " << rmin << " rmax: " << rmax << std::endl;
+
         /* Lorentz transfomration factor
          * is not equal 1.0 only in longitudinal
          * direction
