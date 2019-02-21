@@ -13,6 +13,7 @@
 #include "Distribution/LaserProfile.h"
 #include "Utility/Inform.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/PortableGraymapReader.h"
 
 #include <boost/filesystem.hpp>
 
@@ -36,7 +37,8 @@ LaserProfile::LaserProfile(const std::string &fileName,
     centerMass_m(0.0),
     standardDeviation_m(0.0){
 
-    unsigned short *image = readFile(fileName, imageName, intensityCut);
+    unsigned short *image = readFile(fileName, imageName);
+    // saveData("originalLaserProfile", image);
 
     if (flags & FLIPX) flipX(image);
     if (flags & FLIPY) flipY(image);
@@ -53,13 +55,10 @@ LaserProfile::LaserProfile(const std::string &fileName,
         flipY(image);
     }
 
-#ifdef TESTLASEREMISSION
-    saveOrigData(image);
-#endif
-
     filterSpikes(image);
     normalizeProfileData(intensityCut, image);
     computeProfileStatistics(image);
+    // saveData("processedLaserProfile", image);
     fillHistrogram(image);
 
     delete[] image;
@@ -81,14 +80,45 @@ LaserProfile::~LaserProfile() {
 }
 
 unsigned short * LaserProfile::readFile(const std::string &fileName,
-                                        const std::string &imageName,
-                                        double insCut) {
-
+                                        const std::string &imageName) {
     namespace fs = boost::filesystem;
     if (!fs::exists(fileName)) {
         throw OpalException("LaserProfile::readFile",
                             "given file '" + fileName + "' does not exist");
     }
+
+    size_t npos = fileName.find_last_of('.');
+    std::string ext = fileName.substr(npos + 1);
+
+    unsigned short *image;
+    if (ext == "pgm") {
+        image = readPGMFile(fileName);
+    } else {
+        image = readHDF5File(fileName, imageName);
+    }
+
+    return image;
+}
+
+unsigned short * LaserProfile::readPGMFile(const std::string &fileName) {
+    PortableGraymapReader reader(fileName);
+
+    sizeX_m = reader.getWidth();
+    sizeY_m = reader.getHeight();
+
+    unsigned short *image = new unsigned short[sizeX_m * sizeY_m];
+    unsigned int idx = 0;
+    for (unsigned int i = 0; i < sizeX_m; ++ i) {
+        for (unsigned int j = 0; j < sizeY_m; ++ j, ++ idx) {
+            image[idx] = reader.getPixel(j, i);
+        }
+    }
+
+    return image;
+}
+
+unsigned short * LaserProfile::readHDF5File(const std::string &fileName,
+                                            const std::string &imageName) {
 
     hid_t h5 = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     hid_t group = H5Gopen2 (h5, imageName.c_str(), H5P_DEFAULT);
@@ -211,8 +241,7 @@ void LaserProfile::filterSpikes(unsigned short *image) {
 }
 
 void LaserProfile::normalizeProfileData(double intensityCut, unsigned short *image) {
-    unsigned short int profileMax;
-    getProfileMax(profileMax, image);
+    unsigned short int profileMax = getProfileMax(image);
 
     unsigned int pixel = 0;
     for (unsigned int col = 0; col < sizeX_m; ++ col) {
@@ -251,40 +280,36 @@ void LaserProfile::computeProfileStatistics(unsigned short *image) {
 }
 
 void LaserProfile::fillHistrogram(unsigned short *image) {
-    unsigned int histSizeX = std::floor(10 * standardDeviation_m(0) + 0.5);
-    unsigned int histSizeY = std::floor(10 * standardDeviation_m(1) + 0.5);
-    histSizeX += (1 - histSizeX % 2);
-    histSizeY += (1 - histSizeY % 2);
+    unsigned int histSizeX = sizeX_m;
+    unsigned int histSizeY = sizeY_m;
     double histRangeX = histSizeX / standardDeviation_m(0) / 2;
     double histRangeY = histSizeY / standardDeviation_m(1) / 2;
-    double binSizeX = histRangeX * 2 / histSizeX;
-    double binSizeY = histRangeY * 2 / histSizeY;
+    double binSizeX = 1.0 / standardDeviation_m(0);
+    double binSizeY = 1.0 / standardDeviation_m(1);
 
     hist2d_m = gsl_histogram2d_alloc(histSizeX, histSizeY);
     gsl_histogram2d_set_ranges_uniform(hist2d_m,
                                        -histRangeX, histRangeX,
                                        -histRangeY, histRangeY);
 
+
     unsigned int pixel = 0;
     for (unsigned int col = 0; col < sizeX_m; ++ col) {
-        double x = (col - centerMass_m(0)) / standardDeviation_m(0);
-        x = std::floor(x / binSizeX + 0.5) * binSizeX;
-        if (std::abs(x) > 5.0) {
-            pixel += sizeY_m;
-            continue;
-        }
-
+        double x = (col - 0.5 * sizeX_m) / standardDeviation_m(0);
+        x = x + 0.5 * binSizeX;
+        // std::cout << "x = " << x << std::endl;
 
         for (unsigned int row = 0; row < sizeY_m; ++ row, ++ pixel) {
             double val = image[pixel];
-            double y = (row - centerMass_m(1)) / standardDeviation_m(1);
-            y = std::floor(y / binSizeY + 0.5) * binSizeY;
-
-            if (std::abs(y) > 5.0) continue;
+            double y = -(row - 0.5 * sizeY_m) / standardDeviation_m(1);
+            y = y + 0.5 * binSizeY;
+            // if (col == 0)
+            //     std::cout << "y = " << y << std::endl;
 
             gsl_histogram2d_accumulate(hist2d_m, x, y, val);
         }
     }
+    saveHistogram();
 }
 
 void LaserProfile::setupRNG() {
@@ -308,13 +333,15 @@ void LaserProfile::printInfo() {
     INFOMSG("* **********************************************************************************" << endl);
 }
 
-void LaserProfile::saveOrigData(unsigned short *image) {
-    std::ofstream out("data/originalLaserProfile.dat");
+void LaserProfile::saveData(const std::string &fname, unsigned short *image) {
+    std::ofstream out("data/" + fname + ".pgm");
+    out << "P2" << std::endl;
+    out << sizeX_m << " " << sizeY_m << std::endl;
+    out << getProfileMax(image) << std::endl;
 
-    unsigned int index = 0;
-    for (unsigned int i = 0; i < sizeX_m; ++ i) {
-        for (unsigned int j = 0; j < sizeY_m; ++ j) {
-            out << image[index++] << "\t";
+    for (unsigned int j = 0; j < sizeY_m; ++ j) {
+        for (unsigned int i = 0; i < sizeX_m; ++ i) {
+            out << image[i * sizeY_m + j] << " ";
         }
         out << std::endl;
     }
@@ -344,13 +371,15 @@ void LaserProfile::getXY(double &x, double &y) {
     gsl_histogram2d_pdf_sample(pdf_m, u, v, &x, &y);
 }
 
-void LaserProfile::getProfileMax(unsigned short &maxIntensity, unsigned short *image) {
+unsigned short LaserProfile::getProfileMax(unsigned short *image) {
     unsigned int numberPixels = sizeX_m * sizeY_m;
 
-    maxIntensity = 0;
+    unsigned short maxIntensity = 0;
 
     for(unsigned int i = 0; i < numberPixels; i++) {
         if(image[i] > maxIntensity)
             maxIntensity = image[i];
     }
+
+    return maxIntensity;
 }

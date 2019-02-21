@@ -115,9 +115,6 @@ template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
                                   int lev_min, int lev_max)
 {
-    // delete particles that are in destroy list
-    PData.performDestroy(true);
-
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
         /* we need to update on Amr domain + boosted frame (Lorentz transform,
@@ -163,7 +160,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
   
     //loop trough particles and assign grid and level to each particle
     //if particle doesn't belong to this process save the index of the particle to be sent
-    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {        
+    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {
         // old level
         const size_t& lold = PData.Level[ip];
         
@@ -684,7 +681,7 @@ void BoxLibLayout<T, Dim>::locateParticle(
     if (!success)
     {
         std::stringstream ss;
-        ss << "Invalid particle at position " << p.R[ip] << ".";
+        ss << "Invalid particle with ID " << ip << " at position " << p.R[ip] << ".";
         throw OpalException("BoxLibLayout::locateParticle()", ss.str());
     }
 }
