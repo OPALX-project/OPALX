@@ -14,8 +14,8 @@ public:
     unsigned int getWidth() const;
     unsigned int getHeight() const;
 
-    float getPixel(unsigned int i, unsigned int j) const;
-    std::vector<float> getPixels() const;
+    unsigned short getPixel(unsigned int i, unsigned int j) const;
+    std::vector<unsigned short> getPixels() const;
     void print(std::ostream &out) const;
 
 private:
@@ -28,7 +28,7 @@ private:
 
     unsigned int width_m;
     unsigned int height_m;
-    unsigned int depth_m;
+    unsigned short depth_m;
 
     enum FileType {
         ASCII,
@@ -37,7 +37,7 @@ private:
 
     FileType type_m;
 
-    std::vector<float> pixels_m;
+    std::vector<unsigned short> pixels_m;
 };
 
 inline
@@ -51,12 +51,12 @@ unsigned int PortableGraymapReader::getHeight() const {
 }
 
 inline
-float PortableGraymapReader::getPixel(unsigned int i, unsigned int j) const {
+unsigned short PortableGraymapReader::getPixel(unsigned int i, unsigned int j) const {
     return pixels_m[getIdx(i, j)];
 }
 
 inline
-std::vector<float> PortableGraymapReader::getPixels() const {
+std::vector<unsigned short> PortableGraymapReader::getPixels() const {
     return pixels_m;
 }
 

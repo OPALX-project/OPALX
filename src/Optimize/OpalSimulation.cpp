@@ -309,7 +309,8 @@ void OpalSimulation::run() {
     int seed = Options::seed;
 
     CmdArguments_t args = getArgs();
-    int restartStep= args->getArg<int>("restartstep", -2, false);
+    int restartStep= args->getArg<int>("restartstep",
+                                       std::numeric_limits<int>::min(), false);
     std::string restartfile = args->getArg<std::string>("restartfile", "", false);
 
     try {
