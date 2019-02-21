@@ -131,8 +131,15 @@ bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const
 
             probepoint = bunch->R[i] + dist2 * 1000.0 * bunch->P[i] / euclidean_norm(bunch->P[i]);
 
-            lossDs_m->addParticle(probepoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
+            // peak finder uses millimetre not metre
             peakfinder_m->addParticle(probepoint);
+
+            /*FIXME Issue #45: mm --> m (when OPAL-Cycl uses metre insteas of millimetre,
+             * this can be removed.
+             */
+            probepoint *= 0.001;
+
+            lossDs_m->addParticle(probepoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
             flagprobed = true;
         }
 
