@@ -1,5 +1,4 @@
 #include "AmrOpal.h"
-#include "AmrOpal_F.h"
 #include <AMReX_PlotFileUtil.H>
 // #include <MultiFabUtil.H>
 
@@ -9,7 +8,7 @@
 
 
 // AmrOpal::AmrOpal() { }
-AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord,
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector<int>& n_cell_in, int coord,
 #ifdef IPPL_AMR
                  PartBunchAmr<amrplayout_t>* bunch)
 #else
@@ -26,7 +25,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
       nCharge_m(1.0e-15),
       minNumPart_m(1),
       maxNumPart_m(1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+      meshScaling_m(Vector_t(D_DECL(1.0, 1.0, 1.0)))
 {
     initBaseLevel();
     
@@ -35,14 +34,14 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
     nChargePerCell_m[0]->setVal(0.0, 1);
 }
 
-AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord)
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector<int>& n_cell_in, int coord)
     : AmrMesh(rb, max_level_in, n_cell_in, coord),
       tagging_m(kChargeDensity),
       scaling_m(0.75),
       nCharge_m(1.0e-15),
       minNumPart_m(1),
       maxNumPart_m(1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+      meshScaling_m(Vector_t(D_DECL(1.0, 1.0, 1.0)))
 {
     finest_level = 0;
     
@@ -55,7 +54,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
     MakeNewLevel(0, 0.0, ba, dm);
 }
 
-AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<int>& n_cell_in, int coord,
+AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Vector<int>& n_cell_in, int coord,
                  const std::vector<int>& refratio)
     : AmrMesh(rb, max_level_in, n_cell_in, coord, refratio),
       tagging_m(kChargeDensity),
@@ -63,7 +62,7 @@ AmrOpal::AmrOpal(const amrex::RealBox* rb, int max_level_in, const amrex::Array<
       nCharge_m(1.0e-15),
       minNumPart_m(1),
       maxNumPart_m(1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+      meshScaling_m(Vector_t(D_DECL(1.0, 1.0, 1.0)))
 {
     finest_level = 0;
     
@@ -277,16 +276,16 @@ void AmrOpal::writePlotFile(std::string filename, int step) {
         chargeOnGrid[i]->setVal(0.0);
     }
     
-    amrex::Array<std::string> varnames(1, "rho");
+    amrex::Vector<std::string> varnames(1, "rho");
     
-    amrex::Array<const amrex::MultiFab*> tmp(finest_level + 1);
+    amrex::Vector<const amrex::MultiFab*> tmp(finest_level + 1);
     for (/*unsigned*/ int i = 0; i < finest_level + 1; ++i) {
         tmp[i] = chargeOnGrid[i].get();
     }
     
     const auto& mf = tmp;
     
-    amrex::Array<int> istep(finest_level+1, step);
+    amrex::Vector<int> istep(finest_level+1, step);
     
     amrex::WriteMultiLevelPlotfile(filename, finest_level + 1, mf, varnames,
                                    Geom(), 0.0, istep, refRatio());
@@ -345,7 +344,7 @@ void
 AmrOpal::regrid (int lbase, amrex::Real time)
 {
     int new_finest = 0;
-    amrex::Array<amrex::BoxArray> new_grids(finest_level+2);
+    amrex::Vector<amrex::BoxArray> new_grids(finest_level+2);
     
     MakeNewGrids(lbase, time, new_finest, new_grids);
 
@@ -428,7 +427,7 @@ AmrOpal::MakeNewLevel (int lev, amrex::Real time,
     SetBoxArray(lev, new_grids);
     SetDistributionMap(lev, new_dmap);
     
-    nChargePerCell_m[lev] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(new_grids, dmap[lev], 1, 1));
+    nChargePerCell_m[lev] = std::unique_ptr<amrex::MultiFab>(new amrex::MultiFab(new_grids, new_dmap, 1, 1));
 }
 
 void AmrOpal::ClearLevel(int lev) {
@@ -480,30 +479,31 @@ void AmrOpal::tagForChargeDensity_m(int lev, amrex::TagBoxArray& tags, amrex::Re
 #pragma omp parallel
 #endif
     {
-        amrex::Array<int>  itags;
-        for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*nChargePerCell_m[lev], false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
+            amrex::FArrayBox&  fab     = (*nChargePerCell_m[lev])[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &scale, &nCharge_m);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( std::abs( fab(iv) ) >= nCharge_m )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
         }
     }
 }
@@ -596,30 +596,31 @@ void AmrOpal::tagForPotentialStrength_m(int lev, amrex::TagBoxArray& tags, amrex
 #pragma omp parallel
 #endif
     {
-        amrex::Array<int>  itags;
-        for (amrex::MFIter mfi(*phi[lev],false/*true*/); mfi.isValid(); ++mfi) {
+        for (amrex::MFIter mfi(*phi[lev], false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
+            amrex::FArrayBox&  fab     = (*phi[lev])[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            tag_potential_strength(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*phi[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &scale, &value);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( std::abs( fab(iv) ) >= value )
+                            tagfab(iv) = tagval;
+                        else
+                            tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
         }
     }
     
@@ -701,14 +702,14 @@ void AmrOpal::tagForEfieldStrength_m(int lev, amrex::TagBoxArray& tags, amrex::R
     const int clearval = amrex::TagBox::CLEAR;
     const int   tagval = amrex::TagBox::SET;
     
-    amrex::Real min[3] = {0.0, 0.0, 0.0};
-    amrex::Real max[3] = {0.0, 0.0, 0.0};
-    for (int i = 0; i < 3; ++i) {
+    amrex::Real min[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    amrex::Real max[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         max[i] = scaling_m * grad_phi[lev]->max(i);
         min[i] = scaling_m * grad_phi[lev]->min(i);
     }
-    amrex::Real efield[3] = {0.0, 0.0, 0.0};
-    for (int i = 0; i < 3; ++i)
+    amrex::Real efield[AMREX_SPACEDIM] = { D_DECL(0.0, 0.0, 0.0) };
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
         efield[i] = std::max( std::abs(min[i]), std::abs(max[i]) );
     
     
@@ -733,17 +734,23 @@ void AmrOpal::tagForEfieldStrength_m(int lev, amrex::TagBoxArray& tags, amrex::R
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i,j,k);
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
                         if (std::abs(fab(iv, 0)) >= efield[0])
                             tagfab(iv) = tagval;
                         else if (std::abs(fab(iv, 1)) >= efield[1])
                             tagfab(iv) = tagval;
+#if AMREX_SPACEDIM == 3
                         else if (std::abs(fab(iv, 2)) >= efield[2])
                             tagfab(iv) = tagval;
+#endif
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
                             
@@ -774,7 +781,7 @@ void AmrOpal::tagForMomentum_m(int lev, amrex::TagBoxArray& tags, amrex::Real sc
     size_t lBegin = LocalNumPerLevel.begin(lev);
     size_t lEnd   = LocalNumPerLevel.end(lev);
     
-    Vector_t pmax = Vector_t(0.0, 0.0, 0.0);
+    Vector_t pmax = Vector_t(D_DECL(0.0, 0.0, 0.0));
     for (size_t i = lBegin; i < lEnd; ++i) {
         const Vector_t& tmp = bunch_m->P[i];
         pmax = ( dot(tmp, tmp) > dot(pmax, pmax) ) ? tmp : pmax;
@@ -810,13 +817,17 @@ void AmrOpal::tagForMomentum_m(int lev, amrex::TagBoxArray& tags, amrex::Real sc
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i, j, k);
+#endif
+                        amrex::IntVect iv(D_DECL(i, j, k));
                         if ( cells.find(iv) != cells.end() )
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
             //
@@ -869,13 +880,17 @@ void AmrOpal::tagForMaxNumParticles_m(int lev, amrex::TagBoxArray& tags, amrex::
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i, j, k);
+#endif
+                        amrex::IntVect iv(D_DECL(i, j, k));
                         if ( cells.find(iv) != cells.end() && cells[iv] <= maxNumPart_m )
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
             //
@@ -921,13 +936,17 @@ void AmrOpal::tagForMinNumParticles_m(int lev, amrex::TagBoxArray& tags, amrex::
 
             for (int i = tlo[0]; i <= thi[0]; ++i) {
                 for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
                     for (int k = tlo[2]; k <= thi[2]; ++k) {
-                        amrex::IntVect iv(i, j, k);
+#endif
+                        amrex::IntVect iv(D_DECL(i, j, k));
                         if ( cells.find(iv) != cells.end() && cells[iv] >= minNumPart_m )
                             tagfab(iv) = tagval;
                         else
                             tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
                     }
+#endif
                 }
             }
             //
@@ -969,30 +988,37 @@ void AmrOpal::tagForCenteredRegion_m(int lev, amrex::TagBoxArray& tags, amrex::R
 #pragma omp parallel
 #endif
     {
-        amrex::Array<int>  itags;
         for (amrex::MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
             const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
             
             amrex::TagBox&     tagfab  = tags[mfi];
             
-            // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-            // So we are going to get a temporary integer array.
-            tagfab.get_itags(itags, tilebx);
-            
-            // data pointer and index space
-            int*        tptr    = itags.dataPtr();
             const int*  tlo     = tilebx.loVect();
             const int*  thi     = tilebx.hiVect();
-
-            centered_region(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                        BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
-                        &tagval, &clearval, 
-                        ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                        ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
-            //
-            // Now update the tags in the TagBox.
-            //
-            tagfab.tags_and_untags(itags, tilebx);
+            
+            for (int i = tlo[0]; i <= thi[0]; ++i) {
+                double x = prob_lo[0] + i * dx[0] + 0.5 * dx[0];
+                for (int j = tlo[1]; j <= thi[1]; ++j) {
+                    double y = prob_lo[1] + j * dx[1] + 0.5 * dx[1];
+#if AMREX_SPACEDIM == 3
+                    for (int k = tlo[2]; k <= thi[2]; ++k) {
+                        double z = prob_lo[2] + k * dx[2] + 0.5 * dx[2];
+#endif
+                        amrex::IntVect iv(D_DECL(i,j,k));
+                        
+                        if ( AMREX_D_TERM(   x >= -0.125 && x < 0.125,
+                                          && y >= -0.125 && y < 0.125,
+                                          && z >= -0.125 && z < 0.125 ) )
+                        {
+                            tagfab(iv) = tagval;
+                        } else {
+                            tagfab(iv) = clearval;
+                        }
+#if AMREX_SPACEDIM == 3
+                    }
+#endif
+                }
+            }
         }
     }
 }

@@ -21,7 +21,11 @@ class AmrYtWriter : public AbstractAmrWriter {
     
 public:
     
-    AmrYtWriter(int step);
+    /*!
+     * @param step we write
+     * @param bin energy bin we write (multi-bunch simulation)
+     */
+    AmrYtWriter(int step, int bin = 0);
     
     /*!
      * Write yt files to the simulation subdirectory
@@ -30,9 +34,9 @@ public:
      * pyOPALTools/amrPlots/visualize.py. Use the help
      * to find out how to call the script.
      */
-    void writeFields(const amr::AmrFieldContainer_t& rho,
-                     const amr::AmrFieldContainer_t& phi,
-                     const amr::AmrFieldContainer_t& efield,
+    void writeFields(const amr::AmrScalarFieldContainer_t& rho,
+                     const amr::AmrScalarFieldContainer_t& phi,
+                     const amr::AmrVectorFieldContainer_t& efield,
                      const amr::AmrIntArray_t& refRatio,
                      const amr::AmrGeomContainer_t& geom,
                      const int& nLevel,
@@ -66,7 +70,6 @@ private:
     
 private:
     std::string dir_m;                      ///< directory where to write files
-    int step_m;                             ///< that we write
     
     std::vector<std::string> intData_m;     ///< integer bunch data
     std::vector<std::string> realData_m;    ///< real bunch data

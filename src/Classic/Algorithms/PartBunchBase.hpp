@@ -1388,15 +1388,15 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin) {
+bool PartBunchBase<T, Dim>::calcBunchBeamParameters(MultiBunchDump::beaminfo_t& binfo, short bunch) {
     if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
         return false;
     }
 
     const unsigned long localNum = getLocalNum();
 
-    long int binTotalNum = 0;
-    unsigned long binLocalNum = 0;
+    long int bunchTotalNum = 0;
+    unsigned long bunchLocalNum = 0;
 
     /* container:
      *
@@ -1408,12 +1408,12 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     std::vector<double> local(7 * Dim + 1);
 
     for(unsigned long k = 0; k < localNum; ++ k) {
-        if ( Bin[k] != bin || ID[k] == 0 ) {
+        if ( bunchNum[k] != bunch || ID[k] == 0 ) {
             continue;
         }
 
-        ++binTotalNum;
-        ++binLocalNum;
+        ++bunchTotalNum;
+        ++bunchLocalNum;
 
         // ekin
         local[0] += std::sqrt(dot(P[k], P[k]) + 1.0);
@@ -1447,23 +1447,23 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     }
 
     // inefficient
-    allreduce(binTotalNum, 1, std::plus<long int>());
+    allreduce(bunchTotalNum, 1, std::plus<long int>());
 
-    if ( binTotalNum == 0 )
+    if ( bunchTotalNum == 0 )
         return false;
 
     // ekin
     const double m0 = getM() * 1.0e-6;
-    local[0] -= binLocalNum;
+    local[0] -= bunchLocalNum;
     local[0] *= m0;
 
     allreduce(local.data(), local.size(), std::plus<double>());
 
-    double invN = 1.0 / double(binTotalNum);
+    double invN = 1.0 / double(bunchTotalNum);
     binfo.ekin = local[0] * invN;
 
     binfo.time       = getT() * 1e9;  // ns
-    binfo.nParticles = binTotalNum;
+    binfo.nParticles = bunchTotalNum;
 
     for (unsigned int i = 0; i < Dim; ++i) {
 
@@ -2222,6 +2222,7 @@ void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
     std::swap(PType[i], PType[j]);
     std::swap(TriID[i], TriID[j]);
     std::swap(cavityGapCrossed[i], cavityGapCrossed[j]);
+    std::swap(bunchNum[i], bunchNum[j]);
 }
 
 
@@ -2265,6 +2266,8 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     pb->addAttribute(PType);
     pb->addAttribute(TriID);
     pb->addAttribute(cavityGapCrossed);
+
+    pb->addAttribute(bunchNum);
 
     boundpTimer_m       = IpplTimings::getTimer("Boundingbox");
     boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");

@@ -24,7 +24,7 @@ public:
     
     void writeHeader(const std::string& fname) const;
     
-    void writeData(const beaminfo_t& binfo, int bin);
+    void writeData(const beaminfo_t& binfo, short bunch);
     
 private:
     void open_m(std::ofstream& out, const std::string& fname) const;
