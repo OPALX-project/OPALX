@@ -193,11 +193,11 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
     			if (stop) {
     				bunch->Bin[i] = -1;
     				stoppedPartStat_m++;
-    				*gmsg << "* Particle " << bunch->ID[i] << " is deleted by beam stripping" << endl;
+    				INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is deleted by beam stripping" << endl;);
     			}
     			else {
     				bunch->updateNumTotal();
-    				*gmsg << "* Total number of particles after beam stripping = " << bunch->getTotalNum() << endl;
+    				INFOMSG(level2 << "* Total number of particles after beam stripping = " << bunch->getTotalNum() << endl;);
     				SecondaryParticles(bunch, i);
     			}
     		}
@@ -444,36 +444,36 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
 	// change the mass_m and charge_m
 	if(mass_m-m_hm < 1E-6 && charge_m == -q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
-			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
+			INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;);
 			bunch->M[i] = m_h;
 			bunch->Q[i] = 0.0;
 		}
 		else {
-			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to proton" << endl;
+			INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is transformed to proton" << endl;);
 			bunch->M[i] = m_p;
 			bunch->Q[i] = q_e;
 		}
 	}
 	else if(mass_m-m_p < 1E-6 && charge_m == q_e) {
 		if(r > NCS_double_all/NCS_total_all) {
-			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;
+			INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is transformed to neutral hydrogen" << endl;);
 			bunch->M[i] = m_h;
 			bunch->Q[i] = 0.0;
 		}
 		else {
-			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
+			INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;);
 			bunch->M[i] = m_hm;
 			bunch->Q[i] = -q_e;
 		}
 	}
 	else if(mass_m-m_h < 1E-6 && charge_m == 0.0) {
 		if(r > NCS_double_all/NCS_total_all) {
-			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to proton" << endl;
+			INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is transformed to proton" << endl;);
 			bunch->M[i] = m_p;
 			bunch->Q[i] = q_e;
 		}
 		else {
-			*gmsg << "* Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;
+			INFOMSG(level2 << "* Particle " << bunch->ID[i] << " is transformed to negative hydrogen ion" << endl;);
 			bunch->M[i] = m_hm;
 			bunch->Q[i] = -q_e;
 		}

@@ -291,16 +291,16 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
                     strippoint(1) = (A_m*A_m*bunch->R[i](1) - A_m*B_m*bunch->R[i](0)-B_m*C_m)/(R_m*R_m);
                     strippoint(2) = bunch->R[i](2);
                     lossDs_m->addParticle(strippoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
-                    *gmsg << "* Particle " << bunch->ID[i] << " collide in the stripper" << endl;
+                    INFOMSG(level2 << "* Particle " << bunch->ID[i] << " collide with stripper" << endl;);
 
                     if (stop_m) {
                         bunch->Bin[i] = -1;
                         flagNeedUpdate = true;
-                        *gmsg << "* Total number of particles lost in stripper = " << bunch->getTotalNum() << endl;
+                        INFOMSG(level2 << "* Total number of particles lost in stripper = " << bunch->getTotalNum() << endl;);
                     }
                     else {
                     	bunch->updateNumTotal();
-                    	*gmsg << "* Total number of particles after stripper = " << bunch->getTotalNum() << endl;
+                    	INFOMSG(level2 << "* Total number of particles after stripper = " << bunch->getTotalNum() << endl;);
 
                         flagNeedUpdate = true;
                         // change charge and mass of PartData when the reference particle hits the stripper.

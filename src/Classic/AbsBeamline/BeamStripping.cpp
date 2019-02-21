@@ -208,7 +208,7 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
     goOnline(-1e6);
 
     // change the mass and charge to simulate real particles
-	*gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
+	INFOMSG(level2  << "* Mass and charge have been reseted for beam stripping " <<  endl;);
 	size_t tempnum = bunch->getLocalNum();
     for (size_t i = 0; i < tempnum; ++i) {
     	bunch->M[i] = bunch->getM()*1E-9;

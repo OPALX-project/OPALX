@@ -250,7 +250,7 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
 				lossDs_m->addParticle(probepoint, bunch->P[i], bunch->ID[i], t+dt, turnnumber);
 				flagprobed = true;
 				
-				*gmsg << "* Particle " << bunch->ID[i] << " collide in the probe" << endl;
+				INFOMSG(level2 << "* Particle " << bunch->ID[i] << " collide in the probe" << endl;);
 					
 				peakfinder_m->addParticle(bunch->R[i]);
             }

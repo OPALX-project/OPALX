@@ -341,7 +341,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
         if(res >= 0) {
 			lossDs_m->addParticle(itsBunch_m->R[i]*1000, itsBunch_m->P[i], itsBunch_m->ID[i], itsBunch_m->getT()*1e9, turnnumber_m);
             itsBunch_m->Bin[i] = -1;
-            *gmsg << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;
+            INFOMSG(level2 << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;);
         }
     }
 }
@@ -2311,7 +2311,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
                 -> checkStripper(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
             if(flag_stripper) {
                 itsBunch_m->updateNumTotal();
-                *gmsg << "* Total number of particles collide with stripper = " << itsBunch_m->getTotalNum() << endl;
+                //INFOMSG("* Total number of particles collide with stripper = " << itsBunch_m->getTotalNum() << endl;);
             }
         }
 
