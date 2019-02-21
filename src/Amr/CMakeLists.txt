@@ -2,7 +2,6 @@ set (_SRCS
     AmrBoxLib.cpp
     AmrObject.cpp
     AmrYtWriter.cpp
-    Tagging_nd.f90
 )
 
 include_directories (
@@ -11,10 +10,13 @@ include_directories (
 
 add_opal_sources(${_SRCS})
 
+add_compile_options (-Wno-unused-variable
+                     -Wno-unused-but-set-variable
+                     -Wno-maybe-uninitialized)
+
 set (HDRS
     AbstractAmrWriter.h
     AmrBoxLib.h
-    AmrBoxLib_F.h
     AmrObject.h
     AmrYtWriter.h
     BoxLibLayout.h

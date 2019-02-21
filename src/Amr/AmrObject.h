@@ -75,8 +75,9 @@ public:
      * @param lbase base level to regrid
      * @param lfine finest level to regrid
      * @param time of regrid
+     * @param bin is the energy bin
      */
-    virtual void regrid(int lbase, int lfine, double time) = 0;
+    virtual void regrid(int lbase, int lfine, double time, int bin = 0) = 0;
     
     /*!
      * Choose a new tagging strategy.
@@ -159,6 +160,14 @@ public:
      */
     const bool& isRefined() const;
     
+    /*!
+     * Used in Fieldsolver in order to convert a number that
+     * specifies the tagging to the corresponding string. Check
+     * enum TaggingCriteria for ordering.
+     * @param number of tagging
+     */
+    static std::string enum2string(int number);
+
 protected:
     TaggingCriteria tagging_m;  ///< Tagging strategy
     

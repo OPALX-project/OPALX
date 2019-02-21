@@ -232,14 +232,14 @@ inline
 void ParallelCyclotronTracker::setMultiBunchMode(const std::string& mbmode)
 {
     if ( mbmode.compare("FORCE") == 0 ) {
-        *gmsg << "FORCE mode: The multi bunches will be injected consecutively "
-              << "after each revolution, until get \"TURNS\" bunches." << endl;
+        *gmsg << "FORCE mode: The multi bunches will be injected consecutively" << endl
+              << "            after each revolution, until get \"TURNS\" bunches." << endl;
         multiBunchMode_m = MB_MODE::FORCE;
     } else if ( mbmode.compare("AUTO") == 0 ) {
-        *gmsg << "AUTO mode: The multi bunches will be injected only when "
-                      << "the distance between two neighboring bunches " << endl
-                      << "is below the limitation. The control parameter is set to "
-                      << CoeffDBunches_m << endl;
+        *gmsg << "AUTO mode: The multi bunches will be injected only when the" << endl
+              << "           distance between two neighboring bunches is below" << endl
+              << "           the limitation. The control parameter is set to "
+              << CoeffDBunches_m << endl;
         multiBunchMode_m = MB_MODE::AUTO;
     } else if ( mbmode.compare("NONE") == 0 )
         multiBunchMode_m = MB_MODE::NONE;
@@ -1748,9 +1748,11 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
 #ifdef ENABLE_AMR
-    if ( dynamic_cast<AmrPartBunch*>(itsBunch_m) != 0 )
-        tmpBunch.reset(new AmrPartBunch(&itsReference));
-    else
+    AmrPartBunch* amrbunch_p = dynamic_cast<AmrPartBunch*>(itsBunch_m);
+    if ( amrbunch_p != 0 ) {
+        tmpBunch.reset(new AmrPartBunch(&itsReference,
+                                        amrbunch_p->getAmrParticleBase()));
+    } else
 #endif
         tmpBunch.reset(new PartBunch(&itsReference));
 
@@ -1768,6 +1770,7 @@ bool ParallelCyclotronTracker::readOneBunchFromFile(const size_t BinID) {
         itsBunch_m->Q[localNum] = tmpBunch->Q[ii];
         itsBunch_m->PType[localNum] = ParticleType::REGULAR;
         itsBunch_m->Bin[localNum] = BinID;
+        itsBunch_m->bunchNum[localNum] = BunchCount_m - 1;
     }
 
     itsBunch_m->boundp();
@@ -2685,21 +2688,14 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
     IpplTimings::startTimer(DumpTimer_m);
     
-//     itsBunch_m->R *= Vector_t(0.001); // mm --> m
-    
-    int nBins = std::min(itsBunch_m->getNumBins(), BunchCount_m);
-    //allreduce(nBins, 1, std::greater<int>());
-    
-    for (int bin = 0; bin < nBins; ++bin) {
+    for (short b = 0; b < BunchCount_m; ++b) {
         
         MultiBunchDump::beaminfo_t binfo;
         
-        if ( itsBunch_m->calcBinBeamParameters(binfo, bin) ) {
-            itsMBDump_m->writeData(binfo, bin);
+        if ( itsBunch_m->calcBunchBeamParameters(binfo, b) ) {
+            itsMBDump_m->writeData(binfo, b);
         }
     }
-    
-//     itsBunch_m->R *= Vector_t(1000.0); // m --> mm
     
     IpplTimings::stopTimer(DumpTimer_m);
 }
@@ -2918,8 +2914,9 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     initDistInGlobalFrame();
 
-    if ( OpalData::getInstance()->inRestartRun() && numBunch_m > 1)
+    if ( multiBunchMode_m != MB_MODE::NONE ) {
         updateParticleBins_m();
+    }
 
     turnnumber_m = 1;
 
@@ -3561,6 +3558,8 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
 
         BunchCount_m++;
 
+        itsBunch_m->setNumBunch(BunchCount_m);
+
         // read initial distribution from h5 file
         switch ( multiBunchMode_m ) {
             case MB_MODE::FORCE:
@@ -3574,8 +3573,6 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
                 throw OpalException("ParallelCyclotronTracker::injectBunch_m()",
                                     "We shouldn't be here in single bunch mode.");
         }
-
-        itsBunch_m->setNumBunch(BunchCount_m);
 
         setup_m.stepsNextCheck += setup_m.stepsPerTurn;
 

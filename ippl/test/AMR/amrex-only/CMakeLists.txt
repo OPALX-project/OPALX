@@ -6,13 +6,18 @@ set (CMAKE_CXX_FLAGS
     )
     
 set (CMAKE_CXX_FLAGS
-    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${CMAKE_CXX_FLAGS}"
+    "${IPPL_CMAKE_CXX_FLAGS} -std=c++11 ${CMAKE_CXX_FLAGS} -DIPPL_AMR"
 )
 
 add_definitions(${AMREX_DEFINES})
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/ippl/src
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/ippl/src
+    ${CMAKE_SOURCE_DIR}/src/Classic/
+    ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/
+    ${CMAKE_SOURCE_DIR}/src/Utilities/
     ${IPPL_INCLUDE_DIR}
     ${AMREX_INCLUDE_DIR}
 )
@@ -48,14 +53,10 @@ if ( ${AMREX_DIM} EQUAL 3 )
 #                    testGeometry.cpp)
     
     add_executable( testDepositionFail
-                    testDepositionFail.cpp
-                    ../Tagging_nd.f90
-                    ../AmrOpal_F.h)
+                    testDepositionFail.cpp)
     
     add_executable( testSolverFail
                     testSolverFail.cpp
-                    ../Tagging_nd.f90
-                    ../AmrOpal_F.h
                     ../Solver.cpp)
     
     # 4. March 2017,

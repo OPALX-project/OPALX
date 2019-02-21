@@ -15,8 +15,9 @@ extern Inform *gmsg;
 #include "OPALconfig.h"
 
 
-int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel, int warnLevel, MPI_Comm comm) {
-
+int run_opal(char *arg[], std::string inputfile, int restartStep,
+             int infoLevel, int warnLevel, MPI_Comm comm)
+{
     std::string::size_type startExtension    = inputfile.find_last_of('.');
     // std::string::size_type startRelativePath = inputfile.find_last_of('/');
     // std::string relativePath("");
@@ -38,9 +39,6 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel,
     Configure::configure();
     opal->storeInputFn(inputfile);
 
-    //FIXME
-    if(restartStep > 0) throw new OpalException("run_opal", "Restart not implemented yet!");
-
     // FileStream is a RCObject
     FileStream *is = 0;
     try {
@@ -52,6 +50,13 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel,
 
     // run simulation
     OpalParser *parser = new OpalParser();
+
+    if (restartStep > std::numeric_limits<int>::min()) {
+        opal->setRestartRun();
+        opal->setRestartStep(restartStep);
+        opal->setRestartFileName(inputfile.substr(0,startExtension) + ".h5");
+    }
+
     if(is) parser->run(is);
 
     Ippl::Comm->barrier();

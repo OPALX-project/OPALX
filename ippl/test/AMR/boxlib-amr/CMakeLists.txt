@@ -61,41 +61,34 @@ ELSE()
 ENDIF(${HOSTNAME_BASE} MATCHES "edison" OR ${HOSTNAME_BASE} MATCHES "cori" OR
       ${HOSTNAME_BASE} MATCHES "daint")
     
-set(F90_source_files ../Tagging_nd.f90)
-    
-#     add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp ../H5Reader.cpp Distribution.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
+#     add_executable (testAmrPartBunch testAmrPartBunch.cpp AmrOpal.cpp AmrPartBunch.cpp ../H5Reader.cpp Distribution.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp Solver.cpp)
 #     add_executable (testSolver testSolver.cpp ../H5Reader.cpp Distribution.cpp Solver.cpp)
 add_executable (iterative iterative.cpp)
-#     add_executable (testError error.cpp AmrPartBunch.cpp ../H5Reader.cpp Distribution.cpp PoissonProblems.cpp Solver.cpp AmrOpal.cpp ${F90_source_files} ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp)
+#     add_executable (testError error.cpp AmrPartBunch.cpp ../H5Reader.cpp Distribution.cpp PoissonProblems.cpp Solver.cpp AmrOpal.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../../../src/Classic/Physics/Physics.cpp)
 add_executable (testGaussian
                 testGaussian.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable (testUniform
                 testUniform.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable (testUnifSphere
                 testUnifSphere.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
-                ${F90_source_files} 
                 ../Solver.cpp)# HypreABecLap.H HypreABecLap.cpp)
     
 add_executable (testGridSolve
                 testGridSolve.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable (testUnifSphereGrid
                 testUnifSphereGrid.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
     
@@ -103,14 +96,12 @@ add_executable(testReal
                 testReal.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable(testMultiBunch
                 testMultiBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable (testH5Read testH5Read.cpp ../H5Reader.cpp)
@@ -123,28 +114,24 @@ add_executable (testTracker
                 testTracker.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable (testOldPlasma
                 testOldPlasma.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
 add_executable (testPerfectLoadBalancing
                 testPerfectLoadBalancing.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
 
 add_executable (testOldPerformance
                 testOldPerformance.cpp
                 ../AmrOpal.cpp AmrPartBunch.cpp
                 ../H5Reader.cpp ../Distribution.cpp
-                ${F90_source_files}
                 ../Solver.cpp)
     
     # Boxlib has a circular dependency between -lcboxlib and -lfboxlib --> resolve by: -lcboxlib -lfboxlib -lcboxlib
