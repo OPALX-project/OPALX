@@ -40,7 +40,7 @@
 
 #include "../helper_functions.h"
 
-#include "../boxlib-amr/writePlotFile.H"
+// #include "../boxlib-amr/writePlotFile.H"
 
 #include <cmath>
 
@@ -78,7 +78,7 @@ void precondition(AmrOpal& myAmrOpal,
         }
         
         PCInterp mapper;
-        Array<BCRec> bc(1);
+        Vector<BCRec> bc(1);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             bc[0].setLo(i, EXT_DIR);
             bc[0].setHi(i, EXT_DIR);
@@ -139,7 +139,7 @@ void precondition(AmrOpal& myAmrOpal,
                 FArrayBox& dfab = phi[lev+1][mfi];
                 const Box& dbx = dfab.box() & fdomain_g;
 
-                Array<BCRec> bcr(ncomp);
+                Vector<BCRec> bcr(ncomp);
                 BoxLib::setBC(dbx,fdomain,0,0,1,bc,bcr);
 //                 BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
                 
@@ -192,7 +192,7 @@ void precondition(AmrOpal& myAmrOpal,
 //         }
     }
     
-    Array<int> rr(nLevels);
+    Vector<int> rr(nLevels);
     for (int i = 0; i < nLevels; ++i)
         rr[i] = 2;
     std::string plotnormal = BoxLib::Concatenate("init_p", 10, 4);
@@ -203,8 +203,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& grad_phi,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              int nLevels,
              bool reuse,
              bool isRegrid,
@@ -307,16 +307,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
-    Array<int> error_buf(nLevels, 0);
+    Vector<int> error_buf(nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
 //     ParmParse pgeom("geometry");
-//     Array<int> is_per = { 1, 1, 1};
+//     Vector<int> is_per = { 1, 1, 1};
 //     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
@@ -327,11 +327,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Vector<BoxArray>& ba = myAmrOpal.boxArray();
+    const Vector<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Vector<Geometry>& geom = myAmrOpal.Geom();
     
-    Array<int> rr(nLevels);
+    Vector<int> rr(nLevels);
     for (int i = 0; i < nLevels; ++i)
         rr[i] = 2;
     
@@ -371,7 +371,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     myAmrOpal.setTagging(AmrOpal::kChargeDensity);
     
-    const Array<Geometry>& geoms = myAmrOpal.Geom();
+    const Vector<Geometry>& geoms = myAmrOpal.Geom();
     
     // ========================================================================
     // 3. multi-level redistribute
@@ -490,7 +490,7 @@ int main(int argc, char *argv[]) {
     
     
         
-    BoxLib::Initialize(argc,argv, false);
+    amrex::Initialize(argc,argv, false);
     size_t nLevels = std::atoi(argv[5]) + 1; // i.e. nLevels = 0 --> only single level
     size_t maxBoxSize = std::atoi(argv[6]);
     int nSteps = std::atoi(argv[7]);
@@ -517,6 +517,8 @@ int main(int argc, char *argv[]) {
              << "-threads-1.dat";
     
     IpplTimings::print(timefile.str());
+    
+    amrex::Finalize(true);
     
     return 0;
 }

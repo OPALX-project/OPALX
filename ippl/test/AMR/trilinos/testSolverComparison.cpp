@@ -19,7 +19,7 @@
 
 using namespace amrex;
 
-typedef Array<std::unique_ptr<MultiFab> > container_t;
+typedef Vector<std::unique_ptr<MultiFab> > container_t;
 
 struct param_t {
     Vektor<size_t, AMREX_SPACEDIM> nr;
@@ -117,8 +117,8 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              const double& scalefactor,
              const std::string dir)
 {
@@ -130,13 +130,13 @@ void writeYt(container_t& rho,
     writePlotFile(dir, rho, phi, efield, rr, geom, time, scalefactor);
 }
 
-void doSolve(const Array<BoxArray>& ba,
-             const Array<DistributionMapping>& dmap,
-             const Array<Geometry>& geom,
+void doSolve(const Vector<BoxArray>& ba,
+             const Vector<DistributionMapping>& dmap,
+             const Vector<Geometry>& geom,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<int>& rr,
+             const Vector<int>& rr,
              Inform& msg,
              const param_t& params, bool trilinos)
 {
@@ -220,7 +220,7 @@ void doAMReX(const param_t& params, Inform& msg)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -233,17 +233,17 @@ void doAMReX(const param_t& params, Inform& msg)
         is_per[i] = 0; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
         geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
                          &real_box, coord, is_per);
     }
 
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
     
     // Now we make the refined level be the center eighth of the domain
     if ( nlevs > 1 &&
@@ -391,6 +391,8 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
+    
+    amrex::Finalize(true);
 
     return 0;
 }

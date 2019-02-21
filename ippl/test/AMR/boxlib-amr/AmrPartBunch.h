@@ -21,9 +21,9 @@
 
 #include "PartBunchBase.h"
 
-#include <AmrParGDB.H>
+#include <AMReX_AmrParGDB.H>
 
-#include <Particles.H>
+#include <AMReX_Particles.H>
 
 
 /// Particle bunch class for BoxLib

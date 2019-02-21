@@ -60,7 +60,7 @@ void precondition(AmrOpal& myAmrOpal,
                   container_t& phi,
                   container_t& grad_phi,
                   int nLevels,
-                  const Array<Geometry>& geom)
+                  const Vector<Geometry>& geom)
 {
     for (int lev = 0; lev < nLevels; ++lev) {
         initGridData(rhs, grad_phi, myAmrOpal.boxArray()[lev],
@@ -83,7 +83,7 @@ void precondition(AmrOpal& myAmrOpal,
     
         
     PCInterp mapper;
-    Array<BCRec> bc(1);
+    Vector<BCRec> bc(1);
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         bc[0].setLo(i, INT_DIR);
         bc[0].setHi(i, INT_DIR);
@@ -131,8 +131,8 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& grad_phi,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              int nLevels,
              bool reuse,
              Inform& msg,
@@ -223,16 +223,16 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     ParmParse pp("amr");
     pp.add("max_grid_size", int(maxBoxSize));
     
-    Array<int> error_buf(nLevels, 0);
+    Vector<int> error_buf(nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
 //     ParmParse pgeom("geometry");
-//     Array<int> is_per = { 1, 1, 1};
+//     Vector<int> is_per = { 1, 1, 1};
 //     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = nr[i];
     
@@ -243,11 +243,11 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Vector<BoxArray>& ba = myAmrOpal.boxArray();
+    const Vector<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Vector<Geometry>& geom = myAmrOpal.Geom();
     
-    Array<int> rr(nLevels);
+    Vector<int> rr(nLevels);
     for (int i = 0; i < nLevels; ++i)
         rr[i] = 2;
     
@@ -285,7 +285,7 @@ void doBoxLib(const Vektor<size_t, 3>& nr, size_t nParticles,
     
     myAmrOpal.setBunch(bunch.get());
     
-    const Array<Geometry>& geoms = myAmrOpal.Geom();
+    const Vector<Geometry>& geoms = myAmrOpal.Geom();
     
     myAmrOpal.setTagging(AmrOpal::kCenteredRegion);
     
@@ -424,6 +424,8 @@ int main(int argc, char *argv[]) {
              << "-threads-1.dat";
     
     IpplTimings::print(timefile.str());
+    
+    amrex::Finalize(true);
     
     return 0;
 }

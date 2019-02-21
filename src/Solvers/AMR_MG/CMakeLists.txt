@@ -9,6 +9,8 @@ include_directories (
 
 add_opal_sources(${_SRCS})
 
+add_compile_options(-Wno-deprecated-declarations)
+
 set (HDRS
     Amesos2BottomSolver.h
     Amesos2BottomSolver.hpp

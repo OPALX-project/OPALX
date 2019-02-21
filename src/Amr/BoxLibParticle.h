@@ -5,7 +5,7 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_IntVect.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_RealBox.H>
@@ -23,12 +23,15 @@ template<class PLayout>
 class BoxLibParticle : public virtual AmrParticleBase<PLayout>
 {
 public:
-    typedef typename AmrParticleBase<PLayout>::ParticlePos_t            ParticlePos_t;
-    typedef typename AmrParticleBase<PLayout>::ParticleIndex_t          ParticleIndex_t;
-    typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t      SingleParticlePos_t;
-    typedef typename AmrParticleBase<PLayout>::AmrField_t               AmrField_t;
-    typedef typename AmrParticleBase<PLayout>::AmrFieldContainer_t      AmrFieldContainer_t; // Array<std::unique_ptr<MultiFab> >
-    typedef typename AmrParticleBase<PLayout>::ParticleLevelCounter_t   ParticleLevelCounter_t;
+    typedef typename AmrParticleBase<PLayout>::ParticlePos_t             ParticlePos_t;
+    typedef typename AmrParticleBase<PLayout>::ParticleIndex_t           ParticleIndex_t;
+    typedef typename AmrParticleBase<PLayout>::SingleParticlePos_t       SingleParticlePos_t;
+    typedef typename AmrParticleBase<PLayout>::AmrField_t                AmrField_t;
+    // Array<std::unique_ptr<MultiFab> >
+    typedef typename AmrParticleBase<PLayout>::AmrScalarFieldContainer_t AmrScalarFieldContainer_t;
+    typedef typename AmrParticleBase<PLayout>::AmrVectorFieldContainer_t AmrVectorFieldContainer_t;
+    typedef typename AmrParticleBase<PLayout>::AmrVectorField_t          AmrVectorField_t;
+    typedef typename AmrParticleBase<PLayout>::ParticleLevelCounter_t    ParticleLevelCounter_t;
     
     typedef typename PLayout::AmrProcMap_t  AmrProcMap_t;
     typedef typename PLayout::AmrGrid_t     AmrGrid_t;
@@ -57,11 +60,14 @@ public:
      * @param pp particle position (not used for AMReX call)
      * @param lbase base level we want to start
      * @param lfine finest level we want to stop
+     * @param pbin the particle bin attribute
+     * @param bin to scatter (default: -1 --> scatter all particles)
      */
     template <class FT, unsigned Dim, class PT>
-    void scatter(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
+    void scatter(ParticleAttrib<FT>& attrib, AmrScalarFieldContainer_t& f,
                  ParticleAttrib<Vektor<PT, Dim> >& pp,
-                 int lbase, int lfine);
+                 int lbase, int lfine,
+                 const ParticleAttrib<int>& pbin, int bin = -1);
     
     
     /*!
@@ -77,6 +83,7 @@ public:
     template <class FT, unsigned Dim, class PT>
     void scatter(ParticleAttrib<FT>& attrib, AmrField_t& f,
                  ParticleAttrib<Vektor<PT, Dim> >& pp,
+                 const ParticleAttrib<int>& pbin, int bin = -1,
                  int level = 0);
     
     /*!
@@ -85,13 +92,13 @@ public:
      * the given Position attribute.
      * 
      * @param attrib to gather from grid
-     * @param f field on grid
+     * @param f vector field on grid
      * @param pp particle position (not used for AMReX call)
      * @param lbase base level to gather from
      * @param lfine finest level to gather from
      */
     template <class FT, unsigned Dim, class PT>
-    void gather(ParticleAttrib<FT>& attrib, AmrFieldContainer_t& f,
+    void gather(ParticleAttrib<FT>& attrib, AmrVectorFieldContainer_t& f,
                 ParticleAttrib<Vektor<PT, Dim> >& pp,
                 int lbase, int lfine);
     
@@ -112,8 +119,9 @@ private:
      */
     template <class AType>
     void AssignDensityFort(ParticleAttrib<AType> &pa,
-                           AmrFieldContainer_t& mf_to_be_filled, 
-                           int lev_min, int ncomp, int finest_level) const;
+                           AmrScalarFieldContainer_t& mf_to_be_filled, 
+                           int lev_min, int ncomp, int finest_level,
+                           const ParticleAttrib<int>& pbin, int bin = -1) const;
     
     /*!
      * Multi-level gather (adjusted from AMReX).
@@ -125,7 +133,7 @@ private:
      */
     template <class AType>
     void InterpolateFort(ParticleAttrib<AType> &pa,
-                         AmrFieldContainer_t& mesh_data, 
+                         AmrVectorFieldContainer_t& mesh_data, 
                          int lev_min, int lev_max);
     
     /*!
@@ -136,7 +144,21 @@ private:
      * @param lev for which we get the mesh data
      */
     template <class AType>
-    void InterpolateSingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mesh_data, int lev);
+    void InterpolateSingleLevelFort(ParticleAttrib<AType> &pa, AmrVectorField_t& mesh_data, int lev);
+    
+    
+    /*!
+     * Multi-level gather.
+     * 
+     * @param pa is the attribute to be updated
+     * @param mesh_data where the information is taken from
+     * @param lev for which we get the mesh data
+     */
+    template <class AType>
+    void InterpolateMultiLevelFort(ParticleAttrib<AType> &pa,
+                                   AmrVectorFieldContainer_t& mesh_data,
+                                   int lev);
+    
     
     /*!
      * Single-level scatter (adjusted from AMReX).
@@ -149,11 +171,10 @@ private:
      */
     template <class AType>
     void AssignCellDensitySingleLevelFort(ParticleAttrib<AType> &pa, AmrField_t& mf, int level,
+                                          const ParticleAttrib<int>& pbin, int bin = -1,
                                           int ncomp=1, int particle_lvl_offset = 0) const;
     
 private:
-    bool allow_particles_near_boundary_m;       ///< This is for scattering
-    
     IpplTimings::TimerRef AssignDensityTimer_m;
 };
 

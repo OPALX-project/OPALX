@@ -38,8 +38,13 @@
 #ifdef ENABLE_AMR
     #include "Amr/AmrBoxLib.h"
     #include "Solvers/BoxLibSolvers/FMGPoissonSolver.h"
+    #include "Solvers/AMReXSolvers/MLPoissonSolver.h"
     #include "Amr/AmrDefs.h"
     #include "Algorithms/AmrPartBunch.h"
+
+    #include <algorithm>
+    #include <cctype>
+    #include <functional>
 #endif
 
 #ifdef HAVE_AMR_MG_SOLVER
@@ -90,7 +95,6 @@ namespace {
         AMR_REFX,           // AMR, refinement ratio in x
         AMR_REFY,           // AMR, refinement ratio in y
         AMR_REFZ,           // AMR, refinement ration in z
-        AMR_SUBCYCLE,       // AMR, subcycling in time for refined levels (default: false)
         AMR_MAXGRIDX,       // AMR, maximum grid size in x (default: 16)
         AMR_MAXGRIDY,       // AMR, maximum grid size in y (default: 16)
         AMR_MAXGRIDZ,       // AMR, maximum grid size in z (default: 16)
@@ -219,10 +223,6 @@ FieldSolver::FieldSolver():
     itsAttr[AMR_REFZ] = Attributes::makeReal("AMR_REFZ",
                                              "Refinement ration in z-direction in AMR",
                                              2);
-
-    itsAttr[AMR_SUBCYCLE] = Attributes::makeBool("AMR_SUBCYCLE",
-                                                 "Subcycling in time for refined levels in AMR",
-                                                 false);
 
     itsAttr[AMR_MAXGRIDX] = Attributes::makeReal("AMR_MAXGRIDX",
                                                  "Maximum grid size in x for AMR",
@@ -569,14 +569,13 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << "* AMR_REFX         " << Attributes::getReal(itsAttr[AMR_REFX]) << '\n'
            << "* AMR_REFY         " << Attributes::getReal(itsAttr[AMR_REFY]) << '\n'
            << "* AMR_REFZ         " << Attributes::getReal(itsAttr[AMR_REFZ]) << '\n'
-           << "* AMR_SUBCYCLE     " << Attributes::getBool(itsAttr[AMR_SUBCYCLE]) << '\n'
            << "* AMR_MAXGRIDX     " << Attributes::getReal(itsAttr[AMR_MAXGRIDX]) << '\n'
            << "* AMR_MAXGRIDY     " << Attributes::getReal(itsAttr[AMR_MAXGRIDY]) << '\n'
            << "* AMR_MAXGRIDZ     " << Attributes::getReal(itsAttr[AMR_MAXGRIDZ]) << '\n'
            << "* AMR_BFX          " << Attributes::getReal(itsAttr[AMR_BFX]) << '\n'
            << "* AMR_BFY          " << Attributes::getReal(itsAttr[AMR_BFY]) << '\n'
            << "* AMR_BFZ          " << Attributes::getReal(itsAttr[AMR_BFZ]) << '\n'
-           << "* AMR_TAGGING      " << Attributes::getString(itsAttr[AMR_TAGGING]) <<'\n'
+           << "* AMR_TAGGING      " << this->getTagging_m() <<'\n'
            << "* AMR_DENSITY      " << Attributes::getReal(itsAttr[AMR_DENSITY]) << '\n'
            << "* AMR_MAX_NUM_PART " << Attributes::getReal(itsAttr[AMR_MAX_NUM_PART]) << '\n'
            << "* AMR_MIN_NUM_PART " << Attributes::getReal(itsAttr[AMR_MIN_NUM_PART]) << '\n'
@@ -650,6 +649,22 @@ Inform &FieldSolver::printInfo(Inform &os) const {
 }
 
 #ifdef ENABLE_AMR
+std::string FieldSolver::getTagging_m() const {
+    std::string tagging = Attributes::getString(itsAttr[AMR_TAGGING]);
+
+    std::function<bool(const std::string&)> all_digits = [](const std::string& s) {
+        // 15. Feb. 2019
+        // https://stackoverflow.com/questions/19678572/how-to-validate-that-there-are-only-digits-in-a-string
+        return std::all_of(s.begin(),  s.end(), 
+        [](char c) { return std::isdigit(c); });
+    };
+
+    if ( all_digits(tagging) )
+        tagging = AmrObject::enum2string(std::stoi(tagging));
+    return tagging;
+}
+
+
 void FieldSolver::initAmrObject_m() {
 
     itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) * 0.01);
@@ -670,10 +685,9 @@ void FieldSolver::initAmrObject_m() {
     info.refratio[1] = Attributes::getReal(itsAttr[AMR_REFY]);
     info.refratio[2] = Attributes::getReal(itsAttr[AMR_REFZ]);
 
-
     itsAmrObject_mp = AmrBoxLib::create(info, dynamic_cast<AmrPartBunch*>(itsBunch_m));
 
-    itsAmrObject_mp->setTagging( Attributes::getString(itsAttr[AMR_TAGGING]) );
+    itsAmrObject_mp->setTagging( this->getTagging_m() );
 
     itsAmrObject_mp->setScalingFactor( Attributes::getReal(itsAttr[AMR_SCALING]) );
 
@@ -699,6 +713,11 @@ void FieldSolver::initAmrSolver_m() {
 
         solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
 
+    } else if ( fsType == "ML" ) {
+        if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
+            throw OpalException("FieldSolver::initAmrSolver_m()",
+                                "ML solver requires AMReX.");
+        solver_m = new MLPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
     } else if (fsType == "HYPRE") {
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "HYPRE solver not yet implemented.");

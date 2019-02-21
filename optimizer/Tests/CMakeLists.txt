@@ -93,18 +93,8 @@ set (SDDSParserTest_SRC
     ${SDDSPARSER_SRC}
 )
 
-set (OpalInputFileParserTest_SRC
-    ${OPT_PILOT_SOURCE_DIR}/Expression/SumErrSq.cpp
-    ${OPT_PILOT_SOURCE_DIR}/Expression/FromFile.cpp
-    ${SDDSPARSER_SRC}
-    ${OPT_PILOT_SOURCE_DIR}/Util/CommentAnnotatedInputFileParser.cpp
-    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/expression.cpp
-    ${OPT_PILOT_SOURCE_DIR}/Expression/Parser/evaluator.cpp
-)
-
 set (PILOT_TESTS
     MPIHelperTest
-    OpalInputFileParserTest
     SDDSParserTest
     ManagedIDsTest
     IndividualTest

@@ -15,7 +15,6 @@
 
 #include "Pilot/Pilot.h"
 #include "Util/OptPilotException.h"
-#include "Util/OpalInputFileParser.h"
 
 #include "Optimizer/EA/FixedPisaNsga2.h"
 #include "Optimizer/EA/BlendCrossover.h"
@@ -58,6 +57,7 @@ namespace {
         DVARS,
         CONSTRAINTS,
         INITIALPOPULATION,
+        STARTPOPULATION,
         NUMMASTERS,
         NUMCOWORKERS,
         DUMPDAT,
@@ -82,6 +82,8 @@ namespace {
         DISTDIR,
         CROSSOVER,
         MUTATION,
+        RESTART_FILE,
+        RESTART_STEP,
         SIZE
     };
 }
@@ -103,6 +105,8 @@ OptimizeCmd::OptimizeCmd():
         ("CONSTRAINTS", "List of constraints to be used");
     itsAttr[INITIALPOPULATION] = Attributes::makeReal
         ("INITIALPOPULATION", "Size of the initial population");
+    itsAttr[STARTPOPULATION] = Attributes::makeString
+        ("STARTPOPULATION", "Generation file (JSON format) to be started from (optional)", "");
     itsAttr[NUMMASTERS] = Attributes::makeReal
         ("NUM_MASTERS", "Number of master nodes");
     itsAttr[NUMCOWORKERS] = Attributes::makeReal
@@ -151,6 +155,11 @@ OptimizeCmd::OptimizeCmd():
         ("CROSSOVER", "Type of cross over (default: Blend)", "Blend");
     itsAttr[MUTATION] = Attributes::makeString
         ("MUTATION", "Type of bit mutation (default: IndependentBit)", "IndependentBit");
+    itsAttr[RESTART_FILE] = Attributes::makeString
+        ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
+    itsAttr[RESTART_STEP] = Attributes::makeReal
+        ("RESTART_STEP", "Restart from given H5 step (optional)",
+         std::numeric_limits<int>::min());
     registerOwnership(AttributeHandler::COMMAND);
 }
 
@@ -233,6 +242,7 @@ void OptimizeCmd::execute() {
             {OUTPUT, "outfile"},
             {OUTDIR, "outdir"},
             {INITIALPOPULATION, "initialPopulation"},
+            {STARTPOPULATION, "start-population"},
             {NUMMASTERS, "num-masters"},
             {NUMCOWORKERS, "num-coworkers"},
             {DUMPDAT, "dump-dat"},
@@ -249,7 +259,9 @@ void OptimizeCmd::execute() {
             {MUTATIONPROBABILITY, "mutation-probability"},
             {RECOMBINATIONPROBABILITY, "recombination-probability"},
             {SIMBINCROSSOVERNU, "simbin-crossover-nu"},
-            {INITIALOPTIMIZATION, "initial-optimization"}
+            {INITIALOPTIMIZATION, "initial-optimization"},
+            {RESTART_FILE, "restartfile"},
+            {RESTART_STEP, "restartstep"}
         });
 
     auto it = argumentMapper.end();
@@ -540,7 +552,6 @@ void OptimizeCmd::run(const CmdArguments_t& args,
                       const Expressions::Named_t& objectives,
                       const Expressions::Named_t& constraints)
 {
-    typedef OpalInputFileParser Input_t;
     typedef OpalSimulation Sim_t;
 
     typedef CommSplitter< ManyMasterSplit< NoCommTopology > > Comm_t;
@@ -557,7 +568,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::Blend + Mutation::IndependentBit:
         {
             typedef FixedPisaNsga2< BlendCrossover, IndependentBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -568,7 +579,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::Blend + Mutation::OneBit:
         {
             typedef FixedPisaNsga2< BlendCrossover, OneBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -579,7 +590,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::NaiveOnePoint + Mutation::IndependentBit:
         {
             typedef FixedPisaNsga2< NaiveOnePointCrossover, IndependentBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -590,7 +601,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::NaiveOnePoint + Mutation::OneBit:
         {
             typedef FixedPisaNsga2< NaiveOnePointCrossover, OneBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -601,7 +612,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::NaiveUniform + Mutation::IndependentBit:
         {
             typedef FixedPisaNsga2< NaiveUniformCrossover, IndependentBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -612,7 +623,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::NaiveUniform + Mutation::OneBit:
         {
             typedef FixedPisaNsga2< NaiveUniformCrossover, OneBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -623,7 +634,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::SimulatedBinary + Mutation::IndependentBit:
         {
             typedef FixedPisaNsga2< SimulatedBinaryCrossover, IndependentBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
@@ -634,7 +645,7 @@ void OptimizeCmd::run(const CmdArguments_t& args,
         case CrossOver::SimulatedBinary + Mutation::OneBit:
         {
             typedef FixedPisaNsga2< SimulatedBinaryCrossover, OneBitMutation > Opt_t;
-            typedef Pilot<Input_t, Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
+            typedef Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t> pilot_t;
 
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
