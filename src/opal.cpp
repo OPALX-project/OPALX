@@ -51,7 +51,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
     // run simulation
     OpalParser *parser = new OpalParser();
 
-    if (restartStep > -2) {
+    if (restartStep > std::numeric_limits<int>::min()) {
         opal->setRestartRun();
         opal->setRestartStep(restartStep);
         opal->setRestartFileName(inputfile.substr(0,startExtension) + ".h5");
