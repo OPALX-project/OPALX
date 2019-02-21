@@ -1347,12 +1347,12 @@ void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) co
 
 void DataSink::replaceVersionString(const std::string &fileName) const {
 
-    std::string versionFile;
-    SDDS::SDDSParser parser(fileName);
-    parser.run();
-    parser.getParameterValue("revision", versionFile);
-
     if (Ippl::myNode() == 0) {
+        std::string versionFile;
+        SDDS::SDDSParser parser(fileName);
+        parser.run();
+        parser.getParameterValue("revision", versionFile);
+
         std::string line;
         std::queue<std::string> allLines;
         std::fstream fs;
