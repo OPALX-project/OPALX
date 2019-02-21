@@ -421,6 +421,22 @@ int main(int argc, char *argv[]) {
         errorMsg << "    " << what << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
+    } catch(SDDSParserException &ex) {
+        Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
+
+        std::stringstream msg;
+        errorMsg << "\n*** Error detected by function \""
+                 << ex.where() << "\"\n";
+        std::string what = ex.what();
+        size_t pos = what.find_first_of('\n');
+        do {
+            errorMsg << "    " << what.substr(0, pos) << endl;
+            what = what.substr(pos + 1, std::string::npos);
+            pos = what.find_first_of('\n');
+        } while (pos != std::string::npos);
+        errorMsg << "    " << what << endl;
+
+        MPI_Abort(MPI_COMM_WORLD, -100);
     } catch(std::bad_alloc &ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
         errorMsg << "\n*** Error:\n";
