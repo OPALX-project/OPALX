@@ -1809,11 +1809,13 @@ double ParallelCyclotronTracker::getHarmonicNumber() const {
 
 Vector_t ParallelCyclotronTracker::calcMeanR() const {
     Vector_t meanR(0.0, 0.0, 0.0);
+
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
         for(int d = 0; d < 3; ++d) {
             meanR(d) += itsBunch_m->R[i](d);
         }
     }
+
     reduce(meanR, meanR, OpAddAssign());
     return meanR / Vector_t(itsBunch_m->getTotalNum());
 }
@@ -1826,6 +1828,7 @@ Vector_t ParallelCyclotronTracker::calcMeanP() const {
             meanP(d) += itsBunch_m->P[i](d);
         }
     }
+
     reduce(meanP, meanP, OpAddAssign());
     return meanP / Vector_t(itsBunch_m->getTotalNum());
 }
@@ -2243,11 +2246,26 @@ bool ParallelCyclotronTracker::deleteParticle(){
     // Update immediately if any particles are lost during this step
 
     bool flagNeedUpdate = (min(itsBunch_m->Bin) < 0);
-    reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
-
-    size_t lostParticleNum = 0;
+    allreduce(flagNeedUpdate, 1, std::logical_or<bool>());
 
     if(flagNeedUpdate) {
+        size_t locLostParticleNum = 0;
+
+        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
+            if(itsBunch_m->Bin[i] < 0) {
+                ++locLostParticleNum;
+                itsBunch_m->destroy(1, i, true);
+            }
+        }
+
+        size_t globLostParticleNum = 0;
+        reduce(locLostParticleNum, globLostParticleNum, 1, std::plus<size_t>());
+
+        *gmsg << "At step " << step_m
+              << ", lost "  << globLostParticleNum
+              << " on stripper, collimator, septum, or out of cyclotron aperture"
+              << endl;
+
         Vector_t const meanR = calcMeanR();
         Vector_t const meanP = calcMeanP();
 
@@ -2264,13 +2282,6 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
-            if(itsBunch_m->Bin[i] < 0) {
-                lostParticleNum++;
-                itsBunch_m->destroy(1, i);
-            }
-        }
-
         // Now destroy particles and update pertinent parameters in local frame
         // Note that update() will be called within boundp() -DW
         itsBunch_m->boundp();
@@ -2282,9 +2293,6 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
         localToGlobal(itsBunch_m->R, phi, psi, meanR);
         localToGlobal(itsBunch_m->P, phi, psi, Vector_t(0.0));
-
-        reduce(lostParticleNum, lostParticleNum, OpAddAssign());
-        INFOMSG("Step " << step_m << ", " << lostParticleNum << " particles lost on stripper, collimator, septum, or out of cyclotron aperture" << endl);
     }
     return flagNeedUpdate;
 }
