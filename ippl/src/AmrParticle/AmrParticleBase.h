@@ -149,42 +149,8 @@ public:
 //     void lorentzTransform(bool inverse = false);
     
 private:
-    void getGlobalBounds(Vector_t &rmin, Vector_t &rmax) {
-        this->getLocalBounds(rmin, rmax);
-
-        double min[6];
-
-        for (unsigned int i = 0; i < 3; ++i) {
-            min[2*i] = rmin[i];
-            min[2*i + 1] = -rmax[i];
-        }
-
-        allreduce(min, 6, std::less<double>());
-        
-        for (unsigned int i = 0; i < 3; ++i) {
-            rmin[i] = min[2*i];
-            rmax[i] = -min[2*i + 1];
-        }
-    }
-
-    void getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
-        const size_t localNum = this->getLocalNum();
-        if (localNum == 0) {
-            double maxValue = 1e8;
-            rmin = Vector_t(maxValue, maxValue, maxValue);
-            rmax = Vector_t(-maxValue, -maxValue, -maxValue);
-            return;
-        }
-
-        rmin = this->R[0];
-        rmax = this->R[0];
-        for (size_t i = 1; i < localNum; ++ i) {
-            for (unsigned short d = 0; d < 3u; ++ d) {
-                if (rmin(d) > this->R[i](d)) rmin(d) = this->R[i](d);
-                else if (rmax(d) < this->R[i](d)) rmax(d) = this->R[i](d);
-            }
-        }
-    }
+    void getLocalBounds_m(Vector_t &rmin, Vector_t &rmax);
+    void getGlobalBounds_m(Vector_t &rmin, Vector_t &rmax);
     
 protected:
     IpplTimings::TimerRef updateParticlesTimer_m;
