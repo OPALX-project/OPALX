@@ -53,7 +53,7 @@ private:
     void setupRNG();
     void printInfo();
 
-    void saveOrigData(unsigned short *image);
+    void saveData(const std::string &fname, unsigned short *image);
     void saveHistogram();
     void sampleDist();
 

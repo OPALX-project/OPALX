@@ -38,7 +38,7 @@ LaserProfile::LaserProfile(const std::string &fileName,
     standardDeviation_m(0.0){
 
     unsigned short *image = readFile(fileName, imageName);
-    saveOrigData(image);
+    // saveData("originalLaserProfile", image);
 
     if (flags & FLIPX) flipX(image);
     if (flags & FLIPY) flipY(image);
@@ -58,6 +58,7 @@ LaserProfile::LaserProfile(const std::string &fileName,
     filterSpikes(image);
     normalizeProfileData(intensityCut, image);
     computeProfileStatistics(image);
+    // saveData("processedLaserProfile", image);
     fillHistrogram(image);
 
     delete[] image;
@@ -279,40 +280,36 @@ void LaserProfile::computeProfileStatistics(unsigned short *image) {
 }
 
 void LaserProfile::fillHistrogram(unsigned short *image) {
-    unsigned int histSizeX = std::floor(10 * standardDeviation_m(0) + 0.5);
-    unsigned int histSizeY = std::floor(10 * standardDeviation_m(1) + 0.5);
-    histSizeX += (1 - histSizeX % 2);
-    histSizeY += (1 - histSizeY % 2);
+    unsigned int histSizeX = sizeX_m;
+    unsigned int histSizeY = sizeY_m;
     double histRangeX = histSizeX / standardDeviation_m(0) / 2;
     double histRangeY = histSizeY / standardDeviation_m(1) / 2;
-    double binSizeX = histRangeX * 2 / histSizeX;
-    double binSizeY = histRangeY * 2 / histSizeY;
+    double binSizeX = 1.0 / standardDeviation_m(0);
+    double binSizeY = 1.0 / standardDeviation_m(1);
 
     hist2d_m = gsl_histogram2d_alloc(histSizeX, histSizeY);
     gsl_histogram2d_set_ranges_uniform(hist2d_m,
                                        -histRangeX, histRangeX,
                                        -histRangeY, histRangeY);
 
+
     unsigned int pixel = 0;
     for (unsigned int col = 0; col < sizeX_m; ++ col) {
-        double x = (col - centerMass_m(0)) / standardDeviation_m(0);
-        x = std::floor(x / binSizeX + 0.5) * binSizeX;
-        if (std::abs(x) > 5.0) {
-            pixel += sizeY_m;
-            continue;
-        }
-
+        double x = (col - 0.5 * sizeX_m) / standardDeviation_m(0);
+        x = x + 0.5 * binSizeX;
+        // std::cout << "x = " << x << std::endl;
 
         for (unsigned int row = 0; row < sizeY_m; ++ row, ++ pixel) {
             double val = image[pixel];
-            double y = (row - centerMass_m(1)) / standardDeviation_m(1);
-            y = std::floor(y / binSizeY + 0.5) * binSizeY;
-
-            if (std::abs(y) > 5.0) continue;
+            double y = -(row - 0.5 * sizeY_m) / standardDeviation_m(1);
+            y = y + 0.5 * binSizeY;
+            // if (col == 0)
+            //     std::cout << "y = " << y << std::endl;
 
             gsl_histogram2d_accumulate(hist2d_m, x, y, val);
         }
     }
+    saveHistogram();
 }
 
 void LaserProfile::setupRNG() {
@@ -336,8 +333,8 @@ void LaserProfile::printInfo() {
     INFOMSG("* **********************************************************************************" << endl);
 }
 
-void LaserProfile::saveOrigData(unsigned short *image) {
-    std::ofstream out("data/originalLaserProfile.pgm");
+void LaserProfile::saveData(const std::string &fname, unsigned short *image) {
+    std::ofstream out("data/" + fname + ".pgm");
     out << "P2" << std::endl;
     out << sizeX_m << " " << sizeY_m << std::endl;
     out << getProfileMax(image) << std::endl;
