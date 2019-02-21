@@ -148,6 +148,10 @@ public:
     
 //     void lorentzTransform(bool inverse = false);
     
+private:
+    void getLocalBounds_m(Vector_t &rmin, Vector_t &rmax);
+    void getGlobalBounds_m(Vector_t &rmin, Vector_t &rmax);
+    
 protected:
     IpplTimings::TimerRef updateParticlesTimer_m;
     IpplTimings::TimerRef sortParticlesTimer_m;

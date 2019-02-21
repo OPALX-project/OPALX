@@ -1,9 +1,9 @@
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::advance(PartBunchBase<double, 3>* bunch,
-                                                const size_t& i,
-                                                const double& t,
-                                                const double dt,
-                                                Arguments& ... args) const
+bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunchBase<double, 3>* bunch,
+                                                    const size_t& i,
+                                                    const double& t,
+                                                    const double dt,
+                                                    Arguments& ... args) const
 {
     // Fourth order Runge-Kutta integrator
     // arguments:

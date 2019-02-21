@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 
 #include <iomanip>
+#include <sstream>
 
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Timer.h"
@@ -179,14 +180,18 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
 
 
 void MultiBunchDump::writeData(const beaminfo_t& binfo, short bunch) {
-    
+
     if ( Ippl::myNode() > 0 )
         return;
-    
-    std::string fname = fbase_m + "-bunch-" + std::to_string(bunch) + fext_m;
-    
+
+    std::stringstream ss;
+    ss << fbase_m << "-bunch-"
+       << std::setw(4) << std::setfill('0') << bunch
+       << fext_m;
+    std::string fname = ss.str();
+
     writeHeader(fname);
-    
+
     std::ofstream out;
     open_m(out, fname);
     
