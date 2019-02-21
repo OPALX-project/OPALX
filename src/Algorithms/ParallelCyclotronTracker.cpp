@@ -1189,6 +1189,9 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     double opmass = elptr->getOPMass();
     *gmsg << "* Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
+    
+    bool stop = elptr->getStop();
+    *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
 
     elptr->initialise(itsBunch_m);
 
@@ -1203,6 +1206,7 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     BcParameter[4] = 0.001 * width ;
     BcParameter[5] = opcharge;
     BcParameter[6] = opmass;
+    BcParameter[7] = stop;
 
     buildupFieldList(BcParameter, ElementBase::STRIPPER, elptr);
 }
