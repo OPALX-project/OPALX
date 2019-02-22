@@ -1477,8 +1477,6 @@ void ParallelCyclotronTracker::GenericTracker() {
                 throw OpalException("ParallelCyclotronTracker::GenericTracker()",
                                     "No such tracking mode.");
         }
-
-
         // Update bunch and some parameters and output some info
         update_m(t, dt, dumpEachTurn);
 
@@ -2254,16 +2252,27 @@ bool ParallelCyclotronTracker::deleteParticle(){
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
             if(itsBunch_m->Bin[i] < 0) {
                 ++locLostParticleNum;
-                itsBunch_m->destroy(1, i, true);
+                itsBunch_m->destroy(1, i);
             }
         }
+        
+        /* We need to destroy the particles now
+         * before we compute the means. We also
+         * have to update the total number of particles
+         * otherwise the statistics are wrong.
+         */
+        itsBunch_m->performDestroy(true);
+        size_t totalnum = 0;
+        size_t localnum = itsBunch_m->getLocalNum();
+        allreduce(&localnum, &totalnum, 1, std::plus<size_t>());
+        itsBunch_m->setTotalNum(totalnum);
 
         size_t globLostParticleNum = 0;
         reduce(locLostParticleNum, globLostParticleNum, 1, std::plus<size_t>());
 
         *gmsg << "At step " << step_m
-              << ", lost "  << globLostParticleNum
-              << " on stripper, collimator, septum, or out of cyclotron aperture"
+              << ", lost "  << globLostParticleNum << " particles "
+              << "on stripper, collimator, septum, or out of cyclotron aperture"
               << endl;
 
         Vector_t const meanR = calcMeanR();
@@ -3163,7 +3172,6 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
         itsBunch_m->cavityGapCrossed[i] = false;
     else
         gapCrossKick_m(i, t, dt, Rold, Pold);
-
     IpplTimings::stopTimer(IntegrationTimer_m);
 
     // Destroy particles if they are marked as Bin = -1 in the plugin elements
