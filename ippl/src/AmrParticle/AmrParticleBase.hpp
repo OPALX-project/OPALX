@@ -238,7 +238,7 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
 //         if ( !this->DestroyList.empty() ) {
 //             this->performDestroy(true);
 //         }
-        
+
         Vector_t rmin = Vector_t(0.0, 0.0, 0.0);
         Vector_t rmax = Vector_t(0.0, 0.0, 0.0);
         
@@ -248,7 +248,8 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
          * transformed to the local frame such that this
          * particle lies on the origin (0, 0, 0).
          */
-        if ( this->getTotalNum() == 1 ) {
+        if ( this->getTotalNum() == 1 ||
+             (rmin == Vector_t(0.0, 0.0, 0.0) && rmax == Vector_t( 0.0,  0.0,  0.0)) ) {
             rmin = Vector_t(-1.0, -1.0, -1.0);
             rmax = Vector_t( 1.0,  1.0,  1.0);
         }
@@ -259,7 +260,7 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
          */
         rmin *= gamma;
         rmax *= gamma;
-        
+
         Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
                                 std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
                                 std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
@@ -267,7 +268,6 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
         
         scale = std::max( tmp[0], tmp[1] );
         scale = std::max( scale, tmp[2] );
-
     } else {
         // inverse Lorentz transform
         gamma = 1.0 / gamma;
@@ -309,7 +309,7 @@ template<class PLayout>
 void AmrParticleBase<PLayout>::getLocalBounds_m(Vector_t &rmin, Vector_t &rmax) {
     const size_t localNum = this->getLocalNum();
     if (localNum == 0) {
-        double max = std::numeric_limits<double>::max();
+        double max = 1e10;
         rmin = Vector_t( max,  max,  max);
         rmax = Vector_t(-max, -max, -max);
         return;
