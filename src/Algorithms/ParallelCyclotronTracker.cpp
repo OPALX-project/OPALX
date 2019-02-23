@@ -2911,7 +2911,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     double oldReferenceTheta      = referenceTheta * Physics::deg2rad; // init here, reset each step
     setup_m.deltaTheta            = pi / (setup_m.stepsPerTurn);    // half of the average angle per step
 
-    setup_m.stepsNextCheck = step_m + setup_m.stepsPerTurn; // Steps to next check for transition
     //int stepToLastInj = itsBunch_m->getSteptoLastInj(); // TODO: Do we need this? -DW
 
     // Record how many bunches have already been injected. ONLY FOR MBM
@@ -2928,6 +2927,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
+
+    setup_m.stepsNextCheck = step_m + setup_m.stepsPerTurn; // Steps to next check for transition 
 
     initDistInGlobalFrame();
 
