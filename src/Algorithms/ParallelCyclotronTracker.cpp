@@ -2428,7 +2428,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     if(multiBunchMode_m == MB_MODE::AUTO) {
 
-        RLastTurn_m = sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);
+        RLastTurn_m = std::sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);  // [m]
         RThisTurn_m = RLastTurn_m;
 
         if(OpalData::getInstance()->inRestartRun()) {
@@ -2440,7 +2440,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             *gmsg << "Initial radial position = ";
         }
         // New OPAL 2.0: Init in m -DW
-        *gmsg << 1000.0 * RThisTurn_m << " mm" << endl;
+        *gmsg << RThisTurn_m << " m" << endl;
     }
 
     // Do boundp and repartition in the local frame at beginning of this run
@@ -3533,11 +3533,11 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
             itsBunch_m->calcBeamParameters();
             //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
-            Vector_t Rmean = itsBunch_m->get_centroid() * 1000.0; // m --> mm
+            Vector_t Rmean = itsBunch_m->get_centroid(); // m
 
             RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
 
-            Vector_t Rrms = itsBunch_m->get_rrms() * 1000.0; // m --> mm
+            Vector_t Rrms = itsBunch_m->get_rrms(); // m
 
             double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
 
@@ -3553,9 +3553,9 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
 
             setup_m.stepsNextCheck += setup_m.stepsPerTurn;
 
-            *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [mm]" << endl;
-            *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [mm]" << endl;
-            *gmsg << "* MBM: XYrms = " << XYrms    << " [mm]" << endl;
+            *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [m]" << endl;
+            *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [m]" << endl;
+            *gmsg << "* MBM: XYrms = " << XYrms    << " [m]" << endl;
 
             RLastTurn_m = RThisTurn_m;
         }
