@@ -3184,7 +3184,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
 
      // Flag for transition from single-bunch to multi-bunches mode
-    bool flagTransition = false;
+    static bool flagTransition = false;
 
     // single particle dumping
     if(step_m % Options::sptDumpFreq == 0)
