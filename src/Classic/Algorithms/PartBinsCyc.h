@@ -28,6 +28,8 @@
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
 
+#include <cassert>
+
 class PartBinsCyc: public PartBins {
 
 public:
@@ -45,6 +47,12 @@ public:
       size_t a = nBin_m[bin];
       reduce(a, a, OpAddAssign());
       return a;
+    }
+
+    /** \brief How many particles are on one energy bin */
+    inline size_t getLocalBinCount(int bin) {
+        assert(bin < bins_m);
+        return nBin_m[bin];
     }
 
     bool weHaveBins() {
