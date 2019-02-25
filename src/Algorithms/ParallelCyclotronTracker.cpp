@@ -2249,13 +2249,34 @@ bool ParallelCyclotronTracker::deleteParticle(){
     if(flagNeedUpdate) {
         size_t locLostParticleNum = 0;
 
+        const int leb = itsBunch_m->getLastemittedBin();
+        std::unique_ptr<size_t[]> localBinCount;
+
+        if ( itsBunch_m->weHaveBins() ) {
+            localBinCount = std::unique_ptr<size_t[]>(new size_t[leb]);
+            for (int i = 0; i < leb; ++i)
+                localBinCount[i] = 0;
+        }
+
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
             if(itsBunch_m->Bin[i] < 0) {
                 ++locLostParticleNum;
                 itsBunch_m->destroy(1, i);
+            } else if ( itsBunch_m->weHaveBins() ) {
+                /* we need to count the local number of particles
+                 * per energy bin
+                 */
+                ++localBinCount[itsBunch_m->Bin[i]];
             }
         }
-        
+
+        if ( itsBunch_m->weHaveBins() ) {
+            // set the local bin count
+            for (int i = 0; i < leb; ++i) {
+                itsBunch_m->setLocalBinCount(localBinCount[i], i);
+            }
+        }
+
         /* We need to destroy the particles now
          * before we compute the means. We also
          * have to update the total number of particles
