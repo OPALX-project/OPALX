@@ -1444,6 +1444,10 @@ void ParallelCyclotronTracker::GenericTracker() {
     // Apply the plugin elements: probe, collimator, stripper, septum once before first step
     applyPluginElements(dt);
 
+    // Destroy particles if they are marked as Bin = -1 in the plugin elements
+    // or out of global aperture
+    deleteParticle();
+
     /********************************
      *     Main integration loop    *
      ********************************/
