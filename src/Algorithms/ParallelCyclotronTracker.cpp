@@ -2650,17 +2650,19 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // dump stat file per bin in case of multi-bunch mode
     if ( multiBunchMode_m != MB_MODE::NONE ) {
+        double phi = 0.0, psi = 0.0;
+        Vector_t meanR;
 
         if(Options::psDumpFrame != Options::GLOBAL) {
 
-            Vector_t meanR = calcMeanR();
+            meanR = calcMeanR();
             Vector_t meanP = calcMeanP();
 
             // Bunch (local) azimuth at meanR w.r.t. y-axis
-            double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+            phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
 
             // Bunch (local) elevation at meanR w.r.t. xy plane
-            double psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
+            psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
 
             // Rotate so Pmean is in positive y direction. No shift, so that normalized emittance and
             // unnormalized emittance as well as centroids are calculated correctly in
