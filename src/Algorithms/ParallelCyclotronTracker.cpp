@@ -2650,7 +2650,32 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // dump stat file per bin in case of multi-bunch mode
     if ( multiBunchMode_m != MB_MODE::NONE ) {
+
+        if(Options::psDumpFrame != Options::GLOBAL) {
+
+            Vector_t meanR = calcMeanR();
+            Vector_t meanP = calcMeanP();
+
+            // Bunch (local) azimuth at meanR w.r.t. y-axis
+            double phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+            // Bunch (local) elevation at meanR w.r.t. xy plane
+            double psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
+
+            // Rotate so Pmean is in positive y direction. No shift, so that normalized emittance and
+            // unnormalized emittance as well as centroids are calculated correctly in
+            // PartBunch::calcBeamParameters()
+            globalToLocal(itsBunch_m->R, phi, psi, meanR);
+            globalToLocal(itsBunch_m->P, phi, psi);
+        }
+
         bunchDumpStatDataPerBin();
+
+        if(Options::psDumpFrame != Options::GLOBAL) {
+            localToGlobal(itsBunch_m->R, phi, psi, meanR);
+            localToGlobal(itsBunch_m->P, phi, psi);
+        }
+
         return;
     }
 
@@ -3462,7 +3487,35 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
 
         getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
+#if COORD_PRINT
+        if ( BunchCount_m > 1 ) {
+            std::stringstream ss;
+            ss << "global-coordinates-step-" << step_m;
+            std::ofstream out(ss.str());
+            for (uint i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+                out << itsBunch_m->R[i](0) << " "
+                    << itsBunch_m->R[i](1) << " "
+                    << itsBunch_m->R[i](2) << std::endl;
+            }
+            out.close();
+        }
+#endif
+
         globalToLocal(itsBunch_m->R, quaternionToYAxis, meanR);
+
+#if COORD_PRINT
+        if ( BunchCount_m > 1 ) {
+            std::stringstream ss;
+            ss << "local-coordinates-step-" << step_m;
+            std::ofstream out(ss.str());
+            for (uint i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+                out << itsBunch_m->R[i](0) << " "
+                    << itsBunch_m->R[i](1) << " "
+                    << itsBunch_m->R[i](2) << std::endl;
+            }
+            out.close();
+        }
+#endif
 
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
