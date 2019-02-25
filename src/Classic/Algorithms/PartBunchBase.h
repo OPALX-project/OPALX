@@ -120,6 +120,8 @@ public:
 
     int getLastemittedBin();
 
+    void setLocalBinCount(size_t num, int bin);
+
     /** \brief Compute the gammas of all bins */
     void calcGammas();
 

@@ -357,6 +357,14 @@ int PartBunchBase<T, Dim>::getLastemittedBin() {
 
 
 template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
+    if(pbin_m != NULL) {
+        pbin_m->setPartNum(bin, num);
+    }
+}
+
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcGammas() {
 
     const int emittedBins = dist_m->getNumberOfEnergyBins();
