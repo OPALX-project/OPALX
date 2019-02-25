@@ -418,8 +418,11 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
 
     for(int i = 0; i < emittedBins; i++)
         bingamma_m[i] = 0.0;
-    for(unsigned int n = 0; n < getLocalNum(); n++)
-        bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+    for(unsigned int n = 0; n < getLocalNum(); n++) {
+        if ( this->Bin[n] > -1 ) {
+            bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+	}
+    }
 
     allreduce(*bingamma_m.get(), emittedBins, std::plus<double>());
 
@@ -1802,6 +1805,12 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
     for(unsigned long int n = 0; n < getLocalNum(); n++) {
 
         double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
+
+        // FIXME: Restrict to 1 GeV proton
+        if ( temp_betagamma > 1.808 ) {
+            Bin[n] = -1;
+            continue;
+	}
 
         int itsBinID = floor((asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
         Bin[n] = itsBinID;
