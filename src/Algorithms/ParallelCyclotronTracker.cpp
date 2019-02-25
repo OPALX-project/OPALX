@@ -2207,10 +2207,7 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // apply the plugin elements: probe, collimator, stripper, septum
     applyPluginElements(h);
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
-    bool const flagNeedUpdate = deleteParticle();
-
-    if(itsBunch_m->weHaveBins() && flagNeedUpdate)
-        updateParticleBins_m();
+    deleteParticle();
 }
 
 
@@ -2323,6 +2320,10 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
         localToGlobal(itsBunch_m->R, phi, psi, meanR);
         localToGlobal(itsBunch_m->P, phi, psi, Vector_t(0.0));
+
+        // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
+        if ( itsBunch_m->weHaveBins() )
+            updateParticleBins_m();
     }
     return flagNeedUpdate;
 }
@@ -3280,11 +3281,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
 
     // Destroy particles if they are marked as Bin = -1 in the plugin elements
     // or out of global aperture
-    bool flagNeedUpdate = deleteParticle();
-
-    // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
-    if(itsBunch_m->weHaveBins() && flagNeedUpdate)
-        updateParticleBins_m();
+    deleteParticle();
 
     // Recalculate bingamma and reset the BinID for each particles according to its current gamma
     if (itsBunch_m->weHaveBins() && BunchCount_m > 1 && step_m % Options::rebinFreq == 0)
