@@ -907,7 +907,7 @@ void TrackRun::setupFieldsolver() {
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
-        if (!opal->inRestartRun() && numParticles < numGridPoints)
+        if (!Options::amr && !opal->inRestartRun() && numParticles < numGridPoints)
             throw OpalException("TrackRun::setupFieldsolver()",
                                 "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
                                 "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
