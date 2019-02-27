@@ -88,6 +88,21 @@ namespace {
     }
 }
 
+
+bool checkInitAmrFlag(int argc, char* argv[]) {
+    std::string noamr = "noInitAMR";
+    bool initAMR = true;
+    for (int i = 0; i < argc; ++i) {
+        std::string sargv = std::string(argv[i]);
+        if ( sargv.find(noamr) != std::string::npos ) {
+            initAMR = false;
+            break;
+        }
+    }
+    return initAMR;
+}
+
+
 int main(int argc, char *argv[]) {
     Ippl *ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
@@ -95,8 +110,11 @@ int main(int argc, char *argv[]) {
     namespace fs = boost::filesystem;
 
 #ifdef ENABLE_AMR
-    // false: build no parmparse, we use the OPAL parser instead.
-    amrex::Initialize(argc, argv, false, Ippl::getComm());
+    bool initAMR = checkInitAmrFlag(argc, argv);
+    if ( initAMR ) {
+        // false: build no parmparse, we use the OPAL parser instead.
+        amrex::Initialize(argc, argv, false, Ippl::getComm());
+    }
 #endif
 
     OPALTimer::Timer simtimer;
@@ -269,6 +287,8 @@ int main(int argc, char *argv[]) {
                     }
                     INFOMSG(header << options << endl);
                     exit(0);
+                } else if ( argStr.find("noInitAMR") != std::string::npos) {
+                    // do nothing here
                 } else if (argStr == std::string("-help") ||
                            argStr == std::string("--help")) {
                     IpplInfo::printHelp(argv);
@@ -379,10 +399,13 @@ int main(int argc, char *argv[]) {
         Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
-        
+
 #ifdef ENABLE_AMR
-    amrex::Finalize(true);
+    if ( initAMR ) {
+        amrex::Finalize(true);
+    }
 #endif
+
         delete ippl;
         delete Ippl::Info;
         delete Ippl::Warn;
