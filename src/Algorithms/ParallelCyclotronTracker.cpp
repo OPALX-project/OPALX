@@ -2651,11 +2651,12 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     // dump stat file per bin in case of multi-bunch mode
     if ( multiBunchMode_m != MB_MODE::NONE ) {
         double phi = 0.0, psi = 0.0;
-        Vector_t meanR;
+        Vector_t meanR = calcMeanR();
+
+        // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
+        double theta = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
 
         if(Options::psDumpFrame != Options::GLOBAL) {
-
-            meanR = calcMeanR();
             Vector_t meanP = calcMeanP();
 
             // Bunch (local) azimuth at meanR w.r.t. y-axis
@@ -2671,7 +2672,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
             globalToLocal(itsBunch_m->P, phi, psi);
         }
 
-        bunchDumpStatDataPerBin();
+        bunchDumpStatDataPerBin(theta);
 
         if(Options::psDumpFrame != Options::GLOBAL) {
             localToGlobal(itsBunch_m->R, phi, psi, meanR);
@@ -2708,6 +2709,10 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     }
     double phi = 0;
     double psi = 0;
+
+    // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
+    double azimuth = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
+
     // --------------  Calculate the external fields at the center of the bunch ----------------- //
     beamline_list::iterator DumpSindex = FieldDimensions.begin();
 
@@ -2741,7 +2746,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     FDext_m[1] = extE_m;        // kV/mm? -DW
 
     // Save the stat file
-    itsDataSink->writeStatData(itsBunch_m, FDext_m, E);
+    itsDataSink->writeStatData(itsBunch_m, FDext_m, E, azimuth);
 
     //itsBunch_m->R *= Vector_t(1000.0); // m -> mm
 
@@ -2755,7 +2760,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 }
 
 
-void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
+void ParallelCyclotronTracker::bunchDumpStatDataPerBin(const double& azimuth) {
     IpplTimings::startTimer(DumpTimer_m);
     
     for (short b = 0; b < BunchCount_m; ++b) {
@@ -2763,6 +2768,7 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
         MultiBunchDump::beaminfo_t binfo;
         
         if ( itsBunch_m->calcBunchBeamParameters(binfo, b) ) {
+            binfo.azimuth = azimuth;
             itsMBDump_m->writeData(binfo, b);
         }
     }
