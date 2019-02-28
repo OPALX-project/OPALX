@@ -90,18 +90,18 @@ public:
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
     void doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
-                         double E, const losses_t &losses);
+                         double E, const losses_t &losses, const double& azimuth = -1);
 
     /** \brief for OPAL-t
 
      */
     void writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
-                       const losses_t &losses = losses_t());
+                       const losses_t &losses = losses_t(), const double& azimuth = -1);
 
     // /** \brief for OPAL-cycl
 
     //  */
-    void writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E);
+    void writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E, const double& azimuth = -1);
 
 
     /** \brief Write SDDS header.

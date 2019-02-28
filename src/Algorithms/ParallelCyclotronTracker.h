@@ -464,7 +464,8 @@ private:
 
     void bunchDumpStatData();
     
-    void bunchDumpStatDataPerBin();
+    // @param azimuth (global) [deg] of dump
+    void bunchDumpStatDataPerBin(const double& azimuth);
 
     void bunchDumpPhaseSpaceData();
 

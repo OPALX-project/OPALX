@@ -291,16 +291,29 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
-void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E) {
-    doWriteStatData(beam, FDext, E, losses_t());
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam,
+                             Vector_t FDext[],
+                             double E,
+                             const double& azimuth)
+{
+    doWriteStatData(beam, FDext, E, losses_t(), azimuth);
 }
 
-void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], const losses_t& losses) {
-    doWriteStatData(beam, FDext, beam->get_meanKineticEnergy(), losses);
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam,
+                             Vector_t FDext[],
+                             const losses_t& losses,
+                             const double& azimuth)
+{
+    doWriteStatData(beam, FDext, beam->get_meanKineticEnergy(), losses, azimuth);
 }
 
 
-void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double Ekin, const losses_t &losses) {
+void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam,
+                               Vector_t FDext[],
+                               double Ekin,
+                               const losses_t &losses,
+                               const double& azimuth)
+{
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -446,6 +459,8 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
             Vector_t halo = beam->get_halo();
             for (int i = 0; i < 3; ++i)
                 os_statData << halo(i) << std::setw(pwi) << "\t";
+
+            os_statData << azimuth << std::setw(pwi) << "\t";
         }
 
         for(size_t i = 0; i < losses.size(); ++ i) {
@@ -946,6 +961,14 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << "&end\n";
                outputFile << ss.str();
         }
+        std::stringstream ss;
+        ss << "&column\n" << indent << "name=azimuth,\n"
+           << indent << "type=double,\n"
+           << indent << "units=deg,\n"
+           << indent << "description=\"" << columnStart++ << " Azimuth in "
+           << "global coordinates\"\n"
+           << "&end\n";
+        outputFile << ss.str();
     }
 
     for (size_t i = 0; i < losses.size(); ++ i) {
