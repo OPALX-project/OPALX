@@ -44,9 +44,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
 #endif
 
     OpalData *opal = OpalData::getInstance();
-    
-    opal->setComm(comm);
-    
+
     Configure::configure();
     opal->storeInputFn(inputfile);
 
