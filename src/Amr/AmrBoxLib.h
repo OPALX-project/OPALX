@@ -368,6 +368,8 @@ private:
 
     // only used in case of potential and efield tagging
     std::vector<bool> isFirstTagging_m;
+
+    bool isPoissonSolved_m;
 };
 
 #endif
