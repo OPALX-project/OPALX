@@ -264,6 +264,16 @@ public:
 
     void storeArguments(int argc, char *argv[]);
     std::vector<std::string> getArguments();
+    
+    void setComm(MPI_Comm& comm) {
+        comm_m(comm);
+    }
+    
+    MPI_Comm& getComm() {
+        return comm_m;
+    }
+        
+    
 private:
 
     static bool isInstantiated;
@@ -278,6 +288,8 @@ private:
 
     // The private implementation details.
     struct OpalDataImpl *p;
+    
+    MPI_Comm& comm_m;
 };
 
 //extern OpalData OPAL;
