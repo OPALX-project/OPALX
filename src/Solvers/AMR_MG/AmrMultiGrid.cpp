@@ -44,7 +44,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
       fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
       flag_m(std::ios::out)
 {
-    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(OpalData::getInstance()->getComm()) ) );
+    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
