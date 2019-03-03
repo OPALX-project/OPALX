@@ -1369,7 +1369,7 @@ void AmrMultiGrid::buildCrseBoundaryMatrix_m(const lo_t& level,
             else if ( mfab(niv) == AmrMultiGridLevel_t::Mask::PHYSBNDRY ) {
                 throw OpalException("AmrMultiGrid::buildCrseBoundaryMatrix_m()",
                                     "Fine meshes shouldn't be connected "
-                                    + "to physical (i.e. mesh) boundary!");
+                                    "to physical (i.e. mesh) boundary!");
             }
 #endif
         }
