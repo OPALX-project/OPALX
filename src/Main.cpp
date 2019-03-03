@@ -194,9 +194,6 @@ int main(int argc, char *argv[]) {
     FTps<double, 6>::setGlobalTruncOrder(10);
 
     OpalData *opal = OpalData::getInstance();
-    
-    opal->setComm(Ippl::getComm());
-    
     opal->storeArguments(argc, argv);
     try {
         Configure::configure();
