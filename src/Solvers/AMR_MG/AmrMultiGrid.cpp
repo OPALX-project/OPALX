@@ -10,6 +10,7 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
+#include <AMReX_ParallelDescriptor.H>
 
 #include <boost/filesystem.hpp>
 
@@ -29,22 +30,22 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
                            const std::size_t& nSweeps,
                            const std::string& interp,
                            const std::string& norm)
-    : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      nIter_m(0),
-      bIter_m(0),
-      maxiter_m(100),
-      nSweeps_m(nSweeps),
-      mglevel_m(0),
-      lbase_m(0),
-      lfine_m(0),
-      nlevel_m(1),
-      nBcPoints_m(0),
-      eps_m(1.0e-10),
-      verbose_m(false),
-      fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver")),
-      flag_m(std::ios::out)
+    : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p)
+    , comm_mp( new comm_t( amrex::ParallelDescriptor::Communicator() ) )
+    , nIter_m(0)
+    , bIter_m(0)
+    , maxiter_m(100)
+    , nSweeps_m(nSweeps)
+    , mglevel_m(0)
+    , lbase_m(0)
+    , lfine_m(0)
+    , nlevel_m(1)
+    , nBcPoints_m(0)
+    , eps_m(1.0e-10)
+    , verbose_m(false)
+    , fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver"))
+    , flag_m(std::ios::out)
 {
-    comm_mp = Teuchos::rcp( new comm_t( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
     
 #if AMR_MG_TIMER
@@ -106,17 +107,17 @@ void AmrMultiGrid::solve(AmrScalarFieldContainer_t &rho,
 
     if ( this->regrid_m )
         reset = true;
-    
+
     this->initLevels_m(rho, itsAmrObject_mp->Geom(), this->regrid_m);
-    
+
     // build all necessary matrices and vectors
     this->setup_m(rho, phi, this->regrid_m);
-    
+
     this->initGuess_m(reset);
-    
+
     // actual solve
     scalar_t error = this->iterate_m();
-    
+
     for (int lev = nlevel_m - 1; lev > -1; --lev) {
         averageDown_m(lev);
     }
@@ -267,7 +268,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
         ba.coarsen(rr);
 
         // refined cells
-        amrex::DistributionMapping dmap(ba, Ippl::getNodes());
+        amrex::DistributionMapping dmap(ba, comm_mp->getSize());
         AmrMultiGridLevel_t::mask_t refined(ba, dmap, 1, 0);
         refined.setVal(AmrMultiGridLevel_t::Refined::YES);
 //      refined.setDomainBndry(AmrMultiGridLevel_t::Mask::PHYSBNDRY, mglevel_m[lev]->geom);
@@ -559,17 +560,17 @@ void AmrMultiGrid::writeResidualNorm_m() {
     scalar_t err = 0.0;
     
     std::ofstream out;
-    if ( Ippl::myNode() == 0 )
+    if ( comm_mp->getRank() == 0 )
         out.open("residual.dat", std::ios::app);
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
         scalar_t tmp = evalNorm_m(mglevel_m[lev]->residual_p);
         
-        if ( Ippl::myNode() == 0 )
+        if ( comm_mp->getRank() == 0 )
             out << std::setw(15) << std::right << tmp;
     }
     
-    if ( Ippl::myNode() == 0 )
+    if ( comm_mp->getRank() == 0 )
         out.close();
 }
 #endif
@@ -613,7 +614,7 @@ void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
 #if AMR_MG_WRITE
     std::ofstream out;
     
-    if ( Ippl::myNode() == 0) {
+    if ( comm_mp->getRank() == 0) {
         out.open("residual.dat", std::ios::out);
     
         for (int lev = 0; lev < nlevel_m; ++lev)
@@ -631,7 +632,7 @@ void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
         resNorms.push_back(evalNorm_m(mglevel_m[lev]->residual_p));
         
 #if AMR_MG_WRITE
-        if ( Ippl::myNode() == 0 )
+        if ( comm_mp->getRank() == 0 )
             out << std::setw(15) << std::right << resNorms.back();
 #endif
         
@@ -639,7 +640,7 @@ void AmrMultiGrid::initResidual_m(std::vector<scalar_t>& rhsNorms,
     }
     
 #if AMR_MG_WRITE
-    if ( Ippl::myNode() == 0 )
+    if ( comm_mp->getRank() == 0 )
         out.close();
 #endif
 }
@@ -669,21 +670,20 @@ void AmrMultiGrid::setup_m(const amrex::Vector<AmrField_u>& rho,
 #if AMR_MG_TIMER
     IpplTimings::startTimer(buildTimer_m);
 #endif
-    
+
     if ( lbase_m == lfine_m )
         this->buildSingleLevel_m(rho, phi, matrices);
     else
         this->buildMultiLevel_m(rho, phi, matrices);
     
     mglevel_m[lfine_m]->error_p->putScalar(0.0);
-    
+
     if ( matrices ) {
-        this->clearMasks_m();    
+        this->clearMasks_m();
         // set the bottom solve operator
         solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p, mglevel_m[0].get());
     }
 
-    
 #if AMR_MG_TIMER
     IpplTimings::stopTimer(buildTimer_m);
 #endif
@@ -695,7 +695,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
                                       const bool& matrices)
 {
     this->open_m(lbase_m, matrices);
-    
+
     const scalar_t* invdx = mglevel_m[lbase_m]->invCellSize();
     
     const scalar_t invdx2[] = {
@@ -742,7 +742,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
     }
 
     this->close_m(lbase_m, matrices);
-    
+
     if ( matrices ) {
         mglevel_m[lbase_m]->Awf_p = mglevel_m[lbase_m]->Anf_p->clone(node_mp);
         mglevel_m[lbase_m]->UnCovered_p = Teuchos::null;
@@ -759,14 +759,12 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
         smoother_m.resize(nlevel_m-1);
     
     for (int lev = 0; lev < nlevel_m; ++lev) {
-
         this->open_m(lev, matrices);
 
         int ilev = lbase_m + lev;
 
         // find all coarse cells that are covered by fine cells
 //         AmrIntVect_t rr = mglevel_m[lev]->refinement();
-
 
         const scalar_t* invdx = mglevel_m[lev]->invCellSize();
 
@@ -800,25 +798,25 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
 #endif
                             AmrIntVect_t iv(D_DECL(i, j, k));
                             go_t gidx = mglevel_m[lev]->serialize(iv);
-                            
+
                             this->buildRestrictionMatrix_m(lev, gidx, iv,
                                                            D_DECL(ii, jj, kk), rfab);
-                            
+
                             this->buildInterpolationMatrix_m(lev, gidx, iv, cfab);
-                            
+
                             this->buildCrseBoundaryMatrix_m(lev, gidx, iv, mfab,
                                                             cfab, invdx2);
-                            
+
                             this->buildFineBoundaryMatrix_m(lev, gidx, iv,
                                                             mfab, rfab, cfab);
-                            
+
                             this->buildNoFinePoissonMatrix_m(lev, gidx, iv, mfab, invdx2);
-                            
+
                             this->buildCompositePoissonMatrix_m(lev, gidx, iv, mfab,
                                                                 rfab, cfab, invdx2);
-                            
+
                             this->buildGradientMatrix_m(lev, gidx, iv, mfab, invdx);
-                            
+
                             mglevel_m[lev]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
                             mglevel_m[lev]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
 #if AMREX_SPACEDIM == 3
@@ -833,9 +831,9 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
                 this->buildDensityVector_m(lev, *rho[ilev]);
             }
         }
-        
+
         this->close_m(lev, matrices);
-        
+
         if ( matrices && lev > lbase_m ) {
             smoother_m[lev-1].reset( new AmrSmoother(mglevel_m[lev]->Anf_p,
                                                      smootherType_m, nSweeps_m) );
@@ -1111,7 +1109,7 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
         for (int shift = -1; shift <= 1; shift += 2) {
             AmrIntVect_t biv = iv;                        
             biv[d] += shift;
-            
+
             if ( rfab(biv) != AmrMultiGridLevel_t::Refined::YES )
             {
                 /*
@@ -1214,14 +1212,14 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
             }
         }
     }
-    
+
     this->map2vector_m(map, indices, values);
-    
+
     mglevel_m[level]->Awf_p->insertGlobalValues(gidx,
                                                 indices.size(),
                                                 &values[0],
                                                 &indices[0]);
-    
+
     scalar_t vv = 1.0;
     mglevel_m[level]->UnCovered_p->insertGlobalValues(gidx,
                                                       1,
@@ -2139,7 +2137,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << indent << "mode=ascii,\n"
             << indent << "no_row_counts=1\n"
             << "&end\n"
-            << Ippl::getNodes() << '\n'
+            << comm_mp->getSize() << '\n'
             << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << '\n'
             << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
                 (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
@@ -2153,7 +2151,7 @@ void AmrMultiGrid::writeSDDSData_m(const scalar_t& error) {
     
     std::ofstream outfile;
     
-    if ( Ippl::myNode() == 0 ) {
+    if ( comm_mp->getRank() == 0 ) {
         outfile.open(fname_m.c_str(), flag_m);
         outfile.precision(15);
         outfile.setf(std::ios::scientific, std::ios::floatfield);

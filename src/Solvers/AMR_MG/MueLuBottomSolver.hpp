@@ -45,11 +45,10 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
                                            Level* level_p)
 {
     IpplTimings::startTimer(setupTimer_m);
-    
+
     A_mp = MueLu::TpetraCrs_To_XpetraMatrix<scalar_t, lo_t, go_t, node_t>(A);
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
-    
-    
+
     static bool first = true;
     
     if ( first ) {
@@ -58,7 +57,7 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
         Teuchos::RCP<mv_t> coords_p = Teuchos::rcp(
             new amr::multivector_t(A->getDomainMap(), AMREX_SPACEDIM, false)
         );
-    
+
         const scalar_t* domain = level_p->geom.ProbLo();
         const scalar_t* dx = level_p->cellSize();
         for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true);
@@ -87,8 +86,6 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
         }
     
         Teuchos::RCP<xmv_t> coordinates = MueLu::TpetraMultiVector_To_XpetraMultiVector(coords_p);
-    
-    
 
         Teuchos::RCP<mv_t> nullspace = Teuchos::rcp(new mv_t(A->getRowMap(), 1));
         Teuchos::RCP<xmv_t> xnullspace = MueLu::TpetraMultiVector_To_XpetraMultiVector(nullspace);
@@ -99,12 +96,12 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
         hierarchy_mp->IsPreconditioner(false);
         hierarchy_mp->GetLevel(0)->Set("A", A_mp);
     }
-    
+
     Teuchos::RCP<level_t> finest_p = hierarchy_mp->GetLevel(0);
     finest_p->Set("A", A_mp);
-    
+
     factory_mp->SetupHierarchy(*hierarchy_mp);
-    
+
     IpplTimings::stopTimer(setupTimer_m);
 }
 
