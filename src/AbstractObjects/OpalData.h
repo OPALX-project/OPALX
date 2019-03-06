@@ -264,6 +264,7 @@ public:
 
     void storeArguments(int argc, char *argv[]);
     std::vector<std::string> getArguments();
+
 private:
 
     static bool isInstantiated;

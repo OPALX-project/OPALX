@@ -20,14 +20,16 @@ AmrBoxLib::AmrBoxLib(const AmrDomain_t& domain,
                      const AmrIntArray_t& nGridPts,
                      int maxLevel,
                      AmrPartBunch* bunch_p)
-    : AmrObject(),
-      amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */),
-      bunch_mp(bunch_p),
-      layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout())),
-      rho_m(maxLevel + 1),
-      phi_m(maxLevel + 1),
-      efield_m(maxLevel + 1),
-      meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+    : AmrObject()
+    , amrex::AmrMesh(&domain, maxLevel, nGridPts, 0 /* cartesian */)
+    , bunch_mp(bunch_p)
+    , layout_mp(static_cast<AmrLayout_t*>(&bunch_p->getLayout()))
+    , rho_m(maxLevel + 1)
+    , phi_m(maxLevel + 1)
+    , efield_m(maxLevel + 1)
+    , meshScaling_m(Vector_t(1.0, 1.0, 1.0))
+    , isFirstTagging_m(maxLevel + 1, true)
+    , isPoissonSolved_m(false)
 {
     /*
      * The layout needs to know how many levels we can make.
@@ -533,6 +535,8 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
         
         ytWriter.writeBunch(bunch_mp, time, scalefactor);
     }
+
+    isPoissonSolved_m = true;
 }
 
 
@@ -825,15 +829,15 @@ void AmrBoxLib::tagForChargeDensity_m(int lev, TagBoxArray_t& tags,
 void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
                                           AmrReal_t time, int ngrow)
 {
-    /* Perform a single level solve a level lev and tag all cells for refinement
+    /* Tag all cells for refinement
      * where the value of the potential is higher than 75 percent of the maximum potential
      * value of this level.
      */
-    if ( !phi_m[lev]->ok() || (time == 0 && !(phi_m[lev]->norm0(0) > 0)) ) {
+    if ( !isPoissonSolved_m || !phi_m[lev]->ok() || this->isFirstTagging_m[lev] ) {
         *gmsg << level2 << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
-        
+        this->isFirstTagging_m[lev] = false;
         return;
     }
     
@@ -878,16 +882,15 @@ void AmrBoxLib::tagForPotentialStrength_m(int lev, TagBoxArray_t& tags,
 void AmrBoxLib::tagForEfield_m(int lev, TagBoxArray_t& tags,
                                AmrReal_t time, int ngrow)
 {
-    /* Perform a single level solve a level lev and tag all cells for refinement
+    /* Tag all cells for refinement
      * where the value of the efield is higher than 75 percent of the maximum efield
      * value of this level.
      */
-    
-    if ( !efield_m[lev][0]->ok() || (time == 0 && !(efield_m[lev][0]->norm0(0) > 0)) ) {
+    if ( !isPoissonSolved_m || !efield_m[lev][0]->ok() || this->isFirstTagging_m[lev] ) {
         *gmsg << level2 << "* Level " << lev << ": We need to perform "
               << "charge tagging in the first time step" << endl;
         this->tagForChargeDensity_m(lev, tags, time, ngrow);
-        
+        this->isFirstTagging_m[lev] = false;
         return;
     }
     

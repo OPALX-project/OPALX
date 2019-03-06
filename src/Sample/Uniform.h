@@ -43,6 +43,10 @@ public:
             RNGInstance_m = RNGStream::getInstance(seed_m + comm.island_id);
     }
 
+    T getNext() {
+        return RNGInstance_m->getNext(dist_m);
+    }
+
 private:
     dist_t dist_m;
     
