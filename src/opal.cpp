@@ -14,7 +14,7 @@ extern Inform *gmsg;
 
 #include "OPALconfig.h"
 
-#if ENABLE_AMR
+#ifdef ENABLE_AMR
     #include <AMReX.H>
 #endif
 
@@ -39,7 +39,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
     IpplInfo::Error->setDestination(output);
     IpplInfo::Warn->setDestination(output);
 
-#if ENABLE_AMR
+#ifdef ENABLE_AMR
     amrex::Initialize(comm);
 #endif
 
@@ -81,7 +81,7 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
     delete parser;
     delete gmsg;
 
-#if ENABLE_AMR
+#ifdef ENABLE_AMR
     amrex::Finalize(true);
 #endif
 
