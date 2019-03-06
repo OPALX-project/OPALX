@@ -1805,13 +1805,13 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
     for(unsigned long int n = 0; n < getLocalNum(); n++) {
 
         double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
-
+#ifdef ENABLE_AMR
         // FIXME: Restrict to 1 GeV proton
         if ( temp_betagamma > 1.808 ) {
             Bin[n] = -1;
             continue;
-	}
-
+        }
+#endif
         int itsBinID = floor((asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
         Bin[n] = itsBinID;
         if(maxbinIndex < itsBinID) {
