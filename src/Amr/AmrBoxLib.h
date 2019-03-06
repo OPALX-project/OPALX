@@ -365,6 +365,11 @@ private:
     
     /// in particle rest frame, the longitudinal length enlarged
     Vector_t meshScaling_m;
+
+    // only used in case of potential and efield tagging
+    std::vector<bool> isFirstTagging_m;
+
+    bool isPoissonSolved_m;
 };
 
 #endif

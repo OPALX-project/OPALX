@@ -34,8 +34,8 @@ public:
         for (int j = 0; j < 3; ++j) {
             if (std::isnan(bunch->R[i](j)) ||
                 std::isnan(bunch->P[i](j)) ||
-                std::abs(bunch->R[i](j)) > 1.0e20 ||
-                std::abs(bunch->P[i](j)) > 1.0e20) {
+                std::abs(bunch->R[i](j)) > 1.0e10 ||
+                std::abs(bunch->P[i](j)) > 1.0e10) {
                 isNaN = true;
                 break;
             }

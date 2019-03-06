@@ -22,6 +22,7 @@ set (HDRS
     SampleIndividual.h
     SamplePilot.h
     Sampler.h
+    SampleRandomizedSequence.h
     SampleSequence.h
     SampleWorker.h
     SamplingMethod.h
