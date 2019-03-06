@@ -9,6 +9,7 @@ class MultiBunchDump {
 public:
     struct beaminfo_t {
         double time;
+        double azimuth;
         unsigned int nParticles;
         double ekin;
         double dEkin;

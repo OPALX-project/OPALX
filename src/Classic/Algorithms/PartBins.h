@@ -226,7 +226,7 @@ public:
     }
 
     /** \brief How many particles are on one energy bin */
-    inline size_t getLocalBinCount(int bin) {
+    virtual inline size_t getLocalBinCount(int bin) {
         size_t ret = 0;
         for(int i = sBins_m * bin; i < sBins_m * (bin + 1); i++) {
             ret += gsl_histogram_get(h_m.get(), i);

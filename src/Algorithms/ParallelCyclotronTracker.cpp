@@ -1444,6 +1444,10 @@ void ParallelCyclotronTracker::GenericTracker() {
     // Apply the plugin elements: probe, collimator, stripper, septum once before first step
     applyPluginElements(dt);
 
+    // Destroy particles if they are marked as Bin = -1 in the plugin elements
+    // or out of global aperture
+    deleteParticle();
+
     /********************************
      *     Main integration loop    *
      ********************************/
@@ -2207,10 +2211,7 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
     // apply the plugin elements: probe, collimator, stripper, septum
     applyPluginElements(h);
     // destroy particles if they are marked as Bin=-1 in the plugin elements or out of global apeture
-    bool const flagNeedUpdate = deleteParticle();
-
-    if(itsBunch_m->weHaveBins() && flagNeedUpdate)
-        updateParticleBins_m();
+    deleteParticle();
 }
 
 
@@ -2249,13 +2250,34 @@ bool ParallelCyclotronTracker::deleteParticle(){
     if(flagNeedUpdate) {
         size_t locLostParticleNum = 0;
 
+        const int leb = itsBunch_m->getLastemittedBin();
+        std::unique_ptr<size_t[]> localBinCount;
+
+        if ( itsBunch_m->weHaveBins() ) {
+            localBinCount = std::unique_ptr<size_t[]>(new size_t[leb]);
+            for (int i = 0; i < leb; ++i)
+                localBinCount[i] = 0;
+        }
+
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); i++) {
             if(itsBunch_m->Bin[i] < 0) {
                 ++locLostParticleNum;
                 itsBunch_m->destroy(1, i);
+            } else if ( itsBunch_m->weHaveBins() ) {
+                /* we need to count the local number of particles
+                 * per energy bin
+                 */
+                ++localBinCount[itsBunch_m->Bin[i]];
             }
         }
-        
+
+        if ( itsBunch_m->weHaveBins() ) {
+            // set the local bin count
+            for (int i = 0; i < leb; ++i) {
+                itsBunch_m->setLocalBinCount(localBinCount[i], i);
+            }
+        }
+
         /* We need to destroy the particles now
          * before we compute the means. We also
          * have to update the total number of particles
@@ -2302,6 +2324,10 @@ bool ParallelCyclotronTracker::deleteParticle(){
 
         localToGlobal(itsBunch_m->R, phi, psi, meanR);
         localToGlobal(itsBunch_m->P, phi, psi, Vector_t(0.0));
+
+        // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
+        if ( itsBunch_m->weHaveBins() )
+            updateParticleBins_m();
     }
     return flagNeedUpdate;
 }
@@ -2428,7 +2454,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     if(multiBunchMode_m == MB_MODE::AUTO) {
 
-        RLastTurn_m = sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);
+        RLastTurn_m = std::sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);  // [m]
         RThisTurn_m = RLastTurn_m;
 
         if(OpalData::getInstance()->inRestartRun()) {
@@ -2440,7 +2466,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             *gmsg << "Initial radial position = ";
         }
         // New OPAL 2.0: Init in m -DW
-        *gmsg << 1000.0 * RThisTurn_m << " mm" << endl;
+        *gmsg << RThisTurn_m << " m" << endl;
     }
 
     // Do boundp and repartition in the local frame at beginning of this run
@@ -2624,7 +2650,35 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     // dump stat file per bin in case of multi-bunch mode
     if ( multiBunchMode_m != MB_MODE::NONE ) {
-        bunchDumpStatDataPerBin();
+        double phi = 0.0, psi = 0.0;
+        Vector_t meanR = calcMeanR();
+
+        // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
+        double theta = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
+
+        if(Options::psDumpFrame != Options::GLOBAL) {
+            Vector_t meanP = calcMeanP();
+
+            // Bunch (local) azimuth at meanR w.r.t. y-axis
+            phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * pi;
+
+            // Bunch (local) elevation at meanR w.r.t. xy plane
+            psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
+
+            // Rotate so Pmean is in positive y direction. No shift, so that normalized emittance and
+            // unnormalized emittance as well as centroids are calculated correctly in
+            // PartBunch::calcBeamParameters()
+            globalToLocal(itsBunch_m->R, phi, psi, meanR);
+            globalToLocal(itsBunch_m->P, phi, psi);
+        }
+
+        bunchDumpStatDataPerBin(theta);
+
+        if(Options::psDumpFrame != Options::GLOBAL) {
+            localToGlobal(itsBunch_m->R, phi, psi, meanR);
+            localToGlobal(itsBunch_m->P, phi, psi);
+        }
+
         return;
     }
 
@@ -2655,6 +2709,10 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     }
     double phi = 0;
     double psi = 0;
+
+    // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
+    double azimuth = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
+
     // --------------  Calculate the external fields at the center of the bunch ----------------- //
     beamline_list::iterator DumpSindex = FieldDimensions.begin();
 
@@ -2688,7 +2746,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     FDext_m[1] = extE_m;        // kV/mm? -DW
 
     // Save the stat file
-    itsDataSink->writeStatData(itsBunch_m, FDext_m, E);
+    itsDataSink->writeStatData(itsBunch_m, FDext_m, E, azimuth);
 
     //itsBunch_m->R *= Vector_t(1000.0); // m -> mm
 
@@ -2702,7 +2760,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 }
 
 
-void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
+void ParallelCyclotronTracker::bunchDumpStatDataPerBin(const double& azimuth) {
     IpplTimings::startTimer(DumpTimer_m);
     
     for (short b = 0; b < BunchCount_m; ++b) {
@@ -2710,6 +2768,7 @@ void ParallelCyclotronTracker::bunchDumpStatDataPerBin() {
         MultiBunchDump::beaminfo_t binfo;
         
         if ( itsBunch_m->calcBunchBeamParameters(binfo, b) ) {
+            binfo.azimuth = azimuth;
             itsMBDump_m->writeData(binfo, b);
         }
     }
@@ -2911,7 +2970,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     double oldReferenceTheta      = referenceTheta * Physics::deg2rad; // init here, reset each step
     setup_m.deltaTheta            = pi / (setup_m.stepsPerTurn);    // half of the average angle per step
 
-    setup_m.stepsNextCheck = step_m + setup_m.stepsPerTurn; // Steps to next check for transition
     //int stepToLastInj = itsBunch_m->getSteptoLastInj(); // TODO: Do we need this? -DW
 
     // Record how many bunches have already been injected. ONLY FOR MBM
@@ -2928,6 +2986,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
         *gmsg << "* Restart at integration step " << restartStep0_m << endl;
     }
+
+    setup_m.stepsNextCheck = step_m + setup_m.stepsPerTurn; // Steps to next check for transition 
 
     initDistInGlobalFrame();
 
@@ -3183,7 +3243,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
 
      // Flag for transition from single-bunch to multi-bunches mode
-    bool flagTransition = false;
+    static bool flagTransition = false;
 
     // single particle dumping
     if(step_m % Options::sptDumpFreq == 0)
@@ -3258,11 +3318,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
 
     // Destroy particles if they are marked as Bin = -1 in the plugin elements
     // or out of global aperture
-    bool flagNeedUpdate = deleteParticle();
-
-    // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
-    if(itsBunch_m->weHaveBins() && flagNeedUpdate)
-        updateParticleBins_m();
+    deleteParticle();
 
     // Recalculate bingamma and reset the BinID for each particles according to its current gamma
     if (itsBunch_m->weHaveBins() && BunchCount_m > 1 && step_m % Options::rebinFreq == 0)
@@ -3439,7 +3495,35 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
 
         getQuaternionTwoVectors(PreviousMeanP, yaxis, quaternionToYAxis);
 
+#if COORD_PRINT
+        if ( BunchCount_m > 1 ) {
+            std::stringstream ss;
+            ss << "global-coordinates-step-" << step_m;
+            std::ofstream out(ss.str());
+            for (uint i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+                out << itsBunch_m->R[i](0) << " "
+                    << itsBunch_m->R[i](1) << " "
+                    << itsBunch_m->R[i](2) << std::endl;
+            }
+            out.close();
+        }
+#endif
+
         globalToLocal(itsBunch_m->R, quaternionToYAxis, meanR);
+
+#if COORD_PRINT
+        if ( BunchCount_m > 1 ) {
+            std::stringstream ss;
+            ss << "local-coordinates-step-" << step_m;
+            std::ofstream out(ss.str());
+            for (uint i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+                out << itsBunch_m->R[i](0) << " "
+                    << itsBunch_m->R[i](1) << " "
+                    << itsBunch_m->R[i](2) << std::endl;
+            }
+            out.close();
+        }
+#endif
 
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
@@ -3532,11 +3616,11 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
             itsBunch_m->calcBeamParameters();
             //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
-            Vector_t Rmean = itsBunch_m->get_centroid() * 1000.0; // m --> mm
+            Vector_t Rmean = itsBunch_m->get_centroid(); // m
 
             RThisTurn_m = sqrt(pow(Rmean[0], 2.0) + pow(Rmean[1], 2.0));
 
-            Vector_t Rrms = itsBunch_m->get_rrms() * 1000.0; // m --> mm
+            Vector_t Rrms = itsBunch_m->get_rrms(); // m
 
             double XYrms =  sqrt(pow(Rrms[0], 2.0) + pow(Rrms[1], 2.0));
 
@@ -3552,9 +3636,9 @@ void ParallelCyclotronTracker::injectBunch_m(bool& flagTransition) {
 
             setup_m.stepsNextCheck += setup_m.stepsPerTurn;
 
-            *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [mm]" << endl;
-            *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [mm]" << endl;
-            *gmsg << "* MBM: XYrms = " << XYrms    << " [mm]" << endl;
+            *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [m]" << endl;
+            *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [m]" << endl;
+            *gmsg << "* MBM: XYrms = " << XYrms    << " [m]" << endl;
 
             RLastTurn_m = RThisTurn_m;
         }
