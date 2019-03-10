@@ -16,7 +16,6 @@ set (_SRCS
   Degrader.cpp
   Diagnostic.cpp
   Drift.cpp
-  Undulator.cpp
   ElementBase.cpp
   ElementImage.cpp
   FlexibleCollimator.cpp
@@ -74,7 +73,6 @@ set (HDRS
     Degrader.h
     Diagnostic.h
     Drift.h
-    Undulator.h
     ElementBase.h
     ElementImage.h
     FlexibleCollimator.h
