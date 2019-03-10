@@ -19,8 +19,6 @@
 
 #include "Algorithms/ParallelTTracker.h"
 
-#include "mithra/fieldvector.hh"
-
 #include <cfloat>
 #include <iostream>
 #include <fstream>
