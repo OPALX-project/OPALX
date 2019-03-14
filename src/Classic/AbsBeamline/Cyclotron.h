@@ -97,8 +97,6 @@ public:
     Cyclotron();
     Cyclotron(const Cyclotron &);
 
-    void applyTrimCoil(const double r, const double z, double& br, double& bz);
-
     virtual ~Cyclotron();
 
     /// Apply visitor to Cyclotron.
@@ -215,7 +213,10 @@ public:
     void read(const int &fieldflag, const double &scaleFactor);
     
 private:
-    void applyTrimCoil_m(const double r, const double z, double *br, double *bz);
+    /// Apply trim coils (calculate field contributions) with smooth field transition
+    void applyTrimCoil  (const double r, const double z, const double tet_rad, double& br, double& bz);
+    /// Apply trim coils (calculate field contributions)
+    void applyTrimCoil_m(const double r, const double z, const double tet_rad, double *br, double *bz);
 
 protected:
     
