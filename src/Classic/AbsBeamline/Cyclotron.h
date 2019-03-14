@@ -22,7 +22,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
 
 #include <string>
 #include <vector>

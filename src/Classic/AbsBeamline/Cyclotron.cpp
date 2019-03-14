@@ -391,7 +391,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P, const double &t, Vec
 
     double tet_rad = tet;
 
-    // the actual angle of particle
+    // the actual angle of particle in degree
     tet = tet / pi * 180.0;
 
     // Necessary for gap phase output -DW
@@ -713,15 +713,13 @@ bool Cyclotron::interpolate(const double& rad,
         r2t2 = idx(ir + 1, it + 1);
     }
 
-    double bzf = 0.0 /*, bzcub = 0.0*/;
-
     if((it >= 0) && (ir >= 0) && (it < Bfield.ntetS) && (ir < Bfield.nrad)) {
 
         // B_{z}
-        bzf = Bfield.bfld[r1t1] * wr2 * wt2 +
-              Bfield.bfld[r2t1] * wr1 * wt2 +
-              Bfield.bfld[r1t2] * wr2 * wt1 +
-              Bfield.bfld[r2t2] * wr1 * wt1;
+        double bzf = Bfield.bfld[r1t1] * wr2 * wt2 +
+                     Bfield.bfld[r2t1] * wr1 * wt2 +
+                     Bfield.bfld[r1t2] * wr2 * wt1 +
+                     Bfield.bfld[r2t2] * wr1 * wt1;
 
         bzint = /*- */bzf ;
 
