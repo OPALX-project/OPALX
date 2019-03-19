@@ -155,6 +155,8 @@ namespace Options {
 
     /// The frequency to dump AMR grid data and particles into file
     extern int amrYtDumpFreq;
+    
+    extern int amrRegridFreq;
 #endif
 
     extern bool memoryDump;

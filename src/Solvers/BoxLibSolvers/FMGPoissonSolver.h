@@ -12,11 +12,12 @@ class FMGPoissonSolver : public AmrPoissonSolver< AmrBoxLib > {
     
 private:
     typedef AmrBoxLib::AmrGeomContainer_t GeomContainer_t;
-    typedef amrex::Array<AmrBoxLib::AmrField_t*> AmrFieldContainer_pt;
+    typedef amrex::Vector<AmrBoxLib::AmrField_t*> AmrFieldContainer_pt;
     typedef AmrBoxLib::AmrGeometry_t AmrGeometry_t;
     typedef AmrBoxLib::AmrGrid_t AmrGrid_t;
     typedef AmrBoxLib::AmrProcMap_t           AmrProcMap_t;
-    typedef AmrBoxLib::AmrFieldContainer_t    AmrFieldContainer_t;
+    typedef AmrBoxLib::AmrScalarFieldContainer_t    AmrScalarFieldContainer_t;
+    typedef AmrBoxLib::AmrVectorFieldContainer_t    AmrVectorFieldContainer_t;
     
 public:
     
@@ -40,9 +41,9 @@ public:
      * @param finestLevel for solve
      * @param prevAsGuess use of previous solution as initial guess
      */
-    void solve(AmrFieldContainer_t &rho,
-               AmrFieldContainer_t& phi,
-               AmrFieldContainer_t &efield,
+    void solve(AmrScalarFieldContainer_t &rho,
+               AmrScalarFieldContainer_t& phi,
+               AmrVectorFieldContainer_t &efield,
                unsigned short baseLevel,
                unsigned short finestLevel,
                bool prevAsGuess = true);
@@ -85,7 +86,7 @@ private:
      */
     double solveWithF90_m(const AmrFieldContainer_pt& rho,
                           const AmrFieldContainer_pt& phi,
-                          const amrex::Array< AmrFieldContainer_pt >& grad_phi_edge, 
+                          const amrex::Vector< AmrFieldContainer_pt >& grad_phi_edge, 
                           const GeomContainer_t& geom,
                           int baseLevel,
                           int finestLevel);
@@ -95,9 +96,10 @@ private:
      * changed, thus, we interpolate from the coarse grids to the fine
      * grids
      */
-    void interpolate_m(AmrFieldContainer_t& phi, const GeomContainer_t& geom,
+    /*
+    void interpolate_m(AmrScalarFieldContainer_t& phi, const GeomContainer_t& geom,
                        double l0norm, int finestLevel);
-    
+    */
 private:
     int bc_m[2*AMREX_SPACEDIM];        ///< Boundary conditions
     double reltol_m;                ///< Relative tolearance for solver

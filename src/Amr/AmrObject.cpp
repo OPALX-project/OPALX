@@ -79,3 +79,32 @@ void AmrObject::setMinNumParticles(size_t minNumPart) {
 const bool& AmrObject::isRefined() const {
     return refined_m;
 }
+
+
+std::string AmrObject::enum2string(int number) {
+    std::string tagging = "";
+    switch ( number ) {
+        case TaggingCriteria::CHARGE_DENSITY:
+            tagging = "CHARGE_DENSITY";
+            break;
+        case TaggingCriteria::POTENTIAL:
+            tagging = "POTENTIAL";
+            break;
+        case TaggingCriteria::EFIELD:
+            tagging = "EFIELD";
+            break;
+        case TaggingCriteria::MOMENTA:
+            tagging = "MOMENTA";
+            break;
+        case TaggingCriteria::MAX_NUM_PARTICLES:
+            tagging = "MAX_NUM_PARTICLES";
+            break;
+        case TaggingCriteria::MIN_NUM_PARTICLES:
+            tagging = "MIN_NUM_PARTICLES";
+            break;
+        default:
+            throw OpalException("AmrObject::enum2string(int)",
+                                "Only numbers between 0 and 5 allowed.");
+    }
+    return tagging;
+}
