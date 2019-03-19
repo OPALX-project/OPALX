@@ -32,11 +32,13 @@ template<class PLayout>
 class AmrParticleBase : public IpplParticleBase<PLayout> {
 
 public:
-    typedef typename PLayout::ParticlePos_t         ParticlePos_t;
-    typedef typename PLayout::ParticleIndex_t       ParticleIndex_t;
-    typedef typename PLayout::SingleParticlePos_t   SingleParticlePos_t;
-    typedef typename PLayout::AmrField_t            AmrField_t;
-    typedef typename PLayout::AmrFieldContainer_t   AmrFieldContainer_t;
+    typedef typename PLayout::ParticlePos_t               ParticlePos_t;
+    typedef typename PLayout::ParticleIndex_t             ParticleIndex_t;
+    typedef typename PLayout::SingleParticlePos_t         SingleParticlePos_t;
+    typedef typename PLayout::AmrField_t                  AmrField_t;
+    typedef typename PLayout::AmrVectorField_t            AmrVectorField_t;
+    typedef typename PLayout::AmrScalarFieldContainer_t   AmrScalarFieldContainer_t;
+    typedef typename PLayout::AmrVectorFieldContainer_t   AmrVectorFieldContainer_t;
     
     typedef long                                    SortListIndex_t;
     typedef std::vector<SortListIndex_t>            SortList_t;
@@ -125,7 +127,8 @@ public:
     inline bool isForbidTransform() const;
     
     /*!
-     * Linear mapping to AMReX computation domain [-1, 1]^3. All dimensions
+     * Linear mapping to AMReX computation domain [-1, 1]^3 including the Lorentz
+     * transform. All dimensions
      * are mapped by the same scaling factor.
      * The potential and electric field need to be scaled afterwards appropriately.
      * @param PData is the particle data
@@ -140,6 +143,15 @@ public:
      */
     inline const double& getScalingFactor() const;
     
+    
+    void setLorentzFactor(const Vector_t& lorentzFactor);
+    
+//     void lorentzTransform(bool inverse = false);
+    
+private:
+    void getLocalBounds_m(Vector_t &rmin, Vector_t &rmax);
+    void getGlobalBounds_m(Vector_t &rmin, Vector_t &rmax);
+    
 protected:
     IpplTimings::TimerRef updateParticlesTimer_m;
     IpplTimings::TimerRef sortParticlesTimer_m;
@@ -152,6 +164,16 @@ protected:
      * (used for Poisson solve and particle-to-core distribution)
      */
     double scale_m;
+    
+    /*!
+     * Lorentz factor used for the domain mapping.
+     * Is updated in AmrBoxLib
+     * 
+     */
+    Vector_t lorentzFactor_m;
+    
+//     bool isLorentzTransformed_m;
+    
     
 private:
     ParticleLevelCounter_t LocalNumPerLevel_m;

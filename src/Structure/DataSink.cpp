@@ -291,16 +291,29 @@ void DataSink::dumpStashedPhaseSpaceEnvelope() {
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
-void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E) {
-    doWriteStatData(beam, FDext, E, losses_t());
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam,
+                             Vector_t FDext[],
+                             double E,
+                             const double& azimuth)
+{
+    doWriteStatData(beam, FDext, E, losses_t(), azimuth);
 }
 
-void DataSink::writeStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], const losses_t& losses) {
-    doWriteStatData(beam, FDext, beam->get_meanKineticEnergy(), losses);
+void DataSink::writeStatData(PartBunchBase<double, 3> *beam,
+                             Vector_t FDext[],
+                             const losses_t& losses,
+                             const double& azimuth)
+{
+    doWriteStatData(beam, FDext, beam->get_meanKineticEnergy(), losses, azimuth);
 }
 
 
-void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[], double Ekin, const losses_t &losses) {
+void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam,
+                               Vector_t FDext[],
+                               double Ekin,
+                               const losses_t &losses,
+                               const double& azimuth)
+{
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -446,6 +459,8 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam, Vector_t FDext[],
             Vector_t halo = beam->get_halo();
             for (int i = 0; i < 3; ++i)
                 os_statData << halo(i) << std::setw(pwi) << "\t";
+
+            os_statData << azimuth << std::setw(pwi) << "\t";
         }
 
         for(size_t i = 0; i < losses.size(); ++ i) {
@@ -946,6 +961,14 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                << "&end\n";
                outputFile << ss.str();
         }
+        std::stringstream ss;
+        ss << "&column\n" << indent << "name=azimuth,\n"
+           << indent << "type=double,\n"
+           << indent << "units=deg,\n"
+           << indent << "description=\"" << columnStart++ << " Azimuth in "
+           << "global coordinates\"\n"
+           << "&end\n";
+        outputFile << ss.str();
     }
 
     for (size_t i = 0; i < losses.size(); ++ i) {
@@ -1347,12 +1370,12 @@ void DataSink::rewindLines(const std::string &fileName, size_t numberOfLines) co
 
 void DataSink::replaceVersionString(const std::string &fileName) const {
 
-    std::string versionFile;
-    SDDS::SDDSParser parser(fileName);
-    parser.run();
-    parser.getParameterValue("revision", versionFile);
-
     if (Ippl::myNode() == 0) {
+        std::string versionFile;
+        SDDS::SDDSParser parser(fileName);
+        parser.run();
+        parser.getParameterValue("revision", versionFile);
+
         std::string line;
         std::queue<std::string> allLines;
         std::fstream fs;
@@ -1621,8 +1644,6 @@ void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
     std::string timeStr(simtimer.time());
     std::string indent("        ");
 
-    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-
     outputFile << "SDDS1" << std::endl;
     outputFile << "&description\n"
                << indent << "text=\"Grid load balancing statistics '"
@@ -1716,7 +1737,6 @@ void DataSink::writeGridLBalData(PartBunchBase<double, 3> *beam,
     }
 
     int nProcs = Ippl::getNodes();
-    double total = 0.0;
     for (int p = 0; p < nProcs; ++p) {
         os_gridLBalData << gridsPerCore[p] << std::setw(pwi);
 

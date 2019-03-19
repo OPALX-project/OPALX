@@ -150,15 +150,15 @@ private:
 private:
 #if AMREX_SPACEDIM == 3
     static constexpr qpattern_t qpattern_ms {
-        473536,                             ///< cross pattern
-        14798,                              ///< T pattern
-        236768,                             ///< right hammer pattern
-        15153152,                           ///< T on head pattern
-        947072,                             ///< left hammer pattern
-        7399,                               ///< upper left corner pattern
-        29596,                              ///< upper right corner pattern
-        7576576,                            ///< mirrored L pattern
-        30306304                            ///< L pattern
+        473536,                             ///< cross pattern (case 0)
+        14798,                              ///< T pattern (case 1)
+        236768,                             ///< right hammer pattern (case 2)
+        15153152,                           ///< T on head pattern (case 3)
+        947072,                             ///< left hammer pattern (case 4)
+        29596,                              ///< upper left corner pattern (case 5)
+        7399,                               ///< upper right corner pattern (case 6)
+        7576576,                            ///< mirrored L pattern (case 7)
+        30306304                            ///< L pattern (case 8)
     };
     
     static constexpr lpattern_t lpattern_ms {

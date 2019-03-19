@@ -357,6 +357,14 @@ int PartBunchBase<T, Dim>::getLastemittedBin() {
 
 
 template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
+    if(pbin_m != NULL) {
+        pbin_m->setPartNum(bin, num);
+    }
+}
+
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcGammas() {
 
     const int emittedBins = dist_m->getNumberOfEnergyBins();
@@ -410,8 +418,11 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
 
     for(int i = 0; i < emittedBins; i++)
         bingamma_m[i] = 0.0;
-    for(unsigned int n = 0; n < getLocalNum(); n++)
-        bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+    for(unsigned int n = 0; n < getLocalNum(); n++) {
+        if ( this->Bin[n] > -1 ) {
+            bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+	}
+    }
 
     allreduce(*bingamma_m.get(), emittedBins, std::plus<double>());
 
@@ -584,7 +595,7 @@ void PartBunchBase<T, Dim>::boundp() {
         }
 
         if (volume < 1e-21 && getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
-            WARNMSG(level1 << "!!! Extremly high particle density detected !!!" << endl);
+            WARNMSG(level1 << "!!! Extremely high particle density detected !!!" << endl);
         }
         //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 
@@ -1388,15 +1399,15 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& binfo, int bin) {
+bool PartBunchBase<T, Dim>::calcBunchBeamParameters(MultiBunchDump::beaminfo_t& binfo, short bunch) {
     if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
         return false;
     }
 
     const unsigned long localNum = getLocalNum();
 
-    long int binTotalNum = 0;
-    unsigned long binLocalNum = 0;
+    long int bunchTotalNum = 0;
+    unsigned long bunchLocalNum = 0;
 
     /* container:
      *
@@ -1408,12 +1419,12 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     std::vector<double> local(7 * Dim + 1);
 
     for(unsigned long k = 0; k < localNum; ++ k) {
-        if ( Bin[k] != bin || ID[k] == 0 ) {
+        if ( bunchNum[k] != bunch || ID[k] == 0 ) {
             continue;
         }
 
-        ++binTotalNum;
-        ++binLocalNum;
+        ++bunchTotalNum;
+        ++bunchLocalNum;
 
         // ekin
         local[0] += std::sqrt(dot(P[k], P[k]) + 1.0);
@@ -1447,23 +1458,23 @@ bool PartBunchBase<T, Dim>::calcBinBeamParameters(MultiBunchDump::beaminfo_t& bi
     }
 
     // inefficient
-    allreduce(binTotalNum, 1, std::plus<long int>());
+    allreduce(bunchTotalNum, 1, std::plus<long int>());
 
-    if ( binTotalNum == 0 )
+    if ( bunchTotalNum == 0 )
         return false;
 
     // ekin
     const double m0 = getM() * 1.0e-6;
-    local[0] -= binLocalNum;
+    local[0] -= bunchLocalNum;
     local[0] *= m0;
 
     allreduce(local.data(), local.size(), std::plus<double>());
 
-    double invN = 1.0 / double(binTotalNum);
+    double invN = 1.0 / double(bunchTotalNum);
     binfo.ekin = local[0] * invN;
 
     binfo.time       = getT() * 1e9;  // ns
-    binfo.nParticles = binTotalNum;
+    binfo.nParticles = bunchTotalNum;
 
     for (unsigned int i = 0; i < Dim; ++i) {
 
@@ -1794,7 +1805,13 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
     for(unsigned long int n = 0; n < getLocalNum(); n++) {
 
         double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
-
+#ifdef ENABLE_AMR
+        // FIXME: Restrict to 1 GeV proton
+        if ( temp_betagamma > 1.808 ) {
+            Bin[n] = -1;
+            continue;
+        }
+#endif
         int itsBinID = floor((asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
         Bin[n] = itsBinID;
         if(maxbinIndex < itsBinID) {
@@ -2222,6 +2239,7 @@ void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
     std::swap(PType[i], PType[j]);
     std::swap(TriID[i], TriID[j]);
     std::swap(cavityGapCrossed[i], cavityGapCrossed[j]);
+    std::swap(bunchNum[i], bunchNum[j]);
 }
 
 
@@ -2265,6 +2283,8 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     pb->addAttribute(PType);
     pb->addAttribute(TriID);
     pb->addAttribute(cavityGapCrossed);
+
+    pb->addAttribute(bunchNum);
 
     boundpTimer_m       = IpplTimings::getTimer("Boundingbox");
     boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");

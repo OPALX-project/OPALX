@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 
 #include <iomanip>
+#include <sstream>
 
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Timer.h"
@@ -56,112 +57,118 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
         << indent << "description=\"1 Time\"\n"
         << "&end\n";
     out << "&column\n"
+        << indent << "name=azimuth,\n"
+        << indent << "type=double,\n"
+        << indent << "units=deg,\n"
+        << indent << "description=\"2 Azimuth in global coordinates\"\n"
+        << "&end\n";
+    out << "&column\n"
         << indent << "name=numParticles,\n"
         << indent << "type=long,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"2 Number of Macro Particles\"\n"
+        << indent << "description=\"3 Number of Macro Particles\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=energy,\n"
         << indent << "type=double,\n"
         << indent << "units=MeV,\n"
-        << indent << "description=\"3 Mean Bunch Energy\"\n"
+        << indent << "description=\"4 Mean Bunch Energy\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=dE,\n"
         << indent << "type=double,\n"
         << indent << "units=MeV,\n"
-        << indent << "description=\"4 energy spread of the beam\"\n"
+        << indent << "description=\"5 energy spread of the beam\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=rms_x,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"5 RMS Beamsize in x\"\n"
+        << indent << "description=\"6 RMS Beamsize in x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=rms_y,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"6 RMS Beamsize in y\"\n"
+        << indent << "description=\"7 RMS Beamsize in y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=rms_z,\n"
+        << indent << "name=rms_s,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"7 RMS Beamsize in z\"\n"
+        << indent << "description=\"8 RMS Beamsize in s\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=rms_px,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"8 RMS Normalized Momenta in x\"\n"
+        << indent << "description=\"9 RMS Normalized Momenta in x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=rms_py,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"9 RMS Normalized Momenta in y\"\n"
+        << indent << "description=\"10 RMS Normalized Momenta in y\"\n"
                << "&end\n";
     out << "&column\n"
         << indent << "name=rms_ps,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"10 RMS Normalized Momenta in z\"\n"
+        << indent << "description=\"11 RMS Normalized Momenta in z\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=emit_x,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"11 Normalized Emittance x\"\n"
+        << indent << "description=\"12 Normalized Emittance x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=emit_y,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"12 Normalized Emittance y\"\n"
+        << indent << "description=\"13 Normalized Emittance y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=emit_z,\n"
+        << indent << "name=emit_s,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"13 Normalized Emittance z\"\n"
+        << indent << "description=\"14 Normalized Emittance s\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=mean_x,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"14 Mean Beam Position in x\"\n"
+        << indent << "description=\"15 Mean Beam Position in x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=mean_y,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"15 Mean Beam Position in y\"\n"
+        << indent << "description=\"16 Mean Beam Position in y\"\n"
         << "&end\n";
     out << "&column\n"
-        << indent << "name=mean_z,\n"
+        << indent << "name=mean_s,\n"
         << indent << "type=double,\n"
         << indent << "units=m,\n"
-        << indent << "description=\"16 Mean Beam Position in z\"\n"
+        << indent << "description=\"17 Mean Beam Position in s\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_x,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"17 Halo in x\"\n"
+        << indent << "description=\"18 Halo in x\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_y,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"18 Halo in y\"\n"
+        << indent << "description=\"19 Halo in y\"\n"
         << "&end\n";
     out << "&column\n"
         << indent << "name=halo_z,\n"
         << indent << "type=double,\n"
         << indent << "units=1,\n"
-        << indent << "description=\"19 Halo in z\"\n"
+        << indent << "description=\"20 Halo in z\"\n"
         << "&end\n";
     
     out << "&data\n"
@@ -178,21 +185,26 @@ void MultiBunchDump::writeHeader(const std::string& fname) const {
 }
 
 
-void MultiBunchDump::writeData(const beaminfo_t& binfo, int bin) {
-    
+void MultiBunchDump::writeData(const beaminfo_t& binfo, short bunch) {
+
     if ( Ippl::myNode() > 0 )
         return;
-    
-    std::string fname = fbase_m + "-bin-" + std::to_string(bin) + fext_m;
-    
+
+    std::stringstream ss;
+    ss << fbase_m << "-bunch-"
+       << std::setw(4) << std::setfill('0') << bunch
+       << fext_m;
+    std::string fname = ss.str();
+
     writeHeader(fname);
-    
+
     std::ofstream out;
     open_m(out, fname);
     
     unsigned int pwi = 10;
     
     out << binfo.time       << std::setw(pwi) << "\t"
+        << binfo.azimuth    << std::setw(pwi) << "\t"
         << binfo.nParticles << std::setw(pwi) << "\t"
         << binfo.ekin       << std::setw(pwi) << "\t"
         << binfo.dEkin      << std::setw(pwi) << "\t"

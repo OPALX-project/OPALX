@@ -226,8 +226,8 @@ void writeCSV(const container_t& phi,
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const Array<Geometry>& geom,
-             const Array<int>& rr,
+             const Vector<Geometry>& geom,
+             const Vector<int>& rr,
              const double& scalefactor)
 {
     std::string dir = "yt-testUnifSphere";
@@ -305,7 +305,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const Array<int>& rr,
+             const Vector<int>& rr,
              Inform& msg,
              const double& scale, const param_t& params)
 {
@@ -339,7 +339,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Vector<Geometry>& geom = myAmrOpal.Geom();
     
     for (uint i = 0; i < rhs.size(); ++i)
         if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
@@ -426,22 +426,22 @@ void doAMReX(const param_t& params, Inform& msg)
     ParmParse pp("amr");
     pp.add("max_grid_size", int(params.maxBoxSize));
     
-    Array<int> error_buf(params.nLevels, 0);
+    Vector<int> error_buf(params.nLevels, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
     ParmParse pgeom("geometry");
-    Array<int> is_per = { 0, 0, 0};
+    Vector<int> is_per = { 0, 0, 0};
     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> nCells(3);
+    Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = params.nr[i];
     
     
     std::vector<int> rr(params.nLevels);
-    Array<int> rrr(params.nLevels);
+    Vector<int> rrr(params.nLevels);
     for (unsigned int i = 0; i < params.nLevels; ++i) {
         rr[i] = 2;
         rrr[i] = 2;
@@ -460,9 +460,9 @@ void doAMReX(const param_t& params, Inform& msg)
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const Array<BoxArray>& ba = myAmrOpal.boxArray();
-    const Array<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    const Array<Geometry>& geom = myAmrOpal.Geom();
+    const Vector<BoxArray>& ba = myAmrOpal.boxArray();
+    const Vector<DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    const Vector<Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);
@@ -602,6 +602,8 @@ int main(int argc, char *argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
+    
+    amrex::Finalize(true);
 
     return 0;
 }

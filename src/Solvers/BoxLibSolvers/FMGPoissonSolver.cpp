@@ -7,8 +7,8 @@
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
-      reltol_m(1.0e-9),
-      abstol_m(0.0)
+      reltol_m(1.0e-15),
+      abstol_m(1.0e-9)
 {
     // Dirichlet boundary conditions are default
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
@@ -19,9 +19,9 @@ FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     this->initParameters_m();
 }
 
-void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
-                             AmrFieldContainer_t& phi,
-                             AmrFieldContainer_t& efield,
+void FMGPoissonSolver::solve(AmrScalarFieldContainer_t& rho,
+                             AmrScalarFieldContainer_t& phi,
+                             AmrVectorFieldContainer_t& efield,
                              unsigned short baseLevel,
                              unsigned short finestLevel,
                              bool prevAsGuess)
@@ -42,7 +42,7 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         }
     }
     
-    amrex::Array< AmrFieldContainer_t > grad_phi_edge(rho.size());
+    amrex::Vector< AmrScalarFieldContainer_t > grad_phi_edge(rho.size());
     
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
@@ -55,49 +55,38 @@ void FMGPoissonSolver::solve(AmrFieldContainer_t& rho,
         }
     }
 
-    // normalize right-hand-side for better convergence
-    double l0norm = rho[finestLevel]->norm0(0);
     for (int i = 0; i <= finestLevel; ++i) {
-        rho[i]->mult(1.0 / l0norm, 0, 1);
-        
-        // reset
-        if ( prevAsGuess )
-            this->interpolate_m(phi, geom, 1.0 / l0norm, finestLevel);
-        else
-            phi[i]->setVal(0.0, 1);
-        
-        efield[i]->setVal(0.0, 1);
+        phi[i]->setVal(0.0, 1);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            efield[i][j]->setVal(0.0, 1);
+        }
     }
     
-    double residNorm = this->solveWithF90_m(amrex::GetArrOfPtrs(rho),
-                                            amrex::GetArrOfPtrs(phi),
-                                            amrex::GetArrOfArrOfPtrs(grad_phi_edge),
+    double residNorm = this->solveWithF90_m(amrex::GetVecOfPtrs(rho),
+                                            amrex::GetVecOfPtrs(phi),
+                                            amrex::GetVecOfVecOfPtrs(grad_phi_edge),
                                             geom,
                                             baseLevel,
                                             finestLevel);
 
-    if ( residNorm > reltol_m ) {
+    if ( residNorm > abstol_m ) {
         std::stringstream ss;
         ss << "Residual norm: " << std::setprecision(16) << residNorm
-           << " > " << reltol_m << " (relative tolerance)";
+           << " > " << abstol_m << " (absolute tolerance)";
         throw OpalException("FMGPoissonSolver::solve()",
                             "Multigrid solver did not converge. " + ss.str());
     }
     
-    // undo normalization
-    for (int i = 0; i <= finestLevel; ++i) {
-        rho[i]->mult(l0norm, 0, 1);
-        phi[i]->mult(l0norm, 0, 1);
-    }
-    
     for (int lev = baseLevel; lev <= finestLevel; ++lev) {
-        amrex::average_face_to_cellcenter(*(efield[lev].get()),
-                                          amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
-                                          geom[lev]);
+        for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+            amrex::average_face_to_cellcenter(*(efield[lev][j].get()),
+                                              amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
+                                              geom[lev]);
         
-        efield[lev]->FillBoundary(0, AMREX_SPACEDIM,geom[lev].periodicity());
-        // we need also minus sign due to \vec{E} = - \nabla\phi
-        efield[lev]->mult(-l0norm, 0, 3);
+            efield[lev][j]->FillBoundary(0, 1, geom[lev].periodicity());
+            // we need also minus sign due to \vec{E} = - \nabla\phi
+            efield[lev][j]->mult(-1.0, 0, 1);
+        }
     }
 }
 
@@ -243,7 +232,7 @@ void FMGPoissonSolver::initParameters_m() {
 
 double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
                                         const AmrFieldContainer_pt& phi,
-                                        const amrex::Array< AmrFieldContainer_pt > & grad_phi_edge,
+                                        const amrex::Vector< AmrFieldContainer_pt > & grad_phi_edge,
                                         const GeomContainer_t& geom,
                                         int baseLevel,
                                         int finestLevel)
@@ -298,7 +287,8 @@ double FMGPoissonSolver::solveWithF90_m(const AmrFieldContainer_pt& rho,
 }
 
 
-void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
+/*
+void FMGPoissonSolver::interpolate_m(AmrScalarFieldContainer_t& phi,
                                      const GeomContainer_t& geom,
                                      double l0norm,
                                      int finestLevel)
@@ -306,7 +296,7 @@ void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
     amrex::PhysBCFunct cphysbc, fphysbc;
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    amrex::Array<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
+    amrex::Vector<amrex::BCRec> bcs(1, amrex::BCRec(lo_bc, hi_bc));
     amrex::PCInterp mapper;
     
     std::unique_ptr<AmrField_t> tmp;
@@ -328,3 +318,4 @@ void FMGPoissonSolver::interpolate_m(AmrFieldContainer_t& phi,
     
     phi[finestLevel]->mult(l0norm, 0, 1);
 }
+*/

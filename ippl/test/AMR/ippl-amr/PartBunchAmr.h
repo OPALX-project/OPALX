@@ -1,30 +1,38 @@
 #ifndef PARTBUNCHAMR_H
 #define PARTBUNCHAMR_H
 
-#include "AmrParticleBase.h"
+#include "AmrParticleBase1.h"
 
 #include <list>
 #include <sstream>
 
 template<class PLayout>
-class PartBunchAmr : public AmrParticleBase<PLayout>
+class PartBunchAmr : public AmrParticleBase1<PLayout>
 {
 
 public:
     
     ParticleAttrib<double> qm;
+    ParticleAttrib<double> phi;
     typename PLayout::ParticlePos_t E;
     typename PLayout::ParticlePos_t P;
     ParticleAttrib<double> mass;
     ParticleAttrib<Vektor<double,2> > Rphase; //velocity of the particles
-    typedef typename AmrParticleBase<PLayout>::LevelNumCounter_t LevelNumCounter_t;
+    typedef typename AmrParticleBase1<PLayout>::LevelNumCounter_t LevelNumCounter_t;
+    
+    typename PLayout::ParticlePos_t k1;
+    typename PLayout::ParticlePos_t k2;
     
     PartBunchAmr() {
         this->addAttribute(qm);
+        this->addAttribute(phi);
         this->addAttribute(E);
         this->addAttribute(P);
         this->addAttribute(mass);
         this->addAttribute(Rphase);
+        
+        this->addAttribute(k1);
+        this->addAttribute(k2);
     }
     
     ~PartBunchAmr() {}
@@ -142,10 +150,14 @@ public:
                 for (size_t i = 0; i < this->getLocalNum(); ++i) {
                     msg2all << this->R[i](0) << " "
                             << this->R[i](1) << " "
+#if AMREX_SPACEDIM == 3
                             << this->R[i](2) << " "
+#endif
                             << this->P[i](0) << " "
                             << this->P[i](1) << " "
+#if AMREX_SPACEDIM
                             << this->P[i](2)
+#endif
                             << endl;
                 }
             }
