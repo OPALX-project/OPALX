@@ -81,7 +81,7 @@ public:
     /*!
      * Write a particle distribution to a file
      */
-    void write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch);
+    void write(PartBunchAmr< ParticleAmrLayout<double, AMREX_SPACEDIM> >* bunch, int step=0);
 #endif
     
     /*!
@@ -90,7 +90,7 @@ public:
     h5_ssize_t getNumParticles();
     
     void writeScalarField(const container_t& scalfield,
-                          const Array<Geometry>& geom);
+                          const Vector<Geometry>& geom);
     
     void writeVectorField(const container_t& vecfield);
     

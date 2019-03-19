@@ -225,6 +225,11 @@ void Sampler::addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind) 
 
     for(size_t i=0; i < ind->objectives.size(); i++, expr_it++) {
         std::string name = expr_it->first;
+
+        // skip dummy objective (SamplePilot.h, line 64)
+        if ( name == "dummy" )
+            continue;
+
         tree_m.put("samples." + id + ".obj." + name, ind->objectives[i]);
     }
 }

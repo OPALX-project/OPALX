@@ -84,6 +84,7 @@ namespace {
 #ifdef ENABLE_AMR
         AMR,
         AMR_YT_DUMP_FREQ,
+        AMR_REGRID_FREQ,
 #endif
         MEMORYDUMP,
         HALOSHIFT,
@@ -256,7 +257,12 @@ Option::Option():
     itsAttr[AMR_YT_DUMP_FREQ] = Attributes::makeReal("AMR_YT_DUMP_FREQ",
                                                      "The frequency to dump grid "
                                                      "and particle data "
-                                                     "(default: 10", amrYtDumpFreq);
+                                                     "(default: 10)", amrYtDumpFreq);
+    
+    itsAttr[AMR_REGRID_FREQ] = Attributes::makeReal("AMR_REGRID_FREQ",
+                                                    "The frequency to perform a regrid "
+                                                    "in multi-bunch mode (default: 10)",
+                                                    amrRegridFreq);
 #endif
     itsAttr[MEMORYDUMP] = Attributes::makeBool
         ("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
@@ -309,6 +315,7 @@ Option::Option(const std::string &name, Option *parent):
 #ifdef ENABLE_AMR
     Attributes::setBool(itsAttr[AMR], amr);
     Attributes::setReal(itsAttr[AMR_YT_DUMP_FREQ], amrYtDumpFreq);
+    Attributes::setReal(itsAttr[AMR_REGRID_FREQ], amrRegridFreq);
 #endif
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
@@ -340,6 +347,7 @@ void Option::execute() {
 #ifdef ENABLE_AMR
     amr = Attributes::getBool(itsAttr[AMR]);
     amrYtDumpFreq = Attributes::getReal(itsAttr[AMR_YT_DUMP_FREQ]);
+    amrRegridFreq = Attributes::getReal(itsAttr[AMR_REGRID_FREQ]);
 #endif
     memoryDump = Attributes::getBool(itsAttr[MEMORYDUMP]);
     haloShift  = Attributes::getReal(itsAttr[HALOSHIFT]);

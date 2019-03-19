@@ -41,6 +41,21 @@ BoxLibLayout<T, Dim>::BoxLibLayout()
 
 
 template<class T, unsigned Dim>
+BoxLibLayout<T, Dim>::BoxLibLayout(const BoxLibLayout* layout_p)
+    : ParticleAmrLayout<T, Dim>(),
+      ParGDB(layout_p->m_geom,
+             layout_p->m_dmap,
+             layout_p->m_ba,
+             layout_p->m_rr)
+{
+    this->maxLevel_m = layout_p->maxLevel_m;
+    refRatio_m.resize(layout_p->m_geom.size()-1);
+    for (int i = 0; i < refRatio_m.size(); ++i)
+        refRatio_m[i] = layout_p->refRatio(i);
+}
+
+
+template<class T, unsigned Dim>
 BoxLibLayout<T, Dim>::BoxLibLayout(int nGridPoints, int maxGridSize)
     : ParticleAmrLayout<T, Dim>(),
       ParGDB(),
@@ -98,12 +113,13 @@ void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData
 // // redistribute the particles using BoxLibs ParGDB class to determine where particle should go
 template<class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
-                                  int lev_min, int lev_max,
-                                  const ParticleAttrib<char>* canSwap)
+                                  int lev_min, int lev_max)
 {
     // in order to avoid transforms when already done
     if ( !PData.isForbidTransform() ) {
-        // we need to update on Amr domain, has to be undone at end of function
+        /* we need to update on Amr domain + boosted frame (Lorentz transform,
+         * has to be undone at end of function
+         */
         PData.domainMapping();
     }
     
@@ -122,7 +138,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     else if ( lev_max > theEffectiveFinestLevel )
         lev_max = theEffectiveFinestLevel;
     
-    //loop trough the particles and assigne the grid and level where each particle belongs
+    //loop trough the particles and assign the grid and level where each particle belongs
     size_t LocalNum = PData.getLocalNum();
     
     auto& LocalNumPerLevel = PData.getLocalNumPerLevel();
@@ -144,7 +160,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
   
     //loop trough particles and assign grid and level to each particle
     //if particle doesn't belong to this process save the index of the particle to be sent
-    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {        
+    for (unsigned int ip = lBegin; ip < lEnd; ++ip) {
         // old level
         const size_t& lold = PData.Level[ip];
         
@@ -282,8 +298,13 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     PData.setTotalNum(TotalNum);    // set the total atom count
     PData.setLocalNum(LocalNum);    // set the number of local atoms
     
+    // final check
+    if ( LocalNum != LocalNumPerLevel.getLocalNumAllLevel() )
+        throw OpalException("BoxLibLayout::update()",
+                            "Local #particles disagrees with sum over levels");
+    
     if ( !PData.isForbidTransform() ) {
-        // undo domain transformation
+        // undo domain transformation + undo Lorentz transform
         PData.domainMapping(true);
     }
 }
@@ -316,6 +337,77 @@ typename BoxLibLayout<T, Dim>::AmrIntVect_t
     iv += geom.Domain().smallEnd();
 
     return iv;
+}
+
+template <class T, unsigned Dim>
+void BoxLibLayout<T, Dim>::buildLevelMask(int lev, const int ncells) {
+    int covered = 0;
+    int notcovered = 1;
+    int physbnd = 1;
+    int interior = 0;
+    
+    if ( lev >= (int)masks_m.size() )
+        masks_m.resize(lev + 1);
+    
+    masks_m[lev].reset(new mask_t(ParticleBoxArray(lev),
+                                  ParticleDistributionMap(lev), 1, 1));
+    
+    masks_m[lev]->setVal(1, 1);
+    
+    mask_t tmp_mask(ParticleBoxArray(lev),
+                    ParticleDistributionMap(lev),
+                    1, ncells);
+    
+    tmp_mask.setVal(0, ncells);
+    
+    tmp_mask.BuildMask(Geom(lev).Domain(), Geom(lev).periodicity(),
+                       covered, notcovered, physbnd, interior);
+    
+    tmp_mask.FillBoundary(Geom(lev).periodicity());
+    
+    for (amrex::MFIter mfi(tmp_mask); mfi.isValid(); ++mfi) {
+        const AmrBox_t& bx = mfi.validbox();
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+        
+        basefab_t& mfab = (*masks_m[lev])[mfi];
+        const basefab_t& fab = tmp_mask[mfi];
+        
+        for (int i = lo[0]; i <= hi[0]; ++i) {
+            for (int j = lo[1]; j <= hi[1]; ++j) {
+                for (int k = lo[2]; k <= hi[2]; ++k) {
+                    int total = 0;
+                    
+                    for (int ii = i - ncells; ii <= i + ncells; ++ii) {
+                        for (int jj = j - ncells; jj <= j + ncells; ++jj) {
+                            for (int kk = k - ncells; kk <= k + ncells; ++kk) {
+                                AmrIntVect_t iv(ii, jj, kk);
+                                total += fab(iv);
+                            }
+                        }
+                    }
+                    
+                    AmrIntVect_t iv(i, j, k);
+                    if (total == 0) {
+                        mfab(iv) = 0;
+                    }
+                }
+            }
+        }
+    }
+    
+    masks_m[lev]->FillBoundary(Geom(lev).periodicity());
+}
+
+
+template <class T, unsigned Dim>
+const std::unique_ptr<typename BoxLibLayout<T, Dim>::mask_t>& 
+BoxLibLayout<T, Dim>::getLevelMask(int lev) const {
+    if ( lev >= (int)masks_m.size() ) {
+        throw OpalException("BoxLibLayout::getLevelMask()",
+                            "Unable to access level " + std::to_string(lev) + ".");
+    }
+    return masks_m[lev];
 }
 
 
@@ -556,7 +648,7 @@ void BoxLibLayout<T, Dim>::locateParticle(
                         || p.R[ip](2) <  AmrGeometry_t::ProbLo(2)
                         || p.R[ip](2) >= AmrGeometry_t::ProbHi(2));
         
-    bool success;
+    bool success = false;
     
     if (outside)
     {
@@ -589,7 +681,7 @@ void BoxLibLayout<T, Dim>::locateParticle(
     if (!success)
     {
         std::stringstream ss;
-        ss << "Invalid particle at position " << p.R[ip] << ".";
+        ss << "Invalid particle with ID " << ip << " at position " << p.R[ip] << ".";
         throw OpalException("BoxLibLayout::locateParticle()", ss.str());
     }
 }

@@ -7,6 +7,8 @@
 template<class PLayout>
 AmrParticleBase<PLayout>::AmrParticleBase() : forbidTransform_m(false),
                                               scale_m(1.0),
+                                              lorentzFactor_m(1.0, 1.0, 1.0),
+//                                               isLorentzTransformed_m(false),
                                               LocalNumPerLevel_m()
 {
     updateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -20,6 +22,8 @@ AmrParticleBase<PLayout>::AmrParticleBase(PLayout* layout)
     : IpplParticleBase<PLayout>(layout),
       forbidTransform_m(false),
       scale_m(1.0),
+      lorentzFactor_m(1.0, 1.0, 1.0),
+//       isLorentzTransformed_m(false),
       LocalNumPerLevel_m()
 {
     updateParticlesTimer_m = IpplTimings::getTimer("AMR update particles");
@@ -94,18 +98,32 @@ void AmrParticleBase<PLayout>::performDestroy(bool updateLocalNum) {
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::create(size_t M) {
+    
+//     size_t localnum = LocalNumPerLevel_m[0];
+    
     // particles are created at the coarsest level
     LocalNumPerLevel_m[0] += M;
     
     IpplParticleBase<PLayout>::create(M);
+    
+//     for (size_t i = localnum; i < LocalNumPerLevel_m[0]; ++i) {
+//         this->Grid[i] = 0;
+//         this->Level[i] = 0;
+//     }
 }
 
 
 template<class PLayout>
 void AmrParticleBase<PLayout>::createWithID(unsigned id) {
+    
+//     size_t localnum = LocalNumPerLevel_m[0];
+    
     ++LocalNumPerLevel_m[0];
     
     IpplParticleBase<PLayout>::createWithID(id);
+    
+//     this->Grid[localnum] = 0;
+//     this->Level[localnum] = 0;
 }
 
 
@@ -214,10 +232,35 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
     
     double scale = scale_m;
     
+    Vector_t gamma = lorentzFactor_m;
+    
     if ( !inverse ) {
-        Vector_t rmin, rmax;
-        bounds(this->R, rmin, rmax);
+//         if ( !this->DestroyList.empty() ) {
+//             this->performDestroy(true);
+//         }
+
+        Vector_t rmin = Vector_t(0.0, 0.0, 0.0);
+        Vector_t rmax = Vector_t(0.0, 0.0, 0.0);
         
+        getGlobalBounds_m(rmin, rmax);
+        
+        /* in case of 1 particle, the bunch is rotated
+         * transformed to the local frame such that this
+         * particle lies on the origin (0, 0, 0).
+         */
+        if ( this->getTotalNum() == 1 ||
+             (rmin == Vector_t(0.0, 0.0, 0.0) && rmax == Vector_t( 0.0,  0.0,  0.0)) ) {
+            rmin = Vector_t(-1.0, -1.0, -1.0);
+            rmax = Vector_t( 1.0,  1.0,  1.0);
+        }
+
+        /* Lorentz transfomration factor
+         * is not equal 1.0 only in longitudinal
+         * direction
+         */
+        rmin *= gamma;
+        rmax *= gamma;
+
         Vector_t tmp = Vector_t(std::max( std::abs(rmin[0]), std::abs(rmax[0]) ),
                                 std::max( std::abs(rmin[1]), std::abs(rmax[1]) ),
                                 std::max( std::abs(rmin[2]), std::abs(rmax[2]) )
@@ -225,13 +268,23 @@ const double& AmrParticleBase<PLayout>::domainMapping(bool inverse) {
         
         scale = std::max( tmp[0], tmp[1] );
         scale = std::max( scale, tmp[2] );
+    } else {
+        // inverse Lorentz transform
+        gamma = 1.0 / gamma;
     }
     
+    if ( std::isnan(scale) || std::isinf(scale) ) {
+        if ( !Ippl::myNode() )
+            throw IpplException("AmrParticleBase::domainMapping()",
+                                "Scale factor is Nan or Inf");
+    }
+
     Vector_t vscale = Vector_t(scale, scale, scale);
     
-    for (unsigned int i = 0; i < this->getLocalNum(); ++i)
-        this->R[i] /= vscale;
-    
+    // Lorentz transform + mapping to [-1, 1]
+    for (unsigned int i = 0; i < this->getLocalNum(); ++i) {
+        this->R[i] = this->R[i] * gamma / vscale;
+    }
     
     scale_m = 1.0 / scale;
     
@@ -245,5 +298,71 @@ template<class PLayout>
 const double& AmrParticleBase<PLayout>::getScalingFactor() const {
     return scale_m;
 }
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::setLorentzFactor(const Vector_t& lorentzFactor) {
+    lorentzFactor_m = lorentzFactor;
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::getLocalBounds_m(Vector_t &rmin, Vector_t &rmax) {
+    const size_t localNum = this->getLocalNum();
+    if (localNum == 0) {
+        double max = 1e10;
+        rmin = Vector_t( max,  max,  max);
+        rmax = Vector_t(-max, -max, -max);
+        return;
+    }
+
+    rmin = this->R[0];
+    rmax = this->R[0];
+    for (size_t i = 1; i < localNum; ++ i) {
+        for (unsigned short d = 0; d < 3u; ++ d) {
+            if (rmin(d) > this->R[i](d)) rmin(d) = this->R[i](d);
+            else if (rmax(d) < this->R[i](d)) rmax(d) = this->R[i](d);
+        }
+    }
+}
+
+
+template<class PLayout>
+void AmrParticleBase<PLayout>::getGlobalBounds_m(Vector_t &rmin, Vector_t &rmax) {
+    this->getLocalBounds_m(rmin, rmax);
+
+    double min[6];
+    for (unsigned int i = 0; i < 3; ++i) {
+        min[2*i] = rmin[i];
+        min[2*i + 1] = -rmax[i];
+    }
+
+    allreduce(min, 6, std::less<double>());
+
+    for (unsigned int i = 0; i < 3; ++i) {
+        rmin[i] = min[2*i];
+        rmax[i] = -min[2*i + 1];
+    }
+}
+
+
+// template<class PLayout>
+// void AmrParticleBase<PLayout>::lorentzTransform(bool inverse) {
+//     
+//     if ( isLorentzTransformed_m && !inverse ) {
+//         return;
+//     }
+//         
+//     isLorentzTransformed_m = true;
+//     
+//     Vector_t gamma = lorentzFactor_m;
+//     
+//     if ( inverse ) {
+//         gamma = 1.0 / gamma;
+//         isLorentzTransformed_m = false;
+//     }
+//     
+//     for (std::size_t i = 0; i < this->getLocalNum(); ++i)
+//         this->R[i] *= gamma;
+// }
 
 #endif

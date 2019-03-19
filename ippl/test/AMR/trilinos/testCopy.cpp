@@ -3,7 +3,7 @@
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 #include <Epetra_MpiComm.h>
 #include <Epetra_Map.h>
@@ -33,9 +33,9 @@ struct TestParams {
     int nlevs;
 };
 
-Array<std::unique_ptr<MultiFab> > initData(TestParams& parms,
-                                           Array<BoxArray>& ba,
-                                           Array<Geometry>& geom)
+Vector<std::unique_ptr<MultiFab> > initData(TestParams& parms,
+                                           Vector<BoxArray>& ba,
+                                           Vector<Geometry>& geom)
 {
     
     RealBox real_box;
@@ -50,7 +50,7 @@ Array<std::unique_ptr<MultiFab> > initData(TestParams& parms,
     const Box domain(domain_lo, domain_hi);
     
     
-    Array<int> rr(parms.nlevs-1);
+    Vector<int> rr(parms.nlevs-1);
     for (int lev = 1; lev < parms.nlevs; lev++)
         rr[lev-1] = 2;
     
@@ -86,9 +86,9 @@ Array<std::unique_ptr<MultiFab> > initData(TestParams& parms,
         ba[lev].maxSize(parms.max_grid_size);
     }
     
-    Array<DistributionMapping> dmap(parms.nlevs);
+    Vector<DistributionMapping> dmap(parms.nlevs);
     
-    Array<std::unique_ptr<MultiFab> > theData(parms.nlevs);
+    Vector<std::unique_ptr<MultiFab> > theData(parms.nlevs);
     
     for (int lev = 0; lev < parms.nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
@@ -129,9 +129,9 @@ inline bool isInside(IntVect iv, int nx, int ny, int nz) {
              iv[2] > -1 && iv[2] < nz);
 }
 
-void amrex3trilinos(const Array<std::unique_ptr<MultiFab> >& theData,
-                    const Array<BoxArray>& grids,
-                    const Array<Geometry>& geom, int lev)
+void amrex3trilinos(const Vector<std::unique_ptr<MultiFab> >& theData,
+                    const Vector<BoxArray>& grids,
+                    const Vector<Geometry>& geom, int lev)
 {
     
     Epetra_MpiComm epetra_comm(Ippl::getComm());
@@ -442,9 +442,9 @@ int main(int argc, char* argv[]) {
     pp.get("max_grid_size", parms.max_grid_size);
     pp.get("nlevs", parms.nlevs);
     
-    Array<BoxArray> grids;
-    Array<Geometry> geom;
-    Array<std::unique_ptr<MultiFab> > theData = initData(parms, grids, geom);
+    Vector<BoxArray> grids;
+    Vector<Geometry> geom;
+    Vector<std::unique_ptr<MultiFab> > theData = initData(parms, grids, geom);
     
     int lev = 0;
     amrex3trilinos(theData, grids, geom, lev);
@@ -464,6 +464,8 @@ int main(int argc, char* argv[]) {
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
+    
+    amrex::Finalize(true);
     
     return 0;
 }

@@ -14,9 +14,14 @@ extern Inform *gmsg;
 
 #include "OPALconfig.h"
 
+#ifdef ENABLE_AMR
+    #include <AMReX.H>
+#endif
 
-int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel, int warnLevel, MPI_Comm comm) {
 
+int run_opal(char *arg[], std::string inputfile, int restartStep,
+             int infoLevel, int warnLevel, MPI_Comm comm)
+{
     std::string::size_type startExtension    = inputfile.find_last_of('.');
     // std::string::size_type startRelativePath = inputfile.find_last_of('/');
     // std::string relativePath("");
@@ -34,12 +39,14 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel,
     IpplInfo::Error->setDestination(output);
     IpplInfo::Warn->setDestination(output);
 
+#ifdef ENABLE_AMR
+    amrex::Initialize(comm);
+#endif
+
     OpalData *opal = OpalData::getInstance();
+
     Configure::configure();
     opal->storeInputFn(inputfile);
-
-    //FIXME
-    if(restartStep > 0) throw new OpalException("run_opal", "Restart not implemented yet!");
 
     // FileStream is a RCObject
     FileStream *is = 0;
@@ -52,6 +59,13 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel,
 
     // run simulation
     OpalParser *parser = new OpalParser();
+
+    if (restartStep > std::numeric_limits<int>::min()) {
+        opal->setRestartRun();
+        opal->setRestartStep(restartStep);
+        opal->setRestartFileName(inputfile.substr(0,startExtension) + ".h5");
+    }
+
     if(is) parser->run(is);
 
     Ippl::Comm->barrier();
@@ -66,6 +80,10 @@ int run_opal(char *arg[], std::string inputfile, int restartStep, int infoLevel,
     Fieldmap::clearDictionary();
     delete parser;
     delete gmsg;
+
+#ifdef ENABLE_AMR
+    amrex::Finalize(true);
+#endif
 
     //FIXME: strange side effects
     //ippl = 0;

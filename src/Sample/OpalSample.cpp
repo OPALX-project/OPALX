@@ -11,6 +11,7 @@
 #include "Sample/SampleGaussianSequence.h"
 #include "Sample/FromFile.h"
 #include "Sample/LatinHyperCube.h"
+#include "Sample/SampleRandomizedSequence.h"
 
 
 // Class OpalSample
@@ -25,6 +26,7 @@ namespace {
         FNAME,      // file to read from sampling points
         N,
         RANDOM,
+        STEP,
         SIZE
     };
 }
@@ -51,6 +53,9 @@ OpalSample::OpalSample():
 
     itsAttr[RANDOM]     = Attributes::makeBool
                           ("RANDOM", "Whether sequence should be sampled randomly (default: false)", false);
+
+    itsAttr[STEP]       = Attributes::makeReal
+                          ("STEP", "Increment for randomized sequences (default: 1)", 1.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -96,6 +101,7 @@ void OpalSample::initialize(const std::string &dvarName,
 
     int seed = Attributes::getReal(itsAttr[SEED]);
     size_m = Attributes::getReal(itsAttr[N]);
+    double step = Attributes::getReal(itsAttr[STEP]);
 
     bool random = Attributes::getBool(itsAttr[RANDOM]);
 
@@ -142,6 +148,26 @@ void OpalSample::initialize(const std::string &dvarName,
                 sampleMethod_m.reset( new LatinHyperCube(lower, upper, seed) );
             } else {
                 sampleMethod_m.reset( new LatinHyperCube(lower, upper) );
+            }
+        } else if (type == "RANDOM_SEQUENCE_UNIFORM_INT") {
+            if (Attributes::getReal(itsAttr[SEED])) {
+                sampleMethod_m.reset(
+                    new SampleRandomizedSequence<int>(lower, upper, step, seed)
+                );
+            } else {
+                sampleMethod_m.reset(
+                    new SampleRandomizedSequence<int>(lower, upper, step)
+                );
+            }
+        } else if (type == "RANDOM_SEQUENCE_UNIFORM") {
+            if (Attributes::getReal(itsAttr[SEED])) {
+                sampleMethod_m.reset(
+                    new SampleRandomizedSequence<double>(lower, upper, step, seed)
+                );
+            } else {
+                sampleMethod_m.reset(
+                    new SampleRandomizedSequence<double>(lower, upper, step)
+                );
             }
         } else {
             throw OpalException("OpalSample::initialize()",

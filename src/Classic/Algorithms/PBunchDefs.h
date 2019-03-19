@@ -57,7 +57,8 @@ typedef FFT<CCTransform, 3, double>              FFTC_t;
 
 #ifdef ENABLE_AMR
     typedef amr::AmrField_t                      AmrField_t;
-    typedef amr::AmrFieldContainer_t             AmrFieldContainer_t;
+    typedef amr::AmrScalarFieldContainer_t       AmrScalarFieldContainer_t;
+    typedef amr::AmrVectorFieldContainer_t       AmrVectorFieldContainer_t;
     typedef BoxLibLayout<double, 3>              AmrLayout_t;
     typedef BoxLibParticle<AmrLayout_t>          AmrParticle_t;
 #endif

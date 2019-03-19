@@ -15,11 +15,12 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include <AMReX_AmrMesh.H>
-#include "../AmrOpal_F.h"
 
 #include <random>
 
 #include "../Solver.h"
+
+#include <AMReX_AmrParticles.H>
 
 using namespace amrex;
 
@@ -118,7 +119,7 @@ class MyParticleContainer
     }
     
 private:
-    Array<ParticleLevel>& particles_rm;
+    Vector<ParticleLevel>& particles_rm;
 };
 
 
@@ -127,7 +128,7 @@ class MyAmr : public AmrMesh {
 public:
     MyAmr(const RealBox* rb,
           int max_level_in,
-          const Array<int>& n_cell_in,
+          const Vector<int>& n_cell_in,
           int coord,
           MyParticleContainer* bunch)
         : AmrMesh(rb, max_level_in, n_cell_in, coord),
@@ -149,7 +150,7 @@ public:
     void regrid (int lbase, Real time)
     {
         int new_finest = 0;
-        Array<BoxArray> new_grids(finest_level+2);
+        Vector<BoxArray> new_grids(finest_level+2);
         
         MakeNewGrids(lbase, time, new_finest, new_grids);
     
@@ -186,7 +187,7 @@ public:
     
     void ErrorEst(int lev, TagBoxArray& tags, Real time, int ngrow) {
 
-	Array<std::unique_ptr<MultiFab> > nChargePerCell_m(max_level + 1);
+	Vector<std::unique_ptr<MultiFab> > nChargePerCell_m(max_level + 1);
 
         for (int i = 0; i <= finest_level; ++i) {
 	    nChargePerCell_m[i].reset(new MultiFab(grids[i], dmap[i], 1, 2));
@@ -205,30 +206,31 @@ public:
         #pragma omp parallel
         #endif
         {
-            Array<int>  itags;
-            for (MFIter mfi(*nChargePerCell_m[lev],false/*true*/); mfi.isValid(); ++mfi) {
-                const Box&  tilebx  = mfi.validbox();//mfi.tilebox();
+            for (amrex::MFIter mfi(*nChargePerCell_m[lev], false/*true*/); mfi.isValid(); ++mfi) {
+                const amrex::Box&  tilebx  = mfi.validbox();//mfi.tilebox();
                 
-                TagBox&     tagfab  = tags[mfi];
+                amrex::TagBox&     tagfab  = tags[mfi];
+                amrex::FArrayBox&  fab     = (*nChargePerCell_m[lev])[mfi];
                 
-                // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-                // So we are going to get a temporary integer array.
-                tagfab.get_itags(itags, tilebx);
-                
-                // data pointer and index space
-                int*        tptr    = itags.dataPtr();
                 const int*  tlo     = tilebx.loVect();
                 const int*  thi     = tilebx.hiVect();
-    
-                state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-                            BL_TO_FORTRAN_3D((*nChargePerCell_m[lev])[mfi]),
-                            &tagval, &clearval, 
-                            ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-                            ZFILL(dx), ZFILL(prob_lo), &time, &nCharge_m);
-                //
-                // Now update the tags in the TagBox.
-                //
-                tagfab.tags_and_untags(itags, tilebx);
+                
+                for (int i = tlo[0]; i <= thi[0]; ++i) {
+                    for (int j = tlo[1]; j <= thi[1]; ++j) {
+#if AMREX_SPACEDIM == 3
+                        for (int k = tlo[2]; k <= thi[2]; ++k) {
+#endif
+                            amrex::IntVect iv(D_DECL(i,j,k));
+                            
+                            if ( std::abs( fab(iv) ) >= nCharge_m )
+                                tagfab(iv) = tagval;
+                            else
+                                tagfab(iv) = clearval;
+#if AMREX_SPACEDIM == 3
+                        }
+#endif
+                    }
+                }
             }
         }
     }
@@ -361,8 +363,8 @@ void solve(MyAmr& myAmr, MyParticleContainer& myPC) {
     int finest_level = myAmr.finestLevel();
     int nlevs = finest_level + 1;
     
-    Array<std::unique_ptr<MultiFab> > partMF(nlevs);
-    Array<std::unique_ptr<MultiFab> > rho(nlevs), phi(nlevs), efield(nlevs);
+    Vector<std::unique_ptr<MultiFab> > partMF(nlevs);
+    Vector<std::unique_ptr<MultiFab> > rho(nlevs), phi(nlevs), efield(nlevs);
     
     for (int i = 0; i < nlevs; ++i) {
         const DistributionMapping& dm = myAmr.DistributionMap(i);
@@ -395,7 +397,7 @@ void solve(MyAmr& myAmr, MyParticleContainer& myPC) {
         rho[i]->mult(1.0 / l0norm, 0, 1);
     }
     
-    const Array<Geometry>& geom = myAmr.Geom();
+    const Vector<Geometry>& geom = myAmr.Geom();
     
     Solver sol;
     
@@ -428,7 +430,7 @@ void doTest(TestParams& parms)
     int coord = 0;
 
     // Dirichlet boundary conditions
-    Array<int> is_per = { 0, 0, 0};
+    Vector<int> is_per = { 0, 0, 0};
     
     Geometry geom;
     geom.define(domain, &real_box, coord, &is_per[0]);
@@ -450,7 +452,7 @@ void doTest(TestParams& parms)
     ParmParse pp("amr");
     pp.add("max_grid_size", parms.max_grid_size);
     
-    Array<int> error_buf(nlevs, 0);
+    Vector<int> error_buf(nlevs, 0);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
@@ -458,15 +460,15 @@ void doTest(TestParams& parms)
     ParmParse pgeom("geometry");
     pgeom.addarr("is_periodic", is_per);
     
-    Array<int> n_cell_in = { parms.nx, parms.ny, parms.nz  };
+    Vector<int> n_cell_in = { parms.nx, parms.ny, parms.nz  };
     
     
     MyAmr myAmr(&real_box, nlevs, n_cell_in, 0, &myPC);
     
-    const Array<Geometry>& gv = myAmr.Geom();
-    const Array<BoxArray>& bmv = myAmr.boxArray();
-    const Array<DistributionMapping>& dmv = myAmr.DistributionMap();
-    Array<int> rv;
+    const Vector<Geometry>& gv = myAmr.Geom();
+    const Vector<BoxArray>& bmv = myAmr.boxArray();
+    const Vector<DistributionMapping>& dmv = myAmr.DistributionMap();
+    Vector<int> rv;
     
     for (int i = 0; i < myAmr.maxLevel(); ++i)
         rv.push_back( myAmr.MaxRefRatio(i) );

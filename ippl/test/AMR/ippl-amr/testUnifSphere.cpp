@@ -49,7 +49,6 @@ struct param_t {
     size_t maxBoxSize;
     size_t blocking_factor;
     double radius;
-    double length;
     size_t nParticles;
     double pCharge;
     bool isFixedCharge;
@@ -68,6 +67,9 @@ struct param_t {
     std::string smoother;
     std::string prec;
     bool rebalance;
+    double bboxincr;
+    int inc;
+    double dd;
 #endif
     AmrOpal::TaggingCriteria criteria;
     double tagfactor;
@@ -107,7 +109,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
     
     int cnt = 0;
     
-    int required = 8;
+    int required = 11;
     
     while ( true ) {
         static struct option long_options[] = {
@@ -138,15 +140,18 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
 #endif
             { "tagging",         required_argument, 0, 't' },
             { "tagging-factor",  required_argument, 0, 'f' },
+            { "bboxincr",        required_argument, 0, 'b' },
+            { "inc",        required_argument, 0, 'I' },
+            { "dd",        required_argument, 0, 'D' },
             { 0,                 0,                 0,  0  }
         };
         
         int option_index = 0;
         
 #ifdef HAVE_AMR_MG_SOLVER
-        c = getopt_long(argc, argv, "a:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:D:a:b:cd:f:g:hi:j:k:l:m:n:o:pq:r:R:st:u:vwx:y:z:", long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:D:b:x:y:z:l:m:r:n:whcvpst:f:", long_options, &option_index);
 #endif
         
         if ( c == -1 )
@@ -194,6 +199,12 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                 break;
             }
 #endif
+            case 'b':
+                params.bboxincr = std::atof(optarg); ++cnt; break;
+            case 'I':
+                params.inc = std::atoi(optarg); ++cnt; break;
+            case 'D':
+                params.dd = std::atoi(optarg); ++cnt; break;
             case 'x':
                 params.nr[0] = std::atoi(optarg); ++cnt; break;
             case 'y':
@@ -244,6 +255,7 @@ bool parseProgOptions(int argc, char* argv[], param_t& params, Inform& msg) {
                     << "--level [#levels]" << endl
                     << "--maxgrid [max. grid]" << endl
                     << "--blocking_factor [val] (only grids modulo bf == 0 allowed)" << endl
+                    << "--bboxincr [value] (increase box size by [value] percent)" << endl
                     << "--radius [sphere radius]" << endl
                     << "--nparticles [#particles]" << endl
                     << "--pcharge [charge per particle] (optional)" << endl
@@ -356,8 +368,8 @@ void writeCSV(const container_t& phi,
 void writeYt(container_t& rho,
              const container_t& phi,
              const container_t& efield,
-             const amrex::Array<amrex::Geometry>& geom,
-             const amrex::Array<int>& rr,
+             const amrex::Vector<amrex::Geometry>& geom,
+             const amrex::Vector<int>& rr,
              const double& scalefactor)
 {
     std::string dir = "yt-testUnifSphere";
@@ -406,7 +418,7 @@ void initSphere(double r,
     if ( isFixedCharge )
         qi = charge;
     else
-        qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles);
+        qi = 4.0 * Physics::pi * Physics::epsilon_0 * r * r / double(nParticles) * 1.0e4;
     
     for (uint i = 0; i < bunch->getLocalNum(); ++i) {
         // 17. Dec. 2016,
@@ -435,7 +447,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
              container_t& rhs,
              container_t& phi,
              container_t& efield,
-             const amrex::Array<int>& rr,
+             const amrex::Vector<int>& rr,
              Inform& msg,
              const double& scale, const param_t& params)
 {
@@ -550,7 +562,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         amrex::MultiFab::Copy(*rhs[lev], *partMF[lev], 0, 0, 1, 0);
     }
     
-    const amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Vector<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     for (uint i = 0; i < rhs.size(); ++i)
         if ( rhs[i]->contains_nan() || rhs[i]->contains_inf() )
@@ -559,9 +571,11 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
     
     // Check charge conservation
     double totCharge = totalCharge(rhs, finest_level, geom);
+    double totCharge_composite = totalCharge_composite(rhs, finest_level, geom);
     
-    msg << "Total Charge (computed): " << totCharge << " C" << endl
-        << "Vacuum permittivity: " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
+    msg << "Total Charge (computed):  " << totCharge << " C" << endl
+        << "Total Charge (composite): " << totCharge_composite << " C" << endl
+        << "Vacuum permittivity:      " << Physics::epsilon_0 << " F/m (= C/(m V)" << endl;
     
     amrex::Real vol = (*(geom[0].CellSize()) * *(geom[0].CellSize()) * *(geom[0].CellSize()) );
     msg << "Cell volume: " << *(geom[0].CellSize()) << "^3 = " << vol << " m^3" << endl;
@@ -597,7 +611,7 @@ void doSolve(AmrOpal& myAmrOpal, amrbunch_t* bunch,
         AmrMultiGrid sol(&myAmrOpal, params.bs, params.prec,
                          params.rebalance, params.bcx, params.bcy,
                          params.bcz, params.smoother, params.nsweeps,
-                         interp, norm);
+                         interp, norm, params.inc, params.dd);
         
         IpplTimings::startTimer(solvTimer);
         
@@ -657,25 +671,25 @@ void doAMReX(const param_t& params, Inform& msg)
     amrex::ParmParse pp("amr");
     pp.add("max_grid_size", int(params.maxBoxSize));
     
-    amrex::Array<int> error_buf(params.nLevels, 0);
+    amrex::Vector<int> error_buf(params.nLevels, 0);
     
-    amrex::Array<int> bf(params.nLevels, int(params.blocking_factor));
+    amrex::Vector<int> bf(params.nLevels, int(params.blocking_factor));
     pp.addarr("blocking_factor", bf);
     
     pp.addarr("n_error_buf", error_buf);
     pp.add("grid_eff", 0.95);
     
     amrex::ParmParse pgeom("geometry");
-    amrex::Array<int> is_per = { 0, 0, 0};
+    amrex::Vector<int> is_per = { 0, 0, 0};
     pgeom.addarr("is_periodic", is_per);
     
-    amrex::Array<int> nCells(3);
+    amrex::Vector<int> nCells(3);
     for (int i = 0; i < 3; ++i)
         nCells[i] = params.nr[i];
     
     
     std::vector<int> rr(params.nLevels);
-    amrex::Array<int> rrr(params.nLevels);
+    amrex::Vector<int> rrr(params.nLevels);
     for (unsigned int i = 0; i < params.nLevels; ++i) {
         rr[i] = 2;
         rrr[i] = 2;
@@ -683,8 +697,11 @@ void doAMReX(const param_t& params, Inform& msg)
     
     amrex::RealBox amr_domain;
     
-    std::array<double, AMREX_SPACEDIM> amr_lower = {{-1.02, -1.02, -1.02}}; // m
-    std::array<double, AMREX_SPACEDIM> amr_upper = {{ 1.02,  1.02,  1.02}}; // m
+    double incr = params.bboxincr * 0.01;
+    double blen = 1.0 + incr;
+    
+    std::array<double, AMREX_SPACEDIM> amr_lower = {{-blen, -blen, -blen}}; // m
+    std::array<double, AMREX_SPACEDIM> amr_upper = {{ blen,  blen,  blen}}; // m
     
     init(amr_domain, params.nr, amr_lower, amr_upper);
     
@@ -701,9 +718,9 @@ void doAMReX(const param_t& params, Inform& msg)
     // 2. initialize all particles (just single-level)
     // ========================================================================
     
-    const amrex::Array<amrex::BoxArray>& ba = myAmrOpal.boxArray();
-    const amrex::Array<amrex::DistributionMapping>& dmap = myAmrOpal.DistributionMap();
-    amrex::Array<amrex::Geometry>& geom = myAmrOpal.Geom();
+    const amrex::Vector<amrex::BoxArray>& ba = myAmrOpal.boxArray();
+    const amrex::Vector<amrex::DistributionMapping>& dmap = myAmrOpal.DistributionMap();
+    amrex::Vector<amrex::Geometry>& geom = myAmrOpal.Geom();
     
     
     amrplayout_t* playout = new amrplayout_t(geom, dmap, ba, rrr);
@@ -840,6 +857,7 @@ int main(int argc, char *argv[]) {
             << "- #level                = " << params.nLevels - 1 << endl
             << "- sphere radius [m]     = " << params.radius << endl
             << "- #particles            = " << params.nParticles << endl
+            << "- bboxincr              = " << params.bboxincr << endl
             << "- tagging               = " << tagging << endl
             << "- tagging factor        = " << params.tagfactor << endl;
 
@@ -878,7 +896,10 @@ int main(int argc, char *argv[]) {
     problemSize["gridy"] = params.nr[1];
     problemSize["gridz"] = params.nr[2];
     
+    
     IpplTimings::print(fn, problemSize);
 
+    amrex::Finalize(true);
+    
     return 0;
 }

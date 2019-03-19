@@ -1,11 +1,11 @@
 #include "BorisPusher.h"
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::advance(PartBunchBase<double, 3>* bunch,
-                                                const size_t& i,
-                                                const double& t,
-                                                const double dt,
-                                                Arguments& ... args) const
+bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunchBase<double, 3>* bunch,
+                                                    const size_t& i,
+                                                    const double& t,
+                                                    const double dt,
+                                                    Arguments& ... args) const
 {
     bool flagNoDeletion = true;
     

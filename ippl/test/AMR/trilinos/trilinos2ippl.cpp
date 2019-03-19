@@ -100,7 +100,7 @@ void setupField() {
     
     
     
-    auto pmap = dmap.ProcessorMap();
+    const auto& pmap = dmap.ProcessorMap();
     
     std::vector< NDIndex<3> > regions;
     std::vector< int > nodes;
@@ -232,6 +232,8 @@ int main (int argc, char *argv[])
     RCP<Teuchos::MpiComm<int> > comm = Teuchos::rcp( new Teuchos::MpiComm<int>( Teuchos::opaqueWrapper(Ippl::getComm()) ) );
     
     test(comm);
+    
+    amrex::Finalize(true);
     
     return 0;
 }
