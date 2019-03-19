@@ -39,7 +39,7 @@ set (_SRCS
   OpalRingDefinition.cpp
   OpalSBend.cpp
   OpalSBend3D.cpp
-  OpalScalingFFAGMagnet.cpp
+  OpalScalingFFAMagnet.cpp
   OpalSeparator.cpp
   OpalSeptum.cpp
   OpalSextupole.cpp
@@ -103,6 +103,7 @@ set (HDRS
     OpalRingDefinition.h
     OpalSBend3D.h
     OpalSBend.h
+    OpalScalingFFAMagnet.h
     OpalSeparator.h
     OpalSeptum.h
     OpalSextupole.h
