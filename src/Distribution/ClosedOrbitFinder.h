@@ -723,28 +723,29 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 
     bool uneven = (ncross % 2);
 
-    if (std::fabs(cos) > 1.0) {
+    value_type abscos = std::fabs(cos);
+    value_type muPrime;
+    if (abscos > 1.0) {
         // store the number of crossings
-        value_type n = ncross;
-
         if (uneven)
-            n = ncross - 1;
+            ncross = ncross + 1;
 
         // Gordon, formula (36b)
-        value_type muPrime = -std::acosh(std::fabs(cos));      // mu'
-        mu = n * Physics::pi + muPrime;
+        muPrime = -std::acosh(abscos);    // mu'
 
     } else {
-        value_type muPrime = (uneven) ? std::acos(-cos) : std::acos(cos);    // mu'
+        muPrime = (uneven) ? std::acos(-cos) : std::acos(cos);    // mu'
         /* It has to be fulfilled: 0<= mu' <= pi
-        * But since |cos(mu)| <= 1, we have
-        * -1 <= cos(mu) <= 1 --> 0 <= mu <= pi (using above programmed line), such
-        * that condition is already fulfilled.
-        */
+         * But since |cos(mu)| <= 1, we have
+         * -1 <= cos(mu) <= 1 --> 0 <= mu <= pi (using above programmed line), such
+         * that condition is already fulfilled.
+         */
+    }
 
-        // Gordon, formula (36)
-        mu = ncross * Physics::pi + muPrime;
+    // Gordon, formula (36)
+    mu = ncross * Physics::pi + muPrime;
 
+    if (abscos < 1.0) {
         // if sign(y[1]) > 0 && sign(sin(mu)) < 0
         if (!negative && std::signbit(std::sin(mu))) {
             mu = ncross * Physics::pi - muPrime;
