@@ -470,7 +470,7 @@ template<typename Value_type, typename Size_type>
                                     "Closed orbit finder didn't converge.");
             }
 
-            cof.computeOrbitProperties();
+            cof.computeOrbitProperties(E_m);
 
             // properties of one turn
             tunes = cof.getTunes();
@@ -544,8 +544,8 @@ template<typename Value_type, typename Size_type>
                 Mcycs[i] = mapgen.generateMap(H_m(h[i],
                                                   h[i]*h[i]+fidx[i],
                                                   -fidx[i]),
-					      ds[i],truncOrder_m);
-                
+                                              ds[i],truncOrder_m);
+
                 Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
                                                     sigmas_m[i](2,2),
                                                     sigmas_m[i](4,4)),
