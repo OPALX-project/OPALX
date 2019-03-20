@@ -193,14 +193,14 @@ class ClosedOrbitFinder
          * findOrbit() function. This last value is then deleted from the array but is stored in lastOrbitVal_m to
          * compute the vertical oscillations)
          */
-        value_type lastOrbitVal_m;
+        /* value_type lastOrbitVal_m; */
 
         /**
          * Stores the last momentum value (since we have to return to the beginning to check the convergence in the
          * findOrbit() function. This last value is then deleted from the array but is stored in lastMomentumVal_m to
          * compute the vertical oscillations)
          */
-        value_type lastMomentumVal_m;
+        /* value_type lastMomentumVal_m; */
 
         /**
          * Boolean which is true by default. "true": orbit integration over one sector only, "false": integration
@@ -247,8 +247,8 @@ ClosedOrbitFinder<Value_type,
     , dtheta_m(Physics::two_pi/value_type(N))
     , ravg_m(0)
     , phase_m(0)
-    , lastOrbitVal_m(0.0)
-    , lastMomentumVal_m(0.0)
+    /* , lastOrbitVal_m(0.0) */
+    /* , lastMomentumVal_m(0.0) */
     , domain_m(domain)
     , stepper_m()
     , cycl_m(cycl)
@@ -522,8 +522,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.
      */
-    lastOrbitVal_m = r_m[N_m];           // needed in computeVerticalOscillations()
-    lastMomentumVal_m = pr_m[N_m];       // needed in computeVerticalOscillations()
+    /* lastOrbitVal_m    = r_m[N_m];        // needed in computeVerticalOscillations() */
+    /* lastMomentumVal_m = pr_m[N_m];       // needed in computeVerticalOscillations() */
 
     // remove last entry (since we don't have to store [0,2pi], but [0,2pi[)  --> size = N_m, capacity = N_m+1
     r_m.pop_back();
@@ -615,7 +615,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         // interpolate values of magnetic field
         cycl_m->apply(y[0], y[6], theta, brint, btint, bint);
         
-        bint *= invbcon;
+        bint  *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
 
@@ -715,7 +715,7 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 
     // cos(mu)
     value_type cos = 0.5 * (y[0] + py2);
-    
+
     value_type mu;
 
     // sign of sin(mu) has to be equal to y2
@@ -791,7 +791,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties(c
     for (size_type i = 0; i < N_m; ++i) {
         // interpolate magnetic field
         cycl_m->apply(r_m[i], vz_m[i], theta, brint, btint, bint);
-        bint *= invbcon;
+        bint  *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
         
@@ -800,7 +800,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties(c
 
         // local field index
         if (p < pr_m[i])
-            throw OpalException("ClosedOrbitFinder::computeTune()",
+            throw OpalException("ClosedOrbitFinder::computeOrbitProperties()",
                                 "p_{r}^2 > p^{2} " + std::to_string(p) + " " + std::to_string(pr_m[i]) + " (defined in Gordon paper) --> Square root of negative number.");
 
         ptheta = std::sqrt(p2 - pr_m[i] * pr_m[i]);
