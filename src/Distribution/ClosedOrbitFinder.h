@@ -95,9 +95,6 @@ class ClosedOrbitFinder
          */
         container_type getMomentum(value_type angle = 0);
 
-        /// Returns the relativistic factor gamma
-        value_type getGamma();
-
         /// Returns the average orbit radius
         value_type getAverageRadius();
 
@@ -116,14 +113,13 @@ class ClosedOrbitFinder
          * @param rguess initial radius guess in [mm]
          * @param isTuneMode comptute tunes of all energies in one sweep
          */
-        bool findOrbit(value_type, size_type,
-                       value_type,
-                       value_type = 1.0, value_type = -1.0,
-                       bool= false);
-        
+        bool findOrbit(value_type accuracy, size_type maxit,
+                       value_type ekin,
+                       value_type dE = 1.0, value_type rguess = -1.0,
+                       bool isTuneMode = false);
 
         /// Fills in the values of h_m, ds_m, fidx_m.
-        void computeOrbitProperties();
+        void computeOrbitProperties(const value_type& E);
 
     private:
         /// This function is called by the function getTunes().
@@ -173,10 +169,7 @@ class ClosedOrbitFinder
         /// Counts the number of zero-line crossings in vertical direction (used for computing vertical tune)
         size_type nzcross_m; //#crossings of zero-line in x- and z-direction
 
-        /// Is the energy for which the closed orbit should be found
-        value_type E_m;
-        
-        /// Is the potential energy [MeV]
+        /// Is the rest mass [MeV / c**2]
         value_type E0_m;
         
         /// Is the nominal orbital frequency
@@ -188,9 +181,6 @@ class ClosedOrbitFinder
         size_type N_m;
         /// Is the angle step size
         value_type dtheta_m;
-
-        /// Is the relativistic factor
-        value_type gamma_m;
 
         /// Is the average radius
         value_type ravg_m;
@@ -251,12 +241,10 @@ ClosedOrbitFinder<Value_type,
                                               bool domain)
     : nxcross_m(0)
     , nzcross_m(0)
-    , E_m(0.0)
     , E0_m(E0)
     , wo_m(cycl->getRfFrequ()*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
     , N_m(N)
     , dtheta_m(Physics::two_pi/value_type(N))
-    , gamma_m(0.0)
     , ravg_m(0)
     , phase_m(0)
     , lastOrbitVal_m(0.0)
@@ -378,13 +366,6 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
 
 template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
-    ClosedOrbitFinder<Value_type, Size_type, Stepper>::getGamma()
-{
-    return gamma_m;
-}
-
-template<typename Value_type, typename Size_type, class Stepper>
-inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::value_type
     ClosedOrbitFinder<Value_type, Size_type, Stepper>::getAverageRadius()
 {
     return ravg_m;
@@ -415,8 +396,6 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      * q' = 1/b = 1/bcon
      * a' = a = acon
      */
-    
-    E_m = ekin;
 
     // resize vectors (--> size = N_m+1, capacity = N_m+1), note: we do N_m+1 integration steps
     r_m.resize(N_m+1);
@@ -424,9 +403,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     vz_m.resize(N_m+1);
     vpz_m.resize(N_m+1);
 
-    // store acon and bcon locally
-    value_type acon = acon_m(wo_m);               // [acon] = m
-    
+    // store acon locally
+    value_type acon = acon_m(wo_m);            // [acon] = m
     // amplitude of error; Gordon, formula (18) (a = a')
     value_type error = std::numeric_limits<value_type>::max();
 
@@ -443,40 +421,25 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      *
      */
 
-    // iterate until suggested energy (start with minimum energy)
-    value_type E = E_m; //cycl_m->getFMLowE();
-    
+    value_type E;     // starting energy
+    value_type E_fin; // final    energy
+
     if ( isTuneMode ) {
-        E_m = cycl_m->getFMHighE();
+        E     = cycl_m->getFMLowE();
+        E_fin = cycl_m->getFMHighE();
+    } else {
+        E     = ekin;
+        E_fin = ekin;
     }
-    
-    gamma_m = E_m / E0_m + 1.0;
 
-    // energy dependent values
-    value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
-    value_type gamma2 = (1.0 + en) * (1.0 + en);          // = gamma^2
-    value_type beta = std::sqrt(1.0 - 1.0 / gamma2);
-
-    // set initial values for radius and radial momentum for lowest energy Emin
-    // orbit, [r] = m; Gordon, formula (20)
-    // radial momentum; Gordon, formula (20)
-
-    container_type init;
-    //      r            pr   z    pz
-    init = {beta * acon, 0.0, 0.0, 1.0};
-
-    if (rguess >= 0.0) {
-        init[0] = rguess * 0.001;
-    }
-    
     namespace fs = boost::filesystem;
     fs::path dir = OpalData::getInstance()->getInputBasename();
     dir = dir.parent_path() / "data";
     std::string tunefile = (dir / "tunes.dat").string();
-    
+
     if ( isTuneMode ) {
         std::ofstream out(tunefile, std::ios::out);
-        
+
         out << std::left
             << std::setw(15) << "energy [MeV]"
             << std::setw(15) << "radius [m]"
@@ -485,29 +448,54 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             << std::endl;
     }
 
-    do {
-        
+    // iterate until suggested energy (start with minimum energy)
+    // increase energy by dE
+    for (; E <= E_fin ; E+=dE) {
         error = std::numeric_limits<value_type>::max();
-        
-        // (re-)set inital values for r and pr
-        r_m[0] = init[0];
-        pr_m[0] = init[1];
-        vz_m[0] = init[2];
-        vpz_m[0] = init[3];
-        
-        if ( !this->findOrbitOfEnergy_m(E, init, error, accuracy, maxit) ) {
-            throw OpalException("ClosedOrbitFinder::findOrbitOfEnergy()",
-                                "Didn't converge for energy " + std::to_string(E) + " MeV.");
-        }
-        
-        if ( isTuneMode ) {
-            this->computeOrbitProperties();
-    
-            std::pair<value_type , value_type > tunes = this->getTunes();
-    
-            value_type reo = this->getOrbit(cycl_m->getPHIinit())[0];
-            value_type  peo = this->getMomentum(cycl_m->getPHIinit())[0];
 
+        // energy dependent values
+        value_type en     = E / E0_m;        // en = E/E0 = E/(mc^2) (E0 is potential energy)
+        value_type gamma  = en + 1.0;
+        value_type gamma2 = gamma * gamma;   // = gamma^2
+        value_type beta   = std::sqrt(1.0 - 1.0 / gamma2);
+
+        // set initial values for radius and radial momentum for lowest energy Emin
+        // orbit, [r] = m;  Gordon, formula (20)
+        // radial momentum; Gordon, formula (20)
+
+        container_type init;
+        //      r            pr   z    pz
+        init = {beta * acon, 0.0, 0.0, 1.0};
+
+        if (rguess >= 0.0) {
+            init[0] = rguess * 0.001;
+        }
+
+        std::fill(  r_m.begin(),   r_m.end(), 0);
+        std::fill( pr_m.begin(),  pr_m.end(), 0);
+        std::fill( vz_m.begin(),  vz_m.end(), 0);
+        std::fill(vpz_m.begin(), vpz_m.end(), 0);
+
+        // (re-)set inital values for r and pr
+        r_m[0]   = init[0];
+        pr_m[0]  = init[1];
+        vz_m[0]  = init[2];
+        vpz_m[0] = init[3];
+
+        if ( !this->findOrbitOfEnergy_m(E, init, error, accuracy, maxit) ) {
+            /* throw OpalException("ClosedOrbitFinder::findOrbitOfEnergy()", */
+            /*                     "Didn't converge for energy " + std::to_string(E) + " MeV."); */
+            *gmsg << "Didn't converge for energy " + std::to_string(E) + " MeV." << endl;
+            continue;
+        }
+
+        if ( isTuneMode ) {
+            this->computeOrbitProperties(E);
+
+            std::pair<value_type , value_type > tunes = this->getTunes();
+
+            value_type reo = this->getOrbit(   cycl_m->getPHIinit())[0];
+            value_type peo = this->getMomentum(cycl_m->getPHIinit())[0];
 
             *gmsg << "* ----------------------------" << endl
                   << "* Closed orbit info (Gordon units):" << endl
@@ -520,7 +508,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
                   << "* horizontal tune:  " << tunes.first    << endl
                   << "* vertical tune:    " << tunes.second   << endl
                   << "* ----------------------------" << endl << endl;
-            
+
             std::ofstream out(tunefile, std::ios::app);
             out << std::left
                 << std::setw(15) << E
@@ -529,14 +517,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
                 << std::setw(15) << tunes.second << std::endl;
             out.close();
         }
-        
-        // increase energy by dE
-        if (E_m <= E + dE)
-            E = E_m;
-        else
-            E += dE;
-    
-    } while (E != E_m);
+    }
 
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.
@@ -547,14 +528,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     // remove last entry (since we don't have to store [0,2pi], but [0,2pi[)  --> size = N_m, capacity = N_m+1
     r_m.pop_back();
     pr_m.pop_back();
-    
-    
+
     /* domain_m = true --> only integrated over a single sector
      * --> multiply by cycl_m->getSymmetry() to get correct phase_m
      */
     if (domain_m)
         phase_m *= cycl_m->getSymmetry();
-
 
     // returns true if converged, otherwise false
     return error < accuracy;
@@ -579,9 +558,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
     // observer for storing the current value after each ODE step (e.g. Runge-Kutta step) into the containers of r and pr
     auto store = [&](state_type& y, const value_type t)
     {
-        r_m[idx] = y[0];
-        pr_m[idx] = y[1];
-        vz_m[idx] = y[6];
+        r_m[idx]   = y[0];
+        pr_m[idx]  = y[1];
+        vz_m[idx]  = y[6];
         vpz_m[idx] = y[7];
 
         // count number of crossings (excluding starting point --> idx>0)
@@ -608,10 +587,11 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
     size_type niterations = 0;
     
     // energy dependent values
-    value_type en = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
+    value_type en     = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
+    value_type gamma  = en + 1.0;
     value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));     // momentum [p] = m; Gordon, formula (3)
-    value_type gamma2 = (1.0 + en) * (1.0 + en);          // = gamma^2
-    value_type invgamma4 = 1.0 / (gamma2 * gamma2);       // = 1/gamma^4
+    value_type gamma2    = gamma * gamma;           // = gamma^2
+    value_type invgamma4 = 1.0 / (gamma2 * gamma2); // = 1/gamma^4
     
     
     // helper constants
@@ -656,13 +636,13 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         }
 
         // integrate phase
-        dydt[12] = y[0] * invptheta * gamma_m - 1;
+        dydt[12] = y[0] * invptheta * gamma - 1;
         
     };
 
     // integrate until error smaller than user-define accuracy
     do {
-        // (re-)set inital values
+        // (re-)set initial values
         x_m[0]  = 1.0;               // x1; Gordon, formula (10)
         px_m[0] = 0.0;               // px1; Gordon, formula (10)
         x_m[1]  = 0.0;               // x2; Gordon, formula (10)
@@ -684,9 +664,13 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
              phase_m
         };
 
-        // integrate from 0 to 2*pi (one has to get back to the "origin")
-        boost::numeric::odeint::integrate_n_steps(stepper_m, orbit_integration,y,0.0,dtheta_m,N_m,store);
-            
+        try {
+            // integrate from 0 to 2*pi (one has to get back to the "origin")
+            boost::numeric::odeint::integrate_n_steps(stepper_m, orbit_integration,y,0.0,dtheta_m,N_m,store);
+        } catch(OpalException &) {
+            break;
+        }
+
         // write new state
         x_m[0] = y[2];
         px_m[0] = y[3];
@@ -704,7 +688,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         err[0] = r_m[N_m] - r_m[0];      // Gordon, formula (14)
         err[1] = pr_m[N_m] - pr_m[0];    // Gordon, formula (14)
 
-        // correct inital values of r and pr
+        // correct initial values of r and pr
         value_type invdenom = 1.0 / (x_m[0] + px_m[1] - 2.0);
         delta[0] = ((px_m[1] - 1.0) * err[0] - x_m[1] * err[1]) * invdenom; // dr; Gordon, formula (16a)
         delta[1] = ((x_m[0] - 1.0) * err[1] - px_m[0] * err[0]) * invdenom; // dpr; Gordon, formula (16b)
@@ -717,6 +701,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         error = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1] * invgamma4) / r_m[0];
     } while (error > accuracy && niterations++ < maxit);
     
+    if (error > accuracy)
+        *gmsg << "findOrbit not converged after " << maxit << " iterations with error: " << error << ". Needed accuracy " << accuracy << endl;
+
     return (error < accuracy);
 }
 
@@ -778,7 +765,7 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 }
 
 template<typename Value_type, typename Size_type, class Stepper>
-void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties() {
+void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties(const value_type& E) {
     /*
      * The formulas for h, fidx and ds are from the paper:
      * "Tranverse-Longitudinal Coupling by Space Charge in Cyclotrons"
@@ -790,7 +777,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
     value_type bint, brint, btint; // B, dB/dr, dB/dtheta
 
     value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);
-    value_type en = E_m / E0_m;                                  // en = E/E0 = E/(mc^2) (E0 is potential energy)
+    value_type en = E / E0_m;                                  // en = E/E0 = E/(mc^2) (E0 is potential energy)
     value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));    // momentum [p] = m; Gordon, formula (3)
     value_type p2 = p * p;
     value_type theta = 0.0;                                             // angle for interpolating
@@ -812,7 +799,12 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties()
         h_m[i] = bint / p;
 
         // local field index
+        if (p < pr_m[i])
+            throw OpalException("ClosedOrbitFinder::computeTune()",
+                                "p_{r}^2 > p^{2} " + std::to_string(p) + " " + std::to_string(pr_m[i]) + " (defined in Gordon paper) --> Square root of negative number.");
+
         ptheta = std::sqrt(p2 - pr_m[i] * pr_m[i]);
+
         fidx_m[i] = (brint * ptheta - btint * pr_m[i] / r_m[i]) / p2; //(bint*bint);
 
         // path length element
