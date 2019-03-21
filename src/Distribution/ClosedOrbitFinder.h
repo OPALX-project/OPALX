@@ -50,7 +50,7 @@ class ClosedOrbitFinder
         typedef std::vector<value_type> container_type;
         /// Type for holding state of ODE values
         typedef std::vector<value_type> state_type;
-        
+
         typedef std::function<void(const state_type&, state_type&, const double)> function_t;
 
         /// Sets the initial values for the integration and calls findOrbit().
@@ -135,10 +135,10 @@ class ClosedOrbitFinder
         // Compute closed orbit for given energy
         bool findOrbitOfEnergy_m(const value_type&, container_type&, value_type&,
                                  const value_type&, size_type);
-        
+
         /// This function computes nzcross_ which is used to compute the tune in z-direction and the frequency error
 //         void computeVerticalOscillations();
-        
+
         /// This function rotates the calculated closed orbit finder properties to the initial angle
         container_type rotate(value_type angle, container_type& orbitProperty);
 
@@ -173,7 +173,7 @@ class ClosedOrbitFinder
 
         /// Is the rest mass [MeV / c**2]
         value_type E0_m;
-        
+
         /// Is the nominal orbital frequency
         /* (see paper of Dr. C. Baumgarten: "Transverse-Longitudinal
          * Coupling by Space Charge in Cyclotrons" (2012), formula (1))
@@ -217,14 +217,14 @@ class ClosedOrbitFinder
 
         /// Defines the stepper for integration of the ODE's
         Stepper stepper_m;
-        
+
         /*!
-         * This quantity is defined in the paper "Transverse-Longitudinal Coupling by Space Charge in Cyclotrons" 
+         * This quantity is defined in the paper "Transverse-Longitudinal Coupling by Space Charge in Cyclotrons"
          * of Dr. Christian Baumgarten (2012)
          * The lambda function takes the orbital frequency \f$ \omega_{o} \f$ (also defined in paper) as input argument.
          */
         std::function<double(double)> acon_m = [](double wo) { return Physics::c / wo; };
-        
+
         /// Cyclotron unit \f$ \left[T\right] \f$ (Tesla)
         /*!
          * The lambda function takes the orbital frequency \f$ \omega_{o} \f$ as input argument.
@@ -232,7 +232,7 @@ class ClosedOrbitFinder
         std::function<double(double, double)> bcon_m = [](double e0, double wo) {
             return e0 * 1.0e7 / (/* physics::q0 */ 1.0 * Physics::c * Physics::c / wo);
         };
-        
+
         Cyclotron* cycl_m;
 };
 
@@ -261,16 +261,16 @@ ClosedOrbitFinder<Value_type,
     , stepper_m()
     , cycl_m(cycl)
 {
-    
+
     if ( cycl_m->getFMLowE() > cycl_m->getFMHighE() )
         throw OpalException("ClosedOrbitFinder::ClosedOrbitFinder()",
                             "Incorrect cyclotron energy (MeV) bounds: Maximum cyclotron energy smaller than minimum cyclotron energy.");
-    
+
     // if domain_m = true --> integrate over a single sector
     if (domain_m) {
         N_m /=  cycl_m->getSymmetry();
     }
-    
+
     cycl_m->read(cycl_m->getFieldFlag(cycl_m->getCyclotronType()),
                  cycl_m->getBScale());
 
@@ -345,30 +345,30 @@ inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_typ
     ClosedOrbitFinder<Value_type, Size_type, Stepper>::getMomentum(value_type angle)
 {
     container_type pr = pr_m;
-    
+
     if (angle != 0.0)
         pr = rotate(angle, pr);
-    
+
     // change units from meters to \beta * \gamma
     /* in Gordon paper:
-     * 
+     *
      * p = \gamma * \beta * a
-     * 
+     *
      * where a = c / \omega_{0} with \omega_{0} = 2 * \pi * \nu_{0} = 2 * \pi * \nu_{rf} / h
-     * 
+     *
      * c: speed of light
      * h: harmonic number
      * v_{rf}: nomial rf frequency
-     * 
+     *
      * Units:
-     * 
+     *
      * [a] = m --> [p] = m
-     * 
+     *
      * The momentum in \beta * \gamma is obtained by dividing by "a"
      */
     value_type factor =  1.0 / acon_m(wo_m);
     std::for_each(pr.begin(), pr.end(), [factor](value_type& p) { p *= factor; });
-    
+
     return pr;
 }
 
@@ -557,7 +557,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
 {
     value_type bint, brint, btint;
     value_type invbcon = 1.0 / bcon_m(E0_m, wo_m);      // [bcon] = MeV*s/(C*m^2) = 10^6 T = 10^7 kG (kilo Gauss)
-    
+
     value_type xold = 0.0;                              // for counting nxcross
     value_type zold = 0.0;                              // for counting nzcross
 
@@ -574,26 +574,26 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         // count number of crossings (excluding starting point --> idx>0)
         nxcross_m += (idx > 0) * (y[4] * xold < 0);
         xold = y[4];
-        
+
         // number of times z2 changes sign
         nzcross_m += (idx > 0) * (y[10] * zold < 0);
         zold = y[10];
-        
+
         ++idx;
     };
-    
+
     // define initial state container for integration: y = {r, pr, x1, px1, x2, px2,
     //                                                      z, pz, z1, pz1, z2, pz2,
     //                                                      phase}
     state_type y(11);
-    
+
     // difference of last and first value of r (1. element) and pr (2. element)
     container_type err(2);
     // correction term for initial values: r = r + dr, pr = pr + dpr; Gordon, formula (17)
     container_type delta = {0.0, 0.0};
     // if niterations > maxit --> stop iteration
     size_type niterations = 0;
-    
+
     // energy dependent values
     value_type en     = E / E0_m;                      // en = E/E0 = E/(mc^2) (E0 is potential energy)
     value_type gamma  = en + 1.0;
@@ -818,7 +818,7 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties(c
         bint  *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
-        
+
         // inverse bending radius
         h_m[i] = bint / p;
 
@@ -842,12 +842,12 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties(c
     ravg_m = std::accumulate(r_m.begin(),r_m.end(),0.0) / value_type(r_m.size());
 }
 
-template<typename Value_type, typename Size_type, class Stepper> 
+template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
 ClosedOrbitFinder<Value_type, Size_type, Stepper>::rotate(value_type angle, container_type &orbitProperty) {
 
     container_type orbitPropertyCopy = orbitProperty;
-    
+
     // compute the number of steps per degree
     value_type deg_step = N_m / 360.0;
 
@@ -856,7 +856,7 @@ ClosedOrbitFinder<Value_type, Size_type, Stepper>::rotate(value_type angle, cont
 
     // copy end to start
     std::copy(orbitProperty.begin() + start, orbitProperty.end(), orbitPropertyCopy.begin());
-    
+
     // copy start to end
     std::copy_n(orbitProperty.begin(), start, orbitPropertyCopy.end() - start);
 
