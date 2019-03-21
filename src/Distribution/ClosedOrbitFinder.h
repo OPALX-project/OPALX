@@ -441,8 +441,9 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         std::ofstream out(tunefile, std::ios::out);
 
         out << std::left
-            << std::setw(15) << "energy [MeV]"
-            << std::setw(15) << "radius [m]"
+            << std::setw(15) << "energy[MeV]"
+            << std::setw(15) << "radius_ini[m]"
+            << std::setw(15) << "radius_avg[m]"
             << std::setw(15) << "nu_r"
             << std::setw(15) << "nu_z"
             << std::endl;
@@ -483,9 +484,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         vpz_m[0] = init[3];
 
         if ( !this->findOrbitOfEnergy_m(E, init, error, accuracy, maxit) ) {
-            /* throw OpalException("ClosedOrbitFinder::findOrbitOfEnergy()", */
-            /*                     "Didn't converge for energy " + std::to_string(E) + " MeV."); */
-            *gmsg << "Didn't converge for energy " + std::to_string(E) + " MeV." << endl;
+            *gmsg << "ClosedOrbitFinder didn't converge for energy " + std::to_string(E) + " MeV." << endl;
             continue;
         }
 
@@ -493,17 +492,17 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             this->computeOrbitProperties(E);
 
             std::pair<value_type , value_type > tunes = this->getTunes();
-
             value_type reo = this->getOrbit(   cycl_m->getPHIinit())[0];
             value_type peo = this->getMomentum(cycl_m->getPHIinit())[0];
 
-            *gmsg << "* ----------------------------" << endl
+            *gmsg << std::left
+                  << "* ----------------------------" << endl
                   << "* Closed orbit info (Gordon units):" << endl
                   << "*" << endl
-                  << "* kinetic energy:   " << E              << " [MeV]" << endl
-                  << "* average radius:   " << ravg_m         << " [m]" << endl
-                  << "* initial radius:   " << reo            << " [m]" << endl
-                  << "* initial momentum: " << peo            << " [Beta Gamma]" << endl
+                  << "* kinetic energy:   " << std::setw(12) << E      << " [MeV]" << endl
+                  << "* average radius:   " << std::setw(12) << ravg_m << " [m]" << endl
+                  << "* initial radius:   " << std::setw(12) << reo    << " [m]" << endl
+                  << "* initial momentum: " << std::setw(12) << peo    << " [Beta Gamma]" << endl
                   << "* frequency error:  " << phase_m        << endl
                   << "* horizontal tune:  " << tunes.first    << endl
                   << "* vertical tune:    " << tunes.second   << endl
@@ -513,6 +512,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             out << std::left
                 << std::setw(15) << E
                 << std::setw(15) << reo
+                << std::setw(15) << ravg_m
                 << std::setw(15) << tunes.first
                 << std::setw(15) << tunes.second << std::endl;
             out.close();
@@ -592,12 +592,11 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
     value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));     // momentum [p] = m; Gordon, formula (3)
     value_type gamma2    = gamma * gamma;           // = gamma^2
     value_type invgamma4 = 1.0 / (gamma2 * gamma2); // = 1/gamma^4
-    
-    
+    value_type p2 = p * p;                              // p^2 = p*p
+
     // helper constants
-    value_type p2 = p * p;                                // p^2 = p*p
     value_type pr2;                                     // squared radial momentum (pr^2 = pr*pr)
-    value_type ptheta, invptheta;                       // Gordon, formula (5c)
+    value_type ptheta, invptheta;                       // azimuthal momentum
 
     // define the six ODEs (using lambda function)
     function_t orbit_integration = [&](const state_type &y,
@@ -621,31 +620,31 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
 
         // Gordon, formula (5a)
         dydt[0] = y[0] * y[1] * invptheta;
-        // Gordon, formula (5b)
+        // Gordon, formula (5b) (typo in paper! second equal sign is a minus)
         dydt[1] = ptheta - y[0] * bint;
         // Gordon, formulas (9a) and (9b)
         for (size_type i = 2; i < 5; i += 2) {
-            dydt[i] = (y[1] * y[i] + y[0] * p2 * y[i+1] * invptheta * invptheta) * invptheta;
+            dydt[i]   = (y[1] * y[i] + y[0] * p2 * y[i+1] * invptheta * invptheta) * invptheta;
             dydt[i+1] = - y[1] * y[i+1] * invptheta - (bint + y[0] * brint) * y[i];
         }
-        
+
         // Gordon, formulas (22a) and (22b)
         for (size_type i = 6; i < 12; i += 2) {
-            dydt[i] = y[0] * y[i+1] * invptheta;
+            dydt[i]   = y[0] * y[i+1] * invptheta;
             dydt[i+1] = (y[0] * brint - y[1] * invptheta * btint) * y[i];
         }
 
         // integrate phase
         dydt[12] = y[0] * invptheta * gamma - 1;
-        
+
     };
 
-    // integrate until error smaller than user-define accuracy
+    // integrate until error smaller than user-defined accuracy
     do {
         // (re-)set initial values
-        x_m[0]  = 1.0;               // x1; Gordon, formula (10)
+        x_m[0]  = 1.0;               // x1;  Gordon, formula (10)
         px_m[0] = 0.0;               // px1; Gordon, formula (10)
-        x_m[1]  = 0.0;               // x2; Gordon, formula (10)
+        x_m[1]  = 0.0;               // x2;  Gordon, formula (10)
         px_m[1] = 1.0;               // px2; Gordon, formula (10)
         z_m[0]  = 1.0;
         pz_m[0] = 0.0;
@@ -655,7 +654,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         nxcross_m = 0;               // counts the number of crossings of x-axis (excluding first step)
         nzcross_m = 0;
         idx = 0;                     // index for looping over r and pr arrays
-        
+
         // fill container with initial states
         y = {init[0],init[1],
              x_m[0], px_m[0], x_m[1], px_m[1],
@@ -667,42 +666,46 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
         try {
             // integrate from 0 to 2*pi (one has to get back to the "origin")
             boost::numeric::odeint::integrate_n_steps(stepper_m, orbit_integration,y,0.0,dtheta_m,N_m,store);
-        } catch(OpalException &) {
+        } catch(OpalException & ex) {
+            *gmsg << ex.where() << " " << ex.what() << endl;
             break;
         }
 
         // write new state
-        x_m[0] = y[2];
+        x_m[0]  = y[2];
         px_m[0] = y[3];
-        x_m[1] = y[4];
+        x_m[1]  = y[4];
         px_m[1] = y[5];
-        
-        z_m[0] = y[8];
+
+        z_m[0]  = y[8];
         pz_m[0] = y[9];
-        z_m[1] = y[10];
+        z_m[1]  = y[10];
         pz_m[1] = y[11];
         phase_m = y[12] * Physics::u_two_pi; // / (2.0 * Physics::pi);
-        
+
         // compute error (compare values of orbit and momentum for theta = 0 and theta = 2*pi)
         // (Note: size = N_m+1 --> last entry is N_m)
-        err[0] = r_m[N_m] - r_m[0];      // Gordon, formula (14)
+        err[0] =  r_m[N_m] -  r_m[0];    // Gordon, formula (14)
         err[1] = pr_m[N_m] - pr_m[0];    // Gordon, formula (14)
 
         // correct initial values of r and pr
         value_type invdenom = 1.0 / (x_m[0] + px_m[1] - 2.0);
-        delta[0] = ((px_m[1] - 1.0) * err[0] - x_m[1] * err[1]) * invdenom; // dr; Gordon, formula (16a)
-        delta[1] = ((x_m[0] - 1.0) * err[1] - px_m[0] * err[0]) * invdenom; // dpr; Gordon, formula (16b)
+        delta[0] = ((px_m[1] - 1.0) * err[0] -  x_m[1] * err[1]) * invdenom; // dr;  Gordon, formula (16a)
+        delta[1] = (( x_m[0] - 1.0) * err[1] - px_m[0] * err[0]) * invdenom; // dpr; Gordon, formula (16b)
 
         // improved initial values; Gordon, formula (17) (here it's used for higher energies)
         init[0] += delta[0];
         init[1] += delta[1];
-        
-        // compute amplitude of the error
+
+        // compute amplitude of the error (Gordon, formula (18)
         error = std::sqrt(delta[0] * delta[0] + delta[1] * delta[1] * invgamma4) / r_m[0];
-    } while (error > accuracy && niterations++ < maxit);
-    
+
+        // *gmsg << "iteration " << niterations << " error: " << error << endl;
+
+    } while ((error > accuracy) && (niterations++ < maxit));
+
     if (error > accuracy)
-        *gmsg << "findOrbit not converged after " << maxit << " iterations with error: " << error << ". Needed accuracy " << accuracy << endl;
+        *gmsg << "findOrbit not converged after " << niterations << " iterations with error: " << error << ". Needed accuracy " << accuracy << endl;
 
     return (error < accuracy);
 }
