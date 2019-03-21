@@ -60,9 +60,11 @@ class ClosedOrbitFinder
          * @param cycl is the cyclotron element
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
          * otherwise over 2*pi.
+         * @param Nsectors is an int (default: 1). Number of sectors that the field map is averaged over
+         * in order to avoid first harmonic. Only valid if domain is false
          */
         ClosedOrbitFinder(value_type E0, size_type N,
-                          Cyclotron* cycl, bool domain = true);
+                          Cyclotron* cycl, bool domain = true, int Nsectors = 1);
 
         /// Returns the inverse bending radius (size of container N+1)
         container_type getInverseBendingRadius(const value_type& angle = 0);
@@ -207,6 +209,11 @@ class ClosedOrbitFinder
          * over 2*pi
          */
         bool domain_m;
+        /**
+         * Number of sectors to average the field map over
+         * in order to avoid first harmonic. Only valid if domain is false
+         */
+        int  nSectors_m;
 
         /// Defines the stepper for integration of the ODE's
         Stepper stepper_m;
@@ -238,7 +245,7 @@ ClosedOrbitFinder<Value_type,
                   Size_type,
                   Stepper>::ClosedOrbitFinder(value_type E0,
                                               size_type N, Cyclotron* cycl,
-                                              bool domain)
+                                              bool domain, int nSectors)
     : nxcross_m(0)
     , nzcross_m(0)
     , E0_m(E0)
@@ -250,6 +257,7 @@ ClosedOrbitFinder<Value_type,
     /* , lastOrbitVal_m(0.0) */
     /* , lastMomentumVal_m(0.0) */
     , domain_m(domain)
+    , nSectors_m(nSectors)
     , stepper_m()
     , cycl_m(cycl)
 {
@@ -605,15 +613,27 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
     {
         pr2 = y[1] * y[1];
         if (p2 < pr2)
-            throw OpalException("ClosedOrbitFinder::findOrbit()",
+            throw OpalException("ClosedOrbitFinder::findOrbitOfEnergy_m()",
                                 "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
 
         // Gordon, formula (5c)
-        ptheta = std::sqrt(p2 - pr2);
+        ptheta    = std::sqrt(p2 - pr2);
         invptheta = 1.0 / ptheta;
-        // interpolate values of magnetic field
-        cycl_m->apply(y[0], y[6], theta, brint, btint, bint);
-        
+        // average field over the number of sectors
+        brint=0.0, btint=0.0, bint=0.0;
+        for (int i = 0; i<nSectors_m; i++) {
+            double angle = theta + i * Physics::two_pi / nSectors_m;
+            double tmpbr, tmpbt, tmpb;
+            // interpolate values of magnetic field
+            cycl_m->apply(y[0], y[6], angle, tmpbr, tmpbt, tmpb);
+            brint += tmpbr;
+            btint += tmpbt;
+            bint  += tmpb;
+        }
+        brint /= nSectors_m;
+        btint /= nSectors_m;
+        bint  /= nSectors_m;
+        // multiply by 1 / b
         bint  *= invbcon;
         brint *= invbcon;
         btint *= invbcon;
