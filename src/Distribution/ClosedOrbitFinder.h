@@ -460,8 +460,8 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     container_type init;
     enum Guess {NONE, FIRST, SECOND};
     Guess guess = NONE;
-    value_type rn1;//, pn1; // normalised r, pr value of previous closed orbit
-    value_type rn2;//, pn2; // normalised r, pr value of second to previous closed orbit
+    value_type rn1, pn1; // normalised r, pr value of previous closed orbit
+    value_type rn2, pn2; // normalised r, pr value of second to previous closed orbit
 
     // iterate until suggested energy (start with minimum energy)
     // increase energy by dE
@@ -473,7 +473,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         value_type gamma  = en + 1.0;
         value_type gamma2 = gamma * gamma;   // = gamma^2
         value_type beta   = std::sqrt(1.0 - 1.0 / gamma2);
-        //value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));  // momentum [p] = m; Gordon, formula (3)
+        value_type p = acon_m(wo_m) * std::sqrt(en * (2.0 + en));  // momentum [p] = m; Gordon, formula (3)
 
         if (guess == NONE) {
             // set initial values for radius and radial momentum for lowest energy Emin
@@ -488,14 +488,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         } else if (guess == FIRST) {
             // new initial values based on previous one, formula (21)
             init[0] = (beta*acon) * rn1;
-            //init[1] = p*pn1;
-            init[1] = 0; // more stable
+            init[1] = p*pn1;
             guess = SECOND;
         } else if (guess == SECOND) {
             // second extrapolation, formula (21)
             init[0] = (beta*acon) * (rn1 + (rn1-rn2));
-            //init[1] = p*(pn1 + (pn1-pn2));
-            init[1] = 0;
+            init[1] = p*(pn1 + (pn1-pn2));
         }
 
         std::fill(  r_m.begin(),   r_m.end(), 0);
@@ -515,16 +513,16 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             continue;
         }
         // store for next initial guess
-        this->computeOrbitProperties(E);
         rn2 = rn1;
-        //pn2 = pn1;
-        value_type reo = this->getOrbit(   cycl_m->getPHIinit())[0];
-        value_type peo = this->getMomentum(cycl_m->getPHIinit())[0];
-        rn1 = ravg_m / (acon * beta);
-        //pn1 = peo / p;
+        pn2 = pn1;
+        rn1 = r_m[0] / (acon * beta);
+        pn1 = pr_m[0] / p;
 
         if ( isTuneMode ) {
 
+            this->computeOrbitProperties(E);
+            value_type reo = this->getOrbit(   cycl_m->getPHIinit())[0];
+            value_type peo = this->getMomentum(cycl_m->getPHIinit())[0];
             std::pair<value_type , value_type > tunes = this->getTunes();
 
             *gmsg << std::left
@@ -639,10 +637,11 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
                                        const double theta)
     {
         pr2 = y[1] * y[1];
-        if (p2 < pr2)
+        if (p2 < pr2) {
+            //*gmsg << theta << " " << p2 << " " << pr2 << endl;
             throw OpalException("ClosedOrbitFinder::findOrbitOfEnergy_m()",
                                 "p_{r}^2 > p^{2} (defined in Gordon paper) --> Square root of negative number.");
-
+        }
         // Gordon, formula (5c)
         ptheta    = std::sqrt(p2 - pr2);
         invptheta = 1.0 / ptheta;
