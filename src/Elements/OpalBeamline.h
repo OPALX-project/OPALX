@@ -41,7 +41,7 @@ class OpalBeamline {
 public:
     OpalBeamline();
     OpalBeamline(const Vector_t& origin,
-                 const Quaternion& coordTrafoTo);
+                 const Quaternion& rotation);
     ~OpalBeamline();
 
     OpalSection &getSectionAt(const Vector_t &, long &);
