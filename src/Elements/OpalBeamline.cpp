@@ -19,11 +19,11 @@ OpalBeamline::OpalBeamline():
 }
 
 OpalBeamline::OpalBeamline(const Vector_t& origin,
-                           const Quaternion& coordTransformationTo):
+                           const Quaternion& rotation):
     elements_m(),
     prepared_m(false),
     containsSource_m(false),
-    coordTransformationTo_m(origin, coordTransformationTo)
+    coordTransformationTo_m(origin, rotation)
 {
 }
 
