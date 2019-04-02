@@ -1202,8 +1202,9 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     const size_t localNum = getLocalNum();
     if (localNum == 0) {
-	rmin = Vector_t(0.0, 0.0, 0.0);
-	rmax = Vector_t(0.0, 0.0, 0.0);
+        double maxValue = 1e8;
+        rmin = Vector_t(maxValue, maxValue, maxValue);
+        rmax = Vector_t(-maxValue, -maxValue, -maxValue);
 	return;
     }
 
@@ -2408,6 +2409,7 @@ void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
     std::swap(dt[i], dt[j]);
     std::swap(PType[i], PType[j]);
     std::swap(TriID[i], TriID[j]);
+    std::swap(cavityGapCrossed[i], cavityGapCrossed[j]);
 }
 
 
@@ -2450,17 +2452,18 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     pb->addAttribute(dt);
     pb->addAttribute(PType);
     pb->addAttribute(TriID);
+    pb->addAttribute(cavityGapCrossed);
 
-    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
+    boundpTimer_m       = IpplTimings::getTimer("Boundingbox");
     boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
     boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
-    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
+    statParamTimer_m    = IpplTimings::getTimer("Compute Statistics");
+    selfFieldTimer_m    = IpplTimings::getTimer("SelfField total");
 
-    histoTimer_m = IpplTimings::getTimer("Histogram");
+    histoTimer_m        = IpplTimings::getTimer("Histogram");
 
-    distrCreate_m = IpplTimings::getTimer("Create Distr");
-    distrReload_m = IpplTimings::getTimer("Load Distr");
+    distrCreate_m       = IpplTimings::getTimer("Create Distr");
+    distrReload_m       = IpplTimings::getTimer("Load Distr");
 
 
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
@@ -2606,7 +2609,7 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
         rpmean(2*i)= rmean_m(i);
         rpmean((2*i)+1)= pmean_m(i);
     }
-    
+
     FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix = moments_m / N;
     for (unsigned int i = 0; i < 2 * Dim; i++) {
         for (unsigned int j = 0; j <= i; j++) {

@@ -279,8 +279,10 @@ void ParallelTTracker::execute() {
         }
     }
 
-    Vector_t rmin, rmax;
-    itsBunch_m->get_bounds(rmin, rmax);
+    Vector_t rmin(0.0), rmax(0.0);
+    if (itsBunch_m->getTotalNum() > 0) {
+        itsBunch_m->get_bounds(rmin, rmax);
+    }
     OrbitThreader oth(itsReference,
                       referenceToLabCSTrafo_m.transformTo(RefPartR_m),
                       referenceToLabCSTrafo_m.rotateTo(RefPartP_m),
@@ -597,8 +599,10 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
     Inform msg("ParallelTTracker ", *gmsg);
     const unsigned int localNum = itsBunch_m->getLocalNum();
     bool locPartOutOfBounds = false, globPartOutOfBounds = false;
-    Vector_t rmin, rmax;
-    itsBunch_m->get_bounds(rmin, rmax);
+    Vector_t rmin(0.0), rmax(0.0);
+    if (itsBunch_m->getTotalNum() > 0) {
+        itsBunch_m->get_bounds(rmin, rmax);
+    }
     IndexMap::value_t elements;
 
     try {

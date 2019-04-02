@@ -11,6 +11,8 @@ class SamplingMethod
 
 public:
     virtual void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) = 0;
+
+        virtual ~SamplingMethod() {}
 };
 
 #endif
