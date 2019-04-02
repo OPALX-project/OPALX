@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.1)
-project (OPAL VERSION 2.0.0)
+project (OPAL VERSION 2.0.2)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
 string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PROJECT_VERSION})
@@ -122,16 +122,17 @@ set (Boost_USE_MULTITHREADED OFF)
 set (Boost_USE_STATIC_RUNTIME OFF)
 find_package (Boost
     REQUIRED COMPONENTS chrono filesystem iostreams regex serialization system)
-if (Boost_INCLUDE_DIRS)
-    if (${Boost_VERSION} VERSION_LESS 106000)
-	message (FATAL_ERROR
-	       "Found Boost library is to old; required is version 1.60.0 or newer!")
-    endif ()
-    message ("Found Boost include dir: ${Boost_INCLUDE_DIR}")
-    message ("Found Boost library dir: ${Boost_LIBRARY_DIR}")
-    message ("Found Boost libraries: ${Boost_LIBRARIES}")
-    include_directories (${Boost_INCLUDE_DIRS})
+if (${Boost_VERSION} VERSION_LESS 106000)
+    message (FATAL_ERROR
+           "Found Boost library is to old; required is version 1.60.0 or newer!")
 endif ()
+message ("Found Boost include dir: ${Boost_INCLUDE_DIR}")
+message ("Found Boost library dir: ${Boost_LIBRARY_DIR}")
+include_directories (${Boost_INCLUDE_DIRS})
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(Boost_LIBRARIES "${Boost_LIBRARIES}" "-lrt")
+endif()
+message ("Found Boost libraries: ${Boost_LIBRARIES}")
 
 option (ENABLE_DKS "Enable DKS" OFF)
 if (ENABLE_DKS)

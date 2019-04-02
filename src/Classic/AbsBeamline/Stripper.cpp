@@ -27,10 +27,6 @@
 #include <iostream>
 #include <fstream>
 
-
-using Physics::pi;
-using Physics::q_e;
-
 extern Inform *gmsg;
 
 using namespace std;
@@ -42,20 +38,12 @@ Stripper::Stripper():
     Component(),
     filename_m(""),
     position_m(0.0),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
     opcharge_m(0.0),
     opmass_m(0.0),
     opyield_m(1.0),
     stop_m(true),
     step_m(0) {
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 
@@ -63,20 +51,12 @@ Stripper::Stripper(const Stripper &right):
     Component(right),
     filename_m(right.filename_m),
     position_m(right.position_m),
-    xstart_m(right.xstart_m),
-    xend_m(right.xend_m),
-    ystart_m(right.ystart_m),
-    yend_m(right.yend_m),
-    width_m(right.width_m),
     opcharge_m(right.opcharge_m),
     opmass_m(right.opmass_m),
     opyield_m(right.opyield_m),
     stop_m(right.stop_m),
     step_m(right.step_m) {
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m, right.width_m);
 }
 
 
@@ -84,20 +64,12 @@ Stripper::Stripper(const std::string &name):
     Component(name),
     filename_m(""),
     position_m(0.0),
-    xstart_m(0.0),
-    xend_m(0.0),
-    ystart_m(0.0),
-    yend_m(0.0),
-    width_m(0.0),
     opcharge_m(0.0),
     opmass_m(0.0),
     opyield_m(1.0),
     stop_m(true),
     step_m(0){
-    A_m = yend_m - ystart_m;
-    B_m = xstart_m - xend_m;
-    R_m = sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    setDimensions(0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 void Stripper::setGeom(const double dist) {
@@ -166,23 +138,25 @@ void Stripper::goOffline() {
     lossDs_m->save();
 }
 
-void  Stripper::setXstart(double xstart) {
+void Stripper::setDimensions(double xstart, double xend, double ystart, double yend, double width) {
     xstart_m = xstart;
-}
-
-void  Stripper::setXend(double xend) {
-    xend_m = xend;
-}
-
-void  Stripper::setYstart(double ystart) {
     ystart_m = ystart;
-}
+    xend_m   = xend;
+    yend_m   = yend;
+    width_m  = width;
+    rstart_m = std::sqrt(xstart*xstart + ystart * ystart);
+    rend_m   = std::sqrt(xend * xend   + yend * yend);
+    // start position is the one with lowest radius
+    if (rstart_m > rend_m) {
+        std::swap(xstart_m, xend_m);
+        std::swap(ystart_m, yend_m);
+        std::swap(rstart_m, rend_m);
+    }
 
-void  Stripper::setYend(double yend) {
-    yend_m = yend;
-}
-void  Stripper::setWidth(double width) {
-    width_m = width;
+    A_m = yend_m - ystart_m;
+    B_m = xstart_m - xend_m;
+    R_m = std::sqrt(A_m*A_m+B_m*B_m);
+    C_m = ystart_m*xend_m - xstart_m*yend_m;
 }
 
 void  Stripper::setOPCharge(double charge) {
@@ -244,7 +218,47 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;
     Vector_t rmin, rmax, strippoint;
-    double r_ref = sqrt(xstart_m * xstart_m + ystart_m * ystart_m);
+    // interested in absolute maximum
+    double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+    double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+    double rbunch_max = std::hypot(xmax, ymax);
+
+    if(rbunch_max > rstart_m - 10.0 ){
+
+        size_t count = 0;
+        size_t tempnum = bunch->getLocalNum();
+        int pflag = 0;
+
+        Vector_t meanP(0.0, 0.0, 0.0);
+        for(unsigned int i = 0; i < bunch->getLocalNum(); ++i) {
+          for(int d = 0; d < 3; ++d) {
+              meanP(d) += bunch->P[i](d);
+          }
+        }
+        reduce(meanP, meanP, OpAddAssign());
+        meanP = meanP / Vector_t(bunch->getTotalNum());
+
+        double sk1, sk2, stangle = 0.0;
+        if ( B_m == 0.0 ){
+            sk1 = meanP(1)/meanP(0);
+            if(sk1 == 0.0)
+                stangle =1.0e12;
+            else
+                stangle = abs(1/sk1);
+        }else if (meanP(0) == 0.0 ){
+            sk2 = - A_m/B_m;
+            if(sk2 == 0.0)
+              stangle =1.0e12;
+            else
+              stangle = abs(1/sk2);
+        }else {
+            sk1 = meanP(1)/meanP(0);
+            sk2 = - A_m/B_m;
+            stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
+        }
+        double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
+        double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
+        setGeom(Swidth);
 
 	size_t count = 0;
 	int pflag = 0;
@@ -309,7 +323,7 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
 
                         // change the mass and charge
                         bunch->M[i] = opmass_m;
-                        bunch->Q[i] = opcharge_m * q_e;
+                        bunch->Q[i] = opcharge_m * Physics::q_e;
                         bunch->PType[i] = ParticleType::STRIPPED;
 
                         int j = 1;
