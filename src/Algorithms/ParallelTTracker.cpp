@@ -60,7 +60,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
     itsDataSink_m(NULL),
-    itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+    itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
     RefPartR_m(0.0),
     RefPartP_m(0.0),
     globalEOL_m(false),
@@ -87,7 +87,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
 {
 
     CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
-                                   beamline.getCoordTransformationTo().conjugate());
+                                   beamline.getInitialDirection());
     referenceToLabCSTrafo_m = labToRef.inverted();
 
 #ifdef OPAL_DKS
@@ -108,7 +108,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    const std::vector<double> &dt):
     Tracker(beamline, bunch, reference, revBeam, revTrack),
     itsDataSink_m(&ds),
-    itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getCoordTransformationTo()),
+    itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
     RefPartR_m(0.0),
     RefPartP_m(0.0),
     globalEOL_m(false),
@@ -132,7 +132,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
 {
 
     CoordinateSystemTrafo labToRef(beamline.getOrigin3D(),
-                                   beamline.getCoordTransformationTo());
+                                   beamline.getInitialDirection());
     referenceToLabCSTrafo_m = labToRef.inverted();
 
     for (std::vector<unsigned long long>::const_iterator it = maxSteps.begin(); it != maxSteps.end(); ++ it) {
@@ -257,6 +257,7 @@ void ParallelTTracker::execute() {
 
         restoreCavityPhases();
     } else {
+
         RefPartR_m = Vector_t(0.0);
         RefPartP_m = euclidean_norm(itsBunch_m->get_pmean_Distribution()) * Vector_t(0, 0, 1);
 
