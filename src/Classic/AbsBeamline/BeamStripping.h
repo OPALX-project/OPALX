@@ -102,17 +102,17 @@ private:
     string filename_m;               /**< The name of the outputfile*/
     bool informed_m;
 
-    //parameters for BeamStripping
-    double pressure_m;
-    double temperature_m;
+    ///parameters for BeamStripping
+    double pressure_m;    ///< mbar
+    double temperature_m; ///< K
 
     double stop_m;
-
-    double minr_m;
+    ///@{ size limits took from cyclotron
+    double minr_m; 
     double maxr_m;
     double minz_m;
     double maxz_m;
-
+    ///@}
     unsigned int losses_m;
     std::unique_ptr<LossDataSink> lossDs_m;
 
