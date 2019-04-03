@@ -29,8 +29,6 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 class BeamlineVisitor;
 class LossDataSink;
 
@@ -116,7 +114,7 @@ private:
     double maxz_m;
 
     unsigned int losses_m;
-    unique_ptr<LossDataSink> lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m;
 
     ParticleMatterInteractionHandler *parmatint_m;
 };
