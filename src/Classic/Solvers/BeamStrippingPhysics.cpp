@@ -478,7 +478,7 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
 			bunch->Q[i] = -q_e;
 		}
 	}
-	bunch->PType[i] = ParticleType::NEWSECONDARY;
+	bunch->PType[i] = ParticleType::SECONDARY;
 
     int j = 1;
     //create new particles
@@ -488,7 +488,7 @@ void BeamStrippingPhysics::SecondaryParticles(PartBunchBase<double, 3> *bunch, s
       bunch->P[tempnum+count] = bunch->P[i];
       bunch->Q[tempnum+count] = bunch->Q[i];
       bunch->M[tempnum+count] = bunch->M[i];
-      bunch->PType[tempnum+count] = ParticleType::NEWSECONDARY;
+      bunch->PType[tempnum+count] = ParticleType::SECONDARY;
       count++;
       j++;
     }
