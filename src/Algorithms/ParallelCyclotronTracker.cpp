@@ -209,7 +209,9 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  *
  */
 ParallelCyclotronTracker::~ParallelCyclotronTracker() {
+    if(bgf_m) {
 	lossDs_m->save();
+    }
     for(Component* component : myElements) {
         delete(component);
     }
