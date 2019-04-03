@@ -56,7 +56,7 @@ public:
     NIL_VISITELEMENT(AlignWrapper)
     NIL_VISITELEMENT(Beamline)
     NIL_VISITELEMENT(BeamBeam)
-	NIL_VISITELEMENT(BeamStripping)
+    NIL_VISITELEMENT(BeamStripping)
     NIL_VISITELEMENT(CCollimator)
     NIL_VISITELEMENT(Corrector)
     NIL_VISITELEMENT(CyclotronValley)
