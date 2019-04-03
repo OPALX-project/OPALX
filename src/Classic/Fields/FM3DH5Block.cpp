@@ -240,6 +240,11 @@ void FM3DH5Block::readMap() {
     FieldstrengthHx_m.resize(field_size);
     FieldstrengthHy_m.resize(field_size);
     FieldstrengthHz_m.resize(field_size);
+    h5err = H5Block3dSetView(file,
+                             0, num_gridpx_m - 1,
+                             0, num_gridpy_m - 1,
+                             0, num_gridpz_m - 1);
+    assert (h5err != H5_ERR);
     h5err = H5Block3dReadVector3dFieldFloat64(
         file,
         "Efield",
