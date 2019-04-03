@@ -189,7 +189,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3> *bunch) {
     		}
 
     		if (pdead_GS == true || pdead_LS == true) {
-    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], bunch->getT());
+    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], bunch->getT()*1e9);
     			if (stop) {
     				bunch->Bin[i] = -1;
     				stoppedPartStat_m++;
