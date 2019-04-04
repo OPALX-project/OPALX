@@ -244,7 +244,7 @@ void TrackCmd::execute() {
 //    Track::block = new Track(use, beam->getReference(), dt, maxsteps,
 //                             stepsperturn, zstart, zstop,
 //                             timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
-//    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
+    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
     
     Track::block->parser.run();
 
