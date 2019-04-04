@@ -422,20 +422,21 @@ void LossDataSink::saveASCII() {
                 os_m << px << "   ";
                 os_m << py << "   ";
                 os_m << pz << "   ";
-                os_m << id << " " << std::endl;
+                os_m << id << " " ;
                 if (turn_m.size() != 0) {
                     long turn;
                     double time;
                     rmsg->get(&turn);
                     rmsg->get(&time);
                     os_m << turn << "   ";
-                    os_m << time << std::endl;
+                    os_m << time ;
                 }
                 else if (time_m.size() != 0) {
                     double time;
                     rmsg->get(&time);
-                    os_m << time << std::endl;
+                    os_m << time ;
                 }
+                os_m << std::endl;
             }
             delete rmsg;
         }
