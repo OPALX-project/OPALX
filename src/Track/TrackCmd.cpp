@@ -85,7 +85,7 @@ TrackCmd::TrackCmd():
     itsAttr[DTINIT] = Attributes::makeReal
         ("DTINIT", "Defines a initial time step [s]", 0.0e-9);
     itsAttr[DTFINAL] = Attributes::makeReal
-        ("DTFINAL", "Defines a initial time step [s]", 1.0e-9);
+        ("DTFINAL", "Defines a final time step [s]", 1.0e-9);
     itsAttr[EINIT] = Attributes::makeReal
         ("EINIT", "Defines a initial energy [eV] for particles", 1.0);
     itsAttr[EFINAL] = Attributes::makeReal
@@ -244,7 +244,7 @@ void TrackCmd::execute() {
 //    Track::block = new Track(use, beam->getReference(), dt, maxsteps,
 //                             stepsperturn, zstart, zstop,
 //                             timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
-//    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
+    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
     
     Track::block->parser.run();
 
