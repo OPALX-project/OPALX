@@ -56,8 +56,7 @@ OpalBeamStripping::OpalBeamStripping(const std::string &name, OpalBeamStripping 
 
 
 OpalBeamStripping::~OpalBeamStripping() {
-    if(parmatint_m)
-        delete parmatint_m;
+    delete parmatint_m;
 }
 
 
