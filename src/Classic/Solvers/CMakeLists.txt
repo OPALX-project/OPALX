@@ -13,7 +13,7 @@ include_directories (
 ADD_OPAL_SOURCES(${_SRCS})
 
 set (HDRS
-	BeamStrippingPhysics.hh
+    BeamStrippingPhysics.hh
     GreenWakeFunction.hh
     CollimatorPhysics.hh
     CSRWakeFunction.hh

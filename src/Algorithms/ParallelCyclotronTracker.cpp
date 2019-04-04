@@ -210,7 +210,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  */
 ParallelCyclotronTracker::~ParallelCyclotronTracker() {
     if(bgf_m) {
-	lossDs_m->save();
+        lossDs_m->save();
     }
     for(Component* component : myElements) {
         delete(component);
@@ -225,32 +225,32 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
 
 double ParallelCyclotronTracker::initializeTimeStep() {
 
-	double E_mean = 0.0;
-	double dT = 0.0;
+        double E_mean = 0.0;
+    double dT = 0.0;
 
-	double dti = itsBunch_m->getdTinit();
-	double dtf = itsBunch_m->getdTfinal();
+    double dti = itsBunch_m->getdTinit();
+    double dtf = itsBunch_m->getdTfinal();
 
-	double Ei = itsBunch_m->getEinit();
-	double Ef = itsBunch_m->getEfinal();
+    double Ei = itsBunch_m->getEinit();
+    double Ef = itsBunch_m->getEfinal();
 
-	if(dti > 0) {
-//		*gmsg << "* Time step changes in each step accordng to energy " << endl;
+    if(dti > 0) {
+//        *gmsg << "* Time step changes in each step accordng to energy " << endl;
         switch (mode_m)
         {
-        	case MODE::SEO:
-        	{
-        	     E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
-        	     break;
-        	}
+            case MODE::SEO:
+            {
+                 E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
+                 break;
+            }
             case MODE::SINGLE:
             {
-            	E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
+                E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
                 break;
             }
             case MODE::BUNCH:
             {
-            	E_mean = itsBunch_m->get_meanKineticEnergy() * 1.0e6;
+                E_mean = itsBunch_m->get_meanKineticEnergy() * 1.0e6;
                 break;
             }
             case MODE::UNDEFINED:
@@ -258,22 +258,22 @@ double ParallelCyclotronTracker::initializeTimeStep() {
                 throw OpalException("ParallelCyclotronTracker::GenericTracker()",
                                     "No such tracking mode.");
         }
-		dT = dti * dtf * (Ef-Ei) / ( dtf*(Ef-E_mean) + dti*(E_mean-Ei) );
-	}
-	else {
-		dT = itsBunch_m->getdT();
-	}
-//	*gmsg << "* Energy mean =  " << E_mean  << endl;
-//	*gmsg << "* meanKineticEnergy =  " << itsBunch_m->get_meanKineticEnergy() * 1.0e6  << endl;
-//	*gmsg << "* dti =  " << dti  << endl;
-//	*gmsg << "*  dT =  " <<  dT  << endl;
+        dT = dti * dtf * (Ef-Ei) / ( dtf*(Ef-E_mean) + dti*(E_mean-Ei) );
+    }
+    else {
+        dT = itsBunch_m->getdT();
+    }
+//    *gmsg << "* Energy mean =  " << E_mean  << endl;
+//    *gmsg << "* meanKineticEnergy =  " << itsBunch_m->get_meanKineticEnergy() * 1.0e6  << endl;
+//    *gmsg << "* dti =  " << dti  << endl;
+//    *gmsg << "*  dT =  " <<  dT  << endl;
 
-	itsBunch_m->setdT(dT);
+    itsBunch_m->setdT(dT);
 
-	 double harm = getHarmonicNumber();
-	 dT *= 1.0e9 * harm;
+     double harm = getHarmonicNumber();
+     dT *= 1.0e9 * harm;
 
-	return dT;
+    return dT;
 }
 
 /**
@@ -341,7 +341,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
     for(size_t i = 0; i < itsBunch_m->getLocalNum(); i++) {
         int res = bgf_m->partInside(itsBunch_m->R[i], itsBunch_m->P[i], dtime, itsBunch_m->PType[i], itsBunch_m->Q[i], intecoords, triId);
         if(res >= 0) {
-			lossDs_m->addParticle(itsBunch_m->R[i]*1000, itsBunch_m->P[i], itsBunch_m->ID[i], itsBunch_m->getT()*1e9, turnnumber_m);
+            lossDs_m->addParticle(itsBunch_m->R[i]*1000, itsBunch_m->P[i], itsBunch_m->ID[i], itsBunch_m->getT()*1e9, turnnumber_m);
             itsBunch_m->Bin[i] = -1;
             INFOMSG(level2 << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;);
         }
@@ -526,11 +526,11 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
             if(insqrt > -1.0e-10) {
 
-	        referencePt = 0.0;
+            referencePt = 0.0;
 
             } else {
 
-	        throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
+            throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "Pt imaginary!");
             }
 
@@ -638,7 +638,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     } else if(type == std::string("BANDRF")) {
         fieldflag = 6;
     } else if(type == std::string("SYNCHROCYCLOTRON")) {
-	fieldflag = 7;
+    fieldflag = 7;
     } else //(type == "RING")
         fieldflag = 1;
 
@@ -673,7 +673,7 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
     myElements.push_back(elptr);
 
     double pressure = elptr->getPressure();
-    *gmsg << "* Pressure	= " << pressure << " [mbar]" << endl;
+    *gmsg << "* Pressure    = " << pressure << " [mbar]" << endl;
 
     double temperature = elptr->getTemperature();
     *gmsg << "* Temperature = " << temperature << " [K]" << endl;
@@ -707,25 +707,25 @@ void ParallelCyclotronTracker::visitCCollimator(const CCollimator &coll) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXStart();
-    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart  = " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXEnd();
-    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend    = " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYStart();
-    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart  = " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYEnd();
-    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend    = " << yend << " [mm]" << endl;
 
     double zstart = elptr->getZStart();
-    *gmsg << "* Zstart	= " << zstart << " [mm]" << endl;
+    *gmsg << "* Zstart  = " << zstart << " [mm]" << endl;
 
     double zend = elptr->getZEnd();
-    *gmsg << "* Zend	= " << zend << " [mm]" << endl;
+    *gmsg << "* Zend    = " << zend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "* Width	= " << width << " [mm]" << endl;
+    *gmsg << "* Width   = " << width << " [mm]" << endl;
 
     elptr->initialise(itsBunch_m);
 
@@ -874,19 +874,19 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart  = " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend    = " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart  = " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend    = " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "* Width	= " << width << " [mm]" << endl;
+    *gmsg << "* Width   = " << width << " [mm]" << endl;
 
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
@@ -1079,19 +1079,19 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart  = " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend    = " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart  = " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend    = " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "* Width	= " << width << " [mm]" << endl;
+    *gmsg << "* Width   = " << width << " [mm]" << endl;
 
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
@@ -1172,19 +1172,19 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     myElements.push_back(elptr);
 
     double xstart = elptr->getXstart();
-    *gmsg << "* Xstart	= " << xstart << " [mm]" << endl;
+    *gmsg << "* Xstart  = " << xstart << " [mm]" << endl;
 
     double xend = elptr->getXend();
-    *gmsg << "* Xend	= " << xend << " [mm]" << endl;
+    *gmsg << "* Xend    = " << xend << " [mm]" << endl;
 
     double ystart = elptr->getYstart();
-    *gmsg << "* Ystart	= " << ystart << " [mm]" << endl;
+    *gmsg << "* Ystart  = " << ystart << " [mm]" << endl;
 
     double yend = elptr->getYend();
-    *gmsg << "* Yend	= " << yend << " [mm]" << endl;
+    *gmsg << "* Yend    = " << yend << " [mm]" << endl;
 
     double width = elptr->getWidth();
-    *gmsg << "* Width	= " << width << " [mm]" << endl;
+    *gmsg << "* Width   = " << width << " [mm]" << endl;
 
     double opcharge = elptr->getOPCharge();
     *gmsg << "* Charge of outcoming particle = +e * " << opcharge << endl;
@@ -1295,8 +1295,8 @@ void ParallelCyclotronTracker::execute() {
     // Get BoundaryGeometry that is already initialized
     bgf_m = OpalData::getInstance()->getGlobalGeometry();
     if (bgf_m) {
-		lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink("GEOM",!Options::asciidump));
-		*gmsg << "* ---------------------------------------------------" << endl;
+            lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink("GEOM",!Options::asciidump));
+            *gmsg << "* ---------------------------------------------------" << endl;
         *gmsg << "* Boundary geometry initialized " << endl;
     }
     
@@ -1395,7 +1395,7 @@ void ParallelCyclotronTracker::MtsTracker() {
 
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
-    	dt = initializeTimeStep();
+        dt = initializeTimeStep();
 
         bool dumpEachTurn = false;
 
@@ -1549,7 +1549,7 @@ void ParallelCyclotronTracker::GenericTracker() {
 
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
-    	dt = initializeTimeStep();
+        dt = initializeTimeStep();
 
         bool dumpEachTurn = false;
 
@@ -2117,8 +2117,8 @@ inline void ParallelCyclotronTracker::rotateAroundX(ParticleAttrib<Vector_t> & p
     // Clockwise rotation of particles 'particleVectors' by 'psi' around X axis
 
     Tenzor<double, 3> const rotation(1,  0,          0,
-				     0,  cos(psi), sin(psi),
-				     0, -sin(psi), cos(psi));
+                                     0,  cos(psi), sin(psi),
+                                     0, -sin(psi), cos(psi));
 
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
 
@@ -2130,8 +2130,8 @@ inline void ParallelCyclotronTracker::rotateAroundX(Vector_t & myVector, double 
     // Clockwise rotation of single vector 'myVector' by 'psi' around X axis
 
     Tenzor<double, 3> const rotation(1,  0,          0,
-				     0,  cos(psi), sin(psi),
-				     0, -sin(psi), cos(psi));
+                                     0,  cos(psi), sin(psi),
+                                     0, -sin(psi), cos(psi));
 
     myVector = dot(rotation, myVector);
 }
@@ -2155,9 +2155,9 @@ inline void ParallelCyclotronTracker::getQuaternionTwoVectors(Vector_t u, Vector
         resultVectorComponent = cross(u, xaxis);
 
         // If by chance u is parallel to xaxis, use zaxis instead
-	if (dot(resultVectorComponent, resultVectorComponent) < tolerance2) {
+        if (dot(resultVectorComponent, resultVectorComponent) < tolerance2) {
 
-	    resultVectorComponent = cross(u, zaxis);
+            resultVectorComponent = cross(u, zaxis);
         }
 
         double halfAngle = 0.5 * pi;
@@ -2328,7 +2328,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
         }
 
         if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
-        	BeamStripping * bstp;
+                BeamStripping * bstp;
             bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
             bstp->checkBeamStripping(itsBunch_m, cycl_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
         }
@@ -2417,7 +2417,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         double const initialReferenceTheta = referenceTheta * Physics::deg2rad;
         PathLength_m = 0.0;
 
-	// TODO: Replace with TracerParticle
+        // TODO: Replace with TracerParticle
         // Force the initial phase space values of the particle with ID = 0 to zero,
         // to set it as a reference particle.
         if(initialTotalNum_m > 2) {
@@ -2432,7 +2432,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Initialize global R
         //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
-	// NEW OPAL 2.0: Immediately change to m -DW
+        // NEW OPAL 2.0: Immediately change to m -DW
         Vector_t const initMeanR = Vector_t(0.001 * referenceR * cosRefTheta_m, // mm --> m
                                             0.001 * referenceR * sinRefTheta_m, // mm --> m
                                             0.001 * referenceZ);                // mm --> m
@@ -2807,10 +2807,10 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     double E;
 
     if (mode_m == MODE::SINGLE) {
-    	E  = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM() *1e-6;
+        E  = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM() *1e-6;
     }
     else {
-    	E = itsBunch_m->get_meanKineticEnergy();
+        E = itsBunch_m->get_meanKineticEnergy();
     }
 
     // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
@@ -2870,14 +2870,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
                                                                  false);          // Flag localFrame
 
             // Tell user in which mode we are dumping
-	    // New: no longer dumping for num part < 3, omit phase space dump number info
-	    if (lastDumpedStep_m == -1){
-		    *gmsg << endl << "* Integration step " << step_m + 1
-                          << " (no phase space dump for <= 2 particles)" << endl;
-	    } else {
+            // New: no longer dumping for num part < 3, omit phase space dump number info
+            if (lastDumpedStep_m == -1){
+                *gmsg << endl << "* Integration step " << step_m + 1
+                      << " (no phase space dump for <= 2 particles)" << endl;
+            } else {
                 *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
                       << " (global frame) at integration step " << step_m + 1 << endl;
-	    }
+            }
         }
 
         // ---------------- If flag psDumpFrame is local, dump bunch in local frame ---------------- //
@@ -2913,14 +2913,14 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             localToGlobal(itsBunch_m->P, phi, psi);
 
             // Tell user in which mode we are dumping
-	    // New: no longer dumping for num part < 3, omit phase space dump number info
-	    if (lastDumpedStep_m == -1){
-		*gmsg << endl << "* Integration step " << step_m + 1
+            // New: no longer dumping for num part < 3, omit phase space dump number info
+            if (lastDumpedStep_m == -1){
+                *gmsg << endl << "* Integration step " << step_m + 1
                       << " (no phase space dump for <= 2 particles)" << endl;
-	    } else {
+            } else {
                 *gmsg << endl << "* Phase space dump " << lastDumpedStep_m
                       << " (local frame) at integration step " << step_m + 1 << endl;
-	    }
+            }
         }
     }
     // Everything is (back to) global, now return to mm
@@ -3285,7 +3285,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 
 
 void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
-	 
+         
      // Flag for transition from single-bunch to multi-bunches mode
     bool flagTransition = false;
 

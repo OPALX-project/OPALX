@@ -29,21 +29,21 @@ OpalBeamStripping::OpalBeamStripping():
     OpalElement(SIZE, "BEAMSTRIPPING",
                 "The \"BEAMSTRIPPING\" element defines a beam stripping interaction"),
     parmatint_m(NULL) {
-    itsAttr[PRESSURE] 		= Attributes::makeReal
-    							("PRESSURE", " Pressure os the accelerator, [mbar]");
-    itsAttr[TEMPERATURE] 	= Attributes::makeReal
-    							("TEMPERATURE", " Temperature of the accelerator, [K]");
-    itsAttr[STOP] 			= Attributes::makeBool
-    							("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
-    itsAttr[OUTFN] 			= Attributes::makeString
-    							("OUTFN", "BeamStripping output filename");
-
+    itsAttr[PRESSURE]    = Attributes::makeReal
+        ("PRESSURE", " Pressure os the accelerator, [mbar]");
+    itsAttr[TEMPERATURE] = Attributes::makeReal
+        ("TEMPERATURE", " Temperature of the accelerator, [K]");
+    itsAttr[STOP]        = Attributes::makeBool
+        ("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
+    itsAttr[OUTFN]        = Attributes::makeString
+        ("OUTFN", "BeamStripping output filename");
+    
     registerRealAttribute("PRESSURE");
     registerRealAttribute("TEMPERATURE");
     registerStringAttribute("OUTFN");
-
+    
     registerOwnership();
-
+    
     setElement((new BeamStrippingRep("BEAMSTRIPPING"))->makeAlignWrapper());
 }
 
@@ -77,9 +77,9 @@ void OpalBeamStripping::update() {
     BeamStrippingRep *bstp =
         dynamic_cast<BeamStrippingRep *>(getElement()->removeWrappers());
 
-    double pressure 	= Attributes::getReal(itsAttr[PRESSURE]);
-    double temperature 	= Attributes::getReal(itsAttr[TEMPERATURE]);
-    bool   stop 		= Attributes::getBool(itsAttr[STOP]);
+    double pressure     = Attributes::getReal(itsAttr[PRESSURE]);
+    double temperature  = Attributes::getReal(itsAttr[TEMPERATURE]);
+    bool   stop         = Attributes::getBool(itsAttr[STOP]);
 
     bstp->setPressure(pressure);
     bstp->setTemperature(temperature);

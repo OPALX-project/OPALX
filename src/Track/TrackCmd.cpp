@@ -48,10 +48,10 @@ namespace {
         ZSTOP,        // Defines a z-location [m], after which the simulation stops when the last particles passes
         STEPSPERTURN, // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR, // the name of time integrator
-		DTINIT,
-		DTFINAL,
-		EINIT,
-		EFINAL,
+        DTINIT,
+        DTFINAL,
+        EINIT,
+        EFINAL,
         MAP_ORDER,    // Truncation order of maps for ThickTracker (default: 1 (linear))
         SIZE
     };
@@ -61,37 +61,37 @@ TrackCmd::TrackCmd():
     Action(SIZE, "TRACK",
            "The \"TRACK\" command initiates tracking.") {
     itsAttr[LINE] = Attributes::makeString
-                    ("LINE", "Name of lattice to be tracked");
+        ("LINE", "Name of lattice to be tracked");
     itsAttr[BEAM] = Attributes::makeString
-                    ("BEAM", "Name of beam to be used", "UNNAMED_BEAM");
+        ("BEAM", "Name of beam to be used", "UNNAMED_BEAM");
     itsAttr[DT] = Attributes::makeRealArray
-                  ("DT", "THE INTEGRATION TIMESTEP IN SECONDS");
+        ("DT", "THE INTEGRATION TIMESTEP IN SECONDS");
     itsAttr[DTSCINIT] = Attributes::makeReal
-                  ("DTSCINIT", "Only for adaptive integrator: Initial time step for space charge integration", 1e-12);
+        ("DTSCINIT", "Only for adaptive integrator: Initial time step for space charge integration", 1e-12);
     itsAttr[DTAU] = Attributes::makeReal
-                  ("DTAU", "Only for adaptive integrator: Alternative way to set accuracy of space integration.", -1.0);
+        ("DTAU", "Only for adaptive integrator: Alternative way to set accuracy of space integration.", -1.0);
     itsAttr[T0] = Attributes::makeReal
-                  ("T0", "THE ELAPSED TIME OF THE BUNCH IN SECONDS", 0.0);
+        ("T0", "THE ELAPSED TIME OF THE BUNCH IN SECONDS", 0.0);
     itsAttr[MAXSTEPS] = Attributes::makeRealArray
-                        ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)");
+        ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)");
     itsAttr[STEPSPERTURN] = Attributes::makeReal
-                            ("STEPSPERTURN", "THE TIME STEPS PER REVOLUTION PERIOD, ONLY FOR OPAL-CYCL", 720);
+        ("STEPSPERTURN", "THE TIME STEPS PER REVOLUTION PERIOD, ONLY FOR OPAL-CYCL", 720);
     itsAttr[ZSTART] = Attributes::makeReal
-                      ("ZSTART", "Defines a z-location [m] where the reference particle starts", 0.0);
+        ("ZSTART", "Defines a z-location [m] where the reference particle starts", 0.0);
     itsAttr[ZSTOP] = Attributes::makeRealArray
-                     ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
+        ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
     itsAttr[TIMEINTEGRATOR] = Attributes::makeString
-                              ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
+        ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
     itsAttr[DTINIT] = Attributes::makeReal
-                      ("DTINIT", "Defines a initial time step [s]", 0.0e-9);
+        ("DTINIT", "Defines a initial time step [s]", 0.0e-9);
     itsAttr[DTFINAL] = Attributes::makeReal
-                      ("DTFINAL", "Defines a initial time step [s]", 1.0e-9);
+        ("DTFINAL", "Defines a initial time step [s]", 1.0e-9);
     itsAttr[EINIT] = Attributes::makeReal
-                      ("EINIT", "Defines a initial energy [eV] for particles", 1.0);
+        ("EINIT", "Defines a initial energy [eV] for particles", 1.0);
     itsAttr[EFINAL] = Attributes::makeReal
-                      ("EFINAL", "Defines a final energy [eV] for particles", 1.0e6);
+        ("EFINAL", "Defines a final energy [eV] for particles", 1.0e6);
     itsAttr[MAP_ORDER] = Attributes::makeReal
-                     ("MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear)", 1);
+        ("MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear)", 1);
 
     registerOwnership(AttributeHandler::COMMAND);
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");
@@ -236,10 +236,10 @@ void TrackCmd::execute() {
         zstop.push_back(zstop.back());
     }
 
-   // Execute track block.
+    // Execute track block.
     Track::block = new Track(use, beam->getReference(), dt, maxsteps,
                              stepsperturn, zstart, zstop,
-							 dtinit, dtfinal, einit, efinal,
+                             dtinit, dtfinal, einit, efinal,
                              timeintegrator, nslices, t0, getDTSCINIT(), getDTAU());
 //    Track::block = new Track(use, beam->getReference(), dt, maxsteps,
 //                             stepsperturn, zstart, zstop,

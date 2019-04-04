@@ -48,11 +48,11 @@ using namespace std;
 
 BeamStripping::BeamStripping():
     Component(),
-	filename_m(""),
+    filename_m(""),
     informed_m(false),
-	pressure_m(0.0),
-	temperature_m(0.0),
-	stop_m(true),
+    pressure_m(0.0),
+    temperature_m(0.0),
+    stop_m(true),
     minr_m(0.0),
     maxr_m(0.0),
     minz_m(0.0),
@@ -66,9 +66,9 @@ BeamStripping::BeamStripping(const BeamStripping &right):
     Component(right),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
-	pressure_m(right.pressure_m),
-	temperature_m(right.temperature_m),
-	stop_m(right.stop_m),
+    pressure_m(right.pressure_m),
+    temperature_m(right.temperature_m),
+    stop_m(right.stop_m),
     minr_m(right.minr_m),
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
@@ -83,8 +83,8 @@ BeamStripping::BeamStripping(const std::string &name):
     filename_m(""),
     informed_m(false),
     pressure_m(0.0),
-	temperature_m(0.0),
-	stop_m(true),
+    temperature_m(0.0),
+    stop_m(true),
     minr_m(0.0),
     maxr_m(0.0),
     minz_m(0.0),
@@ -136,13 +136,13 @@ bool BeamStripping::applyToReferenceParticle(const Vector_t &R, const Vector_t &
 
 
 bool BeamStripping::checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax) {
-	int pflag = checkPoint(r(0), r(1), r(2));
-	bool isDead = (pflag != 0);
-	return isDead;
+    int pflag = checkPoint(r(0), r(1), r(2));
+    bool isDead = (pflag != 0);
+    return isDead;
 }
 
 bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl,
-		const int turnnumber, const double t, const double tstep) {
+                                       const int turnnumber, const double t, const double tstep) {
 
     bool flagNeedUpdate = false;
 
@@ -161,29 +161,29 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
 
     size_t tempnum = bunch->getLocalNum();
     for (unsigned int i = 0; i < tempnum; ++i) {
-    	pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
-    	if ( (pflag != 0) && (bunch->Bin[i] != -1) )  {
-    		if (!parmatint_m)
-    			lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], t, turnnumber);
-    		//    		bunch->Bin[i] = -1;
-    		flagNeedUpdate = true;
-		}
-//		else if (pflag == 0) {
-//    		*gmsg << "pflag == 0" << endl;
-//    		*gmsg << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
-//    		*gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
+        pflag = checkPoint(bunch->R[i](0), bunch->R[i](1), bunch->R[i](2));
+        if ( (pflag != 0) && (bunch->Bin[i] != -1) )  {
+            if (!parmatint_m)
+                lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i], t, turnnumber);
+            //                  bunch->Bin[i] = -1;
+            flagNeedUpdate = true;
+        }
+//      else if (pflag == 0) {
+//          *gmsg << "pflag == 0" << endl;
+//          *gmsg << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
+//          *gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
 //
-//    	}
-//    	else if (bunch->Bin[i] == -1) {
-//    		*gmsg << "bunch->Bin[i] == -1" << endl;
-//    		*gmsg << getName() << ": particle "<< i <<" is marked for deletion"<< endl;
-//    		*gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
-//    	}
+//      }
+//      else if (bunch->Bin[i] == -1) {
+//          *gmsg << "bunch->Bin[i] == -1" << endl;
+//          *gmsg << getName() << ": particle "<< i <<" is marked for deletion"<< endl;
+//          *gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
+//      }
     }
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && parmatint_m) {
-    	dynamic_cast<BeamStrippingPhysics*>(parmatint_m)->setCyclotron(cycl);
-    	parmatint_m->apply(bunch, boundingSphere);
+        dynamic_cast<BeamStrippingPhysics*>(parmatint_m)->setCyclotron(cycl);
+        parmatint_m->apply(bunch, boundingSphere);
     }
     return flagNeedUpdate;
 }
@@ -208,13 +208,13 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
     goOnline(-1e6);
 
     // change the mass and charge to simulate real particles
-	*gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
-	size_t tempnum = bunch->getLocalNum();
+    *gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
+    size_t tempnum = bunch->getLocalNum();
     for (size_t i = 0; i < tempnum; ++i) {
-    	bunch->M[i] = bunch->getM()*1E-9;
-    	bunch->Q[i] = bunch->getQ() * q_e;
-    	if(bunch->weHaveBins())
-    		bunch->Bin[bunch->getLocalNum()-1] = bunch->Bin[i];
+        bunch->M[i] = bunch->getM()*1E-9;
+        bunch->Q[i] = bunch->getQ() * q_e;
+        if(bunch->weHaveBins())
+            bunch->Bin[bunch->getLocalNum()-1] = bunch->Bin[i];
     }
 }
 
@@ -230,19 +230,19 @@ void BeamStripping::goOnline(const double &) {
 }
 
 void BeamStripping::print() {
-	if (RefPartBunch_m == NULL) {
-		if (!informed_m) {
-			std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
-			ERRORMSG(errormsg << endl);
-			if (Ippl::myNode() == 0) {
-				std::ofstream omsg("errormsg.txt", std::ios_base::app);
-				omsg << errormsg << std::endl;
-				omsg.close();
-			}
-			informed_m = true;
-		}
-		return;
-	}
+    if (RefPartBunch_m == NULL) {
+        if (!informed_m) {
+            std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
+            ERRORMSG(errormsg << endl);
+            if (Ippl::myNode() == 0) {
+                std::ofstream omsg("errormsg.txt", std::ios_base::app);
+                omsg << errormsg << std::endl;
+                omsg.close();
+            }
+            informed_m = true;
+        }
+        return;
+    }
 }
 
 void BeamStripping::goOffline() {
@@ -279,12 +279,12 @@ std::string BeamStripping::getBeamStrippingShape() {
 
 
 int BeamStripping::checkPoint(const double &x, const double &y, const double &z) {
-	int cn;
-	double rpos = sqrt(x * x + y * y);
-	double zpos = z;
-	if (zpos >= maxz_m || zpos <= minz_m || rpos >= maxr_m || rpos <= minr_m)
-		cn = 0;
-	else
-		cn = 1;
-	return (cn);  // 0 if even (out), and 1 if odd (in)
+    int cn;
+    double rpos = sqrt(x * x + y * y);
+    double zpos = z;
+    if (zpos >= maxz_m || zpos <= minz_m || rpos >= maxr_m || rpos <= minr_m)
+        cn = 0;
+    else
+        cn = 1;
+    return (cn);  // 0 if even (out), and 1 if odd (in)
 }

@@ -41,7 +41,7 @@ namespace {
         RADIUS, // Radius of the tube
         SIGMA,
         TAU,
-	    NPART,
+        NPART,
         SIZE
     };
 }
@@ -143,8 +143,8 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
         *gmsg << *this << endl;
     }
     else if(type == "BEAMSTRIPPING") {
-    	handler_m = new BeamStrippingPhysics(getOpalName(), itsElement_m, material_m);
-    	*gmsg << *this << endl;
+        handler_m = new BeamStrippingPhysics(getOpalName(), itsElement_m, material_m);
+        *gmsg << *this << endl;
     }
     else {
         handler_m = 0;
@@ -159,7 +159,7 @@ void ParticleMatterInteraction::updateElement(ElementBase *element) {
 void ParticleMatterInteraction::print(std::ostream &os) const {
 //    os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N ****************** " << std::endl;
     os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
-       << "* TYPE       	" << Attributes::getString(itsAttr[TYPE]) << '\n'
-       << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
+       << "* TYPE       " << Attributes::getString(itsAttr[TYPE]) << '\n'
+       << "* MATERIAL   " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
