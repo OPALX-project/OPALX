@@ -29,10 +29,10 @@ public:
     /// The attributes of class OpalBeamStripping.
     enum {
         PRESSURE = COMMON,
-		TEMPERATURE,
-		STOP,
-		OUTFN,
-		SIZE
+        TEMPERATURE,
+        STOP,
+        OUTFN,
+        SIZE
     };
 
     /// Exemplar constructor.

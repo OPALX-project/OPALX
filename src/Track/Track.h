@@ -42,8 +42,8 @@ public:
     Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
           const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
           double zStart, const std::vector<double> & zStop,
-		  double dtinit, double dtfinal, double einit, double efinal,
-		  int timeintegrator,
+          double dtinit, double dtfinal, double einit, double efinal,
+          int timeintegrator,
           int nslices, double t0, double dtScInit, double deltaTau);
 //    Track(BeamSequence *, const PartData &, const std::vector<double> & dt,
 //          const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
@@ -95,8 +95,8 @@ public:
 
     double dtInit;
     double dtFinal;
-	double eInit;
-	double eFinal;
+    double eInit;
+    double eFinal;
 
     /// The ID of time integrator
     // 0 --- RK-4(default)

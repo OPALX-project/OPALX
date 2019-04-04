@@ -70,7 +70,7 @@ private:
     void CrossSection(double &Eng);
 
     double CSAnalyticFunction(double Eng, double Eth,
-    		double a1, double a2, double a3, double a4, double a5, double a6);
+                              double a1, double a2, double a3, double a4, double a5, double a6);
 
     bool GasStripping(double &deltas);
 
@@ -92,11 +92,11 @@ private:
     double mass_m;
     double charge_m;
 
-	double m_h;
+    double m_h;
 
-	int NbComponents;
-	//    double totalmolecularDensity_m;
-	double molecularDensity[3];
+    int NbComponents;
+    //    double totalmolecularDensity_m;
+    double molecularDensity[3];
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
@@ -110,12 +110,12 @@ private:
     size_t locPartsInMat_m;
 
     static const double fMolarFraction[3];
-	static const double CSCoefSingle_Hminus[3][7];
-	static const double CSCoefDouble_Hminus[3][7];
-	static const double CSCoefSingle_Hplus[3][9];
-	static const double CSCoefDouble_Hplus[3][9];
-	static const double CSCoefSingleLoss_H[3][7];
-	static const double CSCoefSingleCapt_H[3][9];
+    static const double CSCoefSingle_Hminus[3][7];
+    static const double CSCoefDouble_Hminus[3][7];
+    static const double CSCoefSingle_Hplus[3][9];
+    static const double CSCoefDouble_Hplus[3][9];
+    static const double CSCoefSingleLoss_H[3][7];
+    static const double CSCoefSingleCapt_H[3][9];
 };
 
 #endif //BEAMSTRIPPINGPHYSICS_HH

@@ -45,17 +45,17 @@ namespace {
 
 BeamStrippingRep::BeamStrippingRep():
     BeamStripping(),
-	geometry(0.0, 0.0)
+    geometry(0.0, 0.0)
 {}
 
 BeamStrippingRep::BeamStrippingRep(const BeamStrippingRep &right):
     BeamStripping(right),
-	geometry(0.0, 0.0)
+    geometry(0.0, 0.0)
 {}
 
 BeamStrippingRep::BeamStrippingRep(const std::string &name):
     BeamStripping(name),
-	geometry(0.0, 0.0)
+    geometry(0.0, 0.0)
 {}
 
 BeamStrippingRep::~BeamStrippingRep()
