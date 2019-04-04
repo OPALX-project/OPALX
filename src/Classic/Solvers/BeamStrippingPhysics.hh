@@ -25,9 +25,6 @@
 #include "Utility/IpplTimings.h"
 
 class ElementBase;
-
-template <class T, unsigned Dim>
-
 class PartBunchBase;
 class LogicalError;
 class LossDataSink;
