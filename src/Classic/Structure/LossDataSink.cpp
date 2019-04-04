@@ -385,12 +385,12 @@ void LossDataSink::saveASCII() {
             os_m << py_m[i] << "   ";
             os_m << pz_m[i] << "   ";
             os_m << id_m[i]   << "   ";
-            if (time_m.size() != 0) {
+            if (turn_m.size() != 0) {
+                os_m << turn_m[i] << "   ";
                 os_m << time_m[i] << "   ";
             }
-            else if (turn_m.size() != 0) {
-                os_m << turn_m[i] << "   ";
-                os_m << time_m[i] << " ";
+            else if (time_m.size() != 0) {
+                os_m << time_m[i] << "   ";
             }
             os_m << std::endl;
         }
