@@ -255,7 +255,7 @@ double ParallelCyclotronTracker::initializeTimeStep() {
             }
             case MODE::UNDEFINED:
             default:
-                throw OpalException("ParallelCyclotronTracker::GenericTracker()",
+                throw OpalException("ParallelCyclotronTracker::initializeTimeStep",
                                     "No such tracking mode.");
         }
 		dT = dti * dtf * (Ef-Ei) / ( dtf*(Ef-E_mean) + dti*(E_mean-Ei) );
