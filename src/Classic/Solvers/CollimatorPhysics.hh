@@ -89,7 +89,7 @@ public:
     std::string getName() { return FN_m;}
     size_t getParticlesInMat() { return locPartsInMat_m;}
     unsigned getRediffused() { return rediffusedStat_m;}
-
+    unsigned int getNumEntered() {return bunchToMatStat_m;}
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
 
 
