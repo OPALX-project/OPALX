@@ -135,16 +135,16 @@ private:
     std::string collshapeStr_m;      // the type of element as string
 
     // material parameters
-    double Z_m;
-    double A_m;
-    double A2_c;
-    double A3_c;
-    double A4_c;
-    double A5_c;
-    double rho_m;
-    double X0_m;
-    double I_m;
-    double n_m;
+    double Z_m;                      // the atomic number
+    double A_m;                      // the atomic mass
+    double rho_m;                    // the volumetric mass density
+    double X0_m;                     // the radiation length
+    double I_m;                      // the mean excitation energy
+
+    double A2_c;                     // coefficients to fit model to measurement data
+    double A3_c;                     // see e.g. page 16-20 in H. H. Andersen, J. F. Ziegler,
+    double A4_c;                     // "Hydrogen Stopping Powers and Ranges in All Elements",
+    double A5_c;                     // Pergamon Press, 1977
 
     // number of particles that enter the material in current step (count for single step)
     unsigned bunchToMatStat_m;
@@ -208,7 +208,7 @@ void CollimatorPhysics::EnergyLoss(double &Eng, bool &pdead, const double &delta
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode:nil
 // End:
