@@ -24,6 +24,7 @@ class BMultipoleField;
 class PartBunch;
 class AlignWrapper;
 class BeamBeam;
+class BeamStripping;
 class CCollimator;
 class Corrector;
 class CyclotronValley;
@@ -67,6 +68,7 @@ public:
     SE_VISITELEMENT(AlignWrapper)
     SE_VISITELEMENT(Beamline)
     SE_VISITELEMENT(BeamBeam)
+    SE_VISITELEMENT(BeamStripping)
     SE_VISITELEMENT(CCollimator)
     SE_VISITELEMENT(Corrector)
     SE_VISITELEMENT(CyclotronValley)

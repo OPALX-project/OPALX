@@ -42,6 +42,8 @@ class LossDataSink {
 
     void addParticle(const Vector_t &x, const Vector_t &p, const size_t id);
 
+    void addParticle(const Vector_t &x, const Vector_t &p, const size_t id, const double time);
+
     void addParticle(const Vector_t &x, const Vector_t &p, const size_t  id, const double time, const size_t turn);
 
     size_t size() const;
@@ -65,8 +67,11 @@ private:
     void writeHeaderASCII() {
         if(Ippl::myNode() == 0) {
             os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id";
-            if (time_m.size() != 0) {
+            if (turn_m.size() != 0) {
                 os_m << ",  turn,  time (ns) ";
+            }
+            else if (time_m.size() != 0) {
+                os_m << ",   time (ns) ";
             }
             os_m << std::endl;
         }

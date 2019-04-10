@@ -90,6 +90,7 @@
 // Element commands.
 #include "Elements/OpalBeamBeam.h"
 #include "Elements/OpalBeamBeam3D.h"
+#include "Elements/OpalBeamStripping.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCCollimator.h"
 #include "Elements/OpalCyclotron.h"
@@ -239,6 +240,7 @@ namespace {
         OpalData *opal = OpalData::getInstance();
         opal->create(new OpalBeamBeam());
         opal->create(new OpalBeamBeam3D());
+        opal->create(new OpalBeamStripping());
         opal->create(new OpalCavity());
         opal->create(new OpalCCollimator());
         opal->create(new OpalCyclotron());

@@ -2,6 +2,7 @@ set (_SRCS
   AttCell.cpp
   OpalBeamBeam.cpp
   OpalBeamBeam3D.cpp
+  OpalBeamStripping.cpp
   OpalBend.cpp
   OpalCavity.cpp
   OpalTravelingWave.cpp
@@ -65,6 +66,7 @@ set (HDRS
     OpalBeamBeam3D.h
     OpalBeamBeam.h
     OpalBeamline.h
+    OpalBeamStripping.h
     OpalBend.h
     OpalCavity.h
     OpalCCollimator.h

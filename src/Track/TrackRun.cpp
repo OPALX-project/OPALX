@@ -197,7 +197,7 @@ void TrackRun::execute() {
                                      Track::block->bunch, Track::block->reference,
                                      false, false);
     } else if(method == "THICK") {
-	setupThickTracker();
+        setupThickTracker();
     // } else if(method == "PARALLEL-SLICE" || method == "OPAL-E") {
     //     setupSliceTracker();
     } else if(method == "PARALLEL-T" || method == "OPAL-T") {
@@ -228,7 +228,7 @@ void TrackRun::execute() {
             itsTracker->execute();
         }
 
-	// Track the last turn.
+        // Track the last turn.
         itsTracker->execute();
 
     } else {
@@ -471,8 +471,8 @@ void TrackRun::setupThickTracker()
 
     itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
                                   Track::block->bunch, *ds, Track::block->reference,
-				  false, false, Track::block->localTimeSteps,
-				  Track::block->zstart, Track::block->zstop, Track::block->dT,
+                                  false, false, Track::block->localTimeSteps,
+                                  Track::block->zstart, Track::block->zstop, Track::block->dT,
                                   Track::block->truncOrder);
 }
 
@@ -701,6 +701,13 @@ void TrackRun::setupCyclotronTracker(){
 
     *gmsg << "* Mass of simulation particle= " << macromass << " GeV/c^2" << endl;
     *gmsg << "* Charge of simulation particle= " << macrocharge << " [C]" << endl;
+
+
+    Track::block->bunch->setdTinit(Track::block->dtInit);
+    Track::block->bunch->setdTfinal(Track::block->dtFinal);
+
+    Track::block->bunch->setEinit(Track::block->eInit);
+    Track::block->bunch->setEfinal(Track::block->eFinal);
 
     Track::block->bunch->setdT(1.0 / (Track::block->stepsPerTurn * beam->getFrequency() * 1.0e6));
     Track::block->bunch->setStepsPerTurn(Track::block->stepsPerTurn);
