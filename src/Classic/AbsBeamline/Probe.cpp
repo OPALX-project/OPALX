@@ -163,6 +163,7 @@ void Probe::setGeom(const double dist) {
     double coeff2 = sqrt(1 + slope * slope);
     double coeff1 = slope / coeff2;
     double halfdist = dist / 2.0;
+    
     geom_m[0].x = xstart_m - halfdist * coeff1;
     geom_m[0].y = ystart_m + halfdist / coeff2;
 
@@ -176,11 +177,11 @@ void Probe::setGeom(const double dist) {
     geom_m[3].y = yend_m + halfdist / coeff2;
 
     geom_m[4].x = geom_m[0].x;
-    geom_m[4].y = geom_m[0].y;
+    geom_m[4].y = geom_m[0].y; 
 }
 
 bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
-
+	
     bool flagprobed = false;
     Vector_t rmin, rmax, probepoint;
     bunch->get_bounds(rmin, rmax);
@@ -264,7 +265,6 @@ bool  Probe::checkProbe(PartBunchBase<double, 3> *bunch, const int turnnumber, c
             }
         }
     }
-
     reduce(&flagprobed, &flagprobed + 1, &flagprobed, OpBitwiseOrAssign());
     return flagprobed;
 }

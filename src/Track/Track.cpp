@@ -20,7 +20,7 @@
 // #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartBunch.h" //FIXME
 #ifdef ENABLE_AMR
-    #include "Algorithms/AmrPartBunch.h"
+#include "Algorithms/AmrPartBunch.h"
 #endif
 #include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
@@ -33,17 +33,23 @@ std::stack<Track*> Track::stashedTrack;
 
 /**
 
-Track is asking the dictionary if already a
-particle bunch was allocated. If that is the
-case Track is using the already allocated bunch,
-otherwise a new bunch is allocated in the dictionary.
+   Track is asking the dictionary if already a
+   particle bunch was allocated. If that is the
+   case Track is using the already allocated bunch,
+   otherwise a new bunch is allocated in the dictionary.
 */
 
 
 Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & dt,
              const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
-             double zStart, const std::vector<double> & zStop, int timeintegrator,
+             double zStart, const std::vector<double> & zStop,
+             double dtinit, double dtfinal, double einit, double efinal,
+             int timeintegrator,
              int nslices, double t0, double dtScInit, double deltaTau):
+//Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & dt,
+//		const std::vector<unsigned long long> & maxtsteps, int stepsperturn,
+//		double zStart, const std::vector<double> & zStop,int timeintegrator,
+//		int nslices, double t0, double dtScInit, double deltaTau):
     bunch(nullptr),
     slbunch(nullptr),
     reference(ref),
@@ -57,9 +63,13 @@ Track::Track(BeamSequence *u, const PartData &ref, const std::vector<double> & d
     stepsPerTurn(stepsperturn),
     zstart(zStart),
     zstop(zStop),
+    dtInit(dtinit),
+    dtFinal(dtfinal),
+    eInit(einit),
+    eFinal(efinal),
     timeIntegrator(timeintegrator),
     truncOrder(1)
-    {
+{
     if(nslices > 0) {
         if(!OpalData::getInstance()->hasSLBunchAllocated())
             OpalData::getInstance()->setSLPartBunch(new EnvelopeBunch(&ref));

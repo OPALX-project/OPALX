@@ -30,6 +30,7 @@
 #include "Algorithms/IndexMap.h"
 #include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
+#include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Diagnostic.h"
@@ -144,6 +145,9 @@ public:
 
     /// Apply the algorithm to a BeamBeam.
     virtual void visitBeamBeam(const BeamBeam &);
+
+    /// Apply the algorithm to a BeamStripping.
+    virtual void visitBeamStripping(const BeamStripping &);
 
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator &);
@@ -322,6 +326,9 @@ inline void ThickTracker::visitBeamBeam(const BeamBeam &bb) {
     itsOpalBeamline_m.visit(bb, *this, itsBunch_m);
 }
 
+inline void ThickTracker::visitBeamStripping(const BeamStripping &bstp) {
+    itsOpalBeamline_m.visit(bstp, *this, itsBunch_m);
+}
 
 inline void ThickTracker::visitCCollimator(const CCollimator &coll) {
     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);

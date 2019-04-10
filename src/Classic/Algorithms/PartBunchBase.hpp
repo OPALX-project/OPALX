@@ -1205,7 +1205,7 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
         double maxValue = 1e8;
         rmin = Vector_t(maxValue, maxValue, maxValue);
         rmax = Vector_t(-maxValue, -maxValue, -maxValue);
-	return;
+        return;
     }
 
     rmin = R[0];
@@ -1213,7 +1213,7 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
     for (size_t i = 1; i < localNum; ++ i) {
         for (unsigned short d = 0; d < 3u; ++ d) {
             if (rmin(d) > R[i](d)) rmin(d) = R[i](d);
-	    else if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
+            else if (rmax(d) < R[i](d)) rmax(d) = R[i](d);
         }
     }
 }
@@ -1330,6 +1330,43 @@ void PartBunchBase<T, Dim>::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
 
 
 template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setdTinit(double dt) {
+    dti_m = dt;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getdTinit() const {
+    return dti_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setdTfinal(double dt) {
+    dtf_m = dt;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getdTfinal() const {
+    return dtf_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setEinit(double E) {
+    Ei_m = E;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getEinit() const {
+    return Ei_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setEfinal(double E) {
+    Ef_m = E;
+}
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getEfinal() const {
+    return Ef_m;
+}
+
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setdT(double dt) {
     dt_m = dt;
 }
@@ -1369,8 +1406,8 @@ double PartBunchBase<T, Dim>::get_sPos() {
             }
         }
         reduce(z, z, OpAddAssign());
-	reduce(numPrimBeamParts, numPrimBeamParts, OpAddAssign());
-	if(numPrimBeamParts != 0)
+        reduce(numPrimBeamParts, numPrimBeamParts, OpAddAssign());
+        if(numPrimBeamParts != 0)
             z = z / numPrimBeamParts;
         return z;
     } else {

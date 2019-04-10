@@ -34,6 +34,7 @@ class Ring;
 class SBend3D;
 class VariableRFCavity;
 class Offset;
+class LossDataSink;
 
 // Class ParallelCyclotronTracker
 // ------------------------------------------------------------------------
@@ -102,6 +103,9 @@ public:
     /// Apply the algorithm to a BeamBeam.
     virtual void visitBeamBeam(const BeamBeam &);
 
+    /// Apply the algorithm to a Beam Stripping.
+    virtual void visitBeamStripping(const BeamStripping &);
+    
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator &);
 
@@ -216,6 +220,7 @@ public:
 
     void bgf_main_collision_test();
     void initializeBoundaryGeometry();
+    double initializeTimeStep();
 
 private:
 
@@ -232,6 +237,8 @@ private:
     DataSink *itsDataSink;
 
     BoundaryGeometry *bgf_m;
+
+    Cyclotron *cycl_m;
 
     /// The maximal number of steps the system is integrated
     int maxSteps_m;
@@ -479,7 +486,8 @@ private:
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
     
-
+        std::unique_ptr<LossDataSink> lossDs_m;
+        
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
     double getHarmonicNumber() const;

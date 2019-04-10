@@ -125,7 +125,8 @@ void Stripper::initialise(PartBunchBase<double, 3> *bunch) {
 }
 
 void Stripper::finalise() {
-    *gmsg << "* Finalize probe" << endl;
+    *gmsg << "* Finalize stripper" << endl;
+    lossDs_m->save();
 }
 
 bool Stripper::bends() const {
@@ -217,6 +218,7 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
     bool flagNeedUpdate = false;
     bool flagresetMQ = false;
     Vector_t rmin, rmax, strippoint;
+    bunch->get_bounds(rmin, rmax);
     // interested in absolute maximum
     double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
     double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
@@ -256,11 +258,11 @@ bool  Stripper::checkStripper(PartBunchBase<double, 3> *bunch, const int turnnum
             stangle = abs(( sk1-sk2 )/(1 + sk1*sk2));
         }
         double lstep = (sqrt(1.0-1.0/(1.0+dot(meanP, meanP))) * Physics::c) * tstep*1.0e-6; // [mm]
-        double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.2;
+        double Swidth = lstep /  sqrt( 1+1/stangle/stangle ) * 1.0;
         setGeom(Swidth);
 
         for(unsigned int i = 0; i < tempnum; ++i) {
-            if(bunch->PType[i] == ParticleType::REGULAR) {
+            if(bunch->PType[i] == ParticleType::REGULAR || bunch->PType[i] == ParticleType::SECONDARY) {
                 pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
                 if(pflag != 0) {
                     // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
