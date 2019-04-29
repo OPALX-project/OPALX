@@ -56,7 +56,7 @@ public:
     std::string getName() {return element_ref_m->getName();}
     size_t getParticlesInMat() {return locPartsInMat_m;}
     unsigned getRediffused() {return rediffusedStat_m;}
-
+    unsigned int getNumEntered() {return bunchToMatStat_m;}
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
 
     void setCyclotron(Cyclotron* cycl) { cycl_m = cycl; };
@@ -77,6 +77,10 @@ private:
     bool LorentzStripping(double &gamma, double &E);
 
     void SecondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i);
+
+    bool computeEnergyLoss(double &Eng,
+                           const double deltat,
+                           bool includeFluctuations = true) const { return false;}
 
     Cyclotron *cycl_m;
     BeamStripping *bstp_m;
