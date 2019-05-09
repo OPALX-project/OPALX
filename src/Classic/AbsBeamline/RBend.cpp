@@ -33,19 +33,19 @@ extern Inform *gmsg;
 // ------------------------------------------------------------------------
 
 RBend::RBend():
-    Bend()
+    Bend2D()
 {
     setMessageHeader("RBend ");
 }
 
 RBend::RBend(const RBend &right):
-    Bend(right)
+    Bend2D(right)
 {
     setMessageHeader("RBend ");
 }
 
 RBend::RBend(const std::string &name):
-    Bend(name)
+    Bend2D(name)
 {
     setMessageHeader("RBend ");
 }
@@ -136,12 +136,12 @@ ElementBase::ElementType RBend::getType() const {
 }
 
 void RBend::setBendAngle(double angle) {
-    Bend::setBendAngle(angle);
+    Bend2D::setBendAngle(angle);
     setExitAngle(angle - getEntranceAngle());
 }
 
 void RBend::setEntranceAngle(double entranceAngle) {
-    Bend::setEntranceAngle(entranceAngle);
+    Bend2D::setEntranceAngle(entranceAngle);
     setExitAngle(getBendAngle() - entranceAngle);
 }
 
