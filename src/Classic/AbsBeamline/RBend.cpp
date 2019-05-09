@@ -154,8 +154,9 @@ bool RBend::findChordLength(Inform &msg,
      */
     const double angle = getBendAngle();
     if (std::abs(angle) > 0.0) {
+        double E1 = std::copysign(1.0, angle) * getEntranceAngle();
         chordLength = 2 * getLength() * sin(0.5 * std::abs(angle)) /
-            (sin(getEntranceAngle()) + sin(std::abs(angle) - getEntranceAngle()));
+            (sin(E1) + sin(std::abs(angle) - E1));
     } else {
         double refMass  = RefPartBunch_m->getM();
         double refGamma = designEnergy_m / refMass + 1.0;
