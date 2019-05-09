@@ -2,6 +2,7 @@
 #include "Algorithms/CavityAutophaser.h"
 
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/TravelingWave.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -80,12 +81,17 @@ OrbitThreader::OrbitThreader(const PartData &ref,
 
 void OrbitThreader::execute() {
     double initialPathLength = pathLength_m;
-    trackBack();
+    double maxDistance = computeMaximalImplicitDrift();
+
+    auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    std::set<std::string> visitedElements;
+
+    trackBack(2 * maxDistance);
+
     Vector_t nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
     nextR *= Physics::c * dt_m;
-    auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
-    std::set<std::string> visitedElements;
+
     setDesignEnergy(allElements, visitedElements);
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
@@ -98,7 +104,7 @@ void OrbitThreader::execute() {
         double initialS = pathLength_m;
         Vector_t initialR = r_m;
         Vector_t initialP = p_m;
-        integrate(elementSet, maxIntegSteps_m);
+        integrate(elementSet, maxIntegSteps_m, 2 * maxDistance);
 
         registerElement(elementSet, initialS,  initialR, initialP);
 
@@ -123,19 +129,21 @@ void OrbitThreader::execute() {
 
             elementSet = itsOpalBeamline_m.getElements(nextR);
         }
-    } while ((time_m - initialTime_m) / dt_m < maxIntegSteps_m &&
-             errorFlag_m != HITMATERIAL &&
+    } while (errorFlag_m != HITMATERIAL &&
              errorFlag_m != EOL);
 
-    // imap_m.tidyUp();
+    imap_m.tidyUp();
     *gmsg << level1 << "\n" << imap_m << endl;
     imap_m.saveSDDS(initialPathLength);
 
     processElementRegister();
 }
 
-void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t maxSteps) {
+void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t maxSteps, double maxDrift) {
     static size_t step = 0;
+    CoordinateSystemTrafo labToBeamline = itsOpalBeamline_m.getCSTrafoLab2Local();
+    const double oldPathLength = pathLength_m;
+    double stepLength;
     Vector_t nextR;
     do {
         errorFlag_m = EVERYTHINGFINE;
@@ -165,7 +173,10 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t maxStep
             Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
         }
 
-        if (step % loggingFrequency_m == 0 && Ippl::myNode() == 0 && !OpalData::getInstance()->isOptimizerRun()) {
+        if (pathLength_m > 0.0 &&
+            pathLength_m < zstop_m &&
+            step % loggingFrequency_m == 0 && Ippl::myNode() == 0 &&
+            !OpalData::getInstance()->isOptimizerRun()) {
             logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + std::copysign(euclidean_norm(r_m - oldR), dt_m)
                      << std::setw(18) << std::setprecision(8) << r_m(0)
                      << std::setw(18) << std::setprecision(8) << r_m(1)
@@ -198,12 +209,15 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t maxStep
         integrator_m.push(nextR, p_m, dt_m);
         nextR *= Physics::c * dt_m;
 
-        if (pathLength_m > zstop_m) {
+        if ((activeSet.size() == 0 && std::abs(pathLength_m - oldPathLength) > maxDrift) ||
+            (activeSet.size() > 0  && pathLength_m > zstop_m)) {
             errorFlag_m = EOL;
             return;
         }
 
-    } while (((time_m - initialTime_m) / dt_m < maxSteps) &&
+        stepLength = std::abs(dt_m) * euclidean_norm(p_m) / sqrt(dot(p_m, p_m) + 1) * Physics::c;
+    } while ((dt_m > 0.0 ||
+              euclidean_norm(labToBeamline.transformTo(r_m)) > stepLength)  &&
              (activeSet == itsOpalBeamline_m.getElements(nextR)));
 }
 
@@ -263,7 +277,7 @@ double OrbitThreader::getMaxDesignEnergy(const IndexMap::value_t &elementSet) co
     return designEnergy;
 }
 
-void OrbitThreader::trackBack() {
+void OrbitThreader::trackBack(double maxDrift) {
     dt_m *= -1;
     double initialPathLength = pathLength_m;
 
@@ -271,10 +285,11 @@ void OrbitThreader::trackBack() {
     integrator_m.push(nextR, p_m, dt_m);
     nextR *= Physics::c * dt_m;
 
+    maxDrift = std::min(maxDrift, dZ_m);
     while (initialPathLength - pathLength_m < dZ_m) {
         auto elementSet = itsOpalBeamline_m.getElements(nextR);
 
-        integrate(elementSet, 1000);
+        integrate(elementSet, 1000, maxDrift);
 
         nextR = r_m / (Physics::c * dt_m);
         integrator_m.push(nextR, p_m, dt_m);
@@ -367,4 +382,60 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
             element->setDesignEnergy(kineticEnergyeV);
         }
     }
+}
+
+double OrbitThreader::computeMaximalImplicitDrift() {
+    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    double maxDrift = 0.0;
+    FieldList::iterator it = allElements.begin();
+    const FieldList::iterator end = allElements.end();
+
+    for (; it != end; ++ it) {
+        auto element1 = it->getElement();
+        const auto &toEdge = element1->getCSTrafoGlobal2Local();
+        auto toEnd = element1->getEdgeToEnd() * toEdge;
+        Vector_t end1 = toEnd.transformFrom(Vector_t(0, 0, 0));
+        Vector_t directionEnd = toEnd.rotateFrom(Vector_t(0, 0, 1));
+        if (element1->getType() == ElementBase::RBEND ||
+            element1->getType() == ElementBase::SBEND ||
+            element1->getType() == ElementBase::RBEND3D ) {
+            auto toBegin = element1->getEdgeToBegin() * toEdge;
+
+            BendBase *bend = static_cast<BendBase*>(element1.get());
+            double angleRelativeToFace = bend->getEntranceAngle() - bend->getBendAngle();
+            directionEnd = toBegin.rotateFrom(Vector_t(sin(angleRelativeToFace), 0, cos(angleRelativeToFace)));
+        }
+
+        double minDistanceLocal = std::numeric_limits<double>::max();
+        FieldList::iterator it2 = allElements.begin();
+        for (; it2 != end; ++ it2) {
+            if (it == it2) continue;
+
+            auto element2 = it2->getElement();
+            const auto &toEdge = element2->getCSTrafoGlobal2Local();
+            auto toBegin = element2->getEdgeToBegin() * toEdge;
+            Vector_t begin2 = toBegin.transformFrom(Vector_t(0, 0, 0));
+            Vector_t directionBegin = toBegin.rotateFrom(Vector_t(0, 0, 1));
+            if (element2->getType() == ElementBase::RBEND ||
+                element2->getType() == ElementBase::SBEND ||
+                element2->getType() == ElementBase::RBEND3D ) {
+                BendBase *bend = static_cast<BendBase*>(element2.get());
+                double E1 = bend->getEntranceAngle();
+                directionBegin = toBegin.rotateFrom(Vector_t(sin(E1), 0, cos(E1)));
+            }
+
+
+            double distance = euclidean_norm(begin2 - end1);
+            double directionProjection = dot(directionEnd, directionBegin);
+            if (directionProjection > 0.999 && minDistanceLocal > distance) {
+                minDistanceLocal = distance;
+            }
+        }
+
+        if (maxDrift < minDistanceLocal) {
+            maxDrift = minDistanceLocal;
+        }
+    }
+
+    return maxDrift;
 }
