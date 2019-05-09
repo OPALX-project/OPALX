@@ -6,7 +6,7 @@
 #include "Algorithms/IndexMap.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/Bend.h"
+#include "AbsBeamline/Bend2D.h"
 #include "Utilities/Util.h"
 #include "Physics/Physics.h"
 #include "OPALconfig.h"
@@ -24,6 +24,8 @@ IndexMap::IndexMap():
 { }
 
 void IndexMap::print(std::ostream &out) const {
+    if (mapRange2Element_m.size() == 0) return;
+
     out << "Size of map " << mapRange2Element_m.size() << " sections " << std::endl;
     out << std::fixed << std::setprecision(6);
     auto mapIti = mapRange2Element_m.begin();
@@ -252,7 +254,7 @@ void IndexMap::saveSDDS(double startS) const {
             case ElementBase::RBEND:
             case ElementBase::SBEND:
                 {
-                    const Bend* bend = static_cast<const Bend*>(element.get());
+                    const Bend2D* bend = static_cast<const Bend2D*>(element.get());
                     if (bend->getRotationAboutZ() > 0.5 * Physics::pi &&
                         bend->getRotationAboutZ() < 1.5 * Physics::pi) {
                         items[DIPOLE] = -1;
