@@ -35,11 +35,9 @@ DataSink::DataSink() :
     H5call_m(0),
     lossWrCounter_m(0),
     doHDF5_m(true),
-    h5wrapper_m(NULL),
+    h5wrapper_m(NULL)
 #ifdef __linux__
-    memprof_m(new MemoryProfiler())
-#else
-    memprof_m(nullptr)
+    , memprof_m(new MemoryProfiler())
 #endif
 { }
 
@@ -48,11 +46,9 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
     nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
-    h5wrapper_m(h5wrapper),
+    h5wrapper_m(h5wrapper)
 #ifdef __linux__
-    memprof_m(new MemoryProfiler())
-#else
-    memprof_m(nullptr)
+    , memprof_m(new MemoryProfiler())
 #endif
 {
     namespace fs = boost::filesystem;
@@ -138,11 +134,9 @@ DataSink::DataSink(H5PartWrapper *h5wrapper):
     nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
-    h5wrapper_m(h5wrapper),
+    h5wrapper_m(h5wrapper)
 #ifdef __linux__
-    memprof_m(new MemoryProfiler())
-#else
-    memprof_m(nullptr)
+    , memprof_m(new MemoryProfiler())
 #endif
 {
     /// Constructor steps:
