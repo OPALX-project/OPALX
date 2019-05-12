@@ -4,6 +4,7 @@
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/TravelingWave.h"
+#include "BeamlineCore/MarkerRep.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "BasicActions/Option.h"
@@ -132,7 +133,7 @@ void OrbitThreader::execute() {
     } while (errorFlag_m != HITMATERIAL &&
              errorFlag_m != EOL);
 
-    imap_m.tidyUp();
+    imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
     imap_m.saveSDDS(initialPathLength);
 
@@ -387,6 +388,14 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
 double OrbitThreader::computeMaximalImplicitDrift() {
     FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
     double maxDrift = 0.0;
+
+    MarkerRep start("#S");
+    CoordinateSystemTrafo toEdge(r_m, getQuaternion(p_m, Vector_t(0, 0, 1)));
+    start.setElementLength(0.0);
+    start.setCSTrafoGlobal2Local(toEdge);
+    std::shared_ptr<Component> startPtr(static_cast<Marker*>(start.clone()));
+    allElements.push_front(ClassicField(startPtr, 0.0, 0.0));
+
     FieldList::iterator it = allElements.begin();
     const FieldList::iterator end = allElements.end();
 
@@ -414,7 +423,9 @@ double OrbitThreader::computeMaximalImplicitDrift() {
             auto element2 = it2->getElement();
             const auto &toEdge = element2->getCSTrafoGlobal2Local();
             auto toBegin = element2->getEdgeToBegin() * toEdge;
+            auto toEnd = element2->getEdgeToEnd() * toEdge;
             Vector_t begin2 = toBegin.transformFrom(Vector_t(0, 0, 0));
+            Vector_t end2 = toEnd.transformFrom(Vector_t(0, 0, 0));
             Vector_t directionBegin = toBegin.rotateFrom(Vector_t(0, 0, 1));
             if (element2->getType() == ElementBase::RBEND ||
                 element2->getType() == ElementBase::SBEND ||
@@ -427,15 +438,22 @@ double OrbitThreader::computeMaximalImplicitDrift() {
 
             double distance = euclidean_norm(begin2 - end1);
             double directionProjection = dot(directionEnd, directionBegin);
-            if (directionProjection > 0.999 && minDistanceLocal > distance) {
+            bool overlapping = dot(begin2 - end1, directionBegin) < 0.0? true: false;
+
+            if (!overlapping &&
+                directionProjection > 0.999 &&
+                minDistanceLocal > distance) {
                 minDistanceLocal = distance;
             }
         }
 
-        if (maxDrift < minDistanceLocal) {
+        if (maxDrift < minDistanceLocal &&
+            minDistanceLocal != std::numeric_limits<double>::max()) {
             maxDrift = minDistanceLocal;
         }
     }
+
+    maxDrift = std::min(maxIntegSteps_m * dt_m * Physics::c, maxDrift);
 
     return maxDrift;
 }
