@@ -1077,6 +1077,12 @@ void PartBunchBase<T, Dim>::setT(double t) {
 
 
 template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::incrementT() {
+    t_m += dt_m;
+}
+
+
+template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getT() const {
     return t_m;
 }
