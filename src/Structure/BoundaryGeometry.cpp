@@ -1285,7 +1285,7 @@ void BoundaryGeometry::initialize () {
           To speed up ray-triangle intersection tests, the normal vector of
           all triangles are pointing inward. Since this is clearly not
           guaranteed for the triangles in the H5hut file, this must be checked
-          for each triangel and - if necessary changed - after reading the mesh.
+          for each triangle and - if necessary changed - after reading the mesh.
 
           To test whether the normal of a triangle is pointing inward or outward,
           we choose a random point P close to the center of the triangle and test
