@@ -1180,7 +1180,6 @@ inline void
 BoundaryGeometry::computeMeshVoxelization (void) {
 
     for (int triangle_id = 0; triangle_id < numTriangles_m; triangle_id++) {
-        std::vector<int> voxels;
         Vector_t v1 = getPoint (triangle_id, 1);
         Vector_t v2 = getPoint (triangle_id, 2);
         Vector_t v3 = getPoint (triangle_id, 3);
@@ -1542,8 +1541,7 @@ Change orientation if diff is:
             int diff = id[1] - id[0];
             if ((((ic[1] - ic[0]) == 1) && ((diff == 1) || (diff == -2))) ||
                 (((ic[1] - ic[0]) == 2) && ((diff == -1) || (diff == 2)))) {
-                bg->PointID (triangle_id, id[0]) = bg->PointID (ref_id, ic[1]);
-                bg->PointID (triangle_id, id[1]) = bg->PointID (ref_id, ic[0]);
+                std::swap (bg->PointID (triangle_id, id[0]), bg->PointID (triangle_id, id[1]));
             }
         }
 
@@ -1561,8 +1559,11 @@ Change orientation if diff is:
             std::vector <bool> isOriented (bg->numTriangles_m, false);
             do {
                 parts++;
-                // find next untested triangle, trivial for the first sub-mesh
-                while ((triangle_id < bg->numTriangles_m) && isOriented [triangle_id])
+                /*
+                  Find next untested triangle, trivial for the first sub-mesh.
+                  There is a least one not yet tested triangle!
+                */
+                while (isOriented [triangle_id])
                     triangle_id++;
 
                 // ensure that normal of this triangle is inward pointing
