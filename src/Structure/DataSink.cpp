@@ -42,7 +42,6 @@ DataSink::DataSink() :
 { }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
-    mode_m(std::ios::out),
     nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
@@ -76,8 +75,6 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 
     unsigned int linesToRewind = 0;
     if (fs::exists(statFileName_m)) {
-        mode_m = std::ios::app;
-        INFOMSG("Appending statistical data to existing data file: " << statFileName_m << endl);
         double spos = h5wrapper->getLastPosition();
         linesToRewind = rewindSDDStoSPos(spos);
         replaceVersionString(statFileName_m);
@@ -85,22 +82,6 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
         INFOMSG("Creating new file for statistical data: " << statFileName_m << endl);
     }
 
-//    if (fs::exists(mapStatFileName_m)) //<--
-//            mode_m = std::ios::app;
-//            INFOMSG("Appending statistical data to existing data file: " << mapStatFileName_m << endl);
-//            double spos = h5wrapper->getLastPosition();
-//            linesToRewind = rewindSDDStoSPos(spos);
-//            replaceVersionString(mapStatFileName_m);
-//        } else {
-//            INFOMSG("Creating new file for statistical data: " << statFileName_m << endl);
-//        }
-
-    if (fs::exists(lBalFileName_m)) {
-        INFOMSG("Appending load balance data to existing data file: " << lBalFileName_m << endl);
-        rewindLinesLBal(linesToRewind);
-    } else {
-        INFOMSG("Creating new file for load balance data: " << lBalFileName_m << endl);
-    }
 
     if (Options::memoryDump) {
 #ifndef __linux__
@@ -115,22 +96,10 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, int restartStep):
 #endif
     }
 
-#ifdef ENABLE_AMR
-    if (fs::exists(gridLBalFileName_m)) {
-        INFOMSG("Appending grid load balancing to existing data file: " << gridLBalFileName_m << endl);
-        if (Ippl::myNode() == 0) {
-            rewindLines(gridLBalFileName_m, linesToRewind);
-        }
-    } else {
-        INFOMSG("Creating new file for grid load balancing data: " << gridLBalFileName_m << endl);
-    }
-#endif
-
     h5wrapper_m->close();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper):
-    mode_m(std::ios::out),
     nMaxBunches_m(1),
     H5call_m(0),
     lossWrCounter_m(0),
@@ -325,47 +294,9 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam,
                                const losses_t &losses,
                                const double& azimuth)
 {
-
-    /// Start timer.
-    IpplTimings::startTimer(StatMarkerTimer_m);
-
-    /// Set width of write fields in output files.
-    unsigned int pwi = 10;
-
-    /// Calculate beam statistics and gather load balance statistics.
-    beam->calcBeamParameters();
-    beam->gatherLoadBalanceStatistics();
-
-#ifdef ENABLE_AMR
-    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
-        amrbeam->gatherLevelStatistics();
-    }
-#endif
-
-    size_t npOutside = 0;
-    if (Options::beamHaloBoundary>0)
-        npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary*beam->get_rrms());
-    // *gmsg << "npOutside 1 = " << npOutside << " beamHaloBoundary= " << Options::beamHaloBoundary << " rrms= " << beam->get_rrms() << endl;
-
-    double  pathLength = 0.0;
-    if (OpalData::getInstance()->isInOPALCyclMode())
-        pathLength = beam->getLPath();
-    else
-        pathLength = beam->get_sPos();
-
-    /// Write data to files. If this is the first write to the beam statistics file, write SDDS
-    /// header information.
-    std::ofstream os_statData;
-    std::ofstream os_lBalData;
-
 #ifndef __linux__
     std::ofstream os_memData;
 #endif
-
-#ifdef ENABLE_AMR
-    std::ofstream os_gridLBalData;
-#endif
-    double Q = beam->getCharge();
 
     if ( Options::memoryDump ) {
 #ifdef __linux__
@@ -406,96 +337,6 @@ void DataSink::doWriteStatData(PartBunchBase<double, 3> *beam,
                 writeGridLBalHeader(beam, os_gridLBalData);
 #endif
         }
-
-        os_statData << beam->getT() * 1e9 << std::setw(pwi) << "\t"         // 1
-                    << pathLength << std::setw(pwi) << "\t"                 // 2
-
-                    << beam->getTotalNum() << std::setw(pwi) << "\t"        // 3
-                    << Q << std::setw(pwi) << "\t"                          // 4
-
-                    << Ekin << std::setw(pwi) << "\t"                       // 5
-
-                    << beam->get_rrms()(0) << std::setw(pwi) << "\t"        // 6
-                    << beam->get_rrms()(1) << std::setw(pwi) << "\t"        // 7
-                    << beam->get_rrms()(2) << std::setw(pwi) << "\t"        // 8
-
-                    << beam->get_prms()(0) << std::setw(pwi) << "\t"        // 9
-                    << beam->get_prms()(1) << std::setw(pwi) << "\t"        // 10
-                    << beam->get_prms()(2) << std::setw(pwi) << "\t"        // 11
-
-                    << beam->get_norm_emit()(0) << std::setw(pwi) << "\t"   // 12
-                    << beam->get_norm_emit()(1) << std::setw(pwi) << "\t"   // 13
-                    << beam->get_norm_emit()(2) << std::setw(pwi) << "\t"   // 14
-
-                    << beam->get_rmean()(0)  << std::setw(pwi) << "\t"      // 15
-                    << beam->get_rmean()(1)  << std::setw(pwi) << "\t"      // 16
-                    << beam->get_rmean()(2)  << std::setw(pwi) << "\t"      // 17
-
-                    << beam->RefPartR_m(0) << std::setw(pwi) << "\t"        // 18
-                    << beam->RefPartR_m(1) << std::setw(pwi) << "\t"        // 19
-                    << beam->RefPartR_m(2) << std::setw(pwi) << "\t"        // 20
-
-                    << beam->RefPartP_m(0) << std::setw(pwi) << "\t"        // 21
-                    << beam->RefPartP_m(1) << std::setw(pwi) << "\t"        // 22
-                    << beam->RefPartP_m(2) << std::setw(pwi) << "\t"        // 23
-
-                    << beam->get_maxExtent()(0) << std::setw(pwi) << "\t"   // 24
-                    << beam->get_maxExtent()(1) << std::setw(pwi) << "\t"   // 25
-                    << beam->get_maxExtent()(2) << std::setw(pwi) << "\t"   // 26
-
-            // Write out Courant Snyder parameters.
-                    << beam->get_rprms()(0) << std::setw(pwi) << "\t"       // 27
-                    << beam->get_rprms()(1) << std::setw(pwi) << "\t"       // 28
-                    << beam->get_rprms()(2) << std::setw(pwi) << "\t"       // 29
-
-            // Write out dispersion.
-                    << beam->get_Dx() << std::setw(pwi) << "\t"             // 30
-                    << beam->get_DDx() << std::setw(pwi) << "\t"            // 31
-                    << beam->get_Dy() << std::setw(pwi) << "\t"             // 32
-                    << beam->get_DDy() << std::setw(pwi) << "\t"            // 33
-
-
-            // Write head/reference particle/tail field information.
-                    << FDext[0](0) << std::setw(pwi) << "\t"                // 34 B-ref x
-                    << FDext[0](1) << std::setw(pwi) << "\t"                // 35 B-ref y
-                    << FDext[0](2) << std::setw(pwi) << "\t"                // 36 B-ref z
-
-                    << FDext[1](0) << std::setw(pwi) << "\t"                // 37 E-ref x
-                    << FDext[1](1) << std::setw(pwi) << "\t"                // 38 E-ref y
-                    << FDext[1](2) << std::setw(pwi) << "\t"                // 39 E-ref z
-
-                    << beam->getdE() << std::setw(pwi) << "\t"              // 40 dE energy spread
-                    << beam->getdT() * 1e9 << std::setw(pwi) << "\t"        // 41 dt time step size
-                    << npOutside << std::setw(pwi) << "\t";                 // 42 number of particles outside n*sigma
-
-        if(Ippl::getNodes() == 1 && beam->getLocalNum() > 0) {
-            os_statData << beam->R[0](0) << std::setw(pwi) << "\t";         // 43 R0_x
-            os_statData << beam->R[0](1) << std::setw(pwi) << "\t";         // 44 R0_y
-            os_statData << beam->R[0](2) << std::setw(pwi) << "\t";         // 45 R0_z
-            os_statData << beam->P[0](0) << std::setw(pwi) << "\t";         // 46 P0_x
-            os_statData << beam->P[0](1) << std::setw(pwi) << "\t";         // 47 P0_y
-            os_statData << beam->P[0](2) << std::setw(pwi) << "\t";         // 48 P0_z
-        }
-
-        if (OpalData::getInstance()->isInOPALCyclMode()) {
-
-            Vector_t halo = beam->get_halo();
-            for (int i = 0; i < 3; ++i)
-                os_statData << halo(i) << std::setw(pwi) << "\t";
-
-            os_statData << azimuth << std::setw(pwi) << "\t";
-        }
-
-        for(size_t i = 0; i < losses.size(); ++ i) {
-            os_statData << losses[i].second << std::setw(pwi) << "\t";
-        }
-        os_statData << std::endl;
-
-        os_statData.close();
-
-        writeLBalData(beam, os_lBalData, pwi);
-
-        os_lBalData.close();
 
 #ifndef __linux__
         if ( Options::memoryDump ) {
