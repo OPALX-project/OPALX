@@ -62,6 +62,17 @@ void LBalWriter::writeHeader(PartBunchBase<double, 3> *beam) {
 
 void LBalWriter::writeData(PartBunchBase<double, 3> *beam) {
     
+    beam->gatherLoadBalanceStatistics();
+
+#ifdef ENABLE_AMR
+    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
+        amrbeam->gatherLevelStatistics();
+    }
+#endif
+
+    if ( Ippl::myNode() != 0 )
+        return;
+    
     this->writeValue(beam->getT() * 1e9);   // 1
 
     size_t nProcs = Ippl::getNodes();

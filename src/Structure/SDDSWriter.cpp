@@ -2,15 +2,33 @@
 
 #include <queue>
 
-SDDSWriter(const std::string& fname)
+#include <boost/filesystem.hpp>
+
+SDDSWriter(const std::string& fname, const double& spos)
     : DataSink()
+    , mode_m(std::ios::out)
     , os_m(fname.c_str(), std::ios::out)
     , indent_m("        ")
-{ }
+{
+    namespace fs = boost::filesystem;
+    
+    unsigned int linesToRewind = 0;
+    
+    if (fs::exists(fname)) {
+        mode_m = std::ios::app;
+        INFOMSG("Appending data to existing data file: " << fname << endl);
+        linesToRewind = rewindSDDStoSPos(spos);
+        replaceVersionString(fname);
+    } else {
+        INFOMSG("Creating new file for data: " << fname << endl);
+    }
+}
 
 
 void SDDSWriter::rewindLines(const std::string &fname, size_t numberOfLines) const {
-    if (numberOfLines == 0) return;
+    if (numberOfLines == 0 || Ippl::myNode() != 0) {
+        return;
+    }
 
     std::string line;
     std::queue<std::string> allLines;
@@ -40,44 +58,45 @@ void SDDSWriter::rewindLines(const std::string &fname, size_t numberOfLines) con
 
 void SDDSWriter::replaceVersionString(const std::string &fname) const {
 
-    if (Ippl::myNode() == 0) {
-        std::string versionFile;
-        SDDS::SDDSParser parser(fname);
-        parser.run();
-        parser.getParameterValue("revision", versionFile);
+    if (Ippl::myNode() != 0)
+        return
+    
+    std::string versionFile;
+    SDDS::SDDSParser parser(fname);
+    parser.run();
+    parser.getParameterValue("revision", versionFile);
 
-        std::string line;
-        std::queue<std::string> allLines;
-        std::fstream fs;
+    std::string line;
+    std::queue<std::string> allLines;
+    std::fstream fs;
 
-        fs.open (fname.c_str(), std::fstream::in);
+    fs.open (fname.c_str(), std::fstream::in);
 
-        if (!fs.is_open()) return;
+    if (!fs.is_open()) return;
 
-        while (getline(fs, line)) {
-            allLines.push(line);
-        }
-        fs.close();
-
-
-        fs.open (fname.c_str(), std::fstream::out);
-
-        if (!fs.is_open()) return;
-
-        while (allLines.size() > 0) {
-            line = allLines.front();
-
-            if (line != versionFile) {
-                fs << line << "\n";
-            } else {
-                fs << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n";
-            }
-
-            allLines.pop();
-        }
-
-        fs.close();
+    while (getline(fs, line)) {
+        allLines.push(line);
     }
+    fs.close();
+
+
+    fs.open (fname.c_str(), std::fstream::out);
+
+    if (!fs.is_open()) return;
+
+    while (allLines.size() > 0) {
+        line = allLines.front();
+        
+        if (line != versionFile) {
+            fs << line << "\n";
+        } else {
+            fs << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n";
+        }
+
+        allLines.pop();
+    }
+
+    fs.close();
 }
 
 

@@ -10,7 +10,7 @@
 class SDDSWriter : public DataSink {
 
 public:
-    SDDSWriter(const std::string& fname);
+    SDDSWriter(const std::string& fname, const double& spos);
     
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'
@@ -44,6 +44,14 @@ protected:
     void writeValue(const T& value);
     
 protected:
+    /** \brief First write to the statistics output file.
+     *
+     * Initially set to std::ios::out so that SDDS format header information is written to file
+     * during the first write call to the statistics output file. Variable is then
+     * reset to std::ios::app so that header information is only written once.
+     */
+    std::ios_base::openmode mode_m;
+    
     std::ofstream os_m;
 };
 
