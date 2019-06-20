@@ -668,7 +668,7 @@ void DataSink::writeSDDSHeader(std::ofstream &outputFile,
                                const losses_t &losses) {
 }
 
-
+/*
 void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg, std::string fn) {
 
     size_t temp = lossWrCounter_m ;
@@ -748,6 +748,7 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
     delete[] sePartLossZ;
     delete[] fePartLossZ;
 }
+
 
 void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long &step, BoundaryGeometry &bg, std::string fn) {
 
@@ -938,6 +939,7 @@ void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long
 
 }
 
+
 void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &step, size_t &impact, double &sey_num,
                                      size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
 
@@ -981,11 +983,13 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
     }
 }
 
+
 void DataSink::writeGeomToVtk(BoundaryGeometry &bg, std::string fn) {
     if(Ippl::myNode() == 0) {
         bg.writeGeomToVtk (fn);
     }
 }
+*/
 
 /** \brief Find out which if we write HDF5 or not
  *
