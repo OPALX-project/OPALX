@@ -1009,83 +1009,7 @@ void DataSink::open_m(std::ofstream& os, const std::string& fileName) const {
 void DataSink::writeGridLBalHeader(PartBunchBase<double, 3> *beam,
                                    std::ofstream &outputFile)
 {
-    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
-
-    if ( !amrbeam )
-        throw OpalException("DataSink::writeGridLBalHeader()",
-                            "Can not write grid load balancing for non-AMR runs.");
-
-    OPALTimer::Timer simtimer;
-
-    std::string dateStr(simtimer.date());
-    std::string timeStr(simtimer.time());
-    std::string indent("        ");
-
-    outputFile << "SDDS1" << std::endl;
-    outputFile << "&description\n"
-               << indent << "text=\"Grid load balancing statistics '"
-               << OpalData::getInstance()->getInputFn() << "' "
-               << dateStr << "" << timeStr << "\",\n"
-               << indent << "contents=\"stat parameters\"\n"
-               << "&end\n";
-    outputFile << "&parameter\n"
-               << indent << "name=processors,\n"
-               << indent << "type=long,\n"
-               << indent << "description=\"Number of Cores used\"\n"
-               << "&end\n";
-    outputFile << "&parameter\n"
-               << indent << "name=revision,\n"
-               << indent << "type=string,\n"
-               << indent << "description=\"git revision of opal\"\n"
-               << "&end\n";
-    outputFile << "&parameter\n"
-               << indent << "name=flavor,\n"
-               << indent << "type=string,\n"
-               << indent << "description=\"OPAL flavor that wrote file\"\n"
-               << "&end\n";
-    outputFile << "&column\n"
-               << indent << "name=t,\n"
-               << indent << "type=double,\n"
-               << indent << "units=ns,\n"
-               << indent << "description=\"1 Time\"\n"
-               << "&end\n";
-
-    unsigned int columnStart = 2;
-
-    int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
-
-    for (int lev = 0; lev < nLevel; ++lev) {
-        outputFile << "&column\n"
-                   << indent << "name=level-" << lev << ",\n"
-                   << indent << "type=long,\n"
-                   << indent << "units=1,\n"
-                   << indent << "description=\"" << columnStart
-                   << " Number of boxes at level " << lev << "\"\n"
-                   << "&end\n";
-        ++columnStart;
-    }
-
-
-    for (int p = 0; p < Ippl::getNodes(); ++p) {
-        outputFile << "&column\n"
-                   << indent << "name=processor-" << p << ",\n"
-                   << indent << "type=long,\n"
-                   << indent << "units=1,\n"
-                   << indent << "description=\"" << columnStart
-                   << " Number of grid points per processor " << p << "\"\n"
-                   << "&end\n";
-        ++columnStart;
-    }
-
-    outputFile << "&data\n"
-               << indent << "mode=ascii,\n"
-               << indent << "no_row_counts=1\n"
-               << "&end\n";
-
-    outputFile << Ippl::getNodes() << std::endl;
-    outputFile << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl;
-    outputFile << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                   (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
+    
 }
 
 
@@ -1093,34 +1017,7 @@ void DataSink::writeGridLBalData(PartBunchBase<double, 3> *beam,
                                  std::ofstream &os_gridLBalData,
                                  unsigned int pwi)
 {
-    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
-
-    if ( !amrbeam )
-        throw OpalException("DataSink::writeGridLBalData()",
-                            "Can not write grid load balancing for non-AMR runs.");
-
-    os_gridLBalData << amrbeam->getT() * 1e9 << std::setw(pwi) << "\t";     // 1
-
-    std::map<int, long> gridPtsPerCore;
-
-    int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
-    std::vector<int> gridsPerLevel;
-
-    amrbeam->getAmrObject()->getGridStatistics(gridPtsPerCore, gridsPerLevel);
-
-    os_gridLBalData << "\t";
-    for (int lev = 0; lev < nLevel; ++lev) {
-        os_gridLBalData << gridsPerLevel[lev] << std::setw(pwi) << "\t";
-    }
-
-    int nProcs = Ippl::getNodes();
-    for (int p = 0; p < nProcs; ++p) {
-        os_gridLBalData << gridPtsPerCore[p] << std::setw(pwi);
-
-        if ( p < nProcs - 1 )
-            os_gridLBalData << "\t";
-    }
-    os_gridLBalData << std::endl;
+    
 }
 
 
