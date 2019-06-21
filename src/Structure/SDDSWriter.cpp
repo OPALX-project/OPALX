@@ -2,8 +2,6 @@
 
 #include <queue>
 
-#include <boost/filesystem.hpp>
-
 SDDSWriter(const std::string& fname, const double& spos)
     : DataSink()
     , mode_m(std::ios::out)
@@ -151,4 +149,16 @@ void SDDSWriter::addData(const std::string& mode,
 template<typename T>
 void SDDSWriter::writeValue(const T& value) {
     os_m << value << std::setw(10) << "\t";
+}
+
+
+void SDDSWriter::open_m() {
+    os_m.open(fname_m.c_str(), mode_m);
+    os_m.precision(15);
+    os_m.setf(std::ios::scientific, std::ios::floatfield);
+}
+
+
+void SDDSWriter::close_m() {
+    os_m.close();
 }

@@ -4,10 +4,10 @@
 #include <fstream>
 #include <string>
 
-#include "Structure/DataSink.h"
+#include "Structure/Writer.h"
 
 
-class SDDSWriter : public DataSink {
+class SDDSWriter : public Writer {
 
 public:
     SDDSWriter(const std::string& fname, const double& spos);
@@ -15,9 +15,9 @@ public:
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'
      */
-    void rewindLines(const std::string &fname, size_t numberOfLines) const;
+    void rewindLines(size_t numberOfLines);
     
-    void replaceVersionString(const std::string &fname) const;
+    void replaceVersionString() const;
     
 protected:
     
@@ -36,12 +36,22 @@ protected:
     void addData(const std::string& mode,
                  const short& no_row_counts);
 
+    /** \brief Write SDDS header.
+     *
+     * Writes the appropriate SDDS format header information, The SDDS tools can be used
+     * for plotting data.
+     */
     virtual void writeHeader() = 0;
     
     virtual void writeData(PartBunchBase<double, 3> *beam) = 0;
     
     template<typename T>
     void writeValue(const T& value);
+    
+    
+    void open_m();
+    
+    void close_m();
     
 protected:
     /** \brief First write to the statistics output file.

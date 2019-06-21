@@ -1,8 +1,24 @@
 #include "StatWriter.h"
 
+#include "Utilities/Util.h"
+
 #include <sstream>
 
-void StatWriter::writeHeader() {
+void StatWriter::StatWriter()
+    : StatMarkerTimer_m(IpplTimings::getTimer("Write Stat"))
+{ }
+
+
+
+inline
+unsigned int DataSink::rewindToSpos(double maxSPos) const {
+    if (Ippl::myNode() == 0) {
+        return Util::rewindLinesSDDS(this->fname_m, maxSPos);
+    }
+    return 0;
+}
+
+void StatWriter::writeHeader(const losses_t &losses) {
     OPALTimer::Timer simtimer;
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());

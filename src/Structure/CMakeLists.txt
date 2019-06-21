@@ -14,6 +14,7 @@ set (_SRCS
   MultiBunchDump.cpp
   OpalInputInterpreter.cpp
   IpplInfoWrapper.cpp
+  H5Writer.cpp
   MemoryWriter.cpp
   LBalWriter.cpp
   StatWriter.cpp
@@ -39,6 +40,7 @@ set (HDRS
     OpalWake.h
     SecondaryEmissionPhysics.h
     ParticleMatterInteraction.h
+    H5Writer.h
     MemoryWriter.h
     LBalWriter.h
     StatWriter.h
