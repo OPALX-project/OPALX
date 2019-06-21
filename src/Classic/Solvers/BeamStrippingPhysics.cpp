@@ -516,7 +516,7 @@ bool BeamStrippingPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
 //  ------------------------------------------------------------------------
 void  BeamStrippingPhysics::Material() {
 
-    material_m == "VACUUM";
+    material_m = "VACUUM";
 
     const double pressure = bstp_m->getPressure();                              // mbar
     const double temperature = bstp_m->getTemperature();                // K
