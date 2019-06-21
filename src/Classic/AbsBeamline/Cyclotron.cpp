@@ -1379,11 +1379,8 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
     // read 3D E&B field data file
     vector<string>::const_iterator fm    = RFfilename_m.begin();
     // loop over all field maps and superpose fields
-    vector<double>::const_iterator rffi    = rffrequ_m.begin();
-    vector<double>::const_iterator rfphii  = rfphi_m.begin();
-    vector<double>::const_iterator escali  = escale_m.begin();
-
-    for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali) {
+    for(; fm != RFfilename_m.end(); ++fm) {
+        *gmsg << "* Reading " << *fm << endl;
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);
         if(f == NULL) {
             throw GeneralClassicException("Cyclotron::getFieldFromFile_BandRF",
@@ -1405,9 +1402,6 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
     vector<string>::const_iterator rffcfni = RFFCoeff_fn_m.begin();
     vector<string>::const_iterator rfvcfni = RFVCoeff_fn_m.begin();
     // loop over all field maps and superpose fields
-    vector<double>::const_iterator rffi    = rffrequ_m.begin();
-    vector<double>::const_iterator rfphii  = rfphi_m.begin();
-    vector<double>::const_iterator escali  = escale_m.begin();
     int fcount = 0;
     FILE *rffcf = NULL;
     FILE *rfvcf = NULL;
@@ -1417,7 +1411,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
     *gmsg << "*      READ IN 3D RF Fields and Frequency Coefficients        " << endl;
     *gmsg << "* ------------------------------------------------------------" << endl;
 
-    for(; fm != RFfilename_m.end(); ++fm, ++rffi, ++rfphii, ++escali, ++rffcfni, ++rfvcfni, ++fcount) {
+    for(; fm != RFfilename_m.end(); ++fm, ++rffcfni, ++rfvcfni, ++fcount) {
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);
         if(f == NULL) {
             throw GeneralClassicException("Cyclotron::getFieldFromFile_Synchrocyclotron",
