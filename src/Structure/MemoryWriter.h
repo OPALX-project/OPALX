@@ -3,9 +3,6 @@
 
 #include "SDDSWriter.h"
 
-#include "Algorithms/PartBunchBase.h"
-
-
 class MemoryWriter : public SDDSWriter {
     
 public:

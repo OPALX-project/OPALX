@@ -10,6 +10,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include "Algorithms/PartBunchBase.h"
+
 class SDDSWriter {
 
 public:
@@ -32,6 +34,8 @@ public:
     
     
     SDDSWriter(const std::string& fname, bool restart);
+    
+    virtual void write(PartBunchBase<double, 3>* beam) { };
     
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'

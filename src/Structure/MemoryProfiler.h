@@ -6,8 +6,9 @@
 #include <map>
 #include <vector>
 
+#include "SDDSWriter.h"
 
-class MemoryProfiler {
+class MemoryProfiler : public SDDSWriter {
     /* Pay attention with units. /proc/[pid]/status returns values in
      * KiB (Kibibyte) although the units say kB.
      * KiB has base 2 not base 10
@@ -17,7 +18,7 @@ public:
     typedef std::vector<long double> vm_t;
     typedef std::vector<std::string> units_t;
     
-    MemoryProfiler();
+    MemoryProfiler(const std::string& fname, bool restart);
     
     ~MemoryProfiler();
 
@@ -39,7 +40,7 @@ public:
                     // included (since Linux 2.6.34).
     };
     
-    void write(double time);
+    void write(PartBunchBase<double, 3> *beam);
     
 private:
     void header_m();
