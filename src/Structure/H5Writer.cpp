@@ -2,25 +2,12 @@
 
 H5Writer::H5Writer()
     : H5PartTimer_m(IpplTimings::getTimer("Write H5-File"))
-    , H5call_m(0)
     , h5wrapper_m(NULL)
+    , H5call_m(0)
 { }
 
 
-inline
-void H5Writer::changeH5Wrapper(H5PartWrapper *h5wrapper) {
-    h5wrapper_m = h5wrapper;
-}
-
-void H5Writer::storeCavityInformation() {
-    h5wrapper_m->storeCavityInformation();
-}
-
-
-void H5Writer::writePhaseSpace_m(PartBunchBase<double, 3> *beam, Vector_t FDext[]) {
-
-    if (!doHDF5_m) return;
-
+void H5Writer::writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[]) {
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("B-ref_x", FDext[0](0)),
@@ -35,13 +22,11 @@ void H5Writer::writePhaseSpace_m(PartBunchBase<double, 3> *beam, Vector_t FDext[
 }
 
 
+int H5Writer::writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[], double meanEnergy,
+                              double refPr, double refPt, double refPz,
+                              double refR, double refTheta, double refZ,
+                              double azimuth, double elevation, bool local) {
 
-int H5Write::writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDext[], double meanEnergy,
-                                   double refPr, double refPt, double refPz,
-                                   double refR, double refTheta, double refZ,
-                                   double azimuth, double elevation, bool local) {
-
-    if (!doHDF5_m) return -1;
     if (beam->getTotalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
 
     IpplTimings::startTimer(H5PartTimer_m);
@@ -80,10 +65,11 @@ int H5Write::writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDext
     return H5call_m - 1;
 }
 
-void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
 
-    if (!doHDF5_m) return;
-
+void H5Writer::writePhaseSpace(EnvelopeBunch &beam, Vector_t FDext[],
+                               double sposHead, double sposRef,
+                               double sposTail)
+{
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("sposHead", sposHead),
@@ -108,6 +94,36 @@ void DataSink::writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], do
         std::make_pair("E-tail_z", FDext[5](1)),
         std::make_pair("E-tail_y", FDext[5](2))};
 
-    h5wrapper_m->writeStep(&beam, additionalAttributes);
+//     h5wrapper_m->writeStep(&beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
 }
+
+
+//FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+// void H5Writer::stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail) {
+// 
+//     if (!doHDF5_m) return;
+// 
+//     /// Start timer.
+//     IpplTimings::startTimer(H5PartTimer_m);
+// 
+//     static_cast<H5PartWrapperForPS*>(h5wrapper_m)->stashPhaseSpaceEnvelope(beam,
+//                                                                            FDext,
+//                                                                            sposHead,
+//                                                                            sposRef,
+//                                                                            sposTail);
+//     H5call_m++;
+// 
+//     /// %Stop timer.
+//     IpplTimings::stopTimer(H5PartTimer_m);
+// }
+// 
+// void H5Writer::dumpStashedPhaseSpaceEnvelope() {
+// 
+//     if (!doHDF5_m) return;
+// 
+//     static_cast<H5PartWrapperForPS*>(h5wrapper_m)->dumpStashedPhaseSpaceEnvelope();
+// 
+//     /// %Stop timer.
+//     IpplTimings::stopTimer(H5PartTimer_m);
+// }

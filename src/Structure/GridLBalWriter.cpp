@@ -51,7 +51,7 @@ void GridLBalWriter::writeHeader() {
         this->addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
 
-    this->addData("ascii", 1);
+    this->addInfo("ascii", 1);
 
     os_m << Ippl::getNodes() << std::endl
          << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl

@@ -1,6 +1,17 @@
 #include "MemoryWriter.h"
 
-void MemoryWriter::writeHeader() {
+#include "OPALconfig.h"
+#include "Utilities/Util.h"
+#include "Utilities/Timer.h"
+#include "AbstractObjects/OpalData.h"
+#include "Ippl.h"
+
+MemoryWriter::MemoryWriter(const std::string& fname, bool restart)
+    : SDDSWriter(fname, restart)
+{ }
+
+
+void MemoryWriter::fillHeader_m() {
     OPALTimer::Timer simtimer;
 
     std::string dateStr(simtimer.date());
@@ -8,8 +19,6 @@ void MemoryWriter::writeHeader() {
 
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
 
-    os_m << "SDDS1" << std::endl;
-    
     std::stringstream ss;
     
     ss << "Memory statistics '"
@@ -37,29 +46,24 @@ void MemoryWriter::writeHeader() {
         this->addColumn(tmp1.str(), "double", memory->getUnit(), tmp2.str());
     }
     
-    this->addData("ascii", 1);
-    
-    os_m << Ippl::getNodes() << std::endl
-         << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl
-         << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
+    this->addInfo("ascii", 1);
 }
 
 
-void MemoryWriter::writeData(PartBunchBase<double, 3> *beam) {
-    
-    this->writeValue(beam->getT() * 1e9);   // 1
-
-    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-
-    int nProcs = Ippl::getNodes();
-    double total = 0.0;
-    for (int p = 0; p < nProcs; ++p) {
-        total += memory->getMemoryUsage(p);
-    }
-
-    this->writeValue(total);
-    
-    for (int p = 0; p < nProcs; p++) {
-        this->writeValue(memory->getMemoryUsage(p));
-}
+// void MemoryWriter::writeData(PartBunchBase<double, 3> *beam) {
+//     
+//     this->writeValue(beam->getT() * 1e9);   // 1
+// 
+//     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+// 
+//     int nProcs = Ippl::getNodes();
+//     double total = 0.0;
+//     for (int p = 0; p < nProcs; ++p) {
+//         total += memory->getMemoryUsage(p);
+//     }
+// 
+//     this->writeValue(total);
+//     
+//     for (int p = 0; p < nProcs; p++) {
+//         this->writeValue(memory->getMemoryUsage(p));
+// }

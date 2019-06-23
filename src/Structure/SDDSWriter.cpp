@@ -1,29 +1,29 @@
 #include "SDDSWriter.h"
 
 #include <queue>
+#include "OPALconfig.h"
+#include "Util/SDDSParser.h"
+#include "Ippl.h"
+#include "AbstractObjects/OpalData.h"
+#include "Utilities/Util.h"
 
-SDDSWriter(const std::string& fname, const double& spos)
-    : DataSink()
+SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
+    : fname_m(fname)
     , mode_m(std::ios::out)
-    , os_m(fname.c_str(), std::ios::out)
     , indent_m("        ")
 {
     namespace fs = boost::filesystem;
     
-    unsigned int linesToRewind = 0;
-    
-    if (fs::exists(fname)) {
+    if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        INFOMSG("Appending data to existing data file: " << fname << endl);
-        linesToRewind = rewindSDDStoSPos(spos);
-        replaceVersionString(fname);
+        INFOMSG("Appending data to existing data file: " << fname_m << endl);
     } else {
-        INFOMSG("Creating new file for data: " << fname << endl);
+        INFOMSG("Creating new file for data: " << fname_m << endl);
     }
 }
 
 
-void SDDSWriter::rewindLines(const std::string &fname, size_t numberOfLines) const {
+void SDDSWriter::rewindLines(size_t numberOfLines) {
     if (numberOfLines == 0 || Ippl::myNode() != 0) {
         return;
     }
@@ -32,7 +32,7 @@ void SDDSWriter::rewindLines(const std::string &fname, size_t numberOfLines) con
     std::queue<std::string> allLines;
     std::fstream fs;
 
-    fs.open (fname.c_str(), std::fstream::in);
+    fs.open (fname_m.c_str(), std::fstream::in);
 
     if (!fs.is_open()) return;
 
@@ -42,7 +42,7 @@ void SDDSWriter::rewindLines(const std::string &fname, size_t numberOfLines) con
     fs.close();
 
 
-    fs.open (fname.c_str(), std::fstream::out);
+    fs.open (fname_m.c_str(), std::fstream::out);
 
     if (!fs.is_open()) return;
 
@@ -54,13 +54,13 @@ void SDDSWriter::rewindLines(const std::string &fname, size_t numberOfLines) con
 }
 
 
-void SDDSWriter::replaceVersionString(const std::string &fname) const {
+void SDDSWriter::replaceVersionString() {
 
     if (Ippl::myNode() != 0)
-        return
+        return;
     
     std::string versionFile;
-    SDDS::SDDSParser parser(fname);
+    SDDS::SDDSParser parser(fname_m);
     parser.run();
     parser.getParameterValue("revision", versionFile);
 
@@ -68,7 +68,7 @@ void SDDSWriter::replaceVersionString(const std::string &fname) const {
     std::queue<std::string> allLines;
     std::fstream fs;
 
-    fs.open (fname.c_str(), std::fstream::in);
+    fs.open (fname_m.c_str(), std::fstream::in);
 
     if (!fs.is_open()) return;
 
@@ -78,7 +78,7 @@ void SDDSWriter::replaceVersionString(const std::string &fname) const {
     fs.close();
 
 
-    fs.open (fname.c_str(), std::fstream::out);
+    fs.open (fname_m.c_str(), std::fstream::out);
 
     if (!fs.is_open()) return;
 
@@ -88,7 +88,9 @@ void SDDSWriter::replaceVersionString(const std::string &fname) const {
         if (line != versionFile) {
             fs << line << "\n";
         } else {
-            fs << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n";
+            fs << OPAL_PROJECT_NAME << " "
+               << OPAL_PROJECT_VERSION << " git rev. #"
+               << Util::getGitRevision() << "\n";
         }
 
         allLines.pop();
@@ -98,67 +100,86 @@ void SDDSWriter::replaceVersionString(const std::string &fname) const {
 }
 
 
-void SDDSWriter::addDescription(const std::string& text,
-                                const std::string& content)
-{
-    os_m << "&description\n"
-         << indent_m << "text=\"" << text << "\",\n"
-         << indent_m << "contents=\"" << content << "\"\n"
-         << "&end\n";
-}
-
-
-void SDDSWriter::addParameter(const std::string& name,
-                              const std::string& type,
-                              const std::string& desc)
-{
-    os_m << "&parameter\n"
-         << indent_m << "name=" << name << ",\n"
-         << indent_m << "type=" << type << ",\n"
-         << indent_m << "description=\"" << desc << "\"\n"
-         << "&end\n";
-}
-
-
-void SDDSWriter::addColumn(const std::string& name,
-                           const std::string& type,
-                           const std::string& unit,
-                           const std::string& desc)
-{
-    static short column = 1;
+void SDDSWriter::open() {
+    if ( Ippl::myNode() != 0 || os_m.is_open() )
+        return;
     
-    os_m << "&column\n"
-         << indent_m << "name=" << name << ",\n"
-         << indent_m << "type=" << type << ",\n"
-         << indent_m << "units=" << unit << ",\n"
-         << indent_m << "description=\"" << column++ << " " << desc << "\"\n"
-         << "&end\n";
-}
-
-
-void SDDSWriter::addData(const std::string& mode,
-                         const short& no_row_counts)
-{
-    os_m << "&data\n"
-         << indent_m << "mode=" << mode << ",\n"
-         << indent_m << "no_row_counts=" << no_row_counts << "\n"
-         << "&end\n";
-}
-
-
-template<typename T>
-void SDDSWriter::writeValue(const T& value) {
-    os_m << value << std::setw(10) << "\t";
-}
-
-
-void SDDSWriter::open_m() {
     os_m.open(fname_m.c_str(), mode_m);
     os_m.precision(15);
     os_m.setf(std::ios::scientific, std::ios::floatfield);
 }
 
 
-void SDDSWriter::close_m() {
-    os_m.close();
+void SDDSWriter::close() {
+    if ( Ippl::myNode() == 0 && os_m.is_open() ) {
+        os_m.close();
+    }
+}
+
+
+void SDDSWriter::writeHeader() {
+    if ( Ippl::myNode() != 0 || mode_m == std::ios::app )
+        return;
+
+    this->writeDescription_m();
+    
+    this->writeParameters_m();
+
+    this->writeInfo_m();
+
+    mode_m = std::ios::app;
+}
+
+
+void SDDSWriter::writeDescription_m() {
+    os_m << "SDDS1" << std::endl;
+    os_m << "&description\n"
+         << indent_m << "text=\"" << desc_m.first << "\",\n"
+         << indent_m << "contents=\"" << desc_m.second << "\"\n"
+         << "&end\n";
+}
+
+
+void SDDSWriter::writeParameters_m() {
+    while ( !params_m.empty() ) {
+        param_t param = params_m.front();
+
+        os_m << "&parameter\n"
+             << indent_m << "name=" << std::get<0>(param) << ",\n"
+             << indent_m << "type=" << std::get<1>(param) << ",\n"
+             << indent_m << "description=\"" << std::get<2>(param) << "\"\n"
+             << "&end\n";
+
+        params_m.pop();
+    }
+}
+
+
+void SDDSWriter::writeColumns_m() {
+    short column = 1;
+
+    while ( !cols_m.empty() ) {
+        cols_t col = cols_m.front();
+        os_m << "&column\n"
+             << indent_m << "name=" << std::get<0>(col) << ",\n"
+             << indent_m << "type=" << std::get<1>(col) << ",\n"
+             << indent_m << "units=" << std::get<2>(col) << ",\n"
+             << indent_m << "description=\"" << column++ << " " << std::get<3>(col) << "\"\n"
+             << "&end\n";
+        cols_m.pop();
+    }
+}
+
+
+void SDDSWriter::writeInfo_m() {
+    os_m << "&data\n"
+         << indent_m << "mode=" << info_m.first << ",\n"
+         << indent_m << "no_row_counts=" << info_m.second << "\n"
+         << "&end\n"
+         << Ippl::getNodes()
+         << OPAL_PROJECT_NAME << " "
+         << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n"
+         << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
+                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env"))
+         << std::endl;
 }

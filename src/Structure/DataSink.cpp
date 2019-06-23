@@ -5,7 +5,6 @@
 #include "Structure/DataSink.h"
 
 #include "OPALconfig.h"
-#include "Algorithms/bet/EnvelopeBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -14,7 +13,6 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
-#include "Util/SDDSParser.h"
 
 #ifdef __linux__
     #include "MemoryProfiler.h"
@@ -25,7 +23,16 @@
     #include "Algorithms/AmrPartBunch.h"
 #endif
 
-#include "H5hut.h"
+
+#include "H5Writer.h"
+#include "StatWriter.h"
+#include "LBalWriter.h"
+#include "MemoryWriter.h"
+
+#ifdef ENABLE_AMR
+    #include "GridWriter.h"
+#endif
+
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -36,7 +43,10 @@
 extern Inform *gmsg;
 
 DataSink::DataSink()
-    : lossWrCounter_m(0)
+    : firstWriteH5Surface_m(true) /// Set file write flags to true. These will be set to false after first
+                                  /// write operation.
+    , surfaceLossFileName_m(OpalData::getInstance()->getInputBasename() + std::string(".SurfaceLoss.h5"))
+    , lossWrCounter_m(0)
 {
     this->initWriters_m();
 }
@@ -51,40 +61,325 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
     
     this->initWriters_m(restart);
     
-    H5Writer* h5writer   = dynamic_cast<H5Writer*>(writer_m[Format::H5].get());
-    h5writer->changeH5Wrapper(h5wrapper);
+    h5Writer_m->changeH5Wrapper(h5wrapper);
     
     if ( restart )
         rewindLines_m();
 }
 
-// DataSink::DataSink(H5PartWrapper *h5wrapper):
-//     lossWrCounter_m(0)
-// {
-//     /// Set file write flags to true. These will be set to false after first
-//     /// write operation.
-//     firstWriteH5Surface_m = true;
-//     /// Define file names.
-//     std::string fn = OpalData::getInstance()->getInputBasename();
-//     surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5");
+DataSink::DataSink(H5PartWrapper *h5wrapper)
+    : DataSink(h5wrapper, false)
+{
 //     h5wrapper_m->writeHeader();
 //     h5wrapper_m->close();
-// }
+}
 
 
-template<typename ... Arguments>
-void DataSink::dump(const Format& format, PartBunchBase<double, 3> *beam, Arguments& ... args) const {
-    writer_m[format]->writeData(beam, args ...);
+void DataSink::dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const {
+    if (!Options::enableHDF5) return;
+    
+    h5Writer_m->writePhaseSpace(beam, FDext);
+}
+
+
+int DataSink::dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[], double meanEnergy,
+                     double refPr, double refPt, double refPz,
+                     double refR, double refTheta, double refZ,
+                     double azimuth, double elevation, bool local) const
+{
+    if (!Options::enableHDF5) return -1;
+    
+    return h5Writer_m->writePhaseSpace(beam, FDext, meanEnergy, refPr, refPt, refPz,
+                                       refR, refTheta, refZ, azimuth, elevation, local);
+}
+
+
+void DataSink::dumpH5(EnvelopeBunch &beam, Vector_t FDext[],
+                      double sposHead, double sposRef,
+                      double sposTail) const
+{
+    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+    if (!Options::enableHDF5) return;
+    
+    h5Writer_m->writePhaseSpace(beam, FDext, sposHead, sposRef, sposTail);
+}
+
+
+void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                        const double& azimuth) const
+{
+    this->dumpSDDS(beam, FDext, losses_t(), azimuth);
+}
+
+
+void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                        const losses_t &losses, const double& azimuth) const
+{
+    statWriter_m->write(beam, FDext, losses, azimuth);
+}
+
+
+void DataSink::dumpSDDS(EnvelopeBunch &beam, Vector_t FDext[],
+                        double sposHead, double sposRef, double sposTail) const
+{
+    statWriter_m->write(beam, FDext, sposHead, sposRef, sposTail);
 }
 
 
 void DataSink::storeCavityInformation() {
     if (!Options::enableHDF5) return;
     
-    H5Writer* h5writer   = dynamic_cast<H5Writer*>(writer_m[Format::H5].get());
-    h5writer->storeCavityInformatio();
+    h5Writer_m->storeCavityInformation();
 }
 
+
+void DataSink::changeH5Wrapper(H5PartWrapper *h5wrapper) {
+    if (!Options::enableHDF5) return;
+    
+    h5Writer_m->changeH5Wrapper(h5wrapper);
+}
+
+
+void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg, std::string fn) {
+
+    size_t temp = lossWrCounter_m ;
+
+    std::string ffn = fn + convertToString(temp) + std::string("Z.dat");
+    std::unique_ptr<Inform> ofp(new Inform(NULL, ffn.c_str(), Inform::OVERWRITE, 0));
+    Inform &fid = *ofp;
+    setInform(fid);
+    fid.precision(6);
+
+    std::string ftrn =  fn + std::string("triangle") + convertToString(temp) + std::string(".dat");
+    std::unique_ptr<Inform> oftr(new Inform(NULL, ftrn.c_str(), Inform::OVERWRITE, 0));
+    Inform &fidtr = *oftr;
+    setInform(fidtr);
+    fidtr.precision(6);
+
+    Vector_t Geo_nr = bg.getnr();
+    Vector_t Geo_hr = bg.gethr();
+    Vector_t Geo_mincoords = bg.getmincoords();
+    double t = beam->getT();
+    double t_step = t * 1.0e9;
+    double* prPartLossZ = new double[bg.getnr() (2)];
+    double* sePartLossZ = new double[bg.getnr() (2)];
+    double* fePartLossZ = new double[bg.getnr() (2)];
+    fidtr << "# Time/ns" << std::setw(18) << "Triangle_ID" << std::setw(18)
+          << "Xcoordinates (m)" << std::setw(18)
+          << "Ycoordinates (m)" << std::setw(18)
+          << "Zcoordinates (m)" << std::setw(18)
+          << "Primary part. charge (C)" << std::setw(40)
+          << "Field emit. part. charge (C)" << std::setw(40)
+          << "Secondary emit. part. charge (C)" << std::setw(40) << endl;
+    for(int i = 0; i < Geo_nr(2) ; i++) {
+        prPartLossZ[i] = 0;
+        sePartLossZ[i] = 0;
+        fePartLossZ[i] = 0;
+        for(int j = 0; j < bg.getNumBFaces(); j++) {
+            if(((Geo_mincoords[2] + Geo_hr(2)*i) < bg.TriBarycenters_m[j](2))
+               && (bg.TriBarycenters_m[j](2) < (Geo_hr(2)*i + Geo_hr(2) + Geo_mincoords[2]))) {
+                prPartLossZ[i] += bg.TriPrPartloss_m[j];
+                sePartLossZ[i] += bg.TriSePartloss_m[j];
+                fePartLossZ[i] += bg.TriFEPartloss_m[j];
+            }
+
+        }
+    }
+    for(int j = 0; j < bg.getNumBFaces(); j++) {
+        fidtr << t_step << std::setw(18) << j << std::setw(18)// fixme: maybe gether particle loss data, i.e., do a reduce() for each triangle in each node befor write to file.
+              << bg.TriBarycenters_m[j](0) << std::setw(18)
+              << bg.TriBarycenters_m[j](1) << std::setw(18)
+              << bg.TriBarycenters_m[j](2) <<  std::setw(40)
+              << -bg.TriPrPartloss_m[j] << std::setw(40)
+              << -bg.TriFEPartloss_m[j] <<  std::setw(40)
+              << -bg.TriSePartloss_m[j] << endl;
+    }
+    fid << "# Delta_Z/m" << std::setw(18)
+        << "Zcoordinates (m)" << std::setw(18)
+        << "Primary part. charge (C)" << std::setw(40)
+        << "Field emit. part. charge (C)" << std::setw(40)
+        << "Secondary emit. part. charge (C)" << std::setw(40) << "t" << endl;
+
+
+    for(int i = 0; i < Geo_nr(2) ; i++) {
+        double primaryPLoss = -prPartLossZ[i];
+        double secondaryPLoss = -sePartLossZ[i];
+        double fieldemissionPLoss = -fePartLossZ[i];
+        reduce(primaryPLoss, primaryPLoss, OpAddAssign());
+        reduce(secondaryPLoss, secondaryPLoss, OpAddAssign());
+        reduce(fieldemissionPLoss, fieldemissionPLoss, OpAddAssign());
+        fid << Geo_hr(2) << std::setw(18)
+            << Geo_mincoords[2] + Geo_hr(2)*i << std::setw(18)
+            << primaryPLoss << std::setw(40)
+            << fieldemissionPLoss << std::setw(40)
+            << secondaryPLoss << std::setw(40) << t << endl;
+    }
+    lossWrCounter_m++;
+    delete[] prPartLossZ;
+    delete[] sePartLossZ;
+    delete[] fePartLossZ;
+}
+
+
+void DataSink::writeGeomToVtk(BoundaryGeometry &bg, std::string fn) {
+    if(Ippl::myNode() == 0) {
+        bg.writeGeomToVtk (fn);
+    }
+}
+
+
+void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &step, size_t &impact, double &sey_num,
+                                     size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
+
+    double charge = 0.0;
+    size_t Npart = 0;
+    double Npart_d = 0.0;
+    if(!nEmissionMode) {
+        charge = -1.0 * beam->getCharge();
+        //reduce(charge, charge, OpAddAssign());
+        Npart_d = -1.0 * charge / beam->getChargePerParticle();
+    } else {
+        Npart = beam->getTotalNum();
+    }
+    if(Ippl::myNode() == 0) {
+        std::string ffn = fn + std::string(".dat");
+
+        std::unique_ptr<Inform> ofp(new Inform(NULL, ffn.c_str(), Inform::APPEND, 0));
+        Inform &fid = *ofp;
+        setInform(fid);
+
+        fid.precision(6);
+        fid << std::setiosflags(std::ios::scientific);
+        double t = beam->getT() * 1.0e9;
+        if(!nEmissionMode) {
+
+            if(step == 0) {
+                fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
+                    << "TotalCharge" << std::setw(18) << "PartNum" << " numberOfFieldEmittedParticles " << endl;
+            }
+            fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18) << charge
+                << std::setw(18) << Npart_d << std::setw(18) << numberOfFieldEmittedParticles << endl;
+        } else {
+
+            if(step == 0) {
+                fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
+                    << "ParticleNumber" << " numberOfFieldEmittedParticles " << endl;
+            }
+            fid << t << std::setw(18) << impact << std::setw(18) << sey_num
+                << std::setw(18) << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl;
+        }
+    }
+}
+
+
+#ifdef ENABLE_AMR
+
+bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
+
+    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
+
+    if ( !amrbeam )
+        return false;
+
+    /// Start timer.
+    IpplTimings::startTimer(StatMarkerTimer_m);
+
+    beam->gatherLoadBalanceStatistics();
+
+    amrbeam->gatherLevelStatistics();
+
+    if ( Options::memoryDump ) {
+#ifdef __linux__
+        memprof_m->write(beam->getT() * 1e9);
+#else
+        IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+        memory->sample();
+#endif
+    }
+
+    if (Ippl::myNode() == 0) {
+        open_m(os_lBalData, lBalFileName_m);
+
+#ifndef __linux__
+        if ( Options::memoryDump )
+            open_m(os_memData, memFileName_m);
+#endif
+
+        open_m(os_gridLBalData, gridLBalFileName_m);
+
+        if (mode_m == std::ios::out) {
+            mode_m = std::ios::app;
+
+            writeLBalHeader(beam, os_lBalData);
+
+#ifndef __linux__
+            if ( Options::memoryDump )
+                writeMemoryHeader(os_memData);
+#endif
+
+            writeGridLBalHeader(beam, os_gridLBalData);
+        }
+
+        writeLBalData(beam, os_lBalData, pwi);
+
+        os_lBalData.close();
+
+#ifndef __linux__
+        if ( Options::memoryDump ) {
+            writeMemoryData(beam, os_memData, pwi);
+            os_memData.close();
+        }
+#endif
+
+        writeGridLBalData(beam, os_gridLBalData, pwi);
+        os_gridLBalData.close();
+    }
+
+    /// %Stop timer.
+    IpplTimings::stopTimer(StatMarkerTimer_m);
+    
+    return true;
+}
+
+
+void DataSink::noAmrDump(PartBunchBase<double, 3> *beam) {
+#ifdef __linux__
+    if ( Options::memoryDump ) {
+        memprof_m->write(beam->getT() * 1e9);
+    }
+    if ( Ippl::myNode() != 0 ) {
+        return;
+    }
+
+    std::ofstream os_memData;
+    if ( Options::memoryDump ) {
+        open_m(os_memData, memFileName_m);
+    }
+
+    std::ofstream os_lBalData;
+    open_m(os_lBalData, lBalFileName_m);
+
+    if (mode_m == std::ios::out) {
+        mode_m = std::ios::app;
+
+        writeLBalHeader(os_lBalData);
+
+        if ( Options::memoryDump )
+            writeMemoryHeader(os_memData);
+    }
+
+    unsigned int pwi = 10;
+
+    if ( Options::memoryDump ) {
+        writeMemoryData(beam, os_memData, pwi);
+        os_memData.close();
+    }
+
+    writeLBalData(beam, os_lBalData, pwi);
+    os_lBalData.close();
+#endif
+}
+#endif
 
 void DataSink::rewindLines_m() {
     
@@ -93,49 +388,39 @@ void DataSink::rewindLines_m() {
     
     unsigned int linesToRewind = 0;
     
-    StatWriter* statwriter = dynamic_cast<StatWriter*>(writer_m[Format::STAT].get());
-    H5Writer* h5writer   = dynamic_cast<H5Writer*>(writer_m[Format::H5].get());
-    
     // use stat file to get position
-    if ( statwriter->exists() ) {
-        double spos = h5writer->getLastPosition();
-        linesToRewind = statwriter->rewindToSpos(spos);
-        statwriter->replaceVersionString();
+    if ( statWriter_m->exists() ) {
+        double spos = h5Writer_m->getLastPosition();
+        linesToRewind = statWriter_m->rewindToSpos(spos);
+        statWriter_m->replaceVersionString();
         
-        h5wrapper_m->close();
+//         h5wrapper_m->close();
     }
     
     // rewind all others
     if ( linesToRewind > 0 ) {
-        writer_m[Format::LBAL]->rewindLines(linesToRewind);
-        writer_m[Format::MEMORY]->rewindLines(linesToRewind);
-#ifdef ENABLE_AMR
-        writer_m[Format::GRID]->rewindLines(linesToRewind);
-#endif
+        for (size_t i = 0; i < sddsWriter_m.size(); ++i)
+            sddsWriter_m[i]->rewindLines(linesToRewind);
     }
 }
 
 
-void initWriters_m(bool restart) {
+void DataSink::initWriters_m(bool restart) {
     std::string fn = OpalData::getInstance()->getInputBasename();
-    writer_m.resize(Format::SIZE);
-    writer_m[Format::STAT]      = writer_t(new StatWriter(fn + std::string(".stat"), restart));
-    writer_m[Format::LBAL]      = writer_t(new LBalWriter(fn + std::string(".lbal"), restart));
-    #ifdef __linux__
-    writer_m[Format::MEMORY]    = writer_t(new MemoryProfiler());
-#else
-    writer_m[Format::MEMORY]    = writer_t(new MemoryWriter(fn + std::string(".mem"), restart));
-#endif
-
+    
+    statWriter_m      = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
+    
+    sddsWriter_m.resize(2);
+    sddsWriter_m[0] = sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart));
+    sddsWriter_m[1] = sddsWriter_t(new MemoryWriter(fn + std::string(".mem"), restart));
+    
 #ifdef ENABLE_AMR
-    writer_m[Format::GRID]      = writer_t(new GridLBalWriter(fn + std::string(".grid"), restart));
+    sddsWriter_m.resize(3);
+    sddsWriter_m[2] = sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart));
 #endif
-    writer_m[Format::H5]        = writer_t(new H5Writer());
     
     if ( Options::enableHDF5 ) {
-        
-    } else {
-        writer_m.pop_back();
+        h5Writer_m = h5Writer_t(new H5Writer());
     }
 }
 
