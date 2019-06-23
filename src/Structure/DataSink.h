@@ -25,7 +25,8 @@
 
 #include "Algorithms/PBunchDefs.h"
 
-#include "Writer.h"
+#include "StatWriter.h"
+#include "H5Writer.h"
 
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -34,56 +35,58 @@ class H5PartWrapper;
 
 class DataSink {
 public:
+    typedef StatWriter::losses_t        losses_t;
+    typedef std::unique_ptr<StatWriter> statWriter_t;
+    typedef std::unique_ptr<SDDSWriter> sddsWriter_t;
+    typedef std::unique_ptr<H5Writer>   h5Writer_t;
     
-    enum Format {
-        STAT = 0,
-        LBAL,
-        MEMORY,
-#ifdef ENABLE_AMR
-        GRID,
-#endif
-        H5,
-        SIZE
-    };
-
-    typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
     
-    typedef std::unique_ptr<Writer> writer_t;
-
     /** \brief Default constructor.
      *
      * The default constructor is called at the start of a new calculation (as
      * opposed to a calculation restart).
      */
     DataSink();
-    DataSink(H5PartWrapper *h5wrapper, bool restart = false);
+    DataSink(H5PartWrapper *h5wrapper, bool restart);
+    DataSink(H5PartWrapper *h5wrapper);
 
-    template<typename ... Arguments>
-    void dump(const Format& format, PartBunchBase<double, 3> *beam, Arguments& ... args) const;
+    void dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const;
+    
+    int dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[], double meanEnergy,
+               double refPr, double refPt, double refPz,
+               double refR, double refTheta, double refZ,
+               double azimuth, double elevation, bool local) const;
+    
+    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+    void dumpH5(EnvelopeBunch &beam, Vector_t FDext[],
+                double sposHead, double sposRef,
+                double sposTail) const;
+    
+    
+    void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                  const double& azimuth = -1) const;
+    
+    void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                  const losses_t &losses = losses_t(), const double& azimuth = -1) const;
+    
+    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+    void dumpSDDS(EnvelopeBunch &beam, Vector_t FDext[],
+                  double sposHead, double sposRef, double sposTail) const;
 
     /** \brief Write cavity information from  H5 file
-     *
-     *
-     *
      */
     void storeCavityInformation();
     
-private:
-    void rewindLines_m();
-    
-    void initWriters_m(bool restart = false);
+    void changeH5Wrapper(H5PartWrapper *h5wrapper);
     
     
-
-public:
     /**
      * Write particle loss data to an ASCII fille for histogram
      * @param fn specifies the name of ASCII file
      * @param beam
      */
-
     void writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg, std::string fn);
-
+    
     /**
      * Write geometry points and surface triangles to vtk file
      *
@@ -92,32 +95,40 @@ public:
      */
     void writeGeomToVtk(BoundaryGeometry &bg, std::string fn);
     //void writeGeoContourToVtk(BoundaryGeometry &bg, std::string fn);
-
+    
+    
     /**
      * Write impact number and outgoing secondaries in each time step
      *
      * @param fn specifies the name of vtk file contains the geometry
      *
      */
-    void writeImpactStatistics(PartBunchBase<double, 3> *beam, long long int &step, size_t &impact, double &sey_num,
-                               size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn);
-
-    void writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long int &step, BoundaryGeometry &bg, std::string fn);
-
+    void writeImpactStatistics(PartBunchBase<double, 3> *beam,
+                               long long int &step,
+                               size_t &impact,
+                               double &sey_num,
+                               size_t numberOfFieldEmittedParticles,
+                               bool nEmissionMode,
+                               std::string fn);
+    
 #ifdef ENABLE_AMR
     bool writeAmrStatistics(PartBunchBase<double, 3> *beam);
     
     void noAmrDump(PartBunchBase<double, 3> *beam);
 #endif
 
-
 private:
-
     DataSink(const DataSink &) { }
     DataSink &operator = (const DataSink &) { return *this; }
     
+    void rewindLines_m();
     
-    std::vector<writer_t> writer_m;
+    void initWriters_m(bool restart = false);
+    
+    
+    h5Writer_t      h5Writer_m;
+    statWriter_t    statWriter_m;
+    std::vector<sddsWriter_t> sddsWriter_m;
     
     static std::string convertToString(int number);
 
@@ -130,11 +141,6 @@ private:
 
     /// Name of output file for surface loss data.
     std::string surfaceLossFileName_m;
-
-    /// H5 file for surface loss data.
-    h5_file_t H5fileS_m;
-
-    
 
     /// needed to create index for vtk file
     unsigned int lossWrCounter_m;

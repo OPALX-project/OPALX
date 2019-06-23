@@ -1,20 +1,22 @@
 #ifndef OPAL_H5_WRITER_H
 #define OPAL_H5_WRITER_H
 
+#include "Structure/H5PartWrapper.h"
+#include "Algorithms/PartBunchBase.h"
 #include "H5hut.h"
 
-class H5Writer : public Writer {
+class H5Writer {
     
 public:
+    
+    H5Writer();
+    
     void changeH5Wrapper(H5PartWrapper *h5wrapper);
     
     
     void storeCavityInformation();
     
-private:
-    void writePhaseSpace_m(PartBunchBase<double, 3> *beam);
-    
-    
+    int getLastPosition();
     
     /** \brief Dumps Phase Space to H5 file.
      *
@@ -44,12 +46,14 @@ private:
      *  \param E average energy (MeB)
      *  \return Returns the number of the time step just written.
      */
-    int writePhaseSpace_cycl(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E,
-                             double refPr, double refPt, double refPz,
-                             double refR, double refTheta, double refZ,
-                             double azimuth, double elevation, bool local);
+    int writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E,
+                        double refPr, double refPt, double refPz,
+                        double refR, double refTheta, double refZ,
+                        double azimuth, double elevation, bool local);
 
-    /** \brief Dumps Phase Space for Envelope trakcer to H5 file.
+    /**
+     * FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+     * \brief Dumps Phase Space for Envelope trakcer to H5 file.
      *
      * \param beam The beam.
      * \param FDext The external E and B field for the head, reference and tail particles. The vector array
@@ -64,9 +68,9 @@ private:
      *  \param sposRef Longitudinal position of the reference particle.
      *  \param sposTail Longitudinal position of the tail particles.
      */
-    void writePhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
-    void stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
-    void dumpStashedPhaseSpaceEnvelope();
+    void writePhaseSpace(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
+//     void stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
+//     void dumpStashedPhaseSpaceEnvelope();
     
 private:
     /// Timer to track particle data/H5 file write time.
@@ -77,5 +81,23 @@ private:
     /// Current record, or time step, of H5 file.
     int H5call_m;
 };
+
+
+inline
+void H5Writer::changeH5Wrapper(H5PartWrapper *h5wrapper) {
+    h5wrapper_m = h5wrapper;
+}
+
+
+inline
+void H5Writer::storeCavityInformation() {
+    h5wrapper_m->storeCavityInformation();
+}
+
+
+inline
+int H5Writer::getLastPosition() {
+    return h5wrapper_m->getLastPosition();
+}
 
 #endif

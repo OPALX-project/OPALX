@@ -1,29 +1,24 @@
 #include "StatWriter.h"
 
+#include "OPALconfig.h"
 #include "Utilities/Util.h"
+#include "Utilities/Timer.h"
 
 #include <sstream>
 
-void StatWriter::StatWriter()
-    : StatMarkerTimer_m(IpplTimings::getTimer("Write Stat"))
+StatWriter::StatWriter(const std::string& fname, bool restart)
+    : SDDSWriter(fname, restart)
+    , StatMarkerTimer_m(IpplTimings::getTimer("Write Stat"))
 { }
 
 
+void StatWriter::fillHeader_m(const losses_t &losses) {
+    if ( mode_m == std::ios::app )
+        return;
 
-inline
-unsigned int DataSink::rewindToSpos(double maxSPos) const {
-    if (Ippl::myNode() == 0) {
-        return Util::rewindLinesSDDS(this->fname_m, maxSPos);
-    }
-    return 0;
-}
-
-void StatWriter::writeHeader(const losses_t &losses) {
     OPALTimer::Timer simtimer;
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
-    
-    os_m << "SDDS1" << std::endl;
     
     std::stringstream ss;
     ss << "Statistics data '"
@@ -50,9 +45,9 @@ void StatWriter::writeHeader(const losses_t &losses) {
     
     this->addColumn("rms_x", "double", "m", "RMS Beamsize in x");
     
-    this->addColumn("rms_y", "double", "m", "RMS Beamsize in y")
+    this->addColumn("rms_y", "double", "m", "RMS Beamsize in y");
 
-    this->addColumn("rms_s", "double", "m", "RMS Beamsize in s"
+    this->addColumn("rms_s", "double", "m", "RMS Beamsize in s");
 
     this->addColumn("rms_px", "double", "1", "RMS Normalized Momenta in x");
 
@@ -102,23 +97,23 @@ void StatWriter::writeHeader(const losses_t &losses) {
 
     this->addColumn("Dy", "double", "m", "Dispersion in y");
 
-    this->addColumn("DDy" "double", "1", "Derivative of dispersion in y");
+    this->addColumn("DDy", "double", "1", "Derivative of dispersion in y");
 
-    this->addColumn("Bx_ref" "double", "T", "Bx-Field component of ref particle");
+    this->addColumn("Bx_ref", "double", "T", "Bx-Field component of ref particle");
 
-    this->addColumn("By_ref" "double", "T", "By-Field component of ref particle");
+    this->addColumn("By_ref", "double", "T", "By-Field component of ref particle");
 
-    this->addColumn("Bz_ref" "double", "T", "Bz-Field component of ref particle");
+    this->addColumn("Bz_ref", "double", "T", "Bz-Field component of ref particle");
 
-    this->addColumn("Ex_ref" "double", "MV/m", "Ex-Field component of ref particle");
+    this->addColumn("Ex_ref", "double", "MV/m", "Ex-Field component of ref particle");
 
-    this->addColumn("Ey_ref" "double", "MV/m", "Ey-Field component of ref particle");
+    this->addColumn("Ey_ref", "double", "MV/m", "Ey-Field component of ref particle");
 
-    this->addColumn("Ez_ref" "double", "MV/m", "Ez-Field component of ref particle");
+    this->addColumn("Ez_ref", "double", "MV/m", "Ez-Field component of ref particle");
 
-    this->addColumn("dE" "double", "MeV", "energy spread of the beam");
+    this->addColumn("dE", "double", "MeV", "energy spread of the beam");
 
-    this->addColumn("dt" "double", "ns", "time step size");
+    this->addColumn("dt", "double", "ns", "time step size");
 
     this->addColumn("partsOutside", "double",  "1", "outside n*sigma of the beam");
 
@@ -156,24 +151,21 @@ void StatWriter::writeHeader(const losses_t &losses) {
         this->addColumn(losses[i].first, "long", "1",
                         "Number of lost particles in element");
     }
-
-    this->addData("ascii", "1");
     
-    os_m << Ippl::getNodes()
-         << OPAL_PROJECT_NAME << " "
-         << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n"
-         << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env"))
-         << std::endl;
+    this->addInfo("ascii", 1);
 }
 
 
-void StatWriter::writeData(PartBunchBase<double, 3> *beam) {
+void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                       const losses_t &losses, const double& azimuth)
+{
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
 
     /// Calculate beam statistics.
     beam->calcBeamParameters();
+    
+    double Ekin = beam->get_meanKineticEnergy();
 
     size_t npOutside = 0;
     if (Options::beamHaloBoundary > 0)
@@ -194,13 +186,12 @@ void StatWriter::writeData(PartBunchBase<double, 3> *beam) {
         IpplTimings::stopTimer(StatMarkerTimer_m);
         return;
     }
+    
+    fillHeader_m(losses);
 
-    open_m(os_statData, statFileName_m);
+    this->open();
         
-    if (mode_m == std::ios::out) {
-        mode_m = std::ios::app;
-        writeSDDSHeader(os_statData, losses);
-    }
+    this->writeHeader();
 
     this->writeValue(beam->getT() * 1e9);   // 1
     this->writeValue(pathLength);           // 2
@@ -281,8 +272,105 @@ void StatWriter::writeData(PartBunchBase<double, 3> *beam) {
         this->writeValue(losses[i].second);
     }
     
-    os_m << std::endl;
-    os_m.close();
+    
+    this->newline();
+    
+    this->close();
+
+    /// %Stop timer.
+    IpplTimings::stopTimer(StatMarkerTimer_m);
+}
+
+
+void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
+                       double sposHead, double sposRef, double sposTail)
+{
+    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+    
+    /// Function steps:
+    /// Start timer.
+    IpplTimings::startTimer(StatMarkerTimer_m);
+
+    /// Calculate beam statistics and gather load balance statistics.
+    beam.calcBeamParameters();
+    beam.gatherLoadBalanceStatistics();
+
+    double en = beam.get_meanKineticEnergy() * 1e-6;
+    double Q  = beam.getTotalNum() * beam.getChargePerParticle();
+    
+    
+    if (Ippl::myNode() != 0) {
+        IpplTimings::stopTimer(StatMarkerTimer_m);
+        return;
+    }
+
+    fillHeader_m();
+
+    this->open();
+        
+    this->writeHeader();
+    
+    this->writeValue(beam.getT() * 1e9);   // 1
+    this->writeValue(sposRef);             // 2
+    this->writeValue(beam.getTotalNum());  // 3
+    this->writeValue(Q);                   // 4
+    this->writeValue(en);                  // 5
+    
+    this->writeValue(beam.get_rrms()(0));  // 6
+    this->writeValue(beam.get_rrms()(1));  // 7
+    this->writeValue(beam.get_rrms()(2));  // 8
+
+    this->writeValue(beam.get_prms()(0));  // 9
+    this->writeValue(beam.get_prms()(1));  // 10
+    this->writeValue(beam.get_prms()(2));  // 11
+
+    this->writeValue(beam.get_norm_emit()(0)); // 12
+    this->writeValue(beam.get_norm_emit()(1)); // 13
+    this->writeValue(beam.get_norm_emit()(2)); // 14
+
+    this->writeValue(beam.get_rmean()(0) );    // 15
+    this->writeValue(beam.get_rmean()(1) );    // 16
+    this->writeValue(beam.get_rmean()(2) );    // 17
+
+    this->writeValue(0); // 18
+    this->writeValue(0); // 19
+    this->writeValue(0); // 20
+
+    this->writeValue(0); // 21
+    this->writeValue(0); // 22
+    this->writeValue(0); // 23
+
+    this->writeValue(beam.get_maxExtent()(0)); // 24
+    this->writeValue(beam.get_maxExtent()(1)); // 25
+    this->writeValue(beam.get_maxExtent()(2)); // 26
+
+    // Write out Courant Snyder parameters.
+    this->writeValue(0);     // 27
+    this->writeValue(0);     // 28
+    this->writeValue(0);     // 29
+
+    // Write out dispersion.
+    this->writeValue(beam.get_Dx());      // 30
+    this->writeValue(beam.get_DDx());     // 31
+    this->writeValue(beam.get_Dy());      // 32
+    this->writeValue(beam.get_DDy());     // 33
+
+    // Write head/reference particle/tail field information.
+    this->writeValue(FDext[0](0));         // 34 B-ref x
+    this->writeValue(FDext[0](1));         // 35 B-ref y
+    this->writeValue(FDext[0](2));         // 36 B-ref z
+
+    this->writeValue(FDext[1](0));         // 37 E-ref x
+    this->writeValue(FDext[1](1));         // 38 E-ref y
+    this->writeValue(FDext[1](2));         // 39 E-ref z
+
+    this->writeValue(beam.get_dEdt());  // 40 dE energy spread
+    this->writeValue(0);                // 41 dt time step size
+    this->writeValue(0);                // 42 number of particles outside n*sigma
+
+    this->newline();
+    
+    this->close();
 
     /// %Stop timer.
     IpplTimings::stopTimer(StatMarkerTimer_m);
