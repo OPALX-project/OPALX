@@ -9,6 +9,7 @@ LBalWriter::LBalWriter(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
 { }
 
+
 void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
     if ( mode_m == std::ios::app )
         return;
@@ -63,7 +64,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
 }
 
 
-void LBalWriter::writeData(PartBunchBase<double, 3> *beam) {
+void LBalWriter::write(PartBunchBase<double, 3> *beam) {
     
     beam->gatherLoadBalanceStatistics();
 

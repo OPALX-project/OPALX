@@ -3,7 +3,6 @@
 
 #include "SDDSWriter.h"
 
-#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/bet/EnvelopeBunch.h"
 
 class StatWriter : public SDDSWriter {

@@ -24,8 +24,7 @@
 #endif
 
 
-#include "H5Writer.h"
-#include "StatWriter.h"
+
 #include "LBalWriter.h"
 #include "MemoryWriter.h"
 
@@ -116,6 +115,9 @@ void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                         const losses_t &losses, const double& azimuth) const
 {
     statWriter_m->write(beam, FDext, losses, azimuth);
+
+    for (size_t i = 0; i < sddsWriter_m.size(); ++i)
+        sddsWriter_m[i]->write(beam);
 }
 
 
@@ -283,58 +285,12 @@ bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
 
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
-
-    beam->gatherLoadBalanceStatistics();
-
-    amrbeam->gatherLevelStatistics();
-
-    if ( Options::memoryDump ) {
-#ifdef __linux__
-        memprof_m->write(beam->getT() * 1e9);
-#else
-        IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-        memory->sample();
-#endif
-    }
-
-    if (Ippl::myNode() == 0) {
-        open_m(os_lBalData, lBalFileName_m);
-
-#ifndef __linux__
-        if ( Options::memoryDump )
-            open_m(os_memData, memFileName_m);
-#endif
-
-        open_m(os_gridLBalData, gridLBalFileName_m);
-
-        if (mode_m == std::ios::out) {
-            mode_m = std::ios::app;
-
-            writeLBalHeader(beam, os_lBalData);
-
-#ifndef __linux__
-            if ( Options::memoryDump )
-                writeMemoryHeader(os_memData);
-#endif
-
-            writeGridLBalHeader(beam, os_gridLBalData);
-        }
-
-        writeLBalData(beam, os_lBalData, pwi);
-
-        os_lBalData.close();
-
-#ifndef __linux__
-        if ( Options::memoryDump ) {
-            writeMemoryData(beam, os_memData, pwi);
-            os_memData.close();
-        }
-#endif
-
-        writeGridLBalData(beam, os_gridLBalData, pwi);
-        os_gridLBalData.close();
-    }
-
+    
+//         memprof_m->write(beam->getT() * 1e9);
+    for (size_t i = 0; i < sddsWriter_m.size(); ++i)
+        sddsWriter_m[i]->write(beam);
+    
+    
     /// %Stop timer.
     IpplTimings::stopTimer(StatMarkerTimer_m);
     
@@ -343,43 +299,15 @@ bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
 
 
 void DataSink::noAmrDump(PartBunchBase<double, 3> *beam) {
-#ifdef __linux__
+    // lbal
+    sddsWriter_m[0]->write(beam);
+    
     if ( Options::memoryDump ) {
-        memprof_m->write(beam->getT() * 1e9);
+        sddsWriter_m[2]->write(beam);
     }
-    if ( Ippl::myNode() != 0 ) {
-        return;
-    }
-
-    std::ofstream os_memData;
-    if ( Options::memoryDump ) {
-        open_m(os_memData, memFileName_m);
-    }
-
-    std::ofstream os_lBalData;
-    open_m(os_lBalData, lBalFileName_m);
-
-    if (mode_m == std::ios::out) {
-        mode_m = std::ios::app;
-
-        writeLBalHeader(os_lBalData);
-
-        if ( Options::memoryDump )
-            writeMemoryHeader(os_memData);
-    }
-
-    unsigned int pwi = 10;
-
-    if ( Options::memoryDump ) {
-        writeMemoryData(beam, os_memData, pwi);
-        os_memData.close();
-    }
-
-    writeLBalData(beam, os_lBalData, pwi);
-    os_lBalData.close();
-#endif
 }
 #endif
+
 
 void DataSink::rewindLines_m() {
     
@@ -410,14 +338,27 @@ void DataSink::initWriters_m(bool restart) {
     
     statWriter_m      = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
     
-    sddsWriter_m.resize(2);
-    sddsWriter_m[0] = sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart));
-    sddsWriter_m[1] = sddsWriter_t(new MemoryWriter(fn + std::string(".mem"), restart));
+    sddsWriter_m.push_back(
+        sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart))
+    );
     
 #ifdef ENABLE_AMR
-    sddsWriter_m.resize(3);
-    sddsWriter_m[2] = sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart));
+    sddsWriter_m.push_back(
+        sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart))
+    );
 #endif
+
+    if ( Options::memoryDump ) {
+#ifdef __linux__
+        sddsWriter_m.push_back(
+            sddsWriter_t(new MemoryProfiler(fn + std::string(".mem"), restart))
+        );
+#else
+        sddsWriter_m.push_back(
+            sddsWriter_t(new MemoryWriter(fn + std::string(".mem"), restart))
+        );
+#endif
+    }
     
     if ( Options::enableHDF5 ) {
         h5Writer_m = h5Writer_t(new H5Writer());
