@@ -64,13 +64,15 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
     
     if ( restart )
         rewindLines_m();
+    
+    h5Writer_m->close();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper)
     : DataSink(h5wrapper, false)
 {
-//     h5wrapper_m->writeHeader();
-//     h5wrapper_m->close();
+    h5Writer_m->writeHeader();
+    h5Writer_m->close();
 }
 
 
