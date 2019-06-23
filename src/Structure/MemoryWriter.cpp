@@ -12,6 +12,9 @@ MemoryWriter::MemoryWriter(const std::string& fname, bool restart)
 
 
 void MemoryWriter::fillHeader_m() {
+    if ( mode_m == std::ios::app )
+        return;
+    
     OPALTimer::Timer simtimer;
 
     std::string dateStr(simtimer.date());
@@ -35,6 +38,8 @@ void MemoryWriter::fillHeader_m() {
     
     this->addColumn("t", "double", "ns", "Time");
     
+    this->addColumn("s", "double", "m", "Path length");
+    
     this->addColumn("memory", "double", memory->getUnit(), "Total Memory");
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
@@ -50,20 +55,42 @@ void MemoryWriter::fillHeader_m() {
 }
 
 
-// void MemoryWriter::writeData(PartBunchBase<double, 3> *beam) {
-//     
-//     this->writeValue(beam->getT() * 1e9);   // 1
-// 
-//     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-// 
-//     int nProcs = Ippl::getNodes();
-//     double total = 0.0;
-//     for (int p = 0; p < nProcs; ++p) {
-//         total += memory->getMemoryUsage(p);
-//     }
-// 
-//     this->writeValue(total);
-//     
-//     for (int p = 0; p < nProcs; p++) {
-//         this->writeValue(memory->getMemoryUsage(p));
-// }
+void MemoryWriter::write(PartBunchBase<double, 3> *beam)
+{
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
+    memory->sample();
+    
+    if (Ippl::myNode() != 0) {
+        return;
+    }
+    
+    double  pathLength = 0.0;
+    if (OpalData::getInstance()->isInOPALCyclMode())
+        pathLength = beam->getLPath();
+    else
+        pathLength = beam->get_sPos();
+
+    fillHeader_m();
+
+    this->open();
+        
+    this->writeHeader();
+
+    this->writeValue(beam->getT() * 1e9);   // 1
+    this->writeValue(pathLength);           // 2
+    
+    int nProcs = Ippl::getNodes();
+    double total = 0.0;
+    for (int p = 0; p < nProcs; ++p) {
+        total += memory->getMemoryUsage(p);
+    }
+
+    this->writeValue(total);
+    
+    for (int p = 0; p < nProcs; p++) {
+        this->writeValue(memory->getMemoryUsage(p));
+    
+    this->newline();
+    
+    this->close();
+}
