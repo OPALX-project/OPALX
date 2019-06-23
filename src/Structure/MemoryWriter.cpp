@@ -89,8 +89,9 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
     
     for (int p = 0; p < nProcs; p++) {
         this->writeValue(memory->getMemoryUsage(p));
-    
+    }
+
     this->newline();
-    
+
     this->close();
 }
