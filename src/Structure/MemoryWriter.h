@@ -3,10 +3,15 @@
 
 #include "SDDSWriter.h"
 
+#include "Algorithms/PartBunchBase.h"
+
+
 class MemoryWriter : public SDDSWriter {
     
 public:
     MemoryWriter(const std::string& fname, bool restart);
+    
+    void write(PartBunchBase<double, 3> *beam);
     
 private:
     void fillHeader_m();
