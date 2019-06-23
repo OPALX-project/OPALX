@@ -288,10 +288,8 @@ bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
     
-//         memprof_m->write(beam->getT() * 1e9);
     for (size_t i = 0; i < sddsWriter_m.size(); ++i)
         sddsWriter_m[i]->write(beam);
-    
     
     /// %Stop timer.
     IpplTimings::stopTimer(StatMarkerTimer_m);
@@ -324,7 +322,7 @@ void DataSink::rewindLines_m() {
         linesToRewind = statWriter_m->rewindToSpos(spos);
         statWriter_m->replaceVersionString();
         
-//         h5wrapper_m->close();
+        h5Writer_m->close();
     }
     
     // rewind all others
