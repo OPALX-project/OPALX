@@ -21,8 +21,6 @@
 #ifndef _OPAL_DATA_SINK_H
 #define _OPAL_DATA_SINK_H
 
-#include <fstream>
-
 #include "Algorithms/PBunchDefs.h"
 
 #include "StatWriter.h"
