@@ -1,13 +1,23 @@
 #include "LBalWriter.h"
 
-void LBalWriter::writeHeader(PartBunchBase<double, 3> *beam) {
+#include "OPALconfig.h"
+#include "Utilities/Util.h"
+#include "Utilities/Timer.h"
+
+
+LBalWriter::LBalWriter(const std::string& fname, bool restart)
+    : SDDSWriter(fname, restart)
+{ }
+
+void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
+    if ( mode_m == std::ios::app )
+        return;
+
     OPALTimer::Timer simtimer;
 
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
 
-    os_m << "SDDS1" << std::endl;
-    
     std::stringstream ss;
     ss << "Processor statistics '"
        << OpalData::getInstance()->getInputFn() << "' "
@@ -49,14 +59,7 @@ void LBalWriter::writeHeader(PartBunchBase<double, 3> *beam) {
     }
 #endif
 
-    this->addData("ascii", "1");
-
-    os_m << Ippl::getNodes()
-         << OPAL_PROJECT_NAME << " "
-         << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n"
-         << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env"))
-         << std::endl;
+    this->addInfo("ascii", 1);
 }
 
 
@@ -88,5 +91,5 @@ void LBalWriter::writeData(PartBunchBase<double, 3> *beam) {
         }
     }
 #endif
-    os_m << std::endl;
+    this->newline();
 }
