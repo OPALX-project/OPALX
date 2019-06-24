@@ -4,25 +4,52 @@
 #include <fstream>
 #include <string>
 #include <queue>
+#include <map>
+#include <vector>
 #include <tuple>
 #include <utility>
+#include <ostream>
 #include <iomanip>
 
 #include <boost/filesystem.hpp>
+#include <boost/variant.hpp>
 
 #include "Algorithms/PartBunchBase.h"
+
+class SDDSDataRow {
+public:
+    SDDSDataRow(const std::vector<std::string>& cN):
+        columnNames_m(cN)
+    { }
+
+    template<typename T>
+    void addColumn(const std::string& name,
+                   const T& value);
+
+    std::ostream& write(std::ostream &os) const;
+
+private:
+    typedef boost::variant<float,
+                           double,
+                           long unsigned int,
+                           char,
+                           std::string> variant_t;
+
+    std::vector<std::string> columnNames_m;
+    std::map<std::string, variant_t> columnValues_m;
+};
 
 class SDDSWriter {
 
 public:
     // order: text, content
     typedef std::pair<std::string, std::string> desc_t;
-    
+
     // order: name, type, description
     typedef std::tuple<std::string,
                        std::string,
                        std::string> param_t;
-    
+
     // order: mode, no row counts
     typedef std::pair<std::string, size_t> data_t;
 
@@ -31,58 +58,65 @@ public:
                        std::string,
                        std::string,
                        std::string> cols_t;
-    
-    
+
+
     SDDSWriter(const std::string& fname, bool restart);
-    
+
     virtual void write(PartBunchBase<double, 3>* beam) { };
-    
+
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'
      */
     void rewindLines(size_t numberOfLines);
-    
+
     void replaceVersionString();
-    
-    
+
+
     bool exists();
-    
+
 protected:
-    
+
     void addDescription(const std::string& text,
                         const std::string& content);
-    
+
+    template<typename T>
     void addParameter(const std::string& name,
                       const std::string& type,
-                      const std::string& desc);
-    
+                      const std::string& desc,
+                      const T& value);
+
+    void addDefaultParameters();
+
     void addColumn(const std::string& name,
                    const std::string& type,
                    const std::string& unit,
                    const std::string& desc);
-    
+
+    const std::vector<std::string>& getColumnNames() const;
+
     void addInfo(const std::string& mode,
                  const size_t& no_row_counts);
 
-    
+    void writeRow(const SDDSDataRow& row);
+
     template<typename T>
     void writeValue(const T& value);
-    
+
     void newline();
-    
+
     void open();
-    
+
     void close();
-    
+
     /** \brief Write SDDS header.
      *
      * Writes the appropriate SDDS format header information, The SDDS tools can be used
      * for plotting data.
      */
     void writeHeader();
-    
+
     std::string fname_m;
-    
+
     /** \brief First write to the statistics output file.
      *
      * Initially set to std::ios::out so that SDDS format header information is written to file
@@ -91,23 +125,26 @@ protected:
      */
     std::ios_base::openmode mode_m;
 
+
 private:
-    
+
     void writeDescription_m();
-    
+
     void writeParameters_m();
-    
+
     void writeColumns_m();
-    
+
     void writeInfo_m();
-    
+
     std::ofstream os_m;
-    
+
     std::string indent_m;
-    
+
     desc_t desc_m;
     std::queue<param_t> params_m;
+    std::queue<std::string> paramValues_m;
     std::queue<cols_t>  cols_m;
+    std::vector<std::string> columnNames_m;
     data_t info_m;
 };
 
@@ -140,12 +177,22 @@ void SDDSWriter::addDescription(const std::string& text,
 }
 
 
-inline
+template<typename T>
 void SDDSWriter::addParameter(const std::string& name,
                               const std::string& type,
-                              const std::string& desc)
+                              const std::string& desc,
+                              const T& value)
 {
     params_m.push(std::make_tuple(name, type, desc));
+    std::stringstream ss;
+    ss << value;
+    paramValues_m.push(ss.str());
+}
+
+
+inline
+const std::vector<std::string>& SDDSWriter::getColumnNames() const {
+    return columnNames_m;
 }
 
 
@@ -157,12 +204,48 @@ void SDDSWriter::addInfo(const std::string& mode,
 
 
 inline
+void SDDSWriter::writeRow(const SDDSDataRow& row) {
+    row.write(os_m);
+}
+
+
+inline
 void SDDSWriter::addColumn(const std::string& name,
                            const std::string& type,
                            const std::string& unit,
                            const std::string& desc)
 {
     cols_m.push(std::make_tuple(name, type, unit, desc));
+    columnNames_m.push_back(name);
+}
+
+template<typename T>
+void SDDSDataRow::addColumn(const std::string& name,
+                            const T& value) {
+    if (columnValues_m.find(name) != columnValues_m.end()) return;
+
+    variant_t var = value;
+    columnValues_m.insert(std::make_pair(name, var));
+}
+
+inline
+std::ostream& SDDSDataRow::write(std::ostream& os) const {
+    for (const auto name: columnNames_m) {
+        auto it = columnValues_m.find(name);
+        if (it == columnValues_m.end()) {
+            throw OpalException("SDDSDataRow::write",
+                                "value for column '" + name + "' not provided");
+        }
+
+        os << it->second << std::setw(10) << "\t";
+    }
+
+    return os;
+}
+
+inline
+std::ostream& operator<<(std::ostream& os, const SDDSDataRow& row) {
+    return row.write(os);
 }
 
 #endif
