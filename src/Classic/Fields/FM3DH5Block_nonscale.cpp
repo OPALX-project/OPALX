@@ -87,95 +87,53 @@ void FM3DH5Block_nonscale::readMap() {
 #if defined (NDEBUG)
     (void)h5err;
 #endif
-    h5_prop_t props = H5CreateFileProp ();
-    MPI_Comm comm = Ippl::getComm();
+    INFOMSG(level3 << typeset_msg("reading fieldmap non-scaled'" + Filename_m  + "'", "info") << "\n"
+            << endl);
+    auto props = H5CreateFileProp ();
+    auto comm = Ippl::getComm();
     h5err = H5SetPropFileMPIOCollective (props, &comm);
     assert (h5err != H5_ERR);
-    h5_file_t file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
+    const auto file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
     assert (file != (h5_file_t)H5_ERR);
     H5CloseProp (props);
 
-    long field_size = 0;
-    int Nnodes = Ippl::getNodes();//min(20, Ippl::getNodes());
-    int Nz_avrg = static_cast<int>(floor(0.5 + num_gridpz_m / Nnodes));
-    int Nz_diff = Nz_avrg * Nnodes - num_gridpz_m;
-    int signNz = Nz_diff > 0 ? 1 : -1;
-    int *Nz_read_start = new int[Ippl::getNodes() + 1];
-    int *Nz_read_length = new int[Ippl::getNodes()];
-    int N_read_start;
-    int start = 0;
-    // int rbuf_size;
-
-    h5_int64_t last_step = H5GetNumSteps(file) - 1;
+    const auto last_step = H5GetNumSteps(file) - 1;
     h5err = H5SetStep(file, last_step);
     assert (h5err != H5_ERR);
 
-    for(int i = 0; i < abs(Nz_diff); ++ i) {
-        Nz_read_length[i] = Nz_avrg - signNz;
-        Nz_read_start[i] = start;
-        start += Nz_read_length[i];
-    }
-    for(int i = abs(Nz_diff); i < Nnodes; ++ i) {
-        Nz_read_length[i] = Nz_avrg;
-        Nz_read_start[i] = start;
-        start += Nz_read_length[i];
-    }
-    for(int i = Nnodes; i < Ippl::getNodes(); ++ i) {
-        Nz_read_length[i] = 0;
-        Nz_read_start[i] = start;
-    }
-    Nz_read_start[Ippl::getNodes()] = start;
-
-    N_read_start = Nz_read_start[Ippl::myNode()] * num_gridpx_m * num_gridpy_m;
-
-    // rbuf_size = max(Nz_avrg, Nz_avrg - signNz);
-    // std::unique_ptr<double> rbuf(new double[Ippl::getNodes() * rbuf_size]);
-
-    h5err = H5Block3dSetView(file,
-                             0, num_gridpx_m - 1,
-                             0, num_gridpy_m - 1,
-                             Nz_read_start[Ippl::myNode()], Nz_read_start[Ippl::myNode() + 1] - 1);
-    assert (h5err != H5_ERR);
-
-    field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
+    const auto field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
     FieldstrengthEx_m.resize(field_size);
     FieldstrengthEy_m.resize(field_size);
     FieldstrengthEz_m.resize(field_size);
     FieldstrengthHx_m.resize(field_size);
     FieldstrengthHy_m.resize(field_size);
     FieldstrengthHz_m.resize(field_size);
-
-    h5err = H5Block3dReadVector3dFieldFloat64 (
-        file, "Efield",
-        &(FieldstrengthEx_m[N_read_start]),
-        &(FieldstrengthEy_m[N_read_start]),
-        &(FieldstrengthEz_m[N_read_start]));
+    h5err = H5Block3dSetView(file,
+                             0, num_gridpx_m - 1,
+                             0, num_gridpy_m - 1,
+                             0, num_gridpz_m -1);
     assert (h5err != H5_ERR);
 
     h5err = H5Block3dReadVector3dFieldFloat64 (
-        file, "Hfield",
-        &(FieldstrengthHx_m[N_read_start]),
-        &(FieldstrengthHy_m[N_read_start]),
-        &(FieldstrengthHz_m[N_read_start]));
+        file,
+        "Efield",
+        &(FieldstrengthEx_m[0]),
+        &(FieldstrengthEy_m[0]),
+        &(FieldstrengthEz_m[0]));
     assert (h5err != H5_ERR);
 
-    for(int i = 0; i < Nnodes; ++ i) {
-        int N_read_start = Nz_read_start[i] * num_gridpx_m * num_gridpy_m;
-        int N_read_length = Nz_read_length[i] * num_gridpx_m * num_gridpy_m;
-        MPI_Bcast(&(FieldstrengthEx_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
-        MPI_Bcast(&(FieldstrengthEy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
-        MPI_Bcast(&(FieldstrengthEz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
-        MPI_Bcast(&(FieldstrengthHx_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
-        MPI_Bcast(&(FieldstrengthHy_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
-        MPI_Bcast(&(FieldstrengthHz_m[N_read_start]), N_read_length, MPI_DOUBLE, i, Ippl::getComm());
-    }
+    h5err = H5Block3dReadVector3dFieldFloat64 (
+        file,
+        "Hfield",
+        &(FieldstrengthHx_m[0]),
+        &(FieldstrengthHy_m[0]),
+        &(FieldstrengthHz_m[0]));
+    assert (h5err != H5_ERR);
 
     h5err = H5CloseFile(file);
     assert (h5err != H5_ERR);
-    delete[] Nz_read_start;
-    delete[] Nz_read_length;
 
-    for(long i = 0; i < num_gridpx_m * num_gridpy_m * num_gridpz_m; i++) {
+    for (auto i = 0; i < field_size; i++) {
         FieldstrengthEz_m[i] *= 1.0e6 ;
         FieldstrengthEx_m[i] *= 1.0e6 ;
         FieldstrengthEy_m[i] *= 1.0e6 ;
@@ -183,7 +141,7 @@ void FM3DH5Block_nonscale::readMap() {
         FieldstrengthHy_m[i] *= 1.0e6 * mu_0 ;
         FieldstrengthHz_m[i] *= 1.0e6 * mu_0 ;
     }
-    INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
+    INFOMSG(level3 << typeset_msg("fieldmap '" + Filename_m  + "' read", "info") << "\n"
             << endl);
 }
 
