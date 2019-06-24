@@ -19,32 +19,28 @@ void StatWriter::fillHeader_m(const losses_t &losses) {
     OPALTimer::Timer simtimer;
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
-    
+
     std::stringstream ss;
     ss << "Statistics data '"
        << OpalData::getInstance()->getInputFn()
        << "' " << dateStr << " " << timeStr;
-    
+
     this->addDescription(ss.str(), "stat parameters");
-    
-    this->addParameter("processors", "long", "Number of Cores used");
-    
-    this->addParameter("revision", "string", "git revision of opal");
-    
-    this->addParameter("flavor", "string", "OPAL flavor that wrote file");
-    
+
+    this->addDefaultParameters();
+
     this->addColumn("t", "double", "ns", "Time");
-    
+
     this->addColumn("s", "double", "m", "Path length");
-    
+
     this->addColumn("numParticles", "long", "1", "Number of Macro Particles");
-    
+
     this->addColumn("charge", "double", "1", "Bunch Charge");
 
     this->addColumn("energy", "double", "MeV", "Mean Bunch Energy");
-    
+
     this->addColumn("rms_x", "double", "m", "RMS Beamsize in x");
-    
+
     this->addColumn("rms_y", "double", "m", "RMS Beamsize in y");
 
     this->addColumn("rms_s", "double", "m", "RMS Beamsize in s");
@@ -117,8 +113,8 @@ void StatWriter::fillHeader_m(const losses_t &losses) {
 
     this->addColumn("partsOutside", "double",  "1", "outside n*sigma of the beam");
 
-
-    if (Ippl::getNodes() == 1) {
+    if (OpalData::getInstance()->isInOPALCyclMode() &&
+        Ippl::getNodes() == 1) {
         this->addColumn("R0_x", "double", "m", "R0 Particle position in x");
 
         this->addColumn("R0_y", "double", "m", "R0 Particle position in y");
@@ -138,7 +134,7 @@ void StatWriter::fillHeader_m(const losses_t &losses) {
         for (int i = 0; i < 3; ++i) {
             std::stringstream tmp1;
             tmp1 << "halo_" << dir[i];
-            
+
             std::stringstream tmp2;
             tmp2 << "Halo in " << dir[i];
             this->addColumn(tmp1.str(), "double", "1", tmp2.str());
@@ -151,7 +147,7 @@ void StatWriter::fillHeader_m(const losses_t &losses) {
         this->addColumn(losses[i].first, "long", "1",
                         "Number of lost particles in element");
     }
-    
+
     this->addInfo("ascii", 1);
 }
 
@@ -164,7 +160,7 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
 
     /// Calculate beam statistics.
     beam->calcBeamParameters();
-    
+
     double Ekin = beam->get_meanKineticEnergy();
 
     size_t npOutside = 0;
@@ -186,95 +182,107 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
         IpplTimings::stopTimer(StatMarkerTimer_m);
         return;
     }
-    
+
     fillHeader_m(losses);
 
     this->open();
-        
+
     this->writeHeader();
 
-    this->writeValue(beam->getT() * 1e9);   // 1
-    this->writeValue(pathLength);           // 2
-    this->writeValue(beam->getTotalNum());  // 3
-    this->writeValue(Q);                    // 4
-    this->writeValue(Ekin);                 // 5
-    
-    this->writeValue(beam->get_rrms()(0));  // 6
-    this->writeValue(beam->get_rrms()(1));  // 7
-    this->writeValue(beam->get_rrms()(2));  // 8
+    SDDSDataRow row(this->getColumnNames());
+    row.addColumn("t", beam->getT() * 1e9);             // 1
+    row.addColumn("s", pathLength);                     // 2
+    row.addColumn("numParticles", beam->getTotalNum()); // 3
+    row.addColumn("charge", Q);                         // 4
+    row.addColumn("energy", Ekin);                      // 5
 
-    this->writeValue(beam->get_prms()(0));  // 9
-    this->writeValue(beam->get_prms()(1));  // 10
-    this->writeValue(beam->get_prms()(2));  // 11
+    row.addColumn("rms_x", beam->get_rrms()(0));        // 6
+    row.addColumn("rms_y", beam->get_rrms()(1));        // 7
+    row.addColumn("rms_s", beam->get_rrms()(2));        // 8
 
-    this->writeValue(beam->get_norm_emit()(0)); // 12
-    this->writeValue(beam->get_norm_emit()(1)); // 13
-    this->writeValue(beam->get_norm_emit()(2)); // 14
+    row.addColumn("rms_px", beam->get_prms()(0));       // 9
+    row.addColumn("rms_py", beam->get_prms()(1));       // 10
+    row.addColumn("rms_ps", beam->get_prms()(2));       // 11
 
-    this->writeValue(beam->get_rmean()(0) );    // 15
-    this->writeValue(beam->get_rmean()(1) );    // 16
-    this->writeValue(beam->get_rmean()(2) );    // 17
+    row.addColumn("emit_x", beam->get_norm_emit()(0));  // 12
+    row.addColumn("emit_y", beam->get_norm_emit()(1));  // 13
+    row.addColumn("emit_s", beam->get_norm_emit()(2));  // 14
 
-    this->writeValue(beam->RefPartR_m(0)); // 18
-    this->writeValue(beam->RefPartR_m(1)); // 19
-    this->writeValue(beam->RefPartR_m(2)); // 20
+    row.addColumn("mean_x", beam->get_rmean()(0) );     // 15
+    row.addColumn("mean_y", beam->get_rmean()(1) );     // 16
+    row.addColumn("mean_s", beam->get_rmean()(2) );     // 17
 
-    this->writeValue(beam->RefPartP_m(0)); // 21
-    this->writeValue(beam->RefPartP_m(1)); // 22
-    this->writeValue(beam->RefPartP_m(2)); // 23
+    row.addColumn("ref_x", beam->RefPartR_m(0));        // 18
+    row.addColumn("ref_y", beam->RefPartR_m(1));        // 19
+    row.addColumn("ref_z", beam->RefPartR_m(2));        // 20
 
-    this->writeValue(beam->get_maxExtent()(0)); // 24
-    this->writeValue(beam->get_maxExtent()(1)); // 25
-    this->writeValue(beam->get_maxExtent()(2)); // 26
+    row.addColumn("ref_px", beam->RefPartP_m(0));       // 21
+    row.addColumn("ref_py", beam->RefPartP_m(1));       // 22
+    row.addColumn("ref_pz", beam->RefPartP_m(2));       // 23
+
+    row.addColumn("max_x", beam->get_maxExtent()(0));   // 24
+    row.addColumn("max_y", beam->get_maxExtent()(1));   // 25
+    row.addColumn("max_s", beam->get_maxExtent()(2));   // 26
 
     // Write out Courant Snyder parameters.
-    this->writeValue(beam->get_rprms()(0));     // 27
-    this->writeValue(beam->get_rprms()(1));     // 28
-    this->writeValue(beam->get_rprms()(2));     // 29
+    row.addColumn("xpx", beam->get_rprms()(0));         // 27
+    row.addColumn("ypy", beam->get_rprms()(1));         // 28
+    row.addColumn("zpz", beam->get_rprms()(2));         // 29
 
     // Write out dispersion.
-    this->writeValue(beam->get_Dx());      // 30
-    this->writeValue(beam->get_DDx());     // 31
-    this->writeValue(beam->get_Dy());      // 32
-    this->writeValue(beam->get_DDy());     // 33
+    row.addColumn("Dx", beam->get_Dx());                // 30
+    row.addColumn("DDx", beam->get_DDx());              // 31
+    row.addColumn("Dy", beam->get_Dy());                // 32
+    row.addColumn("DDy", beam->get_DDy());              // 33
 
     // Write head/reference particle/tail field information.
-    this->writeValue(FDext[0](0));         // 34 B-ref x
-    this->writeValue(FDext[0](1));         // 35 B-ref y
-    this->writeValue(FDext[0](2));         // 36 B-ref z
+    row.addColumn("Bx_ref", FDext[0](0));               // 34 B-ref x
+    row.addColumn("By_ref", FDext[0](1));               // 35 B-ref y
+    row.addColumn("Bz_ref", FDext[0](2));               // 36 B-ref z
 
-    this->writeValue(FDext[1](0));         // 37 E-ref x
-    this->writeValue(FDext[1](1));         // 38 E-ref y
-    this->writeValue(FDext[1](2));         // 39 E-ref z
+    row.addColumn("Ex_ref", FDext[1](0));               // 37 E-ref x
+    row.addColumn("Ey_ref", FDext[1](1));               // 38 E-ref y
+    row.addColumn("Ez_ref", FDext[1](2));               // 39 E-ref z
 
-    this->writeValue(beam->getdE());        // 40 dE energy spread
-    this->writeValue(beam->getdT() * 1e9);  // 41 dt time step size
-    this->writeValue(npOutside);            // 42 number of particles outside n*sigma
-
-    if (Ippl::getNodes() == 1 && beam->getLocalNum() > 0) {
-        this->writeValue(beam->R[0](0));        // 43 R0_x
-        this->writeValue(beam->R[0](1));        // 44 R0_y
-        this->writeValue(beam->R[0](2));        // 45 R0_z
-        this->writeValue(beam->P[0](0));        // 46 P0_x
-        this->writeValue(beam->P[0](1));        // 47 P0_y
-        this->writeValue(beam->P[0](2));        // 48 P0_z
-    }
+    row.addColumn("dE", beam->getdE());                 // 40 dE energy spread
+    row.addColumn("dt", beam->getdT() * 1e9);           // 41 dt time step size
+    row.addColumn("partsOutside", npOutside);           // 42 number of particles outside n*sigma
 
     if (OpalData::getInstance()->isInOPALCyclMode()) {
+        if (Ippl::getNodes() == 1) {
+            if (beam->getLocalNum() > 0) {
+                row.addColumn("R0_x", beam->R[0](0));
+                row.addColumn("R0_y", beam->R[0](1));
+                row.addColumn("R0_s", beam->R[0](2));
+                row.addColumn("P0_x", beam->P[0](0));
+                row.addColumn("P0_y", beam->P[0](1));
+                row.addColumn("P0_s", beam->P[0](2));
+            } else {
+                row.addColumn("R0_x", 0.0);
+                row.addColumn("R0_y", 0.0);
+                row.addColumn("R0_s", 0.0);
+                row.addColumn("P0_x", 0.0);
+                row.addColumn("P0_y", 0.0);
+                row.addColumn("P0_s", 0.0);
+            }
+        }
         Vector_t halo = beam->get_halo();
-        for (int i = 0; i < 3; ++i)
-            this->writeValue(halo(i));
-        
-        this->writeValue(azimuth);
+        row.addColumn("halo_x", halo(0));
+        row.addColumn("halo_y", halo(1));
+        row.addColumn("halo_z", halo(2));
+
+        row.addColumn("azimuth", azimuth);
     }
 
     for(size_t i = 0; i < losses.size(); ++ i) {
-        this->writeValue(losses[i].second);
+        long unsigned int loss = losses[i].second;
+        row.addColumn(losses[i].first, loss);
     }
-    
-    
+
+    this->writeRow(row);
+
     this->newline();
-    
+
     this->close();
 
     /// %Stop timer.
@@ -286,7 +294,7 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
                        double sposHead, double sposRef, double sposTail)
 {
     //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-    
+
     /// Function steps:
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
@@ -297,8 +305,8 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
 
     double en = beam.get_meanKineticEnergy() * 1e-6;
     double Q  = beam.getTotalNum() * beam.getChargePerParticle();
-    
-    
+
+
     if (Ippl::myNode() != 0) {
         IpplTimings::stopTimer(StatMarkerTimer_m);
         return;
@@ -307,15 +315,15 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
     fillHeader_m();
 
     this->open();
-        
+
     this->writeHeader();
-    
+
     this->writeValue(beam.getT() * 1e9);   // 1
     this->writeValue(sposRef);             // 2
     this->writeValue(beam.getTotalNum());  // 3
     this->writeValue(Q);                   // 4
     this->writeValue(en);                  // 5
-    
+
     this->writeValue(beam.get_rrms()(0));  // 6
     this->writeValue(beam.get_rrms()(1));  // 7
     this->writeValue(beam.get_rrms()(2));  // 8
@@ -369,7 +377,7 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
     this->writeValue(0);                // 42 number of particles outside n*sigma
 
     this->newline();
-    
+
     this->close();
 
     /// %Stop timer.
