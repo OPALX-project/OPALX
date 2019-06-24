@@ -89,19 +89,19 @@ void FM3DH5Block_nonscale::readMap() {
 #endif
     INFOMSG(level3 << typeset_msg("reading fieldmap non-scaled'" + Filename_m  + "'", "info") << "\n"
             << endl);
-    h5_prop_t props = H5CreateFileProp ();
-    MPI_Comm comm = Ippl::getComm();
+    auto props = H5CreateFileProp ();
+    auto comm = Ippl::getComm();
     h5err = H5SetPropFileMPIOCollective (props, &comm);
     assert (h5err != H5_ERR);
-    h5_file_t file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
+    const auto file = H5OpenFile (Filename_m.c_str(), H5_O_RDONLY, props);
     assert (file != (h5_file_t)H5_ERR);
     H5CloseProp (props);
 
-    h5_int64_t last_step = H5GetNumSteps(file) - 1;
+    const auto last_step = H5GetNumSteps(file) - 1;
     h5err = H5SetStep(file, last_step);
     assert (h5err != H5_ERR);
 
-    auto field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
+    const auto field_size = (num_gridpx_m * num_gridpy_m * num_gridpz_m);
     FieldstrengthEx_m.resize(field_size);
     FieldstrengthEy_m.resize(field_size);
     FieldstrengthEz_m.resize(field_size);
@@ -133,7 +133,7 @@ void FM3DH5Block_nonscale::readMap() {
     h5err = H5CloseFile(file);
     assert (h5err != H5_ERR);
 
-    for(auto i = 0; i < num_gridpx_m * num_gridpy_m * num_gridpz_m; i++) {
+    for (auto i = 0; i < field_size; i++) {
         FieldstrengthEz_m[i] *= 1.0e6 ;
         FieldstrengthEx_m[i] *= 1.0e6 ;
         FieldstrengthEy_m[i] *= 1.0e6 ;
