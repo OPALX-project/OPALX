@@ -207,28 +207,31 @@ void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
 
     this->writeHeader();
 
-    this->writeValue(time);             // 1
-    this->writeValue(pathLength);       // 2
+    SDDSDataRow row(this->getColumnNames());
+    row.addColumn("t", beam->getT() * 1e9);             // 1
+    row.addColumn("s", pathLength);                     // 2
+    
+    row.addColumn("VmPeak-Min",  vmMin[VMPEAK]);
+    row.addColumn("VmPeak-Max", vmMax[VMPEAK]);
+    row.addColumn("VmPeak-Avg", vmAvg[VMPEAK]);
 
-    this->writeValue(vmMin[VMPEAK]);
-    this->writeValue(vmMax[VMPEAK]);
-    this->writeValue(vmAvg[VMPEAK]);
+    row.addColumn("VmSize-Min", vmMin[VMSIZE]);
+    row.addColumn("VmSize-Max", vmMax[VMSIZE]);
+    row.addColumn("VmSize-Avg", vmAvg[VMSIZE]);
 
-    this->writeValue(vmMin[VMSIZE]);
-    this->writeValue(vmMax[VMSIZE]);
-    this->writeValue(vmAvg[VMSIZE]);
+    row.addColumn("VmHWM-Min", vmMin[VMHWM]);
+    row.addColumn("VmHWM-Max", vmMax[VMHWM]);
+    row.addColumn("VmHWM-Avg", vmAvg[VMHWM]);
 
-    this->writeValue(vmMin[VMHWM]);
-    this->writeValue(vmMax[VMHWM]);
-    this->writeValue(vmAvg[VMHWM]);
+    row.addColumn("VmRSS-Min", vmMin[VMRSS]);
+    row.addColumn("VmRSS-Max", vmMax[VMRSS]);
+    row.addColumn("VmRSS-Avg", vmAvg[VMRSS]);
 
-    this->writeValue(vmMin[VMRSS]);
-    this->writeValue(vmMax[VMRSS]);
-    this->writeValue(vmAvg[VMRSS]);
+    row.addColumn("VmStk-Min", vmMin[VMSTK]);
+    row.addColumn("VmStk-Max", vmMax[VMSTK]);
+    row.addColumn("VmStk-Avg", vmAvg[VMSTK]);
 
-    this->writeValue(vmMin[VMSTK]);
-    this->writeValue(vmMax[VMSTK]);
-    this->writeValue(vmAvg[VMSTK]);
+    this->writeRow(row);
 
     this->newline();
 

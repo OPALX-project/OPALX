@@ -74,7 +74,7 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
         return;
     
     
-    this->fillHeader_m();
+    this->fillHeader_m(beam);
     
     this->open();
     
@@ -104,6 +104,6 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
     this->writeRow(row);
 
     this->newline();
-    
+
     this->close();
 }

@@ -1,6 +1,9 @@
 #include "GridLBalWriter.h"
 
-void GridLBalWriter::writeHeader() {
+void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
+    if ( mode_m == std::ios::app )
+        return;
+
     AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
 
     if ( !amrbeam )
@@ -11,8 +14,6 @@ void GridLBalWriter::writeHeader() {
 
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
-
-    os_m << "SDDS1" << std::endl;
 
     std::stringstream ss;
     ss << "Grid load balancing statistics '"
@@ -48,11 +49,6 @@ void GridLBalWriter::writeHeader() {
     }
 
     this->addInfo("ascii", 1);
-
-    os_m << Ippl::getNodes() << std::endl
-         << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << std::endl
-         << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
 }
 
 
@@ -63,21 +59,41 @@ void GridLBalWriter::writeData(PartBunchBase<double, 3> *beam) {
         throw OpalException("DataSink::writeGridLBalData()",
                             "Can not write grid load balancing for non-AMR runs.");
 
-    this->writeValue(amrbeam->getT() * 1e9);    // 1
+    amrbeam->getAmrObject()->getGridStatistics(gridPtsPerCore, gridsPerLevel);
+
+    if ( Ippl::myNode() != 0 )
+        return;
+
+    this->fillHeader_m(beam);
+
+    this->open();
+
+    this->writeHeader();
+
+    SDDSDataRow row(this->getColumnNames());
+    row.addColumn("t", beam->getT() * 1e9); // 1
 
     std::map<int, long> gridPtsPerCore;
 
     int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
     std::vector<int> gridsPerLevel;
 
-    amrbeam->getAmrObject()->getGridStatistics(gridPtsPerCore, gridsPerLevel);
-
     for (int lev = 0; lev < nLevel; ++lev) {
-        this->writeValue(gridsPerLevel[lev]);
+        std::stringstream ss;
+        ss << "level-" << lev;
+        row.addColumn(ss.str(), gridsPerLevel[lev]);
     }
 
     int nProcs = Ippl::getNodes();
     for (int p = 0; p < nProcs; ++p) {
-        this->writeValue(gridPtsPerCore[p]);
+        std::stringstream ss;
+        ss << "processor-" << p;
+        row.addColumn(ss.str(), gridPtsPerCore[p]);
     }
+
+    this->writeRow(row);
+
+    this->newline();
+
+    this->close();
 }

@@ -72,8 +72,9 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
 
     this->writeHeader();
 
-    this->writeValue(beam->getT() * 1e9);   // 1
-    this->writeValue(pathLength);           // 2
+    SDDSDataRow row(this->getColumnNames());
+    row.addColumn("t", beam->getT() * 1e9);             // 1
+    row.addColumn("s", pathLength);                     // 2
 
     int nProcs = Ippl::getNodes();
     double total = 0.0;
@@ -81,11 +82,15 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
         total += memory->getMemoryUsage(p);
     }
 
-    this->writeValue(total);
+    row.addColumn("memory", total);
 
     for (int p = 0; p < nProcs; p++) {
-        this->writeValue(memory->getMemoryUsage(p));
+        std::stringstream ss;
+        ss << "processor-" << p;
+        row.addColumn(ss.str(),  memory->getMemoryUsage(p));
     }
+
+    this->writeRow(row);
 
     this->newline();
 
