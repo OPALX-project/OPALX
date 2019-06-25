@@ -72,21 +72,38 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
 
     if ( Ippl::myNode() != 0 )
         return;
-
-    this->writeValue(beam->getT() * 1e9);   // 1
+    
+    
+    this->fillHeader_m();
+    
+    this->open();
+    
+    this->writeHeader();
+    
+    SDDSDataRow row(this->getColumnNames());
+    row.addColumn("t", beam->getT() * 1e9); // 1
 
     size_t nProcs = Ippl::getNodes();
     for (size_t p = 0; p < nProcs; ++ p) {
-        this->writeValue(beam->getLoadBalance(p));
+        std::stringstream ss;
+        ss << "processor-" << p;
+        row.addColumn(ss.str(), beam->getLoadBalance(p));
     }
 
 #ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
         for (int lev = 0; lev < nLevel; ++lev) {
-            this->writeValue(amrbeam->getLevelStatistics(lev));
+            std::stringstream ss;
+            ss << "level-" << lev;
+            row.addColumn(ss.str(), amrbeam->getLevelStatistics(lev));
         }
     }
 #endif
+
+    this->writeRow(row);
+
     this->newline();
+    
+    this->close();
 }
