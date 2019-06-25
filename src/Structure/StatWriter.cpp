@@ -251,13 +251,23 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     this->writeValue(beam->getdT() * 1e9);  // 41 dt time step size
     this->writeValue(npOutside);            // 42 number of particles outside n*sigma
 
-    if (Ippl::getNodes() == 1 && beam->getLocalNum() > 0) {
-        this->writeValue(beam->R[0](0));        // 43 R0_x
-        this->writeValue(beam->R[0](1));        // 44 R0_y
-        this->writeValue(beam->R[0](2));        // 45 R0_z
-        this->writeValue(beam->P[0](0));        // 46 P0_x
-        this->writeValue(beam->P[0](1));        // 47 P0_y
-        this->writeValue(beam->P[0](2));        // 48 P0_z
+    if (Ippl::getNodes() == 1) {
+        if (beam->getLocalNum() > 0) {
+            this->writeValue(beam->R[0](0));        // 43 R0_x
+            this->writeValue(beam->R[0](1));        // 44 R0_y
+            this->writeValue(beam->R[0](2));        // 45 R0_z
+            this->writeValue(beam->P[0](0));        // 46 P0_x
+            this->writeValue(beam->P[0](1));        // 47 P0_y
+            this->writeValue(beam->P[0](2));        // 48 P0_z
+        } else {
+            // write zeros instead as default
+            this->writeValue(0.0);                  // 43 R0_x
+            this->writeValue(0.0);                  // 44 R0_y
+            this->writeValue(0.0);                  // 45 R0_z
+            this->writeValue(0.0);                  // 46 P0_x
+            this->writeValue(0.0);                  // 47 P0_y
+            this->writeValue(0.0);                  // 48 P0_z
+        }
     }
 
     if (OpalData::getInstance()->isInOPALCyclMode()) {
