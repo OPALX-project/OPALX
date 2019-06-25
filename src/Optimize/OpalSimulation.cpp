@@ -202,13 +202,13 @@ void OpalSimulation::setupSimulation() {
 
     CmdArguments_t args = getArgs();
     std::string restartfile = args->getArg<std::string>("restartfile", "", false);
-    std::string dataDir = simulationDirName_ + "/data";
 
     if ( id_m > -1 ) {
         std::ostringstream tmp;
         tmp << simTmpDir_ << "/" << id_m;
         simulationDirName_ = tmp.str();
     }
+    std::string dataDir = simulationDirName_ + "/data";
 
     OpalData *opal = OpalData::getInstance();
     opal->setOptimizerFlag();
