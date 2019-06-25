@@ -5,7 +5,8 @@
 
 class GridLBalWriter : public SDDSWriter {
     
-    
+private:
+    void fillHeader_m(PartBunchBase<double, 3> *beam);
 };
 
 #endif
