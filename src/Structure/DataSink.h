@@ -121,7 +121,8 @@ private:
     
     void rewindLines_m();
     
-    void init_m(bool restart = false);
+    void init_m(bool restart = false,
+                H5PartWrapper* h5wrapper = nullptr);
     
     
     h5Writer_t      h5Writer_m;
