@@ -223,7 +223,7 @@ void SDDSWriter::addColumn(const std::string& name,
 template<typename T>
 void SDDSDataRow::addColumn(const std::string& name,
                             const T& value) {
-    if (columnValues_m.find(name) == columnValues_m.end()) return;
+    if (columnValues_m.find(name) != columnValues_m.end()) return;
 
     variant_t var = value;
     columnValues_m.insert(std::make_pair(name, var));
