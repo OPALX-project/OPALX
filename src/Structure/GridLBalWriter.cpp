@@ -1,28 +1,12 @@
 #include "GridLBalWriter.h"
 
 void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
-    if ( mode_m == std::ios::app )
+
+    static bool isNotFirst = false;
+    if ( isNotFirst ) {
         return;
-
-    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
-
-    if ( !amrbeam )
-        throw OpalException("DataSink::writeGridLBalHeader()",
-                            "Can not write grid load balancing for non-AMR runs.");
-
-    OPALTimer::Timer simtimer;
-
-    std::string dateStr(simtimer.date());
-    std::string timeStr(simtimer.time());
-
-    std::stringstream ss;
-    ss << "Grid load balancing statistics '"
-       << OpalData::getInstance()->getInputFn() << "' "
-       << dateStr << "" << timeStr;
-
-    this->addDescription(ss.str(), "grid lbal parameters");
-
-    this->addDefaultParameters();
+    }
+    isNotFirst = true;
 
     this->addColumn("t", "double", "ns", "Time");
 
@@ -47,6 +31,29 @@ void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
 
         this->addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
+
+    if ( mode_m == std::ios::app )
+        return;
+
+    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
+
+    if ( !amrbeam )
+        throw OpalException("DataSink::writeGridLBalHeader()",
+                            "Can not write grid load balancing for non-AMR runs.");
+
+    OPALTimer::Timer simtimer;
+
+    std::string dateStr(simtimer.date());
+    std::string timeStr(simtimer.time());
+
+    std::stringstream ss;
+    ss << "Grid load balancing statistics '"
+       << OpalData::getInstance()->getInputFn() << "' "
+       << dateStr << "" << timeStr;
+
+    this->addDescription(ss.str(), "grid lbal parameters");
+
+    this->addDefaultParameters();
 
     this->addInfo("ascii", 1);
 }

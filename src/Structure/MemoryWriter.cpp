@@ -12,6 +12,28 @@ MemoryWriter::MemoryWriter(const std::string& fname, bool restart)
 
 
 void MemoryWriter::fillHeader_m() {
+
+    static bool isNotFirst = false;
+    if ( isNotFirst ) {
+        return;
+    }
+    isNotFirst = true;
+
+    this->addColumn("t", "double", "ns", "Time");
+
+    this->addColumn("s", "double", "m", "Path length");
+
+    this->addColumn("memory", "double", memory->getUnit(), "Total Memory");
+
+    for (int p = 0; p < Ippl::getNodes(); ++p) {
+        std::stringstream tmp1;
+        tmp1 << "processor-" << p;
+
+        std::stringstream tmp2;
+        tmp2 << "Memory per processor " << p;
+        this->addColumn(tmp1.str(), "double", memory->getUnit(), tmp2.str());
+    }
+
     if ( mode_m == std::ios::app )
         return;
 
@@ -32,20 +54,6 @@ void MemoryWriter::fillHeader_m() {
 
     this->addDefaultParameters();
 
-    this->addColumn("t", "double", "ns", "Time");
-
-    this->addColumn("s", "double", "m", "Path length");
-
-    this->addColumn("memory", "double", memory->getUnit(), "Total Memory");
-
-    for (int p = 0; p < Ippl::getNodes(); ++p) {
-        std::stringstream tmp1;
-        tmp1 << "processor-" << p;
-
-        std::stringstream tmp2;
-        tmp2 << "Memory per processor " << p;
-        this->addColumn(tmp1.str(), "double", memory->getUnit(), tmp2.str());
-    }
 
     this->addInfo("ascii", 1);
 }
