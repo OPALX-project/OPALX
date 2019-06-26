@@ -49,22 +49,12 @@ MemoryProfiler::~MemoryProfiler() {
 
 
 void MemoryProfiler::header_m() {
-    if ( mode_m == std::ios::app )
+
+    static bool isNotFirst = false;
+    if ( isNotFirst ) {
         return;
-
-    OPALTimer::Timer simtimer;
-
-    std::string dateStr(simtimer.date());
-    std::string timeStr(simtimer.time());
-
-    std::stringstream ss;
-    ss << "Memory statistics '"
-       << OpalData::getInstance()->getInputFn() << "' "
-       << dateStr << "" << timeStr;
-
-    this->addDescription(ss.str(), "memory info");
-
-    this->addDefaultParameters();
+    }
+    isNotFirst = true;
 
     this->addColumn("t", "double", "ns", "Time");
 
@@ -119,6 +109,23 @@ void MemoryProfiler::header_m() {
 
     this->addColumn("VmStk-Avg", "double", unit_m[VirtualMemory::VMSTK],
                     "Average stack size");
+
+    if ( mode_m == std::ios::app )
+        return;
+
+    OPALTimer::Timer simtimer;
+
+    std::string dateStr(simtimer.date());
+    std::string timeStr(simtimer.time());
+
+    std::stringstream ss;
+    ss << "Memory statistics '"
+       << OpalData::getInstance()->getInputFn() << "' "
+       << dateStr << "" << timeStr;
+
+    this->addDescription(ss.str(), "memory info");
+
+    this->addDefaultParameters();
 
     this->addInfo("ascii", 1);
 }

@@ -11,22 +11,12 @@ LBalWriter::LBalWriter(const std::string& fname, bool restart)
 
 
 void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
-    if ( mode_m == std::ios::app )
+
+    static bool isNotFirst = false;
+    if ( isNotFirst ) {
         return;
-
-    OPALTimer::Timer simtimer;
-
-    std::string dateStr(simtimer.date());
-    std::string timeStr(simtimer.time());
-
-    std::stringstream ss;
-    ss << "Processor statistics '"
-       << OpalData::getInstance()->getInputFn() << "' "
-       << dateStr << "" << timeStr;
-
-    this->addDescription(ss.str(), "lbal parameters");
-
-    this->addDefaultParameters();
+    }
+    isNotFirst = true;
 
     this->addColumn("t", "double", "ns", "Time");
 
@@ -55,6 +45,24 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
         }
     }
 #endif
+
+    if ( mode_m == std::ios::app )
+        return;
+
+    OPALTimer::Timer simtimer;
+
+    std::string dateStr(simtimer.date());
+    std::string timeStr(simtimer.time());
+
+    std::stringstream ss;
+    ss << "Processor statistics '"
+       << OpalData::getInstance()->getInputFn() << "' "
+       << dateStr << "" << timeStr;
+
+    this->addDescription(ss.str(), "lbal parameters");
+
+    this->addDefaultParameters();
+
 
     this->addInfo("ascii", 1);
 }
