@@ -13,6 +13,93 @@ StatWriter::StatWriter(const std::string& fname, bool restart)
 
 
 void StatWriter::fillHeader_m(const losses_t &losses) {
+
+    static bool isNotFirst = false;
+    if ( isNotFirst ) {
+        return;
+    }
+    isNotFirst = true;
+
+    this->addColumn("t", "double", "ns", "Time");
+    this->addColumn("s", "double", "m", "Path length");
+    this->addColumn("numParticles", "long", "1", "Number of Macro Particles");
+    this->addColumn("charge", "double", "1", "Bunch Charge");
+    this->addColumn("energy", "double", "MeV", "Mean Bunch Energy");
+
+    this->addColumn("rms_x", "double", "m", "RMS Beamsize in x");
+    this->addColumn("rms_y", "double", "m", "RMS Beamsize in y");
+    this->addColumn("rms_s", "double", "m", "RMS Beamsize in s");
+
+    this->addColumn("rms_px", "double", "1", "RMS Normalized Momenta in x");
+    this->addColumn("rms_py", "double", "1", "RMS Normalized Momenta in y");
+    this->addColumn("rms_ps", "double", "1", "RMS Normalized Momenta in s");
+
+    this->addColumn("emit_x", "double", "m", "Normalized Emittance x");
+    this->addColumn("emit_y", "double", "m", "Normalized Emittance y");
+    this->addColumn("emit_s", "double", "m", "Normalized Emittance s");
+
+    this->addColumn("mean_x", "double", "m", "Mean Beam Position in x");
+    this->addColumn("mean_y", "double", "m", "Mean Beam Position in y");
+    this->addColumn("mean_s", "double", "m", "Mean Beam Position in s");
+
+    this->addColumn("ref_x", "double", "m", "x coordinate of reference particle in lab cs");
+    this->addColumn("ref_y", "double", "m", "y coordinate of reference particle in lab cs");
+    this->addColumn("ref_z", "double", "m", "z coordinate of reference particle in lab cs");
+
+    this->addColumn("ref_px", "double", "1", "x momentum of reference particle in lab cs");
+    this->addColumn("ref_py", "double", "1", "y momentum of reference particle in lab cs");
+    this->addColumn("ref_pz", "double", "1", "z momentum of reference particle in lab cs");
+
+    this->addColumn("max_x", "double", "m", "Max Beamsize in x");
+    this->addColumn("max_y", "double", "m", "Max Beamsize in y");
+    this->addColumn("max_s", "double", "m", "Max Beamsize in s");
+
+    this->addColumn("xpx", "double", "1", "Correlation xpx");
+    this->addColumn("ypy", "double", "1", "Correlation ypy");
+    this->addColumn("zpz", "double", "1", "Correlation zpz");
+
+    this->addColumn("Dx", "double", "m", "Dispersion in x");
+    this->addColumn("DDx", "double", "1", "Derivative of dispersion in x");
+    this->addColumn("Dy", "double", "m", "Dispersion in y");
+    this->addColumn("DDy", "double", "1", "Derivative of dispersion in y");
+
+    this->addColumn("Bx_ref", "double", "T", "Bx-Field component of ref particle");
+    this->addColumn("By_ref", "double", "T", "By-Field component of ref particle");
+    this->addColumn("Bz_ref", "double", "T", "Bz-Field component of ref particle");
+
+    this->addColumn("Ex_ref", "double", "MV/m", "Ex-Field component of ref particle");
+    this->addColumn("Ey_ref", "double", "MV/m", "Ey-Field component of ref particle");
+    this->addColumn("Ez_ref", "double", "MV/m", "Ez-Field component of ref particle");
+
+    this->addColumn("dE", "double", "MeV", "energy spread of the beam");
+    this->addColumn("dt", "double", "ns", "time step size");
+    this->addColumn("partsOutside", "double",  "1", "outside n*sigma of the beam");
+
+    if (OpalData::getInstance()->isInOPALCyclMode() &&
+        Ippl::getNodes() == 1) {
+        this->addColumn("R0_x", "double", "m", "R0 Particle position in x");
+        this->addColumn("R0_y", "double", "m", "R0 Particle position in y");
+        this->addColumn("R0_s", "double", "m", "R0 Particle position in z");
+
+        this->addColumn("P0_x", "double", "1", "R0 Particle momentum in x");
+        this->addColumn("P0_y", "double", "1", "R0 Particle momentum in y");
+        this->addColumn("P0_s", "double", "1", "R0 Particle momentum in z");
+    }
+
+    if (OpalData::getInstance()->isInOPALCyclMode()) {
+        this->addColumn("halo_x", "double", "1", "Halo in x");
+        this->addColumn("halo_y", "double", "1", "Halo in y");
+        this->addColumn("halo_z", "double", "1", "Halo in z");
+
+        this->addColumn("azimuth", "double", "deg",
+                        "Azimuth in global coordinates");
+    }
+
+    for (size_t i = 0; i < losses.size(); ++ i) {
+        this->addColumn(losses[i].first, "long", "1",
+                        "Number of lost particles in element");
+    }
+
     if ( mode_m == std::ios::app )
         return;
 
@@ -29,124 +116,6 @@ void StatWriter::fillHeader_m(const losses_t &losses) {
 
     this->addDefaultParameters();
 
-    this->addColumn("t", "double", "ns", "Time");
-
-    this->addColumn("s", "double", "m", "Path length");
-
-    this->addColumn("numParticles", "long", "1", "Number of Macro Particles");
-
-    this->addColumn("charge", "double", "1", "Bunch Charge");
-
-    this->addColumn("energy", "double", "MeV", "Mean Bunch Energy");
-
-    this->addColumn("rms_x", "double", "m", "RMS Beamsize in x");
-
-    this->addColumn("rms_y", "double", "m", "RMS Beamsize in y");
-
-    this->addColumn("rms_s", "double", "m", "RMS Beamsize in s");
-
-    this->addColumn("rms_px", "double", "1", "RMS Normalized Momenta in x");
-
-    this->addColumn("rms_py", "double", "1", "RMS Normalized Momenta in y");
-
-    this->addColumn("rms_ps", "double", "1", "RMS Normalized Momenta in s");
-
-    this->addColumn("emit_x", "double", "m", "Normalized Emittance x");
-
-    this->addColumn("emit_y", "double", "m", "Normalized Emittance y");
-
-    this->addColumn("emit_s", "double", "m", "Normalized Emittance s");
-
-    this->addColumn("mean_x", "double", "m", "Mean Beam Position in x");
-
-    this->addColumn("mean_y", "double", "m", "Mean Beam Position in y");
-
-    this->addColumn("mean_s", "double", "m", "Mean Beam Position in s");
-
-    this->addColumn("ref_x", "double", "m", "x coordinate of reference particle in lab cs");
-
-    this->addColumn("ref_y", "double", "m", "y coordinate of reference particle in lab cs");
-
-    this->addColumn("ref_z", "double", "m", "z coordinate of reference particle in lab cs");
-
-    this->addColumn("ref_px", "double", "1", "x momentum of reference particle in lab cs");
-
-    this->addColumn("ref_py", "double", "1", "y momentum of reference particle in lab cs");
-
-    this->addColumn("ref_pz", "double", "1", "z momentum of reference particle in lab cs");
-
-    this->addColumn("max_x", "double", "m", "Max Beamsize in x");
-
-    this->addColumn("max_y", "double", "m", "Max Beamsize in y");
-
-    this->addColumn("max_s", "double", "m", "Max Beamsize in s");
-
-    this->addColumn("xpx", "double", "1", "Correlation xpx");
-
-    this->addColumn("ypy", "double", "1", "Correlation ypy");
-
-    this->addColumn("zpz", "double", "1", "Correlation zpz");
-
-    this->addColumn("Dx", "double", "m", "Dispersion in x");
-
-    this->addColumn("DDx", "double", "1", "Derivative of dispersion in x");
-
-    this->addColumn("Dy", "double", "m", "Dispersion in y");
-
-    this->addColumn("DDy", "double", "1", "Derivative of dispersion in y");
-
-    this->addColumn("Bx_ref", "double", "T", "Bx-Field component of ref particle");
-
-    this->addColumn("By_ref", "double", "T", "By-Field component of ref particle");
-
-    this->addColumn("Bz_ref", "double", "T", "Bz-Field component of ref particle");
-
-    this->addColumn("Ex_ref", "double", "MV/m", "Ex-Field component of ref particle");
-
-    this->addColumn("Ey_ref", "double", "MV/m", "Ey-Field component of ref particle");
-
-    this->addColumn("Ez_ref", "double", "MV/m", "Ez-Field component of ref particle");
-
-    this->addColumn("dE", "double", "MeV", "energy spread of the beam");
-
-    this->addColumn("dt", "double", "ns", "time step size");
-
-    this->addColumn("partsOutside", "double",  "1", "outside n*sigma of the beam");
-
-    if (OpalData::getInstance()->isInOPALCyclMode() &&
-        Ippl::getNodes() == 1) {
-        this->addColumn("R0_x", "double", "m", "R0 Particle position in x");
-
-        this->addColumn("R0_y", "double", "m", "R0 Particle position in y");
-
-        this->addColumn("R0_s", "double", "m", "R0 Particle position in z");
-
-        this->addColumn("P0_x", "double", "1", "R0 Particle momentum in x");
-
-        this->addColumn("P0_y", "double", "1", "R0 Particle momentum in y");
-
-        this->addColumn("P0_s", "double", "1", "R0 Particle momentum in z");
-    }
-
-    if (OpalData::getInstance()->isInOPALCyclMode()) {
-        char dir[] = { 'x', 'y', 'z' };
-
-        for (int i = 0; i < 3; ++i) {
-            std::stringstream tmp1;
-            tmp1 << "halo_" << dir[i];
-
-            std::stringstream tmp2;
-            tmp2 << "Halo in " << dir[i];
-            this->addColumn(tmp1.str(), "double", "1", tmp2.str());
-        }
-        this->addColumn("azimuth", "double", "deg",
-                        "Azimuth in global coordinates");
-    }
-
-    for (size_t i = 0; i < losses.size(); ++ i) {
-        this->addColumn(losses[i].first, "long", "1",
-                        "Number of lost particles in element");
-    }
 
     this->addInfo("ascii", 1);
 }
