@@ -9,7 +9,7 @@ class H5Writer {
     
 public:
     
-    H5Writer();
+    H5Writer(H5PartWrapper* h5wrapper);
     
     ~H5Writer() {
         h5wrapper_m = NULL;
@@ -24,7 +24,7 @@ public:
     
     void storeCavityInformation();
     
-    int getLastPosition();
+    double getLastPosition();
     
     /** \brief Dumps Phase Space to H5 file.
      *
@@ -116,7 +116,7 @@ void H5Writer::storeCavityInformation() {
 
 
 inline
-int H5Writer::getLastPosition() {
+double H5Writer::getLastPosition() {
     return h5wrapper_m->getLastPosition();
 }
 

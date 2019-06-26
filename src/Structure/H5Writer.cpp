@@ -1,8 +1,8 @@
 #include "H5Writer.h"
 
-H5Writer::H5Writer()
+H5Writer::H5Writer(H5PartWrapper* h5wrapper)
     : H5PartTimer_m(IpplTimings::getTimer("Write H5-File"))
-    , h5wrapper_m(NULL)
+    , h5wrapper_m(h5wrapper)
     , H5call_m(0)
 { }
 

@@ -52,10 +52,8 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
                             "Can not restart when HDF5 is disabled");
     }
     
-    this->init_m(restart);
-    
-    h5Writer_m->changeH5Wrapper(h5wrapper);
-    
+    this->init_m(restart, h5wrapper);
+
     if ( restart )
         rewindLines_m();
     
@@ -313,10 +311,9 @@ void DataSink::rewindLines_m() {
     // use stat file to get position
     if ( statWriter_m->exists() ) {
         double spos = h5Writer_m->getLastPosition();
-        std::cout << spos << std::endl;
         linesToRewind = statWriter_m->rewindToSpos(spos);
         statWriter_m->replaceVersionString();
-        
+
         h5Writer_m->close();
     }
     
@@ -328,7 +325,7 @@ void DataSink::rewindLines_m() {
 }
 
 
-void DataSink::init_m(bool restart) {
+void DataSink::init_m(bool restart, H5PartWrapper* h5wrapper) {
     std::string fn = OpalData::getInstance()->getInputBasename();
     
     /* Set file write flags to true. These will be set to false after first
@@ -338,7 +335,7 @@ void DataSink::init_m(bool restart) {
     lossWrCounter_m = 0;
     surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5");
 
-    statWriter_m      = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
+    statWriter_m = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
 
     sddsWriter_m.push_back(
         sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart))
@@ -363,7 +360,7 @@ void DataSink::init_m(bool restart) {
     }
 
     if ( Options::enableHDF5 ) {
-        h5Writer_m = h5Writer_t(new H5Writer());
+        h5Writer_m = h5Writer_t(new H5Writer(h5wrapper));
     }
 }
 
