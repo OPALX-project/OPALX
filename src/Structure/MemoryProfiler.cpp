@@ -181,8 +181,6 @@ void MemoryProfiler::compute_m(vm_t& vmMin,
 
 void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
 
-    double time = beam->getT() * 1e9;
-
     this->update_m();
 
     vm_t vmMin(vmem_m.size());
@@ -211,7 +209,7 @@ void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
     row.addColumn("t", beam->getT() * 1e9);             // 1
     row.addColumn("s", pathLength);                     // 2
     
-    row.addColumn("VmPeak-Min",  vmMin[VMPEAK]);
+    row.addColumn("VmPeak-Min", vmMin[VMPEAK]);
     row.addColumn("VmPeak-Max", vmMax[VMPEAK]);
     row.addColumn("VmPeak-Avg", vmAvg[VMPEAK]);
 

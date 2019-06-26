@@ -32,6 +32,7 @@ private:
     typedef boost::variant<float,
                            double,
                            long unsigned int,
+                           long double,
                            char,
                            std::string> variant_t;
 
