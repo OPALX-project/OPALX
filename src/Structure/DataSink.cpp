@@ -41,24 +41,18 @@
 
 extern Inform *gmsg;
 
-DataSink::DataSink()
-    : firstWriteH5Surface_m(true) /// Set file write flags to true. These will be set to false after first
-                                  /// write operation.
-    , surfaceLossFileName_m(OpalData::getInstance()->getInputBasename() + std::string(".SurfaceLoss.h5"))
-    , lossWrCounter_m(0)
-{
-    this->initWriters_m();
+DataSink::DataSink() {
+    this->init_m();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
-    : DataSink()
 {
     if (restart && !Options::enableHDF5) {
         throw OpalException("DataSink::DataSink()",
                             "Can not restart when HDF5 is disabled");
     }
     
-    this->initWriters_m(restart);
+    this->init_m(restart);
     
     h5Writer_m->changeH5Wrapper(h5wrapper);
     
@@ -333,15 +327,22 @@ void DataSink::rewindLines_m() {
 }
 
 
-void DataSink::initWriters_m(bool restart) {
+void DataSink::init_m(bool restart) {
     std::string fn = OpalData::getInstance()->getInputBasename();
     
+    /* Set file write flags to true. These will be set to false after first
+     * write operation.
+     */
+    firstWriteH5Surface_m = true;
+    lossWrCounter_m = 0;
+    surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5"))
+
     statWriter_m      = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
-    
+
     sddsWriter_m.push_back(
         sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart))
     );
-    
+
 #ifdef ENABLE_AMR
     sddsWriter_m.push_back(
         sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart))
@@ -359,12 +360,11 @@ void DataSink::initWriters_m(bool restart) {
         );
 #endif
     }
-    
+
     if ( Options::enableHDF5 ) {
         h5Writer_m = h5Writer_t(new H5Writer());
     }
 }
-
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
