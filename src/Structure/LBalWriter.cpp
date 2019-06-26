@@ -37,7 +37,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
         std::stringstream tmp2;
         tmp2 << "Number of particles of processor " << p;
 
-        this->addColumn(ss.str(), "long", "1", tmp2.str());
+        this->addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
 
 #ifdef ENABLE_AMR
