@@ -13,7 +13,7 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
     , indent_m("        ")
 {
     namespace fs = boost::filesystem;
-    
+
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
         INFOMSG("Appending data to existing data file: " << fname_m << endl);
@@ -58,7 +58,7 @@ void SDDSWriter::replaceVersionString() {
 
     if (Ippl::myNode() != 0)
         return;
-    
+
     std::string versionFile;
     SDDS::SDDSParser parser(fname_m);
     parser.run();
@@ -84,7 +84,7 @@ void SDDSWriter::replaceVersionString() {
 
     while (allLines.size() > 0) {
         line = allLines.front();
-        
+
         if (line != versionFile) {
             fs << line << "\n";
         } else {
@@ -103,7 +103,7 @@ void SDDSWriter::replaceVersionString() {
 void SDDSWriter::open() {
     if ( Ippl::myNode() != 0 || os_m.is_open() )
         return;
-    
+
     os_m.open(fname_m.c_str(), mode_m);
     os_m.precision(15);
     os_m.setf(std::ios::scientific, std::ios::floatfield);
@@ -122,8 +122,10 @@ void SDDSWriter::writeHeader() {
         return;
 
     this->writeDescription_m();
-    
+
     this->writeParameters_m();
+
+    this->writeColumns_m();
 
     this->writeInfo_m();
 
@@ -175,11 +177,35 @@ void SDDSWriter::writeInfo_m() {
     os_m << "&data\n"
          << indent_m << "mode=" << info_m.first << ",\n"
          << indent_m << "no_row_counts=" << info_m.second << "\n"
-         << "&end\n"
-         << Ippl::getNodes()
-         << OPAL_PROJECT_NAME << " "
-         << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << "\n"
-         << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env"))
-         << std::endl;
+         << "&end";
+
+    while (!paramValues_m.empty()) {
+        os_m << "\n" << paramValues_m.front();
+
+        paramValues_m.pop();
+    }
+
+    os_m << std::endl;
+}
+
+void SDDSWriter::addDefaultParameters() {
+    std::stringstream revision;
+    revision << OPAL_PROJECT_NAME << " "
+             << OPAL_PROJECT_VERSION << " "
+             << "git rev. #" << Util::getGitRevision();
+
+    std::string flavor;
+    if (OpalData::getInstance()->isInOPALTMode()) {
+        flavor = "opal-t";
+    } else if (OpalData::getInstance()->isInOPALCyclMode()) {
+        flavor = "opal-cycl";
+    } else {
+        flavor = "opal-env";
+    }
+
+    addParameter("processors", "long", "Number of Cores used", Ippl::getNodes());
+
+    addParameter("revision", "string", "git revision of opal", revision.str());
+
+    addParameter("flavor", "string", "OPAL flavor that wrote file", flavor);
 }

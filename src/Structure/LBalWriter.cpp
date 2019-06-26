@@ -23,24 +23,20 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
     ss << "Processor statistics '"
        << OpalData::getInstance()->getInputFn() << "' "
        << dateStr << "" << timeStr;
-    
+
     this->addDescription(ss.str(), "lbal parameters");
-    
-    this->addParameter("processors", "long", "Number of Cores used");
 
-    this->addParameter("revision", "string", "git revision of opal");
+    this->addDefaultParameters();
 
-    this->addParameter("flavor", "string", "OPAL flavor that wrote file");
-    
     this->addColumn("t", "double", "ns", "Time");
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         std::stringstream tmp1;
         tmp1 << "processor-" << p;
-        
+
         std::stringstream tmp2;
         tmp2 << "Number of particles of processor " << p;
-        
+
         this->addColumn(ss.str(), "long", "1", tmp2.str());
     }
 
@@ -52,7 +48,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
         for (int lev = 0; lev < nLevel; ++lev) {
             std::stringstream tmp1;
             tmp1 << "level-" << lev;
-            
+
             std::stringstream tmp2;
             tmps2 << "Number of particles at level " << lev;
             this->addColumn(tmp1.str(), "long", "1", tmp2.str());
@@ -65,7 +61,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
 
 
 void LBalWriter::write(PartBunchBase<double, 3> *beam) {
-    
+
     beam->gatherLoadBalanceStatistics();
 
 #ifdef ENABLE_AMR
@@ -77,20 +73,37 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
     if ( Ippl::myNode() != 0 )
         return;
     
-    this->writeValue(beam->getT() * 1e9);   // 1
+    
+    this->fillHeader_m(beam);
+    
+    this->open();
+    
+    this->writeHeader();
+    
+    SDDSDataRow row(this->getColumnNames());
+    row.addColumn("t", beam->getT() * 1e9); // 1
 
     size_t nProcs = Ippl::getNodes();
     for (size_t p = 0; p < nProcs; ++ p) {
-        this->writeValue(beam->getLoadBalance(p));
+        std::stringstream ss;
+        ss << "processor-" << p;
+        row.addColumn(ss.str(), beam->getLoadBalance(p));
     }
 
 #ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
         for (int lev = 0; lev < nLevel; ++lev) {
-            this->writeValue(amrbeam->getLevelStatistics(lev));
+            std::stringstream ss;
+            ss << "level-" << lev;
+            row.addColumn(ss.str(), amrbeam->getLevelStatistics(lev));
         }
     }
 #endif
+
+    this->writeRow(row);
+
     this->newline();
+
+    this->close();
 }
