@@ -23,6 +23,7 @@ void MemoryWriter::fillHeader_m() {
 
     this->addColumn("s", "double", "m", "Path length");
 
+    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     this->addColumn("memory", "double", memory->getUnit(), "Total Memory");
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
@@ -42,7 +43,6 @@ void MemoryWriter::fillHeader_m() {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
 
-    IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
 
     std::stringstream ss;
 

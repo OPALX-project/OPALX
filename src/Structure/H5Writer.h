@@ -9,14 +9,12 @@ class H5Writer {
     
 public:
     
-    H5Writer(H5PartWrapper* h5wrapper);
+    H5Writer(H5PartWrapper* h5wrapper, bool restart);
     
     ~H5Writer() {
         h5wrapper_m = NULL;
     }
-    
-    void writeHeader();
-    
+
     void close();
     
     void changeH5Wrapper(H5PartWrapper *h5wrapper);
@@ -89,12 +87,6 @@ private:
     /// Current record, or time step, of H5 file.
     int H5call_m;
 };
-
-
-inline
-void H5Writer::writeHeader() {
-    h5wrapper_m->writeHeader();
-}
 
 
 inline
