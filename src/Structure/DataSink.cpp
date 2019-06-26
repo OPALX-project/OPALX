@@ -313,6 +313,7 @@ void DataSink::rewindLines_m() {
     // use stat file to get position
     if ( statWriter_m->exists() ) {
         double spos = h5Writer_m->getLastPosition();
+        std::cout << spos << std::endl;
         linesToRewind = statWriter_m->rewindToSpos(spos);
         statWriter_m->replaceVersionString();
         
@@ -335,7 +336,7 @@ void DataSink::init_m(bool restart) {
      */
     firstWriteH5Surface_m = true;
     lossWrCounter_m = 0;
-    surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5"))
+    surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5");
 
     statWriter_m      = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
 
