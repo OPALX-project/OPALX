@@ -121,7 +121,7 @@ private:
     
     void rewindLines_m();
     
-    void initWriters_m(bool restart = false);
+    void init_m(bool restart = false);
     
     
     h5Writer_t      h5Writer_m;
