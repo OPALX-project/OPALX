@@ -143,10 +143,8 @@ private:
     State curState_m;
 
     /// Dumps id, design variables and bound
-    std::string resultFile_m;
-    std::string resultDir_m;
-
-    boost::property_tree::ptree tree_m;
+    std::string jsonFname_m;
+    void writeJsonHeader_m();
 
     void dumpIndividualsToJSON_m();
 
