@@ -1,10 +1,15 @@
 #include "H5Writer.h"
 
-H5Writer::H5Writer(H5PartWrapper* h5wrapper)
+H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart)
     : H5PartTimer_m(IpplTimings::getTimer("Write H5-File"))
     , h5wrapper_m(h5wrapper)
     , H5call_m(0)
-{ }
+{
+    if ( !restart ) {
+        h5wrapper->writeHeader();
+    }
+    h5wrapper->close();
+}
 
 
 void H5Writer::writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[]) {

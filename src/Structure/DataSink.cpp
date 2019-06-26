@@ -56,16 +56,11 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
 
     if ( restart )
         rewindLines_m();
-    
-    h5Writer_m->close();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper)
     : DataSink(h5wrapper, false)
-{
-    h5Writer_m->writeHeader();
-    h5Writer_m->close();
-}
+{ }
 
 
 void DataSink::dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const {
@@ -360,7 +355,7 @@ void DataSink::init_m(bool restart, H5PartWrapper* h5wrapper) {
     }
 
     if ( Options::enableHDF5 ) {
-        h5Writer_m = h5Writer_t(new H5Writer(h5wrapper));
+        h5Writer_m = h5Writer_t(new H5Writer(h5wrapper, restart));
     }
 }
 
