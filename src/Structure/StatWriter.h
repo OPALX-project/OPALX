@@ -44,9 +44,6 @@ public:
 
 private:
     void fillHeader(const losses_t &losses = losses_t());
-
-    /// Timer to track statistics write time.
-    IpplTimings::TimerRef StatMarkerTimer_m;
 };
 
 

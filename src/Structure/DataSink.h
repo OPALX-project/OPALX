@@ -143,6 +143,9 @@ private:
 
     /// needed to create index for vtk file
     unsigned int lossWrCounter_m;
+
+    /// Timer to track statistics write time.
+    IpplTimings::TimerRef StatMarkerTimer_m;
 };
 
 // inline
