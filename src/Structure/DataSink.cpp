@@ -55,7 +55,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
     this->init_m(restart, h5wrapper);
 
     if ( restart )
-        rewindLines_m();
+        rewindLines();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper)
@@ -303,22 +303,16 @@ void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
 }
 
 
-void DataSink::rewindLines_m() {
-    
-    if ( Ippl::myNode() != 0 )
-        return;
-    
+void DataSink::rewindLines() {
     unsigned int linesToRewind = 0;
-    
     // use stat file to get position
     if ( statWriter_m->exists() ) {
         double spos = h5Writer_m->getLastPosition();
         linesToRewind = statWriter_m->rewindToSpos(spos);
         statWriter_m->replaceVersionString();
-
         h5Writer_m->close();
     }
-    
+
     // rewind all others
     if ( linesToRewind > 0 ) {
         for (size_t i = 0; i < sddsWriter_m.size(); ++i)
