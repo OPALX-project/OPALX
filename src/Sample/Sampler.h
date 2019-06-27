@@ -144,15 +144,13 @@ private:
 
     /// Dumps id, design variables and bound
     std::string jsonFname_m;
-    void writeJsonHeader_m();
+    void writeJsonHeader();
 
-    void dumpIndividualsToJSON_m();
-
-    void addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind);
+    void addIndividualToJSON(const boost::shared_ptr<Individual_t>& ind);
 
     void runStateMachine();
 
-    void createNewIndividual_m();
+    void createNewIndividual();
 };
 
 #endif
