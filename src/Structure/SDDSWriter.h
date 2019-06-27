@@ -78,8 +78,6 @@ protected:
 
     void writeRow();
 
-    void newline();
-
     void open();
 
     void close();
@@ -129,12 +127,6 @@ private:
 inline
 bool SDDSWriter::exists() const {
     return boost::filesystem::exists(fname_m);
-}
-
-
-inline
-void SDDSWriter::newline() {
-    os_m << std::endl;
 }
 
 

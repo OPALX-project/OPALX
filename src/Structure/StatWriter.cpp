@@ -242,8 +242,6 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
 
     this->writeRow();
 
-    this->newline();
-
     this->close();
 }
 
@@ -330,8 +328,6 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
     columns_m.addColumnValue("partsOutside", 0.0);                // 42 number of particles outside n*sigma
 
     this->writeRow();
-
-    this->newline();
 
     this->close();
 }
