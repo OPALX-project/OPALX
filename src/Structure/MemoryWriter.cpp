@@ -96,7 +96,5 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
 
     this->writeRow();
 
-    this->newline();
-
     this->close();
 }
