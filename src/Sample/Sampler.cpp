@@ -259,7 +259,7 @@ void Sampler::dumpIndividualsToJSON() {
         for(size_t i=0; i < ind.objectives.size(); i++, expr_it++) {
             std::string name = expr_it->first;
 
-            // skip dummy objective (SamplePilot.h, line 64)
+            // skip dummy objective (in constructor of SamplePilot.h)
             if ( name == "dummy" )
                 continue;
 
