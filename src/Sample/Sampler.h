@@ -11,7 +11,7 @@
 #include <map>
 #include <utility>
 #include <fstream>
-
+#include <list>
 
 #include "Comm/types.h"
 #include "Util/Types.h"
@@ -143,9 +143,12 @@ private:
     State curState_m;
 
     /// Dumps id, design variables and bound
+    std::size_t jsonDumpFreq_m;
     std::string jsonFname_m;
     void writeJsonHeader();
+    std::list<Individual_t> individualsToDump_m;
 
+    void dumpIndividualsToJSON();
     void addIndividualToJSON(const boost::shared_ptr<Individual_t>& ind);
 
     void runStateMachine();
