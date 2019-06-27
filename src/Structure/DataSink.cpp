@@ -294,14 +294,12 @@ bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
 
 
 void DataSink::noAmrDump(PartBunchBase<double, 3> *beam) {
+    // no statWriter_m dump
+
     IpplTimings::startTimer(StatMarkerTimer_m);
 
-    // lbal
-    sddsWriter_m[0]->write(beam);
-    
-    if ( Options::memoryDump ) {
-        sddsWriter_m[2]->write(beam);
-    }
+    for (size_t i = 0; i < sddsWriter_m.size(); ++i)
+        sddsWriter_m[i]->write(beam);
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
@@ -350,9 +348,11 @@ void DataSink::init_m(bool restart, H5PartWrapper* h5wrapper) {
     );
 
 #ifdef ENABLE_AMR
-    sddsWriter_m.push_back(
-        sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart))
-    );
+    if ( Options::amr ) {
+        sddsWriter_m.push_back(
+            sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart))
+        );
+    }
 #endif
 
     if ( Options::memoryDump ) {
