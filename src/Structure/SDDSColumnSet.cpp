@@ -18,7 +18,7 @@ void SDDSColumnSet::addColumn(const std::string& name,
 void SDDSColumnSet::writeHeader(std::ostream& os) const {
     for (unsigned int i = 0; i < columns_m.size(); ++ i) {
         auto & col = columns_m[i];
-        col.writeHeader(os, i);
+        col.writeHeader(os, i + 1);
     }
 }
 
