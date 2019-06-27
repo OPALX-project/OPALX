@@ -1,5 +1,9 @@
 #include "GridLBalWriter.h"
 
+#include "Utilities/Timer.h"
+
+#include <sstream>
+
 void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     static bool isNotFirst = false;
@@ -59,7 +63,7 @@ void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 }
 
 
-void GridLBalWriter::writeData(PartBunchBase<double, 3> *beam) {
+void GridLBalWriter::write(PartBunchBase<double, 3> *beam) {
     AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
 
     if ( !amrbeam )

@@ -19,8 +19,6 @@ public:
     typedef std::vector<std::string> units_t;
     
     MemoryProfiler(const std::string& fname, bool restart);
-    
-    ~MemoryProfiler();
 
     enum VirtualMemory {
         VMPEAK = 0, // VmPeak: Peak virtual memory size.
@@ -49,7 +47,6 @@ private:
     
 private:
     std::string fname_m;
-    std::ofstream ofstream_m;
     std::map<std::string, int> procinfo_m;
     vm_t vmem_m;
     units_t unit_m;

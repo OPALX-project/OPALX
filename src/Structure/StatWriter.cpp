@@ -1,7 +1,5 @@
 #include "StatWriter.h"
 
-#include "OPALconfig.h"
-#include "Utilities/Util.h"
 #include "Utilities/Timer.h"
 
 #include <sstream>

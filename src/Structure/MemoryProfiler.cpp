@@ -5,17 +5,13 @@
 #include <unistd.h>
 #endif
 
-#include "OPALconfig.h"
-#include "AbstractObjects/OpalData.h"
 #include "Utilities/Timer.h"
-#include "Utilities/Util.h"
 #include "Utilities/OpalException.h"
 
 #include <boost/filesystem.hpp>
 
 #include "Ippl.h"
 
-#include <iomanip>
 #include <sstream>
 
 namespace {
@@ -48,12 +44,6 @@ MemoryProfiler::MemoryProfiler(const std::string& fname, bool restart)
 
     vmem_m.resize(procinfo_m.size());
     unit_m.resize(procinfo_m.size());
-}
-
-
-MemoryProfiler::~MemoryProfiler() {
-    if ( ofstream_m.is_open() )
-        ofstream_m.close();
 }
 
 

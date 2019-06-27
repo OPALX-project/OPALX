@@ -1,9 +1,6 @@
 #include "MemoryWriter.h"
 
-#include "OPALconfig.h"
-#include "Utilities/Util.h"
 #include "Utilities/Timer.h"
-#include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 
 MemoryWriter::MemoryWriter(const std::string& fname, bool restart)
