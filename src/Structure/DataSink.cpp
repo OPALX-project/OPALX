@@ -29,7 +29,7 @@
 #include "MemoryWriter.h"
 
 #ifdef ENABLE_AMR
-    #include "GridWriter.h"
+    #include "GridLBalWriter.h"
 #endif
 
 
