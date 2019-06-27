@@ -135,16 +135,6 @@ private:
     
     static std::string convertToString(int number);
 
-    /** \brief First write to the H5 surface loss file.
-     *
-     * If true, file name will be assigned and file will be prepared to write.
-     * Variable is then reset to false so that H5 file is only initialized once.
-     */
-    bool firstWriteH5Surface_m;
-
-    /// Name of output file for surface loss data.
-    std::string surfaceLossFileName_m;
-
     /// needed to create index for vtk file
     unsigned int lossWrCounter_m;
 

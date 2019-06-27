@@ -327,9 +327,7 @@ void DataSink::init_m(bool restart, H5PartWrapper* h5wrapper) {
     /* Set file write flags to true. These will be set to false after first
      * write operation.
      */
-    firstWriteH5Surface_m = true;
     lossWrCounter_m = 0;
-    surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5");
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
 
     statWriter_m = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
