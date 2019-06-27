@@ -118,7 +118,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    int maxSTEPS, int timeIntegrator,
                                                    int numBunch)
     : Tracker(beamline, bunch, reference, revBeam, revTrack)
-    , itsMBDump_m(new MultiBunchDump())
     , bgf_m(nullptr)
     , maxSteps_m(maxSTEPS)
     , numBunch_m(numBunch)
@@ -2661,9 +2660,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
             globalToLocal(itsBunch_m->P, phi, psi);
         }
 
-        bunchDumpStatDataPerBunch(azimuth_m);
-
-        itsDataSink->writeMultiBunchStatistics(itsBunch_m);
+        itsDataSink->writeMultiBunchStatistics(itsBunch_m, azimuth_m);
 
         if(Options::psDumpFrame != Options::GLOBAL) {
             localToGlobal(itsBunch_m->R, phi, psi, meanR);
@@ -2749,19 +2746,6 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     }
 
     IpplTimings::stopTimer(DumpTimer_m);
-}
-
-
-void ParallelCyclotronTracker::bunchDumpStatDataPerBunch(const double& azimuth) {
-    for (short b = 0; b < BunchCount_m; ++b) {
-
-        MultiBunchDump::beaminfo_t binfo;
-
-        if ( itsBunch_m->calcBunchBeamParameters(binfo, b) ) {
-            binfo.azimuth = azimuth;
-            itsMBDump_m->writeData(binfo, b);
-        }
-    }
 }
 
 

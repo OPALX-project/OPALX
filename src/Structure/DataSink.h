@@ -25,6 +25,7 @@
 
 #include "StatWriter.h"
 #include "H5Writer.h"
+#include "MultiBunchDump.h"
 
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -33,10 +34,11 @@ class H5PartWrapper;
 
 class DataSink {
 public:
-    typedef StatWriter::losses_t        losses_t;
-    typedef std::unique_ptr<StatWriter> statWriter_t;
-    typedef std::unique_ptr<SDDSWriter> sddsWriter_t;
-    typedef std::unique_ptr<H5Writer>   h5Writer_t;
+    typedef StatWriter::losses_t            losses_t;
+    typedef std::unique_ptr<StatWriter>     statWriter_t;
+    typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
+    typedef std::unique_ptr<H5Writer>       h5Writer_t;
+    typedef std::unique_ptr<MultiBunchDump> mbWriter_t;
     
     
     /** \brief Default constructor.
@@ -109,8 +111,12 @@ public:
                                bool nEmissionMode,
                                std::string fn);
 
-    // no statWriter_m dump
-    void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam);
+    /** no statWriter_m dump
+     * @param beam
+     * @param azimuth (global) [deg] of dump
+     */
+    void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
+                                   const double& azimuth);
 
 private:
     DataSink(const DataSink &) { }
@@ -125,6 +131,7 @@ private:
     h5Writer_t      h5Writer_m;
     statWriter_t    statWriter_m;
     std::vector<sddsWriter_t> sddsWriter_m;
+    std::list<mbWriter_t> mbWriter_m;
     
     static std::string convertToString(int number);
 
