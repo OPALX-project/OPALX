@@ -271,13 +271,33 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
 }
 
 
-void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam) {
+void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
+                                         const double& azimuth) {
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
-    
+
+    std::string fn = OpalData::getInstance()->getInputBasename();
+    bool restart   = OpalData::getInstance()->inRestartRun();
+
+    // if new bunch in machine --> generate new writer for it
+    short bunch = mbWriter_m.size();
+    while ( bunch < beam->getNumBunch() ) {
+        std::stringstream ss;
+        ss << fn << "-bunch-"
+           << std::setw(4) << std::setfill('0') << bunch << ".smb";
+        mbWriter_m.push_back(
+            mbWriter_t(new MultiBunchDump(ss.str(), restart, bunch))
+        );
+        ++bunch;
+    }
+
+    for (auto& mb : mbWriter_m) {
+        mb->write(beam, azimuth);
+    }
+
     for (size_t i = 0; i < sddsWriter_m.size(); ++i)
         sddsWriter_m[i]->write(beam);
-    
+
     /// %Stop timer.
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
