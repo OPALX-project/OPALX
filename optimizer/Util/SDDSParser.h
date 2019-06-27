@@ -144,7 +144,7 @@ namespace SDDS {
                     * (value_after - value_before)
                     / (value_after_ref - value_before_ref);
 
-            if (std::isfinite(nval))
+            if (!std::isfinite(nval))
                 throw SDDSParserException("SDDSParser::getInterpolatedValue",
                                           "Interpolated value either NaN or Inf.");
         }
