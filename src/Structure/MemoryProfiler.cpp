@@ -1,8 +1,8 @@
 #include "MemoryProfiler.h"
 
 #ifdef __linux__
-    #include <sys/types.h>
-    #include <unistd.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 #include "OPALconfig.h"
@@ -16,7 +16,16 @@
 #include "Ippl.h"
 
 #include <iomanip>
+#include <sstream>
 
+namespace {
+    std::string to_string(long double d) {
+        std::ostringstream ss;
+        ss.precision(15);
+        ss << d;
+        return ss.str();
+    }
+}
 
 MemoryProfiler::MemoryProfiler(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
@@ -56,59 +65,59 @@ void MemoryProfiler::header_m() {
     }
     isNotFirst = true;
 
-    this->addColumn("t", "double", "ns", "Time");
+    columns_m.addColumn("t", "double", "ns", "Time");
 
-    this->addColumn("s", "double", "m", "Path length");
+    columns_m.addColumn("s", "double", "m", "Path length");
 
     // peak virtual memory size
-    this->addColumn("VmPeak-Min", "double", unit_m[VirtualMemory::VMPEAK],
-                    "Minimum peak virtual memory size");
+    columns_m.addColumn("VmPeak-Min", "double", unit_m[VirtualMemory::VMPEAK],
+                        "Minimum peak virtual memory size");
 
-    this->addColumn("VmPeak-Max", "double", unit_m[VirtualMemory::VMPEAK],
-                    "Maximum peak virtual memory size");
+    columns_m.addColumn("VmPeak-Max", "double", unit_m[VirtualMemory::VMPEAK],
+                        "Maximum peak virtual memory size");
 
-    this->addColumn("VmPeak-Avg", "double", unit_m[VirtualMemory::VMPEAK],
-                    "Average peak virtual memory size");
+    columns_m.addColumn("VmPeak-Avg", "double", unit_m[VirtualMemory::VMPEAK],
+                        "Average peak virtual memory size");
 
     // virtual memory size
-    this->addColumn("VmSize-Min", "double", unit_m[VirtualMemory::VMSIZE],
-                    "Minimum virtual memory size");
+    columns_m.addColumn("VmSize-Min", "double", unit_m[VirtualMemory::VMSIZE],
+                        "Minimum virtual memory size");
 
-    this->addColumn("VmSize-Max", "double", unit_m[VirtualMemory::VMSIZE],
-                    "Maximum virtual memory size");
+    columns_m.addColumn("VmSize-Max", "double", unit_m[VirtualMemory::VMSIZE],
+                        "Maximum virtual memory size");
 
-    this->addColumn("VmSize-Avg", "double", unit_m[VirtualMemory::VMSIZE],
-                    "Average virtual memory size");
+    columns_m.addColumn("VmSize-Avg", "double", unit_m[VirtualMemory::VMSIZE],
+                        "Average virtual memory size");
 
     // peak resident set size ("high water mark")
-    this->addColumn("VmHWM-Min", "double", unit_m[VirtualMemory::VMHWM],
-                    "Minimum peak resident set size");
+    columns_m.addColumn("VmHWM-Min", "double", unit_m[VirtualMemory::VMHWM],
+                        "Minimum peak resident set size");
 
-    this->addColumn("VmHWM-Max", "double", unit_m[VirtualMemory::VMHWM],
-                    "Maximum peak resident set size");
+    columns_m.addColumn("VmHWM-Max", "double", unit_m[VirtualMemory::VMHWM],
+                        "Maximum peak resident set size");
 
-    this->addColumn("VmHWM-Avg", "double", unit_m[VirtualMemory::VMHWM],
-                    "Average peak resident set size");
+    columns_m.addColumn("VmHWM-Avg", "double", unit_m[VirtualMemory::VMHWM],
+                        "Average peak resident set size");
 
     // resident set size
-    this->addColumn("VmRSS-Min", "double", unit_m[VirtualMemory::VMRSS],
-                    "Minimum resident set size");
+    columns_m.addColumn("VmRSS-Min", "double", unit_m[VirtualMemory::VMRSS],
+                        "Minimum resident set size");
 
-    this->addColumn("VmRSS-Max", "double", unit_m[VirtualMemory::VMRSS],
-                    "Maximum resident set size");
+    columns_m.addColumn("VmRSS-Max", "double", unit_m[VirtualMemory::VMRSS],
+                        "Maximum resident set size");
 
-    this->addColumn("VmRSS-Avg", "double", unit_m[VirtualMemory::VMRSS],
-                    "Average resident set size");
+    columns_m.addColumn("VmRSS-Avg", "double", unit_m[VirtualMemory::VMRSS],
+                        "Average resident set size");
 
     // stack size
-    this->addColumn("VmStk-Min", "double", unit_m[VirtualMemory::VMSTK],
-                    "Minimum stack size");
+    columns_m.addColumn("VmStk-Min", "double", unit_m[VirtualMemory::VMSTK],
+                        "Minimum stack size");
 
-    this->addColumn("VmStk-Max", "double", unit_m[VirtualMemory::VMSTK],
-                    "Maximum stack size");
+    columns_m.addColumn("VmStk-Max", "double", unit_m[VirtualMemory::VMSTK],
+                        "Maximum stack size");
 
-    this->addColumn("VmStk-Avg", "double", unit_m[VirtualMemory::VMSTK],
-                    "Average stack size");
+    columns_m.addColumn("VmStk-Avg", "double", unit_m[VirtualMemory::VMSTK],
+                        "Average stack size");
 
     if ( mode_m == std::ios::app )
         return;
@@ -212,31 +221,32 @@ void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
 
     this->writeHeader();
 
-    SDDSDataRow row(this->getColumnNames());
-    row.addColumn("t", beam->getT() * 1e9);             // 1
-    row.addColumn("s", pathLength);                     // 2
-    
-    row.addColumn("VmPeak-Min", vmMin[VMPEAK]);
-    row.addColumn("VmPeak-Max", vmMax[VMPEAK]);
-    row.addColumn("VmPeak-Avg", vmAvg[VMPEAK]);
+    columns_m.addColumnValue("t", beam->getT() * 1e9);             // 1
+    columns_m.addColumnValue("s", pathLength);                     // 2
 
-    row.addColumn("VmSize-Min", vmMin[VMSIZE]);
-    row.addColumn("VmSize-Max", vmMax[VMSIZE]);
-    row.addColumn("VmSize-Avg", vmAvg[VMSIZE]);
+    // boost::variant can't overload double and long double. By using a
+    // string this shortcoming can be bypassed.
+    columns_m.addColumnValue("VmPeak-Min", ::to_string(vmMin[VMPEAK]));
+    columns_m.addColumnValue("VmPeak-Max", ::to_string(vmMax[VMPEAK]));
+    columns_m.addColumnValue("VmPeak-Avg", ::to_string(vmAvg[VMPEAK]));
 
-    row.addColumn("VmHWM-Min", vmMin[VMHWM]);
-    row.addColumn("VmHWM-Max", vmMax[VMHWM]);
-    row.addColumn("VmHWM-Avg", vmAvg[VMHWM]);
+    columns_m.addColumnValue("VmSize-Min", ::to_string(vmMin[VMSIZE]));
+    columns_m.addColumnValue("VmSize-Max", ::to_string(vmMax[VMSIZE]));
+    columns_m.addColumnValue("VmSize-Avg", ::to_string(vmAvg[VMSIZE]));
 
-    row.addColumn("VmRSS-Min", vmMin[VMRSS]);
-    row.addColumn("VmRSS-Max", vmMax[VMRSS]);
-    row.addColumn("VmRSS-Avg", vmAvg[VMRSS]);
+    columns_m.addColumnValue("VmHWM-Min", ::to_string(vmMin[VMHWM]));
+    columns_m.addColumnValue("VmHWM-Max", ::to_string(vmMax[VMHWM]));
+    columns_m.addColumnValue("VmHWM-Avg", ::to_string(vmAvg[VMHWM]));
 
-    row.addColumn("VmStk-Min", vmMin[VMSTK]);
-    row.addColumn("VmStk-Max", vmMax[VMSTK]);
-    row.addColumn("VmStk-Avg", vmAvg[VMSTK]);
+    columns_m.addColumnValue("VmRSS-Min", ::to_string(vmMin[VMRSS]));
+    columns_m.addColumnValue("VmRSS-Max", ::to_string(vmMax[VMRSS]));
+    columns_m.addColumnValue("VmRSS-Avg", ::to_string(vmAvg[VMRSS]));
 
-    this->writeRow(row);
+    columns_m.addColumnValue("VmStk-Min", ::to_string(vmMin[VMSTK]));
+    columns_m.addColumnValue("VmStk-Max", ::to_string(vmMax[VMSTK]));
+    columns_m.addColumnValue("VmStk-Avg", ::to_string(vmAvg[VMSTK]));
+
+    this->writeRow();
 
     this->newline();
 
