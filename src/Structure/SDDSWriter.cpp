@@ -158,18 +158,7 @@ void SDDSWriter::writeParameters_m() {
 
 
 void SDDSWriter::writeColumns_m() {
-    short column = 1;
-
-    while ( !cols_m.empty() ) {
-        cols_t col = cols_m.front();
-        os_m << "&column\n"
-             << indent_m << "name=" << std::get<0>(col) << ",\n"
-             << indent_m << "type=" << std::get<1>(col) << ",\n"
-             << indent_m << "units=" << std::get<2>(col) << ",\n"
-             << indent_m << "description=\"" << column++ << " " << std::get<3>(col) << "\"\n"
-             << "&end\n";
-        cols_m.pop();
-    }
+    columns_m.writeHeader(os_m);
 }
 
 

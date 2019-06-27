@@ -18,6 +18,8 @@ set (_SRCS
   MemoryWriter.cpp
   LBalWriter.cpp
   StatWriter.cpp
+  SDDSColumn.cpp
+  SDDSColumnSet.cpp
   SDDSWriter.cpp
 )
 

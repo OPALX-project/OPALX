@@ -10,7 +10,7 @@ LBalWriter::LBalWriter(const std::string& fname, bool restart)
 { }
 
 
-void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
+void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     static bool isNotFirst = false;
     if ( isNotFirst ) {
@@ -18,7 +18,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
     }
     isNotFirst = true;
 
-    this->addColumn("t", "double", "ns", "Time");
+    columns_m.addColumn("t", "double", "ns", "Time");
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         std::stringstream tmp1;
@@ -27,7 +27,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
         std::stringstream tmp2;
         tmp2 << "Number of particles of processor " << p;
 
-        this->addColumn(tmp1.str(), "long", "1", tmp2.str());
+        columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
 
 #ifdef ENABLE_AMR
@@ -41,7 +41,7 @@ void LBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
 
             std::stringstream tmp2;
             tmps2 << "Number of particles at level " << lev;
-            this->addColumn(tmp1.str(), "long", "1", tmp2.str());
+            columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
         }
     }
 #endif
@@ -80,22 +80,21 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
 
     if ( Ippl::myNode() != 0 )
         return;
-    
-    
-    this->fillHeader_m(beam);
-    
+
+
+    this->fillHeader(beam);
+
     this->open();
-    
+
     this->writeHeader();
-    
-    SDDSDataRow row(this->getColumnNames());
-    row.addColumn("t", beam->getT() * 1e9); // 1
+
+    columns_m.addColumnValue("t", beam->getT() * 1e9); // 1
 
     size_t nProcs = Ippl::getNodes();
     for (size_t p = 0; p < nProcs; ++ p) {
         std::stringstream ss;
         ss << "processor-" << p;
-        row.addColumn(ss.str(), beam->getLoadBalance(p));
+        columns_m.addColumnValue(ss.str(), beam->getLoadBalance(p));
     }
 
 #ifdef ENABLE_AMR
@@ -104,12 +103,12 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
         for (int lev = 0; lev < nLevel; ++lev) {
             std::stringstream ss;
             ss << "level-" << lev;
-            row.addColumn(ss.str(), amrbeam->getLevelStatistics(lev));
+            columns_m.addColumnValue(ss.str(), amrbeam->getLevelStatistics(lev));
         }
     }
 #endif
 
-    this->writeRow(row);
+    this->writeRow();
 
     this->newline();
 
