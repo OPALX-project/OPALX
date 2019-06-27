@@ -51,7 +51,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
         throw OpalException("DataSink::DataSink()",
                             "Can not restart when HDF5 is disabled");
     }
-    
+
     this->init_m(restart, h5wrapper);
 
     if ( restart )
