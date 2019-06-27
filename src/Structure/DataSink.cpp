@@ -271,15 +271,7 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
 }
 
 
-#ifdef ENABLE_AMR
-
-bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
-
-    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
-
-    if ( !amrbeam )
-        return false;
-
+void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam) {
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
     
@@ -288,22 +280,7 @@ bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
     
     /// %Stop timer.
     IpplTimings::stopTimer(StatMarkerTimer_m);
-    
-    return true;
 }
-
-
-void DataSink::noAmrDump(PartBunchBase<double, 3> *beam) {
-    // no statWriter_m dump
-
-    IpplTimings::startTimer(StatMarkerTimer_m);
-
-    for (size_t i = 0; i < sddsWriter_m.size(); ++i)
-        sddsWriter_m[i]->write(beam);
-
-    IpplTimings::stopTimer(StatMarkerTimer_m);
-}
-#endif
 
 
 void DataSink::rewindLines_m() {
