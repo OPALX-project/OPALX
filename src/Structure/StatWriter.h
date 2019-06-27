@@ -9,14 +9,14 @@ class StatWriter : public SDDSWriter {
 
 public:
     typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
-    
+
     StatWriter(const std::string& fname, bool restart);
-    
+
     /** \brief
      *  delete the last 'numberOfLines' lines of the statistics file
      */
     unsigned int rewindToSpos(double maxSpos);
-    
+
     /** \brief Write statistical data.
      *
      * Writes statistical beam data to proper output file. This is information such as RMS beam parameters
@@ -43,7 +43,7 @@ public:
                double sposHead, double sposRef, double sposTail);
 
 private:
-    void fillHeader_m(const losses_t &losses = losses_t());
+    void fillHeader(const losses_t &losses = losses_t());
 
     /// Timer to track statistics write time.
     IpplTimings::TimerRef StatMarkerTimer_m;

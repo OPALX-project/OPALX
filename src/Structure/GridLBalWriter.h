@@ -4,9 +4,9 @@
 #include "SDDSWriter.h"
 
 class GridLBalWriter : public SDDSWriter {
-    
+
 private:
-    void fillHeader_m(PartBunchBase<double, 3> *beam);
+    void fillHeader(PartBunchBase<double, 3> *beam);
 };
 
 #endif

@@ -15,30 +15,8 @@
 #include <boost/variant.hpp>
 
 #include "Algorithms/PartBunchBase.h"
-
-class SDDSDataRow {
-public:
-    SDDSDataRow(const std::vector<std::string>& cN):
-        columnNames_m(cN)
-    { }
-
-    template<typename T>
-    void addColumn(const std::string& name,
-                   const T& value);
-
-    std::ostream& write(std::ostream &os) const;
-
-private:
-    typedef boost::variant<float,
-                           double,
-                           long unsigned int,
-                           long double,
-                           char,
-                           std::string> variant_t;
-
-    std::vector<std::string> columnNames_m;
-    std::map<std::string, variant_t> columnValues_m;
-};
+#include "Structure/SDDSColumn.h"
+#include "Structure/SDDSColumnSet.h"
 
 class SDDSWriter {
 
@@ -98,7 +76,7 @@ protected:
     void addInfo(const std::string& mode,
                  const size_t& no_row_counts);
 
-    void writeRow(const SDDSDataRow& row);
+    void writeRow();
 
     template<typename T>
     void writeValue(const T& value);
@@ -126,6 +104,7 @@ protected:
      */
     std::ios_base::openmode mode_m;
 
+    SDDSColumnSet columns_m;
 
 private:
 
@@ -148,8 +127,6 @@ private:
     std::vector<std::string> columnNames_m;
     data_t info_m;
 };
-
-
 
 
 inline
@@ -205,8 +182,8 @@ void SDDSWriter::addInfo(const std::string& mode,
 
 
 inline
-void SDDSWriter::writeRow(const SDDSDataRow& row) {
-    row.write(os_m);
+void SDDSWriter::writeRow() {
+    columns_m.writeRow(os_m);
 }
 
 
@@ -220,33 +197,5 @@ void SDDSWriter::addColumn(const std::string& name,
     columnNames_m.push_back(name);
 }
 
-template<typename T>
-void SDDSDataRow::addColumn(const std::string& name,
-                            const T& value) {
-    if (columnValues_m.find(name) != columnValues_m.end()) return;
-
-    variant_t var = value;
-    columnValues_m.insert(std::make_pair(name, var));
-}
-
-inline
-std::ostream& SDDSDataRow::write(std::ostream& os) const {
-    for (const auto name: columnNames_m) {
-        auto it = columnValues_m.find(name);
-        if (it == columnValues_m.end()) {
-            throw OpalException("SDDSDataRow::write",
-                                "value for column '" + name + "' not provided");
-        }
-
-        os << it->second << std::setw(10) << "\t";
-    }
-
-    return os;
-}
-
-inline
-std::ostream& operator<<(std::ostream& os, const SDDSDataRow& row) {
-    return row.write(os);
-}
 
 #endif

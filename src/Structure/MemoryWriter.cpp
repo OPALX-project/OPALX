@@ -11,7 +11,7 @@ MemoryWriter::MemoryWriter(const std::string& fname, bool restart)
 { }
 
 
-void MemoryWriter::fillHeader_m() {
+void MemoryWriter::fillHeader() {
 
     static bool isNotFirst = false;
     if ( isNotFirst ) {
@@ -19,12 +19,12 @@ void MemoryWriter::fillHeader_m() {
     }
     isNotFirst = true;
 
-    this->addColumn("t", "double", "ns", "Time");
+    columns_m.addColumn("t", "double", "ns", "Time");
 
-    this->addColumn("s", "double", "m", "Path length");
+    columns_m.addColumn("s", "double", "m", "Path length");
 
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
-    this->addColumn("memory", "double", memory->getUnit(), "Total Memory");
+    columns_m.addColumn("memory", "double", memory->getUnit(), "Total Memory");
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         std::stringstream tmp1;
@@ -32,7 +32,7 @@ void MemoryWriter::fillHeader_m() {
 
         std::stringstream tmp2;
         tmp2 << "Memory per processor " << p;
-        this->addColumn(tmp1.str(), "double", memory->getUnit(), tmp2.str());
+        columns_m.addColumn(tmp1.str(), "double", memory->getUnit(), tmp2.str());
     }
 
     if ( mode_m == std::ios::app )
@@ -74,15 +74,14 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
     else
         pathLength = beam->get_sPos();
 
-    fillHeader_m();
+    fillHeader();
 
     this->open();
 
     this->writeHeader();
 
-    SDDSDataRow row(this->getColumnNames());
-    row.addColumn("t", beam->getT() * 1e9);             // 1
-    row.addColumn("s", pathLength);                     // 2
+    columns_m.addColumnValue("t", beam->getT() * 1e9);             // 1
+    columns_m.addColumnValue("s", pathLength);                     // 2
 
     int nProcs = Ippl::getNodes();
     double total = 0.0;
@@ -90,15 +89,15 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
         total += memory->getMemoryUsage(p);
     }
 
-    row.addColumn("memory", total);
+    columns_m.addColumnValue("memory", total);
 
     for (int p = 0; p < nProcs; p++) {
         std::stringstream ss;
         ss << "processor-" << p;
-        row.addColumn(ss.str(),  memory->getMemoryUsage(p));
+        columns_m.addColumnValue(ss.str(),  memory->getMemoryUsage(p));
     }
 
-    this->writeRow(row);
+    this->writeRow();
 
     this->newline();
 

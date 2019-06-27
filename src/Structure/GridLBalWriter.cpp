@@ -1,6 +1,6 @@
 #include "GridLBalWriter.h"
 
-void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
+void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     static bool isNotFirst = false;
     if ( isNotFirst ) {
@@ -8,7 +8,7 @@ void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
     }
     isNotFirst = true;
 
-    this->addColumn("t", "double", "ns", "Time");
+    columns_m.addColumn("t", "double", "ns", "Time");
 
     int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
 
@@ -19,7 +19,7 @@ void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
         std::stringstream tmp2;
         tmp2 << "Number of boxes at level " << lev;
 
-        this->addColumn(tmp1.str(), "long", "1", tmp2.str());
+        columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
@@ -29,7 +29,7 @@ void GridLBalWriter::fillHeader_m(PartBunchBase<double, 3> *beam) {
         std::stringstream tmp2;
         tmp2 << "Number of grid points per processor " << p;
 
-        this->addColumn(tmp1.str(), "long", "1", tmp2.str());
+        columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
 
     if ( mode_m == std::ios::app )
@@ -71,14 +71,13 @@ void GridLBalWriter::writeData(PartBunchBase<double, 3> *beam) {
     if ( Ippl::myNode() != 0 )
         return;
 
-    this->fillHeader_m(beam);
+    this->fillHeader(beam);
 
     this->open();
 
     this->writeHeader();
 
-    SDDSDataRow row(this->getColumnNames());
-    row.addColumn("t", beam->getT() * 1e9); // 1
+    columns_m.addColumnValue("t", beam->getT() * 1e9); // 1
 
     std::map<int, long> gridPtsPerCore;
 
@@ -88,17 +87,17 @@ void GridLBalWriter::writeData(PartBunchBase<double, 3> *beam) {
     for (int lev = 0; lev < nLevel; ++lev) {
         std::stringstream ss;
         ss << "level-" << lev;
-        row.addColumn(ss.str(), gridsPerLevel[lev]);
+        columns_m.addColumnValue(ss.str(), gridsPerLevel[lev]);
     }
 
     int nProcs = Ippl::getNodes();
     for (int p = 0; p < nProcs; ++p) {
         std::stringstream ss;
         ss << "processor-" << p;
-        row.addColumn(ss.str(), gridPtsPerCore[p]);
+        columns_m.addColumnValue(ss.str(), gridPtsPerCore[p]);
     }
 
-    this->writeRow(row);
+    this->writeRow();
 
     this->newline();
 
