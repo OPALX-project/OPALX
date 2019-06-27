@@ -4,6 +4,11 @@
 
 #include <sstream>
 
+GridLBalWriter::GridLBalWriter(const std::string& fname, bool restart)
+    : SDDSWriter(fname, restart)
+{ }
+
+
 void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     static bool isNotFirst = false;
