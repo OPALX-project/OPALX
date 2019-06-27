@@ -67,7 +67,7 @@ Sampler::Sampler(const std::map<std::string,
                      boost::get<UPPER_BOUND>(itr->second)));
     }
 
-    writeJsonHeader_m();
+    writeJsonHeader();
 }
 
 
@@ -142,7 +142,7 @@ bool Sampler::onMessage(MPI_Status status, size_t length) {
                 }
             }
 
-            addIndividualToJSON_m(ind);
+            addIndividualToJSON(ind);
 
             jobmapping_m.erase(it);
 
@@ -162,14 +162,14 @@ bool Sampler::onMessage(MPI_Status status, size_t length) {
 void Sampler::postPoll() {
 
     if ( act_sample_m < nSamples_m ) {
-        this->createNewIndividual_m();
+        this->createNewIndividual();
     }
 
     runStateMachine();
 }
 
 
-void Sampler::createNewIndividual_m() {
+void Sampler::createNewIndividual() {
 
     std::vector<std::string> dNames;
 
@@ -194,7 +194,7 @@ void Sampler::createNewIndividual_m() {
 }
 
 
-void Sampler::writeJsonHeader_m() {
+void Sampler::writeJsonHeader() {
     namespace pt = boost::property_tree;
 
     pt::ptree tree;
@@ -218,7 +218,7 @@ void Sampler::writeJsonHeader_m() {
 }
 
 
-void Sampler::addIndividualToJSON_m(const boost::shared_ptr<Individual_t>& ind) {
+void Sampler::addIndividualToJSON(const boost::shared_ptr<Individual_t>& ind) {
     namespace pt = boost::property_tree;
 
     pt::ptree tree;
