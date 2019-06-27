@@ -6,7 +6,6 @@
 
 StatWriter::StatWriter(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
-    , StatMarkerTimer_m(IpplTimings::getTimer("Write Stat"))
 { }
 
 
@@ -122,9 +121,6 @@ void StatWriter::fillHeader(const losses_t &losses) {
 void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                        const losses_t &losses, const double& azimuth)
 {
-    /// Start timer.
-    IpplTimings::startTimer(StatMarkerTimer_m);
-
     /// Calculate beam statistics.
     beam->calcBeamParameters();
 
@@ -146,7 +142,6 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     double Q = beam->getCharge();
 
     if (Ippl::myNode() != 0) {
-        IpplTimings::stopTimer(StatMarkerTimer_m);
         return;
     }
 
@@ -250,9 +245,6 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     this->newline();
 
     this->close();
-
-    /// %Stop timer.
-    IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 
 
@@ -260,10 +252,6 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
                        double sposHead, double sposRef, double sposTail)
 {
     //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-
-    /// Function steps:
-    /// Start timer.
-    IpplTimings::startTimer(StatMarkerTimer_m);
 
     /// Calculate beam statistics and gather load balance statistics.
     beam.calcBeamParameters();
@@ -275,7 +263,6 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
 
 
     if (Ippl::myNode() != 0) {
-        IpplTimings::stopTimer(StatMarkerTimer_m);
         return;
     }
 
@@ -347,7 +334,4 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
     this->newline();
 
     this->close();
-
-    /// %Stop timer.
-    IpplTimings::stopTimer(StatMarkerTimer_m);
 }

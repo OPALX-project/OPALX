@@ -103,17 +103,25 @@ void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
 void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                         const losses_t &losses, const double& azimuth) const
 {
+    IpplTimings::startTimer(StatMarkerTimer_m);
+
     statWriter_m->write(beam, FDext, losses, azimuth);
 
     for (size_t i = 0; i < sddsWriter_m.size(); ++i)
         sddsWriter_m[i]->write(beam);
+
+    IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 
 
 void DataSink::dumpSDDS(EnvelopeBunch &beam, Vector_t FDext[],
                         double sposHead, double sposRef, double sposTail) const
 {
+    IpplTimings::startTimer(StatMarkerTimer_m);
+
     statWriter_m->write(beam, FDext, sposHead, sposRef, sposTail);
+
+    IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 
 
@@ -286,12 +294,16 @@ bool DataSink::writeAmrStatistics(PartBunchBase<double, 3> *beam) {
 
 
 void DataSink::noAmrDump(PartBunchBase<double, 3> *beam) {
+    IpplTimings::startTimer(StatMarkerTimer_m);
+
     // lbal
     sddsWriter_m[0]->write(beam);
     
     if ( Options::memoryDump ) {
         sddsWriter_m[2]->write(beam);
     }
+
+    IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 #endif
 
@@ -329,6 +341,7 @@ void DataSink::init_m(bool restart, H5PartWrapper* h5wrapper) {
     firstWriteH5Surface_m = true;
     lossWrCounter_m = 0;
     surfaceLossFileName_m = fn + std::string(".SurfaceLoss.h5");
+    StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
 
     statWriter_m = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
 
