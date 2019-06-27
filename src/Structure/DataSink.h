@@ -122,7 +122,7 @@ private:
     DataSink(const DataSink &) { }
     DataSink &operator = (const DataSink &) { return *this; }
     
-    void rewindLines_m();
+    void rewindLines();
     
     void init_m(bool restart = false,
                 H5PartWrapper* h5wrapper = nullptr);
