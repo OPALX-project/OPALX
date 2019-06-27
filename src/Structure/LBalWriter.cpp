@@ -4,6 +4,9 @@
 #include "Utilities/Util.h"
 #include "Utilities/Timer.h"
 
+#ifdef ENABLE_AMR
+#include "Algorithms/AmrPartBunch.h"
+#endif
 
 LBalWriter::LBalWriter(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
@@ -40,7 +43,7 @@ void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
             tmp1 << "level-" << lev;
 
             std::stringstream tmp2;
-            tmps2 << "Number of particles at level " << lev;
+            tmp2 << "Number of particles at level " << lev;
             columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
         }
     }
