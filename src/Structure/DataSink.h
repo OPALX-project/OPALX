@@ -142,11 +142,6 @@ private:
     IpplTimings::TimerRef StatMarkerTimer_m;
 };
 
-// inline
-// void DataSink::reset() {
-//     H5call_m = 0;
-// }
-
 
 inline
 std::string DataSink::convertToString(int number) {
