@@ -6,6 +6,8 @@
 class GridLBalWriter : public SDDSWriter {
 
 public:
+    GridLBalWriter(const std::string& fname, bool restart);
+
     void write(PartBunchBase<double, 3> *beam);
 
 private:
