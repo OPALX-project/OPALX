@@ -198,9 +198,9 @@ void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
     columns_m.addColumnValue("zpz", beam->get_rprms()(2));         // 29
 
     // Write out dispersion.
-    columns_m.addColumnValue("Dx", beam->get_Dx());                // 30
+    columns_m.addColumnValue("Dx",  beam->get_Dx());               // 30
     columns_m.addColumnValue("DDx", beam->get_DDx());              // 31
-    columns_m.addColumnValue("Dy", beam->get_Dy());                // 32
+    columns_m.addColumnValue("Dy",  beam->get_Dy());               // 32
     columns_m.addColumnValue("DDy", beam->get_DDy());              // 33
 
     // Write head/reference particle/tail field information.
@@ -272,7 +272,8 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
     beam.gatherLoadBalanceStatistics();
 
     double en = beam.get_meanKineticEnergy() * 1e-6;
-    double Q  = beam.getTotalNum() * beam.getChargePerParticle();
+    long unsigned int totalnum = beam.getTotalNum();
+    double Q  = totalnum * beam.getChargePerParticle();
 
 
     if (Ippl::myNode() != 0) {
@@ -286,63 +287,64 @@ void StatWriter::write(EnvelopeBunch &beam, Vector_t FDext[],
 
     this->writeHeader();
 
-    this->writeValue(beam.getT() * 1e9);   // 1
-    this->writeValue(sposRef);             // 2
-    this->writeValue(beam.getTotalNum());  // 3
-    this->writeValue(Q);                   // 4
-    this->writeValue(en);                  // 5
+    columns_m.addColumnValue("t", beam.getT() * 1e9);             // 1
+    columns_m.addColumnValue("s", sposRef);                       // 2
+    columns_m.addColumnValue("numParticles", totalnum);           // 3
+    columns_m.addColumnValue("charge", Q);                        // 4
+    columns_m.addColumnValue("energy", en);                       // 5
 
-    this->writeValue(beam.get_rrms()(0));  // 6
-    this->writeValue(beam.get_rrms()(1));  // 7
-    this->writeValue(beam.get_rrms()(2));  // 8
+    columns_m.addColumnValue("rms_x", beam.get_rrms()(0));        // 6
+    columns_m.addColumnValue("rms_y", beam.get_rrms()(1));        // 7
+    columns_m.addColumnValue("rms_s", beam.get_rrms()(2));        // 8
 
-    this->writeValue(beam.get_prms()(0));  // 9
-    this->writeValue(beam.get_prms()(1));  // 10
-    this->writeValue(beam.get_prms()(2));  // 11
+    columns_m.addColumnValue("rms_px", beam.get_prms()(0));       // 9
+    columns_m.addColumnValue("rms_py", beam.get_prms()(1));       // 10
+    columns_m.addColumnValue("rms_ps", beam.get_prms()(2));       // 11
 
-    this->writeValue(beam.get_norm_emit()(0)); // 12
-    this->writeValue(beam.get_norm_emit()(1)); // 13
-    this->writeValue(beam.get_norm_emit()(2)); // 14
+    columns_m.addColumnValue("emit_x", beam.get_norm_emit()(0));  // 12
+    columns_m.addColumnValue("emit_y", beam.get_norm_emit()(1));  // 13
+    columns_m.addColumnValue("emit_s", beam.get_norm_emit()(2));  // 14
 
-    this->writeValue(beam.get_rmean()(0) );    // 15
-    this->writeValue(beam.get_rmean()(1) );    // 16
-    this->writeValue(beam.get_rmean()(2) );    // 17
+    columns_m.addColumnValue("mean_x", beam.get_rmean()(0) );     // 15
+    columns_m.addColumnValue("mean_y", beam.get_rmean()(1) );     // 16
+    columns_m.addColumnValue("mean_s", beam.get_rmean()(2) );     // 17
 
-    this->writeValue(0); // 18
-    this->writeValue(0); // 19
-    this->writeValue(0); // 20
+    columns_m.addColumnValue("ref_x", 0.0);                       // 18
+    columns_m.addColumnValue("ref_y", 0.0);                       // 19
+    columns_m.addColumnValue("ref_z", 0.0);                       // 20
 
-    this->writeValue(0); // 21
-    this->writeValue(0); // 22
-    this->writeValue(0); // 23
+    columns_m.addColumnValue("ref_px", 0.0);                      // 21
+    columns_m.addColumnValue("ref_py", 0.0);                      // 22
+    columns_m.addColumnValue("ref_pz", 0.0);                      // 23
 
-    this->writeValue(beam.get_maxExtent()(0)); // 24
-    this->writeValue(beam.get_maxExtent()(1)); // 25
-    this->writeValue(beam.get_maxExtent()(2)); // 26
+    columns_m.addColumnValue("max_x", beam.get_maxExtent()(0));   // 24
+    columns_m.addColumnValue("max_y", beam.get_maxExtent()(1));   // 25
+    columns_m.addColumnValue("max_s", beam.get_maxExtent()(2));   // 26
 
-    // Write out Courant Snyder parameters.
-    this->writeValue(0);     // 27
-    this->writeValue(0);     // 28
-    this->writeValue(0);     // 29
+    columns_m.addColumnValue("xpx", 0.0);                         // 27
+    columns_m.addColumnValue("ypy", 0.0);                         // 28
+    columns_m.addColumnValue("zpz", 0.0);                         // 29
 
     // Write out dispersion.
-    this->writeValue(beam.get_Dx());      // 30
-    this->writeValue(beam.get_DDx());     // 31
-    this->writeValue(beam.get_Dy());      // 32
-    this->writeValue(beam.get_DDy());     // 33
+    columns_m.addColumnValue("Dx",  beam.get_Dx());               // 30
+    columns_m.addColumnValue("DDx", beam.get_DDx());              // 31
+    columns_m.addColumnValue("Dy",  beam.get_Dy());               // 32
+    columns_m.addColumnValue("DDy", beam.get_DDy());              // 33
 
     // Write head/reference particle/tail field information.
-    this->writeValue(FDext[0](0));         // 34 B-ref x
-    this->writeValue(FDext[0](1));         // 35 B-ref y
-    this->writeValue(FDext[0](2));         // 36 B-ref z
+    columns_m.addColumnValue("Bx_ref", FDext[0](0));              // 34 B-ref x
+    columns_m.addColumnValue("By_ref", FDext[0](1));              // 35 B-ref y
+    columns_m.addColumnValue("Bz_ref", FDext[0](2));              // 36 B-ref z
 
-    this->writeValue(FDext[1](0));         // 37 E-ref x
-    this->writeValue(FDext[1](1));         // 38 E-ref y
-    this->writeValue(FDext[1](2));         // 39 E-ref z
+    columns_m.addColumnValue("Ex_ref", FDext[1](0));              // 37 E-ref x
+    columns_m.addColumnValue("Ey_ref", FDext[1](1));              // 38 E-ref y
+    columns_m.addColumnValue("Ez_ref", FDext[1](2));              // 39 E-ref z
 
-    this->writeValue(beam.get_dEdt());  // 40 dE energy spread
-    this->writeValue(0);                // 41 dt time step size
-    this->writeValue(0);                // 42 number of particles outside n*sigma
+    columns_m.addColumnValue("dE", beam.get_dEdt());              // 40 dE energy spread
+    columns_m.addColumnValue("dt", 0.0);                          // 41 dt time step size
+    columns_m.addColumnValue("partsOutside", 0.0);                // 42 number of particles outside n*sigma
+
+    this->writeRow();
 
     this->newline();
 

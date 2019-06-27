@@ -51,7 +51,7 @@ public:
     void replaceVersionString();
 
 
-    bool exists();
+    bool exists() const;
 
 protected:
 
@@ -77,9 +77,6 @@ protected:
                  const size_t& no_row_counts);
 
     void writeRow();
-
-    template<typename T>
-    void writeValue(const T& value);
 
     void newline();
 
@@ -130,14 +127,8 @@ private:
 
 
 inline
-bool SDDSWriter::exists() {
+bool SDDSWriter::exists() const {
     return boost::filesystem::exists(fname_m);
-}
-
-
-template<typename T>
-void SDDSWriter::writeValue(const T& value) {
-    os_m << value << std::setw(10) << "\t";
 }
 
 
