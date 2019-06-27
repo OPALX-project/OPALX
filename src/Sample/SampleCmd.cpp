@@ -107,7 +107,8 @@ SampleCmd::SampleCmd():
         ("RESTART_STEP", "Restart from given H5 step (optional)",
          std::numeric_limits<int>::min());
     itsAttr[JSON_DUMP_FREQ] = Attributes::makeReal
-        ("JSON_DUMP_FREQ", "Defines the dump frequency into the final JSON file (optional)",
+        ("JSON_DUMP_FREQ", "Defines how often new individuals are appended to the final JSON file, "
+         "i.e. every time JSON_DUMP_FREQ samples finished they are written (optional)",
          std::numeric_limits<size_t>::max());
     registerOwnership(AttributeHandler::COMMAND);
 }
