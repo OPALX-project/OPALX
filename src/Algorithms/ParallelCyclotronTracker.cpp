@@ -2663,11 +2663,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
         bunchDumpStatDataPerBunch(azimuth_m);
 
-#ifdef ENABLE_AMR
-        if ( !itsDataSink->writeAmrStatistics(itsBunch_m) ) {
-            itsDataSink->noAmrDump(itsBunch_m);
-        }
-#endif
+        itsDataSink->writeMultiBunchStatistics(itsBunch_m);
 
         if(Options::psDumpFrame != Options::GLOBAL) {
             localToGlobal(itsBunch_m->R, phi, psi, meanR);

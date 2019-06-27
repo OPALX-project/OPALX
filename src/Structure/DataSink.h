@@ -108,12 +108,9 @@ public:
                                size_t numberOfFieldEmittedParticles,
                                bool nEmissionMode,
                                std::string fn);
-    
-#ifdef ENABLE_AMR
-    bool writeAmrStatistics(PartBunchBase<double, 3> *beam);
-    
-    void noAmrDump(PartBunchBase<double, 3> *beam);
-#endif
+
+    // no statWriter_m dump
+    void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam);
 
 private:
     DataSink(const DataSink &) { }
