@@ -43,6 +43,7 @@ namespace {
         FIELDMAPDIR,
         RASTER,
         SEED,
+        JSON_DUMP_FREQ,
         SIZE
     };
 }
@@ -72,7 +73,10 @@ SampleCmd::SampleCmd():
         ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
         ("SEED", "Seed for global random number generator (default: 42)", 42);
-
+    itsAttr[JSON_DUMP_FREQ] = Attributes::makeReal
+        ("JSON_DUMP_FREQ", "Defines how often new individuals are appended to the final JSON file, "
+         "i.e. every time JSON_DUMP_FREQ samples finished they are written (optional)",
+         std::numeric_limits<size_t>::max());
     registerOwnership(AttributeHandler::COMMAND);
 }
 
@@ -176,7 +180,8 @@ void SampleCmd::execute() {
             {OUTPUT, "outfile"},
             {OUTDIR, "outdir"},
             {NUMMASTERS, "num-masters"},
-            {NUMCOWORKERS, "num-coworkers"}
+            {NUMCOWORKERS, "num-coworkers"},
+            {JSON_DUMP_FREQ, "jsonDumpFreq"}
         });
 
     auto it = argumentMapper.end();
