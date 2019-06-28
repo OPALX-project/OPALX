@@ -14,15 +14,6 @@
 
 #include <sstream>
 
-namespace {
-    std::string to_string(long double d) {
-        std::ostringstream ss;
-        ss.precision(15);
-        ss << d;
-        return ss.str();
-    }
-}
-
 MemoryProfiler::MemoryProfiler(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
 {
@@ -47,7 +38,7 @@ MemoryProfiler::MemoryProfiler(const std::string& fname, bool restart)
 }
 
 
-void MemoryProfiler::header_m() {
+void MemoryProfiler::header() {
 
     static bool isNotFirst = false;
     if ( isNotFirst ) {
@@ -130,20 +121,20 @@ void MemoryProfiler::header_m() {
 }
 
 
-void MemoryProfiler::update_m() {
+void MemoryProfiler::update() {
 #ifdef __linux__
     static pid_t pid = getpid();
     std::string fname = "/proc/" + std::to_string(pid) + "/status";
 
     if ( !boost::filesystem::exists(fname) ) {
-        throw OpalException("MemoryProfiler::update_m()",
+        throw OpalException("MemoryProfiler::update()",
                             "File '" + fname + "' doesn't exist.");
     }
 
     std::ifstream ifs(fname.c_str());
 
     if ( !ifs.is_open() ) {
-        throw OpalException("MemoryProfiler::update_m()",
+        throw OpalException("MemoryProfiler::update()",
                             "Failed to open '" + fname + "'.");
     }
 
@@ -162,9 +153,9 @@ void MemoryProfiler::update_m() {
 }
 
 
-void MemoryProfiler::compute_m(vm_t& vmMin,
-                               vm_t& vmMax,
-                               vm_t& vmAvg)
+void MemoryProfiler::compute(vm_t& vmMin,
+                             vm_t& vmMax,
+                             vm_t& vmAvg)
 {
     if ( Ippl::getNodes() == 1 ) {
         for (unsigned int i = 0; i < vmem_m.size(); ++i) {
@@ -187,13 +178,13 @@ void MemoryProfiler::compute_m(vm_t& vmMin,
 
 void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
 
-    this->update_m();
+    this->update();
 
     vm_t vmMin(vmem_m.size());
     vm_t vmMax(vmem_m.size());
     vm_t vmAvg(vmem_m.size());
 
-    this->compute_m(vmMin, vmMax, vmAvg);
+    this->compute(vmMin, vmMax, vmAvg);
 
     if ( Ippl::myNode() != 0 ) {
         return;
@@ -205,7 +196,7 @@ void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
     else
         pathLength = beam->get_sPos();
 
-    header_m();
+    header();
 
     this->open();
 
@@ -216,25 +207,25 @@ void MemoryProfiler::write(PartBunchBase<double, 3> *beam) {
 
     // boost::variant can't overload double and long double. By using a
     // string this shortcoming can be bypassed.
-    columns_m.addColumnValue("VmPeak-Min", ::to_string(vmMin[VMPEAK]));
-    columns_m.addColumnValue("VmPeak-Max", ::to_string(vmMax[VMPEAK]));
-    columns_m.addColumnValue("VmPeak-Avg", ::to_string(vmAvg[VMPEAK]));
+    columns_m.addColumnValue("VmPeak-Min", toString(vmMin[VMPEAK]));
+    columns_m.addColumnValue("VmPeak-Max", toString(vmMax[VMPEAK]));
+    columns_m.addColumnValue("VmPeak-Avg", toString(vmAvg[VMPEAK]));
 
-    columns_m.addColumnValue("VmSize-Min", ::to_string(vmMin[VMSIZE]));
-    columns_m.addColumnValue("VmSize-Max", ::to_string(vmMax[VMSIZE]));
-    columns_m.addColumnValue("VmSize-Avg", ::to_string(vmAvg[VMSIZE]));
+    columns_m.addColumnValue("VmSize-Min", toString(vmMin[VMSIZE]));
+    columns_m.addColumnValue("VmSize-Max", toString(vmMax[VMSIZE]));
+    columns_m.addColumnValue("VmSize-Avg", toString(vmAvg[VMSIZE]));
 
-    columns_m.addColumnValue("VmHWM-Min", ::to_string(vmMin[VMHWM]));
-    columns_m.addColumnValue("VmHWM-Max", ::to_string(vmMax[VMHWM]));
-    columns_m.addColumnValue("VmHWM-Avg", ::to_string(vmAvg[VMHWM]));
+    columns_m.addColumnValue("VmHWM-Min", toString(vmMin[VMHWM]));
+    columns_m.addColumnValue("VmHWM-Max", toString(vmMax[VMHWM]));
+    columns_m.addColumnValue("VmHWM-Avg", toString(vmAvg[VMHWM]));
 
-    columns_m.addColumnValue("VmRSS-Min", ::to_string(vmMin[VMRSS]));
-    columns_m.addColumnValue("VmRSS-Max", ::to_string(vmMax[VMRSS]));
-    columns_m.addColumnValue("VmRSS-Avg", ::to_string(vmAvg[VMRSS]));
+    columns_m.addColumnValue("VmRSS-Min", toString(vmMin[VMRSS]));
+    columns_m.addColumnValue("VmRSS-Max", toString(vmMax[VMRSS]));
+    columns_m.addColumnValue("VmRSS-Avg", toString(vmAvg[VMRSS]));
 
-    columns_m.addColumnValue("VmStk-Min", ::to_string(vmMin[VMSTK]));
-    columns_m.addColumnValue("VmStk-Max", ::to_string(vmMax[VMSTK]));
-    columns_m.addColumnValue("VmStk-Avg", ::to_string(vmAvg[VMSTK]));
+    columns_m.addColumnValue("VmStk-Min", toString(vmMin[VMSTK]));
+    columns_m.addColumnValue("VmStk-Max", toString(vmMax[VMSTK]));
+    columns_m.addColumnValue("VmStk-Avg", toString(vmAvg[VMSTK]));
 
     this->writeRow();
 
