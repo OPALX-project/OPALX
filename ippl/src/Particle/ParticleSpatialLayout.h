@@ -1204,7 +1204,7 @@ protected:
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
             //external location
-            if (touchingVN.first != touchingVN.second) {
+            if (touchingVN.first == touchingVN.second) {
                 responsibleNodeNotFound = true;
                 break;
             }
@@ -1349,7 +1349,7 @@ protected:
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
 			//external location
-            if (touchingVN.first != touchingVN.second) {
+            if (touchingVN.first == touchingVN.second) {
                 responsibleNodeNotFound = true;
                 break;
             }
@@ -1366,6 +1366,11 @@ protected:
                    &responsibleNodeNotFound,
                    1,
                    std::logical_or<bool>());
+
+        if (responsibleNodeNotFound) {
+            throw IpplException("ParticleSpatialLayout::new_swap_particles",
+                                "could not find node responsible for particle");
+        }
 
         //reduce message count so every node knows how many messages to receive
         MPI_Allreduce(msgsend, msgrecv, N, MPI_INT, MPI_SUM, Ippl::getComm());
