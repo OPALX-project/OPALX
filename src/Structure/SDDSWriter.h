@@ -71,8 +71,6 @@ protected:
                    const std::string& unit,
                    const std::string& desc);
 
-    const std::vector<std::string>& getColumnNames() const;
-
     void addInfo(const std::string& mode,
                  const size_t& no_row_counts);
 
@@ -89,6 +87,9 @@ protected:
      */
     void writeHeader();
 
+    template<typename T>
+    std::string toString(const T& val);
+
     std::string fname_m;
 
     /** \brief First write to the statistics output file.
@@ -103,13 +104,13 @@ protected:
 
 private:
 
-    void writeDescription_m();
+    void writeDescription();
 
-    void writeParameters_m();
+    void writeParameters();
 
-    void writeColumns_m();
+    void writeColumns();
 
-    void writeInfo_m();
+    void writeInfo();
 
     std::ofstream os_m;
 
@@ -118,9 +119,10 @@ private:
     desc_t desc_m;
     std::queue<param_t> params_m;
     std::queue<std::string> paramValues_m;
-    std::queue<cols_t>  cols_m;
-    std::vector<std::string> columnNames_m;
     data_t info_m;
+
+    static constexpr
+    unsigned int precision_m = 15;
 };
 
 
@@ -152,12 +154,6 @@ void SDDSWriter::addParameter(const std::string& name,
 
 
 inline
-const std::vector<std::string>& SDDSWriter::getColumnNames() const {
-    return columnNames_m;
-}
-
-
-inline
 void SDDSWriter::addInfo(const std::string& mode,
                          const size_t& no_row_counts) {
     info_m = std::make_pair(mode, no_row_counts);
@@ -170,15 +166,12 @@ void SDDSWriter::writeRow() {
 }
 
 
-inline
-void SDDSWriter::addColumn(const std::string& name,
-                           const std::string& type,
-                           const std::string& unit,
-                           const std::string& desc)
-{
-    cols_m.push(std::make_tuple(name, type, unit, desc));
-    columnNames_m.push_back(name);
+template<typename T>
+std::string SDDSWriter::toString(const T& val) {
+    std::ostringstream ss;
+    ss.precision(precision_m);
+    ss << val;
+    return ss.str();
 }
-
 
 #endif

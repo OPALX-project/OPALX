@@ -42,7 +42,7 @@
 extern Inform *gmsg;
 
 DataSink::DataSink() {
-    this->init_m();
+    this->init();
 }
 
 DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
@@ -52,7 +52,7 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
                             "Can not restart when HDF5 is disabled");
     }
 
-    this->init_m(restart, h5wrapper);
+    this->init(restart, h5wrapper);
 
     if ( restart )
         rewindLines();
@@ -321,7 +321,7 @@ void DataSink::rewindLines() {
 }
 
 
-void DataSink::init_m(bool restart, H5PartWrapper* h5wrapper) {
+void DataSink::init(bool restart, H5PartWrapper* h5wrapper) {
     std::string fn = OpalData::getInstance()->getInputBasename();
     
     /* Set file write flags to true. These will be set to false after first

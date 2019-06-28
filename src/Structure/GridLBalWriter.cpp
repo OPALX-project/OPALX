@@ -98,7 +98,7 @@ void GridLBalWriter::write(PartBunchBase<double, 3> *beam) {
         std::stringstream ss;
         ss << "level-" << lev;
         // we need to cast due to boost::variant
-        columns_m.addColumnValue(ss.str(), std::to_string(gridsPerLevel[lev]));
+        columns_m.addColumnValue(ss.str(), toString(gridsPerLevel[lev]));
     }
 
     int nProcs = Ippl::getNodes();
@@ -106,7 +106,7 @@ void GridLBalWriter::write(PartBunchBase<double, 3> *beam) {
         std::stringstream ss;
         ss << "processor-" << p;
         // we need to cast due to boost::variant
-        columns_m.addColumnValue(ss.str(), std::to_string(gridPtsPerCore[p]));
+        columns_m.addColumnValue(ss.str(), toString(gridPtsPerCore[p]));
     }
 
     this->writeRow();

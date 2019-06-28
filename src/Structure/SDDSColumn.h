@@ -18,7 +18,8 @@ public:
     void addValue(const T& val);
 
     void writeHeader(std::ostream& os,
-                     unsigned int colNr) const;
+                     unsigned int colNr,
+                     const std::string& indent) const;
 
 protected:
 
