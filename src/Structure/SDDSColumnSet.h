@@ -22,7 +22,8 @@ public:
     void addColumnValue(const std::string& name,
                         const T& val);
 
-    void writeHeader(std::ostream& os) const;
+    void writeHeader(std::ostream& os,
+                     const std::string& indent) const;
 
     void writeRow(std::ostream& os) const;
 

@@ -13,12 +13,14 @@ SDDSColumn::SDDSColumn(const std::string& name,
 { }
 
 
-void SDDSColumn::writeHeader(std::ostream& os, unsigned int colNr) const {
+void SDDSColumn::writeHeader(std::ostream& os,
+                             unsigned int colNr,
+                             const std::string& indent) const {
     os << "&column\n"
-         << "        " << "name=" << name_m << ",\n"
-         << "        " << "type=" << std::get<0>(description_m) << ",\n"
-         << "        " << "units=" << std::get<1>(description_m) << ",\n"
-         << "        " << "description=\"" << colNr << " " << std::get<2>(description_m) << "\"\n"
+         << indent << "name=" << name_m << ",\n"
+         << indent << "type=" << std::get<0>(description_m) << ",\n"
+         << indent << "units=" << std::get<1>(description_m) << ",\n"
+         << indent << "description=\"" << colNr << " " << std::get<2>(description_m) << "\"\n"
          << "&end\n";
 }
 

@@ -105,7 +105,7 @@ void SDDSWriter::open() {
         return;
 
     os_m.open(fname_m.c_str(), mode_m);
-    os_m.precision(15);
+    os_m.precision(precision_m);
     os_m.setf(std::ios::scientific, std::ios::floatfield);
 }
 
@@ -121,19 +121,19 @@ void SDDSWriter::writeHeader() {
     if ( Ippl::myNode() != 0 || mode_m == std::ios::app )
         return;
 
-    this->writeDescription_m();
+    this->writeDescription();
 
-    this->writeParameters_m();
+    this->writeParameters();
 
-    this->writeColumns_m();
+    this->writeColumns();
 
-    this->writeInfo_m();
+    this->writeInfo();
 
     mode_m = std::ios::app;
 }
 
 
-void SDDSWriter::writeDescription_m() {
+void SDDSWriter::writeDescription() {
     os_m << "SDDS1" << std::endl;
     os_m << "&description\n"
          << indent_m << "text=\"" << desc_m.first << "\",\n"
@@ -142,7 +142,7 @@ void SDDSWriter::writeDescription_m() {
 }
 
 
-void SDDSWriter::writeParameters_m() {
+void SDDSWriter::writeParameters() {
     while ( !params_m.empty() ) {
         param_t param = params_m.front();
 
@@ -157,12 +157,12 @@ void SDDSWriter::writeParameters_m() {
 }
 
 
-void SDDSWriter::writeColumns_m() {
-    columns_m.writeHeader(os_m);
+void SDDSWriter::writeColumns() {
+    columns_m.writeHeader(os_m, indent_m);
 }
 
 
-void SDDSWriter::writeInfo_m() {
+void SDDSWriter::writeInfo() {
     os_m << "&data\n"
          << indent_m << "mode=" << info_m.first << ",\n"
          << indent_m << "no_row_counts=" << info_m.second << "\n"

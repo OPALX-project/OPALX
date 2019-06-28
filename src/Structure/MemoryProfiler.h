@@ -41,9 +41,9 @@ public:
     void write(PartBunchBase<double, 3> *beam);
     
 private:
-    void header_m();
-    void update_m();
-    void compute_m(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg);
+    void header();
+    void update();
+    void compute(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg);
     
 private:
     std::string fname_m;
