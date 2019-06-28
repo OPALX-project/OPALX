@@ -2394,7 +2394,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::update() {
     try {
         pbase->update();
-    } catch (IpplException &ex) {
+    } catch (const IpplException &ex) {
         throw OpalException(ex.where(), ex.what());
     }
 }
@@ -2403,7 +2403,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
     try {
         pbase->update(canSwap);
-    } catch (IpplException &ex) {
+    } catch (const IpplException &ex) {
         throw OpalException(ex.where(), ex.what());
     }
 }

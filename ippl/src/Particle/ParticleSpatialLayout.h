@@ -1217,10 +1217,9 @@ protected:
             particlesLeft--;
         }
 
-        new_reduce(&responsibleNodeNotFound,
-                   &responsibleNodeNotFound,
-                   1,
-                   std::logical_or<bool>());
+        allreduce(&responsibleNodeNotFound,
+                  1,
+                  std::logical_or<bool>());
 
         if (responsibleNodeNotFound) {
             throw IpplException("ParticleSpatialLayout::new_swap_particles",
@@ -1362,10 +1361,9 @@ protected:
             particlesLeft--;
         }
 
-        new_reduce(&responsibleNodeNotFound,
-                   &responsibleNodeNotFound,
-                   1,
-                   std::logical_or<bool>());
+        allreduce(&responsibleNodeNotFound,
+                  1,
+                  std::logical_or<bool>());
 
         if (responsibleNodeNotFound) {
             throw IpplException("ParticleSpatialLayout::new_swap_particles",
