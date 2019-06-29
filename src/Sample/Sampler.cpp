@@ -44,10 +44,8 @@ Sampler::Sampler(const std::map<std::string,
 {
     my_local_pid_ = 0;
     MPI_Comm_rank(comms_.opt, &my_local_pid_);
-    
-    std::string fname = "samples_" + std::to_string(comms_.island_id) + ".json";
 
-    std::string resultFile = args->getArg<std::string>("outfile", fname, false);
+    std::string resultFile = args->getArg<std::string>("outfile", "output", false);
     std::string resultDir = args->getArg<std::string>("outdir", "samples", false);
     jsonDumpFreq_m = args->getArg<std::size_t>("jsonDumpFreq", true);
 
