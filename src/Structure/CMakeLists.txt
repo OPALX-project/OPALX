@@ -46,6 +46,8 @@ set (HDRS
     MemoryWriter.h
     LBalWriter.h
     StatWriter.h
+    SDDSColumn.h
+    SDDSColumnSet.h
     SDDSWriter.h
 )
 
