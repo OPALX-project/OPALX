@@ -10,10 +10,6 @@ class H5Writer {
 public:
     
     H5Writer(H5PartWrapper* h5wrapper, bool restart);
-    
-    ~H5Writer() {
-        h5wrapper_m = NULL;
-    }
 
     void close();
     
