@@ -39,8 +39,6 @@
 #include <queue>
 #include <sstream>
 
-extern Inform *gmsg;
-
 DataSink::DataSink() {
     this->init();
 }
