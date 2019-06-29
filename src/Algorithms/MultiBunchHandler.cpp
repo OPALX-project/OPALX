@@ -19,9 +19,9 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     : onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
     , numBunch_m(numBunch)
     , eta_m(0.01)
-    , CoeffDBunches_m(para)
-    , RLastTurn_m(0.0)
-    , RThisTurn_m(0.0)
+    , coeffDBunches_m(para)
+    , radiusLastTurn_m(0.0)
+    , radiusThisTurn_m(0.0)
 {
     mode_m = MB_MODE::NONE;
     this->setBinning(binning);
@@ -243,7 +243,7 @@ int MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
 
         Vector_t Rmean = beam->get_centroid(); // m
 
-        RThisTurn_m = std::hypot(Rmean[0],Rmean[1]);
+        radiusThisTurn_m = std::hypot(Rmean[0],Rmean[1]);
 
         Vector_t Rrms = beam->get_rrms(); // m
 
@@ -251,17 +251,17 @@ int MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
 
         // If the distance between two neighboring bunches is less than 5 times of its 2D rms size
         // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
-        if ((RThisTurn_m - RLastTurn_m) < CoeffDBunches_m * XYrms) {
+        if ((radiusThisTurn_m - radiusLastTurn_m) < coeffDBunches_m * XYrms) {
             // since next turn, start multi-bunches
             saveBunch(beam, azimuth);
             flagTransition = true;
         }
 
-        *gmsg << "* MBM: RLastTurn = " << RLastTurn_m << " [m]" << endl;
-        *gmsg << "* MBM: RThisTurn = " << RThisTurn_m << " [m]" << endl;
+        *gmsg << "* MBM: RLastTurn = " << radiusLastTurn_m << " [m]" << endl;
+        *gmsg << "* MBM: RThisTurn = " << radiusThisTurn_m << " [m]" << endl;
         *gmsg << "* MBM: XYrms = " << XYrms    << " [m]" << endl;
 
-        RLastTurn_m = RThisTurn_m;
+        radiusLastTurn_m = radiusThisTurn_m;
         result = 1;
     }
 
@@ -335,7 +335,7 @@ void MultiBunchHandler::setMode(const std::string& mbmode) {
         *gmsg << "AUTO mode: The multi bunches will be injected only when the" << endl
               << "           distance between two neighboring bunches is below" << endl
               << "           the limitation. The control parameter is set to "
-              << CoeffDBunches_m << endl;
+              << coeffDBunches_m << endl;
         mode_m = MB_MODE::AUTO;
     } else if ( mbmode.compare("NONE") == 0 )
         mode_m = MB_MODE::NONE;
@@ -366,8 +366,8 @@ void MultiBunchHandler::setRadiusTurns(const double& radius) {
     if ( mode_m != MB_MODE::AUTO )
         return;
 
-    RLastTurn_m = radius;
-    RThisTurn_m = RLastTurn_m;
+    radiusLastTurn_m = radius;
+    radiusThisTurn_m = radiusLastTurn_m;
 
     if (OpalData::getInstance()->inRestartRun()) {
         *gmsg << "Radial position at restart position = ";
@@ -375,5 +375,5 @@ void MultiBunchHandler::setRadiusTurns(const double& radius) {
         *gmsg << "Initial radial position = ";
     }
     // New OPAL 2.0: Init in m -DW
-    *gmsg << RThisTurn_m << " m" << endl;
+    *gmsg << radiusThisTurn_m << " m" << endl;
 }
