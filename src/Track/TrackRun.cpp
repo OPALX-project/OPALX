@@ -663,7 +663,12 @@ void TrackRun::setupCyclotronTracker(){
     double macromass = 0.0;
     double macrocharge = 0.0;
 
+    // multi-bunch parameters
     const int specifiedNumBunch = int(std::abs(Round(Attributes::getReal(itsAttr[TURNS]))));
+    const double mbPara         = Attributes::getReal(itsAttr[PARAMB]);
+    const std::string mbMode    = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));
+    const double mbEta          = Attributes::getReal(itsAttr[MB_ETA]);
+    const std::string mbBinning = Attributes::getString(itsAttr[MB_BINNING]);
 
     if(opal->inRestartRun()) {
         phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
@@ -764,7 +769,8 @@ void TrackRun::setupCyclotronTracker(){
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                                               Track::block->bunch, *ds, Track::block->reference,
                                               false, false, Track::block->localTimeSteps.front(),
-                                              Track::block->timeIntegrator, specifiedNumBunch);
+                                              Track::block->timeIntegrator,
+                                              specifiedNumBunch, mbEta, mbPara, mbMode, mbBinning);
 
     ParallelCyclotronTracker* cyclTracker = dynamic_cast<ParallelCyclotronTracker*>(itsTracker);
 
@@ -785,6 +791,10 @@ void TrackRun::setupCyclotronTracker(){
         cyclTracker->setPhi(h5pw->getAzimuth());
         cyclTracker->setPsi(h5pw->getElevation());
         cyclTracker->setPreviousH5Local(h5pw->getPreviousH5Local());
+
+        if ( specifiedNumBunch > 1 ) {
+            cyclTracker->setLastDumpedStep(opal->getRestartStep());
+        }
     }
 
     // statistical data are calculated (rms, eps etc.)
@@ -794,63 +804,6 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << *beam << endl;
     *gmsg << *fs   << endl;
     // *gmsg << *Track::block->bunch  << endl;
-
-    if(specifiedNumBunch > 1) {
-
-        // only for regular  run of multi bunches, instantiate the  PartBins class
-        // note that for restart run of multi bunches, PartBins class is instantiated in function
-        // Distribution::doRestartOpalCycl()
-        if(!opal->inRestartRun()) {
-
-            // already exist bins number initially
-            const int BinCount = 1;
-            //allowed maximal bin
-            const int MaxBinNum = 1000;
-
-            // initialize particles number for each bin (both existed and not yet emmitted)
-            size_t partInBin[MaxBinNum];
-            for(int ii = 0; ii < MaxBinNum; ii++) partInBin[ii] = 0;
-            partInBin[0] =  beam->getNumberOfParticles();
-
-            Track::block->bunch->setPBins(new PartBinsCyc(MaxBinNum, BinCount, partInBin));
-            // the allowed maximal bin number is set to 100
-            //Track::block->bunch->setPBins(new PartBins(100));
-
-        }
-
-        // mode of generating new bunches:
-        // "FORCE" means generating one bunch after each revolution, until get "TURNS" bunches.
-        // "AUTO" means only when the distance between two neighbor bunches is below the limitation,
-        //        then starts to generate new bunches after each revolution,until get "TURNS" bunches;
-        //        otherwise, run single bunch track
-
-        *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE "
-              << "----------------------------*** " << endl;
-
-        double paraMb = Attributes::getReal(itsAttr[PARAMB]);
-        cyclTracker->setParaAutoMode(paraMb);
-
-        if(opal->inRestartRun()) {
-
-            cyclTracker->setLastDumpedStep(opal->getRestartStep());
-
-            if(Track::block->bunch->pbin_m->getLastemittedBin() < 2) {
-                *gmsg << "In this restart job, the multi-bunches mode is forcely set to AUTO mode." << endl;
-                cyclTracker->setMultiBunchMode("AUTO");
-            } else {
-                *gmsg << "In this restart job, the multi-bunches mode is forcely set to FORCE mode." << endl
-                      << "If the existing bunch number is less than the specified number of TURN, "
-                      << "readin the phase space of STEP#0 from h5 file consecutively" << endl;
-                cyclTracker->setMultiBunchMode("FORCE");
-            }
-        } else {
-            std::string mbmode = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));
-            cyclTracker->setMultiBunchMode(mbmode);
-        }
-
-        cyclTracker->setMultiBunchEta    (Attributes::getReal  (itsAttr[MB_ETA]));
-        cyclTracker->setMultiBunchBinning(Attributes::getString(itsAttr[MB_BINNING]));
-    }
 }
 
 void TrackRun::setupStatisticalErrors(const std::string & method) {
