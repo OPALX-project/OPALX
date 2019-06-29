@@ -60,12 +60,6 @@ public:
     // set binning type
     void setBinning(std::string binning);
 
-    /// set the scale for binning in multi-bunch mode
-    void setEta(const double& eta);
-
-    /// set the control parameter for "AUTO" sub-mode
-    void setParaAutoMode(const double para);
-
     void setRadiusTurns(const double& radius);
 
     /// set total number of tracked bunches
@@ -73,8 +67,6 @@ public:
 
     /// get total number of tracked bunches
     int getNumBunch() const;
-    
-    bool isMode(const MB_MODE& mode) const;
     
     bool isMultiBunch() const;
 
@@ -104,24 +96,12 @@ private:
     MB_BINNING binning_m; //binningType_m;
 
     // control parameter for AUTO multi-bunch mode
-    double CoeffDBunches_m;
+    double coeffDBunches_m;
 
     // used for automatic injection in multi-bunch mode
-    double RLastTurn_m;
-    double RThisTurn_m;
+    double radiusLastTurn_m;
+    double radiusThisTurn_m;
 };
-
-
-inline
-void MultiBunchHandler::setEta(const double& eta) {
-    eta_m = eta;
-};
-
-
-inline
-void MultiBunchHandler::setParaAutoMode(const double para) {
-    CoeffDBunches_m = para;
-}
 
 
 inline
@@ -137,15 +117,10 @@ int MultiBunchHandler::getNumBunch() const {
 
 
 inline
-bool MultiBunchHandler::isMode(const MB_MODE& mode) const {
-    return (mode_m == mode);
-}
-
-
-inline
 bool MultiBunchHandler::isMultiBunch() const {
     return (mode_m != MB_MODE::NONE);
 }
+
 
 inline
 bool MultiBunchHandler::isForceMode() const {
