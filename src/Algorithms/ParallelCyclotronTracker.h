@@ -24,6 +24,7 @@
 #include <tuple>
 #include <memory>
 
+#include "MultiBunchHandler.h"
 #include "Steppers/Steppers.h"
 
 class DataSink;
@@ -52,19 +53,6 @@ public:
         BUNCH = 2
     };
 
-    // multi-bunch modes
-    enum class MB_MODE {
-        NONE   = 0,
-        FORCE  = 1,
-        AUTO   = 2
-    };
-
-    // multi-bunch binning type
-    enum class MB_BINNING {
-        GAMMA = 0,
-        BUNCH = 1
-    };
-
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
     typedef std::pair<double[8], Component *>      element_pair;
@@ -80,7 +68,12 @@ public:
     ParallelCyclotronTracker(const Beamline &bl, PartBunchBase<double, 3> *bunch, DataSink &ds,
                              const PartData &data, bool revBeam,
                              bool revTrack, int maxSTEPS,
-                             int timeIntegrator, int numBunch);
+                             int timeIntegrator,
+                             const int& numBunch,
+                             const double& mbEta,
+                             const double& mbPara,
+                             const std::string& mbMode,
+                             const std::string& mbBinning);
 
     virtual ~ParallelCyclotronTracker();
 
@@ -192,26 +185,8 @@ public:
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline &);
 
-    /// set total number of tracked bunches
-    inline void setNumBunch(int n) { numBunch_m = n; }
-
-    /// get total number of tracked bunches
-    inline int  getNumBunch() { return numBunch_m; }
-
-    /// set the working sub-mode for multi-bunch mode: "FORCE" or "AUTO"
-    void setMultiBunchMode(const std::string& mbmode);
-
-    // set binning type
-    void setMultiBunchBinning(std::string binning);
-
-    /// set the scale for binning in multi-bunch mode
-    void setMultiBunchEta(const double& eta) { eta_m = eta; };
-
     /// set last dumped step
     inline void setLastDumpedStep(const int para) {lastDumpedStep_m = para ; }
-
-    /// set the control parameter for "AUTO" sub-mode
-    inline void setParaAutoMode(const double para) {CoeffDBunches_m = para; }
 
     ///@{ Method for restart
     inline void setPr(double x) {referencePr = x;}
@@ -274,24 +249,13 @@ private:
     double sinRefTheta_m;
     double cosRefTheta_m;
 
-    /// The number of bunches specified in TURNS of RUN commond
-    int numBunch_m;
-
-    // 0 for single bunch (default),
-    // 1 for FORCE,
-    // 2 for AUTO
-    MB_MODE multiBunchMode_m;
-
-    // 0 for GAMMA (default),
-    // 1 for BUNCH
-    MB_BINNING binningType_m;
-
-    // control parameter for AUTO multi-bunch mode
-    double CoeffDBunches_m;
+    // only used for multi-bunch mode
+    std::unique_ptr<MultiBunchHandler> mbHandler_m;
 
     int lastDumpedStep_m;
 
-    double PathLength_m;
+    // for each bunch we have a path length
+    double pathLength_m;
 
     void MtsTracker();
 
@@ -314,13 +278,8 @@ private:
     // only for dumping to stat-file --> make azimuth monotonically increasing
     void dumpAngle_m(const double& theta);
 
-    double eta_m; // parameter for reset bin in multi-bunch run
-
-    // record how many bunches has already been injected. ONLY FOR MPM
-    int BunchCount_m;
-
-    // used for automatic injection in multi-bunch mode
-    double RLastTurn_m , RThisTurn_m;
+    // take all particles if bunchNr <= -1
+    double computePathLengthUpdate(const double& dt, short bunchNr = -1);
 
     // external field arrays for dumping
     Vector_t FDext_m[2], extE_m, extB_m;
@@ -340,22 +299,12 @@ private:
     /// output file for six dimensional phase space
     std::ofstream outfTrackOrbit_m;
 
-    //store the data of the beam which are required for injecting a new bunch for multibunch
-    /// filename
-    std::string onebunch_m;
-
-
     void buildupFieldList(double BcParameter[], ElementBase::ElementType elementType, Component *elptr);
 
     // angle range [0~2PI) degree
     double calculateAngle(double x, double y);
     // angle range [-PI~PI) degree
     double calculateAngle2(double x, double y);
-
-    bool readOneBunchFromFile(const size_t BeamCount);
-    void saveOneBunch();
-
-    void updateParticleBins_m();
 
     bool checkGapCross(Vector_t Rold, Vector_t Rnew, RFCavity * rfcavity, double &DistOld);
     bool RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex);
@@ -538,8 +487,7 @@ private:
                                  Vector_t& Efield,
                                  Vector_t& Bfield);
 
-    void injectBunch_m(bool& flagTransition);
-
+    void injectBunch(bool& flagTransition);
 };
 
 /**

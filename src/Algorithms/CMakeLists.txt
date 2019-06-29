@@ -8,6 +8,7 @@ set (_SRCS
   NilTracker.cpp
   MapAnalyser.cpp
   MPSplitIntegrator.cpp
+  MultiBunchHandler.cpp
   OrbitThreader.cpp
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
@@ -47,6 +48,7 @@ set (HDRS
     lomb.h
     MapAnalyser.h
     MPSplitIntegrator.h
+    MultiBunchHandler.h
     NilTracker.h
     OrbitThreader.h
     ParallelCyclotronTracker.h
