@@ -490,6 +490,8 @@ private:
     void injectBunch(bool& flagTransition);
 
     bool isMultiBunch() const;
+
+    bool hasMultiBunch() const;
 };
 
 /**
@@ -521,7 +523,13 @@ double ParallelCyclotronTracker::calculateAngle2(double x, double y)
 
 inline
 bool ParallelCyclotronTracker::isMultiBunch() const {
-    return ( (mbHandler_m != nullptr) && mbHandler_m->isMultiBunch() );
+    return ( (mbHandler_m != nullptr) && itsBunch_m->weHaveBins() );
+}
+
+
+inline
+bool ParallelCyclotronTracker::hasMultiBunch() const {
+    return ( isMultiBunch() && mbHandler_m->getNumBunch() > 1 );
 }
 
 #endif // OPAL_ParallelCyclotronTracker_HH

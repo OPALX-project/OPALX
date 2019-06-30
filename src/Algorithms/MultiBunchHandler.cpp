@@ -15,15 +15,17 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
                                      const double& eta,
                                      const double& para,
                                      const std::string& mode,
-                                     const std::string& binning)
+                                     const std::string& binning,
+                                     DataSink& ds)
     : onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
     , numBunch_m(numBunch)
     , eta_m(0.01)
     , coeffDBunches_m(para)
     , radiusLastTurn_m(0.0)
     , radiusThisTurn_m(0.0)
+    , ds_m(ds)
+    , bunchCount_m(1)
 {
-    mode_m = MB_MODE::NONE;
     this->setBinning(binning);
 
     if ( numBunch > 1 ) {
@@ -288,8 +290,6 @@ int MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
                 readBunch(beam, ref);
                 updateParticleBins(beam);
                 break;
-            case MB_MODE::NONE:
-                // do nothing
             default:
                 throw OpalException("MultiBunchHandler::injectBunch()",
                                     "We shouldn't be here in single bunch mode.");
@@ -307,7 +307,7 @@ int MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
 
 
 void MultiBunchHandler::updateParticleBins(PartBunchBase<double, 3> *beam) {
-    if (mode_m == MB_MODE::NONE || bunchCount_m < 2)
+    if (numBunch_m < 2 || bunchCount_m < 2)
         return;
 
     static IpplTimings::TimerRef binningTimer = IpplTimings::getTimer("Particle Binning");
@@ -337,9 +337,7 @@ void MultiBunchHandler::setMode(const std::string& mbmode) {
               << "           the limitation. The control parameter is set to "
               << coeffDBunches_m << endl;
         mode_m = MB_MODE::AUTO;
-    } else if ( mbmode.compare("NONE") == 0 )
-        mode_m = MB_MODE::NONE;
-    else
+    } else
         throw OpalException("MultiBunchHandler::setMode()",
                             "MBMODE name \"" + mbmode + "\" unknown.");
 }

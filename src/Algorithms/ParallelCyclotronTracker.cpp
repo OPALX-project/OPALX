@@ -130,7 +130,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     if ( numBunch > 1 ) {
         mbHandler_m = std::unique_ptr<MultiBunchHandler>(
             new MultiBunchHandler(bunch, numBunch, mbEta,
-                                  mbPara, mbMode, mbBinning)
+                                  mbPara, mbMode, mbBinning, ds)
         );
     }
 
@@ -378,7 +378,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         *gmsg         << "*     (This is not an issue for spiral inflectors as they are typically < 100 keV/amu.)" << endl;
         *gmsg << endl << "* Note: For now, multi-bunch mode (MBM) needs to be de-activated for spiral inflector" << endl;
         *gmsg         << "* and space charge needs to be solved every time-step. numBunch_m and scSolveFreq are reset." << endl;
-        mbHandler_m->setNumBunch(1);
+        mbHandler_m->setTotalNumBunch(1);
     }
 
     // Fresh run (no restart):
@@ -1136,7 +1136,7 @@ void ParallelCyclotronTracker::execute() {
     restartStep0_m = 0;
 
     // Record how many bunches have already been injected. ONLY FOR MPM
-    mbHandler_m->bunchCount_m = itsBunch_m->getNumBunch();
+    mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
 
     itsBeamline->accept(*this);
     if (opalRing_m != NULL)
@@ -1283,7 +1283,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             kick(0.5 * dt);
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
-        if (itsBunch_m->weHaveBins() && (step_m % Options::rebinFreq == 0)) {
+        if (isMultiBunch() && (step_m % Options::rebinFreq == 0)) {
             mbHandler_m->updateParticleBins(itsBunch_m);
         }
 
@@ -1317,7 +1317,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             }
 
             // Recalculate bingamma and reset the BinID for each particles according to its current gamma
-            if (itsBunch_m->weHaveBins() && (step_m % Options::rebinFreq == 0)) {
+            if (isMultiBunch() && (step_m % Options::rebinFreq == 0)) {
                 mbHandler_m->updateParticleBins(itsBunch_m);
             }
         }
@@ -2064,7 +2064,7 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
         const int leb = itsBunch_m->getLastemittedBin();
         std::unique_ptr<size_t[]> localBinCount;
 
-        if ( itsBunch_m->weHaveBins() ) {
+        if ( isMultiBunch() ) {
             localBinCount = std::unique_ptr<size_t[]>(new size_t[leb]);
             for (int i = 0; i < leb; ++i)
                 localBinCount[i] = 0;
@@ -2074,7 +2074,7 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
             if(itsBunch_m->Bin[i] < 0) {
                 ++locLostParticleNum;
                 itsBunch_m->destroy(1, i);
-            } else if ( itsBunch_m->weHaveBins() ) {
+            } else if ( isMultiBunch() ) {
                 /* we need to count the local number of particles
                  * per energy bin
                  */
@@ -2082,7 +2082,7 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
             }
         }
 
-        if ( itsBunch_m->weHaveBins() ) {
+        if ( isMultiBunch() ) {
             // set the local bin count
             for (int i = 0; i < leb; ++i) {
                 itsBunch_m->setLocalBinCount(localBinCount[i], i);
@@ -2141,7 +2141,7 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
         localToGlobal(itsBunch_m->P, phi, psi, Vector_t(0.0));
 
         // If particles were deleted, recalculate bingamma and reset BinID for remaining particles
-        if ( itsBunch_m->weHaveBins() )
+        if ( isMultiBunch() )
             mbHandler_m->updateParticleBins(itsBunch_m);
     }
 
@@ -2759,7 +2759,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     //int stepToLastInj = itsBunch_m->getSteptoLastInj(); // TODO: Do we need this? -DW
 
     // Record how many bunches have already been injected. ONLY FOR MBM
-    mbHandler_m->bunchCount_m = itsBunch_m->getNumBunch();
+    mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
 
     initTrackOrbitFile();
 
@@ -2787,7 +2787,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     *gmsg << "* Beginning of this run is at t = " << t << " [ns]" << endl;
     *gmsg << "* The time step is set to dt = " << dt << " [ns]" << endl;
 
-    if (mbHandler_m->getNumBunch() > 1) {
+    if ( isMultiBunch() ) {
 
         *gmsg << "* MBM: Time interval between neighbour bunches is set to "
               << setup_m.stepsPerTurn * dt << "[ns]" << endl;
@@ -2879,7 +2879,7 @@ void ParallelCyclotronTracker::finalizeTracking_m(dvector_t& Ttime,
         default:
         {
             // not for multibunch
-            if (!(itsBunch_m->weHaveBins())) {
+            if (!isMultiBunch()) {
                 *gmsg << "*" << endl;
                 *gmsg << "* Finished during turn " << turnnumber_m << " (" << turnnumber_m - 1 << " turns completed)" << endl;
                 *gmsg << "* Cave: Turn number is not correct for restart mode"<< endl;
@@ -3101,7 +3101,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     deleteParticle(flagNeedUpdate);
 
     // Recalculate bingamma and reset the BinID for each particles according to its current gamma
-    if (itsBunch_m->weHaveBins() && step_m % Options::rebinFreq == 0) {
+    if (isMultiBunch() && step_m % Options::rebinFreq == 0) {
         mbHandler_m->updateParticleBins(itsBunch_m);
     }
 
@@ -3260,8 +3260,8 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
         else
             itsBunch_m->boundp();
 
-        if ((itsBunch_m->weHaveBins()) && mbHandler_m->bunchCount_m > 1) {
-            // --- Multibunche mode --- //
+        if (hasMultiBunch()) {
+            // --- Multibunch mode --- //
 
             // Calculate gamma for each energy bin
             itsBunch_m->calcGammas_cycl();
@@ -3324,8 +3324,9 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
 
 
 void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
-    if ( mbHandler_m->getNumBunch() < 2 && step_m != setup_m.stepsNextCheck )
+    if ( !isMultiBunch() && step_m != setup_m.stepsNextCheck ) ) {
         return;
+    }
 
     const int result = mbHandler_m->injectBunch(itsBunch_m, itsReference,
                                                 flagTransition, azimuth_m);

@@ -118,6 +118,8 @@ public:
     void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
                                    const double& azimuth);
 
+    MultiBunchDump* getMultiBunchWriter(short bunchNr);
+
 private:
     DataSink(const DataSink &) { }
     DataSink &operator = (const DataSink &) { return *this; }
@@ -148,6 +150,15 @@ std::string DataSink::convertToString(int number) {
     std::stringstream ss;
     ss << std::setw(5) << std::setfill('0') <<  number;
     return ss.str();
+}
+
+
+inline
+MultiBunchDump* DataSink::getMultiBunchWriter(short bunchNr) {
+    assert(bunchNr > -1 && bunchNr < (short)mbWriter_m.size());
+    std::list<mbWriter_t>::iterator it = mbWriter_m.begin();
+    std::advance(it, bunchNr);
+    return (it->get());
 }
 
 #endif // DataSink_H_
