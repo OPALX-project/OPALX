@@ -2,6 +2,7 @@
 #define OPAL_MULTI_BUNCH_HANDLER_H
 
 #include "Algorithms/PartBunchBase.h"
+#include "Structure/DataSink.h"
 
 /* Helper class that stores bunch injection
  * information like azimuth, radius etc. of first
@@ -11,9 +12,8 @@ class MultiBunchHandler {
 public:
     // multi-bunch modes
     enum class MB_MODE {
-        NONE   = 0,
-        FORCE  = 1,
-        AUTO   = 2
+        FORCE  = 0,
+        AUTO   = 1
     };
 
     // multi-bunch binning type
@@ -34,7 +34,8 @@ public:
                       const double& eta,
                       const double& para,
                       const std::string& mode,
-                      const std::string& binning);
+                      const std::string& binning,
+                      DataSink& ds);
 
     void saveBunch(PartBunchBase<double, 3> *beam,
                    const double& azimuth);
@@ -63,17 +64,16 @@ public:
     void setRadiusTurns(const double& radius);
 
     /// set total number of tracked bunches
-    void setNumBunch(int n);
+    void setTotalNumBunch(int n);
 
     /// get total number of tracked bunches
+    int getTotalNumBunch() const;
+
+    void setNumBunch(int n);
+
     int getNumBunch() const;
-    
-    bool isMultiBunch() const;
 
     bool isForceMode() const;
-
-    // record how many bunches has already been injected. ONLY FOR MPM
-    int bunchCount_m;
 
 private:
     // store the data of the beam which are required for injecting a
@@ -101,24 +101,35 @@ private:
     // used for automatic injection in multi-bunch mode
     double radiusLastTurn_m;
     double radiusThisTurn_m;
+
+    DataSink& ds_m;
+
+    // record how many bunches has already been injected.
+    int bunchCount_m;
 };
 
 
 inline
-void MultiBunchHandler::setNumBunch(int n) {
+void MultiBunchHandler::setTotalNumBunch(int n) {
     numBunch_m = n;
 }
 
 
 inline
-int MultiBunchHandler::getNumBunch() const {
+int MultiBunchHandler::getTotalNumBunch() const {
     return numBunch_m;
 }
 
 
 inline
-bool MultiBunchHandler::isMultiBunch() const {
-    return (mode_m != MB_MODE::NONE);
+void MultiBunchHandler::setNumBunch(int n) {
+    bunchCount_m = n;
+}
+
+
+inline
+int MultiBunchHandler::getNumBunch() const {
+    return bunchCount_m;
 }
 
 
