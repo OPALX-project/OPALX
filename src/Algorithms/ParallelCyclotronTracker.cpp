@@ -117,8 +117,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
     : Tracker(beamline, bunch, reference, revBeam, revTrack)
     , bgf_m(nullptr)
     , maxSteps_m(maxSTEPS)
-    , mbHandler_m(new MultiBunchHandler(bunch, numBunch, mbEta,
-                                        mbPara, mbMode, mbBinning))
     , lastDumpedStep_m(0)
     , myNode_m(Ippl::myNode())
     , initialLocalNum_m(bunch->getLocalNum())
@@ -128,6 +126,13 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
 {
     itsBeamline = dynamic_cast<Beamline *>(beamline.clone());
     itsDataSink = &ds;
+
+    if ( numBunch > 1 ) {
+        mbHandler_m = std::unique_ptr<MultiBunchHandler>(
+            new MultiBunchHandler(bunch, numBunch, mbEta,
+                                  mbPara, mbMode, mbBinning)
+        );
+    }
 
     IntegrationTimer_m = IpplTimings::getTimer("Integration");
     TransformTimer_m   = IpplTimings::getTimer("Frametransform");
@@ -223,7 +228,7 @@ double ParallelCyclotronTracker::computePathLengthUpdate(const double& dt,
                                                          short bunchNr)
 {
     double dotP = 0.0;
-    if ( Options::psDumpFrame == Options::BUNCH_MEAN || mbHandler_m->isMultiBunch()) {
+    if ( Options::psDumpFrame == Options::BUNCH_MEAN || isMultiBunch()) {
         for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
             // take all particles if bunchNr <= -1
             if ( bunchNr > -1 && itsBunch_m->bunchNum[i] != bunchNr)
@@ -2450,7 +2455,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     IpplTimings::startTimer(DumpTimer_m);
 
     // dump stat file per bunch in case of multi-bunch mode
-    if (mbHandler_m->isMultiBunch()) {
+    if (isMultiBunch()) {
         double phi = 0.0, psi = 0.0;
         Vector_t meanR = calcMeanR();
 
@@ -2581,7 +2586,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     Vector_t meanP;
 
     // in case of multi-bunch mode take always bunch mean (although it takes all bunches)
-    if (Options::psDumpFrame == Options::BUNCH_MEAN || mbHandler_m->isMultiBunch()) {
+    if (Options::psDumpFrame == Options::BUNCH_MEAN || isMultiBunch()) {
         meanR = calcMeanR();
         meanP = calcMeanP();
     } else if (itsBunch_m->getLocalNum() > 0) {
