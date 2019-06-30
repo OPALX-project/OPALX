@@ -1961,9 +1961,7 @@ bool ParallelCyclotronTracker::push(double h) {
     itsBunch_m->setT(itsBunch_m->getT() + h);
 
     // Path length update
-    double const dotP = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
-    double const gamma = sqrt(1.0 + dotP);
-    pathLength_m += h * sqrt(dotP) * Physics::c / gamma;
+    pathLength_m += computePathLengthUpdate(h * 1.0e9 /*s --> ns*/);
     itsBunch_m->setLPath(pathLength_m);
 
     IpplTimings::stopTimer(IntegrationTimer_m);
