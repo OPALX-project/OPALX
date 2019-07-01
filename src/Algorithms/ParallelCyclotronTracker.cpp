@@ -207,20 +207,23 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
 }
 
 // only used for dumping into stat file
-void ParallelCyclotronTracker::dumpAngle_m(const double& theta) {
-    if ( prevAzimuth_m < 0.0 ) { // only at first occurrence
-        azimuth_m = theta;
+void ParallelCyclotronTracker::dumpAngle(const double& theta,
+                                         double& prevAzimuth,
+                                         double& azimuth)
+{
+    if ( prevAzimuth < 0.0 ) { // only at first occurrence
+        azimuth = theta;
     } else {
-        double dtheta = theta - prevAzimuth_m;
+        double dtheta = theta - prevAzimuth;
         if ( dtheta < 0 ) {
             dtheta += 360.0;
         }
         if ( dtheta > 180 ) { // rotating clockwise, reduce angle
             dtheta -= 360;
         }
-        azimuth_m += dtheta;
+        azimuth += dtheta;
     }
-    prevAzimuth_m = theta;
+    prevAzimuth = theta;
 }
 
 
@@ -1596,17 +1599,27 @@ double ParallelCyclotronTracker::getHarmonicNumber() const {
 }
 
 
-Vector_t ParallelCyclotronTracker::calcMeanR() const {
+Vector_t ParallelCyclotronTracker::calcMeanR(short bunchNr) const {
     Vector_t meanR(0.0, 0.0, 0.0);
 
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+        // take all particles if bunchNr <= -1
+        if ( bunchNr > -1 && itsBunch_m->bunchNum[i] != bunchNr)
+            continue;
+
         for(int d = 0; d < 3; ++d) {
             meanR(d) += itsBunch_m->R[i](d);
         }
     }
 
     reduce(meanR, meanR, OpAddAssign());
-    return meanR / Vector_t(itsBunch_m->getTotalNum());
+
+    size_t n = itsBunch_m->getTotalNum();
+
+    if ( bunchNr > -1 )
+        n = itsBunch_m->getTotalNumPerBunch(bunchNr);
+
+    return meanR / Vector_t(n);
 }
 
 Vector_t ParallelCyclotronTracker::calcMeanP() const {
@@ -1958,11 +1971,10 @@ bool ParallelCyclotronTracker::push(double h) {
         }
         flagNeedUpdate |= (itsBunch_m->Bin[i] < 0);
     }
-    itsBunch_m->setT(itsBunch_m->getT() + h);
 
-    // Path length update
-    pathLength_m += computePathLengthUpdate(h * 1.0e9 /*s --> ns*/);
-    itsBunch_m->setLPath(pathLength_m);
+    updateTime(h * 1.0e9 /*s --> ns*/);
+
+    updatePathLength(h * 1.0e9 /*s --> ns*/);
 
     IpplTimings::stopTimer(IntegrationTimer_m);
     return flagNeedUpdate;
@@ -2461,7 +2473,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
         double theta = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
 
         // fix azimuth_m --> make monotonically increasing
-        dumpAngle_m(theta);
+        dumpAngle(theta, prevAzimuth_m, azimuth_m);
 
         if(Options::psDumpFrame != Options::GLOBAL) {
             Vector_t meanP = calcMeanP();
@@ -2519,7 +2531,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     double azimuth = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
 
     // fix azimuth_m --> make monotonically increasing
-    dumpAngle_m(azimuth);
+    dumpAngle(azimuth, prevAzimuth_m, azimuth_m);
 
     // --------------  Calculate the external fields at the center of the bunch ----------------- //
     beamline_list::iterator DumpSindex = FieldDimensions.begin();
@@ -2705,14 +2717,14 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
 {
     // Reference parameters
     t += dt;
-    itsBunch_m->setT(t * 1.0e-9);
+
+    updateTime(dt);
+
     itsBunch_m->setLocalTrackStep((step_m + 1));
     if (!(step_m + 1 % 1000))
         *gmsg << "Step " << step_m + 1 << endl;
 
-    pathLength_m += computePathLengthUpdate(dt);  // unit: m
-
-    itsBunch_m->setLPath(pathLength_m);
+    updatePathLength(dt);
 
     // Here is global frame, don't do itsBunch_m->boundp();
 
@@ -3324,12 +3336,12 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
 
 
 void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
-    if ( !isMultiBunch() && step_m != setup_m.stepsNextCheck ) ) {
+    if (!isMultiBunch() && step_m != setup_m.stepsNextCheck) {
         return;
     }
 
-    const int result = mbHandler_m->injectBunch(itsBunch_m, itsReference,
-                                                flagTransition, azimuth_m);
+    const short result = mbHandler_m->injectBunch(itsBunch_m, itsReference,
+                                                  flagTransition, azimuth_m);
 
     switch ( result ) {
         case 0: {
@@ -3353,5 +3365,50 @@ void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
         default:
             throw OpalException("ParallelCyclotronTracker::injectBunch()",
                                 "Unknown return value " + std::to_string(result));
+    }
+}
+
+
+void ParallelCyclotronTracker::updatePathLength(const double& dt) {
+    pathLength_m += computePathLengthUpdate(dt);
+
+    itsBunch_m->setLPath(pathLength_m);
+
+    if ( isMultiBunch() ) {
+        for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
+            double lpath = mbHandler_m->getPathLength(b);
+            lpath += computePathLengthUpdate(dt, b);
+            mbHandler_m->setPathLength(lpath, b);
+        }
+    }
+}
+
+
+void ParallelCyclotronTracker::updateTime(const double& dt) {
+    // t is in seconds
+    double t = itsBunch_m->getT();
+
+    // dt: ns --> s
+    itsBunch_m->setT(t + dt * 1.0e-9);
+
+    if ( isMultiBunch() ) {
+        for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
+            double time = mbHandler_m->getTime(b);
+            mbHandler_m->setTime(time + dt, b);
+        }
+    }
+}
+
+
+void ParallelCyclotronTracker::updateAzimuth() {
+    for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
+        Vector_t meanR = calcMeanR(b);
+        double azimuth = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
+
+        const double& prevAzimuth = mbHandler_m->getAzimuth();
+        double newAzimuth = prevAzimuth;
+
+        dumpAngle(azimuth, prevAzimuth, newAzimuth);
+        mbHandler_m->setAzimuth(newAzimuth);
     }
 }
