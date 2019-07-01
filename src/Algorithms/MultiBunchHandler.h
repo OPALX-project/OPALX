@@ -48,10 +48,10 @@ public:
      *     1 - if bunch got saved
      *     2 - if bunch got injected
      */
-    int injectBunch(PartBunchBase<double, 3> *beam,
-                    const PartData& ref,
-                    bool& flagTransition,
-                    const double& azimuth);
+    short injectBunch(PartBunchBase<double, 3> *beam,
+                      const PartData& ref,
+                      bool& flagTransition,
+                      const double& azimuth);
 
     void updateParticleBins(PartBunchBase<double, 3> *beam);
     
@@ -64,16 +64,28 @@ public:
     void setRadiusTurns(const double& radius);
 
     /// set total number of tracked bunches
-    void setTotalNumBunch(int n);
+    void setTotalNumBunch(short n);
 
     /// get total number of tracked bunches
-    int getTotalNumBunch() const;
+    short getTotalNumBunch() const;
 
-    void setNumBunch(int n);
+    void setNumBunch(short n);
 
-    int getNumBunch() const;
+    short getNumBunch() const;
 
     bool isForceMode() const;
+
+    void setPathLength(const double& pathlength, short bunchNr);
+
+    const double& getPathLength(short bunchNr) const;
+
+    void setAzimuth(const double& azimuth, short bunchNr);
+
+    const double& getAzimuth(short bunchNr) const;
+
+    void setTime(const double& time, short bunchNr);
+
+    const double& getTime(short bunchNr) const;
 
 private:
     // store the data of the beam which are required for injecting a
@@ -81,7 +93,7 @@ private:
     std::string onebunch_m;
 
     /// The number of bunches specified in TURNS of RUN commond
-    int numBunch_m;
+    short numBunch_m;
 
     // parameter for reset bin in multi-bunch run
     double eta_m;
@@ -105,30 +117,30 @@ private:
     DataSink& ds_m;
 
     // record how many bunches has already been injected.
-    int bunchCount_m;
+    short bunchCount_m;
 };
 
 
 inline
-void MultiBunchHandler::setTotalNumBunch(int n) {
+void MultiBunchHandler::setTotalNumBunch(short n) {
     numBunch_m = n;
 }
 
 
 inline
-int MultiBunchHandler::getTotalNumBunch() const {
+short MultiBunchHandler::getTotalNumBunch() const {
     return numBunch_m;
 }
 
 
 inline
-void MultiBunchHandler::setNumBunch(int n) {
+void MultiBunchHandler::setNumBunch(short n) {
     bunchCount_m = n;
 }
 
 
 inline
-int MultiBunchHandler::getNumBunch() const {
+short MultiBunchHandler::getNumBunch() const {
     return bunchCount_m;
 }
 
@@ -136,6 +148,48 @@ int MultiBunchHandler::getNumBunch() const {
 inline
 bool MultiBunchHandler::isForceMode() const {
     return (mode_m == MB_MODE::FORCE);
+}
+
+
+inline
+void MultiBunchHandler::setPathLength(const double& pathlength, short bunchNr) {
+    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
+    mbd->setPathLength(pathlength);
+}
+
+
+inline
+const double& MultiBunchHandler::getPathLength(short bunchNr) const {
+    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
+    return mbd->getPathLength();
+}
+
+
+inline
+void MultiBunchHandler::setAzimuth(const double& azimuth, short bunchNr) {
+    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
+    mbd->setAzimuth(azimuth);
+}
+
+
+inline
+const double& MultiBunchHandler::getAzimuth(short bunchNr) const {
+    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
+    return mbd->getAzimuth();
+}
+
+
+inline
+void MultiBunchHandler::setTime(const double& time, short bunchNr) {
+    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
+    mbd->setTime(time);
+}
+
+
+inline
+const double& MultiBunchHandler::getTime(short bunchNr) const {
+    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
+    return mbd->getTime();
 }
 
 #endif

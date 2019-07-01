@@ -223,12 +223,12 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
 }
 
 
-int MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
-                                    const PartData& ref,
-                                    bool& flagTransition,
-                                    const double& azimuth)
+short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
+                                     const PartData& ref,
+                                     bool& flagTransition,
+                                     const double& azimuth)
 {
-    int result = 0;
+    short result = 0;
     if ((bunchCount_m == 1) && (mode_m == MB_MODE::AUTO) && (!flagTransition)) {
 
         // If all of the following conditions are met, this code will be executed

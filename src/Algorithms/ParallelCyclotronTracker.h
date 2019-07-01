@@ -275,8 +275,14 @@ private:
     double azimuth_m;
     double prevAzimuth_m;
 
-    // only for dumping to stat-file --> make azimuth monotonically increasing
-    void dumpAngle_m(const double& theta);
+    /* only for dumping to stat-file --> make azimuth monotonically increasing
+     * @param theta computed azimuth [deg]
+     * @param prevAzimuth previous angle [deg]
+     * @param azimuth to be updated [deg]
+     */
+    void dumpAngle(const double& theta,
+                   double& prevAzimuth,
+                   double& azimuth);
 
     // take all particles if bunchNr <= -1
     double computePathLengthUpdate(const double& dt, short bunchNr = -1);
@@ -318,7 +324,11 @@ private:
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef DelParticleTimer_m;
 
-    Vector_t calcMeanR() const;
+    /*
+     * @param bunchNr if <= -1 --> take all particles in simulation, if bunchNr > -1,
+     * take only particles of *this* bunch
+     */
+    Vector_t calcMeanR(short bunchNr = -1) const;
 
     Vector_t calcMeanP() const;
 
@@ -492,6 +502,18 @@ private:
     bool isMultiBunch() const;
 
     bool hasMultiBunch() const;
+
+    /*
+     * @param dt time step in ns
+     */
+    void updatePathLength(const double& dt);
+
+    /*
+     * @param dt time step in ns
+     */
+    void updateTime(const double& dt);
+
+    void updateAzimuth();
 };
 
 /**
