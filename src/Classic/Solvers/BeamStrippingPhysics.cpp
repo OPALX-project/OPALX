@@ -58,9 +58,9 @@ namespace {
 }
 
 
-BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase *element, std::string &material):
+BeamStrippingPhysics::BeamStrippingPhysics(const std::string &name, ElementBase *element):
     ParticleMatterInteractionHandler(name, element),
-    material_m(material),
+    //material_m(material),
     T_m(0.0),
     dT_m(0.0),
     mass_m(0.0),
@@ -516,9 +516,9 @@ bool BeamStrippingPhysics::stillAlive(PartBunchBase<double, 3> *bunch) {
 //  ------------------------------------------------------------------------
 void  BeamStrippingPhysics::Material() {
 
-    material_m = "VACUUM";
+    //material_m = "VACUUM";
 
-    const double pressure = bstp_m->getPressure();                              // mbar
+    const double pressure = bstp_m->getPressure();                      // mbar
     const double temperature = bstp_m->getTemperature();                // K
 
     for(int iComp = 0; iComp<NbComponents; ++iComp) {
