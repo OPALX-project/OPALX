@@ -284,6 +284,8 @@ private:
                    double& prevAzimuth,
                    double& azimuth);
 
+    double computeRadius(const Vector_t& meanR) const;
+
     // take all particles if bunchNr <= -1
     double computePathLengthUpdate(const double& dt, short bunchNr = -1);
 
@@ -513,7 +515,7 @@ private:
      */
     void updateTime(const double& dt);
 
-    void updateAzimuth();
+    void updateAzimuthAndRadius();
 };
 
 /**
