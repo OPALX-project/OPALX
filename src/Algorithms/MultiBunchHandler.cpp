@@ -15,17 +15,20 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
                                      const double& eta,
                                      const double& para,
                                      const std::string& mode,
-                                     const std::string& binning,
-                                     DataSink& ds)
+                                     const std::string& binning)
     : onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
     , numBunch_m(numBunch)
     , eta_m(0.01)
     , coeffDBunches_m(para)
     , radiusLastTurn_m(0.0)
     , radiusThisTurn_m(0.0)
-    , ds_m(ds)
     , bunchCount_m(1)
 {
+    binfo_m.reserve(numBunch);
+    for (int i = 0; i < numBunch; ++i) {
+        binfo_m.push_back(beaminfo_t(0.0, 0.0, 0));
+    }
+
     this->setBinning(binning);
 
     if ( numBunch > 1 ) {
@@ -140,10 +143,10 @@ void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam,
     h5wrapper.writeStep(beam, additionalAttributes);
     h5wrapper.close();
 
-//     // injection values
-//     azimuth_m = azimuth;
-//     time_m    = beam->getT();
-//     spos_m    = beam->getLPath();
+    // injection values
+    double time  = beam->getT();
+    double lpath = beam->getLPath();
+    binfo_m.push_back(beaminfo_t(time, azimuth, lpath));
 
     *gmsg << "Done." << endl;
     IpplTimings::stopTimer(saveBunchTimer);
@@ -169,6 +172,10 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
 
     size_t numParticles = h5wrapper.getNumParticles();
 
+    const int bunchNum = bunchCount_m - 1;
+
+    beam->setTotalNumPerBunch(numParticles, bunchNum);
+
     if ( numParticles == 0 ) {
         throw OpalException("MultiBunchHandler::readBunch()",
                             "No particles in file " + onebunch_m + ".");
@@ -184,6 +191,8 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
     PAssert_LT(firstParticle, lastParticle +1);
 
     numParticles = lastParticle - firstParticle + 1;
+
+    beam->setLocalNumPerBunch(numParticles, bunchNum);
 
     //FIXME
     std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
@@ -202,8 +211,7 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
     h5wrapper.close();
 
     beam->create(numParticles);
-    const int bunchNum = beam->getNumBunch() - 1;
-    
+
     for(size_t ii = 0; ii < numParticles; ++ ii, ++ localNum) {
         beam->R[localNum] = tmpBunch->R[ii];
         beam->P[localNum] = tmpBunch->P[ii];
@@ -230,6 +238,10 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
 {
     short result = 0;
     if ((bunchCount_m == 1) && (mode_m == MB_MODE::AUTO) && (!flagTransition)) {
+
+        // we have still a single bunch
+        beam->setTotalNumPerBunch(beam->getTotalNum(), 0);
+        beam->setLocalNumPerBunch(beam->getLocalNum(), 0);
 
         // If all of the following conditions are met, this code will be executed
         // to check the distance between two neighboring bunches:
@@ -289,6 +301,7 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
             case MB_MODE::AUTO:
                 readBunch(beam, ref);
                 updateParticleBins(beam);
+                calcBunchBeamParameters(beam, bunchCount_m - 1);
                 break;
             default:
                 throw OpalException("MultiBunchHandler::injectBunch()",
@@ -374,4 +387,146 @@ void MultiBunchHandler::setRadiusTurns(const double& radius) {
     }
     // New OPAL 2.0: Init in m -DW
     *gmsg << radiusThisTurn_m << " m" << endl;
+}
+
+
+bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
+                                                short bunchNr)
+{
+    if ( !OpalData::getInstance()->isInOPALCyclMode() ) {
+        return false;
+    }
+
+    const unsigned long localNum = beam->getLocalNum();
+
+    long int bunchTotalNum = 0;
+    unsigned long bunchLocalNum = 0;
+
+    /* container:
+     *
+     * ekin, <x>, <y>, <z>, <p_x>, <p_y>, <p_z>,
+     * <x^2>, <y^2>, <z^2>, <p_x^2>, <p_y^2>, <p_z^2>,
+     * <xp_x>, <y_py>, <zp_z>,
+     * <x^3>, <y^3>, <z^3>, <x^4>, <y^4>, <z^4>
+     */
+    const unsigned int dim = PartBunchBase<double, 3>::Dimension;
+    std::vector<double> local(7 * dim + 1);
+
+    beaminfo_t& binfo = getBunchInfo(bunchNr);
+
+    for(unsigned long k = 0; k < localNum; ++ k) {
+        if ( beam->bunchNum[k] != bunchNr ) { //|| ID[k] == 0 ) {
+            continue;
+        }
+
+        ++bunchTotalNum;
+        ++bunchLocalNum;
+
+        // ekin
+        local[0] += std::sqrt(dot(beam->P[k], beam->P[k]) + 1.0);
+
+        for (unsigned int i = 0; i < dim; ++i) {
+
+            double r = beam->R[k](i);
+            double p = beam->P[k](i);
+
+            // <x>, <y>, <z>
+            local[i + 1] += r;
+
+            // <p_x>, <p_y, <p_z>
+            local[i + dim + 1] += p;
+
+            // <x^2>, <y^2>, <z^2>
+            double r2 = r * r;
+            local[i + 2 * dim + 1] += r2;
+
+            // <p_x^2>, <p_y^2>, <p_z^2>
+            local[i + 3 * dim + 1] += p * p;
+
+            // <xp_x>, <y_py>, <zp_z>
+            local[i + 4 * dim + 1] += r * p;
+
+            // <x^3>, <y^3>, <z^3>
+            local[i + 5 * dim + 1] += r2 * r;
+
+            // <x^4>, <y^4>, <z^4>
+            local[i + 6 * dim + 1] += r2 * r2;
+        }
+    }
+
+    // inefficient
+    allreduce(bunchTotalNum, 1, std::plus<long int>());
+
+    // here we also update the number of particles of *this* bunch
+    if (bunchNr >= (short)beam->getNumBunch())
+        throw OpalException("PartBunchBase::calcBunchBeamParameters()",
+                            "Bunch number " + std::to_string(bunchNr) +
+                            " exceeds bunch index " + std::to_string(beam->getNumBunch() - 1));
+
+    beam->setTotalNumPerBunch(bunchTotalNum, bunchNr);
+    beam->setLocalNumPerBunch(bunchLocalNum, bunchNr);
+
+    if ( bunchTotalNum == 0 )
+        return false;
+
+    // ekin
+    const double m0 = beam->getM() * 1.0e-6;
+    local[0] -= bunchLocalNum;
+    local[0] *= m0;
+
+    allreduce(local.data(), local.size(), std::plus<double>());
+
+    double invN = 1.0 / double(bunchTotalNum);
+    binfo.ekin = local[0] * invN;
+
+    binfo.time       = beam->getT() * 1e9;  // ns
+    binfo.nParticles = bunchTotalNum;
+
+    for (unsigned int i = 0; i < dim; ++i) {
+
+        double w = local[i + 1] * invN;
+        double pw = local[i + dim + 1] * invN;
+        double w2 = local[i + 2 * dim + 1] * invN;
+        double pw2 = local[i + 3 * dim + 1] * invN;
+        double wpw = local[i + 4 * dim + 1] * invN;
+        double w3 = local[i + 5 * dim + 1] * invN;
+        double w4 = local[i + 6 * dim + 1] * invN;
+
+        // <x>, <y>, <z>
+        binfo.mean[i] = w;
+
+        // central: <p_w^2> - <p_w>^2 (w = x, y, z)
+        binfo.prms[i] = pw2 - pw * pw;
+        if ( binfo.prms[i] < 0 ) {
+            binfo.prms[i] = 0.0;
+        }
+
+        // central: <wp_w> - <w><p_w>
+        wpw = wpw - w * pw;
+
+        // central: <w^2> - <w>^2 (w = x, y, z)
+        binfo.rrms[i] = w2 - w * w;
+
+        // central: normalized emittance
+        binfo.emit[i] = (binfo.rrms[i] * binfo.prms[i] - wpw * wpw);
+        binfo.emit[i] =  std::sqrt(std::max(binfo.emit[i], 0.0));
+
+        // central: <w^4> - 4 * <w> * <w^3> + 6 * <w>^2 * <w^2> - 3 * <w>^4
+        double tmp = w4
+                   - 4.0 * w * w3
+                   + 6.0 * w * w * w2
+                   - 3.0 * w * w * w * w;
+        binfo.halo[i] = tmp / ( binfo.rrms[i] * binfo.rrms[i] );
+
+        // central: sqrt(<w^2> - <w>^2) (w = x, y, z)
+        binfo.rrms[i] = std::sqrt(binfo.rrms[i]);
+
+        // central: sqrt(<p_w^2> - <p_w>^2)
+        binfo.prms[i] = std::sqrt(binfo.prms[i]);
+    }
+
+    double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
+    binfo.dEkin = binfo.prms[1] * m0 * std::sqrt(1.0 - tmp);
+
+    return true;
 }

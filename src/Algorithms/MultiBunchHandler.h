@@ -2,7 +2,9 @@
 #define OPAL_MULTI_BUNCH_HANDLER_H
 
 #include "Algorithms/PartBunchBase.h"
-#include "Structure/DataSink.h"
+
+#include <cassert>
+#include <vector>
 
 /* Helper class that stores bunch injection
  * information like azimuth, radius etc. of first
@@ -10,6 +12,31 @@
  */
 class MultiBunchHandler {
 public:
+    struct beaminfo_t {
+        beaminfo_t(double t,
+                   double theta,
+                   double lpath)
+            : time(t)
+            , azimuth(theta)
+            , prevAzimuth(-1.0)
+            , pathlength(lpath) {
+        };
+
+        double time;
+        double azimuth;
+        double radius;
+        double prevAzimuth;
+        double pathlength;
+        long unsigned int nParticles;
+        double ekin;
+        double dEkin;
+        double rrms[3];
+        double prms[3];
+        double emit[3];
+        double mean[3];
+        double halo[3];
+    };
+
     // multi-bunch modes
     enum class MB_MODE {
         FORCE  = 0,
@@ -34,8 +61,7 @@ public:
                       const double& eta,
                       const double& para,
                       const std::string& mode,
-                      const std::string& binning,
-                      DataSink& ds);
+                      const std::string& binning);
 
     void saveBunch(PartBunchBase<double, 3> *beam,
                    const double& azimuth);
@@ -75,17 +101,11 @@ public:
 
     bool isForceMode() const;
 
-    void setPathLength(const double& pathlength, short bunchNr);
+    bool calcBunchBeamParameters(PartBunchBase<double, 3>* beam, short bunchNr);
 
-    const double& getPathLength(short bunchNr) const;
+    beaminfo_t& getBunchInfo(short bunchNr);
 
-    void setAzimuth(const double& azimuth, short bunchNr);
-
-    const double& getAzimuth(short bunchNr) const;
-
-    void setTime(const double& time, short bunchNr);
-
-    const double& getTime(short bunchNr) const;
+    const beaminfo_t& getBunchInfo(short bunchNr) const;
 
 private:
     // store the data of the beam which are required for injecting a
@@ -114,10 +134,11 @@ private:
     double radiusLastTurn_m;
     double radiusThisTurn_m;
 
-    DataSink& ds_m;
-
     // record how many bunches has already been injected.
     short bunchCount_m;
+
+    // each list entry belongs to a bunch
+    std::vector<beaminfo_t> binfo_m;
 };
 
 
@@ -152,44 +173,16 @@ bool MultiBunchHandler::isForceMode() const {
 
 
 inline
-void MultiBunchHandler::setPathLength(const double& pathlength, short bunchNr) {
-    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
-    mbd->setPathLength(pathlength);
+MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) {
+    assert(bunchNr < 0 || bunchNr >= (short)binfo_m.size());
+    return binfo_m[bunchNr];
 }
 
 
 inline
-const double& MultiBunchHandler::getPathLength(short bunchNr) const {
-    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
-    return mbd->getPathLength();
-}
-
-
-inline
-void MultiBunchHandler::setAzimuth(const double& azimuth, short bunchNr) {
-    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
-    mbd->setAzimuth(azimuth);
-}
-
-
-inline
-const double& MultiBunchHandler::getAzimuth(short bunchNr) const {
-    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
-    return mbd->getAzimuth();
-}
-
-
-inline
-void MultiBunchHandler::setTime(const double& time, short bunchNr) {
-    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
-    mbd->setTime(time);
-}
-
-
-inline
-const double& MultiBunchHandler::getTime(short bunchNr) const {
-    MultiBunchDump *mbd = ds_m.getMultiBunchWriter(bunchNr);
-    return mbd->getTime();
+const MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) const {
+    assert(bunchNr < 0 || bunchNr >= (short)binfo_m.size());
+    return binfo_m[bunchNr];
 }
 
 #endif

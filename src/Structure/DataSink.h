@@ -34,6 +34,7 @@ class H5PartWrapper;
 
 class DataSink {
 public:
+    typedef MultiBunchDump::beaminfo_t      beaminfo_t;
     typedef StatWriter::losses_t            losses_t;
     typedef std::unique_ptr<StatWriter>     statWriter_t;
     typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
@@ -113,10 +114,10 @@ public:
 
     /** no statWriter_m dump
      * @param beam
-     * @param azimuth (global) [deg] of dump
+     * @param binfo is the beam info
      */
     void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
-                                   const double& azimuth);
+                                   const beaminfo_t& binfo);
 
     MultiBunchDump* getMultiBunchWriter(short bunchNr);
 
