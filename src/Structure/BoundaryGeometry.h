@@ -332,7 +332,7 @@ public:
 
     inline bool isOutsideApperture(Vector_t x) {
         if (hasApperture()) {
-            for (unsigned int i=0; i<apert_m.size(); i=i+3) {
+            for (size_t i = 0; i < apert_m.size(); i += 3) {
                 if ((apert_m[i] <= x(2)) && (x(2) < apert_m[i+1])) {
                     // yes we are inside the interval
                     const double r = apert_m[i+2] * apert_m[i+2];
