@@ -269,8 +269,8 @@ public:
     /**
        Return number of boundary faces.
     */
-    inline int getNumBFaces () {
-        return numTriangles_m;
+    inline size_t getNumBFaces () {
+        return Triangles_m.size();
     }
 
     /**
@@ -396,7 +396,6 @@ private:
     std::vector<Vector_t> Points_m;     // geometry point coordinates
     std::vector<std::array<int,4>> Triangles_m;   // boundary faces defined via point IDs
                                         // please note: 4 is correct, historical reasons!
-    int numTriangles_m;                 // number of boundary triangles
 
     std::vector<Vector_t> TriNormals_m; // oriented normal vector of triangles
     std::vector<double> TriAreas_m;     // area of triangles
