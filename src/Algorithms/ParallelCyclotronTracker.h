@@ -286,8 +286,7 @@ private:
 
     double computeRadius(const Vector_t& meanR) const;
 
-    // take all particles if bunchNr <= -1
-    double computePathLengthUpdate(const double& dt, short bunchNr = -1);
+    void computePathLengthUpdate(std::vector<double>& dl, const double& dt);
 
     // external field arrays for dumping
     Vector_t FDext_m[2], extE_m, extB_m;
@@ -500,6 +499,8 @@ private:
                                  Vector_t& Bfield);
 
     void injectBunch(bool& flagTransition);
+
+    void saveInjectValues();
 
     bool isMultiBunch() const;
 

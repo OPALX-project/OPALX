@@ -23,13 +23,10 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     , radiusLastTurn_m(0.0)
     , radiusThisTurn_m(0.0)
     , bunchCount_m(1)
-    , injTime_m(0.0)
-    , injPathlength_m(0.0)
-    , injAzimuth_m(0.0)
 {
     binfo_m.reserve(numBunch);
     for (int i = 0; i < beam->getNumBunch(); ++i) {
-        binfo_m.push_back(beaminfo_t(beam->getT(), beam->getLPath(), 0.0));
+        binfo_m.push_back(beaminfo_t());
     }
 
     this->setBinning(binning);
@@ -80,8 +77,7 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
 }
 
 
-void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam,
-                                  const double& azimuth)
+void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam)
 {
     if ( numBunch_m < 2 )
         return;
@@ -145,11 +141,6 @@ void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam,
     h5wrapper.writeHeader();
     h5wrapper.writeStep(beam, additionalAttributes);
     h5wrapper.close();
-
-    // injection values
-    injTime_m       = beam->getT();
-    injPathlength_m = beam->getLPath();
-    injAzimuth_m    = azimuth;
 
     *gmsg << "Done." << endl;
     IpplTimings::stopTimer(saveBunchTimer);
@@ -227,7 +218,7 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
 
     beam->boundp();
 
-    binfo_m.push_back(beaminfo_t(injTime_m, injPathlength_m, injAzimuth_m));
+    binfo_m.push_back(beaminfo_t(injection_m));
 
     *gmsg << "Done." << endl;
 
@@ -238,8 +229,7 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
 
 short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
                                      const PartData& ref,
-                                     bool& flagTransition,
-                                     const double& azimuth)
+                                     bool& flagTransition)
 {
     short result = 0;
     if ((bunchCount_m == 1) && (mode_m == MB_MODE::AUTO) && (!flagTransition)) {
@@ -272,7 +262,7 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
         // start multi-bunch simulation, fill current phase space to initialR and initialP arrays
         if ((radiusThisTurn_m - radiusLastTurn_m) < coeffDBunches_m * XYrms) {
             // since next turn, start multi-bunches
-            saveBunch(beam, azimuth);
+            saveBunch(beam);
             flagTransition = true;
         }
 

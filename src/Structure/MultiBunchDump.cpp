@@ -25,6 +25,7 @@ void MultiBunchDump::fillHeader() {
     columns_m.addColumn("t", "double", "ns", "Time");
     columns_m.addColumn("s", "double", "m", "Path length");
     columns_m.addColumn("azimuth", "double", "deg", "Azimuth in global coordinates");
+    columns_m.addColumn("radius", "double", "mm", "Radius in global coordinates");
     columns_m.addColumn("numParticles", "long", "1", "Number of Macro Particles");
     columns_m.addColumn("energy", "double", "MeV", "Mean Bunch Energy");
     columns_m.addColumn("dE", "double", "MeV", "energy spread of the beam");
@@ -88,6 +89,7 @@ void MultiBunchDump::write(PartBunchBase<double, 3>* beam,
     columns_m.addColumnValue("t", binfo.time);
     columns_m.addColumnValue("s", binfo.pathlength);
     columns_m.addColumnValue("azimuth", binfo.azimuth);
+    columns_m.addColumnValue("radius", binfo.radius);
     columns_m.addColumnValue("numParticles", binfo.nParticles);
     columns_m.addColumnValue("energy", binfo.ekin);
     columns_m.addColumnValue("dE", binfo.dEkin);

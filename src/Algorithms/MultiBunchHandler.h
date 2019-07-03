@@ -12,14 +12,27 @@
  */
 class MultiBunchHandler {
 public:
+    struct injection_t {
+        injection_t()
+            : time(0.0)
+            , pathlength(0.0)
+            , azimuth(0.0)
+            , radius(0.0)
+        { };
+
+        double time;            // ns
+        double pathlength;      // m
+        double azimuth;         // deg
+        double radius;          // mm
+    };
+
     struct beaminfo_t {
-        beaminfo_t(const double& t,
-                   const double& lpath,
-                   const double& theta)
-            : time(t)
-            , azimuth(theta)
+        beaminfo_t(const injection_t& injection = injection_t())
+            : time(injection.time)
+            , azimuth(injection.azimuth)
+            , radius(injection.radius)
             , prevAzimuth(-1.0)
-            , pathlength(lpath)
+            , pathlength(injection.pathlength)
         { };
 
         double time;
@@ -64,8 +77,7 @@ public:
                       const std::string& mode,
                       const std::string& binning);
 
-    void saveBunch(PartBunchBase<double, 3> *beam,
-                   const double& azimuth);
+    void saveBunch(PartBunchBase<double, 3> *beam);
 
     bool readBunch(PartBunchBase<double, 3> *beam,
                    const PartData& ref);
@@ -77,8 +89,7 @@ public:
      */
     short injectBunch(PartBunchBase<double, 3> *beam,
                       const PartData& ref,
-                      bool& flagTransition,
-                      const double& azimuth);
+                      bool& flagTransition);
 
     void updateParticleBins(PartBunchBase<double, 3> *beam);
     
@@ -107,6 +118,8 @@ public:
     beaminfo_t& getBunchInfo(short bunchNr);
 
     const beaminfo_t& getBunchInfo(short bunchNr) const;
+
+    injection_t& getInjectionValues();
 
 private:
     // store the data of the beam which are required for injecting a
@@ -141,10 +154,8 @@ private:
     // each list entry belongs to a bunch
     std::vector<beaminfo_t> binfo_m;
 
-    // injection values
-    double injTime_m;
-    double injPathlength_m;
-    double injAzimuth_m;
+    // global attributes of injection
+    injection_t injection_m;
 };
 
 
@@ -189,6 +200,12 @@ inline
 const MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) const {
     assert(bunchNr < 0 || bunchNr >= (short)binfo_m.size());
     return binfo_m[bunchNr];
+}
+
+
+inline
+MultiBunchHandler::injection_t& MultiBunchHandler::getInjectionValues() {
+    return injection_m;
 }
 
 #endif
