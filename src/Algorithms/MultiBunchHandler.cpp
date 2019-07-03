@@ -23,10 +23,13 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     , radiusLastTurn_m(0.0)
     , radiusThisTurn_m(0.0)
     , bunchCount_m(1)
+    , injTime_m(0.0)
+    , injPathlength_m(0.0)
+    , injAzimuth_m(0.0)
 {
     binfo_m.reserve(numBunch);
     for (int i = 0; i < beam->getNumBunch(); ++i) {
-        binfo_m.push_back(beaminfo_t(0.0, 0.0, 0));
+        binfo_m.push_back(beaminfo_t(beam->getT(), beam->getLPath(), 0.0));
     }
 
     this->setBinning(binning);
@@ -144,9 +147,9 @@ void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam,
     h5wrapper.close();
 
     // injection values
-    double time  = beam->getT();
-    double lpath = beam->getLPath();
-    binfo_m.push_back(beaminfo_t(time, azimuth, lpath));
+    injTime_m       = beam->getT();
+    injPathlength_m = beam->getLPath();
+    injAzimuth_m    = azimuth;
 
     *gmsg << "Done." << endl;
     IpplTimings::stopTimer(saveBunchTimer);
@@ -223,6 +226,8 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
     }
 
     beam->boundp();
+
+    binfo_m.push_back(beaminfo_t(injTime_m, injPathlength_m, injAzimuth_m));
 
     *gmsg << "Done." << endl;
 
