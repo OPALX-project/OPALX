@@ -1083,7 +1083,7 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
         prPartLossZ[i] = 0;
         sePartLossZ[i] = 0;
         fePartLossZ[i] = 0;
-        for(int j = 0; j < bg.getNumBFaces(); j++) {
+        for(size_t j = 0; j < bg.getNumBFaces(); j++) {
             if(((Geo_mincoords[2] + Geo_hr(2)*i) < bg.TriBarycenters_m[j](2))
                && (bg.TriBarycenters_m[j](2) < (Geo_hr(2)*i + Geo_hr(2) + Geo_mincoords[2]))) {
                 prPartLossZ[i] += bg.TriPrPartloss_m[j];
@@ -1093,8 +1093,10 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
 
         }
     }
-    for(int j = 0; j < bg.getNumBFaces(); j++) {
-        fidtr << t_step << std::setw(18) << j << std::setw(18)// fixme: maybe gether particle loss data, i.e., do a reduce() for each triangle in each node befor write to file.
+    for(size_t j = 0; j < bg.getNumBFaces(); j++) {
+        // fixme: maybe gether particle loss data, i.e., do a reduce() for
+        // each triangle in each node befor write to file.
+        fidtr << t_step << std::setw(18) << j << std::setw(18)
               << bg.TriBarycenters_m[j](0) << std::setw(18)
               << bg.TriBarycenters_m[j](1) << std::setw(18)
               << bg.TriBarycenters_m[j](2) <<  std::setw(40)
@@ -1126,195 +1128,6 @@ void DataSink::writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeome
     delete[] prPartLossZ;
     delete[] sePartLossZ;
     delete[] fePartLossZ;
-}
-
-void DataSink::writeSurfaceInteraction(PartBunchBase<double, 3> *beam, long long &step, BoundaryGeometry &bg, std::string fn) {
-
-    if (!doHDF5_m) return;
-
-    h5_int64_t rc;
-    /// Start timer.
-    IpplTimings::startTimer(H5PartTimer_m);
-    if(firstWriteH5Surface_m) {
-        firstWriteH5Surface_m = false;
-
-        h5_prop_t props = H5CreateFileProp ();
-        MPI_Comm comm = Ippl::getComm();
-        H5SetPropFileMPIOCollective (props, &comm);
-        H5fileS_m = H5OpenFile (surfaceLossFileName_m.c_str(), H5_O_WRONLY, props);
-        if(H5fileS_m == (h5_file_t)H5_ERR) {
-            throw OpalException("DataSink::writeSurfaceInteraction",
-                                "failed to open h5 file '" + surfaceLossFileName_m + "' for surface loss");
-        }
-        H5CloseProp (props);
-
-    }
-    int nTot = bg.getNumBFaces();
-
-    int N_mean = static_cast<int>(floor(nTot / Ippl::getNodes()));
-    int N_extra = static_cast<int>(nTot - N_mean * Ippl::getNodes());
-    int pc = 0;
-    int count = 0;
-    if(Ippl::myNode() == 0) {
-        N_mean += N_extra;
-    }
-    std::unique_ptr<char[]> varray(new char[(N_mean)*sizeof(double)]);
-    double *farray = reinterpret_cast<double *>(varray.get());
-    h5_int64_t *larray = reinterpret_cast<h5_int64_t *>(varray.get());
-
-
-    rc = H5SetStep(H5fileS_m, step);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    rc = H5PartSetNumParticles(H5fileS_m, N_mean);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    double    qi = beam->getChargePerParticle();
-    rc = H5WriteStepAttribFloat64(H5fileS_m, "qi", &qi, 1);
-
-    std::unique_ptr<double[]> tmploss(new double[nTot]);
-    for(int i = 0; i < nTot; i++)
-        tmploss[i] = 0.0;
-
-    // :NOTE: may be removed if we have parallelized the geometry .
-    reduce(bg.TriPrPartloss_m, bg.TriPrPartloss_m + nTot, tmploss.get(), OpAddAssign());
-
-    for(int i = 0; i < nTot; i++) {
-        if(pc == Ippl::myNode()) {
-            if(count < N_mean) {
-                if(pc != 0) {
-                    //farray[count] =  bg.TriPrPartloss_m[Ippl::myNode()*N_mean+count];
-                    size_t idx = pc * N_mean + count + N_extra;
-                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
-                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
-                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
-                        farray[count] = 0.0;
-                    } else {
-                        farray[count] =  tmploss[pc * N_mean + count + N_extra];
-                    }
-                    count ++;
-                } else {
-                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
-                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
-                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
-                        farray[count] = 0.0;
-                    } else {
-                        farray[count] =  tmploss[count];
-                    }
-                    count ++;
-
-                }
-            }
-        }
-        pc++;
-        if(pc == Ippl::getNodes())
-            pc = 0;
-    }
-    rc = H5PartWriteDataFloat64(H5fileS_m, "PrimaryLoss", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(int i = 0; i < nTot; i++)
-        tmploss[i] = 0.0;
-    reduce(bg.TriSePartloss_m, bg.TriSePartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we parallelize the geometry as well.
-    count = 0;
-    pc = 0;
-    for(int i = 0; i < nTot; i++) {
-        if(pc == Ippl::myNode()) {
-            if(count < N_mean) {
-                if(pc != 0) {
-                    size_t idx = pc * N_mean + count + N_extra;
-                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
-                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
-                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
-                        farray[count] = 0.0;
-                    } else {
-                        farray[count] =  tmploss[pc * N_mean + count + N_extra];
-                    }
-                    count ++;
-                } else {
-                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
-                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
-                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
-                        farray[count] = 0.0;
-                    } else {
-                        farray[count] =  tmploss[count];
-                    }
-                    count ++;
-
-                }
-            }
-        }
-        pc++;
-        if(pc == Ippl::getNodes())
-            pc = 0;
-    }
-    rc = H5PartWriteDataFloat64(H5fileS_m, "SecondaryLoss", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    for(int i = 0; i < nTot; i++)
-        tmploss[i] = 0.0;
-
-    reduce(bg.TriFEPartloss_m, bg.TriFEPartloss_m + nTot, tmploss.get(), OpAddAssign()); // may be removed if we parallelize the geometry as well.
-    count = 0;
-    pc = 0;
-    for(int i = 0; i < nTot; i++) {
-        if(pc == Ippl::myNode()) {
-            if(count < N_mean) {
-
-                if(pc != 0) {
-                    size_t idx = pc * N_mean + count + N_extra;
-                    if (((bg.TriBGphysicstag_m[idx] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
-                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
-                        ((bg.TriBGphysicstag_m[idx] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
-                        farray[count] = 0.0;
-                    } else {
-                        farray[count] =  tmploss[pc * N_mean + count + N_extra];
-                    }
-                    count ++;
-                } else {
-                    if (((bg.TriBGphysicstag_m[count] & (BGphysics::Absorption)) == (BGphysics::Absorption)) &&
-                        ((bg.TriBGphysicstag_m[count] & (BGphysics::FNEmission)) != (BGphysics::FNEmission)) &&
-                        ((bg.TriBGphysicstag_m[count] & (BGphysics::SecondaryEmission)) != (BGphysics::SecondaryEmission))) {
-                        farray[count] = 0.0;
-                    } else {
-                        farray[count] =  tmploss[count];
-                    }
-                    count ++;
-
-                }
-
-            }
-        }
-        pc++;
-        if(pc == Ippl::getNodes())
-            pc = 0;
-    }
-    rc = H5PartWriteDataFloat64(H5fileS_m, "FNEmissionLoss", farray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-    count = 0;
-    pc = 0;
-    for(int i = 0; i < nTot; i++) {
-        if(pc == Ippl::myNode()) {
-            if(count < N_mean) {
-                if(pc != 0)
-                    larray[count] =  Ippl::myNode() * N_mean + count + N_extra; // node 0 will be 0*N_mean+count+N_extra also correct.
-                else
-                    larray[count] = count;
-                count ++;
-            }
-        }
-        pc++;
-        if(pc == Ippl::getNodes())
-            pc = 0;
-    }
-    rc = H5PartWriteDataInt64(H5fileS_m, "TriangleID", larray);
-    if(rc != H5_SUCCESS)
-        ERRORMSG("H5 rc= " << rc << " in " << __FILE__ << " @ line " << __LINE__ << endl);
-
-    /// %Stop timer.
-    IpplTimings::stopTimer(H5PartTimer_m);
-
 }
 
 void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &step, size_t &impact, double &sey_num,
