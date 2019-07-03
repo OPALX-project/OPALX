@@ -12,17 +12,17 @@ extern Inform *gmsg;
 MultiBunchDump::MultiBunchDump(const std::string& fname, bool restart,
                                const short& bunch)
     : SDDSWriter(fname, restart)
-    , isNotFirst_m(false)
+    , isFirst_m(true)
     , bunch_m(bunch)
 { }
 
 
 void MultiBunchDump::fillHeader() {
 
-    if ( isNotFirst_m ) {
+    if ( !isFirst_m ) {
         return;
     }
-    isNotFirst_m = true;
+    isFirst_m = false;
     
     columns_m.addColumn("t", "double", "ns", "Time");
     columns_m.addColumn("azimuth", "double", "deg", "Azimuth in global coordinates");
