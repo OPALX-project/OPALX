@@ -394,7 +394,7 @@ private:
     std::string h5FileName_m;           // H5hut filename
 
     std::vector<Vector_t> Points_m;     // geometry point coordinates
-    std::vector<std::array<int,4>> Triangles_m;   // boundary faces defined via point IDs
+    std::vector<std::array<unsigned int,4>> Triangles_m;   // boundary faces defined via point IDs
                                         // please note: 4 is correct, historical reasons!
 
     std::vector<Vector_t> TriNormals_m; // oriented normal vector of triangles

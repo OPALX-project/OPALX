@@ -1177,7 +1177,7 @@ BoundaryGeometry::mapPoint2Voxel (
 inline void
 BoundaryGeometry::computeMeshVoxelization (void) {
 
-    for (size_t triangle_id = 0; triangle_id < Triangles_m.size(); triangle_id++) {
+    for (unsigned int triangle_id = 0; triangle_id < Triangles_m.size(); triangle_id++) {
         Vector_t v1 = getPoint (triangle_id, 1);
         Vector_t v2 = getPoint (triangle_id, 2);
         Vector_t v3 = getPoint (triangle_id, 3);
@@ -1231,7 +1231,7 @@ void BoundaryGeometry::initialize () {
               define the voxel size
             */
             double longest_edge_max_m = 0.0;
-            for (size_t i = 0; i < bg->Triangles_m.size(); i++) {
+            for (unsigned int i = 0; i < bg->Triangles_m.size(); i++) {
                 // compute length of longest edge
                 const Vector_t x1 = bg->getPoint (i, 1);
                 const Vector_t x2 = bg->getPoint (i, 2);
@@ -1407,25 +1407,25 @@ Change orientation if diff is:
 
         static void computeTriangleNeighbors (
             BoundaryGeometry* bg,
-            std::vector<std::set<int>>& neighbors
+            std::vector<std::set<unsigned int>>& neighbors
             ) {
-            std::vector<std::set<int>> adjacencies_to_pt (bg->Points_m.size());
+            std::vector<std::set<unsigned int>> adjacencies_to_pt (bg->Points_m.size());
 
             // for each triangles find adjacent triangles for each vertex
-            for (size_t triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
-                for (int j = 1; j <= 3; j++) {
-                    size_t pt_id = bg->PointID (triangle_id, j);
+            for (unsigned int triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
+                for (unsigned int j = 1; j <= 3; j++) {
+                    auto pt_id = bg->PointID (triangle_id, j);
                     assert (pt_id < bg->Points_m.size ());
                     adjacencies_to_pt [pt_id].insert (triangle_id);
                 }
             }
 
-            for (size_t triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
-                std::set<int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
-                std::set<int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
-                std::set<int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
+            for (unsigned int triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
+                std::set<unsigned int>  to_A = adjacencies_to_pt [bg->PointID (triangle_id, 1)];
+                std::set<unsigned int>  to_B = adjacencies_to_pt [bg->PointID (triangle_id, 2)];
+                std::set<unsigned int>  to_C = adjacencies_to_pt [bg->PointID (triangle_id, 3)];
 
-                std::set<int> intersect;
+                std::set<unsigned int> intersect;
                 std::set_intersection (
                     to_A.begin(), to_A.end(),
                     to_B.begin(), to_B.end(),
@@ -1475,7 +1475,7 @@ Change orientation if diff is:
             std::vector<Vector_t> intersection_points;
             //int num_intersections = 0;
 
-            for (size_t triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
+            for (unsigned int triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
                 Vector_t result;
                 if (bg->intersectLineTriangle (SEGMENT, x, y, triangle_id, result)) {
                     intersection_points.push_back (result);
@@ -1544,16 +1544,16 @@ Change orientation if diff is:
         }
 
         static void makeTriangleNormalInwardPointing (BoundaryGeometry* bg) {
-            std::vector<std::set<int>> neighbors (bg->Triangles_m.size());
+            std::vector<std::set<unsigned int>> neighbors (bg->Triangles_m.size());
 
             computeTriangleNeighbors (bg, neighbors);
 
             // loop over all sub-meshes
             int triangle_id = 0;
             int parts = 0;
-            std::vector<int> triangles (bg->Triangles_m.size());
-            std::vector<int>::size_type queue_cursor = 0;
-            std::vector<int>::size_type queue_end = 0;
+            std::vector<unsigned int> triangles (bg->Triangles_m.size());
+            std::vector<unsigned int>::size_type queue_cursor = 0;
+            std::vector<unsigned int>::size_type queue_end = 0;
             std::vector <bool> isOriented (bg->Triangles_m.size(), false);
             do {
                 parts++;
@@ -2256,7 +2256,7 @@ void BoundaryGeometry::createParticlesOnSurface (
                     fabs (E (2)) < eInitThreshold_m)) {
                 E = Vector_t (0.0);
                 B = Vector_t (0.0);
-                int tmp = (int)(IpplRandom () * Triangles_m.size());
+                const auto tmp = (size_t)(IpplRandom () * Triangles_m.size());
                 BGtag = TriBGphysicstag_m[tmp];
                 k = tmp;
                 Vector_t centroid (0.0);
@@ -2334,7 +2334,7 @@ void BoundaryGeometry::createPriPart (
                        yCoord > y_up ||
                        yCoord < y_low) {
 
-                    int k = (int)(IpplRandom () * Triangles_m.size());
+                    const auto k = (size_t)(IpplRandom () * Triangles_m.size());
                     zCoord = TriBarycenters_m[k](2);
                     xCoord = TriBarycenters_m[k](0);
                     yCoord = TriBarycenters_m[k](1);
@@ -2359,7 +2359,7 @@ void BoundaryGeometry::createPriPart (
                        xCoord < x_low ||
                                 yCoord > y_up ||
                        yCoord < y_low) {
-                    int k = (int)(IpplRandom () * Triangles_m.size());
+                    const auto k = (size_t)(IpplRandom () * Triangles_m.size());
                     zCoord = TriBarycenters_m[k](2);
                     xCoord = TriBarycenters_m[k](0);
                     yCoord = TriBarycenters_m[k](1);
@@ -2415,7 +2415,7 @@ void BoundaryGeometry::createPriPart (
                     Vector_t centroid (0.0);
                     E = Vector_t (0.0);
                     B = Vector_t (0.0);
-                    const int triangle_id = (int)(IpplRandom () * Triangles_m.size());
+                    const auto triangle_id = (size_t)(IpplRandom () * Triangles_m.size());
                     BGtag = TriBGphysicstag_m[triangle_id];
                     priPart = TriBarycenters_m[triangle_id] + darkinward * TriNormals_m[triangle_id];
                     itsOpalBeamline.getFieldAt (priPart, centroid, itsBunch->getdT (), E, B);
