@@ -24,7 +24,7 @@ void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
     AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
 
     if ( !amrbeam )
-        throw OpalException("DataSink::fillHeader()",
+        throw OpalException("GridLBalWriter::fillHeader()",
                             "Can not write grid load balancing for non-AMR runs.");
     int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
 
@@ -73,7 +73,7 @@ void GridLBalWriter::write(PartBunchBase<double, 3> *beam) {
     AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
 
     if ( !amrbeam )
-        throw OpalException("DataSink::write()",
+        throw OpalException("GridLBalWriter::write()",
                             "Can not write grid load balancing for non-AMR runs.");
 
     std::map<int, long> gridPtsPerCore;
