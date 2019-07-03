@@ -253,11 +253,13 @@ double ParallelCyclotronTracker::computePathLengthUpdate(const double& dt,
 
         allreduce(dotP, 1, std::plus<double>());
 
-        dotP /= itsBunch_m->getTotalNum();
+        dotP /= itsBunch_m->getTotalNumPerBunch(bunchNr);
 
     } else if ( itsBunch_m->getLocalNum() == 0 ) {
+        // here we are in Options::GLOBAL mode
         return 0.0;
     } else {
+        // here we are in Options::GLOBAL mode
         dotP = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
     }
 
@@ -1152,7 +1154,8 @@ void ParallelCyclotronTracker::execute() {
     restartStep0_m = 0;
 
     // Record how many bunches have already been injected. ONLY FOR MPM
-    mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
+    if (isMultiBunch())
+        mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
 
     itsBeamline->accept(*this);
     if (opalRing_m != NULL)
@@ -2138,8 +2141,10 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
         allreduce(localnum.data(), totalnum.data(), localnum.size(), std::plus<size_t>());
         itsBunch_m->setTotalNum(totalnum[bunchCount]);
 
-        for (short i = 0; i < bunchCount; ++i)
+        for (short i = 0; i < bunchCount; ++i) {
             itsBunch_m->setTotalNumPerBunch(totalnum[i], i);
+            std::cout << "deleteParticle: " << i << " " << totalnum[i] << std::endl;
+        }
 
         size_t sum = std::accumulate(totalnum.begin(),
                                      totalnum.end() - 1, 0);
@@ -2272,7 +2277,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         }
 
         // Backup initial distribution if multi bunch mode
-        if ((initialTotalNum_m > 2) && mbHandler_m->isForceMode()) {
+        if ((initialTotalNum_m > 2) && isMultiBunch() &&  mbHandler_m->isForceMode()) {
             mbHandler_m->saveBunch(itsBunch_m, azimuth_m);
         }
 
@@ -2326,7 +2331,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     double const psi = 0.5 * pi - acos(meanP(2) / sqrt(dot(meanP, meanP)));
 
     double radius = std::sqrt(meanR[0] * meanR[0] + meanR[1] * meanR[1]);  // [m]
-    mbHandler_m->setRadiusTurns(radius);
+
+    if ( isMultiBunch() )
+        mbHandler_m->setRadiusTurns(radius);
 
     // Do boundp and repartition in the local frame at beginning of this run
     globalToLocal(itsBunch_m->R, phi, psi, meanR);
@@ -2824,7 +2831,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     //int stepToLastInj = itsBunch_m->getSteptoLastInj(); // TODO: Do we need this? -DW
 
     // Record how many bunches have already been injected. ONLY FOR MBM
-    mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
+    if (isMultiBunch())
+        mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
 
     initTrackOrbitFile();
 
@@ -2847,7 +2855,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     initDistInGlobalFrame();
 
-    mbHandler_m->updateParticleBins(itsBunch_m);
+    if (isMultiBunch())
+        mbHandler_m->updateParticleBins(itsBunch_m);
 
     turnnumber_m = 1;
     azimuth_m = -1.0;
