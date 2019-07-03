@@ -238,38 +238,41 @@ double ParallelCyclotronTracker::computeRadius(const Vector_t& meanR) const {
 }
 
 
-double ParallelCyclotronTracker::computePathLengthUpdate(const double& dt,
-                                                         short bunchNr)
+void ParallelCyclotronTracker::computePathLengthUpdate(std::vector<double>& dl,
+                                                       const double& dt)
 {
-    double dotP = 0.0;
+    // the last element in dotP is the dot-product over all particles
+    std::vector<double> dotP(dl.size());
     if ( Options::psDumpFrame == Options::BUNCH_MEAN || isMultiBunch()) {
-        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
-            // take all particles if bunchNr <= -1
-            if ( bunchNr > -1 && itsBunch_m->bunchNum[i] != bunchNr)
-                continue;
 
-            dotP += dot(itsBunch_m->P[i], itsBunch_m->P[i]);
+        for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+            dotP[itsBunch_m->bunchNum[i]] += dot(itsBunch_m->P[i], itsBunch_m->P[i]);
         }
 
-        allreduce(dotP, 1, std::plus<double>());
+        allreduce(dotP.data(), dotP.size(), std::plus<double>());
 
-        size_t n = itsBunch_m->getTotalNum();
-        if ( bunchNr > -1 )
-            n = itsBunch_m->getTotalNumPerBunch(bunchNr);
+        // dot-product over all particles
+        double sum = std::accumulate(dotP.begin(), dotP.end() - 1, 0);
+        dotP.back() = sum / double(itsBunch_m->getTotalNum());
 
-        dotP /= double(n);
+        // bunch specific --> multi-bunches only
+        for (short b = 0; b < (short)dotP.size() - 1; ++b) {
+            dotP[b] /= double(itsBunch_m->getTotalNumPerBunch(b));
+        }
 
     } else if ( itsBunch_m->getLocalNum() == 0 ) {
         // here we are in Options::GLOBAL mode
-        return 0.0;
+        dotP[0] = 0.0;
     } else {
         // here we are in Options::GLOBAL mode
-        dotP = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
+        dotP[0] = dot(itsBunch_m->P[0], itsBunch_m->P[0]);
     }
 
-    double const gamma = std::sqrt(1.0 + dotP);
-    double const beta  = std::sqrt(dotP) / gamma;
-    return c_mmtns * dt * 1.0e-3 * beta; // unit: m
+    for (size_t i = 0; i < dotP.size(); ++i) {
+        double const gamma = std::sqrt(1.0 + dotP[i]);
+        double const beta  = std::sqrt(dotP[i]) / gamma;
+        dl[i] = c_mmtns * dt * 1.0e-3 * beta; // unit: m
+    }
 }
 
 
@@ -1154,8 +1157,11 @@ void ParallelCyclotronTracker::execute() {
       for the integrators
     */
 
-    step_m = 0;
-    restartStep0_m = 0;
+    step_m          = 0;
+    restartStep0_m  = 0;
+    turnnumber_m    = 1;
+    azimuth_m       = -1.0;
+    prevAzimuth_m   = -1.0;
 
     // Record how many bunches have already been injected. ONLY FOR MPM
     if (isMultiBunch())
@@ -2281,7 +2287,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         // Backup initial distribution if multi bunch mode
         if ((initialTotalNum_m > 2) && isMultiBunch() &&  mbHandler_m->isForceMode()) {
-            mbHandler_m->saveBunch(itsBunch_m, azimuth_m);
+            mbHandler_m->saveBunch(itsBunch_m);
         }
 
         // Else: Restart from the distribution in the h5 file
@@ -2376,6 +2382,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
     itsBunch_m->calcBeamParameters();
+
+    // multi-bunch simulation only
+    saveInjectValues();
 
     *gmsg << endl << "* *********************** Bunch information in global frame: ***********************";
     *gmsg << *itsBunch_m << endl;
@@ -2833,8 +2842,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     initTrackOrbitFile();
 
-    turnnumber_m = 1;
-
     // Get data from h5 file for restart run and reset current step
     // to last step of previous simulation
     if(OpalData::getInstance()->inRestartRun()) {
@@ -2854,10 +2861,6 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     if (isMultiBunch())
         mbHandler_m->updateParticleBins(itsBunch_m);
-
-    turnnumber_m = 1;
-    azimuth_m = -1.0;
-    prevAzimuth_m = -1.0;
 
     // --- Output to user --- //
     *gmsg << "* Beginning of this run is at t = " << t << " [ns]" << endl;
@@ -3405,7 +3408,7 @@ void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
     }
 
     const short result = mbHandler_m->injectBunch(itsBunch_m, itsReference,
-                                                  flagTransition, azimuth_m);
+                                                  flagTransition);
 
     switch ( result ) {
         case 0: {
@@ -3414,6 +3417,7 @@ void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
         }
         case 1: {
             // bunch got saved
+            saveInjectValues();
             setup_m.stepsNextCheck += setup_m.stepsPerTurn;
             if ( flagTransition ) {
                 *gmsg << "* MBM: Saving beam distribution at turn " << turnnumber_m << endl;
@@ -3433,15 +3437,49 @@ void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
 }
 
 
-void ParallelCyclotronTracker::updatePathLength(const double& dt) {
-    pathLength_m += computePathLengthUpdate(dt);
+void ParallelCyclotronTracker::saveInjectValues() {
+    if ( !isMultiBunch() ) {
+        return;
+    }
 
+    Vector_t meanR = calcMeanR();
+
+    // Bunch (global) angle w.r.t. x-axis (cylinder coordinates)
+    double theta = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
+
+    // fix azimuth_m --> make monotonically increasing
+    dumpAngle(theta, prevAzimuth_m, azimuth_m);
+
+    const double radius = computeRadius(meanR);
+
+    MultiBunchHandler::injection_t& inj = mbHandler_m->getInjectionValues();
+
+    inj.time       = itsBunch_m->getT();
+    inj.pathlength = itsBunch_m->getLPath();
+    inj.azimuth    = azimuth_m;
+    inj.radius     = radius;
+}
+
+
+void ParallelCyclotronTracker::updatePathLength(const double& dt) {
+    /* the last element includes all particles,
+     * all other elements are bunch number specific
+     */
+    std::vector<double> lpaths(1);
+
+    if ( isMultiBunch() ) {
+        lpaths.resize(mbHandler_m->getNumBunch() + 1);
+    }
+
+    computePathLengthUpdate(lpaths, dt);
+
+    pathLength_m += lpaths[0];
     itsBunch_m->setLPath(pathLength_m);
 
     if ( isMultiBunch() ) {
         for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
             MultiBunchHandler::beaminfo_t& binfo = mbHandler_m->getBunchInfo(b);
-            binfo.pathlength += computePathLengthUpdate(dt, b);
+            binfo.pathlength += lpaths[b];
         }
     }
 }
