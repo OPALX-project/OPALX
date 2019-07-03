@@ -3394,7 +3394,7 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
 
 
 void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
-    if (!isMultiBunch() && step_m != setup_m.stepsNextCheck) {
+    if (!isMultiBunch() || step_m != setup_m.stepsNextCheck) {
         return;
     }
 
