@@ -32,7 +32,7 @@ void SDDSColumn::writeValue(std::ostream& os) const {
     }
 
     os << value_m << std::setw(10) << "\t";
-    const_cast<bool&>(set_m) = false;
+    set_m = false;
 }
 
 std::ostream& operator<<(std::ostream& os,
