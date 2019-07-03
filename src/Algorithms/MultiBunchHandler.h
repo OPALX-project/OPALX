@@ -13,14 +13,14 @@
 class MultiBunchHandler {
 public:
     struct beaminfo_t {
-        beaminfo_t(double t,
-                   double theta,
-                   double lpath)
+        beaminfo_t(const double& t,
+                   const double& lpath,
+                   const double& theta)
             : time(t)
             , azimuth(theta)
             , prevAzimuth(-1.0)
-            , pathlength(lpath) {
-        };
+            , pathlength(lpath)
+        { };
 
         double time;
         double azimuth;
@@ -140,6 +140,11 @@ private:
 
     // each list entry belongs to a bunch
     std::vector<beaminfo_t> binfo_m;
+
+    // injection values
+    double injTime_m;
+    double injPathlength_m;
+    double injAzimuth_m;
 };
 
 

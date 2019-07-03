@@ -270,7 +270,7 @@ void DataSink::writeImpactStatistics(PartBunchBase<double, 3> *beam, long long &
 
 
 void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
-                                         const beaminfo_t& binfo) {
+                                         MultiBunchHandler* mbhandler_p) {
     /// Start timer.
     IpplTimings::startTimer(StatMarkerTimer_m);
 
@@ -279,7 +279,7 @@ void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
 
     // if new bunch in machine --> generate new writer for it
     short bunch = mbWriter_m.size();
-    while ( bunch < beam->getNumBunch() ) {
+    while ( bunch < mbhandler_p->getNumBunch() ) {
         std::stringstream ss;
         ss << fn << "-bunch-"
            << std::setw(4) << std::setfill('0') << bunch << ".smb";
@@ -289,8 +289,12 @@ void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
         ++bunch;
     }
 
-    for (auto& mb : mbWriter_m) {
-        mb->write(beam, binfo);
+    for (short b = 0; b < mbhandler_p->getNumBunch(); ++b) {
+        bool isOk = mbhandler_p->calcBunchBeamParameters(beam, b);
+        const MultiBunchHandler::beaminfo_t& binfo = mbhandler_p->getBunchInfo(b);
+        if (isOk) {
+            mbWriter_m[b]->write(beam, binfo);
+        }
     }
 
     for (size_t i = 0; i < sddsWriter_m.size(); ++i)

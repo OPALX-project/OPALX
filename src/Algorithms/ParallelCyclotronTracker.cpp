@@ -253,7 +253,11 @@ double ParallelCyclotronTracker::computePathLengthUpdate(const double& dt,
 
         allreduce(dotP, 1, std::plus<double>());
 
-        dotP /= itsBunch_m->getTotalNumPerBunch(bunchNr);
+        size_t n = itsBunch_m->getTotalNum();
+        if ( bunchNr > -1 )
+            n = itsBunch_m->getTotalNumPerBunch(bunchNr);
+
+        dotP /= double(n);
 
     } else if ( itsBunch_m->getLocalNum() == 0 ) {
         // here we are in Options::GLOBAL mode
@@ -2143,7 +2147,6 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
 
         for (short i = 0; i < bunchCount; ++i) {
             itsBunch_m->setTotalNumPerBunch(totalnum[i], i);
-            std::cout << "deleteParticle: " << i << " " << totalnum[i] << std::endl;
         }
 
         size_t sum = std::accumulate(totalnum.begin(),
@@ -2545,13 +2548,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
             globalToLocal(itsBunch_m->P, phi, psi);
         }
 
-        for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
-            bool isOk = mbHandler_m->calcBunchBeamParameters(itsBunch_m, b);
-            const MultiBunchHandler::beaminfo_t& binfo = mbHandler_m->getBunchInfo(b);
-            if (isOk) {
-                itsDataSink->writeMultiBunchStatistics(itsBunch_m, binfo);
-            }
-        }
+        itsDataSink->writeMultiBunchStatistics(itsBunch_m, mbHandler_m.get());
 
         if(Options::psDumpFrame != Options::GLOBAL) {
             localToGlobal(itsBunch_m->R, phi, psi, meanR);

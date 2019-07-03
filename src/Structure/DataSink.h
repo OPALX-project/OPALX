@@ -117,9 +117,7 @@ public:
      * @param binfo is the beam info
      */
     void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
-                                   const beaminfo_t& binfo);
-
-    MultiBunchDump* getMultiBunchWriter(short bunchNr);
+                                   MultiBunchHandler* mbhandler);
 
 private:
     DataSink(const DataSink &) { }
@@ -134,7 +132,7 @@ private:
     h5Writer_t      h5Writer_m;
     statWriter_t    statWriter_m;
     std::vector<sddsWriter_t> sddsWriter_m;
-    std::list<mbWriter_t> mbWriter_m;
+    std::vector<mbWriter_t> mbWriter_m;
     
     static std::string convertToString(int number);
 
@@ -153,14 +151,6 @@ std::string DataSink::convertToString(int number) {
     return ss.str();
 }
 
-
-inline
-MultiBunchDump* DataSink::getMultiBunchWriter(short bunchNr) {
-    assert(bunchNr > -1 && bunchNr < (short)mbWriter_m.size());
-    std::list<mbWriter_t>::iterator it = mbWriter_m.begin();
-    std::advance(it, bunchNr);
-    return (it->get());
-}
 
 #endif // DataSink_H_
 
