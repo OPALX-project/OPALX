@@ -34,6 +34,7 @@ public:
         double prms[3];
         double emit[3];
         double mean[3];
+        double correlation[3];
         double halo[3];
     };
 
