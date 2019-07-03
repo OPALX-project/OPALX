@@ -13,11 +13,11 @@ GridLBalWriter::GridLBalWriter(const std::string& fname, bool restart)
 
 void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
-    static bool isNotFirst = false;
-    if ( isNotFirst ) {
+    static bool isFirst = true;
+    if ( !isFirst ) {
         return;
     }
-    isNotFirst = true;
+    isFirst = false;
 
     columns_m.addColumn("t", "double", "ns", "Time");
 
