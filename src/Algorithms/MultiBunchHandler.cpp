@@ -25,7 +25,7 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     , bunchCount_m(1)
 {
     binfo_m.reserve(numBunch);
-    for (int i = 0; i < numBunch; ++i) {
+    for (int i = 0; i < beam->getNumBunch(); ++i) {
         binfo_m.push_back(beaminfo_t(0.0, 0.0, 0));
     }
 
@@ -414,7 +414,7 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
 
     beaminfo_t& binfo = getBunchInfo(bunchNr);
 
-    for(unsigned long k = 0; k < localNum; ++ k) {
+    for(unsigned long k = 0; k < localNum; ++k) {
         if ( beam->bunchNum[k] != bunchNr ) { //|| ID[k] == 0 ) {
             continue;
         }
@@ -484,13 +484,13 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
 
     for (unsigned int i = 0; i < dim; ++i) {
 
-        double w = local[i + 1] * invN;
-        double pw = local[i + dim + 1] * invN;
-        double w2 = local[i + 2 * dim + 1] * invN;
+        double w   = local[i + 1] * invN;
+        double pw  = local[i + dim + 1] * invN;
+        double w2  = local[i + 2 * dim + 1] * invN;
         double pw2 = local[i + 3 * dim + 1] * invN;
         double wpw = local[i + 4 * dim + 1] * invN;
-        double w3 = local[i + 5 * dim + 1] * invN;
-        double w4 = local[i + 6 * dim + 1] * invN;
+        double w3  = local[i + 5 * dim + 1] * invN;
+        double w4  = local[i + 6 * dim + 1] * invN;
 
         // <x>, <y>, <z>
         binfo.mean[i] = w;
@@ -523,6 +523,10 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
 
         // central: sqrt(<p_w^2> - <p_w>^2)
         binfo.prms[i] = std::sqrt(binfo.prms[i]);
+
+        // central: rms correlation --> (<wp_w> - <w><p_w>) / sqrt(<w^2> * <p_w^2>)
+        double denom = 1.0 / (binfo.rrms[i] * binfo.prms[i]);
+        binfo.correlation[i] = (std::isfinite(denom)) ? wpw * denom : 0.0;
     }
 
     double tmp = 1.0 / std::pow(binfo.ekin / m0 + 1.0, 2.0);
