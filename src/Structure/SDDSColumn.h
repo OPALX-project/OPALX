@@ -43,7 +43,7 @@ private:
     desc_t description_m;
     variant_t value_m;
 
-    bool set_m;
+    mutable bool set_m;
 };
 
 
