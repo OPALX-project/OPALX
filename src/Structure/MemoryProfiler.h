@@ -38,7 +38,7 @@ public:
                     // included (since Linux 2.6.34).
     };
     
-    void write(PartBunchBase<double, 3> *beam);
+    void write(PartBunchBase<double, 3> *beam) override;
     
 private:
     void header();
