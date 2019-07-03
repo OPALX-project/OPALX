@@ -75,6 +75,8 @@ void H5Writer::writePhaseSpace(EnvelopeBunch &beam, Vector_t FDext[],
                                double sposHead, double sposRef,
                                double sposTail)
 {
+    // FIXME https://gitlab.psi.ch/OPAL/src/issues/245
+
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("sposHead", sposHead),
@@ -99,6 +101,7 @@ void H5Writer::writePhaseSpace(EnvelopeBunch &beam, Vector_t FDext[],
         std::make_pair("E-tail_z", FDext[5](1)),
         std::make_pair("E-tail_y", FDext[5](2))};
 
+    // does not compile with that line --> should be fixed with https://gitlab.psi.ch/OPAL/src/issues/245
 //     h5wrapper_m->writeStep(&beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
 }

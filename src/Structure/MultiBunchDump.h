@@ -18,7 +18,7 @@ public:
     void write(PartBunchBase<double, 3>* beam, const beaminfo_t& binfo);
 
 private:
-    bool isNotFirst_m;
+    bool isFirst_m;
 };
 
 #endif
