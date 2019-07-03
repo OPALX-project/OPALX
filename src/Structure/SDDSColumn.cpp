@@ -27,7 +27,7 @@ void SDDSColumn::writeHeader(std::ostream& os,
 
 void SDDSColumn::writeValue(std::ostream& os) const {
     if (!set_m) {
-        throw OpalException("SDDSColumnSet::writeValue",
+        throw OpalException("SDDSColumn::writeValue",
                             "value for column '" + name_m + "' isn't set");
     }
 
