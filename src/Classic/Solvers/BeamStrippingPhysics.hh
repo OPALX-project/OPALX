@@ -39,7 +39,7 @@ class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
 
 public:
 
-    BeamStrippingPhysics(const std::string &name, ElementBase *element, std::string &mat);
+    BeamStrippingPhysics(const std::string &name, ElementBase *element);
     ~BeamStrippingPhysics();
 
     void apply(PartBunchBase<double, 3> *bunch,
