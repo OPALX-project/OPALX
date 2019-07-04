@@ -2264,12 +2264,20 @@ void PartBunchBase<T, Dim>::resetID() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::update() {
-    pbase->update();
+    try {
+        pbase->update();
+    } catch (const IpplException &ex) {
+        throw OpalException(ex.where(), ex.what());
+    }
 }
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
-    pbase->update(canSwap);
+    try {
+        pbase->update(canSwap);
+    } catch (const IpplException &ex) {
+        throw OpalException(ex.where(), ex.what());
+    }
 }
 
 template <class T, unsigned Dim>
