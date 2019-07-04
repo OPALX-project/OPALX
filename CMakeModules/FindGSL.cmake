@@ -1,10 +1,19 @@
 #
-# Find GSL includes and library
+# Find GSL includes and libraries
 #
-# GSL_INCLUDE_DIR - where to find ippl.h
-# GSL_LIBRARY     - GSL library to link against.
-# GSL_CBLAS_LIBRARY - GSL CBlas library to link against
-# GSL_FOUND       - do not attempt to use if "no" or undefined.
+# The FindGSL module shipped with CMake has some drawbacks. To be 
+# able to find GSL, the CMake variable GSL_ROOT_DIR *must* be set.
+# The environment variable C_INCLUDE_PATH and LIBRARY_PATH are
+# *not* taken into account.
+#
+# The following variables will be set if GSL is found:
+#
+# GSL_INCLUDE_DIR	where to find GSL include files
+# GSL_LIBRARY		GSL library to link against.
+# GSL_CBLAS_LIBRARY 	GSL CBlas library to link against
+# GSL_LIBRARIES		GSL libraries required for linking
+# GSL_FOUND		set to True if GSL was found
+#
 
 if( DEFINED ENV{GSL_ROOT_DIR} )
   set( GSL_ROOT_DIR $ENV{GSL_ROOT_DIR} )
