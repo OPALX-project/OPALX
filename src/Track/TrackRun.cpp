@@ -322,13 +322,13 @@ void TrackRun::setupSliceTracker() {
 
     if(!opal->inRestartRun()) {
         if(!opal->hasDataSinkAllocated()) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m));
+            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, 1));
         } else {
             ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
-        opal->setDataSink(new DataSink(phaseSpaceSink_m, -1));
+        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, 1));
     }
 
     ds = opal->getDataSink();
@@ -443,13 +443,13 @@ void TrackRun::setupThickTracker()
 
     if(!opal->inRestartRun()) {
         if(!opal->hasDataSinkAllocated()) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m));
+            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, 1));
         } else {
             ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
-        opal->setDataSink(new DataSink(phaseSpaceSink_m, -1));//opal->getRestartStep()));
+        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, 1));
     }
 
     ds = opal->getDataSink();
@@ -566,13 +566,13 @@ void TrackRun::setupTTracker(){
 
     if(!opal->inRestartRun()) {
         if(!opal->hasDataSinkAllocated()) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m));
+            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, 1));
         } else {
             ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
-        opal->setDataSink(new DataSink(phaseSpaceSink_m, -1));//opal->getRestartStep()));
+        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, 1));
     }
 
     ds = opal->getDataSink();
@@ -739,14 +739,14 @@ void TrackRun::setupCyclotronTracker(){
 
     if(!opal->inRestartRun())
         if(!opal->hasDataSinkAllocated()) {
-            ds = new DataSink(phaseSpaceSink_m);
+            ds = new DataSink(phaseSpaceSink_m, false, specifiedNumBunch);
             opal->setDataSink(ds);
         } else {
             ds = opal->getDataSink();
             ds->changeH5Wrapper(phaseSpaceSink_m);
         }
     else {
-        ds = new DataSink(phaseSpaceSink_m, -1);
+        ds = new DataSink(phaseSpaceSink_m, true, specifiedNumBunch);
         opal->setDataSink(ds);
     }
 

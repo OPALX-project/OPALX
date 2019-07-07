@@ -210,14 +210,15 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
 // only used for dumping into stat file
 void ParallelCyclotronTracker::dumpAngle(const double& theta,
                                          double& prevAzimuth,
-                                         double& azimuth)
+                                         double& azimuth,
+                                         const short& bunchNr)
 {
     if ( prevAzimuth < 0.0 ) { // only at first occurrence
         double plus = 0.0;
         if ( OpalData::getInstance()->inRestartRun() ) {
-            plus = 360.0 * turnnumber_m;
+            plus = 360.0 * (turnnumber_m - bunchNr);
         }
-        azimuth_m = theta + plus;
+        azimuth = theta + plus;
     } else {
         double dtheta = theta - prevAzimuth;
         if ( dtheta < 0 ) {
@@ -2853,6 +2854,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
         *gmsg << "* Restart at integration step " << restartStep0_m
               << " at turn " << turnnumber_m << endl;
+
+        initPathLength();
     }
 
     setup_m.stepsNextCheck = step_m + setup_m.stepsPerTurn; // Steps to next check for transition
@@ -3508,6 +3511,14 @@ void ParallelCyclotronTracker::updateAzimuthAndRadius() {
 
         binfo.radius  = computeRadius(meanR);
         double azimuth = calculateAngle(meanR(0), meanR(1)) * Physics::rad2deg;
-        dumpAngle(azimuth, binfo.prevAzimuth, binfo.azimuth);
+        dumpAngle(azimuth, binfo.prevAzimuth, binfo.azimuth, b);
+    }
+}
+
+
+void ParallelCyclotronTracker::initPathLength() {
+    if ( isMultiBunch() ) {
+        // we need to reset the path length of each bunch
+        itsDataSink->setMultiBunchInitialPathLengh(mbHandler_m.get());
     }
 }

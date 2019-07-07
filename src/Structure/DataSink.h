@@ -36,10 +36,10 @@ class DataSink {
 public:
     typedef MultiBunchDump::beaminfo_t      beaminfo_t;
     typedef StatWriter::losses_t            losses_t;
-    typedef std::unique_ptr<StatWriter>     statWriter_t;
-    typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
-    typedef std::unique_ptr<H5Writer>       h5Writer_t;
-    typedef std::unique_ptr<MultiBunchDump> mbWriter_t;
+    typedef std::shared_ptr<StatWriter>     statWriter_t;
+    typedef std::shared_ptr<SDDSWriter>     sddsWriter_t;
+    typedef std::shared_ptr<H5Writer>       h5Writer_t;
+    typedef std::shared_ptr<MultiBunchDump> mbWriter_t;
     
     
     /** \brief Default constructor.
@@ -48,8 +48,8 @@ public:
      * opposed to a calculation restart).
      */
     DataSink();
-    DataSink(H5PartWrapper *h5wrapper, bool restart);
-    DataSink(H5PartWrapper *h5wrapper);
+    DataSink(H5PartWrapper *h5wrapper, bool restart, short numBunch);
+    DataSink(H5PartWrapper *h5wrapper, short numBunch);
 
     void dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const;
     
@@ -114,19 +114,27 @@ public:
 
     /** no statWriter_m dump
      * @param beam
-     * @param binfo is the beam info
+     * @param mbhandler is the multi-bunch handler
      */
     void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
                                    MultiBunchHandler* mbhandler);
 
+    /**
+     * In restart mode we need to set the correct path length
+     * of each bunch
+     * @param mbhandler is the multi-bunch handler
+     */
+    void setMultiBunchInitialPathLengh(MultiBunchHandler* mbhandler_p);
+
 private:
-    DataSink(const DataSink &) { }
+    DataSink(const DataSink& ds);
     DataSink &operator = (const DataSink &) { return *this; }
     
     void rewindLines();
     
     void init(bool restart = false,
-              H5PartWrapper* h5wrapper = nullptr);
+              H5PartWrapper* h5wrapper = nullptr,
+              short numBunch = 1);
     
     
     h5Writer_t      h5Writer_m;
@@ -134,20 +142,24 @@ private:
     std::vector<sddsWriter_t> sddsWriter_m;
     std::vector<mbWriter_t> mbWriter_m;
     
-    static std::string convertToString(int number);
+    static std::string convertToString(int number, int setw = 5);
 
     /// needed to create index for vtk file
     unsigned int lossWrCounter_m;
 
     /// Timer to track statistics write time.
     IpplTimings::TimerRef StatMarkerTimer_m;
+
+    const bool isMultiBunch_m;
+
+    void initMultiBunchDump(short numBunch);
 };
 
 
 inline
-std::string DataSink::convertToString(int number) {
+std::string DataSink::convertToString(int number, int setw) {
     std::stringstream ss;
-    ss << std::setw(5) << std::setfill('0') <<  number;
+    ss << std::setw(setw) << std::setfill('0') <<  number;
     return ss.str();
 }
 
@@ -156,7 +168,7 @@ std::string DataSink::convertToString(int number) {
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode:nil
 // End:
