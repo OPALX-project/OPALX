@@ -50,6 +50,7 @@ public:
 
     void replaceVersionString();
 
+    double getLastValue(const std::string& column);
 
     bool exists() const;
 
