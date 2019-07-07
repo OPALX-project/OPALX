@@ -17,8 +17,22 @@ public:
 
     void write(PartBunchBase<double, 3>* beam, const beaminfo_t& binfo);
 
+    /** \brief
+     *  delete the last 'numberOfLines' lines of the statistics file
+     */
+    unsigned int rewindToSpos(double maxSpos);
+
 private:
     bool isFirst_m;
 };
+
+
+inline
+unsigned int MultiBunchDump::rewindToSpos(double maxSPos) {
+    if (Ippl::myNode() == 0) {
+        return Util::rewindLinesSDDS(this->fname_m, maxSPos);
+    }
+    return 0;
+}
 
 #endif

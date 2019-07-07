@@ -279,10 +279,12 @@ private:
      * @param theta computed azimuth [deg]
      * @param prevAzimuth previous angle [deg]
      * @param azimuth to be updated [deg]
+     * @param bunchNr in restart mode only --> to compute initial azimuth
      */
     void dumpAngle(const double& theta,
                    double& prevAzimuth,
-                   double& azimuth);
+                   double& azimuth,
+                   const short& bunchNr = 0);
 
     double computeRadius(const Vector_t& meanR) const;
 
@@ -517,6 +519,9 @@ private:
     void updateTime(const double& dt);
 
     void updateAzimuthAndRadius();
+
+    // multi-bunch mode: set the path length of each bunch in case of restart mode
+    void initPathLength();
 };
 
 /**
