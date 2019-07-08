@@ -1405,7 +1405,7 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
             CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &(Bfield.bfld[idx(i, k)])));
-            //  T --> kGs, minus for minus hydrongen
+            //  T --> kGs, minus for minus hydrogen
             Bfield.bfld[idx(i, k)] = Bfield.bfld[idx(i, k)] * (-10.0);
         }
 
