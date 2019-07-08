@@ -520,7 +520,11 @@ private:
 
     void updateAzimuthAndRadius();
 
-    // multi-bunch mode: set the path length of each bunch in case of restart mode
+    /** multi-bunch mode: set the path length of each bunch in case of restart mode
+     * 
+     * At creation of DataSink the lines are rewinded properly --> the last entry of
+     * the path length is therefore the initial path length at restart.
+     */
     void initPathLength();
 };
 
