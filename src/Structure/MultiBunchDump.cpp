@@ -10,7 +10,7 @@
 extern Inform *gmsg;
 
 MultiBunchDump::MultiBunchDump(const std::string& fname, bool restart)
-    : SDDSWriter(fname, restart)
+    : StatBaseWriter(fname, restart)
     , isFirst_m(true)
 { }
 
