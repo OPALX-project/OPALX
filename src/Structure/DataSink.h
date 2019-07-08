@@ -128,20 +128,20 @@ public:
 
 private:
     DataSink(const DataSink& ds) = delete;
-    DataSink &operator = (const DataSink &) { return *this; }
-    
+    DataSink &operator = (const DataSink &) = delete;
+
     void rewindLines();
-    
+
     void init(bool restart = false,
               H5PartWrapper* h5wrapper = nullptr,
               short numBunch = 1);
-    
-    
+
+
     h5Writer_t      h5Writer_m;
     statWriter_t    statWriter_m;
     std::vector<sddsWriter_t> sddsWriter_m;
     std::vector<mbWriter_t> mbWriter_m;
-    
+
     static std::string convertToString(int number, int setw = 5);
 
     /// needed to create index for vtk file
