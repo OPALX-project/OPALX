@@ -118,7 +118,6 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
                                                    int maxSTEPS, int timeIntegrator,
                                                    int numBunch)
     : Tracker(beamline, bunch, reference, revBeam, revTrack)
-    , itsMBDump_m(new MultiBunchDump())
     , bgf_m(nullptr)
     , maxSteps_m(maxSTEPS)
     , numBunch_m(numBunch)
@@ -2661,13 +2660,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
             globalToLocal(itsBunch_m->P, phi, psi);
         }
 
-        bunchDumpStatDataPerBunch(azimuth_m);
-
-#ifdef ENABLE_AMR
-        if ( !itsDataSink->writeAmrStatistics(itsBunch_m) ) {
-            itsDataSink->noAmrDump(itsBunch_m);
-        }
-#endif
+        itsDataSink->writeMultiBunchStatistics(itsBunch_m, azimuth_m);
 
         if(Options::psDumpFrame != Options::GLOBAL) {
             localToGlobal(itsBunch_m->R, phi, psi, meanR);
@@ -2690,7 +2683,6 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
     // --------------------------------- Get some Values ---------------------------------------- //
-    double const E = itsBunch_m->get_meanKineticEnergy();
     double const temp_t = itsBunch_m->getT() * 1e9; // s -> ns
     Vector_t meanR;
     Vector_t meanP;
@@ -2743,7 +2735,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     FDext_m[1] = extE_m;        // kV/mm? -DW
 
     // Save the stat file
-    itsDataSink->writeStatData(itsBunch_m, FDext_m, E, azimuth_m);
+    itsDataSink->dumpSDDS(itsBunch_m, FDext_m, azimuth_m);
 
     //itsBunch_m->R *= Vector_t(1000.0); // m -> mm
 
@@ -2754,19 +2746,6 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     }
 
     IpplTimings::stopTimer(DumpTimer_m);
-}
-
-
-void ParallelCyclotronTracker::bunchDumpStatDataPerBunch(const double& azimuth) {
-    for (short b = 0; b < BunchCount_m; ++b) {
-
-        MultiBunchDump::beaminfo_t binfo;
-
-        if ( itsBunch_m->calcBunchBeamParameters(binfo, b) ) {
-            binfo.azimuth = azimuth;
-            itsMBDump_m->writeData(binfo, b);
-        }
-    }
 }
 
 
@@ -2854,19 +2833,19 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
         FDext_m[0] = extB_m * 0.1; // kgauss --> T
         FDext_m[1] = extE_m;
 
-        lastDumpedStep_m = itsDataSink->writePhaseSpace_cycl(itsBunch_m, // Local and in m
-                                                             FDext_m, E,
-                                                             referencePr,
-                                                             referencePt,
-                                                             referencePz,
-                                                             referenceR,
-                                                             referenceTheta,
-                                                             referenceZ,
-                                                             phi / Physics::deg2rad, // P_mean azimuth
-                                                             // at ref. R/Th/Z
-                                                             psi / Physics::deg2rad, // P_mean elevation
-                                                             // at ref. R/Th/Z
-                                                             dumpLocalFrame);        // Flag localFrame
+        lastDumpedStep_m = itsDataSink->dumpH5(itsBunch_m, // Local and in m
+                                               FDext_m, E,
+                                               referencePr,
+                                               referencePt,
+                                               referencePz,
+                                               referenceR,
+                                               referenceTheta,
+                                               referenceZ,
+                                               phi / Physics::deg2rad, // P_mean azimuth
+                                               // at ref. R/Th/Z
+                                               psi / Physics::deg2rad, // P_mean elevation
+                                               // at ref. R/Th/Z
+                                               dumpLocalFrame);        // Flag localFrame
 
         if (dumpLocalFrame == true) {
             // Return to global frame
