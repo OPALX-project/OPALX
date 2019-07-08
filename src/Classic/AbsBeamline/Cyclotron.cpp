@@ -185,12 +185,12 @@ int Cyclotron::getFieldFlag(const std::string& type) const {
     /**
      * To ease the initialise() function, set a integral parameter fieldflag internally.
      * Its value is  by the option "TYPE" of the element  "CYCLOTRON"
-     * fieldflag = 1, readin PSI format measured field file (default)
-     * fieldflag = 2, readin carbon cyclotron field file created by Jianjun Yang, TYPE=CARBONCYCL
-     * fieldflag = 3, readin ANSYS format file for CYCIAE-100 created by Jianjun Yang, TYPE=CYCIAE
-     * fieldflag = 4, readin AVFEQ format file for Riken cyclotrons
-     * fieldflag = 5, readin FFA format file for MSU/FNAL FFA
-     * fieldflag = 6, readin both median plane B field map and 3D E field map
+     * fieldflag = 1, read in PSI format measured field file (default)
+     * fieldflag = 2, read in carbon cyclotron field file created by Jianjun Yang, TYPE=CARBONCYCL
+     * fieldflag = 3, read in ANSYS format file for CYCIAE-100 created by Jianjun Yang, TYPE=CYCIAE
+     * fieldflag = 4, read in AVFEQ format file for Riken cyclotrons
+     * fieldflag = 5, read in FFA format file for MSU/FNAL FFA
+     * fieldflag = 6, read in both median plane B field map and 3D E field map
      *                of RF cavity for compact cyclotron
      * fieldflag = 7, read in fields for Daniel's synchrocyclotron simulations
      */
