@@ -127,7 +127,7 @@ public:
     void setMultiBunchInitialPathLengh(MultiBunchHandler* mbhandler_p);
 
 private:
-    DataSink(const DataSink& ds);
+    DataSink(const DataSink& ds) = delete;
     DataSink &operator = (const DataSink &) { return *this; }
     
     void rewindLines();
