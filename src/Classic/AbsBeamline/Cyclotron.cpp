@@ -440,10 +440,6 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P,
     int fcount = 0;
 
     for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
-        if(myBFieldType_m == SYNCHRO) {
-            ++rffci, ++rfvci;
-        }
-
         (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
         if (fcount > 0 && *superposei == false) continue;
 
@@ -507,6 +503,9 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &P,
             *gmsg << "Gap 2 B-Field = (" << B[0] << "/" << B[1] << "/" << B[2] << ")" << endl;
             *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
             waiting_for_gap = 0;
+        }
+        if(myBFieldType_m == SYNCHRO) {
+            ++rffci, ++rfvci;
         }
     }
     return false;
