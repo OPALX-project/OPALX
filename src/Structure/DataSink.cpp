@@ -65,16 +65,6 @@ DataSink::DataSink(H5PartWrapper *h5wrapper, short numBunch)
     : DataSink(h5wrapper, false, numBunch)
 { }
 
-DataSink::DataSink(const DataSink& ds)
-    : h5Writer_m(ds.h5Writer_m)
-    , statWriter_m(ds.statWriter_m)
-    , sddsWriter_m(ds.sddsWriter_m)
-    , mbWriter_m(ds.mbWriter_m)
-    , lossWrCounter_m(ds.lossWrCounter_m)
-    , StatMarkerTimer_m(ds.StatMarkerTimer_m)
-    , isMultiBunch_m(ds.isMultiBunch_m)
-{ }
-
 
 void DataSink::dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const {
     if (!Options::enableHDF5) return;
