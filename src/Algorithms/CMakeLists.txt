@@ -12,8 +12,6 @@ set (_SRCS
   ParallelTTracker.cpp
   ParallelCyclotronTracker.cpp
   ParallelSliceTracker.cpp
-  StatisticalErrors.cpp
-  StatisticalErrorsUtilities.cpp
   ThickMapper.cpp
   ThickTracker.cpp
   TransportMapper.cpp
@@ -52,8 +50,6 @@ set (HDRS
     ParallelCyclotronTracker.h
     ParallelSliceTracker.h
     ParallelTTracker.h
-    StatisticalErrors.h
-    StatisticalErrorsUtilities.h
     ThickMapper.h
     ThickTracker.h
     TransportMapper.h
