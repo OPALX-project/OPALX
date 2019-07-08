@@ -524,6 +524,8 @@ private:
      * 
      * At creation of DataSink the lines are rewinded properly --> the last entry of
      * the path length is therefore the initial path length at restart.
+     * @pre In order to work properly in restart mode, the lines in the multi-bunch
+     * *.smb files need to be rewinded first.
      */
     void initPathLength();
 };
