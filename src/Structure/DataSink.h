@@ -36,10 +36,10 @@ class DataSink {
 public:
     typedef MultiBunchDump::beaminfo_t      beaminfo_t;
     typedef StatWriter::losses_t            losses_t;
-    typedef std::shared_ptr<StatWriter>     statWriter_t;
-    typedef std::shared_ptr<SDDSWriter>     sddsWriter_t;
-    typedef std::shared_ptr<H5Writer>       h5Writer_t;
-    typedef std::shared_ptr<MultiBunchDump> mbWriter_t;
+    typedef std::unique_ptr<StatWriter>     statWriter_t;
+    typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
+    typedef std::unique_ptr<H5Writer>       h5Writer_t;
+    typedef std::unique_ptr<MultiBunchDump> mbWriter_t;
     
     
     /** \brief Default constructor.
