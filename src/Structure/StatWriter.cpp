@@ -5,7 +5,7 @@
 #include <sstream>
 
 StatWriter::StatWriter(const std::string& fname, bool restart)
-    : SDDSWriter(fname, restart)
+    : StatBaseWriter(fname, restart)
 { }
 
 

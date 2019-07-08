@@ -17,6 +17,7 @@ set (_SRCS
   H5Writer.cpp
   MemoryWriter.cpp
   LBalWriter.cpp
+  StatBaseWriter.cpp
   StatWriter.cpp
   SDDSColumn.cpp
   SDDSColumnSet.cpp
@@ -45,6 +46,7 @@ set (HDRS
     H5Writer.h
     MemoryWriter.h
     LBalWriter.h
+    StatBaseWriter.h
     StatWriter.h
     SDDSColumn.h
     SDDSColumnSet.h
