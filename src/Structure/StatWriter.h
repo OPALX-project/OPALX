@@ -8,6 +8,7 @@
 class StatWriter : public SDDSWriter {
 
 public:
+    using SDDSWriter::write;
     typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
 
     StatWriter(const std::string& fname, bool restart);
