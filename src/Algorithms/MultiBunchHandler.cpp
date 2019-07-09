@@ -454,7 +454,7 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
 
     // here we also update the number of particles of *this* bunch
     if (bunchNr >= (short)beam->getNumBunch())
-        throw OpalException("PartBunchBase::calcBunchBeamParameters()",
+        throw OpalException("MultiBunchHandler::calcBunchBeamParameters()",
                             "Bunch number " + std::to_string(bunchNr) +
                             " exceeds bunch index " + std::to_string(beam->getNumBunch() - 1));
 
