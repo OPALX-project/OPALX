@@ -116,7 +116,7 @@ protected:
         std::cout << "Stop Sampler.." << std::endl;
     }
 
-
+    using  Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t>::startWorker;
     virtual
     void startWorker(const std::vector<std::string> &storeobjstr,
                      const std::vector<std::string> &filesToKeep) /*override*/

@@ -20,6 +20,7 @@ public:
     };
 
 public:
+    using SDDSWriter::write;
     MultiBunchDump(const std::string& fname, bool restart,
                    const short& bunch);
 
