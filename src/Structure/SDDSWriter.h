@@ -41,6 +41,8 @@ public:
 
     SDDSWriter(const std::string& fname, bool restart);
 
+    virtual ~SDDSWriter() { };
+
     virtual void write(PartBunchBase<double, 3>* beam) { };
 
     /** \brief
