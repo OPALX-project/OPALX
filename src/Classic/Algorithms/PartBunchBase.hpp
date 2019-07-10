@@ -1756,6 +1756,16 @@ double PartBunchBase<T, Dim>::getE() const {
 
 
 template <class T, unsigned Dim>
+ParticleType::type PartBunchBase<T, Dim>::getPType() const {
+    return refPType_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setPType(ParticleType::type type) {
+    refPType_m = type;
+}
+
+template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::resetQ(double q)  {
     const_cast<PartData *>(reference)->setQ(q);
 }
