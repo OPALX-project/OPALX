@@ -56,7 +56,6 @@ set (HDRS
     bet/BetError.h
     bet/EnvelopeBunch.h
     bet/EnvelopeSlice.h
-    bet/error.h
     bet/profile.h
     bet/math/functions.h
     bet/math/integrate.h
