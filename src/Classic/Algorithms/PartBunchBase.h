@@ -319,17 +319,21 @@ public:
 
     bool resetPartBinBunch();
 
+    ///@{ Access to reference data
     double getQ() const;
     double getM() const;
     double getP() const;
     double getE() const;
-
-    void resetQ(double q);
-    void resetM(double m);
-
-    double getdE();
+    ParticleType::type getPType() const;
     double getInitialBeta() const;
     double getInitialGamma() const;
+    ///@}
+    ///@{ Set reference data
+    void resetQ(double q);
+    void resetM(double m);
+    void setPType(ParticleType::type);
+    ///@}
+    double getdE();
     virtual double getGamma(int i);
     virtual double getBeta(int i);
     virtual void actT();
@@ -488,6 +492,7 @@ public:
 
     Vector_t RefPartR_m;
     Vector_t RefPartP_m;
+    ParticleType::type refPType_m;
     CoordinateSystemTrafo toLabTrafo_m;
 
 
