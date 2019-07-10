@@ -39,7 +39,7 @@ public:
     virtual void update();
 
     /// Print method, called at initialisation
-    using Definition::print;
+    using Object::print;
     Inform& print(Inform& os) const;
 
     /// Initialise implementation
