@@ -90,7 +90,7 @@ using Physics::pi;
 using Physics::q_e;
 
 
-const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
+constexpr double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
 Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
@@ -952,7 +952,7 @@ void ParallelCyclotronTracker::visitSBend(const SBend &bend) {
  * @param sep
  */
 void ParallelCyclotronTracker::visitSeparator(const Separator &sep) {
-    *gmsg << "In Seapator L= " << sep.getElementLength() << " however the element is missing " << endl;
+    *gmsg << "In Separator L= " << sep.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<Separator *>(sep.clone()));
 }
 
@@ -2936,8 +2936,7 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
 
     double harm       = getHarmonicNumber();
     double dt         = itsBunch_m->getdT() * 1.0e9 * harm; // time step size (s --> ns)
-    double t          = itsBunch_m->getT() * 1.0e9;               // current time   (s --> ns)
-
+    double t          = itsBunch_m->getT()  * 1.0e9;        // current time   (s --> ns)
 
     double oldReferenceTheta      = referenceTheta * Physics::deg2rad; // init here, reset each step
     setup_m.deltaTheta            = pi / (setup_m.stepsPerTurn);    // half of the average angle per step
