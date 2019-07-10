@@ -730,8 +730,6 @@ void CollimatorPhysics::gatherStatistics() {
                                              rediffusedStat_m,
                                              stoppedPartStat_m};
 
-    // allreduce doesn't seem to work with unsigned int therefore
-    // use long which can store unsigned int.
     allreduce(&(partStatistics[0]), numItems, std::plus<unsigned int>());
 
     totalPartsInMat_m = partStatistics[0];
