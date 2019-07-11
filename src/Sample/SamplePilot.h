@@ -117,9 +117,8 @@ protected:
     }
 
     using  Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t>::startWorker;
-    virtual
     void startWorker(const std::vector<std::string> &storeobjstr,
-                     const std::vector<std::string> &filesToKeep) /*override*/
+                     const std::vector<std::string> &filesToKeep)
     {
         std::ostringstream os;
         os << "\033[01;35m" << "  " << this->global_rank_ << " (PID: " << getpid() << ") ▶ Worker"

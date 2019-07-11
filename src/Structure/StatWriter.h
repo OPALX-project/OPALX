@@ -8,7 +8,6 @@
 class StatWriter : public SDDSWriter {
 
 public:
-    using SDDSWriter::write;
     typedef std::vector<std::pair<std::string, unsigned int> > losses_t;
 
     StatWriter(const std::string& fname, bool restart);
@@ -17,6 +16,8 @@ public:
      *  delete the last 'numberOfLines' lines of the statistics file
      */
     unsigned int rewindToSpos(double maxSpos);
+
+    using SDDSWriter::write;
 
     /** \brief Write statistical data.
      *
