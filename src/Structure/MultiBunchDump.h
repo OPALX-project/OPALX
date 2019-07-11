@@ -20,12 +20,12 @@ public:
     };
 
 public:
-    using SDDSWriter::write;
     MultiBunchDump(const std::string& fname, bool restart,
                    const short& bunch);
 
     void fillHeader();
 
+    using SDDSWriter::write;
     void write(PartBunchBase<double, 3>* beam, const double& azimuth);
 
     bool calcBunchBeamParameters(PartBunchBase<double, 3>* beam);
