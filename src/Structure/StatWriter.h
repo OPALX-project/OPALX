@@ -17,6 +17,8 @@ public:
      */
     unsigned int rewindToSpos(double maxSpos);
 
+    using SDDSWriter::write;
+
     /** \brief Write statistical data.
      *
      * Writes statistical beam data to proper output file. This is information such as RMS beam parameters
