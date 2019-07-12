@@ -104,6 +104,11 @@ protected:
 
     SDDSColumnSet columns_m;
 
+    /* The columns of the SDDS file need to be
+     * added only once.
+     */
+    bool hasColumns() const;
+
 private:
 
     void writeDescription();
@@ -174,6 +179,12 @@ std::string SDDSWriter::toString(const T& val) {
     ss.precision(precision_m);
     ss << val;
     return ss.str();
+}
+
+
+inline
+bool SDDSWriter::hasColumns() const {
+    return columns_m.hasColumns();
 }
 
 #endif

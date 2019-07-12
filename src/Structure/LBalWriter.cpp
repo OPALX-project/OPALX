@@ -15,11 +15,9 @@ LBalWriter::LBalWriter(const std::string& fname, bool restart)
 
 void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
-    static bool isFirst = true;
-    if ( !isFirst ) {
+    if (this->hasColumns()) {
         return;
     }
-    isFirst = false;
 
     columns_m.addColumn("t", "double", "ns", "Time");
 
