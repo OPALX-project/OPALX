@@ -1,7 +1,6 @@
 #ifndef PART_BUNCH_BASE_HPP
 #define PART_BUNCH_BASE_HPP
 
-#include <cassert>
 #include <numeric>
 
 #include "Distribution/Distribution.h"
@@ -1593,28 +1592,28 @@ short PartBunchBase<T, Dim>::getNumBunch() const {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setTotalNumPerBunch(size_t totalnum, short n) {
-    assert(n < (short)bunchTotalNum_m.size());
+    PAssert_LT(n, (short)bunchTotalNum_m.size());
     bunchTotalNum_m[n] = totalnum;
 }
 
 
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::getTotalNumPerBunch(short n) const {
-    assert(n < (short)bunchTotalNum_m.size());
+    PAssert_LT(n, (short)bunchTotalNum_m.size());
     return bunchTotalNum_m[n];
 }
 
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setLocalNumPerBunch(size_t localnum, short n) {
-    assert(n < (short)bunchLocalNum_m.size());
+    PAssert_LT(n, (short)bunchLocalNum_m.size());
     bunchLocalNum_m[n] = localnum;
 }
 
 
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::getLocalNumPerBunch(short n) const {
-    assert(n < (short)bunchLocalNum_m.size());
+    PAssert_LT(n, (short)bunchLocalNum_m.size());
     return bunchLocalNum_m[n];
 }
 
@@ -1627,7 +1626,7 @@ void PartBunchBase<T, Dim>::countTotalNumPerBunch() {
     bunchLocalNum_m.resize(numBunch_m);
 
     for (size_t i = 0; i < this->getLocalNum(); ++i) {
-        assert(this->bunchNum[i] < numBunch_m);
+        PAssert_LT(this->bunchNum[i], numBunch_m);
         ++bunchLocalNum_m[this->bunchNum[i]];
     }
 
