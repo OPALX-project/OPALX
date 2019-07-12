@@ -678,7 +678,9 @@ void AmrMultiGrid::setup_m(const amrex::Vector<AmrField_u>& rho,
     if ( matrices ) {
         this->clearMasks_m();
         // set the bottom solve operator
-        solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p, mglevel_m[0].get());
+        if (!solver_mp->hasOperator()) {
+            solver_mp->setOperator(mglevel_m[lbase_m]->Anf_p, mglevel_m[0].get());
+        }
     }
 
 #if AMR_MG_TIMER
@@ -701,7 +703,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
                 invdx[2] * invdx[2] )
     };
 
-    if ( matrices ) {
+    if (matrices) {
         for (amrex::MFIter mfi(*mglevel_m[lbase_m]->mask, true);
              mfi.isValid(); ++mfi)
         {
@@ -721,9 +723,10 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
                         AmrIntVect_t iv(D_DECL(i, j, k));
                         go_t gidx = mglevel_m[lbase_m]->serialize(iv);
 
-                        this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
-
-                        this->buildGradientMatrix_m(lbase_m, gidx, iv, mfab, invdx);
+                        if (!solver_mp->hasOperator()) {
+                            this->buildNoFinePoissonMatrix_m(lbase_m, gidx, iv, mfab, invdx2);
+                            this->buildGradientMatrix_m(lbase_m, gidx, iv, mfab, invdx);
+                        }
 
                         mglevel_m[lbase_m]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
                         mglevel_m[lbase_m]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
@@ -740,7 +743,7 @@ void AmrMultiGrid::buildSingleLevel_m(const amrex::Vector<AmrField_u>& rho,
 
     this->close_m(lbase_m, matrices);
 
-    if ( matrices ) {
+    if (matrices) {
         mglevel_m[lbase_m]->Awf_p = Teuchos::null;
         mglevel_m[lbase_m]->UnCovered_p = Teuchos::null;
     }
@@ -812,12 +815,13 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
                             this->buildFineBoundaryMatrix_m(lev, gidx, iv,
                                                             mfab, rfab, cfab);
 
-                            this->buildNoFinePoissonMatrix_m(lev, gidx, iv, mfab, invdx2);
-
                             this->buildCompositePoissonMatrix_m(lev, gidx, iv, mfab,
                                                                 rfab, cfab, invdx2);
 
-                            this->buildGradientMatrix_m(lev, gidx, iv, mfab, invdx);
+                            if (lev > lbase_m || (lev == lbase_m && !solver_mp->hasOperator())) {
+                                this->buildNoFinePoissonMatrix_m(lev, gidx, iv, mfab, invdx2);
+                                this->buildGradientMatrix_m(lev, gidx, iv, mfab, invdx);
+                            }
 
                             mglevel_m[lev]->rho_p->replaceGlobalValue(gidx, rhofab(iv, 0));
                             mglevel_m[lev]->phi_p->replaceGlobalValue(gidx, pfab(iv, 0));
@@ -912,9 +916,11 @@ void AmrMultiGrid::open_m(const lo_t& level,
 
         int nEntries = (AMREX_SPACEDIM << 1) + 2 /* plus boundaries */ + nPhysBoundary + nIntBoundary;
 
-        mglevel_m[level]->Anf_p = Teuchos::rcp(
-            new matrix_t(mglevel_m[level]->map_p, nEntries,
-                         Tpetra::StaticProfile) );
+        if (level > lbase_m || (level == lbase_m && !solver_mp->hasOperator())) {
+            mglevel_m[level]->Anf_p = Teuchos::rcp(
+                new matrix_t(mglevel_m[level]->map_p, nEntries,
+                             Tpetra::StaticProfile) );
+        }
 
         /*
          * with-fine / composite Poisson matrix
@@ -939,10 +945,12 @@ void AmrMultiGrid::open_m(const lo_t& level,
          */
         nEntries = 11;
 
-        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            mglevel_m[level]->G_p[d] = Teuchos::rcp(
-                new matrix_t(mglevel_m[level]->map_p, nEntries,
-                             Tpetra::StaticProfile) );
+        if (lbase_m > 0 || (lbase_m == 0 && !solver_mp->hasOperator())) {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                mglevel_m[level]->G_p[d] = Teuchos::rcp(
+                    new matrix_t(mglevel_m[level]->map_p, nEntries,
+                                 Tpetra::StaticProfile) );
+            }
         }
     }
 
@@ -978,16 +986,18 @@ void AmrMultiGrid::close_m(const lo_t& level,
                                                     mglevel_m[level]->map_p);
         }
 
-        mglevel_m[level]->Anf_p->fillComplete();
-        
+        if (level > lbase_m || (level == lbase_m && !solver_mp->hasOperator())) {
+            mglevel_m[level]->Anf_p->fillComplete();
+
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                mglevel_m[level]->G_p[d]->fillComplete();
+        }
+
         if ( lbase_m != lfine_m ) {
             mglevel_m[level]->Awf_p->fillComplete();
-        
+
             mglevel_m[level]->UnCovered_p->fillComplete();
         }
-        
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            mglevel_m[level]->G_p[d]->fillComplete();
     }
 }
 
