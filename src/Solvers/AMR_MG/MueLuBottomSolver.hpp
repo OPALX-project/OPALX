@@ -49,11 +49,6 @@ void MueLuBottomSolver<Level>::setOperator(const Teuchos::RCP<matrix_t>& A,
 {
     IpplTimings::startTimer(setupTimer_m);
 
-    if (A_mp != Teuchos::null) {
-        IpplTimings::stopTimer(setupTimer_m);
-        return;
-    }
-
     A_mp = MueLu::TpetraCrs_To_XpetraMatrix<scalar_t, lo_t, go_t, node_t>(A);
     A_mp->SetFixedBlockSize(1); // only 1 DOF per node (pure Laplace problem)
 
