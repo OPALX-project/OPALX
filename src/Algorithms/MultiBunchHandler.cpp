@@ -52,8 +52,7 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
             const int MaxBinNum = 1000;
 
             // initialize particles number for each bin (both existed and not yet emmitted)
-            size_t partInBin[MaxBinNum];
-            for(int ii = 0; ii < MaxBinNum; ii++) partInBin[ii] = 0;
+            size_t partInBin[MaxBinNum] = {0};
             partInBin[0] =  beam->getTotalNum();
 
             beam->setPBins(new PartBinsCyc(MaxBinNum, BinCount, partInBin));
