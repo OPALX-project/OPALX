@@ -189,10 +189,10 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
     beam->setLocalNumPerBunch(numParticles, bunchNum);
 
     //FIXME
-    std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = 0;
+    std::unique_ptr<PartBunchBase<double, 3> > tmpBunch = nullptr;
 #ifdef ENABLE_AMR
     AmrPartBunch* amrbunch_p = dynamic_cast<AmrPartBunch*>(beam);
-    if ( amrbunch_p != 0 ) {
+    if ( amrbunch_p != nullptr ) {
         tmpBunch.reset(new AmrPartBunch(&ref,
                                         amrbunch_p->getAmrParticleBase()));
     } else
