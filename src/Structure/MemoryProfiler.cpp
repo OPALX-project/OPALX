@@ -40,11 +40,9 @@ MemoryProfiler::MemoryProfiler(const std::string& fname, bool restart)
 
 void MemoryProfiler::header() {
 
-    static bool isFirst = true;
-    if ( !isFirst ) {
+    if (this->hasColumns()) {
         return;
     }
-    isFirst = false;
 
     columns_m.addColumn("t", "double", "ns", "Time");
 
