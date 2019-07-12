@@ -313,18 +313,7 @@ void TrackRun::setupSliceTracker() {
     //Track::block->slbunch->calcBeamParameters();
 
 
-    if(!opal->inRestartRun()) {
-        if(!opal->hasDataSinkAllocated()) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, 1));
-        } else {
-            ds = opal->getDataSink();
-            ds->changeH5Wrapper(phaseSpaceSink_m);
-        }
-    } else {
-        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, 1));
-    }
-
-    ds = opal->getDataSink();
+    initDataSink();
 
     if (Track::block->bunch->getTotalNum() > 0) {
         double spos = Track::block->zstart;
@@ -434,18 +423,7 @@ void TrackRun::setupThickTracker()
     // statistical data are calculated (rms, eps etc.)
     Track::block->bunch->calcBeamParameters();
 
-    if(!opal->inRestartRun()) {
-        if(!opal->hasDataSinkAllocated()) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, 1));
-        } else {
-            ds = opal->getDataSink();
-            ds->changeH5Wrapper(phaseSpaceSink_m);
-        }
-    } else {
-        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, 1));
-    }
-
-    ds = opal->getDataSink();
+    initDataSink();
 
     if(!opal->hasBunchAllocated())
       *gmsg << *dist << endl;
@@ -557,18 +535,8 @@ void TrackRun::setupTTracker(){
         Track::block->bunch->calcBeamParametersInitial();// we have not initialized any particle yet.
     }
 
-    if(!opal->inRestartRun()) {
-        if(!opal->hasDataSinkAllocated()) {
-            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, 1));
-        } else {
-            ds = opal->getDataSink();
-            ds->changeH5Wrapper(phaseSpaceSink_m);
-        }
-    } else {
-        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, 1));
-    }
 
-    ds = opal->getDataSink();
+    initDataSink();
 
     if(!opal->hasBunchAllocated()) {
         if(!mpacflg) {
@@ -730,18 +698,7 @@ void TrackRun::setupCyclotronTracker(){
     // statistical data are calculated (rms, eps etc.)
     Track::block->bunch->calcBeamParameters();
 
-    if(!opal->inRestartRun())
-        if(!opal->hasDataSinkAllocated()) {
-            ds = new DataSink(phaseSpaceSink_m, false, specifiedNumBunch);
-            opal->setDataSink(ds);
-        } else {
-            ds = opal->getDataSink();
-            ds->changeH5Wrapper(phaseSpaceSink_m);
-        }
-    else {
-        ds = new DataSink(phaseSpaceSink_m, true, specifiedNumBunch);
-        opal->setDataSink(ds);
-    }
+    initDataSink(specifiedNumBunch);
 
     if(!opal->hasBunchAllocated()) {
         *gmsg << "* ********************************************************************************** " << endl;
@@ -833,6 +790,23 @@ void TrackRun::setupFieldsolver() {
     else
         Track::block->bunch->setBCAllOpen();
 }
+
+
+void TrackRun::initDataSink(const int& numBunch) {
+    if(!opal->inRestartRun()) {
+        if(!opal->hasDataSinkAllocated()) {
+            opal->setDataSink(new DataSink(phaseSpaceSink_m, false, numBunch));
+        } else {
+            ds = opal->getDataSink();
+            ds->changeH5Wrapper(phaseSpaceSink_m);
+        }
+    } else {
+        opal->setDataSink(new DataSink(phaseSpaceSink_m, true, numBunch));
+    }
+
+    ds = opal->getDataSink();
+}
+
 
 double TrackRun::setDistributionParallelT(Beam *beam) {
 
