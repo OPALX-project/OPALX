@@ -320,8 +320,10 @@ void DataSink::rewindLines() {
         for (std::vector<mbWriter_t>::reverse_iterator rit = mbWriter_m.rbegin();
              rit != mbWriter_m.rend(); ++rit)
         {
-            linesToRewind = (*rit)->rewindToSpos(spos);
-            (*rit)->replaceVersionString();
+            if ((*rit)->exists()) {
+                linesToRewind = (*rit)->rewindToSpos(spos);
+                (*rit)->replaceVersionString();
+            }
         }
     } else if ( statWriter_m->exists() ) {
         // use stat file to get position
