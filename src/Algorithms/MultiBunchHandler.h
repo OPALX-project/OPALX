@@ -33,6 +33,15 @@ public:
             , radius(injection.radius)
             , prevAzimuth(-1.0)
             , pathlength(injection.pathlength)
+            , nParticles(0)
+            , ekin(0.0)
+            , dEkin(0.0)
+            , rrms{0.0}
+            , prms{0.0}
+            , emit{0.0}
+            , mean{0.0}
+            , correlation{0.0}
+            , halo{0.0}
         { };
 
         double time;
