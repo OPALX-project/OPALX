@@ -101,9 +101,6 @@ void SDDSWriter::replaceVersionString() {
 
 
 double SDDSWriter::getLastValue(const std::string& column) {
-    if (Ippl::myNode() != 0)
-        return 0.0;
-
     SDDS::SDDSParser parser(fname_m);
     parser.run();
     double val = 0.0;
