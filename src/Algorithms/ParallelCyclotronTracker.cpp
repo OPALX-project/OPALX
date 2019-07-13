@@ -3505,6 +3505,10 @@ void ParallelCyclotronTracker::updateTime(const double& dt) {
 
 
 void ParallelCyclotronTracker::updateAzimuthAndRadius() {
+    if (!isMultiBunch()) {
+        return;
+    }
+
     for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
         Vector_t meanR = calcMeanR(b);
         MultiBunchHandler::beaminfo_t& binfo = mbHandler_m->getBunchInfo(b);
