@@ -945,7 +945,7 @@ void AmrMultiGrid::open_m(const lo_t& level,
          */
         nEntries = 11;
 
-        if (lbase_m > 0 || (lbase_m == 0 && !solver_mp->hasOperator())) {
+        if (level > lbase_m || (level == lbase_m && !solver_mp->hasOperator())) {
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                 mglevel_m[level]->G_p[d] = Teuchos::rcp(
                     new matrix_t(mglevel_m[level]->map_p, nEntries,
