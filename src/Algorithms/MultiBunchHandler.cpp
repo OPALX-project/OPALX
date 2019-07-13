@@ -24,6 +24,8 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     , radiusThisTurn_m(0.0)
     , bunchCount_m(1)
 {
+    PAssert_LT(numBunch, 2);
+
     binfo_m.reserve(numBunch);
     for (int i = 0; i < beam->getNumBunch(); ++i) {
         binfo_m.push_back(beaminfo_t());
@@ -31,46 +33,44 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
 
     this->setBinning(binning);
 
-    if ( numBunch > 1 ) {
-        // mode of generating new bunches:
-        // "FORCE" means generating one bunch after each revolution, until get "TURNS" bunches.
-        // "AUTO" means only when the distance between two neighbor bunches is below the limitation,
-        //        then starts to generate new bunches after each revolution,until get "TURNS" bunches;
-        //        otherwise, run single bunch track
+    // mode of generating new bunches:
+    // "FORCE" means generating one bunch after each revolution, until get "TURNS" bunches.
+    // "AUTO" means only when the distance between two neighbor bunches is below the limitation,
+    //        then starts to generate new bunches after each revolution,until get "TURNS" bunches;
+    //        otherwise, run single bunch track
 
-        *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE "
-              << "----------------------------*** " << endl;
+    *gmsg << "***---------------------------- MULTI-BUNCHES MULTI-ENERGY-BINS MODE "
+            << "----------------------------*** " << endl;
 
-        // only for regular  run of multi bunches, instantiate the  PartBins class
-        // note that for restart run of multi bunches, PartBins class is instantiated in function
-        // Distribution::doRestartOpalCycl()
-        if (!OpalData::getInstance()->inRestartRun()) {
+    // only for regular  run of multi bunches, instantiate the  PartBins class
+    // note that for restart run of multi bunches, PartBins class is instantiated in function
+    // Distribution::doRestartOpalCycl()
+    if (!OpalData::getInstance()->inRestartRun()) {
 
-            // already exist bins number initially
-            const int BinCount = 1;
-            //allowed maximal bin
-            const int MaxBinNum = 1000;
+        // already exist bins number initially
+        const int BinCount = 1;
+        //allowed maximal bin
+        const int MaxBinNum = 1000;
 
-            // initialize particles number for each bin (both existed and not yet emmitted)
-            size_t partInBin[MaxBinNum] = {0};
-            partInBin[0] =  beam->getTotalNum();
+        // initialize particles number for each bin (both existed and not yet emmitted)
+        size_t partInBin[MaxBinNum] = {0};
+        partInBin[0] =  beam->getTotalNum();
 
-            beam->setPBins(new PartBinsCyc(MaxBinNum, BinCount, partInBin));
-            // the allowed maximal bin number is set to 100
-            //beam->setPBins(new PartBins(100));
+        beam->setPBins(new PartBinsCyc(MaxBinNum, BinCount, partInBin));
+        // the allowed maximal bin number is set to 100
+        //beam->setPBins(new PartBins(100));
 
-            this->setMode(mode);
+        this->setMode(mode);
 
+    } else {
+        if(beam->pbin_m->getLastemittedBin() < 2) {
+            *gmsg << "In this restart job, the multi-bunches mode is forcely set to AUTO mode." << endl;
+            mode_m = MB_MODE::AUTO;
         } else {
-            if(beam->pbin_m->getLastemittedBin() < 2) {
-                *gmsg << "In this restart job, the multi-bunches mode is forcely set to AUTO mode." << endl;
-                mode_m = MB_MODE::AUTO;
-            } else {
-                *gmsg << "In this restart job, the multi-bunches mode is forcely set to FORCE mode." << endl
-                      << "If the existing bunch number is less than the specified number of TURN, "
-                      << "readin the phase space of STEP#0 from h5 file consecutively" << endl;
-                mode_m = MB_MODE::FORCE;
-            }
+            *gmsg << "In this restart job, the multi-bunches mode is forcely set to FORCE mode." << endl
+                    << "If the existing bunch number is less than the specified number of TURN, "
+                    << "readin the phase space of STEP#0 from h5 file consecutively" << endl;
+            mode_m = MB_MODE::FORCE;
         }
     }
 }
