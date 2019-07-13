@@ -125,6 +125,8 @@ public:
 
     void updateTime(const double& dt);
 
+    void updatePathLength(const std::vector<double>& lpaths);
+
 private:
     // store the data of the beam which are required for injecting a
     // new bunch for multibunch filename

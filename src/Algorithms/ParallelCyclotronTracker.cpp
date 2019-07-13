@@ -3480,10 +3480,7 @@ void ParallelCyclotronTracker::updatePathLength(const double& dt) {
     itsBunch_m->setLPath(pathLength_m);
 
     if ( isMultiBunch() ) {
-        for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
-            MultiBunchHandler::beaminfo_t& binfo = mbHandler_m->getBunchInfo(b);
-            binfo.pathlength += lpaths[b];
-        }
+        mbHandler_m->updatePathLength(lpaths);
     }
 }
 
