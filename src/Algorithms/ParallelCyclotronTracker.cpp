@@ -3496,10 +3496,7 @@ void ParallelCyclotronTracker::updateTime(const double& dt) {
     itsBunch_m->setT(t + dt * 1.0e-9);
 
     if ( isMultiBunch() ) {
-        for (short b = 0; b < mbHandler_m->getNumBunch(); ++b) {
-            MultiBunchHandler::beaminfo_t& binfo = mbHandler_m->getBunchInfo(b);
-            binfo.time += dt;
-        }
+        mbHandler_m->updateTime(dt);
     }
 }
 

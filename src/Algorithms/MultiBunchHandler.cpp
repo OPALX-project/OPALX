@@ -528,3 +528,10 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
 
     return true;
 }
+
+
+void MultiBunchHandler::updateTime(const double& dt) {
+    for (short b = 0; b < bunchCount_m; ++b) {
+        binfo_m[b].time += dt;
+    }
+}

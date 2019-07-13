@@ -123,6 +123,8 @@ public:
 
     injection_t& getInjectionValues();
 
+    void updateTime(const double& dt);
+
 private:
     // store the data of the beam which are required for injecting a
     // new bunch for multibunch filename
