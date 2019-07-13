@@ -185,16 +185,16 @@ bool MultiBunchHandler::isForceMode() const {
 
 inline
 MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) {
-    PAssert_LT(bunchNr, 0);
-    PAssert_GE(bunchNr, (short)binfo_m.size());
+    PAssert_GE(bunchNr, 0);
+    PAssert_LT(bunchNr, (short)binfo_m.size());
     return binfo_m[bunchNr];
 }
 
 
 inline
 const MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) const {
-    PAssert_LT(bunchNr, 0);
-    PAssert_GE(bunchNr, (short)binfo_m.size());
+    PAssert_GE(bunchNr, 0);
+    PAssert_LT(bunchNr, (short)binfo_m.size());
     return binfo_m[bunchNr];
 }
 
