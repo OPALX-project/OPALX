@@ -375,7 +375,6 @@ void DataSink::init(bool restart, H5PartWrapper* h5wrapper, short numBunch) {
     }
 
     if ( isMultiBunch_m ) {
-        // generate at least file for first bunch (if numBunch = 1)
         initMultiBunchDump(numBunch);
     }
 
