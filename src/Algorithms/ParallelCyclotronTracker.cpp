@@ -3476,7 +3476,7 @@ void ParallelCyclotronTracker::updatePathLength(const double& dt) {
 
     computePathLengthUpdate(lpaths, dt);
 
-    pathLength_m += lpaths[0];
+    pathLength_m += lpaths.back();
     itsBunch_m->setLPath(pathLength_m);
 
     if ( isMultiBunch() ) {
