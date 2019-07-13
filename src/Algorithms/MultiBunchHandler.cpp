@@ -24,7 +24,7 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     , radiusThisTurn_m(0.0)
     , bunchCount_m(1)
 {
-    PAssert_LT(numBunch, 2);
+    PAssert_GT(numBunch, 1);
 
     binfo_m.reserve(numBunch);
     for (int i = 0; i < beam->getNumBunch(); ++i) {
