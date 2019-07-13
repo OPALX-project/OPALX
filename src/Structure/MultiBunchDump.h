@@ -31,7 +31,6 @@ public:
     bool calcBunchBeamParameters(PartBunchBase<double, 3>* beam);
 
 private:
-    bool isFirst_m;
 
     // the bunch number
     short bunch_m;
