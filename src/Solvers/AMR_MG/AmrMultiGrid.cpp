@@ -224,14 +224,19 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
     for (int lev = 0; lev < nlevel_m; ++lev) {
         int ilev = lbase_m + lev;
 
-        mglevel_m[lev].reset(new AmrMultiGridLevel_t(itsAmrObject_mp->getMeshScaling(),
-                                                     rho[ilev]->boxArray(),
-                                                     rho[ilev]->DistributionMap(),
-                                                     geom[ilev],
-                                                     rr,
-                                                     bc_m,
-                                                     comm_mp,
-                                                     node_mp));
+        // do not initialize base level every time
+        if (mglevel_m[lev] == nullptr || lev > lbase_m) {
+            mglevel_m[lev].reset(new AmrMultiGridLevel_t(itsAmrObject_mp->getMeshScaling(),
+                                                         rho[ilev]->boxArray(),
+                                                         rho[ilev]->DistributionMap(),
+                                                         geom[ilev],
+                                                         rr,
+                                                         bc_m,
+                                                         comm_mp,
+                                                         node_mp));
+        } else {
+            mglevel_m[lev]->buildLevelMask();
+        }
 
         mglevel_m[lev]->refmask.reset(
             new AmrMultiGridLevel_t::mask_t(mglevel_m[lev]->grids,
