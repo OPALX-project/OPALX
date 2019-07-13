@@ -110,12 +110,6 @@ public:
 
     void setRadiusTurns(const double& radius);
 
-    /// set total number of tracked bunches
-    void setTotalNumBunch(short n);
-
-    /// get total number of tracked bunches
-    short getTotalNumBunch() const;
-
     void setNumBunch(short n);
 
     short getNumBunch() const;
@@ -166,18 +160,6 @@ private:
     // global attributes of injection
     injection_t injection_m;
 };
-
-
-inline
-void MultiBunchHandler::setTotalNumBunch(short n) {
-    numBunch_m = n;
-}
-
-
-inline
-short MultiBunchHandler::getTotalNumBunch() const {
-    return numBunch_m;
-}
 
 
 inline
