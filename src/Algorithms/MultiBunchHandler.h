@@ -3,7 +3,6 @@
 
 #include "Algorithms/PartBunchBase.h"
 
-#include <cassert>
 #include <vector>
 
 /* Helper class that stores bunch injection
@@ -182,14 +181,16 @@ bool MultiBunchHandler::isForceMode() const {
 
 inline
 MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) {
-    assert(bunchNr < 0 || bunchNr >= (short)binfo_m.size());
+    PAssert_LT(bunchNr, 0);
+    PAssert_GE(bunchNr, (short)binfo_m.size());
     return binfo_m[bunchNr];
 }
 
 
 inline
 const MultiBunchHandler::beaminfo_t& MultiBunchHandler::getBunchInfo(short bunchNr) const {
-    assert(bunchNr < 0 || bunchNr >= (short)binfo_m.size());
+    PAssert_LT(bunchNr, 0);
+    PAssert_GE(bunchNr, (short)binfo_m.size());
     return binfo_m[bunchNr];
 }
 
