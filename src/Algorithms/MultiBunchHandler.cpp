@@ -78,9 +78,6 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
 
 void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam)
 {
-    if ( numBunch_m < 2 )
-        return;
-
     static IpplTimings::TimerRef saveBunchTimer = IpplTimings::getTimer("Save Bunch H5");
     IpplTimings::startTimer(saveBunchTimer);
     *gmsg << endl;
@@ -273,7 +270,7 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
         result = 1;
     }
 
-    else if ((bunchCount_m < numBunch_m)) {
+    else if (bunchCount_m < numBunch_m) {
         // Matthias: SteptoLastInj was used in MtsTracker, removed by DW in GenericTracker
 
         // If all of the following conditions are met, this code will be executed
@@ -314,7 +311,7 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
 
 
 void MultiBunchHandler::updateParticleBins(PartBunchBase<double, 3> *beam) {
-    if (numBunch_m < 2 || bunchCount_m < 2)
+    if (bunchCount_m < 2)
         return;
 
     static IpplTimings::TimerRef binningTimer = IpplTimings::getTimer("Particle Binning");
