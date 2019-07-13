@@ -34,7 +34,6 @@ class H5PartWrapper;
 
 class DataSink {
 public:
-    typedef MultiBunchDump::beaminfo_t      beaminfo_t;
     typedef StatWriter::losses_t            losses_t;
     typedef std::unique_ptr<StatWriter>     statWriter_t;
     typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
