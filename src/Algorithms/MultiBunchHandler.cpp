@@ -532,3 +532,10 @@ void MultiBunchHandler::updateTime(const double& dt) {
         binfo_m[b].time += dt;
     }
 }
+
+
+void MultiBunchHandler::updatePathLength(const std::vector<double>& lpaths) {
+    for (short b = 0; b < bunchCount_m; ++b) {
+        binfo_m[b].pathlength += lpaths[b];
+    }
+}
