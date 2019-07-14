@@ -11,11 +11,9 @@ StatWriter::StatWriter(const std::string& fname, bool restart)
 
 void StatWriter::fillHeader(const losses_t &losses) {
 
-    static bool isFirst = true;
-    if ( !isFirst ) {
+    if (this->hasColumns()) {
         return;
     }
-    isFirst = false;
 
     columns_m.addColumn("t", "double", "ns", "Time");
     columns_m.addColumn("s", "double", "m", "Path length");

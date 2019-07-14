@@ -41,6 +41,8 @@ public:
 
     SDDSWriter(const std::string& fname, bool restart);
 
+    virtual ~SDDSWriter() { };
+
     virtual void write(PartBunchBase<double, 3>* beam) { };
 
     /** \brief
@@ -102,6 +104,11 @@ protected:
     std::ios_base::openmode mode_m;
 
     SDDSColumnSet columns_m;
+
+    /* The columns of the SDDS file need to be
+     * added only once.
+     */
+    bool hasColumns() const;
 
 private:
 
@@ -173,6 +180,12 @@ std::string SDDSWriter::toString(const T& val) {
     ss.precision(precision_m);
     ss << val;
     return ss.str();
+}
+
+
+inline
+bool SDDSWriter::hasColumns() const {
+    return columns_m.hasColumns();
 }
 
 #endif

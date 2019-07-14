@@ -11,16 +11,14 @@ extern Inform *gmsg;
 
 MultiBunchDump::MultiBunchDump(const std::string& fname, bool restart)
     : StatBaseWriter(fname, restart)
-    , isFirst_m(true)
 { }
 
 
 void MultiBunchDump::fillHeader() {
 
-    if ( !isFirst_m ) {
+    if (this->hasColumns()) {
         return;
     }
-    isFirst_m = false;
     
     columns_m.addColumn("t", "double", "ns", "Time");
     columns_m.addColumn("s", "double", "m", "Path length");
