@@ -16,8 +16,6 @@ public:
     void fillHeader();
 
     using SDDSWriter::write;
-    void write(PartBunchBase<double, 3>* beam, const double& azimuth);
-
     void write(PartBunchBase<double, 3>* beam, const beaminfo_t& binfo);
 };
 
