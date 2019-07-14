@@ -15,10 +15,10 @@ public:
 
     void fillHeader();
 
-    void write(PartBunchBase<double, 3>* beam, const beaminfo_t& binfo);
+    using SDDSWriter::write;
+    void write(PartBunchBase<double, 3>* beam, const double& azimuth);
 
-private:
-    bool isFirst_m;
+    void write(PartBunchBase<double, 3>* beam, const beaminfo_t& binfo);
 };
 
 #endif
