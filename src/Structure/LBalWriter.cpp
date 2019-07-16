@@ -23,7 +23,7 @@ void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         std::stringstream tmp1;
-        tmp1 << "processor-" << p;
+        tmp1 << "\"processor-" << p << "\"";
 
         std::stringstream tmp2;
         tmp2 << "Number of particles of processor " << p;
@@ -38,7 +38,7 @@ void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
         for (int lev = 0; lev < nLevel; ++lev) {
             std::stringstream tmp1;
-            tmp1 << "level-" << lev;
+            tmp1 << "\"level-" << lev << "\"";
 
             std::stringstream tmp2;
             tmp2 << "Number of particles at level " << lev;
@@ -94,7 +94,7 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
     size_t nProcs = Ippl::getNodes();
     for (size_t p = 0; p < nProcs; ++ p) {
         std::stringstream ss;
-        ss << "processor-" << p;
+        ss << "\"processor-" << p << "\"";
         columns_m.addColumnValue(ss.str(), beam->getLoadBalance(p));
     }
 
@@ -103,7 +103,7 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
         int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
         for (int lev = 0; lev < nLevel; ++lev) {
             std::stringstream ss;
-            ss << "level-" << lev;
+            ss << "\"level-" << lev << "\"";
             columns_m.addColumnValue(ss.str(), amrbeam->getLevelStatistics(lev));
         }
     }
