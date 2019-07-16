@@ -28,7 +28,7 @@ void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     for (int lev = 0; lev < nLevel; ++lev) {
         std::stringstream tmp1;
-        tmp1 << "level-" << lev;
+        tmp1 << "\"level-" << lev << "\"";
 
         std::stringstream tmp2;
         tmp2 << "Number of boxes at level " << lev;
@@ -38,7 +38,7 @@ void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         std::stringstream tmp1;
-        tmp1 << "processor-" << p;
+        tmp1 << "\"processor-" << p << "\"";
 
         std::stringstream tmp2;
         tmp2 << "Number of grid points per processor " << p;
@@ -94,7 +94,7 @@ void GridLBalWriter::write(PartBunchBase<double, 3> *beam) {
 
     for (int lev = 0; lev < nLevel; ++lev) {
         std::stringstream ss;
-        ss << "level-" << lev;
+        ss << "\"level-" << lev << "\"";
         // we need to cast due to boost::variant
         columns_m.addColumnValue(ss.str(), toString(gridsPerLevel[lev]));
     }
@@ -102,7 +102,7 @@ void GridLBalWriter::write(PartBunchBase<double, 3> *beam) {
     int nProcs = Ippl::getNodes();
     for (int p = 0; p < nProcs; ++p) {
         std::stringstream ss;
-        ss << "processor-" << p;
+        ss << "\"processor-" << p << "\"";
         // we need to cast due to boost::variant
         columns_m.addColumnValue(ss.str(), toString(gridPtsPerCore[p]));
     }

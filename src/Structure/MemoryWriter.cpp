@@ -23,7 +23,7 @@ void MemoryWriter::fillHeader() {
 
     for (int p = 0; p < Ippl::getNodes(); ++p) {
         std::stringstream tmp1;
-        tmp1 << "processor-" << p;
+        tmp1 << "\"processor-" << p << "\"";
 
         std::stringstream tmp2;
         tmp2 << "Memory per processor " << p;
@@ -88,7 +88,7 @@ void MemoryWriter::write(PartBunchBase<double, 3> *beam)
 
     for (int p = 0; p < nProcs; p++) {
         std::stringstream ss;
-        ss << "processor-" << p;
+        ss << "\"processor-" << p << "\"";
         columns_m.addColumnValue(ss.str(),  memory->getMemoryUsage(p));
     }
 
