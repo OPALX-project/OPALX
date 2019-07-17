@@ -3456,7 +3456,7 @@ void ParallelCyclotronTracker::saveInjectValues() {
 
     MultiBunchHandler::injection_t& inj = mbHandler_m->getInjectionValues();
 
-    inj.time       = itsBunch_m->getT();
+    inj.time       = itsBunch_m->getT() * 1.0e9; /*ns*/
     inj.pathlength = itsBunch_m->getLPath();
     inj.azimuth    = azimuth_m;
     inj.radius     = radius;
