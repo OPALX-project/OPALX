@@ -1999,10 +1999,6 @@ bool ParallelCyclotronTracker::push(double h) {
         flagNeedUpdate |= (itsBunch_m->Bin[i] < 0);
     }
 
-    updateTime(h * 1.0e9 /*s --> ns*/);
-
-    updatePathLength(h * 1.0e9 /*s --> ns*/);
-
     IpplTimings::stopTimer(IntegrationTimer_m);
     return flagNeedUpdate;
 }
