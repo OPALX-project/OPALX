@@ -18,7 +18,7 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
                                      const std::string& binning)
     : onebunch_m(OpalData::getInstance()->getInputBasename() + "-onebunch.h5")
     , numBunch_m(numBunch)
-    , eta_m(0.01)
+    , eta_m(eta)
     , coeffDBunches_m(para)
     , radiusLastTurn_m(0.0)
     , radiusThisTurn_m(0.0)
