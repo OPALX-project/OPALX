@@ -399,7 +399,6 @@ private:
 
     // Push particles for time h.
     // Apply effects of RF Gap Crossings.
-    // Update time and path length.
     // Unit assumptions: [itsBunch_m->R] = m, [itsBunch_m->P] = 1, [h] = s, [c] = m/s, [itsBunch_m->getT()] = s
     bool push(double h);
 
