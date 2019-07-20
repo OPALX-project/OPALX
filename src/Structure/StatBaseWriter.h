@@ -2,6 +2,7 @@
 #define OPAL_STAT_BASE_WRITER_H
 
 #include "SDDSWriter.h"
+#include "Utilities/Util.h"
 
 class StatBaseWriter : public SDDSWriter {
 
