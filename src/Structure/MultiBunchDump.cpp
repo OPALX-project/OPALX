@@ -4,7 +4,8 @@
 
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
-
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Ippl.h"
 
 extern Inform *gmsg;
@@ -19,7 +20,7 @@ void MultiBunchDump::fillHeader() {
     if (this->hasColumns()) {
         return;
     }
-    
+
     columns_m.addColumn("t", "double", "ns", "Time");
     columns_m.addColumn("s", "double", "m", "Path length");
     columns_m.addColumn("azimuth", "double", "deg", "Azimuth in global coordinates");

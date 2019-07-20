@@ -7,6 +7,8 @@
 
 #include "Utilities/Timer.h"
 #include "Utilities/OpalException.h"
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
 
 #include <boost/filesystem.hpp>
 
