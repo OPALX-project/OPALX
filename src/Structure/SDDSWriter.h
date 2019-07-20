@@ -10,13 +10,16 @@
 #include <utility>
 #include <ostream>
 #include <iomanip>
+#include <sstream>
 
 #include <boost/filesystem.hpp>
 #include <boost/variant.hpp>
 
-#include "Algorithms/PartBunchBase.h"
 #include "Structure/SDDSColumn.h"
 #include "Structure/SDDSColumnSet.h"
+
+template <class T, unsigned Dim>
+class PartBunchBase;
 
 class SDDSWriter {
 

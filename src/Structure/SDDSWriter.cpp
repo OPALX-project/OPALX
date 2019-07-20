@@ -4,6 +4,7 @@
 #include "OPALconfig.h"
 #include "Util/SDDSParser.h"
 #include "Ippl.h"
+#include "Algorithms/PartBunchBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Util.h"
 
