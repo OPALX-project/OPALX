@@ -1,8 +1,10 @@
 #include "LBalWriter.h"
 
 #include "OPALconfig.h"
+#include "AbstractObjects/OpalData.h"
 #include "Utilities/Util.h"
 #include "Utilities/Timer.h"
+#include "Algorithms/PartBunchBase.h"
 
 #ifdef ENABLE_AMR
 #include "Algorithms/AmrPartBunch.h"
