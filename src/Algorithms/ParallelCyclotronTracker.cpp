@@ -2845,10 +2845,10 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
         restartStep0_m = itsBunch_m->getLocalTrackStep();
         step_m = restartStep0_m;
 
-        turnnumber_m = step_m / setup_m.stepsPerTurn;
+        turnnumber_m = step_m / setup_m.stepsPerTurn + 1;
 
         *gmsg << "* Restart at integration step " << restartStep0_m
-              << " at turn " << turnnumber_m << endl;
+              << " at turn " << turnnumber_m - 1 << endl;
 
         initPathLength();
     }
