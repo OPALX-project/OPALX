@@ -138,6 +138,7 @@ LossDataSink::LossDataSink(std::string elem, bool hdf5Save, ElementBase::Element
     pz_m.clear();
     id_m.clear();
     turn_m.clear();
+    bunchNum_m.clear();
     time_m.clear();
 }
 
@@ -161,6 +162,7 @@ LossDataSink::LossDataSink(const LossDataSink &rsh):
     pz_m.clear();
     id_m.clear();
     turn_m.clear();
+    bunchNum_m.clear();
     time_m.clear();
 }
 
@@ -239,10 +241,12 @@ void LossDataSink::addParticle(const Vector_t &x,const  Vector_t &p, const size_
 
 // For ring type simulation, dump the time and turn number
 void LossDataSink::addParticle(const Vector_t &x, const Vector_t &p, const size_t id,
-                               const double time, const size_t turn) {
+                               const double time, const size_t turn,
+                               const size_t& bunchNum) {
     addParticle(x, p, id);
     turn_m.push_back(turn);
     time_m.push_back(time);
+    bunchNum_m.push_back(bunchNum);
 }
 
 void LossDataSink::save(unsigned int numSets) {
@@ -292,6 +296,7 @@ void LossDataSink::save(unsigned int numSets) {
     pz_m.clear();
     id_m.clear();
     turn_m.clear();
+    bunchNum_m.clear();
     time_m.clear();
     spos_m.clear();
     refTime_m.clear();
@@ -372,6 +377,8 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         WRITE_DATA_FLOAT64 ("time", &time_m[startIdx]);
         larray.assign (turn_m.begin() + startIdx, turn_m.end() );
         WRITE_DATA_INT64 ("turn", &larray[0]);
+        larray.assign (bunchNum_m.begin() + startIdx, bunchNum_m.end() );
+        WRITE_DATA_INT64 ("bunchNumber", &larray[0]);
     }
 
     ++ H5call_m;
@@ -397,6 +404,7 @@ void LossDataSink::saveASCII() {
                 os_m << pz_m[i] << "   ";
                 os_m << id_m[i]   << "   ";
                 os_m << turn_m[i] << "   ";
+                os_m << bunchNum_m[i] << "   ";
                 os_m << time_m[i] << " " << std::endl;
             }
         }
@@ -484,6 +492,7 @@ void LossDataSink::saveASCII() {
                 smsg->put(py_m[i]);
                 smsg->put(pz_m[i]);
                 smsg->put(turn_m[i]);
+                smsg->put(bunchNum_m[i]);
                 smsg->put(time_m[i]);
             }
         }
