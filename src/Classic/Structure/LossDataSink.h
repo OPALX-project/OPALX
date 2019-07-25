@@ -79,7 +79,8 @@ class LossDataSink {
 
     void addParticle(const Vector_t &x, const Vector_t &p, const size_t id);
 
-    void addParticle(const Vector_t &x, const Vector_t &p, const size_t  id, const double time, const size_t turn);
+    void addParticle(const Vector_t &x, const Vector_t &p, const size_t  id,
+                     const double time, const size_t turn, const size_t& bunchNum = 0);
 
     size_t size() const;
 
@@ -153,6 +154,7 @@ private:
     std::vector<double> px_m;
     std::vector<double> py_m;
     std::vector<double> pz_m;
+    std::vector<size_t> bunchNum_m;
 
     std::vector<size_t> turn_m;
     std::vector<double> time_m;
