@@ -178,11 +178,6 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
 }
 
 
-/**
- *
- *
- * @param fn Base file name
- */
 void ParallelCyclotronTracker::bgf_main_collision_test() {
     if(!bgf_m) return;
 
@@ -1176,8 +1171,21 @@ void ParallelCyclotronTracker::execute() {
     *gmsg << "* -------------------------------------" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
 
-    for(auto fd : FieldDimensions)
-        *gmsg << "* -> " <<  ElementBase::getTypeString(fd->first) << endl;
+    for(auto fd : FieldDimensions) {
+        ElementBase::ElementType type = fd->first;
+        *gmsg << "* -> " <<  ElementBase::getTypeString(type) << endl;
+        if(type == ElementBase::RFCAVITY) {
+            RFCavity* cav = static_cast<RFCavity*>((fd->second).second);
+            CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * 0.001};
+            cavCrossDatas_m.push_back(ccd);
+        } else if( type == ElementBase::CCOLLIMATOR ||
+                   type == ElementBase::PROBE       ||
+                   type == ElementBase::SEPTUM      ||
+                   type == ElementBase::STRIPPER) {
+            PluginElement* element = static_cast<PluginElement*>((fd->second).second);
+            pluginElements_m.push_back(element);
+        }
+    }
 
     *gmsg << "* -------------------------------------" << endl;
 
@@ -1336,7 +1344,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             // both for single bunch and multi-bunch
             // avoid dump at the first step
             // dumpEachTurn has not been changed in first push
-            if((step_m > 10) && ((step_m + 1) % itsBunch_m->getStepsPerTurn()) == 0) {
+            if( turnDone() ) {
                 ++turnnumber_m;
                 dumpEachTurn = true;
 
@@ -1567,11 +1575,8 @@ bool ParallelCyclotronTracker::getTunes(dvector_t &t, dvector_t &r, dvector_t &z
     double T = (tf - ti);
 
     t.clear();
-    double dt = T / Ndat;
-    double time = 0.0;
     for(int i = 0; i < Ndat; i++) {
         t.push_back(i);
-        time += dt;
     }
 
     T = t[Ndat-1];
@@ -1959,26 +1964,18 @@ bool ParallelCyclotronTracker::push(double h) {
     h *= 1.0e-9;
 
     bool flagNeedUpdate = false;
-    std::list<CavityCrossData> cavCrossDatas;
-    for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
-        if(((*sindex)->first) == ElementBase::RFCAVITY) {
-            RFCavity * cav = static_cast<RFCavity *>(((*sindex)->second).second);
-            CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * 0.001};
-            cavCrossDatas.push_back(ccd);
-        }
-    }
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
         Vector_t const oldR = itsBunch_m->R[i];
         double const gamma = sqrt(1.0 + dot(itsBunch_m->P[i], itsBunch_m->P[i]));
         double const c_gamma = Physics::c / gamma;
         Vector_t const v = itsBunch_m->P[i] * c_gamma;
         itsBunch_m->R[i] += h * v;
-        for(std::list<CavityCrossData>::const_iterator ccd = cavCrossDatas.begin(); ccd != cavCrossDatas.end(); ++ccd) {
-            double const distNew = (itsBunch_m->R[i][0] * ccd->sinAzimuth - itsBunch_m->R[i][1] * ccd->cosAzimuth) - ccd->perpenDistance;
+        for(const auto & ccd : cavCrossDatas_m) {
+            double const distNew = (itsBunch_m->R[i][0] * ccd.sinAzimuth - itsBunch_m->R[i][1] * ccd.cosAzimuth) - ccd.perpenDistance;
             bool tagCrossing = false;
             double distOld;
             if(distNew <= 0.0) {
-                distOld = (oldR[0] * ccd->sinAzimuth - oldR[1] * ccd->cosAzimuth) - ccd->perpenDistance;
+                distOld = (oldR[0] * ccd.sinAzimuth - oldR[1] * ccd.cosAzimuth) - ccd.perpenDistance;
                 if(distOld > 0.0) tagCrossing = true;
             }
             if(tagCrossing) {
@@ -1990,7 +1987,7 @@ bool ParallelCyclotronTracker::push(double h) {
 
                 // Momentum kick
                 //itsBunch_m->R[i] *= 1000.0; // RFkick uses [itsBunch_m->R] == mm
-                RFkick(ccd->cavity, itsBunch_m->getT() * 1.0e9, dt1, i);
+                RFkick(ccd.cavity, itsBunch_m->getT() * 1.0e9, dt1, i);
                 //itsBunch_m->R[i] *= 0.001;
 
                 itsBunch_m->R[i] += dt2 * itsBunch_m->P[i] * c_gamma;
@@ -2061,24 +2058,16 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
     itsBunch_m->R *= Vector_t(1000.0);
 
     bool flag = false;
-    for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
-        ElementBase::ElementType type = ((*sindex)->first);
-        if( type == ElementBase::CCOLLIMATOR ||
-            type == ElementBase::PROBE       ||
-            type == ElementBase::SEPTUM      ||
-            type == ElementBase::STRIPPER) {
+    for (PluginElement* element : pluginElements_m) {
+        bool tmp = element->check(itsBunch_m,
+                                  turnnumber_m,
+                                  itsBunch_m->getT() * 1e9  /*[ns]*/,
+                                  dt);
+        flag |= tmp;
 
-            PluginElement* element = static_cast<PluginElement *>(((*sindex)->second).second);
-            bool tmp = element->check(itsBunch_m,
-                                      turnnumber_m,
-                                      itsBunch_m->getT() * 1e9  /*[ns]*/,
-                                      dt);
-            flag |= tmp;
-
-            if ( tmp ) {
-                itsBunch_m->updateNumTotal();
-                *gmsg << "* Total number of particles = " << itsBunch_m->getTotalNum() << endl;
-            }
+        if ( tmp ) {
+            itsBunch_m->updateNumTotal();
+            *gmsg << "* Total number of particles = " << itsBunch_m->getTotalNum() << endl;
         }
     }
 
@@ -2774,6 +2763,10 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     IpplTimings::stopTimer(DumpTimer_m);
 }
 
+bool ParallelCyclotronTracker::turnDone()
+{
+    return (step_m > 10) && (((step_m + 1) %setup_m.stepsPerTurn) == 0);
+}
 
 void ParallelCyclotronTracker::update_m(double& t, const double& dt,
                                         const bool& dumpEachTurn)
@@ -2808,6 +2801,10 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
             bunchDumpStatData();
         }
     }
+
+    if (Options::psDumpEachTurn && dumpEachTurn)
+        for (PluginElement* element : pluginElements_m)
+            element->save();
 }
 
 
@@ -3019,7 +3016,7 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
         // Integrate for one step in the lab Cartesian frame (absolute value).
         itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
-        if( (i == 0) && (step_m > 10) && ((step_m%setup_m.stepsPerTurn) == 0))
+        if( (i == 0) && turnDone() )
             turnnumber_m++;
 
     } // end for: finish one step tracking for all particles for initialTotalNum_m == 2 mode
@@ -3183,7 +3180,7 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     }
 
     // Some status output for user after each turn
-    if ( (step_m > 10) && ((step_m + 1) % setup_m.stepsPerTurn) == 0) {
+    if ( turnDone() ) {
         turnnumber_m++;
         dumpEachTurn = true;
 
@@ -3273,7 +3270,7 @@ void ParallelCyclotronTracker::dumpThetaEachTurn_m(const double& t,
                                                    const double& temp_meanTheta,
                                                    bool& dumpEachTurn)
 {
-    if ((step_m > 10) && ((step_m + 1) % setup_m.stepsPerTurn) == 0) {
+    if ( turnDone() ) {
 
         ++turnnumber_m;
 

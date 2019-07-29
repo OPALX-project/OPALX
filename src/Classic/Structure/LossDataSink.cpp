@@ -121,8 +121,6 @@ SetStatistics::SetStatistics():
     fac_m(0.0)
     { }
 
-extern Inform *gmsg;
-
 LossDataSink::LossDataSink(std::string elem, bool hdf5Save, ElementBase::ElementType type):
     h5hut_mode_m(hdf5Save),
     H5file_m(0),
@@ -278,11 +276,11 @@ void LossDataSink::save(unsigned int numSets) {
         fn_m = element_m + std::string(".loss");
         INFOMSG(level2 << "Save " << fn_m << endl);
         if (Options::openMode == Options::WRITE || !fs::exists(fn_m)) {
-            appendASCII();
-        } else {
             openASCII();
+            writeHeaderASCII();
+        } else {
+            appendASCII();
         }
-        writeHeaderASCII();
         saveASCII();
         closeASCII();
     }
