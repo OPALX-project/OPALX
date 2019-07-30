@@ -430,7 +430,8 @@ void LossDataSink::saveASCII() {
             rmsg->get(&dataBlocks);
             if (time_m.size() != 0) {
                 for(unsigned i = 0; i < dataBlocks; i++) {
-                    long id, turn;
+                    long id;
+                    size_t bunchNum, turn;
                     double rx, ry, rz, px, py, pz, time;
                     rmsg->get(&id);
                     rmsg->get(&rx);
@@ -440,6 +441,7 @@ void LossDataSink::saveASCII() {
                     rmsg->get(&py);
                     rmsg->get(&pz);
                     rmsg->get(&turn);
+                    rmsg->get(&bunchNum);
                     rmsg->get(&time);
                     os_m << element_m << "   ";
                     os_m << rx << "   ";
@@ -450,6 +452,7 @@ void LossDataSink::saveASCII() {
                     os_m << pz << "   ";
                     os_m << id << "   ";
                     os_m << turn << "   ";
+                    os_m << bunchNum << "   ";
                     os_m << time << std::endl;
                 }
             }
