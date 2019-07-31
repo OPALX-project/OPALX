@@ -265,6 +265,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         auto tmp = sectors;
         sectors = std::vector<std::tuple<double, std::vector<double>, std::string> >(1);
         std::get<0>(sectors[0]) = initialPathLength;
+        std::get<1>(sectors[0]).resize(SIZE, 0.0);
 
         sectors.insert(sectors.end(), tmp.begin(), tmp.end());
     }
