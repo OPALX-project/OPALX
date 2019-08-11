@@ -1277,7 +1277,7 @@ void ParallelCyclotronTracker::MtsTracker() {
 
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
-        bool dumpEachTurn = false;
+        bool finishedTurn = false;
 
         if(step_m % Options::sptDumpFreq == 0) {
             singleParticleDump();
@@ -1334,7 +1334,7 @@ void ParallelCyclotronTracker::MtsTracker() {
                                                     itsBunch_m->R[i](1)); // [-pi, pi]
 
             dumpThetaEachTurn_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
-                                temp_meanTheta, dumpEachTurn);
+                                temp_meanTheta, finishedTurn);
 
             dumpAzimuthAngles_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
                                 oldReferenceTheta, temp_meanTheta);
@@ -1343,10 +1343,10 @@ void ParallelCyclotronTracker::MtsTracker() {
         } else if ( mode_m == MODE::BUNCH ) {
             // both for single bunch and multi-bunch
             // avoid dump at the first step
-            // dumpEachTurn has not been changed in first push
-            if( turnDone() ) {
+            // finishedTurn has not been changed in first push
+            if( isTurnDone() ) {
                 ++turnnumber_m;
-                dumpEachTurn = true;
+                finishedTurn = true;
 
                 *gmsg << endl;
                 *gmsg << "*** Finished turn " << turnnumber_m - 1
@@ -1361,7 +1361,7 @@ void ParallelCyclotronTracker::MtsTracker() {
         }
 
         // printing + updating bunch parameters + updating t
-        update_m(t, dt, dumpEachTurn);
+        update_m(t, dt, finishedTurn);
 
 
     }
@@ -1426,24 +1426,24 @@ void ParallelCyclotronTracker::GenericTracker() {
 
     for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
-        bool dumpEachTurn = false;
+        bool finishedTurn = false;
 
         switch (mode_m)
         {
             case MODE::SEO:
             { // initialTotalNum_m == 2
-                seoMode_m(t, dt, dumpEachTurn, Ttime, Tdeltr, Tdeltz, TturnNumber);
+                seoMode_m(t, dt, finishedTurn, Ttime, Tdeltr, Tdeltz, TturnNumber);
                 break;
             }
             case MODE::SINGLE:
             { // initialTotalNum_m == 1
-                singleMode_m(t, dt, dumpEachTurn, oldReferenceTheta);
+                singleMode_m(t, dt, finishedTurn, oldReferenceTheta);
                 break;
             }
             case MODE::BUNCH:
             { // initialTotalNum_m > 2
                 // Start Tracking for number of particles > 2 (i.e. not single and not SEO mode)
-                bunchMode_m(t, dt, dumpEachTurn);
+                bunchMode_m(t, dt, finishedTurn);
                 break;
             }
             case MODE::UNDEFINED:
@@ -1452,7 +1452,7 @@ void ParallelCyclotronTracker::GenericTracker() {
                                     "No such tracking mode.");
         }
         // Update bunch and some parameters and output some info
-        update_m(t, dt, dumpEachTurn);
+        update_m(t, dt, finishedTurn);
 
     } // end for: the integration is DONE after maxSteps_m steps or if all particles are lost!
 
@@ -2763,13 +2763,13 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     IpplTimings::stopTimer(DumpTimer_m);
 }
 
-bool ParallelCyclotronTracker::turnDone()
+bool ParallelCyclotronTracker::isTurnDone()
 {
     return (step_m > 10) && (((step_m + 1) %setup_m.stepsPerTurn) == 0);
 }
 
 void ParallelCyclotronTracker::update_m(double& t, const double& dt,
-                                        const bool& dumpEachTurn)
+                                        const bool& finishedTurn)
 {
     // Reference parameters
     t += dt;
@@ -2788,21 +2788,21 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
         // Only dump last step if we have particles left.
         // Check separately for phase space (ps) and statistics (stat) data dump frequency
         if ( mode_m != MODE::SEO && ( ((step_m + 1) % Options::psDumpFreq == 0) ||
-                                      (Options::psDumpEachTurn && dumpEachTurn)))
+                                      (Options::psDumpEachTurn && finishedTurn)))
         {
             // Write phase space data to h5 file
             bunchDumpPhaseSpaceData();
         }
 
         if ( mode_m != MODE::SEO && ( ((step_m + 1) % Options::statDumpFreq == 0) ||
-                                      (Options::psDumpEachTurn && dumpEachTurn)))
+                                      (Options::psDumpEachTurn && finishedTurn)))
         {
             // Write statistics data to stat file
             bunchDumpStatData();
         }
     }
 
-    if (Options::psDumpEachTurn && dumpEachTurn)
+    if (Options::psDumpEachTurn && finishedTurn)
         for (PluginElement* element : pluginElements_m)
             element->save();
 }
@@ -2982,7 +2982,7 @@ void ParallelCyclotronTracker::finalizeTracking_m(dvector_t& Ttime,
 }
 
 
-void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpEachTurn,
+void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& finishedTurn,
                                          dvector_t& Ttime, dvector_t& Tdeltr,
                                          dvector_t& Tdeltz, ivector_t& TturnNumber)
 {
@@ -3016,7 +3016,7 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
         // Integrate for one step in the lab Cartesian frame (absolute value).
         itsStepper_mp->advance(itsBunch_m, i, t, dt);
 
-        if( (i == 0) && turnDone() )
+        if( (i == 0) && isTurnDone() )
             turnnumber_m++;
 
     } // end for: finish one step tracking for all particles for initialTotalNum_m == 2 mode
@@ -3034,7 +3034,7 @@ void ParallelCyclotronTracker::seoMode_m(double& t, const double dt, bool& dumpE
 
 
 void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
-                                            bool& dumpEachTurn, double& oldReferenceTheta) {
+                                            bool& finishedTurn, double& oldReferenceTheta) {
     // 1 particle: Trigger single particle mode
 
     // ********************************************************************************** //
@@ -3071,7 +3071,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 
 
     dumpThetaEachTurn_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
-                        temp_meanTheta, dumpEachTurn);
+                        temp_meanTheta, finishedTurn);
 
     dumpAzimuthAngles_m(t, itsBunch_m->R[i], itsBunch_m->P[i],
                         oldReferenceTheta, temp_meanTheta);
@@ -3099,7 +3099,7 @@ void ParallelCyclotronTracker::singleMode_m(double& t, const double dt,
 }
 
 
-void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dumpEachTurn) {
+void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& finishedTurn) {
 
     // Flag for transition from single-bunch to multi-bunches mode
     static bool flagTransition = false;
@@ -3180,9 +3180,9 @@ void ParallelCyclotronTracker::bunchMode_m(double& t, const double dt, bool& dum
     }
 
     // Some status output for user after each turn
-    if ( turnDone() ) {
+    if ( isTurnDone() ) {
         turnnumber_m++;
-        dumpEachTurn = true;
+        finishedTurn = true;
 
         *gmsg << endl;
         *gmsg << "*** Finished turn " << turnnumber_m - 1
@@ -3268,13 +3268,13 @@ void ParallelCyclotronTracker::dumpThetaEachTurn_m(const double& t,
                                                    const Vector_t& R,
                                                    const Vector_t& P,
                                                    const double& temp_meanTheta,
-                                                   bool& dumpEachTurn)
+                                                   bool& finishedTurn)
 {
-    if ( turnDone() ) {
+    if ( isTurnDone() ) {
 
         ++turnnumber_m;
 
-        dumpEachTurn = true;
+        finishedTurn = true;
 
         *gmsg << "* SPT: Finished turn " << turnnumber_m - 1 << endl;
 
