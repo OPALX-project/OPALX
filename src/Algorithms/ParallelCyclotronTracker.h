@@ -459,10 +459,10 @@ private:
     stepper::INTEGRATOR stepper_m;
 
     /// Check if turn done
-    bool turnDone();
+    bool isTurnDone();
 
     /// Update time and path length, write to output files
-    void update_m(double& t, const double& dt, const bool& dumpEachTurn);
+    void update_m(double& t, const double& dt, const bool& finishedTurn);
 
     /*!
      * @returns the time t [ns], time step dt [ns] and the azimuth angle [rad]
@@ -474,13 +474,13 @@ private:
                             dvector_t& Tdeltz,
                             ivector_t& TturnNumber);
 
-    void seoMode_m(double& t, const double dt, bool& dumpEachTurn,
+    void seoMode_m(double& t, const double dt, bool& finishedTurn,
                    dvector_t& Ttime, dvector_t& Tdeltr,
                    dvector_t& Tdeltz, ivector_t& TturnNumber);
 
-    void singleMode_m(double& t, const double dt, bool& dumpEachTurn, double& oldReferenceTheta);
+    void singleMode_m(double& t, const double dt, bool& finishedTurn, double& oldReferenceTheta);
 
-    void bunchMode_m(double& t, const double dt, bool& dumpEachTurn);
+    void bunchMode_m(double& t, const double dt, bool& finishedTurn);
 
     void gapCrossKick_m(size_t i, double t, double dt,
                         const Vector_t& Rold, const Vector_t& Pold);
@@ -496,7 +496,7 @@ private:
                                     const Vector_t& R,
                                     const Vector_t& P,
                                     const double& temp_meanTheta,
-                                    bool& dumpEachTurn);
+                                    bool& finishedTurn);
 
     void computeSpaceChargeFields_m();
 
