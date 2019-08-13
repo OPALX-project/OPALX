@@ -86,8 +86,6 @@ class LossDataSink {
 
     std::set<SetStatistics> computeStatistics(unsigned int numSets);
 
-    // static void writeStatistics();
-
 private:
     void openASCII() {
         if(Ippl::myNode() == 0) {
@@ -106,7 +104,7 @@ private:
         if(Ippl::myNode() == 0) {
             os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id";
             if (time_m.size() != 0) {
-                os_m << ",  turn,  time (ns) ";
+                os_m << ",  turn, bunchNumber, time (ns) ";
             }
             os_m << std::endl;
         }
