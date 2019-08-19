@@ -247,10 +247,14 @@ void LossDataSink::addParticle(const Vector_t &x, const Vector_t &p, const size_
     bunchNum_m.push_back(bunchNum);
 }
 
-void LossDataSink::save(unsigned int numSets) {
+void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
 
     if (element_m == std::string("")) return;
     if (hasNoParticlesToDump()) return;
+
+    if (openMode == OpalData::OPENMODE::UNDEFINED) {
+        openMode = OpalData::getInstance()->getOpenMode();
+    }
 
     namespace fs = boost::filesystem;
     if (h5hut_mode_m) {
@@ -258,7 +262,7 @@ void LossDataSink::save(unsigned int numSets) {
 
         fn_m = element_m + std::string(".h5");
         INFOMSG(level2 << "Save " << fn_m << endl);
-        if (Options::openMode == Options::WRITE || !fs::exists(fn_m)) {
+        if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
             openH5();
             writeHeaderH5();
         } else {
@@ -275,7 +279,7 @@ void LossDataSink::save(unsigned int numSets) {
     else {
         fn_m = element_m + std::string(".loss");
         INFOMSG(level2 << "Save " << fn_m << endl);
-        if (Options::openMode == Options::WRITE || !fs::exists(fn_m)) {
+        if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
             openASCII();
             writeHeaderASCII();
         } else {
@@ -335,7 +339,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         nLoc = startSet_m[setIdx + 1] - startSet_m[setIdx];
     }
 
-    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]>  locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
     for(int i = 0; i < Ippl::getNodes(); i++) {
