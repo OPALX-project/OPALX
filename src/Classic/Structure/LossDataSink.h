@@ -9,6 +9,7 @@
 #include "Utility/IpplInfo.h"
 #include "Algorithms/Vektor.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbstractObjects/OpalData.h"
 
 #include <string>
 #include <fstream>
@@ -69,7 +70,7 @@ class LossDataSink {
 
     bool inH5Mode() { return h5hut_mode_m;}
 
-    void save(unsigned int numSets = 1);
+    void save(unsigned int numSets = 1, OpalData::OPENMODE openMode = OpalData::OPENMODE::UNDEFINED);
 
     void addReferenceParticle(const Vector_t &x,
                               const Vector_t &p,
@@ -102,6 +103,7 @@ private:
 
     void writeHeaderASCII() {
         if(Ippl::myNode() == 0) {
+            //FIXME Issue #45 (Cyclotron units)
             os_m << "# Element " << element_m << " x (mm),  y (mm),  z (mm),  px ( ),  py ( ),  pz ( ), id";
             if (time_m.size() != 0) {
                 os_m << ",  turn, bunchNumber, time (ns) ";
