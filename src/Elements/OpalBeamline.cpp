@@ -433,7 +433,8 @@ void OpalBeamline::plot3DLattice() {
 
     std::ofstream gpl;
     std::string fileName = "data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.gpl";
-    if (Options::openMode == Options::APPEND && boost::filesystem::exists(fileName)) {
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OPENMODE::APPEND &&
+        boost::filesystem::exists(fileName)) {
         gpl.open(fileName, std::ios_base::app);
     } else {
         gpl.open(fileName);
@@ -473,7 +474,8 @@ void OpalBeamline::save3DLattice() {
 
     std::ofstream pos;
     std::string fileName = "data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt";
-    if (Options::openMode == Options::APPEND && boost::filesystem::exists(fileName)) {
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OPENMODE::APPEND &&
+        boost::filesystem::exists(fileName)) {
         pos.open(fileName, std::ios_base::app);
     } else {
         pos.open(fileName);
