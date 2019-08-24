@@ -1,5 +1,6 @@
 #include "ElementPositionWriter.h"
-#include "Structure/LossDataSink.h"
+
+#include "Ippl.h"
 #include "AbstractObjects/OpalData.h"
 
 ElementPositionWriter::ElementPositionWriter(const std::string& fname)
