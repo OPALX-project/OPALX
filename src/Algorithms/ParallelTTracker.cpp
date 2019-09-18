@@ -1255,14 +1255,14 @@ void ParallelTTracker::findStartPosition(const BorisPusher &pusher) {
 
         double speed = euclidean_norm(RefPartP_m) * Physics::c / sqrt(dot(RefPartP_m, RefPartP_m) + 1);
         if (std::abs(pathLength_m - zstart_m) <=  0.5 * itsBunch_m->getdT() * speed) {
-            double tau = (pathLength_m - zstart_m) / speed;
+            double tau = (zstart_m - pathLength_m) / speed;
 
             t += tau;
             itsBunch_m->setT(t);
 
-            RefPartR_m /= (Physics::c * tau);
-            pusher.push(RefPartR_m, RefPartP_m, tau);
-            RefPartR_m *= (Physics::c * tau);
+            RefPartR_m /= (Physics::c * 2 * tau);
+            pusher.push(RefPartR_m, RefPartP_m, 2 * tau);
+            RefPartR_m *= (Physics::c * 2 * tau);
 
             pathLength_m = zstart_m;
 
