@@ -1940,9 +1940,11 @@ Inform &PartBunchBase<T, Dim>::print(Inform &os) {
     if(getTotalNum() != 0) {  // to suppress Nans
         Inform::FmtFlags_t ff = os.flags();
 
-        double pathLength = get_sPos();
+        double pathLength = 0.0;
         if (OpalData::getInstance()->isInOPALCyclMode()) {
             pathLength = getLPath();
+        } else {
+            pathLength = get_sPos();
         }
 
         os << std::scientific;
