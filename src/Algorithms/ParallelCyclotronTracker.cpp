@@ -79,6 +79,7 @@
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/DataSink.h"
+#include "Structure/LossDataSink.h"
 
 using Physics::pi;
 using Physics::q_e;
@@ -167,6 +168,8 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
  *
  */
 ParallelCyclotronTracker::~ParallelCyclotronTracker() {
+    if(bgf_m)
+        lossDs_m->save();
     for(Component* component : myElements) {
         delete(component);
     }
@@ -197,7 +200,12 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
         int res = bgf_m->partInside(itsBunch_m->R[i], itsBunch_m->P[i], dtime, itsBunch_m->PType[i], itsBunch_m->Q[i], intecoords, triId);
         //int res = bgf_m->partInside(itsBunch_m->R[i]*1.0e-3, itsBunch_m->P[i], dtime, itsBunch_m->PType[i], itsBunch_m->Q[i], intecoords, triId);
         if(res >= 0) {
+            lossDs_m->addParticle(itsBunch_m->R[i]*1000, itsBunch_m->P[i],
+                                  itsBunch_m->ID[i], itsBunch_m->getT()*1e9,
+                                  turnnumber_m, itsBunch_m->bunchNum[i]);
             itsBunch_m->Bin[i] = -1;
+            Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+            gmsgALL << level4 << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;
         }
     }
 }
@@ -1191,6 +1199,12 @@ void ParallelCyclotronTracker::execute() {
 
     // Get BoundaryGeometry that is already initialized
     bgf_m = OpalData::getInstance()->getGlobalGeometry();
+    if (bgf_m) {
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink("GEOM",!Options::asciidump));
+        *gmsg << "* Boundary geometry initialized " << endl;
+        *gmsg << "* -------------------------------------" << endl;
+    }
+
 
     // External field arrays for dumping
     for(int k = 0; k < 2; k++)

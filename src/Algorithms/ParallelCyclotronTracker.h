@@ -29,6 +29,7 @@
 
 class DataSink;
 class PluginElement;
+class LossDataSink;
 
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -435,6 +436,7 @@ private:
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
 
+    std::unique_ptr<LossDataSink> lossDs_m;
 
     // If Ring is defined take the harmonic number from Ring; else use
     // cyclotron
