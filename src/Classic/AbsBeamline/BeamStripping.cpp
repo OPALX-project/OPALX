@@ -1,13 +1,11 @@
 // ------------------------------------------------------------------------
 // $RCSfile: BeamStripping.cpp,v $
 // ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
 // Class: BeamStripping
-//   Defines the abstract interface for a beam collimator for cyclotrons.
+//   Defines the abstract interface for a beam stripping for cyclotrons.
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline
@@ -27,7 +25,9 @@
 #include "Utilities/LogicalError.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
+#include "Utilities/GeneralClassicException.h"
 
+#include <fstream>
 #include <memory>
 #include <fstream>
 #include <iostream>
@@ -36,8 +36,12 @@
 
 #include "Ippl.h"
 
-using Physics::kB;
 using Physics::q_e;
+using Physics::pi;
+
+#define CHECK_BSTP_FSCANF_EOF(arg) if(arg == EOF)\
+throw GeneralClassicException("BeamStripping::getPressureFromFile",\
+                              "fscanf returned EOF at " #arg);
 
 extern Inform *gmsg;
 
@@ -50,7 +54,9 @@ BeamStripping::BeamStripping():
     Component(),
     filename_m(""),
     informed_m(false),
+    gas_m(""),
     pressure_m(0.0),
+    pmapfn_m(""),
     temperature_m(0.0),
     stop_m(true),
     minr_m(0.0),
@@ -59,14 +65,17 @@ BeamStripping::BeamStripping():
     maxz_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+}
 
 BeamStripping::BeamStripping(const BeamStripping &right):
     Component(right),
     filename_m(right.filename_m),
     informed_m(right.informed_m),
+    gas_m(right.gas_m),
     pressure_m(right.pressure_m),
+    pmapfn_m(right.pmapfn_m),
+    pscale_m(right.pscale_m),
     temperature_m(right.temperature_m),
     stop_m(right.stop_m),
     minr_m(right.minr_m),
@@ -75,14 +84,16 @@ BeamStripping::BeamStripping(const BeamStripping &right):
     maxz_m(right.maxz_m),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+}
 
 BeamStripping::BeamStripping(const std::string &name):
     Component(name),
     filename_m(""),
     informed_m(false),
+    gas_m(""),
     pressure_m(0.0),
+    pmapfn_m(""),
     temperature_m(0.0),
     stop_m(true),
     minr_m(0.0),
@@ -91,8 +102,8 @@ BeamStripping::BeamStripping(const std::string &name):
     maxz_m(0.0),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
-{}
+    parmatint_m(NULL) {
+}
 
 
 BeamStripping::~BeamStripping() {
@@ -104,10 +115,10 @@ void BeamStripping::accept(BeamlineVisitor &visitor) const {
     visitor.visitBeamStripping(*this);
 }
 
-
 void BeamStripping::setPressure(double pressure) {
     pressure_m = pressure;
 }
+
 double BeamStripping::getPressure() const {
     return pressure_m;
 }
@@ -115,13 +126,39 @@ double BeamStripping::getPressure() const {
 void BeamStripping::setTemperature(double temperature) {
     temperature_m = temperature;
 }
+
 double BeamStripping::getTemperature() const {
     return temperature_m;
+}
+
+void BeamStripping::setPressureMapFN(std::string p) {
+    pmapfn_m = p;
+}
+
+string BeamStripping::getPressureMapFN() const {
+    return pmapfn_m;
+}
+
+void BeamStripping::setPScale(double ps) {
+    pscale_m = ps;
+}
+
+double BeamStripping::getPScale() const {
+    return pscale_m;
+}
+
+void BeamStripping::setResidualGas(std::string gas) {
+    gas_m = gas;
+}
+
+string BeamStripping::getResidualGas() const {
+    return gas_m;
 }
 
 void BeamStripping::setStop(bool stopflag) {
     stop_m = stopflag;
 }
+
 bool BeamStripping::getStop() const {
     return stop_m;
 }
@@ -130,7 +167,7 @@ bool BeamStripping::apply(const size_t &i, const double &t, Vector_t &E, Vector_
     return false;
 }
 
-bool BeamStripping::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
+bool BeamStripping::apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) {
     return false;
 }
 
@@ -172,7 +209,6 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
 //          *gmsg << "pflag == 0" << endl;
 //          *gmsg << getName() << ": particle "<< i <<" out of the global aperture of accelerator!"<< endl;
 //          *gmsg << getName() << ": Coords: "<< bunch->R[i] << endl;
-//
 //      }
 //      else if (bunch->Bin[i] == -1) {
 //          *gmsg << "bunch->Bin[i] == -1" << endl;
@@ -191,13 +227,20 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
 
 void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
-    initialise(bunch);
+    initialise(bunch, pscale_m);
 }
 
-void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
+void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, const double &scaleFactor) {
+
     RefPartBunch_m = bunch;
 
     parmatint_m = getParticleMatterInteraction();
+    
+    if (pmapfn_m != "") {
+        getPressureFromFile(scaleFactor);
+        // calculate the radii of initial grid.
+        initR(PP.rmin, PP.delr, PField.nrad);
+    }
 
     // if (!parmatintbst_m) {
     if (filename_m == std::string(""))
@@ -208,7 +251,7 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch) {
     goOnline(-1e6);
 
     // change the mass and charge to simulate real particles
-    *gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
+    //*gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
     size_t tempnum = bunch->getLocalNum();
     for (size_t i = 0; i < tempnum; ++i) {
         bunch->M[i] = bunch->getM()*1E-9;
@@ -288,3 +331,137 @@ int BeamStripping::checkPoint(const double &x, const double &y, const double &z)
         cn = 1;
     return (cn);  // 0 if even (out), and 1 if odd (in)
 }
+
+double BeamStripping::checkPressure(const double &x, const double &y) {
+
+    double pressure = 0.0;
+
+    if(pmapfn_m != "") {
+        const double rad = sqrt(x * x + y * y);
+        const double xir = (rad - PP.rmin) / PP.delr;
+
+        // ir : the number of path whose radius is less than the 4 points of cell which surround the particle.
+        const int ir = (int)xir;
+
+        // wr1 : the relative distance to the inner path radius
+        const double wr1 = xir - (double)ir;
+        // wr2 : the relative distance to the outer path radius
+        const double wr2 = 1.0 - wr1;
+
+        const double tempv = atan(y / x);
+        double tet = tempv, tet_map, xit;
+
+        if((x < 0) && (y >= 0)) tet = pi + tempv;
+        else if((x < 0) && (y <= 0)) tet = pi + tempv;
+        else if((x > 0) && (y <= 0)) tet = 2.0 * pi + tempv;
+        else if((x == 0) && (y > 0)) tet = pi / 2.0;
+        else if((x == 0) && (y < 0)) tet = 1.5 * pi;
+
+        // the actual angle of particle
+        tet = tet / pi * 180.0;
+
+        // the corresponding angle on the field map
+        // Note: this does not work if the start point of field map does not equal zero.
+        double symmetry = 1.0;
+        tet_map = fmod(tet, 360.0 / symmetry);
+        xit = tet_map / PP.dtet;
+        int it = (int) xit;
+        const double wt1 = xit - (double)it;
+        const double wt2 = 1.0 - wt1;
+
+        // it : the number of point on the inner path whose angle is less than the particle' corresponding angle.
+        // include zero degree point
+        it = it + 1;
+
+        int r1t1, r2t1, r1t2, r2t2;
+        // r1t1 : the index of the "min angle, min radius" point in the 2D field array.
+        // considering  the array start with index of zero, minus 1.
+
+        //With this we have P-field AND this is far more intuitive for me ....
+        r1t1 = idx(ir, it);
+        r2t1 = idx(ir + 1, it);
+        r1t2 = idx(ir, it + 1);
+        r2t2 = idx(ir + 1, it + 1);
+
+        if((it >= 0) && (ir >= 0) && (it < PField.ntetS) && (ir < PField.nrad)) {
+            pressure = (PField.pfld[r1t1] * wr2 * wt2 +
+                   PField.pfld[r2t1] * wr1 * wt2 +
+                   PField.pfld[r1t2] * wr2 * wt1 +
+                   PField.pfld[r2t2] * wr1 * wt1);
+        }
+    }
+    else {
+        pressure = getPressure();
+    }
+
+    return(pressure);
+}
+
+// Calculates Radiae of initial grid (dimensions in [m]!)
+void BeamStripping::initR(double rmin, double dr, int nrad) {
+    PP.rarr.resize(nrad);
+    for(int i = 0; i < nrad; i++) {
+        PP.rarr[i] = rmin + i * dr;
+    }
+    PP.delr = dr;
+}
+
+// Read pressure map from external file.
+void BeamStripping::getPressureFromFile(const double &scaleFactor) {
+
+    FILE *f = NULL;
+
+    *gmsg << "* " << endl;
+    *gmsg << "* Reading pressure field map " << pmapfn_m << endl;
+
+    PP.Pfact = scaleFactor;
+
+    if((f = fopen(pmapfn_m.c_str(), "r")) == NULL) {
+        throw GeneralClassicException("BeamStripping::getPressureFromFile",
+                                      "failed to open file '" + pmapfn_m + "', please check if it exists");
+    }
+
+    CHECK_BSTP_FSCANF_EOF(fscanf(f, "%lf", &PP.rmin));
+    *gmsg << "* --- Minimal radius of measured pressure map: " << PP.rmin << " [mm]" << endl;
+    PP.rmin *= 0.001;  // mm --> m
+
+    CHECK_BSTP_FSCANF_EOF(fscanf(f, "%lf", &PP.delr));
+    //if the value is negative, the actual value is its reciprocal.
+    if(PP.delr < 0.0) PP.delr = 1.0 / (-PP.delr);
+    *gmsg << "* --- Stepsize in radial direction: " << PP.delr << " [mm]" << endl;
+    PP.delr *= 0.001;  // mm --> m
+
+    CHECK_BSTP_FSCANF_EOF(fscanf(f, "%lf", &PP.tetmin));
+    *gmsg << "* --- Minimal angle of measured pressure map: " << PP.tetmin << " [deg]" << endl;
+
+    CHECK_BSTP_FSCANF_EOF(fscanf(f, "%lf", &PP.dtet));
+    //if the value is negative, the actual value is its reciprocal.
+    if(PP.dtet < 0.0) PP.dtet = 1.0 / (-PP.dtet);
+    *gmsg << "* --- Stepsize in azimuthal direction: " << PP.dtet << " [deg]" << endl;
+
+    CHECK_BSTP_FSCANF_EOF(fscanf(f, "%d", &PField.ntet));
+    *gmsg << "* --- Grid points along azimuth (ntet): " << PField.ntet << endl;
+
+    CHECK_BSTP_FSCANF_EOF(fscanf(f, "%d", &PField.nrad));
+    *gmsg << "* --- Grid points along radius (nrad): " << PField.nrad << endl;
+
+    PField.ntetS = PField.ntet + 1;
+    PField.ntot = PField.nrad * PField.ntetS;
+
+    *gmsg << "* --- Total stored grid point number: " << PField.ntot << endl; //((ntet+1) * nrad) 
+    PField.pfld.resize(PField.ntot);
+
+    *gmsg << "* --- Escale factor: " << PP.Pfact << endl;
+
+    for(int i = 0; i < PField.nrad; i++) {
+        for(int k = 0; k < PField.ntet; k++) {
+            CHECK_BSTP_FSCANF_EOF(fscanf(f, "%16lE", &(PField.pfld[idx(i, k)])));
+            PField.pfld[idx(i, k)] *= PP.Pfact;
+        }
+    }
+    
+    fclose(f);
+    *gmsg << "* " << endl;
+}
+
+#undef CHECK_BSTP_FSCANF_EOF

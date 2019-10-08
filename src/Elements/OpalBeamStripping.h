@@ -2,13 +2,8 @@
 #define OPAL_OpalBeamStripping_HH
 
 // ------------------------------------------------------------------------
-// $RCSfile: OpalSlit.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
-//
 // Class: OpalBeamStripping
 // ------------------------------------------------------------------------
 // $Date: 2018/11 $
@@ -28,10 +23,12 @@ public:
 
     /// The attributes of class OpalBeamStripping.
     enum {
-        PRESSURE = COMMON,
-        TEMPERATURE,
-        STOP,
-        OUTFN,
+        PRESSURE = COMMON,   // Pressure in mbar
+        TEMPERATURE,         // Temperature of residual gas
+        PMAPFN,              // The filename of the mid-plane pressure map
+        PSCALE,              // A scalar to scale the P-field
+        GAS,                 // Type of gas for residual vaccum
+        STOP,                // whether the secondary particles are tracked
         SIZE
     };
 
