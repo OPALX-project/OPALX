@@ -436,6 +436,7 @@ private:
     // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
 
+    // to save geometry losses
     std::unique_ptr<LossDataSink> lossDs_m;
 
     // If Ring is defined take the harmonic number from Ring; else use
