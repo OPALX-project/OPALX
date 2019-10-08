@@ -204,7 +204,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
                                   itsBunch_m->ID[i], itsBunch_m->getT()*1e9,
                                   turnnumber_m, itsBunch_m->bunchNum[i]);
             itsBunch_m->Bin[i] = -1;
-            Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
+            Inform gmsgALL("OPAL", INFORM_ALL_NODES);
             gmsgALL << level4 << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;
         }
     }
@@ -1199,12 +1199,8 @@ void ParallelCyclotronTracker::execute() {
 
     // Get BoundaryGeometry that is already initialized
     bgf_m = OpalData::getInstance()->getGlobalGeometry();
-    if (bgf_m) {
+    if (bgf_m)
         lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink("GEOM",!Options::asciidump));
-        *gmsg << "* Boundary geometry initialized " << endl;
-        *gmsg << "* -------------------------------------" << endl;
-    }
-
 
     // External field arrays for dumping
     for(int k = 0; k < 2; k++)
