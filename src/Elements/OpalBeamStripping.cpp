@@ -1,8 +1,6 @@
 // ------------------------------------------------------------------------
 // $RCSfile: OpalBeamStripping.cpp,v $
 // ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
@@ -29,18 +27,24 @@ OpalBeamStripping::OpalBeamStripping():
     OpalElement(SIZE, "BEAMSTRIPPING",
                 "The \"BEAMSTRIPPING\" element defines a beam stripping interaction"),
     parmatint_m(NULL) {
-    itsAttr[PRESSURE]    = Attributes::makeReal
-        ("PRESSURE", " Pressure os the accelerator, [mbar]");
-    itsAttr[TEMPERATURE] = Attributes::makeReal
+    itsAttr[PRESSURE]        = Attributes::makeReal
+        ("PRESSURE", " Pressure in the accelerator, [mbar]");
+    itsAttr[TEMPERATURE]  = Attributes::makeReal
         ("TEMPERATURE", " Temperature of the accelerator, [K]");
-    itsAttr[STOP]        = Attributes::makeBool
+    itsAttr[PMAPFN]   = Attributes::makeString
+        ("PMAPFN", "Filename for the Pressure fieldmap");
+    itsAttr[PSCALE]   = Attributes::makeReal
+        ("PSCALE", "Scale factor for the P-field", 1.0);
+    itsAttr[GAS]          = Attributes::makeString
+        ("GAS", "The composition of residual gas");
+    itsAttr[STOP]         = Attributes::makeBool
         ("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
-    itsAttr[OUTFN]        = Attributes::makeString
-        ("OUTFN", "BeamStripping output filename");
     
     registerRealAttribute("PRESSURE");
     registerRealAttribute("TEMPERATURE");
-    registerStringAttribute("OUTFN");
+    registerStringAttribute("PMAPFN");
+    registerRealAttribute("PSCALE");
+    registerStringAttribute("GAS");
     
     registerOwnership();
     
@@ -78,13 +82,17 @@ void OpalBeamStripping::update() {
 
     double pressure     = Attributes::getReal(itsAttr[PRESSURE]);
     double temperature  = Attributes::getReal(itsAttr[TEMPERATURE]);
+    std::string pmap    = Attributes::getString(itsAttr[PMAPFN]);
+    double pscale       = Attributes::getReal(itsAttr[PSCALE]);
     bool   stop         = Attributes::getBool(itsAttr[STOP]);
+    std::string gas     = Attributes::getString(itsAttr[GAS]);
 
     bstp->setPressure(pressure);
     bstp->setTemperature(temperature);
+    bstp->setPressureMapFN(pmap);
+    bstp->setPScale(pscale);
     bstp->setStop(stop);
-
-    bstp->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
+    bstp->setResidualGas(gas);
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));

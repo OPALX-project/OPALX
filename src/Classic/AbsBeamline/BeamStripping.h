@@ -3,15 +3,11 @@
 
 // Class category: AbsBeamline
 // ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
 // Copyright: see Copyright.readme
 // ------------------------------------------------------------------------
 //
 // Class: BeamStripping
-//   Defines the abstract interface for a beam BeamStripping.
-//   *** MISSING *** BeamStripping interface is still incomplete.
+//   Defines the abstract interface for a beam BeamStripping
 //
 // ------------------------------------------------------------------------
 // Class category: AbsBeamline
@@ -32,6 +28,35 @@
 class BeamlineVisitor;
 class LossDataSink;
 
+struct PFieldData {
+    std::string filename;
+    // known from file: field and three theta derivatives
+    std::vector<double> pfld;   //Pz
+
+    // Grid-Size
+    //need to be read from inputfile.
+    int nrad, ntet;
+
+    // one more grid line is stored in azimuthal direction:
+    int ntetS;
+
+    // total grid points number.
+    int ntot;
+};
+
+struct PPositions {
+    // these 4 parameters are need to be read from field file.
+    double  rmin, delr;
+    double  tetmin, dtet;
+
+    // Radii and step width of initial Grid
+    std::vector<double> rarr;
+
+    double  Pfact; // MULTIPLICATION FACTOR FOR PRESSURE MAP
+};
+
+
+
 // Class BeamStripping
 // ------------------------------------------------------------------------
 
@@ -51,7 +76,7 @@ public:
 
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
 
-    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
 
     virtual bool checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl, const int turnnumber, const double t, const double tstep);
 
@@ -59,7 +84,7 @@ public:
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
+    virtual void initialise(PartBunchBase<double, 3> *bunch, const double &scaleFactor);
 
     virtual void finalise();
 
@@ -75,15 +100,15 @@ public:
 
     void print();
 
-    string  getBeamStrippingShape();
-    void setOutputFN(string fn);
-    string getOutputFN();
+    std::string  getBeamStrippingShape();
+    void setOutputFN(std::string fn);
+    std::string getOutputFN();
 
     unsigned int getLosses() const;
 
     int checkPoint(const double &x, const double &y, const double &z);
-
-    // --------Cyclotron beam stripping
+    
+    double checkPressure(const double &x, const double &y);
 
     void setPressure(double pressure) ;
     double getPressure() const;
@@ -91,32 +116,58 @@ public:
     void setTemperature(double temperature) ;
     double getTemperature() const;
 
+    void setPressureMapFN(std::string pmapfn);
+    virtual std::string getPressureMapFN() const;
+    
+    void setPScale(double ps);
+    virtual double getPScale() const;
+
+    void setResidualGas(std::string gas);
+    virtual std::string getResidualGas() const;
+
     void setStop(bool stopflag);
     virtual bool getStop() const;
+    
+protected:
+
+    void   initR(double rmin, double dr, int nrad);
+
+    void   getPressureFromFile(const double &scaleFactor);
+
+    inline int idx(int irad, int ktet) {return (ktet + PField.ntetS * irad);}
 
 private:
 
-    // Not implemented.
-    void operator=(const BeamStripping &);
-
-    string filename_m;               /**< The name of the outputfile*/
+    std::string filename_m;               /**< The name of the outputfile*/
     bool informed_m;
 
-    ///parameters for BeamStripping
-    double pressure_m;    ///< mbar
+    ///@{ parameters for BeamStripping
+    std::string gas_m;
+    double pressure_m;
+    std::string pmapfn_m; /// stores the filename of the pressure map
+    double pscale_m;      /// a scale factor for the P-field
     double temperature_m; ///< K
-
     double stop_m;
+    ///@}
+
     ///@{ size limits took from cyclotron
     double minr_m; 
     double maxr_m;
     double minz_m;
     double maxz_m;
     ///@}
+
     unsigned int losses_m;
     std::unique_ptr<LossDataSink> lossDs_m;
 
     ParticleMatterInteractionHandler *parmatint_m;
+    
+protected:
+    // object of Matrices including pressure field map and its derivates
+    PFieldData PField;
+
+    // object of parameters about the map grid
+    PPositions PP;
 };
 
 inline
