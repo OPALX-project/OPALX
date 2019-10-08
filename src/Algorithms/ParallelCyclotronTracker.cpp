@@ -225,7 +225,9 @@ ParallelCyclotronTracker::~ParallelCyclotronTracker() {
 
 double ParallelCyclotronTracker::initializeTimeStep() {
 
-        double E_mean = 0.0;
+    // Time step changes in each step accordng to energy
+    
+    double E_mean = 0.0;
     double dT = 0.0;
 
     double dti = itsBunch_m->getdTinit();
@@ -235,24 +237,17 @@ double ParallelCyclotronTracker::initializeTimeStep() {
     double Ef = itsBunch_m->getEfinal();
 
     if(dti > 0) {
-//        *gmsg << "* Time step changes in each step accordng to energy " << endl;
         switch (mode_m)
         {
-            case MODE::SEO:
-            {
+            case MODE::SEO: {
                  E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
-                 break;
-            }
-            case MODE::SINGLE:
-            {
+                 break;}
+            case MODE::SINGLE: {
                 E_mean = (sqrt(1.0  + dot(itsBunch_m->P[0], itsBunch_m->P[0])) - 1) * itsBunch_m->getM();
-                break;
-            }
-            case MODE::BUNCH:
-            {
+                break;}
+            case MODE::BUNCH: {
                 E_mean = itsBunch_m->get_meanKineticEnergy() * 1.0e6;
-                break;
-            }
+                break; }
             case MODE::UNDEFINED:
             default:
                 throw OpalException("ParallelCyclotronTracker::initializeTimeStep",
@@ -269,9 +264,8 @@ double ParallelCyclotronTracker::initializeTimeStep() {
 //    *gmsg << "*  dT =  " <<  dT  << endl;
 
     itsBunch_m->setdT(dT);
-
-     double harm = getHarmonicNumber();
-     dT *= 1.0e9 * harm;
+    double harm = getHarmonicNumber();
+    dT *= 1.0e9 * harm;
 
     return dT;
 }
@@ -343,7 +337,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
         if(res >= 0) {
             lossDs_m->addParticle(itsBunch_m->R[i]*1000, itsBunch_m->P[i], itsBunch_m->ID[i], itsBunch_m->getT()*1e9, turnnumber_m);
             itsBunch_m->Bin[i] = -1;
-            INFOMSG(level2 << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;);
+            *gmsg << level4 << "* Particle " << itsBunch_m->ID[i] << " lost on boundary geometry" << endl;
         }
     }
 }
@@ -672,22 +666,27 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
     BeamStripping* elptr = dynamic_cast<BeamStripping *>(bstp.clone());
     myElements.push_back(elptr);
 
-    double pressure = elptr->getPressure();
-    *gmsg << "* Pressure    = " << pressure << " [mbar]" << endl;
+    double BcParameter[8];
+    for(int i = 0; i < 6; i++)
+        BcParameter[i] = 0.0;
+    
+    if(elptr->getPressureMapFN() == "") {
+        double pressure = elptr->getPressure();
+        *gmsg << "* Pressure = " << pressure << " [mbar]" << endl;
+        BcParameter[0] = pressure;
+    }
 
     double temperature = elptr->getTemperature();
     *gmsg << "* Temperature = " << temperature << " [K]" << endl;
 
+    std::string gas = elptr->getResidualGas();
+    *gmsg << "* Residual gas = " << gas << endl;
+
     bool stop = elptr->getStop();
     *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
 
-    elptr->initialise(itsBunch_m);
-
-    double BcParameter[8];
-    for(int i = 0; i < 4; i++)
-        BcParameter[i] = 0.0;
-
-    BcParameter[0] = pressure;
+    elptr->initialise(itsBunch_m, elptr->getPScale());
+    
     BcParameter[1] = temperature;
     BcParameter[2] = stop;
 
@@ -1170,7 +1169,9 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     Stripper *elptr = dynamic_cast<Stripper *>(stripper.clone());
     myElements.push_back(elptr);
-
+    
+    *gmsg << "* Name  = " << elptr->getName() << endl;
+    
     double xstart = elptr->getXstart();
     *gmsg << "* Xstart  = " << xstart << " [mm]" << endl;
 
@@ -1633,7 +1634,7 @@ bool ParallelCyclotronTracker::checkGapCross(Vector_t Rold, Vector_t Rnew,
     double distOld = (Rold[0] * sinx - Rold[1] * cosx) - PerpenDistance;
     if(distOld > 0.0 && distNew <= 0.0) flag = true;
     // This parameter is used correct cavity phase
-    Dold = 1.0e3 * distOld; // m --> mm
+    Dold = 1.0e3 * distOld;
     return flag;
 }
 
@@ -2317,7 +2318,7 @@ void ParallelCyclotronTracker::applyPluginElements(const double dt) {
                 -> checkStripper(itsBunch_m, turnnumber_m, itsBunch_m->getT() * 1e9 /*[ns]*/, dt);
             if(flag_stripper) {
                 itsBunch_m->updateNumTotal();
-                //INFOMSG("* Total number of particles collide with stripper = " << itsBunch_m->getTotalNum() << endl;);
+                //INFOMSG(level2 << "* Total number of particles collide with stripper = " << itsBunch_m->getTotalNum() << endl;);
             }
         }
 
