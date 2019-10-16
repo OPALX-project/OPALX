@@ -2658,7 +2658,7 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
         bool allow = false;
         while (!allow) {
             t = gsl_ran_gaussian_tail(randGen_m, 0, sigmaTFall_m);
-            if (t <= sigmaTRise_m * cutoffR_m[2]) {
+            if (t <= sigmaTFall_m * cutoffR_m[2]) {
                 t = -t + sigmaTFall_m * cutoffR_m[2];
                 allow = true;
             }
