@@ -61,7 +61,6 @@ configure_file(SourcePath.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OpalSourcePath.h)
 
 # Build the test exe. We don't do an install on the unit test exe as it is
 # assumed that this is internal to opal
-# the opal and classic sources are not needed again if we link against libOPAL and libCLASSIC!
 add_executable (${TEST_EXE} ${TEST_SRCS})
 target_link_libraries (
     ${TEST_EXE}
