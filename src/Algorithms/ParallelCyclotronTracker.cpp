@@ -2143,6 +2143,11 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
     IpplTimings::startTimer(DelParticleTimer_m);
     // Update immediately if any particles are lost during this step
 
+    if (step_m % Options::delPartFreq != 0) {
+        IpplTimings::stopTimer(DelParticleTimer_m);
+        return false;
+    }
+
     allreduce(flagNeedUpdate, 1, std::logical_or<bool>());
 
     if(flagNeedUpdate) {

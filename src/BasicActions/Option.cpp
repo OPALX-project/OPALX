@@ -88,6 +88,7 @@ namespace {
 #endif
         MEMORYDUMP,
         HALOSHIFT,
+        DELPARTFREQ,
         MINBINEMITTED,
         MINSTEPFORREBIN,
         SIZE
@@ -270,6 +271,9 @@ Option::Option():
     itsAttr[HALOSHIFT] = Attributes::makeReal
         ("HALOSHIFT", "Constant parameter to shift halo value (default: 0.0)", haloShift);
 
+    itsAttr[DELPARTFREQ] = Attributes::makeReal
+        ("DELPARTFREQ", "The frequency to delete paricles: Default: 1", delPartFreq);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -319,6 +323,7 @@ Option::Option(const std::string &name, Option *parent):
 #endif
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
+    Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
 }
 
 
@@ -355,8 +360,9 @@ void Option::execute() {
     amrRegridFreq = int(Attributes::getReal(itsAttr[AMR_REGRID_FREQ]));
     amrRegridFreq = ( amrRegridFreq < 1 ) ? 1 : amrRegridFreq;
 #endif
-    memoryDump = Attributes::getBool(itsAttr[MEMORYDUMP]);
-    haloShift  = Attributes::getReal(itsAttr[HALOSHIFT]);
+    memoryDump  = Attributes::getBool(itsAttr[MEMORYDUMP]);
+    haloShift   = Attributes::getReal(itsAttr[HALOSHIFT]);
+    delPartFreq = Attributes::getReal(itsAttr[DELPARTFREQ]);
 
     if ( memoryDump ) {
         IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
