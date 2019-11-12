@@ -272,7 +272,7 @@ Option::Option():
         ("HALOSHIFT", "Constant parameter to shift halo value (default: 0.0)", haloShift);
 
     itsAttr[DELPARTFREQ] = Attributes::makeReal
-        ("DELPARTFREQ", "The frequency to delete particles: Default: 1", delPartFreq);
+        ("DELPARTFREQ", "The frequency to delete particles, i.e. delete when step%delPartFreq == 0. Default: 1", delPartFreq);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
