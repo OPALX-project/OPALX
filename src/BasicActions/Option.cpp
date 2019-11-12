@@ -203,7 +203,7 @@ Option::Option():
                         "for parallel plate and print special debug output", ppdebug);
 
     itsAttr[SURFDUMPFREQ] =  Attributes::makeReal
-                             ("SURFDUMPFREQ", "The frequency to dump surface-partcle "
+                             ("SURFDUMPFREQ", "The frequency to dump surface-particle "
                               "interaction data, its default value is -1 (no dump).",
                               surfDumpFreq);
 
@@ -272,7 +272,7 @@ Option::Option():
         ("HALOSHIFT", "Constant parameter to shift halo value (default: 0.0)", haloShift);
 
     itsAttr[DELPARTFREQ] = Attributes::makeReal
-        ("DELPARTFREQ", "The frequency to delete paricles: Default: 1", delPartFreq);
+        ("DELPARTFREQ", "The frequency to delete particles: Default: 1", delPartFreq);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
