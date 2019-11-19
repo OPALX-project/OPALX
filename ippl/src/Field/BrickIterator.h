@@ -21,12 +21,6 @@
 // forward declarations
 template <unsigned Dim> class NDIndex;
 
-// define away "restrict" if we need to
-#ifdef IPPL_NO_RESTRICT
-#define restrict /**/
-#endif
-
-
 //----------------------------------------------------------------------
 // A set of counters for a brick iterator.
 template<unsigned Dim>
