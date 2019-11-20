@@ -24,9 +24,9 @@ if (ENABLE_AMR)
         ${AMREX_LIBRARIES}
         
     )
-else (ENABLE_AMR)
+else ()
     set(AMR_LIBS "")
-endif (ENABLE_AMR)
+endif ()
 
 if (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
     set (CMAKE_CXX_FLAGS
