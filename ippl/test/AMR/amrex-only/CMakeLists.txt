@@ -2,7 +2,7 @@ file (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}"
 message (STATUS "Adding test AMR found in ${_relPath}")
 
 add_compile_options (-O3)
-add_compile_options (-stdc=c++)
+add_compile_options (-stdc=c++11)
    
 add_definitions (-DIPPL_AMR)
 add_definitions (${AMREX_DEFINES})
