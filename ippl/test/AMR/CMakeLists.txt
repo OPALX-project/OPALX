@@ -5,7 +5,7 @@ if (ENABLE_AMR)
         
     if (${HOSTNAME_BASE} MATCHES "daint")
         set(MPI_CXX_LIBRARIES "-lmpich -lmpichcxx -lfmpich -lmpichf90")
-    endif (${HOSTNAME_BASE} MATCHES "daint")
+    endif ()
     
     set (CMAKE_Fortran_FLAGS
          ${CMAKE_Fortran_FLAGS}
@@ -92,7 +92,7 @@ if (ENABLE_AMR)
             ${AMREX_LIBRARIES})
                               
     endif ()
-endif (ENABLE_AMR)
+endif ()
 
 # vi: set et ts=4 sw=4 sts=4:
   
