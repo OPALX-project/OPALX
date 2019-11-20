@@ -9,7 +9,7 @@ string (REGEX REPLACE "\\." "" PACKAGE_VERSION ${PACKAGE_VERSION})
 message (PACKAGE_VERSION=${PACKAGE_VERSION})
 
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+    set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
         "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
         FORCE
 	)
