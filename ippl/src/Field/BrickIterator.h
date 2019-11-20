@@ -182,7 +182,7 @@ public:
 
 protected: 
   void op_pp();
-  T* restrict Current;		// The current datum.
+  T* __restrict__ Current;		// The current datum.
   vec<int,Dim> Strides;		// The strides in the data.
   bool Whole;			// True if iterating over whole brick
 };
