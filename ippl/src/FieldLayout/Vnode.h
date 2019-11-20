@@ -38,7 +38,7 @@ std::ostream& operator<<(std::ostream&, const Vnode<Dim>&);
 //----------------------------------------------------------------------
 
 template<unsigned Dim>
-class Vnode : public RefCounted //, public Pooled< Vnode<Dim> >
+class Vnode : public RefCounted, public Pooled< Vnode<Dim> >
 {
 
 private:
