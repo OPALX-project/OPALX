@@ -1,68 +1,68 @@
 set (_SRCS
-  AttCell.cpp
-  OpalBeamStripping.cpp
-  OpalBend.cpp
-  OpalCavity.cpp
-  OpalTravelingWave.cpp
-  OpalCCollimator.cpp
-  OpalCyclotron.cpp
-  OpalDrift.cpp
-  OpalECollimator.cpp
-  OpalFlexibleCollimator.cpp
-  OpalDegrader.cpp
-  OpalElement.cpp
-  OpalHKicker.cpp
-  OpalHMonitor.cpp
-  OpalInstrument.cpp
-  OpalKicker.cpp
-  OpalMarker.cpp
-  OpalMonitor.cpp
-  OpalMultipole.cpp
-  OpalMultipoleT.cpp
-  OpalMultipoleTStraight.cpp
-  OpalMultipoleTCurvedConstRadius.cpp
-  OpalMultipoleTCurvedVarRadius.cpp
-  OpalOctupole.cpp
-  OpalOffset/OpalLocalCylindricalOffset.cpp
-  OpalOffset/OpalLocalCartesianOffset.cpp
-  OpalOffset/OpalGlobalCylindricalOffset.cpp
-  OpalOffset/OpalGlobalCartesianOffset.cpp
-  OpalPatch.cpp
-  OpalProbe.cpp
-  OpalPepperPot.cpp
-  OpalPolynomialTimeDependence.cpp
-  OpalQuadrupole.cpp
-  OpalRBend.cpp
-  OpalRBend3D.cpp
-  OpalRCollimator.cpp
-  OpalRingDefinition.cpp
-  OpalSBend.cpp
-  OpalSBend3D.cpp
-  OpalScalingFFAMagnet.cpp
-  OpalSeparator.cpp
-  OpalSeptum.cpp
-  OpalSextupole.cpp
-  OpalSlit.cpp
-  OpalSolenoid.cpp
-  OpalSource.cpp
-  OpalSplineTimeDependence.cpp
-  OpalSRot.cpp
-  OpalVariableRFCavity.cpp
-  OpalVariableRFCavityFringeField.cpp
-  OpalVKicker.cpp
-  OpalVMonitor.cpp
-  OpalYRot.cpp
-  OpalBeamline.cpp
-  OpalParallelPlate.cpp
-  OpalCyclotronValley.cpp
-  OpalStripper.cpp
-  )
+    AttCell.cpp
+    OpalBeamStripping.cpp
+    OpalBend.cpp
+    OpalCavity.cpp
+    OpalTravelingWave.cpp
+    OpalCCollimator.cpp
+    OpalCyclotron.cpp
+    OpalDrift.cpp
+    OpalECollimator.cpp
+    OpalFlexibleCollimator.cpp
+    OpalDegrader.cpp
+    OpalElement.cpp
+    OpalHKicker.cpp
+    OpalHMonitor.cpp
+    OpalInstrument.cpp
+    OpalKicker.cpp
+    OpalMarker.cpp
+    OpalMonitor.cpp
+    OpalMultipole.cpp
+    OpalMultipoleT.cpp
+    OpalMultipoleTStraight.cpp
+    OpalMultipoleTCurvedConstRadius.cpp
+    OpalMultipoleTCurvedVarRadius.cpp
+    OpalOctupole.cpp
+    OpalOffset/OpalLocalCylindricalOffset.cpp
+    OpalOffset/OpalLocalCartesianOffset.cpp
+    OpalOffset/OpalGlobalCylindricalOffset.cpp
+    OpalOffset/OpalGlobalCartesianOffset.cpp
+    OpalPatch.cpp
+    OpalProbe.cpp
+    OpalPepperPot.cpp
+    OpalPolynomialTimeDependence.cpp
+    OpalQuadrupole.cpp
+    OpalRBend.cpp
+    OpalRBend3D.cpp
+    OpalRCollimator.cpp
+    OpalRingDefinition.cpp
+    OpalSBend.cpp
+    OpalSBend3D.cpp
+    OpalScalingFFAMagnet.cpp
+    OpalSeparator.cpp
+    OpalSeptum.cpp
+    OpalSextupole.cpp
+    OpalSlit.cpp
+    OpalSolenoid.cpp
+    OpalSource.cpp
+    OpalSplineTimeDependence.cpp
+    OpalSRot.cpp
+    OpalVariableRFCavity.cpp
+    OpalVariableRFCavityFringeField.cpp
+    OpalVKicker.cpp
+    OpalVMonitor.cpp
+    OpalYRot.cpp
+    OpalBeamline.cpp
+    OpalParallelPlate.cpp
+    OpalCyclotronValley.cpp
+    OpalStripper.cpp
+    )
 
 include_directories (
-  ${CMAKE_CURRENT_SOURCE_DIR}
-)
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 
-add_opal_sources(${_SRCS})
+add_opal_sources (${_SRCS})
 
 set (HDRS
     AttCell.h
@@ -121,6 +121,14 @@ set (HDRS
     OpalOffset/OpalGlobalCylindricalOffset.h
     OpalOffset/OpalLocalCartesianOffset.h
     OpalOffset/OpalLocalCylindricalOffset.h
-)
+    )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Elements/OpalOffset")
+
+# vi: set et ts=4 sw=4 sts=4:
+
+# Local Variables:
+# mode: cmake
+# cmake-tab-width: 4
+# indent-tabs-mode: nil
+# End:
