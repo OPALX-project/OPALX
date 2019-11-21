@@ -39,7 +39,7 @@ if ( ENABLE_AMR )
     
     if ( AMREX_ENABLE_FBASELIB )
         list(APPEND _SRCS BoxLibSolvers/FMGPoissonSolver.cpp)
-        list(APPEND AMR_HDRS BoxLibSolvers/FMGPoissonSolver.h)
+        list(APPEND HDRS BoxLibSolvers/FMGPoissonSolver.h)
     endif ( AMREX_ENABLE_FBASELIB )
 
     if ( ENABLE_AMR_MG_SOLVER )
