@@ -2,62 +2,62 @@ add_subdirectory(EndFieldModel)
 add_subdirectory(MultipoleTFunctions)
 
 set (_SRCS
-  AlignWrapper.cpp
-  AttributeSet.cpp
-  BeamBeam.cpp
-  BeamlineVisitor.cpp
-  BeamStripping.cpp
-  Bend2D.cpp
-  BendBase.cpp
-  CCollimator.cpp
-  Component.cpp
-  Corrector.cpp
-  Cyclotron.cpp
-  CyclotronValley.cpp
-  Degrader.cpp
-  Diagnostic.cpp
-  Drift.cpp
-  ElementBase.cpp
-  ElementImage.cpp
-  FlexibleCollimator.cpp
-  Integrator.cpp
-  Lambertson.cpp
-  Marker.cpp
-  Monitor.cpp
-  Multipole.cpp
-  MultipoleT.cpp
-  MultipoleTBase.cpp
-  MultipoleTStraight.cpp
-  MultipoleTCurvedConstRadius.cpp
-  MultipoleTCurvedVarRadius.cpp
-  Offset.cpp
-  ParallelPlate.cpp
-  Patch.cpp
-  PluginElement.cpp
-  Probe.cpp
-  RBend.cpp
-  RBend3D.cpp
-  RFCavity.cpp
-  RFQuadrupole.cpp
-  Ring.cpp
-  SBend.cpp
-  SBend3D.cpp
-  ScalingFFAMagnet.cpp
-  Separator.cpp
-  Septum.cpp
-  Solenoid.cpp
-  Source.cpp
-  Stripper.cpp
-  TravelingWave.cpp
-  VariableRFCavity.cpp
-  VariableRFCavityFringeField.cpp
-  )
+    AlignWrapper.cpp
+    AttributeSet.cpp
+    BeamBeam.cpp
+    BeamlineVisitor.cpp
+    BeamStripping.cpp
+    Bend2D.cpp
+    BendBase.cpp
+    CCollimator.cpp
+    Component.cpp
+    Corrector.cpp
+    Cyclotron.cpp
+    CyclotronValley.cpp
+    Degrader.cpp
+    Diagnostic.cpp
+    Drift.cpp
+    ElementBase.cpp
+    ElementImage.cpp
+    FlexibleCollimator.cpp
+    Integrator.cpp
+    Lambertson.cpp
+    Marker.cpp
+    Monitor.cpp
+    Multipole.cpp
+    MultipoleT.cpp
+    MultipoleTBase.cpp
+    MultipoleTStraight.cpp
+    MultipoleTCurvedConstRadius.cpp
+    MultipoleTCurvedVarRadius.cpp
+    Offset.cpp
+    ParallelPlate.cpp
+    Patch.cpp
+    PluginElement.cpp
+    Probe.cpp
+    RBend.cpp
+    RBend3D.cpp
+    RFCavity.cpp
+    RFQuadrupole.cpp
+    Ring.cpp
+    SBend.cpp
+    SBend3D.cpp
+    ScalingFFAMagnet.cpp
+    Separator.cpp
+    Septum.cpp
+    Solenoid.cpp
+    Source.cpp
+    Stripper.cpp
+    TravelingWave.cpp
+    VariableRFCavity.cpp
+    VariableRFCavityFringeField.cpp
+    )
 
 include_directories (
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 
-ADD_OPAL_SOURCES(${_SRCS})
+add_opal_sources (${_SRCS})
 
 set (HDRS
     AlignWrapper.h
@@ -111,10 +111,14 @@ set (HDRS
     TravelingWave.h
     VariableRFCavity.h
     VariableRFCavityFringeField.h
-)
+    )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline")
 
-#Turn on gcov
-#set(CMAKE_CXX_FLAGS "-g -O0 -Wall -fprofile-arcs -ftest-coverage")
-#set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)
+# vi: set et ts=4 sw=4 sts=4:
+
+# Local Variables:
+# mode: cmake
+# cmake-tab-width: 4
+# indent-tabs-mode: nil
+# End:
