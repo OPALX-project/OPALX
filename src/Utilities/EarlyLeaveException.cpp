@@ -1,3 +1,13 @@
+//
+// Implements the member function of the EarlyLeaveException class.
+//
+// Copyright (c) 2008-2019
+// Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// OPAL is licensed under GNU GPL version 3.
+//
+
 #include "Utilities/EarlyLeaveException.h"
 
 
