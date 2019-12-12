@@ -10,8 +10,8 @@
 // OPAL is licensed under GNU GPL version 3.
 //
 
-#ifndef OPAL_EARLY_LEAVE_EXCEPTION_HH
-#define OPAL_EARLY_LEAVE_EXCEPTION_HH
+#ifndef OPAL_EARLY_LEAVE_EXCEPTION_H
+#define OPAL_EARLY_LEAVE_EXCEPTION_H
 
 #include "Utilities/ClassicException.h"
 
