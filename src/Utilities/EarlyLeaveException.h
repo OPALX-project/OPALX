@@ -1,21 +1,31 @@
+//
+// This exception class is used to intentionally exit OPAL even if no
+// error occurred. It is used in case of the tune calculation with
+// the matched distribution option.
+//
+// Copyright (c) 2008-2019
+// Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// OPAL is licensed under GNU GPL version 3.
+//
+
 #ifndef OPAL_EARLY_LEAVE_EXCEPTION_HH
 #define OPAL_EARLY_LEAVE_EXCEPTION_HH
 
 #include "Utilities/ClassicException.h"
 
-
+/*!
+  This exception class is used to inentionally exit OPAL when no error occurred.
+ */
 class EarlyLeaveException: public ClassicException {
 
 public:
 
-    /// The usual constructor.
-    // Arguments:
-    // [DL]
-    // [DT][b]meth[/b]
-    // [DD]the name of the method or function detecting the exception
-    // [DT][b]msg [/b]
-    // [DD]the message string identifying the exception
-    // [/DL]
+    /** The usual constructor.
+     * @param[in] meth the name of the method or function detecting the exception
+     * @param[in] msg the message string identifying the exception
+    */
     explicit EarlyLeaveException(const std::string &meth, const std::string &msg);
 
     EarlyLeaveException(const EarlyLeaveException &);
@@ -30,7 +40,7 @@ public:
 private:
 
     // Not implemented.
-    EarlyLeaveException();
+    EarlyLeaveException() delete;
 };
 
 #endif
