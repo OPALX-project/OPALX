@@ -40,7 +40,7 @@ public:
 private:
 
     // Not implemented.
-    EarlyLeaveException() delete;
+    EarlyLeaveException() = delete;
 };
 
 #endif
