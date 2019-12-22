@@ -148,7 +148,9 @@ void IpplParticleBase<PLayout>::resetID(void) {
       Message* msg2 = new Message;
       msg2->put(lp[ip]);
       bool success = Ippl::Comm->send(msg2,ip,tag2);
-      PAssert(success);
+      if (not success) {
+        PAssert(success);
+      }
     }
     // we are done
     return;
@@ -159,7 +161,9 @@ void IpplParticleBase<PLayout>::resetID(void) {
     Message* msg1 = new Message;
     msg1->put(localNum);
     bool success = Ippl::Comm->send(msg1,master,tag1);
-    PAssert(success);
+    if (not success) {
+      PAssert(success);
+    }
     // now receive back our initial ID number
     size_t initialID = 0;
     int tag2 = Ippl::Comm->next_tag(P_RESET_ID_TAG,P_LAYOUT_CYCLE);
