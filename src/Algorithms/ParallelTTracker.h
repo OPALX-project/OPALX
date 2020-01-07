@@ -56,7 +56,6 @@
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -178,10 +177,6 @@ public:
 
     /// Apply the algorithm to a ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &);
-
-    /// Apply the algorithm to a CyclotronValley.
-    virtual void visitCyclotronValley(const CyclotronValley &);
-
 
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
@@ -438,10 +433,6 @@ inline void ParallelTTracker::visitSource(const Source &source) {
 
 inline void ParallelTTracker::visitParallelPlate(const ParallelPlate &pplate) {
     itsOpalBeamline_m.visit(pplate, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitCyclotronValley(const CyclotronValley &cv) {
-    itsOpalBeamline_m.visit(cv, *this, itsBunch_m);
 }
 
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
