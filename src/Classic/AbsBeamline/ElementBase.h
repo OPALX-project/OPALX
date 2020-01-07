@@ -150,7 +150,6 @@ public:
 
     enum ElementType {ALIGNWRAPPER
                     , BEAMBEAM
-                    , BEAMBEAM3D
                     , BEAMLINE
                     , BEAMSTRIPPING
                     , CCOLLIMATOR
@@ -158,7 +157,6 @@ public:
                     , CORRECTORWRAPPER
                     , CYCLOTRON
                     , CYCLOTRONWRAPPER
-                    , CYCLOTRONVALLEY
                     , DEGRADER
                     , DIAGNOSTIC
                     , DRIFT
