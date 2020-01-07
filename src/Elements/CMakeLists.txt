@@ -55,7 +55,6 @@ set (_SRCS
     OpalYRot.cpp
     OpalBeamline.cpp
     OpalParallelPlate.cpp
-    OpalCyclotronValley.cpp
     OpalStripper.cpp
     )
 
@@ -73,7 +72,6 @@ set (HDRS
     OpalCavity.h
     OpalCCollimator.h
     OpalCyclotron.h
-    OpalCyclotronValley.h
     OpalDegrader.h
     OpalDrift.h
     OpalECollimator.h

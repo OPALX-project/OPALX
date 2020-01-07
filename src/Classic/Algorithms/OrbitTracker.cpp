@@ -50,7 +50,6 @@
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
 
 #include <cmath>
 
@@ -106,11 +105,6 @@ void OrbitTracker::visitDegrader(const Degrader &deg) {
 }
 
 void OrbitTracker::visitParallelPlate(const ParallelPlate &pplate) {
-    //do nothing in orbittracker.
-}
-
-
-void OrbitTracker::visitCyclotronValley(const CyclotronValley &cv) {
     //do nothing in orbittracker.
 }
 

@@ -4,7 +4,6 @@ set (_SRCS
     CCollimatorRep.cpp
     CorrectorRep.cpp
     CyclotronRep.cpp
-    CyclotronValleyRep.cpp
     DegraderRep.cpp
     DriftRep.cpp
     FlexibleCollimatorRep.cpp
@@ -47,7 +46,6 @@ set (HDRS
     CCollimatorRep.h
     CorrectorRep.h
     CyclotronRep.h
-    CyclotronValleyRep.h
     DegraderRep.h
     DriftRep.h
     FlexibleCollimatorRep.h
