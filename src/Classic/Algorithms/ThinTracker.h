@@ -131,9 +131,6 @@ public:
     /// Apply algorithm to Solenoid.
     virtual void visitParallelPlate(const ParallelPlate &);
 
-    /// Apply the algorithm to a CyclotronValley.
-    virtual void visitCyclotronValley(const CyclotronValley &);
-
 private:
 
     // Not implemented.
