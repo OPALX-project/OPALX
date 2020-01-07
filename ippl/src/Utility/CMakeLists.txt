@@ -59,8 +59,8 @@ set (_HDRS
     ParticleDebug.hpp
     ParticleDebugFunctions.h
     RNGAssignDefs.h
-    RNGBitReverse.RNGLattice
-    h.h
+    RNGBitReverse.h
+    RNGLattice.h
     RNGRand.h
     RNGSimple.h
     RNGXCI.h
