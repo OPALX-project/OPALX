@@ -1167,33 +1167,3 @@ void IpplInfo::pop() {
     ChunkSize =           obj.ChunkSize;
     PerSMPParallelIO =    obj.PerSMPParallelIO;
 }
-
-#ifdef IPPL_RUNTIME_ERRCHECK
-/////////////////////////////////////////////////////////////////////
-// special routine used in runtime debugging error detection
-void __C_runtime_error ( int trap_code, char *name, int line_no, ... ) {
-    switch ( trap_code ) {
-        /* Subscript range violations: */
-    case BRK_RANGE:
-        fprintf ( stderr, "error: Subscript range violation" );
-        break;
-
-        /* Others (unknown trap codes): */
-    default:
-        fprintf ( stderr, "error: Trap %d ", trap_code );
-        break;
-    }
-
-    fprintf ( stderr, " in '%s'", name);
-    if ( line_no != -1 )
-        fprintf ( stderr, " (line %d)", line_no );
-    exit (99);
-}
-#endif
-
-
-/***************************************************************************
- * $RCSfile: IpplInfo.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: IpplInfo.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
- ***************************************************************************/
