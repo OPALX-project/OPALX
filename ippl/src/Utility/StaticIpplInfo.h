@@ -51,11 +51,6 @@ public:
     // individual LField has been processed in an expression.
     bool extraCompressChecks;
 
-    // flag telling whether to try to use direct-io.  This is only
-    // possible if the library is compiled with the IPPL_DIRECTIO option,
-    // and you are on a system that provides this capablity.
-    bool useDirectIO;
-
     MPI_Comm communicator_m;
 
     // counter indicating how many IpplInit objects have been created.
