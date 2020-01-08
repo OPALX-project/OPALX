@@ -606,13 +606,13 @@ inline void getMessage_iter(Message &m, OutputIterator o)
 }
 
 
-#if ( defined(IPPL_MPIXX) || defined(IPPL_PM) )
+#if ( defined(IPPL_PM) )
 #define main mpi_main
 extern "C"
 {
     int mpi_main(int, char**);
 }
-#endif // IPPL_MPIXX || IPPL_PM
+#endif // IPPL_PM
 
 #include "Message/Message.hpp"
 
