@@ -1,5 +1,7 @@
 set (_SRCS
-    EdgeCentering.cpp
+    Average.cpp
+    Cartesian.cpp
+    CartesianCentering.cpp
 )
 
 include_directories (

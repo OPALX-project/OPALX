@@ -1,6 +1,11 @@
 set (_SRCS
-    EdgeCentering.cpp
+    BCond.cpp
+    Eureka.cpp
+    Field.cpp
+    FieldDebug.cpp
 )
+
+add_compile_options(-Wno-write-strings)
 
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
