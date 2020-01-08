@@ -298,11 +298,6 @@ public:
   // individual LField has been processed in an expression.
   static bool extraCompressChecks;
 
-  // Static flag telling whether to try to use direct-io.  This is only
-  // possible if the library is compiled with the IPPL_DIRECTIO option,
-  // and you are on a system that provides this capablity.
-  static bool useDirectIO;
-
   // Static routine giving one a place to stop at with #$%$%#1 stupid
   // debuggers.
   static void here();
