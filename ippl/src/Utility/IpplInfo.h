@@ -220,13 +220,6 @@ public:
   // return true if we should try to retransmit messages on error
   static bool retransmit() { return (UseChecksums && Retransmit); }
 
-#ifdef IPPL_COMM_ALARMS
-  // A timeout quantity, in seconds, to allow us to wait a certain number
-  // of seconds before we signal a timeout when we're trying to receive
-  // a message.
-  static unsigned int getCommTimeout() { return CommTimeoutSeconds; }
-#endif
-
   // Static data about a limit to the number of nodes that should be used
   // in FFT operations.  If this is <= 0 or > number of nodes, it is ignored.
   static int maxFFTNodes() { return MaxFFTNodes; }
@@ -365,14 +358,6 @@ private:
   // I/O within a single SMP, for example by having multipple processors
   // try to read from a single file (vs just having one node do it).
   static bool PerSMPParallelIO;
-
-#ifdef IPPL_COMM_ALARMS
-  // A timeout quantity, in seconds, to allow us to wait a certain number
-  // of seconds before we signal a timeout when we're trying to receive
-  // a message.  By default, this will be zero; change it with the
-  // --msgtimeout <seconds> flag
-  static unsigned int CommTimeoutSeconds;
-#endif
 
   static std::stack<StaticIpplInfo> stashedStaticMembers;
 
