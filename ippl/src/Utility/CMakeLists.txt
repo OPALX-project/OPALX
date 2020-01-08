@@ -33,8 +33,6 @@ set (_HDRS
     DiscParticle.h
     DiscParticle.hpp
     DiscType.h
-    FieldBlock.h
-    FieldBlock.hpp
     FieldDebug.h
     FieldDebug.hpp
     FieldDebugFunctions.h
