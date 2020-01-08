@@ -1,5 +1,7 @@
 set (_SRCS
-    EdgeCentering.cpp
+    Tensor.cpp
+    Vektor.cpp
+    VektorTz.cpp
 )
 
 include_directories (

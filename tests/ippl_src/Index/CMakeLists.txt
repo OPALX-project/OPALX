@@ -1,5 +1,5 @@
 set (_SRCS
-    EdgeCentering.cpp
+    Index.cpp
 )
 
 include_directories (
