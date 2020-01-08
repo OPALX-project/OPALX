@@ -403,14 +403,6 @@ public:
 	    // this a little bigger to match the device block size.
 
 	    long nbytes = maxsize*sizeof(T);
-#ifdef IPPL_DIRECTIO
-	    if (openedDirectIO) {
-	      nbytes += dioinfo.d_miniosz; // extra in case offset is wrong
-	      size_t ndiff  = nbytes % dioinfo.d_miniosz;
-	      if (ndiff > 0)
-		nbytes += (dioinfo.d_miniosz - ndiff);
-	    }
-#endif
 	    buffer = static_cast<T *>(DiscBuffer::resize(nbytes));
 	    DFDBG(dbgmsg << "On box0: resized buf to " << DiscBuffer::size());
 	    DFDBG(dbgmsg << " bytes ... current block will need ");
@@ -425,44 +417,6 @@ public:
 	    // seekpos was only used to set readoffset, so we can update
 	    // seekpos now.  Add in the extra amount we'll be reading.
 	    seekpos += readbytes;
-
-#ifdef IPPL_DIRECTIO
-	    // If we're doing direct-io, we will need to adjust the start
-	    // and end of our buffers and offsets ...
-	    if (openedDirectIO) {
-	      // Find out how much our offset is off from multipple of
-	      // block size, and move it back by the difference.  Then we
-	      // will read in extra data and our storage will be offset to
-	      // start at the place where the new data is actually located.
-
-	      PAssert_GE(readoffset, 0);
-	      Offset_t extra = readoffset % dioinfo.d_miniosz;
-	      readoffset -= extra;
-	      DFDBG(dbgmsg << "DIO: Moving read offset back by " << extra);
-	      DFDBG(dbgmsg << " bytes, to readoffset = " << readoffset<<endl);
-
-	      // Compute the number of elements to read.  We might also need
-	      // to extend the read size to get the total read size to be a
-	      // multipple of the device block size.
-
-	      readbytes += extra;
-	      size_t ndiff = readbytes % dioinfo.d_miniosz;
-	      if (ndiff > 0)
-		readbytes += (dioinfo.d_miniosz - ndiff);
-	      PAssert_GE(nbytes, readbytes);
-	      DFDBG(dbgmsg << "DIO: Adjusted readbytes from ");
-	      DFDBG(dbgmsg << (nelems * sizeof(T)) << " to " << readbytes);
-	      DFDBG(dbgmsg << endl);
-
-	      // Point the buffer at the real first element, adjusted to
-	      // counteract our moving the offset location back to a
-	      // block-size multipple.
-	      PAssert_EQ(extra % sizeof(T), 0);
-	      buffer += (extra / sizeof(T));
-	      DFDBG(dbgmsg << "DIO: Adjusted buffer pointer forward ");
-	      DFDBG(dbgmsg << (extra / sizeof(T)) << " elements." << endl);
-	    }
-#endif
 
 	    // Read data in a way that might do direct-io
 	    DFDBG(dbgmsg << "Calling read_data with readbytes=" << readbytes);
@@ -1072,12 +1026,6 @@ private:
   // key: local NDIndex, value: node
   GlobalIDList_t globalID;
 
-  // Direct-IO info, required if we are using the DIRECTIO option
-#ifdef IPPL_DIRECTIO
-  struct dioattr dioinfo;
-  bool openedDirectIO;
-#endif
-
   //
   // functions used to build/query information about the processors, etc.
   //
@@ -1237,19 +1185,6 @@ private:
 
       long elems = owned.size();
       long chunkbytes = Ippl::chunkSize();
-#ifdef IPPL_DIRECTIO
-      if (openedDirectIO) {
-	// For direct-io, make sure we write out blocks with size that is
-	// a multipple of the minimum io size
-	PAssert_EQ(dioinfo.d_miniosz % sizeof(T), 0);
-	if (chunkbytes == 0 || chunkbytes > dioinfo.d_maxiosz)
-	  chunkbytes = dioinfo.d_maxiosz;
-	else if (chunkbytes < dioinfo.d_miniosz)
-	  chunkbytes = dioinfo.d_miniosz;
-	else if (chunkbytes % dioinfo.d_miniosz > 0)
-	  chunkbytes -= (chunkbytes % dioinfo.d_miniosz);
-      }
-#endif
       long chunksize = chunkbytes / sizeof(T);
       if (chunksize < 1 || chunksize > elems)
 	chunksize = elems;
@@ -1286,13 +1221,6 @@ private:
 	// where data must be written out in blocks with sizes that
 	// match the device block size.
 	size_t nbytes = amount*sizeof(T);
-#ifdef IPPL_DIRECTIO
-	if (openedDirectIO) {
-	  size_t ndiff = nbytes % dioinfo.d_miniosz;
-	  if (ndiff > 0)
-	    nbytes += (dioinfo.d_miniosz - ndiff);
-	}
-#endif
 	DFDBG(dbgmsg << "    Will write total nbytes = " << nbytes);
 	DFDBG(dbgmsg << ", this has extra " << (nbytes - amount*sizeof(T)));
 	DFDBG(dbgmsg << " bytes." << endl);
@@ -1325,9 +1253,6 @@ private:
 	wtimer.clear();
 	wtimer.start();
 
-#ifdef IPPL_DIRECTIO
-	size_t nout = ::pwrite(outputDatafd, buffer, nbytes, seekoffset);
-#else
 	size_t nout = 0;
 	if (::lseek(outputDatafd, seekoffset, SEEK_SET) == seekoffset) {
           char *wbuf = (char *)buffer;
@@ -1335,7 +1260,6 @@ private:
 	} else {
           seekok = false;
         }
- #endif
 
 	wtimer.stop();
 	DiscBuffer::writetime += wtimer.clock_time();
@@ -1647,13 +1571,6 @@ private:
     PAssert_GE(outputDatafd, 0);
     PAssert_EQ(readsize % sizeof(T), 0);
 
-#ifdef IPPL_DIRECTIO
-    if (openedDirectIO) {
-      PAssert_EQ(readsize % dioinfo.d_miniosz, 0);
-      PAssert_EQ(seekpos  % dioinfo.d_miniosz, 0);
-    }
-#endif
-
     // Now read the block of data
     off_t seekoffset = seekpos;
     size_t nbytes = readsize;
@@ -1663,9 +1580,6 @@ private:
     rtimer.clear();
     rtimer.start();
 
-#ifdef IPPL_DIRECTIO
-    size_t nout = ::pread(outputDatafd, buffer, nbytes, seekoffset);
-#else
     size_t nout = 0;
     if (::lseek(outputDatafd, seekoffset, SEEK_SET) == seekoffset) {
       char *rbuf = (char *)buffer;
@@ -1673,7 +1587,6 @@ private:
     } else {
       seekok = false;
     }
-#endif
 
     rtimer.stop();
     DiscBuffer::readtime += rtimer.clock_time();
