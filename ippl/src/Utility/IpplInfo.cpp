@@ -130,7 +130,6 @@ int  IpplInfo::ChunkSize = 512*1024; // 512K == 64K doubles
 bool IpplInfo::PerSMPParallelIO = false;
 bool IpplInfo::offsetStorage = false;
 bool IpplInfo::extraCompressChecks = false;
-bool IpplInfo::useDirectIO = false;
 
 /////////////////////////////////////////////////////////////////////
 // print out current state to the given output stream
@@ -159,10 +158,6 @@ std::ostream& operator<<(std::ostream& o, const IpplInfo&) {
     o << IpplInfo::useChecksums() << "\n";
     o << "  Retransmit messages on error (only if checkums on)? ";
     o << IpplInfo::retransmit() << "\n";
-
-#ifdef IPPL_DIRECTIO
-    o << "  Use Direct-IO? " << IpplInfo::useDirectIO << "\n";
-#endif
 
     o << "  Elapsed wall-clock time (in seconds): ";
     o << IpplInfo::Stats->getTime().clock_time() << "\n";
