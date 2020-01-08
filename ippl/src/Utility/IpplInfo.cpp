@@ -132,16 +132,6 @@ bool IpplInfo::offsetStorage = false;
 bool IpplInfo::extraCompressChecks = false;
 bool IpplInfo::useDirectIO = false;
 
-
-#ifdef IPPL_COMM_ALARMS
-// A timeout quantity, in seconds, to allow us to wait a certain number
-// of seconds before we signal a timeout when we're trying to rece
-// a message.  By default, this will be zero; change it with the
-// --msgtimeout <seconds> flag
-unsigned int IpplInfo::CommTimeoutSeconds = 0;
-#endif
-
-
 /////////////////////////////////////////////////////////////////////
 // print out current state to the given output stream
 std::ostream& operator<<(std::ostream& o, const IpplInfo&) {
@@ -172,13 +162,6 @@ std::ostream& operator<<(std::ostream& o, const IpplInfo&) {
 
 #ifdef IPPL_DIRECTIO
     o << "  Use Direct-IO? " << IpplInfo::useDirectIO << "\n";
-#endif
-
-#ifdef IPPL_COMM_ALARMS
-    if (IpplInfo::getCommTimeout() > 0) {
-        o << "  Allowed message receive timeout length (in seconds): ";
-        o << IpplInfo::getCommTimeout() << "\n";
-    }
 #endif
 
     o << "  Elapsed wall-clock time (in seconds): ";
@@ -495,16 +478,6 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                     param_error(argv[i],
                             "Please specify a timeout value (in seconds)", 0);
                 }
-#ifdef IPPL_COMM_ALARMS
-            } else if ( ( strcmp(argv[i], "--msgtimeout") == 0 ) ) {
-                // Set the timeout period for receiving messages
-                if ( (i + 1) < argc && argv[i+1][0] != '-' && atoi(argv[i+1]) >= 0 )
-                    CommTimeoutSeconds = atoi(argv[++i]);
-                else
-                    param_error(argv[i],
-                            "Please specify a timeout value (in seconds)", 0);
-#endif
-
             } else if ( ( strcmp(argv[i], "--defergcfill") == 0 ) ) {
                 // Turn on the defer guard cell fill optimization
                 deferGuardCellFills = true;
@@ -878,9 +851,6 @@ void IpplInfo::printHelp(char** argv) {
     INFOMSG("   --nofieldcompression: Turn off compression in the Field classes.\n");
     INFOMSG("   --offsetstorage     : Turn on random LField storage offsets.\n");
     INFOMSG("   --extracompcheck    : Turn on extra compression checks in evaluator.\n");
-#ifdef IPPL_COMM_ALARMS
-    INFOMSG("   --msgtimeout <n>    : Set receive timeout time, in secs.\n");
-#endif
     INFOMSG("   --checksums         : Turn on CRC checksums for messages.\n");
     INFOMSG("   --retransmit        : Resent messages if a CRC error occurs.\n");
     INFOMSG("   --maxfftnodes <n>   : Limit the nodes that work on FFT's.\n");
@@ -1133,10 +1103,6 @@ void IpplInfo::stash() {
     obj.ChunkSize =           ChunkSize;
     obj.PerSMPParallelIO =    PerSMPParallelIO;
 
-#ifdef IPPL_COMM_ALARMS
-    obj.CommTimeoutSeconds = CommTimeoutSeconds;
-#endif
-
     stashedStaticMembers.push(obj);
 
     Comm = 0;
@@ -1215,10 +1181,6 @@ void IpplInfo::pop() {
     MaxFFTNodes =         obj.MaxFFTNodes;
     ChunkSize =           obj.ChunkSize;
     PerSMPParallelIO =    obj.PerSMPParallelIO;
-
-#ifdef IPPL_COMM_ALARMS
-    CommTimeoutSeconds = obj.CommTimeoutSeconds;
-#endif
 }
 
 #ifdef IPPL_RUNTIME_ERRCHECK
