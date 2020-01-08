@@ -52,11 +52,7 @@
 
 // static data to keep track of errors
 static int numErrors = 0;
-#if defined(IPPL_MPIXX)
-static MPI_Aint size_of_MPI_INT; /* needed for tracing */
-#else
 static int size_of_MPI_INT; /* needed for tracing */
-#endif
 
 // temporary buffer used for speed
 #define PSIZE 1024*16
