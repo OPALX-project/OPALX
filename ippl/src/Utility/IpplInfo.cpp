@@ -130,8 +130,6 @@ int  IpplInfo::ChunkSize = 512*1024; // 512K == 64K doubles
 bool IpplInfo::PerSMPParallelIO = false;
 bool IpplInfo::offsetStorage = false;
 bool IpplInfo::extraCompressChecks = false;
-bool IpplInfo::useDirectIO = false;
-
 
 #ifdef IPPL_COMM_ALARMS
 // A timeout quantity, in seconds, to allow us to wait a certain number
@@ -169,10 +167,6 @@ std::ostream& operator<<(std::ostream& o, const IpplInfo&) {
     o << IpplInfo::useChecksums() << "\n";
     o << "  Retransmit messages on error (only if checkums on)? ";
     o << IpplInfo::retransmit() << "\n";
-
-#ifdef IPPL_DIRECTIO
-    o << "  Use Direct-IO? " << IpplInfo::useDirectIO << "\n";
-#endif
 
 #ifdef IPPL_COMM_ALARMS
     if (IpplInfo::getCommTimeout() > 0) {
@@ -523,12 +517,8 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
             } else if ( ( strcmp(argv[i], "--directio") == 0 ) ) {
                 // Turn on the use of Direct-IO, if possible
-#ifdef IPPL_DIRECTIO
-                useDirectIO = true;
-#else
                 param_error(argv[i],
                         "Direct-IO is not available in this build of IPPL", 0);
-#endif
             } else if ( ( strcmp(argv[i], "--maxfftnodes") == 0 ) ) {
                 // Limit the number of nodes that can participate in FFT operations
                 if ( (i + 1) < argc && argv[i+1][0] != '-' && atoi(argv[i+1]) > 0 )
@@ -887,9 +877,6 @@ void IpplInfo::printHelp(char** argv) {
     INFOMSG("   --chunksize <n>     : Set I/O chunk size.  Can end w/K,M,G.\n");
     INFOMSG("   --persmppario       : Enable on-SMP parallel IO option.\n");
     INFOMSG("   --nopersmppario     : Disable on-SMP parallel IO option (default).\n");
-#ifdef IPPL_DIRECTIO
-    INFOMSG("   --directio          : Use Direct-IO if possible.\n");
-#endif
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -1114,7 +1101,6 @@ void IpplInfo::stash() {
     obj.noFieldCompression =  noFieldCompression;
     obj.offsetStorage =       offsetStorage;
     obj.extraCompressChecks = extraCompressChecks;
-    obj.useDirectIO =         useDirectIO;
     obj.communicator_m =      communicator_m;
     obj.NumCreated =          NumCreated;
     obj.CommInitialized =     CommInitialized;
@@ -1150,7 +1136,6 @@ void IpplInfo::stash() {
     noFieldCompression = false;
     offsetStorage = false;
     extraCompressChecks = false;
-    useDirectIO = false;
     communicator_m = MPI_COMM_WORLD;
     NumCreated = 0;
     CommInitialized = false;
@@ -1197,7 +1182,6 @@ void IpplInfo::pop() {
     noFieldCompression =  obj.noFieldCompression;
     offsetStorage =       obj.offsetStorage;
     extraCompressChecks = obj.extraCompressChecks;
-    useDirectIO =         obj.useDirectIO;
     communicator_m =      obj.communicator_m;
     NumCreated =          obj.NumCreated;
     CommInitialized =     obj.CommInitialized;

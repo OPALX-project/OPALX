@@ -113,10 +113,6 @@ void DiscField<Dim>::initialize(const char *base, const char *config,
   NumVnodes = 0;
   VnodeTally = 0;
 
-#ifdef IPPL_DIRECTIO
-  openedDirectIO = false;
-#endif
-
   // save the number of fields, which indicates if this object is being
   // opened for reading or writing
   NumFields = numFields;
@@ -210,52 +206,14 @@ int DiscField<Dim>::open_df_file_fd(const std::string& fnm, const std::string& s
 
   // Form the open flags
   int flags = origflags;
-#ifdef IPPL_DIRECTIO
-  openedDirectIO = false;
-  if (IpplInfo::useDirectIO) {
-    flags |= O_DIRECT;
-    openedDirectIO = true;
-  }
-#endif
 
   // Try to open the file
   int f = ::open(fnamebuf.c_str(), flags, 0644);
   if (f < 0) {
-    // If we tried with direct-io but failed, see if we can dothis without dio
-#ifdef IPPL_DIRECTIO
-    f = ::open(fnamebuf.c_str(), origflags, 0644);
-    openedDirectIO = (f >= 0);
-#endif
-
-    // If that still did not work, we're screwed
-    if (f < 0) {
-      ERRORMSG("DiscField: Could not open file '" << fnamebuf.c_str());
-      ERRORMSG("' on node " << Ippl::myNode() << ", f = " << f << "."<<endl);
-      return (-1);
-    }
+    ERRORMSG("DiscField: Could not open file '" << fnamebuf.c_str());
+    ERRORMSG("' on node " << Ippl::myNode() << ", f = " << f << "."<<endl);
+    return (-1);
   }
-
-  // Get direct-io info, if necessary
-
-#ifdef IPPL_DIRECTIO
-  if (openedDirectIO) {
-    if (::fcntl(f, F_DIOINFO, &dioinfo) != 0) {
-      ERRORMSG("DiscField: Could not get dio info for '"<< fnamebuf.c_str());
-      ERRORMSG("' using direct io on node ");
-      ERRORMSG(Ippl::myNode() << "." << endl);
-      close(f);
-      return (-1);
-    }
-
-    DFDBG(std::string dbgmsgname("DF:open_df_file_fd"));
-    DFDBG(Inform dbgmsg(dbgmsgname.c_str(), INFORM_ALL_NODES));
-    DFDBG(dbgmsg << "Opened file '" << fnamebuf.c_str() << "' with direct-io");
-    DFDBG(dbgmsg << ", dioinfo = (miniosz="<<dioinfo.d_miniosz<<", maxiosz=");
-    DFDBG(dbgmsg << dioinfo.d_maxiosz << ", mem=" << dioinfo.d_mem << ")");
-    DFDBG(dbgmsg << endl);
-  }
-#endif
-
   return f;
 }
 
