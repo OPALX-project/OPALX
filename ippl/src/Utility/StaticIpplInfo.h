@@ -106,14 +106,6 @@ public:
     // try to read from a single file (vs just having one node do it).
     bool PerSMPParallelIO;
 
-#ifdef IPPL_COMM_ALARMS
-    // A timeout quantity, in seconds, to allow us to wait a certain number
-    // of seconds before we signal a timeout when we're trying to receive
-    // a message.  By default, this will be zero; change it with the
-    // --msgtimeout <seconds> flag
-    unsigned int CommTimeoutSeconds;
-#endif
-
 };
 
 #endif
