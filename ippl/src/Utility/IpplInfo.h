@@ -67,14 +67,6 @@ class IpplInfo;
 std::ostream& operator<<(std::ostream&, const IpplInfo&);
 
 
-#ifdef IPPL_RUNTIME_ERRCHECK
-// special routine used in runtime debugging error detection
-extern "C" {
-void __C_runtime_error (int trap_code, char *name, int line_no, ...);
-};
-#endif
-
-
 class IpplInfo {
 
 public:
