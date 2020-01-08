@@ -42,8 +42,6 @@ set (_HDRS
     FieldDebugPrint.hpp
     FieldPrint.h
     FieldPrint.hpp
-    FieldView.h
-    FieldView.hpp
     Inform.h
     IplCounter.h
     IpplCounter.h
