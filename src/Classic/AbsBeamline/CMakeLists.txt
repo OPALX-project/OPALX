@@ -100,7 +100,6 @@ set (HDRS
     SBend3D.h
     SBend.h
     ScalingFFAMagnet.h
-    SectorFieldMapComponent.h
     Separator.h
     Septum.h
     Solenoid.h
