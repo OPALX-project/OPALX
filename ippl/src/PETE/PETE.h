@@ -201,9 +201,6 @@ template<class T>
 inline T
 for_each(const PETE_Scalar<T>& p, EvalFunctor_0)
 {
-#ifdef IPPL_SGI_PRAGMAS
-#pragma inline here
-#endif
   return T(p);
 }
 
@@ -384,9 +381,6 @@ inline
 typename Functor::PETE_Return_t
 for_each(PETE_TUTree<Op,T1>& node, Functor f, Combiner c)
 {
-#ifdef IPPL_SGI_PRAGMAS
-#pragma inline here
-#endif
   return c(for_each(node.Child, f, c));
 }
 
@@ -395,9 +389,6 @@ inline
 typename Functor::PETE_Return_t
 for_each(PETE_TBTree<Op,T1,T2>& node, Functor f, Combiner c)
 {
-#ifdef IPPL_SGI_PRAGMAS
-#pragma inline here
-#endif
   return c(for_each(node.Left, f, c), for_each(node.Right, f, c));
 }
 
@@ -406,9 +397,6 @@ inline
 typename Functor::PETE_Return_t
 for_each(PETE_TTTree<Op,T1,T2,T3>& node, Functor f, Combiner c)
 {
-#ifdef IPPL_SGI_PRAGMAS
-#pragma inline here
-#endif
   return c(for_each(node.Left, f, c), for_each(node.Middle, f, c) ,
     for_each(node.Right, f, c));
 }
@@ -492,9 +480,6 @@ inline
 typename PETEUnaryReturn<typename T1::PETE_Return_t,Op>::type
 for_each(PETE_TUTree<Op,T1>& node, Functor f)
 {
-#ifdef IPPL_SGI_PRAGMAS
-#pragma inline here
-#endif
   return PETE_apply(node.Value,
 		    for_each(node.Child,f));
 }
@@ -545,9 +530,6 @@ inline
 typename struct_for_each<Op,T1,T2,Functor>::Return_t
 for_each(PETE_TBTree<Op,T1,T2>& node, Functor f)
 {
-#ifdef IPPL_SGI_PRAGMAS
-#pragma inline here
-#endif
   return struct_for_each<Op,T1,T2,Functor>::apply(node,f);
 }
 
