@@ -10,7 +10,6 @@
 
 // include files
 #include "Utility/Vec.h"
-#include "Utility/RefCounted.h"
 #include "Message/Message.h"
 #include "PETE/IpplExpressions.h"
 
