@@ -9,13 +9,12 @@
 #define BRICK_EXPRESSION_H
 
 // include files
-#include "Utility/RefCounted.h"
 #include "Field/AssignTags.h"
 
 // template<unsigned Dim, class LHS, class RHS, class OP>
 // class BrickExpression : public BrickExpressionBase
 template<unsigned Dim, class LHS, class RHS, class OP>
-class BrickExpression : public RefCounted
+class BrickExpression
 {
 public: 
   BrickExpression(const LHS& l, const RHS& r)
