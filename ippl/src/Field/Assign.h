@@ -46,12 +46,6 @@ template<class T, unsigned Dim, unsigned Brackets> class IndexedBareField;
 template <bool IsExpr>
 class ExprTag
 {
-#ifdef IPPL_PURIFY
-public:
-  ExprTag() {}
-  ExprTag(const ExprTag<IsExpr> &) {}
-  ExprTag<IsExpr>& operator=(const ExprTag<IsExpr> &) { return *this; }
-#endif
 };
 
 //////////////////////////////////////////////////////////////////////
