@@ -11,8 +11,8 @@
 #include <fstream>
 
 namespace {
-    void hardCodedOutput(char* filename); // Prototype of function defined below.
-    bool thediff(char* filename1, char* filename2);
+    void hardCodedOutput(std::string filename); // Prototype of function defined below.
+    bool thediff(std::string filename1, std::string filename2);
 }
 
 constexpr double roundOffError = 1e-10;
@@ -99,7 +99,7 @@ namespace {
     //-----------------------------------------------------------------------------
     // Mock up the Unix "diff" utility to compare two files:
     //-----------------------------------------------------------------------------
-    bool thediff(char* filename1, char* filename2)
+    bool thediff(std::string filename1, std::string filename2)
     {
         bool same = true;
         char ch1, ch2;
@@ -116,7 +116,7 @@ namespace {
     }
 
     //-----------------------------------------------------------------------------
-    void hardCodedOutput(char* filename)
+    void hardCodedOutput(std::string filename)
     {
         std::ofstream of(filename);
         of << std::endl
