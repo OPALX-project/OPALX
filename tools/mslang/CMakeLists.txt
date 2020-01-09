@@ -31,6 +31,7 @@ set (MSLANG_LIBS
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${Boost_LIBRARIES}
+    boost_timer
     m
     z
 )
