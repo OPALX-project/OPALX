@@ -12,8 +12,8 @@
 
 // forward declarations
 namespace {
-    void hardCodedOutput(char* filename); // Prototype of function defined below.
-    bool thediff(char* filename1, char* filename2);
+    void hardCodedOutput(std::string filename); // Prototype of function defined below.
+    bool thediff(std::string filename1, std::string filename2);
 
     extern const CenteringEnum zz[2] = {CELL, VERTEX};
 }
@@ -84,7 +84,7 @@ namespace {
 //-----------------------------------------------------------------------------
 // Mock up the Unix "diff" utility to compare two files:
 //-----------------------------------------------------------------------------
-bool thediff(char* filename1, char* filename2)
+bool thediff(std::string filename1, std::string filename2)
 {
     bool same = true;
     char ch1, ch2;
@@ -102,7 +102,7 @@ bool thediff(char* filename1, char* filename2)
 }
 
 //-----------------------------------------------------------------------------
-void hardCodedOutput(char* filename)
+void hardCodedOutput(std::string filename)
 {
     std::ofstream of(filename);
         of << "CartesianCentering: no specialized name (yet) for this case" << std::endl
