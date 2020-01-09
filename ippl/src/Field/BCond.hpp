@@ -546,8 +546,6 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
       offset = domain[d].length();
     }
 
-  DEBUGMSG("PeriodicFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
-
   // Loop over the ones the slab touches.
   typename Field<T,D,M,Cell>::iterator_if fill_i;
   for (fill_i=A.begin_if(); fill_i!=A.end_if(); ++fill_i)
@@ -639,8 +637,6 @@ void InterpolationFaceBCApply(InterpolationFace<T,D,M,Cell>& pf,
       slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
       offset = domain[d].length();
     }
-
-  DEBUGMSG("InterpolationFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
 
   // Loop over the ones the slab touches.
   typename Field<T,D,M,Cell>::iterator_if fill_i;

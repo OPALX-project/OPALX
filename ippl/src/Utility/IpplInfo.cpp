@@ -514,7 +514,6 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
             } else {
                 // Unknown option; just ignore it.
-                DEBUGMSG(level3 << "Unknown command-line option " << argv[i] << endl);
                 if (stripargs)
                     retargv[retargc++] = argv[i];
             }

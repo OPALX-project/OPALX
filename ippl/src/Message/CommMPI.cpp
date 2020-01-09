@@ -495,11 +495,6 @@ Message *CommMPI::myreceive(int& node, int& tag, int etag)
         }
 
     }
-    else
-    {
-        // no message is available
-        DEBUGMSG(level2<<"CommMPI: No Message Received to Match Request"<<endl);
-    }
 
     // return the new Message, or NULL if no message available
     return newmsg;

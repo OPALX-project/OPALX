@@ -36,7 +36,6 @@
  *   INFOMSG("This is some information " << 34 << endl);
  *   WARNMSG("This is a warning " << 34 << endl);
  *   ERRORMSG("This is an error message " << 34 << endl);
- *   DEBUGMSG("This is some debugging info " << 34 << endl);
  *
  * There is also a 'typedef IpplInfo Ippl' here, so you can simply use
  * the name 'Ippl' instead of the longer 'IpplInfo' to access this class.
@@ -369,14 +368,6 @@ private:
 #define INFOMSG(msg)  { *IpplInfo::Info << msg; }
 #define WARNMSG(msg)  { *IpplInfo::Warn << msg; }
 #define ERRORMSG(msg) { *IpplInfo::Error << msg; }
-
-// special macro to print debugging messages
-#ifdef IPPL_PRINTDEBUG
-#define DEBUGMSG(msg) { *IpplInfo::Debug << msg; }
-#else
-#define DEBUGMSG(msg)
-#endif
-
 
 // typedef so that we can have a 'Ippl' class that's easier to manipulate
 typedef IpplInfo Ippl;
