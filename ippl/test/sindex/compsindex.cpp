@@ -13,21 +13,6 @@
  *
  ***************************************************************************/
 
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- * 
- * This program was prepared by PSI. 
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- * Visit http://www.acl.lanl.gov/POOMS for more details
- *
- ***************************************************************************/
-
 #include "Ippl.h"
 
 // Benchmarks where() against SIndex for a particular example, where sparsness
@@ -36,12 +21,6 @@
 
 //-----------------------------------------------------------------------------
 // User-inserted prototypes to get debugger access (examples for user ref.):
-#ifdef __MWERKS__
-// Avoid bogus warning about no prototypes in CW4:
-void dfp3(BareField<double,3U> &f);
-void defp3(BareField<double,3U> &f, int i, int j, int k);
-void dsfp3(BareField<double,3U> &f, int,int,int, int,int,int, int,int,int);
-#endif // __MWERKS__
 // Scalar (double):
 void dfp3(BareField<double,3U> &f) {fp3(f);}
 void defp3(BareField<double,3U> &f, int i, int j, int k) {efp3(f,i,j,k);}
