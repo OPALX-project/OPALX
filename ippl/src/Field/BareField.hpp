@@ -1294,14 +1294,6 @@ void BareField<T,Dim>::notifyUserOfDelete(UserList* userlist)
 // in the BareField::localElement body
 template<unsigned Dim, bool exists>
 class LFieldDimTag {
-#ifdef IPPL_PURIFY
-  // Add explicit default/copy constructors and op= to avoid UMR's.
-public:
-  LFieldDimTag() {}
-  LFieldDimTag(const LFieldDimTag<Dim,exists> &) {}
-  LFieldDimTag<Dim,exists>&
-  operator=(const LFieldDimTag<Dim,exists> &) { return *this; }
-#endif
 };
 
 // 1, 2, 3, and N Dimensional functions
