@@ -588,15 +588,6 @@ void LField<T,Dim>::ReallyUncompress(bool fill_domain)
       for (int i=0; i<n; i++)
 	P[i] = val;
     }
-#ifdef IPPL_PURIFY
-  else
-    {
-      // To avoid Purify UMR's, fill with default value anyway
-      T val = T();
-      for (int i=0; i<n; i++)
-	P[i] = val;
-    }
-#endif
 
   // Make the Begin iterator point to the new data.
 
