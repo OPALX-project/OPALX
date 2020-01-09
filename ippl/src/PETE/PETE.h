@@ -35,10 +35,6 @@
 #include "Utility/PAssert.h"
 
 #include <cstdlib>
-#ifndef __MWERKS__
-#include <memory.h>
-#endif
-
 
 //=========================================================================
 //
@@ -1110,25 +1106,6 @@ struct Expressionize< PETE_Expr<T> >
 // 
 //=========================================================================
 
-#ifdef __MWERKS__
-// Workaround for CodeWarrior 4 bug
-template<class T> 
-struct Sum {
-  typedef typename T::PETE_Expr_t::PETE_Return_t type_t;
-  static inline type_t apply(const PETE_Expr<T>& expr) {
-    type_t val ;
-    Reduction(val, Expressionize<typename T::PETE_Expr_t>::apply( expr.PETE_unwrap().MakeExpression() ), 
-	      OpAssign(), OpAddAssign());
-    return val;
-  }
-};
-
-template<class T> 
-inline typename Sum<T>::type_t 
-sum(const PETE_Expr<T>& expr) {
-  return Sum<T>::apply(expr);
-}
-#else
 template<class T> 
 inline typename T::PETE_Expr_t::PETE_Return_t
 sum(const PETE_Expr<T>& expr)
@@ -1138,27 +1115,7 @@ sum(const PETE_Expr<T>& expr)
     OpAssign(), OpAddAssign());
   return val;
 }
-#endif // __MWERKS__
 
-#ifdef __MWERKS__
-// Workaround for CodeWarrior 4 bug
-template<class T> 
-struct Prod {
-  typedef typename T::PETE_Expr_t::PETE_Return_t type_t;
-  static inline type_t apply(const PETE_Expr<T>& expr) {
-    type_t val ;
-    Reduction(val, Expressionize<typename T::PETE_Expr_t>::apply(expr.PETE_unwrap().MakeExpression()),
-	      OpAssign(), OpMultipplyAssign());
-    return val;
-  }
-};
-
-template<class T> 
-inline typename Prod<T>::type_t 
-prod(const PETE_Expr<T>& expr) {
-  return Prod<T>::apply(expr);
-}
-#else
 template<class T> 
 inline typename T::PETE_Expr_t::PETE_Return_t
 prod(const PETE_Expr<T>& expr)
@@ -1168,7 +1125,6 @@ prod(const PETE_Expr<T>& expr)
     OpAssign(), OpMultipplyAssign());
   return val;
 }
-#endif // __MWERKS__
 
 //////////////////////////////////////////////////////////////////////
 //
