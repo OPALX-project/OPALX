@@ -363,11 +363,6 @@ ComponentFunctionFace(typename ApplyToComponentType<T>::type
 template<class T>
 struct OpPeriodic
 {
-#ifdef IPPL_PURIFY
-  OpPeriodic() {}
-  OpPeriodic(const OpPeriodic<T> &) {}
-  OpPeriodic<T>& operator=(const OpPeriodic<T> &) { return *this; }
-#endif
 };
 template<class T>
 inline void PETE_apply(const OpPeriodic<T>& e, T& a, const T& b) {a = b; }
@@ -425,11 +420,6 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
 template<class T>
 struct OpInterpolation
 {
-#ifdef IPPL_PURIFY
-  OpInterpolation() {}
-  OpInterpolation(const OpInterpolation<T> &) {}
-  OpInterpolation<T>& operator=(const OpInterpolation<T> &) { return *this; }
-#endif
 };
 template<class T>
 inline void PETE_apply(const OpInterpolation<T>& e, T& a, const T& b) {a = a + b; }
