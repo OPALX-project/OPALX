@@ -162,23 +162,7 @@ public:
 
   PETE_Scalar(const T& t) : scalar(t) { }
 
-#ifdef IPPL_PURIFY
-  // Copy constructor.
-
-  PETE_Scalar(const PETE_Scalar<T>& model) : scalar(model.scalar) { }
-
-  // Assignment operator
-
-  PETE_Scalar<T>&
-  operator=(const PETE_Scalar<T>& rhs)
-  {
-    scalar = rhs.scalar;
-    return *this; 
-  }
-#endif
-
   // Conversion to a type T.
-
   operator T() const { return scalar; }
 
 private:
@@ -197,11 +181,6 @@ private:
 
 struct EvalFunctor_0
 {
-#ifdef IPPL_PURIFY
-  EvalFunctor_0() {}
-  EvalFunctor_0(const EvalFunctor_0 &) {}
-  EvalFunctor_0& operator=(const EvalFunctor_0 &) { return *this; }
-#endif
 };
 
 // Increment functor
@@ -209,11 +188,6 @@ struct EvalFunctor_0
 struct PETE_Increment
 {
   typedef int PETE_Return_t;
-#ifdef IPPL_PURIFY
-  PETE_Increment() {}
-  PETE_Increment(const PETE_Increment &) {}
-  PETE_Increment& operator=(const PETE_Increment &) { return *this; }
-#endif
 };
 
 // Element count functor.
@@ -221,11 +195,6 @@ struct PETE_Increment
 struct PETE_CountElems
 {
   typedef int PETE_Return_t;
-#ifdef IPPL_PURIFY
-  PETE_CountElems() {}
-  PETE_CountElems(const PETE_CountElems &) {}
-  PETE_CountElems& operator=(const PETE_CountElems &) { return *this; }
-#endif
 };
 
 // Behavior of basic Functors for PETE_Scalar:
@@ -455,11 +424,6 @@ for_each(PETE_TTTree<Op,T1,T2,T3>& node, Functor f, Combiner c)
 template<class T, class Op>
 struct PETE_Combiner
 {
-#ifdef IPPL_PURIFY
-  PETE_Combiner() {}
-  PETE_Combiner(const PETE_Combiner<T,Op> &) {}
-  PETE_Combiner<T,Op>& operator=(const PETE_Combiner<T,Op> &) { return *this; }
-#endif
   T operator()(T x) { return x; }
   T operator()(T x, T y) { return PETE_apply(Op(),x,y); }
   T operator()(T x, T y, T z) {return PETE_apply(Op(),x,PETE_apply(Op(),y,z));}
@@ -467,11 +431,6 @@ struct PETE_Combiner
 
 struct AssertEquals
 {
-#ifdef IPPL_PURIFY
-  AssertEquals() {}
-  AssertEquals(const AssertEquals &) {}
-  AssertEquals& operator=(const AssertEquals &) { return *this; }
-#endif
   int operator()(int l)
   {
     return l;
@@ -512,11 +471,6 @@ struct AssertEquals
 
 struct PETE_NullCombiner
 {
-#ifdef IPPL_PURIFY
-  PETE_NullCombiner() {}
-  PETE_NullCombiner(const PETE_NullCombiner &) {}
-  PETE_NullCombiner& operator=(const PETE_NullCombiner &) { return *this; }
-#endif
   int operator()(int) { return 0; }
   int operator()(int, int) { return 0; }
   int operator()(int, int, int) { return 0; }
@@ -570,21 +524,6 @@ template<class T>
 struct ConditionalAssign
 {
   ConditionalAssign(bool q, const T& v) : cond(q), value(v) {}
-#ifdef IPPL_PURIFY
-  ConditionalAssign(const ConditionalAssign<T> &model)
-  {
-    cond = model.cond;
-    if (cond)
-      value = model.value;
-  }
-  ConditionalAssign& operator=(const ConditionalAssign<T> &model)
-  {
-    cond = model.cond;
-    if (cond)
-      value = model.value;
-    return *this;
-  }
-#endif
   bool cond;
   T value;
 };
