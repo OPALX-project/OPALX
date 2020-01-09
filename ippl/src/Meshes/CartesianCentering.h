@@ -42,6 +42,7 @@ void CartesianCentering<CE,Dim,NComponents>::
 print_Centerings(std::ostream& out)
 {
   int i,j;
+  out << CenteringName << std::endl;
   out << "Dim = " << Dim << " ; NComponents = " << NComponents << std::endl;
   for (i=0;i<Dim;i++) {
     for (j=0;j<NComponents;j++) {
