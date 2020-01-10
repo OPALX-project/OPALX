@@ -2,22 +2,18 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
 
 #ifndef BCOND_H
 #define BCOND_H
 
-// include files
-#include "AppTypes/dcomplex.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/RefCounted.h"
 #include "Utility/vmap.h"
 
 #include <iostream>
+#include <complex>
 
 // forward declarations
 template <unsigned D> class NDIndex;
@@ -101,7 +97,7 @@ class antisymtenzor_tag
 };
 
 // Implement tag types for intrinsic types:
-inline scalar_tag get_tag(dcomplex) { return scalar_tag(); }
+inline scalar_tag get_tag(std::complex<double>) { return scalar_tag(); }
 inline scalar_tag get_tag(double)   { return scalar_tag(); }
 inline scalar_tag get_tag(float)    { return scalar_tag(); }
 inline scalar_tag get_tag(int)      { return scalar_tag(); }
