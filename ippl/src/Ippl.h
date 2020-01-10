@@ -112,7 +112,5 @@
 
 // IPPL Load balancing
 #include "FieldLayout/BinaryBalancer.h"
-#include "FieldLayout/ConejoBalancer.h"
-#include "FieldLayout/VnodeMultiBalancer.h"
 
 #endif
