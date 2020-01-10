@@ -259,7 +259,7 @@ void FieldDebugPrint<T,Dim>::print(BareField<T,Dim>& F,
     if(Scientific)
       out.setf(std::ios::scientific);
 
-    int i0, i1, i2;
+    unsigned int i0, i1, i2;
     LFI liter = myLField.begin();
     BLFI bliter = availLField.begin();
     switch(Dim) {
