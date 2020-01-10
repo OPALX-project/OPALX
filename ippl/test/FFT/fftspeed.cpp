@@ -3,12 +3,6 @@
  *
  * The IPPL Framework
  * 
- * This program was prepared by PSI. 
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
  ***************************************************************************/
 
 // test program to time FFT operations under various conditions
@@ -16,11 +10,7 @@
 
 const int DDIM = 3;
 
-#ifdef IPPL_USE_SINGLE_PRECISION
-typedef float                                       DTYPE;
-#else
 typedef double                                      DTYPE;
-#endif
 
 typedef Vert                                        Center_t;
 typedef UniformCartesian<DDIM, DTYPE>               Mesh_t;

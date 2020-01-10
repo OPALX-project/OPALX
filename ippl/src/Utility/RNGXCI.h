@@ -2,9 +2,6 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
 
@@ -27,25 +24,17 @@
  *
  ***********************************************************************/
 
-// include files
 #include "Utility/SequenceGen.h"
-
-#ifdef IPPL_USE_SINGLE_PRECISION
- #define CTYPE float
-#else
- #define CTYPE double
-#endif
 
 // define type that we ensure is 8 bytes long
 #define LONG_IS_8_BYTES (((1L<<16)<<16)<<16)
 typedef long long  RNlong;
 
-
 class RNGXCI {
 
 public:
   // return type
-  typedef CTYPE Return_t;
+  typedef double Return_t;
 
 public:
   // default constructor
