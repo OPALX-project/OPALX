@@ -16,7 +16,7 @@ typedef Vert                                        Center_t;
 typedef UniformCartesian<DDIM, DTYPE>               Mesh_t;
 typedef CenteredFieldLayout<DDIM, Mesh_t, Center_t> FieldLayout_t;
 typedef Field<DTYPE, DDIM, Mesh_t, Center_t>        Field_t;
-typedef Field<dcomplex, DDIM, Mesh_t, Center_t>     CxField_t;
+typedef Field<std::complex<double>, DDIM, Mesh_t, Center_t>     CxField_t;
 typedef FFT<RCTransform, DDIM, DTYPE>               FFT_t;
 
 int main(int argc, char *argv[]) {

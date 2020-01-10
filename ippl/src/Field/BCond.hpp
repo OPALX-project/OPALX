@@ -393,7 +393,7 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,short)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,long)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,float)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,double)
-COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,std::complex<double>)
 
 
 //////////////////////////////////////////////////////////////////////
@@ -452,7 +452,7 @@ COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,short)
 COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,long)
 COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,float)
 COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,double)
-COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,std::complex<double>)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
@@ -2773,7 +2773,7 @@ COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,short)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,long)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,float)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,double)
-COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,std::complex<double>)
 
 //////////////////////////////////////////////////////////////////////
 
@@ -3564,7 +3564,7 @@ COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,short)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,long)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,float)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,double)
-COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,std::complex<double>)
 
 // Special, for assigning to single component of multicomponent elemental type:
 template<class T>
@@ -3589,7 +3589,7 @@ COMPONENT_APPLY_BUILTIN(OpAssignComponent,short)
 COMPONENT_APPLY_BUILTIN(OpAssignComponent,long)
 COMPONENT_APPLY_BUILTIN(OpAssignComponent,float)
 COMPONENT_APPLY_BUILTIN(OpAssignComponent,double)
-COMPONENT_APPLY_BUILTIN(OpAssignComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpAssignComponent,std::complex<double>)
 
 //////////////////////////////////////////////////////////////////////
 
@@ -4968,7 +4968,7 @@ COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,short)
 COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,long)
 COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,float)
 COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,double)
-COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,std::complex<double>)
 
 
 //////////////////////////////////////////////////////////////////////

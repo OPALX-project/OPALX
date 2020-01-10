@@ -142,13 +142,13 @@ int main(int argc, char *argv[])
    FieldLayout<D> layoutPPStan(ndiStandard,allParallel,Ippl::getNodes());
         
    // create test Fields for complex-to-complex FFT
-   BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
-   BareField<dcomplex,D> CFieldPPStan_save(layoutPPStan);
+   BareField<std::complex<double>,D> CFieldPPStan(layoutPPStan);
+   BareField<std::complex<double>,D> CFieldPPStan_save(layoutPPStan);
    BareField<double,D> diffFieldPPStan(layoutPPStan);
        
    // Rather more complete test functions (sine or cosine mode):
-   dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
-   dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
+   std::complex<double> sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
+   std::complex<double> cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
 
    double xfact, kx, yfact, ky, zfact, kz;
    xfact = pi/(ngrid[0] + 1.0);

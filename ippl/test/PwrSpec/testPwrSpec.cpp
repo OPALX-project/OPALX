@@ -190,7 +190,7 @@ class PwrSpec
 {
 public:
 
-    typedef Field<dcomplex, Dim, Mesh_t, Center_t>          CxField_t;
+    typedef Field<std::complex<double>, Dim, Mesh_t, Center_t> CxField_t;
     typedef Field<T, Dim, Mesh_t, Center_t>                 RxField_t;
     typedef FFT<CCTransform, Dim, T>                        FFT_t;
 

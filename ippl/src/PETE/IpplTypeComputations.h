@@ -30,7 +30,7 @@
 
 // include files
 #include "PETE/TypeComputations.h"
-#include "AppTypes/dcomplex.h"
+#include <complex>
 
 
 // forward declarations
@@ -59,7 +59,7 @@ inline int sign(T a) { return ((a > 0) ? 1 : (a == 0 ? 0 : -1)); }
 
 // Complex numbers.
 
-template<> struct PETE_Type2Index<dcomplex> {
+template<> struct PETE_Type2Index<std::complex<double>> {
   enum { val = 8 };
 };
 
@@ -92,7 +92,7 @@ _SCALAR_RNG_RETURNS_(GEN,int)                                           \
 _SCALAR_RNG_RETURNS_(GEN,long)                                          \
 _SCALAR_RNG_RETURNS_(GEN,float)                                         \
 _SCALAR_RNG_RETURNS_(GEN,double)                                        \
-_SCALAR_RNG_RETURNS_(GEN,dcomplex)
+_SCALAR_RNG_RETURNS_(GEN,std::complex<double>)
 
 _PETE_RNG_RETURNS_(RNGBitReverse)
 _PETE_RNG_RETURNS_(RNGLattice<float>)
@@ -137,7 +137,7 @@ struct FnAbs {
   enum { tag = PETE_UnaryPassThruTag };
 };
 
-template<> struct PETEUnaryReturn<dcomplex, FnAbs> {
+template<> struct PETEUnaryReturn<std::complex<double>, FnAbs> {
   typedef double type;
 };
 
@@ -152,7 +152,7 @@ struct FnNorm {
   enum { tag = PETE_Type2Index<double>::val };
 };
 
-template<> struct PETEUnaryReturn<dcomplex, FnNorm> {
+template<> struct PETEUnaryReturn<std::complex<double>, FnNorm> {
   typedef double type;
 };
 
@@ -161,7 +161,7 @@ struct FnArg {
   enum { tag = PETE_Type2Index<double>::val };
 };
 
-template<> struct PETEUnaryReturn<dcomplex, FnArg> {
+template<> struct PETEUnaryReturn<std::complex<double>, FnArg> {
   typedef double type;
 };
 
@@ -170,7 +170,7 @@ struct FnReal {
   enum { tag = PETE_Type2Index<double>::val };
 };
 
-template<> struct PETEUnaryReturn<dcomplex, FnReal> {
+template<> struct PETEUnaryReturn<std::complex<double>, FnReal> {
   typedef double type;
 };
 
@@ -179,7 +179,7 @@ struct FnImag {
   enum { tag = PETE_Type2Index<double>::val };
 };
 
-template<> struct PETEUnaryReturn<dcomplex, FnImag> {
+template<> struct PETEUnaryReturn<std::complex<double>, FnImag> {
   typedef double type;
 };
 
@@ -609,7 +609,7 @@ _SCALAR_VST_RETURNS_(int)
 _SCALAR_VST_RETURNS_(long)
 _SCALAR_VST_RETURNS_(float)
 _SCALAR_VST_RETURNS_(double)
-_SCALAR_VST_RETURNS_(dcomplex)
+_SCALAR_VST_RETURNS_(std::complex<double>)
 
 #undef _SCALAR_VST_RETURNS_
 
