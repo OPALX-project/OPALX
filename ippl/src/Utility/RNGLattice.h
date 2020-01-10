@@ -113,11 +113,7 @@ private:
   bool IncludeEndpoints;
 };
 
-#ifdef IPPL_USE_SINGLE_PRECISION
-RNG_BASIC_MATH(RNGLattice<float>)
-#else
 RNG_BASIC_MATH(RNGLattice<double>)
-#endif
 
 // A version of RNGLattice with extra constructors to make using this
 // class easier.  This is the version that people should use to fill

@@ -3,9 +3,6 @@
  *
  * The IPPL Framework
  * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
  ***************************************************************************/
 
 #ifndef RNG_RAND_H
@@ -26,14 +23,7 @@
  *
  ***********************************************************************/
 
-// include files
 #include "Utility/SequenceGen.h"
-
-#ifdef IPPL_USE_SINGLE_PRECISION
- #define CTYPE float
-#else
- #define CTYPE double
-#endif
 
 #include <cstdlib>
 
@@ -41,7 +31,7 @@ class RNGRand {
 
 public:
   // return type
-  typedef CTYPE Return_t;
+  typedef double Return_t;
 
 public:
   // default constructor
@@ -128,10 +118,4 @@ public:
 
 
 #endif // RNG_RAND_H
-
-/***************************************************************************
- * $RCSfile: RNGRand.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: RNGRand.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
- ***************************************************************************/
 
