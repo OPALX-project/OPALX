@@ -27,7 +27,7 @@
 
 #include "Ippl.h"
 
-#include <complex.h>
+#include <complex>
 
 enum TestCases {test1,test2};
 

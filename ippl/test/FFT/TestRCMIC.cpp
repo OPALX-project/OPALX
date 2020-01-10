@@ -14,7 +14,7 @@
 #include "Ippl.h"
 
 
-#include <complex.h>
+#include <complex>
 
 #ifdef IPPL_DKS
 #include "DKSOPAL.h"

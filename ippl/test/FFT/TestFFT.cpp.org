@@ -24,7 +24,7 @@
 
 #include "Ippl.h"
 
-#include <complex.h>
+#include <complex>
 
 int main(int argc, char *argv[])
 {
