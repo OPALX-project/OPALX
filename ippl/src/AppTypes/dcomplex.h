@@ -23,11 +23,6 @@
 // include standard complex header file
 #include <complex>
 
-// KAI and others have a templated complex class
-#ifdef IPPL_USE_SINGLE_PRECISION
-typedef std::complex<float> dcomplex;
-#else // USE_DOUBLE_PRECISION
 typedef std::complex<double> dcomplex;
-#endif
 
 #endif // DCOMPLEX_H
