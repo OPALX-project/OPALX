@@ -30,7 +30,7 @@
 
 #include "Ippl.h"
 
-#include <complex.h>
+#include <complex>
 
 #define THREED
 
