@@ -25,8 +25,6 @@
 
 #include "Utility/SequenceGen.h"
 
-#define CTYPE double
-
 class RNGXDiv {
 
 public:
