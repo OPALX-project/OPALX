@@ -479,31 +479,6 @@ protected:
                                 typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN =
                                     RLayout.touch_range_rdv(pLoc);
 
-#ifdef IPPL_USE_SINGLE_PRECISION
-                                //FIXME: why does FLT_EPSILON not work?
-                                float nudge = 1e-5;
-                                int nudgeDim = 0;
-
-                                //FIXME: it would be nice to remove the nudge if it has no effect
-                                while (nudgeDim <= d && touchingVN.first == touchingVN.second)
-                                {
-
-                                    T val = PData.R[ip][nudgeDim];
-
-                                    //ensure we nudge the particle back into LOCAL domain
-                                    float lastidx  = RLayout.getDomain()[d].last();
-                                    if (val >= lastidx)
-                                        val -= nudge;
-                                    else
-                                        val += nudge;
-
-                                    pLoc[nudgeDim] = PRegion<T>(val, val);
-                                    touchingVN = RLayout.touch_range_rdv(pLoc);
-
-                                    nudgeDim++;
-                                }
-#endif
-
                                 // make sure we have a vnode to send it to
                                 if (touchingVN.first == touchingVN.second)
                                 {

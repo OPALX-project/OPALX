@@ -63,22 +63,16 @@ template<> struct PETE_Type2Index<dcomplex> {
   enum { val = 8 };
 };
 
-#ifdef IPPL_USE_SINGLE_PRECISION
- #define CTYPE float
-#else
- #define CTYPE double
-#endif
-
 // Return types for scalar ops with RNGs.
 
 #define _SCALAR_RNG_OP_RETURNS_(GEN,SCA,OP)                             \
 template <>                                                             \
 struct PETEBinaryReturn<GEN,SCA,OP> {                                   \
-  typedef PETEBinaryReturn<CTYPE,SCA,OP>::type type;                   \
+  typedef PETEBinaryReturn<double,SCA,OP>::type type;                   \
 };                                                                      \
 template <>                                                             \
 struct PETEBinaryReturn<SCA,GEN,OP> {                                   \
-  typedef PETEBinaryReturn<SCA,CTYPE,OP>::type type;                   \
+  typedef PETEBinaryReturn<SCA,double,OP>::type type;                   \
 };
 
 #define _SCALAR_RNG_RETURNS_(GEN,SCA)                                   \
@@ -90,7 +84,7 @@ _SCALAR_RNG_OP_RETURNS_(GEN,SCA,OpDivide)
 #define _PETE_RNG_RETURNS_(GEN)                                         \
                                                                         \
 template <> struct PETE_Type2Index< GEN > {                             \
-  enum { val = PETE_Type2Index<CTYPE>::val };                          \
+  enum { val = PETE_Type2Index<double>::val };                          \
 };                                                                      \
                                                                         \
 _SCALAR_RNG_RETURNS_(GEN,short)                                         \
