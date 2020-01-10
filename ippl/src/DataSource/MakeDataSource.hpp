@@ -37,9 +37,17 @@
 #include "DataSource/FilePtclBaseDataSource.h"
 #include "DataSource/FilePtclAttribDataSource.h"
 
+// forward declaration to avoid possible recursive inclusion
+template<class T, unsigned Dim, class M, class C>
+class FileFieldDataSource;
+template<class T>
+class FileParticleAttribDataSource;
+template<class T>
+class FileIpplParticleBaseDataSource;
+
 ////////////////////////////////////////////////////////////////////////////
 // a version of make_DataSourceObject for Field's.
-// arguments: name, connection type, transfer metohd, Field
+// arguments: name, connection type, transfer method, Field
 template<class T, unsigned Dim, class M, class C>
 DataSourceObject *
 make_DataSourceObject(const char *nm, DataConnect *dc, int t,
