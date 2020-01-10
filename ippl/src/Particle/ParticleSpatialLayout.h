@@ -34,10 +34,11 @@
 
 #include <cstddef>
 
-#include <vector>
+#include <functional>
 #include <iostream>
 #include <map>
-#include <functional>
+#include <memory>
+#include <vector>
 
 #include "BoxParticleCachingPolicy.h"
 

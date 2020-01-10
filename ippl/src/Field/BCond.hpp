@@ -186,7 +186,7 @@ void ConstantFace<T,D,M,C>::write(std::ostream& out) const
   out << "ConstantFace"
       << ", Face=" << BCondBase<T,D,M,C>::m_face
       << ", Constant=" << this->Offset
-      << endl;
+      << std::endl;
 }
 
 template<class T, unsigned int D, class M, class C>
@@ -915,7 +915,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 	  allComponents) {
 	// Make sure all components are really centered the same, as assumed:
 	CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	for (int c=1; c<NC; c++) { // Compare other components with 1st
+	for (unsigned int c=1; c<NC; c++) { // Compare other components with 1st
 	  if (CE[c + d*NC] != centering0)
 	    ERRORMSG("PeriodicFaceBCApply: BCond thinks all components have"
 		     << " same centering along direction " << d
@@ -950,7 +950,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 	  allComponents) {
 	// Make sure all components are really centered the same, as assumed:
 	CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	for (int c=1; c<NC; c++) { // Compare other components with 1st
+	for (unsigned int c=1; c<NC; c++) { // Compare other components with 1st
 	  if (CE[c + d*NC] != centering0)
 	    ERRORMSG("PeriodicFaceBCApply: BCond thinks all components have"
 		     << " same centering along direction " << d
@@ -1222,7 +1222,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component
 	                                           // along dir d
-	  for (int c = 1; c < NC; c++)
+	  for (unsigned int c = 1; c < NC; c++)
 	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
@@ -1279,7 +1279,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component
 	                                           // along dir d
-	  for (int c = 1; c < NC; c++)
+	  for (unsigned int c = 1; c < NC; c++)
 	    { // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
 		ERRORMSG("ParallelPeriodicFaceBCApply:"
@@ -3320,7 +3320,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
@@ -3394,7 +3394,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 
@@ -4262,7 +4262,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
@@ -4349,7 +4349,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 

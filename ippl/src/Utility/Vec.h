@@ -89,7 +89,7 @@ inline T
 vec<T,Length>::dot(const T* l, const T* r)
 {
   T ret = l[0]*r[0];
-  for (int i=1; i<Length; ++i)
+  for (unsigned int i=1; i<Length; ++i)
     ret += l[i]*r[i];
   return ret;
 }
