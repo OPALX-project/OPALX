@@ -32,14 +32,8 @@
 #include "Meshes/UniformCartesian.h"
 #include "Message/Communicate.h"
 
-#ifdef IPPL_USE_STANDARD_HEADERS
 #include <iostream>
 #include <fstream>
-using namespace std;
-#else
-#include <iostream>
-#include <fstream>
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
