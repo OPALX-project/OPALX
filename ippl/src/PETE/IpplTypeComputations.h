@@ -38,12 +38,8 @@ template<class T, unsigned D> class Vektor;
 template<class T, unsigned D> class Tenzor;
 template<class T, unsigned D> class AntiSymTenzor;
 template<class T, unsigned D> class SymTenzor;
-class RNGBitReverse;
 template <class T> class RNGLattice;
-class RNGSimple;
-class RNGRand;
 class RNGXDiv;
-class RNGXCI;
 
 
 // definition of global sign function
@@ -94,13 +90,9 @@ _SCALAR_RNG_RETURNS_(GEN,float)                                         \
 _SCALAR_RNG_RETURNS_(GEN,double)                                        \
 _SCALAR_RNG_RETURNS_(GEN,std::complex<double>)
 
-_PETE_RNG_RETURNS_(RNGBitReverse)
 _PETE_RNG_RETURNS_(RNGLattice<float>)
 _PETE_RNG_RETURNS_(RNGLattice<double>)
-_PETE_RNG_RETURNS_(RNGSimple)
-_PETE_RNG_RETURNS_(RNGRand)
 _PETE_RNG_RETURNS_(RNGXDiv)
-_PETE_RNG_RETURNS_(RNGXCI)
 
 // Life is way easier with this feature.
 
