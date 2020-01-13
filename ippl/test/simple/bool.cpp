@@ -68,21 +68,9 @@ int main(int argc, char *argv[] )
   A[I] = I;
   amin = 5.0;
   C = amin;
-#ifdef IPPL_USE_MEMBER_TEMPLATES
   B = lt( A, amin ) ;
   A = where( B, C, A ) ;
   A = where( lt(A,amin), A, C ) ;
-#else
-  assign(B , lt( A, amin ));
-  assign(A , where( B, C, A ));
-  assign(A , where( lt(A,amin), A, C ) );
-#endif
 
   return 0;
 }
-
-/***************************************************************************
- * $RCSfile: bool.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:39 $
- * IPPL_VERSION_ID: $Id: bool.cpp,v 1.1.1.1 2003/01/23 07:40:39 adelmann Exp $ 
- ***************************************************************************/
