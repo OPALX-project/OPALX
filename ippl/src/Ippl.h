@@ -87,10 +87,6 @@
 #include "Particle/IntTSC.h"
 #include "Particle/IntSUDS.h"
 
-#ifdef HAVE_EXPDE
-#include "Particle/ParticleLayoutFromGrid.h"
-#endif
-
 // IPPL sparse index expression operations
 #include "SubField/SubFieldAssign.h"
 #include "SubParticle/SubParticleAssign.h"
