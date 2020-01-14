@@ -28,19 +28,11 @@ public:
   T& operator[](unsigned d) { return Ptr[d]; }
   const T& operator[](unsigned d) const { return Ptr[d]; }
   Message& putMessage(Message &m) {
-#ifdef IPPL_USE_MEMBER_TEMPLATES
     m.put(Ptr, Ptr + Length);
-#else
-    putMessage(m,Ptr,Ptr+Length);
-#endif
     return m;
   }
   Message& getMessage(Message &m) {
-#ifdef IPPL_USE_MEMBER_TEMPLATES
     m.get_iter(Ptr);
-#else
-    getMessage_iter(m,Ptr);
-#endif
     return m;
   }
 
