@@ -12,7 +12,6 @@ link_directories (
     ${CMAKE_SOURCE_DIR}/src
 )
 
-add_compile_options (-std=c++11)
 set (COMPILE_FLAGS ${OPAL_CXX_FLAGS})
 
 set (IPPL_LIBS ippl)
