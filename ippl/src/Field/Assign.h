@@ -173,31 +173,6 @@ FUNC(const PETE_TUTree<OpParens<TP>,A>& lhs, const std::complex<double>& rhs)\
   assign(lhs,PETE_Scalar<std::complex<double>>(rhs),OP(),ExprTag<true>());	\
 }
 
-#ifdef UNDEFINED
-
-template<class LHS>							\
-inline void								\
-FUNC(const PETE_Expr<LHS>& lhs, double rhs)				\
-{									\
-  assign(lhs.PETE_unwrap(),PETE_Scalar<double>(rhs),OP(),ExprTag<true>());	\
-}									\
-									\
-template<class LHS>							\
-inline void								\
-FUNC(const PETE_Expr<LHS>& lhs, float rhs)				\
-{									\
-  assign(lhs.PETE_unwrap(),PETE_Scalar<float>(rhs),OP(),ExprTag<true>());	\
-}									\
-									\
-template<class LHS>							\
-inline void								\
-FUNC(const PETE_Expr<LHS>& lhs, int rhs)				\
-{									\
-  assign(lhs.PETE_unwrap(),PETE_Scalar<int>(rhs),OP(),ExprTag<true>());	\
-}
-
-#endif
-
 ASSIGNMENT_OPERATORS(assign,OpAssign)
 ASSIGNMENT_OPERATORS(operator<<,OpAssign)
 ASSIGNMENT_OPERATORS(operator+=,OpAddAssign)				      
