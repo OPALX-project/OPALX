@@ -1,5 +1,5 @@
 file (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-message (STATUS "Adding test particle found in ${_relPath}")
+message (STATUS "Adding particle tests found in ${_relPath}")
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
@@ -13,9 +13,6 @@ link_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
-
-add_compile_options (-std=c++11)
-add_definitions (-DPARALLEL_IO)
 
 set (IPPL_LIBS ippl)
 set (COMPILE_FLAGS ${OPAL_CXX_FLAGS})
@@ -85,15 +82,20 @@ target_link_libraries (
     boost_timer
 )
 
-add_executable (test-scatter-1 test-scatter-1.cpp)
-target_link_libraries (test-scatter-1 ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
-
-add_executable (salman-1 salman-1.cpp)
-target_link_libraries (salman-1 ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
+add_executable (chsr-1 chsr-1.cpp)
+target_link_libraries (chsr-1 ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
 
 add_executable (chsr-2 chsr-2.cpp)
 target_link_libraries (chsr-2 ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
 
+add_executable (pbconds3D pbconds3D.cpp)
+target_link_libraries (pbconds3D ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
+
+add_executable (salman-1 salman-1.cpp)
+target_link_libraries (salman-1 ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
+
+add_executable (test-scatter-1 test-scatter-1.cpp)
+target_link_libraries (test-scatter-1 ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer)
 
 # vi: set et ts=4 sw=4 sts=4:
 
