@@ -435,7 +435,7 @@ struct ApplyField {
 };
 
 int main(int argc, char *argv[]){
-    Ippl ippl(argc, argv);
+    Ippl ippl(argc, argv);
     Inform msg(argv[0]);
     Inform msg2all(argv[0],INFORM_ALL_NODES);
 

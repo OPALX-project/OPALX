@@ -13,12 +13,14 @@
 
 #include "Ippl.h"
 
-
 #include <complex>
+#include <string>
 
 #ifdef IPPL_DKS
 #include "DKSOPAL.h"
 #endif
+
+using namespace std;
 
 bool Configure(int argc, char *argv[],
 	       unsigned int *nx, unsigned int *ny, unsigned int *nz,
