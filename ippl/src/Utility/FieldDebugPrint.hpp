@@ -91,7 +91,7 @@ void FieldDebugPrint<T,Dim>::print(BareField<T,Dim>& F,
 
   // check that the view is contained inside of the Field's domain
   if(!domain.contains(view)) {
-    ERRORMSG("FieldPrint::print - the domain of the field: " << domain<<endl);
+    ERRORMSG("FieldDebugPrint::print - the domain of the field: " << domain<<endl);
     ERRORMSG(" must contain the selected view: " << view << endl);
     return;
   }
