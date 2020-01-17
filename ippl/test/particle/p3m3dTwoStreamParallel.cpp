@@ -25,7 +25,6 @@
 #include <iomanip>
 #include "Particle/BoxParticleCachingPolicy.h"
 #include "Particle/PairBuilder/HashPairBuilderPeriodicParallel.h"
-#include "Particle/PairBuilder/SortingPairBuilder.h"
 #include "Particle/PairBuilder/PairConditions.h"
 #include "math.h"
 
