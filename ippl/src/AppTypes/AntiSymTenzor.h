@@ -476,7 +476,7 @@ inline AntiSymTenzor<T,D> transpose(const AntiSymTenzor<T,D>& rhs) {
 // For D=3, det is zero, because diagonal elements are zero:
 template<class T>
 inline T
-det(const AntiSymTenzor<T,3>&)
+det(const AntiSymTenzor<T,3>& /*t*/)
 {
   return T(0.0);
 }
