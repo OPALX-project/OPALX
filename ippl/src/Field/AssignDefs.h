@@ -579,14 +579,6 @@ for_each(const IndexedBareFieldIterator<T,D>& p,
   return 0;
 }
 
-template<class T, class C, unsigned int D, unsigned int D1, class T1>
-inline int
-for_each(const BareFieldIterator<T,D>& p, 
-  const FillGCIfNecessaryTag<D1,T1> &, C)
-{
-  return 0;
-}
-
 template<class T, class C, unsigned int D, class T1>
 inline int
 for_each(const PETE_Scalar<T>&, const FillGCIfNecessaryTag<D,T1> &, C)
