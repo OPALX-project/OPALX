@@ -76,13 +76,6 @@ for_each(SubFieldIter<T,D,S> &p, SameSubsetType s, C)
   return p.matchType(s.fID);
 }
 
-template<class T, class C, unsigned int D>
-inline bool
-for_each(typename BareField<T,D>::iterator&, SameSubsetType s, C)
-{
-  return false;
-}
-
 template<class C>
 inline bool
 for_each(Index::cursor&, SameSubsetType, C)
@@ -113,13 +106,6 @@ inline int
 for_each(SubFieldIter<T,D,S> &p, SubsetInit, C) 
 {
   p.initialize();
-  return 0;
-}
-
-template<class T, class C, unsigned int D>
-inline int
-for_each(typename BareField<T,D>::iterator &p, SubsetInit, C)
-{
   return 0;
 }
 
@@ -301,39 +287,4 @@ for_each(SubFieldIter<T,D,S> &p, RewindFunctor s, C)
   return 0;
 }
 
-//////////////////////////////////////////////////////////////////////
-//
-// Does an iterator reference something with unit stride?
-// Don't worry about it for now.
-//
-//////////////////////////////////////////////////////////////////////
-
-template<class T, unsigned int D, class S, class C>
-inline bool
-for_each(SubFieldIter<T,D,S> &p, HasUnitStride, C)
-{
-  return false;
-}
-
-//////////////////////////////////////////////////////////////////////
-//
-// Ask each term to fill guard cells and compress itself
-//
-//////////////////////////////////////////////////////////////////////
-
-template<class T, unsigned int D, class S, class C, class T1>
-inline int
-for_each(SubFieldIter<T,D,S> &p, const FillGCIfNecessaryTag<D,T1> &f, C)
-{
-  //tjw3/3/99  p.FillGCIfNecessary(f.I, f.I);
-  p.FillGCIfNecessary();
-  return 0;
-}
-
 #endif // SUB_FIELD_ASSIGN_DEFS_H
-
-/***************************************************************************
- * $RCSfile: SubFieldAssignDefs.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: SubFieldAssignDefs.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
- ***************************************************************************/
