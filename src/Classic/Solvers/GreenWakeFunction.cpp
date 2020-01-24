@@ -1,6 +1,8 @@
 #include "Solvers/GreenWakeFunction.hh"
 #include "Algorithms/PartBunchBase.h"
 #include "Utilities/GeneralClassicException.h"
+
+// :FIXME: do we need this tests?
 #ifdef ENABLE_WAKE_TESTS
 #include "Solvers/TestLambda.h" // used for tests
 #endif
@@ -241,8 +243,8 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
 /**
  * @brief   Just a test function
  */
-void GreenWakeFunction::testApply(PartBunchBase<double, 3> *bunch) {
 #ifdef ENABLE_WAKE_TESTS
+void GreenWakeFunction::testApply(PartBunchBase<double, 3> *bunch) {
     double spacing;
     // determine K and charge
     double charge = 0.8e-9; // nC
@@ -275,8 +277,10 @@ void GreenWakeFunction::testApply(PartBunchBase<double, 3> *bunch) {
     }
     f2.flush();
     f2.close();
-#endif
 }
+#else
+void GreenWakeFunction::testApply(PartBunchBase<double, 3> *) {}
+#endif
 
 /**
  * @brief   just a Testfunction!  Calculate the energy of the Wakefunction with the lambda

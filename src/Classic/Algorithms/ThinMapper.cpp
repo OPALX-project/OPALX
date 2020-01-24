@@ -68,11 +68,11 @@ ThinMapper::~ThinMapper()
 {}
 
 
-void ThinMapper::visitBeamBeam(const BeamBeam &bb) {
+void ThinMapper::visitBeamBeam(const BeamBeam &/*bb*/) {
     // *** MISSING *** Map algorithm on BeamBeam
 }
 
-void ThinMapper::visitBeamStripping(const BeamStripping &bstp) {
+void ThinMapper::visitBeamStripping(const BeamStripping &/*bstp*/) {
     // *** MISSING *** Map algorithm on BeamStripping
 }
 
@@ -340,3 +340,4 @@ void ThinMapper::applyDrift(double length) {
     itsMap[Y] += py * lByPz;
     itsMap[T] += length * (pt * ref - (px * px + py * py + 3.0 * pt * pt * ref) / 2.0);
 }
+
