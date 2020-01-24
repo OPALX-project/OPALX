@@ -164,7 +164,7 @@ void ThinTracker::visitBeamBeam(const BeamBeam &bb) {
 }
 
 
-void ThinTracker::visitBeamStripping(const BeamStripping &bstp) {
+void ThinTracker::visitBeamStripping(const BeamStripping &/*bstp*/) {
 //    applyDrift(flip_s * bstp.getElementLength());
 }
 
@@ -176,7 +176,7 @@ void ThinTracker::visitDegrader(const Degrader &deg) {
     applyDrift(flip_s * deg.getElementLength());
 }
 
-void ThinTracker::visitParallelPlate(const ParallelPlate &pplate) {
+void ThinTracker::visitParallelPlate(const ParallelPlate &/*pplate*/) {
     //do nothing
 }
 
@@ -466,3 +466,4 @@ void ThinTracker::applyDrift(double length) {
         itsBunch_m->set_part(part, i);
     }
 }
+

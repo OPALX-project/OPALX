@@ -148,7 +148,7 @@ void LinearMapper::visitLambertson(const Lambertson &lamb) {
 }
 
 
-void LinearMapper::visitMarker(const Marker &marker) {
+void LinearMapper::visitMarker(const Marker &/*marker*/) {
     // Do nothing.
 }
 
@@ -180,7 +180,7 @@ void LinearMapper::visitPatch(const Patch &patch) {
     applyTransform(transform, 0.0);
 }
 
-void LinearMapper::visitProbe(const Probe &Prob) {
+void LinearMapper::visitProbe(const Probe &/*Prob*/) {
     // Do nothing.
 }
 
@@ -368,7 +368,7 @@ void LinearMapper::visitSolenoid(const Solenoid &solenoid) {
 }
 
 
-void LinearMapper::visitParallelPlate(const ParallelPlate &pplate) {
+void LinearMapper::visitParallelPlate(const ParallelPlate &/*pplate*/) {
     //do nothing
 }
 
