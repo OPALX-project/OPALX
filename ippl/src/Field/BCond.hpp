@@ -3,6 +3,9 @@
  *
  * The IPPL Framework
  *
+ *
+ * Visit http://people.web.psi.ch/adelmann/ for more details
+ *
  ***************************************************************************/
 
 // include files
@@ -346,7 +349,6 @@ template<class T>
 struct OpPeriodic
 {
 };
-
 template<class T>
 inline void PETE_apply(const OpPeriodic<T>& /*e*/, T& a, const T& b) {a = b; }
 
@@ -404,7 +406,6 @@ template<class T>
 struct OpInterpolation
 {
 };
-
 template<class T>
 inline void PETE_apply(const OpInterpolation<T>& /*e*/, T& a, const T& b) {a = a + b; }
 
@@ -5752,6 +5753,41 @@ void LinearExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
   LinearExtrapolateFaceBCApply(*this, A);
 }
 
+
+template<class T, unsigned D, class M, class C>
+inline void
+LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
+				   const NDIndex<D> &src1,
+				   const NDIndex<D> &src2,
+				   LField<T,D> &fill,
+                                   LinearExtrapolateFace<T,D,M,C> &/*ef*/,
+				   int slopeMultipplier)
+{
+  // If 'fill' is compressed and applying the boundary condition on the
+  // compressed value would result in no change to 'fill' we don't need to
+  // uncompress.  For this particular type of BC (linear extrapolation), this
+  // result would *never* happen, so we already know we're done:
+
+  if (fill.IsCompressed()) { return; } // Yea! We're outta here.
+
+  // Build iterators for the copy:
+  typedef typename LField<T,D>::iterator LFI;
+  LFI lhs  = fill.begin(dest);
+  LFI rhs1 = fill.begin(src1);
+  LFI rhs2 = fill.begin(src2);
+  LFI endi = fill.end(); // Used for testing end of *any* sub-range iteration
+
+  // Couldn't figure out how to use BrickExpression here. Just iterate through
+  // all the elements in all 3 LField iterators (which are BrickIterators) and
+  // do the calculation one element at a time:
+  for ( ; lhs != endi, rhs1 != endi, rhs2 != endi;
+	++lhs, ++rhs1, ++rhs2) {
+    *lhs = (*rhs2 - *rhs1)*slopeMultipplier + *rhs1;
+  }
+
+}
+
+
 // ----------------------------------------------------------------------------
 // This type of boundary condition (linear extrapolation) does very much the
 // same thing for any centering; Doesn't seem to be a need for specializations
@@ -5762,6 +5798,9 @@ template<class T, unsigned D, class M, class C>
 void LinearExtrapolateFaceBCApply(LinearExtrapolateFace<T,D,M,C>& ef,
 				  Field<T,D,M,C>& A )
 {
+
+
+
   // Find the slab that is the destination.
   // That is, in English, get an NDIndex spanning elements in the guard layers
   // on the face associated with the LinearExtrapaloteFace object:
@@ -6158,3 +6197,4 @@ void PatchBC<T,D,M,C>::apply( Field<T,D,M,C>& A )
 //----------------------------------------------------------------------
 
 #undef COMPONENT_APPLY_BUILTIN
+
