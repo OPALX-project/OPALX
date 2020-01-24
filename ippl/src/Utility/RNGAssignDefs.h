@@ -151,6 +151,18 @@ for_each(const SequenceGen<GT>& p, const EvalFunctor_3&)
 }
 
 //
+// Does it have unit stride?
+// Not really a sensible question, but it is safe to say it does.
+//
+
+template<class GT, class C>
+inline bool
+for_each(const SequenceGen<GT>& /*p*/, HasUnitStride, C)
+{
+  return true;
+}
+
+//
 // RNG ignores step functor
 //
 template<class GT, class C>
