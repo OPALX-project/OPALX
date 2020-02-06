@@ -8,8 +8,8 @@
    NUMERICAL RECIPES IN C: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43108-5)
 */
 
-#ifndef _SAVGOL_DEF
-#define _SAVGOL_DEF
+#ifndef _BET_SAVGOL_H
+#define _BET_SAVGOL_H
 
 /* sgSmooth()
    Smoothes c[0..n-1] using a Savitzky-Golay filter.
