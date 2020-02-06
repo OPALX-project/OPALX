@@ -1,17 +1,15 @@
-/* interpol.h
-   interpolation function definition
-
+/*
    Project: Beam Envelope Tracker (BET)
+   Author:  Rene Bakker et al.
+   Created: 09-03-2006
 
-   Revision history
-   Date          Description                                     Programmer
-   ------------  --------------------------------------------    --------------
-   09-03-06      Created                                         Rene Bakker
+   Spline interpolation routines
+
+   NUMERICAL RECIPES IN C: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43108-5)
 */
 
-
-#ifndef _INTERPOL_DEF
-#define _INTERPOL_DEF
+#ifndef _BET_INTERPOL_H
+#define _BET_INTERPOL_H
 
 /* spline()
    Given arrays x[0..n-1] and y[0..n-1] containing a tabulated function,
@@ -27,21 +25,6 @@ void spline
     int n,
     double y2[]);
 
-/* splint()
-   Given the arrays xa[0..n-1] and ya[0..n-1], which tabulate a function
-   (with the xa[i] in order), and given the array y2a[0..n-1], which
-   is the output from spline above, and given a value of x, this routine
-   returns a cubic-spline interpolated value y.
-*/
-void splint
-(
-    double xa[],
-    double ya[],
-    double y2a[],
-    int n,
-    double x,
-    double *y);
-
 /* lsplint()
    Given the arrays xa[0..n-1] and ya[0..n-1], which tabulate a function
    (with the xa[i] in order), and given the array y2a[0..n-1], which
@@ -49,13 +32,20 @@ void splint
    returns a cubic-spline interpolated value y, which is limited between
    the y-values of the adjacent points.
 */
-void lsplint
+double lsplint
 (
     double xa[],
     double ya[],
     double y2a[],
     int n,
-    double x,
-    double *y);
+    double x);
 
 #endif
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode: nil
+// require-final-newline: nil
+// End:
