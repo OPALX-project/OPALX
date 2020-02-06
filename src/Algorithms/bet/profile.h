@@ -1,23 +1,13 @@
-/* profile.h
-   profile class definition
-   - calculates a functional profile from a mapping
-
+/*
    Project: Beam Envelope Tracker (BET)
+   Author:  Rene Bakker et al.
+   Created: 07-03-2006
 
-   Revision history
-   Date          Description                                     Programmer
-   ------------  --------------------------------------------    --------------
-   07-03-06      Created                                         Rene Bakker
-
-   Last Revision:
-   $Id: profile.h 103 2007-05-08 16:21:44Z bakker $
+   calculates a functional profile from a mapping
 */
 
-
-#ifndef _PROFILE_DEF
-#define _PROFILE_DEF
-
-#include <stdio.h>
+#ifndef _BET_PROFILE_H
+#define _BET_PROFILE_H
 
 #include <vector>
 

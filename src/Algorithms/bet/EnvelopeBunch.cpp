@@ -73,7 +73,7 @@ EnvelopeBunch::EnvelopeBunch(const PartData *ref):
 }
 
 
-EnvelopeBunch::EnvelopeBunch(const std::vector<OpalParticle> &rhs,
+EnvelopeBunch::EnvelopeBunch(const std::vector<OpalParticle> &/*rhs*/,
                              const PartData *ref):
     PartBunch(ref),
     numSlices_m(0),
@@ -370,7 +370,7 @@ void EnvelopeBunch::calcEmittance(double *emtnx, double *emtny, double *emtx, do
     }
 }
 
-void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int *nValid) {
+void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int */*nValid*/) {
     std::vector<double> dtl(numMySlices_m, 0.0);
     std::vector<double> b(numMySlices_m, 0.0);
     std::vector<double> g(numMySlices_m, 0.0);
@@ -448,7 +448,7 @@ void EnvelopeBunch::calcEnergyChirp(double *g0, double *dgdt, double *gInc, int 
         }
 
         // chrip and uncorrelated energy sread
-        linfit(&dtG[0], &gG[0], nVTot, &gZero, &gt, &dum2, &dum3, &dum4);
+        linfit(&dtG[0], &gG[0], nVTot, gZero, gt, dum2, dum3, dum4);
         *dgdt = gt;
 
         rms = 0.0;
@@ -648,7 +648,7 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
     backup();
 }
 
-void EnvelopeBunch::setTShape(double enx, double eny, double rx, double ry, double b0) {
+void EnvelopeBunch::setTShape(double enx, double eny, double rx, double ry, double /*b0*/) {
   /*
     Inform msg("setTshape");
     msg << "set SLI_x to " << rx / 2.0 << endl;
@@ -1089,7 +1089,7 @@ ALT: SLI_z (commented by Rene)
     // dYdt[SLI_z] = Y[SLI_beta]*c*cos(Y[SLI_px0]/Y[SLI_beta]/c)*cos(Y[SLI_py0]/Y[SLI_beta]/c);
 
  */
-void EnvelopeBunch::derivs(double tc, double Y[], double dYdt[]) {
+void EnvelopeBunch::derivs(double /*tc*/, double Y[], double dYdt[]) {
     double g2 = 1.0 / (1.0 - Y[SLI_beta] * Y[SLI_beta]);
     double g  = sqrt(g2);
     double g3 = g2 * g;
@@ -1276,7 +1276,7 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
                 } else {
                     int nok, nbad;
                     activeSlice_m = i;
-                    ode_result = odeint(&(sp->p[SLI_z]), SLNPAR, t_m, t_m + time_step_s, epsLocal, 0.1 * time_step_s, 0.0, &nok, &nbad, Gderivs);
+                    ode_result = odeint(&(sp->p[SLI_z]), SLNPAR, t_m, t_m + time_step_s, epsLocal, 0.1 * time_step_s, 0.0, nok, nbad, Gderivs);
                 }
 
                 if(ode_result != 0) {
@@ -1371,7 +1371,10 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
     }
 }
 
-void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double width, double emission_time, double frac, double current, double bunch_center, double bX, double bY, double mX, double mY, double Bz0, int nbin) {
+void EnvelopeBunch::initialize(int num_slices, double Q, double energy, double /*width*/,
+                               double emission_time, double frac, double /*current*/,
+                               double bunch_center, double bX, double bY, double mX,
+                               double mY, double Bz0, int nbin) {
 
 #ifdef USE_HOMDYN_SC_MODEL
     *gmsg << "* Using HOMDYN space-charge model" << endl;
