@@ -1,17 +1,15 @@
-/* integrate.h
-   integration routines
-
+/*
    Project: Beam Envelope Tracker (BET)
+   Author:  Rene Bakker et al.
+   Created: 07-03-2006
 
-   Revision history
-   Date          Description                                     Programmer
-   ------------  --------------------------------------------    --------------
-   09-03-06      Created                                         Rene Bakker
+   integration routines using Rombergs method
+
+   NUMERICAL RECIPES IN C: THE ART OF SCIENTIFIC COMPUTING (ISBN 0-521-43108-5)
 */
 
-
-#ifndef _INTEGRATE_DEF
-#define _INTEGRATE_DEF
+#ifndef _BET_INTEGRATE_H
+#define _BET_INTEGRATE_H
 
 /* qromb()
    Returns the integral of the function func from a to b
@@ -25,3 +23,11 @@ double qromb(
     double = 1.0e-4);   // error (eps)
 
 #endif
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode: nil
+// require-final-newline: nil
+// End:

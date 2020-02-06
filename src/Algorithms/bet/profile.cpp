@@ -1,28 +1,18 @@
-/* profile.C
-   profile interpolation class
-
+/*
    Project: Beam Envelope Tracker (BET)
+   Author:  Rene Bakker et al.
+   Created: 07-03-2006
 
-   Revision history
-   Date          Description                                     Programmer
-   ------------  --------------------------------------------    --------------
-   07-03-06      Created                                         Rene Bakker
-
-   Last Revision:
-   $Id: profile.C 106 2007-05-08 19:12:24Z bakker $
+   calculates a functional profile from a mapping
 */
 
-#include "Ippl.h"
-#include <iostream>
-#include <algorithm>
 #include <cmath>
-#include <stdlib.h>
-#include <string.h>
+#include <string>
 
 #include "Algorithms/bet/math/interpol.h"
 #include "Algorithms/bet/math/integrate.h"
 #include "Algorithms/bet/profile.h"
-
+#include "Utilities/OpalException.h"
 
 // global internal functions for integration
 // -----------------------------------------
@@ -33,11 +23,11 @@ static double f1(double x) {
 }
 
 static double f2(double x) {
-    return (cProfile ? pow(cProfile->get(x), 2) : 0.0);
+    return (cProfile ? std::pow(cProfile->get(x), 2) : 0.0);
 }
 
 static double f3(double x) {
-    return (cProfile ? fabs(cProfile->get(x)) : 0.0);
+    return (cProfile ? std::fabs(cProfile->get(x)) : 0.0);
 }
 
 Profile::Profile(double v) {
@@ -51,7 +41,7 @@ Profile::Profile(double v) {
 Profile::Profile(double *_x, double *_y, int _n) :
     n(_n), x(_x, _x + _n), y(_y, _y + _n) {
     create();
-} /* Profile::Profile() */
+}
 
 Profile::Profile(char *fname, double eps) {
     FILE  *f;
@@ -60,12 +50,15 @@ Profile::Profile(char *fname, double eps) {
 
     f = fopen(fname, "r");
     if(!f) {
-        std::cout << "Profile::Profile: Cannot load profile mapping " << fname << std::endl;
+        std::string s(fname);
+        throw OpalException(
+            "Profile::Profile()",
+            "Cannot load profile mapping \"" + s + "\".");
     }
     i = 0;
     m = 0.0;
     while(fscanf(f, "%lf %lf", &a, &b) == 2) {
-        if(fabs(b) > m) m = fabs(b);
+        if(std::fabs(b) > m) m = std::fabs(b);
         ++i;
     }
     fclose(f);
@@ -77,17 +70,21 @@ Profile::Profile(char *fname, double eps) {
     // read all values
     f = fopen(fname, "r");
     for(i = 0; i < n; i++) {
-      int res = fscanf(f, "%lf %lf", &x[i], &y[i]);
-      if (res !=0)
-          ERRORMSG("fscanf in profile.cpp has res!=0" << endl);
+        int res = fscanf(f, "%lf %lf", &x[i], &y[i]);
+        if (res !=0) {
+            std::string s(fname);
+            throw OpalException(
+                "Profile::Profile()",
+                "Cannot read profile mapping \"" + s + "\".");
+        }
     }
     fclose(f);
 
     // cut tails (if applicable)
-    m = fabs(m * eps);
+    m = std::fabs(m * eps);
     // cut start
     i0 = 0;
-    while((i0 < n) && (fabs(y[i0]) < m)) ++i0;
+    while((i0 < n) && (std::fabs(y[i0]) < m)) ++i0;
     if((i0 > 0) && (i0 < n)) {
         for(i = i0; i < n; i++) {
             x[i-i0] = x[i];
@@ -97,11 +94,11 @@ Profile::Profile(char *fname, double eps) {
     }
     // cut end
     i0 = n - 1;
-    while((i0 >= 0) && (fabs(y[i0]) < m)) --i0;
+    while((i0 >= 0) && (std::fabs(y[i0]) < m)) --i0;
     if((i0 < (n - 1)) && (i0 >= 0)) n = i0;
 
     create();
-} /* Profile::Profile() */
+}
 
 void Profile::create() {
     int
@@ -156,38 +153,34 @@ void Profile::create() {
     n = i;
 
     spline(&x[0], &y[0], n, &y2[0]);
-} /* Profile::create() */
+}
 
-double Profile::get(double xa, Interpol_type tp) {
+double Profile::get(double xa, Interpol_type /*tp*/) {
     double val = 0.0;
 
     if(x.empty()==false) {
-        if(xa < x[0]) val = 0.0;
-        else if(xa > x[n-1]) val = 0.0;
-        else switch(tp) {
-                case itype_lin :
-                    lsplint(&x[0], &y[0], &y2[0], n, xa, &val);
-                    break;
-                default :
-                    lsplint(&x[0], &y[0], &y2[0], n, xa, &val);
-                    break;
-            }
+        if ((xa >= x[0]) && (xa <= x[n-1])) {
+            val = lsplint(&x[0], &y[0], &y2[0], n, xa);
+        }
     }
     return (sf * val);
-} /* Profile::get() */
+}
 
 void Profile::normalize() {
-    if(yMax > 0.0) sf = 1.0 / yMax;
-    else if(yMin != 0.0) sf = 1.0 / fabs(yMin);
-    else sf = 1.0;
-} /* Profile:: normalize */
+    if(yMax > 0.0)
+        sf = 1.0 / yMax;
+    else if(yMin != 0.0)
+        sf = 1.0 / std::fabs(yMin);
+    else
+        sf = 1.0;
+}
 
 void Profile::scale(double v) {
     sf *= v;
 } /* Profile::scale() */
 
 double Profile::set(double f) {
-    double v = fabs(fabs(yMax) > fabs(yMin) ? yMax : yMin);
+    double v = std::fabs(std::fabs(yMax) > std::fabs(yMin) ? yMax : yMin);
 
     if(v > 0.0) sf = f / v;
     else sf = 1.0;
@@ -203,16 +196,18 @@ double Profile::getSF() {
     return sf;
 } /* Profile::getSF() */
 
-void Profile::dump(char *fname, double dx) {
+void Profile::dump(char fname[], double dx) {
     FILE *f;
 
     f = fopen(fname, "w");
-    if(f) {
-        dump(f, dx);
-        fclose(f);
-    } else {
-        std::cout << "Profile::Profile: Failed to create profile output:" << fname << std::endl;
+    if(!f) {
+        std::string s(fname);
+        throw OpalException(
+            "Profile::dump()",
+            "Cannot dump profile \"" + s + "\".");
     }
+    dump(f, dx);
+    fclose(f);
 }
 
 void Profile::dump(FILE *f, double dx) {
@@ -239,7 +234,7 @@ void Profile::dump(FILE *f, double dx) {
         xx = x[0] + dxx * i;
         fprintf(f, "%20.12le \t %20.12le\n", xx + dx, get(xx));
     }
-} /* Profile::dump() */
+}
 
 int Profile::getN() {
     return n;
@@ -264,26 +259,34 @@ double Profile::xMin() {
 double Profile::Leff() {
     double ym;
 
-    ym       = fabs((fabs(yMin) > fabs(yMax)) ? yMin : yMax);
+    ym       = std::fabs((std::fabs(yMin) > std::fabs(yMax)) ? yMin : yMax);
     cProfile = this;
     return ((x.empty() || (x[n-1] == x[0]) || (ym == 0.0)) ? 0.0 :
-            fabs(qromb(f1, x[0], x[n-1]) / ym));
+            std::fabs(qromb(f1, x[0], x[n-1]) / ym));
 }
 
 double Profile::Leff2() {
     double ym;
 
-    ym       = pow((fabs(yMin) > fabs(yMax)) ? yMin : yMax, 2);
+    ym       = std::pow((std::fabs(yMin) > std::fabs(yMax)) ? yMin : yMax, 2);
     cProfile = this;
     return ((x.empty() || (x[n-1] == x[0]) || (ym == 0.0)) ? 0.0 :
-            fabs(qromb(f2, x[0], x[n-1]) / ym));
+            std::fabs(qromb(f2, x[0], x[n-1]) / ym));
 }
 
 double Profile::Labs() {
     double ym;
 
-    ym       = fabs((fabs(yMin) > fabs(yMax)) ? yMin : yMax);
+    ym       = std::fabs((std::fabs(yMin) > std::fabs(yMax)) ? yMin : yMax);
     cProfile = this;
     return ((x.empty() || (x[n-1] == x[0]) || (ym == 0.0)) ? 0.0 :
-            fabs(qromb(f3, x[0], x[n-1]) / ym));
+            std::fabs(qromb(f3, x[0], x[n-1]) / ym));
 }
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c
+// c-basic-offset: 4
+// indent-tabs-mode: nil
+// require-final-newline: nil
+// End:
