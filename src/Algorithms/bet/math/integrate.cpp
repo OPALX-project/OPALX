@@ -10,8 +10,9 @@
 
 #include <cmath>
 
-#include "Algorithms/bet/math/integrate.h"
 #include "Utilities/OpalException.h"
+#include "Utility/IpplInfo.h"
+#include "Algorithms/bet/math/integrate.h"
 
 /* internal functions
    ====================================================================== */
@@ -76,9 +77,9 @@ static void polint (double xa[], double ya[], int n, double x, double &y, double
             auto w = c[i+1] - d[i];
             auto den = ho - hp; 
             if(den == 0.0) {
-                fprintf(stderr, "Polint: n=%d, i=%d\n", n, i);
+                ERRORMSG("Polint: n=" << n << "i=" << i << endl);
                 for(auto j = 0; j < n; j++)
-                    fprintf(stderr, "%5d %20.12e %20.12e\n", j, xa[j], ya[j]);
+                    ERRORMSG(j << " " << xa[j] << " " << ya[j] << endl);
                 throw OpalException(
                     "BetMath_integrate::polint()",
                     "singular point error.");
