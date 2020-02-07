@@ -17,7 +17,7 @@
 /* Internal functions
    ========================================================================= */
 
-/* spline()
+/*
    Given arrays x[0..n-1] and y[0..n-1] containing a tabulated function,
    i.e., yi = f(xi), with x1 < x2 < .. . < xN, this routine returns an
    array y2[0..n-1] that contains the second derivatives of the
@@ -28,6 +28,7 @@ void spline(double x[], double y[], int n, double y2[]) {
 
     std::vector<double> u(n - 1);
     y2[0] = u[0] = 0.0;
+    // :FIXME: why commented out? Impact of this change?
     //  y2[0] = -0.5;
     // u[0]=(3.0/(x[1]-x[0]))*((y[1]-y[0])/(x[1]-x[0]));
 
@@ -41,6 +42,7 @@ void spline(double x[], double y[], int n, double y2[]) {
 
     double qn = 0.0;
     double un = 0.0;
+    // :FIXME: why commented out?  Impact of this change?
     // qn=0.5;
     // un=(3.0/(x[n-1]-x[n-2]))*((y[n-1]-y[n-2])/(x[n-1]-x[n-2]));
 
@@ -49,7 +51,7 @@ void spline(double x[], double y[], int n, double y2[]) {
         y2[k] = y2[k] * y2[k+1] + u[k];
 }
 
-/* lsplint()
+/*
    Given the arrays xa[0..n-1] and ya[0..n-1], which tabulate a function
    (with the xa[i] in order), and given the array y2a[0..n-1], which
    is the output from spline above, and given a value of x, this routine

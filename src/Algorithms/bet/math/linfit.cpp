@@ -20,7 +20,7 @@
 #define EPS 3.0e-7
 #define FPMIN 1.0e-30
 
-/* gammln()
+/*
    Returns the ln-value of the gamma function ln[G(xx)] for xx > 0.
 */
 static double gammln(double xx) {
@@ -38,8 +38,7 @@ static double gammln(double xx) {
 }
 
 
-/* gcf()
-
+/*
    Returns the incomplete gamma function Q(a, x) evaluated by its
    continued fraction representation as gammcf. Also returns Gamma(a) as
    gln.
@@ -75,7 +74,8 @@ static double gcf(double a, double x) {
 }
 
 
-/* gser() Returns the incomplete gamma function P(a,x) evaluated by
+/* 
+   Returns the incomplete gamma function P(a,x) evaluated by
    its series representation as gamser.
 */
 static double gser(double a, double x) {
@@ -106,9 +106,9 @@ static double gser(double a, double x) {
     }
 }
 
-/* gammq()
-   Returns the incomplete gamma function Q(a, x) = 1 - P(a, x). */
-
+/*
+   Returns the incomplete gamma function Q(a, x) = 1 - P(a, x).
+*/
 static double gammq(double a, double x) {
 
     if(x < 0.0 || a <= 0.0) {
@@ -126,7 +126,8 @@ static double gammq(double a, double x) {
 /* external functions
    ========================================================================= */
 
-/* linfit() Given a set of data points x[0..ndata-1],y[0..ndata-1] with
+/* 
+   Given a set of data points x[0..ndata-1],y[0..ndata-1] with
    individual standard deviations sig[0..ndata-1], fit them to a
    straight line y = a + bx by minimizing chi2. Returned are a,b and
    their respective probable uncertainties siga and sigb, the
@@ -136,7 +137,6 @@ static double gammq(double a, double x) {
    returned as 1.0 and the normalization of chi2 is to unit standard
    deviation on all points.
 */
-
 void linfit(double x[], double y[], int ndata,
             double sig[], int mwt, double &a, double &b, double &siga,
             double &sigb, double &chi2, double &q) {
@@ -192,7 +192,7 @@ void linfit(double x[], double y[], int ndata,
     }
 }
 
-/* linfit()
+/*
    Given a set of data points x[0..ndata-1],y[0..ndata-1] with, fit
    them to a straight line y = a + bx by minimizing chi2. Returned are
    a,b and their respective probable uncertainties siga and sigb, and
