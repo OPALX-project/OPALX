@@ -9,15 +9,14 @@
 */
 
 #include <cmath>
-#include <algorithm>
 
-#include "Utilities/OpalException.h"
+#include "Utility/IpplInfo.h"
 #include "Algorithms/bet/math/rk.h"
 
 /* Internal functions
    ========================================================================= */
 
-/* rkck
+/*
    Given values for n variables y[0..n-1] and their derivatives dydx[0..n-1]
    known at x, use the fifth-order Cash-Karp Runge-Kutta method
    to advance the solution over an interval h and return the incremented
@@ -84,7 +83,7 @@ static void rkck (
 #define ERRCON 1.89e-4
 // The value ERRCON equals (5/SAFETY) raised to the power (1/PGROW), see use below.
 
-/* rkqs
+/*
    Fifth-order Runge-Kutta step with monitoring of local truncation error
    to ensure accuracy and adjust stepsize.
    Input are:
@@ -97,8 +96,6 @@ static void rkck (
    - the required accuracy eps
    - the vector yscal[0..n-1] against which the error is scaled.
 
-   RETURNS 1 on error and 0 otherwise
-
    On output, y and x are replaced by their new values,
    hdid is the stepsize that was actually accomplished,
    and hnext is the estimated next stepsize.
@@ -106,8 +103,7 @@ static void rkck (
    derivs is the user-supplied routine that computes the
    right-hand side derivatives.
 */
-
-static int rkqs
+static bool rkqs
 (
     double y[], double dydx[], int n, double &x, double htry, double eps,
     double yscal[], double &hdid, double &hnext,
@@ -123,7 +119,7 @@ static int rkqs
         rkck(y, dydx, n, x, h, ytemp, yerr, derivs);
         double errmax = 0.0;
         for(auto i = 0; i < n; i++)
-            errmax = std::max(errmax, fabs(yerr[i] / yscal[i]));
+            errmax = std::max(errmax, std::fabs(yerr[i] / yscal[i]));
         errmax /= eps;
         if(errmax > 1.0) {
             h = SAFETY * h * std::pow(errmax, PSHRNK);
@@ -131,9 +127,8 @@ static int rkqs
                 h *= 0.1;
             auto xnew = x + h;
             if(xnew == x) {
-                throw OpalException(
-                    "BetMath_rk::rkqs()",
-                    "stepsize underflow");
+                WARNMSG("BetMath_rk::rkqs(): stepsize underflow");
+                return false;
             }
             continue;
         } else {
@@ -147,14 +142,14 @@ static int rkqs
             break;
         }
     }
-    return 0;
+    return true;
 }
 
 
 /* External functions
    ========================================================================= */
 
-/* rk4()
+/*
    Given values for the variables y[0..n-1] use the fourth-order Runge-Kutta
    method to advance the solution over an interval h and return the
    incremented variables in y[0..n-1]. The user supplies the routine
@@ -187,14 +182,7 @@ void rk4(double y[], int n, double x, double h,
         y[i] += h6 * (dydx[i] + dyt[i] + 2.0 * dym[i]);
 }
 
-
-#define MAXSTP 10000
-#define TINY 1.0e-30
-
-#define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
-
-
-/* odeint
+/*
    Runge-Kutta driver with adaptive stepsize control.
 
    Integrate starting values ystart[0..nvar-1]
@@ -211,7 +199,10 @@ void rk4(double y[], int n, double x, double h,
 
    rkqs is the name of the stepper routine (see above).
 */
-int odeint(
+#define MAXSTP 10000
+#define TINY 1.0e-30
+
+bool odeint(
     double ystart[],  // initial condition
     int    nvar,      // number of equations
     double x1,
@@ -227,8 +218,8 @@ int odeint(
     double yscal[nvar];
     double y[nvar];
     double dydx[nvar];
-    double x = x1;
-    double h = SIGN(h1, x2 - x1);
+    auto x = x1;
+    auto h = ((x2-x1) >= 0.0 ? std::fabs(h1) : -std::fabs(h1));
     nok = nbad = 0;
     for(auto i = 0; i < nvar; i++)
         y[i] = ystart[i];
@@ -237,7 +228,8 @@ int odeint(
         for(auto i = 0; i < nvar; i++) {
             yscal[i] = fabs(y[i]) + fabs(dydx[i] * h) + TINY;
         }
-        if((x + h - x2) * (x + h - x1) > 0.0) h = x2 - x;
+        if((x + h - x2) * (x + h - x1) > 0.0)
+            h = x2 - x;
         double hdid, hnext;
         rkqs(y, dydx, nvar, x, h, eps, yscal, hdid, hnext, derivs);
         if(hdid == h)
@@ -247,19 +239,16 @@ int odeint(
         if((x - x2) * (x2 - x1) >= 0.0) {
             for(auto i = 0; i < nvar; i++)
                 ystart[i] = y[i];
-            return 0;
+            return true;
         }
         if(fabs(hnext) <= hmin) {
-            throw OpalException(
-                "BetMath_rk::odeint()",
-                "Step size too small.");
+            WARNMSG("BetMath_rk::odeint(): Step size too small.");
+            return false;
         }
         h = hnext;
     }
-    throw OpalException(
-        "BetMath_rk::odeint()",
-        "Too many steps in routine.");
-    return 1;
+    WARNMSG("BetMath_rk::odeint(): Too many steps in routine.");
+    return false;
 }
 
 // vi: set et ts=4 sw=4 sts=4:

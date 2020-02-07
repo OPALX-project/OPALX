@@ -10,7 +10,7 @@
 #ifndef _BET_RK_H
 #define _BET_RK_H
 
-/* rk4()
+/*
    Given values for the variables y[0..n-1] use the fourth-order Runge-Kutta
    method to advance the solution over an interval h and return the
    incremented variables in y[0..n-1]. The user supplies the routine
@@ -23,7 +23,7 @@ void rk4(
     double h,      // interval
     void (*derivs)(double, double [], double []));
 
-/* odeint
+/*
    Runge-Kutta driver with adaptive stepsize control.
 
    Integrate starting values ystart[0..nvar-1]
@@ -44,7 +44,7 @@ void rk4(
 
    rkqs is the name of the stepper routine (see above).
 */
-int odeint(
+bool odeint(
     double ystart[],  // initial condition
     int    nvar,      // number of equations
     double x1,        // start
