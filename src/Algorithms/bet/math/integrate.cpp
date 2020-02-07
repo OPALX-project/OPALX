@@ -18,7 +18,7 @@
 
 #define FUNC(x) ((*func)(x))
 
-/* tranzd()
+/* 
    This routine computes the nth stage of refinement of an extended
    trapezoidal rule. func is input as a pointer to the function to
    be integrated between limits a and b, also input. When called with
@@ -47,7 +47,7 @@ static double trapzd(double(*func)(double), double a, double b, int n) {
     return s;
 }
 
-/* polint
+/*
    Given arrays xa[1..n] and ya[1..n], and given a value x,
    this routine returns a value y, and an error estimate dy.
    If P(x) is the polynomial of degree N - 1 such that
@@ -99,7 +99,7 @@ static void polint (double xa[], double ya[], int n, double x, double &y, double
 #define JMAXP (JMAX+1)
 #define K 5
 
-/* qromb()
+/*
    Returns the integral of the function func from a to b.
    Integration is performed by Romberg's method of order 2K,
    where, e.g., K=2 is Simpson's rule.
