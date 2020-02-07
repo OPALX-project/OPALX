@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <string>
+#include <cstdio>
 
 #include "Algorithms/bet/math/interpol.h"
 #include "Algorithms/bet/math/integrate.h"
@@ -214,25 +215,25 @@ void Profile::dump(FILE *f, double dx) {
     int    i;
     double xx, dxx;
 
-    fprintf(f, "SDDS1\n");
-    fprintf(f, "&parameter name=n, type=long, fixed_value=%d &end\n", n);
-    fprintf(f, "&parameter name=sf, type=double, fixed_value=%20.12le &end\n", sf);
-    fprintf(f, "&column name=x,    type=double &end\n");
-    fprintf(f, "&column name=y,    type=double &end\n");
-    fprintf(f, "&data mode=ascii &end\n");
+    std::fprintf(f, "SDDS1\n");
+    std::fprintf(f, "&parameter name=n, type=long, fixed_value=%d &end\n", n);
+    std::fprintf(f, "&parameter name=sf, type=double, fixed_value=%20.12le &end\n", sf);
+    std::fprintf(f, "&column name=x,    type=double &end\n");
+    std::fprintf(f, "&column name=y,    type=double &end\n");
+    std::fprintf(f, "&data mode=ascii &end\n");
 
-    fprintf(f, "! next page\n");
-    fprintf(f, "  %d\n", n);
+    std::fprintf(f, "! next page\n");
+    std::fprintf(f, "  %d\n", n);
     for(i = 0; i < n; i++) {
-        fprintf(f, "%20.12le \t %20.12le\n", x[i] + dx, sf * y[i]);
+        std::fprintf(f, "%20.12le \t %20.12le\n", x[i] + dx, sf * y[i]);
     }
-    fprintf(f, "! next page\n");
-    fprintf(f, " %d\n", 10 * n);
+    std::fprintf(f, "! next page\n");
+    std::fprintf(f, " %d\n", 10 * n);
 
     dxx = (x[n-1] - x[0]) / (10 * n - 1);
     for(i = 0; i < 10 * n; i++) {
         xx = x[0] + dxx * i;
-        fprintf(f, "%20.12le \t %20.12le\n", xx + dx, get(xx));
+        std::fprintf(f, "%20.12le \t %20.12le\n", xx + dx, get(xx));
     }
 }
 
