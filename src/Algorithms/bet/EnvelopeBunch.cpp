@@ -1266,27 +1266,27 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
             // set default allowed error for integration
             double epsLocal = eps;
             // mark that the integration was not successful yet
-            int ode_result = 1;
+            bool ode_result = false;
 
-            while(ode_result == 1) {
+            while(ode_result == false) {
 
                 if(solver_m & sv_fixedStep) {
                     rk4(&(sp->p[SLI_z]), SLNPAR, t_m, time_step_s, Gderivs);
-                    ode_result = 0;
+                    ode_result = true;
                 } else {
                     int nok, nbad;
                     activeSlice_m = i;
                     ode_result = odeint(&(sp->p[SLI_z]), SLNPAR, t_m, t_m + time_step_s, epsLocal, 0.1 * time_step_s, 0.0, nok, nbad, Gderivs);
                 }
 
-                if(ode_result != 0) {
+                if(ode_result == false) {
                     // restore the backup
                     sp->restore();
                     epsLocal *= 10.0;
                 }
             }
-
-            if(ode_result == 1) {
+            // :FIXME: the above loop cannot exit with ode_result == false
+            if(ode_result == false) {
                 // use fixed step integration if dynamic fails
                 rk4(&(sp->p[SLI_z]), SLNPAR, t_m, time_step_s, Gderivs);
 
