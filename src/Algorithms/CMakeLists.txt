@@ -23,12 +23,9 @@ set (_SRCS
     bet/math/integrate.cpp
     bet/math/interpol.cpp
     bet/math/rk.cpp
-    bet/math/functions.cpp
     bet/math/linfit.cpp
     bet/math/root.cpp
     bet/math/savgol.cpp
-    bet/math/svdfit.cpp
-    bet/BetError.cpp
     )
 
 include_directories (
@@ -56,18 +53,15 @@ set (HDRS
     ThickMapper.h
     ThickTracker.h
     TransportMapper.h
-    bet/BetError.h
     bet/EnvelopeBunch.h
     bet/EnvelopeSlice.h
     bet/profile.h
-    bet/math/functions.h
     bet/math/integrate.h
     bet/math/interpol.h
     bet/math/linfit.h
     bet/math/rk.h
     bet/math/root.h
     bet/math/savgol.h
-    bet/math/svdfit.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")
