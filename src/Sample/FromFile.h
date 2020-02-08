@@ -114,6 +114,8 @@ public:
         return globalSize_m;
     }
 
+    ~FromFile() {}
+
 private:
     std::vector<double> chain_m;
     size_t mod_m;
