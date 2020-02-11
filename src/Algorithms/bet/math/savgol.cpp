@@ -21,9 +21,9 @@ typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
 {
     // the machine epsilon has to be scaled to the magnitude of the values used
     // and multiplied by the desired precision in ULPs (units in the last place)
-    return std::fabs(x-y) <= std::numeric_limits<T>::epsilon() * std::fabs(x+y) * ulp
+    return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
         // unless the result is subnormal
-        || std::fabs(x-y) < std::numeric_limits<T>::min();
+        || std::abs(x-y) < std::numeric_limits<T>::min();
 }
 
 /* internal functions
@@ -80,7 +80,7 @@ static void ludcmp(double **a, int n, int indx[], double &d) {
     for(auto i = 1; i <= n; i++) {
         double big = 0.0;
         for(auto j = 1; j <= n; j++) {
-            auto temp = std::fabs(a[i][j]);
+            auto temp = std::abs(a[i][j]);
             if(temp > big)
                 big = temp;
         }
@@ -105,7 +105,7 @@ static void ludcmp(double **a, int n, int indx[], double &d) {
             for(auto k = 1; k < j; k++)
                 sum -= a[i][k] * a[k][j];
             a[i][j] = sum;
-            auto temp = vv[i] * std::fabs(sum);
+            auto temp = vv[i] * std::abs(sum);
             if(temp >= big) {
                 big = temp;
                 imax = i;

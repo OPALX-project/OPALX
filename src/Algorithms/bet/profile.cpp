@@ -10,8 +10,10 @@
 #include <string>
 #include <cstdio>
 
-#include "Algorithms/bet/math/interpol.h"
-#include "Algorithms/bet/math/integrate.h"
+#include <gsl/gsl_integration.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+
 #include "Algorithms/bet/profile.h"
 #include "Utilities/OpalException.h"
 
@@ -19,16 +21,16 @@
 // -----------------------------------------
 static Profile *cProfile = NULL;
 
-static double f1(double x) {
+static double f1(double x, void*) {
     return (cProfile ? cProfile->get(x) : 0.0);
 }
 
-static double f2(double x) {
+static double f2(double x, void*) {
     return (cProfile ? std::pow(cProfile->get(x), 2) : 0.0);
 }
 
-static double f3(double x) {
-    return (cProfile ? std::fabs(cProfile->get(x)) : 0.0);
+static double f3(double x, void*) {
+    return (cProfile ? std::abs(cProfile->get(x)) : 0.0);
 }
 
 Profile::Profile(double v) {
@@ -59,7 +61,7 @@ Profile::Profile(char *fname, double eps) {
     i = 0;
     m = 0.0;
     while(fscanf(f, "%lf %lf", &a, &b) == 2) {
-        if(std::fabs(b) > m) m = std::fabs(b);
+        if(std::abs(b) > m) m = std::abs(b);
         ++i;
     }
     fclose(f);
@@ -82,10 +84,10 @@ Profile::Profile(char *fname, double eps) {
     fclose(f);
 
     // cut tails (if applicable)
-    m = std::fabs(m * eps);
+    m = std::abs(m * eps);
     // cut start
     i0 = 0;
-    while((i0 < n) && (std::fabs(y[i0]) < m)) ++i0;
+    while((i0 < n) && (std::abs(y[i0]) < m)) ++i0;
     if((i0 > 0) && (i0 < n)) {
         for(i = i0; i < n; i++) {
             x[i-i0] = x[i];
@@ -95,10 +97,15 @@ Profile::Profile(char *fname, double eps) {
     }
     // cut end
     i0 = n - 1;
-    while((i0 >= 0) && (std::fabs(y[i0]) < m)) --i0;
+    while((i0 >= 0) && (std::abs(y[i0]) < m)) --i0;
     if((i0 < (n - 1)) && (i0 >= 0)) n = i0;
 
     create();
+}
+
+Profile::~Profile() {
+    gsl_spline_free (spline);
+    gsl_interp_accel_free (acc);
 }
 
 void Profile::create() {
@@ -153,7 +160,9 @@ void Profile::create() {
     }
     n = i;
 
-    spline(&x[0], &y[0], n, &y2[0]);
+    acc = gsl_interp_accel_alloc ();
+    spline = gsl_spline_alloc (gsl_interp_cspline, n);
+    gsl_spline_init (spline, &x[0], &y[0], n);
 }
 
 double Profile::get(double xa, Interpol_type /*tp*/) {
@@ -161,7 +170,7 @@ double Profile::get(double xa, Interpol_type /*tp*/) {
 
     if(x.empty()==false) {
         if ((xa >= x[0]) && (xa <= x[n-1])) {
-            val = lsplint(&x[0], &y[0], &y2[0], n, xa);
+            val = gsl_spline_eval_deriv2 (spline, xa, acc);
         }
     }
     return (sf * val);
@@ -171,31 +180,31 @@ void Profile::normalize() {
     if(yMax > 0.0)
         sf = 1.0 / yMax;
     else if(yMin != 0.0)
-        sf = 1.0 / std::fabs(yMin);
+        sf = 1.0 / std::abs(yMin);
     else
         sf = 1.0;
 }
 
 void Profile::scale(double v) {
     sf *= v;
-} /* Profile::scale() */
+}
 
 double Profile::set(double f) {
-    double v = std::fabs(std::fabs(yMax) > std::fabs(yMin) ? yMax : yMin);
+    double v = std::abs(std::abs(yMax) > std::abs(yMin) ? yMax : yMin);
 
     if(v > 0.0) sf = f / v;
     else sf = 1.0;
 
     return sf;
-} /* Profile::set() */
+}
 
 void Profile::setSF(double value) {
     sf =  value;
-} /* Profile::setSF() */
+}
 
 double Profile::getSF() {
     return sf;
-} /* Profile::getSF() */
+}
 
 void Profile::dump(char fname[], double dx) {
     FILE *f;
@@ -260,28 +269,49 @@ double Profile::xMin() {
 double Profile::Leff() {
     double ym;
 
-    ym       = std::fabs((std::fabs(yMin) > std::fabs(yMax)) ? yMin : yMax);
+    ym       = std::abs((std::abs(yMin) > std::abs(yMax)) ? yMin : yMax);
     cProfile = this;
-    return ((x.empty() || (x[n-1] == x[0]) || (ym == 0.0)) ? 0.0 :
-            std::fabs(qromb(f1, x[0], x[n-1]) / ym));
+    double result = 0.0;
+    if (!x.empty() && (x[n-1] != x[0]) && (ym != 0.0)) {
+        gsl_function F = { &f1, NULL};
+        gsl_integration_romberg_workspace* w = gsl_integration_romberg_alloc (30);
+        size_t neval = 0;
+        gsl_integration_romberg (&F, x[0], x[n-1] / ym, 1.0e-4, 1000, &result, &neval, w);
+        gsl_integration_romberg_free (w);
+    }
+    return result;
 }
 
 double Profile::Leff2() {
     double ym;
 
-    ym       = std::pow((std::fabs(yMin) > std::fabs(yMax)) ? yMin : yMax, 2);
+    ym       = std::pow((std::abs(yMin) > std::abs(yMax)) ? yMin : yMax, 2);
     cProfile = this;
-    return ((x.empty() || (x[n-1] == x[0]) || (ym == 0.0)) ? 0.0 :
-            std::fabs(qromb(f2, x[0], x[n-1]) / ym));
+    double result = 0.0;
+    if (!x.empty() && (x[n-1] != x[0]) && (ym != 0.0)) {
+        gsl_function F = {&f2, NULL};
+        gsl_integration_romberg_workspace* w = gsl_integration_romberg_alloc (30);
+        size_t neval = 0;
+        gsl_integration_romberg (&F, x[0], x[n-1] / ym, 1.0e-4, 1000, &result, &neval, w);
+        gsl_integration_romberg_free (w);
+    }
+    return result;
 }
 
 double Profile::Labs() {
     double ym;
 
-    ym       = std::fabs((std::fabs(yMin) > std::fabs(yMax)) ? yMin : yMax);
+    ym       = std::abs((std::abs(yMin) > std::abs(yMax)) ? yMin : yMax);
     cProfile = this;
-    return ((x.empty() || (x[n-1] == x[0]) || (ym == 0.0)) ? 0.0 :
-            std::fabs(qromb(f3, x[0], x[n-1]) / ym));
+    double result = 0.0;
+    if (!x.empty() && (x[n-1] != x[0]) && (ym != 0.0)) {
+        gsl_function F = {&f3, NULL};
+        gsl_integration_romberg_workspace* w = gsl_integration_romberg_alloc (30);
+        size_t neval = 0;
+        gsl_integration_romberg (&F, x[0], x[n-1] / ym, 1.0e-4, 1000, &result, &neval, w);
+        gsl_integration_romberg_free (w);
+    }
+    return result;
 }
 
 // vi: set et ts=4 sw=4 sts=4:
