@@ -56,13 +56,13 @@ static double gcf(double a, double x) {
         auto an = -i * (i - a);
         b += 2.0;
         d = an * d + b;
-        if(std::fabs(d) < FPMIN) d = FPMIN;
+        if(std::abs(d) < FPMIN) d = FPMIN;
         c = b + an / c;
-        if(std::fabs(c) < FPMIN) c = FPMIN;
+        if(std::abs(c) < FPMIN) c = FPMIN;
         d = 1.0 / d;
         auto del = d * c;
         h *= del;
-        if(std::fabs(del - 1.0) < EPS) break;
+        if(std::abs(del - 1.0) < EPS) break;
         i++;
     }
     if(i > ITMAX) {
@@ -96,7 +96,7 @@ static double gser(double a, double x) {
             ++ap;
             del *= x / ap;
             sum += del;
-            if(std::fabs(del) < std::fabs(sum)*EPS) {
+            if(std::abs(del) < std::abs(sum)*EPS) {
                 return sum * exp(-x + a * log(x) - gln);
             }
         }

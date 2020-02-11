@@ -50,13 +50,13 @@ double findRoot(
         xh = x2;
     }
     auto rts = 0.5 * (x1 + x2);
-    auto dxold = std::fabs(x2 - x1);
+    auto dxold = std::abs(x2 - x1);
     dx = dxold;
     auto  f = 0.0;
     (*funcd)(rts, &f, &df);
     for(auto j = 1; j <= MAXIT; j++) {
         if((((rts - xh)*df - f) * ((rts - xl)*df - f) >= 0.0)
-           || (std::fabs(2.0 * f) > std::fabs(dxold * df))) {
+           || (std::abs(2.0 * f) > std::abs(dxold * df))) {
             dxold = dx;
             dx = 0.5 * (xh - xl);
             rts = xl + dx;
@@ -70,7 +70,7 @@ double findRoot(
             if(temp == rts)
                 return rts;
         }
-        if(std::fabs(dx) < xacc)
+        if(std::abs(dx) < xacc)
             return rts;
         (*funcd)(rts, &f, &df);
         if(f < 0.0)

@@ -20,8 +20,6 @@ set (_SRCS
     bet/EnvelopeSlice.cpp
     bet/EnvelopeBunch.cpp
     bet/profile.cpp
-    bet/math/integrate.cpp
-    bet/math/interpol.cpp
     bet/math/rk.cpp
     bet/math/linfit.cpp
     bet/math/root.cpp
@@ -56,8 +54,6 @@ set (HDRS
     bet/EnvelopeBunch.h
     bet/EnvelopeSlice.h
     bet/profile.h
-    bet/math/integrate.h
-    bet/math/interpol.h
     bet/math/linfit.h
     bet/math/rk.h
     bet/math/root.h

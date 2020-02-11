@@ -119,7 +119,7 @@ static bool rkqs
         rkck(y, dydx, n, x, h, ytemp, yerr, derivs);
         double errmax = 0.0;
         for(auto i = 0; i < n; i++)
-            errmax = std::max(errmax, std::fabs(yerr[i] / yscal[i]));
+            errmax = std::max(errmax, std::abs(yerr[i] / yscal[i]));
         errmax /= eps;
         if(errmax > 1.0) {
             h = SAFETY * h * std::pow(errmax, PSHRNK);
@@ -219,14 +219,14 @@ bool odeint(
     double y[nvar];
     double dydx[nvar];
     auto x = x1;
-    auto h = ((x2-x1) >= 0.0 ? std::fabs(h1) : -std::fabs(h1));
+    auto h = ((x2-x1) >= 0.0 ? std::abs(h1) : -std::abs(h1));
     nok = nbad = 0;
     for(auto i = 0; i < nvar; i++)
         y[i] = ystart[i];
     for(auto nstp = 0; nstp < MAXSTP; nstp++) {
         (*derivs)(x, y, dydx);
         for(auto i = 0; i < nvar; i++) {
-            yscal[i] = fabs(y[i]) + fabs(dydx[i] * h) + TINY;
+            yscal[i] = std::abs(y[i]) + std::abs(dydx[i] * h) + TINY;
         }
         if((x + h - x2) * (x + h - x1) > 0.0)
             h = x2 - x;
@@ -241,7 +241,7 @@ bool odeint(
                 ystart[i] = y[i];
             return true;
         }
-        if(fabs(hnext) <= hmin) {
+        if(std::abs(hnext) <= hmin) {
             WARNMSG("BetMath_rk::odeint(): Step size too small.");
             return false;
         }
