@@ -39,6 +39,8 @@ Profile::Profile(double v) {
     sf   = 1.0;
     yMin = v;
     yMax = v;
+    acc = nullptr;
+    spline = nullptr;
 }
 
 Profile::Profile(double *_x, double *_y, int _n) :
@@ -104,8 +106,12 @@ Profile::Profile(char *fname, double eps) {
 }
 
 Profile::~Profile() {
-    gsl_spline_free (spline);
-    gsl_interp_accel_free (acc);
+    if (spline != nullptr) {
+        gsl_spline_free (spline);
+    }
+    if (acc != nullptr) {
+        gsl_interp_accel_free (acc);
+    }
 }
 
 void Profile::create() {
