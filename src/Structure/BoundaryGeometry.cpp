@@ -860,7 +860,7 @@ BoundaryGeometry* BoundaryGeometry::find (const std::string& name) {
     return geom;
 }
 
-void BoundaryGeometry::updateElement (ElementBase* element) {
+void BoundaryGeometry::updateElement (ElementBase* /*element*/) {
 }
 
 int
@@ -2083,7 +2083,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
    non secondary emission version.
  */
 int BoundaryGeometry::emitSecondaryNone (
-    const Vector_t& intecoords,
+    const Vector_t& /*intecoords*/,
     const int& triId
     ) {
     short BGtag = TriBGphysicstag_m[triId];
