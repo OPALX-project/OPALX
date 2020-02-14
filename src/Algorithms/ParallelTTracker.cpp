@@ -995,7 +995,7 @@ void ParallelTTracker::prepareEmission() {
 
 }
 
-void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool statDump) {
+void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
     extern Inform *gmsg;
     Inform msg("OPAL ", *gmsg);
     Vector_t externalE, externalB;

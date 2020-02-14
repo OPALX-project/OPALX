@@ -513,7 +513,7 @@ void  Distribution::createPriPart(PartBunchBase<double, 3> *beam, BoundaryGeomet
     *gmsg << *beam << endl;
 }
 
-void Distribution::doRestartOpalT(PartBunchBase<double, 3> *beam, size_t Np, int restartStep, H5PartWrapper *dataSource) {
+void Distribution::doRestartOpalT(PartBunchBase<double, 3> *beam, size_t /*Np*/, int restartStep, H5PartWrapper *dataSource) {
 
     IpplTimings::startTimer(beam->distrReload_m);
 
@@ -549,8 +549,8 @@ void Distribution::doRestartOpalT(PartBunchBase<double, 3> *beam, size_t Np, int
 }
 
 void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
-                                     size_t Np,
-                                     int restartStep,
+                                     size_t /*Np*/,
+                                     int /*restartStep*/,
                                      const int specifiedNumBunch,
                                      H5PartWrapper *dataSource) {
 
@@ -629,7 +629,7 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
     IpplTimings::stopTimer(beam->distrReload_m);
 }
 
-void Distribution::doRestartOpalE(EnvelopeBunch *beam, size_t Np, int restartStep,
+void Distribution::doRestartOpalE(EnvelopeBunch *beam, size_t /*Np*/, int /*restartStep*/,
                                   H5PartWrapper *dataSource) {
     IpplTimings::startTimer(beam->distrReload_m);
     int N = dataSource->getNumParticles();
@@ -1096,7 +1096,7 @@ size_t Distribution::getNumberOfParticlesInFile(std::ifstream &inputFile) {
     return numberOfParticlesRead;
 }
 
-void Distribution::createDistributionFromFile(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, double massIneV) {
 
     *gmsg << level3 << "\n"
           << "------------------------------------------------------------------------------------\n";
@@ -1516,7 +1516,7 @@ void  Distribution::createBoundaryGeometry(PartBunchBase<double, 3> *beam, Bound
 
 void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
                                   size_t numberOfParticles,
-                                  double current, const Beamline &bl) {
+                                  double current, const Beamline &/*bl*/) {
 
     /*
      *  setup data for matched distribution generation
@@ -1583,9 +1583,9 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
 }
 
 void Distribution::createOpalE(Beam *beam,
-                               std::vector<Distribution *> addedDistributions,
+                               std::vector<Distribution *> /*addedDistributions*/,
                                EnvelopeBunch *envelopeBunch,
-                               double distCenter,
+                               double /*distCenter*/,
                                double Bz0) {
 
     IpplTimings::startTimer(envelopeBunch->distrCreate_m);
@@ -4321,7 +4321,7 @@ void Distribution::setupEnergyBins(double maxTOrZ, double minTOrZ) {
 
 }
 
-void Distribution::setupParticleBins(double massIneV, PartBunchBase<double, 3> *beam) {
+void Distribution::setupParticleBins(double /*massIneV*/, PartBunchBase<double, 3> *beam) {
 
     numberOfEnergyBins_m
         = static_cast<int>(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::NBIN])));
