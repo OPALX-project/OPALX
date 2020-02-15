@@ -19,10 +19,9 @@ extern Inform *gmsg;
 #endif
 
 
-int run_opal(char *arg[], std::string inputfile, int restartStep,
+int run_opal(char */*args*/[], std::string inputfile, int restartStep,
              int infoLevel, int warnLevel, MPI_Comm comm)
 {
-    (void)arg; // @FIXME@ can this argument be removed?
     std::string::size_type startExtension    = inputfile.find_last_of('.');
     std::string outputFileName = inputfile.substr(0,startExtension) + ".out";
     std::ofstream output(outputFileName.c_str());
