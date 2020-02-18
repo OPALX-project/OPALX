@@ -53,11 +53,11 @@ static double rootValue = 0.0;
 
 // used in setLShape for Gaussian
 static void erfRoot(double x, double *fn, double *df) {
-    double v = erfc(std::abs(x));
+    double v = std::erfc(std::abs(x));
     double eps = 1.0e-05;
 
     *fn = v - rootValue;
-    *df = (erfc(std::abs(x) + eps) - v) / eps;
+    *df = (std::erfc(std::abs(x) + eps) - v) / eps;
 }
 
 
