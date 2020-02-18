@@ -282,8 +282,9 @@ double Profile::Leff() {
         gsl_function F = { &f1, NULL};
         gsl_integration_romberg_workspace* w = gsl_integration_romberg_alloc (30);
         size_t neval = 0;
-        gsl_integration_romberg (&F, x[0], x[n-1] / ym, 1.0e-4, 1000, &result, &neval, w);
+        gsl_integration_romberg (&F, x[0], x[n-1], 1.0e-4, 1000, &result, &neval, w);
         gsl_integration_romberg_free (w);
+        result /= ym;
     }
     return result;
 }
@@ -298,8 +299,9 @@ double Profile::Leff2() {
         gsl_function F = {&f2, NULL};
         gsl_integration_romberg_workspace* w = gsl_integration_romberg_alloc (30);
         size_t neval = 0;
-        gsl_integration_romberg (&F, x[0], x[n-1] / ym, 1.0e-4, 1000, &result, &neval, w);
+        gsl_integration_romberg (&F, x[0], x[n-1], 1.0e-4, 1000, &result, &neval, w);
         gsl_integration_romberg_free (w);
+        result /= ym;
     }
     return result;
 }
@@ -314,8 +316,9 @@ double Profile::Labs() {
         gsl_function F = {&f3, NULL};
         gsl_integration_romberg_workspace* w = gsl_integration_romberg_alloc (30);
         size_t neval = 0;
-        gsl_integration_romberg (&F, x[0], x[n-1] / ym, 1.0e-4, 1000, &result, &neval, w);
+        gsl_integration_romberg (&F, x[0], x[n-1], 1.0e-4, 1000, &result, &neval, w);
         gsl_integration_romberg_free (w);
+        result /= ym;
     }
     return result;
 }
