@@ -121,18 +121,13 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     std::string tmplFile = tmplDir + "/" + simulationName_ + ".tmpl";
     // data file is assumed to be located in the root directory
     std::string dataFile = simulationName_ + ".data";
-    fs::path pwd = fs::current_path();
-    if (!fs::exists(dataFile))
-        throw OptPilotException("OpalSimulation::OpalSimulation",
-                                "The data file '" + dataFile + "' \n" +
-                                "     doesn't exist in directory '" + pwd.native() + "'");
 
     if (!fs::exists(tmplFile))
         throw OptPilotException("OpalSimulation::OpalSimulation",
                                 "The template file '" + tmplFile + "' doesn't exit");
 
     for (const auto& uvar : userVariables_) {
-        uvars.insert({uvar.first, uvar.second});
+        uvars.insert(std::pair<std::string, std::string>(uvar.first, uvar.second));
     }
 
     gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, uvars));

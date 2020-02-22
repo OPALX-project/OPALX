@@ -752,7 +752,7 @@ std::map<std::string, std::string> OpalData::getVariableData() {
     std::vector<std::string> uvars = this->getVariableNames();
     for (auto& uvar : uvars) {
         RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
-        udata.insert({uvar, variable.value().getBase().getImage()});
+        udata[uvar] = std::to_string(variable.getReal());
     }
     return udata;
 }
