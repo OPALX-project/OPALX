@@ -153,7 +153,6 @@ public:
 
     std::map<std::string, std::string> getVariableData();
     std::vector<std::string> getVariableNames();
-    std::vector<std::string> getAllNames();
 
     bool isInOPALCyclMode();
     bool isInOPALTMode();

@@ -751,8 +751,18 @@ std::map<std::string, std::string> OpalData::getVariableData() {
     std::map<std::string, std::string> udata;
     std::vector<std::string> uvars = this->getVariableNames();
     for (auto& uvar : uvars) {
-        RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
-        udata[uvar] = std::to_string(variable.getReal());
+        Object *tmpObject = OpalData::getInstance()->find(uvar);
+        if (dynamic_cast<RealVariable *>(&*tmpObject)) {
+            RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
+            udata[uvar] = std::to_string(variable.getReal());
+        } else if (dynamic_cast<StringConstant*>(&*tmpObject)) {
+            StringConstant &variable = *dynamic_cast<StringConstant *>(OpalData::getInstance()->find(uvar));
+            udata[uvar] = variable.getString();
+        } else {
+            throw OpalException("OpalData::getVariableData()",
+                                "Type of '" + uvar + "' not supported. "
+                                "Only support for REAL and STRING.");
+        }
     }
     return udata;
 }
@@ -768,37 +778,10 @@ std::vector<std::string> OpalData::getVariableNames() {
             if (!tmpObject || tmpObject->isBuiltin())
                 continue;
             if (tmpObject->getCategory() == "VARIABLE") {
-                if (dynamic_cast<RealVariable *>(&*tmpObject)) {
-                    result.push_back(tmpName);
-                }
+                result.push_back(tmpName);
             }
         }
     }
-    return result;
-}
-
-std::vector<std::string> OpalData::getAllNames() {
-    std::vector<std::string> result;
-
-    for(ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); ++index) {
-        std::string tmpName = (*index).first;
-        if(!tmpName.empty()) result.push_back(tmpName);
-    }
-
-    // DTA
-    std::cout << "\nUser-defined variables:\n";
-    std::vector<std::string> uvars = this->getVariableNames();
-    for (auto& uvar : uvars) {
-        std::cout << uvar;
-        RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
-        std::cout << "\te= " << variable.value().getBase().getImage();
-        std::cout << "\tr= " << variable.getReal();
-        std::cout << "\ta= " << variable.itsAttr[0];
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-
     return result;
 }
 
