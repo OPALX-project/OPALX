@@ -746,6 +746,26 @@ void OpalData::update() {
     }
 }
 
+std::vector<std::string> OpalData::getVariableNames() {
+    std::vector<std::string> result;
+
+    for(ObjectDir::const_iterator index = p->mainDirectory.begin();
+        index != p->mainDirectory.end(); ++index) {
+        std::string tmpName = (*index).first;
+        if (!tmpName.empty()) {
+            Object *tmpObject = OpalData::getInstance()->find(tmpName);
+            if (!tmpObject || tmpObject->isBuiltin())
+                continue;
+            if (tmpObject->getCategory() == "VARIABLE") {
+                if (dynamic_cast<RealVariable *>(&*tmpObject)) {
+                    result.push_back(tmpName);
+                }
+            }
+        }
+    }
+    return result;
+}
+
 std::vector<std::string> OpalData::getAllNames() {
     std::vector<std::string> result;
 
@@ -753,64 +773,20 @@ std::vector<std::string> OpalData::getAllNames() {
         index != p->mainDirectory.end(); ++index) {
         std::string tmpName = (*index).first;
         if(!tmpName.empty()) result.push_back(tmpName);
-        //// DTA
-        //if (!tmpName.empty()) {
-        //  Object *tmpObject = OPAL.find(tmpName);
-        //  std::cerr << tmpObject->getCategory() << "\t" << tmpName << "\t";
-        //  string bi = (tmpObject->isBuiltin()) ? "BUILT-IN" : "";
-        //  std::cerr << bi << std::endl;
-        //}
-        //// /DTA
     }
 
     // DTA
     std::cout << "\nUser-defined variables:\n";
-    const OpalParser mp;
-    // FileStream *is;
-    // is = new FileStream("/home/research/dabell/projects/opal9/src/tmp/myExpr.txt");
-    // StringStream *ss;
-    // ss = new StringStream("myVar:=ALPHA+BETA;");
-    for(ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); ++index) {
-        std::string tmpName = (*index).first;
-        if(!tmpName.empty()) {
-            Object *tmpObject = OpalData::getInstance()->find(tmpName);
-            if(!tmpObject || tmpObject->isBuiltin()) continue;
-            if(tmpObject->getCategory() == "VARIABLE") {
-                std::cout << tmpName;
-                if(dynamic_cast<RealVariable *>(&*tmpObject)) {
-                    RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(tmpName));
-                    std::cout << "\te= " << variable.value().getBase().getImage();
-                    std::cout << "\tr= " << variable.getReal();
-                    std::cout << "\ta= " << variable.itsAttr[0];
-                    //Attributes::setReal(variable.itsAttr[0],137.);
-                    //std::cout << "\te= " << variable.value().getBase().getImage();
-                    //std::cout << "\tx= " << variable.itsAttr[0];
-                }
-                std::cout << std::endl;
-            }
-            //    if(tmpName=="MYL"){
-            //      std::cout << "myL noted" << std::endl;
-            //      RealVariable& variable = *dynamic_cast<RealVariable*>(OPAL.find(tmpName));
-            //      std::cout << tmpName;
-            //      std::cout << "\te= " << variable.value().getBase().getImage();
-            //      std::cout << "\tr= " << variable.getReal();
-            //      std::cout << "\ta= " << variable.itsAttr[0] << std::endl;
-            //      mp.run(is);
-            //      std::cout << tmpName;
-            //      std::cout << "\te= " << variable.value().getBase().getImage();
-            //      std::cout << "\tr= " << variable.getReal();
-            //      std::cout << "\ta= " << variable.itsAttr[0] << std::endl;
-            //      mp.run(ss);
-            //    }
-        }
+    std::vector<std::string> userVars = this->getVariableNames();
+    for (auto& uvar : userVars) {
+        std::cout << uvar;
+        RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
+        std::cout << "\te= " << variable.value().getBase().getImage();
+        std::cout << "\tr= " << variable.getReal();
+        std::cout << "\ta= " << variable.itsAttr[0];
+        std::cout << std::endl;
     }
     std::cout << std::endl;
-    ////TxAttributeSet data(variableName);
-    ////const RealVariable& var = *dynamic_cast<RealVariable*>(OPAL.find(variableName));
-    ////data.appendString("expression",variable.value().getBase().getImage());
-    ////data.appendParam("value",variable.getReal());
-    //// /DTA
 
     return result;
 }
