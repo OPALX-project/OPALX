@@ -746,6 +746,17 @@ void OpalData::update() {
     }
 }
 
+
+std::map<std::string, std::string> OpalData::getVariableData() {
+    std::map<std::string, std::string> udata;
+    std::vector<std::string> uvars = this->getVariableNames();
+    for (auto& uvar : uvars) {
+        RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
+        udata.insert({uvar, variable.value().getBase().getImage()});
+    }
+    return udata;
+}
+
 std::vector<std::string> OpalData::getVariableNames() {
     std::vector<std::string> result;
 
@@ -777,8 +788,8 @@ std::vector<std::string> OpalData::getAllNames() {
 
     // DTA
     std::cout << "\nUser-defined variables:\n";
-    std::vector<std::string> userVars = this->getVariableNames();
-    for (auto& uvar : userVars) {
+    std::vector<std::string> uvars = this->getVariableNames();
+    for (auto& uvar : uvars) {
         std::cout << uvar;
         RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
         std::cout << "\te= " << variable.value().getBase().getImage();

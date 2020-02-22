@@ -151,7 +151,7 @@ public:
         virtual void operator()(Object *) const;
     };
 
-
+    std::map<std::string, std::string> getVariableData();
     std::vector<std::string> getVariableNames();
     std::vector<std::string> getAllNames();
 

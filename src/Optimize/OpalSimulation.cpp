@@ -40,7 +40,8 @@
 OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                                Expressions::Named_t constraints,
                                Param_t params, std::string name,
-                               MPI_Comm comm, CmdArguments_t args)
+                               MPI_Comm comm, CmdArguments_t args,
+                               std::map<std::string, std::string> uvars)
                : Simulation(args)
                , objectives_(objectives)
                , constraints_(constraints)
@@ -130,7 +131,11 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
         throw OptPilotException("OpalSimulation::OpalSimulation",
                                 "The template file '" + tmplFile + "' doesn't exit");
 
-    gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, userVariables_));
+    for (const auto& uvar : userVariables_) {
+        uvars.insert({uvar.first, uvar.second});
+    }
+
+    gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, uvars));
 }
 
 
