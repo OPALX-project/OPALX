@@ -752,12 +752,12 @@ std::map<std::string, std::string> OpalData::getVariableData() {
     std::vector<std::string> uvars = this->getVariableNames();
     for (auto& uvar : uvars) {
         Object *tmpObject = OpalData::getInstance()->find(uvar);
-        if (dynamic_cast<RealVariable *>(&*tmpObject)) {
-            RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(uvar));
-            udata[uvar] = std::to_string(variable.getReal());
-        } else if (dynamic_cast<StringConstant*>(&*tmpObject)) {
-            StringConstant &variable = *dynamic_cast<StringConstant *>(OpalData::getInstance()->find(uvar));
-            udata[uvar] = variable.getString();
+        if (dynamic_cast<RealVariable*>(tmpObject)) {
+            RealVariable* variable = dynamic_cast<RealVariable*>(OpalData::getInstance()->find(uvar));
+            udata[uvar] = std::to_string(variable->getReal());
+        } else if (dynamic_cast<StringConstant*>(tmpObject)) {
+            StringConstant* variable = dynamic_cast<StringConstant*>(OpalData::getInstance()->find(uvar));
+            udata[uvar] = variable->getString();
         } else {
             throw OpalException("OpalData::getVariableData()",
                                 "Type of '" + uvar + "' not supported. "
@@ -775,10 +775,12 @@ std::vector<std::string> OpalData::getVariableNames() {
         std::string tmpName = (*index).first;
         if (!tmpName.empty()) {
             Object *tmpObject = OpalData::getInstance()->find(tmpName);
-            if (!tmpObject || tmpObject->isBuiltin())
-                continue;
-            if (tmpObject->getCategory() == "VARIABLE") {
-                result.push_back(tmpName);
+            if (tmpObject) {
+                if (!tmpObject || tmpObject->isBuiltin())
+                    continue;
+                if (tmpObject->getCategory() == "VARIABLE") {
+                    result.push_back(tmpName);
+                }
             }
         }
     }
