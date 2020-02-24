@@ -127,7 +127,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
                                 "The template file '" + tmplFile + "' doesn't exit");
 
     for (const auto& uvar : userVariables_) {
-        uvars.insert(std::pair<std::string, std::string>(uvar.first, uvar.second));
+        uvars[uvar.first] = uvar.second;
     }
 
     gs_.reset(new GenerateOpalSimulation(tmplFile, dataFile, uvars));
