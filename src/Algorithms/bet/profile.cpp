@@ -174,10 +174,35 @@ void Profile::create() {
 double Profile::get(double xa, Interpol_type /*tp*/) {
     double val = 0.0;
 
-    if(x.empty()==false) {
-        if ((xa >= x[0]) && (xa <= x[n-1])) {
-            val = gsl_spline_eval_deriv2 (spline, xa, acc);
+    if (x.empty() || xa < x[0] || xa > x[n-1]) {
+        return 0.0;
+    }
+    /*
+      natural cubic spline interpolation.
+      The interpolated value is limited between the y-values
+      of the adjacent points.
+    */
+    val = gsl_spline_eval (spline, xa, acc);
+    size_t low = 0;
+    size_t high = n - 1;
+    while (high - low > 1) {
+        size_t k = (low + high) >> 1;
+        if (x[k] > xa) {
+            high = k;
+        } else {
+            low = k;
         }
+    }
+    double y_min = y[low];
+    double y_max = y[high];
+    if (y_min > y_max) {
+        y_min = y[high];
+        y_max = y[low];
+    }
+    if (val < y_min) {
+        val = y_min;
+    } else if (val > y_max) {
+        val = y_max;
     }
     return (sf * val);
 }
