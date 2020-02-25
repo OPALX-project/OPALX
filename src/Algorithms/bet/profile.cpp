@@ -193,16 +193,11 @@ double Profile::get(double xa, Interpol_type /*tp*/) {
             low = k;
         }
     }
-    double y_min = y[low];
-    double y_max = y[high];
-    if (y_min > y_max) {
-        y_min = y[high];
-        y_max = y[low];
-    }
-    if (val < y_min) {
-        val = y_min;
-    } else if (val > y_max) {
-        val = y_max;
+    std::pair<double, double> y_minmax = std::minmax({y[low], y[high]});
+    if (val < y_minmax.first) {
+        val = y_minmax.first;
+    } else if (val > y_minmax.second) {
+        val = y_minmax.second;
     }
     return (sf * val);
 }
