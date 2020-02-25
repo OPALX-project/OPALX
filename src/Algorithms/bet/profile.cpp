@@ -9,6 +9,7 @@
 #include <cmath>
 #include <string>
 #include <cstdio>
+#include <algorithm>
 
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
@@ -193,11 +194,12 @@ double Profile::get(double xa, Interpol_type /*tp*/) {
             low = k;
         }
     }
-    std::pair<double, double> y_minmax = std::minmax({y[low], y[high]});
-    if (val < y_minmax.first) {
-        val = y_minmax.first;
-    } else if (val > y_minmax.second) {
-        val = y_minmax.second;
+    double y_min = std::min (y[low], y[high]);
+    double y_max = std::max (y[low], y[high]);
+    if (val < y_min) {
+        val = y_min;
+    } else if (val > y_max) {
+        val = y_max;
     }
     return (sf * val);
 }
