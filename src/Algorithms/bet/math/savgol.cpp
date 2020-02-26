@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 #include "Utilities/OpalException.h"
 #include "Algorithms/bet/math/savgol.h"
