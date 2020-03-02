@@ -130,7 +130,7 @@ void BoxCornerDomain::compute(Vector_t hr){
     */
 }
 
-void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> localId){
+void BoxCornerDomain::compute(Vector_t /*hr*/, NDIndex<3> /*localId*/){
 }
 
 void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
