@@ -75,7 +75,7 @@ public:
 
 
     /// we do not need this
-    int getNumXY(int z) { return -1;}
+    int getNumXY(int /*z*/) { return -1;}
 
 
     /// as a function of z, determine the hight (B) of the geometry
@@ -179,7 +179,7 @@ private:
 
 
 
-    inline double getXIntersection(double cx, int z) {
+    inline double getXIntersection(double cx, int /*z*/) {
         if(cx < 0)
             return -A_m;
         else
