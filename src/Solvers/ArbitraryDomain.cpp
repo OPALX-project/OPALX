@@ -1,16 +1,15 @@
-// ------------------------------------------------------------------------
-// $Version: 1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright & License: See Copyright.readme in src directory
-// ------------------------------------------------------------------------
+//
 // Class ArbitraryDomain
 //   Interface to iterative solver and boundary geometry
 //   for space charge calculation
 //
-// ------------------------------------------------------------------------
-// $Author: kaman $
-// $Date: 2014 $
-// ------------------------------------------------------------------------
+// Copyright (c) 2008-2020
+// Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// OPAL is licensed under GNU GPL version 3.
+//
+
 //#define DEBUG_INTERSECT_RAY_BOUNDARY
 
 #include "Solvers/ArbitraryDomain.h"
