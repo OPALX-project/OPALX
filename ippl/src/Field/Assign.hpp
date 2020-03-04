@@ -94,7 +94,7 @@ TryCompressLHS(LField<T,Dim>& lf, A& rhs, Op op, const NDIndex<Dim>& domain)
   // is for assignment.
   if (c1 && c3 && c4)
     {
-      T tmpval = T(0);
+      T tmpval{};
       PETE_apply(op, tmpval, for_each(rhs, EvalFunctor_0()));
       if (*lf.begin() == tmpval)
 	{
