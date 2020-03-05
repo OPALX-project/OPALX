@@ -69,7 +69,7 @@ void Value::execute() {
     //  *gmsg.precision(old_prec);
 }
 
-
 void Value::parse(Statement &statement) {
-    parseShortcut(statement);
+    // parse, but don't evaluate (for printing mainly)
+    parseShortcut(statement, false);
 }
