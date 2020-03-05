@@ -54,7 +54,7 @@ Value *Value::clone(const std::string &name) {
 
 
 void Value::execute() {
-    *gmsg << "\nvalue: " << itsAttr[0] << "={";
+    *gmsg << "\nvalue: " << itsAttr[0] << " = {";
     //  std::streamsize old_prec = *gmsg.precision(12);
     const std::vector<double> array = Attributes::getRealArray(itsAttr[0]);
     std::vector<double>::const_iterator i = array.begin();
@@ -62,7 +62,7 @@ void Value::execute() {
     while(i != array.end()) {
         *gmsg << *i++;
         if(i == array.end()) break;
-        *gmsg << ",";
+        *gmsg << ", ";
     }
 
     *gmsg << "}\n" << endl;
