@@ -112,7 +112,7 @@ public:
     //  This parser allows to use unnamed attributes for command which
     //  have only one attribute.
     //  If [b]eval[/b] is false, then the attribute is not evaluated immediately
-    //  even if it the delimiter is ``=''.
+    //  even if the delimiter is ``=''.
     virtual void parseShortcut(Statement &, bool eval = true);
 
     /// Print the object.
