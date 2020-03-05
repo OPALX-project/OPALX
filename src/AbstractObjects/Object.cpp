@@ -129,7 +129,7 @@ void Object::parse(Statement &stat) {
 }
 
 
-void Object::parseShortcut(Statement &stat) {
+void Object::parseShortcut(Statement &stat, bool eval) {
     // Only one attribute.
     if(stat.delimiter(',')) {
         stat.mark();
@@ -138,7 +138,7 @@ void Object::parseShortcut(Statement &stat) {
         if(stat.word(name)) {
             if(stat.delimiter('=')) {
                 if(Attribute *attr = findAttribute(name)) {
-                    attr->parse(stat, true);
+                    attr->parse(stat, eval);
                     return;
                 } else {
                     throw ParseError("Object::parse()", "Object \"" + getOpalName() +

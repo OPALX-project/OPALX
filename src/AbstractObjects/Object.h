@@ -111,7 +111,9 @@ public:
     /// Parser for single-attribute commands.
     //  This parser allows to use unnamed attributes for command which
     //  have only one attribute.
-    virtual void parseShortcut(Statement &);
+    //  If [b]eval[/b] is false, then the attribute is not evaluated immediately
+    //  even if it the delimiter is ``=''.
+    virtual void parseShortcut(Statement &, bool eval = true);
 
     /// Print the object.
     //  Print a OPAL-readable image of [b]this[/b] on the given output stream.
