@@ -17,9 +17,12 @@
 // ------------------------------------------------------------------------
 
 #include "BasicActions/Value.h"
+
 #include "Attributes/Attributes.h"
-#include <iomanip>
-#include <iostream>
+#include "Parser/Statement.h"
+#include "Utility/Inform.h"
+
+#include <string>
 #include <vector>
 
 

@@ -212,7 +212,7 @@ public:
 
     void registerOwnership(const AttributeHandler::OwnerType &itsClass) const;
 
-    /// The object attributes (see Attribute.hh).
+    /// The object attributes.
     std::vector<Attribute> itsAttr;
 
 protected:
