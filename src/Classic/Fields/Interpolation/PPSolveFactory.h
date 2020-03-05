@@ -61,6 +61,8 @@ class PolynomialPatch;
  *  The PPSolveFactory sits on top of SolveFactory; PPSolveFactory has the job
  *  of picking values and derivatives for fitting, SolveFactory then does the
  *  actual solve for each individual polynomial.
+ *
+ *  There is a short note with some maths in attached to OPAL issue #439.
  */
 class PPSolveFactory {
   public:
@@ -73,14 +75,16 @@ class PPSolveFactory {
      *  \param values Set of values to which we fit. Must be one value per mesh
      *                point and each value must have the same size.
      *  \param polyPatchOrder The order of the fitted part of the polynomial.
+     *                This must be greater than 0 so that the fitted part at
+     *                least matches values at adjacent mesh points.
      *  \param smoothingOrder The total order of the fitted and the smoothed
-     *                 part of the polynomial. Smoothing order should always be
-     *                 >= polyPatchOrder. So for example if polyPatchOrder
-     *                 is 2 and smoothing order is 2, we get a 2nd order
-     *                 function with no derivative matching. If polyPatchOrder
-     *                 is 2 and smoothing order is 3, we get a 3rd order
-     *                 function with derivative matching in first order at two
-     *                 mesh points from the centre.
+     *                part of the polynomial. Smoothing order should always be
+     *                >= polyPatchOrder. So for example if polyPatchOrder
+     *                is 2 and smoothing order is 2, we get a 2nd order
+     *                function with no derivative matching. If polyPatchOrder
+     *                is 2 and smoothing order is 3, we get a 3rd order
+     *                function with derivative matching in first order at two
+     *                mesh points from the centre.
      */
     PPSolveFactory(Mesh* points,
                    std::vector<std::vector<double> > values,
@@ -121,10 +125,8 @@ class PPSolveFactory {
     void getValues(Mesh::Iterator it);
     void getDerivPoints();
     void getDerivs(Mesh::Iterator it);
+    void getDerivPolyVec();
 
-    // nothing calls this method but I don't quite field brave enought to remove
-    // it...
-    std::vector<double> outOfBoundsPosition(Mesh::Iterator outOfBoundsIt);
     static void nearbyPointsRecursive(
                                 std::vector<int> check,
                                 size_t checkIndex,
@@ -147,13 +149,11 @@ class PPSolveFactory {
     std::vector< std::vector<double> > thisValues_m;
     std::vector< std::vector<double> > derivPoints_m;
     std::vector< std::vector<double> > derivValues_m;
-    std::vector< std::vector<int> > derivOrigins_m;
+
+    std::vector< Mesh::Iterator > derivIterator_m;
     std::vector< std::vector<int> > derivIndices_m;
     std::vector< MVector<double> > derivPolyVec_m;
     std::vector<int> derivIndexByPower_m;
-
-    std::vector<std::vector<std::vector<int> > > edgePoints_m;
-    std::vector< std::vector<int> > smoothingPoints_m;
 
 };
 

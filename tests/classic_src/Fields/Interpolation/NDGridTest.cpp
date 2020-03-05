@@ -323,4 +323,9 @@ TEST_F(NDGridTest, DualTest) {
     }
 }
 
+TEST_F(NDGridTest, IsOutOfBoundsTest) {
+    // nb isOutOfBounds is defined in Mesh.hh (but tested here for convenience
+    EXPECT_TRUE(false) << "Do the test" << std::endl;
+}
+
 } // namespace ndgridtest

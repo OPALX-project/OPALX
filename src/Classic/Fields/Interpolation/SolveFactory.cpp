@@ -25,6 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sstream>
+
 #include <gsl/gsl_sf_pow_int.h>
 
 #include "Utilities/GeneralClassicException.h"
@@ -34,19 +36,23 @@
 
 namespace interpolation {
 
-SolveFactory::SolveFactory(int polynomial_order,
-                           int smoothing_order,
+SolveFactory::SolveFactory(int smoothing_order,
                            int point_dim,
                            int value_dim,
                            std::vector< std::vector<double> > positions,
                            std::vector< std::vector<double> > deriv_positions,
-                           std::vector< std::vector<int> >& deriv_indices)
-// :FIXME: unused!
-// : polynomial_order_(polynomial_order), smoothing_order_(smoothing_order)
-{
+                           std::vector< std::vector<int> >& deriv_indices) {
     n_poly_coeffs_ = SquarePolynomialVector::NumberOfPolynomialCoefficients(point_dim, smoothing_order);
     square_points_ = PPSolveFactory::getNearbyPointsSquares(point_dim, -1, smoothing_order);
-    square_deriv_nearby_points_ = PPSolveFactory::getNearbyPointsSquares(point_dim, -1, smoothing_order);
+    if (positions.size() + deriv_positions.size() - n_poly_coeffs_ != 0) {
+        std::stringstream ss;
+        ss << "Total size of positions and deriv_positions ("
+           << positions.size() << "+" << deriv_positions.size() << ") should be "
+           << n_poly_coeffs_;
+        throw GeneralClassicException(
+                          "SolveFactory::SolveFactory",
+                          ss.str());
+    }
     BuildHInvMatrix(positions, deriv_positions, deriv_indices);
     MMatrix<double> A_temp(value_dim, n_poly_coeffs_, 0.);
     square_temp_ = SquarePolynomialVector(point_dim, A_temp);
@@ -60,10 +66,11 @@ void SolveFactory::BuildHInvMatrix(
     h_inv_ = MMatrix<double>(n_poly_coeffs_, n_poly_coeffs_, 0.);
     for (int i = 0; i < nCoeffs; ++i) {
         std::vector<double> poly_vec = MakeSquareVector(positions[i]);
-        for (int j = 0; j < n_poly_coeffs_; ++j) {
+        for (int j = 0; j < int(poly_vec.size()); ++j) {
             h_inv_(i+1, j+1) = poly_vec[j];
         }
     }
+
     for (size_t i = 0; i < deriv_positions.size(); ++i) {
         std::vector<double> deriv_vec = MakeSquareDerivVector(deriv_positions[i],
                                                               deriv_indices[i]);
@@ -84,22 +91,30 @@ std::vector<double> SolveFactory::MakeSquareVector(std::vector<double> x) {
     return square_vector;
 }
 
-std::vector<double> SolveFactory::MakeSquareDerivVector(std::vector<double> positions, std::vector<int> deriv_indices) {
-    std::vector<double> deriv_vec(square_deriv_nearby_points_.size(), 1.);
-    int square_deriv_nearby_points_size = square_deriv_nearby_points_.size();
-    int dim = square_deriv_nearby_points_[0].size();
-    for (int i = 0; i < square_deriv_nearby_points_size; ++i) {
+std::vector<double> SolveFactory::MakeSquareDerivVector(
+                                            std::vector<double> x, 
+                                            std::vector<int> deriv_indices) {
+    // vector like Product_i [x_i^{a_i - m_i}*m_i!/(a_i-m_i)]
+    // where:
+    //       m_i is given by deriv_indices
+    //       a_i are the polynomial vector indices
+
+    std::vector<double> deriv_vec(square_points_.size(), 1.);
+    int square_points_size = square_points_.size();
+    int dim = square_points_[0].size();
+    for (int i = 0; i < square_points_size; ++i) {
+        std::vector<int>& point = square_points_[i];
         for (int j = 0; j < dim; ++j) {
-            int power = square_deriv_nearby_points_[i][j] - deriv_indices[j]; // p_j - q_j
+            int power = point[j] - deriv_indices[j]; // p_j - q_j
             if (power < 0) {
                 deriv_vec[i] = 0.;
                 break;
             } else {
                 // x^(p_j-q_j)
-                deriv_vec[i] *= gsl_sf_pow_int(positions[j], power);
+                deriv_vec[i] *= gsl_sf_pow_int(x[j], power); // x_j^{power}
             }
             // p_j*(p_j-1)*(p_j-2)*...*(p_j-q_j)
-            for (int k = square_deriv_nearby_points_[i][j]; k > power; --k) {
+            for (int k = point[j]; k > power && k > 0; --k) {
                 deriv_vec[i] *= k;
             }
         }
