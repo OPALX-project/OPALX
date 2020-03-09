@@ -1,15 +1,15 @@
 // MAUS WARNING: THIS IS LEGACY CODE.
-#ifndef Mesh_hh
-#define Mesh_hh
+#ifndef TwoDGrid_hh
+#define TwoDGrid_hh
 
 #include <vector>
 #include <algorithm>
 #include <math.h>
 #include <ostream>
 
-#include "src/legacy/Interface/Meshing/Mesh.hh"
-#include "src/legacy/Interface/Meshing/ThreeDGrid.hh"
+#include "Fields/Interpolation/Mesh.h"
 
+namespace interpolation {
 //Holds grid info for 2dTo1d interpolation algorithm; 
 //also controls memory usage (essentially a boost::shared_pointer but not as elegent);
 class TwoDGrid : public Mesh
@@ -200,4 +200,5 @@ private:
     friend bool operator> (const Mesh::Iterator& lhs, const Mesh::Iterator& rhs);
 };
 
+}
 #endif

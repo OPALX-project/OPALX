@@ -75,8 +75,9 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
     thisValues_m(),
     derivPoints_m(),
     derivValues_m(),
-    derivIterator_m(),
-    derivIndices_m() {
+    derivIndices_m(),
+    edgePoints_m(),
+    smoothingPoints_m() {
     if (points == NULL) {
         throw GeneralClassicException(
                           "PPSolveFactory::Solve",
@@ -91,11 +92,6 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
                           "PPSolveFactory::Solve",
                           ss.str());
     }
-    if (polyPatchOrder < 1) {
-        throw GeneralClassicException(
-                "PPSolveFactory::Solve",
-                "Polynomial order must be at least 1.");
-    }
     if (smoothingOrder < polyPatchOrder) {
         throw GeneralClassicException(
                 "PPSolveFactory::Solve",
@@ -107,6 +103,39 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
                           "PPSolveFactory::Solve",
                           "Dual of Mesh was NULL");
     polyDim_m = values[0].size();
+    int posDim = points->getPositionDimension();
+
+    edgePoints_m = std::vector< std::vector< std::vector<int> > >(posDim+1);
+    for (int i = 1; i <= posDim; ++i)
+        edgePoints_m[i] = getNearbyPointsSquares
+                                      (i, 0, smoothingOrder-polyPatchOrder);
+    smoothingPoints_m = getNearbyPointsSquares
+                                (posDim, polyPatchOrder_m-1, polyPatchOrder_m);
+}
+
+std::vector<double> PPSolveFactory::outOfBoundsPosition(
+                                              Mesh::Iterator outOfBoundsIt) {
+    const Mesh* mesh = outOfBoundsIt.getMesh();
+    std::vector<int> state = outOfBoundsIt.getState();
+    std::vector<int> delta = std::vector<int>(state.size(), 2);
+    Mesh::Iterator end = mesh->end()-1;
+    std::vector<double> pos1 = mesh->begin().getPosition();
+    std::vector<double> pos2 = Mesh::Iterator(delta, mesh).getPosition();
+    for (size_t i = 0; i < state.size(); ++i)
+        if (state[i] < 1) {
+            state[i] = 1;
+        } else if (state[i] > end[i]) { 
+            state[i] = end[i];
+        }
+    std::vector<double> position = Mesh::Iterator(state, mesh).getPosition();
+    state = outOfBoundsIt.getState();
+    for (size_t i = 0; i < state.size(); ++i)
+        if (state[i] < 1) {
+            position[i] = (pos2[i] - pos1[i])*(state[i]-1) + position[i];
+        } else if (state[i] > end[i]) { 
+            position[i] = (pos2[i] - pos1[i])*(state[i]-end[i]) + position[i];
+        }
+    return position;
 }
 
 void PPSolveFactory::getPoints() {
@@ -153,99 +182,60 @@ void PPSolveFactory::getValues(Mesh::Iterator it) {
      }
 }
 
-/*
- *  calculate a list of Mesh::iterators, each corresponding to the offset of the
- *  point at which the derivative should be calculated relative to the central
- *  polynomial. Goes hand-in-hand with derivIndices.
- *  for e.g. 2d mesh with polyPatchOrder 2, derivatives are always taken from the
- *  4th row/column:
- *  P o o x
- *  o o o x
- *  o o o x
- *  x x x x
- *  and derivatives used are for smoothOrder 4
- *  P . . - + - +
- *  . . . - + - +
- *  . . . - + - +
- *  | | | \
- *  + + +   +
- *  | | |     \
- *  + + +       +
- *  where each "line" means take a derivative; diagonal line means take a double
- *  derivative (just like in the values, we take all derivatives up to
- *  d_1^n d_2^n for an "nth order" PolynomialSquareVector)
- * 
- *  Note that # marks the polynomial being fitted - derivatives are taken a few
- *  mesh points away from the polynomial (which may not be the ideal). Also note 
- *  that the fit is one-sided; polynomials to the left of # are tasked with
- *  matching points to the right, possibly including #. # knows nothing about
- *  them. We might get a different solution if we reversed the order of fitting,
- *  which is a bit ugly.
- */
 void PPSolveFactory::getDerivPoints() {
-    int posDim = points_m->getPositionDimension();
-    std::vector< std::vector<int> > indices = getNearbyPointsSquares(posDim,
-                                                  polyPatchOrder_m,
-                                                  smoothingOrder_m);
-    std::cerr << "PPSolveFactory::getDerivPoints" << std::endl;
-    // derivIterator_m points at the polynomial on which the derivative should
-    // be operated (relative offset to centre) - the "x" in comment above
-    derivIterator_m = std::vector< Mesh::Iterator >();
-    // derivative indexes the order of the derivative - the "+" in the comment
-    // above
-    derivIndices_m = std::vector< std::vector<int> >();
     derivPoints_m = std::vector< std::vector<double> >();
-    for (auto deriv: indices) {
-        std::vector<int> derivPointState(deriv);
-        for (auto& i: derivPointState) {
-            if (i > polyPatchOrder_m) {
-                i = polyPatchOrder_m;
-            }
-        }
-        Mesh::Iterator it(derivPointState, polyMesh_m);
-        derivPoints_m.push_back(it.getPosition());
-        derivIterator_m.push_back(it);
-        
-        for (auto& i: deriv) {
-            if (i > polyPatchOrder_m) {
-                i -= polyPatchOrder_m;
-            } else {
-                i = 0;
-            }
-        }
-        derivIndices_m.push_back(deriv);
-
-    }
-    getDerivPolyVec();
-    std::cerr << "PPSolveFactory::getDerivPoints 2" << std::endl;
-    for (size_t i = 0; i < derivIndices_m.size(); ++i) {
-        std::cerr << "    ";
-        for (auto n: indices[i]) {
-            std::cerr << n << " ";
-        }
-        std::cerr << " * ";
-        for (auto n: derivIndices_m[i]) {
-            std::cerr << n << " ";
-        }
-        std::cerr << " * ";
-        for (auto n: derivIterator_m[i].getState()) {
-            std::cerr << n << " ";
-        }
-        std::cerr << " * ";
-        for (auto x: derivPoints_m[i]) {
-            std::cerr << x << " ";
-        }
-        std::cerr << std::endl;
-    }
-    return;
-}
-    
-void PPSolveFactory::getDerivPolyVec() {
+    derivIndices_m = std::vector< std::vector<int> >();
+    derivOrigins_m = std::vector< std::vector<int> >();
+    derivPolyVec_m = std::vector<MVector<double> >();
     int posDim = points_m->getPositionDimension();
+    // get the outer layer of points
+    int deltaOrder = smoothingOrder_m - polyPatchOrder_m;
+    if (deltaOrder <= 0)
+        return;
+    std::vector<double> deltaPos = getDeltaPos(points_m);
+    // smoothingPoints_m is the last layer of points used for polynomial fit
+    // walk around smoothingPoints_m finding the points used for smoothing
+    for (size_t i = 0; i < smoothingPoints_m.size(); ++i) {
+        // make a list of the axes that are on the edge of the space
+        std::vector<int> equalAxes;
+        for (size_t j = 0; j < smoothingPoints_m[i].size(); ++j)
+            if (smoothingPoints_m[i][j] == polyPatchOrder_m)
+                equalAxes.push_back(j);
+        std::vector<std::vector<int> > edgePoints =
+                                                edgePoints_m[equalAxes.size()];
+        // note the first point, 0,0, is ignored
+        for (size_t j = 0; j < edgePoints.size(); ++j) {
+            derivIndices_m.push_back(std::vector<int>(posDim));
+            derivOrigins_m.push_back(smoothingPoints_m[i]);
+            derivPoints_m.push_back(std::vector<double>(posDim));
+
+            for (size_t k = 0; k < smoothingPoints_m[i].size(); ++k) {
+                derivPoints_m.back()[k] = (smoothingPoints_m[i][k]-0.5)*deltaPos[k];
+            }
+            for (size_t k = 0; k < edgePoints[j].size(); ++k) {
+                derivIndices_m.back()[equalAxes[k]] = edgePoints[j][k];
+            }
+            int index = 0;
+            // potential bug ... derivIndexByPower_m is never used, is it
+            // needed?
+            while (true) {
+                bool isEqual = true;
+                std::vector<int> polyIndex =
+                           SquarePolynomialVector::IndexByPower(index, posDim);
+                for (int k = 0; k < posDim && isEqual; ++k) {
+                    isEqual = polyIndex[k] == derivIndices_m.back()[k];
+                }
+                if (isEqual) {
+                    derivIndexByPower_m.push_back(index);
+                    break;
+                }
+                ++index;
+            }
+        }
+    }
+
     int nPolyCoeffs = SquarePolynomialVector::NumberOfPolynomialCoefficients
                                                     (posDim, smoothingOrder_m);
-    std::vector<double> deltaPos = getDeltaPos(points_m);
-
     for (size_t i = 0; i < derivPoints_m.size(); ++i) {
         derivPolyVec_m.push_back(MVector<double>(nPolyCoeffs, 1.));
         // Product[x^{p_j-q_j}*p_j!/(p_j-q_j)!]
@@ -265,54 +255,35 @@ void PPSolveFactory::getDerivPolyVec() {
     }
 }
 
-// Aim is to extract derivatives in the region of "it" and place them into 
-// derivValues_m, where the derivValues_m correspond to the derivatives at
-// each point in derivPoints_m
-void PPSolveFactory::getDerivs(Mesh::Iterator it) {
-    // deltaOrder corresponds to the number of derivatives required
+void PPSolveFactory::getDerivs(const Mesh::Iterator& it) {
+    derivValues_m = std::vector< std::vector<double> >(derivPoints_m.size());
+
+    std::vector<double> itPos = it.getPosition();
+    int posDim = it.getState().size();
+    // get the outer layer of points
+    Mesh::Iterator end = it.getMesh()->end()-1;
     int deltaOrder = smoothingOrder_m - polyPatchOrder_m;
-    if (deltaOrder <= 0) {
-        return; // no derivatives need to be found
-    }
-
-    // derivValues_m is filled with the calc'd derivatives
-    derivValues_m = std::vector< std::vector<double> >(derivIterator_m.size());
-
-    std::cerr << "  PPSolveFactory::getDerivs" << std::endl;
-    // now get the outer layer of points and put derivatives in for each point
-    for (size_t i = 0; i < derivIterator_m.size(); ++i) {
-        Mesh::Iterator derivPoint = derivIterator_m[i];
-        derivPoint.addState(it);
-        if (derivPoint.isOutOfBounds()) {
-            // off the edge of the grid - use boundary condition
-            std::cerr << " OOB" << std::endl;
+    if (deltaOrder <= 0)
+        return;
+    for (size_t i = 0; i < derivPoints_m.size(); ++i) {
+        Mesh::Iterator nearest = it;
+        for (int j = 0; j < posDim; ++j) {
+            nearest[j] += derivOrigins_m[i][j];
+            if (nearest[j] > end[j]) {
+                nearest = it;
+                break;
+            }
+        }
+        if (polynomials_m[nearest.toInteger()] == NULL) {
             derivValues_m[i] = std::vector<double>(polyDim_m, 0.);
-            continue;
-        }
-        SquarePolynomialVector* poly = polynomials_m[derivPoint.toInteger()];
-        if (poly == NULL) {
-            // polynomial has not been found yet - this is an error condition
-            // we should only use a boundary condition when we are off the mesh;
-            // otherwise, we should have calculated a polynomial
-            std::cerr << "While working on    " << it << std::endl;
-            std::cerr << "  Failed with point " << derivPoint << std::endl;
-            std::cerr << "  DerivIterator was " << derivIterator_m[i] << std::endl;
-            throw(GeneralClassicException("PPSolveFactory::getDerivs",
-                                    "Internal error in polynomial calculation"));
-        }
-        // polynomial has been found; calculate derivatives
-        std::cerr << " Not NULL 0" << std::endl;
-        MMatrix<double> coeffs = poly->GetCoefficientsAsMatrix();
-        std::cerr << " Not NULL " << derivPolyVec_m.size() << " ** "
-                  << coeffs.num_row() << " " << coeffs.num_col() << " ** "
-                  << derivPolyVec_m[i].num_row() << std::endl;
-        MVector<double> values = coeffs*derivPolyVec_m[i];
-        std::cerr << " Not NULL 2" << std::endl;
-        derivValues_m[i] = std::vector<double>(polyDim_m);
-        std::cerr << " Not NULL 3" << std::endl;
-        for(int j = 0; j < polyDim_m; ++j) {
-            std::cerr << " Not NULL 4" << std::endl;
-            derivValues_m[i][j] = values(j+1);
+        } else {
+            MMatrix<double> coeffs =
+                  polynomials_m[nearest.toInteger()]->GetCoefficientsAsMatrix();
+            MVector<double> values = coeffs*derivPolyVec_m[i];
+            derivValues_m[i] = std::vector<double>(polyDim_m);
+            for(int j = 0; j < posDim; ++j) {
+                derivValues_m[i][j] = values(j+1);
+            }
         }
     }
 }
@@ -341,14 +312,20 @@ PolynomialPatch* PPSolveFactory::solve() {
             *gmsg << "    Done " << newPercentage << " %" << endl;
             oldPercentage = newPercentage;
         }
-        std::cerr << "PPSolveFactory::solve at " << it << std::endl;
         // find the set of values and derivatives for this point in the mesh
         getValues(it);
         getDerivs(it);
         // The polynomial is found using simultaneous equation solve
         polynomials_m[it.toInteger()] = solver.PolynomialSolve
                                                   (thisValues_m, derivValues_m);
-        std::cerr << "  Done " << polynomials_m[it.toInteger()] << " " << it << std::endl;
+        {
+            std::vector<int> index({1, 1});
+            std::vector<double> pos({1, 2});
+            std::vector<double> val(2);
+            SquarePolynomialVector d11Output = polynomials_m[it.toInteger()]->Deriv(&index[0]);
+            d11Output.F(&pos[0], &val[0]);
+            
+        }
     }
     return new PolynomialPatch(polyMesh_m, points_m, polynomials_m);
 }
