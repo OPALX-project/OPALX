@@ -1,9 +1,7 @@
 // MAUS WARNING: THIS IS LEGACY CODE.
-#include "Interface/Mesh.hh"
-#include "Utils/Exception.hh"
-#include <iomanip>
-#include <math.h>
+#include "Fields/Interpolation/TwoDGrid.h"
 
+namespace interpolation {
 /////// TwoDGrid ///////
 TwoDGrid::TwoDGrid() : _x(2,0), _y(2,0), _xSize(2), _ySize(2), _maps(), _constantSpacing(false)
 {
@@ -326,5 +324,5 @@ Mesh::Iterator NDGrid::Nearest(const double* position) const
     }
     return Mesh::Iterator(index, this);
 }
-
+}
 ////// NDGrid END ////////
