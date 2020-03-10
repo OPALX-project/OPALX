@@ -2051,7 +2051,7 @@ void Distribution::generateAstraFlattopT(size_t numberOfParticles) {
         }
         loc_fraction -= distributionTable[numberOfSampleBins * (k + 1)]
             * (5. - weight) / tot;
-        numParticlesInBin[k] = static_cast<int>(std::floor(loc_fraction * numberOfParticles + 0.5));
+        numParticlesInBin[k] = static_cast<int>(std::round(loc_fraction * numberOfParticles));
         effectiveNumParticles += numParticlesInBin[k];
         if (numParticlesInBin[k] > numParticlesInBin[largestBin]) largestBin = k;
     }
