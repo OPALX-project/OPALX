@@ -1110,7 +1110,7 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
                 ++ numPartsToSend;
 
                 if (numPartsToSend % distributeFrequency == 0) {
-                    MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+                    MPI_Bcast(&dataSize, 1, MPI_UNSIGNED, 0, Ippl::getComm());
                     MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
                     numPartsToSend = 0;
 
@@ -1131,7 +1131,7 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
         }
 
         dataSize = (numberOfParticlesRead == numParts? data.size(): std::numeric_limits<unsigned int>::max());
-        MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+        MPI_Bcast(&dataSize, 1, MPI_UNSIGNED, 0, Ippl::getComm());
         if (numberOfParticlesRead != numParts) {
             throw OpalException("Distribution::createDistributionFromFile",
                                 "Found " +
@@ -1145,7 +1145,7 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
 
     } else {
         do {
-            MPI_Bcast(&dataSize, 1, MPI_INT, 0, Ippl::getComm());
+            MPI_Bcast(&dataSize, 1, MPI_UNSIGNED, 0, Ippl::getComm());
             if (dataSize == std::numeric_limits<unsigned int>::max()) {
                 throw OpalException("Distribution::createDistributionFromFile",
                                     "Couldn't find " +
@@ -4252,7 +4252,7 @@ void Distribution::writeOutFileEmission() {
     const size_t bitsPerParticle = (6 * sizeof(double) + sizeof(size_t));
     size_t totalSendBits = xWrite_m.size() * bitsPerParticle;
 
-    std::vector<long> numberOfBits(Ippl::getNodes(), 0);
+    std::vector<unsigned long> numberOfBits(Ippl::getNodes(), 0);
     numberOfBits[Ippl::myNode()] = totalSendBits;
 
     if (Ippl::myNode() == 0) {
