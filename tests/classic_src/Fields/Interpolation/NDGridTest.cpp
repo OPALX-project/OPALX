@@ -339,9 +339,26 @@ TEST_F(NDGridTest, DualTest) {
     }
 }
 
-TEST_F(NDGridTest, IsOutOfBoundsTest) {
+TEST_F(NDGridTest, IsOutOfBoundsBeginTest) {
     // nb isOutOfBounds is defined in Mesh.hh (but tested here for convenience
-    EXPECT_TRUE(false) << "Do the test" << std::endl;
+    interpolation::Mesh::Iterator it = grid_m->begin();
+    EXPECT_FALSE(it.isOutOfBounds());
+    for (size_t i = 0; i < it.getState().size(); ++i) {
+        it[i] -= 1;
+        EXPECT_TRUE(it.isOutOfBounds());
+        it[i] += 1;
+    }
+}
+
+TEST_F(NDGridTest, IsOutOfBoundsEndTest) {
+    interpolation::Mesh::Iterator it = grid_m->end();
+    it--;
+    EXPECT_FALSE(it.isOutOfBounds());
+    for (size_t i = 0; i < it.getState().size(); ++i) {
+        it[i] += 1;
+        EXPECT_TRUE(it.isOutOfBounds());
+        it[i] -= 1;
+    }
 }
 
 } // namespace ndgridtest
