@@ -868,6 +868,12 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
     size_t numberOfDistParticles = tOrZDist_m.size();
     reduce(numberOfDistParticles, numberOfDistParticles, OpAddAssign());
 
+    if (numberOfDistParticles == 0) {
+        throw OpalException("Distribution::checkParticleNumber",
+                            "Zero particles in the distribution! "
+                            "The number of particles needs to be specified.");
+    }
+
     if (numberOfDistParticles != numberOfParticles) {
         *gmsg << "\n--------------------------------------------------" << endl
               << "Warning!! The number of particles in the initial" << endl
@@ -2816,11 +2822,10 @@ int Distribution::getLastEmittedEnergyBin() {
 
 double Distribution::getMaxTOrZ() {
 
-    std::vector<double>::iterator longIt = tOrZDist_m.begin();
-    double maxTOrZ = *longIt;
-    for (++longIt; longIt != tOrZDist_m.end(); ++longIt) {
-        if (maxTOrZ < *longIt)
-            maxTOrZ = *longIt;
+    double maxTOrZ = std::numeric_limits<int>::min();
+    for (auto tOrZ : tOrZDist_m) {
+        if (maxTOrZ < tOrZ)
+            maxTOrZ = tOrZ;
     }
 
     reduce(maxTOrZ, maxTOrZ, OpMaxAssign());
@@ -2830,11 +2835,10 @@ double Distribution::getMaxTOrZ() {
 
 double Distribution::getMinTOrZ() {
 
-    std::vector<double>::iterator longIt = tOrZDist_m.begin();
-    double minTOrZ = *longIt;
-    for (++longIt; longIt != tOrZDist_m.end(); ++longIt) {
-        if (minTOrZ > *longIt)
-            minTOrZ = *longIt;
+    double minTOrZ = std::numeric_limits<int>::max();
+    for (auto tOrZ : tOrZDist_m) {
+        if (minTOrZ > tOrZ)
+            minTOrZ = tOrZ;
     }
 
     reduce(minTOrZ, minTOrZ, OpMinAssign());
