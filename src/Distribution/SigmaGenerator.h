@@ -33,6 +33,8 @@
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 
+#include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
+
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector.hpp>
@@ -46,16 +48,10 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_eigen.h>
 
-#include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
-#if BOOST_VERSION >= 106000
-#include <boost/numeric/odeint/integrate/check_adapter.hpp>
-#endif
-
 #include "matrix_vector_operation.h"
 #include "ClosedOrbitFinder.h"
 #include "MapGenerator.h"
 #include "Harmonics.h"
-
 
 extern Inform *gmsg;
 
