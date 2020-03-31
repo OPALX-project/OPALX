@@ -153,19 +153,33 @@ private:
     /// tries to retrieve command line parameter.
     /// @throws OptPilotException if parameter was not found.
     template<class T>
-    T arg(const std::string name) {
-        T t;
-        std::map<std::string, std::string>::iterator it = arguments_.find(name);
-        if(it != arguments_.end()) {
-            std::istringstream iss(arguments_[name]);
-            iss >> t;
-            return t;
-        } else {
-            throw OptPilotException("CmdArguments::getArg", "argument not found!");
-        }
-    }
+    T arg(const std::string name);
+
 };
 
 typedef boost::shared_ptr<CmdArguments> CmdArguments_t;
+
+template<class T>
+inline T CmdArguments::arg(const std::string name) {
+    T t;
+    std::map<std::string, std::string>::iterator it = arguments_.find(name);
+    if(it != arguments_.end()) {
+        std::istringstream iss(arguments_[name]);
+        iss >> t;
+        return t;
+    } else {
+        throw OptPilotException("CmdArguments::getArg", "argument not found!");
+    }
+}
+
+template<>
+inline std::string CmdArguments::arg<std::string>(const std::string name) {
+    std::map<std::string, std::string>::iterator it = arguments_.find(name);
+    if(it != arguments_.end()) {
+        return arguments_[name];
+    } else {
+        throw OptPilotException("CmdArguments::getArg", "argument not found!");
+    }
+}
 
 #endif
