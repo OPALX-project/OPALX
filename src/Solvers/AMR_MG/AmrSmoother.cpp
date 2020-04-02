@@ -1,3 +1,11 @@
+// Source file of the AmrSmoother class,
+//   interface to Ifpack2 smoothers.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 #include "AmrSmoother.h"
 
 #include <map>

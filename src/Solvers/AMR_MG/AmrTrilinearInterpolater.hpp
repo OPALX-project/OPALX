@@ -1,3 +1,11 @@
+// Implementation file of the AmrTrilinearInterpolater class,
+//   trilinear interpolatin of grid data from coarse to fine cells.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 template <class Level>
 AmrTrilinearInterpolater<Level>::AmrTrilinearInterpolater()
     : AmrInterpolater<Level>(2 << (AMREX_SPACEDIM - 1))
