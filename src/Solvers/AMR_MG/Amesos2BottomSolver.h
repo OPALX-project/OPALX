@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef AMESOS2_SOLVER_H
 #define AMESOS2_SOLVER_H
 

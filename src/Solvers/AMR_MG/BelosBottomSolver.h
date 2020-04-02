@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef BELOS_SOLVER_H
 #define BELOS_SOLVER_H
 

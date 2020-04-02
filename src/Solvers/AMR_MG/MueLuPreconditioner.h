@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef MUELU_PRECONDITIONER_H
 #define MUELU_PRECONDITIONER_H
 
