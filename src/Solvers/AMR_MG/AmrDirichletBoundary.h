@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef AMR_DIRICHLET_BOUNDARY_H
 #define AMR_DIRICHLET_BOUNDARY_H
 

@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef IFPACK_2_PRECONDITIONER_H
 #define IFPACK_2_PRECONDITIONER_H
 
