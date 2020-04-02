@@ -1,3 +1,12 @@
+// Implementation file of the MueLuPreconditioner class,
+//   interface to MueLU's SAAMG solver. Here, it is used as preconditioner.
+//   (cf. also MueLu User's Guide, URL https://www.osti.gov/biblio/1491860)
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 #include <AMReX.H>
 
 #include <MueLu_CreateTpetraPreconditioner.hpp>
