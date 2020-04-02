@@ -2,7 +2,7 @@
 // Class AmrTrilinearInterpolater
 //   Trilinear interpolation of data on coarse cells to fine cells.
 //
-// Copyright (c) 2016 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // Implemented as part of the PhD thesis

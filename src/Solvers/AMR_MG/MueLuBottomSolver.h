@@ -2,7 +2,7 @@
 // Class MueLuBottomSolver
 //   Interface to the SAAMG solver of MueLu.
 //
-// Copyright (c) 2016 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
