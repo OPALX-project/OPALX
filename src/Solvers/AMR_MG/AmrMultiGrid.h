@@ -3,7 +3,7 @@
 //   Main class of the AMR Poisson multigrid solver.
 //   It implements the multigrid solver described in https://doi.org/10.1016/j.cpc.2019.106912
 //
-// Copyright (c) 2016 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // Implemented as part of the PhD thesis

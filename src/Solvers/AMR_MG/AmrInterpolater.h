@@ -2,7 +2,7 @@
 // Class AmrInterpolater
 //   Abstract base class for all coarse to fine cell interpolaters.
 //
-// Copyright (c) 2016 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
