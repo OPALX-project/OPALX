@@ -1,3 +1,11 @@
+// Implementation file of the AmrLagrangeInterpolater class,
+//   Lagrange interpolation for the coarse-fine level interface
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 #include "Utilities/OpalException.h"
 
 #if AMREX_SPACEDIM == 3

@@ -1,3 +1,11 @@
+// Implementation file of the Ifpack2Preconditioner class,
+//   interface to the preconditioners of Ifpack2.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 #include "Utilities/OpalException.h"
 
 template <class Level>

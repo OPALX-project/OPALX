@@ -1,6 +1,11 @@
-/* https://trilinos.org/wordpress/wp-content/uploads/2015/03/MueLu_tutorial.pdf
- * http://prod.sandia.gov/techlib/access-control.cgi/2014/1418624r.pdf
- */
+// Implementation file of the MueLuBottomSolver class,
+//   interface to MueLU's SAAMG solver.
+//   (cf. also MueLu User's Guide, URL https://www.osti.gov/biblio/1491860)
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
 
 #include <AMReX.H>
 #include "Utilities/OpalException.h"

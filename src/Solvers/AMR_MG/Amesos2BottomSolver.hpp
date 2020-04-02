@@ -1,3 +1,11 @@
+// Implementation file of the Amesos2BottomSolver class,
+//   represents the interface to Amesos2 solvers.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 template <class Level>
 Amesos2BottomSolver<Level>::Amesos2BottomSolver(std::string solvertype)
     : BottomSolver<Teuchos::RCP<amr::matrix_t>,

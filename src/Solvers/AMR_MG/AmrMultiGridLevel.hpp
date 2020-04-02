@@ -1,3 +1,11 @@
+// Implementation file of the AmrMultiGridLevel class,
+//   represents a single AMR level.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 #define AMR_NO_SCALE false
 
 
