@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef AMR_MULTI_GRID_H
 #define AMR_MULTI_GRID_H
 
