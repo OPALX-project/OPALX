@@ -1,11 +1,23 @@
-// Implementation file of the AmrPCInterpolater class,
-//   piecewise constant interpolation of grid data from coarse to fine cells.
+//
+// Class AmrPCInterpolater
+//   Piecewise constant interpolation of data on coarse cells to fine cells.
 //
 // Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
-// OPAL is licensed under GNU GPL version 3.
-
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 template <class Level>
 AmrPCInterpolater<Level>::AmrPCInterpolater()
     : AmrInterpolater<Level>(1)
