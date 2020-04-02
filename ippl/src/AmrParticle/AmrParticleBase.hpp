@@ -1,3 +1,11 @@
+// Implementation file of the AmrParticleBase class,
+//   interface for AMR particles.
+//
+// Copyright (c) 2016 - 2020, Matthias Frey, Uldis Locans, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// OPAL is licensed under GNU GPL version 3.
+
 #ifndef AMR_PARTICLE_BASE_HPP
 #define AMR_PARTICLE_BASE_HPP
 
