@@ -8,7 +8,7 @@
 // Implemented as part of the PhD thesis
 // "Precise Simulations of Multibunches in High Intensity Cyclotrons"
 // and the paper
-// "Matching of turn pattern measurements for cyclotronsusing multiobjective optimization"
+// "Matching of turn pattern measurements for cyclotrons using multiobjective optimization"
 // (https://doi.org/10.1103/PhysRevAccelBeams.22.064602)
 //
 // This file is part of OPAL.
