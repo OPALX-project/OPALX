@@ -234,7 +234,7 @@ void EnvelopeBunch::runStats(EnvelopeBunchParameter sp, double *xAvg, double *xM
     }
 
     int nVTot = nV;
-    MPI_Allreduce(MPI_IN_PLACE, &nVTot, 1, MPI_INT, MPI_SUM, Ippl::getComm());
+    allreduce(&nVTot, 1, std::plus<int>());
     if(nVTot <= 0) {
         *xAvg = 0.0;
         *xMax = 0.0;
@@ -259,10 +259,10 @@ void EnvelopeBunch::runStats(EnvelopeBunchParameter sp, double *xAvg, double *xM
             }
         }
 
-        MPI_Allreduce(MPI_IN_PLACE, &M1, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
-        MPI_Allreduce(MPI_IN_PLACE, &M2, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
-        MPI_Allreduce(MPI_IN_PLACE, &maxv, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
-        MPI_Allreduce(MPI_IN_PLACE, &minv, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
+        allreduce(&M1, 1, std::plus<double>());
+        allreduce(&M2, 1, std::plus<double>());
+        allreduce(&maxv, 1, std::greater<double>());
+        allreduce(&minv, 1, std::less<double>());
 
         *xAvg = M1 / nVTot;
         *xMax = maxv;
@@ -707,8 +707,8 @@ void EnvelopeBunch::synchronizeSlices() {
         z_m[mySliceStartOffset_m+i] = slices_m[i]->p[SLI_z];
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &(z_m[0]), numSlices_m, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
-    MPI_Allreduce(MPI_IN_PLACE, &(b_m[0]), numSlices_m, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&(z_m[0]), numSlices_m, std::plus<double>());
+    allreduce(&(b_m[0]), numSlices_m, std::plus<double>());
 }
 
 void EnvelopeBunch::calcI() {
@@ -805,7 +805,7 @@ void EnvelopeBunch::calcI() {
         }
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &(I1[0]), n1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&(I1[0]), n1, std::plus<double>());
     for(int i = 1; i < n1 - 1; i++) {
         if(I1[i] == 0.0)
             I1[i] = I1[i-1];
@@ -873,8 +873,8 @@ void EnvelopeBunch::calcI() {
         }
     }
 
-    //MPI_Allreduce(MPI_IN_PLACE, &(z2_temp[0]), n1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
-    //MPI_Allreduce(MPI_IN_PLACE, &(I2_temp[0]), n1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    //allreduce(&(z2_temp[0]), n1, std::plus<double>());
+    //allreduce(&(I2_temp[0]), n1, std::plus<double>());
 
     ////FIXME: we dont need copy of z2 and I2: z2[i-k] = z2[i];
     //int k = 0;
@@ -986,14 +986,14 @@ void EnvelopeBunch::cSpaceCharge() {
     }
 
     int nVTot = nV;
-    MPI_Allreduce(MPI_IN_PLACE, &nVTot, 1, MPI_INT, MPI_SUM, Ippl::getComm());
+    allreduce(&nVTot, 1, std::plus<int>());
     if(nVTot < 2) {
         msg << "Exiting, to few nV slices" << endl;
         return;
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &xi[0], numSlices_m, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
-    MPI_Allreduce(MPI_IN_PLACE, &sm, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&xi[0], numSlices_m, std::plus<double>());
+    allreduce(&sm, 1, std::plus<double>());
     A0 = sm / nVTot;
     double dzMin = 5.0 * Physics::c * Q_m / (Imax * numSlices_m);
 
@@ -1221,7 +1221,7 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
     //double gz0 = 0.0;
     //if(Ippl::Comm->myNode() == 0)
     //gz0 = slices_m[0]->p[SLI_z];
-    //MPI_Allreduce(MPI_IN_PLACE, &gz0, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    //allreduce(&gz0, 1, std::plus<double>());
 
     ////XXX: bin holds local slice number
     //for(int j = 0; j < bins_m[nextBin].size(); j++) {
@@ -1413,7 +1413,7 @@ double EnvelopeBunch::AvBField() {
         }
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &bf, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&bf, 1, std::plus<double>());
     return bf / numSlices_m;
 }
 
@@ -1425,7 +1425,7 @@ double EnvelopeBunch::AvEField() {
         }
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &ef, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&ef, 1, std::plus<double>());
     return ef / numSlices_m;
 }
 
@@ -1438,8 +1438,8 @@ double EnvelopeBunch::Eavg() {
             nValid++;
         }
     }
-    MPI_Allreduce(MPI_IN_PLACE, &nValid, 1, MPI_INT, MPI_SUM, Ippl::getComm());
-    MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&nValid, 1, std::plus<int>());
+    allreduce(&sum, 1, std::plus<double>());
     sum /= nValid;
     return (nValid > 0 ? ((Physics::EMASS * Physics::c * Physics::c / Physics::q_e) * (sum - 1.0)) : 0.0);
 }
@@ -1455,8 +1455,8 @@ double EnvelopeBunch::get_sPos() {
         }
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &count, 1, MPI_UNSIGNED_LONG, MPI_SUM, Ippl::getComm());
-    MPI_Allreduce(MPI_IN_PLACE, &refpos, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&count, 1, std::plus<size_t>());
+    allreduce(&refpos, 1, std::plus<double>());
     return refpos / count;
 }
 
@@ -1470,14 +1470,14 @@ double EnvelopeBunch::zAvg() {
         }
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &nV, 1, MPI_INT, MPI_SUM, Ippl::getComm());
+    allreduce(&nV, 1, std::plus<int>());
     if(nV < 1) {
         isValid_m = false;
         return -1;
         //throw OpalException("EnvelopeBunch", "EnvelopeBunch::zAvg() no valid slices left");
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, &sum, 1, MPI_DOUBLE, MPI_SUM, Ippl::getComm());
+    allreduce(&sum, 1, std::plus<double>());
     return (sum / nV);
 }
 
@@ -1498,7 +1498,7 @@ double EnvelopeBunch::zTail() {
             min = slices_m[i]->p[SLI_z];
 
     //reduce(min, min, OpMinAssign());
-    MPI_Allreduce(MPI_IN_PLACE, &min, 1, MPI_DOUBLE, MPI_MIN, Ippl::getComm());
+    allreduce(&min, 1, std::less<double>());
     return min;
 }
 
@@ -1518,7 +1518,7 @@ double EnvelopeBunch::zHead() {
         if(slices_m[i]->p[SLI_z] > max) max = slices_m[i]->p[SLI_z];
 
     //reduce(max, max, OpMaxAssign());
-    MPI_Allreduce(MPI_IN_PLACE, &max, 1, MPI_DOUBLE, MPI_MAX, Ippl::getComm());
+    allreduce(&max, 1, std::greater<double>());
     return max;
 }
 
