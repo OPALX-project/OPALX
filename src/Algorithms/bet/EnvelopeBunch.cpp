@@ -707,8 +707,8 @@ void EnvelopeBunch::synchronizeSlices() {
         z_m[mySliceStartOffset_m+i] = slices_m[i]->p[SLI_z];
     }
 
-    allreduce(&(z_m[0]), numSlices_m, std::plus<double>());
-    allreduce(&(b_m[0]), numSlices_m, std::plus<double>());
+    allreduce(z_m.data(), numSlices_m, std::plus<double>());
+    allreduce(b_m.data(), numSlices_m, std::plus<double>());
 }
 
 void EnvelopeBunch::calcI() {
@@ -805,7 +805,7 @@ void EnvelopeBunch::calcI() {
         }
     }
 
-    allreduce(&(I1[0]), n1, std::plus<double>());
+    allreduce(I1.data(), n1, std::plus<double>());
     for(int i = 1; i < n1 - 1; i++) {
         if(I1[i] == 0.0)
             I1[i] = I1[i-1];
@@ -873,8 +873,8 @@ void EnvelopeBunch::calcI() {
         }
     }
 
-    //allreduce(&(z2_temp[0]), n1, std::plus<double>());
-    //allreduce(&(I2_temp[0]), n1, std::plus<double>());
+    //allreduce(z2_temp.data(), n1, std::plus<double>());
+    //allreduce(I2_temp.data(), n1, std::plus<double>());
 
     ////FIXME: we dont need copy of z2 and I2: z2[i-k] = z2[i];
     //int k = 0;
@@ -992,7 +992,7 @@ void EnvelopeBunch::cSpaceCharge() {
         return;
     }
 
-    allreduce(&xi[0], numSlices_m, std::plus<double>());
+    allreduce(xi.data(), numSlices_m, std::plus<double>());
     allreduce(&sm, 1, std::plus<double>());
     A0 = sm / nVTot;
     double dzMin = 5.0 * Physics::c * Q_m / (Imax * numSlices_m);
