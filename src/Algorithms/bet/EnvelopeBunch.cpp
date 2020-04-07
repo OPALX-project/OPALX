@@ -873,9 +873,6 @@ void EnvelopeBunch::calcI() {
         }
     }
 
-    //allreduce(z2_temp.data(), n1, std::plus<double>());
-    //allreduce(I2_temp.data(), n1, std::plus<double>());
-
     ////FIXME: we dont need copy of z2 and I2: z2[i-k] = z2[i];
     //int k = 0;
     //for(int i = 1; i < n1; i++) {
