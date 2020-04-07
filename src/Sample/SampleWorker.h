@@ -11,6 +11,7 @@
 //   @tparam Sim_T type of simulation to run
 //
 // Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Yves Ineichen, ETH Zürich
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
