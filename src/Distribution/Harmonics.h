@@ -5,7 +5,6 @@
 //
 // Copyright (c) 2014 - 2015, Christian Baumgarten, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                            Matthias Frey, ETH Zürich
-//                            Christof Metzger-Kraus, Open Sourcerer
 // All rights reserved
 //
 // This file is part of OPAL.
