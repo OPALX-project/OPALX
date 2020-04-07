@@ -3,6 +3,7 @@
 //   Structure for an individual in the population holding genes values.
 //
 // Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Yves Ineichen, ETH Zürich
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
