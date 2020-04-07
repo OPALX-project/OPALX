@@ -48,7 +48,6 @@ extern Inform *gmsg;
 // Hack allows odeint in rk.C to be called with a class member function
 static EnvelopeBunch *thisBunch = NULL;  // pointer to access calling bunch
 static void Gderivs(double t, double Y[], double dYdt[]) { thisBunch->derivs(t, Y, dYdt); }
-//static double Gcur(double z) { return thisBunch->currentProfile_m->get(z, itype_lin); }
 static double rootValue = 0.0;
 
 // used in setLShape for Gaussian
@@ -123,10 +122,6 @@ void EnvelopeBunch::calcBeamParameters() {
     Irms_m = Q_m * nValid_m * Physics::c / (zRms * sqrt(Physics::two_pi) * numSlices_m);
     Px_m = Px / Physics::c;
     Py_m = Py / Physics::c;
-    // dx02_m = dx0_m;
-    // dy02_m = dy0_m;
-    // dfi_x_m = 180.0 * dfi_x / Physics::pi;
-    // dfi_y_m = 180.0 * dfi_y / Physics::pi;
     Ez_m = 1.0e-6 * Efz;
     Bz_m = Bfz;
 
@@ -140,7 +135,6 @@ void EnvelopeBunch::calcBeamParameters() {
     //minX in the T-T sense is -RxMax_m
     minX_m = Vector_t(-RxMax_m, -RyMax_m, zMin);
     minP_m = Vector_t(-PxMax * E_m * sqrt((g0 + 1.0) / (g0 - 1.0)) / Physics::c * Physics::pi, -PyMax * E_m * sqrt((g0 + 1.0) / (g0 - 1.0)) / Physics::c * Physics::pi, PzMin);
-    //minP_m = Vector_t(-maxP_m[0], -maxP_m[1], PzMin);
 
     /* PxRms is the rms of the divergence in x direction in [rad]: x'
      * x' = Px/P0 -> Px = x' * P0 = x' * \beta/c*E (E is the particle total
@@ -576,7 +570,6 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
         case bsRect:
 
             bunch_width = Physics::c * emission_time_s * slices_m[0]->p[SLI_beta];
-//            std::cout << "bunch_width = " << bunch_width << " SLI_beta= " << slices_m[0]->p[SLI_beta] << std::endl;
             for(int i = 0; i < numMySlices_m; i++) {
                 slices_m[i]->p[SLI_z] = -(((numSlices_m - 1) - (mySliceStartOffset_m + i)) * bunch_width) / numSlices_m;
             }
@@ -629,17 +622,6 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
         }
     }
 
-    ////XXX: debug output
-    /*
-    for(unsigned int i = 0; i < bins_m.size(); i++) {
-      if(bins_m[i].size() > 0) {
-    std::cout << Ippl::Comm->myNode() << ": Bin " << i << ": ";
-    for(unsigned int j = 0; j < bins_m[i].size(); j++)
-      std::cout << " " << mySliceStartOffset_m + bins_m[i][j] << "(" << slices_m[j]->p[SLI_z] << ")";
-    std::cout << std::endl;
-      }
-    }
-    */
     //find first bin containing slices
     firstBinWithValue_m = 0;
     for(; firstBinWithValue_m < nebin_m; firstBinWithValue_m++)
@@ -649,19 +631,12 @@ void EnvelopeBunch::setBinnedLShape(EnvelopeBunchShape shape, double z0, double 
 }
 
 void EnvelopeBunch::setTShape(double enx, double eny, double rx, double ry, double /*b0*/) {
-  /*
-    Inform msg("setTshape");
-    msg << "set SLI_x to " << rx / 2.0 << endl;
-    msg << "set SLI_y to " << ry / 2.0 << endl;
-  */
     // set emittances
     emtnx0_m = enx;
     emtny0_m = eny;
     //FIXME: is rx here correct?
     emtbx0_m = Physics::q_e * rx * rx * Bz0_m / (8.0 * Physics::EMASS * Physics::c);
     emtby0_m = Physics::q_e * ry * ry * Bz0_m / (8.0 * Physics::EMASS * Physics::c);
-    //msg << "set emtbx0 to " << emtbx0 << endl;
-    //msg << "set emtby0 to " << emtby0 << endl;
 
     //XXX: rx = 2*rms_x
     for(int i = 0; i < numMySlices_m; i++) {
@@ -746,7 +721,6 @@ void EnvelopeBunch::calcI() {
 
     if(n1 < 2) {
         msg << "n1 (= " << n1 << ") < 2" << endl;
-        //throw OpalException("EnvelopeBunch", "Insufficient points to calculate the current (n1)");
         currentProfile_m = std::unique_ptr<Profile>(new Profile(0.0));
         return;
     }
@@ -839,7 +813,6 @@ void EnvelopeBunch::calcI() {
     // following values
     int k = 0;
     for(int i = 1; i < n1; i++) {
-        //for(int i = my_start; i <= my_end; i++) {
         // add new points
         int j = 0;
         while(((i + j) < n1) && ((z1[i+j] - z1[i]) <= dz)) {
@@ -861,8 +834,6 @@ void EnvelopeBunch::calcI() {
             }
             ++j;
         }
-        //z2_temp[i] = Mz1 / np;
-        //I2_temp[i] = MI1 / np;
         z2[i-k] = Mz1 / np;
         I2[i-k] = MI1 / np;
 
@@ -872,21 +843,6 @@ void EnvelopeBunch::calcI() {
             k++;
         }
     }
-
-    ////FIXME: we dont need copy of z2 and I2: z2[i-k] = z2[i];
-    //int k = 0;
-    //for(int i = 1; i < n1; i++) {
-    //z2[i-k] = z2_temp[i];
-    //I2[i-k] = I2_temp[i];
-    //// make sure there are no duplicate z coordinates
-    //if(z2[i-k] <= z2[i-k-1]) {
-    //I2[i-k-1] = 0.5 * (I2[i-k] + I2[i-k-1]);
-    //k++;
-    //}
-    //}
-
-    //free(z2_temp);
-    //free(I2_temp);
 
     int n2 = n1 - k;
     if(n2 < 1) {
@@ -943,7 +899,6 @@ void EnvelopeBunch::cSpaceCharge() {
             double H2 = sqrt((1 - xi / L) * (1 - xi / L) + A * A) - sqrt((xi / L) * (xi / L) + A * A) - std::abs(1 - xi / L) + std::abs(xi / L);
 
             //FIXME: Q_act or Q?
-            //double Q = activeSlices_m * Q_m / numSlices_m;
             Esct_m[i] = (Q_m / 2 / Physics::pi / Physics::epsilon_0 / R / R) * (H1 - icON * H2);
             double G1 = (1 - zeta / L) / sqrt((1 - zeta / L) * (1 - zeta / L) + A * A) + (zeta / L) / sqrt((zeta / L) * (zeta / L) + A * A);
             double G2 = (1 - xi / L) / sqrt((1 - xi / L) * (1 - xi / L) + A * A) + (xi / L) / sqrt((xi / L) * (xi / L) + A * A);
@@ -1113,7 +1068,6 @@ void EnvelopeBunch::derivs(double /*tc*/, double Y[], double dYdt[]) {
 
 #ifdef USE_HOMDYN_SC_MODEL
         //FIXME: Q_act or Q?
-        //double Q = activeSlices_m * Q_m / numSlices_m;
         double kpc  = 0.5 * Physics::c * Physics::c * (Y[SLI_beta] * Physics::c) * activeSlices_m * Q_m / numSlices_m / (curZHead_m - curZTail_m) / Physics::Ia;
 
         /// \f[ \dot{\sigma} = p \f]
@@ -1179,11 +1133,6 @@ void EnvelopeBunch::computeSpaceCharge() {
         cSpaceCharge();
         IpplTimings::stopTimer(spaceChargeTimer_m);
 
-        //if(numSlices_m > 40) {
-        // smooth Esct to get rid of numerical noise
-        //double Esc = 0;
-        //sgSmooth(Esct,n,n/20,n/20,0,4);
-        //}
     } else {
         currentProfile_m = std::unique_ptr<Profile>(new Profile(0.0));
     }
@@ -1209,35 +1158,6 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
     //FIXME: HAVE A PROBLEM WITH EMISSION (EMISSION OFF GIVES GOOD RESULTS)
     activeSlices_m = numSlices_m;
 
-    //if(lastEmittedBin_m < nebin_m) {
-
-    //time_step_s = emission_time_step_;
-    //size_t nextBin = nebin_m - 1 - lastEmittedBin_m;
-    //if(Ippl::Comm->myNode() == 0) cout << "Emitting bin " << nextBin << endl;
-
-    //double gz0 = 0.0;
-    //if(Ippl::Comm->myNode() == 0)
-    //gz0 = slices_m[0]->p[SLI_z];
-    //allreduce(&gz0, 1, std::plus<double>());
-
-    ////XXX: bin holds local slice number
-    //for(int j = 0; j < bins_m[nextBin].size(); j++) {
-    //slices_m[bins_m[nextBin][j]]->p[SLI_z] -= gz0;
-    //slices_m[bins_m[nextBin][j]]->p[SLI_z] -= hbin_m * nextBin;
-    //slices_m[bins_m[nextBin][j]]->emitted = true;
-    //cout << "\tEmitting slice " << mySliceStartOffset_m + bins_m[nextBin][j] << " at " << slices_m[bins_m[nextBin][j]]->p[SLI_z] << endl;
-    //}
-
-    //lastEmittedBin_m++;
-    //activeSlices_m += bins_m[nextBin].size();
-    //}
-
-    //activeSlices_m = min(activeSlices_m+1, numSlices_m);
-    //if(activeSlices_m != numSlices_m)
-    //time_step_s = emission_time_step_;
-    //else
-    //time_step_s = tStep;
-
     curZHead_m = zHead();
     curZTail_m = zTail();
 
@@ -1245,12 +1165,6 @@ void EnvelopeBunch::timeStep(double tStep, double _zCat) {
         // make the current slice index global in this class
         currentSlice_m = i;
         std::shared_ptr<EnvelopeSlice> sp = slices_m[i];
-
-        //if(i + mySliceStartOffset_m == numSlices_m - activeSlices_m) {
-        //sp->emitted = true;
-        //sp->p[SLI_z] = 0.0;
-        //std::cout << "emitting " << i + mySliceStartOffset_m << std::endl;
-        //}
 
         // Assign values of K for certain slices
         KRsl_m = KR[i];
@@ -1471,7 +1385,6 @@ double EnvelopeBunch::zAvg() {
     if(nV < 1) {
         isValid_m = false;
         return -1;
-        //throw OpalException("EnvelopeBunch", "EnvelopeBunch::zAvg() no valid slices left");
     }
 
     allreduce(&sum, 1, std::plus<double>());
@@ -1484,7 +1397,6 @@ double EnvelopeBunch::zTail() {
     int i = 0;
     while((i < numMySlices_m) && (!slices_m[i]->is_valid()))
         i++;
-    //throw OpalException("EnvelopeBunch", "EnvelopeBunch::zTail() no valid slices left");
     if(i == numMySlices_m)
         isValid_m = false;
     else
@@ -1494,7 +1406,6 @@ double EnvelopeBunch::zTail() {
         if((slices_m[i]->p[SLI_z] < min) && (slices_m[i]->is_valid()))
             min = slices_m[i]->p[SLI_z];
 
-    //reduce(min, min, OpMinAssign());
     allreduce(&min, 1, std::less<double>());
     return min;
 }
@@ -1505,7 +1416,6 @@ double EnvelopeBunch::zHead() {
     int i = 0;
     while((i < numMySlices_m) && (slices_m[i]->is_valid() == 0))
         i++;
-    //throw OpalException("EnvelopeBunch", "EnvelopeBunch::zHead() no valid slices left");
     if(i == numMySlices_m)
         isValid_m = false;
     else
@@ -1514,7 +1424,6 @@ double EnvelopeBunch::zHead() {
     for(i = 1; i < numMySlices_m; i++)
         if(slices_m[i]->p[SLI_z] > max) max = slices_m[i]->p[SLI_z];
 
-    //reduce(max, max, OpMaxAssign());
     allreduce(&max, 1, std::greater<double>());
     return max;
 }
@@ -1523,41 +1432,13 @@ double EnvelopeBunch::zHead() {
 Inform &EnvelopeBunch::slprint(Inform &os) {
     if(this->getTotalNum() != 0) {  // to suppress Nan's
         os << "* ************** S L B U N C H ***************************************************** " << endl;
-        os << "* NSlices= " << this->getTotalNum() << " Qtot= " << Q_m << endl; //" [nC]  Qi= " << std::abs(qi_m) << " [C]" << endl;
+        os << "* NSlices= " << this->getTotalNum() << " Qtot= " << Q_m << endl;
         os << "* Emean= " << get_meanKineticEnergy() * 1e-6 << " [MeV]" << endl;
         os << "* dT= " << this->getdT() << " [s]" << endl;
         os << "* spos= " << this->zAvg() << " [m]" << endl;
 
-        //os << "* rmax= " << rmax_m << " [m]" << endl;
-        //os << "* rmin= " << rmin_m << " [m]" << endl;
-        //os << "* rms beam size= " << rrms_m << " [m]" << endl;
-        //os << "* rms momenta= " << prms_m << " [beta gamma]" << endl;
-        //os << "* mean position= " << rmean_m << " [m]" << endl;
-        //os << "* mean momenta= " << pmean_m << " [beta gamma]" << endl;
-        //os << "* rms emmitance= " << eps_m << " (not normalized)" << endl;
-        //os << "* rms correlation= " << rprms_m << endl;
-        //os << "* tEmission= " << getTEmission() << " [s]" << endl;
         os << "* ********************************************************************************** " << endl;
 
-        //Inform::FmtFlags_t ff = os.flags();
-        //os << scientific;
-        //os << "* ************** B U N C H ********************************************************* " << endl;
-        //os << "* NSlices= " << this->getTotalNum() << " Qtot= " << abs(sum(Q) * 1.0E9) << " [nC]" << endl;
-        //os << "* Ekin            =   " << setw(12) << setprecision(5) << eKin_m << " [MeV] dEkin= " << dE_m << " [MeV]" << endl;
-        //os << "* rmax            = " << setw(12) << setprecision(5) << rmax_m << " [m]" << endl;
-        //os << "* rmin            = " << setw(12) << setprecision(5) << rmin_m << " [m]" << endl;
-        //os << "* rms beam size   = " << setw(12) << setprecision(5) << rrms_m << " [m]" << endl;
-        //os << "* rms momenta     = " << setw(12) << setprecision(5) << prms_m << " [beta gamma]" << endl;
-        //os << "* mean position   = " << setw(12) << setprecision(5) << rmean_m << " [m]" << endl;
-        //os << "* mean momenta    = " << setw(12) << setprecision(5) << pmean_m << " [beta gamma]" << endl;
-        //os << "* rms emittance   = " << setw(12) << setprecision(5) << eps_m << " (not normalized)" << endl;
-        //os << "* rms correlation = " << setw(12) << setprecision(5) << rprms_m << endl;
-        //os << "* hr              = " << setw(12) << setprecision(5) << hr_m << " [m]" << endl;
-        //os << "* dh              =   " << setw(12) << setprecision(5) << dh_m << " [m]" << endl;
-        //os << "* t               =   " << setw(12) << setprecision(5) << getT() << " [s] dT= " << getdT() << " [s]" << endl;
-        //os << "* spos            =   " << setw(12) << setprecision(5) << get_sPos() << " [m]" << endl;
-        //os << "* ********************************************************************************** " << endl;
-        //os.flags(ff);
     }
     return os;
 }
