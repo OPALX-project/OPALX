@@ -898,7 +898,6 @@ void EnvelopeBunch::cSpaceCharge() {
             double H1 = sqrt((1 - zeta / L) * (1 - zeta / L) + A * A) - sqrt((zeta / L) * (zeta / L) + A * A) - std::abs(1 - zeta / L) + std::abs(zeta / L);
             double H2 = sqrt((1 - xi / L) * (1 - xi / L) + A * A) - sqrt((xi / L) * (xi / L) + A * A) - std::abs(1 - xi / L) + std::abs(xi / L);
 
-            //FIXME: Q_act or Q?
             Esct_m[i] = (Q_m / 2 / Physics::pi / Physics::epsilon_0 / R / R) * (H1 - icON * H2);
             double G1 = (1 - zeta / L) / sqrt((1 - zeta / L) * (1 - zeta / L) + A * A) + (zeta / L) / sqrt((zeta / L) * (zeta / L) + A * A);
             double G2 = (1 - xi / L) / sqrt((1 - xi / L) * (1 - xi / L) + A * A) + (xi / L) / sqrt((xi / L) * (xi / L) + A * A);
@@ -1067,7 +1066,6 @@ void EnvelopeBunch::derivs(double /*tc*/, double Y[], double dYdt[]) {
 
 
 #ifdef USE_HOMDYN_SC_MODEL
-        //FIXME: Q_act or Q?
         double kpc  = 0.5 * Physics::c * Physics::c * (Y[SLI_beta] * Physics::c) * activeSlices_m * Q_m / numSlices_m / (curZHead_m - curZTail_m) / Physics::Ia;
 
         /// \f[ \dot{\sigma} = p \f]
