@@ -1,7 +1,7 @@
 //
 // Struct array
 //
-// Copyright (c) 2017, Christof Metzger-Kraus, Open Sourcerer
+// Copyright (c) 2015, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
 // All rights reserved
 //
 // This file is part of OPAL.
