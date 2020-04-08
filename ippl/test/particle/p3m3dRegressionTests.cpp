@@ -1,19 +1,28 @@
-// -*- C++ -*-
-/**************************************************************************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- *      mpirun -np 4 ./p3m3dRegressionTests testcase Nx Ny Nz rcut alpha dt eps timesteps Sx Sy Sz
- *      alpha is the splitting parameter for pm and pp, eps is the smoothing factor and Si are the coordinates of the charged sphere center
- *
- *
- *************************************************************************************************************************************/
+//
+// Application p3m3dRegressionTests
+//   mpirun -np 4 ./p3m3dRegressionTests testcase Nx Ny Nz rcut alpha dt eps timesteps Sx Sy Sz
+//   alpha is the splitting parameter for pm and pp, eps is the smoothing factor and Si are the
+//   coordinates of the charged sphere center
+//
+//   using the "point" distribution will only place one particle
+//
+// Copyright (c) 2016, Benjamin Ulmer, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Master thesis
+// "The P3M Model on Emerging Computer Architectures With Application to Microbunching"
+// (http://amas.web.psi.ch/people/aadelmann/ETH-Accel-Lecture-1/projectscompleted/cse/thesisBUlmer.pdf)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Ippl.h"
 #include <string>
 #include <vector>
