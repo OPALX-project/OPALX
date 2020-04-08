@@ -9,7 +9,7 @@
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
-// "Toward massively parallel multi-objective optimization withapplication to
+// "Toward massively parallel multi-objective optimization with application to
 // particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
 //
 // This file is part of OPAL.
