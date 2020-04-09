@@ -273,71 +273,78 @@ private:
 
 
 protected:
-
     /// Setup the parameters for the Belos iterative solver.
-    inline void SetupBelosList() {
-        belosList.set("Maximum Iterations", maxiters_m);
-        belosList.set("Convergence Tolerance", tol_m);
-
-        if(numBlocks_m != 0 && recycleBlocks_m != 0){//only set if solver==RCGSolMgr
-            belosList.set("Num Blocks", numBlocks_m);               // Maximum number of blocks in Krylov space
-            belosList.set("Num Recycled Blocks", recycleBlocks_m); // Number of vectors in recycle space
-        }
-        if(verbose_m) {
-            belosList.set("Verbosity", Belos::Errors + Belos::Warnings +
-                                       Belos::TimingDetails + Belos::FinalSummary +
-                                       Belos::StatusTestDetails);
-            belosList.set("Output Frequency", 1);
-        } else
-            belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
-      }
+    void SetupBelosList();
 
     /// Setup the parameters for the SAAMG preconditioner.
-    inline void SetupMLList() {
-        ML_Epetra::SetDefaults("SA", MLList_m, 0, 0, true);
-
-        MLList_m.set("max levels", 8);
-        MLList_m.set("increasing or decreasing", "increasing");
-
-        // we use a V-cycle
-        MLList_m.set("prec type", "MGV");
-
-        // uncoupled aggregation is used (every processor aggregates
-        // only local data)
-        MLList_m.set("aggregation: type", "Uncoupled");
-
-        // smoother related parameters
-        MLList_m.set("smoother: type","Chebyshev");
-        MLList_m.set("smoother: sweeps", 3);
-        MLList_m.set("smoother: pre or post", "both");
-
-        // on the coarsest level we solve with  Tim Davis' implementation of
-        // Gilbert-Peierl's left-looking sparse partial pivoting algorithm,
-        // with Eisenstat & Liu's symmetric pruning. Gilbert's version appears
-        // as \c [L,U,P]=lu(A) in MATLAB. It doesn't exploit dense matrix
-        // kernels, but it is the only sparse LU factorization algorithm known to be
-        // asymptotically optimal, in the sense that it takes time proportional to the
-        // number of floating-point operations.
-        MLList_m.set("coarse: type", "Amesos-KLU");
-
-        //XXX: or use Chebyshev coarse level solver
-        // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
-        //MLList.set("coarse: sweeps", 10);
-        //MLList.set("coarse: type", "Chebyshev");
-
-        // Controls the amount of printed information.
-        // Ranges from 0 to 10 (0 is no output, and
-        // 10 is incredibly detailed output). Default: 0
-        if(verbose_m)
-            MLList_m.set("ML output", 10);
-
-        // heuristic for max coarse size depending on number of processors
-        int coarsest_size = std::max(Comm.NumProc() * 10, 1024);
-        MLList_m.set("coarse: max size", coarsest_size);
-
-    }
-
+    void SetupMLList();
 };
+
+
+inline
+void MGPoissonSolver::SetupBelosList() {
+    belosList.set("Maximum Iterations", maxiters_m);
+    belosList.set("Convergence Tolerance", tol_m);
+
+    if (numBlocks_m != 0 && recycleBlocks_m != 0){//only set if solver==RCGSolMgr
+        belosList.set("Num Blocks", numBlocks_m);               // Maximum number of blocks in Krylov space
+        belosList.set("Num Recycled Blocks", recycleBlocks_m); // Number of vectors in recycle space
+    }
+    if (verbose_m) {
+        belosList.set("Verbosity", Belos::Errors + Belos::Warnings +
+                                   Belos::TimingDetails + Belos::FinalSummary +
+                                   Belos::StatusTestDetails);
+        belosList.set("Output Frequency", 1);
+    } else
+        belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
+}
+
+
+inline
+void MGPoissonSolver::SetupMLList() {
+    ML_Epetra::SetDefaults("SA", MLList_m, 0, 0, true);
+
+    MLList_m.set("max levels", 8);
+    MLList_m.set("increasing or decreasing", "increasing");
+
+    // we use a V-cycle
+    MLList_m.set("prec type", "MGV");
+
+    // uncoupled aggregation is used (every processor aggregates
+    // only local data)
+    MLList_m.set("aggregation: type", "Uncoupled");
+
+    // smoother related parameters
+    MLList_m.set("smoother: type","Chebyshev");
+    MLList_m.set("smoother: sweeps", 3);
+    MLList_m.set("smoother: pre or post", "both");
+
+    // on the coarsest level we solve with  Tim Davis' implementation of
+    // Gilbert-Peierl's left-looking sparse partial pivoting algorithm,
+    // with Eisenstat & Liu's symmetric pruning. Gilbert's version appears
+    // as \c [L,U,P]=lu(A) in MATLAB. It doesn't exploit dense matrix
+    // kernels, but it is the only sparse LU factorization algorithm known to be
+    // asymptotically optimal, in the sense that it takes time proportional to the
+    // number of floating-point operations.
+    MLList_m.set("coarse: type", "Amesos-KLU");
+
+    //XXX: or use Chebyshev coarse level solver
+    // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
+    //MLList.set("coarse: sweeps", 10);
+    //MLList.set("coarse: type", "Chebyshev");
+
+    // Controls the amount of printed information.
+    // Ranges from 0 to 10 (0 is no output, and
+    // 10 is incredibly detailed output). Default: 0
+    if (verbose_m)
+        MLList_m.set("ML output", 10);
+
+    // heuristic for max coarse size depending on number of processors
+    int coarsest_size = std::max(Comm.NumProc() * 10, 1024);
+    MLList_m.set("coarse: max size", coarsest_size);
+
+}
+
 
 inline Inform &operator<<(Inform &os, const MGPoissonSolver &fs) {
     return fs.print(os);
