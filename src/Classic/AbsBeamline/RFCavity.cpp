@@ -63,9 +63,9 @@ RFCavity::RFCavity(const RFCavity &right):
     autophaseVeto_m(right.autophaseVeto_m),
     designEnergy_m(right.designEnergy_m),
     fieldmap_m(right.fieldmap_m),
+    length_m(right.length_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m),
-    length_m(right.length_m),
     type_m(right.type_m),
     rmin_m(right.rmin_m),
     rmax_m(right.rmax_m),
@@ -99,9 +99,9 @@ RFCavity::RFCavity(const std::string &name):
     autophaseVeto_m(false),
     designEnergy_m(-1.0),
     fieldmap_m(nullptr),
+    length_m(0.0),
     startField_m(0.0),
     endField_m(0.0),
-    length_m(0.0),
     type_m(SW),
     rmin_m(0.0),
     rmax_m(0.0),
@@ -114,9 +114,6 @@ RFCavity::RFCavity(const std::string &name):
     RNormal_m(nullptr),
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
-    //     RNormal_m(std::nullptr_t(NULL)),
-    //     VrNormal_m(std::nullptr_t(NULL)),
-    //     DvDr_m(std::nullptr_t(NULL)),
     num_points_m(0)
 {
     setElType(isRF);
@@ -124,13 +121,6 @@ RFCavity::RFCavity(const std::string &name):
 
 
 RFCavity::~RFCavity() {
-    // FIXME: in deleteFielmak, a map find makes problems
-    //       Fieldmap::deleteFieldmap(filename_m);
-    //~ if(RNormal_m) {
-    //~ delete[] RNormal_m;
-    //~ delete[] VrNormal_m;
-    //~ delete[] DvDr_m;
-    //~ }
 }
 
 void RFCavity::accept(BeamlineVisitor &visitor) const {
@@ -254,6 +244,7 @@ bool RFCavity::applyToReferenceParticle(const Vector_t &R,
 void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     using Physics::two_pi;
 
+    startField_m = endField_m = 0.0;
     if (bunch == NULL) {
         startField = startField_m;
         endField = endField_m;
@@ -267,29 +258,30 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
-
     fieldmap_m->getFieldDimensions(startField_m, endField_m, rBegin, rEnd);
-    if(endField_m > startField_m) {
-        msg << level2 << getName() << " using file ";
-        fieldmap_m->getInfo(&msg);
-        if(std::abs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
-            errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename_m << "';\n"
-                     << frequency_m / two_pi * 1e-6 << " MHz <> "
-                     << fieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
-            std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
-            ERRORMSG(errormsg_str << "\n" << endl);
-            if(Ippl::myNode() == 0) {
-                std::ofstream omsg("errormsg.txt", std::ios_base::app);
-                omsg << errormsg_str << std::endl;
-                omsg.close();
-            }
-            frequency_m = fieldmap_m->getFrequency();
-        }
-        length_m = endField_m - startField_m;
-        endField = startField + length_m;
-    } else {
-        endField = startField - 1e-3;
+    if (endField_m <= startField_m) {
+        throw GeneralClassicException("RFCavity::initialise",
+                                      "The length of the field map '" + filename_m + "' is zero or negativ");
     }
+
+    msg << level2 << getName() << " using file ";
+    fieldmap_m->getInfo(&msg);
+    if(std::abs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
+        errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename_m << "';\n"
+                 << frequency_m / two_pi * 1e-6 << " MHz <> "
+                 << fieldmap_m->getFrequency() / two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
+        std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
+        ERRORMSG(errormsg_str << "\n" << endl);
+        if(Ippl::myNode() == 0) {
+            std::ofstream omsg("errormsg.txt", std::ios_base::app);
+            omsg << errormsg_str << std::endl;
+            omsg.close();
+        }
+        frequency_m = fieldmap_m->getFrequency();
+    }
+    length_m = endField_m - startField_m;
+    endField = startField + length_m;
+
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
@@ -785,9 +777,9 @@ pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
         integrator.push(z, p, dt);
         z *= cdt;
 
+        Ef = 0.0;
+        Bf = 0.0;
         if(z(2) >= zbegin && z(2) <= zend) {
-            Ef = 0.0;
-            Bf = 0.0;
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
         integrator.kick(z, p, Ef, Bf, dt);
