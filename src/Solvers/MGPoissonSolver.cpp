@@ -60,9 +60,9 @@
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 // #include <MueLu_TpetraOperator.hpp>
 
-#include "ml_MultiLevelPreconditioner.h"
-#include "ml_MultiLevelOperator.h"
-#include "ml_epetra_utils.h"
+// #include "ml_MultiLevelPreconditioner.h"
+// #include "ml_MultiLevelOperator.h"
+// #include "ml_epetra_utils.h"
 
 // #include "Isorropia_Exception.hpp"
 // #include "Isorropia_Epetra.hpp"
@@ -168,7 +168,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     numBlocks_m = Options::numBlocks;
     recycleBlocks_m = Options::recycleBlocks;
     nLHS_m = Options::nLHS;
-    SetupMLList();
+    setupMueLuList();
     SetupBelosList();
     problem_mp = rcp(new Belos::LinearProblem<TpetraScalar_t, TpetraMultiVector_t, TpetraOperator_t>);
     // setup Belos solver
@@ -372,7 +372,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 #endif
 
     INFOMSG(level3 << "* Computing Preconditioner..." << endl);
-    /* FIXME
+    /* FIXME --> MueLu reuse types
     IpplTimings::startTimer(FunctionTimer5_m);
     if (MueLuPrec == Teuchos::null) {
         MueLuPrec = MueLu::CreateTpetraPreconditioner(A, MLList_m);
@@ -391,9 +391,10 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     problem_mp->setOperator(A);
     problem_mp->setLHS(LHS);
     problem_mp->setRHS(RHS);
-    if (Teuchos::is_null(prec_mp))
-        std::cout << "FIXME" << std::endl; //FIXME
-//         prec_mp = MueLu::CreateTpetraPreconditioner(A, MLList_m);
+    if (Teuchos::is_null(prec_mp)) {
+        Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
+        prec_mp = MueLu::CreateTpetraPreconditioner(At, MueLuList_m);
+    }
     problem_mp->setLeftPrec(prec_mp);
     solver_mp->setProblem( problem_mp);
     if (!problem_mp->isProblemSet()) {
@@ -491,7 +492,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     Teuchos::RCP<const TpetraMultiVector_t> coords = Teuchos::rcp(
         new TpetraMultiVector_t(bmap, 3, false));
 
-/*FIXME
+/*FIXME --> Compare src/Solvers/AMR_MG/MueLuPreconditioner.hpp
     double *v;
     int stride = 0, stride2 = 0;
     coords->extractView(&v, &stride);
@@ -563,6 +564,7 @@ void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
 
 void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<TpetraVector_t> RHS) {
 
+    A->resumeFill();
     A->setAllToScalar(0.0);
 
     int NumMyElements = map_p->getNodeNumElements();

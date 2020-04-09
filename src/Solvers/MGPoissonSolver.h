@@ -49,7 +49,6 @@
 // #endif
 
 #include <Tpetra_Vector.hpp>
-// #include <Tpetra_Map.hpp>
 #include <Tpetra_CrsMatrix.hpp>
 
 #include <Teuchos_DefaultMpiComm.hpp>
@@ -58,43 +57,8 @@
 #include <BelosSolverFactory.hpp>
 
 #include <MueLu.hpp>
-
-
-// #include "Epetra_MpiComm.h"
-// #include "Epetra_Map.h"
-// #include "Epetra_CrsMatrix.h"
-
 #include "Teuchos_ParameterList.hpp"
 #include "Algorithms/PartBunch.h"
-
-// #include "BelosTypes.hpp"
-
-namespace Belos {
-    template <class ScalarType, class MV, class OP>
-    class LinearProblem;
-
-    template <class ScalarType, class MV, class OP>
-    class OperatorTraits;
-
-    template<class ScalarType, class MV>
-    class MultiVecTraits;
-
-    template<class ScalarType, class MV, class OP>
-    class SolverManager;
-
-    class EpetraPrecOp;
-
-    template <class ScalarType, class MV, class OP>
-    class StatusTestGenResNorm;
-}
-
-namespace ML_Epetra {
-    class MultiLevelPreconditioner;
-
-    int SetDefaults(std::string ProblemType, Teuchos::ParameterList & List,
-                    int * options, double * params, const bool OverWrite);
-}
-
 
 typedef UniformCartesian<3, double> Mesh_t;
 typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
@@ -243,11 +207,11 @@ private:
     Teuchos::RCP<LinearProblem_t> problem_mp;
     Teuchos::RCP<SolverManager_t>  solver_mp;
 
-    Teuchos::RCP<const TpetraOperator_t> prec_mp;
+    Teuchos::RCP<TpetraOperator_t> prec_mp;
     Teuchos::RCP<StatusTest_t> convStatusTest;
 
     /// parameter list for the ML solver
-    Teuchos::ParameterList MLList_m;
+    Teuchos::ParameterList MueLuList_m;
     /// parameter list for the iterative solver (Belos)
     Teuchos::ParameterList belosList;
 
@@ -306,7 +270,7 @@ protected:
     void SetupBelosList();
 
     /// Setup the parameters for the SAAMG preconditioner.
-    void SetupMLList();
+    void setupMueLuList();
 };
 
 
@@ -330,48 +294,57 @@ void MGPoissonSolver::SetupBelosList() {
 
 
 inline
-void MGPoissonSolver::SetupMLList() {
-    ML_Epetra::SetDefaults("SA", MLList_m, 0, 0, true);
-
-    MLList_m.set("max levels", 8);
-    MLList_m.set("increasing or decreasing", "increasing");
-
-    // we use a V-cycle
-    MLList_m.set("prec type", "MGV");
-
-    // uncoupled aggregation is used (every processor aggregates
-    // only local data)
-    MLList_m.set("aggregation: type", "Uncoupled");
-
-    // smoother related parameters
-    MLList_m.set("smoother: type","Chebyshev");
-    MLList_m.set("smoother: sweeps", 3);
-    MLList_m.set("smoother: pre or post", "both");
-
-    // on the coarsest level we solve with  Tim Davis' implementation of
-    // Gilbert-Peierl's left-looking sparse partial pivoting algorithm,
-    // with Eisenstat & Liu's symmetric pruning. Gilbert's version appears
-    // as \c [L,U,P]=lu(A) in MATLAB. It doesn't exploit dense matrix
-    // kernels, but it is the only sparse LU factorization algorithm known to be
-    // asymptotically optimal, in the sense that it takes time proportional to the
-    // number of floating-point operations.
-    MLList_m.set("coarse: type", "Amesos-KLU");
-
-    //XXX: or use Chebyshev coarse level solver
-    // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
-    //MLList.set("coarse: sweeps", 10);
-    //MLList.set("coarse: type", "Chebyshev");
-
-    // Controls the amount of printed information.
-    // Ranges from 0 to 10 (0 is no output, and
-    // 10 is incredibly detailed output). Default: 0
-    if (verbose_m)
-        MLList_m.set("ML output", 10);
+void MGPoissonSolver::setupMueLuList() {
+    MueLuList_m.set("problem: type", "Poisson-3D");
+    MueLuList_m.set("verbosity", "none");
+    MueLuList_m.set("number of equations", 1);
+    MueLuList_m.set("max levels", 8);
+    MueLuList_m.set("cycle type", "V");
 
     // heuristic for max coarse size depending on number of processors
     int coarsest_size = std::max(comm_mp->getSize() * 10, 1024);
-    MLList_m.set("coarse: max size", coarsest_size);
+    MueLuList_m.set("coarse: max size", coarsest_size);
 
+    MueLuList_m.set("multigrid algorithm", "sa");
+    MueLuList_m.set("sa: damping factor", 1.33);
+    MueLuList_m.set("sa: use filtered matrix", true);
+    MueLuList_m.set("filtered matrix: reuse eigenvalue", false);
+
+    MueLuList_m.set("repartition: enable", false);
+    MueLuList_m.set("repartition: rebalance P and R", false);
+    MueLuList_m.set("repartition: partitioner", "zoltan2");
+    MueLuList_m.set("repartition: min rows per proc", 800);
+    MueLuList_m.set("repartition: start level", 2);
+
+    //FIXME --> RCB
+//     Teuchos::ParameterList reparms;
+//     reparms.set("algorithm", "rcb"); // multijagged
+//     reparms.set("partitioning_approach", "partition");
+
+//     MueLuList_m.set("repartition: params", reparms);
+
+
+    MueLuList_m.set("smoother: type", "CHEBYSHEV");
+    MueLuList_m.set("smoother: pre or post", "both");
+    Teuchos::ParameterList smparms;
+    smparms.set("chebyshev: degree", 3);
+    smparms.set("chebyshev: assume matrix does not change", false);
+    smparms.set("chebyshev: zero starting solution", true);
+    smparms.set("relaxation: sweeps", 3);
+    MueLuList_m.set("smoother: params", smparms);
+
+    MueLuList_m.set("smoother: type", "CHEBYSHEV");
+    MueLuList_m.set("smoother: pre or post", "both");
+
+    MueLuList_m.set("coarse: type", "KLU2");
+
+    MueLuList_m.set("aggregation: type", "uncoupled");
+    MueLuList_m.set("aggregation: min agg size", 3);
+    MueLuList_m.set("aggregation: max agg size", 27);
+
+    MueLuList_m.set("transpose: use implicit", false);
+
+    MueLuList_m.set("reuse: type", "full"); // none
 }
 
 
