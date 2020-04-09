@@ -121,9 +121,9 @@ bool Astra1DMagnetoStatic_fast::readFileHeader(std::ifstream &file) {
 
     bool passed;
     try {
-        passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
+        passed = interpretLine<std::string, int>(file, tmpString, tmpInt);
     } catch (GeneralClassicException &e) {
-        passed = interpreteLine<std::string, int, std::string>(file, tmpString, tmpInt, tmpString);
+        passed = interpretLine<std::string, int, std::string>(file, tmpString, tmpInt, tmpString);
 
         tmpString = Util::toUpper(tmpString);
         if (tmpString != "TRUE" &&
@@ -143,9 +143,9 @@ int Astra1DMagnetoStatic_fast::stripFileHeader(std::ifstream &file) {
     int accuracy;
 
     try {
-        interpreteLine<std::string, int>(file, tmpString, accuracy);
+        interpretLine<std::string, int>(file, tmpString, accuracy);
     } catch (GeneralClassicException &e) {
-        interpreteLine<std::string, int, std::string>(file, tmpString, accuracy, tmpString);
+        interpretLine<std::string, int, std::string>(file, tmpString, accuracy, tmpString);
     }
 
     return accuracy;
