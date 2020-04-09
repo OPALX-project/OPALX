@@ -560,31 +560,23 @@ bool Fieldmap::interpreteEOF(std::ifstream &in) {
     return true;
 }
 
-void Fieldmap::interpreteWarning(const std::string &error_msg,
-                                 const std::string &expecting,
-                                 const std::string &found) {
+void Fieldmap::interpretWarning(const std::ios_base::iostate &state,
+                                const bool &read_all,
+                                const std::string &expecting,
+                                const std::string &found) {
     std::stringstream errormsg;
-    errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
-             << "expecting: '" << expecting << "' on line " << lines_read_m << ",\n"
-             << "found instead: '" << found << "'.";
-    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
+    errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n";
+    if(!read_all) {
+        errormsg << "Didn't find enough values!" << std::endl;
+    } else if(state & std::ios_base::eofbit) {
+        errormsg << "Found more values than expected!" << std::endl;
+    } else if(state & std::ios_base::failbit) {
+        errormsg << "Found wrong type of values!" << "\n"
+                 << "expecting: '" << expecting << "' on line " << lines_read_m << ",\n"
+                 << "instead found: '" << found << "'." << std::endl;
+    }
     throw GeneralClassicException("Fieldmap::interpretWarning()",
                                   errormsg.str());
-}
-
-void Fieldmap::interpreteWarning(const std::ios_base::iostate &state,
-                                 const bool &read_all,
-                                 const std::string &expecting,
-                                 const std::string &found) {
-    std::string error_msg;
-    if(!read_all) {
-        error_msg = std::string("Didn't find enough values!");
-    } else if(state & std::ios_base::eofbit) {
-        error_msg = std::string("Found more values than expected!");
-    } else if(state & std::ios_base::failbit) {
-        error_msg = std::string("Found wrong type of values!");
-    }
-    interpreteWarning(error_msg, expecting, found);
 }
 
 void Fieldmap::missingValuesWarning() {
@@ -592,7 +584,7 @@ void Fieldmap::missingValuesWarning() {
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "There are only " << lines_read_m - 1 << " lines in the file, expecting more.\n"
              << "Please check the section about field maps in the user manual.";
-    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
+
     throw GeneralClassicException("Fieldmap::missingValuesWarning()",
                                   errormsg.str());
 }
@@ -602,7 +594,7 @@ void Fieldmap::exceedingValuesWarning() {
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "There are too many lines in the file, expecting only " << lines_read_m << " lines.\n"
              << "Please check the section about field maps in the user manual.";
-    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
+
     throw GeneralClassicException("Fieldmap::exceedingValuesWarning()",
                                   errormsg.str());
 }
@@ -610,7 +602,7 @@ void Fieldmap::exceedingValuesWarning() {
 void Fieldmap::disableFieldmapWarning() {
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" + Filename_m + "' DUE TO PARSING ERRORS." ;
-    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
+
     throw GeneralClassicException("Fieldmap::disableFieldmapsWarning()",
                                   errormsg.str());
 }
@@ -618,7 +610,7 @@ void Fieldmap::disableFieldmapWarning() {
 void Fieldmap::noFieldmapWarning() {
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" << Filename_m << "' SINCE FILE COULDN'T BE FOUND!";
-    //    std::string errormsg_str = typeset_msg(errormsg.str(), "error");
+
     throw GeneralClassicException("Fieldmap::noFieldmapsWarning()",
                                   errormsg.str());
 }

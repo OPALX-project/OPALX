@@ -27,9 +27,9 @@ FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
     if(file.good()) {
         bool parsing_passed = true;
         try {
-            interpreteLine<std::string>(file, tmpString);
+            interpretLine<std::string>(file, tmpString);
         } catch (GeneralClassicException &e) {
-            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+            parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" &&
@@ -41,15 +41,15 @@ FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
             normalize_m = (tmpString == "TRUE");
         }
         parsing_passed = parsing_passed &&
-                         interpreteLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m);
+                         interpretLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m);
         parsing_passed = parsing_passed &&
-                         interpreteLine<double, double, unsigned int>(file, ybegin_m, yend_m, num_gridpy_m);
+                         interpretLine<double, double, unsigned int>(file, ybegin_m, yend_m, num_gridpy_m);
         parsing_passed = parsing_passed &&
-                         interpreteLine<double, double, unsigned int>(file, zbegin_m, zend_m, num_gridpz_m);
+                         interpretLine<double, double, unsigned int>(file, zbegin_m, zend_m, num_gridpz_m);
 
         for(unsigned long i = 0; (i < (num_gridpz_m + 1) * (num_gridpx_m + 1) * (num_gridpy_m + 1)) && parsing_passed; ++ i) {
             parsing_passed = parsing_passed &&
-                             interpreteLine<double>(file,
+                             interpretLine<double>(file,
                                                     tmpDouble,
                                                     tmpDouble,
                                                     tmpDouble);
@@ -114,7 +114,7 @@ void FM3DMagnetoStatic::readMap() {
         for(unsigned int i = 0; i < num_gridpx_m; ++ i) {
             for(unsigned int j = 0; j < num_gridpy_m; ++ j) {
                 for(unsigned int k = 0; k < num_gridpz_m; ++ k) {
-                    interpreteLine<double>(in,
+                    interpretLine<double>(in,
                                            FieldstrengthBx_m[ii],
                                            FieldstrengthBy_m[ii],
                                            FieldstrengthBz_m[ii]);
