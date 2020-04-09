@@ -36,27 +36,38 @@
 
 #include "mpi.h"
 
-#if !defined(HAVE_ML_EPETRA)
-#error Epetra support missing in Trilinos installation!
-#endif
+// #if !defined(HAVE_ML_EPETRA)
+// #error Epetra support missing in Trilinos installation!
+// #endif
 
 #if !defined(HAVE_ML_TEUCHOS)
 #error Teuchos support missing in Trilinos installation!
 #endif
 
-#if !defined(HAVE_ML_AZTECOO)
-#error Aztecoo support missing in Trilinos installation!
-#endif
+// #if !defined(HAVE_ML_AZTECOO)
+// #error Aztecoo support missing in Trilinos installation!
+// #endif
 
-#include "Epetra_MpiComm.h"
-#include "Epetra_Map.h"
-#include "Epetra_Vector.h"
-#include "Epetra_CrsMatrix.h"
+#include <Tpetra_Vector.hpp>
+// #include <Tpetra_Map.hpp>
+#include <Tpetra_CrsMatrix.hpp>
+
+#include <Teuchos_DefaultMpiComm.hpp>
+
+#include <BelosLinearProblem.hpp>
+#include <BelosSolverFactory.hpp>
+
+#include <MueLu.hpp>
+
+
+// #include "Epetra_MpiComm.h"
+// #include "Epetra_Map.h"
+// #include "Epetra_CrsMatrix.h"
 
 #include "Teuchos_ParameterList.hpp"
 #include "Algorithms/PartBunch.h"
 
-#include "BelosTypes.hpp"
+// #include "BelosTypes.hpp"
 
 namespace Belos {
     template <class ScalarType, class MV, class OP>
@@ -104,6 +115,28 @@ class BoundaryGeometry;
 class MGPoissonSolver : public PoissonSolver {
 
 public:
+    typedef Tpetra::Vector<>                            TpetraVector_t;
+    typedef Tpetra::MultiVector<>                       TpetraMultiVector_t;
+    typedef Tpetra::Map<>                               TpetraMap_t;
+    typedef Tpetra::Vector<>::scalar_type               TpetraScalar_t;
+    typedef Tpetra::Operator<>                          TpetraOperator_t;
+    typedef Tpetra::CrsMatrix<>                         TpetraCrsMatrix_t;
+    typedef Teuchos::MpiComm<int>                       Comm_t;
+
+    typedef Teuchos::ParameterList                      ParameterList_t;
+
+    typedef Belos::SolverManager<TpetraScalar_t,
+                                 TpetraMultiVector_t,
+                                 TpetraOperator_t>      SolverManager_t;
+
+    typedef Belos::LinearProblem<TpetraScalar_t,
+                                 TpetraMultiVector_t,
+                                 TpetraOperator_t>      LinearProblem_t;
+
+    typedef Belos::StatusTestGenResNorm<TpetraScalar_t,
+                                        TpetraMultiVector_t,
+                                        TpetraOperator_t> StatusTest_t;
+
     MGPoissonSolver(PartBunch *beam,Mesh_t *mesh,
                     FieldLayout_t *fl,
                     std::vector<BoundaryGeometry *> geometries,
@@ -182,40 +215,36 @@ private:
     std::unique_ptr<IrregularDomain> bp_m;
 
     /// right hand side of our problem
-    Teuchos::RCP<Epetra_Vector> RHS;
+    Teuchos::RCP<TpetraVector_t> RHS;
     /// left hand side of the linear system of equations we solve
-    Teuchos::RCP<Epetra_Vector> LHS;
+    Teuchos::RCP<TpetraVector_t> LHS;
     /// matrix used in the linear system of equations
-    Teuchos::RCP<Epetra_CrsMatrix> A;
+    Teuchos::RCP<TpetraCrsMatrix_t> A;
 
     /// ML preconditioner object
-    ML_Epetra::MultiLevelPreconditioner *MLPrec;
+    Teuchos::RCP<TpetraOperator_t> MueLuPrec;
     /// Epetra_Map holding the processor distribution of data
-    Epetra_Map *Map;
+    Teuchos::RCP<TpetraMap_t> map_p;
     /// communicator used by Trilinos
-    Epetra_MpiComm Comm;
+    Teuchos::RCP<const Comm_t> comm_mp;
 
     /// last N LHS's for extrapolating the new LHS as starting vector
     uint nLHS_m;
-    Teuchos::RCP<Epetra_MultiVector> P;
-    std::deque< Epetra_Vector > OldLHS;
+    Teuchos::RCP<TpetraMultiVector_t> P_mp;
+    std::deque< TpetraVector_t > OldLHS;
 
     /// Solver (Belos RCG)
-    typedef double                          ST;
-    typedef Epetra_Operator                 OP;
-    typedef Epetra_MultiVector              MV;
-    typedef Belos::OperatorTraits<ST, MV, OP> OPT;
-    typedef Belos::MultiVecTraits<ST, MV>    MVT;
+//     typedef double                          ST;
+//     typedef Epetra_Operator                 OP;
+//     typedef Epetra_MultiVector              MV;
+//     typedef Belos::OperatorTraits<ST, MV, OP> OPT;
+//     typedef Belos::MultiVecTraits<ST, MV>    MVT;
 
-    //Belos::LinearProblem<double, MV, OP> problem;
-    typedef Belos::LinearProblem<ST, MV, OP> problem;
-    Teuchos::RCP< problem > problem_ptr;
+    Teuchos::RCP<LinearProblem_t> problem_mp;
+    Teuchos::RCP<SolverManager_t>  solver_mp;
 
-    typedef Belos::SolverManager<ST, MV, OP> solver;
-    Teuchos::RCP< solver > solver_ptr;
-
-    Teuchos::RCP< Belos::EpetraPrecOp > prec_m;
-    Teuchos::RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
+    Teuchos::RCP<const TpetraOperator_t> prec_mp;
+    Teuchos::RCP<StatusTest_t> convStatusTest;
 
     /// parameter list for the ML solver
     Teuchos::ParameterList MLList_m;
@@ -268,7 +297,7 @@ private:
      * \param Epetra_CrsMatrix holding the stencil
      * \param RHS right hand side might be scaled
      */
-    void ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RHS);
+    void ComputeStencil(Vector_t hr, Teuchos::RCP<TpetraVector_t> RHS);
 
 
 
@@ -340,7 +369,7 @@ void MGPoissonSolver::SetupMLList() {
         MLList_m.set("ML output", 10);
 
     // heuristic for max coarse size depending on number of processors
-    int coarsest_size = std::max(Comm.NumProc() * 10, 1024);
+    int coarsest_size = std::max(comm_mp->getSize() * 10, 1024);
     MLList_m.set("coarse: max size", coarsest_size);
 
 }
