@@ -141,14 +141,14 @@ void Astra1DDynamic_fast::getOnaxisEz(std::vector<std::pair<double, double> > & 
         std::string tmpString;
 
         std::ifstream in(Filename_m.c_str());
-        interpreteLine<std::string, int>(in, tmpString, tmpInt);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
-        interpreteLine<double>(in, tmpDouble);
-        interpreteLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
+        interpretLine<std::string, int>(in, tmpString, tmpInt);
+        interpretLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
+        interpretLine<double>(in, tmpDouble);
+        interpretLine<double, double, int>(in, tmpDouble, tmpDouble, tmpInt);
 
         for(int i = 0; i < num_gridpz_m; ++ i) {
             F[i].first = hz_m * i;
-            interpreteLine<double>(in, F[i].second);
+            interpretLine<double>(in, F[i].second);
             if(fabs(F[i].second) > Ez_max) {
                 Ez_max = fabs(F[i].second);
             }
@@ -172,9 +172,9 @@ bool Astra1DDynamic_fast::readFileHeader(std::ifstream &file) {
     bool passed = true;
 
     try {
-        passed = interpreteLine<std::string, int>(file, tmpString, tmpInt);
+        passed = interpretLine<std::string, int>(file, tmpString, tmpInt);
     } catch (GeneralClassicException &e) {
-        passed = interpreteLine<std::string, int, std::string>(file, tmpString, tmpInt, tmpString);
+        passed = interpretLine<std::string, int, std::string>(file, tmpString, tmpInt, tmpString);
 
         tmpString = Util::toUpper(tmpString);
         if (tmpString != "TRUE" &&
@@ -186,7 +186,7 @@ bool Astra1DDynamic_fast::readFileHeader(std::ifstream &file) {
         normalize_m = (tmpString == "TRUE");
     }
 
-    passed = passed && interpreteLine<double>(file, frequency_m);
+    passed = passed && interpretLine<double>(file, frequency_m);
 
     return passed;
 }
@@ -197,12 +197,12 @@ int Astra1DDynamic_fast::stripFileHeader(std::ifstream &file) {
     int accuracy;
 
     try {
-        interpreteLine<std::string, int>(file, tmpString, accuracy);
+        interpretLine<std::string, int>(file, tmpString, accuracy);
     } catch (GeneralClassicException &e) {
-        interpreteLine<std::string, int, std::string>(file, tmpString, accuracy, tmpString);
+        interpretLine<std::string, int, std::string>(file, tmpString, accuracy, tmpString);
     }
 
-    interpreteLine<double>(file, tmpDouble);
+    interpretLine<double>(file, tmpDouble);
 
     return accuracy;
 }
