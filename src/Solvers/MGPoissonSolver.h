@@ -104,7 +104,12 @@ class BoundaryGeometry;
 class MGPoissonSolver : public PoissonSolver {
 
 public:
-    MGPoissonSolver(PartBunch *beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
+    MGPoissonSolver(PartBunch *beam,Mesh_t *mesh,
+                    FieldLayout_t *fl,
+                    std::vector<BoundaryGeometry *> geometries,
+                    std::string itsolver, std::string interpl,
+                    double tol, int maxiters, std::string precmode);
+
     ~MGPoissonSolver();
 
     /// given a charge-density field rho and a set of mesh spacings hr, compute
@@ -279,7 +284,9 @@ protected:
             belosList.set("Num Recycled Blocks", recycleBlocks_m); // Number of vectors in recycle space
         }
         if(verbose_m) {
-            belosList.set("Verbosity", Belos::Errors + Belos::Warnings + Belos::TimingDetails + Belos::FinalSummary + Belos::StatusTestDetails);
+            belosList.set("Verbosity", Belos::Errors + Belos::Warnings +
+                                       Belos::TimingDetails + Belos::FinalSummary +
+                                       Belos::StatusTestDetails);
             belosList.set("Output Frequency", 1);
         } else
             belosList.set("Verbosity", Belos::Errors + Belos::Warnings);

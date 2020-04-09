@@ -96,16 +96,16 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
         orig_nr_m[i] = domain_m[i].length();
     }
 
-    if(itsolver == "CG") itsolver_m = AZ_cg;
-    else if(itsolver == "BICGSTAB") itsolver_m = AZ_bicgstab;
-    else if(itsolver == "GMRES") itsolver_m = AZ_gmres;
+    if (itsolver == "CG") itsolver_m = AZ_cg;
+    else if (itsolver == "BICGSTAB") itsolver_m = AZ_bicgstab;
+    else if (itsolver == "GMRES") itsolver_m = AZ_gmres;
     else throw OpalException("MGPoissonSolver", "No valid iterative solver selected!");
 
     precmode_m = STD_PREC;
-    if(precmode == "STD") precmode_m = STD_PREC;
-    else if(precmode == "HIERARCHY") precmode_m = REUSE_HIERARCHY;
-    else if(precmode == "REUSE") precmode_m = REUSE_PREC;
-    else if(precmode == "NO") precmode_m = NO;
+    if (precmode == "STD") precmode_m = STD_PREC;
+    else if (precmode == "HIERARCHY") precmode_m = REUSE_HIERARCHY;
+    else if (precmode == "REUSE") precmode_m = REUSE_PREC;
+    else if (precmode == "NO") precmode_m = NO;
 
     tolerableIterationsCount_m = 2;
     numIter_m = -1;
@@ -114,18 +114,27 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     hasParallelDecompositionChanged_m = true;
     repartFreq_m = 1000;
     useRCB_m = false;
-    if(Ippl::Info->getOutputLevel() > 3)
+    if (Ippl::Info->getOutputLevel() > 3)
         verbose_m = true;
     else
         verbose_m = false;
 
     // Find CURRENT geometry
     currentGeometry = geometries_m[0];
-    if(currentGeometry->getFilename() == "") {
-        if(currentGeometry->getTopology() == "ELLIPTIC"){
-            bp_m = std::unique_ptr<IrregularDomain>(new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl));
+    if (currentGeometry->getFilename() == "") {
+        if (currentGeometry->getTopology() == "ELLIPTIC"){
+            bp_m = std::unique_ptr<IrregularDomain>(
+                new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl));
+
         } else if (currentGeometry->getTopology() == "BOXCORNER") {
-            bp_m = std::unique_ptr<IrregularDomain>(new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl));
+            bp_m = std::unique_ptr<IrregularDomain>(
+                new BoxCornerDomain(currentGeometry->getA(),
+                                    currentGeometry->getB(),
+                                    currentGeometry->getC(),
+                                    currentGeometry->getLength(),
+                                    currentGeometry->getL1(),
+                                    currentGeometry->getL2(),
+                                    orig_nr_m, hr_m, interpl));
             bp_m->compute(itsBunch_m->get_hr());
         } else {
             throw OpalException("MGPoissonSolver::MGPoissonSolver",
@@ -141,7 +150,8 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                 "Please set PARFFTX=FALSE, PARFFTY=FALSE, PARFFTT=TRUE in \n"
                                 "the definition of the field solver in the input file.\n");
         }
-        bp_m = std::unique_ptr<IrregularDomain>(new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl));
+        bp_m = std::unique_ptr<IrregularDomain>(
+            new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl));
     }
 
     Map = 0;
@@ -158,7 +168,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     SetupBelosList();
     problem_ptr = rcp(new Belos::LinearProblem<ST, MV, OP>);
     // setup Belos solver
-    if(numBlocks_m == 0 || recycleBlocks_m == 0)
+    if (numBlocks_m == 0 || recycleBlocks_m == 0)
         solver_ptr = rcp(new Belos::BlockCGSolMgr<double, MV, OP>());
     else
         solver_ptr = rcp(new Belos::RCGSolMgr<double, MV, OP>());
@@ -201,7 +211,7 @@ void MGPoissonSolver::computePotential(Field_t& /*rho*/, Vector_t /*hr*/, double
 void MGPoissonSolver::computeMap(NDIndex<3> localId) {
     if (itsBunch_m->getLocalTrackStep()%repartFreq_m == 0){
         deletePtr();
-        if(useRCB_m)
+        if (useRCB_m)
             redistributeWithRCB(localId);
         else
             IPPLToMap3D(localId);
@@ -229,9 +239,9 @@ void MGPoissonSolver::extrapolateLHS() {
 
     //...and all previously saved LHS
     std::deque< Epetra_Vector >::iterator it = OldLHS.begin();
-    if(OldLHS.size() > 0) {
+    if (OldLHS.size() > 0) {
         int n = OldLHS.size();
-        for(int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; ++i) {
             Epetra_Vector tmplhs = Epetra_Vector(*Map);
             Epetra_Import importer(*Map, it->Map());
             tmplhs.Import(*it, importer, Add);
@@ -242,26 +252,27 @@ void MGPoissonSolver::extrapolateLHS() {
 
     // extrapolate last OldLHS.size LHS to get a new start vector
     it = OldLHS.begin();
-    if(nLHS_m == 0 || OldLHS.size()==0)
+    if (nLHS_m == 0 || OldLHS.size()==0)
         LHS->PutScalar(1.0);
-    else if(OldLHS.size() == 1)
+    else if (OldLHS.size() == 1)
         *LHS = *it;
-    else if(OldLHS.size() == 2)
+    else if (OldLHS.size() == 2)
         LHS->Update(2.0, *it++, -1.0, *it, 0.0);
-    else if(OldLHS.size() > 2) {
+    else if (OldLHS.size() > 2) {
         int n = OldLHS.size();
         P = rcp(new Epetra_MultiVector(*Map, nLHS_m, false));
-        for(int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; ++i) {
            *(*P)(i) = *it++;
         }
-        for(int k = 1; k < n; ++k) {
-           for(int i = 0; i < n - k; ++i) {
+        for (int k = 1; k < n; ++k) {
+           for (int i = 0; i < n - k; ++i) {
               (*P)(i)->Update(-(i + 1) / (float)k, *(*P)(i + 1), (i + k + 1) / (float)k);
            }
         }
         *LHS = *(*P)(0);
      } else
-        throw OpalException("MGPoissonSolver", "Invalid number of old LHS: " + std::to_string(OldLHS.size()));
+        throw OpalException("MGPoissonSolver",
+                            "Invalid number of old LHS: " + std::to_string(OldLHS.size()));
 }
 
 
@@ -284,7 +295,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     IpplTimings::startTimer(FunctionTimer1_m);
     // Compute boundary intersections (only do on the first step)
-    if(!itsBunch_m->getLocalTrackStep())
+    if (!itsBunch_m->getLocalTrackStep())
         bp_m->compute(hr, localId);
     IpplTimings::stopTimer(FunctionTimer1_m);
 
@@ -312,12 +323,20 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
 
     if (verbose_m) {
-        msg << "* Node:" << Ippl::myNode() << ", Rho for final element: " << rho[localId[0].last()][localId[1].last()][localId[2].last()].get() << endl;
+        msg << "* Node:" << Ippl::myNode() << ", Rho for final element: "
+            << rho[localId[0].last()][localId[1].last()][localId[2].last()].get()
+            << endl;
 
         Ippl::Comm->barrier();
-        msg << "* Node:" << Ippl::myNode() << ", Local nx*ny*nz = " <<  localId[2].last() *  localId[0].last() *  localId[1].last() << endl;
-        msg << "* Node:" << Ippl::myNode() << ", Number of reserved local elements in RHS: " << RHS->MyLength() << endl;
-        msg << "* Node:" << Ippl::myNode() << ", Number of reserved global elements in RHS: " << RHS->GlobalLength() << endl;
+        msg << "* Node:" << Ippl::myNode() << ", Local nx*ny*nz = "
+            <<  localId[2].last() *  localId[0].last() *  localId[1].last()
+            << endl;
+        msg << "* Node:" << Ippl::myNode()
+            << ", Number of reserved local elements in RHS: "
+            << RHS->MyLength() << endl;
+        msg << "* Node:" << Ippl::myNode()
+            << ", Number of reserved global elements in RHS: "
+            << RHS->GlobalLength() << endl;
         Ippl::Comm->barrier();
     }
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
@@ -332,14 +351,15 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     IpplTimings::stopTimer(FunctionTimer3_m);
     if (verbose_m) {
         Ippl::Comm->barrier();
-        msg << "* Node:" << Ippl::myNode() << ", Number of Local Inside Points " << id << endl;
+        msg << "* Node:" << Ippl::myNode()
+            << ", Number of Local Inside Points " << id << endl;
         msg << "* Node:" << Ippl::myNode() << ", Done." << endl;
         Ippl::Comm->barrier();
     }
     // build discretization matrix
     INFOMSG(level3 << "* Building Discretization Matrix..." << endl);
     IpplTimings::startTimer(FunctionTimer4_m);
-    if(Teuchos::is_null(A))
+    if (Teuchos::is_null(A))
         A = rcp(new Epetra_CrsMatrix(Copy, *Map,  7, true));
     ComputeStencil(hr, RHS);
     IpplTimings::stopTimer(FunctionTimer4_m);
@@ -351,7 +371,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     INFOMSG(level3 << "* Computing Preconditioner..." << endl);
     IpplTimings::startTimer(FunctionTimer5_m);
-    if(!MLPrec) {
+    if (!MLPrec) {
         MLPrec = new ML_Epetra::MultiLevelPreconditioner(*A, MLList_m);
     } else if (precmode_m == REUSE_HIERARCHY) {
         MLPrec->ReComputePreconditioner();
@@ -367,7 +387,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     problem_ptr->setOperator(A);
     problem_ptr->setLHS(LHS);
     problem_ptr->setRHS(RHS);
-    if(Teuchos::is_null(prec_m))
+    if (Teuchos::is_null(prec_m))
         prec_m = Teuchos::rcp ( new Belos::EpetraPrecOp ( rcp(MLPrec,false)));
     problem_ptr->setLeftPrec(prec_m);
     solver_ptr->setProblem( problem_ptr);
@@ -395,9 +415,12 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         Comm.MaxAll(&time, &maxTime, 1);
         Comm.SumAll(&time, &avgTime, 1);
         avgTime /= Comm.NumProc();
-        if(Comm.MyPID() == 0) {
+        if (Comm.MyPID() == 0) {
             char filename[50];
-            sprintf(filename, "timing_MX%d_MY%d_MZ%d_nProc%d_recB%d_numB%d_nLHS%d", orig_nr_m[0], orig_nr_m[1], orig_nr_m[2], Comm.NumProc(), recycleBlocks_m, numBlocks_m, nLHS_m);
+            sprintf(filename, "timing_MX%d_MY%d_MZ%d_nProc%d_recB%d_numB%d_nLHS%d",
+                    orig_nr_m[0], orig_nr_m[1], orig_nr_m[2],
+                    Comm.NumProc(), recycleBlocks_m, numBlocks_m, nLHS_m);
+
             timings.open(filename, std::ios::app);
             timings << solver_ptr->getNumIters() << "\t"
                     //<< time <<" "<<
@@ -415,8 +438,8 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
     }
     // Store new LHS in OldLHS
-    if(nLHS_m > 1) OldLHS.push_front(*(LHS.get()));
-    if(OldLHS.size() > nLHS_m) OldLHS.pop_back();
+    if (nLHS_m > 1) OldLHS.push_front(*(LHS.get()));
+    if (OldLHS.size() > nLHS_m) OldLHS.pop_back();
 
     //now transfer solution back to IPPL grid
     IpplTimings::startTimer(FunctionTimer8_m);
@@ -433,7 +456,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     }
     IpplTimings::stopTimer(FunctionTimer8_m);
 
-    if(itsBunch_m->getLocalTrackStep()+1 == (long long)Track::block->localTimeSteps.front()) {
+    if (itsBunch_m->getLocalTrackStep()+1 == (long long)Track::block->localTimeSteps.front()) {
         A = Teuchos::null;
         LHS = Teuchos::null;
         RHS = Teuchos::null;
@@ -456,7 +479,8 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
      }
 
     Epetra_BlockMap bmap(-1, numMyGridPoints, 1, 0, Comm);
-    Teuchos::RCP<const Epetra_MultiVector> coords = Teuchos::rcp(new Epetra_MultiVector(bmap, 3, false));
+    Teuchos::RCP<const Epetra_MultiVector> coords = Teuchos::rcp(
+        new Epetra_MultiVector(bmap, 3, false));
 
     double *v;
     int stride, stride2;
@@ -483,7 +507,9 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     sublist.set("RCB_RECTILINEAR_BLOCKS", "1");
     sublist.set("DEBUG_LEVEL", "1");
 
-    Teuchos::RCP<Isorropia::Epetra::Partitioner> part = Teuchos::rcp(new Isorropia::Epetra::Partitioner(coords, paramlist));
+    Teuchos::RCP<Isorropia::Epetra::Partitioner> part = Teuchos::rcp(
+        new Isorropia::Epetra::Partitioner(coords, paramlist));
+
     Isorropia::Epetra::Redistributor rd(part);
     Teuchos::RCP<Epetra_MultiVector> newcoords = rd.redistribute(*coords);
 
@@ -491,7 +517,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     stride2 = 2 * stride;
     numMyGridPoints = 0;
     std::vector<int> MyGlobalElements;
-    for(int i = 0; i < newcoords->MyLength(); i++) {
+    for (int i = 0; i < newcoords->MyLength(); i++) {
         MyGlobalElements.push_back(bp_m->getIdx(v[0], v[stride], v[stride2]));
         v++;
         numMyGridPoints++;
@@ -528,7 +554,7 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<Epetra_Vector
     std::vector<double> Values(6);
     std::vector<int> Indices(6);
 
-    for(int i = 0 ; i < NumMyElements ; i++) {
+    for (int i = 0 ; i < NumMyElements ; i++) {
 
         int NumEntries = 0;
 
@@ -539,27 +565,27 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<Epetra_Vector
         RHS->Values()[i] *= scaleFactor;
 
         bp_m->getNeighbours(MyGlobalElements[i], W, E, S, N, F, B);
-        if(E != -1) {
+        if (E != -1) {
             Indices[NumEntries] = E;
             Values[NumEntries++] = EV;
         }
-        if(W != -1) {
+        if (W != -1) {
             Indices[NumEntries] = W;
             Values[NumEntries++] = WV;
         }
-        if(S != -1) {
+        if (S != -1) {
             Indices[NumEntries] = S;
             Values[NumEntries++] = SV;
         }
-        if(N != -1) {
+        if (N != -1) {
             Indices[NumEntries] = N;
             Values[NumEntries++] = NV;
         }
-        if(F != -1) {
+        if (F != -1) {
             Indices[NumEntries] = F;
             Values[NumEntries++] = FV;
         }
-        if(B != -1) {
+        if (B != -1) {
             Indices[NumEntries] = B;
             Values[NumEntries++] = BV;
         }
@@ -567,7 +593,7 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<Epetra_Vector
         // if matrix has already been filled (FillComplete()) we can only
         // replace entries
 
-        if(A->Filled()) {
+        if (A->Filled()) {
             // off-diagonal entries
             A->ReplaceGlobalValues(MyGlobalElements[i], NumEntries, &Values[0], &Indices[0]);
             // diagonal entry
@@ -591,7 +617,7 @@ void MGPoissonSolver::printLoadBalanceStats() {
     size_t myNumPart = Map->NumMyElements();
     size_t NumPart = Map->NumGlobalElements() * 1.0 / Comm.NumProc();
     double imbalance = 1.0;
-    if(myNumPart >= NumPart)
+    if (myNumPart >= NumPart)
         imbalance += (myNumPart - NumPart) / NumPart;
     else
         imbalance += (NumPart - myNumPart) / NumPart;
