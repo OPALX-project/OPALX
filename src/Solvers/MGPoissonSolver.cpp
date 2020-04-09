@@ -123,10 +123,10 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     currentGeometry = geometries_m[0];
     if(currentGeometry->getFilename() == "") {
         if(currentGeometry->getTopology() == "ELLIPTIC"){
-            bp = new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl);
+            bp_m = std::unique_ptr<IrregularDomain>(new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl));
         } else if (currentGeometry->getTopology() == "BOXCORNER") {
-            bp = new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl);
-            bp->compute(itsBunch_m->get_hr());
+            bp_m = std::unique_ptr<IrregularDomain>(new BoxCornerDomain(currentGeometry->getA(), currentGeometry->getB(), currentGeometry->getC(), currentGeometry->getLength(),currentGeometry->getL1(), currentGeometry->getL2(), orig_nr_m, hr_m, interpl));
+            bp_m->compute(itsBunch_m->get_hr());
         } else {
             throw OpalException("MGPoissonSolver::MGPoissonSolver",
                                 "Geometry not known");
@@ -141,7 +141,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                 "Please set PARFFTX=FALSE, PARFFTY=FALSE, PARFFTT=TRUE in \n"
                                 "the definition of the field solver in the input file.\n");
         }
-        bp = new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl);
+        bp_m = std::unique_ptr<IrregularDomain>(new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl));
     }
 
     Map = 0;
@@ -276,16 +276,16 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     nr_m[1] = orig_nr_m[1];
     nr_m[2] = orig_nr_m[2];
 
-    bp->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
-    bp->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
-    bp->setNr(nr_m);
+    bp_m->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
+    bp_m->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
+    bp_m->setNr(nr_m);
 
     NDIndex<3> localId = layout_m->getLocalNDIndex();
 
     IpplTimings::startTimer(FunctionTimer1_m);
     // Compute boundary intersections (only do on the first step)
     if(!itsBunch_m->getLocalTrackStep())
-        bp->compute(hr, localId);
+        bp_m->compute(hr, localId);
     IpplTimings::stopTimer(FunctionTimer1_m);
 
     // Define the Map
@@ -323,7 +323,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp->isInside(idx, idy, idz))
+                if (bp_m->isInside(idx, idy, idz))
                         RHS->Values()[id++] = 4*M_PI*rho[idx][idy][idz].get()/scaleFactor;
             }
         }
@@ -426,7 +426,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
                   NDIndex<3> l(Index(idx, idx), Index(idy, idy), Index(idz, idz));
-                  if (bp->isInside(idx, idy, idz))
+                  if (bp_m->isInside(idx, idy, idz))
                      rho.localElement(l) = LHS->Values()[id++]*scaleFactor;
             }
         }
@@ -449,7 +449,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp->isInside(idx, idy, idz))
+                if (bp_m->isInside(idx, idy, idz))
                     numMyGridPoints++;
              }
         }
@@ -467,7 +467,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp->isInside(idx, idy, idz)) {
+                if (bp_m->isInside(idx, idy, idz)) {
                     v[0] = (double)idx;
                     v[stride] = (double)idy;
                     v[stride2] = (double)idz;
@@ -492,7 +492,7 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
     numMyGridPoints = 0;
     std::vector<int> MyGlobalElements;
     for(int i = 0; i < newcoords->MyLength(); i++) {
-        MyGlobalElements.push_back(bp->getIdx(v[0], v[stride], v[stride2]));
+        MyGlobalElements.push_back(bp_m->getIdx(v[0], v[stride], v[stride2]));
         v++;
         numMyGridPoints++;
     }
@@ -508,8 +508,8 @@ void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp->isInside(idx, idy, idz)) {
-                    MyGlobalElements.push_back(bp->getIdx(idx, idy, idz));
+                if (bp_m->isInside(idx, idy, idz)) {
+                    MyGlobalElements.push_back(bp_m->getIdx(idx, idy, idz));
                     NumMyElements++;
                 }
             }
@@ -535,10 +535,10 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<Epetra_Vector
         double WV, EV, SV, NV, FV, BV, CV, scaleFactor=1.0;
         int W, E, S, N, F, B;
 
-        bp->getBoundaryStencil(MyGlobalElements[i], WV, EV, SV, NV, FV, BV, CV, scaleFactor);
+        bp_m->getBoundaryStencil(MyGlobalElements[i], WV, EV, SV, NV, FV, BV, CV, scaleFactor);
         RHS->Values()[i] *= scaleFactor;
 
-        bp->getNeighbours(MyGlobalElements[i], W, E, S, N, F, B);
+        bp_m->getNeighbours(MyGlobalElements[i], W, E, S, N, F, B);
         if(E != -1) {
             Indices[NumEntries] = E;
             Values[NumEntries++] = EV;

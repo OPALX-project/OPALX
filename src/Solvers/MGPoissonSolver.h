@@ -120,12 +120,12 @@ public:
     /// force Solver to recompute Epetra_Map
     void recomputeMap() { hasParallelDecompositionChanged_m = true; }
 
-    double getXRangeMin(unsigned short /*level*/) { return bp->getXRangeMin(); }
-    double getXRangeMax(unsigned short /*level*/) { return bp->getXRangeMax(); }
-    double getYRangeMin(unsigned short /*level*/) { return bp->getYRangeMin(); }
-    double getYRangeMax(unsigned short /*level*/) { return bp->getYRangeMax(); }
-    double getZRangeMin(unsigned short /*level*/) { return bp->getZRangeMin(); }
-    double getZRangeMax(unsigned short /*level*/) { return bp->getZRangeMax(); }
+    double getXRangeMin(unsigned short /*level*/) { return bp_m->getXRangeMin(); }
+    double getXRangeMax(unsigned short /*level*/) { return bp_m->getXRangeMax(); }
+    double getYRangeMin(unsigned short /*level*/) { return bp_m->getYRangeMin(); }
+    double getYRangeMax(unsigned short /*level*/) { return bp_m->getYRangeMax(); }
+    double getZRangeMin(unsigned short /*level*/) { return bp_m->getZRangeMin(); }
+    double getZRangeMax(unsigned short /*level*/) { return bp_m->getZRangeMax(); }
     void test(PartBunchBase<double, 3>* /*bunch*/) { }
     /// useful load balance information
     void printLoadBalanceStats();
@@ -174,7 +174,7 @@ private:
     int recycleBlocks_m;
 
     /// structure that holds boundary points
-    IrregularDomain *bp;
+    std::unique_ptr<IrregularDomain> bp_m;
 
     /// right hand side of our problem
     Teuchos::RCP<Epetra_Vector> RHS;
