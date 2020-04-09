@@ -136,7 +136,7 @@ bool FM1DMagnetoStatic::checkFileData(std::ifstream &fieldFile,
     double tempDouble;
     for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
         parsingPassed = parsingPassed
-                        && interpreteLine<double>(fieldFile, tempDouble);
+                        && interpretLine<double>(fieldFile, tempDouble);
 
     return parsingPassed && interpreteEOF(fieldFile);
 
@@ -226,7 +226,7 @@ double FM1DMagnetoStatic::readFileData(std::ifstream &fieldFile,
 
     double maxBz = 0.0;
     for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; dataIndex++) {
-        interpreteLine<double>(fieldFile, fieldData[numberOfGridPoints_m
+        interpretLine<double>(fieldFile, fieldData[numberOfGridPoints_m
                                - 1 + dataIndex]);
         if(std::abs(fieldData[numberOfGridPoints_m + dataIndex]) > maxBz)
             maxBz = std::abs(fieldData[numberOfGridPoints_m + dataIndex]);
@@ -253,11 +253,11 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
 
     bool parsingPassed = true;
     try {
-        parsingPassed = interpreteLine<std::string, int>(fieldFile,
+        parsingPassed = interpretLine<std::string, int>(fieldFile,
                                                          tempString,
                                                          accuracy_m);
     } catch (GeneralClassicException &e) {
-        parsingPassed = interpreteLine<std::string, int, std::string>(fieldFile,
+        parsingPassed = interpretLine<std::string, int, std::string>(fieldFile,
                                                                       tempString,
                                                                       accuracy_m,
                                                                       tempString);
@@ -272,11 +272,11 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
         normalize_m = (tempString == "TRUE");
     }
     parsingPassed = parsingPassed &&
-                    interpreteLine<double, double, int>(fieldFile, zBegin_m,
+                    interpretLine<double, double, int>(fieldFile, zBegin_m,
                             zEnd_m,
                             numberOfGridPoints_m);
     parsingPassed = parsingPassed &&
-                    interpreteLine<double, double, int>(fieldFile, rBegin_m,
+                    interpretLine<double, double, int>(fieldFile, rBegin_m,
                             rEnd_m, tempInt);
 
     ++ numberOfGridPoints_m;

@@ -23,9 +23,9 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
     if (file.good()) {
         bool parsing_passed = true;
         try {
-            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+            parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
         } catch (GeneralClassicException &e) {
-            parsing_passed = interpreteLine<std::string, std::string, std::string>(file,
+            parsing_passed = interpretLine<std::string, std::string, std::string>(file,
                                                                                    tmpString,
                                                                                    tmpString,
                                                                                    tmpString);
@@ -43,22 +43,22 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
         if (tmpString == "ZX") {
             swap_m = true;
             parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+                             interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
             parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+                             interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
         } else if (tmpString == "XZ") {
             swap_m = false;
             parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+                             interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
             parsing_passed = parsing_passed &&
-                             interpreteLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+                             interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
         } else {
             cerr << "unknown orientation of 2D electrostatic fieldmap" << endl;
             parsing_passed = false;
         }
 
         for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++ i) {
-            parsing_passed = parsing_passed && interpreteLine<double, double>(file, tmpDouble, tmpDouble);
+            parsing_passed = parsing_passed && interpretLine<double, double>(file, tmpDouble, tmpDouble);
         }
 
         parsing_passed = parsing_passed &&
@@ -117,7 +117,7 @@ void FM2DElectroStatic::readMap() {
         if (swap_m) {
             for (int i = 0; i < num_gridpz_m; ++ i) {
                 for (int j = 0; j < num_gridpr_m; ++ j) {
-                    interpreteLine<double, double>(in,
+                    interpretLine<double, double>(in,
                                                    FieldstrengthEr_m[i + j * num_gridpz_m],
                                                    FieldstrengthEz_m[i + j * num_gridpz_m]);
                 }
@@ -126,7 +126,7 @@ void FM2DElectroStatic::readMap() {
         } else {
             for (int j = 0; j < num_gridpr_m; ++ j) {
                 for (int i = 0; i < num_gridpz_m; ++ i) {
-                    interpreteLine<double, double>(in,
+                    interpretLine<double, double>(in,
                                                    FieldstrengthEz_m[i + j * num_gridpz_m],
                                                    FieldstrengthEr_m[i + j * num_gridpz_m]);
                 }
@@ -140,7 +140,7 @@ void FM2DElectroStatic::readMap() {
         }
         in.close();
 
-        if (!normalize_m) 
+        if (!normalize_m)
             Ezmax = 1.0;
 
         // conversion MV/m to V/m and normalization to Ez_max = 1 MV/m
