@@ -228,11 +228,13 @@ protected:
     bool autophaseVeto_m;
 
     double designEnergy_m;
-private:
+
     Fieldmap* fieldmap_m;
-    double startField_m;         /**< starting point of field(m)*/
-    double endField_m;
     double length_m;
+    double startField_m;         /**< starting point of field(m)*/
+
+private:
+    double endField_m;
 
     CavityType type_m;
 
