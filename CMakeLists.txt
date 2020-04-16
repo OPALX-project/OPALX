@@ -63,7 +63,7 @@ if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     add_compile_options ("-diag-disable 383")
     add_compile_options ("-diag-disable 981")
     if (ENABLE_OpenMP)
-        add_compile_options (-openmp)
+        add_link_options (-openmp)
     endif ()
 
 elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
@@ -77,7 +77,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     # Allow overloaded virtual functions (instances to be fixed in OPAL)
     #add_compile_options (-Wno-overloaded-virtual)
     if (ENABLE_OpenMP)
-        add_compile_options (-fopenmp)
+        add_link_options (-fopenmp)
     endif ()
     # Not 100% clear why we need this. But without we get warning while
     # linking with HDF5
@@ -90,7 +90,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     # Warning flags
 
     if (ENABLE_OpenMP)
-        add_compile_options (-fopenmp)
+        add_link_options (-fopenmp)
     endif ()
 
 else ()
