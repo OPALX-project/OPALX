@@ -164,11 +164,7 @@ public:
     }
 
 
-    void calculatePairForces(double interaction_radius)
-    {
-        HashPairBuilder< ChargedParticles<playout_t> > HPB(*this);
-        HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius));
-    }
+    void calculatePairForces(double interaction_radius);
 
     //setup and use the FFT solver
     void calculateGridForces(double interaction_radius)
@@ -437,6 +433,13 @@ struct ApplyField {
     T C;
     double R;
 };
+
+template<class PL>
+void ChargedParticles<PL>::calculatePairForces(double interaction_radius)
+{
+    HashPairBuilder< ChargedParticles<playout_t> > HPB(*this);
+    HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius));
+}
 
 int main(int argc, char *argv[]){
     Ippl ippl(argc, argv);
