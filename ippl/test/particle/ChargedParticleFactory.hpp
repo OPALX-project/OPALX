@@ -561,7 +561,7 @@ std::cout<< P->beta0 << std::endl;
 
 
 template<typename Particles>
-void createParticleDistributionEquiPart(Particles & P, Vektor<double,3> extend_l, Vektor<double,3> extend_r, double beam_length, double part_density,double qi, double mi, int seed=0) {
+void createParticleDistributionEquiPart(Particles & P, Vektor<double,3> /*extend_l*/, Vektor<double,3> /*extend_r*/, double beam_length, double part_density,double qi, double mi, int seed=0) {
         std::cout << "Initializing Equipartitioning" << std::endl;
         P->total_charge=0;
         const double c = 299792458000;
@@ -595,7 +595,7 @@ void createParticleDistributionEquiPart(Particles & P, Vektor<double,3> extend_l
 }
 
 template<typename Particles>
-void createParticleDistributionEquiPartSphere(Particles & P, Vektor<double,3> extend_l, Vektor<double,3> extend_r, double beam_length, unsigned Nparts,double qi, double mi, int seed=0) {
+void createParticleDistributionEquiPartSphere(Particles & P, Vektor<double,3> /*extend_l*/, Vektor<double,3> /*extend_r*/, double beam_length, unsigned Nparts,double qi, double mi, int seed=0) {
         std::cout << "Initializing Equipartitioning Sphere" << std::endl;
         P->total_charge=0;
         const double c = 299792458000;

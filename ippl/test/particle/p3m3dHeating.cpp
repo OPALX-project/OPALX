@@ -382,18 +382,7 @@ public:
     }
 
 
-    void calculatePairForces(double interaction_radius, double eps, double alpha) {
-        if (interaction_radius>0){
-            if (Ippl::getNodes() > 1) {
-                HashPairBuilderPeriodicParallel< ChargedParticles<playout_t> > HPB(*this);
-                HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
-            }
-            else {
-                HashPairBuilderPeriodic< ChargedParticles<playout_t> > HPB(*this);
-                HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
-            }
-        }
-    }
+    void calculatePairForces(double interaction_radius, double eps, double alpha);
 
     void calculateGridForces(double /*interaction_radius*/, double alpha, double eps, int /*it*/=0, bool /*normalizeSphere*/=0) {
         // (1) scatter charge to charge density grid and transform to fourier space
@@ -612,6 +601,21 @@ struct ApplyField {
     double eps;
     double a;
 };
+
+template<class PL>
+void ChargedParticles<PL>::calculatePairForces(double interaction_radius, double eps, double alpha)
+{
+    if (interaction_radius>0){
+        if (Ippl::getNodes() > 1) {
+            HashPairBuilderPeriodicParallel< ChargedParticles<playout_t> > HPB(*this);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+        }
+        else {
+            HashPairBuilderPeriodic< ChargedParticles<playout_t> > HPB(*this);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+        }
+    }
+}
 
 int main(int argc, char *argv[]){
     Ippl ippl(argc, argv);
