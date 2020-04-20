@@ -91,10 +91,6 @@ public:
                                  TpetraMultiVector_t,
                                  TpetraOperator_t>      LinearProblem_t;
 
-    typedef Belos::StatusTestGenResNorm<TpetraScalar_t,
-                                        TpetraMultiVector_t,
-                                        TpetraOperator_t> StatusTest_t;
-
     MGPoissonSolver(PartBunch *beam,Mesh_t *mesh,
                     FieldLayout_t *fl,
                     std::vector<BoundaryGeometry *> geometries,
@@ -149,8 +145,6 @@ private:
     double tol_m;
     /// maximal number of iterations for the iterative solver
     int maxiters_m;
-    /// iterative solver we are applying: CG, BiCGStab or GMRES
-    int itsolver_m;
     /// preconditioner mode
     int precmode_m;
     /// maximum number of blocks in Krylov space
@@ -183,8 +177,6 @@ private:
 
     /// MueLu preconditioner object
     Teuchos::RCP<MueLuTpetraOperator_t> prec_mp;
-
-    Teuchos::RCP<StatusTest_t> convStatusTest;
 
     /// parameter list for the MueLu solver
     Teuchos::ParameterList MueLuList_m;
@@ -243,85 +235,6 @@ protected:
     /// Setup the parameters for the SAAMG preconditioner.
     void setupMueLuList();
 };
-
-
-inline
-void MGPoissonSolver::setupBelosList() {
-    belosList.set("Maximum Iterations", maxiters_m);
-    belosList.set("Convergence Tolerance", tol_m);
-
-    if (numBlocks_m != 0 && recycleBlocks_m != 0){//only set if solver==RCGSolMgr
-        belosList.set("Num Blocks", numBlocks_m);               // Maximum number of blocks in Krylov space
-        belosList.set("Num Recycled Blocks", recycleBlocks_m); // Number of vectors in recycle space
-    }
-    if (verbose_m) {
-        belosList.set("Verbosity", Belos::Errors + Belos::Warnings +
-                                   Belos::TimingDetails + Belos::FinalSummary +
-                                   Belos::StatusTestDetails);
-        belosList.set("Output Frequency", 1);
-    } else
-        belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
-}
-
-
-inline
-void MGPoissonSolver::setupMueLuList() {
-    MueLuList_m.set("problem: type", "Poisson-3D");
-    MueLuList_m.set("verbosity", "none");
-    MueLuList_m.set("number of equations", 1);
-    MueLuList_m.set("max levels", 8);
-    MueLuList_m.set("cycle type", "V");
-
-    // heuristic for max coarse size depending on number of processors
-    int coarsest_size = std::max(comm_mp->getSize() * 10, 1024);
-    MueLuList_m.set("coarse: max size", coarsest_size);
-
-    MueLuList_m.set("multigrid algorithm", "sa");
-    MueLuList_m.set("sa: damping factor", 1.33);
-    MueLuList_m.set("sa: use filtered matrix", true);
-    MueLuList_m.set("filtered matrix: reuse eigenvalue", false);
-
-    MueLuList_m.set("repartition: enable", false);
-    MueLuList_m.set("repartition: rebalance P and R", false);
-    MueLuList_m.set("repartition: partitioner", "zoltan2");
-    MueLuList_m.set("repartition: min rows per proc", 800);
-    MueLuList_m.set("repartition: start level", 2);
-
-    MueLuList_m.set("smoother: type", "CHEBYSHEV");
-    MueLuList_m.set("smoother: pre or post", "both");
-    Teuchos::ParameterList smparms;
-    smparms.set("chebyshev: degree", 3);
-    smparms.set("chebyshev: assume matrix does not change", false);
-    smparms.set("chebyshev: zero starting solution", true);
-    smparms.set("relaxation: sweeps", 3);
-    MueLuList_m.set("smoother: params", smparms);
-
-    MueLuList_m.set("smoother: type", "CHEBYSHEV");
-    MueLuList_m.set("smoother: pre or post", "both");
-
-    MueLuList_m.set("coarse: type", "KLU2");
-
-    MueLuList_m.set("aggregation: type", "uncoupled");
-    MueLuList_m.set("aggregation: min agg size", 3);
-    MueLuList_m.set("aggregation: max agg size", 27);
-
-    MueLuList_m.set("transpose: use implicit", false);
-
-    switch (precmode_m) {
-        case REUSE_PREC:
-            MueLuList_m.set("reuse: type", "full");
-            break;
-        case REUSE_HIERARCHY:
-            MueLuList_m.set("sa: use filtered matrix", false);
-            MueLuList_m.set("reuse: type", "tP");
-            break;
-        case NO:
-        case STD_PREC:
-        default:
-            MueLuList_m.set("reuse: type", "none");
-            break;
-    }
-}
 
 
 inline Inform &operator<<(Inform &os, const MGPoissonSolver &fs) {

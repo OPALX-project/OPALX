@@ -59,6 +59,9 @@
 #include "BelosLinearProblem.hpp"
 #include "BelosRCGSolMgr.hpp"
 #include "BelosBlockCGSolMgr.hpp"
+#include "BelosBiCGStabSolMgr.hpp"
+#include "BelosBlockGmresSolMgr.hpp"
+#include "BelosGCRODRSolMgr.hpp"
 
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 
@@ -94,14 +97,8 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
         orig_nr_m[i] = domain_m[i].length();
     }
 
-    if (itsolver == "CG") itsolver_m = AZ_cg;
-    else if (itsolver == "BICGSTAB") itsolver_m = AZ_bicgstab;
-    else if (itsolver == "GMRES") itsolver_m = AZ_gmres;
-    else throw OpalException("MGPoissonSolver", "No valid iterative solver selected!");
-
     precmode_m = STD_PREC;
-    if (precmode == "STD") precmode_m = STD_PREC;
-    else if (precmode == "HIERARCHY") precmode_m = REUSE_HIERARCHY;
+    if (precmode == "HIERARCHY") precmode_m = REUSE_HIERARCHY;
     else if (precmode == "REUSE") precmode_m = REUSE_PREC;
     else if (precmode == "NO") precmode_m = NO;
 
@@ -157,15 +154,40 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     nLHS_m = Options::nLHS;
     setupMueLuList();
     setupBelosList();
-    problem_mp = rcp(new Belos::LinearProblem<TpetraScalar_t, TpetraMultiVector_t, TpetraOperator_t>);
+    problem_mp = rcp(new Belos::LinearProblem<TpetraScalar_t,
+                                              TpetraMultiVector_t,
+                                              TpetraOperator_t>);
     // setup Belos solver
-    if (numBlocks_m == 0 || recycleBlocks_m == 0)
-        solver_mp = rcp(new Belos::BlockCGSolMgr<TpetraScalar_t, TpetraMultiVector_t, TpetraOperator_t>());
-    else
-        solver_mp = rcp(new Belos::RCGSolMgr<TpetraScalar_t, TpetraMultiVector_t, TpetraOperator_t>());
+    if (itsolver == "CG") {
+        if (numBlocks_m == 0 || recycleBlocks_m == 0) {
+            solver_mp = rcp(new Belos::BlockCGSolMgr<TpetraScalar_t,
+                                                     TpetraMultiVector_t,
+                                                     TpetraOperator_t>());
+        } else {
+            solver_mp = rcp(new Belos::RCGSolMgr<TpetraScalar_t,
+                                                 TpetraMultiVector_t,
+                                                 TpetraOperator_t>());
+        }
+    } else if (itsolver == "BICGSTAB") {
+        solver_mp = rcp(new Belos::BiCGStabSolMgr<TpetraScalar_t,
+                                                  TpetraMultiVector_t,
+                                                  TpetraOperator_t>());
+    } else if (itsolver == "GMRES") {
+        if (numBlocks_m == 0 || recycleBlocks_m == 0) {
+            solver_mp = rcp(new Belos::BlockGmresSolMgr<TpetraScalar_t,
+                                                        TpetraMultiVector_t,
+                                                        TpetraOperator_t>());
+        } else {
+            solver_mp = rcp(new Belos::GCRODRSolMgr<TpetraScalar_t,
+                                                    TpetraMultiVector_t,
+                                                    TpetraOperator_t>());
+        }
+    } else {
+        throw OpalException("MGPoissonSolver", "No valid iterative solver selected!");
+    }
+
     solver_mp->setParameters(rcp(&belosList, false));
-    convStatusTest = rcp(new Belos::StatusTestGenResNorm<TpetraScalar_t, TpetraMultiVector_t, TpetraOperator_t> (tol));
-    convStatusTest->defineScaleForm(Belos::NormOfRHS, Belos::TwoNorm);
+
 
     //all timers used here
     FunctionTimer1_m = IpplTimings::getTimer("BGF-IndexCoordMap");
@@ -573,6 +595,82 @@ void MGPoissonSolver::printLoadBalanceStats() {
     avg /= comm_mp->getSize();
     *gmsg << "LBAL min = " << min << ", max = " << max << ", avg = " << avg << endl;
     *gmsg << "min nr gridpoints = " << minn << ", max nr gridpoints = " << maxn << endl;
+}
+
+void MGPoissonSolver::setupBelosList() {
+    belosList.set("Maximum Iterations", maxiters_m);
+    belosList.set("Convergence Tolerance", tol_m);
+
+    if (numBlocks_m != 0 && recycleBlocks_m != 0){//only set if solver==RCGSolMgr
+        belosList.set("Num Blocks", numBlocks_m);               // Maximum number of blocks in Krylov space
+        belosList.set("Num Recycled Blocks", recycleBlocks_m); // Number of vectors in recycle space
+    }
+    if (verbose_m) {
+        belosList.set("Verbosity", Belos::Errors + Belos::Warnings +
+                                   Belos::TimingDetails + Belos::FinalSummary +
+                                   Belos::StatusTestDetails);
+        belosList.set("Output Frequency", 1);
+    } else
+        belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
+}
+
+
+void MGPoissonSolver::setupMueLuList() {
+    MueLuList_m.set("problem: type", "Poisson-3D");
+    MueLuList_m.set("verbosity", "none");
+    MueLuList_m.set("number of equations", 1);
+    MueLuList_m.set("max levels", 8);
+    MueLuList_m.set("cycle type", "V");
+
+    // heuristic for max coarse size depending on number of processors
+    int coarsest_size = std::max(comm_mp->getSize() * 10, 1024);
+    MueLuList_m.set("coarse: max size", coarsest_size);
+
+    MueLuList_m.set("multigrid algorithm", "sa");
+    MueLuList_m.set("sa: damping factor", 1.33);
+    MueLuList_m.set("sa: use filtered matrix", true);
+    MueLuList_m.set("filtered matrix: reuse eigenvalue", false);
+
+    MueLuList_m.set("repartition: enable", false);
+    MueLuList_m.set("repartition: rebalance P and R", false);
+    MueLuList_m.set("repartition: partitioner", "zoltan2");
+    MueLuList_m.set("repartition: min rows per proc", 800);
+    MueLuList_m.set("repartition: start level", 2);
+
+    MueLuList_m.set("smoother: type", "CHEBYSHEV");
+    MueLuList_m.set("smoother: pre or post", "both");
+    Teuchos::ParameterList smparms;
+    smparms.set("chebyshev: degree", 3);
+    smparms.set("chebyshev: assume matrix does not change", false);
+    smparms.set("chebyshev: zero starting solution", true);
+    smparms.set("relaxation: sweeps", 3);
+    MueLuList_m.set("smoother: params", smparms);
+
+    MueLuList_m.set("smoother: type", "CHEBYSHEV");
+    MueLuList_m.set("smoother: pre or post", "both");
+
+    MueLuList_m.set("coarse: type", "KLU2");
+
+    MueLuList_m.set("aggregation: type", "uncoupled");
+    MueLuList_m.set("aggregation: min agg size", 3);
+    MueLuList_m.set("aggregation: max agg size", 27);
+
+    MueLuList_m.set("transpose: use implicit", false);
+
+    switch (precmode_m) {
+        case REUSE_PREC:
+            MueLuList_m.set("reuse: type", "full");
+            break;
+        case REUSE_HIERARCHY:
+            MueLuList_m.set("sa: use filtered matrix", false);
+            MueLuList_m.set("reuse: type", "tP");
+            break;
+        case NO:
+        case STD_PREC:
+        default:
+            MueLuList_m.set("reuse: type", "none");
+            break;
+    }
 }
 
 Inform &MGPoissonSolver::print(Inform &os) const {
