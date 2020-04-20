@@ -92,6 +92,8 @@ public:
                                  TpetraMultiVector_t,
                                  TpetraOperator_t>      LinearProblem_t;
 
+
+
     MGPoissonSolver(PartBunch *beam,Mesh_t *mesh,
                     FieldLayout_t *fl,
                     std::vector<BoundaryGeometry *> geometries,
@@ -127,6 +129,9 @@ public:
 private:
 
     bool isMatrixfilled_m;
+
+    // true if CG and GMRES; false if BiCGStab
+    bool useLeftPrec_m;
 
     //TODO: we need to update this and maybe change attached
     //solver!

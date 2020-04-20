@@ -81,6 +81,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                    int maxiters,
                                    std::string precmode)
     : isMatrixfilled_m(false)
+    , useLeftPrec_m(true)
     , geometries_m(geometries)
     , tol_m(tol)
     , maxiters_m(maxiters)
@@ -169,6 +170,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                                  TpetraOperator_t>());
         }
     } else if (itsolver == "BICGSTAB") {
+        useLeftPrec_m = false;
         solver_mp = rcp(new Belos::BiCGStabSolMgr<TpetraScalar_t,
                                                   TpetraMultiVector_t,
                                                   TpetraOperator_t>());
@@ -408,7 +410,12 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     problem_mp->setOperator(A);
     problem_mp->setLHS(LHS);
     problem_mp->setRHS(RHS);
-    problem_mp->setLeftPrec(prec_mp);
+
+    if (useLeftPrec_m)
+        problem_mp->setLeftPrec(prec_mp);
+    else
+        problem_mp->setRightPrec(prec_mp);
+
     solver_mp->setProblem( problem_mp);
     if (!problem_mp->isProblemSet()) {
         if (problem_mp->setProblem() == false) {
