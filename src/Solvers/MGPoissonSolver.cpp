@@ -17,7 +17,7 @@
 // particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
 //
 // In 2020, the code was ported to the second generation Trilinos packages,
-// i.e., Epetra --> Tpetra, ML --> MueLu.
+// i.e., Epetra --> Tpetra, ML --> MueLu. See also issue #507.
 //
 // This file is part of OPAL.
 //
