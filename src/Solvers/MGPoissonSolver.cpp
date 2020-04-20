@@ -101,7 +101,6 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     precmode_m = STD_PREC;
     if (precmode == "HIERARCHY") precmode_m = REUSE_HIERARCHY;
     else if (precmode == "REUSE") precmode_m = REUSE_PREC;
-    else if (precmode == "NO") precmode_m = NO;
 
     repartFreq_m = 1000;
     if (Ippl::Info->getOutputLevel() > 3)
@@ -392,7 +391,6 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
             MueLu::ReuseTpetraPreconditioner(A, *prec_mp);
             break;
         }
-        case NO:
         case STD_PREC:
         default: {
             Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
@@ -672,7 +670,6 @@ void MGPoissonSolver::setupMueLuList() {
             MueLuList_m.set("sa: use filtered matrix", false);
             MueLuList_m.set("reuse: type", "tP");
             break;
-        case NO:
         case STD_PREC:
         default:
             MueLuList_m.set("reuse: type", "none");

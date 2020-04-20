@@ -61,7 +61,6 @@ typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
 typedef Field<double, 3, Mesh_t, Center_t> Field_t;
 
 enum {
-    NO,
     STD_PREC,
     REUSE_PREC,
     REUSE_HIERARCHY
