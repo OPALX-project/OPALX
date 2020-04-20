@@ -287,14 +287,6 @@ void MGPoissonSolver::setupMueLuList() {
     MueLuList_m.set("repartition: min rows per proc", 800);
     MueLuList_m.set("repartition: start level", 2);
 
-    //FIXME --> RCB
-//     Teuchos::ParameterList reparms;
-//     reparms.set("algorithm", "rcb"); // multijagged
-//     reparms.set("partitioning_approach", "partition");
-
-//     MueLuList_m.set("repartition: params", reparms);
-
-
     MueLuList_m.set("smoother: type", "CHEBYSHEV");
     MueLuList_m.set("smoother: pre or post", "both");
     Teuchos::ParameterList smparms;
