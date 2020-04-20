@@ -76,6 +76,7 @@ public:
     typedef Tpetra::MultiVector<>                       TpetraMultiVector_t;
     typedef Tpetra::Map<>                               TpetraMap_t;
     typedef Tpetra::Vector<>::scalar_type               TpetraScalar_t;
+    typedef Tpetra::Vector<>::global_ordinal_type       TpetraGlobalOrdinal_t;
     typedef Tpetra::Operator<>                          TpetraOperator_t;
     typedef MueLu::TpetraOperator<>                     MueLuTpetraOperator_t;
     typedef Tpetra::CrsMatrix<>                         TpetraCrsMatrix_t;

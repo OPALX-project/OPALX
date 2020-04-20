@@ -512,8 +512,8 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<TpetraVector_
     int NumMyElements = map_p->getNodeNumElements();
     auto MyGlobalElements = map_p->getMyGlobalIndices();
 
-    std::vector<double> Values(6);
-    std::vector<int> Indices(6);
+    std::vector<TpetraScalar_t> Values(6);
+    std::vector<TpetraGlobalOrdinal_t> Indices(6);
 
     for (int i = 0 ; i < NumMyElements ; i++) {
 
