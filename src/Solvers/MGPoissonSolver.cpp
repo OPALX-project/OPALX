@@ -84,7 +84,8 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                    double tol,
                                    int maxiters,
                                    std::string precmode)
-    : geometries_m(geometries)
+    : isMatrixfilled_m(false)
+    , geometries_m(geometries)
     , tol_m(tol)
     , maxiters_m(maxiters)
     , comm_mp(new Comm_t(Ippl::getComm()))
@@ -612,7 +613,7 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<TpetraVector_
         // if matrix has already been filled (fillComplete()) we can only
         // replace entries
 
-        if (A->isFillComplete()) {
+        if (isMatrixfilled_m) {
             // off-diagonal entries
             A->replaceGlobalValues(MyGlobalElements[i], NumEntries, &Values[0], &Indices[0]);
             // diagonal entry
@@ -628,6 +629,7 @@ void MGPoissonSolver::ComputeStencil(Vector_t /*hr*/, Teuchos::RCP<TpetraVector_
     RCP<ParameterList_t> params = Teuchos::parameterList();
     params->set ("Optimize Storage", true);
     A->fillComplete(params);
+    isMatrixfilled_m = true;
 }
 
 void MGPoissonSolver::printLoadBalanceStats() {
