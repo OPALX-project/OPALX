@@ -163,14 +163,13 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     A = Teuchos::null;
     LHS = Teuchos::null;
     RHS = Teuchos::null;
-    MueLuPrec = Teuchos::null;
     prec_mp = Teuchos::null;
 
     numBlocks_m = Options::numBlocks;
     recycleBlocks_m = Options::recycleBlocks;
     nLHS_m = Options::nLHS;
     setupMueLuList();
-    SetupBelosList();
+    setupBelosList();
     problem_mp = rcp(new Belos::LinearProblem<TpetraScalar_t, TpetraMultiVector_t, TpetraOperator_t>);
     // setup Belos solver
     if (numBlocks_m == 0 || recycleBlocks_m == 0)
@@ -186,14 +185,13 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     FunctionTimer2_m = IpplTimings::getTimer("computeMap");
     FunctionTimer3_m = IpplTimings::getTimer("IPPL to RHS");
     FunctionTimer4_m = IpplTimings::getTimer("ComputeStencil");
-    FunctionTimer5_m = IpplTimings::getTimer("ML");
+    FunctionTimer5_m = IpplTimings::getTimer("MueLu");
     FunctionTimer6_m = IpplTimings::getTimer("Setup");
     FunctionTimer7_m = IpplTimings::getTimer("CG");
     FunctionTimer8_m = IpplTimings::getTimer("LHS to IPPL");
 }
 
 void MGPoissonSolver::deletePtr() {
-    MueLuPrec = Teuchos::null;
     map_p  = Teuchos::null;
     A      = Teuchos::null;
     LHS    = Teuchos::null;
@@ -373,16 +371,28 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 #endif
 
     INFOMSG(level3 << "* Computing Preconditioner..." << endl);
-    /* FIXME --> MueLu reuse types
     IpplTimings::startTimer(FunctionTimer5_m);
-    if (MueLuPrec == Teuchos::null) {
-        MueLuPrec = MueLu::CreateTpetraPreconditioner(A, MLList_m);
-    } else if (precmode_m == REUSE_HIERARCHY) {
-        // FIXME MueLuPrec->ReComputePreconditioner();
-    } else if (precmode_m == REUSE_PREC){
+    if (Teuchos::is_null(prec_mp)) {
+        Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
+        prec_mp = MueLu::CreateTpetraPreconditioner(At, MueLuList_m);
+    }
+
+    switch (precmode_m) {
+        case REUSE_PREC:
+        case REUSE_HIERARCHY: {
+            MueLu::ReuseTpetraPreconditioner(A, *prec_mp);
+            break;
+        }
+        case NO:
+        case STD_PREC:
+        default: {
+            Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
+            prec_mp = MueLu::CreateTpetraPreconditioner(At, MueLuList_m);
+            MueLuList_m.set("reuse: type", "none");
+            break;
+        }
     }
     IpplTimings::stopTimer(FunctionTimer5_m);
-    */
     INFOMSG(level3 << "* Done." << endl);
 
     // setup preconditioned iterative solver
@@ -392,10 +402,6 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     problem_mp->setOperator(A);
     problem_mp->setLHS(LHS);
     problem_mp->setRHS(RHS);
-    if (Teuchos::is_null(prec_mp)) {
-        Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
-        prec_mp = MueLu::CreateTpetraPreconditioner(At, MueLuList_m);
-    }
     problem_mp->setLeftPrec(prec_mp);
     solver_mp->setProblem( problem_mp);
     if (!problem_mp->isProblemSet()) {
@@ -485,38 +491,33 @@ void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
         }
      }
 
-
     int indexbase = 0;
-    Teuchos::RCP<TpetraMap_t> bmap = Teuchos::rcp(new TpetraMap_t(Teuchos::OrdinalTraits<Tpetra::global_size_t>::invalid(),
-                                                                  numMyGridPoints, indexbase, comm_mp));
+    Teuchos::RCP<TpetraMap_t> bmap = Teuchos::rcp(
+        new TpetraMap_t(Teuchos::OrdinalTraits<Tpetra::global_size_t>::invalid(),
+                        numMyGridPoints, indexbase, comm_mp));
+
     Teuchos::RCP<const TpetraMultiVector_t> coords = Teuchos::rcp(
         new TpetraMultiVector_t(bmap, 3, false));
 
-/*FIXME --> Compare src/Solvers/AMR_MG/MueLuPreconditioner.hpp
-    double *v;
-    int stride = 0, stride2 = 0;
-    coords->extractView(&v, &stride);
-    stride2 = 2 * stride;
-
+    size_t localRow = 0;
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
             for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
                 if (bp_m->isInside(idx, idy, idz)) {
-                    v[0] = (double)idx;
-                    v[stride] = (double)idy;
-                    v[stride2] = (double)idz;
-                    v++;
+                    coords->replaceLocalValue(localRow, 0, idx);
+                    coords->replaceLocalValue(localRow, 1, idy);
+                    coords->replaceLocalValue(localRow, 2, idz);
+                    localRow++;
                 }
             }
         }
     }
-    */
 
-    Teuchos::ParameterList paramlist;
-    paramlist.set("Partitioning Method", "RCB");
-    Teuchos::ParameterList &sublist = paramlist.sublist("ZOLTAN");
-    sublist.set("RCB_RECTILINEAR_BLOCKS", "1");
-    sublist.set("DEBUG_LEVEL", "1");
+//     Teuchos::ParameterList paramlist;
+//     paramlist.set("Partitioning Method", "RCB");
+//     Teuchos::ParameterList &sublist = paramlist.sublist("ZOLTAN");
+//     sublist.set("RCB_RECTILINEAR_BLOCKS", "1");
+//     sublist.set("DEBUG_LEVEL", "1");
 
     /*
      * FIXME
