@@ -138,6 +138,8 @@ public:
 
 private:
 
+    bool isMatrixfilled_m;
+
     //TODO: we need to update this and maybe change attached
     //solver!
     /// holding the currently active geometry
