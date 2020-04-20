@@ -487,7 +487,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
 
     int NumMyElements = 0;
-    std::vector<int> MyGlobalElements;
+    std::vector<TpetraGlobalOrdinal_t> MyGlobalElements;
 
     for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
