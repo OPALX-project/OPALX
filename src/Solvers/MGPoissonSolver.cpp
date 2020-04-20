@@ -643,12 +643,12 @@ void MGPoissonSolver::printLoadBalanceStats() {
         imbalance += (NumPart - myNumPart) / NumPart;
 
     double max = 0.0, min = 0.0, avg = 0.0;
-    int minn = 0, maxn = 0;
-    MPI_Reduce(&imbalance, &min, 1, MPI_DOUBLE, MPI_MIN, 0, Ippl::getComm());
-    MPI_Reduce(&imbalance, &max, 1, MPI_DOUBLE, MPI_MAX, 0, Ippl::getComm());
-    MPI_Reduce(&imbalance, &avg, 1, MPI_DOUBLE, MPI_SUM, 0, Ippl::getComm());
-    MPI_Reduce(&myNumPart, &minn, 1, MPI_INT, MPI_MIN, 0, Ippl::getComm());
-    MPI_Reduce(&myNumPart, &maxn, 1, MPI_INT, MPI_MAX, 0, Ippl::getComm());
+    size_t minn = 0, maxn = 0;
+    reduce(imbalance, min, 1, std::less<double>());
+    reduce(imbalance, max, 1, std::greater<double>());
+    reduce(imbalance, avg, 1, std::plus<double>());
+    reduce(myNumPart, minn, 1, std::less<size_t>());
+    reduce(myNumPart, maxn, 1, std::greater<size_t>());
 
     avg /= comm_mp->getSize();
     *gmsg << "LBAL min = " << min << ", max = " << max << ", avg = " << avg << endl;
