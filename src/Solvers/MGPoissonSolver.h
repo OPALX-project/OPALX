@@ -8,12 +8,16 @@
 //   \warning This solver is in an EXPERIMENTAL STAGE. For reliable simulations use the FFTPoissonSolver
 //
 // Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich,
-//               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
+//               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland,
+//                      2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
 // "Toward massively parallel multi-objective optimization with application to
 // particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
+//
+// In 2020, the code was ported to the second generation Trilinos packages,
+// i.e., Epetra --> Tpetra, ML --> MueLu.
 //
 // This file is part of OPAL.
 //
