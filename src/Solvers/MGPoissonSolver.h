@@ -57,6 +57,8 @@
 #include <BelosSolverFactory.hpp>
 
 #include <MueLu.hpp>
+#include <MueLu_TpetraOperator.hpp>
+
 #include "Teuchos_ParameterList.hpp"
 #include "Algorithms/PartBunch.h"
 
@@ -84,6 +86,7 @@ public:
     typedef Tpetra::Map<>                               TpetraMap_t;
     typedef Tpetra::Vector<>::scalar_type               TpetraScalar_t;
     typedef Tpetra::Operator<>                          TpetraOperator_t;
+    typedef MueLu::TpetraOperator<>                     MueLuTpetraOperator_t;
     typedef Tpetra::CrsMatrix<>                         TpetraCrsMatrix_t;
     typedef Teuchos::MpiComm<int>                       Comm_t;
 
@@ -187,9 +190,7 @@ private:
     /// matrix used in the linear system of equations
     Teuchos::RCP<TpetraCrsMatrix_t> A;
 
-    /// ML preconditioner object
-    Teuchos::RCP<TpetraOperator_t> MueLuPrec;
-    /// Epetra_Map holding the processor distribution of data
+    /// Map holding the processor distribution of data
     Teuchos::RCP<TpetraMap_t> map_p;
     /// communicator used by Trilinos
     Teuchos::RCP<const Comm_t> comm_mp;
@@ -209,7 +210,9 @@ private:
     Teuchos::RCP<LinearProblem_t> problem_mp;
     Teuchos::RCP<SolverManager_t>  solver_mp;
 
-    Teuchos::RCP<TpetraOperator_t> prec_mp;
+    /// MueLu preconditioner object
+    Teuchos::RCP<MueLuTpetraOperator_t> prec_mp;
+
     Teuchos::RCP<StatusTest_t> convStatusTest;
 
     /// parameter list for the ML solver
@@ -269,7 +272,7 @@ private:
 
 protected:
     /// Setup the parameters for the Belos iterative solver.
-    void SetupBelosList();
+    void setupBelosList();
 
     /// Setup the parameters for the SAAMG preconditioner.
     void setupMueLuList();
@@ -277,7 +280,7 @@ protected:
 
 
 inline
-void MGPoissonSolver::SetupBelosList() {
+void MGPoissonSolver::setupBelosList() {
     belosList.set("Maximum Iterations", maxiters_m);
     belosList.set("Convergence Tolerance", tol_m);
 
@@ -346,7 +349,20 @@ void MGPoissonSolver::setupMueLuList() {
 
     MueLuList_m.set("transpose: use implicit", false);
 
-    MueLuList_m.set("reuse: type", "full"); // none
+    switch (precmode_m) {
+        case REUSE_PREC:
+            MueLuList_m.set("reuse: type", "full");
+            break;
+        case REUSE_HIERARCHY:
+            MueLuList_m.set("sa: use filtered matrix", false);
+            MueLuList_m.set("reuse: type", "tP");
+            break;
+        case NO:
+        case STD_PREC:
+        default:
+            MueLuList_m.set("reuse: type", "none");
+            break;
+    }
 }
 
 
