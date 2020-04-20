@@ -43,31 +43,20 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Options.h"
 
-// #include "Epetra_Operator.h"
-// #include "EpetraExt_RowMatrixOut.h"
-// #include "Epetra_Import.h"
-
 #include <Tpetra_Import.hpp>
 #include <BelosTpetraAdapter.hpp>
+
+#ifdef DBG_STENCIL
+    #include "TpetraExt_MatrixMatrix.hpp"
+#endif
 
 #include "Teuchos_CommandLineProcessor.hpp"
 
 #include "BelosLinearProblem.hpp"
 #include "BelosRCGSolMgr.hpp"
-// #include "BelosEpetraAdapter.hpp"
 #include "BelosBlockCGSolMgr.hpp"
 
 #include <MueLu_CreateTpetraPreconditioner.hpp>
-// #include <MueLu_TpetraOperator.hpp>
-
-// #include "ml_MultiLevelPreconditioner.h"
-// #include "ml_MultiLevelOperator.h"
-// #include "ml_epetra_utils.h"
-
-// #include "Isorropia_Exception.hpp"
-// #include "Isorropia_Epetra.hpp"
-// #include "Isorropia_EpetraRedistributor.hpp"
-// #include "Isorropia_EpetraPartitioner.hpp"
 
 #include <algorithm>
 
@@ -112,11 +101,6 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     else if (precmode == "REUSE") precmode_m = REUSE_PREC;
     else if (precmode == "NO") precmode_m = NO;
 
-    tolerableIterationsCount_m = 2;
-    numIter_m = -1;
-    forcePreconditionerRecomputation_m = false;
-
-    hasParallelDecompositionChanged_m = true;
     repartFreq_m = 1000;
     useRCB_m = false;
     if (Ippl::Info->getOutputLevel() > 3)
@@ -279,7 +263,7 @@ void MGPoissonSolver::extrapolateLHS() {
 
 // given a charge-density field rho and a set of mesh spacings hr,
 // compute the electric field and put in eg by solving the Poisson's equation
-// XXX: use matrix stencil in computation directly (no Epetra, define operators
+// XXX: use matrix stencil in computation directly (no Tpetra, define operators
 // on IPPL GRID)
 void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
@@ -307,12 +291,12 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     IpplTimings::stopTimer(FunctionTimer2_m);
     INFOMSG(level3 << "* Done." << endl);
 
-    // Allocate the RHS with the new Epetra Map
+    // Allocate the RHS with the new Tpetra Map
     if (Teuchos::is_null(RHS))
         RHS = rcp(new TpetraVector_t(map_p));
     RHS->putScalar(0.0);
 
-    // // get charge densities from IPPL field and store in Epetra vector (RHS)
+    // get charge densities from IPPL field and store in Tpetra vector (RHS)
     if (verbose_m) {
         Ippl::Comm->barrier();
         msg << "* Node:" << Ippl::myNode() << ", Filling RHS..." << endl;
@@ -367,7 +351,8 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     INFOMSG(level3 << "* Done." << endl);
 
 #ifdef DBG_STENCIL
-    EpetraExt::RowMatrixToMatlabFile("DiscrStencil.dat", *A);
+    Tpetra::MatrixMarket::Writer<TpetraCrsMatrix_t>::writeSparseFile(
+        "DiscrStencil.dat", A);
 #endif
 
     INFOMSG(level3 << "* Computing Preconditioner..." << endl);

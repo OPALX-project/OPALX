@@ -32,21 +32,8 @@
 #include "PoissonSolver.h"
 #include "IrregularDomain.h"
 //////////////////////////////////////////////////////////////
-#include "ml_include.h"
 
 #include "mpi.h"
-
-// #if !defined(HAVE_ML_EPETRA)
-// #error Epetra support missing in Trilinos installation!
-// #endif
-
-#if !defined(HAVE_ML_TEUCHOS)
-#error Teuchos support missing in Trilinos installation!
-#endif
-
-// #if !defined(HAVE_ML_AZTECOO)
-// #error Aztecoo support missing in Trilinos installation!
-// #endif
 
 #include <Tpetra_Vector.hpp>
 #include <Tpetra_CrsMatrix.hpp>
@@ -122,9 +109,6 @@ public:
     /// set a geometry
     void setGeometry(std::vector<BoundaryGeometry *> geometries);
 
-    /// force Solver to recompute Epetra_Map
-    void recomputeMap() { hasParallelDecompositionChanged_m = true; }
-
     double getXRangeMin(unsigned short /*level*/) { return bp_m->getXRangeMin(); }
     double getXRangeMax(unsigned short /*level*/) { return bp_m->getXRangeMax(); }
     double getYRangeMin(unsigned short /*level*/) { return bp_m->getYRangeMin(); }
@@ -153,8 +137,6 @@ private:
 
     /// flag notifying us that the geometry (discretization) has changed
     bool hasGeometryChanged_m;
-    /// flag is set when OPAL changed decomposition of mesh
-    bool hasParallelDecompositionChanged_m;
     int repartFreq_m;
     /// flag specifying if problem is redistributed with RCB
     bool useRCB_m;
@@ -169,12 +151,6 @@ private:
     int itsolver_m;
     /// preconditioner mode
     int precmode_m;
-    /// number of iterations in the solve of the previous time step
-    int numIter_m;
-    /// percentage the iteration count can increase before recomputing the preconditioner
-    int tolerableIterationsCount_m;
-    /// force the solver to recompute the preconditioner
-    bool forcePreconditionerRecomputation_m;
     /// maximum number of blocks in Krylov space
     int numBlocks_m;
     /// number of vectors in recycle space
@@ -200,13 +176,6 @@ private:
     Teuchos::RCP<TpetraMultiVector_t> P_mp;
     std::deque< TpetraVector_t > OldLHS;
 
-    /// Solver (Belos RCG)
-//     typedef double                          ST;
-//     typedef Epetra_Operator                 OP;
-//     typedef Epetra_MultiVector              MV;
-//     typedef Belos::OperatorTraits<ST, MV, OP> OPT;
-//     typedef Belos::MultiVecTraits<ST, MV>    MVT;
-
     Teuchos::RCP<LinearProblem_t> problem_mp;
     Teuchos::RCP<SolverManager_t>  solver_mp;
 
@@ -215,7 +184,7 @@ private:
 
     Teuchos::RCP<StatusTest_t> convStatusTest;
 
-    /// parameter list for the ML solver
+    /// parameter list for the MueLu solver
     Teuchos::ParameterList MueLuList_m;
     /// parameter list for the iterative solver (Belos)
     Teuchos::ParameterList belosList;
@@ -249,21 +218,20 @@ private:
 
     void deletePtr();
 
-    /// recomputes the Epetra_Map
+    /// recomputes the map
     void computeMap(NDIndex<3> localId);
 
     /// redistributes Map with RCB
     /// \param localId local IPPL grid node indices
     void redistributeWithRCB(NDIndex<3> localId);
 
-    /// converts IPPL grid to a 3D Epetra_Map
+    /// converts IPPL grid to a 3D map
     /// \param localId local IPPL grid node indices
     void IPPLToMap3D(NDIndex<3> localId);
 
     /** returns a discretized stencil that has Neumann BC in z direction and
      * Dirichlet BC on the surface of a specified geometry
      * \param hr gridspacings in each direction
-     * \param Epetra_CrsMatrix holding the stencil
      * \param RHS right hand side might be scaled
      */
     void ComputeStencil(Vector_t hr, Teuchos::RCP<TpetraVector_t> RHS);
