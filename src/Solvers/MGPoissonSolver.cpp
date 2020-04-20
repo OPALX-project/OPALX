@@ -418,10 +418,9 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     if (true || verbose_m) {
         time = MPI_Wtime() - time;
         double minTime = 0, maxTime = 0, avgTime = 0;
-        //FIXME
-//         comm_mp->MinAll(&time, &minTime, 1);
-//         comm_mp->MaxAll(&time, &maxTime, 1);
-//         comm_mp->SumAll(&time, &avgTime, 1);
+        reduce(time, minTime, 1, std::less<double>());
+        reduce(time, maxTime, 1, std::greater<double>());
+        reduce(time, avgTime, 1, std::plus<double>());
         avgTime /= comm_mp->getSize();
         if (comm_mp->getRank() == 0) {
             char filename[50];
