@@ -142,8 +142,6 @@ private:
     /// flag notifying us that the geometry (discretization) has changed
     bool hasGeometryChanged_m;
     int repartFreq_m;
-    /// flag specifying if problem is redistributed with RCB
-    bool useRCB_m;
     /// flag specifying if we are verbose
     bool verbose_m;
 
@@ -224,10 +222,6 @@ private:
 
     /// recomputes the map
     void computeMap(NDIndex<3> localId);
-
-    /// redistributes Map with RCB
-    /// \param localId local IPPL grid node indices
-    void redistributeWithRCB(NDIndex<3> localId);
 
     /// converts IPPL grid to a 3D map
     /// \param localId local IPPL grid node indices

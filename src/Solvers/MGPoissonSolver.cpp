@@ -106,7 +106,6 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     else if (precmode == "NO") precmode_m = NO;
 
     repartFreq_m = 1000;
-    useRCB_m = false;
     if (Ippl::Info->getOutputLevel() > 3)
         verbose_m = true;
     else
@@ -200,10 +199,7 @@ void MGPoissonSolver::computePotential(Field_t& /*rho*/, Vector_t /*hr*/, double
 void MGPoissonSolver::computeMap(NDIndex<3> localId) {
     if (itsBunch_m->getLocalTrackStep()%repartFreq_m == 0){
         deletePtr();
-        if (useRCB_m)
-            redistributeWithRCB(localId);
-        else
-            IPPLToMap3D(localId);
+        IPPLToMap3D(localId);
 
         extrapolateLHS();
     }
@@ -377,7 +373,6 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
         default: {
             Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
             prec_mp = MueLu::CreateTpetraPreconditioner(At, MueLuList_m);
-            MueLuList_m.set("reuse: type", "none");
             break;
         }
     }
@@ -466,71 +461,6 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     }
 }
 
-
-void MGPoissonSolver::redistributeWithRCB(NDIndex<3> localId) {
-
-    int numMyGridPoints = 0;
-
-    for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-        for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
-            for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp_m->isInside(idx, idy, idz))
-                    numMyGridPoints++;
-             }
-        }
-     }
-
-    int indexbase = 0;
-    Teuchos::RCP<TpetraMap_t> bmap = Teuchos::rcp(
-        new TpetraMap_t(Teuchos::OrdinalTraits<Tpetra::global_size_t>::invalid(),
-                        numMyGridPoints, indexbase, comm_mp));
-
-    Teuchos::RCP<const TpetraMultiVector_t> coords = Teuchos::rcp(
-        new TpetraMultiVector_t(bmap, 3, false));
-
-    size_t localRow = 0;
-    for (int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
-        for (int idy = localId[1].first(); idy <= localId[1].last(); idy++) {
-            for (int idx = localId[0].first(); idx <= localId[0].last(); idx++) {
-                if (bp_m->isInside(idx, idy, idz)) {
-                    coords->replaceLocalValue(localRow, 0, idx);
-                    coords->replaceLocalValue(localRow, 1, idy);
-                    coords->replaceLocalValue(localRow, 2, idz);
-                    localRow++;
-                }
-            }
-        }
-    }
-
-//     Teuchos::ParameterList paramlist;
-//     paramlist.set("Partitioning Method", "RCB");
-//     Teuchos::ParameterList &sublist = paramlist.sublist("ZOLTAN");
-//     sublist.set("RCB_RECTILINEAR_BLOCKS", "1");
-//     sublist.set("DEBUG_LEVEL", "1");
-
-    /*
-     * FIXME
-    Teuchos::RCP<Isorropia::Epetra::Partitioner> part = Teuchos::rcp(
-        new Isorropia::Epetra::Partitioner(coords, paramlist));
-
-    Isorropia::Epetra::Redistributor rd(part);
-    Teuchos::RCP<TpetraMultiVector_t> newcoords = rd.redistribute(*coords);
-
-    newcoords->extractView(&v, &stride);
-    stride2 = 2 * stride;
-    numMyGridPoints = 0;
-    */
-    std::vector<int> MyGlobalElements;
-    /* FIXME
-    for (unsigned int i = 0; i < newcoords->getLocalLength(); i++) {
-        MyGlobalElements.push_back(bp_m->getIdx(v[0], v[stride], v[stride2]));
-        v++;
-        numMyGridPoints++;
-    }
-*/
-    map_p = Teuchos::rcp(new TpetraMap_t(Teuchos::OrdinalTraits<Tpetra::global_size_t>::invalid(),
-                                         &MyGlobalElements[0], numMyGridPoints, indexbase, comm_mp));
-}
 
 void MGPoissonSolver::IPPLToMap3D(NDIndex<3> localId) {
 
