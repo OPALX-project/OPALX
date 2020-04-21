@@ -31,6 +31,8 @@ class ElementBase;
 #include "Attributes/Attributes.h"
 #include "Structure/SecondaryEmissionPhysics.h"
 
+#include "Utilities/Util.h"
+
 #include <gsl/gsl_rng.h>
 
 extern Inform* gmsg;
@@ -114,16 +116,16 @@ public:
 
     void writeGeomToVtk (std::string fn);
 
-    inline std::string getFilename () const {
-        return (std::string) Attributes::getString (itsAttr[FGEOM]);
+    inline std::string getFilename() const {
+        return Attributes::getString(itsAttr[FGEOM]);
     }
 
-    inline std::string getTopology () const {
-        return (std::string) Attributes::getString (itsAttr[TOPO]);
+    inline std::string getTopology() const {
+        return Util::toUpper(Attributes::getString(itsAttr[TOPO]));
     }
 
-    inline std::string getDistribution () {
-        return (std::string) Attributes::getString (itsAttr[DISTR]);
+    inline std::string getDistribution() {
+        return Attributes::getString(itsAttr[DISTR]);
     }
 
     inline std::vector<std::string> getDistributionArray () {
