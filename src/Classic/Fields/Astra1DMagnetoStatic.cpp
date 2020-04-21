@@ -113,8 +113,8 @@ void Astra1DMagnetoStatic::readMap() {
             // the sequence of z-position should be strictly increasing
             // drop sampling points that don't comply to this
             if(zvals[i] - tmpDouble > 1e-10) {
-                if(fabs(RealValues[i]) > Bz_max) {
-                    Bz_max = fabs(RealValues[i]);
+                if(std::abs(RealValues[i]) > Bz_max) {
+                    Bz_max = std::abs(RealValues[i]);
                 }
                 tmpDouble = zvals[i];
                 ++ i; // increment i only if sampling point is accepted
@@ -176,7 +176,7 @@ bool Astra1DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &/*E*/, 
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
-    const double kz = two_pi * R(2) / length_m + Physics::pi;
+    const double kz = two_pi * (R(2) - zbegin_m) / length_m + Physics::pi;
 
     double ez = FourCoefs_m[0];
     double ezp = 0.0;

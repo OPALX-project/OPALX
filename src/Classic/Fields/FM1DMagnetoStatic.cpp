@@ -72,7 +72,7 @@ bool FM1DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &E,
         Vector_t &B) const {
 
     std::vector<double> fieldComponents;
-    computeFieldOnAxis(R(2), fieldComponents);
+    computeFieldOnAxis(R(2) - zBegin_m, fieldComponents);
     computeFieldOffAxis(R, E, B, fieldComponents);
 
     return false;
@@ -83,7 +83,7 @@ bool FM1DMagnetoStatic::getFieldDerivative(const Vector_t &R,
         Vector_t &B,
         const DiffDirection &/*dir*/) const {
 
-    double kz = Physics::two_pi * R(2) / length_m + Physics::pi;
+    double kz = Physics::two_pi * (R(2) - zBegin_m) / length_m + Physics::pi;
     double bZPrime = 0.0;
 
     int coefIndex = 1;
@@ -295,4 +295,3 @@ void FM1DMagnetoStatic::stripFileHeader(std::ifstream &fieldFile) {
     getLine(fieldFile, tempString);
     getLine(fieldFile, tempString);
 }
-

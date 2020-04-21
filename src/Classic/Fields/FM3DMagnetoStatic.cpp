@@ -40,6 +40,7 @@ FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
 
             normalize_m = (tmpString == "TRUE");
         }
+
         parsing_passed = parsing_passed &&
                          interpretLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m);
         parsing_passed = parsing_passed &&
@@ -61,8 +62,6 @@ FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
         file.close();
 
         if(!parsing_passed) {
-            disableFieldmapWarning();
-            zend_m = zbegin_m - 1e-3;
             throw GeneralClassicException("FM3DMagnetoStatic::FM3DMagnetoStatic",
                                           "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
@@ -83,9 +82,8 @@ FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
 
         }
     } else {
-        noFieldmapWarning();
-        zbegin_m = 0.0;
-        zend_m = -1e-3;
+        throw GeneralClassicException("FM3DMagnetoStatic::FM3DMagnetoStatic",
+                                      "An error occured when reading the fieldmap '" + Filename_m + "'");
     }
 }
 
@@ -165,8 +163,11 @@ void FM3DMagnetoStatic::freeMap() {
 }
 
 bool FM3DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &/*E*/, Vector_t &B) const {
-    if (isInside(R))
-        B += interpolateTrilinearly(R);
+    if (!isInside(R)) {
+        return true;
+    }
+
+    B += interpolateTrilinearly(R);
 
     return false;
 }
