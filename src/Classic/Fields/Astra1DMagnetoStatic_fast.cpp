@@ -76,10 +76,10 @@ bool Astra1DMagnetoStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &/*
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
-    double bz = gsl_spline_eval(onAxisInterpolants_m[0], R(2), onAxisAccel_m[0]);
-    double bzp = gsl_spline_eval(onAxisInterpolants_m[1], R(2), onAxisAccel_m[1]);
-    double bzpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2), onAxisAccel_m[2]);
-    double bzppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2), onAxisAccel_m[3]);
+    double bz = gsl_spline_eval(onAxisInterpolants_m[0], R(2) - zbegin_m, onAxisAccel_m[0]);
+    double bzp = gsl_spline_eval(onAxisInterpolants_m[1], R(2) - zbegin_m, onAxisAccel_m[1]);
+    double bzpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2) - zbegin_m, onAxisAccel_m[2]);
+    double bzppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2) - zbegin_m, onAxisAccel_m[3]);
 
     // expand to off-axis
     const double BfieldR = -bzp / 2. + bzppp / 16. * RR2;

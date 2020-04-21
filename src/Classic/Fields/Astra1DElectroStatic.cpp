@@ -184,7 +184,7 @@ bool Astra1DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vect
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
-    const double kz = two_pi * (R(2) - length_m) / length_m;
+    const double kz = two_pi * (R(2) - zbegin_m) / length_m + Physics::pi;
 
     double ez = FourCoefs_m[0];
     double ezp = 0.0;
