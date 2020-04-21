@@ -242,14 +242,14 @@ void FM3DDynamic::freeMap() {
 }
 
 bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
-    const unsigned int index_x = static_cast<int>(floor((R(0) - xbegin_m) / hx_m));
+    const unsigned int index_x = static_cast<int>(std::floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 
-    const unsigned int index_y = static_cast<int>(floor((R(1) - ybegin_m) / hy_m));
+    const unsigned int index_y = static_cast<int>(std::floor((R(1) - ybegin_m) / hy_m));
     const double lever_y = (R(1) - ybegin_m) / hy_m - index_y;
 
-    const unsigned int index_z = (int)floor(R(2) / hz_m);
-    const double lever_z = R(2) / hz_m - index_z;
+    const unsigned int index_z = (int)std::floor((R(2) - zbegin_m)/ hz_m);
+    const double lever_z = (R(2) - zbegin_m) / hz_m - index_z;
 
     if(index_z >= num_gridpz_m - 2) {
         return false;

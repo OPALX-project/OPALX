@@ -65,7 +65,6 @@ RFCavity::RFCavity(const RFCavity &right):
     fieldmap_m(right.fieldmap_m),
     length_m(right.length_m),
     startField_m(right.startField_m),
-    endField_m(right.endField_m),
     type_m(right.type_m),
     rmin_m(right.rmin_m),
     rmax_m(right.rmax_m),
@@ -101,7 +100,6 @@ RFCavity::RFCavity(const std::string &name):
     fieldmap_m(nullptr),
     length_m(0.0),
     startField_m(0.0),
-    endField_m(0.0),
     type_m(SW),
     rmin_m(0.0),
     rmax_m(0.0),
@@ -205,12 +203,11 @@ bool RFCavity::apply(const Vector_t &R,
                      const double &t,
                      Vector_t &E,
                      Vector_t &B) {
-    Vector_t tmpR(R(0), R(1), R(2) - startField_m);
-    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    if (R(2) >= startField_m &&
+        R(2) < startField_m + length_m) {
+        Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    if (tmpR(2) >= 0.0 &&
-        tmpR(2) < length_m) {
-        bool outOfBounds = fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+        bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
         if (outOfBounds) return true;
 
         E += (scale_m + scaleError_m) * cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
@@ -226,12 +223,11 @@ bool RFCavity::applyToReferenceParticle(const Vector_t &R,
                                         Vector_t &E,
                                         Vector_t &B) {
 
-    Vector_t tmpR(R(0), R(1), R(2) - startField_m);
-    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    if (R(2) >= startField_m &&
+        R(2) < startField_m + length_m) {
+        Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    if (tmpR(2) >= 0.0 &&
-        tmpR(2) < length_m) {
-        bool outOfBounds = fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+        bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
         if (outOfBounds) return true;
 
         E += scale_m * cos(frequency_m * t + phase_m) * tmpE;
@@ -244,10 +240,10 @@ bool RFCavity::applyToReferenceParticle(const Vector_t &R,
 void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     using Physics::two_pi;
 
-    startField_m = endField_m = 0.0;
+    startField_m = 0.0;
     if (bunch == NULL) {
         startField = startField_m;
-        endField = endField_m;
+        endField = startField_m;
 
         return;
     }
@@ -258,8 +254,8 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
-    fieldmap_m->getFieldDimensions(startField_m, endField_m, rBegin, rEnd);
-    if (endField_m <= startField_m) {
+    fieldmap_m->getFieldDimensions(startField_m, endField, rBegin, rEnd);
+    if (endField <= startField_m) {
         throw GeneralClassicException("RFCavity::initialise",
                                       "The length of the field map '" + filename_m + "' is zero or negativ");
     }
@@ -279,9 +275,7 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-    length_m = endField_m - startField_m;
-    endField = startField + length_m;
-
+    length_m = endField - startField_m;
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
@@ -572,7 +566,7 @@ double RFCavity::spline(double z, double *za) {
 
 void RFCavity::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = startField_m;
-    zEnd = endField_m;
+    zEnd = startField_m + length_m;
 }
 
 
