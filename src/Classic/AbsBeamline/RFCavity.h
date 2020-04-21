@@ -234,8 +234,6 @@ protected:
     double startField_m;         /**< starting point of field(m)*/
 
 private:
-    double endField_m;
-
     CavityType type_m;
 
     double rmin_m;
@@ -519,7 +517,7 @@ CoordinateSystemTrafo RFCavity::getEdgeToBegin() const
 inline
 CoordinateSystemTrafo RFCavity::getEdgeToEnd() const
 {
-    CoordinateSystemTrafo ret(Vector_t(0, 0, endField_m),
+    CoordinateSystemTrafo ret(Vector_t(0, 0, startField_m + length_m),
                               Quaternion(1, 0, 0, 0));
 
     return ret;
