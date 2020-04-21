@@ -65,6 +65,7 @@ RFCavity::RFCavity(const RFCavity &right):
     fieldmap_m(right.fieldmap_m),
     length_m(right.length_m),
     startField_m(right.startField_m),
+    endField_m(right.endField_m),
     type_m(right.type_m),
     rmin_m(right.rmin_m),
     rmax_m(right.rmax_m),
@@ -100,6 +101,7 @@ RFCavity::RFCavity(const std::string &name):
     fieldmap_m(nullptr),
     length_m(0.0),
     startField_m(0.0),
+    endField_m(0.0),
     type_m(SW),
     rmin_m(0.0),
     rmax_m(0.0),
@@ -242,22 +244,22 @@ bool RFCavity::applyToReferenceParticle(const Vector_t &R,
 void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
     using Physics::two_pi;
 
-    startField_m = 0.0;
+    startField_m = endField_m = 0.0;
     if (bunch == NULL) {
         startField = startField_m;
-        endField = startField_m;
+        endField = endField_m;
 
         return;
     }
 
-    double zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
+    double rBegin = 0.0, rEnd = 0.0;
     Inform msg("RFCavity ", *gmsg);
     std::stringstream errormsg;
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
-    fieldmap_m->getFieldDimensions(startField_m, zEnd, rBegin, rEnd);
-    if (zEnd <= startField_m) {
+    fieldmap_m->getFieldDimensions(startField_m, endField_m, rBegin, rEnd);
+    if (endField_m <= startField_m) {
         throw GeneralClassicException("RFCavity::initialise",
                                       "The length of the field map '" + filename_m + "' is zero or negativ");
     }
@@ -277,7 +279,7 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-    length_m = zEnd - startField_m;
+    length_m = endField_m - startField_m;
     endField = startField + length_m;
 
 }
@@ -570,7 +572,7 @@ double RFCavity::spline(double z, double *za) {
 
 void RFCavity::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = startField_m;
-    zEnd = startField_m + length_m;
+    zEnd = endField_m;
 }
 
 
