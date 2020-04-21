@@ -50,7 +50,10 @@ enum ElemType {
     isOther
 };
 
-
+struct BoundaryBox {
+    Vector_t lowerLeftEdge;
+    Vector_t upperRightEdge;
+};
 
 class WakeFunction;
 class ParticleMatterInteractionHandler;
@@ -454,6 +457,8 @@ public:
     void setRotationAboutZ(double rotation);
     double getRotationAboutZ() const;
 
+    virtual BoundaryBox getBoundaryBoxInLabCoords() const;
+
 protected:
     bool isInsideTransverse(const Vector_t &r, double f = 1) const;
 
@@ -636,24 +641,7 @@ inline
 bool ElementBase::isInside(const Vector_t &r) const
 {
     const double length = getElementLength();
-    return isInsideTransverse(r, r(2) / length * aperture_m.second[2]) && r(2) >= 0.0 && r(2) < length;
-}
-
-inline
-bool ElementBase::isInsideTransverse(const Vector_t &r, double f) const
-{
-    switch(aperture_m.first) {
-    case RECTANGULAR:
-        return (std::abs(r[0]) < aperture_m.second[0] && std::abs(r[1]) < aperture_m.second[1]);
-    case ELLIPTICAL:
-        return (std::pow(r[0] / aperture_m.second[0], 2) + std::pow(r[1] / aperture_m.second[1], 2) < 1.0);
-    case CONIC_RECTANGULAR:
-        return (std::abs(r[0]) < f * aperture_m.second[0] && std::abs(r[1]) < f * aperture_m.second[1]);
-    case CONIC_ELLIPTICAL:
-        return (std::pow(r[0] / (f * aperture_m.second[0]), 2) + std::pow(r[1] / (f * aperture_m.second[1]), 2) < 1.0);
-    default:
-        return false;
-    }
+    return r(2) >= 0.0 && r(2) < length && isInsideTransverse(r);
 }
 
 inline
@@ -721,6 +709,5 @@ double ElementBase::getElementPosition() const {
 inline
 bool ElementBase::isElementPositionSet() const
 { return elemedgeSet_m; }
-
 
 #endif // CLASSIC_ElementBase_HH
