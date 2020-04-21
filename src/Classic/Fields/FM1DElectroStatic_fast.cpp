@@ -100,7 +100,7 @@ bool FM1DElectroStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
                                               Vector_t &B) const {
 
     std::vector<double> fieldComponents;
-    computeFieldOnAxis(R(2), fieldComponents);
+    computeFieldOnAxis(R(2) - zBegin_m, fieldComponents);
     computeFieldOffAxis(R, E, B, fieldComponents);
 
     return false;
@@ -112,7 +112,7 @@ bool FM1DElectroStatic_fast::getFieldDerivative(const Vector_t &R,
                                                 Vector_t &/*B*/,
                                                 const DiffDirection &/*dir*/) const {
 
-    E(2) += gsl_spline_eval(onAxisFieldPInterpolants_m, R(2),
+    E(2) += gsl_spline_eval(onAxisFieldPInterpolants_m, R(2) - zBegin_m,
                             onAxisFieldPAccel_m);
 
     return false;
@@ -386,4 +386,3 @@ void FM1DElectroStatic_fast::prepareForMapCheck(std::vector<double> &fourierCoef
              onAxisFieldInterpolants_m,
              onAxisFieldAccel_m);
 }
-
