@@ -27,6 +27,7 @@
 #include "Attributes/Reference.h"
 #include "Attributes/opalstr.h"
 #include "Attributes/StringArray.h"
+#include "Attributes/UString.h"
 #include "Attributes/TableRow.h"
 #include "Attributes/TokenList.h"
 #include "Attributes/TokenListArray.h"
@@ -308,7 +309,8 @@ namespace Attributes {
         if(attr.isBaseAllocated()) {
             AttributeBase *base = &attr.getBase();
             std::string expr;
-            if(dynamic_cast<String *>(&attr.getHandler())) {
+            if(dynamic_cast<String *>(&attr.getHandler())
+               || dynamic_cast<UString *>(&attr.getHandler())) {
                 expr = dynamic_cast<SValue<std::string> *>(base)->evaluate();
             } else if(SValue<SRefAttr<std::string> > *ref =
                           dynamic_cast<SValue<SRefAttr<std::string> > *>(base)) {
@@ -370,6 +372,33 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // String array value.
 
+    Attribute makeUString(const std::string &name, const std::string &help) {
+        return Attribute(new UString(name, help), nullptr);
+    }
+
+
+    Attribute
+    makeUString(const std::string &name, const std::string &help, const std::string &initial) {
+        return Attribute(new UString(name, help), new SValue<std::string>(initial));
+    }
+
+
+    void setUString(Attribute &attr, const std::string &val) {
+        if(dynamic_cast<const UString *>(&attr.getHandler())) {
+            attr.set(new SValue<std::string>(val));
+        } else if(SValue<SRefAttr<std::string> > *ref =
+                      dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase())) {
+            const SRefAttr<std::string> &value = ref->evaluate();
+            value.set(val);
+        } else {
+            throw OpalException("Attributes::setString()", "Attribute \"" +
+                                attr.getName() + "\" is not a string.");
+        }
+    }
+
+
+    // ----------------------------------------------------------------------
+    // String array value.
     Attribute makeStringArray(const std::string &name, const std::string &help) {
         return Attribute(new StringArray(name, help), nullptr);
     }
