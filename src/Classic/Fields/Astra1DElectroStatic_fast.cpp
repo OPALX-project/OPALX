@@ -76,10 +76,10 @@ bool Astra1DElectroStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
-    double ez = gsl_spline_eval(onAxisInterpolants_m[0], R(2), onAxisAccel_m[0]);
-    double ezp = gsl_spline_eval(onAxisInterpolants_m[1], R(2), onAxisAccel_m[1]);
-    double ezpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2), onAxisAccel_m[2]);
-    double ezppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2), onAxisAccel_m[3]);
+    double ez = gsl_spline_eval(onAxisInterpolants_m[0], R(2) - zbegin_m, onAxisAccel_m[0]);
+    double ezp = gsl_spline_eval(onAxisInterpolants_m[1], R(2) - zbegin_m, onAxisAccel_m[1]);
+    double ezpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2) - zbegin_m, onAxisAccel_m[2]);
+    double ezppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2) - zbegin_m, onAxisAccel_m[3]);
 
     // expand to off-axis
     const double EfieldR = -ezp / 2. + ezppp / 16. * RR2;

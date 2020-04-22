@@ -191,7 +191,7 @@ bool Astra1DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
-    const double kz = two_pi * R(2) / length_m + Physics::pi;
+    const double kz = two_pi * (R(2) - zbegin_m) / length_m + Physics::pi;
 
     double ez = FourCoefs_m[0];
     double ezp = 0.0;
@@ -231,8 +231,8 @@ bool Astra1DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &
     return false;
 }
 
-bool Astra1DDynamic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
-    const double kz = two_pi * R(2) / length_m + Physics::pi;
+bool Astra1DDynamic::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
+    const double kz = two_pi * (R(2) - zbegin_m) / length_m + Physics::pi;
     double ezp = 0.0;
 
     int n = 1;

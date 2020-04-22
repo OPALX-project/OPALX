@@ -326,8 +326,12 @@ void TravelingWave::initialise(PartBunchBase<double, 3> *bunch, double &startFie
     RefPartBunch_m = bunch;
     double zBegin = 0.0, zEnd = 0.0;
     RFCavity::initialise(bunch, zBegin, zEnd);
+    if (std::abs(startField_m) > 0.0) {
+        throw GeneralClassicException("TravelingWave::initialise",
+                                      "The field map of a traveling wave structure has to begin at 0.0");
+    }
 
-    PeriodLength_m = (zEnd - zBegin) / 2.0;
+    PeriodLength_m = length_m / 2.0;
     CellLength_m = PeriodLength_m * Mode_m;
     startField_m = -0.5 * PeriodLength_m;
 
@@ -520,5 +524,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 }
 
 bool TravelingWave::isInside(const Vector_t &r) const {
-    return (isInsideTransverse(r) && r(2) >= -0.5 * PeriodLength_m && r(2) < startExitField_m);
+    return (isInsideTransverse(r)
+            && r(2) >= -0.5 * PeriodLength_m
+            && r(2) < startExitField_m);
 }
