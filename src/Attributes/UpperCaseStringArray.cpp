@@ -47,9 +47,6 @@ namespace Attributes {
 
     void UpperCaseStringArray::parse(Attribute &attr, Statement &stat, bool) const {
         std::vector<std::string> array = Expressions::parseStringArray(stat);
-        for (auto& a : array) {
-            a = Util::toUpper(a);
-        }
         Attributes::setUpperCaseStringArray(attr, array);
     }
 
