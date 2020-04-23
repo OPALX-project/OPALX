@@ -81,12 +81,6 @@ bool RBend3D::getFast() const {
     return fast_m;
 }
 
-void RBend3D::addKR(int /*i*/, double /*t*/, Vector_t &/*K*/) {
-}
-
-void RBend3D::addKT(int /*i*/, double /*t*/, Vector_t &/*K*/) {
-}
-
 bool RBend3D::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
