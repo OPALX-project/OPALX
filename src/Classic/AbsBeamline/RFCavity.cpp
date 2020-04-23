@@ -401,7 +401,6 @@ double RFCavity::getPhi0() const {
 }
 
 void RFCavity::setComponentType(std::string name) {
-    name = Util::toUpper(name);
     if(name == "STANDING") {
         type_m = SW;
     } else if(name == "SINGLEGAP") {
