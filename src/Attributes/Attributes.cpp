@@ -28,6 +28,7 @@
 #include "Attributes/opalstr.h"
 #include "Attributes/StringArray.h"
 #include "Attributes/UpperCaseString.h"
+#include "Attributes/UpperCaseStringArray.h"
 #include "Attributes/TableRow.h"
 #include "Attributes/TokenList.h"
 #include "Attributes/TokenListArray.h"
@@ -370,7 +371,7 @@ namespace Attributes {
 
 
     // ----------------------------------------------------------------------
-    // String array value.
+    // Upper case string value.
 
     Attribute makeUpperCaseString(const std::string &name, const std::string &help) {
         return Attribute(new UpperCaseString(name, help), nullptr);
@@ -392,7 +393,7 @@ namespace Attributes {
             value.set(val);
         } else {
             throw OpalException("Attributes::setUpperCaseString()", "Attribute \"" +
-                                attr.getName() + "\" is not a string.");
+                                attr.getName() + "\" is not an upper case string.");
         }
     }
 
@@ -407,7 +408,8 @@ namespace Attributes {
     std::vector<std::string> getStringArray(const Attribute &attr) {
         if(attr.isBaseAllocated()) {
             AttributeBase *base = &attr.getBase();
-            if(dynamic_cast<StringArray *>(&attr.getHandler())) {
+            if(dynamic_cast<StringArray *>(&attr.getHandler())
+                || dynamic_cast<UpperCaseStringArray *>(&attr.getHandler())) {
                 auto opal = OpalData::getInstance();
 
                 boost::regex variableRE("\\$\\{(.*?)\\}");
@@ -456,6 +458,22 @@ namespace Attributes {
         } else {
             throw OpalException("Attributes::setStringArray()", "Attribute \"" +
                                 attr.getName() + "\" is not a string array.");
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // Upper case string array value.
+    Attribute makeUpperCaseStringArray(const std::string &name, const std::string &help) {
+        return Attribute(new UpperCaseStringArray(name, help), nullptr);
+    }
+
+    void setUpperCaseStringArray(Attribute &attr, const std::vector<std::string> &value) {
+        if(dynamic_cast<const UpperCaseStringArray *>(&attr.getHandler())) {
+            // Strings are never expressions, so AValue will do here.
+            attr.set(new AValue<std::string>(value));
+        } else {
+            throw OpalException("Attributes::setUpperCaseStringArray()", "Attribute \"" +
+                                attr.getName() + "\" is not an upper case string array.");
         }
     }
 

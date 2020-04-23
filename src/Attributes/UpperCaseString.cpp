@@ -38,13 +38,13 @@ namespace Attributes {
 
 
     const std::string &UpperCaseString::getType() const {
-        static const std::string type("string");
+        static const std::string type("upper case string");
         return type;
     }
 
 
     void UpperCaseString::parse(Attribute &attr, Statement &stat, bool) const {
-        attr.set(new SValue<std::string>(Util::toUpper(parseString(stat, "UpperCaseString value expected."))));
+        attr.set(new SValue<std::string>(Util::toUpper(parseString(stat, "String value expected."))));
     }
 
 };

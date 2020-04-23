@@ -13,6 +13,7 @@ set (_SRCS
     TokenList.cpp
     TokenListArray.cpp
     UpperCaseString.cpp
+    UpperCaseStringArray.cpp
     )
 
 include_directories (
@@ -36,6 +37,7 @@ set (HDRS
     TokenListArray.h
     TokenList.h
     UpperCaseString.h
+    UpperCaseStringArray.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Attributes")
