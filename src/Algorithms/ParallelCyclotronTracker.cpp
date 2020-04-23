@@ -2629,17 +2629,6 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
         return;
     }
 
-    /*
-      in case before a bunchDumpPhasespaceData has
-      happen, the calcBeamParameters() is not needed.
-      maybe we have to introduce a dirty-stat-data flag.
-      this flag would be set if the bunch is dirty and
-      reset by calcBeamParameters
-    */
-    itsBunch_m->R *= Vector_t(0.001); // mm --> m
-    itsBunch_m->calcBeamParameters();
-    itsBunch_m->R *= Vector_t(1000.0); // m --> mm
-
     // --------------------------------- Get some Values ---------------------------------------- //
     double const temp_t = itsBunch_m->getT() * 1e9; // s -> ns
     Vector_t meanR;
@@ -2857,6 +2846,8 @@ void ParallelCyclotronTracker::update_m(double& t, const double& dt,
         *gmsg << "Step " << step_m + 1 << endl;
 
     updatePathLength(dt);
+
+    itsBunch_m->calcBeamParameters();
 
     // Here is global frame, don't do itsBunch_m->boundp();
 
