@@ -130,6 +130,8 @@ void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
 void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                         const losses_t &losses, const double& azimuth) const
 {
+    beam->calcBeamParameters();
+
     size_t npOutside = 0;
     if (Options::beamHaloBoundary > 0)
         npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary*beam->get_rrms());
