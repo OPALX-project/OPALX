@@ -327,6 +327,7 @@ void H5PartWrapperForPC::writeStep(PartBunchBase<double, 3>* bunch,
 void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
                                          const std::map<std::string, double> &additionalStepAttributes)
 {
+    bunch->calcBeamParameters();
     double   t          = bunch->getT();
     double   pathLength = bunch->get_sPos();
     Vector_t rmin       = bunch->get_origin();
