@@ -155,20 +155,24 @@ FieldSolver::FieldSolver():
 
     //FFT ONLY:
     itsAttr[BCFFTX] = Attributes::makeUpperCaseString("BCFFTX",
-                                             "Boundary conditions in x: open, dirichlet (box), periodic", "OPEN");
+                                                      "Boundary conditions in x: open, dirichlet (box), periodic",
+                                                      "OPEN");
 
     itsAttr[BCFFTY] = Attributes::makeUpperCaseString("BCFFTY",
-                                             "Boundary conditions in y: open, dirichlet (box), periodic", "OPEN");
+                                                      "Boundary conditions in y: open, dirichlet (box), periodic",
+                                                      "OPEN");
 
     itsAttr[BCFFTZ] = Attributes::makeUpperCaseString("BCFFTZ",
-                                             "Boundary conditions in z(t): open, periodic", "OPEN");
+                                                      "Boundary conditions in z(t): open, periodic",
+                                                      "OPEN");
 
     itsAttr[deprecated::BCFFTT] = Attributes::makeUpperCaseString("BCFFTT",
-                                             "Boundary conditions in z(t): open, periodic", "OPEN");
+                                                                  "Boundary conditions in z(t): open, periodic",
+                                                                  "OPEN");
 
     itsAttr[GREENSF]  = Attributes::makeUpperCaseString("GREENSF",
-                                               "Which Greensfunction to be used [STANDARD | INTEGRATED]",
-                                               "INTEGRATED");
+                                                        "Which Greensfunction to be used [STANDARD | INTEGRATED]",
+                                                        "INTEGRATED");
 
     itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR",
                                              "Increase of bounding box in % ",
@@ -189,16 +193,16 @@ FieldSolver::FieldSolver():
 
     //SAAMG and in case of FFT with dirichlet BC in x and y
     itsAttr[GEOMETRY] = Attributes::makeUpperCaseString("GEOMETRY",
-                                               "GEOMETRY to be used as domain boundary",
-                                               "");
+                                                        "GEOMETRY to be used as domain boundary",
+                                                        "");
 
     itsAttr[ITSOLVER] = Attributes::makeUpperCaseString("ITSOLVER",
-                                               "Type of iterative solver [CG | BiCGSTAB | GMRES]",
-                                               "CG");
+                                                        "Type of iterative solver [CG | BiCGSTAB | GMRES]",
+                                                        "CG");
 
     itsAttr[INTERPL] = Attributes::makeUpperCaseString("INTERPL",
-                                              "interpolation used for boundary points [CONSTANT | LINEAR | QUADRATIC]",
-                                              "LINEAR");
+                                                        "interpolation used for boundary points [CONSTANT | LINEAR | QUADRATIC]",
+                                                        "LINEAR");
 
     itsAttr[TOL] = Attributes::makeReal("TOL",
                                         "Tolerance for iterative solver",
@@ -209,8 +213,8 @@ FieldSolver::FieldSolver():
                                              100);
 
     itsAttr[PRECMODE] = Attributes::makeUpperCaseString("PRECMODE",
-                                               "Preconditioner Mode [STD | HIERARCHY | REUSE]",
-                                               "HIERARCHY");
+                                                        "Preconditioner Mode [STD | HIERARCHY | REUSE]",
+                                                        "HIERARCHY");
 
     // AMR
 #ifdef ENABLE_AMR
@@ -255,8 +259,8 @@ FieldSolver::FieldSolver():
                                             8);
 
     itsAttr[AMR_TAGGING] = Attributes::makeUpperCaseString("AMR_TAGGING",
-                                                  "Refinement criteria [CHARGE_DENSITY | POTENTIAL | EFIELD]",
-                                                  "CHARGE_DENSITY");
+                                                           "Refinement criteria [CHARGE_DENSITY | POTENTIAL | EFIELD]",
+                                                           "CHARGE_DENSITY");
 
     itsAttr[AMR_DENSITY] = Attributes::makeReal("AMR_DENSITY",
                                                "Tagging value for charge density refinement [C / cell volume]",
@@ -284,23 +288,23 @@ FieldSolver::FieldSolver():
 
 #ifdef HAVE_AMR_MG_SOLVER
     itsAttr[AMR_MG_SMOOTHER] = Attributes::makeUpperCaseString("AMR_MG_SMOOTHER",
-                                                      "Smoothing of level solution", "GS");
+                                                               "Smoothing of level solution", "GS");
 
     itsAttr[AMR_MG_NSWEEPS] = Attributes::makeReal("AMR_MG_NSWEEPS",
                                                    "Number of relaxation steps",
                                                    8);
 
     itsAttr[AMR_MG_PREC] = Attributes::makeUpperCaseString("AMR_MG_PREC",
-                                                  "Preconditioner of bottom solver",
-                                                  "NONE");
+                                                           "Preconditioner of bottom solver",
+                                                           "NONE");
 
     itsAttr[AMR_MG_INTERP] = Attributes::makeUpperCaseString("AMR_MG_INTERP",
-                                                    "Interpolater between levels",
-                                                    "PC");
+                                                             "Interpolater between levels",
+                                                             "PC");
 
     itsAttr[AMR_MG_NORM] = Attributes::makeUpperCaseString("AMR_MG_NORM",
-                                                  "Norm for convergence criteria",
-                                                  "LINF");
+                                                           "Norm for convergence criteria",
+                                                           "LINF");
 
     itsAttr[AMR_MG_VERBOSE] = Attributes::makeBool("AMR_MG_VERBOSE",
                                                    "Write solver info in SDDS format (*.solver)",
@@ -312,8 +316,8 @@ FieldSolver::FieldSolver():
                                                      false);
 
     itsAttr[AMR_MG_REUSE] = Attributes::makeUpperCaseString("AMR_MG_REUSE",
-                                                   "Reuse type of Smoothed Aggregation",
-                                                   "RAP");
+                                                            "Reuse type of Smoothed Aggregation",
+                                                            "RAP");
 #endif
 
     mesh_m = 0;
