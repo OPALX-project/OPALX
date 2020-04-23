@@ -4,7 +4,6 @@
 #include "Index/NDIndex.h"
 
 #include "Algorithms/PBunchDefs.h"
-#include "Utilities/Util.h"
 
 // #include "Algorithms/AmrPartBunch.h"
 
@@ -88,7 +87,7 @@ public:
      * Is used in src/Structure/FieldSolver.cpp
      * @param tagging strategy
      */
-    void setTagging(std::string tagging);
+    void setTagging(const std::string& tagging);
     
     /*!
      * Scaling factor for tagging.

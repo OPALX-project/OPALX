@@ -28,9 +28,7 @@ void AmrObject::setTagging(TaggingCriteria tagging) {
 }
 
 
-void AmrObject::setTagging(std::string tagging) {
-    tagging = Util::toUpper(tagging);
-    
+void AmrObject::setTagging(const std::string& tagging) {
     if ( tagging == "POTENTIAL" )
         tagging_m = TaggingCriteria::POTENTIAL;
     else if (tagging == "EFIELD" )
