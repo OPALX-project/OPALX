@@ -33,8 +33,11 @@ LBalWriter::LBalWriter(const std::string& fname, bool restart)
 { }
 
 
-void LBalWriter::fillHeader(PartBunchBase<double, 3> */*beam*/) {
-
+#ifdef ENABLE_AMR
+void LBalWriter::fillHeader(PartBunchBase<double, 3> * beam) {
+#else
+void LBalWriter::fillHeader() {
+#endif
     if (this->hasColumns()) {
         return;
     }
@@ -89,9 +92,7 @@ void LBalWriter::fillHeader(PartBunchBase<double, 3> */*beam*/) {
 }
 
 
-void LBalWriter::write(PartBunchBase<double, 3> *beam) {
-
-    beam->gatherLoadBalanceStatistics();
+void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
 
 #ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
@@ -102,8 +103,11 @@ void LBalWriter::write(PartBunchBase<double, 3> *beam) {
     if ( Ippl::myNode() != 0 )
         return;
 
-
+#ifdef ENABLE_AMR
     this->fillHeader(beam);
+#else
+    this->fillHeader();
+#endif
 
     this->open();
 

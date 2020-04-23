@@ -47,8 +47,9 @@ public:
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
-    void write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
-               const losses_t &losses = losses_t(), const double& azimuth = -1);
+    void write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
+               const losses_t &losses = losses_t(), const double& azimuth = -1,
+               const size_t npOutside = 0);
 
     /**
      * FIXME https://gitlab.psi.ch/OPAL/src/issues/245
