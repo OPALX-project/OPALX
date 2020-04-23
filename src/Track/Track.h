@@ -30,8 +30,6 @@ class BeamSequence;
 template <class T, unsigned Dim>
 class PartBunchBase;
 
-class EnvelopeBunch;
-
 class Track {
 
 public:
@@ -44,8 +42,6 @@ public:
 
     /// The particle bunch to be tracked.
     PartBunchBase<double, 3> *bunch;
-
-    EnvelopeBunch *slbunch;
 
     /// The reference data.
     PartData reference;

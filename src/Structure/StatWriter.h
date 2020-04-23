@@ -21,8 +21,6 @@
 
 #include "StatBaseWriter.h"
 
-#include "Algorithms/bet/EnvelopeBunch.h"
-
 class StatWriter : public StatBaseWriter {
 
 public:
@@ -50,12 +48,6 @@ public:
     void write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
                const losses_t &losses = losses_t(), const double& azimuth = -1,
                const size_t npOutside = 0);
-
-    /**
-     * FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-     */
-    void write(EnvelopeBunch &beam, Vector_t FDext[],
-               double sposHead, double sposRef, double sposTail);
 
 private:
     void fillHeader(const losses_t &losses = losses_t());

@@ -28,7 +28,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartBunchBase.h"
-#include "Algorithms/bet/EnvelopeBunch.h"
 #include "Structure/Beam.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "BasicActions/Option.h"
@@ -494,24 +493,6 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
     }
 
     INFOMSG("---------------Finished reading hdf5 file---------------" << endl);
-    IpplTimings::stopTimer(beam->distrReload_m);
-}
-
-void Distribution::doRestartOpalE(EnvelopeBunch *beam, size_t /*Np*/, int /*restartStep*/,
-                                  H5PartWrapper *dataSource) {
-    IpplTimings::startTimer(beam->distrReload_m);
-    int N = dataSource->getNumParticles();
-    *gmsg << "total number of slices = " << N << endl;
-
-    beam->distributeSlices(N);
-    beam->createBunch();
-    long long starti = beam->mySliceStartOffset();
-    long long endi = beam->mySliceEndOffset();
-
-    dataSource->readHeader();
-    dataSource->readStep(beam, starti, endi);
-
-    beam->setCharge(beam->getChargePerParticle());
     IpplTimings::stopTimer(beam->distrReload_m);
 }
 
