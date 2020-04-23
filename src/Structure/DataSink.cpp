@@ -35,7 +35,6 @@
 #include "Fields/Fieldmap.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
-#include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
 
 #ifdef __linux__
@@ -109,17 +108,6 @@ int DataSink::dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[], double me
 }
 
 
-void DataSink::dumpH5(const EnvelopeBunch &beam, Vector_t FDext[],
-                      double sposHead, double sposRef,
-                      double sposTail) const
-{
-    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-    if (!Options::enableHDF5) return;
-    
-    h5Writer_m->writePhaseSpace(beam, FDext, sposHead, sposRef, sposTail);
-}
-
-
 void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                         const double& azimuth) const
 {
@@ -144,17 +132,6 @@ void DataSink::dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
 
     for (size_t i = 0; i < sddsWriter_m.size(); ++i)
         sddsWriter_m[i]->write(beam);
-
-    IpplTimings::stopTimer(StatMarkerTimer_m);
-}
-
-
-void DataSink::dumpSDDS(EnvelopeBunch &beam, Vector_t FDext[],
-                        double sposHead, double sposRef, double sposTail) const
-{
-    IpplTimings::startTimer(StatMarkerTimer_m);
-
-    statWriter_m->write(beam, FDext, sposHead, sposRef, sposTail);
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }

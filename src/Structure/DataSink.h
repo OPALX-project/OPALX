@@ -64,22 +64,12 @@ public:
                double refR, double refTheta, double refZ,
                double azimuth, double elevation, bool local) const;
     
-    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-    void dumpH5(const EnvelopeBunch &beam, Vector_t FDext[],
-                double sposHead, double sposRef,
-                double sposTail) const;
-    
-    
     void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                   const double& azimuth = -1) const;
     
     void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                   const losses_t &losses = losses_t(), const double& azimuth = -1) const;
     
-    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-    void dumpSDDS(EnvelopeBunch &beam, Vector_t FDext[],
-                  double sposHead, double sposRef, double sposTail) const;
-
     /** \brief Write cavity information from  H5 file
      */
     void storeCavityInformation();

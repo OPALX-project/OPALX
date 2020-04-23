@@ -2192,7 +2192,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << comm_mp->getSize() << '\n'
             << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << '\n'
             << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
+                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-map")) << std::endl;
 }
 
 
