@@ -1,7 +1,7 @@
 //
 // Class UString
 //   This class is used to parse attributes of type string that should
-//   be upper case, i.e. it returns upper case strings.
+//   the upper case, i.e. it returns upper case strings.
 //
 // Copyright (c) 2020, Christof Metzger-Kraus, Open Sourcerer
 // All rights reserved
