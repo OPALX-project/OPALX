@@ -380,7 +380,7 @@ namespace Attributes {
 
     Attribute
     makeUpperCaseString(const std::string &name, const std::string &help, const std::string &initial) {
-        return Attribute(new UpperCaseString(name, help), Util::toUpper(new SValue<std::string>(initial)));
+        return Attribute(new UpperCaseString(name, help), new SValue<std::string>(Util::toUpper(initial)));
     }
 
 
