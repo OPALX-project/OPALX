@@ -46,7 +46,6 @@ Solenoid::Solenoid(const Solenoid &right):
     startField_m(right.startField_m),
     length_m(right.length_m),
     fast_m(right.fast_m) {
-    setElType(isSolenoid);
 }
 
 
@@ -59,7 +58,6 @@ Solenoid::Solenoid(const std::string &name):
     startField_m(0.0),
     length_m(0.0),
     fast_m(true) {
-    setElType(isSolenoid);
 }
 
 

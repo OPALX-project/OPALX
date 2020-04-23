@@ -45,7 +45,6 @@ RBend3D::RBend3D(const RBend3D &right):
     fast_m(right.fast_m),
     geometry_m(right.geometry_m),
     dummyField_m() {
-    setElType(isDipole);
 }
 
 
@@ -58,7 +57,6 @@ RBend3D::RBend3D(const std::string &name):
     fast_m(false),
     geometry_m(),
     dummyField_m() {
-    setElType(isDipole);
 }
 
 
