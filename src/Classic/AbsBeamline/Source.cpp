@@ -24,9 +24,7 @@ Source::Source(const Source &right):
     ElementEdge_m(right.ElementEdge_m),
     startField_m(right.startField_m),
     endField_m(right.endField_m)
-{
-    setElType(isSource);
-}
+{}
 
 
 Source::Source(const std::string &name):
@@ -34,12 +32,9 @@ Source::Source(const std::string &name):
     ElementEdge_m(0.0),
     startField_m(0.0),
     endField_m(0.0)
-{
-    setElType(isSource);
-}
+{}
 
 Source::~Source() {
-
 }
 
 

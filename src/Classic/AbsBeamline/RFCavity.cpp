@@ -78,9 +78,7 @@ RFCavity::RFCavity(const RFCavity &right):
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
     num_points_m(right.num_points_m)
-{
-    setElType(isRF);
-}
+{}
 
 
 RFCavity::RFCavity(const std::string &name):
@@ -113,9 +111,7 @@ RFCavity::RFCavity(const std::string &name):
     VrNormal_m(nullptr),
     DvDr_m(nullptr),
     num_points_m(0)
-{
-    setElType(isRF);
-}
+{}
 
 
 RFCavity::~RFCavity() {

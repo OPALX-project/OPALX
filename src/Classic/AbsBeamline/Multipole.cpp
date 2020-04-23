@@ -53,7 +53,6 @@ Multipole::Multipole(const Multipole &right):
     max_SkewComponent_m(right.max_SkewComponent_m),
     max_NormalComponent_m(right.max_NormalComponent_m),
     nSlices_m(right.nSlices_m) {
-    setElType(isMultipole);
 }
 
 
@@ -66,7 +65,6 @@ Multipole::Multipole(const std::string &name):
     max_SkewComponent_m(1),
     max_NormalComponent_m(1),
     nSlices_m(1) {
-    setElType(isMultipole);
 }
 
 
