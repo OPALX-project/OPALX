@@ -161,6 +161,12 @@ namespace Attributes {
     /// Set string array value.
     extern void setStringArray(Attribute &, const std::vector<std::string> &);
 
+    /// Make uppercase string array attribute.
+    //  Initial value is empty array.
+    extern Attribute makeUpperCaseStringArray(const std::string &name, const std::string &help);
+
+    /// Set upper case string array value.
+    extern void setUpperCaseStringArray(Attribute &, const std::vector<std::string> &);
 
     /// Create a table row attribute.
     //  Initial value is undefined.
