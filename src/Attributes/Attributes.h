@@ -141,15 +141,15 @@ namespace Attributes {
 
     /// Make uppercase string attribute.
     //  Initial value undefined.
-    extern Attribute makeUString(const std::string &name, const std::string &help);
+    extern Attribute makeUpperCaseString(const std::string &name, const std::string &help);
 
     /// Make uppercase string attribute.
     //  Initial value is defined.
     extern Attribute
-    makeUString(const std::string &name, const std::string &help, const std::string &initial);
+    makeUpperCaseString(const std::string &name, const std::string &help, const std::string &initial);
 
     /// Set uppercase string value.
-    extern void setUString(Attribute &attr, const std::string &val);
+    extern void setUpperCaseString(Attribute &attr, const std::string &val);
 
     /// Create a string array attribute.
     //  Initial value is empty array.

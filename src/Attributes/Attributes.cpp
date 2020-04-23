@@ -27,7 +27,7 @@
 #include "Attributes/Reference.h"
 #include "Attributes/opalstr.h"
 #include "Attributes/StringArray.h"
-#include "Attributes/UString.h"
+#include "Attributes/UpperCaseString.h"
 #include "Attributes/TableRow.h"
 #include "Attributes/TokenList.h"
 #include "Attributes/TokenListArray.h"
@@ -310,7 +310,7 @@ namespace Attributes {
             AttributeBase *base = &attr.getBase();
             std::string expr;
             if(dynamic_cast<String *>(&attr.getHandler())
-               || dynamic_cast<UString *>(&attr.getHandler())) {
+               || dynamic_cast<UpperCaseString *>(&attr.getHandler())) {
                 expr = dynamic_cast<SValue<std::string> *>(base)->evaluate();
             } else if(SValue<SRefAttr<std::string> > *ref =
                           dynamic_cast<SValue<SRefAttr<std::string> > *>(base)) {
@@ -372,26 +372,26 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // String array value.
 
-    Attribute makeUString(const std::string &name, const std::string &help) {
-        return Attribute(new UString(name, help), nullptr);
+    Attribute makeUpperCaseString(const std::string &name, const std::string &help) {
+        return Attribute(new UpperCaseString(name, help), nullptr);
     }
 
 
     Attribute
-    makeUString(const std::string &name, const std::string &help, const std::string &initial) {
-        return Attribute(new UString(name, help), new SValue<std::string>(initial));
+    makeUpperCaseString(const std::string &name, const std::string &help, const std::string &initial) {
+        return Attribute(new UpperCaseString(name, help), new SValue<std::string>(initial));
     }
 
 
-    void setUString(Attribute &attr, const std::string &val) {
-        if(dynamic_cast<const UString *>(&attr.getHandler())) {
+    void setUpperCaseString(Attribute &attr, const std::string &val) {
+        if(dynamic_cast<const UpperCaseString *>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(val));
         } else if(SValue<SRefAttr<std::string> > *ref =
                       dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase())) {
             const SRefAttr<std::string> &value = ref->evaluate();
             value.set(val);
         } else {
-            throw OpalException("Attributes::setString()", "Attribute \"" +
+            throw OpalException("Attributes::setUpperCaseString()", "Attribute \"" +
                                 attr.getName() + "\" is not a string.");
         }
     }
