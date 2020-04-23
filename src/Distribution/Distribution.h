@@ -213,11 +213,6 @@ public:
     void createOpalCycl(PartBunchBase<double, 3> *beam,
                         size_t numberOfParticles,
                         double current, const Beamline &bl);
-    void createOpalE(Beam *beam,
-                     std::vector<Distribution *> addedDistributions,
-                     EnvelopeBunch *envelopeBunch,
-                     double distCenter,
-                     double Bz0);
     void createOpalT(PartBunchBase<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles);
