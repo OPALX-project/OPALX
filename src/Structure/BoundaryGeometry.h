@@ -124,14 +124,6 @@ public:
         return Util::toUpper(Attributes::getString(itsAttr[TOPO]));
     }
 
-    inline std::string getDistribution() {
-        return Attributes::getString(itsAttr[DISTR]);
-    }
-
-    inline std::vector<std::string> getDistributionArray () {
-        return Attributes::getStringArray (itsAttr[DISTRS]);
-    }
-
     inline size_t getN () {
         return partsr_m.size ();
     }
@@ -506,8 +498,6 @@ private:
         B,        // minor semi-axis of ellitpic tube
         C,        // in case of BOXCORNER hight of corner
         TOPO,     // BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written
-        DISTR,    // Add distribution to generate physics model on the surface
-        DISTRS,   // Add distribution array to generate physics model on the surface
         ZSHIFT,   // Shift in z direction
         XYZSCALE, // Multiplicative scaling factor for coordinates
         XSCALE,   // Multiplicative scaling factor for x-coordinates
