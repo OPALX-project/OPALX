@@ -44,7 +44,6 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Structure/H5PartWrapperForPC.h"
-#include "Structure/H5PartWrapperForPS.h"
 
 #include "OPALconfig.h"
 #include "changes.h"
