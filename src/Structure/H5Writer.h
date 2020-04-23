@@ -87,7 +87,7 @@ public:
      *  \param sposRef Longitudinal position of the reference particle.
      *  \param sposTail Longitudinal position of the tail particles.
      */
-    void writePhaseSpace(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
+    void writePhaseSpace(const EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
 //     void stashPhaseSpaceEnvelope(EnvelopeBunch &beam, Vector_t FDext[], double sposHead, double sposRef, double sposTail);
 //     void dumpStashedPhaseSpaceEnvelope();
     
