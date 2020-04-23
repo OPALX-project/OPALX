@@ -28,10 +28,10 @@ class GridLBalWriter : public SDDSWriter {
 public:
     GridLBalWriter(const std::string& fname, bool restart);
 
-    void write(PartBunchBase<double, 3> *beam) override;
+    void write(const PartBunchBase<double, 3> *beam) override;
 
 private:
-    void fillHeader(PartBunchBase<double, 3> *beam);
+    void fillHeader(const PartBunchBase<double, 3> *beam);
 };
 
 #endif
