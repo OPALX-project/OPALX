@@ -703,7 +703,7 @@ BoundaryGeometry::BoundaryGeometry() :
          "Specifies the geometry file [h5fed]",
          "");
 
-    itsAttr[TOPO] = Attributes::makeUString
+    itsAttr[TOPO] = Attributes::makeString
         ("TOPO",
          "BOX, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written ",
          "ELLIPTIC");
@@ -742,6 +742,14 @@ BoundaryGeometry::BoundaryGeometry() :
         ("C",
          "In case of BOXCORNER Specifies hight of corner C [m]",
          0.01);
+
+    itsAttr[DISTR] = Attributes::makeString
+        ("DISTR",
+         "Distribution to be generated on the surface",
+         "");
+    itsAttr[DISTRS] = Attributes::makeStringArray
+        ("DISTRS",
+         "Distribution array to be generated on the surface");
 
     itsAttr[XYZSCALE] = Attributes::makeReal
         ("XYZSCALE",
