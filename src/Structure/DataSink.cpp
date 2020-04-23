@@ -35,7 +35,6 @@
 #include "Fields/Fieldmap.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
-#include "Structure/H5PartWrapperForPS.h"
 #include "Utilities/Timer.h"
 
 #ifdef __linux__
