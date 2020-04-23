@@ -261,13 +261,13 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::isGridFixed() {
+bool PartBunchBase<T, Dim>::isGridFixed() const {
     return fixed_grid;
 }
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::hasBinning() {
+bool PartBunchBase<T, Dim>::hasBinning() const {
     return (pbin_m != nullptr);
 }
 
@@ -1095,7 +1095,7 @@ double PartBunchBase<T, Dim>::getT() const {
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_sPos() {
+double PartBunchBase<T, Dim>::get_sPos() const {
     return spos_m;
 }
 
@@ -1613,7 +1613,7 @@ void PartBunchBase<T, Dim>::setSteptoLastInj(int n) {
 
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getSteptoLastInj() {
+int PartBunchBase<T, Dim>::getSteptoLastInj() const {
     return SteptoLastInj_m;
 }
 
@@ -1779,7 +1779,7 @@ void PartBunchBase<T, Dim>::resetM(double m)  {
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getdE() {
+double PartBunchBase<T, Dim>::getdE() const {
     return dE_m;
 }
 

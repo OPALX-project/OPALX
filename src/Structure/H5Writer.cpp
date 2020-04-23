@@ -88,7 +88,7 @@ int H5Writer::writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[], 
 }
 
 
-void H5Writer::writePhaseSpace(EnvelopeBunch &/*beam*/, Vector_t FDext[],
+void H5Writer::writePhaseSpace(const EnvelopeBunch &/*beam*/, Vector_t FDext[],
                                double sposHead, double sposRef,
                                double sposTail)
 {

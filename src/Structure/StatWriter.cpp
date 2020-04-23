@@ -134,17 +134,11 @@ void StatWriter::fillHeader(const losses_t &losses) {
 }
 
 
-void StatWriter::write(PartBunchBase<double, 3> *beam, Vector_t FDext[],
-                       const losses_t &losses, const double& azimuth)
+void StatWriter::write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
+                       const losses_t &losses, const double& azimuth,
+                       const size_t npOutside)
 {
-    /// Calculate beam statistics.
-    beam->calcBeamParameters();
-
     double Ekin = beam->get_meanKineticEnergy();
-
-    size_t npOutside = 0;
-    if (Options::beamHaloBoundary > 0)
-        npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary*beam->get_rrms());
 
     double  pathLength = beam->get_sPos();
 
