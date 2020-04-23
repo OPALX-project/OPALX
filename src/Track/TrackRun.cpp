@@ -39,7 +39,6 @@
 #include "Distribution/Distribution.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/FieldSolver.h"
@@ -736,13 +735,13 @@ void TrackRun::setupCyclotronTracker(){
 void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
 
-    if (Util::toUpper(fs->getType()) != std::string("NONE")) {
+    if (fs->getType() != std::string("NONE")) {
         size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
         if (!opal->inRestartRun() && numParticles < numGridPoints
-            && Util::toUpper(fs->getType()) != std::string("SAAMG") // in SPIRAL/SAAMG we're meshing the whole domain -DW
+            && fs->getType() != std::string("SAAMG") // in SPIRAL/SAAMG we're meshing the whole domain -DW
 #ifdef ENABLE_AMR
             && !Options::amr)
 #else
