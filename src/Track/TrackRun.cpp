@@ -211,8 +211,6 @@ void TrackRun::execute() {
     }
 
     opal->bunchIsAllocated();
-    if(method == "PARALLEL-SLICE")
-        opal->slbunchIsAllocated();
 
     delete itsTracker;
 }
