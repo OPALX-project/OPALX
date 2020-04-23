@@ -16,6 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "Attributes/Attributes.h"
 #include "Attributes/UpperCaseString.h"
 #include "AbstractObjects/Expressions.h"
 #include "Expressions/SValue.h"
@@ -42,9 +43,8 @@ namespace Attributes {
         return type;
     }
 
-
     void UpperCaseString::parse(Attribute &attr, Statement &stat, bool) const {
-        attr.set(new SValue<std::string>(Util::toUpper(parseString(stat, "String value expected."))));
+        Attributes::setUpperCaseString(attr, parseString(stat, "String value expected."));
     }
 
 };
