@@ -163,7 +163,7 @@ static void write_voxel_mesh (
 
  */
 
-#include <math.h>
+#include <cmath>
 
 
 #define LERP( A, B, C) ((B)+(A)*((C)-(B)))

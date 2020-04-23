@@ -33,8 +33,6 @@
 #include <tuple>
 #include <assert.h>
 
-#include <math.h>
-
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
                                   Vector_t /*hr*/,
