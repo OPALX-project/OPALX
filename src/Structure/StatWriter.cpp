@@ -18,6 +18,8 @@
 //
 #include "StatWriter.h"
 
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Utilities/Timer.h"
 
 #include <sstream>
