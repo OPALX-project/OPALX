@@ -3350,7 +3350,7 @@ void Distribution::setAttributes() {
 
     itsAttr[Attrib::Distribution::INPUTMOUNITS]
         = Attributes::makeUpperCaseString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
-                                 " Currently \"NONE\" or \"EV\".", "");
+                                          " Currently \"NONE\" or \"EV\".", "");
 
     // Attributes for beam emission.
     itsAttr[Attrib::Distribution::EMITTED]
@@ -3361,7 +3361,7 @@ void Distribution::setAttributes() {
                                1);
     itsAttr[Attrib::Distribution::EMISSIONMODEL]
         = Attributes::makeUpperCaseString("EMISSIONMODEL", "Model used to emit electrons from a "
-                                 "photocathode.", "None");
+                                          "photocathode.", "None");
     itsAttr[Attrib::Distribution::EKIN]
         = Attributes::makeReal("EKIN", "Kinetic energy used in ASTRA thermal emittance "
                                "model (eV). (Thermal energy added in with random "
