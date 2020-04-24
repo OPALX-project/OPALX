@@ -36,7 +36,6 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPC.h"
-#include "Utilities/Util.h"
 #include "Utilities/EarlyLeaveException.h"
 
 #include <gsl/gsl_histogram.h>
@@ -878,7 +877,7 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
     /*
      * Toggle what units to use for inputing momentum.
      */
-    std::string inputUnits = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]));
+    std::string inputUnits = Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]);
     if (inputUnits == "NONE")
         inputMoUnits_m = InputMomentumUnitsT::NONE;
     else if (inputUnits == "EV")
@@ -1355,7 +1354,6 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         sigmaR_m[1] = std::sqrt(sigma(4, 4));
 
         //p_l^2 = [(delta+1)*beta*gamma]^2 - px^2 - pz^2
-
         double pl2 = (std::sqrt(sigma(5,5)) + 1)*(std::sqrt(sigma(5,5)) + 1)*beta*gamma*beta*gamma -
                       sigmaP_m[0]*sigmaP_m[0] - sigmaP_m[2]*sigmaP_m[2];
 
@@ -3206,15 +3204,15 @@ gsl_qrng* Distribution::selectRandomGenerator(std::string,unsigned int dimension
 
 void Distribution::setAttributes() {
     itsAttr[Attrib::Distribution::TYPE]
-        = Attributes::makeString("TYPE","Distribution type: "
-                                 "FROMFILE, "
-                                 "GAUSS, "
-                                 "BINOMIAL, "
-                                 "FLATTOP, "
-                                 "MULTIGAUSS, "
-                                 "GUNGAUSSFLATTOPTH, "
-                                 "ASTRAFLATTOPTH, "
-                                 "GAUSSMATCHED");
+        = Attributes::makeUpperCaseString("TYPE","Distribution type: "
+                                          "FROMFILE, "
+                                          "GAUSS, "
+                                          "BINOMIAL, "
+                                          "FLATTOP, "
+                                          "MULTIGAUSS, "
+                                          "GUNGAUSSFLATTOPTH, "
+                                          "ASTRAFLATTOPTH, "
+                                          "GAUSSMATCHED");
     itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
     itsAttr[Attrib::Distribution::LINE]
@@ -3266,8 +3264,8 @@ void Distribution::setAttributes() {
                                "distribution list.", 1.0);
 
     itsAttr[Attrib::Distribution::INPUTMOUNITS]
-        = Attributes::makeString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
-                                 " Currently \"NONE\" or \"EV\".", "");
+        = Attributes::makeUpperCaseString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
+                                          " Currently \"NONE\" or \"EV\".", "");
 
     // Attributes for beam emission.
     itsAttr[Attrib::Distribution::EMITTED]
@@ -3277,8 +3275,8 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("EMISSIONSTEPS", "Number of time steps to use during emission.",
                                1);
     itsAttr[Attrib::Distribution::EMISSIONMODEL]
-        = Attributes::makeString("EMISSIONMODEL", "Model used to emit electrons from a "
-                                 "photocathode.", "None");
+        = Attributes::makeUpperCaseString("EMISSIONMODEL", "Model used to emit electrons from a "
+                                          "photocathode.", "None");
     itsAttr[Attrib::Distribution::EKIN]
         = Attributes::makeReal("EKIN", "Kinetic energy used in ASTRA thermal emittance "
                                "model (eV). (Thermal energy added in with random "
@@ -3521,7 +3519,7 @@ void Distribution::setDistType() {
                             "The attribute DISTRIBUTION isn't supported any more, use TYPE instead");
     }
 
-    distT_m = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::TYPE]));
+    distT_m = Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
     if (distT_m == "FROMFILE")
         distrTypeT_m = DistrTypeT::FROMFILE;
     else if (distT_m == "GAUSS")
@@ -3883,7 +3881,7 @@ void Distribution::setDistParametersGauss(double massIneV) {
 
 void Distribution::setupEmissionModel(PartBunchBase<double, 3> *beam) {
 
-    std::string model = Util::toUpper(Attributes::getString(itsAttr[Attrib::Distribution::EMISSIONMODEL]));
+    std::string model = Attributes::getString(itsAttr[Attrib::Distribution::EMISSIONMODEL]);
     if (model == "ASTRA")
         emissionModel_m = EmissionModelT::ASTRA;
     else if (model == "NONEQUIL")

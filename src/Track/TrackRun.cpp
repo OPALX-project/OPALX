@@ -36,7 +36,6 @@
 #include "Distribution/Distribution.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/FieldSolver.h"
@@ -88,13 +87,13 @@ TrackRun::TrackRun():
     fs(NULL),
     ds(NULL),
     phaseSpaceSink_m(NULL) {
-    itsAttr[METHOD] = Attributes::makeString
+    itsAttr[METHOD] = Attributes::makeUpperCaseString
                       ("METHOD", "Name of tracking algorithm to use:\n"
                        "\t\t\t\"THIN\" (default) or \"THICK, OPAL-T,OPAL-T3D, OPAL-CYCL\".", "THIN");
     itsAttr[TURNS] = Attributes::makeReal
                      ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron", 1.0);
 
-    itsAttr[MBMODE] = Attributes::makeString
+    itsAttr[MBMODE] = Attributes::makeUpperCaseString
                       ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl: FORCE or AUTO ", "FORCE");
 
     itsAttr[PARAMB] = Attributes::makeReal
@@ -104,7 +103,7 @@ TrackRun::TrackRun():
                                            "The scale parameter for binning in multi-bunch mode",
                                            0.01);
 
-    itsAttr[MB_BINNING] = Attributes::makeString
+    itsAttr[MB_BINNING] = Attributes::makeUpperCaseString
                           ("MB_BINNING", "Type of energy binning in multi-bunch mode: GAMMA or BUNCH", "GAMMA");
 
     itsAttr[BEAM] = Attributes::makeString
@@ -175,7 +174,7 @@ void TrackRun::execute() {
     }
 
     // Get algorithm to use.
-    std::string method = Util::toUpper(Attributes::getString(itsAttr[METHOD]));
+    std::string method = Attributes::getString(itsAttr[METHOD]);
     if(method == "THIN") {
         *gmsg << "  Method == \"THIN\"" << endl;
         itsTracker = new ThinTracker(*Track::block->use->fetchLine(),
@@ -465,7 +464,7 @@ void TrackRun::setupCyclotronTracker(){
     // multi-bunch parameters
     const int specifiedNumBunch = int(std::abs(std::round(Attributes::getReal(itsAttr[TURNS]))));
     const double mbPara         = Attributes::getReal(itsAttr[PARAMB]);
-    const std::string mbMode    = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));
+    const std::string mbMode    = Attributes::getString(itsAttr[MBMODE]);
     const double mbEta          = Attributes::getReal(itsAttr[MB_ETA]);
     const std::string mbBinning = Attributes::getString(itsAttr[MB_BINNING]);
 
@@ -597,13 +596,13 @@ void TrackRun::setupCyclotronTracker(){
 void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
 
-    if (Util::toUpper(fs->getType()) != std::string("NONE")) {
+    if (fs->getType() != std::string("NONE")) {
         size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
         if (!opal->inRestartRun() && numParticles < numGridPoints
-            && Util::toUpper(fs->getType()) != std::string("SAAMG") // in SPIRAL/SAAMG we're meshing the whole domain -DW
+            && fs->getType() != std::string("SAAMG") // in SPIRAL/SAAMG we're meshing the whole domain -DW
 #ifdef ENABLE_AMR
             && !Options::amr)
 #else
