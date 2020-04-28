@@ -43,7 +43,6 @@
 
 #include <boost/regex.hpp>
 
-using std::string;
 using namespace Expressions;
 
 
@@ -75,7 +74,7 @@ namespace Attributes {
                 const SRefAttr<bool> &value = ref->evaluate();
                 return value.evaluate();
             } else {
-                throw OpalException("Attributes::get()", "Attribute \"" +
+                throw OpalException("Attributes::getBool()", "Attribute \"" +
                                     attr.getName() + "\" is not logical.");
             }
         } else {
@@ -162,7 +161,7 @@ namespace Attributes {
         if(dynamic_cast<const Place *>(&attr.getHandler())) {
             attr.set(new SValue<PlaceRep>(rep));
         } else {
-            throw OpalException("Attributes::getPlace()", "Attribute \"" +
+            throw OpalException("Attributes::setPlace()", "Attribute \"" +
                                 attr.getName() + "\" is not a place reference.");
         }
     }
@@ -183,7 +182,7 @@ namespace Attributes {
                    dynamic_cast<SValue<RangeRep> *>(&attr.getBase())) {
                 return range->evaluate();
             } else {
-                throw OpalException("Attributes::get()", "Attribute \"" +
+                throw OpalException("Attributes::getRange()", "Attribute \"" +
                                     attr.getName() + "\" is not a range reference.");
             }
         } else {
@@ -196,7 +195,7 @@ namespace Attributes {
         if(dynamic_cast<const Range *>(&attr.getHandler())) {
             attr.set(new SValue<RangeRep>(rep));
         } else {
-            throw OpalException("Attributes::get()", "Attribute \"" +
+            throw OpalException("Attributes::setRange()", "Attribute \"" +
                                 attr.getName() + "\" is not a range reference.");
         }
     }
@@ -499,7 +498,7 @@ namespace Attributes {
                    dynamic_cast<SValue<TableRowRep> *>(&attr.getBase())) {
                 return row->evaluate();
             } else {
-                throw OpalException("Attributes::get()", "Attribute \"" +
+                throw OpalException("Attributes::getTableRow()", "Attribute \"" +
                                     attr.getName() +
                                     "\" is not a table row reference.");
             }
@@ -513,7 +512,7 @@ namespace Attributes {
         if(dynamic_cast<const TableRow *>(&attr.getHandler())) {
             attr.set(new SValue<TableRowRep>(rep));
         } else {
-            throw OpalException("Attributes::get()", "Attribute \"" +
+            throw OpalException("Attributes::setTableRow()", "Attribute \"" +
                                 attr.getName() +
                                 "\" is not a table row reference.");
         }
@@ -547,7 +546,7 @@ namespace Attributes {
         if(dynamic_cast<const TokenList *>(&attr.getHandler())) {
             attr.set(new SValue<std::list<Token> >(val));
         } else {
-            throw OpalException("Attributes::set()", "Attribute \"" + attr.getName() +
+            throw OpalException("Attributes::setTokenList()", "Attribute \"" + attr.getName() +
                                 "\" is not a token list.");
         }
     }
