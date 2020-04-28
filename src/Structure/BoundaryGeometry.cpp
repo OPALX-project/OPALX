@@ -163,8 +163,6 @@ static void write_voxel_mesh (
 
  */
 
-#include <math.h>
-
 
 #define LERP( A, B, C) ((B)+(A)*((C)-(B)))
 #define MIN2(a,b) (((a) < (b)) ? (a) : (b))
@@ -668,7 +666,7 @@ static inline Vector_t normalVector (
     const Vector_t& C
     ) {
     const Vector_t N = cross (B - A, C - A);
-    const double magnitude = sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
+    const double magnitude = std::sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
     assert (gsl_fcmp (magnitude, 0.0, EPS) > 0); // in case we have degenerted triangles
     return N / magnitude;
 }
@@ -700,7 +698,7 @@ BoundaryGeometry::BoundaryGeometry() :
 
     itsAttr[FGEOM] = Attributes::makeString
         ("FGEOM",
-         "Specifies the geometry file [h5fed]",
+         "Specifies the geometry file [H5hut]",
          "");
 
     itsAttr[TOPO] = Attributes::makeString
@@ -778,6 +776,9 @@ BoundaryGeometry::BoundaryGeometry() :
 
     itsAttr[APERTURE]  = Attributes::makeRealArray
         ("APERTURE", "The element aperture");
+
+    itsAttr[INSIDEPOINT] = Attributes::makeRealArray
+        ("INSIDEPOINT", "A point inside the geometry");
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -1006,7 +1007,157 @@ BoundaryGeometry::intersectLineTriangle (
 static inline double magnitude (
     const Vector_t& v
     ) {
-    return sqrt (dot (v,v));
+    return std::sqrt (dot (v,v));
+}
+
+bool
+BoundaryGeometry::isInside (
+    const Vector_t& P                    // [in] pt to test
+    ) {
+
+    /*
+      select a "close" reference pt outside the bounding box
+    */
+    // right boundary of bounding box (x direction)
+    double x = minExtent_m[0] - 0.01;
+    double distance = P[0] - x;
+    Vector_t ref_pt {x, P[1], P[2]};
+    
+    // left boundary of bounding box (x direction)
+    x = maxExtent_m[0] + 0.01;
+    if (x - P[0] < distance) {
+        distance = x - P[0];
+        ref_pt = {x, P[1], P[2]};
+    }
+    
+    // lower boundary of bounding box (y direction)
+    double y = minExtent_m[1] - 0.01;
+    if (P[1] - y < distance) {
+        distance = P[1] -y;
+        ref_pt = {P[0], y, P[1]};
+    }
+    
+    // upper boundary of bounding box (y direction)
+    y = maxExtent_m[1] + 0.01;
+    if (y - P[1] < distance) {
+        distance = y - P[1];
+        ref_pt = {P[0], y, P[2]};
+    }
+    // front boundary of bounding box (z direction)
+    double z = minExtent_m[2] - 0.01;
+    if (P[2] - z < distance) {
+        distance = P[2] - z;
+        ref_pt = {P[0], P[1], z};
+    }
+    // back boundary of bounding box (z direction)
+    z = maxExtent_m[2] + 0.01;
+    if (z - P[2] < distance) {
+        ref_pt = {P[0], P[1], z};
+    }
+
+    /*
+      the test returns the number of intersections =>
+      since the reference point is outside, P is inside
+      if the result is odd.
+    */
+    int k = fastIsInside (ref_pt, P);
+    return (k % 2) == 1;
+}
+
+/*
+  searching a point inside the geometry.
+
+  sketch of the algorithm:
+  In a first step, we try to find a line segment defined by one
+  point outside the bounding box and a point somewhere inside the
+  bounding box which has intersects with the geometry.
+
+  If the number of intersections is odd, the center point is inside
+  the geometry and we are already done.
+
+  If the number of intersections is even, there must be points on 
+  this line segment which are inside the geometry. In the next step
+  we have to find one if these points.
+
+  
+  A bit more in detail:
+
+  1. Finding a line segment intersecting the geometry
+  For the fast isInside test it is of advantage to choose line segments
+  parallel to the X, Y or Z axis. In this implementation we choose as
+  point outside the bounding box a point on an axis but close to the
+  bounding box and the center of the bounding box. This gives us six
+  line segments to test. This covers not all possible geometries but
+  most likely almost all. If not, it's easy to extend.
+
+  2. Searching for a point inside the geometry
+  In the first step we get a line segment from which we know, that one
+  point is ouside the geometry (P_out) and the other inside the bounding
+  box (Q). We also know the number of intersections n_i of this line
+  segment with the geometry.
+
+  If n_i is odd, Q in inside the boundary!
+
+  while (tru); do
+      bisect the line segment [P_out, Q], let B the bisecting point.
+
+      compute number of intersections of the line segment [P_out, B]
+      and the geometry.
+
+      If the number of intersections is odd, then B is inside the geometry 
+      and we are done. Set P_in = B and exit loop.
+
+      Otherwise we have either no or an even number of intersections.
+      In both cases this implies that B is a point outside the geometry.
+      We continue with the line segment [P_out, Q] = [B, Q]
+*/
+bool
+BoundaryGeometry::findInsidePoint (
+    void
+    ) {
+    *gmsg << "* searching for a point inside the geometry" << endl;
+    /*
+      find line segment
+    */
+    Vector_t Q{(maxExtent_m + minExtent_m) / 2};
+    std::vector<Vector_t> P_outs{
+        {minExtent_m[0]-0.01, Q[1], Q[2]},
+        {maxExtent_m[0]+0.01, Q[1], Q[2]},
+        {Q[0], minExtent_m[1]-0.01, Q[2]},
+        {Q[0], maxExtent_m[1]+0.01, Q[2]},
+        {Q[0], Q[1], minExtent_m[1]-0.01},
+        {Q[0], Q[1], maxExtent_m[1]+0.01}
+    };
+    int n_i = 0;
+    Vector_t P_out;
+    for(const auto& P: P_outs) {
+        n_i = fastIsInside (P, Q);
+        if (n_i != 0) {
+            P_out = P;
+            break;
+        }
+    }
+    /* oops, this should never happen! */
+    assert (n_i != 0);
+
+    /*
+      if the number of intersections is odd, Q is inside the geometry
+    */
+    if (n_i % 2 == 1) {
+        insidePoint_m = Q;
+        return true;
+    }
+    while (true) {
+        Vector_t B{(P_out + Q) / 2};
+        n_i = fastIsInside (P_out, B);
+        if (n_i % 2 == 1) {
+            insidePoint_m = B;
+            return true;
+        }
+        P_out = B;
+    }
+    *gmsg << "* point inside the geometry NOT found!" << endl;
+    return false;
 }
 
 /*
@@ -1238,11 +1389,11 @@ void BoundaryGeometry::initialize () {
                 const Vector_t x1 = bg->getPoint (i, 1);
                 const Vector_t x2 = bg->getPoint (i, 2);
                 const Vector_t x3 = bg->getPoint (i, 3);
-                const double length_edge1 = sqrt (
+                const double length_edge1 = std::sqrt (
                     SQR (x1[0] - x2[0]) + SQR (x1[1] - x2[1]) + SQR (x1[2] - x2[2]));
-                const double length_edge2 = sqrt (
+                const double length_edge2 = std::sqrt (
                     SQR (x3[0] - x2[0]) + SQR (x3[1] - x2[1]) + SQR (x3[2] - x2[2]));
-                const double length_edge3 = sqrt (
+                const double length_edge3 = std::sqrt (
                     SQR (x3[0] - x1[0]) + SQR (x3[1] - x1[1]) + SQR (x3[2] - x1[2]));
 
                 double max = length_edge1;
@@ -1600,7 +1751,6 @@ Change orientation if diff is:
     IpplTimings::startTimer (Tinitialize_m);
 
     apert_m = Attributes::getRealArray(itsAttr[APERTURE]);
-
     if (hasApperture()) {
         *gmsg << "* Found additional aperture." << endl;
         for (unsigned int i=0; i<apert_m.size(); i=i+3)
@@ -1675,7 +1825,32 @@ Change orientation if diff is:
 
     Local::computeGeometryInterval (this);
     computeMeshVoxelization ();
-
+    haveInsidePoint_m = false;
+    std::vector<double> pt = Attributes::getRealArray (itsAttr[INSIDEPOINT]);
+    if (pt.size() != 0) {
+        if (pt.size () != 3) {
+            throw OpalException (
+                "BoundaryGeometry::initialize()",
+                "Dimension of INSIDEPOINT must be 3");
+        }
+        /* test whether this point is inside */
+        insidePoint_m = {pt[0], pt[1], pt[2]};
+        bool is_inside = isInside (insidePoint_m);
+        if (is_inside == false) {
+            throw OpalException (
+                "BoundaryGeometry::initialize()",
+                "INSIDEPOINT is not inside the geometry");
+        }
+        haveInsidePoint_m = true;
+    } else {
+        haveInsidePoint_m = findInsidePoint();
+    }
+    *gmsg << "* using as point inside the geometry: ("
+          << insidePoint_m[0] << ", "
+          << insidePoint_m[1] << ", "
+          << insidePoint_m[2] << ")"
+          << endl;
+    
     TriPrPartloss_m.resize (Triangles_m.size(), 0.0);
     TriFEPartloss_m.resize (Triangles_m.size(), 0.0);
     TriSePartloss_m.resize (Triangles_m.size(), 0.0);
@@ -1971,7 +2146,7 @@ BoundaryGeometry::partInside (
 
     // P0, P1: particle position in time steps n and n+1
     const Vector_t P0 = r;
-    const Vector_t P1 = r + (Physics::c * v * dt / sqrt (1.0 + dot(v,v)));
+    const Vector_t P1 = r + (Physics::c * v * dt / std::sqrt (1.0 + dot(v,v)));
 
     Vector_t tmp_intersect_pt = 0.0;
     int tmp_triangle_id = -1;
@@ -2111,7 +2286,7 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
     const double& incQ = itsBunch->Q[i];
     const Vector_t& incMomentum = itsBunch->P[i];
     const double p_sq = dot (incMomentum, incMomentum);
-    const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
+    const double incEnergy = Physics::m_e * (std::sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
     short BGtag = TriBGphysicstag_m[triId];
     if (BGtag & BGphysics::Nop) {
@@ -2123,7 +2298,7 @@ int BoundaryGeometry::emitSecondaryFurmanPivi (
     } else if (BGtag & BGphysics::SecondaryEmission) {
         int se_Num = 0;
         int seType = 0;
-        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
+        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / std::sqrt (p_sq);
         if (cosTheta < 0) {
             ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
                       "    particle position = " << itsBunch->R[i] << endl <<
@@ -2175,7 +2350,7 @@ int BoundaryGeometry::emitSecondaryVaughan (
     const double& incQ = itsBunch->Q[i];
     const Vector_t& incMomentum = itsBunch->P[i];
     const double p_sq = dot (incMomentum, incMomentum);
-    const double incEnergy = Physics::m_e * (sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
+    const double incEnergy = Physics::m_e * (std::sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
 
     short BGtag = TriBGphysicstag_m[triId];
     if (BGtag & BGphysics::Nop) {
@@ -2187,7 +2362,7 @@ int BoundaryGeometry::emitSecondaryVaughan (
     } else if (BGtag & BGphysics::SecondaryEmission) {
         int se_Num = 0;
         int seType = 0;
-        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / sqrt (p_sq);
+        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / std::sqrt (p_sq);
         //cosTheta must be positive
         if (cosTheta < 0) {
             ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
