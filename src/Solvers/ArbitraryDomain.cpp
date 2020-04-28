@@ -33,8 +33,6 @@
 #include <tuple>
 #include <assert.h>
 
-#include <math.h>
-
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
                                   Vector_t /*hr*/,
@@ -46,8 +44,10 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
 
     // TODO: THis needs to be made into OPTION of the geometry.
     // A user defined point that is INSIDE with 100% certainty. -DW
-    globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
-
+    bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
+    if (have_inside_pt == false) {
+        globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
+    }
     setNr(nr);
     for(int i=0; i<3; i++)
         Geo_hr_m[i] = (maxCoords_m[i] - minCoords_m[i])/nr[i];
@@ -386,7 +386,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     }
 
     int startIdx = 0;
-    MPI_Scan(&numtotal, &startIdx, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Scan(&numtotal, &startIdx, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     startIdx -= numtotal;
 
     // Build up index and coord map

@@ -299,6 +299,16 @@ public:
         return maxExtent_m;
     }
 
+    inline bool getInsidePoint (Vector_t& pt) {
+        if (haveInsidePoint_m == false) {
+            return false;
+        }
+        pt = insidePoint_m;
+        return true;
+    }
+
+    bool findInsidePoint (void);
+
     /**
        @param  TriBarycenters_m store the coordinates of barycentric points of
        triangles, The Id number is the same with triangle Id.
@@ -371,6 +381,10 @@ public:
     }
 
 private:
+    bool isInside (
+        const Vector_t& P                    // [in] point to test
+        );
+
     int intersectTriangleVoxel (
         const int triangle_id,
         const int i,
@@ -414,6 +428,9 @@ private:
     } voxelMesh_m;
 
     int debugFlags_m;
+
+    bool haveInsidePoint_m;
+    Vector_t insidePoint_m;             // attribute INSIDEPOINT
 
     std::vector<Vector_t> partsp_m;     // particle momenta
     std::vector<Vector_t> partsr_m;     // particle positions
@@ -512,6 +529,7 @@ private:
         YSCALE,   // Multiplicative scaling factor for y-coordinates
         ZSCALE,   // Multiplicative scaling factor for z-coordinates
         APERTURE,    // in addition to the geometry
+        INSIDEPOINT,
         SIZE
     };
 };
