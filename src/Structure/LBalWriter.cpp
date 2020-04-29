@@ -92,12 +92,14 @@ void LBalWriter::fillHeader() {
 }
 
 
-void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
-
 #ifdef ENABLE_AMR
+void LBalWriter::write(PartBunchBase<double, 3> *beam) {
+
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         amrbeam->gatherLevelStatistics();
     }
+#else
+void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
 #endif
 
     if ( Ippl::myNode() != 0 )
