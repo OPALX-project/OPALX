@@ -119,6 +119,7 @@ namespace {
         AMR_MG_VERBOSE,     // AMR, enable solver info writing (SDDS file)
         AMR_MG_REBALANCE,   // AMR, rebalance smoothed aggregation (SA) preconditioner
         AMR_MG_REUSE,       // AMR, reuse type of SA (none, RP, RAP, S or full)
+        AMR_MG_TOL,         // AMR, tolerance of solver
 #endif
         // FOR XXX BASED SOLVER
         SIZE
@@ -318,6 +319,10 @@ FieldSolver::FieldSolver():
     itsAttr[AMR_MG_REUSE] = Attributes::makeUpperCaseString("AMR_MG_REUSE",
                                                             "Reuse type of Smoothed Aggregation",
                                                             "RAP");
+
+    itsAttr[AMR_MG_TOL] = Attributes::makeReal("AMR_MG_TOL",
+                                               "AMR MG solver tolerance (default: 1.0e-10)",
+                                               1.0e-10);
 #endif
 
     mesh_m = 0;
@@ -624,6 +629,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
            << Attributes::getString(itsAttr[AMR_MG_INTERP]) << '\n'
            << "* AMR_MG_NORM          "
            << Attributes::getString(itsAttr[AMR_MG_NORM]) << '\n'
+           << "* AMR_MG_TOL           "
+           << Attributes::getReal(itsAttr[AMR_MG_TOL]) << '\n'
            << "* AMR_MG_VERBOSE       "
            << Attributes::getBool(itsAttr[AMR_MG_VERBOSE]) << '\n'
            << "* BCFFTX               "
@@ -777,6 +784,9 @@ void FieldSolver::initAmrSolver_m() {
 
         dynamic_cast<AmrMultiGrid*>(solver_m)->setVerbose(
             Attributes::getBool(itsAttr[AMR_MG_VERBOSE]));
+
+        dynamic_cast<AmrMultiGrid*>(solver_m)->setTolerance(
+            Attributes::getReal(itsAttr[AMR_MG_TOL]));
 #else
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "Multigrid solver not enabled! "
