@@ -51,9 +51,8 @@
 #include "FixedAlgebra/TransportFun.h"
 #include "FixedAlgebra/TransportMath.h"
 #include "Physics/Physics.h"
-#include <cmath>
 
-using Physics::c;
+#include <cmath>
 
 typedef FTps<double, 2> Series2;
 typedef TransportFun<double, 6> TptFun;
@@ -141,7 +140,7 @@ void TransportMapper::visitCorrector(const Corrector &corr) {
     if(length) applyDrift(length / 2.0);
 
     // Apply kick.
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BDipoleField &field = corr.getField();
     itsMap[PX] -= field.getBy() * scale;
     itsMap[PY] += field.getBx() * scale;
@@ -185,7 +184,7 @@ void TransportMapper::visitMonitor(const Monitor &corr) {
 
 void TransportMapper::visitMultipole(const Multipole &multipole) {
     double length = flip_s * multipole.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = multipole.getField();
 
     if(length) {
@@ -212,7 +211,7 @@ void TransportMapper::visitProbe(const Probe &/*prob*/) {
 void TransportMapper::visitRBend(const RBend &bend) {
     const RBendGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = bend.getField();
 
     if(length == 0.0) {
@@ -271,7 +270,7 @@ void TransportMapper::visitRFCavity(const RFCavity &as) {
     if(length) applyDrift(length / 2.0);
 
     // Apply accelerating voltage.
-    TptFun time = itsMap[T] / (c * itsReference.getBeta());
+    TptFun time = itsMap[T] / (Physics::c * itsReference.getBeta());
     double peak = flip_s * as.getAmplitude() / itsReference.getP();
     TptFun phase = as.getPhase() + as.getFrequency() * time;
     itsMap[PT] += peak * sin(phase);
@@ -290,7 +289,7 @@ void TransportMapper::visitRFQuadrupole(const RFQuadrupole &rfq) {
 void TransportMapper::visitSBend(const SBend &bend) {
     const PlanarArcGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = bend.getField();
 
     if(length == 0.0) {
@@ -360,7 +359,7 @@ void TransportMapper::visitSolenoid(const Solenoid &solenoid) {
     double length = flip_s * solenoid.getElementLength();
 
     if(length) {
-        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * c) /
+        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * Physics::c) /
                     (2.0 * itsReference.getP());
 
         if(ks) {

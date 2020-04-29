@@ -253,14 +253,13 @@ template <int N>
 FMatrix<double, N, N> DragtFinnNormalForm<N>::anharmonicity() const {
     FTps<double, 2 * N> N_tps = N_scr.getGenerators();
     FMatrix<double, N, N> QQ;
-    using Physics::pi;
 
     for(int mode1 = 0; mode1 < freedom; mode1++) {
         {
             FMonomial<2 * N> power1, power2, power3;
             power1[2*mode1] = power3[2*mode1+1] = 4;
             power2[2*mode1] = power2[2*mode1+1] = 2;
-            QQ(mode1, mode1) = (- 3.0 / (4.0 * pi)) *
+            QQ(mode1, mode1) = (- 3.0 / (4.0 * Physics::pi)) *
                                (N_tps[power1] + N_tps[power3] + N_tps[power2]);
         }
 
@@ -270,7 +269,7 @@ FMatrix<double, N, N> DragtFinnNormalForm<N>::anharmonicity() const {
             power2[2*mode1+1] = power2[2*mode2]   = 2;
             power3[2*mode1]   = power3[2*mode2+1] = 2;
             power4[2*mode1+1] = power4[2*mode2+1] = 2;
-            QQ(mode1, mode2) = QQ(mode2, mode1) = (- 1.0 / (4.0 * pi)) *
+            QQ(mode1, mode2) = QQ(mode2, mode1) = (- 1.0 / (4.0 * Physics::pi)) *
                                                   (N_tps[power1] + N_tps[power2] + N_tps[power3] + N_tps[power4]);
         }
     }
@@ -365,7 +364,7 @@ void DragtFinnNormalForm<N>::orderModes
             lambda[n_c]   = tlam[i1];
             lambda[n_c+1] = tlam[i2];
 
-            double fact = sqrt(std::abs(pb));
+            double fact = std::sqrt(std::abs(pb));
 
             for(int j = 0; j < 2 * N; j++) {
                 V(j, n_c)   = tmat(j, i1) / fact;
@@ -412,7 +411,7 @@ void DragtFinnNormalForm<N>::orderModes
         lambda[n_c]   = tlam[i1];
         lambda[n_c+1] = tlam[i2];
 
-        double fact = sqrt(std::abs(2.0 * pb));
+        double fact = std::sqrt(std::abs(2.0 * pb));
 
         for(int j = 0; j < 2 * N; ++j) {
             V(j, n_c)   = (tmat(j, i1) + tmat(j, i2)) / fact;
@@ -453,8 +452,8 @@ void DragtFinnNormalForm<N>::orderModes
 
         if(std::abs(std::imag(lambda[i])) > tol) {
             // Rotate complex eigenvectors to make their main components real.
-            double re = V(i, i)     / sqrt(V(i, i) * V(i, i) + V(i, i + 1) * V(i, i + 1));
-            double im = V(i, i + 1) / sqrt(V(i, i) * V(i, i) + V(i, i + 1) * V(i, i + 1));
+            double re = V(i, i)     / std::sqrt(V(i, i) * V(i, i) + V(i, i + 1) * V(i, i + 1));
+            double im = V(i, i + 1) / std::sqrt(V(i, i) * V(i, i) + V(i, i + 1) * V(i, i + 1));
 
             for(int j = 0; j < 2 * N; j++) {
                 double real_part = re * V(j, i)     + im * V(j, i + 1);

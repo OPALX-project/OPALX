@@ -13,13 +13,13 @@
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "Utilities/Timer.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <string>
 
-using namespace std;
 
 // Local structures.
 // ------------------------------------------------------------------------
@@ -30,18 +30,18 @@ namespace {
 
     FMatrix<double, 3, 3> invers(double c, double c_prim, double s, double s_prim) {
         FMatrix<double, 3, 3> M;
-        double det = -pow(c_prim, 3) * pow(s, 3) + 3 * c * s_prim * pow(c_prim, 2)
-            * pow(s, 2) - 3 * pow(c, 2) * c_prim * s * pow(s_prim, 2) + pow(c, 3) * pow(s_prim, 3);
+        double det = -std::pow(c_prim, 3) * std::pow(s, 3) + 3 * c * s_prim * std::pow(c_prim, 2)
+            * std::pow(s, 2) - 3 * std::pow(c, 2) * c_prim * s * std::pow(s_prim, 2) + std::pow(c, 3) * std::pow(s_prim, 3);
 
-        M(0, 0) = (-c_prim * s * pow(s_prim, 2) + c * pow(s_prim, 3)) / det;
-        M(0, 1) = (-2 * c_prim * pow(s, 2) * s_prim + 2 * c * s * pow(s_prim, 2)) / det;
-        M(0, 2) = (-c_prim * pow(s, 3) + c * pow(s, 2) * s_prim) / det;
-        M(1, 0) = (-pow(c_prim, 2) * s * s_prim + c * c_prim * pow(s_prim, 2)) / det;
-        M(1, 1) = (-pow(c_prim, 2) * pow(s, 2) + pow(c, 2) * pow(s_prim, 2)) / det;
-        M(1, 2) = (-c * c_prim * pow(s, 2) + pow(c, 2) * s * s_prim) / det;
-        M(2, 0) = (-pow(c_prim, 3) * s + c * pow(c_prim, 2) * s_prim) / det;
-        M(2, 1) = (-2 * c * pow(c_prim, 2) * s + 2 * pow(c, 2) * c_prim * s_prim) / det;
-        M(2, 2) = (-pow(c, 2) * c_prim * s + pow(c, 3) * s_prim) / det;
+        M(0, 0) = (-c_prim * s * std::pow(s_prim, 2) + c * std::pow(s_prim, 3)) / det;
+        M(0, 1) = (-2 * c_prim * std::pow(s, 2) * s_prim + 2 * c * s * std::pow(s_prim, 2)) / det;
+        M(0, 2) = (-c_prim * std::pow(s, 3) + c * std::pow(s, 2) * s_prim) / det;
+        M(1, 0) = (-std::pow(c_prim, 2) * s * s_prim + c * c_prim * std::pow(s_prim, 2)) / det;
+        M(1, 1) = (-std::pow(c_prim, 2) * std::pow(s, 2) + std::pow(c, 2) * std::pow(s_prim, 2)) / det;
+        M(1, 2) = (-c * c_prim * std::pow(s, 2) + std::pow(c, 2) * s * s_prim) / det;
+        M(2, 0) = (-std::pow(c_prim, 3) * s + c * std::pow(c_prim, 2) * s_prim) / det;
+        M(2, 1) = (-2 * c * std::pow(c_prim, 2) * s + 2 * std::pow(c, 2) * c_prim * s_prim) / det;
+        M(2, 2) = (-std::pow(c, 2) * c_prim * s + std::pow(c, 3) * s_prim) / det;
 
         return M;
     }
@@ -364,8 +364,8 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
         FMatrix<double, 3, 3> Mx;
         FMatrix<double, 3, 3> My;
 
-        Kx = data.kq + pow(data.courb, 2);
-        Ky = -data.kq + pow(data.k0s, 2);
+        Kx = data.kq + std::pow(data.courb, 2);
+        Ky = -data.kq + std::pow(data.k0s, 2);
 
         a.Interpol[nslice-1].Beta_x = tp->getBETi(*i, 0, 0);
         a.Interpol[nslice-1].Beta_y = tp->getBETi(*i, 1, 0);
@@ -376,10 +376,10 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
 
         Euler_x(0) = tp->getBETi(*i, 0, 0);
         Euler_x(1) = tp->getALFi(*i, 0, 0);
-        Euler_x(2) = (1 + pow(Euler_x(1), 2)) / Euler_x(0);
+        Euler_x(2) = (1 + std::pow(Euler_x(1), 2)) / Euler_x(0);
         Euler_y(0) = tp->getBETi(*i, 1, 0);
         Euler_y(1) = tp->getALFi(*i, 1, 0);
-        Euler_y(2) = (1 + pow(Euler_y(1), 2)) / Euler_y(0);
+        Euler_y(2) = (1 + std::pow(Euler_y(1), 2)) / Euler_y(0);
 
         Dispx(0) = tp->getDisp(*i, 0, 0);
         Dispx(1) = tp->getDisp(*i, 1, 0);
@@ -398,10 +398,10 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             Mx = invers(Transf_mat(0, 0), Transf_mat(1, 0), Transf_mat(0, 1), Transf_mat(1, 1));
 
             Euler_x(0) = Mx(0, 0) * tp->getBETi(*i, 0, 0) + Mx(0, 1) * tp->getALFi(*i, 0, 0) + Mx(0, 2) *
-                         (1 + pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
+                         (1 + std::pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
             Euler_x(1) = Mx(1, 0) * tp->getBETi(*i, 0, 0) + Mx(1, 1) * tp->getALFi(*i, 0, 0) + Mx(1, 2) *
-                         (1 + pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
-            Euler_x(2) = (1 + pow(Euler_x(1), 2)) / Euler_x(0);
+                         (1 + std::pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
+            Euler_x(2) = (1 + std::pow(Euler_x(1), 2)) / Euler_x(0);
 
             Dispx(0) = (Transf_mat(1, 1) * (tp->getDisp(*i, 0, 0) - Transf_mat(0, 2)) +
                         Transf_mat(0, 1) * (Transf_mat(1, 2) - tp->getDisp(*i, 1, 0))) /
@@ -422,10 +422,10 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             My = invers(Transf_mat(3, 3), Transf_mat(4, 3), Transf_mat(3, 4), Transf_mat(4, 4));
 
             Euler_y(0) = My(0, 0) * tp->getBETi(*i, 1, 0) + My(0, 1) * tp->getALFi(*i, 1, 0) + My(0, 2) *
-                         (1 + pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
+                         (1 + std::pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
             Euler_y(1) = My(1, 0) * tp->getBETi(*i, 1, 0) + My(1, 1) * tp->getALFi(*i, 1, 0) + My(1, 2) *
-                         (1 + pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
-            Euler_y(2) = (1 + pow(Euler_y(1), 2)) / Euler_y(0);
+                         (1 + std::pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
+            Euler_y(2) = (1 + std::pow(Euler_y(1), 2)) / Euler_y(0);
 
             Dispy(0) = (Transf_mat(4, 4) * (tp->getDisp(*i, 2, 0) - Transf_mat(3, 5)) +
                         Transf_mat(3, 4) * (Transf_mat(4, 5) - tp->getDisp(*i, 3, 0))) /
@@ -446,10 +446,10 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             Mx = invers(Transf_mat(0, 0), Transf_mat(1, 0), Transf_mat(0, 1), Transf_mat(1, 1));
 
             Euler_x(0) = Mx(0, 0) * tp->getBETi(*i, 0, 0) + Mx(0, 1) * tp->getALFi(*i, 0, 0) + Mx(0, 2) *
-                         (1 + pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
+                         (1 + std::pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
             Euler_x(1) = Mx(1, 0) * tp->getBETi(*i, 0, 0) + Mx(1, 1) * tp->getALFi(*i, 0, 0) + Mx(1, 2) *
-                         (1 + pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
-            Euler_x(2) = (1 + pow(Euler_x(1), 2)) / Euler_x(0);
+                         (1 + std::pow(tp->getALFi(*i, 0, 0), 2)) / tp->getBETi(*i, 0, 0);
+            Euler_x(2) = (1 + std::pow(Euler_x(1), 2)) / Euler_x(0);
 
             Dispx(0) = (Transf_mat(1, 1) * (tp->getDisp(*i, 0, 0) - Transf_mat(0, 2)) +
                         Transf_mat(0, 1) * (Transf_mat(1, 2) - tp->getDisp(*i, 1, 0))) /
@@ -470,10 +470,10 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             My = invers(Transf_mat(3, 3), Transf_mat(4, 3), Transf_mat(3, 4), Transf_mat(4, 4));
 
             Euler_y(0) = My(0, 0) * tp->getBETi(*i, 1, 0) + My(0, 1) * tp->getALFi(*i, 1, 0) + My(0, 2) *
-                         (1 + pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
+                         (1 + std::pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
             Euler_y(1) = My(1, 0) * tp->getBETi(*i, 1, 0) + My(1, 1) * tp->getALFi(*i, 1, 0) + My(1, 2) *
-                         (1 + pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
-            Euler_y(2) = (1 + pow(Euler_y(1), 2)) / Euler_y(0);
+                         (1 + std::pow(tp->getALFi(*i, 1, 0), 2)) / tp->getBETi(*i, 1, 0);
+            Euler_y(2) = (1 + std::pow(Euler_y(1), 2)) / Euler_y(0);
 
             Dispy(0) = (Transf_mat(4, 4) * (tp->getDisp(*i, 2, 0) - Transf_mat(3, 5)) +
                         Transf_mat(3, 4) * (Transf_mat(4, 5) - tp->getDisp(*i, 3, 0))) /
@@ -488,12 +488,12 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             for(int j = 1; j <= nslice - 1; ++j) {
 
                 //expansion of the transformation matrix coefficients at third order
-                Transf_mat(0, 0) = 1 - Kx * pow(data.l * j / nslice, 2) / 2;
-                Transf_mat(0, 1) = data.l * j / nslice * (1 - Kx / 6 * pow(data.l * j / nslice, 2));
+                Transf_mat(0, 0) = 1 - Kx * std::pow(data.l * j / nslice, 2) / 2;
+                Transf_mat(0, 1) = data.l * j / nslice * (1 - Kx / 6 * std::pow(data.l * j / nslice, 2));
                 Transf_mat(1, 0) = -Kx * Transf_mat(0, 1);
                 Transf_mat(1, 1) = Transf_mat(0, 0);
-                Transf_mat(0, 2) = data.courb / 2 * pow(data.l * j / nslice, 2);
-                Transf_mat(1, 2) = data.courb * data.l * j / nslice * (1 - Kx / 6 * pow(data.l * j / nslice, 2));
+                Transf_mat(0, 2) = data.courb / 2 * std::pow(data.l * j / nslice, 2);
+                Transf_mat(1, 2) = data.courb * data.l * j / nslice * (1 - Kx / 6 * std::pow(data.l * j / nslice, 2));
 
                 Mx = invers(Transf_mat(0, 0), Transf_mat(1, 0), Transf_mat(0, 1), Transf_mat(1, 1));
 
@@ -554,12 +554,12 @@ void Aperture::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp)
             for(int j = 1; j <= nslice - 1; ++j) {
                 //expansion of the transformation matrix coefficients at third order
 
-                Transf_mat(3, 3) = 1 - Ky * pow(data.l * j / nslice, 2) / 2;
-                Transf_mat(3, 4) = data.l * j / nslice * (1 - Ky / 6 * pow(data.l * j / nslice, 2));
+                Transf_mat(3, 3) = 1 - Ky * std::pow(data.l * j / nslice, 2) / 2;
+                Transf_mat(3, 4) = data.l * j / nslice * (1 - Ky / 6 * std::pow(data.l * j / nslice, 2));
                 Transf_mat(4, 3) = -Ky * Transf_mat(3, 4);
                 Transf_mat(4, 4) = Transf_mat(3, 3);
-                Transf_mat(3, 5) = data.k0s / 2 * pow(data.l * j / nslice, 2);
-                Transf_mat(4, 5) = data.k0s * data.l * j / nslice * (1 - Ky / 6 * pow(data.l * j / nslice, 2));
+                Transf_mat(3, 5) = data.k0s / 2 * std::pow(data.l * j / nslice, 2);
+                Transf_mat(4, 5) = data.k0s * data.l * j / nslice * (1 - Ky / 6 * std::pow(data.l * j / nslice, 2));
 
                 My = invers(Transf_mat(3, 3), Transf_mat(4, 3), Transf_mat(3, 4), Transf_mat(4, 4));
                 a.Interpol[nslice-j-1].Beta_y = My(0, 0) * Euler_y(0) + My(0, 1) * Euler_y(1) + My(0, 2) * Euler_y(2);
@@ -734,8 +734,8 @@ void Aperture::calcul_Apert(A_row &a, int slice, Twiss *tp) {
     delete [] Pn;
 }
 
-vector<Aperture::coord> Aperture::getShape(vector<double> vec) {
-    vector<coord> S;
+std::vector<Aperture::coord> Aperture::getShape(std::vector<double> vec) {
+	std::vector<coord> S;
     coord pt;
     double nb_pt(11);
 
@@ -757,7 +757,7 @@ vector<Aperture::coord> Aperture::getShape(vector<double> vec) {
             }
         }
     } else if((r > -10.5) && (r < -9.5)) {
-        vector<double>::iterator iter = vec.begin();
+    	std::vector<double>::iterator iter = vec.begin();
         ++iter;
         while(iter != vec.end()) {
             pt.x = *iter;
@@ -848,24 +848,26 @@ void Aperture::execute() {
     //output of the Aperture command
     double nslice = Attributes::getReal(itsAttr[NSLICE]);
     std::string file_out = Attributes::getString(itsAttr[FILE]);
-    ofstream outFile(file_out.c_str());
+    std::ofstream outFile(file_out.c_str());
     if(!outFile) {
-        cerr << "Aperture: unable to open output file:" << file_out << endl;
+    	std::cerr << "Aperture: unable to open output file:" << file_out << std::endl;
         exit(-1);
     }
 
     outFile.setf(std::ios::scientific, std::ios::floatfield);
 
     OPALTimer::Timer timer;
-    outFile << "@ NAME    %s " << getOpalName() << endl;
-    outFile << "@ DATE    %s " << timer.date() << endl;
-    outFile << "@ TIME    %s " << timer.time() << endl;
+    outFile << "@ NAME    %s " << getOpalName() << std::endl;
+    outFile << "@ DATE    %s " << timer.date() << std::endl;
+    outFile << "@ TIME    %s " << timer.time() << std::endl;
     outFile << "@ ORIGIN  %s  OPAL_9.5/7\n";
-    outFile << "@ COMMENT %s " << endl;
-    outFile << "@ NSLICE %e " << nslice << endl;
+    outFile << "@ COMMENT %s " << std::endl;
+    outFile << "@ NSLICE %e " << nslice << std::endl;
 
-    outFile << "*" << setw(15) << "NAME" << setw(15) << "Type" << setw(15) << "S" << setw(15) << "L" << setw(15) << "Apert" << endl;
-    outFile << "$" << setw(15) << "%23s" << setw(15) << "%12s" << setw(15) << "%e" << setw(15) << "%e" << setw(15) << "%e" << endl;
+    outFile << "*" << std::setw(15) << "NAME" << std::setw(15) << "Type"
+            << std::setw(15) << "S" << std::setw(15) << "L" << std::setw(15) << "Apert" << std::endl;
+    outFile << "$" << std::setw(15) << "%23s" << std::setw(15) << "%12s"
+            << std::setw(15) << "%e" << std::setw(15) << "%e" << std::setw(15) << "%e" << std::endl;
 
 }
 
@@ -889,7 +891,7 @@ void Aperture::run() {
     }
     tp->fill();
 
-    vector<double> dat = Attributes::getRealArray(itsAttr[DEFAULTAPERTURE]);
+    std::vector<double> dat = Attributes::getRealArray(itsAttr[DEFAULTAPERTURE]);
     if(dat.size() != 0) {
         i = tp->begin();
         while(i != tp->end()) {
