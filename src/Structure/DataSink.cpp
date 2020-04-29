@@ -309,7 +309,13 @@ void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
 void DataSink::setMultiBunchInitialPathLengh(MultiBunchHandler* mbhandler_p) {
     for (short b = 0; b < mbhandler_p->getNumBunch(); ++b) {
         MultiBunchHandler::beaminfo_t& binfo = mbhandler_p->getBunchInfo(b);
-        binfo.pathlength = mbWriter_m[b]->getLastValue("s");
+        if (mbWriter_m[b]->exists()) {
+            binfo.pathlength = mbWriter_m[b]->getLastValue("s");
+        } else if (statWriter_m->exists()) {
+            binfo.pathlength = statWriter_m->getLastValue("s");
+        } else {
+            binfo.pathlength = 0.0;
+        }
     }
 }
 
