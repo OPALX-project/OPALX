@@ -47,14 +47,7 @@ Tracker::Tracker(const Beamline &beamline, const PartData &reference,
     AbstractTracker(beamline, reference, backBeam, backTrack),
     itsBeamline_m(beamline),
     itsBunch_m(nullptr)
-{
-// #ifdef ENABLE_AMR
-//     if ( Options::amr )
-//         itsBunch = new AmrPartBunch(&reference);
-//     else
-// #endif
-//         itsBunch = new PartBunch(&reference);
-}
+{ }
 
 
 Tracker::Tracker(const Beamline &beamline,
