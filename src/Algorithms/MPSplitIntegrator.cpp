@@ -29,8 +29,6 @@
 #include "FixedAlgebra/FVps.h"
 #include "Physics/Physics.h"
 
-using Physics::c;
-
 
 // Class MPSplitIntegrator
 // ------------------------------------------------------------------------
@@ -82,7 +80,7 @@ void MPSplitIntegrator::trackMap(FVps<double, 6> &map,
     double length = itsMultipole->getElementLength();
     if(revTrack) length = - length;
     BMultipoleField field = itsMultipole->getField();
-    double scale = (ref.getQ() * c) / (ref.getP());
+    double scale = (ref.getQ() * Physics::c) / (ref.getP());
     if(revBeam) scale = - scale;
 
     if(length) {
@@ -112,7 +110,7 @@ void MPSplitIntegrator::trackParticle(OpalParticle &part, const PartData &ref,
     double length = itsMultipole->getElementLength();
     if(revTrack) length = - length;
     BMultipoleField field = itsMultipole->getField();
-    double scale = (ref.getQ() * c) / (ref.getP());
+    double scale = (ref.getQ() * Physics::c) / (ref.getP());
     if(revBeam) scale = - scale;
 
     if(length) {
@@ -143,7 +141,7 @@ void MPSplitIntegrator::trackBunch(PartBunchBase<double, 3> *bunch,
     double length = itsMultipole->getElementLength();
     if(revTrack) length = - length;
     BMultipoleField field = itsMultipole->getField();
-    double scale = (ref.getQ() * c) / (ref.getP());
+    double scale = (ref.getQ() * Physics::c) / (ref.getP());
     if(revBeam) scale = - scale;
 
     if(length) {
