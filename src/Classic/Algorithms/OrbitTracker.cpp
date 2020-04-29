@@ -55,9 +55,6 @@
 
 typedef FTps<double, 2> Series2;
 
-using Physics::c;
-
-
 //: Abstract tracker class.
 //  An visitor class implementing tracking of an orbit through a beam line.
 
@@ -130,7 +127,7 @@ void OrbitTracker::visitCorrector(const Corrector &corr) {
     if(length) applyDrift(length / 2.0);
 
     // Apply kick.
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BDipoleField &field = corr.getField();
     itsOrbit[PX] -= field.getBy() * scale;
     itsOrbit[PY] += field.getBx() * scale;
@@ -171,7 +168,7 @@ void OrbitTracker::visitMonitor(const Monitor &moni) {
 
 void OrbitTracker::visitMultipole(const Multipole &mult) {
     double length = flip_s * mult.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = mult.getField();
 
     if(length) {
@@ -198,7 +195,7 @@ void OrbitTracker::visitProbe(const Probe &/*prob*/) {
 void OrbitTracker::visitRBend(const RBend &bend) {
     const RBendGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = bend.getField();
 
     if(length == 0.0) {
@@ -257,10 +254,10 @@ void OrbitTracker::visitRFCavity(const RFCavity &as) {
     if(length) applyDrift(length / 2.0);
 
     // Apply accelerating voltage.
-    double time = itsOrbit[T] / (c * itsReference.getBeta());
+    double time = itsOrbit[T] / (Physics::c * itsReference.getBeta());
     double peak = flip_s * as.getAmplitude() / itsReference.getP();
     double phase = as.getPhase() + as.getFrequency() * time;
-    itsOrbit[PT] += peak * sin(phase);
+    itsOrbit[PT] += peak * std::sin(phase);
 
     // Drift through half length.
     if(length) applyDrift(length / 2.0);
@@ -276,7 +273,7 @@ void OrbitTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
 void OrbitTracker::visitSBend(const SBend &bend) {
     const PlanarArcGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = bend.getField();
 
     if(length == 0.0) {
@@ -346,12 +343,12 @@ void OrbitTracker::visitSolenoid(const Solenoid &solenoid) {
     double length = flip_s * solenoid.getElementLength();
 
     if(length) {
-        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * c) /
+        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * Physics::c) /
                     (2.0 * itsReference.getP());
 
         if(ks) {
-            double C = cos(ks * length);
-            double S = sin(ks * length);
+            double C = std::cos(ks * length);
+            double S = std::sin(ks * length);
 
             double xt  = C * itsOrbit[X]  + S * itsOrbit[Y];
             double yt  = C * itsOrbit[Y]  - S * itsOrbit[X];
@@ -463,7 +460,7 @@ void OrbitTracker::applyLinearMap
         // Find transformation to principal axes.
         double s1 = (kx + ky) / 2.0;
         double d1 = (kx - ky) / 2.0;
-        double root = sqrt(d1 * d1 + ks * ks);
+        double root = std::sqrt(d1 * d1 + ks * ks);
         double c2 = d1 / root;
         double s2 = ks / root;
 
@@ -580,7 +577,7 @@ void OrbitTracker::applyTransform(const Euclid3D &euclid, double refLength) {
         double px1 = itsOrbit[PX];
         double py1 = itsOrbit[PY];
         double pt  = itsOrbit[PT] + 1.0;
-        double pz1 = sqrt(pt * pt - px1 * px1 - py1 * py1);
+        double pz1 = std::sqrt(pt * pt - px1 * px1 - py1 * py1);
 
         itsOrbit[PX] = euclid.M(0, 0) * px1 + euclid.M(1, 0) * py1 + euclid.M(2, 0) * pz1;
         itsOrbit[PY] = euclid.M(0, 1) * px1 + euclid.M(1, 1) * py1 + euclid.M(2, 1) * pz1;
@@ -597,7 +594,7 @@ void OrbitTracker::applyTransform(const Euclid3D &euclid, double refLength) {
         double sByPz = s2 / pz2;
 
         double kin = itsReference.getM() / itsReference.getP();
-        double E = sqrt(pt * pt + kin * kin);
+        double E = std::sqrt(pt * pt + kin * kin);
         double refTime = refLength / itsReference.getBeta();
         itsOrbit[X] = x2 - sByPz * itsOrbit[PX];
         itsOrbit[Y] = y2 - sByPz * itsOrbit[PY];
@@ -687,15 +684,15 @@ void OrbitTracker::makeFocus
         d = L * L * (0.5 - t / 24.0);
         f = L * L * L * ((1.0 / 6.0) - t / 120.0);
     } else if(k > 0.0) {
-        double r = sqrt(k);
-        c = cos(r * L);
-        s = sin(r * L) / r;
+        double r = std::sqrt(k);
+        c = std::cos(r * L);
+        s = std::sin(r * L) / r;
         d = (1.0 - c) / k;
         f = (L - s) / k;
     } else {
-        double r = sqrt(- k);
-        c = cosh(r * L);
-        s = sinh(r * L) / r;
+        double r = std::sqrt(- k);
+        c = std::cosh(r * L);
+        s = std::sinh(r * L) / r;
         d = (1.0 - c) / k;
         f = (L - s) / k;
     }
