@@ -196,6 +196,11 @@ void AmrMultiGrid::setVerbose(bool verbose) {
 }
 
 
+void AmrMultiGrid::setTolerance(const scalar_t& eps) {
+    eps_m = eps;
+}
+
+
 void AmrMultiGrid::initPhysicalBoundary_m(const Boundary* bc)
 {
     // make sure it's reset
