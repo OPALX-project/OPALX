@@ -37,6 +37,7 @@
 #include "Expression/NumberOfPeaks.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
+#include "Expression/SeptumExpr.h"
 
 #include <boost/filesystem.hpp>
 
@@ -234,6 +235,10 @@ void OptimizeCmd::execute() {
     ff = sameSDDSVariable(fname);
     funcs.insert(std::pair<std::string, client::function::type>
                  ("statVariableAt", ff));
+
+    ff = SeptumExpr();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("septum", ff));
 
     //////////////////////////////////////////////////////////////////////////
 

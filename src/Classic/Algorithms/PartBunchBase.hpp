@@ -1911,7 +1911,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
     std::vector<double> loc_moments(4 * Dim + Dim * ( 2 * Dim + 1 ));
 
     long int totalNum = this->getTotalNum();
-    if (OpalData::getInstance()->isInOPALCyclMode()) {
+    if (!Options::amr && OpalData::getInstance()->isInOPALCyclMode()) {
         /* FIXME After issue 287 is resolved this shouldn't be necessary
          * anymore
          */
