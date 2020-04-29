@@ -54,7 +54,6 @@
 
 class Beamline;
 class PartData;
-using Physics::c;
 
 typedef FTps<double, 6> Series;
 
@@ -183,7 +182,7 @@ void LieMapper::visitMonitor(const Monitor &corr) {
 void LieMapper::visitMultipole(const Multipole &mult) {
     double length = mult.getElementLength() * flip_s;
     const BMultipoleField &field = mult.getField();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
 
     if(length) {
         // Normal case: Finite-length multipole, field coefficients are B.
@@ -231,7 +230,7 @@ void LieMapper::visitRBend(const RBend &bend) {
     // Geometry.
     const RBendGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = bend.getField();
 
     if(length) {
@@ -313,7 +312,7 @@ void LieMapper::visitRFCavity(const RFCavity &as) {
 
     // Compute Hamiltonian.
     static const Series t = Series::makeVariable(AbstractMapper::T);
-    Series H = peak * cos(as.getPhase() + (freq / c) * t);
+    Series H = peak * cos(as.getPhase() + (freq / Physics::c) * t);
 
     // Build map.
     DragtFinnMap<3> theMap = DragtFinnMap<3>::factorSimple(H);
@@ -333,7 +332,7 @@ void LieMapper::visitRFQuadrupole(const RFQuadrupole &rfq) {
 void LieMapper::visitSBend(const SBend &bend) {
     const PlanarArcGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
-    double scale = (flip_B * itsReference.getQ() * c) / itsReference.getP();
+    double scale = (flip_B * itsReference.getQ() * Physics::c) / itsReference.getP();
     const BMultipoleField &field = bend.getField();
 
     if(length) {
@@ -417,7 +416,7 @@ void LieMapper::visitSolenoid(const Solenoid &solenoid) {
     double length = flip_s * solenoid.getElementLength();
 
     if(length) {
-        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * c) /
+        double ks = (flip_B * itsReference.getQ() * solenoid.getBz() * Physics::c) /
                     (2.0 * itsReference.getP());
 
         if(ks) {

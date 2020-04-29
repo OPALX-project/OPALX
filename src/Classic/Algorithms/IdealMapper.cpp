@@ -35,8 +35,6 @@
 #include "Physics/Physics.h"
 #include <cmath>
 
-using Physics::c;
-
 typedef FTps<double, 2> Series2;
 typedef LinearFun<double, 6> Linear;
 
@@ -117,13 +115,13 @@ void IdealMapper::makeFocus(double k, double L, double &c, double &s) {
         c = 1.0 - t / 2.0;
         s = L * (1.0 - t / 6.0);
     } else if(k > 0.0) {
-        double r = sqrt(k);
-        c = cos(r * L);
-        s = sin(r * L) / r;
+        double r = std::sqrt(k);
+        c = std::cos(r * L);
+        s = std::sin(r * L) / r;
     } else {
-        double r = sqrt(- k);
-        c = cosh(r * L);
-        s = sinh(r * L) / r;
+        double r = std::sqrt(- k);
+        c = std::cosh(r * L);
+        s = std::sinh(r * L) / r;
     }
 }
 
@@ -154,7 +152,7 @@ void IdealMapper::applyLinearMap
         // Find transformation to principal axes.
         double s1 = (kx + ky) / 2.0;
         double d1 = (kx - ky) / 2.0;
-        double root = sqrt(d1 * d1 + ks * ks);
+        double root = std::sqrt(d1 * d1 + ks * ks);
         double c2 = d1 / root;
         double s2 = ks / root;
 

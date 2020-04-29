@@ -1398,7 +1398,7 @@ orderModes(FMatrix<double, 2 * N, 2 * N> &V, FVector<std::complex<double>, 2 * N
             for(int j = 0; j < 2 * N; j += 2) {
                 pb += tmat(j, i) * tmat(j + 1, i + 1) - tmat(j + 1, i) * tmat(j, i + 1);
             }
-            double fact = 1.0 / sqrt(std::abs(pb));
+            double fact = 1.0 / std::sqrt(std::abs(pb));
 
             for(int j = 0; j < 2 * N; j++) {
                 V(j, n_c)   = tmat(j, i)   * fact;
@@ -1446,7 +1446,7 @@ orderModes(FMatrix<double, 2 * N, 2 * N> &V, FVector<std::complex<double>, 2 * N
         }
 
         // Take factors such as to make the resulting pb = - 1.0;
-        double fact1 = - 1.0 / sqrt(std::abs(2.0 * pb));
+        double fact1 = - 1.0 / std::sqrt(std::abs(2.0 * pb));
         double fact2 = (pb > 0.0) ? (- fact1) : fact1;
         for(int j = 0; j < 2 * N; ++j) {
             V(j, n_c)   = tmat(j, i1) * fact1 + tmat(j, i2) * fact2;
