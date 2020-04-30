@@ -459,7 +459,7 @@ void MSplit::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp) {
 
         }
 
-        if(abs(Kx) < 1e-6) {
+        if(std::abs(Kx) < 1e-6) {
             for(int j = 1; j <= nslice - 1; ++j) {
 
                 //expansion of the transformation matrix coefficients at third order
@@ -528,7 +528,7 @@ void MSplit::calcul(Twiss::TLine::iterator i, A_row &a, int nslice, Twiss *tp) {
                                                      (Transf_mat(1, 1) * Transf_mat(0, 0) - Transf_mat(1, 0) * Transf_mat(0, 1));
             }
         }
-        if(abs(Ky) < 1e-6) {
+        if(std::abs(Ky) < 1e-6) {
             for(int j = 1; j <= nslice - 1; ++j) {
                 //expansion of the transformation matrix coefficients at third order
 
