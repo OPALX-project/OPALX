@@ -186,13 +186,13 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
 
     msg << level2 << getName() << " using file ";
     fieldmap_m->getInfo(&msg);
-    if(std::abs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
+    if (std::abs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
         errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename_m << "';\n"
                  << frequency_m / Physics::two_pi * 1e-6 << " MHz <> "
                  << fieldmap_m->getFrequency() / Physics::two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
         std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
         ERRORMSG(errormsg_str << "\n" << endl);
-        if(Ippl::myNode() == 0) {
+        if (Ippl::myNode() == 0) {
             std::ofstream omsg("errormsg.txt", std::ios_base::app);
             omsg << errormsg_str << std::endl;
             omsg.close();
@@ -216,7 +216,7 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch,
     setFrequencyModel(freq_atd);
 
     std::ifstream in(filename_m.c_str());
-    if(!in.good()) {
+    if (!in.good()) {
         throw GeneralClassicException("RFCavity::initialise",
                                       "failed to open file '" + filename_m + "', please check if it exists");
     }
@@ -228,8 +228,8 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch,
     VrNormal_m = std::unique_ptr<double[]>(new double[num_points_m]);
     DvDr_m     = std::unique_ptr<double[]>(new double[num_points_m]);
 
-    for(int i = 0; i < num_points_m; i++) {
-        if(in.eof()) {
+    for (int i = 0; i < num_points_m; i++) {
+        if (in.eof()) {
             throw GeneralClassicException("RFCavity::initialise",
                                           "not enough data in file '" + filename_m + "', please check the data format");
         }
@@ -324,16 +324,16 @@ double RFCavity::getPhi0() const {
 }
 
 void RFCavity::setComponentType(std::string name) {
-    if(name == "STANDING") {
+    if (name == "STANDING") {
         type_m = SW;
-    } else if(name == "SINGLEGAP") {
+    } else if (name == "SINGLEGAP") {
         type_m = SGSW;
-    } else if(name != "") {
+    } else if (name != "") {
         std::stringstream errormsg;
         errormsg << getName() << ": CAVITY TYPE " << name << " DOES NOT EXIST;";
         std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
         ERRORMSG(errormsg_str << "\n" << endl);
-        if(Ippl::myNode() == 0) {
+        if (Ippl::myNode() == 0) {
             std::ofstream omsg("errormsg.txt", std::ios_base::app);
             omsg << errormsg_str << std::endl;
             omsg.close();
@@ -346,7 +346,7 @@ void RFCavity::setComponentType(std::string name) {
 }
 
 std::string RFCavity::getComponentType()const {
-    if(type_m == SGSW)
+    if (type_m == SGSW)
         return std::string("SINGLEGAP");
     else
         return std::string("STANDING");
@@ -384,7 +384,7 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
 
     double frequency = frequency_m * frequency_td_m->getValue(t);
 
-    if(gapwidth_m > 0.0) {
+    if (gapwidth_m > 0.0) {
         transit_factor = 0.5 * frequency * gapwidth_m * 1.0e-3 / (Physics::c * beta);
         Ufactor = std::sin(transit_factor) / transit_factor;
     }
@@ -395,7 +395,7 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     double dgam = Voltage * std::cos(nphase) / (restMass);
 
     double tempdegree = std::fmod(nphase * 360.0 / Physics::two_pi, 360.0);
-    if(tempdegree > 270.0) tempdegree -= 360.0;
+    if (tempdegree > 270.0) tempdegree -= 360.0;
 
     gamma += dgam;
 
@@ -412,7 +412,7 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     momentum[0] =  std::cos(rotate) * px + std::sin(rotate) * py;
     momentum[1] = -std::sin(rotate) * px + std::cos(rotate) * py;
 
-    if(PID == 0) {
+    if (PID == 0) {
 
         Inform  m("OPAL", *gmsg, Ippl::myNode());
 
@@ -428,11 +428,11 @@ double RFCavity::spline(double z, double *za) {
     double splint;
 
     // domain-test and handling of case "1-support-point"
-    if(num_points_m < 1) {
+    if (num_points_m < 1) {
         throw GeneralClassicException("RFCavity::spline",
                                       "no support points!");
     }
-    if(num_points_m == 1) {
+    if (num_points_m == 1) {
         splint = RNormal_m[0];
         *za = 0.0;
         return splint;
@@ -442,13 +442,13 @@ double RFCavity::spline(double z, double *za) {
     int il, ih;
     il = 0;
     ih = num_points_m - 1;
-    while((ih - il) > 1) {
+    while ((ih - il) > 1) {
         int i = (int)((il + ih) / 2.0);
-        if(z < RNormal_m[i]) {
+        if (z < RNormal_m[i]) {
             ih = i;
-        } else if(z > RNormal_m[i]) {
+        } else if (z > RNormal_m[i]) {
             il = i;
-        } else if(z == RNormal_m[i]) {
+        } else if (z == RNormal_m[i]) {
             il = i;
             ih = i + 1;
             break;
@@ -549,11 +549,11 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     double dz = 1.0, length = 0.0;
     fieldmap_m->getOnaxisEz(G);
     double begin = (G.front()).first;
-    double end = (G.back()).first;
-    std::unique_ptr<double[]> zvals(new double[G.size()]);
+    double end   = (G.back()).first;
+    std::unique_ptr<double[]> zvals(      new double[G.size()]);
     std::unique_ptr<double[]> onAxisField(new double[G.size()]);
 
-    for(size_t j = 0; j < G.size(); ++ j) {
+    for (size_t j = 0; j < G.size(); ++ j) {
         zvals[j] = G[j].first;
         onAxisField[j] = G[j].second;
     }
@@ -571,7 +571,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
 
     F.resize(N);
     double z = begin;
-    for(size_t j = 0; j < N; ++ j, z += dz) {
+    for (size_t j = 0; j < N; ++ j, z += dz) {
         F[j] = gsl_spline_eval(onAxisInterpolants, z, onAxisAccel);
     }
     gsl_spline_free(onAxisInterpolants);
@@ -583,31 +583,31 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     E2.resize(N, E0);
 
     z = begin + dz;
-    for(unsigned int i = 1; i < N; ++ i, z += dz) {
+    for (unsigned int i = 1; i < N; ++ i, z += dz) {
         E[i] = E[i - 1] + dz * scale_m / mass;
         E2[i] = E[i];
     }
 
-    for(int iter = 0; iter < 10; ++ iter) {
+    for (int iter = 0; iter < 10; ++ iter) {
         A = B = 0.0;
-        for(unsigned int i = 1; i < N; ++ i) {
+        for (unsigned int i = 1; i < N; ++ i) {
             t[i] = t[i - 1] + getdT(i, E, dz, mass);
             t2[i] = t2[i - 1] + getdT(i, E2, dz, mass);
             A += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdA(i, t, dz, frequency_m, F);
             B += scale_m * (1. + frequency_m * (t2[i] - t[i]) / dphi) * getdB(i, t, dz, frequency_m, F);
         }
 
-        if(std::abs(B) > 0.0000001) {
+        if (std::abs(B) > 0.0000001) {
             tmp_phi = atan(A / B);
         } else {
             tmp_phi = Physics::pi / 2;
         }
-        if(q * (A * sin(tmp_phi) + B * cos(tmp_phi)) < 0) {
+        if (q * (A * sin(tmp_phi) + B * cos(tmp_phi)) < 0) {
             tmp_phi += Physics::pi;
         }
 
-        if(std::abs(phi - tmp_phi) < frequency_m * (t[N - 1] - t[0]) / (10 * N)) {
-            for(unsigned int i = 1; i < N; ++ i) {
+        if (std::abs (phi - tmp_phi) < frequency_m * (t[N - 1] - t[0]) / (10 * N)) {
+            for (unsigned int i = 1; i < N; ++ i) {
                 E[i] = E[i - 1];
                 E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F) ;
             }
@@ -620,7 +620,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
         }
         phi = tmp_phi - std::round(tmp_phi / Physics::two_pi) * Physics::two_pi;
 
-        for(unsigned int i = 1; i < N; ++ i) {
+        for (unsigned int i = 1; i < N; ++ i) {
             E[i] = E[i - 1];
             E2[i] = E2[i - 1];
             E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F) ;
@@ -645,10 +645,10 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
 
         double totalEz0 = std::cos(phi) * cosine_part - sin(phi) * sine_part;
 
-        if(p0 + q * totalEz0 * (t[1] - t[0]) * Physics::c / mass < 0) {
+        if (p0 + q * totalEz0 * (t[1] - t[0]) * Physics::c / mass < 0) {
             // make totalEz0 = 0
             tmp_phi = std::atan(cosine_part / sine_part);
-            if(abs(tmp_phi - phi) > Physics::pi) {
+            if (std::abs (tmp_phi - phi) > Physics::pi) {
                 phi = tmp_phi + Physics::pi;
             } else {
                 phi = tmp_phi;
@@ -666,11 +666,11 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
 }
 
 std::pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
-                                                   const double &t0,
-                                                   const double &dt,
-                                                   const double &/*q*/,
-                                                   const double &mass,
-                                                   std::ofstream *out) {
+                                                        const double &t0,
+                                                        const double &dt,
+                                                        const double &/*q*/,
+                                                        const double &mass,
+                                                        std::ofstream *out) {
     Vector_t p(0, 0, p0);
     double t = t0;
     BorisPusher integrator(*RefPartBunch_m->getReference());
@@ -685,14 +685,14 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
     if (out) *out << std::setw(18) << z[2]
                   << std::setw(18) << Util::getEnergy(p, mass)
                   << std::endl;
-    while(z(2) + dz < zend && z(2) + dz > zbegin) {
+    while (z(2) + dz < zend && z(2) + dz > zbegin) {
         z /= cdt;
         integrator.push(z, p, dt);
         z *= cdt;
 
         Ef = 0.0;
         Bf = 0.0;
-        if(z(2) >= zbegin && z(2) <= zend) {
+        if (z(2) >= zbegin && z(2) <= zend) {
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
         integrator.kick(z, p, Ef, Bf, dt);
@@ -709,7 +709,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(const double &p0,
     }
 
     const double beta = std::sqrt(1. - 1 / (dot(p, p) + 1.));
-    const double tErr  = (z(2) - zend) / (Physics::c * beta);
+    const double tErr = (z(2) - zend) / (Physics::c * beta);
 
     return std::pair<double, double>(p(2), t - tErr);
 }
