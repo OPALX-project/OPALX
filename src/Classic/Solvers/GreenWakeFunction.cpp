@@ -118,7 +118,7 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
     mindist = rmin(2);
     switch(direction_m) {
         case LONGITUDINAL:
-            spacing = abs(rmax(2) - rmin(2));
+            spacing = std::abs(rmax(2) - rmin(2));
             break; //FIXME: Kann mann das Spacing immer ändern?
         case TRANSVERSAL:
             spacing = rmax(0) * rmax(0) + rmax(1) * rmax(1);
