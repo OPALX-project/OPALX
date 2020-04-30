@@ -81,9 +81,6 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
         add_compile_options (-fopenmp)
         add_link_options (-fopenmp)
     endif ()
-    # Not 100% clear why we need this. But without we get warning while
-    # linking with HDF5
-    add_link_options (-Wl,-no_compact_unwind)
 
 elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
