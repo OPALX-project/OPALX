@@ -3,6 +3,7 @@
 #include "gsl/gsl_fft_halfcomplex.h"
 #include <iostream>
 
+#include <cmath>
 
 SavitzkyGolayFilter::SavitzkyGolayFilter(int np, int nl, int nr, int m):
     NumberPoints_m(np),
