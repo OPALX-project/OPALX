@@ -1,5 +1,3 @@
-set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
-
 add_definitions (-DPARALLEL_IO)
 
 if (ENABLE_SAAMG_SOLVER)
@@ -18,7 +16,6 @@ if (ENABLE_AMR)
         ${Fortran_LIBS}
         ${AMREX_EXTRA_Fortran_LINK_LINE}
         ${AMREX_LIBRARIES}
-        
     )
 else ()
     set(AMR_LIBS "")
@@ -123,11 +120,6 @@ link_directories (
     ${AMREX_LIBRARY_DIR}
     )
 
-if (ENABLE_DKS)
-    include_directories (${DKS_INCLUDE_DIR})
-    link_directories (${DKS_LIBRARY_DIR})
-endif ()
-
 #
 # we cannot use the target name 'OPAL' for 'libOPAL'. On systems with
 # case-insensitive filesystems (like macOS) this conflicts with the
@@ -135,12 +127,6 @@ endif ()
 #
 add_library (libOPAL ${OPAL_SRCS})
 set_target_properties (libOPAL PROPERTIES OUTPUT_NAME OPAL)
-
-if (ENABLE_DKS)
-    target_link_libraries (libOPAL
-        dks
-        ${DKS_CUDA_LIBS})
-endif ()
 
 target_link_libraries (libOPAL
     ${SAAMG_SOLVER_LIBS}
