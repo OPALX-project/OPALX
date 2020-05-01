@@ -137,26 +137,6 @@ message ("Found Boost library dir: ${Boost_LIBRARY_DIR}")
 message ("Found Boost libraries: ${Boost_LIBRARIES}")
 include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
 
-option (ENABLE_DKS "Enable DKS" OFF)
-if (ENABLE_DKS)
-    find_package (DKS 1.1.1 REQUIRED HINTS $ENV{DKS_PREFIX} $ENV{DKS_DIR} $ENV{DKS})
-    set (DKS_VERSION_OPAL \"${DKS_VERSION}\")
-    message ("Found DKS version: ${DKS_VERSION}")
-    message ("Found DKS library: ${DKS_LIBRARY}")
-    message ("Found DKS include dir: ${DKS_INCLUDE_DIR}")
-    add_definitions(-DDKS_MPI)
-
-    ### OpenCL compiler flags ###
-    #add_compile_options (-lOpenCL -pthread -DDKS_OPENCL)
-
-    ### CUDA compiler flags ###
-    add_definitions(-DDKS_CUDA)
-
-    ### if any accelerator enabled set flag to use DKS ###
-    add_definitions(-DIPPL_DKS -DIPPL_DKS_CUDA -DOPAL_DKS)
-
-endif ()
-
 # Handle options
 option (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 if (BUILD_OPAL_UNIT_TESTS)
