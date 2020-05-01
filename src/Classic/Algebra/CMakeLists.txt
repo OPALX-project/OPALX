@@ -15,7 +15,6 @@ add_opal_sources (${_SRCS})
 set (HDRS
     Array1D.h
     Array2D.h
-    LieMap.h
     LUMatrix.h
     Matrix.h
     SliceIterator.h
@@ -28,7 +27,6 @@ set (HDRS
     Vector.h
     Vps.h
     Vps.hpp
-    VpsInvMap.h
     VpsMap.h
     )
 
