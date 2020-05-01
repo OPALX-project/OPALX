@@ -44,12 +44,6 @@
 // Macro command.
 #include "OpalParser/MacroCmd.h"
 
-// Physics action commands.
-#include "PhysicsActions/Dynamic.h"
-#include "PhysicsActions/MakeSequence.h"
-#include "PhysicsActions/SetIntegrator.h"
-#include "PhysicsActions/Static.h"
-
 // Commands introducing a special mode.
 #include "Editor/EditCmd.h"
 #include "Match/MatchCmd.h"
@@ -169,13 +163,11 @@ namespace {
         opal->create(new DumpFields());
         opal->create(new DumpEMFields());
         opal->create(new Echo());
-        opal->create(new Dynamic());
         opal->create(new Eigen());
         opal->create(new Envelope());
         opal->create(new Help());
         opal->create(new EditCmd());
         opal->create(new List());
-        opal->create(new MakeSequence());
         opal->create(new MatchCmd());
         opal->create(new MatrixCmd());
         opal->create(new Micado());
@@ -185,8 +177,6 @@ namespace {
         opal->create(new Save());
         opal->create(new Select());
         opal->create(new Show());
-        opal->create(new SetIntegrator());
-        opal->create(new Static());
         opal->create(new Stop());
         opal->create(new Quit());
         opal->create(new PSystem());
