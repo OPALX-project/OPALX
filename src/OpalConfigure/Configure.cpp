@@ -45,7 +45,6 @@
 #include "OpalParser/MacroCmd.h"
 
 // Commands introducing a special mode.
-#include "Editor/EditCmd.h"
 #include "Match/MatchCmd.h"
 #include "Track/TrackCmd.h"
 
@@ -166,7 +165,6 @@ namespace {
         opal->create(new Eigen());
         opal->create(new Envelope());
         opal->create(new Help());
-        opal->create(new EditCmd());
         opal->create(new List());
         opal->create(new MatchCmd());
         opal->create(new MatrixCmd());
