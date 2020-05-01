@@ -114,8 +114,7 @@ const std::string BeamStrippingPhysics::getType() const {
 }
 
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3> *bunch,
-                                 const std::pair<Vector_t, double> &/*boundingSphere*/,
-                                 size_t /*numParticlesInSimulation*/) {
+                                 const std::pair<Vector_t, double> &/*boundingSphere*/) {
 
     dT_m = bunch->getdT();
 
