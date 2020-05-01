@@ -68,7 +68,6 @@ add_opal_sources (opal.cpp)
 add_opal_sources (changes.cpp)
 
 add_subdirectory (AbstractObjects)
-add_subdirectory (Algebra)
 add_subdirectory (Algorithms)
 add_subdirectory (Attributes)
 add_subdirectory (BasicActions)

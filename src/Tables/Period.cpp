@@ -17,12 +17,10 @@
 // ------------------------------------------------------------------------
 
 #include "Tables/Period.h"
-#include "Algorithms/IdealMapper.h"
 #include "Algorithms/Mapper.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "FixedAlgebra/FNormalForm.h"
-#include "FixedAlgebra/FDynamicFP.h"
 #include "FixedAlgebra/FStaticFP.h"
 #include "FixedAlgebra/LinearFun.h"
 #include "FixedAlgebra/LinearMap.h"
