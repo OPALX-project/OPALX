@@ -45,7 +45,6 @@
 #include "OpalParser/MacroCmd.h"
 
 // Commands introducing a special mode.
-#include "Match/MatchCmd.h"
 #include "Track/TrackCmd.h"
 
 // Table-related commands.
@@ -157,7 +156,6 @@ namespace {
         opal->create(new Echo());
         opal->create(new Help());
         opal->create(new List());
-        opal->create(new MatchCmd());
         opal->create(new Option());
         opal->create(new OptimizeCmd());
         opal->create(new SampleCmd());
