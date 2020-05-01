@@ -60,9 +60,6 @@
 #include "Tables/List.h"
 #include "Tables/Period.h"
 #include "Tables/Survey.h"
-#include "Aperture/Aperture.h"
-#include "Aperture/Split.h"
-
 
 // Value definitions commands.
 #include "ValueDefinitions/BoolConstant.h"
@@ -168,8 +165,6 @@ namespace {
         opal->create(new System());
         opal->create(new Title());
         opal->create(new TrackCmd());
-        opal->create(new Aperture());
-        opal->create(new MSplit());
         opal->create(new Value());
         opal->create(new What());
     }
