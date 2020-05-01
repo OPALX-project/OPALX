@@ -1,6 +1,4 @@
 set (_SRCS
-    DynamicFixedPoint.cpp
-    StaticFixedPoint.cpp
     TpsComplex.cpp
     TpsData.cpp
     TpsDouble.cpp
@@ -17,12 +15,10 @@ add_opal_sources (${_SRCS})
 set (HDRS
     Array1D.h
     Array2D.h
-    DynamicFixedPoint.h
     LieMap.h
     LUMatrix.h
     Matrix.h
     SliceIterator.h
-    StaticFixedPoint.h
     TpsData.h
     Tps.h
     Tps.hpp
