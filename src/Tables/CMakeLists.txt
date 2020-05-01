@@ -7,6 +7,7 @@ set (_SRCS
     RangeSelector.cpp
     Selector.cpp
     Survey.cpp
+    Twiss.cpp
     )
 
 include_directories (
@@ -25,6 +26,7 @@ set (HDRS
     RangeSelector.h
     Selector.h
     Survey.h
+    Twiss.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Tables")
