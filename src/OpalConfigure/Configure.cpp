@@ -57,17 +57,10 @@
 #include "Utilities/OpalFilter.h"
 #include "TrimCoils/OpalTrimCoil.h"
 #include "Tables/AttList.h"
-#include "Tables/Eigen.h"
-#include "Tables/Envelope.h"
 #include "Tables/Insertion.h"
 #include "Tables/List.h"
-#include "Tables/MatrixCmd.h"
-#include "Tables/Micado.h"
 #include "Tables/Period.h"
 #include "Tables/Survey.h"
-#include "Tables/ThreadAll.h"
-#include "Tables/ThreadBpm.h"
-#include "Tables/Twiss3.h"
 #include "Aperture/Aperture.h"
 #include "Aperture/Split.h"
 
@@ -162,13 +155,9 @@ namespace {
         opal->create(new DumpFields());
         opal->create(new DumpEMFields());
         opal->create(new Echo());
-        opal->create(new Eigen());
-        opal->create(new Envelope());
         opal->create(new Help());
         opal->create(new List());
         opal->create(new MatchCmd());
-        opal->create(new MatrixCmd());
-        opal->create(new Micado());
         opal->create(new Option());
         opal->create(new OptimizeCmd());
         opal->create(new SampleCmd());
@@ -179,11 +168,8 @@ namespace {
         opal->create(new Quit());
         opal->create(new PSystem());
         opal->create(new System());
-        opal->create(new ThreadAll());
-        opal->create(new ThreadBpm());
         opal->create(new Title());
         opal->create(new TrackCmd());
-        opal->create(new Twiss3());
         opal->create(new Aperture());
         opal->create(new MSplit());
         opal->create(new Value());
