@@ -1,4 +1,4 @@
-/
+//
 // Class: Hamiltonian
 //   Constructs thick lens Hamiltonian up to arbitrary order for beamline elements
 //
