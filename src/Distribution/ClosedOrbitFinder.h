@@ -442,12 +442,12 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      *
      */
 
-    value_type E         = cycl_m->getFMLowE() * 1.0e3; // starting energy (GeV --> MeV)
-    value_type E_fin     = ekin;                        // final    energy
-    const value_type eps = dE * 1.0e-1;                 // articial constant for stopping criteria
+    value_type E         = cycl_m->getFMLowE(); // starting energy
+    value_type E_fin     = ekin;                // final    energy
+    const value_type eps = dE * 1.0e-1;         // articial constant for stopping criteria
 
     if (isTuneMode) {
-        E_fin = cycl_m->getFMHighE() * 1.0e3; // (GeV --> MeV)
+        E_fin = cycl_m->getFMHighE();
     }
 
     namespace fs = boost::filesystem;

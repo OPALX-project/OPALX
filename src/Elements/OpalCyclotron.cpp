@@ -217,8 +217,8 @@ void OpalCyclotron::update() {
     cycl->setMinZ(minz);
     cycl->setMaxZ(maxz);
 
-    cycl->setFMLowE(fmLowE);
-    cycl->setFMHighE(fmHighE);
+    cycl->setFMLowE(fmLowE * 1.0e3);    // convert GeV to MeV
+    cycl->setFMHighE(fmHighE * 1.0e3);  // convert GeV to MeV
 
     cycl->setSpiralFlag(spiral_flag);
     cycl->setTrimCoilThreshold(trimCoilThreshold);
