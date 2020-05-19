@@ -207,6 +207,7 @@ void MGPoissonSolver::deletePtr() {
     LHS    = Teuchos::null;
     RHS    = Teuchos::null;
     prec_mp = Teuchos::null;
+    isMatrixfilled_m = false;
 }
 
 MGPoissonSolver::~MGPoissonSolver() {
@@ -428,6 +429,7 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     INFOMSG(level3 << "* Solving for Space Charge..." << endl);
     IpplTimings::startTimer(FunctionTimer7_m);
     solver_mp->solve();
+
     IpplTimings::stopTimer(FunctionTimer7_m);
     INFOMSG(level3 << "* Done." << endl);
 
