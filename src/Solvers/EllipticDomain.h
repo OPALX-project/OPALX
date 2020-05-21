@@ -97,6 +97,9 @@ public:
 
     bool hasGeometryChanged() { return hasGeometryChanged_m; }
 
+
+    void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch);
+
 private:
 
     /// Map from a single coordinate (x or y) to a list of intersection values with
