@@ -123,7 +123,13 @@ public:
 
     void extrapolateLHS();
 
+    void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch) {
+        bp_m->resizeMesh(origin, hr, bunch);
+    }
+
     Inform &print(Inform &os) const;
+
+
 
 private:
 
@@ -169,6 +175,7 @@ private:
 
     /// Map holding the processor distribution of data
     Teuchos::RCP<TpetraMap_t> map_p;
+
     /// communicator used by Trilinos
     Teuchos::RCP<const Comm_t> comm_mp;
 
