@@ -58,6 +58,8 @@ public:
     virtual void test(PartBunchBase<double, 3> *bunch) = 0 ;
     virtual ~PoissonSolver(){};
 
+    virtual void resizeMesh(Vector_t& /*origin*/, Vector_t& /*hr*/, PartBunchBase<double, 3>* /*bunch*/) { };
+
 };
 
 inline Inform &operator<<(Inform &os, const PoissonSolver &/*fs*/) {

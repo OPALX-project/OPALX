@@ -242,6 +242,8 @@ public:
 
     virtual void set_meshEnlargement(double dh);
 
+    double getMeshEnlargement() const;
+
     void gatherLoadBalanceStatistics();
     size_t getLoadBalance(int p) const;
 
@@ -394,6 +396,8 @@ public:
 //     virtual void setFieldLayout(FieldLayout_t* fLayout) = 0;
     virtual FieldLayout_t &getFieldLayout() = 0;
 
+    virtual void resizeMesh() { };
+
     /*
      * Wrapped member functions of IpplParticleBase
      */
@@ -506,6 +510,10 @@ public:
 
     // get 2nd order momentum matrix
     FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix();
+
+    const Vector_t& getLowerBound() const;
+
+    const Vector_t& getUpperBound() const;
 
 private:
     // save particles in case of one core

@@ -27,6 +27,7 @@
 #include <string>
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
+#include "Algorithms/PartBunchBase.h"
 
 /// enumeration corresponding to different interpolation methods at the boundary
 enum {
@@ -125,6 +126,22 @@ public:
     virtual int getIdx(int x, int y, int z) = 0;
     virtual bool hasGeometryChanged() = 0;
     virtual ~IrregularDomain() {};
+
+    // FIXME The function body should be implemented in derived classes.
+    virtual void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* /*bunch*/) {
+        double xmin = getXRangeMin();
+        double xmax = getXRangeMax();
+        double ymin = getYRangeMin();
+        double ymax = getYRangeMax();
+        double zmin = getZRangeMin();
+        double zmax = getZRangeMax();
+
+        origin = Vector_t(xmin, ymin , zmin);
+        Vector_t mymax = Vector_t(xmax, ymax , zmax);
+
+        for (int i = 0; i < 3; i++)
+            hr[i]   = (mymax[i] - origin[i]) / nr[i];
+    };
 
 protected:
 
