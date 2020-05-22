@@ -60,14 +60,17 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W,
                                            double &F, double &B, double &C,
                                            double &scaleFactor)
 {
-    scaleFactor = hr[0] * hr[1] * hr[2];
-    W = -hr[1] * hr[2] / hr[0];
-    E = -hr[1] * hr[2] / hr[0];
-    N = -hr[0] * hr[2] / hr[1];
-    S = -hr[0] * hr[2] / hr[1];
-    F = -hr[0] * hr[1] / hr[2];
-    B = -hr[0] * hr[1] / hr[2];
-    C = 2 * hr[1] * hr[2] / hr[0] + 2 * hr[0] * hr[2] / hr[1] + 2 * hr[0] * hr[1] / hr[2];
+    scaleFactor = 1.0;
+    W = -1.0 / (hr[0] * hr[0]);
+    E = -1.0 / (hr[0] * hr[0]);
+    N = -1.0 / (hr[1] * hr[1]);
+    S = -1.0 / (hr[1] * hr[1]);
+    F = -1.0 / (hr[2] * hr[2]);
+    B = -1.0 / (hr[2] * hr[2]);
+
+    C = 2.0 / (hr[0] * hr[0])
+      + 2.0 / (hr[1] * hr[1])
+      + 2.0 / (hr[2] * hr[2]);
 
     if (!isInside(x + 1, y, z))
         E = 0.0; //we are a right boundary point
