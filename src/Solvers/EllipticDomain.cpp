@@ -87,7 +87,7 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
     setHr(hr);
     hasGeometryChanged_m = true;
     //reset number of points inside domain
-    nxy_m = 0; //nr[0] * nr[1];
+    nxy_m = 0;
 
     // clear previous coordinate maps
     idxMap_m.clear();
