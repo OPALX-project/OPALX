@@ -100,7 +100,8 @@ public:
     bool hasGeometryChanged() { return hasGeometryChanged_m; }
 
 
-    void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch);
+    void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
+                    const Vector_t& rmax, double dh);
 
 private:
 

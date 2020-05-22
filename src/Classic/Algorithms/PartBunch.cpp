@@ -442,7 +442,7 @@ void PartBunch::resizeMesh() {
     Vector_t origin = Vector_t(0.0, 0.0, 0.0);
 
     // update the mesh origin and mesh spacing hr_m
-    fs_m->solver_m->resizeMesh(origin, hr_m, this);
+    fs_m->solver_m->resizeMesh(origin, hr_m, rmin_m, rmax_m, dh_m);
 
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(origin);

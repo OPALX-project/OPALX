@@ -58,7 +58,10 @@ public:
     virtual void test(PartBunchBase<double, 3> *bunch) = 0 ;
     virtual ~PoissonSolver(){};
 
-    virtual void resizeMesh(Vector_t& /*origin*/, Vector_t& /*hr*/, PartBunchBase<double, 3>* /*bunch*/) { };
+    virtual void resizeMesh(Vector_t& /*origin*/, Vector_t& /*hr*/,
+                            const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
+                            double /*dh*/)
+    { };
 
 };
 

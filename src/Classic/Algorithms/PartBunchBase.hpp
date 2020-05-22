@@ -1195,12 +1195,6 @@ void PartBunchBase<T, Dim>::set_meshEnlargement(double dh) {
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getMeshEnlargement() const {
-    return dh_m;
-}
-
-
-template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
 
     for(int i = 0; i < Ippl::getNodes(); i++)
@@ -2283,15 +2277,5 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
     return sigmaMatrix;
 }
 
-
-template <class T, unsigned Dim>
-const Vector_t& PartBunchBase<T, Dim>::getLowerBound() const {
-    return rmin_m;
-}
-
-template <class T, unsigned Dim>
-const Vector_t& PartBunchBase<T, Dim>::getUpperBound() const {
-    return rmax_m;
-}
 
 #endif
