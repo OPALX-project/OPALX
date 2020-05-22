@@ -1,6 +1,7 @@
 //
 // Class RectangularDomain
-//   :FIXME: add brief description
+//   This class provides a rectangular beam pipe. The mesh adapts to the bunch
+//   in longitudinal direction.
 //
 // Copyright (c) 2008,        Yves Ineichen, ETH Zürich,
 //               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
