@@ -123,8 +123,10 @@ public:
 
     void extrapolateLHS();
 
-    void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch) {
-        bp_m->resizeMesh(origin, hr, bunch);
+    void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
+                    const Vector_t& rmax, double dh)
+    {
+        bp_m->resizeMesh(origin, hr, rmin, rmax, dh);
     }
 
     Inform &print(Inform &os) const;
