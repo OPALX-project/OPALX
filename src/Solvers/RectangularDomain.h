@@ -36,6 +36,7 @@ public:
 
     /// constructor
     RectangularDomain(Vector_t nr, Vector_t hr);
+
     /// constructor
     RectangularDomain(double a, double b, Vector_t nr, Vector_t hr);
 
@@ -44,17 +45,29 @@ public:
 
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);
+
     /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void getBoundaryStencil(int x, int y, int z, double &W, double &E,
+                            double &S, double &N, double &F, double &B,
+                            double &C, double &scaleFactor);
+
     /// returns discretization at 3D index
-    void getBoundaryStencil(int idx, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void getBoundaryStencil(int idx, double &W, double &E, double &S,
+                            double &N, double &F, double &B, double &C,
+                            double &scaleFactor);
+
     /// returns index of neighbours at (x,y,z)
     using IrregularDomain::getNeighbours;
-    void getNeighbours(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B);
+
+    void getNeighbours(int x, int y, int z, double &W, double &E,
+                       double &S, double &N, double &F, double &B);
+
     /// returns index of neighbours at 3D index
     void getNeighbours(int idx, double &W, double &E, double &S, double &N, double &F, double &B);
+
     /// returns type of boundary condition
     std::string getType() {return "Rectangular";}
+
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int /*z*/) {
         double xx = (x - (nr[0] - 1) / 2.0) * hr[0];
@@ -86,7 +99,7 @@ private:
 
     /// conversion from (x,y,z) to index on the 3D grid
     inline int getIdx(int x, int y, int z) {
-        if(isInside(x, y, z) && x >= 0 && y >= 0 && z >= 0)
+        if (isInside(x, y, z) && x >= 0 && y >= 0 && z >= 0)
             return y * nr[0] + x + z * nxy_m;
         else
             return -1;
