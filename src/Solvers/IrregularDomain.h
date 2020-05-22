@@ -126,7 +126,6 @@ public:
     virtual bool hasGeometryChanged() = 0;
     virtual ~IrregularDomain() {};
 
-    // FIXME The function body should be implemented in derived classes.
     virtual void resizeMesh(Vector_t& origin, Vector_t& hr,
                             const Vector_t& /*rmin*/, const Vector_t& /*rmax*/, double /*dh*/) {
         double xmin = getXRangeMin();
