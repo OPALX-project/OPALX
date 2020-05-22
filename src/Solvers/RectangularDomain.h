@@ -63,7 +63,8 @@ public:
                        double &S, double &N, double &F, double &B);
 
     /// returns index of neighbours at 3D index
-    void getNeighbours(int idx, double &W, double &E, double &S, double &N, double &F, double &B);
+    void getNeighbours(int idx, double &W, double &E, double &S,
+                       double &N, double &F, double &B);
 
     /// returns type of boundary condition
     std::string getType() {return "Rectangular";}
@@ -84,9 +85,6 @@ public:
     double getYRangeMax() { return b_m; }
     double getZRangeMin() { return getMinZ(); }
     double getZRangeMax() { return getMaxZ(); }
-
-
-    int getStartIdx() {return 0;}
 
 private:
 
