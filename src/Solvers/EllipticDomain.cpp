@@ -161,12 +161,10 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
     }
 }
 
-void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch) {
-    Vector_t rmin  = bunch->getLowerBound();
-    Vector_t rmax  = bunch->getUpperBound();
+void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
+                                const Vector_t& rmax, double dh)
+{
     Vector_t mymax = Vector_t(0.0, 0.0, 0.0);
-
-    double dh = bunch->getMeshEnlargement();
 
     // apply bounding box increment, i.e., "BBOXINCR" input argument
     double zmin = std::signbit(rmin[2]) ? rmin[2] * (1.0 + dh) : rmin[2] * (1.0 - dh);
@@ -176,7 +174,7 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<do
     mymax  = Vector_t( semiMajor_m,  semiMinor_m, zmax);
 
     for (int i = 0; i < 3; ++i)
-        hr[i]   = (mymax[i] - origin[i]) / nr[i];
+        hr[i] = (mymax[i] - origin[i]) / nr[i];
 }
 
 void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W,

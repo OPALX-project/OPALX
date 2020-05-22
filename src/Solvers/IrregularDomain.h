@@ -27,7 +27,6 @@
 #include <string>
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
-#include "Algorithms/PartBunchBase.h"
 
 /// enumeration corresponding to different interpolation methods at the boundary
 enum {
@@ -128,7 +127,8 @@ public:
     virtual ~IrregularDomain() {};
 
     // FIXME The function body should be implemented in derived classes.
-    virtual void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* /*bunch*/) {
+    virtual void resizeMesh(Vector_t& origin, Vector_t& hr,
+                            const Vector_t& /*rmin*/, const Vector_t& /*rmax*/, double /*dh*/) {
         double xmin = getXRangeMin();
         double xmax = getXRangeMax();
         double ymin = getYRangeMin();
