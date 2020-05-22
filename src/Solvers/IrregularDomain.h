@@ -140,7 +140,7 @@ public:
         Vector_t mymax = Vector_t(xmax, ymax , zmax);
 
         for (int i = 0; i < 3; i++)
-            hr[i]   = (mymax[i] - origin[i]) / nr[i];
+            hr[i] = (mymax[i] - origin[i]) / nr[i];
     };
 
 protected:
