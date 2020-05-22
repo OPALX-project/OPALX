@@ -1,6 +1,8 @@
 //
 // Class EllipticDomain
-//   :FIXME: add brief description
+//   This class provides an elliptic beam pipe. The mesh adapts to the bunch size
+//   in the longitudinal direction. At the intersection of the mesh with the
+//   beam pipe, three stencil interpolation methods are available.
 //
 // Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich,
 //               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
