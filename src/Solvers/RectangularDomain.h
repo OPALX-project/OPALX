@@ -30,6 +30,7 @@
 #include <vector>
 #include <string>
 #include "IrregularDomain.h"
+#include "PartBunchBase.h"
 
 class RectangularDomain : public IrregularDomain {
 
@@ -67,6 +68,8 @@ public:
     void getNeighbours(int idx, double &W, double &E, double &S,
                        double &N, double &F, double &B);
 
+    void resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch);
+
     /// returns type of boundary condition
     std::string getType() {return "Rectangular";}
 
@@ -86,6 +89,8 @@ public:
     double getYRangeMax() { return b_m; }
     double getZRangeMin() { return getMinZ(); }
     double getZRangeMax() { return getMaxZ(); }
+
+
 
 private:
 
