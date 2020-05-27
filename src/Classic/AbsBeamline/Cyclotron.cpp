@@ -1,15 +1,28 @@
 //
-// Definitions for class: Cyclotron
-// Defines the abstract interface for a cyclotron.
-// Class category: AbsBeamline
+// Class Cyclotron
+//   Defines the abstract interface for a cyclotron.
 //
-// Copyright (c) 2008-2019
-// Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved.
+// Copyright (c) 2007 - 2012, Jianjun Yang and Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2013 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// OPAL is licensed under GNU GPL version 3.
+// Implemented as part of the PhD thesis
+// "Beam dynamics in high intensity cyclotrons including neighboring bunch effects"
+// and the paper
+// "Beam dynamics in high intensity cyclotrons including neighboring bunch effects:
+// Model, implementation, and application"
+// (https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.13.064201)
 //
-
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AbsBeamline/Cyclotron.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -20,15 +33,18 @@
 #include "TrimCoils/TrimCoil.h"
 #include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
-#include <fstream>
 
-#define CHECK_CYC_FSCANF_EOF(arg) if(arg == EOF)\
+#include <fstream>
+#include <cstring>
+#include <cstdio>
+#include <cmath>
+
+#define CHECK_CYC_FSCANF_EOF(arg) if (arg == EOF)\
 throw GeneralClassicException("Cyclotron::getFieldFromFile",\
                               "fscanf returned EOF at " #arg);
 
 extern Inform *gmsg;
 
-using Physics::pi;
 
 // Class Cyclotron
 // ------------------------------------------------------------------------
@@ -195,17 +211,17 @@ int Cyclotron::getFieldFlag(const std::string& type) const {
      * fieldflag = 7, read in fields for Daniel's synchrocyclotron simulations
      */
     int  fieldflag;
-    if(type == std::string("CARBONCYCL")) {
+    if (type == std::string("CARBONCYCL")) {
         fieldflag = 2;
-    } else if(type == std::string("CYCIAE")) {
+    } else if (type == std::string("CYCIAE")) {
         fieldflag = 3;
-    } else if(type == std::string("AVFEQ")) {
+    } else if (type == std::string("AVFEQ")) {
         fieldflag = 4;
-    } else if(type == std::string("FFA")) {
+    } else if (type == std::string("FFA")) {
         fieldflag = 5;
-    } else if(type == std::string("BANDRF")) {
+    } else if (type == std::string("BANDRF")) {
         fieldflag = 6;
-    } else if(type == std::string("SYNCHROCYCLOTRON")) {
+    } else if (type == std::string("SYNCHROCYCLOTRON")) {
         fieldflag = 7;
     } else //(type == "RING")
         fieldflag = 1;
@@ -380,7 +396,7 @@ bool Cyclotron::apply(const size_t &id, const double &t, Vector_t &E, Vector_t &
 
     } else{
         flagNeedUpdate = apply(RefPartBunch_m->R[id], RefPartBunch_m->P[id], t, E, B);
-        if(flagNeedUpdate){
+        if (flagNeedUpdate){
             gmsgALL << level4 << getName()
                     << ": Particle "<< id
                     << " out of the field map boundary!" << endl;
@@ -402,21 +418,21 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &/*P*/,
                       const double &t, Vector_t &E, Vector_t &B) {
 
     const double rad   = std::hypot(R[0],R[1]);
-    const double tempv = atan(R[1] / R[0]);
+    const double tempv = std::atan(R[1] / R[0]);
     double tet = tempv;
 
-    /* if((R[0] > 0) && (R[1] >= 0)) tet = tempv;
+    /* if ((R[0] > 0) && (R[1] >= 0)) tet = tempv;
        else*/
-    if     ((R[0] < 0) && (R[1] >= 0)) tet = pi + tempv;
-    else if((R[0] < 0) && (R[1] <= 0)) tet = pi + tempv;
-    else if((R[0] > 0) && (R[1] <= 0)) tet = 2.0 * pi + tempv;
-    else if((R[0] == 0) && (R[1] > 0)) tet = pi / 2.0;
-    else if((R[0] == 0) && (R[1] < 0)) tet = 1.5 * pi;
+    if      ((R[0] < 0) && (R[1] >= 0)) tet = Physics::pi + tempv;
+    else if ((R[0] < 0) && (R[1] <= 0)) tet = Physics::pi + tempv;
+    else if ((R[0] > 0) && (R[1] <= 0)) tet = Physics::two_pi + tempv;
+    else if ((R[0] == 0) && (R[1] > 0)) tet = Physics::pi / 2.0;
+    else if ((R[0] == 0) && (R[1] < 0)) tet = 1.5 * Physics::pi;
 
     double tet_rad = tet;
 
     // the actual angle of particle in degree
-    tet = tet / pi * 180.0;
+    tet *= Physics::rad2deg;
 
     // Necessary for gap phase output -DW
     if (0 <= tet && tet <= 45) waiting_for_gap = 1;
@@ -438,14 +454,14 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &/*P*/,
         this->applyTrimCoil(rad, R[2], tet_rad, br, bz);
         
         /* Br Btheta -> Bx By */
-        B[0] = br * cos(tet_rad) - bt * sin(tet_rad);
-        B[1] = br * sin(tet_rad) + bt * cos(tet_rad);
+        B[0] = br * std::cos(tet_rad) - bt * std::sin(tet_rad);
+        B[1] = br * std::sin(tet_rad) + bt * std::cos(tet_rad);
         B[2] = bz;
     } else {
         return true;
     }
 
-    if(myBFieldType_m != SYNCHRO && myBFieldType_m != BANDRF) {
+    if (myBFieldType_m != SYNCHRO && myBFieldType_m != BANDRF) {
         return false;
     }
 
@@ -461,7 +477,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &/*P*/,
     double xBegin(0), xEnd(0), yBegin(0), yEnd(0), zBegin(0), zEnd(0);
     int fcount = 0;
 
-    for(; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
+    for (; fi != RFfields_m.end(); ++fi, ++rffi, ++rfphii, ++escali, ++superposei) {
         (*fi)->getFieldDimensions(xBegin, xEnd, yBegin, yEnd, zBegin, zEnd);
         if (fcount > 0 && *superposei == false) continue;
 
@@ -482,31 +498,31 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &/*P*/,
         double frequency = (*rffi);   // frequency in MHz
         double ebscale = (*escali);   // E and B field scaling
 
-        if(myBFieldType_m == SYNCHRO) {
+        if (myBFieldType_m == SYNCHRO) {
             double powert = 1;
-            for(const double fcoef : (*rffci)) {
+            for (const double fcoef : (*rffci)) {
                 powert *= (t * 1e-9);
                 frequency += fcoef * powert; // Add frequency ramp (in MHz/s^n)
             }
             powert = 1;
-            for(const double vcoef : (*rfvci)) {
+            for (const double vcoef : (*rfvci)) {
                 powert *= (t * 1e-9);
                 ebscale += vcoef * powert; // Add frequency ramp (in MHz/s^n)
             }
         }
 
-        double phase = 2.0 * pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
+        double phase = Physics::two_pi * 1.0E-3 * frequency * t + (*rfphii);  // f in [MHz], t in [ns]
 
-        E += ebscale * cos(phase) * tmpE;
-        B -= ebscale * sin(phase) * tmpB;
+        E += ebscale * std::cos(phase) * tmpE;
+        B -= ebscale * std::sin(phase) * tmpB;
 
-        if(myBFieldType_m != SYNCHRO)
+        if (myBFieldType_m != SYNCHRO)
             continue;
 
         // Some phase output -DW
+        double phase_print = phase * Physics::rad2deg;
         if (tet >= 90.0 && waiting_for_gap == 1) {
-            double phase_print = 180.0 * phase / pi;
-            phase_print = fmod(phase_print, 360) - 360.0;
+            phase_print = std::fmod(phase_print, 360) - 360.0;
 
             *gmsg << endl << "Gap 1 phase = " << phase_print << " Deg" << endl;
             *gmsg << "Gap 1 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
@@ -516,9 +532,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &/*P*/,
             waiting_for_gap = 2;
         }
         else if (tet >= 270.0 && waiting_for_gap == 2) {
-
-            double phase_print = 180.0 * phase / pi;
-            phase_print = fmod(phase_print, 360) - 360.0;
+            phase_print = std::fmod(phase_print, 360) - 360.0;
 
             *gmsg << endl << "Gap 2 phase = " << phase_print << " Deg" << endl;
             *gmsg << "Gap 2 E-Field = (" << E[0] << "/" << E[1] << "/" << E[2] << ")" << endl;
@@ -526,7 +540,7 @@ bool Cyclotron::apply(const Vector_t &R, const Vector_t &/*P*/,
             *gmsg << "RF Frequency = " << frequency << " MHz" << endl;
             waiting_for_gap = 0;
         }
-        if(myBFieldType_m == SYNCHRO) {
+        if (myBFieldType_m == SYNCHRO) {
             ++rffci, ++rfvci;
         }
     }
@@ -658,7 +672,7 @@ double Cyclotron::gutdf5d(double *f, double dx, const int kor, const int krl, co
     FAC[2] = 4.0;
 
     result = 0.0;
-    for(j = 0; j < 5; j++) {
+    for (j = 0; j < 5; j++) {
         result += C[j][krl][kor] * *(f + j * lpr);
     }
 
@@ -684,7 +698,7 @@ bool Cyclotron::interpolate(const double& rad,
     
     // the corresponding angle on the field map
     // Note: this does not work if the start point of field map does not equal zero.
-    double tet_map = fmod(tet_rad / Physics::pi * 180.0, 360.0 / symmetry_m);
+    double tet_map = std::fmod(tet_rad * Physics::rad2deg, 360.0 / symmetry_m);
     
     double xit = tet_map / BP.dtet;
 
@@ -704,7 +718,7 @@ bool Cyclotron::interpolate(const double& rad,
     // r1t1 : the index of the "min angle, min radius" point in the 2D field array.
     // considering  the array start with index of zero, minus 1.
 
-    if(myBFieldType_m != FFABF) {
+    if (myBFieldType_m != FFABF) {
         /*
           For FFA this does not work
         */
@@ -724,7 +738,7 @@ bool Cyclotron::interpolate(const double& rad,
         r2t2 = idx(ir + 1, it + 1);
     }
 
-    if((it >= 0) && (ir >= 0) && (it < Bfield.ntetS) && (ir < Bfield.nrad)) {
+    if ((it >= 0) && (ir >= 0) && (it < Bfield.ntetS) && (ir < Bfield.nrad)) {
 
         // B_{z}
         double bzf = Bfield.bfld[r1t1] * wr2 * wt2 +
@@ -757,37 +771,37 @@ void Cyclotron::read(const int &fieldflag, const double &scaleFactor) {
     //    PSIBF, AVFEQBF, ANSYSBF, FFABF
     // for your own format field, you should add your own getFieldFromFile() function by yourself.
 
-    if(fieldflag == 1) {
+    if (fieldflag == 1) {
         //*gmsg<<"Read field data from PSI format field map file."<<endl;
         myBFieldType_m = PSIBF;
         getFieldFromFile(scaleFactor);
 
-    } else if(fieldflag == 2) {
+    } else if (fieldflag == 2) {
         // *gmsg<<"Read data from 450MeV Carbon cyclotron field file"<<endl
         myBFieldType_m = CARBONBF;
         getFieldFromFile_Carbon(scaleFactor);
 
-    } else if(fieldflag == 3) {
+    } else if (fieldflag == 3) {
         // *gmsg<<"Read data from 100MeV H- cyclotron CYCIAE-100 field file"<<endl;
         myBFieldType_m = ANSYSBF;
         getFieldFromFile_CYCIAE(scaleFactor);
 
-    } else if(fieldflag == 4) {
+    } else if (fieldflag == 4) {
         *gmsg << "* Read AVFEQ data (Riken) use bfield scale factor bs = " << getBScale() << endl;
         myBFieldType_m = AVFEQBF;
         getFieldFromFile_AVFEQ(scaleFactor);
 
-    } else if(fieldflag == 5) {
+    } else if (fieldflag == 5) {
         *gmsg << "* Read FFA data MSU/FNAL " << getBScale() << endl;
         myBFieldType_m = FFABF;
         getFieldFromFile_FFA(scaleFactor);
 
-    } else if(fieldflag == 6) {
+    } else if (fieldflag == 6) {
         *gmsg << "* Read both median plane B field map and 3D E field map of RF cavity for compact cyclotron" << endl;
         myBFieldType_m = BANDRF;
         getFieldFromFile_BandRF(scaleFactor);
 
-    } else if(fieldflag == 7) {
+    } else if (fieldflag == 7) {
         *gmsg << "* Read midplane B-field, 3D RF fieldmaps, and text files with RF frequency/Voltage coefficients for Synchrocyclotron. (Midplane scaling = " << getBScale() << ")" << endl;
         myBFieldType_m = SYNCHRO;
         getFieldFromFile_Synchrocyclotron(scaleFactor);
@@ -817,11 +831,11 @@ void Cyclotron::getdiffs() {
     Bfield.f3.resize(Bfield.ntot);
     Bfield.g3.resize(Bfield.ntot);
 
-    for(int i = 0; i < Bfield.nrad; i++) {
+    for (int i = 0; i < Bfield.nrad; i++) {
 
-        for(int k = 0; k < Bfield.ntet; k++) {
+        for (int k = 0; k < Bfield.ntet; k++) {
 
-            double dtheta = pi / 180.0 * BP.dtet;
+            double dtheta = Physics::deg2rad * BP.dtet;
 
             int kEdge;
 
@@ -841,9 +855,9 @@ void Cyclotron::getdiffs() {
 
 
 
-    for(int k = 0; k < Bfield.ntet; k++) {
+    for (int k = 0; k < Bfield.ntet; k++) {
         // inner loop varies R
-        for(int i = 0; i < Bfield.nrad; i++) {
+        for (int i = 0; i < Bfield.nrad; i++) {
             double rac = BP.rarr[i];
             // define iredg, the reference index for radial interpolation
             // standard: i-2 minimal: 0 (not negative!)  maximal: nrad-4
@@ -879,7 +893,7 @@ void Cyclotron::getdiffs() {
     } // Azimuth loop
 
     // copy 1st azimuth to last + 1 to always yield an interval
-    for(int i = 0; i < Bfield.nrad; i++) {
+    for (int i = 0; i < Bfield.nrad; i++) {
         int iend = idx(i, Bfield.ntet);
         int istart = idx(i, 0);
 
@@ -904,11 +918,11 @@ void Cyclotron::getdiffs() {
 
     /* debug
 
-    for(int i = 0; i< Bfield.nrad; i++){
-      for(int j = 0; j< Bfield.ntetS; j++){
+    for (int i = 0; i< Bfield.nrad; i++){
+      for (int j = 0; j< Bfield.ntetS; j++){
     int index = idx(i,j);
-    double x = (BP.rmin+i*BP.delr) * sin(j*BP.dtet*pi/180.0);
-    double y = (BP.rmin+i*BP.delr) * cos(j*BP.dtet*pi/180.0);
+    double x = (BP.rmin+i*BP.delr) * std::sin(j*BP.dtet*pi/180.0);
+    double y = (BP.rmin+i*BP.delr) * std::cos(j*BP.dtet*pi/180.0);
     *gmsg<<"x= "<<x<<" y= "<<y<<" B= "<<Bfield.bfld[index]<<endl;
       }
     }
@@ -930,65 +944,65 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
 
     BP.Bfact = scaleFactor;
 
-    if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
+    if ((f = std::fopen(fmapfn_m.c_str(), "r")) == NULL) {
         throw GeneralClassicException("Cyclotron::getFieldFromField",
                                       "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
     BP.rmin *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.delr));
     //if the value is negative, the actual value is its reciprocal.
-    if(BP.delr < 0.0) BP.delr = 1.0 / (-BP.delr);
+    if (BP.delr < 0.0) BP.delr = 1.0 / (-BP.delr);
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
     BP.delr *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.dtet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.dtet));
     //if the value is negative, the actual value is its reciprocal.
-    if(BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
+    if (BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
     *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg.]" << endl;
 
-    for(int i = 0; i < 13; i++)
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+    for (int i = 0; i < 13; i++)
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.nrad));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &Bfield.nrad));
     *gmsg << "* Index in radial direction: " << Bfield.nrad << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.ntet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &Bfield.ntet));
     *gmsg << "* Index in azimuthal direction: " << Bfield.ntet << endl;
 
     Bfield.ntetS = Bfield.ntet + 1;
     *gmsg << "* Accordingly, total grid point along azimuth:  " << Bfield.ntetS << endl;
 
-    for(int i = 0; i < 5; i++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+    for (int i = 0; i < 5; i++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
     }
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &lpar));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &lpar));
     // msg<< "READ"<<lpar<<" DATA ENTRIES"<<endl;
 
-    for(int i = 0; i < 4; i++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+    for (int i = 0; i < 4; i++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
     }
 
-    for(int i = 0; i < lpar; i++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &dtmp));
+    for (int i = 0; i < lpar; i++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &dtmp));
     }
-    for(int i = 0; i < 6; i++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+    for (int i = 0; i < 6; i++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
     }
     //*gmsg << "* READ FILE DESCRIPTION..." <<endl;
-    for(int i = 0; i < 10000; i++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
-        if(strcmp(fout, "LREC=") == 0)break;
+    for (int i = 0; i < 10000; i++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
+        if (std::strcmp(fout, "LREC=") == 0)break;
     }
 
-    for(int i = 0; i < 5; i++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+    for (int i = 0; i < 5; i++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
     }
     Bfield.ntot = idx(Bfield.nrad - 1, Bfield.ntet) + 1;
     //jjyang
@@ -1001,31 +1015,31 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
 
     *gmsg << "* Read-in loop one block per radius" << endl;
     *gmsg << "* Rescaling of the magnetic fields with factor: " << BP.Bfact << endl;
-    for(int i = 0; i < Bfield.nrad; i++) {
+    for (int i = 0; i < Bfield.nrad; i++) {
 
-        if(i > 0) {
-            for(int dummy = 0; dummy < 6; dummy++) {
-                CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout)); // INFO-LINE
+        if (i > 0) {
+            for (int dummy = 0; dummy < 6; dummy++) {
+                CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout)); // INFO-LINE
             }
         }
-        for(int k = 0; k < Bfield.ntet; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(i, k)])));
+        for (int k = 0; k < Bfield.ntet; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &(Bfield.bfld[idx(i, k)])));
             Bfield.bfld[idx(i, k)] *= BP.Bfact;
         }
-        for(int k = 0; k < Bfield.ntet; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.dbt[idx(i, k)])));
+        for (int k = 0; k < Bfield.ntet; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &(Bfield.dbt[idx(i, k)])));
             Bfield.dbt[idx(i, k)] *= BP.Bfact;
         }
-        for(int k = 0; k < Bfield.ntet; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.dbtt[idx(i, k)])));
+        for (int k = 0; k < Bfield.ntet; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &(Bfield.dbtt[idx(i, k)])));
             Bfield.dbtt[idx(i, k)] *= BP.Bfact;
         }
-        for(int k = 0; k < Bfield.ntet; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.dbttt[idx(i, k)])));
+        for (int k = 0; k < Bfield.ntet; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &(Bfield.dbttt[idx(i, k)])));
             Bfield.dbttt[idx(i, k)] *= BP.Bfact;
         }
     }
-    fclose(f);
+    std::fclose(f);
 
 
     *gmsg << "* Field Map read successfully!" << endl << endl;
@@ -1037,7 +1051,7 @@ void Cyclotron::getFieldFromFile(const double &scaleFactor) {
 // dimensions in [m]!
 void Cyclotron::initR(double rmin, double dr, int nrad) {
     BP.rarr.resize(nrad);
-    for(int i = 0; i < nrad; i++) {
+    for (int i = 0; i < nrad; i++) {
         BP.rarr[i] = rmin + i * dr;
     }
     BP.delr = dr;
@@ -1095,14 +1109,14 @@ void Cyclotron::getFieldFromFile_FFA(const double &/*scaleFactor*/) {
     const int num_of_header_lines = 1;
 
     // STEP2: SKIP ALL THE HEADER LINES
-    for(int i = 0; i < num_of_header_lines; ++i)
+    for (int i = 0; i < num_of_header_lines; ++i)
         file_to_read.ignore(max_num_of_char_in_a_line, '\n');
 
     // TEMP for OPAL 2.0 changing this to m -DW
     while(!file_to_read.eof()) {
         double r, th, x, y, bz;
         file_to_read >> r >> th >> x >> y >> bz;
-        if((int)th != 360) {
+        if ((int)th != 360) {
             rv.push_back(r);
             thv.push_back(th);
             xv.push_back(x);
@@ -1117,7 +1131,7 @@ void Cyclotron::getFieldFromFile_FFA(const double &/*scaleFactor*/) {
     double rmax = rv.back();
 
     // find out dR
-    for(vit = rv.begin(); *vit <= BP.rmin; ++vit) {}
+    for (vit = rv.begin(); *vit <= BP.rmin; ++vit) {}
     BP.delr = *vit - BP.rmin;
 
     BP.tetmin = thv[0];
@@ -1132,7 +1146,7 @@ void Cyclotron::getFieldFromFile_FFA(const double &/*scaleFactor*/) {
     *gmsg << "* Maximal angle of measured field map: " << maxtheta << " [deg.]" << endl;
 
     //if the value is negtive, the actual value is its reciprocal.
-    if(BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
+    if (BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
     *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg.]" << endl;
     *gmsg << "* Total grid point along azimuth:  " << Bfield.ntetS << endl;
     *gmsg << "* Total grid point along radius: " << Bfield.nrad << endl;
@@ -1148,12 +1162,12 @@ void Cyclotron::getFieldFromFile_FFA(const double &/*scaleFactor*/) {
     *gmsg << "* Rescaling of the magnetic fields with factor: " << BP.Bfact << endl;
 
     int count = 0;
-    if((Ippl::getNodes()) == 1 && Options::info) {
+    if ((Ippl::getNodes()) == 1 && Options::info) {
         std::fstream fp;
         fp.open("data/gnu.out", std::ios::out);
 
-        for(int r = 0; r < Bfield.nrad; r++) {
-            for(int k = 0; k < Bfield.ntet; k++) {
+        for (int r = 0; r < Bfield.nrad; r++) {
+            for (int k = 0; k < Bfield.ntet; k++) {
                 Bfield.bfld[idx(r, k)] = bzv[count] * BP.Bfact;
                 fp << BP.rmin + (r * BP.delr) << " \t "
                    << k*(BP.tetmin + BP.dtet) << " \t "
@@ -1190,36 +1204,36 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
 
     BP.Bfact = scaleFactor / 1000.;
 
-    if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
+    if ((f = std::fopen(fmapfn_m.c_str(), "r")) == NULL) {
         throw GeneralClassicException(
             "Cyclotron::getFieldFromFile_AVFEQ",
             "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
     BP.rmin *= 0.001;  // mm --> m
 
     double rmax;
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &rmax));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &rmax));
     *gmsg << "* Maximal radius of measured field map: " << rmax << " [mm]" << endl;
     rmax *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.delr));
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
     BP.delr *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
 
     double tetmax;
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &tetmax));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &tetmax));
     *gmsg << "* Maximal angle of measured field map: " << tetmax << " [deg.]" << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.dtet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.dtet));
     //if the value is nagtive, the actual value is its reciprocal.
 
-    if(BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
+    if (BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
     *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg.]" << endl;
 
     Bfield.ntetS = (int)((tetmax - BP.tetmin) / BP.dtet + 1);
@@ -1241,27 +1255,27 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double &scaleFactor) {
     *gmsg << "* Rescaling of the magnetic fields with factor: " << BP.Bfact << endl;
 
     std::fstream fp;
-    if((Ippl::getNodes()) == 1 && Options::info)
+    if ((Ippl::getNodes()) == 1 && Options::info)
         fp.open("data/gnu.out", std::ios::out);
 
     double tmp;
     int count = 0;
 
-    for(int r = 0; r < Bfield.nrad; r++) {
-        CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &tmp));   // over read
-        for(int k = 0; k < Bfield.ntetS; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(r, k)])));
+    for (int r = 0; r < Bfield.nrad; r++) {
+        CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &tmp));   // over read
+        for (int k = 0; k < Bfield.ntetS; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &(Bfield.bfld[idx(r, k)])));
             Bfield.bfld[idx(r, k)] *= BP.Bfact;
-            if((Ippl::getNodes()) == 1 && Options::info)
+            if ((Ippl::getNodes()) == 1 && Options::info)
                 fp << BP.rmin + (r * BP.delr) << " \t "
                    << k*(BP.tetmin + BP.dtet) << " \t "
                    << Bfield.bfld[idx(r, k)] << " idx= " << idx(r, k)  << std::endl;
             count++;
         }
     }
-    if((Ippl::getNodes()) == 1 && Options::info)
+    if ((Ippl::getNodes()) == 1 && Options::info)
         fp.close();
-    fclose(f);
+    std::fclose(f);
     *gmsg << "* Field Map read successfully nelem= " << count << endl << endl;
 }
 
@@ -1276,33 +1290,33 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 
     BP.Bfact = scaleFactor;
 
-    if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
+    if ((f = std::fopen(fmapfn_m.c_str(), "r")) == NULL) {
         throw GeneralClassicException("Cyclotron::getFieldFromFile_Carbon",
                                       "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
     BP.rmin *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.delr));
     //if the value is negative, the actual value is its reciprocal.
-    if(BP.delr < 0.0) BP.delr = 1.0 / (-BP.delr);
+    if (BP.delr < 0.0) BP.delr = 1.0 / (-BP.delr);
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
     BP.delr *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg]" << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.dtet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.dtet));
     //if the value is negative, the actual value is its reciprocal.
-    if(BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
+    if (BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
     *gmsg << "* Stepsize in azimuthal direction: " << BP.dtet << " [deg]" << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.ntet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &Bfield.ntet));
     *gmsg << "* Grid points along azimuth (ntet): " << Bfield.ntet << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.nrad));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &Bfield.nrad));
     *gmsg << "* Grid points along radius (nrad): " << Bfield.nrad << endl;
 
 //    Bfield.ntetS = Bfield.ntet;
@@ -1321,19 +1335,19 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
 
     *gmsg << "* Rescaling of the magnetic fields with factor: " << BP.Bfact << endl;
 
-    for(int i = 0; i < Bfield.nrad; i++) {
-        for(int k = 0; k < Bfield.ntet; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%16lE", &(Bfield.bfld[idx(i, k)])));
+    for (int i = 0; i < Bfield.nrad; i++) {
+        for (int k = 0; k < Bfield.ntet; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%16lE", &(Bfield.bfld[idx(i, k)])));
             Bfield.bfld[idx(i, k)] *= BP.Bfact;
         }
     }
 
-    if((Ippl::getNodes()) == 1 && Options::info) {
+    if ((Ippl::getNodes()) == 1 && Options::info) {
         std::fstream fp1, fp2;
         fp1.open("data/gnu.out", std::ios::out);
         fp2.open("data/eb.out", std::ios::out);
-        for(int i = 0; i < Bfield.nrad; i++) {
-            for(int k = 0; k < Bfield.ntet; k++) {
+        for (int i = 0; i < Bfield.nrad; i++) {
+            for (int k = 0; k < Bfield.ntet; k++) {
                 fp1 << BP.rmin + (i * BP.delr) << " \t "
                     << k * (BP.tetmin + BP.dtet) << " \t "
                     << Bfield.bfld[idx(i, k)] << std::endl;
@@ -1343,7 +1357,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
                 tmpR /= 1000.0; // -> mm to m
                 for (auto& fi: RFfields_m) {
                     Vector_t E(0.0, 0.0, 0.0), B(0.0, 0.0, 0.0);
-                    if(!fi->getFieldstrength(tmpR, tmpE, tmpB)) {
+                    if (!fi->getFieldstrength(tmpR, tmpE, tmpB)) {
                         tmpE += E;
                         tmpB -= B;
                     }
@@ -1355,7 +1369,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double &scaleFactor) {
         fp2.close();
     }
 
-    fclose(f);
+    std::fclose(f);
 
     *gmsg << "* Field Maps read successfully!" << endl << endl;
 }
@@ -1374,31 +1388,31 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
 
     BP.Bfact = scaleFactor;
 
-    if((f = fopen(fmapfn_m.c_str(), "r")) == NULL) {
+    if ((f = std::fopen(fmapfn_m.c_str(), "r")) == NULL) {
         throw GeneralClassicException("Cyclotron::getFieldFromFile_CYCIAE",
                                       "failed to open file '" + fmapfn_m + "', please check if it exists");
     }
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.rmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
     BP.rmin *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.delr));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.delr));
     *gmsg << "* Stepsize in radial direction: " << BP.delr << " [mm]" << endl;
     BP.delr *= 0.001;  // mm --> m
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.tetmin));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.tetmin));
     *gmsg << "* Minimal angle of measured field map: " << BP.tetmin << " [deg.]" << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &BP.dtet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.dtet));
     //if the value is nagtive, the actual value is its reciprocal.
-    if(BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
+    if (BP.dtet < 0.0) BP.dtet = 1.0 / (-BP.dtet);
     *gmsg << "* Stepsize in azimuth direction: " << BP.dtet << " [deg.]" << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.ntet));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &Bfield.ntet));
     *gmsg << "* Index in azimuthal direction: " << Bfield.ntet << endl;
 
-    CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &Bfield.nrad));
+    CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &Bfield.nrad));
     *gmsg << "* Index in radial direction: " << Bfield.nrad << endl;
 
     Bfield.ntetS = Bfield.ntet + 1;
@@ -1416,26 +1430,26 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double &scaleFactor) {
 
     int nHalfPoints = Bfield.ntet / 2.0 + 1;
 
-    for(int i = 0; i < Bfield.nrad; i++) {
+    for (int i = 0; i < Bfield.nrad; i++) {
 
-        for(int ii = 0; ii < 13; ii++)
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%s", fout));
+        for (int ii = 0; ii < 13; ii++)
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%s", fout));
 
-        for(int k = 0; k < nHalfPoints; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%d", &dtmp));
-            CHECK_CYC_FSCANF_EOF(fscanf(f, "%lf", &(Bfield.bfld[idx(i, k)])));
+        for (int k = 0; k < nHalfPoints; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &dtmp));
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &dtmp));
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &dtmp));
+            CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &(Bfield.bfld[idx(i, k)])));
             //  T --> kGs, minus for minus hydrogen
             Bfield.bfld[idx(i, k)] = Bfield.bfld[idx(i, k)] * (-10.0);
         }
 
-        for(int k = nHalfPoints; k < Bfield.ntet; k++) {
+        for (int k = nHalfPoints; k < Bfield.ntet; k++) {
             Bfield.bfld[idx(i, k)] = Bfield.bfld[idx(i, Bfield.ntet-k)];
         }
     }
 
-    fclose(f);
+    std::fclose(f);
 
     *gmsg << "* Field Map read successfully!" << endl << endl;
 }
@@ -1444,9 +1458,9 @@ void Cyclotron::getFieldFromFile_BandRF(const double &scaleFactor) {
 
     // read 3D E&B field data file
     // loop over all field maps and superpose fields
-    for(auto& fm: RFfilename_m) {
+    for (auto& fm: RFfilename_m) {
         Fieldmap *f = Fieldmap::getFieldmap(fm, false);
-        if(f == NULL) {
+        if (f == NULL) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_BandRF",
                 "failed to open file '" + fm + "', please check if it exists");
@@ -1475,9 +1489,9 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
     *gmsg << "*      READ IN 3D RF Fields and Frequency Coefficients        " << endl;
     *gmsg << "* ------------------------------------------------------------" << endl;
 
-    for(; fm != RFfilename_m.end(); ++fm, ++rffcfni, ++rfvcfni, ++fcount) {
+    for (; fm != RFfilename_m.end(); ++fm, ++rffcfni, ++rfvcfni, ++fcount) {
         Fieldmap *f = Fieldmap::getFieldmap(*fm, false);
-        if(f == NULL) {
+        if (f == NULL) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *fm + "', please check if it exists");
@@ -1489,9 +1503,9 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
         // Read RF Frequency Coefficients from file
         *gmsg << "RF Frequency Coefficient Filename: " << (*rffcfni) << endl;
 
-        rffcf = fopen((*rffcfni).c_str(), "r");
+        rffcf = std::fopen((*rffcfni).c_str(), "r");
 
-        if(rffcf == NULL) {
+        if (rffcf == NULL) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *rffcfni + "', please check if it exists");
@@ -1502,23 +1516,23 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
         int nc; //Number of coefficients
         double value;
 
-        CHECK_CYC_FSCANF_EOF(fscanf(rffcf, "%d", &nc));
+        CHECK_CYC_FSCANF_EOF(std::fscanf(rffcf, "%d", &nc));
         *gmsg << "* Number of coefficients in file: " << nc << endl;
-        for(int k = 0; k < nc; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(rffcf, "%16lE", &value));
+        for (int k = 0; k < nc; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(rffcf, "%16lE", &value));
             fcoeff.push_back(value);
             //*gmsg << "* Coefficient " << k << ": " << value << endl;
         }
         rffc_m.push_back(fcoeff);
 
-        fclose(rffcf);
+        std::fclose(rffcf);
 
         // Read RF Voltage Coefficients from file
         *gmsg << "RF Voltage Coefficient Filename: " << (*rfvcfni) << endl;
 
-        rfvcf = fopen((*rfvcfni).c_str(), "r");
+        rfvcf = std::fopen((*rfvcfni).c_str(), "r");
 
-        if(rfvcf == NULL) {
+        if (rfvcf == NULL) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *rfvcfni + "', please check if it exists");
@@ -1526,16 +1540,16 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double &scaleFactor) {
 
         std::vector<double> vcoeff;
 
-        CHECK_CYC_FSCANF_EOF(fscanf(rfvcf, "%d", &nc));
+        CHECK_CYC_FSCANF_EOF(std::fscanf(rfvcf, "%d", &nc));
         *gmsg << "* Number of coefficients in file: " << nc << endl;
-        for(int k = 0; k < nc; k++) {
-            CHECK_CYC_FSCANF_EOF(fscanf(rfvcf, "%16lE", &value));
+        for (int k = 0; k < nc; k++) {
+            CHECK_CYC_FSCANF_EOF(std::fscanf(rfvcf, "%16lE", &value));
             vcoeff.push_back(value);
             //*gmsg << "* Coefficient " << k << ": " << value << endl;
         }
         rfvc_m.push_back(vcoeff);
 
-        fclose(rfvcf);
+        std::fclose(rfvcf);
     }
 
     // read CARBON type B field for mid-plane field

@@ -1,7 +1,5 @@
 file (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-message ("Adding test FFT found in ${_relPath}")
-message ("MPI CXX compiler: ${MPI_CXX_COMPILER}")
-message ("CXX compiler: ${CMAKE_CXX_COMPILER}")
+message (STATUS "Adding test FFT found in ${_relPath}")
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
@@ -15,12 +13,6 @@ link_directories (
 )
 
 set (IPPL_LIBS ippl)
-
-if (ENABLE_DKS)
-   include_directories (${DKS_INCLUDE_DIR})
-   link_directories (${DKS_LIBRARY_DIR})
-   set (IPPL_LIBS ${IPPL_LIBS} ${DKS_LIBRARY_DIR}/libdks.a)
-endif ()
 
 add_executable (fftspeed    fftspeed.cpp)
 add_executable (TestFFT     TestFFT.cpp)
@@ -45,7 +37,7 @@ target_link_libraries (TestRCMIC   ${IPPL_LIBS} ${MPI_CXX_LIBRARIES} boost_timer
 add_subdirectory (SeaborgRes)
 
 # vi: set et ts=4 sw=4 sts=4:
-  
+
 # Local Variables:
 # mode: cmake
 # cmake-tab-width: 4

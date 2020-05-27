@@ -25,6 +25,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 extern Inform *gmsg;
 
@@ -45,7 +46,6 @@ RBend3D::RBend3D(const RBend3D &right):
     fast_m(right.fast_m),
     geometry_m(right.geometry_m),
     dummyField_m() {
-    setElType(isDipole);
 }
 
 
@@ -58,7 +58,6 @@ RBend3D::RBend3D(const std::string &name):
     fast_m(false),
     geometry_m(),
     dummyField_m() {
-    setElType(isDipole);
 }
 
 
@@ -81,12 +80,6 @@ void RBend3D::setFast(bool fast) {
 
 bool RBend3D::getFast() const {
     return fast_m;
-}
-
-void RBend3D::addKR(int /*i*/, double /*t*/, Vector_t &/*K*/) {
-}
-
-void RBend3D::addKT(int /*i*/, double /*t*/, Vector_t &/*K*/) {
 }
 
 bool RBend3D::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
@@ -156,17 +149,17 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
 
         if (bX_m * bX_m + bY_m * bY_m > 0.0) {
             double refCharge = bunch->getQ();
-            rotationZAxis_m += atan2(bX_m, bY_m);
+            rotationZAxis_m += std::atan2(bX_m, bY_m);
             if (refCharge < 0.0) {
                 rotationZAxis_m -= Physics::pi;
             }
             fieldAmplitude_m = (refCharge *
-                                std::abs(sqrt(pow(bY_m, 2.0) + pow(bX_m, 2.0)) / refCharge));
+                                std::abs(std::sqrt(std::pow(bY_m, 2.0) + std::pow(bX_m, 2.0)) / refCharge));
             angle_m = trackRefParticleThrough(bunch->getdT(), Options::writeBendTrajectories);
         } else {
             if (angle_m < 0.0) {
                 // Negative angle is a positive bend rotated 180 degrees.
-                entranceAngle_m = copysign(1, angle_m) * entranceAngle_m;
+                entranceAngle_m = std::copysign(1, angle_m) * entranceAngle_m;
                 angle_m = std::abs(angle_m);
                 rotationZAxis_m += Physics::pi;
             }
@@ -174,7 +167,7 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
             const double refCharge = RefPartBunch_m->getQ();
             const double refMass = RefPartBunch_m->getM();
             const double refGamma = designEnergy_m / refMass + 1.0;
-            const double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
+            const double refBetaGamma = std::sqrt(std::pow(refGamma, 2.0) - 1.0);
 
             Vector_t B(0.0), E(0.0);
             double z = 0.0, dz = lengthField_m / 999;
@@ -301,7 +294,7 @@ MeshData RBend3D::getSurfaceMesh() const {
 double RBend3D::trackRefParticleThrough(double dt, bool print) {
     const double refMass = RefPartBunch_m->getM();
     const double refGamma = designEnergy_m / refMass + 1.0;
-    const double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
+    const double refBetaGamma = std::sqrt(std::pow(refGamma, 2.0) - 1.0);
     const double stepSize = refBetaGamma / refGamma * Physics::c * dt;
     const Vector_t scaleFactor(Physics::c * dt);
     print = print && (Ippl::myNode() == 0);
@@ -321,10 +314,10 @@ double RBend3D::trackRefParticleThrough(double dt, bool print) {
     BorisPusher pusher(*RefPartBunch_m->getReference());
 
     Vector_t X(0.0), P(0.0);
-    X(0) = startField_m * tan(entranceAngle_m);
+    X(0) = startField_m * std::tan(entranceAngle_m);
     X(2) = startField_m;
-    P(0) = refBetaGamma * sin(entranceAngle_m);
-    P(2) = refBetaGamma * cos(entranceAngle_m);
+    P(0) = refBetaGamma * std::sin(entranceAngle_m);
+    P(2) = refBetaGamma * std::cos(entranceAngle_m);
 
     while ((X(2) - startField_m) < lengthField_m && 0.5 * deltaS < lengthField_m) {
         Vector_t E(0.0), B(0.0);
@@ -351,5 +344,5 @@ double RBend3D::trackRefParticleThrough(double dt, bool print) {
         deltaS += stepSize;
     }
 
-    return -atan2(P(0), P(2)) + entranceAngle_m;
+    return -std::atan2(P(0), P(2)) + entranceAngle_m;
 }

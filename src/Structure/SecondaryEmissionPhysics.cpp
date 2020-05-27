@@ -1,22 +1,21 @@
 #include "Structure/SecondaryEmissionPhysics.h"
+
+#include "Physics/Physics.h"
+#include "Utilities/Options.h"
+#include "Utility/IpplTimings.h"
+
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <sys/stat.h>
-#include "Utilities/Options.h"
-#include "Utility/IpplTimings.h"
 
 using namespace myeps;
-using namespace Physics;
+
 SecondaryEmissionPhysics::SecondaryEmissionPhysics() {
 
     TPnSec_m = IpplTimings::getTimer("Secondary emission");
 }
-/**
- * Destructor.
- *
- * Delete the previous defined member arrays
- */
+
 SecondaryEmissionPhysics::~SecondaryEmissionPhysics() {
 
 }
@@ -38,7 +37,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 
     IpplTimings::startTimer(TPnSec_m);
     double prob[11] = {0};
-    std::vector<Vector_t> se_P;
     setSeMaterial(matNumber);//set material based parameters
     seyNum=calcProb(incEnergy, cosTheta, prob);//calculate probability
     calcEmiNum(incEnergy, cosTheta, prob, seNum);//calculate emitted number
@@ -51,7 +49,6 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     Vector_t TriNorm_l = TriNorm;
     double incQ_l = incQ;
 
-
     /*===========================Definitions for benchmark===================================*/
     double vw=ppVw; //1.6*1e-19*1200/9.10938188*1e-31/(2*3.1415926*2.0*1e8)/0.03;//benchmark
     double vt=vVThermal;//7.268929821*1e5;//1.5eV//benchmark
@@ -59,30 +56,28 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     double test_a=vt/vw;//benchmark
     double test_asq=test_a*test_a;//benchmark
     /*---------------------------------------------------------------------------------------*/
-    if( Options::ppdebug ) {
+    if ( Options::ppdebug ) {
 
     } else {
 
-        if(seNum != 0) {
+        if (seNum != 0) {
 
-            for(int i = 0; i < seNum; i++) {
-
+            for (int i = 0; i < seNum; i++) {
                 double tmp1 = IpplRandom();
                 double tmp2 = IpplRandom();
                 double temp = 1.0 / (1.0 + seAlpha_m);
-                emiTheta[i] = acos(pow(tmp1, temp));
+                emiTheta[i] = std::acos(std::pow(tmp1, temp));
                 emiPhi[i] = Physics::two_pi * tmp2;
-
             }
         }
     }
 
 
-    if(seNum == 0) {
+    if (seNum == 0) {
 
         // The incident particle will be marked for deletion
         if (!nEmissionMode) {
-            if( Options::ppdebug ) {
+            if ( Options::ppdebug ) {
                 /*=========(Velocity with Maxwellian Distribution For Parallel Plate Benchmark)========*/
                 double test_s=1;
                 double f_x=0;
@@ -92,14 +87,13 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                     test_s*=f_max;
                     test_x=IpplRandom();
                     test_x*=10*test_a;// range for normalized emission speed(0,10*test_a);
-                    f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                    f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
                 }
                 double v_emi=test_x*vw;
-                Eemit[0]=(1.0/sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
+                Eemit[0]=(1.0/std::sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
                 // cout<<"Single Eemit[0]: "<<Eemit[0]<<endl;
                 /*---------------------End Of Maxwellian Distribution(For Benchmark)--------------------*/
             } else {
-
                 // For absorption case in constant simulation particle mode, just use true secondary emission with 1 particle energy distribution for Furman Pivi model.
                 double u2 = IpplRandom();
 
@@ -107,16 +101,13 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                 double p0 = gammp(sePn_m[0], temp);
                 temp = p0 * u2;
                 Eemit[0] = seEpsn_m[0] * invgammp(temp, sePn_m[0]) ;
-
-
             }
 
         }
 
+    } else if (seNum == 1) {
 
-    } else if(seNum == 1) {
-
-        if( Options::ppdebug ) {
+        if ( Options::ppdebug ) {
             /*=========(Velocity with Maxwellian Distribution For Parallel Plate Benchmark)========*/
             double test_s=1;
             double f_x=0;
@@ -126,45 +117,37 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                 test_s*=f_max;
                 test_x=IpplRandom();
                 test_x*=10*test_a;//range for normalized emission speed(0,10*test_a);
-                f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
             }
             double v_emi=test_x*vw;
-            Eemit[0]=(1.0/sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
+            Eemit[0]=(1.0/std::sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
             //cout<<"Single Eemit[0]: "<<Eemit[0]<<endl;
             /*---------------------End Of Maxwellian Distribution(For Benchmark)--------------------*/
         } else {
-
-            //double delta_e = calcDeltae(incEnergy, cosTheta);
-            //double delta_r = calcDeltar(incEnergy, cosTheta);
             double tmp = prob[1] + deltae_m + deltar_m;
-            //double ae = delta_e / tmp;
             double ae = deltae_m / tmp;
-            //double ar = delta_r / tmp;
             double ar = deltar_m / tmp;
             double a_re = ae + ar;
             double urand = IpplRandom();
 
-
-            if(urand < ae) {
+            if (urand < ae) {
                 int t_count = 0;
                 do {
-                    Eemit[0] = incEnergy - seDelta_m * fabs(gaussRand()) ;
+                    Eemit[0] = incEnergy - seDelta_m * std::abs(gaussRand()) ;
                     t_count++;
                 } while(Eemit[0] < 0&&t_count<200);
-                if(Eemit[0]<0)// if the above do - while loops over 200 times, the loop will break out, and Eemit will be its mean value, i.e., incident energy.
+                if (Eemit[0]<0)// if the above do - while loops over 200 times, the loop will break out, and Eemit will be its mean value, i.e., incident energy.
                     Eemit[0]=incEnergy;
                 seType = 0;
 
-            } else if(urand >= ae && urand < a_re) {
+            } else if (urand >= ae && urand < a_re) {
                 double u1 = IpplRandom();
 
                 double powArg = 1.0 / (1.0 + seQ_m);
-                Eemit[0] = incEnergy * pow(u1, powArg);
+                Eemit[0] = incEnergy * std::pow(u1, powArg);
                 seType = 1;
 
-
             } else {
-
                 double u2 = IpplRandom();
 
                 double temp = incEnergy / seEpsn_m[0];
@@ -172,18 +155,17 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                 temp = p0 * u2;
                 Eemit[0] = seEpsn_m[0] * invgammp(temp, sePn_m[0]) ;
                 seType = 2;
-
             }
         }
 
     } else {
         seType = 2;
 
-        if( Options::ppdebug ) {
+        if ( Options::ppdebug ) {
             /*==========(Velocity with Maxwellian Distribution For Parallel Plate Benchmark)========*/
             if (!nEmissionMode) {
                 /*double Eemit_mean = 0.0;
-                  for(int i = 0; i < seNum; i++) {
+                  for (int i = 0; i < seNum; i++) {
                   Eemit_mean += Eemit[i];
                   }*/
                 //Eemit[0] = Eemit_mean/seNum;
@@ -195,14 +177,13 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                     test_s*=f_max;
                     test_x=IpplRandom();
                     test_x*=10*test_a;//range for normalized emission speed(0,10*test_a);
-                    f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                    f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
                 }
                 double v_emi=test_x*vw;
-                Eemit[0]=(1.0/sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
-
+                Eemit[0]=(1.0/std::sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
 
             } else {
-                for(int i = 0; i < seNum; i++) {
+                for (int i = 0; i < seNum; i++) {
                     double test_s=1.0;
                     double f_x=0;
                     double test_x=0;
@@ -211,13 +192,12 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                         test_s*=f_max;
                         test_x=IpplRandom();
                         test_x*=10*test_a;//range for normalized emission speed(0,10*test_a);
-                        f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                        f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
                     }
                     double v_emi=test_x*vw;
                     Eemit[i]=(1.0/sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
 
                 }
-
 
             }
             /*---------------------End Of Maxwellian Distribution(For Benchmark)--------------------*/
@@ -237,42 +217,37 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
             if (!nEmissionMode) {// only emit 1 particle
 
                 double Eemisum = 0.0;
-                for(int i = 0; i < seNum - 1; i++) {
+                for (int i = 0; i < seNum - 1; i++) {
                     double mu = sePn_m[seNum-1] * (seNum  - i);
                     double nu =  sePn_m[seNum-1];
                     double rand_n = IpplRandom();
                     sin2theta_n[i] = invbetai(rand_n, mu, nu);
                     cos2theta_n[i] = 1.0 - sin2theta_n[i];
-                    if(i != 0) {
-
+                    if (i != 0) {
                         multisin *=  sin2theta_n[i-1];
                     }
                     y2_n[i] = y2 *  multisin * cos2theta_n[i];
                     Eemit[i] = seEpsn_m[seNum-1] * y2_n[i];
                     Eemisum += Eemit[i];
 
-
                 }
 
                 Eemit[seNum-1] = Eemit[seNum-2] / cos2theta_n[seNum-2] * sin2theta_n[seNum-2];
                 Eemisum += Eemit[seNum-1];
-
                 Eemit[0] = Eemisum/seNum;
 
             } else {// emit seNum particles
-                for(int i = 0; i < seNum - 1; i++) {
+                for (int i = 0; i < seNum - 1; i++) {
                     double mu = sePn_m[seNum-1] * (seNum  - i);
                     double nu =  sePn_m[seNum-1];
                     double rand_n = IpplRandom();
                     sin2theta_n[i] = invbetai(rand_n, mu, nu);
                     cos2theta_n[i] = 1.0 - sin2theta_n[i];
-                    if(i != 0) {
-
+                    if (i != 0) {
                         multisin *=  sin2theta_n[i-1];
                     }
                     y2_n[i] = y2 *  multisin * cos2theta_n[i];
                     Eemit[i] = seEpsn_m[seNum-1] * y2_n[i];
-
 
                 }
 
@@ -286,7 +261,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 
     Vector_t z_unit = TriNorm_l;
     Vector_t x_unit = localX - interCoords_l;
-    double tmp = sqrt(dot(x_unit,x_unit));
+    double tmp = std::sqrt(dot(x_unit,x_unit));
     x_unit /= tmp;
     Vector_t y_unit = cross(z_unit,x_unit);
 
@@ -294,29 +269,24 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     if (!nEmissionMode) {// emit only 1 particle with larger charge instead of emit seNum secondaries.
         //if (seNum>0) {// we dont delete particles even when seNum==0.
         double gamma_const = Eemit[0] / Physics::m_e/1.0e9 + 1.0;
-        double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+        double beta_const = std::sqrt(1.0 - 1.0 / std::pow(gamma_const, 2.0));
         double P_emitted = gamma_const * beta_const;
 
         Vector_t P_local;
         Vector_t P_global = (0.0);
 
-        if( Options::ppdebug ) {
-
+        if ( Options::ppdebug ) {
             P_global = P_emitted*TriNorm_l;// 1D for parallel plate benchmark
-
         } else {
             /*==================3D for Furman-Pivi's Model====================*/
-            P_local[2] = P_emitted * cos(emiTheta[0]);
-            P_local[1] = P_emitted * sin(emiTheta[0]) * sin(emiPhi[0]);
-            P_local[0] = P_emitted * sin(emiTheta[0]) * cos(emiPhi[0]);
+            P_local[2] = P_emitted * std::cos(emiTheta[0]);
+            P_local[1] = P_emitted * std::sin(emiTheta[0]) * std::sin(emiPhi[0]);
+            P_local[0] = P_emitted * std::sin(emiTheta[0]) * std::cos(emiPhi[0]);
             P_global = P_local[0]*x_unit + P_local[1]*y_unit +  P_local[2]*z_unit;//Pivi's model
             /*================================================================*/
-
-
         }
         itsBunch->create(1);
         itsBunch->R[lowMark] = interCoords_l;
-
         itsBunch->P[lowMark] = P_global;
         itsBunch->Bin[lowMark] = 0;
         itsBunch->PType[lowMark] = ParticleType::NEWSECONDARY;
@@ -328,35 +298,28 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
         itsBunch->dt[lowMark] = itsBunch->getdT();
         //}
 
-
-
     } else {
-        for(size_t i = 0; i < (size_t) seNum; i++) {
+        for (size_t i = 0; i < (size_t) seNum; i++) {
 
             double gamma_const = Eemit[i] / Physics::m_e/1.0e9 + 1.0;
-            double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+            double beta_const = std::sqrt(1.0 - 1.0 / std::pow(gamma_const, 2.0));
             double P_emitted = gamma_const * beta_const;
 
             Vector_t P_local;
             Vector_t P_global = (0.0);
 
-            if( Options::ppdebug ) {
-
+            if ( Options::ppdebug ) {
                 P_global = P_emitted*TriNorm_l;// 1D for parallel plate benchmark
-
             } else {
                 /*==================3D for Furman-Pivi's Model====================*/
-                P_local[2] = P_emitted * cos(emiTheta[i]);
-                P_local[1] = P_emitted * sin(emiTheta[i]) * sin(emiPhi[i]);
-                P_local[0] = P_emitted * sin(emiTheta[i]) * cos(emiPhi[i]);
+                P_local[2] = P_emitted * std::cos(emiTheta[i]);
+                P_local[1] = P_emitted * std::sin(emiTheta[i]) * std::sin(emiPhi[i]);
+                P_local[0] = P_emitted * std::sin(emiTheta[i]) * std::cos(emiPhi[i]);
                 P_global = P_local[0]*x_unit + P_local[1]*y_unit +  P_local[2]*z_unit;//Pivi's model
                 /*================================================================*/
-
-
             }
             itsBunch->create(1);
             itsBunch->R[lowMark+i] = interCoords_l;
-
             itsBunch->P[lowMark+i] = P_global;
             itsBunch->Bin[lowMark+i] = 0;
             itsBunch->PType[lowMark+i] = ParticleType::NEWSECONDARY;
@@ -390,13 +353,10 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                                     const double &vKenergy,
                                     const double &vKtheta,
                                     const double &vVThermal,
-                                    const bool nEmissionMode)
-{
-
+                                    const bool nEmissionMode) {
 
     IpplTimings::startTimer(TPnSec_m);
 
-    std::vector<Vector_t> se_P;
     calcEmiNum(incEnergy, cosTheta, seNum, vSeyZero, vEzero, vSeyMax, vEmax, vKenergy, vKtheta, seyNum);//calculate emitted number & SEY factor
     double Eemit[seNum];
     double emiTheta[seNum];
@@ -408,52 +368,45 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     double f_max;//benchmark
     double test_a;//benchmark
     double test_asq;//benchmark
-    if( Options::ppdebug ) {
-        f_max=vw/vt*exp(-0.5);// velocity a Maxwellian distribution. See Anza et al.,Phys. Plasmas 17, 062110 (2010)
+    if ( Options::ppdebug ) {
+        f_max=vw/vt*std::exp(-0.5);// velocity a Maxwellian distribution. See Anza et al.,Phys. Plasmas 17, 062110 (2010)
 
         test_a=vt/vw;
         test_asq=test_a*test_a;
     } else {// Energy Maxwell-Boltzmann distribution f(E)=E/a^2*exp(-E/a), a= kinetic energy w.r.t thermal speed vt. See www.nuc.berkeley.edu/dept/Courses/NE-255/minicourse.pdf p.20
-        test_a = Physics::m_e*(1.0/sqrt(1-vt*vt/Physics::c/Physics::c)-1.0)*1.0e9;// m_e GeV change it to eV
+        test_a = Physics::m_e*(1.0/std::sqrt(1-vt*vt/Physics::c/Physics::c)-1.0)*1.0e9;// m_e GeV change it to eV
         test_asq=test_a*test_a;
-        f_max= 1.0/test_a*exp(-1.0);
-
+        f_max= 1.0/test_a*std::exp(-1.0);
     }
 
     double incQ_l = incQ;
-    if( Options::ppdebug ) {
+    if ( Options::ppdebug ) {
         // 1D emission angle along the surface triangle normal
-
     } else {
         if (!nEmissionMode) {
-
             double tmp1 = IpplRandom();
             double tmp2 = IpplRandom();
             double seAlpha = 1.0;
             double temp = 1.0 / (1.0 + seAlpha);// pow(cosine(theta),seAlpha) distribution. Here seAlpha=1.0
-            emiTheta[0] = acos(pow(tmp1, temp));
+            emiTheta[0] = std::acos(std::pow(tmp1, temp));
             emiPhi[0] = Physics::two_pi * tmp2;
-
-
         } else {
 
-            for(int i = 0; i < seNum; i++) {
-
+            for (int i = 0; i < seNum; i++) {
                 double tmp1 = IpplRandom();
                 double tmp2 = IpplRandom();
                 double seAlpha = 1.0;
                 double temp = 1.0 / (1.0 + seAlpha);// pow(cosine(theta),seAlpha) distribution. Here seAlpha=1.0
-                emiTheta[i] = acos(pow(tmp1, temp));
+                emiTheta[i] = std::acos(std::pow(tmp1, temp));
                 emiPhi[i] = Physics::two_pi * tmp2;
-
             }
 
         }
     }
 
-    if(seNum == 0) {
+    if (seNum == 0) {
         if (!nEmissionMode) {
-            if( Options::ppdebug ) {
+            if ( Options::ppdebug ) {
                 double test_s=1.0;
                 double f_x=0;
                 double test_x=0;
@@ -462,10 +415,10 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                     test_s*=f_max;
                     test_x=IpplRandom();
                     test_x*=10*test_a;// truncation range for emission speed(0,10*test_a);
-                    f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                    f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
                 }
                 double v_emi=test_x*vw;
-                Eemit[0]=(1.0/sqrt(1.0-v_emi*v_emi/Physics::c/Physics::c)-1)*Physics::m_e*1.0e9;
+                Eemit[0]=(1.0/std::sqrt(1.0-v_emi*v_emi/Physics::c/Physics::c)-1)*Physics::m_e*1.0e9;
             } else {
                 double test_s=1.0;
                 double f_x=0;
@@ -475,11 +428,10 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                     test_s*=f_max;
                     test_x=IpplRandom();
                     test_x*=10*test_a;// truncation range for emission energy(0,10*test_a);
-                    f_x=test_x/test_asq*exp(-test_x/test_a);// thermal distribution for energy
+                    f_x=test_x/test_asq*std::exp(-test_x/test_a);// thermal distribution for energy
                 }
 
                 Eemit[0]=test_x;
-
 
             }
 
@@ -490,7 +442,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
     } else {
         seType = 2;
         if (!nEmissionMode) {
-            if( Options::ppdebug ) {
+            if ( Options::ppdebug ) {
                 double test_s=1.0;
                 double f_x=0;
                 double test_x=0;
@@ -499,10 +451,10 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                     test_s*=f_max;
                     test_x=IpplRandom();
                     test_x*=10*test_a;// truncation range for emission speed(0,10*test_a);
-                    f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                    f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
                 }
                 double v_emi=test_x*vw;
-                Eemit[0]=(1.0/sqrt(1.0-v_emi*v_emi/Physics::c/Physics::c)-1)*Physics::m_e*1.0e9;
+                Eemit[0]=(1.0/std::sqrt(1.0-v_emi*v_emi/Physics::c/Physics::c)-1)*Physics::m_e*1.0e9;
             } else {
                 double test_s=1.0;
                 double f_x=0;
@@ -512,7 +464,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                     test_s*=f_max;
                     test_x=IpplRandom();
                     test_x*=10*test_a;// truncation range for emission energy(0,10*test_a);
-                    f_x=test_x/test_asq*exp(-test_x/test_a);// thermal distribution for energy
+                    f_x=test_x/test_asq*std::exp(-test_x/test_a);// thermal distribution for energy
                 }
 
                 Eemit[0]=test_x;
@@ -520,11 +472,11 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
             }
 
         } else {
-            if( Options::ppdebug ) {
+            if ( Options::ppdebug ) {
                 /*=======================Maxwellian Distribution====================*/
                 // the velocity distribution for Vaughan's model:fu=u*vw*vw/vt/vt*exp(-u*u*vw*vw/vt/vt) valid for benchmarking;
 
-                for(int i = 0; i < seNum; i++) {
+                for (int i = 0; i < seNum; i++) {
                     double test_s=1.0;
                     double f_x=0;
                     double test_x=0;
@@ -533,16 +485,16 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                         test_s*=f_max;
                         test_x=IpplRandom();
                         test_x*=10*test_a;//range for normalized emission speed(0,10*test_a);
-                        f_x=test_x/test_asq*exp(-test_x*test_x/2/test_asq);
+                        f_x=test_x/test_asq*std::exp(-test_x*test_x/2/test_asq);
                     }
                     double v_emi=test_x*vw;
-                    Eemit[i]=(1.0/sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
+                    Eemit[i]=(1.0/std::sqrt(1.0-v_emi*v_emi/9.0/1e16)-1)*Physics::m_e*1.0e9;
 
                 }
 
                 /*---------------------End Of Maxwellian Distribution--------------------*/
             } else {// energy thermal distribution for Vaughan model
-                for(int i = 0; i < seNum; i++) {
+                for (int i = 0; i < seNum; i++) {
                     double test_s=1.0;
                     double f_x=0;
                     double test_x=0;
@@ -551,7 +503,7 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
                         test_s*=f_max;
                         test_x=IpplRandom();
                         test_x*=10*test_a;// truncation range for emission energy(0,10*test_a);
-                        f_x=test_x/test_asq*exp(-test_x/test_a);// thermal distribution for energy
+                        f_x=test_x/test_asq*std::exp(-test_x/test_a);// thermal distribution for energy
                     }
 
                     Eemit[i]=test_x;
@@ -562,28 +514,25 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
 
     Vector_t z_unit = TriNorm;
     Vector_t x_unit = localX - interCoords_l;
-    double tmp = sqrt(dot(x_unit,x_unit));
+    double tmp = std::sqrt(dot(x_unit,x_unit));
     x_unit /= tmp;
     Vector_t y_unit = cross(z_unit,x_unit);
 
     size_t lowMark = itsBunch->getLocalNum();
     if (!nEmissionMode) {
         double gamma_const = Eemit[0] / Physics::m_e/1.0e9 + 1.0;
-        double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+        double beta_const = std::sqrt(1.0 - 1.0 / std::pow(gamma_const, 2.0));
         double P_emitted = gamma_const * beta_const;
-
 
         Vector_t P_local;
         Vector_t P_global = (0.0);
-        if( Options::ppdebug ) {
-
+        if ( Options::ppdebug ) {
             P_global = P_emitted*TriNorm_l;//1D for parallel plate benchmark
-
         } else {
             /*==================3D Vaughan' Model==========================================*/
-            P_local[2] = P_emitted * cos(emiTheta[0]);
-            P_local[1] = P_emitted * sin(emiTheta[0]) * sin(emiPhi[0]);
-            P_local[0] = P_emitted * sin(emiTheta[0]) * cos(emiPhi[0]);
+            P_local[2] = P_emitted * std::cos(emiTheta[0]);
+            P_local[1] = P_emitted * std::sin(emiTheta[0]) * std::sin(emiPhi[0]);
+            P_local[0] = P_emitted * std::sin(emiTheta[0]) * std::cos(emiPhi[0]);
             P_global = P_local[0]*x_unit + P_local[1]*y_unit +  P_local[2]*z_unit;// the same cosine distribution as Pivi's model
             /*=============================================================================*/
         }
@@ -600,31 +549,27 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
         itsBunch->dt[lowMark] = itsBunch->getdT();
 
     } else {
-        for(size_t i = 0; i < (size_t) seNum; i++) {
+        for (size_t i = 0; i < (size_t) seNum; i++) {
 
             double gamma_const = Eemit[i] / Physics::m_e/1.0e9 + 1.0;
-            double beta_const = sqrt(1.0 - 1.0 / pow(gamma_const, 2.0));
+            double beta_const = std::sqrt(1.0 - 1.0 / std::pow(gamma_const, 2.0));
             double P_emitted = gamma_const * beta_const;
-
 
             Vector_t P_local;
             Vector_t P_global = (0.0);
-            if( Options::ppdebug ) {
-
+            if ( Options::ppdebug ) {
                 P_global = P_emitted*TriNorm_l;//1D for parallel plate benchmark
-
             } else {
                 /*==================3D Vaughan' Model==========================================*/
-                P_local[2] = P_emitted * cos(emiTheta[i]);
-                P_local[1] = P_emitted * sin(emiTheta[i]) * sin(emiPhi[i]);
-                P_local[0] = P_emitted * sin(emiTheta[i]) * cos(emiPhi[i]);
+                P_local[2] = P_emitted * std::cos(emiTheta[i]);
+                P_local[1] = P_emitted * std::sin(emiTheta[i]) * std::sin(emiPhi[i]);
+                P_local[0] = P_emitted * std::sin(emiTheta[i]) * std::cos(emiPhi[i]);
                 P_global = P_local[0]*x_unit + P_local[1]*y_unit +  P_local[2]*z_unit;//the same cosine distribution as Pivi's model
                 /*=============================================================================*/
             }
 
             itsBunch->create(1);
             itsBunch->R[lowMark+i] = interCoords_l;
-
             itsBunch->P[lowMark+i] = P_global;
             itsBunch->Bin[lowMark+i] = 0;
             itsBunch->PType[lowMark+i] = ParticleType::NEWSECONDARY;
@@ -634,12 +579,10 @@ void SecondaryEmissionPhysics::nSec(const double &incEnergy,
             itsBunch->Bf[lowMark+i] = Vector_t(0.0);
             itsBunch->dt[lowMark+i] = itsBunch->getdT();
 
-
         }
     }
 
     IpplTimings::stopTimer(TPnSec_m);
-
 }
 
 void SecondaryEmissionPhysics::calcEmiNum(const double incEnergy,
@@ -659,26 +602,24 @@ void SecondaryEmissionPhysics::calcEmiNum(const double incEnergy,
         vSEY = vSeyZero;
     } else {
 
-        double theta = acos(cosTheta);
+        double theta = std::acos(cosTheta);
         double delta_max = vSeyMax*(1.0+vKtheta*theta*theta/Physics::two_pi);//here the symbols k are different with reference.
         double E_max = vEmax*(1.0+vKenergy*theta*theta/Physics::two_pi);
         PAssert_GT(E_max - vEzero, 0);
         double v = (incEnergy-vEzero)/(E_max-vEzero);
 
         if (v<=3.6) {
-
             if (v<1.0) {
-                vSEY = delta_max*pow(v*exp(1.0-v),0.56);
+                vSEY = delta_max*std::pow(v*std::exp(1.0-v),0.56);
             }else {
-                vSEY = delta_max*pow(v*exp(1.0-v),0.25);
+                vSEY = delta_max*std::pow(v*std::exp(1.0-v),0.25);
             }
-
-        }else {
-            vSEY = delta_max*1.125/pow(v,0.35);
+        } else {
+            vSEY = delta_max*1.125/std::pow(v,0.35);
         }
 
     }
-    double L = exp(-vSEY);// poisson distribution: Knuth's algorithm.
+    double L = std::exp(-vSEY);// poisson distribution: Knuth's algorithm.
     int k = 0;
     double p = 1.0;
     do {
@@ -689,7 +630,6 @@ void SecondaryEmissionPhysics::calcEmiNum(const double incEnergy,
     while (p>L);
     seNum = k-1;
     seyNum = vSEY;
-
 }
 
 void SecondaryEmissionPhysics::calcEmiNum(const double /*incEnergy*/, const double /*cosTheta*/, const double *prob, int &seNum) {// For Furman-Pivi's model
@@ -697,12 +637,10 @@ void SecondaryEmissionPhysics::calcEmiNum(const double /*incEnergy*/, const doub
     double prob_max = 0.0;
     // Acceptance-rejection methods to generate random number with specified distribution.
 
-    for(int i = 0; i < 11; i++) {
-
-        if(prob[i] > prob_max) {
+    for (int i = 0; i < 11; i++) {
+        if (prob[i] > prob_max) {
             prob_max = prob[i];
         }
-
     }
     double pY  = 1.0;
     double pX = 0.0;
@@ -716,38 +654,31 @@ void SecondaryEmissionPhysics::calcEmiNum(const double /*incEnergy*/, const doub
         //double rand2 = (*rand)(rng);
         pY = prob_max * rand2;
     }
-
 }
 
 
 double SecondaryEmissionPhysics::calcDeltats(const double incEnergy, const double cosTheta) {
-
-    double seypeak = seYPeakTS_m * (1 + seTOneTS_m * (1.0 - pow(cosTheta, seTTwoTS_m))); //formula III.E (48a)
-    double seepeak = seEPeakTS_m * (1 + seTThreeTS_m * (1.0 - pow(cosTheta, seTFourTS_m))); //formula III.E (48b)
+    double seypeak = seYPeakTS_m * (1 + seTOneTS_m * (1.0 - std::pow(cosTheta, seTTwoTS_m))); //formula III.E (48a)
+    double seepeak = seEPeakTS_m * (1 + seTThreeTS_m * (1.0 - std::pow(cosTheta, seTFourTS_m))); //formula III.E (48b)
     double tmpx = incEnergy / seepeak;
-    double tmpD = seSTS_m * tmpx / (seSTS_m - 1 + pow(tmpx, seSTS_m)); //formula III.D (32)
+    double tmpD = seSTS_m * tmpx / (seSTS_m - 1 + std::pow(tmpx, seSTS_m)); //formula III.D (32)
     double ret = seypeak * tmpD; //formula III.D (31)
     return ret;
-
 }
 
 double SecondaryEmissionPhysics::calcDeltar(const double incEnergy, const double cosTheta) {
-
-    double tmp = pow(incEnergy / seERed_m, seR_m);
-    double ret = sePRed_m * (1.0 - exp(-1 * tmp)); //formula III.D (28)
-    ret = ret * (1.0 + seROne_m * (1.0 - pow(cosTheta, seRTwo_m))); //formula III.E (47b)
+    double tmp = std::pow(incEnergy / seERed_m, seR_m);
+    double ret = sePRed_m * (1.0 - std::exp(-1 * tmp)); //formula III.D (28)
+    ret = ret * (1.0 + seROne_m * (1.0 - std::pow(cosTheta, seRTwo_m))); //formula III.E (47b)
     return ret;
-
 }
 
 
 double SecondaryEmissionPhysics::calcDeltae(const double incEnergy, const double cosTheta) {
-
-    double tmp = pow(std::abs(incEnergy - seEScatPeak_m) / seW_m, seP_m) / seP_m;
-    double ret = sePScat_m + (sePScatPeak_m - sePScat_m) * exp(-1 * tmp); //formula III.D (25)
-    ret = ret * (1.0 + seEOne_m * (1.0 - pow(cosTheta, seETwo_m))); //formula III.E (47a)
+    double tmp = std::pow(std::abs(incEnergy - seEScatPeak_m) / seW_m, seP_m) / seP_m;
+    double ret = sePScat_m + (sePScatPeak_m - sePScat_m) * std::exp(-1 * tmp); //formula III.D (25)
+    ret = ret * (1.0 + seEOne_m * (1.0 - std::pow(cosTheta, seETwo_m))); //formula III.E (47a)
     return ret;
-
 }
 
 
@@ -772,13 +703,12 @@ double SecondaryEmissionPhysics::calcProb(const double incEnergy, const double c
     b[8]  = 45.0;
     b[9]  = 10.0;
     b[10] = 1.0;
-    for(int i = 0; i < 11; i++) {
-        prob[i] = tmp * b[i] * pow(p, i) * pow(q, (10 - i));
+    for (int i = 0; i < 11; i++) {
+        prob[i] = tmp * b[i] * std::pow(p, i) * std::pow(q, (10 - i));
     }
     prob[1] = prob[1] + deltae_m + deltar_m;
 
     /*==============================================*/
-
     return (deltae_m+deltar_m+deltats_m);
     //cout << "sum prob: " << sum << endl;
     /*==============================================*/
@@ -786,7 +716,7 @@ double SecondaryEmissionPhysics::calcProb(const double incEnergy, const double c
 
 void SecondaryEmissionPhysics::setSeMaterial(int material_num) {
 
-    if(material_num == 0) {
+    if (material_num == 0) {
         seAlpha_m = 1.0;
         sePScat_m = 0.02;
         sePScatPeak_m = 0.496;
@@ -834,7 +764,7 @@ void SecondaryEmissionPhysics::setSeMaterial(int material_num) {
         seEpsn_m[8] = 2.5;
         seEpsn_m[9] = 3.0;
     }
-    if(material_num == 1) {
+    if (material_num == 1) {
         seAlpha_m = 1.0;
         sePScat_m = 0.07;
         sePScatPeak_m = 0.5;
@@ -886,7 +816,6 @@ void SecondaryEmissionPhysics::setSeMaterial(int material_num) {
 }
 
 
-
 /*==========================================
  *http://www.taygeta.com/random/gaussian.html
  *return a gaussian distributed random number
@@ -905,7 +834,7 @@ double SecondaryEmissionPhysics::gaussRand() {
         w = x1 * x1 + x2 * x2;
     } while(w >= 1.0);
 
-    w = sqrt((-2.0 * log(w)) / w);
+    w = std::sqrt((-2.0 * std::log(w)) / w);
     double ret = x1 * w;
     return ret;
 
@@ -914,13 +843,13 @@ double SecondaryEmissionPhysics::gaussRand() {
 double SecondaryEmissionPhysics::gammp(const double a, const double x) {
     // Returns the incomplete gamma function P .a; x/.
     static const int ASWITCH = 100; //When to switch to quadrature method.
-    if(x < 0.0 || a <= 0.0)
+    if (x < 0.0 || a <= 0.0)
         throw("bad args in gammp");
-    if(x == 0.0)
+    if (x == 0.0)
         return 0.0;
-    else if((int)a >= ASWITCH)
+    else if ((int)a >= ASWITCH)
         return gammpapprox(a, x, 1); //Quadrature.
-    else if(x < a + 1.0)
+    else if (x < a + 1.0)
         return gser(a, x); //Use the series representation.
     else
         return 1.0 - gcf(a, x); //Use the continued fraction representation.
@@ -933,39 +862,37 @@ double SecondaryEmissionPhysics::gser(const double a, const double x) {
     double gln = gammln(a);
     ap = a;
     del = sum = 1.0 / a;
-    for(;;) {
+    for (;;) {
         ++ap;
         del *= x / ap;
         sum += del;
-        if(std::abs(del) < std::abs(sum)*myeps::EPS) {
-            return sum * exp(-x + a * log(x) - gln);
+        if (std::abs(del) < std::abs(sum)*myeps::EPS) {
+            return sum * std::exp(-x + a * std::log(x) - gln);
         }
     }
 }
 
 double SecondaryEmissionPhysics::gcf(const double a, const double x) {
     // Returns the incomplete gamma function Q.a; x/ evaluated by its continued fraction representation. Also sets ln .a/ as gln. User should not call directly.
-    int i;
-    double an, b, c, d, del, h;
     double gln = gammln(a);
-    b = x + 1.0 - a; // Set up for evaluating continued fraction
-    c = 1.0 / myeps::FPMIN; // by modified Lentz¡¯s method (5.2)
-    d = 1.0 / b; // with b0 D 0.
-    h = d;
-    for(i = 1;; i++) {
+    double b = x + 1.0 - a; // Set up for evaluating continued fraction
+    double c = 1.0 / myeps::FPMIN; // by modified Lentz¡¯s method (5.2)
+    double d = 1.0 / b; // with b0 D 0.
+    double h = d;
+    for (int i = 1;; i++) {
         //Iterate to convergence.
-        an = -i * (i - a);
+        double an = -i * (i - a);
         b += 2.0;
         d = an * d + b;
-        if(std::abs(d) < myeps::FPMIN) d = myeps::FPMIN;
+        if (std::abs(d) < myeps::FPMIN) d = myeps::FPMIN;
         c = b + an / c;
-        if(std::abs(c) < myeps::FPMIN) c = myeps::FPMIN;
+        if (std::abs(c) < myeps::FPMIN) c = myeps::FPMIN;
         d = 1.0 / d;
-        del = d * c;
+        double del = d * c;
         h *= del;
-        if(std::abs(del - 1.0) <= myeps::EPS) break;
+        if (std::abs(del - 1.0) <= myeps::EPS) break;
     }
-    return exp(-x + a * log(x) - gln) * h; //Put factors in front.
+    return std::exp(-x + a * std::log(x) - gln) * h; //Put factors in front.
 }
 
 double SecondaryEmissionPhysics::gammpapprox(double a, double x, int psig) {
@@ -987,79 +914,76 @@ double SecondaryEmissionPhysics::gammpapprox(double a, double x, int psig) {
                           0.079687828912071670, 0.082187266704339706, 0.084078218979661945,
                           0.085346685739338721, 0.085983275670394821
     };
-    int j;
-    double xu, t, sum, ans;
-    double a1 = a - 1.0, lna1 = log(a1), sqrta1 = sqrt(a1);
+    double xu;
+    double a1 = a - 1.0, lna1 = std::log(a1), sqrta1 = std::sqrt(a1);
     int ngau = 18;
     double gln = gammln(a);// Set how far to integrate into the tail:
-    if(x > a1) xu = max_Gamma(a1 + 11.5 * sqrta1, x + 6.0 * sqrta1);
+    if (x > a1) xu = max_Gamma(a1 + 11.5 * sqrta1, x + 6.0 * sqrta1);
     else xu = max_Gamma(0., min_Gamma(a1 - 7.5 * sqrta1, x - 5.0 * sqrta1));
-    sum = 0;
-    for(j = 0; j < ngau; j++) {
+    double sum = 0;
+    for (int j = 0; j < ngau; j++) {
         //Gauss-Legendre.
-        t = x + (xu - x) * y[j];
-        sum += w[j] * exp(-(t - a1) + a1 * (log(t) - lna1));
+    	double t = x + (xu - x) * y[j];
+        sum += w[j] * std::exp(-(t - a1) + a1 * (std::log(t) - lna1));
     }
-    ans = sum * (xu - x) * exp(a1 * (lna1 - 1.) - gln);
+    double ans = sum * (xu - x) * std::exp(a1 * (lna1 - 1.) - gln);
     return (psig ? (ans > 0.0 ? 1.0 - ans : -ans) : (ans >= 0.0 ? ans : 1.0 + ans));
 }
 
 double SecondaryEmissionPhysics::gammln(const double xx) {
     // Returns the value ln%GÅ%@.xx/ for xx > 0.
-    int j;
-    double x, tmp, y, ser;
+    double x, y;
     static const double cof[14] = {57.1562356658629235, -59.5979603554754912,
                                    14.1360979747417471, -0.491913816097620199, .339946499848118887e-4,
                                    .465236289270485756e-4, -.983744753048795646e-4, .158088703224912494e-3,
                                    -.210264441724104883e-3, .217439618115212643e-3, -.164318106536763890e-3,
                                    .844182239838527433e-4, -.261908384015814087e-4, .368991826595316234e-5
     };
-    if(xx <= 0) throw("bad arg in gammln");
+    if (xx <= 0) throw("bad arg in gammln");
     y = x = xx;
-    tmp = x + 5.24218750000000000; // Rational 671/128.
-    tmp = (x + 0.5) * log(tmp) - tmp;
-    ser = 0.999999999999997092;
-    for(j = 0; j < 14; j++) ser += cof[j] / ++y;
-    return tmp + log(2.5066282746310005 * ser / x);
+    double tmp = x + 5.24218750000000000; // Rational 671/128.
+    tmp = (x + 0.5) * std::log(tmp) - tmp;
+    double ser = 0.999999999999997092;
+    for (int j = 0; j < 14; j++) ser += cof[j] / ++y;
+    return tmp + std::log(2.5066282746310005 * ser / x);
 }
 
 double SecondaryEmissionPhysics::invgammp(double p, double a) {
     //Returns x such that P .a; x/ D p for an argument p between 0 and 1.
-    int j;
     double x, err, t, u, pp, lna1 = 0.0, afac = 0.0, a1 = a - 1;
     const double EPS = 1.e-8; //Accuracy is the square of EPS.
     double gln = gammln(a);
-    if(a <= 0.) throw("a must be pos in invgammap");
-    if(p >= 1.) return max_Gamma(100., a + 100.*sqrt(a));
-    if(p <= 0.) return 0.0;
-    if(a > 1.) {
+    if (a <= 0.) throw("a must be pos in invgammap");
+    if (p >= 1.) return max_Gamma(100., a + 100.*std::sqrt(a));
+    if (p <= 0.) return 0.0;
+    if (a > 1.) {
         //Initial guess based on reference [1].
-        lna1 = log(a1);
-        afac = exp(a1 * (lna1 - 1.) - gln);
+        lna1 = std::log(a1);
+        afac = std::exp(a1 * (lna1 - 1.) - gln);
         pp = (p < 0.5) ? p : 1. - p;
-        t = sqrt(-2.*log(pp));
+        t = std::sqrt(-2.*std::log(pp));
         x = (2.30753 + t * 0.27061) / (1. + t * (0.99229 + t * 0.04481)) - t;
-        if(p < 0.5) x = -x;
-        x = max_Gamma(1.e-3, a * pow(1. - 1. / (9.*a) - x / (3.*sqrt(a)), 3));
+        if (p < 0.5) x = -x;
+        x = max_Gamma(1.e-3, a * std::pow(1. - 1. / (9.*a) - x / (3.*std::sqrt(a)), 3));
     } else {
         //Initial guess based on equations (6.2.8) and (6.2.9).
         t = 1.0 - a * (0.253 + a * 0.12);
 
-        if(p < t) x = pow(p / t, 1. / a);
-        else x = 1. - log(1. - (p - t) / (1. - t));
+        if (p < t) x = std::pow(p / t, 1. / a);
+        else x = 1. - std::log(1. - (p - t) / (1. - t));
     }
-    for(j = 0; j < 12; j++) {
-        if(x <= 0.0) return 0.0;
+    for (int j = 0; j < 12; j++) {
+        if (x <= 0.0) return 0.0;
         //x too small to compute accurately.
         err = gammp(a, x) - p;
-        if(a > 1.) t = afac * exp(-(x - a1) + a1 * (log(x) - lna1));
-        else t = exp(-x + a1 * log(x) - gln);
+        if (a > 1.) t = afac * std::exp(-(x - a1) + a1 * (std::log(x) - lna1));
+        else t = std::exp(-x + a1 * std::log(x) - gln);
         u = err / t;
         x -= (t = u / (1. - 0.5 * min_Gamma(1., u * ((a - 1.) / x - 1))));
         //Halley¡¯s method.
-        if(x <= 0.) x = 0.5 * (x + t);
+        if (x <= 0.) x = 0.5 * (x + t);
         //Halve old value if x tries to go negative.
-        if(std::abs(t) < EPS * x) break;
+        if (std::abs(t) < EPS * x) break;
     }
     return x;
 }
@@ -1074,26 +998,24 @@ double SecondaryEmissionPhysics::betai(const double x, const double a, const dou
       cout<< " x in betai "<<x<<endl;
       }
       =========================debug code=====================*/
-    if(a <= 0.0 || b <= 0.0) {
+    if (a <= 0.0 || b <= 0.0) {
         //cout<<"betai 1"<<endl;
         throw("Bad a or b in routine betai");
     }
-
-    if(x < 0.0 || x > 1.0) {
+    if (x < 0.0 || x > 1.0) {
         //cout<<"betai 2"<<endl;
         throw("Bad x in routine betai");
-
     }
-    if(x == 0.0 || x == 1.0) {
+    if (x == 0.0 || x == 1.0) {
         //cout<<"betai 3"<<endl;
         return x;
     }
-    if(a > SWITCH && b > SWITCH) {
+    if (a > SWITCH && b > SWITCH) {
         //cout<<"betai 4"<<endl;
         return betaiapprox(a, b, x);
     }
-    bt = exp(gammln(a + b) - gammln(a) - gammln(b) + a * log(x) + b * log(1.0 - x));
-    if(x < (a + 1.0) / (a + b + 2.0)) {
+    bt = std::exp(gammln(a + b) - gammln(a) - gammln(b) + a * std::log(x) + b * std::log(1.0 - x));
+    if (x < (a + 1.0) / (a + b + 2.0)) {
         //cout<<"betai 5"<<endl;
         return bt * betacf(a, b, x) / a;
     } else {
@@ -1109,45 +1031,42 @@ double SecondaryEmissionPhysics::betai(const double x, const double a, const dou
 
 double SecondaryEmissionPhysics::betacf(const double a, const double b, const double x) {
     //Evaluates continued fraction for incomplete beta function by modified Lentzâs method (5.2). User should not call directly.
-    int m, m2;
-    double aa, c, d, del, h, qab, qam, qap;
-    qab = a + b; //These qab will be used in factors that occur in the coefficients (6.4.6).
-    qap = a + 1.0;
-    qam = a - 1.0;
-    c = 1.0; //First step of Lentzâs method.
-
-    d = 1.0 - qab * x / qap;
+    double qab = a + b; //These qab will be used in factors that occur in the coefficients (6.4.6).
+    double qap = a + 1.0;
+    double qam = a - 1.0;
+    double c = 1.0; //First step of Lentzâs method.
+    double d = 1.0 - qab * x / qap;
     /*========debug====================
       if (a == b) {
       cout<<"d = "<<d<<" qap = "<<qap<<" qab = "<<qab<<" x = "<<x<<endl;
       }
       ========debug====================*/
-    if(std::abs(d) < myeps::FPMIN) d = myeps::FPMIN;
+    if (std::abs(d) < myeps::FPMIN) d = myeps::FPMIN;
     d = 1.0 / d;
-    h = d;
+    double h = d;
     // cout<<"h = "<<h<<" myeps::FPMIN = "<<myeps::FPMIN<<endl;
-    for(m = 1; m < 10000; m++) {
-        m2 = 2 * m;
-        aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    for (int m = 1; m < 10000; m++) {
+        int m2 = 2 * m;
+        double aa = m * (b - m) * x / ((qam + m2) * (a + m2));
         d = 1.0 + aa * d; //One step (the even one) of the recurrence.
-        if(std::abs(d) < myeps::FPMIN)
+        if (std::abs(d) < myeps::FPMIN)
             d = myeps::FPMIN;
         c = 1.0 + aa / c;
-        if(std::abs(c) < myeps::FPMIN)
+        if (std::abs(c) < myeps::FPMIN)
             c = myeps::FPMIN;
         d = 1.0 / d;
         h *= d * c;
         aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
         d = 1.0 + aa * d; //Next step of the recurrence (the odd one).
-        if(std::abs(d) < myeps::FPMIN)
+        if (std::abs(d) < myeps::FPMIN)
             d = myeps::FPMIN;
         c = 1.0 + aa / c;
-        if(std::abs(c) < myeps::FPMIN)
+        if (std::abs(c) < myeps::FPMIN)
             c = myeps::FPMIN;
         d = 1.0 / d;
-        del = d * c;
+        double del = d * c;
         h *= del;
-        if(std::abs(del - 1.0) <= myeps::EPS)
+        if (std::abs(del - 1.0) <= myeps::EPS)
             break;
     }
     return h;
@@ -1171,27 +1090,26 @@ double SecondaryEmissionPhysics::betaiapprox(double a, double b, double x) {
                           0.079687828912071670, 0.082187266704339706, 0.084078218979661945,
                           0.085346685739338721, 0.085983275670394821
     };
-    int j;
     double xu, t, sum, ans;
     double a1 = a - 1.0, b1 = b - 1.0, mu = a / (a + b);
-    double lnmu = log(mu), lnmuc = log(1. - mu);
-    t = sqrt(a * b / (sqrt(a + b) * (a + b + 1.0)));
-    if(x > a / (a + b)) { //Set how far to integrate into the tail:
-        if(x >= 1.0)
+    double lnmu = std::log(mu), lnmuc = std::log(1. - mu);
+    t = std::sqrt(a * b / (std::sqrt(a + b) * (a + b + 1.0)));
+    if (x > a / (a + b)) { //Set how far to integrate into the tail:
+        if (x >= 1.0)
             return 1.0;
         xu = min_Gamma(1., max_Gamma(mu + 10.*t, x + 5.0 * t));
     } else {
 
-        if(x <= 0.0)
+        if (x <= 0.0)
             return 0.0;
         xu = max_Gamma(0., min_Gamma(mu - 10.*t, x - 5.0 * t));
     }
     sum = 0;
-    for(j = 0; j < 18; j++) { //Gauss-Legendre.
+    for (int j = 0; j < 18; j++) { //Gauss-Legendre.
         t = x + (xu - x) * y[j];
-        sum += w[j] * exp(a1 * (log(t) - lnmu) + b1 * (log(1 - t) - lnmuc));
+        sum += w[j] * std::exp(a1 * (std::log(t) - lnmu) + b1 * (std::log(1 - t) - lnmuc));
     }
-    ans = sum * (xu - x) * exp(a1 * lnmu - gammln(a) + b1 * lnmuc - gammln(b) + gammln(a + b));
+    ans = sum * (xu - x) * std::exp(a1 * lnmu - gammln(a) + b1 * lnmuc - gammln(b) + gammln(a + b));
     return ans > 0.0 ? 1.0 - ans : -ans;
 }
 
@@ -1201,13 +1119,13 @@ double SecondaryEmissionPhysics::invbetai(double p, double a, double b) {
     double pp, t, u, err, x, al, h, w, afac, a1 = a - 1., b1 = b - 1.;
     int j;
 
-    if(p <= 0.)
+    if (p <= 0.)
         return 0.;
-    else if(p >= 1.)
+    else if (p >= 1.)
         return 1.;
-    else if(a >= 1. && b >= 1.) { // Set initial guess. See text.
+    else if (a >= 1. && b >= 1.) { // Set initial guess. See text.
         pp = (p < 0.5) ? p : 1. - p;
-        t = sqrt(-2.*log(pp));
+        t = std::sqrt(-2.*std::log(pp));
         x = (2.30753 + t * 0.27061) / (1. + t * (0.99229 + t * 0.04481)) - t;
         /*========debug====================
           if (a==b) {
@@ -1216,27 +1134,27 @@ double SecondaryEmissionPhysics::invbetai(double p, double a, double b) {
 
           }
           ========debug====================*/
-        // if(p < 0.5)//origin code from numerical ricipes.
-        if(x < 0.0)//fixed bug.
+        // if (p < 0.5)//origin code from numerical ricipes.
+        if (x < 0.0)//fixed bug.
             x = -x;
-        al = (sqrt(x) - 3.) / 6.;
+        al = (std::sqrt(x) - 3.) / 6.;
         h = 2. / (1. / (2.*a - 1.) + 1. / (2.*b - 1.));
-        w = (x * sqrt(al + h) / h) - (1. / (2.*b - 1) - 1. / (2.*a - 1.)) * (al + 5. / 6. - 2. / (3.*h));
-        x = a / (a + b * exp(2.*w));
+        w = (x * std::sqrt(al + h) / h) - (1. / (2.*b - 1) - 1. / (2.*a - 1.)) * (al + 5. / 6. - 2. / (3.*h));
+        x = a / (a + b * std::exp(2.*w));
 
     } else {
-        double lna = log(a / (a + b)), lnb = log(b / (a + b));
-        t = exp(a * lna) / a;
-        u = exp(b * lnb) / b;
+        double lna = std::log(a / (a + b)), lnb = std::log(b / (a + b));
+        t = std::exp(a * lna) / a;
+        u = std::exp(b * lnb) / b;
         w = t + u;
-        if(p < t / w)
-            x = pow(a * w * p, 1. / a);
+        if (p < t / w)
+            x = std::pow(a * w * p, 1. / a);
         else
-            x = 1. - pow(b * w * (1. - p), 1. / b);
+            x = 1. - std::pow(b * w * (1. - p), 1. / b);
     }
     afac = -gammln(a) - gammln(b) + gammln(a + b);
-    for(j = 0; j < 10; j++) {
-        if(x == 0. || x == 1.) // a or b too small for accurate calculation.
+    for (j = 0; j < 10; j++) {
+        if (x == 0. || x == 1.) // a or b too small for accurate calculation.
             return x;
         err = betai(x, a, b) - p;
         /*=========================debug code=====================
@@ -1244,7 +1162,7 @@ double SecondaryEmissionPhysics::invbetai(double p, double a, double b) {
           cout<<"p = "<<p<<" err = "<<err<<" t = "<<t<<" u = "<<u<<" x = "<<x<<endl;
           }
           =========================================================*/
-        t = exp(a1 * log(x) + b1 * log(1. - x) + afac);
+        t = std::exp(a1 * std::log(x) + b1 * std::log(1. - x) + afac);
         u = err / t; //Halley:
         x -= (t = u / (1. - 0.5 * min_Gamma(1., u * (a1 / x - b1 / (1. - x)))));
         /*=========================debug code=====================
@@ -1252,11 +1170,11 @@ double SecondaryEmissionPhysics::invbetai(double p, double a, double b) {
           cout<<"err = "<<err<<" t = "<<t<<" u = "<<u<<" x = "<<x<<endl;
           }
           =========================================================*/
-        if(x <= 0.)
+        if (x <= 0.)
             x = 0.5 * (x + t); // Bisect if x tries to go neg or > 1.
-        if(x >= 1.)
+        if (x >= 1.)
             x = 0.5 * (x + t + 1.);
-        if(std::abs(t) < EPS * x && j > 0)
+        if (std::abs(t) < EPS * x && j > 0)
             break;
     }
     return x;

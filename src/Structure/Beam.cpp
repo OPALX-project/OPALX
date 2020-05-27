@@ -55,7 +55,6 @@ namespace {
 
         // DESCRIPTION OF BUNCHES:
         NPART,      // Number of particles per bunch
-        NSLICE,     // Number of slices per bunch
         SIZE
     };
 }
@@ -103,8 +102,6 @@ Beam::Beam():
     // DESCRIPTION OF BUNCHES:
     itsAttr[NPART] = Attributes::makeReal
                      ("NPART", "Number of particles in bunch");
-    itsAttr[NSLICE] = Attributes::makeReal
-                      ("NSLICE", "Number of slices in bunch");
 
     // Set up default beam.
     Beam *defBeam = clone("UNNAMED_BEAM");
@@ -157,12 +154,8 @@ Beam *Beam::find(const std::string &name) {
     return beam;
 }
 
-size_t Beam::getNumberOfParticles() {
+size_t Beam::getNumberOfParticles() const {
     return (size_t)Attributes::getReal(itsAttr[NPART]);
-}
-
-size_t Beam::getNumberOfSlices() {
-    return (size_t)Attributes::getReal(itsAttr[NSLICE]);
 }
 
 double Beam::getEX() const {
@@ -204,6 +197,16 @@ std::string Beam::getParticleName() const {
 
 double Beam::getFrequency() const {
     return Attributes::getReal(itsAttr[BFREQ]);
+}
+
+double Beam::getChargePerParticle() const {
+    return std::copysign(1.0, getCharge()) * getCurrent()
+        / (getFrequency() * 1.0e6)
+        / getNumberOfParticles();
+}
+
+double Beam::getMassPerParticle() const {
+    return getMass() * getChargePerParticle() / (getCharge() * Physics::q_e);
 }
 
 void Beam::setEX(double value) {
@@ -287,7 +290,7 @@ void Beam::update() {
             throw OpalException("Beam::update()",
                                 "\"PC\" should be greater than 0.");
         }
-    };
+    }
 
     // Set default name.
     if(getOpalName().empty()) setOpalName("UNNAMED_BEAM");

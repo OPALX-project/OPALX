@@ -1,12 +1,14 @@
 #ifndef PART_BUNCH_BASE_HPP
 #define PART_BUNCH_BASE_HPP
 
+#include <cmath>
 #include <numeric>
 
 #include "Distribution/Distribution.h"
 
 #include "AbstractObjects/OpalData.h"   // OPAL file
 #include "Physics/Physics.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/SwitcherError.h"
@@ -18,14 +20,11 @@ template <class T, unsigned Dim>
 PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
     : R(*(pb->R_p)),
       ID(*(pb->ID_p)),
-      myNode_m(Ippl::myNode()),
-      nodes_m(Ippl::getNodes()),
-      fixed_grid(false),
       pbin_m(nullptr),
-      lossDs_m(nullptr),
+      lowParticleCount_m(false),
       pmsg_m(nullptr),
       f_stream(nullptr),
-      lowParticleCount_m(false),
+      fixed_grid(false),
 //       reference(ref), //FIXME
       unit_state_(units),
       stateOfLastBoundP_(unitless),
@@ -76,32 +75,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb)
       pbase(pb)
 {
     setup(pb);
-
-    boundpTimer_m = IpplTimings::getTimer("Boundingbox");
-    boundpBoundsTimer_m = IpplTimings::getTimer("Boundingbox-bounds");
-    boundpUpdateTimer_m = IpplTimings::getTimer("Boundingbox-update");
-
-    statParamTimer_m = IpplTimings::getTimer("Compute Statistics");
-    selfFieldTimer_m = IpplTimings::getTimer("SelfField total");
-
-    histoTimer_m = IpplTimings::getTimer("Histogram");
-
-    distrCreate_m = IpplTimings::getTimer("Create Distr");
-    distrReload_m = IpplTimings::getTimer("Load Distr");
-
-    globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
-
-    pmsg_m.release();
-    //    f_stream.release();
-    /*
-      if(Ippl::getNodes() == 1) {
-          f_stream = std::unique_ptr<ofstream>(new ofstream);
-          f_stream->open("data/dist.dat", ios::out);
-          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
-      }
-    */
 }
 
 template <class T, unsigned Dim>
@@ -261,13 +234,13 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::isGridFixed() {
+bool PartBunchBase<T, Dim>::isGridFixed() const {
     return fixed_grid;
 }
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::hasBinning() {
+bool PartBunchBase<T, Dim>::hasBinning() const {
     return (pbin_m != nullptr);
 }
 
@@ -342,15 +315,6 @@ void PartBunchBase<T, Dim>::rebin() {
 
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getNumBins() {
-    if(pbin_m != NULL)
-        return pbin_m->getNBins();
-    else
-        return 0;
-}
-
-
-template <class T, unsigned Dim>
 int PartBunchBase<T, Dim>::getLastemittedBin() {
     if(pbin_m != NULL)
         return pbin_m->getLastemittedBin();
@@ -378,7 +342,7 @@ void PartBunchBase<T, Dim>::calcGammas() {
         bingamma_m[i] = 0.0;
 
     for(unsigned int n = 0; n < getLocalNum(); n++)
-        bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+        bingamma_m[this->Bin[n]] += std::sqrt(1.0 + dot(this->P[n], this->P[n]));
 
     std::unique_ptr<size_t[]> particlesInBin(new size_t[emittedBins]);
     reduce(bingamma_m.get(), bingamma_m.get() + emittedBins, bingamma_m.get(), OpAddAssign());
@@ -423,7 +387,7 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
         bingamma_m[i] = 0.0;
     for(unsigned int n = 0; n < getLocalNum(); n++) {
         if ( this->Bin[n] > -1 ) {
-            bingamma_m[this->Bin[n]] += sqrt(1.0 + dot(this->P[n], this->P[n]));
+            bingamma_m[this->Bin[n]] += std::sqrt(1.0 + dot(this->P[n], this->P[n]));
         }
     }
 
@@ -961,7 +925,7 @@ std::pair<Vector_t, double> PartBunchBase<T, Dim>::getBoundingSphere() {
 
     std::pair<Vector_t, double> sphere;
     sphere.first = 0.5 * (rmin + rmax);
-    sphere.second = sqrt(dot(rmax - sphere.first, rmax - sphere.first));
+    sphere.second = std::sqrt(dot(rmax - sphere.first, rmax - sphere.first));
 
     return sphere;
 }
@@ -974,7 +938,7 @@ std::pair<Vector_t, double> PartBunchBase<T, Dim>::getLocalBoundingSphere() {
 
     std::pair<Vector_t, double> sphere;
     sphere.first = 0.5 * (rmin + rmax);
-    sphere.second = sqrt(dot(rmax - sphere.first, rmax - sphere.first));
+    sphere.second = std::sqrt(dot(rmax - sphere.first, rmax - sphere.first));
 
     return sphere;
 }
@@ -1095,7 +1059,7 @@ double PartBunchBase<T, Dim>::getT() const {
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_sPos() {
+double PartBunchBase<T, Dim>::get_sPos() const {
     return spos_m;
 }
 
@@ -1172,7 +1136,7 @@ Vector_t PartBunchBase<T, Dim>::get_pmean_Distribution() const {
         return dist_m->get_pmean();
 
     double gamma = 0.1 / getM() + 1; // set default 0.1 eV
-    return Vector_t(0, 0, sqrt(std::pow(gamma, 2) - 1));
+    return Vector_t(0, 0, std::sqrt(std::pow(gamma, 2) - 1));
 }
 
 
@@ -1297,8 +1261,8 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     rpsum /= N;
 
     for(unsigned int i = 0 ; i < Dim; i++) {
-        rrms_m(i) = sqrt(rsqsum(i) / N);
-        prms_m(i) = sqrt(psqsum(i) / N);
+        rrms_m(i) = std::sqrt(rsqsum(i) / N);
+        prms_m(i) = std::sqrt(psqsum(i) / N);
         eps_norm_m(i)  =  std::sqrt(std::max(eps2(i), zero));
         double tmp = rrms_m(i) * prms_m(i);
         fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
@@ -1315,7 +1279,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     // Find unnormalized emittance.
     double gamma = 0.0;
     for(size_t i = 0; i < locNp; i++)
-        gamma += sqrt(1.0 + dot(P[i], P[i]));
+        gamma += std::sqrt(1.0 + dot(P[i], P[i]));
 
     allreduce(&gamma, 1, std::plus<double>());
     gamma /= N;
@@ -1329,12 +1293,12 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     const double m0 = getM() * 1.E-6;
     double tmp = 1.0 / std::pow(eKin_m / m0 + 1., 2.0);
     if (OpalData::getInstance()->isInOPALCyclMode()) {
-        dE_m = prms_m(1) * m0 * sqrt(1.0 - tmp);
+        dE_m = prms_m(1) * m0 * std::sqrt(1.0 - tmp);
     } else {
-        dE_m = prms_m(2) * m0 * sqrt(1.0 - tmp);
+        dE_m = prms_m(2) * m0 * std::sqrt(1.0 - tmp);
     }
 
-    eps_m = eps_norm_m / Vector_t(gamma * sqrt(1.0 - 1.0 / (gamma * gamma)));
+    eps_m = eps_norm_m / Vector_t(gamma * std::sqrt(1.0 - 1.0 / (gamma * gamma)));
     IpplTimings::stopTimer(statParamTimer_m);
 
 }
@@ -1342,7 +1306,6 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
-    using Physics::c;
 
     const double N =  static_cast<double>(getTotalNum());
 
@@ -1377,9 +1340,9 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
             for(unsigned int i = 0 ; i < Dim; i++) {
 
-                rrms_m(i) = sqrt(rsqsum(i) / N);
-                prms_m(i) = sqrt(psqsum(i) / N);
-                eps_m(i)  = sqrt(std::max(eps2(i), zero));
+                rrms_m(i) = std::sqrt(rsqsum(i) / N);
+                prms_m(i) = std::sqrt(psqsum(i) / N);
+                eps_m(i)  = std::sqrt(std::max(eps2(i), zero));
                 double tmp = rrms_m(i) * prms_m(i);
                 fac(i) = (tmp == 0) ? zero : 1.0 / tmp;
             }
@@ -1613,7 +1576,7 @@ void PartBunchBase<T, Dim>::setSteptoLastInj(int n) {
 
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getSteptoLastInj() {
+int PartBunchBase<T, Dim>::getSteptoLastInj() const {
     return SteptoLastInj_m;
 }
 
@@ -1673,18 +1636,18 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
     double maxbinIndex = 0;
 
     for(unsigned long int n = 0; n < getLocalNum(); n++) {
-        double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
+        double temp_betagamma = std::sqrt(std::pow(P[n](0), 2) + std::pow(P[n](1), 2));
         if(pMin0 > temp_betagamma)
             pMin0 = temp_betagamma;
     }
     reduce(pMin0, pMin, OpMinAssign());
     INFOMSG("minimal beta*gamma = " << pMin << endl);
 
-    double asinh0 = asinh(pMin);
+    double asinh0 = std::asinh(pMin);
     for(unsigned long int n = 0; n < getLocalNum(); n++) {
 
-        double temp_betagamma = sqrt(pow(P[n](0), 2) + pow(P[n](1), 2));
-        int itsBinID = floor((asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
+        double temp_betagamma = std::sqrt(std::pow(P[n](0), 2) + std::pow(P[n](1), 2));
+        int itsBinID = std::floor((std::asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
         Bin[n] = itsBinID;
         if(maxbinIndex < itsBinID) {
             maxbinIndex = itsBinID;
@@ -1779,7 +1742,7 @@ void PartBunchBase<T, Dim>::resetM(double m)  {
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getdE() {
+double PartBunchBase<T, Dim>::getdE() const {
     return dE_m;
 }
 
@@ -1842,7 +1805,7 @@ void PartBunchBase<T, Dim>::calcEMean() {
     eKin_m = 0.0;
 
     for(unsigned int k = 0; k < locNp; k++) {
-        eKin_m += sqrt(dot(P[k], P[k]) + 1.0);
+        eKin_m += std::sqrt(dot(P[k], P[k]) + 1.0);
     }
 
     eKin_m -= locNp;
@@ -1911,7 +1874,8 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
     std::vector<double> loc_moments(4 * Dim + Dim * ( 2 * Dim + 1 ));
 
     long int totalNum = this->getTotalNum();
-    if (OpalData::getInstance()->isInOPALCyclMode()) {
+    if (!Options::amr && OpalData::getInstance()->isInOPALCyclMode())
+    {
         /* FIXME After issue 287 is resolved this shouldn't be necessary
          * anymore
          */
@@ -2153,8 +2117,6 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
 
 
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
-
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(std::string("GlobalLosses"), !Options::asciidump));
 
     pmsg_m.release();
     //    f_stream.release();
