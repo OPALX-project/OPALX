@@ -3,14 +3,17 @@
 //   Interface to iterative solver and boundary geometry
 //   for space charge calculation
 //
-// Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich,
+// Copyright (c) 2008,        Yves Ineichen, ETH Zürich,
 //               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                      2016, Daniel Winklehner, Massachusetts Institute of Technology
+//               2017 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
-// Implemented as part of the PhD thesis
-// "Toward massively parallel multi-objective optimization with application to
-// particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
+// Implemented as part of the master thesis
+// "A Parallel Multigrid Solver for Beam Dynamics"
+// and the paper
+// "A fast parallel Poisson solver on irregular domains applied to beam dynamics simulations"
+// (https://doi.org/10.1016/j.jcp.2010.02.022)
 //
 // This file is part of OPAL.
 //
@@ -31,7 +34,7 @@
 #include <cmath>
 #include <iostream>
 #include <tuple>
-#include <assert.h>
+#include <cassert>
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
@@ -573,17 +576,17 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W, 
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
 
     if (idx == nr[0]-1)
-        dx_e = fabs(IntersectHiX.find(coordxyz)->second - cx);
+        dx_e = std::abs(IntersectHiX.find(coordxyz)->second - cx);
     if (idx == 0)
-        dx_w = fabs(IntersectLoX.find(coordxyz)->second - cx);
+        dx_w = std::abs(IntersectLoX.find(coordxyz)->second - cx);
     if (idy == nr[1]-1)
-        dy_n = fabs(IntersectHiY.find(coordxyz)->second - cy);
+        dy_n = std::abs(IntersectHiY.find(coordxyz)->second - cy);
     if (idy == 0)
-        dy_s = fabs(IntersectLoY.find(coordxyz)->second - cy);
+        dy_s = std::abs(IntersectLoY.find(coordxyz)->second - cy);
     if (idz == nr[2]-1)
-        dz_b = fabs(IntersectHiZ.find(coordxyz)->second - cz);
+        dz_b = std::abs(IntersectHiZ.find(coordxyz)->second - cz);
     if (idz == 0)
-        dz_f = fabs(IntersectLoZ.find(coordxyz)->second - cz);
+        dz_f = std::abs(IntersectLoZ.find(coordxyz)->second - cz);
 
     if(dx_w != 0)
         W = -(dz_f + dz_b) * (dy_n + dy_s) / dx_w;

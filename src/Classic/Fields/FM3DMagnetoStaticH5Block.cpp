@@ -6,13 +6,10 @@
 #include <cmath>
 #include <fstream>
 #include <ios>
+#include <cassert>
 
-#include <assert.h>
 
-using namespace std;
-using Physics::mu_0;
-
-FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(string aFilename):
+FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(std::string aFilename):
     Fieldmap(aFilename) {
     h5_err_t h5err;
 #if defined (NDEBUG)
