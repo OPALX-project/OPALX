@@ -76,9 +76,6 @@ class VerticalFFAMagnet;
 
 // Integrators.
 class Integrator;
-class MapIntegrator;
-class TrackIntegrator;
-
 
 // Class BeamlineVisitor
 // ------------------------------------------------------------------------
@@ -251,12 +248,6 @@ public:
 
     /// Apply the algorithm to a generic integrator.
     virtual void visitIntegrator(const Integrator &) = 0;
-
-    /// Apply the algorithm to an integrator capable of tracking.
-    virtual void visitTrackIntegrator(const TrackIntegrator &) = 0;
-
-    /// Apply the algorithm to an integrator capable of mapping.
-    virtual void visitMapIntegrator(const MapIntegrator &) = 0;
 
     /// Apply the algorithm to a vertical FFA magnet
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &) = 0;
