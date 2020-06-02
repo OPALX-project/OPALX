@@ -1,31 +1,28 @@
+//
+// Class PartBunch
+//   Particle Bunch.
+//   A representation of a particle bunch as a vector of particles.
+//
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_PartBunch_HH
 #define OPAL_PartBunch_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: PartBunch.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class PartBunch
-//
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:33 $
-// $Author: Andreas Adelmann  and Co. $
-//
-// ------------------------------------------------------------------------
-
 #include "Algorithms/PartBunchBase.h"
 
-// Class PartBunch.
-// ------------------------------------------------------------------------
-/// Particle Bunch.
-//  A representation of a particle bunch as a vector of particles.
+#include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 
 class PartBunch: public PartBunchBase<double, 3> {
 
@@ -133,6 +130,10 @@ private:
     const ParticleLayout<double, 3>& getLayout() const {
         return pbase->getLayout();
     }
+
+    template<typename FieldType>
+    void dumpField(FieldType& field, std::string type,
+                   unsigned int step);
 };
 
 
@@ -158,6 +159,37 @@ Mesh_t &PartBunch::getMesh() {
 
 inline Inform &operator<<(Inform &os, PartBunch &p) {
     return p.print(os);
+}
+
+
+template<typename FieldType>
+void PartBunch::dumpField(FieldType& field, std::string type,
+                          unsigned int step)
+{
+    boost::filesystem::path file("data");
+    boost::format filename("%1%-%2%-%3%.field");
+    std::string basename = OpalData::getInstance()->getInputBasename();
+    filename % basename % type % step;
+    file /= filename.str();
+
+    std::ofstream fout(file.string(), std::ios::out);
+    fout.precision(9);
+    NDIndex<3> localIdx = getFieldLayout().getLocalNDIndex();
+    for (int x = localIdx[0].first(); x <= localIdx[0].last(); x++) {
+        for (int y = localIdx[1].first(); y <= localIdx[1].last(); y++) {
+            for (int z = localIdx[2].first(); z <= localIdx[2].last(); z++) {
+                fout << x + 1 << " " << y + 1 << " " << z + 1 << " ";
+                if (std::is_same<VField_t, FieldType>::value) {
+                    Vector_t vfield = field[x][y][z].get();
+                    fout <<  vfield[0] << " " << vfield[1] << " " << vfield[2];
+                } else {
+                    fout << field[x][y][z].get();
+                }
+                fout << std::endl;
+            }
+        }
+    }
+    fout.close();
 }
 
 #endif // OPAL_PartBunch_HH

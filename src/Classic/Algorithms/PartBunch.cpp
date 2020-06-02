@@ -1,24 +1,21 @@
-// ------------------------------------------------------------------------
-// $RCSfile: PartBunch.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
 // Class PartBunch
-//   Interface to a particle bunch.
-//   Can be used to avoid use of a template in user code.
+//   Particle Bunch.
+//   A representation of a particle bunch as a vector of particles.
 //
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 18:57:53 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Algorithms/PartBunch.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
@@ -43,9 +40,8 @@
 #include <gsl/gsl_sf_erf.h>
 #include <gsl/gsl_qrng.h>
 
-#include <boost/format.hpp>
 
-//#define DBG_SCALARFIELD
+
 //#define FIELDSTDOUT
 
 // Class PartBunch
@@ -493,22 +489,7 @@ void PartBunch::computeSelfFields() {
 
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ofstream fstr1;
-        fstr1.precision(9);
-
-        std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
-        fstr1.open(rho_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr1.close();
+        dumpField(rho_m, "rho", fieldDBGStep_m);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -530,22 +511,7 @@ void PartBunch::computeSelfFields() {
         //write out rho
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-
-        std::ofstream fstr2;
-        fstr2.precision(9);
-
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
-        fstr2.open(phi_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr2.close();
-
+        dumpField(rho_m, "phi", fieldDBGStep_m);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -578,31 +544,8 @@ void PartBunch::computeSelfFields() {
 
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
-        fstr.open(e_field.c_str(), std::ios::out);
-        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-
-        fstr.close();
+        dumpField(eg_m, "efield", fieldDBGStep_m);
         fieldDBGStep_m++;
-
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
-
         INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
 
@@ -670,25 +613,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ofstream fstr1;
-        fstr1.precision(9);
-
-        std::ostringstream istr;
-        istr << fieldDBGStep_m;
-
-        std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
-        fstr1.open(rho_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr1.close();
+        dumpField(rho_m, "rho", fieldDBGStep_m);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -709,22 +634,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         // If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-
-        std::ofstream fstr2;
-        fstr2.precision(9);
-
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
-        fstr2.open(phi_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr2.close();
-
+        dumpField(rho_m, "phi", fieldDBGStep_m);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -758,33 +668,9 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        // If debug flag is set, dump vector field (electric field) into file under ./data/
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
-        fstr.open(e_field.c_str(), std::ios::out);
-        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-
-        fstr.close();
+        dumpField(eg_m, "efield", fieldDBGStep_m);
         fieldDBGStep_m++;
-
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
-
         INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
 
@@ -862,25 +748,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ofstream fstr1;
-        fstr1.precision(9);
-
-        std::ostringstream istr;
-        istr << fieldDBGStep_m;
-
-        std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
-        fstr1.open(rho_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr1.close();
+        dumpField(rho_m, "rho", fieldDBGStep_m);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -899,22 +767,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         // If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-
-        std::ofstream fstr2;
-        fstr2.precision(9);
-
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
-        fstr2.open(phi_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr2.close();
-
+        dumpField(rho_m, "phi", fieldDBGStep_m);
         INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
 #endif
 
@@ -956,31 +809,8 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         // If debug flag is set, dump vector field (electric field) into file under ./data/
 #ifdef DBG_SCALARFIELD
         INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
-        fstr.open(e_field.c_str(), std::ios::out);
-        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-
-        fstr.close();
+        dumpField(eg_m, "efield", fieldDBGStep_m);
         fieldDBGStep_m++;
-
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
-
         INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
 
