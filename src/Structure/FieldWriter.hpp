@@ -73,9 +73,9 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
          << std::setw(17) << "y [m]"
          << std::setw(17) << "z [m]";
     if (isVectorField) {
-         fout << std::setw(10) << name << "x [" << unit << "]"
-              << std::setw(10) << name << "y [" << unit << "]"
-              << std::setw(10) << name << "z [" << unit << "]";
+        fout << std::setw(10) << name << "x [" << unit << "]"
+             << std::setw(10) << name << "y [" << unit << "]"
+             << std::setw(10) << name << "z [" << unit << "]";
     } else {
         fout << std::setw(13) << name << " [" << unit << "]";
     }
