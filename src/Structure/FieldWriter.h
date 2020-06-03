@@ -21,6 +21,8 @@
 
 #include <string>
 
+#include "Algorithms/PBunchDefs.h"
+
 class FieldWriter
 {
 public:
@@ -37,7 +39,6 @@ public:
     void dumpField(FieldType& field, std::string name,
                    std::string unit, long long step,
                    FieldType* image = nullptr);
-
 };
 
 #include "FieldWriter.hpp"
