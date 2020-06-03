@@ -7,6 +7,7 @@ set (_SRCS
   FieldSolver.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
+  FieldWriter.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPC.cpp
   H5PartWrapperForPT.cpp
@@ -33,6 +34,7 @@ set (HDRS
     DataSink.h
     ElementPositionWriter.h
     FieldSolver.h
+    FieldWriter.h
     H5PartWrapperForPC.h
     H5PartWrapperForPT.h
     H5PartWrapper.h

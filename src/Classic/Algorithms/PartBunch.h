@@ -21,9 +21,6 @@
 
 #include "Algorithms/PartBunchBase.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-
 class PartBunch: public PartBunchBase<double, 3> {
 
 public:
@@ -130,12 +127,6 @@ private:
     const ParticleLayout<double, 3>& getLayout() const {
         return pbase->getLayout();
     }
-
-#ifdef DBG_SCALARFIELD
-    template<typename FieldType>
-    void dumpField(FieldType& field, std::string name,
-                   std::string unit, unsigned int step);
-#endif
 };
 
 
