@@ -164,6 +164,8 @@ namespace Util {
 
     std::string toUpper(const std::string &str);
 
+    std::string combineFilePath(std::initializer_list<std::string>);
+
     template <typename T>
     std::string toStringWithThousandSep(T value, char sep = '\'');
 
