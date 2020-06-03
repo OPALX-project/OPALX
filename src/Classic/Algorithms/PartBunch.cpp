@@ -255,15 +255,10 @@ void PartBunch::computeSelfFields(int binNumber) {
 #ifdef DBG_SCALARFIELD
         VField_t tmp_eg = eg_m;
 
-
         if (Ippl::getNodes() == 1 && (fieldDBGStep_m + 1) % dumpFreq == 0) {
-#else
-        VField_t tmp_eg;
 
-        if (false) {
-#endif
             INFOMSG(level1 << "*** START DUMPING SCALAR FIELD ***" << endl);
-
+            dumpField(rho_m, "phi", "V", fieldDBGStep_m / dumpFreq);
 
             std::string SfileName = OpalData::getInstance()->getInputBasename();
             boost::format phi_fn("data/%1%-phi_scalar-%|2$05|.dat");
@@ -301,6 +296,7 @@ void PartBunch::computeSelfFields(int binNumber) {
 
             INFOMSG(level1 << "*** FINISHED DUMPING SCALAR FIELD ***" << endl);
         }
+#endif
 
         /// IPPL Grad numerical computes gradient to find the
         /// electric field (in rest frame of this bin's image
@@ -488,9 +484,7 @@ void PartBunch::computeSelfFields() {
         rho_m *= tmp2;
 
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        dumpField(rho_m, "rho", fieldDBGStep_m);
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        dumpField(rho_m, "rho", "C/m^3", fieldDBGStep_m);
 #endif
 
         // charge density is in rho_m
@@ -510,9 +504,7 @@ void PartBunch::computeSelfFields() {
 
         //write out rho
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        dumpField(rho_m, "phi", fieldDBGStep_m);
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        dumpField(rho_m, "phi", "V", fieldDBGStep_m);
 #endif
 
         // IPPL Grad divides by hr_m [m] resulting in
@@ -543,10 +535,8 @@ void PartBunch::computeSelfFields() {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        dumpField(eg_m, "efield", fieldDBGStep_m);
+        dumpField(eg_m, "e", "V/m", fieldDBGStep_m);
         fieldDBGStep_m++;
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
 
         // interpolate electric field at particle positions.  We reuse the
@@ -612,9 +602,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        dumpField(rho_m, "rho", fieldDBGStep_m);
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        dumpField(rho_m, "rho", "C/m^3", fieldDBGStep_m);
 #endif
 
         /// now charge density is in rho_m
@@ -633,9 +621,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
         // If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        dumpField(rho_m, "phi", fieldDBGStep_m);
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        dumpField(rho_m, "phi", "V", fieldDBGStep_m);
 #endif
 
         /// calculate electric field vectors from field potential
@@ -668,10 +654,8 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        dumpField(eg_m, "efield", fieldDBGStep_m);
+        dumpField(eg_m, "e", "V/m", fieldDBGStep_m);
         fieldDBGStep_m++;
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
 
         /// interpolate electric field at particle positions.
@@ -747,9 +731,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        dumpField(rho_m, "rho", fieldDBGStep_m);
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        dumpField(rho_m, "rho", "C/m^3", fieldDBGStep_m);
 #endif
 
         /// now charge density is in rho_m
@@ -766,9 +748,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         // If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        dumpField(rho_m, "phi", fieldDBGStep_m);
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        dumpField(rho_m, "phi", "V", fieldDBGStep_m);
 #endif
 
         /// calculate electric field vectors from field potential
@@ -808,10 +788,8 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         // If debug flag is set, dump vector field (electric field) into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        dumpField(eg_m, "efield", fieldDBGStep_m);
+        dumpField(eg_m, "e", "V/m", fieldDBGStep_m);
         fieldDBGStep_m++;
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
 #endif
 
         /// Interpolate electric field at particle positions.
@@ -993,3 +971,71 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
 Inform &PartBunch::print(Inform &os) {
     return PartBunchBase<double, 3>::print(os);
 }
+
+#ifdef DBG_SCALARFIELD
+template<typename FieldType>
+void PartBunch::dumpField(FieldType& field, std::string name,
+                          std::string unit, unsigned int step)
+{
+    constexpr bool isVectorField = std::is_same<VField_t, FieldType>::value;
+    std::string type = (isVectorField) ? "field" : "scalar";
+
+    INFOMSG("*** START DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
+
+    boost::filesystem::path file("data");
+    boost::format filename("%1%-%2%-%|3$05|.dat");
+    std::string basename = OpalData::getInstance()->getInputBasename();
+    filename % basename % (name + std::string("_") + type) % step;
+    file /= filename.str();
+
+    std::ofstream fout(file.string(), std::ios::out);
+    fout.precision(9);
+
+    fout << "# " << name << " " << type << " data on grid" << std::endl
+         << "#"
+         << std::setw(4)  << "i"
+         << std::setw(5)  << "j"
+         << std::setw(5)  << "k"
+         << std::setw(17) << "x [m]"
+         << std::setw(17) << "y [m]"
+         << std::setw(17) << "z [m]";
+    if (isVectorField) {
+         fout << std::setw(10) << name << "x [" << unit << "]"
+              << std::setw(10) << name << "y [" << unit << "]"
+              << std::setw(10) << name << "z [" << unit << "]";
+    } else {
+        fout << std::setw(13) << name << " [" << unit << "]";
+    }
+    fout << std::endl;
+
+    Vector_t origin = field.get_mesh().get_origin();
+    Vector_t spacing(field.get_mesh().get_meshSpacing(0),
+                     field.get_mesh().get_meshSpacing(1),
+                     field.get_mesh().get_meshSpacing(2));
+
+    NDIndex<3> localIdx = getFieldLayout().getLocalNDIndex();
+    for (int x = localIdx[0].first(); x <= localIdx[0].last(); x++) {
+        for (int y = localIdx[1].first(); y <= localIdx[1].last(); y++) {
+            for (int z = localIdx[2].first(); z <= localIdx[2].last(); z++) {
+                fout << std::setw(5) << x + 1
+                     << std::setw(5) << y + 1
+                     << std::setw(5) << z + 1
+                     << std::setw(17) << origin(0) + x * spacing(0)
+                     << std::setw(17) << origin(1) + y * spacing(1)
+                     << std::setw(17) << origin(2) + z * spacing(2);
+                if (isVectorField) {
+                    Vector_t vfield = field[x][y][z].get();
+                    fout << std::setw(17) << vfield[0]
+                         << std::setw(17) << vfield[1]
+                         << std::setw(17) << vfield[2];
+                } else {
+                    fout << std::setw(17) << field[x][y][z].get();
+                }
+                fout << std::endl;
+            }
+        }
+    }
+    fout.close();
+    INFOMSG("*** FINISHED DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
+}
+#endif

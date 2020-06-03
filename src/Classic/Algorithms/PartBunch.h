@@ -131,9 +131,11 @@ private:
         return pbase->getLayout();
     }
 
+#ifdef DBG_SCALARFIELD
     template<typename FieldType>
-    void dumpField(FieldType& field, std::string type,
-                   unsigned int step);
+    void dumpField(FieldType& field, std::string name,
+                   std::string unit, unsigned int step);
+#endif
 };
 
 
@@ -159,37 +161,6 @@ Mesh_t &PartBunch::getMesh() {
 
 inline Inform &operator<<(Inform &os, PartBunch &p) {
     return p.print(os);
-}
-
-
-template<typename FieldType>
-void PartBunch::dumpField(FieldType& field, std::string type,
-                          unsigned int step)
-{
-    boost::filesystem::path file("data");
-    boost::format filename("%1%-%2%-%3%.field");
-    std::string basename = OpalData::getInstance()->getInputBasename();
-    filename % basename % type % step;
-    file /= filename.str();
-
-    std::ofstream fout(file.string(), std::ios::out);
-    fout.precision(9);
-    NDIndex<3> localIdx = getFieldLayout().getLocalNDIndex();
-    for (int x = localIdx[0].first(); x <= localIdx[0].last(); x++) {
-        for (int y = localIdx[1].first(); y <= localIdx[1].last(); y++) {
-            for (int z = localIdx[2].first(); z <= localIdx[2].last(); z++) {
-                fout << x + 1 << " " << y + 1 << " " << z + 1 << " ";
-                if (std::is_same<VField_t, FieldType>::value) {
-                    Vector_t vfield = field[x][y][z].get();
-                    fout <<  vfield[0] << " " << vfield[1] << " " << vfield[2];
-                } else {
-                    fout << field[x][y][z].get();
-                }
-                fout << std::endl;
-            }
-        }
-    }
-    fout.close();
 }
 
 #endif // OPAL_PartBunch_HH
