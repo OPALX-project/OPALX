@@ -182,6 +182,9 @@ public:
     /// get the step where to restart
     int getRestartStep();
 
+    /// get the name of the data directory
+    std::string getOutputDirectory() const;
+
     /// get opals input filename
     std::string getInputFn();
 

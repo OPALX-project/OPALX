@@ -674,6 +674,10 @@ std::string OpalData::getTitle() {
     return p->itsTitle_m;
 }
 
+std::string OpalData::getOutputDirectory() const {
+    return "data";
+}
+
 std::string OpalData::getInputFn() {
     return p->inputFn_m;
 }
