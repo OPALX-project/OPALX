@@ -25,6 +25,14 @@ class FieldWriter
 {
 public:
 
+    /// Dump a scalar or vector field to a file.
+    /*
+     * @param[in] field is the scalar or vector field on the grid
+     * @param[in] name is the field name
+     * @param[in] unit of the field
+     * @param[in] step of the output
+     * @param[in] image of the potential (optional)
+     */
     template<typename FieldType>
     void dumpField(FieldType& field, std::string name,
                    std::string unit, long long step,
