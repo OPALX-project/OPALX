@@ -37,7 +37,7 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
     INFOMSG("*** START DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
 
     boost::filesystem::path file("data");
-    boost::format filename("%1%-%2%-%|3$05|.dat");
+    boost::format filename("%1%-%2%-%|3$06|.dat");
     std::string basename = OpalData::getInstance()->getInputBasename();
     filename % basename % (name + std::string("_") + type) % step;
     file /= filename.str();
