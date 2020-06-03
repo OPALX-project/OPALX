@@ -19,7 +19,6 @@
 #include "Algorithms/PartBunch.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
-#include <iostream>
 #include <cfloat>
 #include <memory>
 #include <utility>
