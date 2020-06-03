@@ -45,9 +45,6 @@
 
 //#define FIELDSTDOUT
 
-// Class PartBunch
-// ------------------------------------------------------------------------
-
 PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
     PartBunchBase<double, 3>(new PartBunch::pbase_t(new Layout_t()), ref),
     interpolationCacheSet_m(false)
@@ -256,7 +253,7 @@ void PartBunch::computeSelfFields(int binNumber) {
         const int dumpFreq = 100;
         VField_t tmp_eg = eg_m;
 
-        if (Ippl::getNodes() == 1 && (localTrackStep_m + 1) % dumpFreq == 0) {
+        if ((localTrackStep_m + 1) % dumpFreq == 0) {
 
             Vector_t rmin, rmax;
             get_bounds(rmin, rmax);
@@ -315,7 +312,7 @@ void PartBunch::computeSelfFields(int binNumber) {
 
 #ifdef DBG_SCALARFIELD
         tmp_eg += eg_m;
-        if (Ippl::getNodes() == 1 && (localTrackStep_m + 1) % dumpFreq == 0) {
+        if ((localTrackStep_m + 1) % dumpFreq == 0) {
             FieldWriter fwriter;
             fwriter.dumpField(tmp_eg, "e", "V/m", localTrackStep_m / dumpFreq);
         }
