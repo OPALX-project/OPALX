@@ -155,25 +155,6 @@ int main(int argc, char *argv[]) {
     *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
     *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
-
-    /*
-      Make a directory data for some of the output
-    */
-    if(Ippl::myNode() == 0) {
-        if (!fs::exists("data")) {
-            boost::system::error_code error_code;
-            if (!fs::create_directory("data", error_code)) {
-                std::cerr << error_code.message() << std::endl;
-                // use error code to prevent create_directory from throwing an exception
-            }
-        }
-    }
-    Ippl::Comm->barrier();
-    if (!fs::is_directory("data")) {
-        std::cerr << "unable to create directory; aborting" << std::endl;
-        abort();
-    }
-
     const OpalParser parser;
 
     //  DTA
@@ -189,6 +170,25 @@ int main(int argc, char *argv[]) {
     FTps<double, 6>::setGlobalTruncOrder(10);
 
     OpalData *opal = OpalData::getInstance();
+
+    /*
+      Make a directory data for some of the output
+    */
+    if(Ippl::myNode() == 0) {
+        if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
+            boost::system::error_code error_code;
+            if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
+                std::cerr << error_code.message() << std::endl;
+                // use error code to prevent create_directory from throwing an exception
+            }
+        }
+    }
+    Ippl::Comm->barrier();
+    if (!fs::is_directory(opal->getAuxiliaryOutputDirectory())) {
+        std::cerr << "unable to create directory; aborting" << std::endl;
+        abort();
+    }
+
     opal->storeArguments(argc, argv);
     try {
         Configure::configure();
