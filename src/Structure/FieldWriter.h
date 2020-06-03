@@ -1,7 +1,7 @@
 //
 // Class FieldWriter
 //   This class writes the bunch internal fields on the grid to
-//   file.
+//   file. It supports single core execution only.
 //
 // Copyright (c) 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved

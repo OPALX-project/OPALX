@@ -1,7 +1,7 @@
 //
 // Class FieldWriter
 //   This class writes the bunch internal fields on the grid to
-//   file.
+//   file. It supports single core execution only.
 //
 // Copyright (c) 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -31,6 +31,10 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
                             std::string unit, long long step,
                             FieldType* image)
 {
+    if (Ippl::getNodes() > 1) {
+        return;
+    }
+
     constexpr bool isVectorField = std::is_same<VField_t, FieldType>::value;
     std::string type = (isVectorField) ? "field" : "scalar";
 
