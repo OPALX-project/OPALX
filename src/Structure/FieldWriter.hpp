@@ -1,5 +1,3 @@
-#include "FieldWriter.h"
-
 #include <iomanip>
 #include <fstream>
 

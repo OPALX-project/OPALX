@@ -4,10 +4,9 @@ set (_SRCS
   ParticleMatterInteraction.cpp
   SecondaryEmissionPhysics.cpp
   BoundaryGeometry.cpp
-  FieldSolver.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
-  FieldWriter.cpp
+  FieldSolver.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPC.cpp
   H5PartWrapperForPT.cpp
@@ -35,6 +34,7 @@ set (HDRS
     ElementPositionWriter.h
     FieldSolver.h
     FieldWriter.h
+    FieldWriter.hpp
     H5PartWrapperForPC.h
     H5PartWrapperForPT.h
     H5PartWrapper.h
