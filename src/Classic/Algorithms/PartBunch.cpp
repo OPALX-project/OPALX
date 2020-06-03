@@ -254,21 +254,6 @@ void PartBunch::computeSelfFields(int binNumber) {
         VField_t tmp_eg = eg_m;
 
         if ((localTrackStep_m + 1) % dumpFreq == 0) {
-
-            Vector_t rmin, rmax;
-            get_bounds(rmin, rmax);
-
-            Vector_t origin = rho_m.get_mesh().get_origin();
-            Vector_t spacing(rho_m.get_mesh().get_meshSpacing(0),
-                             rho_m.get_mesh().get_meshSpacing(1),
-                             rho_m.get_mesh().get_meshSpacing(2));
-
-            INFOMSG(level1
-                    << (rmin(0) - origin(0)) / spacing(0) << "\t"
-                    << (rmin(1)  - origin(1)) / spacing(1) << "\t"
-                    << (rmin(2)  - origin(2)) / spacing(2) << "\t"
-                    << rmin(2) << endl);
-
             FieldWriter fwriter;
             fwriter.dumpField(rho_m, "phi", "V", localTrackStep_m / dumpFreq, &imagePotential);
         }
