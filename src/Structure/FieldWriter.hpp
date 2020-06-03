@@ -40,6 +40,20 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
 
     INFOMSG("*** START DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
 
+    /* Save the files in the data/ directory of the simulation. The file
+     * name of vector fields is
+     *
+     * 'basename'-'name'_field-'******'.dat
+     *
+     * and of scalar fields
+     *
+     * 'basename'-'name'_scalar-'******'.dat
+     *
+     * with
+     *   'basename': OPAL input file name (*.in)
+     *   'name':     field name (input argument of function)
+     *   '******':   step padded with zeros to 6 digits
+     */
     boost::filesystem::path file("data");
     boost::format filename("%1%-%2%-%|3$06|.dat");
     std::string basename = OpalData::getInstance()->getInputBasename();
