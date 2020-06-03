@@ -19,6 +19,8 @@
 #ifndef OPAL_FIELD_WRITER_H
 #define OPAL_FIELD_WRITER_H
 
+#include <string>
+
 class FieldWriter
 {
 public:

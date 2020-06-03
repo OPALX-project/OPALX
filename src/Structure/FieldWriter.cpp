@@ -1,10 +1,14 @@
 #include "FieldWriter.h"
 
-#include <fstream>
 #include <iomanip>
+#include <fstream>
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+
+#include "Algorithms/PBunchDefs.h"
+#include "Utilities/Util.h"
+#include "AbstractObjects/OpalData.h"
 
 template<typename FieldType>
 void FieldWriter::dumpField(FieldType& field, std::string name,
