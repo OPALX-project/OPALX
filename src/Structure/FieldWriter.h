@@ -21,8 +21,6 @@
 
 #include <string>
 
-#include "Algorithms/PBunchDefs.h"
-
 class FieldWriter
 {
 public:
