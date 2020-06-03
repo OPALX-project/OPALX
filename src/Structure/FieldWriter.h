@@ -38,7 +38,8 @@ public:
                    std::string unit, long long step,
                    FieldType* image = nullptr);
 
-private:
 };
+
+#include "FieldWriter.hpp"
 
 #endif
