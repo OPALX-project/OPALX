@@ -46,8 +46,6 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     maxCoords_m = bgeom->getmaxcoords();
     geomCentroid_m = (minCoords_m + maxCoords_m)/2.0;
 
-    // TODO: THis needs to be made into OPTION of the geometry.
-    // A user defined point that is INSIDE with 100% certainty. -DW
     bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
     if (have_inside_pt == false) {
         throw OpalException(
