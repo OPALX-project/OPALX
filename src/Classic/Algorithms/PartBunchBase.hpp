@@ -2118,14 +2118,6 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     pmsg_m.release();
-    //    f_stream.release();
-    /*
-      if(Ippl::getNodes() == 1) {
-          f_stream = std::unique_ptr<ofstream>(new ofstream);
-          f_stream->open("data/dist.dat", ios::out);
-          pmsg_m = std::unique_ptr<Inform>(new Inform(0, *f_stream, 0));
-      }
-    */
 
     // set the default IPPL behaviour
     setMinimumNumberOfParticlesPerCore(0);
