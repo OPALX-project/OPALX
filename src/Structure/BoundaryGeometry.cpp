@@ -1102,7 +1102,12 @@ BoundaryGeometry::isInside (
 
       Otherwise we have either no or an even number of intersections.
       In both cases this implies that B is a point outside the geometry.
-      We continue with the line segment [P_out, Q] = [B, Q]
+
+      If the number of intersection of [P_out, B] is even but not equal zero,
+      it might be that *all* intersections are in this line segment and none in
+      [B, Q].
+      In this case we continue with the line segment [P_out, Q] = [P_out, B],
+      otherwise with the line segment [P_out, Q] = [B, Q].
 */
 bool
 BoundaryGeometry::findInsidePoint (
@@ -1142,12 +1147,16 @@ BoundaryGeometry::findInsidePoint (
     }
     while (true) {
         Vector_t B {(P_out + Q) / 2};
-        n_i = fastIsInside (P_out, B);
-        if (n_i % 2 == 1) {
+        int n = fastIsInside (P_out, B);
+        if (n % 2 == 1) {
             insidePoint_m = B;
             return true;
+        } else if (n == n_i) {
+            Q = B;
+        } else {
+            P_out = B;
         }
-        P_out = B;
+        n_i = n;
     }
     *gmsg << "* point inside the geometry NOT found!" << endl;
     return false;
