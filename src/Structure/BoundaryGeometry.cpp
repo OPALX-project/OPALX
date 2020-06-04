@@ -18,7 +18,6 @@
 #include "Elements/OpalBeamline.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
 #include <gsl/gsl_sys.h>
 
 extern Inform* gmsg;
