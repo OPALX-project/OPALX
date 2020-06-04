@@ -1123,8 +1123,8 @@ BoundaryGeometry::findInsidePoint (
         {maxExtent_m[0]+0.01, Q[1], Q[2]},
         {Q[0], minExtent_m[1]-0.01, Q[2]},
         {Q[0], maxExtent_m[1]+0.01, Q[2]},
-        {Q[0], Q[1], minExtent_m[1]-0.01},
-        {Q[0], Q[1], maxExtent_m[1]+0.01}
+        {Q[0], Q[1], minExtent_m[2]-0.01},
+        {Q[0], Q[1], maxExtent_m[2]+0.01}
     };
     int n_i = 0;
     Vector_t P_out;
@@ -1849,11 +1849,16 @@ Change orientation if diff is:
     } else {
         haveInsidePoint_m = findInsidePoint();
     }
-    *gmsg << "* using as point inside the geometry: ("
-          << insidePoint_m[0] << ", "
-          << insidePoint_m[1] << ", "
-          << insidePoint_m[2] << ")"
-          << endl;
+    if (haveInsidePoint_m == true) {
+        *gmsg << "* using as point inside the geometry: ("
+              << insidePoint_m[0] << ", "
+              << insidePoint_m[1] << ", "
+              << insidePoint_m[2] << ")"
+              << endl;
+    } else {
+        *gmsg << "* no point inside the geometry found!"
+              << endl;
+    }
     
     TriPrPartloss_m.resize (Triangles_m.size(), 0.0);
     TriFEPartloss_m.resize (Triangles_m.size(), 0.0);
