@@ -45,6 +45,7 @@
 #include <utility>
 #include <vector>
 
+#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
 #include "Utilities/Options.h"

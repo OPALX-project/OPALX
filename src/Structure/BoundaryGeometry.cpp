@@ -13,6 +13,7 @@
 
 #include "H5hut.h"
 
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
