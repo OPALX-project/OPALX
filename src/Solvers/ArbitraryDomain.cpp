@@ -35,6 +35,7 @@
 #include <iostream>
 #include <tuple>
 #include <cassert>
+#include "Utilities/OpalException.h"
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
@@ -49,7 +50,9 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     // A user defined point that is INSIDE with 100% certainty. -DW
     bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
     if (have_inside_pt == false) {
-        globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
+        throw OpalException(
+            "ArbitraryDomain::ArbitraryDomain()",
+            "No point inside geometry found/set!");
     }
     setNr(nr);
     for(int i=0; i<3; i++)
