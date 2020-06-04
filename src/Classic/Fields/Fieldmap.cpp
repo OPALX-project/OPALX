@@ -475,7 +475,7 @@ void Fieldmap::checkMap(unsigned int accuracy,
     std::ofstream out;
     if (Ippl::myNode() == 0 && !opal->isOptimizerRun()) {
         std::string fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            opal->getAuxiliaryOutputDirectory(),
             Filename_m.substr(lastSlash, lastDot) + ".check"
         });
         out.open(fname);

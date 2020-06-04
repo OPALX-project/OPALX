@@ -371,7 +371,7 @@ void FM3DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
     if (opal->isOptimizerRun()) return;
 
     std::string fname = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+        opal->getAuxiliaryOutputDirectory(),
         Filename_m
     });
     std::ofstream out(fname);
