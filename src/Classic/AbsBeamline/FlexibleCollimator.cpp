@@ -1,4 +1,5 @@
 #include "AbsBeamline/FlexibleCollimator.h"
+#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
