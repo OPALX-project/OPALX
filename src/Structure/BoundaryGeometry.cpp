@@ -1089,9 +1089,9 @@ BoundaryGeometry::isInside (
   box (Q). We also know the number of intersections n_i of this line
   segment with the geometry.
 
-  If n_i is odd, Q in inside the boundary!
+  If n_i is odd, Q is inside the boundary!
 
-  while (tru); do
+  while (true); do
       bisect the line segment [P_out, Q], let B the bisecting point.
 
       compute number of intersections of the line segment [P_out, B]
@@ -1112,8 +1112,8 @@ BoundaryGeometry::findInsidePoint (
     /*
       find line segment
     */
-    Vector_t Q{(maxExtent_m + minExtent_m) / 2};
-    std::vector<Vector_t> P_outs{
+    Vector_t Q {(maxExtent_m + minExtent_m) / 2};
+    std::vector<Vector_t> P_outs {
         {minExtent_m[0]-0.01, Q[1], Q[2]},
         {maxExtent_m[0]+0.01, Q[1], Q[2]},
         {Q[0], minExtent_m[1]-0.01, Q[2]},
@@ -1123,7 +1123,7 @@ BoundaryGeometry::findInsidePoint (
     };
     int n_i = 0;
     Vector_t P_out;
-    for(const auto& P: P_outs) {
+    for (const auto& P: P_outs) {
         n_i = fastIsInside (P, Q);
         if (n_i != 0) {
             P_out = P;
@@ -1141,7 +1141,7 @@ BoundaryGeometry::findInsidePoint (
         return true;
     }
     while (true) {
-        Vector_t B{(P_out + Q) / 2};
+        Vector_t B {(P_out + Q) / 2};
         n_i = fastIsInside (P_out, B);
         if (n_i % 2 == 1) {
             insidePoint_m = B;
@@ -1167,7 +1167,7 @@ BoundaryGeometry::fastIsInside (
     const Vector_t& reference_pt,        // [in] reference pt inside the boundary
     const Vector_t& P                    // [in] pt to test
     ) {
-    const Voxel c(minExtent_m, maxExtent_m);
+    const Voxel c (minExtent_m, maxExtent_m);
     if (!c.isInside (P)) return 1;
     IpplTimings::startTimer (TfastIsInside_m);
 #ifdef ENABLE_DEBUG
