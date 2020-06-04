@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <string>
 
 extern Inform *gmsg;
 
@@ -130,7 +131,11 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
 
         auto opal = OpalData::getInstance();
         if (!opal->isOptimizerRun()) {
-            std::ofstream out("data/" + itsCavity_m->getName() + "_AP.dat");
+            std::string fname = Util::combineFilePath({
+                OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+                itsCavity_m->getName() + "_AP.dat"
+            });
+            std::ofstream out(fname);
             track(initialR_m, initialP_m, t + tErr, dt, newPhase, &out);
             out.close();
         } else {

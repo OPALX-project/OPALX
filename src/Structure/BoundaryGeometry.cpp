@@ -18,6 +18,7 @@
 #include "Elements/OpalBeamline.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 #include <gsl/gsl_sys.h>
 
 extern Inform* gmsg;
@@ -98,7 +99,11 @@ static void write_voxel_mesh (
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
     std::ofstream of;
-    of.open (std::string ("data/testBBox.vtk").c_str ());
+    std::string fname = Util::combineFilePath({
+        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+        "testBBox.vtk"
+    });
+    of.open (fname);
     assert (of.is_open ());
     of.precision (6);
 
