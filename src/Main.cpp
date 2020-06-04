@@ -157,12 +157,10 @@ int main(int argc, char *argv[]) {
 
     const OpalParser parser;
 
-    //  DTA
     std::cout.precision(16);
     std::cout.setf(std::ios::scientific, std::ios::floatfield);
     std::cerr.precision(16);
     std::cerr.setf(std::ios::scientific, std::ios::floatfield);
-    // /DTA
 
     // Set global truncation orders.
     FTps<double, 2>::setGlobalTruncOrder(20);
