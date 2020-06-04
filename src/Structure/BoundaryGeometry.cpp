@@ -1135,8 +1135,10 @@ BoundaryGeometry::findInsidePoint (
             break;
         }
     }
-    /* oops, this should never happen! */
-    assert (n_i != 0);
+    if (n_i == 0) {
+        // this is possible with some obscure geometries.
+        return false;
+    }
 
     /*
       if the number of intersections is odd, Q is inside the geometry
@@ -1158,7 +1160,7 @@ BoundaryGeometry::findInsidePoint (
         }
         n_i = n;
     }
-    *gmsg << "* point inside the geometry NOT found!" << endl;
+    // never reached
     return false;
 }
 
