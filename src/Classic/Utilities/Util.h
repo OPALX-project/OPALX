@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <functional>
 #include <cmath>
+#include <initializer_list>
 
 // ------- DON'T DELETE: start --------
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
