@@ -37,6 +37,7 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPC.h"
 #include "Utilities/EarlyLeaveException.h"
+#include "Utilities/Util.h"
 
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_linalg.h>
