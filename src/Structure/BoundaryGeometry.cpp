@@ -13,6 +13,7 @@
 
 #include "H5hut.h"
 
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
@@ -98,7 +99,11 @@ static void write_voxel_mesh (
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
     std::ofstream of;
-    of.open (std::string ("data/testBBox.vtk").c_str ());
+    std::string fname = Util::combineFilePath({
+        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+        "testBBox.vtk"
+    });
+    of.open (fname);
     assert (of.is_open ());
     of.precision (6);
 
