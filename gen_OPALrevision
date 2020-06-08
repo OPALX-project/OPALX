@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# rewritting 'src/OPALrevision.h'
+# if a git binary is in $PATH and we are in a Git work tree; then
+#     write the Git revision
+# if
+#   (a git binary does not exist in $PATH or we are in a Git work tree)
+#   and the file does not exist; then write "unknown" 
+#
+
+function print {
+    echo '#define GIT_VERSION '\"$1\" > src/OPALrevision.h
+    exit $?
+}
+
+which -a git &> /dev/null || print unknown
+
+if git rev-parse --is-inside-work-tree &> /dev/null; then
+    revision=$(git rev-parse HEAD)
+    print ${revision}
+elif [[ ! -e  src/OPALrevision.h ]]; then
+    print unknown
+fi
+
