@@ -2,17 +2,8 @@
 // Class BorisPusher
 //   Boris-Buneman time integrator.
 //
-// Copyright (c) 2011,        Matthias Toggweiler, ETH Zürich
-//               2012 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
-//
-// Implemented as part of the master thesis
-// "An adaptive time integration method for moreefficient simulation of
-// particle accelerators"
-// and the paper
-// "A novel adaptive time stepping variant of the Boris-Buneman integrator
-//  for the simulation of particle accelerators with space charge"
-// (https://doi.org/10.1016/j.jcp.2014.05.008)
 //
 // This file is part of OPAL.
 //
