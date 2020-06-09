@@ -68,7 +68,6 @@ namespace ParticleType {
     enum type { REGULAR,
                 FIELDEMISSION,
                 SECONDARY,
-                NEWSECONDARY,
                 STRIPPED};
 }
 
