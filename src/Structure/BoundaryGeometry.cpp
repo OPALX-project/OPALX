@@ -1,10 +1,22 @@
-/*
-  Implementation of the class BoundaryGeometry.
+//
+// Declaration of the BoundaryGeometry class
+//
+// Copyright (c) 200x - 2020, Achim Gsell,
+//                            Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 
-  Copyright & License: See Copyright.readme in src directory
- */
-
-#define   ENABLE_DEBUG
+//#define   ENABLE_DEBUG
 
 #include "Structure/BoundaryGeometry.h"
 
@@ -1865,17 +1877,10 @@ Change orientation if diff is:
               << endl;
     }
     
-    TriPrPartloss_m.resize (Triangles_m.size(), 0.0);
-    TriFEPartloss_m.resize (Triangles_m.size(), 0.0);
-    TriSePartloss_m.resize (Triangles_m.size(), 0.0);
-
-    auto tags = BGphysics::Absorption|BGphysics::FNEmission|BGphysics::SecondaryEmission;
-    TriBGphysicstag_m.resize (Triangles_m.size(), tags);
-
+  
     Local::makeTriangleNormalInwardPointing (this);
 
     TriNormals_m.resize (Triangles_m.size());
-    TriBarycenters_m.resize (Triangles_m.size());
     TriAreas_m.resize (Triangles_m.size());
 
     for (size_t i = 0; i < Triangles_m.size(); i++) {
@@ -1883,7 +1888,6 @@ Change orientation if diff is:
         const Vector_t& B = getPoint (i, 2);
         const Vector_t& C = getPoint (i, 3);
 
-        TriBarycenters_m[i] = ((A + B + C) / 3.0);
         TriAreas_m[i] = computeArea (A, B, C);
         TriNormals_m[i] = normalVector (A, B, C);
 
@@ -2104,7 +2108,8 @@ BoundaryGeometry::intersectLineSegmentBoundary (
 
     for (int l = 1; l <= n; l++, P = Q) {
         Q = P0 + l*v_;
-        intersect_result = intersectTinyLineSegmentBoundary (P, Q, intersect_pt, triangle_id);
+        intersect_result = intersectTinyLineSegmentBoundary (
+            P, Q, intersect_pt, triangle_id);
         if (triangle_id != -1) {
             break;
         }
@@ -2134,8 +2139,6 @@ BoundaryGeometry::partInside (
     const Vector_t& r,                  // [in] particle position
     const Vector_t& v,                  // [in] momentum
     const double dt,                    // [in]
-    const int Parttype,                 // [in] type of particle
-    const double Qloss,                 // [in]
     Vector_t& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] intersected triangle
     ) {
@@ -2168,12 +2171,6 @@ BoundaryGeometry::partInside (
     if (tmp_triangle_id >= 0) {
         intersect_pt = tmp_intersect_pt;
         triangle_id = tmp_triangle_id;
-        if (Parttype == 0)
-            TriPrPartloss_m[triangle_id] += Qloss;
-        else if (Parttype == 1)
-            TriFEPartloss_m[triangle_id] += Qloss;
-        else
-            TriSePartloss_m[triangle_id] += Qloss;
         ret = 0;
     }
 #ifdef ENABLE_DEBUG
@@ -2254,384 +2251,6 @@ BoundaryGeometry::printInfo (Inform& os) const {
         << endl;
     os << "* ********************************************************************************** " << endl;
     return os;
-}
-
-/*
-   ____  _               _
-  |  _ \| |__  _   _ ___(_) ___ ___
-  | |_) | '_ \| | | / __| |/ __/ __|
-  |  __/| | | | |_| \__ \ | (__\__ \
-  |_|   |_| |_|\__, |___/_|\___|___/
-                |___/
-
-  start here ...
-*/
-
-/**
-   Determine physical behaviour when particle hits the boundary triangle,
-   non secondary emission version.
- */
-int BoundaryGeometry::emitSecondaryNone (
-    const Vector_t& /*intecoords*/,
-    const int& triId
-    ) {
-    short BGtag = TriBGphysicstag_m[triId];
-    if (BGtag & BGphysics::Nop) {
-        return -1;
-    } else if ((BGtag & BGphysics::Absorption) &&
-               !(BGtag & BGphysics::FNEmission)) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-/**
-   Determine physical behaviour when particle hits the boundary triangle,
-   call Furman-Pivi's secondary emission model.
- */
-int BoundaryGeometry::emitSecondaryFurmanPivi (
-    const Vector_t& intecoords,
-    const int i,
-    PartBunchBase<double, 3>* itsBunch,
-    double& seyNum
-    ) {
-    const int& triId = itsBunch->TriID[i];
-    const double& incQ = itsBunch->Q[i];
-    const Vector_t& incMomentum = itsBunch->P[i];
-    const double p_sq = dot (incMomentum, incMomentum);
-    const double incEnergy = Physics::m_e * (std::sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
-
-    short BGtag = TriBGphysicstag_m[triId];
-    if (BGtag & BGphysics::Nop) {
-        return -1;
-    } else if ((BGtag & BGphysics::Absorption) &&
-               !(BGtag & BGphysics::FNEmission) &&
-               !(BGtag & BGphysics::SecondaryEmission)) {
-        return 0;
-    } else if (BGtag & BGphysics::SecondaryEmission) {
-        int se_Num = 0;
-        int seType = 0;
-        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / std::sqrt (p_sq);
-        if (cosTheta < 0) {
-            ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
-                      "    particle position = " << itsBunch->R[i] << endl <<
-                      "    incident momentum=" << incMomentum << endl <<
-                      "    triNormal=" << TriNormals_m[triId] << endl <<
-                      "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
-                      "    intecoords = " << intecoords << endl <<
-                      "    triangle ID = " << triId << endl <<
-                      "    triangle = (" << getPoint(triId, 1)
-                      << getPoint(triId, 2) << getPoint(triId, 3) << ")"
-                      << endl);
-            assert(cosTheta>=0);
-        }
-        int idx = 0;
-        if (intecoords != Point (triId, 1)) {
-            idx = 1; // intersection is not the 1st vertex
-        } else {
-            idx = 2; // intersection is the 1st vertex
-        }
-        sec_phys_m.nSec (incEnergy,
-                         cosTheta,
-                         seBoundaryMatType_m,
-                         se_Num,
-                         seType,
-                         incQ,
-                         TriNormals_m[triId],
-                         intecoords,
-                         Point (triId, idx),
-                         itsBunch,
-                         seyNum,
-                         ppVw_m,
-                         vVThermal_m,
-                         nEmissionMode_m);
-    }
-    return 1;
-}
-
-/**
-   Determine physical behaviour when particle hits the boundary triangle,
-   call Vaughan's secondary emission model.
- */
-int BoundaryGeometry::emitSecondaryVaughan (
-    const Vector_t& intecoords,
-    const int i,
-    PartBunchBase<double, 3>* itsBunch,
-    double& seyNum
-    ) {
-    const int& triId = itsBunch->TriID[i];
-    const double& incQ = itsBunch->Q[i];
-    const Vector_t& incMomentum = itsBunch->P[i];
-    const double p_sq = dot (incMomentum, incMomentum);
-    const double incEnergy = Physics::m_e * (std::sqrt (1.0 + p_sq) - 1.0) * 1.0e9;   // energy in eV
-
-    short BGtag = TriBGphysicstag_m[triId];
-    if (BGtag & BGphysics::Nop) {
-        return -1;
-    } else if ((BGtag & BGphysics::Absorption) &&
-               !(BGtag & BGphysics::FNEmission) &&
-               !(BGtag & BGphysics::SecondaryEmission)) {
-        return 0;
-    } else if (BGtag & BGphysics::SecondaryEmission) {
-        int se_Num = 0;
-        int seType = 0;
-        double cosTheta = - dot (incMomentum, TriNormals_m[triId]) / std::sqrt (p_sq);
-        //cosTheta must be positive
-        if (cosTheta < 0) {
-            ERRORMSG ("    cosTheta = " << cosTheta << " < 0 (!)" << endl <<
-                      "    particle position = " << itsBunch->R[i] << endl <<
-                      "    incident momentum=" << incMomentum << endl <<
-                      "    triNormal=" << TriNormals_m[triId] << endl <<
-                      "    dot=" << dot (incMomentum, TriNormals_m[triId]) << endl <<
-                      "    intecoords = " << intecoords << endl <<
-                      "    triangle ID = " << triId << endl <<
-                      "    triangle = (" << getPoint(triId, 1) << getPoint(triId, 2) << getPoint(triId, 3) << ")"<< endl <<
-                      "    Particle No. = (" << i << ")"
-                      << endl);
-            assert(cosTheta>=0);
-        }
-        int idx = 0;
-        if (intecoords != Point (triId, 1)) {
-            // intersection is not the 1st vertex
-            idx = 1;
-        } else {
-            // intersection is the 1st vertex
-            idx = 2;
-        }
-        sec_phys_m.nSec (incEnergy,
-                         cosTheta,
-                         se_Num,
-                         seType,
-                         incQ,
-                         TriNormals_m[triId],
-                         intecoords,
-                         Point (triId, idx),
-                         itsBunch,
-                         seyNum,
-                         ppVw_m,
-                         vSeyZero_m,
-                         vEzero_m,
-                         vSeyMax_m,
-                         vEmax_m,
-                         vKenergy_m,
-                         vKtheta_m,
-                         vVThermal_m,
-                         nEmissionMode_m);
-    }
-    return 1;
-}
-
-/**
-   Initialize some darkcurrent particles near the surface with inward
-      momenta.
- */
-void BoundaryGeometry::createParticlesOnSurface (
-    size_t n,
-    double darkinward,
-    OpalBeamline& itsOpalBeamline,
-    PartBunchBase<double, 3>* itsBunch
-    ) {
-    int tag = 1002;
-    int Parent = 0;
-    if (Ippl::myNode () == Parent) {
-        for (size_t i = 0; i < n; i++) {
-            short BGtag = BGphysics::Absorption;
-            int k = 0;
-            Vector_t E (0.0), B (0.0);
-            while (((BGtag & BGphysics::Absorption) &&
-                    !(BGtag & BGphysics::FNEmission) &&
-                    !(BGtag & BGphysics::SecondaryEmission))
-                   ||
-                   (std::abs (E (0)) < eInitThreshold_m &&
-                    std::abs (E (1)) < eInitThreshold_m &&
-                    std::abs (E (2)) < eInitThreshold_m)) {
-                E = Vector_t (0.0);
-                B = Vector_t (0.0);
-                const auto tmp = (size_t)(IpplRandom () * Triangles_m.size());
-                BGtag = TriBGphysicstag_m[tmp];
-                k = tmp;
-                Vector_t centroid (0.0);
-                itsOpalBeamline.getFieldAt (TriBarycenters_m[k] + darkinward * TriNormals_m[k],
-                                            centroid, itsBunch->getdT (), E, B);
-            }
-            partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
-
-        }
-        Message* mess = new Message ();
-        putMessage (*mess, partsr_m.size ());
-        for (Vector_t part : partsr_m)
-            putMessage (*mess, part);
-
-        Ippl::Comm->broadcast_all (mess, tag);
-    } else {
-        // receive particle position message
-        size_t nData = 0;
-        Message* mess = Ippl::Comm->receive_block (Parent, tag);
-        getMessage (*mess, nData);
-        for (size_t i = 0; i < nData; i++) {
-            Vector_t tmp = Vector_t (0.0);
-            getMessage (*mess, tmp);
-            partsr_m.push_back (tmp);
-        }
-
-    }
-}
-
-/**
-   Initialize primary particles near the surface with inward momenta.
- */
-void BoundaryGeometry::createPriPart (
-    size_t n,
-    double darkinward,
-    OpalBeamline& itsOpalBeamline,
-    PartBunchBase<double, 3>* itsBunch
-    ) {
-    int tag = 1001;
-    int Parent = 0;
-    if (Options::ppdebug) {
-        if (Ippl::myNode () == 0) {
-            Vector_t len = maxExtent_m - minExtent_m;
-            /* limit the initial particle in the center of the lower
-               parallel plate. There is a distance of 0.01*length in
-               x direction as margin. */
-            double x_low = minExtent_m (0) + 0.5 * len [0] - 0.49 * len [0];
-
-            /* limit the initial particle in the center of the upper
-               parallel
-               plate. There is a distance of 0.01*length in x direction as
-               margin. */
-            double x_up = minExtent_m (0) + 0.5 * len [0] + 0.49 * len [0];
-
-            /* limit the initial particle in the center of the lower
-               parallel
-               plate. There is a distance of 0.01*length in y direction as
-               margin. */
-            double y_low = minExtent_m (1) + 0.5 * len [1] - 0.49 * len [1];
-
-            /* limit the initial particle in the center of the upper
-               parallel
-               plate. There is a distance of 0.01*length in y direction as
-               margin. */
-            double y_up = minExtent_m (1) + 0.5 * len [1] + 0.49 * len [1];
-
-            for (size_t i = 0; i < n / 2; i++) {
-                double zCoord = maxExtent_m (2);
-                double xCoord = maxExtent_m (0);
-                double yCoord = maxExtent_m (1);
-                while (zCoord > 0.000001 ||
-                       zCoord < - 0.000001 ||
-                       xCoord > x_up ||
-                       xCoord < x_low ||
-                       yCoord > y_up ||
-                       yCoord < y_low) {
-
-                    const auto k = (size_t)(IpplRandom () * Triangles_m.size());
-                    zCoord = TriBarycenters_m[k](2);
-                    xCoord = TriBarycenters_m[k](0);
-                    yCoord = TriBarycenters_m[k](1);
-                    if (TriBarycenters_m[k](2) < 0.000001 &&
-                        TriBarycenters_m[k](2) > - 0.000001 &&
-                        TriBarycenters_m[k](0) < x_up &&
-                        TriBarycenters_m[k](0) > x_low &&
-                        TriBarycenters_m[k](1) < y_up &&
-                        TriBarycenters_m[k](1) > y_low) {
-                        partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
-                        partsp_m.push_back (TriNormals_m[k]);
-                    }
-                }
-            }
-            for (size_t i = 0; i < n / 2; i++) {
-                double zCoord = maxExtent_m (2);
-                double xCoord = maxExtent_m (0);
-                double yCoord = maxExtent_m (1);
-                while (zCoord > (maxExtent_m (2) + 0.000001) ||
-                       (zCoord < (maxExtent_m (2) - 0.00000)) ||
-                       xCoord > x_up ||
-                       xCoord < x_low ||
-                                yCoord > y_up ||
-                       yCoord < y_low) {
-                    const auto k = (size_t)(IpplRandom () * Triangles_m.size());
-                    zCoord = TriBarycenters_m[k](2);
-                    xCoord = TriBarycenters_m[k](0);
-                    yCoord = TriBarycenters_m[k](1);
-                    if ((TriBarycenters_m[k](2) < maxExtent_m (2) + 0.000001) &&
-                        (TriBarycenters_m[k](2) > maxExtent_m (2) - 0.000001) &&
-                        TriBarycenters_m[k](0) < x_up &&
-                        TriBarycenters_m[k](0) > x_low &&
-                        TriBarycenters_m[k](1) < y_up &&
-                        TriBarycenters_m[k](1) > y_low) {
-                        partsr_m.push_back (TriBarycenters_m[k] + darkinward * TriNormals_m[k]);
-                        partsp_m.push_back (TriNormals_m[k]);
-                    }
-                }
-            }
-
-            Message* mess = new Message ();
-            putMessage (*mess, partsr_m.size ());
-            for (std::vector<Vector_t>::iterator myIt = partsr_m.begin (),
-                     myItp = partsp_m.begin ();
-                 myIt != partsr_m.end ();
-                 ++myIt, ++myItp) {
-                putMessage (*mess, *myIt);
-                putMessage (*mess, *myItp);
-            }
-            Ippl::Comm->broadcast_all (mess, tag);
-        } else {
-            // receive particle position message
-            size_t nData = 0;
-            Message* mess = Ippl::Comm->receive_block (Parent, tag);
-            getMessage (*mess, nData);
-            for (size_t i = 0; i < nData; i++) {
-                Vector_t tmpr = Vector_t (0.0);
-                Vector_t tmpp = Vector_t (0.0);
-                getMessage (*mess, tmpr);
-                getMessage (*mess, tmpp);
-                partsr_m.push_back (tmpr);
-                partsp_m.push_back (tmpp);
-            }
-        }
-    } else {
-        if (Ippl::myNode () == 0) {
-            for (size_t i = 0; i < n; i++) {
-                short BGtag = BGphysics::Absorption;
-                Vector_t E (0.0), B (0.0);
-                Vector_t priPart;
-                while (((BGtag & BGphysics::Absorption) &&
-                        !(BGtag & BGphysics::FNEmission) &&
-                        !(BGtag & BGphysics::SecondaryEmission))
-                       ||
-                       (std::abs (E (0)) < eInitThreshold_m &&
-                        std::abs (E (1)) < eInitThreshold_m &&
-                        std::abs (E (2)) < eInitThreshold_m)) {
-                    Vector_t centroid (0.0);
-                    E = Vector_t (0.0);
-                    B = Vector_t (0.0);
-                    const auto triangle_id = (size_t)(IpplRandom () * Triangles_m.size());
-                    BGtag = TriBGphysicstag_m[triangle_id];
-                    priPart = TriBarycenters_m[triangle_id] + darkinward * TriNormals_m[triangle_id];
-                    itsOpalBeamline.getFieldAt (priPart, centroid, itsBunch->getdT (), E, B);
-                }
-                partsr_m.push_back (priPart);
-            }
-            Message* mess = new Message ();
-            putMessage (*mess, partsr_m.size ());
-            for (Vector_t part : partsr_m)
-                putMessage (*mess, part);
-
-            Ippl::Comm->broadcast_all (mess, tag);
-        } else {
-            // receive particle position message
-            size_t nData = 0;
-            Message* mess = Ippl::Comm->receive_block (Parent, tag);
-            getMessage (*mess, nData);
-            for (size_t i = 0; i < nData; i++) {
-                Vector_t tmp = Vector_t (0.0);
-                getMessage (*mess, tmp);
-                partsr_m.push_back (tmp);
-            }
-        }
-    }
 }
 
 // vi: set et ts=4 sw=4 sts=4:
