@@ -43,9 +43,8 @@ class ElementBase;
 
 #include "AbstractObjects/Definition.h"
 #include "Attributes/Attributes.h"
-#include "Structure/SecondaryEmissionPhysics.h"
-
 #include "Utilities/Util.h"
+#include "Utility/IpplTimings.h"
 
 #include <gsl/gsl_rng.h>
 
