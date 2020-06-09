@@ -26,8 +26,6 @@ typedef IntNGP  IntrplNGP_t;
 typedef IntSUDS IntrplSUDS_t;
 typedef IntTSC  IntrplTSC_t;
 
-
-
 typedef ParticleSpatialLayout<double, 3>::ParticlePos_t Ppos_t;
 typedef ParticleSpatialLayout<double, 3>::ParticleIndex_t PID_t;
 
@@ -63,10 +61,8 @@ typedef FFT<CCTransform, 3, double>              FFTC_t;
     typedef BoxLibParticle<AmrLayout_t>          AmrParticle_t;
 #endif
 
-
 namespace ParticleType {
     enum type { REGULAR,
-                FIELDEMISSION,
                 SECONDARY,
                 STRIPPED};
 }
