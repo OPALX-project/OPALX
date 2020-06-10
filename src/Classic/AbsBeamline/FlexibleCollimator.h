@@ -1,6 +1,6 @@
 //
 // Class FlexibleCollimator
-// ------------------------------------------------------------------------
+//
 /// Abstract collimator.
 //  Class FlexibleCollimator defines the abstract interface for a collimator.
 //
