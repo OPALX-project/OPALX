@@ -1,6 +1,6 @@
 //
 // Class CollimatorPhysics
-// ------------------------------------------------------------------------
+//
 // Defines the collimator physics models
 //
 // Copyright (c) 2009 - 2020, Bi, Yang, Stachel, Adelmann
