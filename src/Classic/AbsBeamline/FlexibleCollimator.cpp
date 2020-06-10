@@ -1,8 +1,8 @@
 //
 // Class FlexibleCollimator
 //
-/// Abstract collimator.
-//  Class FlexibleCollimator defines the abstract interface for a collimator.
+// Abstract collimator.
+// Class FlexibleCollimator defines the abstract interface for a collimator.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
@@ -85,7 +85,7 @@ void FlexibleCollimator::accept(BeamlineVisitor &visitor) const {
 }
 
 
-bool FlexibleCollimator::isStopped(const Vector_t &R, const Vector_t &) {
+bool FlexibleCollimator::isStopped(const Vector_t &R) {
     const double z = R(2);
 
     if ((z < 0.0) ||
@@ -108,7 +108,7 @@ bool FlexibleCollimator::apply(const size_t &i, const double &t, Vector_t &/*E*/
     const Vector_t &P = RefPartBunch_m->P[i];
     const double &dt = RefPartBunch_m->dt[i];
     const double recpgamma = Physics::c * dt / std::sqrt(1.0 + dot(P, P));
-    bool pdead = isStopped(R, P);
+    bool pdead = isStopped(R);
 
     if (pdead) {
         if (lossDs_m) {
