@@ -58,7 +58,7 @@ struct InsideTester {
     { }
 
     virtual
-    bool checkHit(const Vector_t &R, const Vector_t &P) = 0;
+    bool checkHit(const Vector_t &R) = 0;
 };
 
 

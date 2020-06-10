@@ -48,7 +48,7 @@ namespace {
             deg_m = static_cast<Degrader*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R, const Vector_t &/*P*/) override {
+        bool checkHit(const Vector_t &R) override {
             return deg_m->isInMaterial(R(2));
         }
 
@@ -61,7 +61,7 @@ namespace {
             col_m = static_cast<CCollimator*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R, const Vector_t &/*P*/)  override {
+        bool checkHit(const Vector_t &R)  override {
             return col_m->checkPoint(R(0), R(1));
         }
 
@@ -73,9 +73,10 @@ namespace {
         explicit FlexCollimatorInsideTester(ElementBase * el) {
             col_m = static_cast<FlexibleCollimator*>(el);
         }
+
         virtual
-        bool checkHit(const Vector_t &R, const Vector_t &P)  override {
-            return col_m->isStopped(R, P);
+        bool checkHit(const Vector_t &R)  override {
+            return col_m->isStopped(R);
         }
 
     private:
@@ -251,7 +252,7 @@ void CollimatorPhysics::computeInteraction() {
             Vector_t &P = locParts_m[i].Pincol;
             double &dt  = locParts_m[i].DTincol;
 
-            if (hitTester_m->checkHit(R, P)) {
+            if (hitTester_m->checkHit(R)) {
                 bool pdead = computeEnergyLoss(P, dt);
                 if (!pdead) {
                     /*
@@ -497,7 +498,7 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
     for (size_t i = 0; i < nL; ++ i) {
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             ((nL - ne) > minNumOfParticlesPerCore) &&
-            hitTester_m->checkHit(bunch->R[i], bunch->P[i]))
+            hitTester_m->checkHit(bunch->R[i]))
         {
             // adjust the time step for those particles that enter the material
             // such that it corresponds to the time needed to reach the curren

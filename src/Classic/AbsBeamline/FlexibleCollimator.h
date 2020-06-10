@@ -1,8 +1,8 @@
 //
 // Class FlexibleCollimator
 //
-/// Abstract collimator.
-//  Class FlexibleCollimator defines the abstract interface for a collimator.
+// Abstract collimator.
+// Class FlexibleCollimator defines the abstract interface for a collimator.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
@@ -76,7 +76,7 @@ public:
     void setDescription(const std::string &desc);
     std::string getDescription() const;
 
-    bool isStopped(const Vector_t &R, const Vector_t &P);
+    bool isStopped(const Vector_t &R);
 
     void writeHolesAndQuadtree(const std::string &baseFilename) const;
 
