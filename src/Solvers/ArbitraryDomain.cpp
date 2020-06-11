@@ -3,14 +3,17 @@
 //   Interface to iterative solver and boundary geometry
 //   for space charge calculation
 //
-// Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich,
+// Copyright (c) 2008,        Yves Ineichen, ETH Zürich,
 //               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                      2016, Daniel Winklehner, Massachusetts Institute of Technology
+//               2017 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
-// Implemented as part of the PhD thesis
-// "Toward massively parallel multi-objective optimization with application to
-// particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
+// Implemented as part of the master thesis
+// "A Parallel Multigrid Solver for Beam Dynamics"
+// and the paper
+// "A fast parallel Poisson solver on irregular domains applied to beam dynamics simulations"
+// (https://doi.org/10.1016/j.jcp.2010.02.022)
 //
 // This file is part of OPAL.
 //
@@ -32,6 +35,7 @@
 #include <iostream>
 #include <tuple>
 #include <cassert>
+#include "Utilities/OpalException.h"
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
@@ -42,10 +46,12 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     maxCoords_m = bgeom->getmaxcoords();
     geomCentroid_m = (minCoords_m + maxCoords_m)/2.0;
 
-    // TODO: THis needs to be made into OPTION of the geometry.
-    // A user defined point that is INSIDE with 100% certainty. -DW
-    globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
-
+    bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
+    if (have_inside_pt == false) {
+        throw OpalException(
+            "ArbitraryDomain::ArbitraryDomain()",
+            "No point inside geometry found/set!");
+    }
     setNr(nr);
     for(int i=0; i<3; i++)
         Geo_hr_m[i] = (maxCoords_m[i] - minCoords_m[i])/nr[i];
