@@ -43,7 +43,6 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/ParallelPlate.h"
 
-#include "Algorithms/MapIntegrator.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/OpalParticle.h"
