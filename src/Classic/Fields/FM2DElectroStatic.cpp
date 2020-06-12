@@ -5,14 +5,13 @@
 
 #include <fstream>
 #include <ios>
-
-using namespace std;
+#include <cmath>
 
 FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
     : Fieldmap(aFilename),
       FieldstrengthEz_m(NULL),
       FieldstrengthEr_m(NULL) {
-    ifstream file;
+    std::ifstream file;
     std::string tmpString;
     double tmpDouble;
 
@@ -53,7 +52,7 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
             parsing_passed = parsing_passed &&
                              interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
         } else {
-            cerr << "unknown orientation of 2D electrostatic fieldmap" << endl;
+            std::cerr << "unknown orientation of 2D electrostatic fieldmap" << std::endl;
             parsing_passed = false;
         }
 
@@ -100,7 +99,7 @@ FM2DElectroStatic::~FM2DElectroStatic() {
 void FM2DElectroStatic::readMap() {
     if (FieldstrengthEz_m == NULL) {
         // declare variables and allocate memory
-        ifstream in;
+    	std::ifstream in;
         std::string tmpString;
         double Ezmax = 0.0;
 
@@ -121,7 +120,7 @@ void FM2DElectroStatic::readMap() {
                                                    FieldstrengthEr_m[i + j * num_gridpz_m],
                                                    FieldstrengthEz_m[i + j * num_gridpz_m]);
                 }
-                if (fabs(FieldstrengthEz_m[i]) > Ezmax) Ezmax = fabs(FieldstrengthEz_m[i]);
+                if (std::abs(FieldstrengthEz_m[i]) > Ezmax) Ezmax = std::abs(FieldstrengthEz_m[i]);
             }
         } else {
             for (int j = 0; j < num_gridpr_m; ++ j) {
@@ -167,13 +166,13 @@ void FM2DElectroStatic::freeMap() {
 
 bool FM2DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &/*B*/) const {
     // do bi-linear interpolation
-    const double RR = sqrt(R(0) * R(0) + R(1) * R(1));
+    const double RR = std::sqrt(R(0) * R(0) + R(1) * R(1));
 
-    const int indexr = (int)floor(RR / hr_m);
+    const int indexr = (int)std::floor(RR / hr_m);
     const double leverr = (RR / hr_m) - indexr;
 
-    const int indexz = (int)floor((R(2)) / hz_m);
-    const double leverz = (R(2) / hz_m) - indexz;
+    const int indexz = (int)std::floor((R(2) - zbegin_m) / hz_m);
+    const double leverz = (R(2) - zbegin_m) / hz_m - indexz;
 
     if ((indexz < 0) || (indexz + 2 > num_gridpz_m))
         return false;

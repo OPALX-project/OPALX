@@ -5,11 +5,8 @@ set (_SRCS
     CoordinateSystemTrafo.cpp
     DefaultVisitor.cpp
     Flagger.cpp
-    IdealMapper.cpp
     LinearMapper.cpp
-    MapIntegrator.cpp
     Mapper.cpp
-    OrbitTracker.cpp
     PartBunch.cpp
     PartBins.cpp
     PartBinsCyc.cpp
@@ -20,7 +17,6 @@ set (_SRCS
     Surveyor.cpp
     ThinMapper.cpp
     ThinTracker.cpp
-    TrackIntegrator.cpp
     Tracker.cpp
     Quaternion.cpp
     )
@@ -42,12 +38,9 @@ set (HDRS
     CoordinateSystemTrafo.h
     DefaultVisitor.h
     Flagger.h
-    IdealMapper.h
     LinearMapper.h
     ListElem.h
-    MapIntegrator.h
     Mapper.h
-    OrbitTracker.h
     PartBinsCyc.h
     PartBins.h
     PartBunch.h
@@ -63,7 +56,6 @@ set (HDRS
     ThinMapper.h
     ThinTracker.h
     Tracker.h
-    TrackIntegrator.h
     Vektor.h
     )
 

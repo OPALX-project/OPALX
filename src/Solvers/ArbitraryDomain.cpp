@@ -3,14 +3,17 @@
 //   Interface to iterative solver and boundary geometry
 //   for space charge calculation
 //
-// Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich,
+// Copyright (c) 2008,        Yves Ineichen, ETH Zürich,
 //               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                      2016, Daniel Winklehner, Massachusetts Institute of Technology
+//               2017 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
-// Implemented as part of the PhD thesis
-// "Toward massively parallel multi-objective optimization with application to
-// particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
+// Implemented as part of the master thesis
+// "A Parallel Multigrid Solver for Beam Dynamics"
+// and the paper
+// "A fast parallel Poisson solver on irregular domains applied to beam dynamics simulations"
+// (https://doi.org/10.1016/j.jcp.2010.02.022)
 //
 // This file is part of OPAL.
 //
@@ -31,9 +34,8 @@
 #include <cmath>
 #include <iostream>
 #include <tuple>
-#include <assert.h>
-
-#include <math.h>
+#include <cassert>
+#include "Utilities/OpalException.h"
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
@@ -44,10 +46,12 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     maxCoords_m = bgeom->getmaxcoords();
     geomCentroid_m = (minCoords_m + maxCoords_m)/2.0;
 
-    // TODO: THis needs to be made into OPTION of the geometry.
-    // A user defined point that is INSIDE with 100% certainty. -DW
-    globalInsideP0_m = Vector_t(0.0, 0.0, -0.13);
-
+    bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
+    if (have_inside_pt == false) {
+        throw OpalException(
+            "ArbitraryDomain::ArbitraryDomain()",
+            "No point inside geometry found/set!");
+    }
     setNr(nr);
     for(int i=0; i<3; i++)
         Geo_hr_m[i] = (maxCoords_m[i] - minCoords_m[i])/nr[i];
@@ -386,7 +390,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     }
 
     int startIdx = 0;
-    MPI_Scan(&numtotal, &startIdx, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Scan(&numtotal, &startIdx, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     startIdx -= numtotal;
 
     // Build up index and coord map
@@ -573,17 +577,17 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W, 
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
 
     if (idx == nr[0]-1)
-        dx_e = fabs(IntersectHiX.find(coordxyz)->second - cx);
+        dx_e = std::abs(IntersectHiX.find(coordxyz)->second - cx);
     if (idx == 0)
-        dx_w = fabs(IntersectLoX.find(coordxyz)->second - cx);
+        dx_w = std::abs(IntersectLoX.find(coordxyz)->second - cx);
     if (idy == nr[1]-1)
-        dy_n = fabs(IntersectHiY.find(coordxyz)->second - cy);
+        dy_n = std::abs(IntersectHiY.find(coordxyz)->second - cy);
     if (idy == 0)
-        dy_s = fabs(IntersectLoY.find(coordxyz)->second - cy);
+        dy_s = std::abs(IntersectLoY.find(coordxyz)->second - cy);
     if (idz == nr[2]-1)
-        dz_b = fabs(IntersectHiZ.find(coordxyz)->second - cz);
+        dz_b = std::abs(IntersectHiZ.find(coordxyz)->second - cz);
     if (idz == 0)
-        dz_f = fabs(IntersectLoZ.find(coordxyz)->second - cz);
+        dz_f = std::abs(IntersectLoZ.find(coordxyz)->second - cz);
 
     if(dx_w != 0)
         W = -(dz_f + dz_b) * (dy_n + dy_s) / dx_w;

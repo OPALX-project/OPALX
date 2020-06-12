@@ -31,8 +31,6 @@
 
 extern Inform *gmsg;
 
-using namespace std;
-
 // Class Degrader
 // ------------------------------------------------------------------------
 
@@ -69,7 +67,7 @@ Degrader::Degrader(const std::string &name):
 
 Degrader::~Degrader() {
 
-  if(online_m)
+  if (online_m)
     goOffline();
 }
 
@@ -91,9 +89,9 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t
 
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
-    const double recpgamma = Physics::c * RefPartBunch_m->dt[i] / sqrt(1.0  + dot(P, P));
+    const double recpgamma = Physics::c * RefPartBunch_m->dt[i] / std::sqrt(1.0  + dot(P, P));
 
-    if(isInMaterial(R(2))) {
+    if (isInMaterial(R(2))) {
         //if particle was allready marked as -1 (it means it should have gone into degrader but didn't)
         //set the label to -2 (will not go into degrader and will be deleted when particles per core > 2)
         if (RefPartBunch_m->Bin[i] < 0)
@@ -183,7 +181,7 @@ void Degrader::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
-string Degrader::getOutputFN() {
+std::string Degrader::getOutputFN() {
     if (filename_m == std::string(""))
         return getName();
     else
@@ -200,8 +198,7 @@ ElementBase::ElementType Degrader::getType() const {
     return DEGRADER;
 }
 
-string Degrader::getDegraderShape() {
+std::string Degrader::getDegraderShape() {
     return "DEGRADER";
 
 }
-
