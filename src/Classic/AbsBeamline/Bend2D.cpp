@@ -1690,3 +1690,36 @@ std::array<double,2> Bend2D::getExitFringeFieldLength() const {
 
     return extFFL;
 }
+
+BoundaryBox Bend2D::getBoundaryBoxInLabCoords() const {
+    CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toEnd = getEdgeToEnd() * csTrafoGlobal2Local_m;
+
+    double &x = aperture_m.second[0];
+    double &y = aperture_m.second[1];
+
+    std::vector<Vector_t> corners(8);
+    for (int i = -1; i < 2; i += 2) {
+        for (int j = -1; j < 2; j += 2) {
+            unsigned int idx = (i + 1)/2 + (j + 1);
+            corners[idx] = toBegin.transformFrom(Vector_t(i * x, j * y, 0.0));
+            corners[idx + 4] = toEnd.transformFrom(Vector_t(i * x, j * y, 0.0));
+        }
+    }
+
+    BoundingBox bb;
+    bb.lowerLeftCorner = bb.upperRightCorner = corners[0];
+
+    for (unsigned int i = 1; i < 8u; ++ i) {
+        for (unsigned int d; d < 3u; ++ d) {
+            if (bb.lowerLeftCorner(d) > corners[i](d)) {
+                bb.lowerLeftCorner(d) = corners[i](d);
+            }
+            if (bb.upperLeftCorner(d) < corners[i](d)) {
+                bb.upperLeftCorner(d) = corners[i](d);
+            }
+        }
+    }
+
+    return bb;
+}
