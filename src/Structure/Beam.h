@@ -70,10 +70,7 @@ public:
     double getPC() const;
 
     /// Return the number of (macro)particles
-    size_t getNumberOfParticles();
-
-    /// Return the number of slices
-    size_t getNumberOfSlices();
+    size_t getNumberOfParticles() const;
 
     /// Return the embedded CLASSIC PartData.
     const PartData &getReference() const;
@@ -92,6 +89,12 @@ public:
 
     /// Return Particle's rest mass in GeV
     double getMass() const;
+
+    /// Charge per macro particle in C
+    double getChargePerParticle() const;
+
+    /// Mass per macro particle in GeV/c^2
+    double getMassPerParticle() const;
 
     /// Store emittance for mode 1.
     void setEX(double);

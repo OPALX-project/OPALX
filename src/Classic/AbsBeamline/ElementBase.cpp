@@ -31,7 +31,6 @@
 #include "Solvers/WakeFunction.hh"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 
-using namespace std;
 
 // Class ElementBase
 // ------------------------------------------------------------------------
@@ -54,7 +53,6 @@ ElementBase::ElementBase(const ElementBase &right):
     wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
     parmatint_m(right.parmatint_m),
-    elType_m(right.elType_m),
     positionIsFixed(right.positionIsFixed),
     elementPosition_m(right.elementPosition_m),
     elemedgeSet_m(right.elemedgeSet_m)
@@ -80,7 +78,6 @@ ElementBase::ElementBase(const std::string &name):
     wake_m(NULL),
     bgeometry_m(NULL),
     parmatint_m(NULL),
-    elType_m(isOther),
     positionIsFixed(false),
     elementPosition_m(0.0),
     elemedgeSet_m(false)
@@ -141,7 +138,7 @@ void ElementBase::setAttribute(const std::string &aKey, double val) {
         *aChannel = val;
         delete aChannel;
     } else
-        cout << "Channel NULL or not Settable" << endl;
+        std::cout << "Channel NULL or not Settable" << std::endl;
 }
 
 

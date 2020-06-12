@@ -148,14 +148,14 @@ namespace Options {
     /// opal version of input file
     extern int version;
 
-#ifdef ENABLE_AMR
+    /// Enable AMR if true
     extern bool amr;
 
     /// The frequency to dump AMR grid data and particles into file
     extern int amrYtDumpFreq;
     
+    /// After how many steps the AMR grid hierarchy is updated
     extern int amrRegridFreq;
-#endif
 
     extern bool memoryDump;
 
