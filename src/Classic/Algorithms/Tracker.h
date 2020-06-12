@@ -124,17 +124,11 @@ public:
     /// Apply the algorithm to an align wrapper.
     virtual void visitAlignWrapper(const AlignWrapper &);
 
-    /// Apply the algorithm to an integrator capable of tracking.
-    virtual void visitTrackIntegrator(const TrackIntegrator &);
-
-    /// Apply the algorithm to an integrator capable of mapping.
-    virtual void visitMapIntegrator(const MapIntegrator &);
-
     /// set total number of tracked bunches
-    virtual void setNumBunch(int) {};
+    virtual void setNumBunch(short) {};
 
     /// get total number of tracked bunches
-    virtual int  getNumBunch() { return 0; }
+    virtual short getNumBunch() { return 0; }
 
     // standing wave structures
     FieldList cavities_m;

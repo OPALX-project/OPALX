@@ -10,10 +10,6 @@
 #include <fstream>
 #include <ios>
 
-extern Inform *gmsg;
-
-using namespace std;
-using Physics::mu_0;
 
 FM3DDynamic::FM3DDynamic(std::string aFilename):
     Fieldmap(aFilename),
@@ -29,7 +25,7 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
     double tmpDouble;
 
     Type = T3DDynamic;
-    ifstream file(Filename_m.c_str());
+    std::ifstream file(Filename_m.c_str());
 
     if(file.good()) {
         bool parsing_passed = true;
@@ -112,7 +108,7 @@ FM3DDynamic::~FM3DDynamic() {
 void FM3DDynamic::readMap() {
     if(FieldstrengthEz_m == NULL) {
 
-        ifstream in(Filename_m.c_str());
+    	std::ifstream in(Filename_m.c_str());
         std::string tmpString;
         const size_t totalSize = num_gridpx_m * num_gridpy_m * num_gridpz_m;
 
@@ -242,14 +238,14 @@ void FM3DDynamic::freeMap() {
 }
 
 bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
-    const unsigned int index_x = static_cast<int>(floor((R(0) - xbegin_m) / hx_m));
+    const unsigned int index_x = static_cast<int>(std::floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 
-    const unsigned int index_y = static_cast<int>(floor((R(1) - ybegin_m) / hy_m));
+    const unsigned int index_y = static_cast<int>(std::floor((R(1) - ybegin_m) / hy_m));
     const double lever_y = (R(1) - ybegin_m) / hy_m - index_y;
 
-    const unsigned int index_z = (int)floor(R(2) / hz_m);
-    const double lever_z = R(2) / hz_m - index_z;
+    const unsigned int index_z = (int)std::floor((R(2) - zbegin_m)/ hz_m);
+    const double lever_z = (R(2) - zbegin_m) / hz_m - index_z;
 
     if(index_z >= num_gridpz_m - 2) {
         return false;
@@ -374,7 +370,11 @@ void FM3DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
     auto opal = OpalData::getInstance();
     if (opal->isOptimizerRun()) return;
 
-    std::ofstream out("data/" + Filename_m);
+    std::string fname = Util::combineFilePath({
+        opal->getAuxiliaryOutputDirectory(),
+        Filename_m
+    });
+    std::ofstream out(fname);
     for(unsigned int i = 0; i < num_gridpz_m; ++ i) {
         Vector_t R(0,0,zbegin_m + F[i].first), B(0.0), E(0.0);
         getFieldstrength(R, E, B);

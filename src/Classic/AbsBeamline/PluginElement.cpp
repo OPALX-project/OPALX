@@ -1,3 +1,21 @@
+//
+// Class PluginElement
+//   Abstract Interface for (Cyclotron) Plugin Elements (CCollimator, Probe, Stripper, Septum)
+//   Implementation via Non-Virtual Interface Template Method
+//
+// Copyright (c) 2018-2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AbsBeamline/PluginElement.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -5,22 +23,19 @@
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 
-extern Inform *gmsg;
 
 PluginElement::PluginElement():PluginElement("")
 {}
 
 PluginElement::PluginElement(const std::string &name):
     Component(name),
-    filename_m(""),
-    position_m(0.0) {
+    filename_m("") {
     setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
 PluginElement::PluginElement(const PluginElement &right):
     Component(right),
-    filename_m(right.filename_m),
-    position_m(right.position_m) {
+    filename_m(right.filename_m) {
     setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
 }
 
@@ -116,7 +131,7 @@ void PluginElement::setGeom(const double dist) {
     else
       slope = (yend_m - ystart_m) / (xend_m - xstart_m);
 
-    double coeff2 = sqrt(1 + slope * slope);
+    double coeff2 = std::sqrt(1 + slope * slope);
     double coeff1 = slope / coeff2;
     double halfdist = dist / 2.0;
     geom_m[0].x = xstart_m - halfdist * coeff1;
@@ -139,9 +154,9 @@ void PluginElement::setGeom(const double dist) {
 
 void PluginElement::changeWidth(PartBunchBase<double, 3> *bunch, int i, const double tstep, const double tangle) {
 
-    constexpr double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
-    double lstep   = euclidean_norm(bunch->P[i]) / Util::getGamma(bunch->P[i]) * c_mmtns * tstep; // [mm]
-    double sWidth  = lstep / sqrt( 1 + 1/tangle/tangle );
+    constexpr double c_mtns = Physics::c * 1.0e-9; // m/s --> m/ns
+    double lstep  = euclidean_norm(bunch->P[i]) / Util::getGamma(bunch->P[i]) * c_mtns * tstep; // [m]
+    double sWidth = lstep / std::sqrt( 1 + 1/tangle/tangle );
     setGeom(sWidth);
 }
 
@@ -157,7 +172,7 @@ double PluginElement::calculateIncidentAngle(double xp, double yp) const {
         else
             tangle = std::abs(1 / k1);
     } else if ( xp == 0.0 ) {
-        k2 = - A_m/B_m;
+        k2 = - A_m / B_m;
         if ( k2 == 0.0 )
             tangle = 1.0e12;
         else
@@ -201,15 +216,15 @@ bool PluginElement::check(PartBunchBase<double, 3> *bunch, const int turnnumber,
 }
 
 void PluginElement::getDimensions(double &zBegin, double &zEnd) const {
-    zBegin = position_m - 0.005;
-    zEnd   = position_m + 0.005;
+    zBegin = -0.005;
+    zEnd   =  0.005;
 }
 
 int PluginElement::checkPoint(const double &x, const double &y) const {
     int    cn = 0;
-    for(int i = 0; i < 4; i++) {
-        if((   (geom_m[i].y <= y) && (geom_m[i+1].y >  y))
-           || ((geom_m[i].y >  y) && (geom_m[i+1].y <= y))) {
+    for (int i = 0; i < 4; i++) {
+        if ((   (geom_m[i].y <= y) && (geom_m[i+1].y >  y))
+            || ((geom_m[i].y >  y) && (geom_m[i+1].y <= y))) {
 
             float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
             if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
@@ -229,4 +244,3 @@ void PluginElement::save() {
     lossDs_m->save(1, openMode);
     numPassages_m++;
 }
-
