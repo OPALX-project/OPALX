@@ -34,6 +34,7 @@
 #include <cmath>
 #include "IrregularDomain.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Utilities/OpalException.h"
 
 class EllipticDomain : public IrregularDomain {
 
@@ -74,8 +75,8 @@ public:
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
-        double xx = (x - (nr[0] - 1) / 2.0) * hr[0];
-        double yy = (y - (nr[1] - 1) / 2.0) * hr[1];
+        double xx = - semiMajor_m + hr[0] * (x + 0.5); //(x - (nr[0] - 1) / 2.0) * hr[0];
+        double yy = - semiMinor_m + hr[1] * (y + 0.5); //(y - (nr[1] - 1) / 2.0) * hr[1];
 
         bool isInsideEllipse = (xx * xx / (semiMajor_m * semiMajor_m) +
                                 yy * yy / (semiMinor_m * semiMinor_m) < 1);
