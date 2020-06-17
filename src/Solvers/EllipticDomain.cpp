@@ -48,11 +48,11 @@ EllipticDomain::EllipticDomain(double semimajor, double semiminor, Vector_t nr,
     setNr(nr);
     setHr(hr);
 
-    if(interpl == "CONSTANT")
+    if (interpl == "CONSTANT")
         interpolationMethod_m = CONSTANT;
-    else if(interpl == "LINEAR")
+    else if (interpl == "LINEAR")
         interpolationMethod_m = LINEAR;
-    else if(interpl == "QUADRATIC")
+    else if (interpl == "QUADRATIC")
         interpolationMethod_m = QUADRATIC;
 }
 
@@ -132,13 +132,13 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
             double pos = 0.0;
 
             // calculate intersection with the ellipse
-            for(x = localId[0].first(); x <= localId[0].last(); x++) {
+            for (x = localId[0].first(); x <= localId[0].last(); x++) {
                 pos = - semiMajor_m + hr[0] * (x + 0.5);
                 if (std::abs(pos) >= semiMajor_m)
                 {
                     intersectYDir_m.insert(std::pair<int, double>(x, 0));
                     intersectYDir_m.insert(std::pair<int, double>(x, 0));
-                }else {
+                } else {
                     yd = std::abs(std::sqrt(sminsq - sminsq * pos * pos / smajsq));
                     intersectYDir_m.insert(std::pair<int, double>(x, yd));
                     intersectYDir_m.insert(std::pair<int, double>(x, -yd));
@@ -146,13 +146,13 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
 
             }
 
-            for(y = localId[0].first(); y < localId[1].last(); y++) {
+            for (y = localId[0].first(); y < localId[1].last(); y++) {
                 pos = - semiMinor_m + hr[1] * (y + 0.5);
                 if (std::abs(pos) >= semiMinor_m)
                 {
                     intersectXDir_m.insert(std::pair<int, double>(y, 0));
                     intersectXDir_m.insert(std::pair<int, double>(y, 0));
-                }else {
+                } else {
                     xd = std::abs(std::sqrt(smajsq - smajsq * pos * pos / sminsq));
                     intersectXDir_m.insert(std::pair<int, double>(y, xd));
                     intersectXDir_m.insert(std::pair<int, double>(y, -xd));
