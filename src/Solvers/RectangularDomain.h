@@ -75,19 +75,18 @@ public:
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int /*z*/) {
-        return true;
-//         double xx = - a_m + hr[0] * (x + 0.5);
-//         double yy = - b_m + hr[1] * (y + 0.5);
-//         return (xx <= a_m && yy < b_m);
+        double xx = std::abs(-a_m + hr[0] * (x + 0.5));
+        double yy = std::abs(-b_m + hr[1] * (y + 0.5));
+        return (xx < a_m && yy < b_m);
     }
 
     void setB_m(double b) {b_m = b;}
     void setA_m(double a) {a_m = a;}
 
     double getXRangeMin() { return -a_m; }
-    double getXRangeMax() { return a_m; }
+    double getXRangeMax() { return  a_m; }
     double getYRangeMin() { return -b_m; }
-    double getYRangeMax() { return b_m; }
+    double getYRangeMax() { return  b_m; }
     double getZRangeMin() { return getMinZ(); }
     double getZRangeMax() { return getMaxZ(); }
 
