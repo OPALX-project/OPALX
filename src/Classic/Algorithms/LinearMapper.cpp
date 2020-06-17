@@ -41,7 +41,6 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/ParallelPlate.h"
 
-#include "Algorithms/MapIntegrator.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "BeamlineGeometry/RBendGeometry.h"
@@ -392,13 +391,6 @@ void LinearMapper::visitAlignWrapper(const AlignWrapper &wrap) {
             applyTransform(e2, 0.0);
         }
     }
-}
-
-
-void LinearMapper::visitMapIntegrator(const MapIntegrator &i) {
-    FVps<double, 6> map(itsMap);
-    i.trackMap(map, itsReference, back_beam, back_track);
-    itsMap = LinearMap<double, 6>(map);
 }
 
 
