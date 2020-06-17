@@ -152,19 +152,16 @@ void RectangularDomain::getNeighbours(int x, int y, int z, double &W, double &E,
         B = -1;
 }
 
-void RectangularDomain::resizeMesh(Vector_t& origin, Vector_t& hr, PartBunchBase<double, 3>* bunch) {
-    Vector_t rmin  = bunch->getLowerBound();
-    Vector_t rmax  = bunch->getUpperBound();
-    Vector_t mymax = Vector_t(0.0, 0.0, 0.0);
-
-    double dh = bunch->getMeshEnlargement();
-
+void RectangularDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
+                                const Vector_t& rmax, double dh)
+{
     // apply bounding box increment, i.e., "BBOXINCR" input argument
-    double zmin = std::signbit(rmin[2]) ? rmin[2] * (1.0 + dh) : rmin[2] * (1.0 - dh);
-    double zmax = std::signbit(rmax[2]) ? rmax[2] * (1.0 - dh) : rmax[2] * (1.0 + dh);
+    double zsize = rmax[2] - rmin[2];
+    this->zMin_m = rmin[2] - zsize * (1.0 + dh);
+    this->zMax_m = rmax[2] + zsize * (1.0 + dh);
 
-    origin = Vector_t(-a_m, -b_m, zmin);
-    mymax  = Vector_t( a_m,  b_m, zmax);
+    origin = Vector_t(-a_m, -b_m, this->zMin_m);
+    mymax  = Vector_t( a_m,  b_m, this->zMax_m);
 
     for (int i = 0; i < 3; ++i)
         hr[i]   = (mymax[i] - origin[i]) / nr[i];
