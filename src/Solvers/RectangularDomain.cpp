@@ -30,13 +30,8 @@
 #include "Utilities/OpalException.h"
 
 RectangularDomain::RectangularDomain(Vector_t nr, Vector_t hr)
-    : a_m(0.1)
-    , b_m(0.1)
-    , nxy_m(nr[0] * nr[1])
-{
-    setNr(nr);
-    setHr(hr);
-}
+    : RectangularDomain(0.1, 0.1, nr, hr)
+{}
 
 RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t hr)
     : a_m(a)
@@ -94,7 +89,7 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W,
 
     //simple check if center value of stencil is positive
 #ifdef DEBUG
-    if(C <= 0)
+    if (C <= 0)
         throw OpalException("RectangularDomain::getBoundaryStencil",
                             "Stencil C is <= 0! This case should never occure!");
 #endif
