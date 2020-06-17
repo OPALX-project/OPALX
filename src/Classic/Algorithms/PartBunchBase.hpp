@@ -2285,5 +2285,4 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
     return sigmaMatrix;
 }
 
-
 #endif
