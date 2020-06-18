@@ -168,11 +168,12 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& 
 
     // apply bounding box increment dh, i.e., "BBOXINCR" input argument
     double zsize = rmax[2] - rmin[2];
-    zMin_m = rmin[2] - zsize * (1.0 + dh);
-    zMax_m = rmax[2] + zsize * (1.0 + dh);
 
-    origin = Vector_t(-semiMajor_m, -semiMinor_m, zMin_m);
-    mymax  = Vector_t( semiMajor_m,  semiMinor_m, zMax_m);
+    setMinMaxZ(rmin[2] - zsize * (1.0 + dh),
+               rmax[2] + zsize * (1.0 + dh));
+
+    origin = Vector_t(-semiMajor_m, -semiMinor_m, getMinZ());
+    mymax  = Vector_t( semiMajor_m,  semiMinor_m, getMaxZ());
 
     for (int i = 0; i < 3; ++i)
         hr[i] = (mymax[i] - origin[i]) / nr[i];
