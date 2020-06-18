@@ -1,3 +1,20 @@
+//
+// Class OpalBeamline
+//   :FIXME: add class description
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
@@ -5,7 +22,6 @@
 #include <string>
 
 #include "Beamlines/Beamline.h"
-#include "AbsBeamline/AlignWrapper.h"
 #include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Degrader.h"
@@ -25,9 +41,6 @@ template <class T, unsigned Dim>
 class PartBunchBase;
 class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
-
-//#define BEAMLINE_EOL  0x80000000   // end of line
-//#define BEAMLINE_PARTICLEMATTERINTERACTION 0x08000000 // has particle matter interaction
 
 class OpalBeamline {
 
@@ -120,11 +133,6 @@ void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartB
 
     elptr->initialise(bunch, startField, endField);
     elements_m.push_back(ClassicField(elptr, startField, endField));
-}
-
-template<> inline
-void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, BeamlineVisitor &visitor, PartBunchBase<double, 3> *) {
-    wrap.getElement()->accept(visitor);
 }
 
 template<> inline

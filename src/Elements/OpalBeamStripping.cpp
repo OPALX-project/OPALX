@@ -55,14 +55,14 @@ OpalBeamStripping::OpalBeamStripping():
     
     registerOwnership();
     
-    setElement((new BeamStrippingRep("BEAMSTRIPPING"))->makeAlignWrapper());
+    setElement(new BeamStrippingRep("BEAMSTRIPPING"));
 }
 
 
 OpalBeamStripping::OpalBeamStripping(const std::string &name, OpalBeamStripping *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new BeamStrippingRep(name))->makeAlignWrapper());
+    setElement(new BeamStrippingRep(name));
 }
 
 

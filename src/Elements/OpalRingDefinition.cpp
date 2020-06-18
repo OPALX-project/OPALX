@@ -81,7 +81,7 @@ OpalRingDefinition::OpalRingDefinition() :
 
     registerOwnership();
 
-    setElement((new Ring("RING"))->makeAlignWrapper());
+    setElement(new Ring("RING"));
 }
 
 OpalRingDefinition* OpalRingDefinition::clone(const std::string &name) {
@@ -94,7 +94,7 @@ void OpalRingDefinition::print(std::ostream& out) const {
 
 OpalRingDefinition::OpalRingDefinition(const std::string &name, OpalRingDefinition *parent):
     OpalElement(name, parent) {
-    setElement((new Ring(name))->makeAlignWrapper());
+    setElement(new Ring(name));
 }
 
 OpalRingDefinition::~OpalRingDefinition() {}

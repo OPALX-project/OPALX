@@ -101,7 +101,7 @@ void OpalMultipoleTStraight::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
     const MultipoleTStraight *multT =
-        dynamic_cast<const MultipoleTStraight*>(base.removeAlignWrapper());
+        dynamic_cast<const MultipoleTStraight*>(&base);
 
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;

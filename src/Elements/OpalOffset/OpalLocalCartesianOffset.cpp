@@ -61,7 +61,7 @@ OpalLocalCartesianOffset::OpalLocalCartesianOffset()
 
     registerOwnership();
 
-    setElement((new Offset("LOCAL_CARTESIAN_OFFSET"))->makeAlignWrapper());
+    setElement(new Offset("LOCAL_CARTESIAN_OFFSET"));
 }
 
 OpalLocalCartesianOffset* OpalLocalCartesianOffset::clone() {
@@ -111,6 +111,6 @@ void OpalLocalCartesianOffset::update() {
                   Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
     Offset off = Offset(Offset::localCartesianOffset(name, pos, norm));
     *offset = off;
-    setElement(offset->makeAlignWrapper());
+    setElement(offset);
 }
 }

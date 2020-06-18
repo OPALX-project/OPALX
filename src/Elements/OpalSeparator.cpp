@@ -1,28 +1,24 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalSeparator.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalSeparator
-//   The class of OPAL electrostatic separators.
+// Class OpalSeparator
+//   The ELSEPARATOR element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:40 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalSeparator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SeparatorRep.h"
 
-
-// Class OpalSeparator
-// ------------------------------------------------------------------------
 
 OpalSeparator::OpalSeparator():
     OpalElement(SIZE, "SEPARATOR",
@@ -37,13 +33,13 @@ OpalSeparator::OpalSeparator():
 
     registerOwnership();
 
-    setElement((new SeparatorRep("SEPARATOR"))->makeAlignWrapper());
+    setElement(new SeparatorRep("SEPARATOR"));
 }
 
 
 OpalSeparator::OpalSeparator(const std::string &name, OpalSeparator *parent):
     OpalElement(name, parent) {
-    setElement((new SeparatorRep(name))->makeAlignWrapper());
+    setElement(new SeparatorRep(name));
 }
 
 
