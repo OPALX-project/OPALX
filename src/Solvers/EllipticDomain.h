@@ -177,6 +177,7 @@ private:
                                 double &F, double &B, double &C,
                                 double &scaleFactor);
 
+    /// function to handle the open boundary condition in longitudinal direction
     void robinBoundaryStencil(int z, double &F, double &B, double &C);
 };
 
