@@ -16,7 +16,6 @@
 class BMultipoleField;
 template <class T, unsigned Dim>
 class PartBunchBase;
-class AlignWrapper;
 class BeamBeam;
 class BeamStripping;
 class CCollimator;
@@ -52,7 +51,6 @@ public:
 
     virtual ~NilTracker();
 
-    NIL_VISITELEMENT(AlignWrapper)
     NIL_VISITELEMENT(Beamline)
     NIL_VISITELEMENT(BeamBeam)
     NIL_VISITELEMENT(BeamStripping)

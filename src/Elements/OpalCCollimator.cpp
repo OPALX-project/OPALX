@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalCCollimator.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalCCollimator
-//   The class of OPAL Cyclotron collimators.
+// Class OpalCCollimator
+//   The CCOLLIMATOR element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann, Jianjun Yang $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalCCollimator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CCollimatorRep.h"
@@ -58,14 +57,14 @@ OpalCCollimator::OpalCCollimator():
 
     registerOwnership();
 
-    setElement((new CCollimatorRep("CCOLLIMATOR"))->makeAlignWrapper());
+    setElement(new CCollimatorRep("CCOLLIMATOR"));
 }
 
 
 OpalCCollimator::OpalCCollimator(const std::string &name, OpalCCollimator *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new CCollimatorRep(name))->makeAlignWrapper());
+    setElement(new CCollimatorRep(name));
 }
 
 

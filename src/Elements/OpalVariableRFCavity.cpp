@@ -59,7 +59,7 @@ OpalVariableRFCavity::OpalVariableRFCavity():
 
     registerOwnership();
 
-    setElement((new VariableRFCavity("VARIABLE_RF_CAVITY"))->makeAlignWrapper());
+    setElement(new VariableRFCavity("VARIABLE_RF_CAVITY"));
 }
 
 OpalVariableRFCavity::OpalVariableRFCavity(const std::string &name,
@@ -67,7 +67,7 @@ OpalVariableRFCavity::OpalVariableRFCavity(const std::string &name,
           OpalElement(name, parent) {
     VariableRFCavity *cavity = dynamic_cast<VariableRFCavity*>(
                                         parent->getElement()->removeWrappers());
-    setElement((new VariableRFCavity(*cavity))->makeAlignWrapper());
+    setElement(new VariableRFCavity(*cavity));
 }
 
 OpalVariableRFCavity::~OpalVariableRFCavity() {
@@ -121,5 +121,5 @@ void OpalVariableRFCavity::update() {
     cavity->setWidth(width);
     double height = Attributes::getReal(itsAttr[HEIGHT]);
     cavity->setHeight(height);
-    setElement(cavity->makeAlignWrapper());
+    setElement(cavity);
 }

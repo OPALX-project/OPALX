@@ -1,21 +1,21 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalHKicker.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalHKicker
-//   The class of OPAL horizontal orbit correctors.
+// Class OpalHKicker
+//   The HKICKER element.
+//   Note the sign convention:  A positive kick bend particles to positive x.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalHKicker.h"
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/OpalData.h"
@@ -23,10 +23,6 @@
 #include "BeamlineCore/XCorrectorRep.h"
 #include "ComponentWrappers/CorrectorWrapper.h"
 #include "Physics/Physics.h"
-
-
-// Class OpalHKicker
-// ------------------------------------------------------------------------
 
 OpalHKicker::OpalHKicker():
     OpalElement(SIZE, "HKICKER",
@@ -68,7 +64,7 @@ void OpalHKicker::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
     const CorrectorWrapper *corr =
-        dynamic_cast<const CorrectorWrapper *>(base.removeAlignWrapper());
+        dynamic_cast<const CorrectorWrapper *>(&base);
     BDipoleField field;
 
     if(flag == ERROR_FLAG) {

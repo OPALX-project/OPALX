@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalRBend.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.2.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalRBend
-//   The class of OPAL rectangular bend magnets.
+// Class OpalRBend
+//   The RBEND element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalRBend.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -27,9 +26,6 @@
 #include "Structure/ParticleMatterInteraction.h"
 #include "Utilities/OpalException.h"
 #include <cmath>
-
-// Class OpalRBend
-// ------------------------------------------------------------------------
 
 OpalRBend::OpalRBend():
     OpalBend("RBEND",
@@ -70,7 +66,7 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
     // Get the desired field.
     const RBendWrapper *bend =
-        dynamic_cast<const RBendWrapper *>(base.removeAlignWrapper());
+        dynamic_cast<const RBendWrapper *>(&base);
     BMultipoleField field;
 
     // Get the desired field.

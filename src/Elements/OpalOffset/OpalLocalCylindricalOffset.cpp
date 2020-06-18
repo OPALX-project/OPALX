@@ -87,7 +87,7 @@ void OpalLocalCylindricalOffset::update() {
                                                             theta_out,
                                                             length));
     // is this a memory leak?
-    setElement(off->makeAlignWrapper());
+    setElement(off);
 }
 
 }

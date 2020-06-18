@@ -48,13 +48,13 @@ OpalSBend3D::OpalSBend3D():
 
     registerOwnership();
 
-    setElement((new SBend3D("SBEND3D"))->makeAlignWrapper());
+    setElement(new SBend3D("SBEND3D"));
 }
 
 
 OpalSBend3D::OpalSBend3D(const std::string &name, OpalSBend3D *parent):
     OpalElement(name, parent) {
-    setElement((new SBend3D(name))->makeAlignWrapper());
+    setElement(new SBend3D(name));
 }
 
 
@@ -82,6 +82,6 @@ void OpalSBend3D::update() {
     // this has to be done last as we initialise field map here
     // (need units before initialisation)
     bend->setFieldMapFileName(Attributes::getString(itsAttr[FMAPFN]));
-    setElement(bend->makeAlignWrapper());
+    setElement(bend);
 
 }

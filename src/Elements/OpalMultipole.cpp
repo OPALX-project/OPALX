@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalMultipole.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalMultipole
-//   The class of OPAL general multipoles.
+// Class OpalMultipole
+//   The MULTIPOLE element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2002/12/09 15:06:07 $
-// $Author: jsberg $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalMultipole.h"
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
@@ -30,10 +29,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
-
-// Class OpalMultipole
-// ------------------------------------------------------------------------
 
 OpalMultipole::OpalMultipole():
     OpalElement(SIZE, "MULTIPOLE",
@@ -81,7 +76,7 @@ void OpalMultipole::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
     const MultipoleWrapper *mult =
-        dynamic_cast<const MultipoleWrapper *>(base.removeAlignWrapper());
+        dynamic_cast<const MultipoleWrapper *>(&base);
     BMultipoleField field;
 
     // Get the desired field.

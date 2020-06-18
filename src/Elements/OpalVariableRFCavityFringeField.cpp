@@ -72,8 +72,7 @@ OpalVariableRFCavityFringeField::OpalVariableRFCavityFringeField():
 
     registerOwnership();
 
-    setElement((new VariableRFCavityFringeField("VARIABLE_RF_CAVITY_FRINGE_FIELD"))->
-                                                            makeAlignWrapper());
+    setElement(new VariableRFCavityFringeField("VARIABLE_RF_CAVITY_FRINGE_FIELD"));
 }
 
 OpalVariableRFCavityFringeField::OpalVariableRFCavityFringeField(
@@ -82,7 +81,7 @@ OpalVariableRFCavityFringeField::OpalVariableRFCavityFringeField(
                         ) : OpalElement(name, parent) {
     VariableRFCavityFringeField *cavity = dynamic_cast
          <VariableRFCavityFringeField*>(parent->getElement()->removeWrappers());
-    setElement((new VariableRFCavityFringeField(*cavity))->makeAlignWrapper());
+    setElement(new VariableRFCavityFringeField(*cavity));
 }
 
 OpalVariableRFCavityFringeField::~OpalVariableRFCavityFringeField() {
@@ -166,7 +165,7 @@ void OpalVariableRFCavityFringeField::update() {
     std::shared_ptr<endfieldmodel::EndFieldModel> end(tanh);
     cavity->setEndField(end);
 
-    setElement(cavity->makeAlignWrapper());
+    setElement(cavity);
 }
 
 

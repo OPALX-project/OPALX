@@ -1,21 +1,23 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Sequence.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Sequence
-//   The class of OPAL element sequences.
+// Class Sequence
+//   The SEQUENCE definition.
+//   A Sequence contains a CLASSIC TBeamline<SequenceMember> which represents
+//   the sequence of elements in the line and their positions.  The sequence
+//   definition is parsed in collaboration with a SequenceParser.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 2002 - 2020, jsberg (?), Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2002/12/09 15:06:08 $
-// $Author: jsberg $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Lines/Sequence.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/OpalData.h"
@@ -34,9 +36,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
-// Class Sequence
-// ------------------------------------------------------------------------
 
 // The attributes of class Sequence.
 namespace {
@@ -75,7 +74,7 @@ Sequence::Sequence():
                        "\t(if given, this position is used instead of the centre, when the"
                        "\tsequence is nested in another sequence with \"REFER=CENTRE\")");
 
-    setElement((new TLine("SEQUENCE"))->makeAlignWrapper());
+    setElement(new TLine("SEQUENCE"));
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -87,7 +86,7 @@ Sequence::Sequence(const std::string &name, Sequence *parent):
     // In case of a clone within a sequence, it is filled by the method
     // SequenceParser::parseMember().
 {
-    setElement((new TLine(name))->makeAlignWrapper());
+    setElement(new TLine(name));
 }
 
 

@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalQuadrupole.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalQuadrupole
-//   The class of OPAL Quadrupoles.
+// Class OpalQuadrupole
+//   The QUADRUPOLE element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2002/12/09 15:06:07 $
-// $Author: jsberg $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalQuadrupole.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -30,9 +29,6 @@
 #include <iostream>
 #include <sstream>
 
-
-// Class OpalQuadrupole
-// ------------------------------------------------------------------------
 
 OpalQuadrupole::OpalQuadrupole():
     OpalElement(SIZE, "QUADRUPOLE",
@@ -93,7 +89,7 @@ fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
 
     // Get the desired field.
     const MultipoleWrapper *mult =
-        dynamic_cast<const MultipoleWrapper *>(base.removeAlignWrapper());
+        dynamic_cast<const MultipoleWrapper *>(&base);
     BMultipoleField field;
 
     // Get the desired field.
