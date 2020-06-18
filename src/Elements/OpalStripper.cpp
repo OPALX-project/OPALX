@@ -67,13 +67,13 @@ OpalStripper::OpalStripper():
 
     registerOwnership();
 
-    setElement((new StripperRep("STRIPPER"))->makeAlignWrapper());
+    setElement(new StripperRep("STRIPPER"));
 }
 
 
 OpalStripper::OpalStripper(const std::string &name, OpalStripper *parent):
     OpalElement(name, parent) {
-    setElement((new StripperRep(name))->makeAlignWrapper());
+    setElement(new StripperRep(name));
 }
 
 

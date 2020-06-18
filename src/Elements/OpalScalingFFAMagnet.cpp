@@ -79,7 +79,7 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
 
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet("ScalingFFAMagnet");
     magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
-    setElement(magnet->makeAlignWrapper());
+    setElement(magnet);
 }
 
 
@@ -88,7 +88,7 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string &name,
     OpalElement(name, parent) {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(name);
     magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
-    setElement(magnet->makeAlignWrapper());
+    setElement(magnet);
 }
 
 
@@ -175,6 +175,6 @@ void OpalScalingFFAMagnet::update() {
         magnet->setAzimuthalExtent(defaultExtent);
     }
     magnet->initialise();
-    setElement(magnet->makeAlignWrapper());
+    setElement(magnet);
 
 }

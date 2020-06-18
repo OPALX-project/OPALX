@@ -108,7 +108,7 @@ void OpalMultipoleT::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);   
     const MultipoleT *multT = 
-        dynamic_cast<const MultipoleT*>(base.removeAlignWrapper());
+        dynamic_cast<const MultipoleT*>(&base);
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
         ss << order;

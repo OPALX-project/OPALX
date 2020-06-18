@@ -107,7 +107,7 @@ void OpalMultipoleTCurvedConstRadius::
 fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
     OpalElement::fillRegisteredAttributes(base, flag);
     const MultipoleTCurvedConstRadius *multT =
-        dynamic_cast<const MultipoleTCurvedConstRadius*>(base.removeAlignWrapper());
+        dynamic_cast<const MultipoleTCurvedConstRadius*>(&base);
 
     for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
         std::ostringstream ss;
