@@ -17,7 +17,7 @@
 //   structure of a beam line, but it can assign special data like misalignments
 //   or integrators without problems.
 //
-// Copyright (c) 2000 - 2020, fci (?), Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.

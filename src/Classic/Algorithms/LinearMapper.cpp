@@ -34,7 +34,7 @@
 //     of the opposite bunches vanish.
 //   [/ul]
 //
-// Copyright (c) 2003 - 2020, dbruhwil (?), Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
