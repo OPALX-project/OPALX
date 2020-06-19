@@ -7,7 +7,7 @@
 //   structural classes Beamline and FlaggedElmPtr, and for all wrappers.
 //   It also holds the data required for all visitors in a protected area.
 //
-// Copyright (c) 2000 - 2020, mad (?), Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.

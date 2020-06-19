@@ -48,7 +48,7 @@
 //     multiples of (2*pi).
 //   [/DL]
 //
-// Copyright (c) 2000 - 2020, fci (?) Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2020 Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
