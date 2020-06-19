@@ -21,7 +21,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
 #include "Expressions/SValue.h"
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
@@ -48,13 +47,13 @@ OpalMultipole::OpalMultipole():
 
     registerOwnership();
 
-    setElement((new MultipoleRep("MULTIPOLE"))->makeWrappers());
+    setElement(new MultipoleRep("MULTIPOLE"));
 }
 
 
 OpalMultipole::OpalMultipole(const std::string &name, OpalMultipole *parent):
     OpalElement(name, parent) {
-    setElement((new MultipoleRep(name))->makeWrappers());
+    setElement(new MultipoleRep(name));
 }
 
 
@@ -73,20 +72,12 @@ void OpalMultipole::print(std::ostream &os) const {
 
 
 void OpalMultipole::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-    const MultipoleWrapper *mult =
-        dynamic_cast<const MultipoleWrapper *>(&base);
-    BMultipoleField field;
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = mult->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = mult->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = mult->getDesign().getField();
-    }
+    const MultipoleRep *mult = dynamic_cast<const MultipoleRep *>(&base);
+
+    BMultipoleField field = mult->getField();
 
     double length = getLength();
     double scale = Physics::c / OpalData::getInstance()->getP0();
@@ -113,7 +104,7 @@ void OpalMultipole::update() {
 
     // Magnet length.
     MultipoleRep *mult =
-        dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
+        dynamic_cast<MultipoleRep *>(getElement());
     double length = getLength();
     mult->setElementLength(length);
 

@@ -63,17 +63,10 @@ public:
         COMMON
     };
 
-    /// Switch for value desired on ATTLIST command.
-    enum ValueFlag {
-        ACTUAL_FLAG,      // Actual field values (design + error).
-        IDEAL_FLAG,       // Ideal field values (design only).
-        ERROR_FLAG        // Field errors.
-    };
-
     virtual ~OpalElement();
 
     /// Fill in all registered attributes.
-    virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
+    virtual void fillRegisteredAttributes(const ElementBase &);
 
     /// Find a registered attribute.
     //  Return a pointer to the AttCell for a named attribute.

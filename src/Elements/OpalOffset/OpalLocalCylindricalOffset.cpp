@@ -72,8 +72,8 @@ OpalLocalCylindricalOffset::OpalLocalCylindricalOffset(const std::string &name, 
 OpalLocalCylindricalOffset::~OpalLocalCylindricalOffset() {}
 
 void OpalLocalCylindricalOffset::fillRegisteredAttributes
-                                     (const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+                                     (const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 void OpalLocalCylindricalOffset::update() {

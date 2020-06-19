@@ -33,37 +33,12 @@
 #ifndef CLASSIC_BeamlineVisitor_HH
 #define CLASSIC_BeamlineVisitor_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: BeamlineVisitor.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: BeamlineVisitor
-//
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
 // Generic element classes interacting with a BeamlineVisitor.
 class Component;
 
 // Beam line structure classes.
 class Beamline;
-class CorrectorWrapper;
 class FlaggedElmPtr;
-class MultipoleWrapper;
-class RBendWrapper;
-class SBendWrapper;
-class CyclotronWrapper;
 
 // Specific element classes interacting with a BeamlineVisitor
 class BeamBeam;
@@ -232,21 +207,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &) = 0;
-
-    /// Apply the algorithm to an corrector wrapper.
-    virtual void visitCorrectorWrapper(const CorrectorWrapper &) = 0;
-
-    /// Apply the algorithm to an corrector wrapper.
-    virtual void visitCyclotronWrapper(const CyclotronWrapper &) = 0;
-
-    /// Apply the algorithm to an multipole wrapper.
-    virtual void visitMultipoleWrapper(const MultipoleWrapper &) = 0;
-
-    /// Apply the algorithm to an RBend wrapper.
-    virtual void visitRBendWrapper(const RBendWrapper &) = 0;
-
-    /// Apply the algorithm to an SBend wrapper.
-    virtual void visitSBendWrapper(const SBendWrapper &) = 0;
 
     /// Apply the algorithm to an ParallelPlate.
     virtual void visitParallelPlate(const ParallelPlate &) = 0;

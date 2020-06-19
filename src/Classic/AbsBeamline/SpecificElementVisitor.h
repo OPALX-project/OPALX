@@ -64,12 +64,6 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
-#include "ComponentWrappers/CorrectorWrapper.h"
-#include "ComponentWrappers/CyclotronWrapper.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
-#include "ComponentWrappers/RBendWrapper.h"
-#include "ComponentWrappers/SBendWrapper.h"
-
 template <class ELEM1, class ELEM2>
 struct CastsTrait {
     typedef std::list<const ELEM1*> ElementList_t;
@@ -218,22 +212,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
-
-    /// Apply the algorithm to an corrector wrapper..
-    virtual void visitCorrectorWrapper(const CorrectorWrapper &);
-
-    /// Apply the algorithm to an cyclotron wrapper..
-    virtual void visitCyclotronWrapper(const CyclotronWrapper &);
-
-    /// Apply the algorithm to an multipole wrapper..
-    virtual void visitMultipoleWrapper(const MultipoleWrapper &);
-
-    /// Apply the algorithm to an RBend wrapper..
-    virtual void visitRBendWrapper(const RBendWrapper &);
-
-    /// Apply the algorithm to an SBend wrapper..
-    virtual void visitSBendWrapper(const SBendWrapper &);
-
 
     /// Apply the algorithm to a generic integrator.
     virtual void visitIntegrator(const Integrator &);
@@ -479,31 +457,6 @@ template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr &element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitCorrectorWrapper(const CorrectorWrapper &element) {
-    CastsTrait<ELEM, CorrectorWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitCyclotronWrapper(const CyclotronWrapper &element) {
-    CastsTrait<ELEM, CyclotronWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipoleWrapper(const MultipoleWrapper &element) {
-    CastsTrait<ELEM, MultipoleWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitRBendWrapper(const RBendWrapper &element) {
-    CastsTrait<ELEM, RBendWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitSBendWrapper(const SBendWrapper &element) {
-    CastsTrait<ELEM, SBendWrapper>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

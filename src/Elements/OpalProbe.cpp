@@ -74,8 +74,8 @@ OpalProbe *OpalProbe::clone(const std::string &name) {
 }
 
 
-void OpalProbe::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalProbe::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
@@ -83,7 +83,7 @@ void OpalProbe::update() {
     OpalElement::update();
 
     ProbeRep *prob =
-        dynamic_cast<ProbeRep *>(getElement()->removeWrappers());
+        dynamic_cast<ProbeRep *>(getElement());
     const double mm2m = 0.001;
     double xstart = mm2m * Attributes::getReal(itsAttr[XSTART]);
     double xend   = mm2m * Attributes::getReal(itsAttr[XEND]);

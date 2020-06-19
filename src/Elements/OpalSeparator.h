@@ -41,7 +41,7 @@ public:
     virtual OpalSeparator *clone(const std::string &name);
 
     /// Fill in all registered attributes.
-    virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
+    virtual void fillRegisteredAttributes(const ElementBase &);
 
     /// Update the embedded CLASSIC separator.
     virtual void update();

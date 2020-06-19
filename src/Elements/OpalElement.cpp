@@ -140,7 +140,7 @@ OpalElement::~OpalElement()
 
 
 void OpalElement::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag) {
+fillRegisteredAttributes(const ElementBase &base) {
     // Fill in the common data for all elements.
     attributeRegistry["NAME"]->setString(getOpalName());
     attributeRegistry["TYPE"]->setString(getTypeName());
@@ -550,7 +550,7 @@ void OpalElement::printMultipoleStrength
 }
 
 void OpalElement::update() {
-    ElementBase *base = getElement()->removeWrappers();
+    ElementBase *base = getElement();
 
     auto apert = getApert();
     base->setAperture(apert.first, apert.second);

@@ -14,29 +14,9 @@
 //   A set of concrete accelerator element classes, which compose the standard
 //   accelerator component library (SACL).
 //   [LI]
-//   A second hierarchy which parallels the SACL, acting as container or
-//   wrapper-like objects. These latter classes are used to construct
-//   beam-lines composed of referenced ``design'' components, together with
-//   beam-line position dependent extrinsic state (e. g. errors). These wrapper
-//   objects are by default unique.
 //   [/OL]
-//   Any element can have only one FieldWrapper. To be
-//   processed in the correct order.
-//   [pre]
-//     FieldWrapper --> Element
-//   [/pre]
-//   To ensure this structure, wrapper elements cannot be constructed directly,
-//   one should rather call one of:
-//   [dl]
-//   [dt]makeFieldWrapper()   [dd]make a field wrapper.
-//   [dt]makeWrappers()       [dd]make both wrappers.
-//   [/dl]
-//   An existing wrapper can be removed by
-//   [dl]
-//   [dt]removeFieldWrapper()[dd]remove field wrapper.
-//   [/dl]
 //   Instances of the concrete classes for single elements are by default
-//   sharable. Instances of beam lines, wrappers and integrators are by
+//   sharable. Instances of beam lines and integrators are by
 //   default non-sharable, but they may be made sharable by a call to
 //   [b]makeSharable()[/b].
 //   [p]
@@ -130,9 +110,7 @@ public:
                     , BEAMSTRIPPING
                     , CCOLLIMATOR
                     , CORRECTOR
-                    , CORRECTORWRAPPER
                     , CYCLOTRON
-                    , CYCLOTRONWRAPPER
                     , DEGRADER
                     , DIAGNOSTIC
                     , DRIFT
@@ -144,20 +122,17 @@ public:
                     , MPSPLITINTEGRATOR
                     , MULTIPOLE
                     , MULTIPOLET
-                    , MULTIPOLEWRAPPER
                     , OFFSET
                     , PARALLELPLATE
                     , PATCH
                     , PROBE
                     , RBEND
                     , RBEND3D
-                    , RBENDWRAPPER
                     , RFCAVITY
                     , RFQUADRUPOLE
                     , RING
                     , SBEND3D
                     , SBEND
-                    , SBENDWRAPPER
                     , SEPARATOR
                     , SEPTUM
                     , SOLENOID
@@ -317,37 +292,6 @@ public:
     //  The whole structure depending on [b]this[/b] is marked as sharable.
     //  After this call a [b]copyStructure()[/b] call reuses the element.
     virtual void makeSharable();
-
-    /// Allow field errors.
-    //  Build a FieldWrapper pointing to the element and return a pointer to
-    //  that wrapper.  If the element cannot have field errors, or already has
-    //  a FieldWrapper, return a pointer to the element.
-    //  Wrappers are non-sharable, unless otherwise defined.
-    virtual ElementBase *makeFieldWrapper();
-
-    /// Allow errors.
-    //  Equivalent to the calls
-    //  [pre]
-    //    makeFieldWrapper()
-    //  [/pre].
-    //  Wrappers are non-sharable, unless otherwise defined.
-    virtual ElementBase *makeWrappers();
-
-    /// Remove field wrapper.
-    //  Remove the field wrapper.
-    virtual ElementBase *removeFieldWrapper();
-
-    /// Remove field wrapper.
-    //  Remove the field wrapper for constant object.
-    virtual const ElementBase *removeFieldWrapper() const;
-
-    /// Return the design element.
-    //  Return [b]this[/b], if the element is not wrapped.
-    virtual ElementBase *removeWrappers();
-
-    /// Return the design element.
-    //  Return [b]this[/b], if the element is not wrapped.
-    virtual const  ElementBase *removeWrappers() const ;
 
     /// Update element.
     //  This method stores all attributes contained in the AttributeSet to

@@ -47,7 +47,7 @@ void OpalVMonitor::update() {
     OpalElement::update();
 
     YMonitorRep *mon =
-        dynamic_cast<YMonitorRep *>(getElement()->removeWrappers());
+        dynamic_cast<YMonitorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     mon->setElementLength(length);
 

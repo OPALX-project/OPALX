@@ -70,12 +70,12 @@ OpalPepperPot *OpalPepperPot::clone(const std::string &name) {
 }
 
 
-void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
 
     // const FlexibleCollimatorRep *ppo =
-    //     dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
+    //     dynamic_cast<const FlexibleCollimatorRep *>(&base);
     // attributeRegistry["XSIZE"]->setReal(ppo->getXsize());
     // attributeRegistry["YSIZE"]->setReal(ppo->getYsize());
 
@@ -85,7 +85,7 @@ void OpalPepperPot::update() {
     OpalElement::update();
 
     FlexibleCollimatorRep *ppo =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<FlexibleCollimatorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     ppo->setElementLength(length);
     ppo->setOutputFN(Attributes::getString(itsAttr[OUTFN]));

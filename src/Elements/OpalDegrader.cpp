@@ -58,8 +58,8 @@ OpalDegrader *OpalDegrader::clone(const std::string &name) {
 }
 
 
-void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalDegrader::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
@@ -67,7 +67,7 @@ void OpalDegrader::update() {
     OpalElement::update();
 
     DegraderRep *deg =
-        dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
+        dynamic_cast<DegraderRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
 

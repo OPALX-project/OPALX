@@ -81,14 +81,14 @@ OpalVerticalFFAMagnet *OpalVerticalFFAMagnet::clone(const std::string &name) {
 
 
 void OpalVerticalFFAMagnet::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
 void OpalVerticalFFAMagnet::update() {
     VerticalFFAMagnet *magnet = 
-              dynamic_cast<VerticalFFAMagnet*>(getElement()->removeWrappers());
+              dynamic_cast<VerticalFFAMagnet*>(getElement());
     magnet->setB0(Attributes::getReal(itsAttr[B0]));
     int maxOrder = floor(Attributes::getReal(itsAttr[MAX_HORIZONTAL_POWER]));
     magnet->setMaxOrder(maxOrder);

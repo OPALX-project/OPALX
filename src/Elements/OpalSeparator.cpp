@@ -53,16 +53,13 @@ OpalSeparator *OpalSeparator::clone(const std::string &name) {
 
 
 void OpalSeparator::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    if(flag != ERROR_FLAG) {
-        const SeparatorRep *sep =
-            dynamic_cast<const SeparatorRep *>(base.removeWrappers());
-        double length = sep->getElementLength();
-        attributeRegistry["EXL"]->setReal(length * sep->getEx());
-        attributeRegistry["EYL"]->setReal(length * sep->getEy());
-    }
+    const SeparatorRep *sep = dynamic_cast<const SeparatorRep *>(&base);
+    double length = sep->getElementLength();
+    attributeRegistry["EXL"]->setReal(length * sep->getEx());
+    attributeRegistry["EYL"]->setReal(length * sep->getEy());
 }
 
 
@@ -70,7 +67,7 @@ void OpalSeparator::update() {
     OpalElement::update();
 
     SeparatorRep *sep =
-        dynamic_cast<SeparatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<SeparatorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double Ex     = Attributes::getReal(itsAttr[EX]) * 1.0e6;
     double Ey     = Attributes::getReal(itsAttr[EY]) * 1.0e6;

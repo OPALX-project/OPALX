@@ -60,16 +60,14 @@ OpalSolenoid *OpalSolenoid::clone(const std::string &name) {
 
 
 void OpalSolenoid::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    if(flag != ERROR_FLAG) {
-        const SolenoidRep *sol =
-            dynamic_cast<const SolenoidRep *>(base.removeWrappers());
-        double length = sol->getElementLength();
-        double ks = length * sol->getBz() * Physics::c / OpalData::getInstance()->getP0();
-        attributeRegistry["KS"]->setReal(ks);
-    }
+    const SolenoidRep *sol =
+        dynamic_cast<const SolenoidRep *>(&base);
+    double length = sol->getElementLength();
+    double ks = length * sol->getBz() * Physics::c / OpalData::getInstance()->getP0();
+    attributeRegistry["KS"]->setReal(ks);
 }
 
 
@@ -77,7 +75,7 @@ void OpalSolenoid::update() {
     OpalElement::update();
 
     SolenoidRep *sol =
-        dynamic_cast<SolenoidRep *>(getElement()->removeWrappers());
+        dynamic_cast<SolenoidRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double Bz = Attributes::getReal(itsAttr[KS]) * OpalData::getInstance()->getP0() / Physics::c;
     bool fast = Attributes::getBool(itsAttr[FAST]);

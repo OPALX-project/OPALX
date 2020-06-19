@@ -287,7 +287,7 @@ void Line::print(std::ostream &os) const {
 
 
 FlaggedBeamline *Line::fetchLine() const {
-    return dynamic_cast<FlaggedBeamline *>(getElement()->removeWrappers());
+    return dynamic_cast<FlaggedBeamline *>(getElement());
 }
 
 

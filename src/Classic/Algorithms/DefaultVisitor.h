@@ -4,7 +4,7 @@
 //   A default implementation for all visitors that can iterate over a
 //   beam line representation.
 //   This abstract base class implements the default behaviour for the
-//   structural classes Beamline and FlaggedElmPtr, and for all wrappers.
+//   structural classes Beamline and FlaggedElmPtr.
 //   It also holds the data required for all visitors in a protected area.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -167,22 +167,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
-
-    /// Apply the algorithm to an corrector wrapper..
-    virtual void visitCorrectorWrapper(const CorrectorWrapper &);
-
-    /// Apply the algorithm to an cyclotron wrapper..
-    virtual void visitCyclotronWrapper(const CyclotronWrapper &);
-
-    /// Apply the algorithm to an multipole wrapper..
-    virtual void visitMultipoleWrapper(const MultipoleWrapper &);
-
-    /// Apply the algorithm to an RBend wrapper..
-    virtual void visitRBendWrapper(const RBendWrapper &);
-
-    /// Apply the algorithm to an SBend wrapper..
-    virtual void visitSBendWrapper(const SBendWrapper &);
-
 
     /// Apply the algorithm to a generic integrator.
     virtual void visitIntegrator(const Integrator &);

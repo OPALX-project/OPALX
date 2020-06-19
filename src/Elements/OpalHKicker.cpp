@@ -21,7 +21,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/XCorrectorRep.h"
-#include "ComponentWrappers/CorrectorWrapper.h"
 #include "Physics/Physics.h"
 
 OpalHKicker::OpalHKicker():
@@ -41,13 +40,13 @@ OpalHKicker::OpalHKicker():
 
     registerOwnership();
 
-    setElement((new XCorrectorRep("HKICKER"))->makeWrappers());
+    setElement(new XCorrectorRep("HKICKER"));
 }
 
 
 OpalHKicker::OpalHKicker(const std::string &name, OpalHKicker *parent):
     OpalElement(name, parent) {
-    setElement((new XCorrectorRep(name))->makeWrappers());
+    setElement(new XCorrectorRep(name));
 }
 
 
@@ -61,19 +60,11 @@ OpalHKicker *OpalHKicker::clone(const std::string &name) {
 
 
 void OpalHKicker::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-    const CorrectorWrapper *corr =
-        dynamic_cast<const CorrectorWrapper *>(&base);
-    BDipoleField field;
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    if(flag == ERROR_FLAG) {
-        field = corr->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = corr->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = corr->getDesign().getField();
-    }
+    const XCorrectorRep *corr = dynamic_cast<const XCorrectorRep *>(&base);
+    BDipoleField field = corr->getField();
 
     double scale = Physics::c / OpalData::getInstance()->getP0();
     attributeRegistry["HKICK"]->setReal(- field.getBy() * scale);
@@ -85,7 +76,7 @@ void OpalHKicker::update() {
     OpalElement::update();
 
     XCorrectorRep *corr =
-        dynamic_cast<XCorrectorRep *>(getElement()->removeWrappers());
+        dynamic_cast<XCorrectorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     double kick = Attributes::getReal(itsAttr[KICK]);

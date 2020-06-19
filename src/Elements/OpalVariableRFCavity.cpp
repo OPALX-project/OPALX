@@ -66,7 +66,7 @@ OpalVariableRFCavity::OpalVariableRFCavity(const std::string &name,
                                            OpalVariableRFCavity *parent) :
           OpalElement(name, parent) {
     VariableRFCavity *cavity = dynamic_cast<VariableRFCavity*>(
-                                        parent->getElement()->removeWrappers());
+                                        parent->getElement());
     setElement(new VariableRFCavity(*cavity));
 }
 
@@ -82,8 +82,8 @@ OpalVariableRFCavity *OpalVariableRFCavity::clone() {
 }
 
 void OpalVariableRFCavity::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
     const VariableRFCavity* cavity = dynamic_cast<const VariableRFCavity*>(&base);
     if (cavity == NULL) {
         throw OpalException("OpalVariableRFCavity::fillRegisteredAttributes",
@@ -108,7 +108,7 @@ void OpalVariableRFCavity::update() {
     OpalElement::update();
 
     VariableRFCavity *cavity = dynamic_cast<VariableRFCavity*>(
-                                                getElement()->removeWrappers());
+                                                getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     cavity->setLength(length);
     std::string phaseName = Attributes::getString(itsAttr[PHASE_MODEL]);

@@ -161,14 +161,14 @@ OpalCyclotron *OpalCyclotron::clone(const std::string &name) {
 
 
 void OpalCyclotron::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
 void OpalCyclotron::update() {
     CyclotronRep *cycl =
-        dynamic_cast<CyclotronRep *>(getElement()->removeWrappers());
+        dynamic_cast<CyclotronRep *>(getElement());
 
     std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
 

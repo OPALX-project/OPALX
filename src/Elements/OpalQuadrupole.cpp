@@ -19,7 +19,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
 #include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
@@ -84,22 +83,11 @@ void OpalQuadrupole::print(std::ostream &os) const {
 
 
 void OpalQuadrupole::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    // Get the desired field.
-    const MultipoleWrapper *mult =
-        dynamic_cast<const MultipoleWrapper *>(&base);
-    BMultipoleField field;
-
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = mult->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = mult->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = mult->getDesign().getField();
-    }
+    const MultipoleRep *quad = dynamic_cast<const MultipoleRep *>(&base);
+    BMultipoleField field = quad->getField();
 
     double length = getLength();
     double scale = Physics::c / OpalData::getInstance()->getP0();
@@ -125,7 +113,7 @@ void OpalQuadrupole::update() {
     OpalElement::update();
 
     MultipoleRep *quad =
-        dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
+        dynamic_cast<MultipoleRep *>(getElement());
     quad->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     double factor = OpalData::getInstance()->getP0() / Physics::c;
 

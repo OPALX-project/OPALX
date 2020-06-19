@@ -76,8 +76,8 @@ OpalBeamStripping *OpalBeamStripping::clone(const std::string &name) {
 }
 
 
-void OpalBeamStripping::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalBeamStripping::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
@@ -85,7 +85,7 @@ void OpalBeamStripping::update() {
     OpalElement::update();
 
     BeamStrippingRep *bstp =
-        dynamic_cast<BeamStrippingRep *>(getElement()->removeWrappers());
+        dynamic_cast<BeamStrippingRep *>(getElement());
 
     double pressure     = Attributes::getReal(itsAttr[PRESSURE]);
     double temperature  = Attributes::getReal(itsAttr[TEMPERATURE]);

@@ -19,7 +19,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
 #include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
@@ -42,13 +41,13 @@ OpalOctupole::OpalOctupole():
 
     registerOwnership();
 
-    setElement((new MultipoleRep("OCTUPOLE"))->makeWrappers());
+    setElement(new MultipoleRep("OCTUPOLE"));
 }
 
 
 OpalOctupole::OpalOctupole(const std::string &name, OpalOctupole *parent):
     OpalElement(name, parent) {
-    setElement((new MultipoleRep(name))->makeWrappers());
+    setElement(new MultipoleRep(name));
 }
 
 
@@ -67,22 +66,11 @@ void OpalOctupole::print(std::ostream &os) const {
 
 
 void OpalOctupole::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    // Get the desired field.
-    const MultipoleWrapper *mult =
-        dynamic_cast<const MultipoleWrapper *>(&base);
-    BMultipoleField field;
-
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = mult->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = mult->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = mult->getDesign().getField();
-    }
+    const MultipoleRep *oct = dynamic_cast<const MultipoleRep *>(&base);
+    BMultipoleField field = oct->getField();
 
     double length = getLength();
     double scale = Physics::c / OpalData::getInstance()->getP0();
@@ -108,7 +96,7 @@ void OpalOctupole::update() {
     OpalElement::update();
 
     MultipoleRep *oct =
-        dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
+        dynamic_cast<MultipoleRep *>(getElement());
     oct->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     double factor = OpalData::getInstance()->getP0() / (Physics::c * 6.0);
     BMultipoleField field;

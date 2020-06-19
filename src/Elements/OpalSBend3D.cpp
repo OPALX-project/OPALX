@@ -68,13 +68,13 @@ OpalSBend3D *OpalSBend3D::clone(const std::string &name) {
 
 
 void OpalSBend3D::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
 void OpalSBend3D::update() {
-    SBend3D *bend = dynamic_cast<SBend3D*>(getElement()->removeWrappers());
+    SBend3D *bend = dynamic_cast<SBend3D*>(getElement());
     if (itsAttr[FIELD_UNITS])
         bend->setFieldUnits(Attributes::getReal(itsAttr[FIELD_UNITS]));
     if (itsAttr[LENGTH_UNITS])
