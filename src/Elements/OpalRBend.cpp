@@ -20,7 +20,6 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RBendRep.h"
 #include "Fields/BMultipoleField.h"
-#include "ComponentWrappers/RBendWrapper.h"
 #include "Physics/Physics.h"
 #include "Structure/OpalWake.h"
 #include "Structure/ParticleMatterInteraction.h"
@@ -35,7 +34,7 @@ OpalRBend::OpalRBend():
 
     registerOwnership();
 
-    setElement((new RBendRep("RBEND"))->makeWrappers());
+    setElement(new RBendRep("RBEND"));
 }
 
 
@@ -43,7 +42,7 @@ OpalRBend::OpalRBend(const std::string &name, OpalRBend *parent):
     OpalBend(name, parent),
     owk_m(0),
     parmatint_m(NULL) {
-    setElement((new RBendRep(name))->makeWrappers());
+    setElement(new RBendRep(name));
 }
 
 
@@ -61,22 +60,11 @@ OpalRBend *OpalRBend::clone(const std::string &name) {
 
 
 void OpalRBend::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    // Get the desired field.
-    const RBendWrapper *bend =
-        dynamic_cast<const RBendWrapper *>(&base);
-    BMultipoleField field;
-
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = bend->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = bend->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = bend->getDesign().getField();
-    }
+    const RBendRep *bend = dynamic_cast<const RBendRep *>(&base);
+    BMultipoleField field = bend->getField();
 
     double length = getLength();
     double scale = Physics::c / OpalData::getInstance()->getP0();
@@ -110,7 +98,7 @@ void OpalRBend::update() {
 
     // Define geometry.
     RBendRep *bend =
-        dynamic_cast<RBendRep *>(getElement()->removeWrappers());
+        dynamic_cast<RBendRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
     double e1     = Attributes::getReal(itsAttr[E1]);

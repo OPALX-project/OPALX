@@ -56,7 +56,7 @@ void OpalMonitor::update() {
     OpalElement::update();
 
     MonitorRep *mon =
-        dynamic_cast<MonitorRep *>(getElement()->removeWrappers());
+        dynamic_cast<MonitorRep *>(getElement());
     double length = std::max(0.01, Attributes::getReal(itsAttr[LENGTH]));
     mon->setElementLength(length);
     mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));

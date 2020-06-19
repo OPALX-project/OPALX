@@ -52,8 +52,8 @@ OpalSource *OpalSource::clone(const std::string &name) {
 
 
 void OpalSource::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
@@ -61,7 +61,7 @@ void OpalSource::update() {
     OpalElement::update();
 
     SourceRep *sol =
-        dynamic_cast<SourceRep *>(getElement()->removeWrappers());
+        dynamic_cast<SourceRep *>(getElement());
     double length = 0.05;
 
     sol->setElementLength(length);

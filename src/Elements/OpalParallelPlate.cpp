@@ -73,17 +73,15 @@ OpalParallelPlate *OpalParallelPlate::clone(const std::string &name) {
 }
 
 
-void OpalParallelPlate::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalParallelPlate::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    if(flag != ERROR_FLAG) {
-        const ParallelPlateRep *pplate =
-            dynamic_cast<const ParallelPlateRep *>(base.removeWrappers());
-        attributeRegistry["VOLT"]->setReal(pplate->getAmplitude());
-        attributeRegistry["FREQ"]->setReal(pplate->getFrequency());
-        attributeRegistry["LAG"]->setReal(pplate->getPhase());
-        attributeRegistry["PLENGTH"]->setReal(pplate->getElementLength());
-    }
+    const ParallelPlateRep *pplate =
+        dynamic_cast<const ParallelPlateRep *>(&base);
+    attributeRegistry["VOLT"]->setReal(pplate->getAmplitude());
+    attributeRegistry["FREQ"]->setReal(pplate->getFrequency());
+    attributeRegistry["LAG"]->setReal(pplate->getPhase());
+    attributeRegistry["PLENGTH"]->setReal(pplate->getElementLength());
 }
 
 
@@ -91,7 +89,7 @@ void OpalParallelPlate::update() {
     OpalElement::update();
 
     ParallelPlateRep *pplate =
-        dynamic_cast<ParallelPlateRep *>(getElement()->removeWrappers());
+        dynamic_cast<ParallelPlateRep *>(getElement());
 
     double vPeak  = Attributes::getReal(itsAttr[VOLT]);
     //    double phase  = two_pi * Attributes::getReal(itsAttr[LAG]);

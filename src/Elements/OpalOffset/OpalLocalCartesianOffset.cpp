@@ -85,8 +85,8 @@ OpalLocalCartesianOffset::OpalLocalCartesianOffset(const std::string &name, Opal
 OpalLocalCartesianOffset::~OpalLocalCartesianOffset() {}
 
 void OpalLocalCartesianOffset::fillRegisteredAttributes
-                                     (const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+                                     (const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
     const Offset* offset = dynamic_cast<const Offset*>(&base);
     if (offset == NULL) {
         throw OpalException("OpalVariableRFCavity::fillRegisteredAttributes",
@@ -103,7 +103,7 @@ void OpalLocalCartesianOffset::fillRegisteredAttributes
 
 void OpalLocalCartesianOffset::update() {
     // getOpalName() comes from AbstractObjects/Object.h
-    Offset *offset = dynamic_cast<Offset*>(getElement()->removeWrappers());
+    Offset *offset = dynamic_cast<Offset*>(getElement());
     std::string name = getOpalName();
     Vector_t pos(Attributes::getReal(itsAttr[END_POSITION_X]),
                  Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);

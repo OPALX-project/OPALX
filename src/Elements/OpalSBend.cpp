@@ -20,7 +20,6 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Fields/BMultipoleField.h"
-#include "ComponentWrappers/SBendWrapper.h"
 #include "Physics/Physics.h"
 #include "Structure/OpalWake.h"
 #include "Structure/ParticleMatterInteraction.h"
@@ -61,22 +60,11 @@ OpalSBend *OpalSBend::clone(const std::string &name) {
 
 
 void OpalSBend::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    // Get the desired field.
-    const SBendWrapper *bend =
-        dynamic_cast<const SBendWrapper *>(&base);
-    BMultipoleField field;
-
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = bend->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = bend->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = bend->getDesign().getField();
-    }
+    const SBendRep *bend = dynamic_cast<const SBendRep *>(&base);
+    BMultipoleField field = bend->getField();
 
     double length = getLength();
     double scale = Physics::c / OpalData::getInstance()->getP0();
@@ -110,7 +98,7 @@ void OpalSBend::update() {
     OpalElement::update();
 
     // Define geometry.
-    SBendRep *bend = dynamic_cast<SBendRep *>(getElement()->removeWrappers());
+    SBendRep *bend = dynamic_cast<SBendRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
     double e1     = Attributes::getReal(itsAttr[E1]);

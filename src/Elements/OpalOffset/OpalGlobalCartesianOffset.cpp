@@ -76,8 +76,8 @@ OpalGlobalCartesianOffset::OpalGlobalCartesianOffset(const std::string &name, Op
 OpalGlobalCartesianOffset::~OpalGlobalCartesianOffset() {}
 
 void OpalGlobalCartesianOffset::fillRegisteredAttributes
-                                     (const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+                                     (const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 void OpalGlobalCartesianOffset::update() {

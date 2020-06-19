@@ -72,8 +72,8 @@ OpalSeptum *OpalSeptum::clone(const std::string &name) {
 }
 
 
-void OpalSeptum::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalSeptum::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
 }
 
@@ -81,7 +81,7 @@ void OpalSeptum::fillRegisteredAttributes(const ElementBase &base, ValueFlag fla
 void OpalSeptum::update() {
     OpalElement::update();
 
-    SeptumRep *sept = dynamic_cast<SeptumRep *>(getElement()->removeWrappers());
+    SeptumRep *sept = dynamic_cast<SeptumRep *>(getElement());
 
     const double mm2m = 0.001;
     double xstart = mm2m * Attributes::getReal(itsAttr[XSTART]);

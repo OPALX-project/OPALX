@@ -80,7 +80,7 @@ OpalVariableRFCavityFringeField::OpalVariableRFCavityFringeField(
                             OpalVariableRFCavityFringeField *parent
                         ) : OpalElement(name, parent) {
     VariableRFCavityFringeField *cavity = dynamic_cast
-         <VariableRFCavityFringeField*>(parent->getElement()->removeWrappers());
+         <VariableRFCavityFringeField*>(parent->getElement());
     setElement(new VariableRFCavityFringeField(*cavity));
 }
 
@@ -97,8 +97,8 @@ OpalVariableRFCavityFringeField *OpalVariableRFCavityFringeField::clone() {
 }
 
 void OpalVariableRFCavityFringeField::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
     const VariableRFCavityFringeField* cavity =
                         dynamic_cast<const VariableRFCavityFringeField*>(&base);
     if (cavity == NULL) {
@@ -138,7 +138,7 @@ void OpalVariableRFCavityFringeField::update() {
     OpalElement::update();
 
     VariableRFCavityFringeField *cavity = dynamic_cast
-                <VariableRFCavityFringeField*>(getElement()->removeWrappers());
+                <VariableRFCavityFringeField*>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     cavity->setLength(length);
     std::string phaseName = Attributes::getString(itsAttr[PHASE_MODEL]);

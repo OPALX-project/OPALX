@@ -97,19 +97,17 @@ OpalTravelingWave *OpalTravelingWave::clone(const std::string &name) {
 
 
 void OpalTravelingWave::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    if(flag != ERROR_FLAG) {
-        const TravelingWaveRep *rfc =
-            dynamic_cast<const TravelingWaveRep *>(base.removeWrappers());
-        attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
-        attributeRegistry["DVOLT"]->setReal(rfc->getAmplitudeError());
-        attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
-        attributeRegistry["LAG"]->setReal(rfc->getPhase());
-        attributeRegistry["DLAG"]->setReal(rfc->getPhaseError());
-        attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
-    }
+    const TravelingWaveRep *rfc =
+        dynamic_cast<const TravelingWaveRep *>(&base);
+    attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
+    attributeRegistry["DVOLT"]->setReal(rfc->getAmplitudeError());
+    attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
+    attributeRegistry["LAG"]->setReal(rfc->getPhase());
+    attributeRegistry["DLAG"]->setReal(rfc->getPhaseError());
+    attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
 }
 
 
@@ -117,7 +115,7 @@ void OpalTravelingWave::update() {
     OpalElement::update();
 
     TravelingWaveRep *rfc =
-        dynamic_cast<TravelingWaveRep *>(getElement()->removeWrappers());
+        dynamic_cast<TravelingWaveRep *>(getElement());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double vPeak  = Attributes::getReal(itsAttr[VOLT]);

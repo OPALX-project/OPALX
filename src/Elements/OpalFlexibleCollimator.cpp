@@ -64,11 +64,11 @@ OpalFlexibleCollimator *OpalFlexibleCollimator::clone(const std::string &name) {
 }
 
 
-void OpalFlexibleCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalFlexibleCollimator::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
     const FlexibleCollimatorRep *coll =
-        dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
+        dynamic_cast<const FlexibleCollimatorRep *>(&base);
     attributeRegistry["DESCRIPTION"]->setString(coll->getDescription());
 }
 
@@ -77,7 +77,7 @@ void OpalFlexibleCollimator::update() {
     OpalElement::update();
 
     FlexibleCollimatorRep *coll =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<FlexibleCollimatorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     coll->setElementLength(length);
 

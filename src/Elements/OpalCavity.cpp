@@ -125,17 +125,15 @@ OpalCavity *OpalCavity::clone(const std::string &name) {
 }
 
 
-void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalCavity::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    if(flag != ERROR_FLAG) {
-        const RFCavityRep *rfc =
-            dynamic_cast<const RFCavityRep *>(base.removeWrappers());
-        attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
-        attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
-        attributeRegistry["LAG"]->setReal(rfc->getPhase());
-        attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
-    }
+    const RFCavityRep *rfc =
+        dynamic_cast<const RFCavityRep *>(&base);
+    attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
+    attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
+    attributeRegistry["LAG"]->setReal(rfc->getPhase());
+    attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
 }
 
 
@@ -143,7 +141,7 @@ void OpalCavity::update() {
     OpalElement::update();
 
     RFCavityRep *rfc =
-        dynamic_cast<RFCavityRep *>(getElement()->removeWrappers());
+        dynamic_cast<RFCavityRep *>(getElement());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double peak  = Attributes::getReal(itsAttr[VOLT]);
