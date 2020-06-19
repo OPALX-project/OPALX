@@ -73,8 +73,8 @@ OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset(const std::string &name
 OpalGlobalCylindricalOffset::~OpalGlobalCylindricalOffset() {}
 
 void OpalGlobalCylindricalOffset::fillRegisteredAttributes
-                                     (const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+                                     (const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 void OpalGlobalCylindricalOffset::update() {

@@ -276,7 +276,7 @@ void Sequence::update() {
 
 
 Sequence::TLine *Sequence::fetchLine() const {
-    return dynamic_cast<TLine *>(getElement()->removeWrappers());
+    return dynamic_cast<TLine *>(getElement());
 }
 
 
@@ -387,7 +387,7 @@ void Sequence::updateList(Sequence *seq, TLine *line) {
     while(true) {
         // Recursive call for nested beam non-shared sequence.
         if(iter == last) break;
-        ElementBase *base = iter->getElement()->removeWrappers();
+        ElementBase *base = iter->getElement();
         if(! base->isSharable()) {
             TLine *sub_line = dynamic_cast<TLine *>(base);
             if(sub_line != 0) {

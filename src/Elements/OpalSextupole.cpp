@@ -19,7 +19,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
 #include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
@@ -42,13 +41,13 @@ OpalSextupole::OpalSextupole():
 
     registerOwnership();
 
-    setElement((new MultipoleRep("SEXTUPOLE"))->makeWrappers());
+    setElement(new MultipoleRep("SEXTUPOLE"));
 }
 
 
 OpalSextupole::OpalSextupole(const std::string &name, OpalSextupole *parent):
     OpalElement(name, parent) {
-    setElement((new MultipoleRep(name))->makeWrappers());
+    setElement(new MultipoleRep(name));
 }
 
 
@@ -68,22 +67,11 @@ void OpalSextupole::print(std::ostream &os) const {
 
 
 void OpalSextupole::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
-    // Get the desired field.
-    const MultipoleWrapper *mult =
-        dynamic_cast<const MultipoleWrapper *>(&base);
-    BMultipoleField field;
-
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = mult->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = mult->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = mult->getDesign().getField();
-    }
+    const MultipoleRep *sext = dynamic_cast<const MultipoleRep *>(&base);
+    BMultipoleField field = sext->getField();
 
     double length = getLength();
     double scale = Physics::c / OpalData::getInstance()->getP0();
@@ -109,7 +97,7 @@ void OpalSextupole::update() {
     OpalElement::update();
 
     MultipoleRep *sext =
-        dynamic_cast<MultipoleRep *>(getElement()->removeWrappers());
+        dynamic_cast<MultipoleRep *>(getElement());
     sext->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     double factor = OpalData::getInstance()->getP0() / (Physics::c * 2.0);
     BMultipoleField field;

@@ -49,7 +49,7 @@ class OpalVerticalFFAMagnet : public OpalElement {
      *
      *  Just calls fillRegisteredAttributes on the base class
      */
-    virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
+    virtual void fillRegisteredAttributes(const ElementBase &);
 
     /** Update the VerticalFFA with new parameters from UI parser */
     virtual void update();

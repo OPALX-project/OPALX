@@ -100,12 +100,12 @@ OpalRingDefinition::OpalRingDefinition(const std::string &name, OpalRingDefiniti
 OpalRingDefinition::~OpalRingDefinition() {}
 
 void OpalRingDefinition::fillRegisteredAttributes
-(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 void OpalRingDefinition::update() {
-    Ring *ring = dynamic_cast<Ring*>(getElement()->removeWrappers());
+    Ring *ring = dynamic_cast<Ring*>(getElement());
     double degree = Physics::pi/180.;
     double metres = 1e3;
     ring->setBeamPhiInit(Attributes::getReal(itsAttr[BEAM_PHIINIT]));
@@ -138,5 +138,5 @@ void OpalRingDefinition::update() {
         ring->setRingAperture(minR, maxR);
     }
 
-    setElement(ring->makeWrappers());
+    setElement(ring);
 }

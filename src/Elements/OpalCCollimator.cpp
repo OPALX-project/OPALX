@@ -79,8 +79,8 @@ OpalCCollimator *OpalCCollimator::clone(const std::string &name) {
 }
 
 
-void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 
@@ -88,7 +88,7 @@ void OpalCCollimator::update() {
     OpalElement::update();
 
     CCollimatorRep *coll =
-        dynamic_cast<CCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<CCollimatorRep *>(getElement());
     const double mm2m = 1e-3;
     double xstart = mm2m * Attributes::getReal(itsAttr[XSTART]);
     double xend   = mm2m * Attributes::getReal(itsAttr[XEND]);

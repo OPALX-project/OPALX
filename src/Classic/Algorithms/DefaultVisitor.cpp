@@ -4,7 +4,7 @@
 //   A default implementation for all visitors that can iterate over a
 //   beam line representation.
 //   This abstract base class implements the default behaviour for the
-//   structural classes Beamline and FlaggedElmPtr, and for all wrappers.
+//   structural classes Beamline and FlaggedElmPtr.
 //   It also holds the data required for all visitors in a protected area.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -64,12 +64,6 @@
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
-
-#include "ComponentWrappers/CorrectorWrapper.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
-#include "ComponentWrappers/RBendWrapper.h"
-#include "ComponentWrappers/SBendWrapper.h"
-#include "ComponentWrappers/CyclotronWrapper.h"
 
 #include "AbsBeamline/Ring.h" // OPAL file
 
@@ -277,30 +271,6 @@ void DefaultVisitor::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
     } else {
         fep.getElement()->accept(*this);
     }
-}
-
-
-void DefaultVisitor::visitCorrectorWrapper(const CorrectorWrapper &wrap) {
-    visitCorrector(wrap);
-}
-
-void DefaultVisitor::visitCyclotronWrapper(const CyclotronWrapper &wrap) {
-    visitCyclotron(wrap);
-}
-
-
-void DefaultVisitor::visitMultipoleWrapper(const MultipoleWrapper &wrap) {
-    visitMultipole(wrap);
-}
-
-
-void DefaultVisitor::visitRBendWrapper(const RBendWrapper &wrap) {
-    visitRBend(wrap);
-}
-
-
-void DefaultVisitor::visitSBendWrapper(const SBendWrapper &wrap) {
-    visitSBend(wrap);
 }
 
 

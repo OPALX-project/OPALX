@@ -14,29 +14,9 @@
 //   A set of concrete accelerator element classes, which compose the standard
 //   accelerator component library (SACL).
 //   [LI]
-//   A second hierarchy which parallels the SACL, acting as container or
-//   wrapper-like objects. These latter classes are used to construct
-//   beam-lines composed of referenced ``design'' components, together with
-//   beam-line position dependent extrinsic state (e. g. errors). These wrapper
-//   objects are by default unique.
 //   [/OL]
-//   Any element can have only one FieldWrapper. To be
-//   processed in the correct order.
-//   [pre]
-//     FieldWrapper --> Element
-//   [/pre]
-//   To ensure this structure, wrapper elements cannot be constructed directly,
-//   one should rather call one of:
-//   [dl]
-//   [dt]makeFieldWrapper()   [dd]make a field wrapper.
-//   [dt]makeWrappers()       [dd]make both wrappers.
-//   [/dl]
-//   An existing wrapper can be removed by
-//   [dl]
-//   [dt]removeFieldWrapper()[dd]remove field wrapper.
-//   [/dl]
 //   Instances of the concrete classes for single elements are by default
-//   sharable. Instances of beam lines, wrappers and integrators are by
+//   sharable. Instances of beam lines and integrators are by
 //   default non-sharable, but they may be made sharable by a call to
 //   [b]makeSharable()[/b].
 //   [p]
@@ -221,12 +201,8 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "CCollimator";
     case CORRECTOR:
         return "Corrector";
-    case CORRECTORWRAPPER:
-        return "Correctorwrapper";
     case CYCLOTRON:
         return "Cyclotron";
-    case CYCLOTRONWRAPPER:
-        return "Cyclotronwrapper";
     case DEGRADER:
         return "Degrader";
     case DIAGNOSTIC:
@@ -243,8 +219,6 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "Monitor";
     case MULTIPOLE:
         return "Multipole";
-    case MULTIPOLEWRAPPER:
-        return "Multipolewrapper";
     case OFFSET:
         return "Offset";
     case PARALLELPLATE:
@@ -255,8 +229,6 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "Probe";
     case RBEND:
         return "RBend";
-    case RBENDWRAPPER:
-        return "RBendwrapper";
     case RFCAVITY:
         return "RFCavity";
     case RFQUADRUPOLE:
@@ -267,8 +239,6 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "SBend3D";
     case SBEND:
         return "SBend";
-    case SBENDWRAPPER:
-        return "SBendwrapper";
     case SEPARATOR:
         return "Separator";
     case SEPTUM:
@@ -304,36 +274,6 @@ ElementBase *ElementBase::copyStructure() {
 
 void ElementBase::makeSharable() {
     shareFlag = true;
-}
-
-
-ElementBase *ElementBase::makeFieldWrapper() {
-    return this;
-}
-
-
-ElementBase *ElementBase::makeWrappers() {
-    return makeFieldWrapper();
-}
-
-
-ElementBase *ElementBase::removeFieldWrapper() {
-    return this;
-}
-
-
-const ElementBase *ElementBase::removeFieldWrapper() const {
-    return this;
-}
-
-
-ElementBase *ElementBase::removeWrappers() {
-    return this;
-}
-
-
-const ElementBase *ElementBase::removeWrappers() const {
-    return this;
 }
 
 

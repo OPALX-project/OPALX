@@ -112,7 +112,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<doub
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField = 0.0;
-    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.removeWrappers()->clone()));
+    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()));
 
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();
@@ -126,7 +126,7 @@ void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartB
     containsSource_m = true;
     double startField = 0.0;
     double endField = 0.0;
-    std::shared_ptr<Source> elptr(dynamic_cast<Source *>(element.removeWrappers()->clone()));
+    std::shared_ptr<Source> elptr(dynamic_cast<Source *>(element.clone()));
 
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();

@@ -63,11 +63,11 @@ OpalECollimator *OpalECollimator::clone(const std::string &name) {
 }
 
 
-void OpalECollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+void OpalECollimator::fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 
     const FlexibleCollimatorRep *coll =
-        dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
+        dynamic_cast<const FlexibleCollimatorRep *>(&base);
     std::string Double("(-?[0-9]+\\.?[0-9]*([Ee][+-]?[0-9]+)?)");
     std::string desc = coll->getDescription();
 
@@ -87,7 +87,7 @@ void OpalECollimator::update() {
     OpalElement::update();
 
     FlexibleCollimatorRep *coll =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<FlexibleCollimatorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     coll->setElementLength(length);
 
