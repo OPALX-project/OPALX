@@ -5,7 +5,7 @@
 //   sequence of elements in the line.  The line is always flat in the sense
 //   that nested anonymous lines are flattened.
 //
-// Copyright (c) 2002 - 2020, jsberg (?), Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.

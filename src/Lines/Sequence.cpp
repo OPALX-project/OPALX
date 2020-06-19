@@ -5,7 +5,7 @@
 //   the sequence of elements in the line and their positions.  The sequence
 //   definition is parsed in collaboration with a SequenceParser.
 //
-// Copyright (c) 2002 - 2020, jsberg (?), Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
