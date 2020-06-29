@@ -103,6 +103,7 @@ public:
     virtual void freeMap() = 0;
 
 protected:
+    Fieldmap () {};
     Fieldmap(const std::string& aFilename)
         : Filename_m(aFilename),
         lines_read_m(0),
