@@ -33,7 +33,7 @@ class FM3DH5BlockBase: virtual public Fieldmap {
 public:
 
     virtual bool getFieldstrength (
-        const Vector_t& /*R*/, Vector_t& /*E*/, Vector_t& /*B*/) const {return false;};
+        const Vector_t& /*R*/, Vector_t& /*E*/, Vector_t& /*B*/) const = 0;
 
     virtual void getFieldDimensions (
         double &zBegin, double &zEnd,
