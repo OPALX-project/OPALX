@@ -35,7 +35,7 @@ public:
     virtual bool getFieldstrength (
         const Vector_t& /*R*/, Vector_t& /*E*/, Vector_t& /*B*/) const {return false;};
 
-    void getFieldDimensions (
+    virtual void getFieldDimensions (
         double &zBegin, double &zEnd,
         double &rBegin, double &rEnd
         ) const {
@@ -45,7 +45,7 @@ public:
         rEnd = xend_m;
     }
 
-    void getFieldDimensions (
+    virtual void getFieldDimensions (
         double &xIni, double &xFinal,
         double &yIni, double &yFinal,
         double &zIni, double &zFinal
