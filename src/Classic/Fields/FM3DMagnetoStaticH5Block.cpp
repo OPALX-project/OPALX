@@ -24,10 +24,10 @@ FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block (
         ) {
         Type = T3DMagnetoStaticH5Block;
 
-        OpenFileMPIOCollective (aFilename);
-        GetFieldInfo ("Efield");
-        GetResonanceFrequency ();
-        CloseFile ();
+        openFileMPIOCollective (aFilename);
+        getFieldInfo ("Efield");
+        getResonanceFrequency ();
+        closeFile ();
 }
 
 FM3DMagnetoStaticH5Block::~FM3DMagnetoStaticH5Block (
@@ -40,9 +40,9 @@ void FM3DMagnetoStaticH5Block::readMap (
     if (!FieldstrengthEz_m.empty()) {
         return;
     }
-    OpenFileMPIOCollective (Filename_m);
-    long long last_step = GetNumSteps () - 1;
-    SetStep (last_step);
+    openFileMPIOCollective (Filename_m);
+    long long last_step = getNumSteps () - 1;
+    setStep (last_step);
 
     size_t field_size = num_gridpx_m * num_gridpy_m * num_gridpz_m;
     FieldstrengthEx_m.resize (field_size);
@@ -52,18 +52,18 @@ void FM3DMagnetoStaticH5Block::readMap (
     FieldstrengthBy_m.resize (field_size);
     FieldstrengthBz_m.resize (field_size);
 
-    ReadField (
+    readField (
         "Efield",
         &(FieldstrengthEx_m[0]),
         &(FieldstrengthEy_m[0]),
         &(FieldstrengthEz_m[0]));
-    ReadField (
+    readField (
         "Bfield",
         &(FieldstrengthBx_m[0]),
         &(FieldstrengthBy_m[0]),
         &(FieldstrengthBz_m[0]));
 
-    CloseFile ();
+    closeFile ();
     INFOMSG (level3 << typeset_msg("fieldmap '" + Filename_m  + "' read", "info")
              << endl);
 }
