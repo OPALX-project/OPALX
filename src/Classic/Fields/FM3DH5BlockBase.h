@@ -120,7 +120,7 @@ protected:
     virtual void freeMap (
         ) {};
 
-    bool isInside (
+    virtual bool isInside (
         const Vector_t &r
         ) const {
         return ((r(0) >= xbegin_m && r(0) < xend_m) &&
