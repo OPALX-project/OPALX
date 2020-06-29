@@ -20,7 +20,7 @@
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 
-void FM3DH5BlockBase::OpenFileMPIOCollective (
+void FM3DH5BlockBase::openFileMPIOCollective (
     const std::string aFilename
     ) {
     h5_prop_t props = H5CreateFileProp ();
@@ -39,7 +39,7 @@ void FM3DH5BlockBase::OpenFileMPIOCollective (
     H5CloseProp (props);
 }
 
-long long FM3DH5BlockBase::GetNumSteps (void) {
+long long FM3DH5BlockBase::getNumSteps (void) {
     long long num_steps = H5GetNumSteps(file_m);
     if (num_steps <= 0) {
         if (num_steps == 0) {
@@ -55,7 +55,7 @@ long long FM3DH5BlockBase::GetNumSteps (void) {
     return num_steps;
 }
 
-void FM3DH5BlockBase::SetStep (long long step) {
+void FM3DH5BlockBase::setStep (long long step) {
     if (H5SetStep(file_m, step) == H5_ERR) {
         throw GeneralClassicException (
             "FM3DH5Block_nonscale::FM3DH5Block_nonscale () ",
@@ -64,9 +64,9 @@ void FM3DH5BlockBase::SetStep (long long step) {
     }
 }
     
-void FM3DH5BlockBase::GetFieldInfo (const char* name) {
-    long long last_step = GetNumSteps () - 1;
-    SetStep (last_step);
+void FM3DH5BlockBase::getFieldInfo (const char* name) {
+    long long last_step = getNumSteps () - 1;
+    setStep (last_step);
     h5_size_t grid_rank;
     h5_size_t grid_dims[3];
     h5_size_t field_dims;
@@ -108,7 +108,7 @@ void FM3DH5BlockBase::GetFieldInfo (const char* name) {
     zend_m = zbegin_m + (num_gridpz_m - 1) * hz_m;
 }
 
-void FM3DH5BlockBase::GetResonanceFrequency (void) {
+void FM3DH5BlockBase::getResonanceFrequency (void) {
     if (H5ReadFileAttribFloat64 (
             file_m, "Resonance Frequency(Hz)", &frequency_m
             ) == H5_ERR) {
@@ -120,7 +120,7 @@ void FM3DH5BlockBase::GetResonanceFrequency (void) {
     frequency_m *= Physics::two_pi;
 }
 
-void FM3DH5BlockBase::ReadField (
+void FM3DH5BlockBase::readField (
     const char* name,
     double* x,
     double* y,
@@ -149,7 +149,7 @@ void FM3DH5BlockBase::ReadField (
     }
 }
 
-void FM3DH5BlockBase::CloseFile (void) {
+void FM3DH5BlockBase::closeFile (void) {
     if (H5CloseFile (file_m) == H5_ERR) {
         throw GeneralClassicException (
             "FM3DH5Block_nonscale::FM3DH5Block_nonscale () ",

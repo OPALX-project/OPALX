@@ -89,29 +89,29 @@ protected:
     virtual ~FM3DH5BlockBase (
         ) {};
 
-    void OpenFileMPIOCollective (
+    void openFileMPIOCollective (
         const std::string aFilename);
 
-    long long GetNumSteps (
+    long long getNumSteps (
         void);
 
-    void SetStep (
+    void setStep (
         const long long);
 
-    void GetFieldInfo (
+    void getFieldInfo (
         const char*);
 
-    void GetResonanceFrequency (
+    void getResonanceFrequency (
         void);
 
-    void ReadField (
+    void readField (
         const char* name,
         double* x,
         double* y,
         double* z
         );
 
-    void CloseFile (
+    void closeFile (
         void);
     
     virtual void readMap (
