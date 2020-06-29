@@ -25,7 +25,7 @@
 static_assert (sizeof(double) == sizeof (h5_float64_t),
                "double and h5_float64_t are not the same type" );
 static_assert (sizeof(long long) == sizeof (h5_int64_t),
-               "long long and h5_intt64_t are not the same type" );
+               "long long and h5_int64_t are not the same type" );
 
 
 class FM3DH5BlockBase: virtual public Fieldmap {
