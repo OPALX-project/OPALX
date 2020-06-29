@@ -204,8 +204,8 @@ protected:
     double hy_m;            /**< length between points in grid, y-direction */
     double hz_m;            /**< length between points in grid, z-direction */
 
-    double num_gridpx_m;    /**< number of points after 0(not counted here) in grid, r-direction*/
-    double num_gridpy_m;    /**< number of points after 0(not counted here) in grid, r-direction*/
+    double num_gridpx_m;    /**< number of points after 0(not counted here) in grid, x-direction*/
+    double num_gridpy_m;    /**< number of points after 0(not counted here) in grid, y-direction*/
     double num_gridpz_m;    /**< number of points after 0(not counted here) in grid, z-direction*/
 
     double frequency_m;
