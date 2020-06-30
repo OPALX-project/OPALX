@@ -44,9 +44,9 @@ private:
     virtual double getFrequency (
         ) const;
 
-    std::vector<double> FieldstrengthBz_m;    /**< 3D array with Hz */
-    std::vector<double> FieldstrengthBx_m;    /**< 3D array with Hx */
-    std::vector<double> FieldstrengthBy_m;    /**< 3D array with Hy */
+    std::vector<double> FieldstrengthBz_m;    /**< 3D array with Bz */
+    std::vector<double> FieldstrengthBx_m;    /**< 3D array with Bx */
+    std::vector<double> FieldstrengthBy_m;    /**< 3D array with By */
 
     friend class Fieldmap;
     friend class FM3DH5BlockBase;
