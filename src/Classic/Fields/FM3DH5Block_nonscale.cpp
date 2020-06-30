@@ -20,8 +20,10 @@
 #include "Utilities/GeneralClassicException.h"
 
 FM3DH5Block_nonscale::FM3DH5Block_nonscale (
-    std::string aFilename) : FM3DH5BlockBase (
-        aFilename
+    std::string aFilename
+    ) : Fieldmap (
+        aFilename),
+    FM3DH5BlockBase (
         ) {
         Type = T3DDynamicH5Block;
 

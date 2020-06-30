@@ -27,13 +27,13 @@ void FM3DH5BlockBase::openFileMPIOCollective (
     MPI_Comm comm = Ippl::getComm();
     if (H5SetPropFileMPIOCollective (props, &comm) == H5_ERR) {
         throw GeneralClassicException (
-            "FM3DH5BlockBase::FM3DH5BlockBase () ",
+            "FM3DH5BlockBase::openFileMPIOCollective () ",
             "Cannot set MPIO collective!");
     }
     file_m = H5OpenFile (aFilename.c_str(), H5_O_RDONLY, props);
     if (file_m == (h5_file_t)H5_ERR) {
         throw GeneralClassicException (
-            "FM3DH5BlockBase::FM3DH5BlockBase () ",
+            "FM3DH5BlockBase::openFileMPIOCollective () ",
             "Cannot open file '" + aFilename + "'!");
     }
     H5CloseProp (props);
