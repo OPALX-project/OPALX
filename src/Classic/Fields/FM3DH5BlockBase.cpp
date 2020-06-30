@@ -44,11 +44,11 @@ long long FM3DH5BlockBase::getNumSteps (void) {
     if (num_steps <= 0) {
         if (num_steps == 0) {
             throw GeneralClassicException (
-                "FM3DH5Block_nonscale::FM3DH5Block_nonscale () ",
+                "FM3DH5BlockBase::getNumSteps () ",
                 "Number of time-steps in file '" + Filename_m + "' is zero!");
         } else {
             throw GeneralClassicException (
-                "FM3DH5Block_nonscale::FM3DH5Block_nonscale () ",
+                "FM3DH5BlockBase::getNumSteps () ",
                 "Query number of time-steps in file '" + Filename_m + "' failed!");
         }
     }
@@ -58,7 +58,7 @@ long long FM3DH5BlockBase::getNumSteps (void) {
 void FM3DH5BlockBase::setStep (long long step) {
     if (H5SetStep(file_m, step) == H5_ERR) {
         throw GeneralClassicException (
-            "FM3DH5Block_nonscale::FM3DH5Block_nonscale () ",
+            "FM3DH5BlockBase::setStep () ",
             "Cannot set time-step to " + std::to_string (step) +
             " in file '" + Filename_m + "'!");
     }
@@ -152,7 +152,7 @@ void FM3DH5BlockBase::readField (
 void FM3DH5BlockBase::closeFile (void) {
     if (H5CloseFile (file_m) == H5_ERR) {
         throw GeneralClassicException (
-            "FM3DH5Block_nonscale::FM3DH5Block_nonscale () ",
+            "FM3DH5BlockBase::closeFile () ",
             "Error closing file '" + Filename_m + "'!");
     }
 }
