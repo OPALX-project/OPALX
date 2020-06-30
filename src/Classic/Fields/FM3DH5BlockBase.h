@@ -1,5 +1,6 @@
 //
-// Base class for 3D field-maps in stored in H5hut files.
+// Class FM3DH5BlockBase
+//   Base class for 3D field-maps in stored in H5hut files.
 //
 // Copyright (c) 2020, Achim Gsell, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
