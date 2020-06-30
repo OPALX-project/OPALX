@@ -172,13 +172,12 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
         return;
     }
 
-    double rBegin = 0.0, rEnd = 0.0;
     Inform msg("RFCavity ", *gmsg);
     std::stringstream errormsg;
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
-    fieldmap_m->getFieldDimensions(startField_m, endField, rBegin, rEnd);
+    fieldmap_m->getFieldDimensions(startField_m, endField);
     if (endField <= startField_m) {
         throw GeneralClassicException("RFCavity::initialise",
                                       "The length of the field map '" + filename_m + "' is zero or negativ");
@@ -722,8 +721,8 @@ bool RFCavity::isInside(const Vector_t &r) const {
 double RFCavity::getElementLength() const {
     double length = ElementBase::getElementLength();
     if (length < 1e-10 && fieldmap_m != NULL) {
-        double start, end, tmp;
-        fieldmap_m->getFieldDimensions(start, end, tmp, tmp);
+            double start, end;
+        fieldmap_m->getFieldDimensions(start, end);
         length = end - start;
     }
 
@@ -732,6 +731,5 @@ double RFCavity::getElementLength() const {
 
 void RFCavity::getElementDimensions(double &begin,
                                     double &end) const {
-    double tmp;
-    fieldmap_m->getFieldDimensions(begin, end, tmp, tmp);
+    fieldmap_m->getFieldDimensions(begin, end);
 }
