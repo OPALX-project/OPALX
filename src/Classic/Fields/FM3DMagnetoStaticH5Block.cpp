@@ -19,8 +19,10 @@
 #include "Utilities/GeneralClassicException.h"
 
 FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block (
-    std::string aFilename) : FM3DH5BlockBase (
-        aFilename
+    std::string aFilename
+    ) : Fieldmap (
+        aFilename),
+    FM3DH5BlockBase (
         ) {
         Type = T3DMagnetoStaticH5Block;
 
