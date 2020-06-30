@@ -31,6 +31,11 @@ static_assert (sizeof(long long) == sizeof (h5_int64_t),
 class FM3DH5BlockBase: virtual public Fieldmap {
 
 public:
+    virtual void readMap (
+        ) {};
+
+    virtual void freeMap (
+        ) {};
 
     virtual bool getFieldstrength (
         const Vector_t& /*R*/, Vector_t& /*E*/, Vector_t& /*B*/) const = 0;
@@ -114,12 +119,6 @@ protected:
     void closeFile (
         void);
     
-    virtual void readMap (
-        ) {};
-
-    virtual void freeMap (
-        ) {};
-
     virtual bool isInside (
         const Vector_t &r
         ) const {
