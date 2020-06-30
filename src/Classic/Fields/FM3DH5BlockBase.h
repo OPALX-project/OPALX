@@ -27,7 +27,6 @@ static_assert (sizeof(double) == sizeof (h5_float64_t),
 static_assert (sizeof(long long) == sizeof (h5_int64_t),
                "long long and h5_int64_t are not the same type" );
 
-
 class FM3DH5BlockBase: virtual public Fieldmap {
 
 public:
@@ -86,7 +85,7 @@ public:
 
 protected:
     FM3DH5BlockBase (
-        std::string aFilename) : Fieldmap (aFilename) {};
+        ) {};
 
     virtual ~FM3DH5BlockBase (
         ) {};
