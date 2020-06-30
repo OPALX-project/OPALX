@@ -179,12 +179,13 @@ protected:
         const std::vector<double>&,
         const Vector_t& X) const;
 
-    enum { LX = 0,  // low X
-           LY = 0,  // low Y
-           LZ = 0,  // low Z
-           HX = 4,  // high X
-           HY = 2,  // high Y
-           HZ = 1}; // high Z
+    enum : unsigned short {
+        LX = 0,  // low X
+        LY = 0,  // low Y
+        LZ = 0,  // low Z
+        HX = 4,  // high X
+        HY = 2,  // high Y
+        HZ = 1}; // high Z
 
     h5_file_t file_m;
     std::vector<double> FieldstrengthEz_m;    /**< 3D array with Ez */
@@ -218,7 +219,7 @@ protected:
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
-// mode:c
+// mode:c++
 // c-basic-offset: 4
 // indent-tabs-mode: nil
 // require-final-newline: nil
