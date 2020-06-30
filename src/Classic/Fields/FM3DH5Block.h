@@ -1,5 +1,6 @@
 //
-// Class for dynamic 3D field-maps stored in H5hut files.
+// Class FM3DH5Block
+//   Class for dynamic 3D field-maps stored in H5hut files.
 //
 // Copyright (c) 2020, Achim Gsell, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.

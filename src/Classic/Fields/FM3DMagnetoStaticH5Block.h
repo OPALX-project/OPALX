@@ -1,5 +1,6 @@
 //
-// Class for magneto-static 3D field-maps stored in H5hut files.
+// Class FM3DMagnetoStaticH5Block
+//   Class for magneto-static 3D field-maps stored in H5hut files.
 //
 // Copyright (c) 2020, Achim Gsell, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
