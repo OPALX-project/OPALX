@@ -79,7 +79,7 @@ public:
     virtual void setFrequency (
         double freq);
 
-    void getOnaxisEz (
+    virtual void getOnaxisEz (
         std::vector<std::pair<double, double> >& F);
 
 protected:
