@@ -41,13 +41,10 @@ public:
         const Vector_t& /*R*/, Vector_t& /*E*/, Vector_t& /*B*/) const = 0;
 
     virtual void getFieldDimensions (
-        double &zBegin, double &zEnd,
-        double &rBegin, double &rEnd
+        double &zBegin, double &zEnd
         ) const {
         zBegin = zbegin_m;
         zEnd = zend_m;
-        rBegin = xbegin_m;
-        rEnd = xend_m;
     }
 
     virtual void getFieldDimensions (
