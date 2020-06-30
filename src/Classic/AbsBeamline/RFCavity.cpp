@@ -721,7 +721,7 @@ bool RFCavity::isInside(const Vector_t &r) const {
 double RFCavity::getElementLength() const {
     double length = ElementBase::getElementLength();
     if (length < 1e-10 && fieldmap_m != NULL) {
-            double start, end;
+        double start, end;
         fieldmap_m->getFieldDimensions(start, end);
         length = end - start;
     }
@@ -733,3 +733,11 @@ void RFCavity::getElementDimensions(double &begin,
                                     double &end) const {
     fieldmap_m->getFieldDimensions(begin, end);
 }
+
+// vi: set et ts=4 sw=4 sts=4:
+// Local Variables:
+// mode:c++
+// c-basic-offset: 4
+// indent-tabs-mode: nil
+// require-final-newline: nil
+// End:
