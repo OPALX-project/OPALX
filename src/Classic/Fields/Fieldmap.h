@@ -7,7 +7,6 @@
 #include <map>
 #include <vector>
 #include "Algorithms/Vektor.h"
-#include "Utilities/GeneralClassicException.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -105,11 +104,7 @@ public:
     virtual void freeMap() = 0;
 
 protected:
-    Fieldmap () {
-        throw GeneralClassicException (
-            "Fieldmap::Fieldmap () ",
-            "Implementation error: the default constructor should never be called!");
-    };
+    Fieldmap () = delete;
 
     Fieldmap(const std::string& aFilename)
         : Filename_m(aFilename),
