@@ -17,13 +17,11 @@
 //
 
 #include "Fields/FM3DH5Block.h"
-#include "Utilities/GeneralClassicException.h"
 
 FM3DH5Block::FM3DH5Block (
     std::string aFilename
     ) : Fieldmap (
-        aFilename),
-    FM3DH5BlockBase (
+        aFilename
         ) {
         Type = T3DDynamicH5Block;
 
