@@ -61,7 +61,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #ifndef CLASSIC_ElementBase_HH
-#define CLASSIC_ElementBase_HH 1
+#define CLASSIC_ElementBase_HH
 
 #include "AbsBeamline/AttributeSet.h"
 #include "BeamlineGeometry/Geometry.h"
