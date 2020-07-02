@@ -12,9 +12,7 @@
 //   more than once in beam lines or sequences.
 //
 //   If the sharable flag is not set, each occurrence of the element is supposed
-//   to have its own imperfections, but the same ideal representation.  Thus
-//   the wrappers are cloned for each new use in a beam line or sequence,
-//   but they point to the same ideal element.
+//   to have its own imperfections, but the same ideal representation.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
