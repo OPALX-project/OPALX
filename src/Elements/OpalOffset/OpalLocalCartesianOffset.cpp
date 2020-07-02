@@ -89,8 +89,8 @@ void OpalLocalCartesianOffset::fillRegisteredAttributes
     OpalElement::fillRegisteredAttributes(base);
     const Offset* offset = dynamic_cast<const Offset*>(&base);
     if (offset == NULL) {
-        throw OpalException("OpalVariableRFCavity::fillRegisteredAttributes",
-                            "Failed to cast ElementBase to a VariableRFCavity");
+        throw OpalException("OpalLocalCartesianOffset::fillRegisteredAttributes",
+                            "Failed to cast ElementBase to a OpalLocalCartesianOffset");
     }
 
     Euclid3D trans = offset->getGeometry().getTotalTransform();
@@ -109,8 +109,7 @@ void OpalLocalCartesianOffset::update() {
                  Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
     Vector_t norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
                   Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
-    Offset off = Offset(Offset::localCartesianOffset(name, pos, norm));
-    *offset = off;
+    *offset = Offset(Offset::localCartesianOffset(name, pos, norm));
     setElement(offset);
 }
 }
