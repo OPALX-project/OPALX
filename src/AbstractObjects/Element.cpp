@@ -5,9 +5,7 @@
 //   dynamic casting to determine whether an object represents an element.
 //
 //   Each Element object contains a pointer to a CLASSIC beam line element,
-//   known as the ``ideal'' element.  To represent imperfections, this element
-//   is ``wrapped'' as required in a field wrapper.
-//   This assembly represents the actual element as it occurs in a beam line.
+//   known as the ``ideal'' element.
 //
 //   If sharable flag is set, all occurrences of the element are supposed to
 //   have the same imperfections.  Thus the assembly is shared when it is used
