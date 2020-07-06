@@ -1,39 +1,32 @@
+//
+// Class ElementFactory
+//   Concrete factory class for CLASSIC elements.
+//   Defines the beamline element creation via the factory pattern.
+//   When the factory is constructed, empty elements are first created and
+//   stored.
+//   {p}
+//   With the makeElement() method, these elements can be cloned.
+//   The factory also implements an
+//   element repository which can store beam lines.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_ElementFactory_HH
 #define CLASSIC_ElementFactory_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: ElementFactory.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: ElementFactory
-//
-// ------------------------------------------------------------------------
-// Class category: Construction
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:35 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
 #include "Construction/Factory.h"
 #include <map>
-
-
-// Class ElementFactory
-// ------------------------------------------------------------------------
-/// Concrete factory class for CLASSIC elements.
-//  Defines the beamline element creation via the factory pattern.
-//  When the factory is constructed, empty elements are first created and
-//  stored.
-//  {p}
-//  With the makeElement() method, these elements can be cloned.
-//  The factory also implements an
-//  element repository which can store beam lines.
 
 
 class ElementFactory: public Factory {

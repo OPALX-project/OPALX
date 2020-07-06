@@ -1,24 +1,24 @@
+//
+// Class TBeamline
+//   Template class for beam lines.
+//   Instantiation with different T types allows attachment of additional
+//   data to each position in the line.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_TBeamline_HH
 #define CLASSIC_TBeamline_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: TBeamline.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Template class: TBeamline<class T>
-//
-// ------------------------------------------------------------------------
-// Class category: Beamlines
-// ------------------------------------------------------------------------
-//
-// $Date: 2004/11/18 22:18:06 $
-// $Author: jsberg $
-//
-// ------------------------------------------------------------------------
 
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -28,13 +28,6 @@
 #include "Algorithms/Quaternion.h"
 #include <algorithm>
 #include <list>
-
-
-// Template class TBeamline
-// ------------------------------------------------------------------------
-/// Template class for beam lines.
-//  Instantiation with different T types allows attachment of additional
-//  data to each position in the line.
 
 template <class T>
 class TBeamline: public Beamline, public std::list<T> {
