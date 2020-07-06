@@ -16,7 +16,6 @@ set (_SRCS
     SplineTimeDependence.cpp
     Surveyor.cpp
     ThinMapper.cpp
-    ThinTracker.cpp
     Tracker.cpp
     Quaternion.cpp
     )
@@ -54,7 +53,6 @@ set (HDRS
     SplineTimeDependence.h
     Surveyor.h
     ThinMapper.h
-    ThinTracker.h
     Tracker.h
     Vektor.h
     )
