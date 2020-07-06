@@ -70,11 +70,6 @@ OpalCCollimator *OpalCCollimator::clone(const std::string &name) {
 }
 
 
-void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base) {
-    OpalElement::fillRegisteredAttributes(base);
-}
-
-
 void OpalCCollimator::update() {
     OpalElement::update();
 

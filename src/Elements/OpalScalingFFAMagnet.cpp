@@ -88,12 +88,6 @@ OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string &name) {
 }
 
 
-void OpalScalingFFAMagnet::
-fillRegisteredAttributes(const ElementBase &base) {
-    OpalElement::fillRegisteredAttributes(base);
-}
-
-
 void OpalScalingFFAMagnet::update() {
     ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
 

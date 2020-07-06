@@ -70,11 +70,6 @@ OpalBeamStripping *OpalBeamStripping::clone(const std::string &name) {
 }
 
 
-void OpalBeamStripping::fillRegisteredAttributes(const ElementBase &base) {
-    OpalElement::fillRegisteredAttributes(base);
-}
-
-
 void OpalBeamStripping::update() {
     OpalElement::update();
 
