@@ -65,7 +65,6 @@ namespace {
         EBDUMP,
         CSRDUMP,
         AUTOPHASE,
-        PPDEBUG,
         SURFDUMPFREQ,
         NUMBLOCKS,
         RECYCLEBLOCKS,
@@ -197,10 +196,6 @@ Option::Option():
                           "acceleration. Defines the number of refinements of the "
                           "search range", autoPhase);
 
-    itsAttr[PPDEBUG] = Attributes::makeBool
-                       ("PPDEBUG", "If true, use special initial velocity distribution "
-                        "for parallel plate and print special debug output", ppdebug);
-
     itsAttr[SURFDUMPFREQ] =  Attributes::makeReal
                              ("SURFDUMPFREQ", "The frequency to dump surface-particle "
                               "interaction data, its default value is -1 (no dump).",
@@ -300,7 +295,6 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
-    Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
     Attributes::setBool(itsAttr[CZERO], cZero);
     Attributes::setBool(itsAttr[CLOTUNEONLY], cloTuneOnly);
@@ -345,7 +339,6 @@ void Option::execute() {
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
-    ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
     version = Attributes::getReal(itsAttr[VERSION]);
 #ifdef ENABLE_AMR

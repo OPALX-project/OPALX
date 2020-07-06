@@ -10,7 +10,6 @@ namespace Options {
     bool warn = true;
     int warnLevel = 1;
     bool csrDump = false;
-    bool ppdebug = false;
 
     // If true create symmetric distribution
     bool cZero = false;
