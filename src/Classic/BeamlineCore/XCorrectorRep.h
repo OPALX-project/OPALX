@@ -1,32 +1,26 @@
+//
+// Class XCorrectorRep
+//   Representation for an orbit corrector.
+//   This derived class acts on the horizontal plane.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_XCorrectorRep_HH
 #define CLASSIC_XCorrectorRep_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: XCorrectorRep.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: XCorrectorRep
-//
-// ------------------------------------------------------------------------
-// Class category: BeamlineCore
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:34 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
 #include "BeamlineCore/CorrectorRep.h"
 
-
-// Class XCorrectorRep
-// ------------------------------------------------------------------------
-/// Representation for an orbit corrector.
-//  This derived class acts on the horizontal plane.
 
 class XCorrectorRep: public CorrectorRep {
 
