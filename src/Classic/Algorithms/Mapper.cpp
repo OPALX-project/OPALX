@@ -62,6 +62,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Algorithms/Mapper.h"
+#include "AbsBeamline/Component.h"
 #include "Fields/BMultipoleField.h"
 #include "FixedAlgebra/FTpsMath.h"
 #include "FixedAlgebra/LinearMap.h"
