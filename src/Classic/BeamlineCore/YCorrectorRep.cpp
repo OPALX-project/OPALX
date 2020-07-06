@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/YCorrectorRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -84,17 +83,6 @@ Channel *YCorrectorRep::getChannel(const std::string &aKey, bool create) {
     }
 
     return ElementBase::getChannel(aKey, create);
-}
-
-
-ElementImage *YCorrectorRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }
 
 

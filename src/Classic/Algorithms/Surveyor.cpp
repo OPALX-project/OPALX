@@ -20,7 +20,7 @@
 
 #include "Algorithms/Surveyor.h"
 #include "AbsBeamline/AttributeSet.h"
-#include "AbsBeamline/Patch.h"
+#include "AbsBeamline/ElementBase.h"
 
 
 // Class Surveyor
@@ -56,13 +56,6 @@ void Surveyor::getMap(Euclid3D &map) const {
 
 void Surveyor::setMap(const Euclid3D &map) {
     itsMap = map;
-}
-
-
-void Surveyor::visitPatch(const Patch &patch) {
-    Euclid3D elementMap = patch.getPatch();
-    if(back_path) elementMap = Inverse(elementMap);
-    itsMap.dotBy(elementMap);
 }
 
 

@@ -32,16 +32,13 @@
 
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -51,12 +48,9 @@
 #include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -101,9 +95,6 @@ public:
 
     virtual ~ParallelTTracker();
 
-    /// Apply the algorithm to a BeamBeam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a BeamStripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -117,17 +108,11 @@ public:
     /// Apply the algorithm to a Degrader.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a Diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a Drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a Marker.
     virtual void visitMarker(const Marker &);
@@ -156,14 +141,8 @@ public:
     /// Apply the algorithm to a RFCavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to a RFQuadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a SBend.
     virtual void visitSBend(const SBend &);
-
-    /// Apply the algorithm to a Separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a Septum.
     virtual void visitSeptum(const Septum &);
@@ -173,9 +152,6 @@ public:
 
     /// Apply the algorithm to a Solenoid.
     virtual void visitSource(const Source &);
-
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
 
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
@@ -292,9 +268,6 @@ private:
     void evenlyDistributeParticles();
 };
 
-inline void ParallelTTracker::visitBeamBeam(const BeamBeam &bb) {
-    itsOpalBeamline_m.visit(bb, *this, itsBunch_m);
-}
 
 inline void ParallelTTracker::visitBeamStripping(const BeamStripping &bstp) {
     itsOpalBeamline_m.visit(bstp, *this, itsBunch_m);
@@ -315,11 +288,6 @@ inline void ParallelTTracker::visitDegrader(const Degrader &deg) {
 }
 
 
-inline void ParallelTTracker::visitDiagnostic(const Diagnostic &diag) {
-    itsOpalBeamline_m.visit(diag, *this, itsBunch_m);
-}
-
-
 inline void ParallelTTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
@@ -327,11 +295,6 @@ inline void ParallelTTracker::visitDrift(const Drift &drift) {
 
 inline void ParallelTTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
-}
-
-
-inline void ParallelTTracker::visitLambertson(const Lambertson &lamb) {
-    itsOpalBeamline_m.visit(lamb, *this, itsBunch_m);
 }
 
 
@@ -376,17 +339,8 @@ inline void ParallelTTracker::visitTravelingWave(const TravelingWave &as) {
 }
 
 
-inline void ParallelTTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    itsOpalBeamline_m.visit(rfq, *this, itsBunch_m);
-}
-
 inline void ParallelTTracker::visitSBend(const SBend &bend) {
     itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
-}
-
-
-inline void ParallelTTracker::visitSeparator(const Separator &sep) {
-    itsOpalBeamline_m.visit(sep, *this, itsBunch_m);
 }
 
 
@@ -401,10 +355,6 @@ inline void ParallelTTracker::visitSolenoid(const Solenoid &solenoid) {
 
 inline void ParallelTTracker::visitSource(const Source &source) {
     itsOpalBeamline_m.visit(source, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitParallelPlate(const ParallelPlate &pplate) {
-    itsOpalBeamline_m.visit(pplate, *this, itsBunch_m);
 }
 
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {

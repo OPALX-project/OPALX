@@ -49,11 +49,6 @@ public:
     //  If the attribute does not exist, it returns NULL.
     virtual Channel *getChannel(const std::string &aKey, bool = false);
 
-    /// Construct an image.
-    //  Return the image of the element, containing the name and type string
-    //  of the element, and a copy of the user-defined attributes.
-    virtual ElementImage *getImage() const;
-
     /// Get plane of action.
     //  Return the x-plane for this class.
     virtual Plane getPlane() const;

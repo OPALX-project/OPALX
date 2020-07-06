@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/RFCavityRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -115,17 +114,6 @@ StraightGeometry &RFCavityRep::getGeometry() {
 
 const StraightGeometry &RFCavityRep::getGeometry() const {
     return geometry;
-}
-
-
-ElementImage *RFCavityRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }
 
 

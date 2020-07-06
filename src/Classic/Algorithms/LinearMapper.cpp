@@ -51,24 +51,18 @@
 
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
@@ -118,10 +112,6 @@ void LinearMapper::setMap(const FVps<double, 6> &map) {
 }
 
 
-void LinearMapper::visitBeamBeam(const BeamBeam &) {
-    // *** MISSING *** Map for beam-beam.
-}
-
 void LinearMapper::visitBeamStripping(const BeamStripping &) {
     // *** MISSING *** Map for beam stripping.
 }
@@ -157,11 +147,6 @@ void LinearMapper::visitDegrader(const Degrader &deg) {
     applyDrift(flip_s * deg.getElementLength());
 }
 
-void LinearMapper::visitDiagnostic(const Diagnostic &diag) {
-    applyDrift(flip_s * diag.getElementLength());
-}
-
-
 void LinearMapper::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
@@ -169,12 +154,6 @@ void LinearMapper::visitDrift(const Drift &drift) {
 void LinearMapper::visitFlexibleCollimator(const FlexibleCollimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
-
-void LinearMapper::visitLambertson(const Lambertson &lamb) {
-    // Assume the particle go through the magnet's window.
-    applyDrift(flip_s * lamb.getElementLength());
-}
-
 
 void LinearMapper::visitMarker(const Marker &/*marker*/) {
     // Do nothing.
@@ -201,12 +180,6 @@ void LinearMapper::visitMultipole(const Multipole &multipole) {
     }
 }
 
-
-void LinearMapper::visitPatch(const Patch &patch) {
-    Euclid3D transform = patch.getPatch();
-    if(back_track) transform = Inverse(transform);
-    applyTransform(transform, 0.0);
-}
 
 void LinearMapper::visitProbe(const Probe &/*Prob*/) {
     // Do nothing.
@@ -291,12 +264,6 @@ void LinearMapper::visitRFCavity(const RFCavity &as) {
 }
 
 
-void LinearMapper::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    // *** MISSING *** Map for RF Quadrupole.
-    applyDrift(flip_s * rfq.getElementLength());
-}
-
-
 void LinearMapper::visitSBend(const SBend &bend) {
     const PlanarArcGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
@@ -343,23 +310,6 @@ void LinearMapper::visitSBend(const SBend &bend) {
 }
 
 
-void LinearMapper::visitSeparator(const Separator &sep) {
-    // Drift through first half of length.
-    double length = flip_s * sep.getElementLength();
-    if(length) applyDrift(length / 2.0);
-
-    // Electrostatic kick.
-    double scale = (length * itsReference.getQ()) / itsReference.getP();
-    double Ex = scale * sep.getEx();
-    double Ey = scale * sep.getEy();
-    Linear pt = 1.0 + itsMap[PT];
-    itsMap[PX] += Ex / pt;
-    itsMap[PY] += Ey / pt;
-
-    if(length) applyDrift(length / 2.0);
-}
-
-
 void LinearMapper::visitSeptum(const Septum &sept) {
     // Assume the particle go through the magnet's window.
     applyDrift(flip_s * sept.getElementLength());
@@ -393,11 +343,6 @@ void LinearMapper::visitSolenoid(const Solenoid &solenoid) {
             applyDrift(length);
         }
     }
-}
-
-
-void LinearMapper::visitParallelPlate(const ParallelPlate &/*pplate*/) {
-    //do nothing
 }
 
 
