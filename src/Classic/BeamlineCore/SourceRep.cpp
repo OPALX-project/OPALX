@@ -1,5 +1,4 @@
 #include "BeamlineCore/SourceRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -77,15 +76,4 @@ StraightGeometry &SourceRep::getGeometry() {
 
 const StraightGeometry &SourceRep::getGeometry() const {
     return geometry;
-}
-
-
-ElementImage *SourceRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }

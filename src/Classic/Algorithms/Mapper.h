@@ -65,7 +65,6 @@
 #define CLASSIC_Mapper_HH
 
 #include "Algorithms/AbstractMapper.h"
-#include "AbsBeamline/Patch.h"
 #include "FixedAlgebra/FTps.h"
 #include "FixedAlgebra/FVps.h"
 #include "Algorithms/PartData.h"
@@ -111,9 +110,6 @@ public:
     /// Apply the algorithm to an arbitrary component.
     //  This override calls the component to track the map.
     virtual void visitComponent(const Component &);
-
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
 
 protected:
 

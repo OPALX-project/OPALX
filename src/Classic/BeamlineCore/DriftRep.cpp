@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/DriftRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -100,15 +99,4 @@ StraightGeometry &DriftRep::getGeometry() {
 
 const StraightGeometry &DriftRep::getGeometry() const {
     return geometry;
-}
-
-
-ElementImage *DriftRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }

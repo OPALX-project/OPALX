@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/FlexibleCollimatorRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -100,15 +99,4 @@ StraightGeometry &FlexibleCollimatorRep::getGeometry() {
 
 const StraightGeometry &FlexibleCollimatorRep::getGeometry() const {
     return geometry;
-}
-
-
-ElementImage *FlexibleCollimatorRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }

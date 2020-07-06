@@ -22,17 +22,14 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
-#include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -41,7 +38,6 @@
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
-#include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Ring.h"
@@ -49,16 +45,13 @@
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/Source.h"
-#include "AbsBeamline/ParallelPlate.h"
 #include "AbsBeamline/Stripper.h"
 
 #include "Beamlines/Beamline.h"
@@ -89,9 +82,6 @@ public:
 
     virtual void execute();
 
-    /// Apply the algorithm to a beam-beam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a beam stripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -113,17 +103,11 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
@@ -149,9 +133,6 @@ public:
     /// Apply the algorithm to an Offset.
     virtual void visitOffset(const Offset &);
 
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
-
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &prob);
 
@@ -174,17 +155,11 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to a RF quadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend3D(const SBend3D &);
-
-    /// Apply the algorithm to a separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a septum.
     virtual void visitSeptum(const Septum &);
@@ -201,9 +176,6 @@ public:
     /// Apply the algorithm to a spiral sector magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &);
 
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
-
     /// Apply the algorithm to a charge stripper.
     virtual void visitStripper(const Stripper &);
 
@@ -212,9 +184,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
-
-    /// Apply the algorithm to a generic integrator.
-    virtual void visitIntegrator(const Integrator &);
 
     size_t size() const;
 
@@ -249,11 +218,6 @@ SpecificElementVisitor<ELEM>::SpecificElementVisitor(const Beamline &beamline):
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::execute()
 { }
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitBeamBeam(const BeamBeam &element) {
-    CastsTrait<ELEM, BeamBeam>::apply(allElementsOfTypeE, element);
-}
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitBeamStripping(const BeamStripping &element) {
@@ -291,11 +255,6 @@ void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitDiagnostic(const Diagnostic &element) {
-    CastsTrait<ELEM, Diagnostic>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
 }
@@ -303,11 +262,6 @@ void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator &element) {
     CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitLambertson(const Lambertson &element) {
-    CastsTrait<ELEM, Lambertson>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
@@ -351,11 +305,6 @@ void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitPatch(const Patch &element) {
-    CastsTrait<ELEM, Patch>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitProbe(const Probe &element) {
     CastsTrait<ELEM, Probe>::apply(allElementsOfTypeE, element);
 }
@@ -394,11 +343,6 @@ void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave &eleme
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitRFQuadrupole(const RFQuadrupole &element) {
-    CastsTrait<ELEM, RFQuadrupole>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
     CastsTrait<ELEM, SBend>::apply(allElementsOfTypeE, element);
 }
@@ -419,11 +363,6 @@ void SpecificElementVisitor<ELEM>::visitVerticalFFAMagnet(const VerticalFFAMagne
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitSeparator(const Separator &element) {
-    CastsTrait<ELEM, Separator>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSeptum(const Septum &element) {
     CastsTrait<ELEM, Septum>::apply(allElementsOfTypeE, element);
 }
@@ -436,11 +375,6 @@ void SpecificElementVisitor<ELEM>::visitSolenoid(const Solenoid &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSource(const Source &element) {
     CastsTrait<ELEM, Source>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitParallelPlate(const ParallelPlate &element) {
-    CastsTrait<ELEM, ParallelPlate>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
@@ -457,10 +391,6 @@ template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr &element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitIntegrator(const Integrator & /*elem*/) {
 }
 
 template<class ELEM>

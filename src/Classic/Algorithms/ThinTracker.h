@@ -68,9 +68,6 @@ public:
 
     virtual ~ThinTracker();
 
-    /// Apply algorithm to BeamBeam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a beam stripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -83,17 +80,11 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply algorithm to Diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply algorithm to Drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply algorithm to Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply algorithm to Marker.
     virtual void visitMarker(const Marker &);
@@ -113,23 +104,14 @@ public:
     /// Apply algorithm to RFCavity.
     virtual void visitRFCavity(const RFCavity &);
 
-    /// Apply algorithm to RFQuadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply algorithm to SBend.
     virtual void visitSBend(const SBend &);
-
-    /// Apply algorithm to Separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply algorithm to Septum.
     virtual void visitSeptum(const Septum &);
 
     /// Apply algorithm to Solenoid.
     virtual void visitSolenoid(const Solenoid &);
-
-    /// Apply algorithm to Solenoid.
-    virtual void visitParallelPlate(const ParallelPlate &);
 
 private:
 

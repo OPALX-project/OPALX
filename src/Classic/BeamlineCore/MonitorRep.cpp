@@ -20,7 +20,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/MonitorRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -98,17 +97,6 @@ StraightGeometry &MonitorRep::getGeometry() {
 
 const StraightGeometry &MonitorRep::getGeometry() const {
     return geometry;
-}
-
-
-ElementImage *MonitorRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }
 
 

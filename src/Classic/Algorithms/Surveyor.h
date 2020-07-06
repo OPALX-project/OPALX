@@ -61,10 +61,6 @@ public:
     /// Reset accumulated map for restart.
     void setMap(const Euclid3D &);
 
-
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
-
 private:
 
     // Not implemented.
@@ -74,7 +70,7 @@ private:
 
     /// Default action.
     //  Apply the default to all element (advance the position and direction).
-    //  All visitXXX() methods except visitPatch() call applyDefault() which
+    //  All visitXXX() methods call applyDefault() which
     //  is overridden here to propagate the survey through the element.
     virtual void applyDefault(const ElementBase &element);
 

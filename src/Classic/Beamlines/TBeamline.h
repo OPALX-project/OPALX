@@ -131,11 +131,6 @@ public:
     //  origin to the exit of the element.
     virtual Euclid3D getExitFrame()     const;
 
-    /// Construct an image.
-    //  Return the image of the element, containing the name and type string
-    //  of the element, and a copy of the user-defined attributes.
-    virtual ElementImage *getImage() const;
-
     /// Get beamline type
     virtual ElementBase::ElementType getType() const;
 
@@ -414,13 +409,6 @@ Euclid3D TBeamline<T>::getEntranceFrame() const {
 template <class T>
 Euclid3D TBeamline<T>::getExitFrame() const {
     return getTransform(0.0, getExit());
-}
-
-
-template <class T> inline
-ElementImage *TBeamline<T>::getImage() const {
-    // this code needs revision when the class ElementImage is defined
-    return NULL;
 }
 
 

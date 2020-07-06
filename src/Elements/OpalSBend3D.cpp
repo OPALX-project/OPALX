@@ -42,9 +42,6 @@ OpalSBend3D::OpalSBend3D():
             "Scale the field map up or down by this factor (default 1. is T).");
     itsAttr[LENGTH_UNITS] = Attributes::makeReal("LENGTH_UNITS",
             "Units for length coordinates (default 1. is mm).");
-    registerStringAttribute("FMAPFN");
-    registerRealAttribute("FIELD_UNITS");
-    registerRealAttribute("LENGTH_UNITS");
 
     registerOwnership();
 

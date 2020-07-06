@@ -87,9 +87,6 @@ public:
     /// Reset the full map for restart.
     virtual void setMap(const FVps<double, 6> &);
 
-    /// Apply the algorithm to a BeamBeam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a beam stripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -107,17 +104,11 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a Diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a Drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a Marker.
     virtual void visitMarker(const Marker &);
@@ -128,9 +119,6 @@ public:
     /// Apply the algorithm to a Multipole.
     virtual void visitMultipole(const Multipole &);
 
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
-
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &prob);
 
@@ -140,23 +128,14 @@ public:
     /// Apply the algorithm to a RFCavity.
     virtual void visitRFCavity(const RFCavity &);
 
-    /// Apply the algorithm to a RFQuadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a SBend.
     virtual void visitSBend(const SBend &);
-
-    /// Apply the algorithm to a Separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a Septum.
     virtual void visitSeptum(const Septum &);
 
     /// Apply the algorithm to a Solenoid.
     virtual void visitSolenoid(const Solenoid &);
-
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
 
 protected:
 

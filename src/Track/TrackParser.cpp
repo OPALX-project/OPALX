@@ -19,8 +19,6 @@
 #include "Track/TrackParser.h"
 #include "Track/TrackEnd.h"
 #include "Track/TrackRun.h"
-#include "Track/TrackSave.h"
-#include "Track/TrackStart.h"
 
 
 // Class TrackParser
@@ -30,10 +28,7 @@
 TrackParser::TrackParser():
     trackDirectory() {
     trackDirectory.insert("ENDTRACK", new TrackEnd());
-    //trackDirectory.insert("NOISE",    new TrackNoise());
     trackDirectory.insert("RUN",      new TrackRun());
-    trackDirectory.insert("TSAVE",    new TrackSave());
-    trackDirectory.insert("START",    new TrackStart());
 }
 
 

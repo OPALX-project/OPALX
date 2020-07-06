@@ -118,13 +118,6 @@ void Mapper::visitComponent(const Component &comp) {
 }
 
 
-void Mapper::visitPatch(const Patch &patch) {
-    Euclid3D transform = patch.getPatch();
-    if(back_path) transform = Inverse(transform);
-    applyTransform(transform);
-}
-
-
 void Mapper::applyDrift(double length) {
     double kin = itsReference.getM() / itsReference.getP();
     double refTime = length / itsReference.getBeta();

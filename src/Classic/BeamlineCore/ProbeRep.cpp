@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/ProbeRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -97,16 +96,6 @@ const StraightGeometry &ProbeRep::getGeometry() const {
     return geometry;
 }
 
-
-ElementImage *ProbeRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
-}
 
 void ProbeRep::setActive(bool flag) {
     active = flag;

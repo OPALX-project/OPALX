@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/SolenoidRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -106,17 +105,6 @@ StraightGeometry &SolenoidRep::getGeometry() {
 
 const StraightGeometry &SolenoidRep::getGeometry() const {
     return geometry;
-}
-
-
-ElementImage *SolenoidRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
 }
 
 

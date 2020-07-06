@@ -47,12 +47,6 @@ OpalBeamStripping::OpalBeamStripping():
     itsAttr[STOP]         = Attributes::makeBool
         ("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
     
-    registerRealAttribute("PRESSURE");
-    registerRealAttribute("TEMPERATURE");
-    registerStringAttribute("PMAPFN");
-    registerRealAttribute("PSCALE");
-    registerStringAttribute("GAS");
-    
     registerOwnership();
     
     setElement(new BeamStrippingRep("BEAMSTRIPPING"));
