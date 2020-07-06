@@ -22,24 +22,19 @@
 #include "Algorithms/ThinMapper.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
 
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
@@ -64,10 +59,6 @@ ThinMapper::ThinMapper(const Beamline &beamline, const PartData &ref,
 ThinMapper::~ThinMapper()
 {}
 
-
-void ThinMapper::visitBeamBeam(const BeamBeam &/*bb*/) {
-    // *** MISSING *** Map algorithm on BeamBeam
-}
 
 void ThinMapper::visitBeamStripping(const BeamStripping &/*bstp*/) {
     // *** MISSING *** Map algorithm on BeamStripping
@@ -99,12 +90,6 @@ void ThinMapper::visitCorrector(const Corrector &corr) {
 }
 
 
-void ThinMapper::visitDiagnostic(const Diagnostic &diag) {
-    // The diagnostic has no effect on the map.
-    applyDrift(flip_s * diag.getElementLength());
-}
-
-
 void ThinMapper::visitDrift(const Drift &drift) {
     applyDrift(flip_s * drift.getElementLength());
 }
@@ -112,12 +97,6 @@ void ThinMapper::visitDrift(const Drift &drift) {
 void ThinMapper::visitFlexibleCollimator(const FlexibleCollimator &coll) {
     applyDrift(flip_s * coll.getElementLength());
 }
-
-void ThinMapper::visitLambertson(const Lambertson &lamb) {
-    // Assume that the reference orbit is in the magnet's window.
-    applyDrift(flip_s * lamb.getElementLength());
-}
-
 
 void ThinMapper::visitMarker(const Marker &) {
     // Do nothing.
@@ -216,12 +195,6 @@ void ThinMapper::visitRFCavity(const RFCavity &as) {
 }
 
 
-void ThinMapper::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    // *** MISSING *** Map algorithm on RF Quadrupole.
-    applyDrift(flip_s * rfq.getElementLength());
-}
-
-
 void ThinMapper::visitSBend(const SBend &bend) {
     const PlanarArcGeometry &geometry = bend.getGeometry();
     double length = flip_s * geometry.getElementLength();
@@ -258,25 +231,6 @@ void ThinMapper::visitSBend(const SBend &bend) {
 
     // Drift to out-plane.
     applyDrift(length / 2.0);
-}
-
-
-void ThinMapper::visitSeparator(const Separator &sep) {
-    // Drift through first half of length.
-    double length = flip_s * sep.getElementLength();
-
-    if(length) {
-        applyDrift(length / 2.0);
-
-        double scale = (length * itsReference.getQ()) / itsReference.getP();
-        double Ex = scale * sep.getEx();
-        double Ey = scale * sep.getEy();
-        Series pt = 1.0 + itsMap[PT];
-        itsMap[PX] += Ex / pt;
-        itsMap[PY] += Ey / pt;
-
-        applyDrift(length / 2.0);
-    }
 }
 
 
@@ -321,10 +275,6 @@ void ThinMapper::visitSolenoid(const Solenoid &solenoid) {
     }
 }
 
-
-void ThinMapper::visitParallelPlate(const ParallelPlate &) {
-    // Do nothing.
-}
 
 void ThinMapper::applyDrift(double length) {
     double kin  = itsReference.getM() / itsReference.getP();

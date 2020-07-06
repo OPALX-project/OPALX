@@ -41,13 +41,11 @@ class Beamline;
 class FlaggedElmPtr;
 
 // Specific element classes interacting with a BeamlineVisitor
-class BeamBeam;
 class BeamStripping;
 class CCollimator;
 class Corrector;
 class Cyclotron;
 class Degrader;
-class Diagnostic;
 class Drift;
 class FlexibleCollimator;
 class Lambertson;
@@ -59,18 +57,14 @@ class MultipoleTStraight;
 class MultipoleTCurvedConstRadius;
 class MultipoleTCurvedVarRadius;
 class Offset;
-class ParallelPlate;
-class Patch;
 class Probe;
 class RBend;
 class RBend3D;
 class RFCavity;
-class RFQuadrupole;
 class Ring;
 class SBend;
 class SBend3D;
 class ScalingFFAMagnet;
-class Separator;
 class Septum;
 class Solenoid;
 class Source;
@@ -79,9 +73,6 @@ class TravelingWave;
 class VariableRFCavity;
 class VariableRFCavityFringeField;
 class VerticalFFAMagnet;
-
-// Integrators.
-class Integrator;
 
 class BeamlineVisitor {
 
@@ -92,9 +83,6 @@ public:
 
     /// Execute the algorithm on the attached beam line.
     virtual void execute() = 0;
-
-    /// Apply the algorithm to a beam-beam interaction.
-    virtual void visitBeamBeam(const BeamBeam &) = 0;
 
     /// Apply the algorithm to a beam stripping interaction.
     virtual void visitBeamStripping(const BeamStripping &) = 0;
@@ -111,9 +99,6 @@ public:
     /// Apply the algorithm to a diagnostic.
     virtual void visitDegrader(const Degrader &) = 0;
 
-    /// Apply the algorithm to a diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &) = 0;
-
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &) = 0;
 
@@ -125,9 +110,6 @@ public:
 
     /// Apply the algorithm to a cyclotron.
     virtual void visitCyclotron(const Cyclotron &) = 0;
-
-    /// Apply the algorithm to a Lambertson septum magnet.
-    virtual void visitLambertson(const Lambertson &) = 0;
 
     /// Apply the algorithm to an Offset (placement).
     virtual void visitOffset(const Offset &) = 0;
@@ -153,9 +135,6 @@ public:
     /// Apply the algorithm to an arbitrary curved Multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &) = 0;
 
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &) = 0;
-
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &) = 0;
 
@@ -178,17 +157,11 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &) = 0;
 
-    /// Apply the algorithm to a RF quadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &) = 0;
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &) = 0;
 
     /// Apply the algorithm to a Sector Bend with 3D field map.
     virtual void visitSBend3D(const SBend3D &) = 0;
-
-    /// Apply the algorithm to an electrostatic separator.
-    virtual void visitSeparator(const Separator &) = 0;
 
     /// Apply the algorithm to a septum magnet.
     virtual void visitSeptum(const Septum &) = 0;
@@ -208,14 +181,8 @@ public:
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &) = 0;
 
-    /// Apply the algorithm to an ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &) = 0;
-
     /// Apply the algorithm to a particle stripper.
     virtual void visitStripper(const Stripper &) = 0;
-
-    /// Apply the algorithm to a generic integrator.
-    virtual void visitIntegrator(const Integrator &) = 0;
 
     /// Apply the algorithm to a vertical FFA magnet
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &) = 0;

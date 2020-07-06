@@ -56,10 +56,6 @@ OpalSplineTimeDependence::OpalSplineTimeDependence()
       std::string("Array of real values. The length of \"VALUES\" must be the ")+
       std::string("same as the length of \"TIMES\"."));
 
-    registerRealAttribute("ORDER");
-    registerRealAttribute("TIMES");
-    registerRealAttribute("VALUES");
-
     registerOwnership();
 }
 

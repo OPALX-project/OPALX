@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineCore/CCollimatorRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
 
 
@@ -102,16 +101,6 @@ const StraightGeometry &CCollimatorRep::getGeometry() const {
     return geometry;
 }
 
-
-ElementImage *CCollimatorRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        image->setAttribute(entry->name, (this->*(entry->get))());
-    }
-
-    return image;
-}
 
 
 /*

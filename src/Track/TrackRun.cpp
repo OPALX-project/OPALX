@@ -26,7 +26,6 @@
 
 #include "Algorithms/ParallelTTracker.h"
 #include "Algorithms/ParallelCyclotronTracker.h"
-#include "Algorithms/NilTracker.h"
 
 #include "Attributes/Attributes.h"
 #include "Beamlines/TBeamline.h"

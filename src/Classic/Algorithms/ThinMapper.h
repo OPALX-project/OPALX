@@ -55,9 +55,6 @@ public:
     virtual ~ThinMapper();
 
 
-    /// Apply the algorithm to a beam-beam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a beam stripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -69,9 +66,6 @@ public:
 
     /// Apply the algorithm to a drift.
     virtual void visitDegrader(const Degrader &);
-
-    /// Apply the algorithm to a diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
 
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &);
@@ -100,23 +94,14 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
 
-    /// Apply the algorithm to a RF quadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
-
-    /// Apply the algorithm to a separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a septum.
     virtual void visitSeptum(const Septum &);
 
     /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &);
-
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
 
 protected:
 

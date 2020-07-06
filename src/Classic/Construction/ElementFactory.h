@@ -31,8 +31,8 @@
 //  When the factory is constructed, empty elements are first created and
 //  stored.
 //  {p}
-//  With the makeElement() method, these elements can be cloned and then
-//  filled in with from an ElementImage.  The factory also implements an
+//  With the makeElement() method, these elements can be cloned.
+//  The factory also implements an
 //  element repository which can store beam lines.
 
 
