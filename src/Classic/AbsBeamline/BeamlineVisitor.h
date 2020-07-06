@@ -48,7 +48,6 @@ class Cyclotron;
 class Degrader;
 class Drift;
 class FlexibleCollimator;
-class Lambertson;
 class Marker;
 class Monitor;
 class Multipole;
