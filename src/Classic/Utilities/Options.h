@@ -46,10 +46,6 @@ namespace Options {
 
     extern bool csrDump;
 
-    /// ppdebug flag.
-    //  If true, use special initial velocity distribution for parallel plate and print special debug output .
-    extern bool ppdebug;
-
     /// if true create symmetric distribution
     extern bool cZero;
 
