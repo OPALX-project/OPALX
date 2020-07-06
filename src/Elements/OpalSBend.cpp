@@ -155,7 +155,7 @@ void OpalSBend::update() {
     bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
 
     if(itsAttr[APERT])
-        throw OpalException("OpalRBend::fillRegisteredAttributes",
+        throw OpalException("OpalRBend::update",
                             "APERTURE in RBEND not supported; use GAP and HAPERT instead");
 
     if(itsAttr[HAPERT]) {

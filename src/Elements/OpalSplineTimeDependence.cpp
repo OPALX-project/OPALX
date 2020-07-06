@@ -74,11 +74,6 @@ OpalSplineTimeDependence::OpalSplineTimeDependence(const std::string &name,
 
 OpalSplineTimeDependence::~OpalSplineTimeDependence() {}
 
-void OpalSplineTimeDependence::fillRegisteredAttributes
-                                     (const ElementBase &base) {
-    OpalElement::fillRegisteredAttributes(base);
-}
-
 void OpalSplineTimeDependence::update() {
 
     double orderReal = Attributes::getReal(itsAttr[ORDER])+1e-10;
