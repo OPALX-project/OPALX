@@ -856,21 +856,18 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
     }
 
     if (numberOfDistParticles != numberOfParticles) {
-        *gmsg << "\n--------------------------------------------------" << endl
-              << "Warning!! The number of particles in the initial" << endl
-              << "distribution is " << numberOfDistParticles << "." << endl << endl
-              << "This is different from the number of particles" << endl
-              << "defined by the BEAM command: " << numberOfParticles << endl << endl
-              << "This is often happens when using a FROMFILE type" << endl
-              << "distribution and not matching the number of" << endl
-              << "particles in the particles file(s) with the number" << endl
-              << "given in the BEAM command." << endl << endl
-              << "The number of particles in the initial distribution" << endl
-              << "(" << numberOfDistParticles << ") "
-              << "will take precedence." << endl
-              << "---------------------------------------------------\n" << endl;
+        throw OpalException("Distribution::checkParticleNumber",
+                            "The number of particles in the initial\n"
+                            "distribution " +
+                            std::to_string(numberOfDistParticles) + "\n"
+                            "is different from the number of particles\n"
+                            "defined by the BEAM command " +
+                            std::to_string(numberOfParticles) + ".\n"
+                            "This often happens when using a FROMFILE type\n"
+                            "distribution and not matching the number of\n"
+                            "particles in the input distribution file(s) with\n"
+                            "the number given in the BEAM command.");
     }
-    numberOfParticles = numberOfDistParticles;
 }
 
 void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits) {
