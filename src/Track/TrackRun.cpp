@@ -20,7 +20,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ObjectFunction.h"
 #include "Algorithms/Tracker.h"
-#include "Algorithms/ThinTracker.h"
 #include "Algorithms/ThickTracker.h"
 
 #include "Algorithms/ParallelTTracker.h"
@@ -169,12 +168,7 @@ void TrackRun::execute() {
 
     // Get algorithm to use.
     std::string method = Attributes::getString(itsAttr[METHOD]);
-    if(method == "THIN") {
-        *gmsg << "  Method == \"THIN\"" << endl;
-        itsTracker = new ThinTracker(*Track::block->use->fetchLine(),
-                                     Track::block->bunch, Track::block->reference,
-                                     false, false);
-    } else if(method == "THICK") {
+    if (method == "THICK") {
         setupThickTracker();
     } else if(method == "PARALLEL-T" || method == "OPAL-T") {
         setupTTracker();
