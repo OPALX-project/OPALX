@@ -1,21 +1,22 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Option.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Option
-//   The class for the OPAL OPTION command.
+// Class Option
+//   The OPTION command.
+//   The user interface allowing setting of OPAL options.
+//   The actual option flags are contained in namespace Options.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:37 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "BasicActions/Option.h"
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
@@ -38,9 +39,6 @@ extern Inform *gmsg;
 using namespace Options;
 
 std::string DumpFrameToString(DumpFrame df);
-
-// Class Option
-// ------------------------------------------------------------------------
 
 namespace {
     // The attributes of class Option.
