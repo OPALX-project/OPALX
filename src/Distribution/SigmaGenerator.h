@@ -165,7 +165,7 @@ public:
 private:
     /// Stores the value of the current, \f$ \left[I\right] = A \f$
     double I_m;
-    /// Stores the desired emittances, \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = mm \ mrad \f$
+    /// Stores the desired emittances, \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = m \ rad \f$
     std::array<double,3> emittance_m;
     /// Is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
     double wo_m;
@@ -326,9 +326,9 @@ std::array<double,3> SigmaGenerator::getEmittances() const
 {
     double bgam = gamma_m*beta_m;
     return std::array<double,3>{{
-        emittance_m[0]/Physics::pi/bgam,
-        emittance_m[1]/Physics::pi/bgam,
-        emittance_m[2]/Physics::pi/bgam
+        emittance_m[0] / Physics::pi / bgam * 1.0e6,
+        emittance_m[1] / Physics::pi / bgam * 1.0e6,
+        emittance_m[2] / Physics::pi / bgam * 1.0e6
     }};
 }
 
