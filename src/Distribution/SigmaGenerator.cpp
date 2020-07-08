@@ -596,26 +596,25 @@ void SigmaGenerator::initialize(double nuz, double ravg)
      * ----------------------------------------------
      * [wo] = 1/s
      * [nh] = 1
-     * [q0] = e
+     * [q0] = 1 e
      * [I] = A
      * [eps0] = (A*s)^{2}/(N*m^{2})
      * [E0] = MeV/(c^{2}) (with speed of light c)
      * [beta] = 1
      * [gamma] = 1
-     * [m] = kg
+     * [m] = eV/c^2
      *
      * [lam] = m
      * [K3] = m
-     * [alpha] = 10^{3}/(pi*mrad)
+     * [alpha] = 1
      * ----------------------------------------------
      */
 
     // helper constants
     double invbg = 1.0 / (beta_m * gamma_m);
-    double c2 = Physics::c * Physics::c;
 
     // convert mass m_m from MeV/c^2 to eV*s^{2}/m^{2}
-    double m = m_m * 1.0e6 / c2;        // [m] = eV*s^{2}/m^{2}, [m_m] = MeV/c^2
+    double m = m_m * 1.0e6;        // [m] = eV/c^2, [m_m] = MeV/c^2
 
     // emittance [ex] = [ey] = [ez] = m rad
     double ex = emittance_m[0] * invbg;                        // [ex] = m rad
@@ -633,11 +632,15 @@ void SigmaGenerator::initialize(double nuz, double ravg)
 
     // formula (57)
     double lam = Physics::two_pi * Physics::c / (wo_m * nh_m); // wavelength, [lam] = m
+
+    // m * c^3 --> c^2 in [m] = eV / c^2 cancel --> m * c in denominator
     double K3 = 3.0 *  I_m * lam
               / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m
-                      * c2 * Physics::c * beta_m * beta_m * gamma2_m * gamma_m);    // [K3] = m
+                      * Physics::c * beta_m * beta_m * gamma2_m * gamma_m);    // [K3] = m
 
-    double alpha =  Physics::mu_0 * I_m / (5.0 * std::sqrt(10.0) * m * Physics::c
+    // c in denominator cancels with unit of [m] = eV / c^2 --> we need to multiply
+    // with c in order to get dimensionless quantity
+    double alpha =  Physics::mu_0 * I_m * Physics::c / (5.0 * std::sqrt(10.0) * m
                  * gamma_m * nh_m) * std::sqrt(rcyc * rcyc * rcyc / (e * e * e));   // [alpha] = 1/rad --> [alpha] = 1
 
     double sig0 = std::sqrt(2.0 * rcyc * e) / gamma_m;                              // [sig0] = m*sqrt(rad) --> [sig0] = m
@@ -729,8 +732,8 @@ void SigmaGenerator::initialize(double nuz, double ravg)
             "InitialSigmaPerAngleForEnergy" + energy + "MeV.dat"
         });
 
-        std::ofstream writeInit(fname, std::ios::app);
-        writeInit << sigma << std::endl;
+        std::ofstream writeInit(fname, std::ios::out);
+        writeMatrix(writeInit, sigma);
         writeInit.close();
     }
 }
