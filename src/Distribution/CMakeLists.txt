@@ -16,6 +16,7 @@ set (HDRS
     LaserProfile.h
     MapGenerator.h
     matrix_vector_operation.h
+    rdm.h
     SigmaGenerator.h
     )
 
