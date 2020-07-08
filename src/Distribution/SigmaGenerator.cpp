@@ -97,21 +97,16 @@ SigmaGenerator::SigmaGenerator(double I,
     , rinit_m(0.0)
     , prinit_m(0.0)
 {
-    // set emittances (initialization like that due to old compiler version)
-    // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = mm mrad
-    emittance_m[0] = ex * Physics::pi;
-    emittance_m[1] = ey * Physics::pi;
-    emittance_m[2] = ez * Physics::pi;
-
     // minimum beta*gamma
     double minGamma = Emin_m / m_m + 1.0;
     double bgam = std::sqrt(minGamma * minGamma - 1.0);
 
+    // set emittances (initialization like that due to old compiler version)
+    // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = m rad
     // normalized emittance (--> multiply with beta*gamma)
-    // [emittance] = mm mrad
-    emittance_m[0] *= bgam;
-    emittance_m[1] *= bgam;
-    emittance_m[2] *= bgam;
+    emittance_m[0] = ex * Physics::pi * 1.0e-6 * bgam;
+    emittance_m[1] = ey * Physics::pi * 1.0e-6 * bgam;
+    emittance_m[2] = ez * Physics::pi * 1.0e-6 * bgam;
 
     // Define the Hamiltonian
     Series::setGlobalTruncOrder(truncOrder_m);
@@ -139,14 +134,12 @@ SigmaGenerator::SigmaGenerator(double I,
         double K3 = 3.0 * /* physics::q0 */ 1.0 * I_m * lam / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m *
                         Physics::c * Physics::c * Physics::c * beta_m * beta_m * gamma_m * gamma2_m);            // [K3] = m
 
-        double milli = 1.0e-3;
-
         // formula (30), (31)
-        // [sigma(0,0)] = mm^{2} --> [sx] = [sy] = [sz] = mm
+        // [sigma(0,0)] = m^{2} --> [sx] = [sy] = [sz] = m
         // multiply with 0.001 to get meter --> [sx] = [sy] = [sz] = m
-        double sx = std::sqrt(std::abs(sigx)) * milli;
-        double sy = std::sqrt(std::abs(sigy)) * milli;
-        double sz = std::sqrt(std::abs(sigz)) * milli;
+        double sx = std::sqrt(std::abs(sigx));
+        double sy = std::sqrt(std::abs(sigy));
+        double sz = std::sqrt(std::abs(sigz));
 
         double tmp = sx * sy;                                           // [tmp] = m^{2}
 
@@ -619,24 +612,15 @@ void SigmaGenerator::initialize(double nuz, double ravg)
 
     // helper constants
     double invbg = 1.0 / (beta_m * gamma_m);
-    double micro = 1.0e-6;
-    double mega = 1.0e6;
-    //double kilo = 1.0e3;
+    double c2 = Physics::c * Physics::c;
 
     // convert mass m_m from MeV/c^2 to eV*s^{2}/m^{2}
-    double m = m_m * mega/(Physics::c * Physics::c);        // [m] = eV*s^{2}/m^{2}, [m_m] = MeV/c^2
+    double m = m_m * 1.0e6 / c2;        // [m] = eV*s^{2}/m^{2}, [m_m] = MeV/c^2
 
-    /* Emittance [ex] = [ey] = [ez] = mm mrad (emittance_m are normalized emittances
-     * (i.e. emittance multiplied with beta*gamma)
-     */
-    double ex = emittance_m[0] * invbg;                        // [ex] = mm mrad
-    double ey = emittance_m[1] * invbg;                        // [ey] = mm mrad
-    double ez = emittance_m[2] * invbg;                        // [ez] = mm mrad
-
-    // convert normalized emittances: mm mrad --> m rad (mm mrad: millimeter milliradian)
-    ex *= micro;
-    ey *= micro;
-    ez *= micro;
+    // emittance [ex] = [ey] = [ez] = m rad
+    double ex = emittance_m[0] * invbg;                        // [ex] = m rad
+    double ey = emittance_m[1] * invbg;                        // [ey] = m rad
+    double ez = emittance_m[2] * invbg;                        // [ez] = m rad
 
     // initial guess of emittance, [e] = m rad
     double e = std::cbrt(ex * ey * ez);             // cbrt computes cubic root (C++11) <cmath>
@@ -649,13 +633,14 @@ void SigmaGenerator::initialize(double nuz, double ravg)
 
     // formula (57)
     double lam = Physics::two_pi * Physics::c / (wo_m * nh_m); // wavelength, [lam] = m
-    double K3 = 3.0 * /* physics::q0 */ 1.0 * I_m * lam / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m *
-                    Physics::c * Physics::c * Physics::c * beta_m * beta_m * gamma2_m * gamma_m);               // [K3] = m
+    double K3 = 3.0 *  I_m * lam
+              / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m
+                      * c2 * Physics::c * beta_m * beta_m * gamma2_m * gamma_m);    // [K3] = m
 
-    double alpha = /* physics::q0 */ 1.0 * Physics::mu_0 * I_m / (5.0 * std::sqrt(10.0) * m * Physics::c *
-                       gamma_m * nh_m) * std::sqrt(rcyc * rcyc * rcyc / (e * e * e));                           // [alpha] = 1/rad --> [alpha] = 1
+    double alpha =  Physics::mu_0 * I_m / (5.0 * std::sqrt(10.0) * m * Physics::c
+                 * gamma_m * nh_m) * std::sqrt(rcyc * rcyc * rcyc / (e * e * e));   // [alpha] = 1/rad --> [alpha] = 1
 
-    double sig0 = std::sqrt(2.0 * rcyc * e) / gamma_m;                                                      // [sig0] = m*sqrt(rad) --> [sig0] = m
+    double sig0 = std::sqrt(2.0 * rcyc * e) / gamma_m;                              // [sig0] = m*sqrt(rad) --> [sig0] = m
 
     // formula (56)
     double sig;                                     // [sig] = m
@@ -704,32 +689,30 @@ void SigmaGenerator::initialize(double nuz, double ravg)
     double invAB = 1.0 / (B - A);                 // [invAB] = 1/m
 
     // construct initial sigma-matrix (formula (29, 30, 31)
-    // Remark: We multiply with 10^{6} (= mega) to convert emittances back.
-    // 1 m^{2} = 10^{6} mm^{2}
     matrix_type sigma = boost::numeric::ublas::zero_matrix<double>(6);
 
-    // formula (30), [sigma(0,0)] = m^2 rad * 10^{6} = mm^{2} rad = mm mrad
-    sigma(0,0) = invAB * (B * ex / Omega + A * ez / omega) * mega;
+    // formula (30), [sigma(0,0)] = m^2 rad
+    sigma(0,0) = invAB * (B * ex / Omega + A * ez / omega);
 
-    // [sigma(0,5)] = [sigma(5,0)] = m rad * 10^{6} = mm mrad	// 1000: m --> mm and 1000 to promille
-    sigma(0,5) = sigma(5,0) = invAB * (ex / Omega + ez / omega) * mega;
+    // [sigma(0,5)] = [sigma(5,0)] = m rad
+    sigma(0,5) = sigma(5,0) = invAB * (ex / Omega + ez / omega);
 
-    // [sigma(1,1)] = rad * 10^{6} = mrad (and promille)
-    sigma(1,1) = invAB * (B * ex * Omega + A * ez * omega) * mega;
+    // [sigma(1,1)] = rad
+    sigma(1,1) = invAB * (B * ex * Omega + A * ez * omega);
 
-    // [sigma(1,4)] = [sigma(4,1)] = m rad * 10^{6} = mm mrad
-    sigma(1,4) = sigma(4,1) = invAB * (ex * Omega+ez * omega) / (K * gamma2_m) * mega;
+    // [sigma(1,4)] = [sigma(4,1)] = m rad
+    sigma(1,4) = sigma(4,1) = invAB * (ex * Omega+ez * omega) / (K * gamma2_m);
 
-    // formula (31), [sigma(2,2)] = m rad * 10^{6} = mm mrad
-    sigma(2,2) = ey / (std::sqrt(h * h * nuz * nuz - K)) * mega;
+    // formula (31), [sigma(2,2)] = m rad
+    sigma(2,2) = ey / (std::sqrt(h * h * nuz * nuz - K));
 
-    sigma(3,3) = (ey * mega) * (ey * mega) / sigma(2,2);
+    sigma(3,3) = (ey * ey) / sigma(2,2);
 
-    // [sigma(4,4)] = m^{2} rad * 10^{6} = mm^{2} rad = mm mrad
-    sigma(4,4) = invAB * (A * ex * Omega + B * ez * omega) / (K * gamma2_m) * mega;
+    // [sigma(4,4)] = m^{2} rad
+    sigma(4,4) = invAB * (A * ex * Omega + B * ez * omega) / (K * gamma2_m);
 
-    // formula (30), [sigma(5,5)] = rad * 10^{6} = mrad (and promille)
-    sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega)) * mega;
+    // formula (30), [sigma(5,5)] = rad
+    sigma(5,5) = invAB * (ex / (B * Omega) + ez / (A * omega));
 
     // fill in initial guess of the sigma matrix (for each angle the same guess)
     sigmas_m.resize(nSteps_m);
