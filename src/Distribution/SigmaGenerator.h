@@ -34,7 +34,6 @@
 
 #include <array>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "AbsBeamline/Cyclotron.h"
@@ -220,8 +219,8 @@ private:
     /// Stores the Hamiltonian for the space charge
     SpaceCharge Hsc_m;
 
-    /// All variables x, px, y, py, z, delta
-    Series x_m, px_m, y_m, py_m, z_m, delta_m;
+    /// All variables x, px, z, pz, l, delta
+    Series x_m, px_m, z_m, pz_m, l_m, delta_m;
 
     double rinit_m;
     double prinit_m;
@@ -278,22 +277,17 @@ private:
 
     /// Called within SigmaGenerator::match().
     /*!
-     * @param tunes
-     * @param ravg is the average radius [m]
      * @param r_turn is the radius [m]
      * @param peo is the momentum
      * @param h_turn is the inverse bending radius
      * @param fidx_turn is the field index
      * @param ds_turn is the path length element
      */
-    void writeOrbitOutput_m(const std::pair<double,double>& tunes,
-                            const double& ravg,
-                            const double& freqError,
-                            const container_type& r_turn,
+    void writeOrbitOutput_m(const container_type& r_turn,
                             const container_type& peo,
                             const container_type& h_turn,
-                            const container_type&  fidx_turn,
-                            const container_type&  ds_turn);
+                            const container_type& fidx_turn,
+                            const container_type& ds_turn);
 
     void writeMatrix(std::ofstream&, const matrix_type&);
 };
