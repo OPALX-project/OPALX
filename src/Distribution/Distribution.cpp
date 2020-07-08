@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 #include <numeric>
-#include <limits>
 
 // IPPL
 #include "DataSource/DataConnect.h"
@@ -885,14 +884,6 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
 
 }
 
-double Distribution::converteVToBetaGamma(double valueIneV, double massIneV) {
-    double value = std::copysign(std::sqrt(std::pow(std::abs(valueIneV) / massIneV + 1.0, 2) - 1.0), valueIneV);
-    if (std::abs(value) < std::numeric_limits<double>::epsilon())
-        value = std::copysign(std::sqrt(2 * std::abs(valueIneV) / massIneV), valueIneV);
-
-    return value;
-}
-
 void Distribution::createDistributionBinomial(size_t numberOfParticles, double massIneV) {
 
     setDistParametersBinomial(massIneV);
@@ -1079,9 +1070,9 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
                 saveProcessor = 0;
 
             if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-                P(0) = converteVToBetaGamma(P(0), massIneV);
-                P(1) = converteVToBetaGamma(P(1), massIneV);
-                P(2) = converteVToBetaGamma(P(2), massIneV);
+                P(0) = Util::convertMomentumeVToBetaGamma(P(0), massIneV);
+                P(1) = Util::convertMomentumeVToBetaGamma(P(1), massIneV);
+                P(2) = Util::convertMomentumeVToBetaGamma(P(2), massIneV);
             }
 
             pmean_m += P;
@@ -1480,7 +1471,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     // This is PC from BEAM
     double deltaP = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETP]);
     if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-        deltaP = converteVToBetaGamma(deltaP, beam->getM());
+        deltaP = Util::convertMomentumeVToBetaGamma(deltaP, beam->getM());
     }
 
     avrgpz_m = beam->getP()/beam->getM() + deltaP;
@@ -3577,9 +3568,9 @@ void Distribution::setSigmaP_m(double massIneV) {
 
     // Check what input units we are using for momentum.
     if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-        sigmaP_m[0] = converteVToBetaGamma(sigmaP_m[0], massIneV);
-        sigmaP_m[1] = converteVToBetaGamma(sigmaP_m[1], massIneV);
-        sigmaP_m[2] = converteVToBetaGamma(sigmaP_m[2], massIneV);
+        sigmaP_m[0] = Util::convertMomentumeVToBetaGamma(sigmaP_m[0], massIneV);
+        sigmaP_m[1] = Util::convertMomentumeVToBetaGamma(sigmaP_m[1], massIneV);
+        sigmaP_m[2] = Util::convertMomentumeVToBetaGamma(sigmaP_m[2], massIneV);
     }
 }
 
@@ -3912,14 +3903,14 @@ void Distribution::setupEmissionModel(PartBunchBase<double, 3> *beam) {
 void Distribution::setupEmissionModelAstra(PartBunchBase<double, 3> *beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]));
-    pTotThermal_m = converteVToBetaGamma(wThermal, beam->getM());
+    pTotThermal_m = Util::getBetaGamma(wThermal, beam->getM());
     pmean_m = Vector_t(0.0, 0.0, 0.5 * pTotThermal_m);
 }
 
 void Distribution::setupEmissionModelNone(PartBunchBase<double, 3> *beam) {
 
     double wThermal = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::EKIN]));
-    pTotThermal_m = converteVToBetaGamma(wThermal, beam->getM());
+    pTotThermal_m = Util::getBetaGamma(wThermal, beam->getM());
     double avgPz = std::accumulate(pzDist_m.begin(), pzDist_m.end(), 0.0);
     size_t numParticles = pzDist_m.size();
     reduce(avgPz, avgPz, OpAddAssign());
@@ -4073,9 +4064,9 @@ void Distribution::shiftDistCoordinates(double massIneV) {
 
         // Check input momentum units.
         if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-            deltaPx = converteVToBetaGamma(deltaPx, massIneV);
-            deltaPy = converteVToBetaGamma(deltaPy, massIneV);
-            deltaPz = converteVToBetaGamma(deltaPz, massIneV);
+            deltaPx = Util::convertMomentumeVToBetaGamma(deltaPx, massIneV);
+            deltaPy = Util::convertMomentumeVToBetaGamma(deltaPy, massIneV);
+            deltaPz = Util::convertMomentumeVToBetaGamma(deltaPz, massIneV);
         }
 
         size_t endIdx = startIdx + particlesPerDist_m[i];
@@ -4356,8 +4347,8 @@ void Distribution::adjustPhaseSpace(double massIneV) {
     double deltaPy = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPY]);
     // Check input momentum units.
     if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-        deltaPx = converteVToBetaGamma(deltaPx, massIneV);
-        deltaPy = converteVToBetaGamma(deltaPy, massIneV);
+        deltaPx = Util::convertMomentumeVToBetaGamma(deltaPx, massIneV);
+        deltaPy = Util::convertMomentumeVToBetaGamma(deltaPy, massIneV);
     }
 
     double avrg[6];
