@@ -323,16 +323,25 @@ bool SigmaGenerator::match(double accuracy,
 
         while (error_m > accuracy && !stop) {
             // decouple transfer matrix and compute (inverse) tranformation matrix
-            decouple(Mturn,R,invR);
+           vector_type eigen = decouple(Mturn, R,invR);
 
             // construct new initial sigma-matrix
-            newSigma = updateInitialSigma(Mturn, R, invR);
+            newSigma = updateInitialSigma(Mturn, eigen, R, invR);
 
             // compute new sigma matrices for all angles (except for initial sigma)
             updateSigma(Mscs,Mcycs);
 
             // compute error
             error_m = L2ErrorNorm(sigmas_m[0],newSigma);
+
+            //***
+            std::cout << "Error: " << error_m << std::endl;
+            std::cout << std::abs(sigmas_m[0](0, 0) - sigmas_m[nSteps_m - 1](0, 0)) << std::endl;
+            std::cout << "L1: " << L1ErrorNorm(sigmas_m[0], sigmas_m[nSteps_m - 1]) << std::endl;
+            std::cout << "L2: " << L2ErrorNorm(sigmas_m[0], sigmas_m[nSteps_m - 1]) << std::endl;
+            std::cout << "LInf: " << LInfErrorNorm(sigmas_m[0], sigmas_m[nSteps_m - 1]) << std::endl;
+             std::cin.get();
+            //***
 
             // write new initial sigma-matrix into vector
             sigmas_m[0] = weight*newSigma + (1.0-weight)*sigmas_m[0];
@@ -427,148 +436,181 @@ bool SigmaGenerator::match(double accuracy,
 }
 
 
-void SigmaGenerator::eigsolve_m(const matrix_type& Mturn,
-                                sparse_matrix_type& R)
-{
-    typedef gsl_matrix*                   gsl_matrix_t;
-    typedef gsl_vector_complex*           gsl_cvector_t;
-    typedef gsl_matrix_complex*           gsl_cmatrix_t;
-    typedef gsl_eigen_nonsymmv_workspace* gsl_wspace_t;
-    typedef boost::numeric::ublas::vector<complex_t> complex_vector_type;
-
-    gsl_cvector_t evals = gsl_vector_complex_alloc(6);
-    gsl_cmatrix_t evecs = gsl_matrix_complex_alloc(6, 6);
-    gsl_wspace_t wspace = gsl_eigen_nonsymmv_alloc(6);
-    gsl_matrix_t      M = gsl_matrix_alloc(6, 6);
-
-    // go to GSL
-    for (unsigned int i = 0; i < 6; ++i){
-        for (unsigned int j = 0; j < 6; ++j) {
-            gsl_matrix_set(M, i, j, Mturn(i,j));
-        }
-    }
-
-    /*int status = */gsl_eigen_nonsymmv(M, evals, evecs, wspace);
-
-//     if ( !status )
+// void SigmaGenerator::eigsolve_m(const matrix_type& Mturn,
+//                                 sparse_matrix_type& R)
+// {
+//     typedef gsl_matrix*                   gsl_matrix_t;
+//     typedef gsl_vector_complex*           gsl_cvector_t;
+//     typedef gsl_matrix_complex*           gsl_cmatrix_t;
+//     typedef gsl_eigen_nonsymmv_workspace* gsl_wspace_t;
+//     typedef boost::numeric::ublas::vector<complex_t> complex_vector_type;
+//
+//     gsl_cvector_t evals = gsl_vector_complex_alloc(6);
+//     gsl_cmatrix_t evecs = gsl_matrix_complex_alloc(6, 6);
+//     gsl_wspace_t wspace = gsl_eigen_nonsymmv_alloc(6);
+//     gsl_matrix_t      M = gsl_matrix_alloc(6, 6);
+//
+//     // go to GSL
+//     for (unsigned int i = 0; i < 6; ++i){
+//         for (unsigned int j = 0; j < 6; ++j) {
+//             gsl_matrix_set(M, i, j, Mturn(i,j));
+//         }
+//     }
+//
+//     /*int status = */gsl_eigen_nonsymmv(M, evals, evecs, wspace);
+//
+// //     if ( !status )
+// //         throw OpalException("SigmaGenerator::eigsolve_m()",
+// //                             "Couldn't perform eigendecomposition!");
+//
+//     /*status = *///gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
+//
+// //     if ( !status )
+// //         throw OpalException("SigmaGenerator::eigsolve_m()",
+// //                             "Couldn't sort eigenvalues and eigenvectors!");
+//
+//     // go to UBLAS
+//     for( unsigned int i = 0; i < 6; i++){
+//         gsl_vector_complex_view evec_i = gsl_matrix_complex_column(evecs, i);
+//
+//         for(unsigned int j = 0;j < 6; j++){
+//             gsl_complex zgsl = gsl_vector_complex_get(&evec_i.vector, j);
+//             complex_t z(GSL_REAL(zgsl), GSL_IMAG(zgsl));
+//             R(i,j) = z;
+//         }
+//     }
+//
+//     // Sorting the Eigenvectors
+//     // This is an arbitrary threshold that has worked for me. (We should fix this)
+//     double threshold = 10e-12;
+//     bool isZdirection = false;
+//     std::vector<complex_vector_type> zVectors{};
+//     std::vector<complex_vector_type> xyVectors{};
+//
+//     for(unsigned int i = 0; i < 6; i++){
+//         complex_t z = R(i,0);
+//         if(std::abs(z) < threshold) z = 0.;
+//         if(z == 0.) isZdirection = true;
+//         complex_vector_type v(6);
+//         if(isZdirection){
+//             for(unsigned int j = 0;j < 6; j++){
+//                 complex_t z = R(i,j);
+//                 v(j) = z;
+//             }
+//             zVectors.push_back(v);
+//         }
+//         else{
+//             for(unsigned int j = 0; j < 6; j++){
+//                 complex_t z = R(i,j);
+//                 v(j) = z;
+//             }
+//             xyVectors.push_back(v);
+//         }
+//         isZdirection = false;
+//     }
+//
+//     //if z-direction not found, then the system does not behave as expected
+//     if(zVectors.size() != 2)
 //         throw OpalException("SigmaGenerator::eigsolve_m()",
-//                             "Couldn't perform eigendecomposition!");
-
-    /*status = *///gsl_eigen_nonsymmv_sort(evals, evecs, GSL_EIGEN_SORT_ABS_ASC);
-
-//     if ( !status )
-//         throw OpalException("SigmaGenerator::eigsolve_m()",
-//                             "Couldn't sort eigenvalues and eigenvectors!");
-
-    // go to UBLAS
-    for( unsigned int i = 0; i < 6; i++){
-        gsl_vector_complex_view evec_i = gsl_matrix_complex_column(evecs, i);
-
-        for(unsigned int j = 0;j < 6; j++){
-            gsl_complex zgsl = gsl_vector_complex_get(&evec_i.vector, j);
-            complex_t z(GSL_REAL(zgsl), GSL_IMAG(zgsl));
-            R(i,j) = z;
-        }
-    }
-
-    // Sorting the Eigenvectors
-    // This is an arbitrary threshold that has worked for me. (We should fix this)
-    double threshold = 10e-12;
-    bool isZdirection = false;
-    std::vector<complex_vector_type> zVectors{};
-    std::vector<complex_vector_type> xyVectors{};
-
-    for(unsigned int i = 0; i < 6; i++){
-        complex_t z = R(i,0);
-        if(std::abs(z) < threshold) z = 0.;
-        if(z == 0.) isZdirection = true;
-        complex_vector_type v(6);
-        if(isZdirection){
-            for(unsigned int j = 0;j < 6; j++){
-                complex_t z = R(i,j);
-                v(j) = z;
-            }
-            zVectors.push_back(v);
-        }
-        else{
-            for(unsigned int j = 0; j < 6; j++){
-                complex_t z = R(i,j);
-                v(j) = z;
-            }
-            xyVectors.push_back(v);
-        }
-        isZdirection = false;
-    }
-
-    //if z-direction not found, then the system does not behave as expected
-    if(zVectors.size() != 2)
-        throw OpalException("SigmaGenerator::eigsolve_m()",
-                            "Couldn't find the vertical Eigenvectors.");
-
-    // Norms the Eigenvectors
-     for(unsigned int i = 0; i < 4; i++){
-        double norm{0};
-        for(unsigned int j = 0; j < 6; j++) norm += std::norm(xyVectors[i](j));
-        for(unsigned int j = 0; j < 6; j++) xyVectors[i](j) /= std::sqrt(norm);
-    }
-    for(unsigned int i = 0; i < 2; i++){
-        double norm{0};
-        for(unsigned int j = 0; j < 6; j++) norm += std::norm(zVectors[i](j));
-        for(unsigned int j = 0; j < 6; j++) zVectors[i](j) /= std::sqrt(norm);
-    }
-
-    for(double i = 0; i < 6; i++){
-        R(i,0) = xyVectors[0](i);
-        R(i,1) = xyVectors[1](i);
-        R(i,2) = zVectors[0](i);
-        R(i,3) = zVectors[1](i);
-        R(i,4) = xyVectors[2](i);
-        R(i,5) = xyVectors[3](i);
-    }
-
-    gsl_vector_complex_free(evals);
-    gsl_matrix_complex_free(evecs);
-    gsl_eigen_nonsymmv_free(wspace);
-    gsl_matrix_free(M);
-}
+//                             "Couldn't find the vertical Eigenvectors.");
+//
+//     // Norms the Eigenvectors
+//      for(unsigned int i = 0; i < 4; i++){
+//         double norm{0};
+//         for(unsigned int j = 0; j < 6; j++) norm += std::norm(xyVectors[i](j));
+//         for(unsigned int j = 0; j < 6; j++) xyVectors[i](j) /= std::sqrt(norm);
+//     }
+//     for(unsigned int i = 0; i < 2; i++){
+//         double norm{0};
+//         for(unsigned int j = 0; j < 6; j++) norm += std::norm(zVectors[i](j));
+//         for(unsigned int j = 0; j < 6; j++) zVectors[i](j) /= std::sqrt(norm);
+//     }
+//
+//     for(double i = 0; i < 6; i++){
+//         R(i,0) = xyVectors[0](i);
+//         R(i,1) = xyVectors[1](i);
+//         R(i,2) = zVectors[0](i);
+//         R(i,3) = zVectors[1](i);
+//         R(i,4) = xyVectors[2](i);
+//         R(i,5) = xyVectors[3](i);
+//     }
+//
+//     gsl_vector_complex_free(evals);
+//     gsl_matrix_complex_free(evecs);
+//     gsl_eigen_nonsymmv_free(wspace);
+//     gsl_matrix_free(M);
+// }
 
 
-bool SigmaGenerator::invertMatrix_m(const sparse_matrix_type& R,
-                                    sparse_matrix_type& invR)
+// bool SigmaGenerator::invertMatrix_m(const sparse_matrix_type& R,
+//                                     sparse_matrix_type& invR)
+// {
+//     typedef boost::numeric::ublas::permutation_matrix<unsigned int> pmatrix_t;
+//
+//     //creates a working copy of R
+//     cmatrix_type A(R);
+//
+//     //permutation matrix for the LU-factorization
+//     pmatrix_t pm(A.size1());
+//
+//     //LU-factorization
+//     int res = lu_factorize(A,pm);
+//
+//     if( res != 0)
+//         return false;
+//
+//     // create identity matrix of invR
+//     invR.assign(boost::numeric::ublas::identity_matrix<complex_t>(A.size1()));
+//
+//     // backsubstitute to get the inverse
+//     boost::numeric::ublas::lu_substitute(A, pm, invR);
+//
+//     return true;
+// }
+
+
+/*void*/
+typename SigmaGenerator::vector_type
+SigmaGenerator::decouple(const matrix_type& Mturn,
+                         sparse_matrix_type& R,
+                         sparse_matrix_type& invR)
 {
-    typedef boost::numeric::ublas::permutation_matrix<unsigned int> pmatrix_t;
+    // copy one turn matrix
+    matrix_type M(Mturn);
 
-    //creates a working copy of R
-    cmatrix_type A(R);
+    // reduce 6x6 matrix to 4x4 matrix
+    reduce<matrix_type>(M);
 
-    //permutation matrix for the LU-factorization
-    pmatrix_t pm(A.size1());
+    // compute symplex part
+    matrix_type Ms = rdm_m.symplex(M);
 
-    //LU-factorization
-    int res = lu_factorize(A,pm);
+    // diagonalize and compute transformation matrices
+    rdm_m.diagonalize(Ms,R,invR);
 
-    if( res != 0)
-        return false;
+    /*
+     * formula (38) in paper of Dr. Christian Baumgarten:
+     * Geometrical method of decoupling
+     *
+     * 		[0, 	alpha, 	0, 	0;
+     * F_{d} =	-beta, 	0, 	0, 	0;
+     * 		0, 	0, 	0, 	gamma;
+     * 		0, 	0, 	-delta,	0]
+     *
+     *
+     */
+    vector_type eigen(4);
+    eigen(0) =   Ms(0,1);       // alpha
+    eigen(1) = - Ms(1,0);       // beta
+    eigen(2) =   Ms(2,3);       // gamma
+    eigen(3) = - Ms(3,2);       // delta
+    return eigen;
 
-    // create identity matrix of invR
-    invR.assign(boost::numeric::ublas::identity_matrix<complex_t>(A.size1()));
 
-    // backsubstitute to get the inverse
-    boost::numeric::ublas::lu_substitute(A, pm, invR);
+//     this->eigsolve_m(Mturn, R);
 
-    return true;
-}
-
-
-void SigmaGenerator::decouple(const matrix_type& Mturn,
-                              sparse_matrix_type& R,
-                              sparse_matrix_type& invR)
-{
-    this->eigsolve_m(Mturn, R);
-
-    if ( !this->invertMatrix_m(R, invR) )
-        throw OpalException("SigmaGenerator::decouple()",
-                            "Couldn't compute inverse matrix!");
+//     if ( !this->invertMatrix_m(R, invR) )
+//         throw OpalException("SigmaGenerator::decouple()",
+//                             "Couldn't compute inverse matrix!");
 }
 
 
@@ -744,61 +786,211 @@ void SigmaGenerator::initialize(double nuz, double ravg)
 
 
 
+// typename SigmaGenerator::matrix_type
+// SigmaGenerator::updateInitialSigma(const matrix_type& /*M*/,
+//                                    sparse_matrix_type& R,
+//                                    sparse_matrix_type& invR)
+// {
 typename SigmaGenerator::matrix_type
-SigmaGenerator::updateInitialSigma(const matrix_type& /*M*/,
+SigmaGenerator::updateInitialSigma(const matrix_type& M,
+                                   const vector_type& eigen,
                                    sparse_matrix_type& R,
                                    sparse_matrix_type& invR)
 {
     /*
+     * This function is based on the paper of Dr. Christian Baumgarten:
+     * Transverse-Longitudinal Coupling by Space Charge in Cyclotrons (2012)
+     */
+
+    /*
      * Function input:
      * - M: one turn transfer matrix
+     * - eigen = {alpha, beta, gamma, delta}
      * - R: transformation matrix (in paper: E)
      * - invR: inverse transformation matrix (in paper: E^{-1}
      */
+//      * with diagonal matrix D (stores eigenvalues of sigma*S (emittances apart from +- i),
+//      * skew-symmetric matrix (formula (13)), and tranformation matrices E, E^{-1}
+//      */
 
-    /* formula (18):
-     * sigma = -E*D*E^{-1}*S
-     * with diagonal matrix D (stores eigenvalues of sigma*S (emittances apart from +- i),
-     * skew-symmetric matrix (formula (13)), and tranformation matrices E, E^{-1}
+    // normalize emittances
+    double invbg = 1.0 / (beta_m * gamma_m);
+    double ex = emittance_m[0] * invbg;
+    double ey = emittance_m[1] * invbg;
+    double ez = emittance_m[2] * invbg;
+
+    std::cout << "Eigen: " << eigen << std::endl; std::cin.get();
+
+
+    // alpha^2-beta*gamma = 1
+
+    /* 0        eigen(0) 0        0
+     * eigen(1) 0        0        0
+     * 0        0        0        eigen(2)
+     * 0        0        eigen(3) 0
+     *
+     * M = cos(mux)*[1, 0; 0, 1] + sin(mux)*[alpha, beta; -gamma, -alpha], Book, p. 242
+     *
+     * -----------------------------------------------------------------------------------
+     * X-DIRECTION and L-DIRECTION
+     * -----------------------------------------------------------------------------------
+     * --> eigen(0) = sin(mux)*betax
+     * --> eigen(1) = -gammax*sin(mux)
+     *
+     * What is sin(mux)?   --> alphax = 0 --> -alphax^2+betax*gammax = betax*gammax = 1
+     *
+     * Convention: betax > 0
+     *
+     * 1) betax = 1/gammax
+     * 2) eig0 = sin(mux)*betax
+     * 3) eig1 = -gammax*sin(mux)
+     *
+     * eig0 = sin(mux)/gammax
+     * eig1 = -gammax*sin(mux) <--> 1/gammax = -sin(mux)/eig1
+     *
+     * eig0 = -sin(mux)^2/eig1 --> -sin(mux)^2 = eig0*eig1      --> sin(mux) = sqrt(-eig0*eig1)
+     *                                                          --> gammax = -eig1/sin(mux)
+     *                                                          --> betax = eig0/sin(mux)
      */
 
-    cmatrix_type S = boost::numeric::ublas::zero_matrix<complex_t>(6,6);
+
+    // x-direction
+    //double alphax = 0.0;
+    double betax  = std::sqrt(std::fabs(eigen(0) / eigen(1)));
+    double gammax = 1.0 / betax;
+
+    // l-direction
+    //double alphal = 0.0;
+    double betal  = std::sqrt(std::fabs(eigen(2) / eigen(3)));
+    double gammal = 1.0 / betal;
+
+    /*
+     * -----------------------------------------------------------------------------------
+     * Z-DIRECTION
+     * -----------------------------------------------------------------------------------
+     *
+     * m22 m23
+     * m32 m33
+     *
+     * m22 = cos(muz) + alpha*sin(muz)
+     * m33 = cos(muz) - alpha*sin(muz)
+     *
+     * --> cos(muz) = 0.5*(m22 + m33)
+     *     sin(muz) = sign(m32)*sqrt(1-cos(muz)^2)
+     *
+     * m22-m33 = 2*alpha*sin(muz) --> alpha = 0.5*(m22-m33)/sin(muz)
+     *
+     * m23 = betaz*sin(muz)     --> betaz = m23/sin(muz)
+     * m32 = -gammaz*sin(muz)   --> gammaz = -m32/sin(muz)
+     */
+
+    double cosz = 0.5 * (M(2,2) + M(3,3));
+
+    double sign = (std::signbit(M(2,3))) ? double(-1) : double(1);
+
+    double invsinz = sign / std::sqrt(std::fabs( 1.0 - cosz * cosz));
+
+    double alphaz = 0.5 * (M(2,2) - M(3,3)) * invsinz;
+    double betaz  =   M(2,3) * invsinz;
+    double gammaz = - M(3,2) * invsinz;
+
+    // Convention beta>0
+    if (std::signbit(betaz))    // singbit = true if beta<0, else false
+        betaz  *= -1.0;
+
+    // diagonal matrix with eigenvalues
+    matrix_type D = boost::numeric::ublas::zero_matrix<double>(6,6);
+    // x-direction
+    D(0,1) =   betax  * ex;
+    D(1,0) = - gammax * ex;
+    // z-direction
+    D(2,2) =   alphaz * ey;
+    D(3,3) = - alphaz * ey;
+    D(2,3) =   betaz  * ey;
+    D(3,2) = - gammaz * ey;
+    // l-direction
+    D(4,5) =   betal  * ez;
+    D(5,4) = - gammal * ez;
+
+    // expand 4x4 transformation matrices to 6x6
+    expand<sparse_matrix_type>(R);
+    expand<sparse_matrix_type>(invR);
+
+    // symplectic matrix
+    sparse_matrix_type S(6,6,6);
     S(0,1) = S(2,3) = S(4,5) = 1;
     S(1,0) = S(3,2) = S(5,4) = -1;
 
-    // Build new D-Matrix
-    // Section 2.4 Eq. 18 in M. Frey Semester thesis
-    // D = diag(i*emx,-i*emx,i*emy,-i*emy,i*emz, -i*emz)
+    matrix_type sigma = matt_boost::gemmm<matrix_type>(-invR,D,R);
+    sigma = boost::numeric::ublas::prod(sigma,S);
 
+    if (write_m) {
+        std::string energy = float2string(E_m);
 
-    cmatrix_type D = boost::numeric::ublas::zero_matrix<complex_t>(6,6);
-    double invbg = 1.0 / (beta_m * gamma_m);
-    complex_t im(0,1);
-    for(unsigned int i = 0; i < 3; ++i){
-        D(2*i, 2*i) = emittance_m[i] * invbg * im;
-        D(2*i+1, 2*i+1) = -emittance_m[i] * invbg * im;
-    }
+        std::string fname = Util::combineFilePath({
+            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            "maps",
+            "InitialSigmaPerAngleForEnergy" + energy + "MeV.dat"
+        });
 
-    // Computing of new Sigma
-    // sigma = -R*D*R^{-1}*S
-    cmatrix_type csigma(6, 6);
-    csigma = boost::numeric::ublas::prod(invR, S);
-    csigma = boost::numeric::ublas::prod(D, csigma);
-    csigma = boost::numeric::ublas::prod(-R, csigma);
-
-    matrix_type sigma(6,6);
-    for (unsigned int i = 0; i < 6; ++i){
-        for (unsigned int j = 0; j < 6; ++j){
-            sigma(i,j) = csigma(i,j).real();
-        }
-    }
-
-    for (unsigned int i = 0; i < 6; ++i) {
-        if(sigma(i,i) < 0.)
-            sigma(i,i) *= -1.0;
+        std::ofstream writeInit(fname, std::ios::app);
+        writeMatrix(writeInit, sigma);
+        writeInit.close();
     }
 
     return sigma;
+
+
+//     /*
+//      * Function input:
+//      * - M: one turn transfer matrix
+//      * - R: transformation matrix (in paper: E)
+//      * - invR: inverse transformation matrix (in paper: E^{-1}
+//      */
+//
+//     /* formula (18):
+//      * sigma = -E*D*E^{-1}*S
+//      * with diagonal matrix D (stores eigenvalues of sigma*S (emittances apart from +- i),
+//      * skew-symmetric matrix (formula (13)), and tranformation matrices E, E^{-1}
+//      */
+//
+//     cmatrix_type S = boost::numeric::ublas::zero_matrix<complex_t>(6,6);
+//     S(0,1) = S(2,3) = S(4,5) = 1;
+//     S(1,0) = S(3,2) = S(5,4) = -1;
+//
+//     // Build new D-Matrix
+//     // Section 2.4 Eq. 18 in M. Frey Semester thesis
+//     // D = diag(i*emx,-i*emx,i*emy,-i*emy,i*emz, -i*emz)
+//
+//
+//     cmatrix_type D = boost::numeric::ublas::zero_matrix<complex_t>(6,6);
+//     double invbg = 1.0 / (beta_m * gamma_m);
+//     complex_t im(0,1);
+//     for(unsigned int i = 0; i < 3; ++i){
+//         D(2*i, 2*i) = emittance_m[i] * invbg * im;
+//         D(2*i+1, 2*i+1) = -emittance_m[i] * invbg * im;
+//     }
+//
+//     // Computing of new Sigma
+//     // sigma = -R*D*R^{-1}*S
+//     cmatrix_type csigma(6, 6);
+//     csigma = boost::numeric::ublas::prod(invR, S);
+//     csigma = boost::numeric::ublas::prod(D, csigma);
+//     csigma = boost::numeric::ublas::prod(-R, csigma);
+//
+//     matrix_type sigma(6,6);
+//     for (unsigned int i = 0; i < 6; ++i){
+//         for (unsigned int j = 0; j < 6; ++j){
+//             sigma(i,j) = csigma(i,j).real();
+//         }
+//     }
+//
+//     for (unsigned int i = 0; i < 6; ++i) {
+//         if(sigma(i,i) < 0.)
+//             sigma(i,i) *= -1.0;
+//     }
+//
+//     return sigma;
 }
 
 
