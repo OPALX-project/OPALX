@@ -1318,7 +1318,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
           Now setup the distribution generator
           Units of the Sigma Matrix:
 
-          spatial: mm
+          spatial: m
           moment:  rad
 
         */
@@ -1326,10 +1326,6 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
         double beta = std::sqrt(1.0 - 1.0 / (gamma * gamma));
 
         auto sigma = siggen->getSigma();
-        // change units from mm to m
-        for (unsigned int i = 0; i < 6; ++ i)
-            for (unsigned int j = 0; j < 6; ++ j) sigma(i, j) *= 1e-6;
-
         for (unsigned int i = 0; i < 3; ++ i) {
             if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
                 throw OpalException("Distribution::CreateMatchedGaussDistribution()",
