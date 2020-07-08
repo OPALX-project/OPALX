@@ -126,17 +126,18 @@ SigmaGenerator::SigmaGenerator(double I,
     };
 
     Hsc_m = [&](double sigx, double sigy, double sigz) {
-        // convert m from MeV/c^2 to eV*s^{2}/m^{2}
-        double m = m_m * 1.0e6 / (Physics::c * Physics::c);
+        // convert m from MeV/c^2 to eV/c^2
+        double m = m_m * 1.0e6;
 
         // formula (57)
         double lam = Physics::two_pi*Physics::c / (wo_m * nh_m); // wavelength, [lam] = m
-        double K3 = 3.0 * /* physics::q0 */ 1.0 * I_m * lam / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m *
-                        Physics::c * Physics::c * Physics::c * beta_m * beta_m * gamma_m * gamma2_m);            // [K3] = m
+        // [K3] = m
+        double K3 = 3.0 * I_m * lam
+                  / (20.0 * std::sqrt(5.0) * Physics::pi * Physics::epsilon_0 * m
+                          * Physics::c * beta_m * beta_m * gamma_m * gamma2_m);
 
         // formula (30), (31)
         // [sigma(0,0)] = m^{2} --> [sx] = [sy] = [sz] = m
-        // multiply with 0.001 to get meter --> [sx] = [sy] = [sz] = m
         double sx = std::sqrt(std::abs(sigx));
         double sy = std::sqrt(std::abs(sigy));
         double sz = std::sqrt(std::abs(sigz));
