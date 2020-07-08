@@ -1,6 +1,7 @@
 set (_SRCS
     Distribution.cpp
     LaserProfile.cpp
+    SigmaGenerator.cpp
     )
 
 include_directories (

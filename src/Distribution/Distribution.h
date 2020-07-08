@@ -279,7 +279,6 @@ private:
     void eraseTOrZDist();
     void eraseBGzDist();
 
-    //    void printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out);
     void addDistributions();
     void applyEmissionModel(double lowEnergyLimit, double &px, double &py, double &pz, std::vector<double> &additionalRNs);
     void applyEmissModelAstra(double &px, double &py, double &pz, std::vector<double> &additionalRNs);
