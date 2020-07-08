@@ -44,7 +44,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 
-#include "rdm.h"
+#include "RDM.h"
 
 
 /// @brief This class computes the matched distribution
@@ -300,7 +300,7 @@ private:
     void writeMatrix(std::ofstream&, const matrix_type&);
 
     /// <b>RDM</b>-class member used for decoupling
-    RDM<double, unsigned int> rdm_m;
+    RDM rdm_m;
 
 
     template<class matrix>
