@@ -44,6 +44,8 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 
+#include "rdm.h"
+
 
 /// @brief This class computes the matched distribution
 class SigmaGenerator
@@ -58,7 +60,7 @@ public:
     typedef boost::numeric::ublas::matrix<complex_t> cmatrix_type;
 
     /// Type for storing the sparse maps
-    typedef boost::numeric::ublas::compressed_matrix<complex_t,
+    typedef boost::numeric::ublas::compressed_matrix<double /*complex_t*/,
                                                      boost::numeric::ublas::row_major
                                                      > sparse_matrix_type;
     /// Type for storing vectors
@@ -114,15 +116,15 @@ public:
      * @param Mturn is a 6x6 dimensional one turn transfer matrix
      * @param R is the 6x6 dimensional transformation matrix (gets computed)
      */
-    void eigsolve_m(const matrix_type& Mturn, sparse_matrix_type& R);
+//     void eigsolve_m(const matrix_type& Mturn, sparse_matrix_type& R);
 
     /*!
      * @param R is the 6x6 dimensional transformation matrix
      * @param invR is the 6x6 dimensional inverse transformation (gets computed)
      * @return true if success
      */
-    bool invertMatrix_m(const sparse_matrix_type& R,
-                        sparse_matrix_type& invR);
+//     bool invertMatrix_m(const sparse_matrix_type& R,
+//                         sparse_matrix_type& invR);
 
     /// Block diagonalizes the symplex part of the one turn transfer matrix
     /*! It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
@@ -131,7 +133,8 @@ public:
      * @param R is the 6x6 dimensional transformation matrix (gets computed)
      * @param invR is the 6x6 dimensional inverse transformation (gets computed)
      */
-    void decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
+    /*void*/
+    vector_type decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
 
     /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
     /*!
@@ -240,7 +243,12 @@ private:
      * @param R is the transformation matrix
      * @param invR is the inverse transformation matrix
      */
+//     matrix_type updateInitialSigma(const matrix_type&,
+//                                    sparse_matrix_type&,
+//                                    sparse_matrix_type&);
+
     matrix_type updateInitialSigma(const matrix_type&,
+                                   const vector_type&,
                                    sparse_matrix_type&,
                                    sparse_matrix_type&);
 
@@ -290,6 +298,16 @@ private:
                             const container_type& ds_turn);
 
     void writeMatrix(std::ofstream&, const matrix_type&);
+
+    /// <b>RDM</b>-class member used for decoupling
+    RDM<double, unsigned int> rdm_m;
+
+
+    template<class matrix>
+    void reduce(matrix&);
+
+    template<class matrix>
+    void expand(matrix&);
 };
 
 
@@ -324,6 +342,73 @@ std::array<double,3> SigmaGenerator::getEmittances() const
         emittance_m[1] / Physics::pi / bgam * 1.0e6,
         emittance_m[2] / Physics::pi / bgam * 1.0e6
     }};
+}
+
+
+template<class matrix>
+void SigmaGenerator::reduce(matrix& M) {
+    /* The 6x6 matrix gets reduced to a 4x4 matrix in the following way:
+     *
+     * a11 a12 a13 a14 a15 a16
+     * a21 a22 a23 a24 a25 a26          a11 a12 a15 a16
+     * a31 a32 a33 a34 a35 a36  -->     a21 a22 a25 a26
+     * a41 a42 a43 a44 a45 a46          a51 a52 a55 a56
+     * a51 a52 a53 a54 a55 a56          a61 a62 a65 a66
+     * a61 a62 a63 a64 a65 a66
+     */
+
+    // copy x- and l-direction to a 4x4 matrix_type
+    matrix_type M4x4(4,4);
+    for (unsigned int i = 0; i < 2; ++i) {
+        // upper left 2x2 [a11,a12;a21,a22]
+        M4x4(i,0) = M(i,0);
+        M4x4(i,1) = M(i,1);
+        // lower left 2x2 [a51,a52;a61,a62]
+        M4x4(i + 2,0) = M(i + 4,0);
+        M4x4(i + 2,1) = M(i + 4,1);
+        // upper right 2x2 [a15,a16;a25,a26]
+        M4x4(i,2) = M(i,4);
+        M4x4(i,3) = M(i,5);
+        // lower right 2x2 [a55,a56;a65,a66]
+        M4x4(i + 2,2) = M(i + 4,4);
+        M4x4(i + 2,3) = M(i + 4,5);
+    }
+
+    M.resize(4,4,false);
+    M.swap(M4x4);
+}
+
+template<class matrix>
+void SigmaGenerator::expand(matrix& M) {
+    /* The 4x4 matrix gets expanded to a 6x6 matrix in the following way:
+     *
+     *                          a11 a12 0 0 a13 a14
+     * a11 a12 a13 a14          a21 a22 0 0 a23 a24
+     * a21 a22 a23 a24  -->     0   0   1 0 0   0
+     * a31 a32 a33 a34          0   0   0 1 0   0
+     * a41 a42 a43 a44          a31 a32 0 0 a33 a34
+     *                          a41 a42 0 0 a43 a44
+     */
+
+    matrix M6x6 = boost::numeric::ublas::identity_matrix<double>(6,6);
+
+    for (unsigned int i = 0; i < 2; ++i) {
+        // upper left 2x2 [a11,a12;a21,a22]
+        M6x6(i,0) = M(i,0);
+        M6x6(i,1) = M(i,1);
+        // lower left 2x2 [a31,a32;a41,a42]
+        M6x6(i + 4,0) = M(i + 2,0);
+        M6x6(i + 4,1) = M(i + 2,1);
+        // upper right 2x2 [a13,a14;a23,a24]
+        M6x6(i,4) = M(i,2);
+        M6x6(i,5) = M(i,3);
+        // lower right 2x2 [a22,a34;a43,a44]
+        M6x6(i + 4,4) = M(i + 2,2);
+        M6x6(i + 4,5) = M(i + 2,3);
+    }
+
+    // exchange
+    M.swap(M6x6);
 }
 
 #endif
