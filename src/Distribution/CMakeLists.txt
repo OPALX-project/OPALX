@@ -1,6 +1,7 @@
 set (_SRCS
     Distribution.cpp
     LaserProfile.cpp
+    RDM.cpp
     SigmaGenerator.cpp
     )
 
@@ -16,7 +17,7 @@ set (HDRS
     LaserProfile.h
     MapGenerator.h
     matrix_vector_operation.h
-    rdm.h
+    RDM.h
     SigmaGenerator.h
     )
 
