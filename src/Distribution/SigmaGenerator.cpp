@@ -114,14 +114,14 @@ SigmaGenerator::SigmaGenerator(double I,
     // infinitesimal elements
     x_m = Series::makeVariable(0);
     px_m = Series::makeVariable(1);
-    y_m = Series::makeVariable(2);
-    py_m = Series::makeVariable(3);
-    z_m = Series::makeVariable(4);
+    z_m = Series::makeVariable(2);
+    pz_m = Series::makeVariable(3);
+    l_m = Series::makeVariable(4);
     delta_m = Series::makeVariable(5);
 
     H_m = [&](double h, double kx, double ky) {
         return 0.5*px_m*px_m + 0.5*kx*x_m*x_m - h*x_m*delta_m +
-               0.5*py_m*py_m + 0.5*ky*y_m*y_m +
+               0.5*pz_m*pz_m + 0.5*ky*z_m*z_m +
                0.5*delta_m*delta_m/gamma2_m;
     };
 
@@ -138,6 +138,11 @@ SigmaGenerator::SigmaGenerator(double I,
 
         // formula (30), (31)
         // [sigma(0,0)] = m^{2} --> [sx] = [sy] = [sz] = m
+        // In the cyclotron community z is the vertical and y the longitudinal
+        // direction.
+        // x: horizontal
+        // y/l: longitudinal
+        // z: vertical
         double sx = std::sqrt(std::abs(sigx));
         double sy = std::sqrt(std::abs(sigy));
         double sz = std::sqrt(std::abs(sigz));
@@ -152,8 +157,8 @@ SigmaGenerator::SigmaGenerator(double I,
         double Kz = K3 * f / (tmp * sz);
 
         return -0.5 * Kx * x_m * x_m
-               -0.5 * Ky * y_m * y_m
-               -0.5 * Kz * z_m * z_m * gamma2_m;
+               -0.5 * Kz * z_m * z_m
+               -0.5 * Ky * l_m * l_m * gamma2_m;
      };
 }
 
@@ -200,10 +205,6 @@ bool SigmaGenerator::match(double accuracy,
 
         cof.computeOrbitProperties(E_m);
 
-        // properties of one turn
-        std::pair<double,double> tunes = cof.getTunes();
-        double ravg = cof.getAverageRadius();                   // average radius
-
         double angle = cycl->getPHIinit();
         container_type h_turn = cof.getInverseBendingRadius(angle);
         container_type r_turn = cof.getOrbit(angle);
@@ -213,21 +214,8 @@ bool SigmaGenerator::match(double accuracy,
         container_type peo = cof.getMomentum(angle);
 
         // write properties to file
-        if (write_m)
-            writeOrbitOutput_m(tunes, ravg, cof.getFrequencyError(),
-                                r_turn, peo, h_turn, fidx_turn, ds_turn);
+        writeOrbitOutput_m(r_turn, peo, h_turn, fidx_turn, ds_turn);
 
-        // write to terminal
-        *gmsg << "* ----------------------------" << endl
-                << "* Closed orbit info:" << endl
-                << "*" << endl
-                << "* average radius: " << ravg << " [m]" << endl
-                << "* initial radius: " << r_turn[0] << " [m]" << endl
-                << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
-                << "* frequency error: " << cof.getFrequencyError()*100 <<" [ % ] "<< endl
-                << "* horizontal tune: " << tunes.first << endl
-                << "* vertical tune: " << tunes.second << endl
-                << "* ----------------------------" << endl << endl;
 
         // copy properties
         std::copy_n(r_turn.begin(), nSteps_m, r.begin());
@@ -246,6 +234,21 @@ bool SigmaGenerator::match(double accuracy,
             boost::filesystem::create_directory(fpath);
         }
 
+        std::pair<double,double> tunes = cof.getTunes();
+        double ravg = cof.getAverageRadius();
+
+        // write to terminal
+        *gmsg << "* ----------------------------" << endl
+                << "* Closed orbit info:" << endl
+                << "*" << endl
+                << "* average radius: " << ravg << " [m]" << endl
+                << "* initial radius: " << r_turn[0] << " [m]" << endl
+                << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
+                << "* frequency error: " << cof.getFrequencyError()*100 <<" [ % ] "<< endl
+                << "* horizontal tune: " << tunes.first << endl
+                << "* vertical tune: " << tunes.second << endl
+                << "* ----------------------------" << endl << endl;
+
         // initialize sigma matrices (for each angle one) (first guess)
         initialize(tunes.second,ravg);
 
@@ -262,7 +265,7 @@ bool SigmaGenerator::match(double accuracy,
                 "OneTurnMapsForEnergy" + energy + "MeV.dat"
             });
 
-            writeMturn.open(fname, std::ios::app);
+            writeMturn.open(fname, std::ios::out);
 
             fname = Util::combineFilePath({
                 OpalData::getInstance()->getAuxiliaryOutputDirectory(),
@@ -270,7 +273,7 @@ bool SigmaGenerator::match(double accuracy,
                 "SpaceChargeMapPerAngleForEnergy" + energy + "MeV_iteration_0.dat"
             });
 
-            writeMsc.open(fname, std::ios::app);
+            writeMsc.open(fname, std::ios::out);
 
             fname = Util::combineFilePath({
                 OpalData::getInstance()->getAuxiliaryOutputDirectory(),
@@ -278,7 +281,7 @@ bool SigmaGenerator::match(double accuracy,
                 "CyclotronMapPerAngleForEnergy" + energy + "MeV.dat"
             });
 
-            writeMcyc.open(fname, std::ios::app);
+            writeMcyc.open(fname, std::ios::out);
         }
 
         // calculate only for a single sector (a nSector_-th) of the whole cyclotron
@@ -334,6 +337,21 @@ bool SigmaGenerator::match(double accuracy,
             // write new initial sigma-matrix into vector
             sigmas_m[0] = weight*newSigma + (1.0-weight)*sigmas_m[0];
 
+            if (write_m) {
+
+                std::string energy = float2string(E_m);
+
+                std::string fname = Util::combineFilePath({
+                        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+                        "maps",
+                        "SpaceChargeMapPerAngleForEnergy" + energy + "MeV_iteration_"
+                        + std::to_string(niterations_m + 1)
+                        + ".dat"
+                });
+
+                writeMsc.open(fname, std::ios::out);
+            }
+
             // compute new space charge maps
             for (unsigned int i = 0; i < nSteps_m; ++i) {
                 Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
@@ -341,26 +359,11 @@ bool SigmaGenerator::match(double accuracy,
                                                     sigmas_m[i](4,4)),
                                                 ds[i],truncOrder_m);
 
-                if (write_m) {
-
-                    std::string energy = float2string(E_m);
-
-                    std::string fname = Util::combineFilePath({
-                            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-                            "maps",
-                            "SpaceChargeMapPerAngleForEnergy" + energy + "MeV_iteration_"
-                            + std::to_string(niterations_m + 1)
-                            + ".dat"
-                    });
-
-                    writeMsc.open(fname, std::ios::out);
-                }
-
                 writeMatrix(writeMsc, Mscs[i]);
+            }
 
-                if (write_m) {
-                    writeMsc.close();
-                }
+            if (write_m) {
+                writeMsc.close();
             }
 
             // construct new one turn transfer matrix M
@@ -397,7 +400,7 @@ bool SigmaGenerator::match(double accuracy,
             "MatchedDistributions.dat"
         });
 
-        std::ofstream writeSigmaMatched(fname, std::ios::app);
+        std::ofstream writeSigmaMatched(fname, std::ios::out);
 
         std::array<double,3> emit = this->getEmittances();
 
@@ -817,7 +820,7 @@ void SigmaGenerator::updateSigma(const std::vector<matrix_type>& Mscs,
             + ".dat"
         });
 
-        writeSigma.open(fname,std::ios::app);
+        writeSigma.open(fname,std::ios::out);
     }
 
     // initial sigma is already computed
@@ -892,71 +895,23 @@ std::string SigmaGenerator::float2string(double val) {
 
 
 void SigmaGenerator::writeOrbitOutput_m(
-    const std::pair<double,double>& tunes,
-    const double& ravg,
-    const double& freqError,
     const container_type& r_turn,
     const container_type& peo,
     const container_type& h_turn,
     const container_type&  fidx_turn,
     const container_type&  ds_turn)
 {
-    std::string fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-            "Tunes.dat"
-    });
+    if (!write_m)
+        return;
 
-    // write tunes
-    std::ofstream writeTunes(fname, std::ios::app);
-
-    if(writeTunes.tellp() == 0) // if nothing yet written --> write description
-        writeTunes << "energy [MeV]" << std::setw(15)
-                   << "nur" << std::setw(25)
-                   << "nuz" << std::endl;
-
-    writeTunes << E_m << std::setw(30) << std::setprecision(10)
-               << tunes.first << std::setw(25)
-               << tunes.second << std::endl;
-
-    // write average radius
-    fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-            "AverageValues.dat"
-    });
-    std::ofstream writeAvgRadius(fname, std::ios::app);
-
-    if (writeAvgRadius.tellp() == 0) // if nothing yet written --> write description
-        writeAvgRadius << "energy [MeV]" << std::setw(15)
-                       << "avg. radius [m]" << std::setw(15)
-                       << "r [m]" << std::setw(15)
-                       << "pr [m]" << std::endl;
-
-    writeAvgRadius << E_m << std::setw(25) << std::setprecision(10)
-                   << ravg << std::setw(25) << std::setprecision(10)
-                   << r_turn[0] << std::setw(25) << std::setprecision(10)
-                   << peo[0] << std::endl;
-
-    // write frequency error
-    fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-            "FrequencyError.dat"
-    });
-    std::ofstream writePhase(fname, std::ios::app);
-
-    if(writePhase.tellp() == 0) // if nothing yet written --> write description
-        writePhase << "energy [MeV]" << std::setw(15)
-                   << "freq. error" << std::endl;
-
-    writePhase << E_m << std::setw(30) << std::setprecision(10)
-               << freqError << std::endl;
-
-    // write other properties
     std::string energy = float2string(E_m);
-    fname = Util::combineFilePath({
+    std::string fname = Util::combineFilePath({
             OpalData::getInstance()->getAuxiliaryOutputDirectory(),
             "PropertiesForEnergy" + energy + "MeV.dat"
     });
+
     std::ofstream writeProperties(fname, std::ios::out);
+
     writeProperties << std::left
                     << std::setw(25) << "orbit radius"
                     << std::setw(25) << "orbit momentum"
@@ -972,11 +927,6 @@ void SigmaGenerator::writeOrbitOutput_m(
                         << std::setw(25) << fidx_turn[i]
                         << std::setw(25) << ds_turn[i] << std::endl;
     }
-
-    // close all files within this if-statement
-    writeTunes.close();
-    writeAvgRadius.close();
-    writePhase.close();
     writeProperties.close();
 }
 
