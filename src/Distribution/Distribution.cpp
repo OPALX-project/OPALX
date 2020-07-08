@@ -8,6 +8,7 @@
 
 #include "Distribution/Distribution.h"
 #include "Distribution/SigmaGenerator.h"
+#include "Distribution/ClosedOrbitFinder.h"
 #include "AbsBeamline/SpecificElementVisitor.h"
 
 #include <cmath>
@@ -212,16 +213,6 @@ Distribution::~Distribution() {
     delete laserProfile_m;
 }
 
-/*
-  void Distribution::printSigma(SigmaGenerator<double,unsigned int>::matrix_type& M, Inform& out) {
-  for (int i=0; i<M.size1(); ++i) {
-  for (int j=0; j<M.size2(); ++j) {
-  *gmsg  << M(i,j) << " ";
-  }
-  *gmsg << endl;
-  }
-  }
-*/
 
 /**
  * Calculate the local number of particles evenly and adjust node 0
@@ -1278,18 +1269,18 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
 
     bool writeMap = true;
 
-    typedef SigmaGenerator<double, unsigned int> sGenerator_t;
-    sGenerator_t *siggen = new sGenerator_t(I_m,
-                                            Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
-                                            Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
-                                            Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
-                                            E_m*1E-6,
-                                            massIneV*1E-6,
-                                            CyclotronElement,
-                                            Nint,
-                                            Nsectors,
-                                            Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
-                                            writeMap);
+    std::unique_ptr<SigmaGenerator> siggen = std::unique_ptr<SigmaGenerator>(
+        new SigmaGenerator(I_m,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
+                           E_m*1E-6,
+                           massIneV*1E-6,
+                           CyclotronElement,
+                           Nint,
+                           Nsectors,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
+                           writeMap));
 
     if (siggen->match(accuracy,
                       Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
@@ -1375,13 +1366,9 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
     else {
         *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
 
-        delete siggen;
-
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any matched distribution.");
     }
-
-    delete siggen;
 }
 
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
