@@ -1297,7 +1297,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles, doub
                       CyclotronElement,
                       denergy,
                       rguess,
-                      false, full))  {
+                      full))  {
 
         std::array<double,3> Emit = siggen->getEmittances();
 

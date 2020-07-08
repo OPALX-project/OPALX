@@ -12,7 +12,6 @@ add_opal_sources(${_SRCS})
 set (HDRS
     ClosedOrbitFinder.h
     Distribution.h
-    Harmonics.h
     LaserProfile.h
     MapGenerator.h
     matrix_vector_operation.h
