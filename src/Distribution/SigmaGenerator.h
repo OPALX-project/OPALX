@@ -70,7 +70,6 @@
 #include "matrix_vector_operation.h"
 #include "ClosedOrbitFinder.h"
 #include "MapGenerator.h"
-#include "Harmonics.h"
 
 extern Inform *gmsg;
 
@@ -140,11 +139,10 @@ public:
      * @param denergy energy step size for closed orbit finder [MeV]
      * @param rguess value of radius for closed orbit finder
      * @param type specifies the magnetic field format (e.g. CARBONCYCL)
-     * @param harmonic is a boolean. If "true" the harmonics are used instead of the closed orbit finder.
      * @param full match over full turn not just single sector
      */
     bool match(value_type accuracy, size_type maxit, size_type maxitOrbit,
-               Cyclotron* cycl, value_type denergy, value_type rguess, bool harmonic, bool full);
+               Cyclotron* cycl, value_type denergy, value_type rguess, bool full);
 
     /*!
      * Eigenvalue / eigenvector solver
@@ -198,7 +196,7 @@ public:
         return prinit_m;
     }
 
-    private:
+private:
     /// Stores the value of the current, \f$ \left[I\right] = A \f$
     value_type I_m;
     /// Stores the desired emittances, \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = mm \ mrad \f$
@@ -304,6 +302,8 @@ public:
      */
     value_type L1ErrorNorm(const matrix_type&, const matrix_type&);
 
+    value_type LInfErrorNorm(const matrix_type&, const matrix_type&);
+
     /// Transforms a floating point value to a string
     /*!
      * @param val is the floating point value which is transformed to a string
@@ -328,6 +328,8 @@ public:
                             const container_type& h_turn,
                             const container_type&  fidx_turn,
                             const container_type&  ds_turn);
+
+    void writeMatrix(std::ofstream&, const matrix_type&);
 };
 
 // -----------------------------------------------------------------------------------------------------------------------
@@ -442,7 +444,7 @@ template<typename Value_type, typename Size_type>
                                                     Cyclotron* cycl,
                                                     value_type denergy,
                                                     value_type rguess,
-                                                    bool harmonic, bool full)
+                                                    bool full)
 {
     /* compute the equilibrium orbit for energy E_
      * and get the the following properties:
@@ -467,61 +469,61 @@ template<typename Value_type, typename Size_type>
         std::vector<matrix_type> Mcycs(nSteps_m), Mscs(nSteps_m);
 
         container_type h(nSteps_m), r(nSteps_m), ds(nSteps_m), fidx(nSteps_m);
-        value_type ravg = 0.0, const_ds = 0.0;
-        std::pair<value_type,value_type> tunes;
 
-        if (!harmonic) {
-            ClosedOrbitFinder<value_type, size_type,
-                boost::numeric::odeint::runge_kutta4<container_type> > cof(m_m, N_m, cycl, false, nSectors_m);
+        ClosedOrbitFinder<value_type, size_type,
+            boost::numeric::odeint::runge_kutta4<container_type> > cof(m_m, N_m, cycl, false, nSectors_m);
 
-            if ( !cof.findOrbit(accuracy, maxitOrbit, E_m, denergy, rguess) ) {
-                throw OpalException("SigmaGenerator::match()",
-                                    "Closed orbit finder didn't converge.");
-            }
+        if ( !cof.findOrbit(accuracy, maxitOrbit, E_m, denergy, rguess) ) {
+            throw OpalException("SigmaGenerator::match()",
+                                "Closed orbit finder didn't converge.");
+        }
 
-            cof.computeOrbitProperties(E_m);
+        cof.computeOrbitProperties(E_m);
 
-            // properties of one turn
-            tunes = cof.getTunes();
-            ravg = cof.getAverageRadius();                   // average radius
+        // properties of one turn
+        std::pair<value_type,value_type> tunes = cof.getTunes();
+        value_type ravg = cof.getAverageRadius();                   // average radius
 
-            value_type angle = cycl->getPHIinit();
-            container_type h_turn = cof.getInverseBendingRadius(angle);
-            container_type r_turn = cof.getOrbit(angle);
-            container_type ds_turn = cof.getPathLength(angle);
-            container_type fidx_turn = cof.getFieldIndex(angle);
+        value_type angle = cycl->getPHIinit();
+        container_type h_turn = cof.getInverseBendingRadius(angle);
+        container_type r_turn = cof.getOrbit(angle);
+        container_type ds_turn = cof.getPathLength(angle);
+        container_type fidx_turn = cof.getFieldIndex(angle);
 
-            container_type peo = cof.getMomentum(angle);
+        container_type peo = cof.getMomentum(angle);
 
-            // write properties to file
-            if (write_m)
-                writeOrbitOutput_m(tunes, ravg, cof.getFrequencyError(),
-                                   r_turn, peo, h_turn, fidx_turn, ds_turn);
+        // write properties to file
+        if (write_m)
+            writeOrbitOutput_m(tunes, ravg, cof.getFrequencyError(),
+                                r_turn, peo, h_turn, fidx_turn, ds_turn);
 
-            // write to terminal
-            *gmsg << "* ----------------------------" << endl
-                  << "* Closed orbit info:" << endl
-                  << "*" << endl
-                  << "* average radius: " << ravg << " [m]" << endl
-                  << "* initial radius: " << r_turn[0] << " [m]" << endl
-                  << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
-                  << "* frequency error: " << cof.getFrequencyError()*100 <<" [ % ] "<< endl
-                  << "* horizontal tune: " << tunes.first << endl
-                  << "* vertical tune: " << tunes.second << endl
-                  << "* ----------------------------" << endl << endl;
+        // write to terminal
+        *gmsg << "* ----------------------------" << endl
+                << "* Closed orbit info:" << endl
+                << "*" << endl
+                << "* average radius: " << ravg << " [m]" << endl
+                << "* initial radius: " << r_turn[0] << " [m]" << endl
+                << "* initial momentum: " << peo[0] << " [Beta Gamma]" << endl
+                << "* frequency error: " << cof.getFrequencyError()*100 <<" [ % ] "<< endl
+                << "* horizontal tune: " << tunes.first << endl
+                << "* vertical tune: " << tunes.second << endl
+                << "* ----------------------------" << endl << endl;
 
-            // copy properties
-            std::copy_n(r_turn.begin(), nSteps_m, r.begin());
-            std::copy_n(h_turn.begin(), nSteps_m, h.begin());
-            std::copy_n(fidx_turn.begin(), nSteps_m, fidx.begin());
-            std::copy_n(ds_turn.begin(), nSteps_m, ds.begin());
+        // copy properties
+        std::copy_n(r_turn.begin(), nSteps_m, r.begin());
+        std::copy_n(h_turn.begin(), nSteps_m, h.begin());
+        std::copy_n(fidx_turn.begin(), nSteps_m, fidx.begin());
+        std::copy_n(ds_turn.begin(), nSteps_m, ds.begin());
 
-            rinit_m = r[0];
-            prinit_m = peo[0];
+        rinit_m = r[0];
+        prinit_m = peo[0];
 
-        } else {
-            *gmsg << "Not yet supported." << endl;
-            return false;
+        std::string fpath = Util::combineFilePath({
+            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            "maps"
+        });
+        if (!boost::filesystem::exists(fpath)) {
+            boost::filesystem::create_directory(fpath);
         }
 
         // initialize sigma matrices (for each angle one) (first guess)
@@ -536,65 +538,54 @@ template<typename Value_type, typename Size_type>
 
             std::string fname = Util::combineFilePath({
                 OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-                "OneTurnMapForEnergy" + energy + "MeV.dat"
+                "maps",
+                "OneTurnMapsForEnergy" + energy + "MeV.dat"
             });
 
             writeMturn.open(fname, std::ios::app);
 
             fname = Util::combineFilePath({
                 OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-                "SpaceChargeMapPerAngleForEnergy" + energy + "MeV.dat"
+                "maps",
+                "SpaceChargeMapPerAngleForEnergy" + energy + "MeV_iteration_0.dat"
             });
 
             writeMsc.open(fname, std::ios::app);
 
             fname = Util::combineFilePath({
                 OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+                "maps",
                 "CyclotronMapPerAngleForEnergy" + energy + "MeV.dat"
             });
 
             writeMcyc.open(fname, std::ios::app);
-
-            writeMturn << "--------------------------------" << std::endl;
-            writeMturn << "Iteration: 0 " << std::endl;
-            writeMturn << "--------------------------------" << std::endl;
-
-            writeMsc << "--------------------------------" << std::endl;
-            writeMsc << "Iteration: 0 " << std::endl;
-            writeMsc << "--------------------------------" << std::endl;
         }
 
         // calculate only for a single sector (a nSector_-th) of the whole cyclotron
         for (size_type i = 0; i < nSteps_m; ++i) {
-            if (!harmonic) {
-                Mcycs[i] = mapgen.generateMap(H_m(h[i],
-                                                  h[i]*h[i]+fidx[i],
-                                                  -fidx[i]),
-                                              ds[i],truncOrder_m);
+            Mcycs[i] = mapgen.generateMap(H_m(h[i],
+                                              h[i]*h[i]+fidx[i],
+                                              -fidx[i]),
+                                          ds[i],truncOrder_m);
 
-                Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
-                                                    sigmas_m[i](2,2),
-                                                    sigmas_m[i](4,4)),
-                                              ds[i],truncOrder_m);
-            } else {
-                Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
-                                                   sigmas_m[i](2,2),
-                                                   sigmas_m[i](4,4)),
-                                             const_ds,truncOrder_m);
-            }
 
-            if (write_m) {
-                writeMcyc << Mcycs[i] << std::endl;
-                writeMsc << Mscs[i] << std::endl;
-            }
+            Mscs[i]  = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
+                                                sigmas_m[i](2,2),
+                                                sigmas_m[i](4,4)),
+                                          ds[i],truncOrder_m);
+
+            writeMatrix(writeMcyc, Mcycs[i]);
+            writeMatrix(writeMsc, Mscs[i]);
         }
+
+        if (write_m)
+            writeMsc.close();
 
         // one turn matrix
         mapgen.combine(Mscs,Mcycs);
         matrix_type Mturn = mapgen.getMap();
 
-        if (write_m)
-            writeMturn << Mturn << std::endl;
+        writeMatrix(writeMturn, Mturn);
 
         // (inverse) transformation matrix
         sparse_matrix_type R(6, 6), invR(6, 6);
@@ -623,40 +614,40 @@ template<typename Value_type, typename Size_type>
             // write new initial sigma-matrix into vector
             sigmas_m[0] = weight*newSigma + (1.0-weight)*sigmas_m[0];
 
-            if (write_m) {
-                writeMsc << "--------------------------------" << std::endl;
-                writeMsc << "Iteration: " << niterations_m + 1 << std::endl;
-                writeMsc << "--------------------------------" << std::endl;
-            }
-
             // compute new space charge maps
             for (size_type i = 0; i < nSteps_m; ++i) {
-                if (!harmonic) {
-                    Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
-                                                       sigmas_m[i](2,2),
-                                                       sigmas_m[i](4,4)),
-                                                 ds[i],truncOrder_m);
-                } else {
-                    Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
-                                                       sigmas_m[i](2,2),
-                                                       sigmas_m[i](4,4)),
-                                                 const_ds,truncOrder_m);
+                Mscs[i] = mapgen.generateMap(Hsc_m(sigmas_m[i](0,0),
+                                                    sigmas_m[i](2,2),
+                                                    sigmas_m[i](4,4)),
+                                                ds[i],truncOrder_m);
+
+                if (write_m) {
+
+                    std::string energy = float2string(E_m);
+
+                    std::string fname = Util::combineFilePath({
+                            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+                            "maps",
+                            "SpaceChargeMapPerAngleForEnergy" + energy + "MeV_iteration_"
+                            + std::to_string(niterations_m + 1)
+                            + ".dat"
+                    });
+
+                    writeMsc.open(fname, std::ios::out);
                 }
 
-                if (write_m)
-                    writeMsc << Mscs[i] << std::endl;
+                writeMatrix(writeMsc, Mscs[i]);
+
+                if (write_m) {
+                    writeMsc.close();
+                }
             }
 
             // construct new one turn transfer matrix M
             mapgen.combine(Mscs,Mcycs);
             Mturn = mapgen.getMap();
 
-            if (write_m) {
-                writeMturn << "--------------------------------" << std::endl;
-                writeMturn << "Iteration: " << niterations_m + 1 << std::endl;
-                writeMturn << "--------------------------------" << std::endl;
-                writeMturn << Mturn << std::endl;
-            }
+            writeMatrix(writeMturn, Mturn);
 
             // check if number of iterations has maxit exceeded.
             stop = (niterations_m++ > maxit);
@@ -672,7 +663,6 @@ template<typename Value_type, typename Size_type>
         // Close files
         if (write_m) {
             writeMturn.close();
-            writeMsc.close();
             writeMcyc.close();
         }
 
@@ -1134,25 +1124,6 @@ SigmaGenerator<Value_type, Size_type>::updateInitialSigma(const matrix_type& /*M
             sigma(i,i) *= -1.0;
     }
 
-    if (write_m) {
-        std::string energy = float2string(E_m);
-
-        std::string fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-            "maps",
-            "SigmaPerAngleForEnergy" + energy + "MeV.dat"
-        });
-
-        std::ofstream writeSigma(fname, std::ios::app);
-
-        writeSigma << "--------------------------------" << std::endl;
-        writeSigma << "Iteration: " << niterations_m + 1 << std::endl;
-        writeSigma << "--------------------------------" << std::endl;
-
-        writeSigma << sigma << std::endl;
-        writeSigma.close();
-    }
-
     return sigma;
 }
 
@@ -1170,13 +1141,17 @@ void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix
         std::string fname = Util::combineFilePath({
             OpalData::getInstance()->getAuxiliaryOutputDirectory(),
             "maps",
-            "SigmaPerAngleForEnergy" + energy + "MeV.dat"
+            "SigmaPerAngleForEnergy" + energy + "MeV_iteration_"
+            + std::to_string(niterations_m + 1)
+            + ".dat"
         });
 
         writeSigma.open(fname,std::ios::app);
     }
 
     // initial sigma is already computed
+    writeMatrix(writeSigma, sigmas_m[0]);
+
     for (size_type i = 1; i < nSteps_m; ++i) {
         // transfer matrix for one angle
         M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
@@ -1184,12 +1159,10 @@ void SigmaGenerator<Value_type, Size_type>::updateSigma(const std::vector<matrix
         sigmas_m[i] = matt_boost::gemmm<matrix_type>(M,sigmas_m[i - 1],
                                                      boost::numeric::ublas::trans(M));
 
-        if (write_m)
-            writeSigma << sigmas_m[i] << std::endl;
+        writeMatrix(writeSigma, sigmas_m[i]);
     }
 
     if (write_m) {
-        writeSigma << std::endl;
         writeSigma.close();
     }
 }
@@ -1217,13 +1190,29 @@ typename SigmaGenerator<Value_type, Size_type>::value_type
     // compute difference
     matrix_type diff = newS - oldS;
 
-    std::for_each(diff.data().begin(), diff.data().end(),
+    std::transform(diff.data().begin(), diff.data().end(), diff.data().begin(),
                   [](value_type& val) {
                       return std::abs(val);
                   });
 
-    // sum squared error up and take square root
     return std::accumulate(diff.data().begin(), diff.data().end(), 0.0);
+}
+
+
+template<typename Value_type, typename Size_type>
+typename SigmaGenerator<Value_type, Size_type>::value_type
+    SigmaGenerator<Value_type, Size_type>::LInfErrorNorm(const matrix_type& oldS,
+                                                       const matrix_type& newS)
+{
+    // compute difference
+    matrix_type diff = newS - oldS;
+
+    std::transform(diff.data().begin(), diff.data().end(), diff.data().begin(),
+                  [](value_type& val) {
+                      return std::abs(val);
+                  });
+
+    return *std::max_element(diff.data().begin(), diff.data().end());
 }
 
 
@@ -1323,6 +1312,19 @@ void SigmaGenerator<Value_type, Size_type>::writeOrbitOutput_m(
     writeAvgRadius.close();
     writePhase.close();
     writeProperties.close();
+}
+
+
+template<typename Value_type, typename Size_type>
+void SigmaGenerator<Value_type, Size_type>::writeMatrix(std::ofstream& os, const matrix_type& m) {
+    if (!write_m)
+        return;
+
+    for (size_type i = 0; i < 6; ++i) {
+        for (size_type j = 0; j < 6; ++j)
+            os << m(i, j) << " ";
+    }
+    os << std::endl;
 }
 
 #endif
