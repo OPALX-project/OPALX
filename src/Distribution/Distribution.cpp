@@ -3207,7 +3207,7 @@ void Distribution::setAttributes() {
     // itsAttr[Attrib::Distribution::E2]
     //     = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
     itsAttr[Attrib::Distribution::RESIDUUM]
-        = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generator ", 1e-8);
+        = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generator ", 1e-12);
     itsAttr[Attrib::Distribution::MAXSTEPSCO]
         = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
     itsAttr[Attrib::Distribution::MAXSTEPSSI]
