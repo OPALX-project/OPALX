@@ -86,6 +86,7 @@ OrbitThreader::OrbitThreader(const PartData &ref,
 
 void OrbitThreader::execute() {
     double initialPathLength = pathLength_m;
+    computeMaximalImplicitDrift2();
     double maxDistance = computeMaximalImplicitDrift();
 
     auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
@@ -388,6 +389,22 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
     }
 }
 
+void OrbitThreader::computeMaximalImplicitDrift2() {
+    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    FieldList::iterator it = allElements.begin();
+    const FieldList::iterator end = allElements.end();
+    globalBoundingBox_m.lowerLeftCorner = Vector_t(std::numeric_limits<double>::max());
+    globalBoundingBox_m.upperRightCorner = Vector_t(-std::numeric_limits<double>::max());
+
+    for (; it != end; ++ it) {
+        if (it->getElement()->getType() == ElementBase::MARKER) {
+            continue;
+        }
+        ElementBase::BoundingBox other = it->getBoundingBoxInLabCoords();
+        globalBoundingBox_m.getCombinedBoundingBox(other);
+    }
+}
+
 double OrbitThreader::computeMaximalImplicitDrift() {
     FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
     double maxDrift = 0.0;
@@ -401,7 +418,6 @@ double OrbitThreader::computeMaximalImplicitDrift() {
 
     FieldList::iterator it = allElements.begin();
     const FieldList::iterator end = allElements.end();
-
     for (; it != end; ++ it) {
         auto element1 = it->getElement();
         const auto &toEdge = element1->getCSTrafoGlobal2Local();

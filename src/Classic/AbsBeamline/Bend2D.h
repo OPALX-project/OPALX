@@ -129,7 +129,7 @@ public:
    //  Used to create fringe fields in ThickTracker, (before edge[m], after edge[m])
    std::array<double,2> getExitFringeFieldLength() const;
 
-    BoundaryBox getBoundaryBoxInLabCoords() const override;
+    BoundingBox getBoundingBoxInLabCoords() const override;
 protected:
     void setMessageHeader(const std::string & header);
     double getStartField() const;
