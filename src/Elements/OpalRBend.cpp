@@ -193,7 +193,7 @@ void OpalRBend::update() {
         bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, gap, 1.0}));
     } else {
         double gap = Attributes::getReal(itsAttr[GAP]);
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({0.5, gap, 1.0});
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({0.5, gap, 1.0}));
     }
 
     if(itsAttr[LENGTH])

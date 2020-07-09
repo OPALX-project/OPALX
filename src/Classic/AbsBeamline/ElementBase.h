@@ -71,6 +71,8 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Utilities/GeneralClassicException.h"
 
+#include <boost/optional.hpp>
+
 #include <string>
 #include <queue>
 
@@ -359,10 +361,26 @@ public:
     void setRotationAboutZ(double rotation);
     double getRotationAboutZ() const;
 
-    virtual BoundaryBox getBoundaryBoxInLabCoords() const;
+    struct BoundingBox {
+        Vector_t lowerLeftCorner;
+        Vector_t upperRightCorner;
+
+        void getCombinedBoundingBox(const BoundingBox & other) {
+            for (unsigned int d = 0; d < 3; ++ d) {
+                lowerLeftCorner[d] = std::min(lowerLeftCorner[d], other.lowerLeftCorner[d]);
+                upperRightCorner[d] = std::max(upperRightCorner[d], other.upperRightCorner[d]);
+            }
+        }
+
+        bool isInside(const Vector_t &) const;
+        boost::optional<Vector_t> getPointOfIntersection(const Vector_t & position,
+                                                         const Vector_t & direction) const;
+    };
+
+    virtual BoundingBox getBoundingBoxInLabCoords() const;
 
 protected:
-    bool isInsideTransverse(const Vector_t &r, double f = 1) const;
+    bool isInsideTransverse(const Vector_t &r) const;
 
     // Sharable flag.
     // If this flag is true, the element is always shared.
