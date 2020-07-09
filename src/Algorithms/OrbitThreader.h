@@ -64,6 +64,8 @@ private:
     std::ofstream logger_m;
     size_t loggingFrequency_m;
 
+    ElementBase::BoundingBox globalBoundingBox_m;
+
     struct elementPosition {
         double startField_m;
         double endField_m;
@@ -87,6 +89,7 @@ private:
     void registerElement(const IndexMap::value_t &elementSet, double, const Vector_t &r, const Vector_t &p);
     void processElementRegister();
     void setDesignEnergy(FieldList &allElements, const std::set<std::string> &visitedElements);
+    void computeMaximalImplicitDrift2();
     double computeMaximalImplicitDrift();
 };
 
