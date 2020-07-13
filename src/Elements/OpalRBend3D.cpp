@@ -60,7 +60,7 @@ OpalRBend3D::OpalRBend3D():
 
     registerOwnership();
 
-    setElement((new RBend3D("RBEND3D"))->makeWrappers());
+    setElement(new RBend3D("RBEND3D"));
 }
 
 OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
@@ -68,14 +68,12 @@ OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
     owk_m(0),
     parmatint_m(NULL)
 {
-    setElement((new RBend3D(name))->makeWrappers());
+    setElement(new RBend3D(name));
 }
 
 OpalRBend3D::~OpalRBend3D() {
-    if(owk_m)
-        delete owk_m;
-    if(parmatint_m)
-        delete parmatint_m;
+    delete owk_m;
+    delete parmatint_m;
 }
 
 OpalRBend3D *OpalRBend3D::clone(const std::string &name) {
@@ -84,8 +82,8 @@ OpalRBend3D *OpalRBend3D::clone(const std::string &name) {
 
 
 void OpalRBend3D::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
+fillRegisteredAttributes(const ElementBase &base) {
+    OpalElement::fillRegisteredAttributes(base);
 }
 
 void OpalRBend3D::update() {
@@ -93,7 +91,7 @@ void OpalRBend3D::update() {
 
     // Define geometry.
     RBend3D *bend =
-        dynamic_cast<RBend3D *>(getElement()->removeWrappers());
+        dynamic_cast<RBend3D *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
     double e1     = Attributes::getReal(itsAttr[E1]);
@@ -130,8 +128,11 @@ void OpalRBend3D::update() {
     bend->setEntranceAngle(e1);
 
     // Energy in eV.
-    if(itsAttr[DESIGNENERGY]) {
+    if(itsAttr[DESIGNENERGY] && Attributes::getReal(itsAttr[DESIGNENERGY]) != 0.0) {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+    } else if (bend->getName() != "RBEND3D") {
+        throw OpalException("OpalRBend3D::update",
+                            "RBend3D requires non-zero DESIGNENERGY");
     }
 
     bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
