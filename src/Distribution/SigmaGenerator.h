@@ -40,33 +40,20 @@
 #include "FixedAlgebra/FTps.h"
 #include "Physics/Physics.h"
 
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-
-#include "RDM.h"
+#include "Distribution/RealDiracMatrix.h"
 
 
-/// @brief This class computes the matched distribution
 class SigmaGenerator
 {
 public:
     /// Type for storing maps
-    typedef boost::numeric::ublas::matrix<double> matrix_type;
-
-    typedef std::complex<double> complex_t;
-
-    /// Type for storing complex matrices
-    typedef boost::numeric::ublas::matrix<complex_t> cmatrix_type;
-
+    typedef RealDiracMatrix::matrix_t matrix_t;
     /// Type for storing the sparse maps
-    typedef boost::numeric::ublas::compressed_matrix<double /*complex_t*/,
-                                                     boost::numeric::ublas::row_major
-                                                     > sparse_matrix_type;
+    typedef RealDiracMatrix::sparse_matrix_t sparse_matrix_t;
     /// Type for storing vectors
-    typedef boost::numeric::ublas::vector<double> vector_type;
+    typedef RealDiracMatrix::vector_t vector_t;
     /// Container for storing the properties for each angle
-    typedef std::vector<double> container_type;
+    typedef std::vector<double> container_t;
     /// Type of the truncated powere series
     typedef FTps<double,2*3> Series;
     /// Type of a map
@@ -111,21 +98,6 @@ public:
     bool match(double accuracy, unsigned int maxit, unsigned int maxitOrbit,
                Cyclotron* cycl, double denergy, double rguess, bool full);
 
-    /*!
-     * Eigenvalue / eigenvector solver
-     * @param Mturn is a 6x6 dimensional one turn transfer matrix
-     * @param R is the 6x6 dimensional transformation matrix (gets computed)
-     */
-//     void eigsolve_m(const matrix_type& Mturn, sparse_matrix_type& R);
-
-    /*!
-     * @param R is the 6x6 dimensional transformation matrix
-     * @param invR is the 6x6 dimensional inverse transformation (gets computed)
-     * @return true if success
-     */
-//     bool invertMatrix_m(const sparse_matrix_type& R,
-//                         sparse_matrix_type& invR);
-
     /// Block diagonalizes the symplex part of the one turn transfer matrix
     /*! It computes the transformation matrix <b>R</b> and its inverse <b>invR</b>.
      *
@@ -133,8 +105,7 @@ public:
      * @param R is the 6x6 dimensional transformation matrix (gets computed)
      * @param invR is the 6x6 dimensional inverse transformation (gets computed)
      */
-    /*void*/
-    vector_type decouple(const matrix_type& Mturn, sparse_matrix_type& R, sparse_matrix_type& invR);
+    vector_t decouple(const matrix_t& Mturn, sparse_matrix_t& R, sparse_matrix_t& invR);
 
     /// Checks if the sigma-matrix is an eigenellipse and returns the L2 error.
     /*!
@@ -142,10 +113,10 @@ public:
      * @param Mturn is the one turn transfer matrix
      * @param sigma is the sigma matrix to be tested
      */
-    double isEigenEllipse(const matrix_type& Mturn, const matrix_type& sigma);
+    double isEigenEllipse(const matrix_t& Mturn, const matrix_t& sigma);
 
     /// Returns the converged stationary distribution
-    matrix_type& getSigma();
+    matrix_t& getSigma();
 
     /// Returns the number of iterations needed for convergence (if not converged, it returns zero)
     unsigned int getIterations() const;
@@ -153,7 +124,9 @@ public:
     /// Returns the error (if the program didn't converged, one can call this function to check the error)
     double getError() const;
 
-    /// Returns the emittances (ex,ey,ez) in \f$ \pi\ mm\ mrad \f$ for which the code converged (since the whole simulation is done on normalized emittances)
+    /*! Returns the emittances (ex,ey,ez) in \f$ \pi\ mm\ mrad \f$ for which
+     * the code converged (since the whole simulation is done on normalized emittances)
+     */
     std::array<double,3> getEmittances() const;
 
     const double& getInjectionRadius() const {
@@ -167,13 +140,17 @@ public:
 private:
     /// Stores the value of the current, \f$ \left[I\right] = A \f$
     double I_m;
-    /// Stores the desired emittances, \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = m \ rad \f$
+    /*! Stores the desired emittances,
+     * \f$ \left[\varepsilon_{x}\right] = \left[\varepsilon_{y}\right] = \left[\varepsilon_{z}\right] = m \ rad \f$
+     */
     std::array<double,3> emittance_m;
     /// Is the orbital frequency, \f$ \left[\omega_{o}\right] = \frac{1}{s} \f$
     double wo_m;
     /// Stores the user-define energy, \f$ \left[E\right] = MeV \f$
     double E_m;
-    /// Relativistic factor (which can be computed out ot the kinetic energy and rest mass (potential energy)), \f$ \left[\gamma\right] = 1 \f$
+    /*! Relativistic factor (which can be computed out ot the kinetic
+     * energy and rest mass (potential energy)), \f$ \left[\gamma\right] = 1 \f$
+     */
     double gamma_m;
     /// Relativistic factor squared
     double gamma2_m;
@@ -211,10 +188,10 @@ private:
     bool write_m;
 
     /// Stores the stationary distribution (sigma matrix)
-    matrix_type sigma_m;
+    matrix_t sigma_m;
 
     /// Vector storing the second moment matrix for each angle
-    std::vector<matrix_type> sigmas_m;
+    std::vector<matrix_t> sigmas_m;
 
     /// Stores the Hamiltonian of the cyclotron
     Hamiltonian H_m;
@@ -243,39 +220,25 @@ private:
      * @param R is the transformation matrix
      * @param invR is the inverse transformation matrix
      */
-//     matrix_type updateInitialSigma(const matrix_type&,
-//                                    sparse_matrix_type&,
-//                                    sparse_matrix_type&);
-
-    matrix_type updateInitialSigma(const matrix_type&,
-                                   const vector_type&,
-                                   sparse_matrix_type&,
-                                   sparse_matrix_type&);
+    matrix_t updateInitialSigma(const matrix_t&,
+                                   const vector_t&,
+                                   sparse_matrix_t&,
+                                   sparse_matrix_t&);
 
     /// Computes new sigma matrices (one for each angle)
     /*!
      * Mscs is a vector of all space charge maps
      * Mcycs is a vector of all cyclotron maps
      */
-    void updateSigma(const std::vector<matrix_type>&,
-                     const std::vector<matrix_type>&);
+    void updateSigma(const std::vector<matrix_t>&,
+                     const std::vector<matrix_t>&);
 
     /// Returns the L2-error norm between the old and new sigma-matrix
     /*!
      * @param oldS is the old sigma matrix
      * @param newS is the new sigma matrix
      */
-    double L2ErrorNorm(const matrix_type&, const matrix_type&);
-
-
-    /// Returns the Lp-error norm between the old and new sigma-matrix
-    /*!
-     * @param oldS is the old sigma matrix
-     * @param newS is the new sigma matrix
-     */
-    double L1ErrorNorm(const matrix_type&, const matrix_type&);
-
-    double LInfErrorNorm(const matrix_type&, const matrix_type&);
+    double L2ErrorNorm(const matrix_t&, const matrix_t&);
 
     /// Transforms a floating point value to a string
     /*!
@@ -291,16 +254,16 @@ private:
      * @param fidx_turn is the field index
      * @param ds_turn is the path length element
      */
-    void writeOrbitOutput_m(const container_type& r_turn,
-                            const container_type& peo,
-                            const container_type& h_turn,
-                            const container_type& fidx_turn,
-                            const container_type& ds_turn);
+    void writeOrbitOutput_m(const container_t& r_turn,
+                            const container_t& peo,
+                            const container_t& h_turn,
+                            const container_t& fidx_turn,
+                            const container_t& ds_turn);
 
-    void writeMatrix(std::ofstream&, const matrix_type&);
+    void writeMatrix(std::ofstream&, const matrix_t&);
 
-    /// <b>RDM</b>-class member used for decoupling
-    RDM rdm_m;
+    /// <b>RealDiracMatrix</b>-class member used for decoupling
+    RealDiracMatrix rdm_m;
 
 
     template<class matrix>
@@ -312,7 +275,7 @@ private:
 
 
 inline
-typename SigmaGenerator::matrix_type&
+typename SigmaGenerator::matrix_t&
 SigmaGenerator::getSigma()
 {
     return sigma_m;
@@ -357,8 +320,8 @@ void SigmaGenerator::reduce(matrix& M) {
      * a61 a62 a63 a64 a65 a66
      */
 
-    // copy x- and l-direction to a 4x4 matrix_type
-    matrix_type M4x4(4,4);
+    // copy x- and l-direction to a 4x4 matrix_t
+    matrix_t M4x4(4,4);
     for (unsigned int i = 0; i < 2; ++i) {
         // upper left 2x2 [a11,a12;a21,a22]
         M4x4(i,0) = M(i,0);
