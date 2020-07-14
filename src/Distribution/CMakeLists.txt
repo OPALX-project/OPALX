@@ -1,7 +1,7 @@
 set (_SRCS
     Distribution.cpp
     LaserProfile.cpp
-    RDM.cpp
+    RealDiracMatrix.cpp
     SigmaGenerator.cpp
     )
 
@@ -17,7 +17,7 @@ set (HDRS
     LaserProfile.h
     MapGenerator.h
     matrix_vector_operation.h
-    RDM.h
+    RealDiracMatrix.h
     SigmaGenerator.h
     )
 
