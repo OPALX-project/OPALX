@@ -19,6 +19,8 @@
 #include "AppTypes/SymTenzor.h"
 #include "Attributes/Attributes.h"
 
+#include "Distribution/SigmaGenerator.h"
+
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_qrng.h>
 #include <gsl/gsl_rng.h>
@@ -336,6 +338,8 @@ private:
     void generateFlattopT(size_t numberOfParticles);
     void generateFlattopZ(size_t numberOfParticles);
     void generateGaussZ(size_t numberOfParticles);
+    void generateMatchedGauss(const SigmaGenerator::matrix_t&,
+                              size_t numberOfParticles, double massIneV);
     void generateLongFlattopT(size_t numberOfParticles);
     void generateTransverseGauss(size_t numberOfParticles);
     void initializeBeam(PartBunchBase<double, 3> *beam);
