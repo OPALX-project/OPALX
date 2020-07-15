@@ -128,7 +128,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                     currentGeometry->getL2(),
                                     orig_nr_m, hr_m, interpl));
             bp_m->compute(itsBunch_m->get_hr());
-        } else if (currentGeometry->getTopology() == "RECTANGULAR")
+        } else if (currentGeometry->getTopology() == "RECTANGULAR") {
             bp_m = std::unique_ptr<IrregularDomain>(
                 new RectangularDomain(currentGeometry->getA(),
                                       currentGeometry->getB(),
