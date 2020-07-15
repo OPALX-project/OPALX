@@ -1162,7 +1162,7 @@ void ParallelTTracker::findStartPosition(const BorisPusher &pusher) {
     selectDT();
 
     if ((back_track && itsOpalBeamline_m.containsSource()) ||
-        Util::getEnergy(itsBunch_m->RefPartP_m, itsBunch_m->getM()) < 1e-3) {
+        Util::getKineticEnergy(itsBunch_m->RefPartP_m, itsBunch_m->getM()) < 1e-3) {
         double gamma = 0.1 / itsBunch_m->getM() + 1.0;
         double beta = sqrt(1.0 - 1.0 / std::pow(gamma, 2));
         itsBunch_m->RefPartP_m = itsBunch_m->toLabTrafo_m.rotateTo(beta * gamma * Vector_t(0, 0, 1));
