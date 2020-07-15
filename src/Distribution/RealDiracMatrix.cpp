@@ -180,7 +180,6 @@ void RealDiracMatrix::transform(matrix_t& M, short i, double phi,
 {
     if (phi) {  // if phi == 0 --> nothing happens, since R and invR would be identity_matrix matrix
         sparse_matrix_t R(4,4), invR(4,4);
-        sparse_matrix_t I = boost::numeric::ublas::identity_matrix<double>(4);
 
         transform(i, phi, R, invR);
 
