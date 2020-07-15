@@ -1,5 +1,5 @@
 //
-// Class: SigmaGenerator.h
+// Class: SigmaGenerator
 // The SigmaGenerator class uses the class <b>ClosedOrbitFinder</b> to get the parameters(inverse bending radius, path length
 // field index and tunes) to initialize the sigma matrix.
 // The main function of this class is <b>match(double, unsigned int)</b>, where it iteratively tries to find a matched
