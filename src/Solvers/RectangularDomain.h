@@ -44,9 +44,7 @@ public:
     /// calculates intersection with the beam pipe
     void compute(Vector_t hr);
 
-    void compute(Vector_t /*hr*/, NDIndex<3> /*localId*/) {
-        // we have no intersections
-    }
+    void compute(Vector_t hr, NDIndex<3> /*localId*/);
 
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);

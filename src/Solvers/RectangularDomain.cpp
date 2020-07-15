@@ -47,6 +47,10 @@ void RectangularDomain::compute(Vector_t hr){
     nxy_m = nr[0] * nr[1];
 }
 
+void RectangularDomain::compute(Vector_t hr, NDIndex<3> /*localId*/) {
+    compute(hr);
+}
+
 int RectangularDomain::getNumXY(int /*z*/) {
     return nxy_m;
 }
