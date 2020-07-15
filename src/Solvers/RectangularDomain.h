@@ -44,6 +44,10 @@ public:
     /// calculates intersection with the beam pipe
     void compute(Vector_t hr);
 
+    void compute(Vector_t /*hr*/, NDIndex<3> /*localId*/) {
+        // we have no intersections
+    }
+
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);
 
@@ -60,12 +64,14 @@ public:
     /// returns index of neighbours at (x,y,z)
     using IrregularDomain::getNeighbours;
 
-    void getNeighbours(int x, int y, int z, double &W, double &E,
-                       double &S, double &N, double &F, double &B);
+    void getNeighbours(int x, int y, int z, int &W, int &E,
+                       int &S, int &N, int &F, int &B);
 
     /// returns index of neighbours at 3D index
-    void getNeighbours(int idx, double &W, double &E, double &S,
-                       double &N, double &F, double &B);
+    void getNeighbours(int idx, int &W, int &E, int &S,
+                       int &N, int &F, int &B);
+
+    bool hasGeometryChanged() { return false; }
 
     void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
                     const Vector_t& rmax, double dh);
