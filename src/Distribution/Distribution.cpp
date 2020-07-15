@@ -2453,14 +2453,10 @@ void Distribution::generateMatchedGauss(const SigmaGenerator::matrix_t& sigma,
         variances(4 + i) = std::sqrt(A(i, i));
     }
 
-    xDist_m.resize(numberOfParticles);
-    pxDist_m.resize(numberOfParticles);
-
-    yDist_m.resize(numberOfParticles);
-    pyDist_m.resize(numberOfParticles);
-
-    tOrZDist_m.resize(numberOfParticles);
-    pzDist_m.resize(numberOfParticles);
+    int saveProcessor = -1;
+    const int myNode = Ippl::myNode();
+    const int numNodes = Ippl::getNodes();
+    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
 
     RealDiracMatrix::vector_t p1(4), p2(4);
     for (size_t i = 0; i < numberOfParticles; i++) {
@@ -2472,14 +2468,19 @@ void Distribution::generateMatchedGauss(const SigmaGenerator::matrix_t& sigma,
         p1 = boost::numeric::ublas::prod(R1, p1);
         p2 = boost::numeric::ublas::prod(R2, p2);
 
-        xDist_m[i]  = p1(0);
-        pxDist_m[i] = p1(1) * bgam;
+        // Save to each processor in turn.
+        saveProcessor++;
+        if (saveProcessor >= numNodes)
+            saveProcessor = 0;
 
-        yDist_m[i]  = p1(2);
-        pyDist_m[i] = p1(3) * bgam;
-
-        tOrZDist_m[i] = p2(2);
-        pzDist_m[i]   = p2(3) * bgam;
+        if (scalable || myNode == saveProcessor) {
+            xDist_m.push_back(p1(0));
+            pxDist_m.push_back(p1(1) * bgam);
+            yDist_m.push_back(p1(2));
+            pyDist_m.push_back(p1(3) * bgam);
+            tOrZDist_m.push_back(p2(2));
+            pzDist_m.push_back(p2(3) * bgam);
+        }
     }
 }
 
