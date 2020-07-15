@@ -2391,7 +2391,7 @@ void Distribution::generateMatchedGauss(const SigmaGenerator::matrix_t& sigma,
      * only used for printing
      */
 
-    // horitzonal
+    // horizontal
     sigmaR_m[0] = std::sqrt(sigma(0, 0));
     sigmaP_m[0] = std::sqrt(sigma(1, 1)) * bgam;
 
@@ -2414,10 +2414,10 @@ void Distribution::generateMatchedGauss(const SigmaGenerator::matrix_t& sigma,
     inputMoUnits_m = InputMomentumUnitsT::NONE;
 
     /*
-     * decouple horitzonal and longitudinal direction
+     * decouple horizontal and longitudinal direction
      */
 
-    // extract horitzonal and longitudinal directions
+    // extract horizontal and longitudinal directions
     RealDiracMatrix::matrix_t A(4, 4);
     A(0, 0) = sigma(0, 0);
     A(1, 1) = sigma(1, 1);
