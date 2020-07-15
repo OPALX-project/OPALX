@@ -772,8 +772,6 @@ SigmaGenerator::updateInitialSigma(const matrix_t& M,
 void SigmaGenerator::updateSigma(const std::vector<matrix_t>& Mscs,
                                  const std::vector<matrix_t>& Mcycs)
 {
-    matrix_t M = boost::numeric::ublas::matrix<double>(6,6);
-
     std::ofstream writeSigma;
 
     if (write_m) {
@@ -795,7 +793,7 @@ void SigmaGenerator::updateSigma(const std::vector<matrix_t>& Mscs,
 
     for (unsigned int i = 1; i < nSteps_m; ++i) {
         // transfer matrix for one angle
-        M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
+        matrix_t M = boost::numeric::ublas::prod(Mscs[i - 1],Mcycs[i - 1]);
         // transfer the matrix sigma
         sigmas_m[i] = matt_boost::gemmm<matrix_t>(M,sigmas_m[i - 1],
                                                      boost::numeric::ublas::trans(M));
