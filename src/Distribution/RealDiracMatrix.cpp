@@ -29,7 +29,7 @@
 #include <string>
 #include "matrix_vector_operation.h"
 
-RealDiracMatrix::RealDiracMatrix() : NumOfRDMs(16), DimOfRDMs(4) {};
+RealDiracMatrix::RealDiracMatrix() {};
 
 typename RealDiracMatrix::sparse_matrix_t
 RealDiracMatrix::getRDM(short i) {
@@ -59,56 +59,6 @@ RealDiracMatrix::getRDM(short i) {
 }
 
 
-typename RealDiracMatrix::vector_t
-RealDiracMatrix::decompose(const matrix_t& M) {
-    /*
-     * Formula (11) from paper:
-     * Geometrical method of decoupling
-     */
-    if (M.size1() != 4 && M.size1() != M.size2()) {
-        throw OpalException("RealDiracMatrix::decompose()",
-                            "Wrong matrix dimensions.");
-    }
-
-    vector_t coeffs(16);
-
-    matrix_t left(4,4), right(4,4), rdm2(4,4);
-
-    double inv32 = 1.0 / 32.0;
-
-    // do it with iterators
-    for (short i = 0; i < 16; ++i) {
-        sparse_matrix_t rdm = getRDM(i);
-        left = boost::numeric::ublas::prod(M,rdm);
-        right = boost::numeric::ublas::prod(rdm,M);
-        rdm2 = boost::numeric::ublas::prod(rdm,rdm);
-        left *= inv32;
-        right *= inv32;
-        left += right;
-        coeffs(i) = matt_boost::trace(rdm2) * matt_boost::trace(left);
-    }
-    return coeffs;
-}
-
-
-typename RealDiracMatrix::matrix_t
-RealDiracMatrix::combine(const vector_t& coeffs) {
-    if (coeffs.size() > 16) {
-        throw OpalException("RealDiracMatrix::combine()",
-                            "Wrong size of coefficient vector.");
-    }
-
-    // initialize a 4x4 zero matrix
-    matrix_t M = boost::numeric::ublas::zero_matrix<double>(4,4);
-
-    // evaluate linear combination
-    for (short i = 0; i < 16; ++i)
-        M += coeffs(i)*getRDM(i);
-
-    return M;
-}
-
-
 void RealDiracMatrix::diagonalize(matrix_t& Ms, sparse_matrix_t& R, sparse_matrix_t& invR) {
 
     // R and invR store the total transformation
@@ -129,39 +79,39 @@ void RealDiracMatrix::diagonalize(matrix_t& Ms, sparse_matrix_t& R, sparse_matri
     };
 
     // 1. Transformation with \gamma_{0}
-    P(0) =  mult(1); P(1) =  mult(2); P(2) =  mult(3);
-    E(0) =  mult(4); E(1) =  mult(5); E(2) =  mult(6);
-    B(0) = -mult(7); B(1) = -mult(8); B(2) = -mult(9);
-    mr = boost::numeric::ublas::inner_prod(E,B);        // formula (31), paper: Geometrical method of decoupling
-    mg = boost::numeric::ublas::inner_prod(B,P);        // formula (31), paper: Geometrical method of decoupling
+    P = vector_t({ mult(1),  mult(2),  mult(3)});
+    E = vector_t({ mult(4),  mult(5),  mult(6)});
+    B = vector_t({-mult(7), -mult(8), -mult(9)});
+    mr = boost::numeric::ublas::inner_prod(E, B);        // formula (31), paper: Geometrical method of decoupling
+    mg = boost::numeric::ublas::inner_prod(B, P);        // formula (31), paper: Geometrical method of decoupling
 
     transform(Ms, 0, 0.5 * std::atan2(mg,mr), R, invR);
 
     // 2. Transformation with \gamma_{7}
-    eps  = -mult(0);
-    P(0) =  mult(1); P(1) =  mult(2); P(2) =  mult(3);
-    E(0) =  mult(4); E(1) =  mult(5); E(2) =  mult(6);
-    B(0) = -mult(7); B(1) = -mult(8); B(2) = -mult(9);
-    b = eps*B+matt_boost::cross_prod(E,P);      // formula (32), paper: Geometrical method of decoupling
+    eps =  -mult(0);
+    P   = vector_t({ mult(1),  mult(2),  mult(3)});
+    E   = vector_t({ mult(4),  mult(5),  mult(6)});
+    B   = vector_t({-mult(7), -mult(8), -mult(9)});
+    b   = eps * B + matt_boost::cross_prod(E, P);      // formula (32), paper: Geometrical method of decoupling
 
     transform(Ms, 7, 0.5 * std::atan2(b(2), b(1)), R, invR);
 
     // 3. Transformation with \gamma_{9}
-    eps  = -mult(0);
-    P(0) =  mult(1); P(1) =  mult(2); P(2) =  mult(3);
-    E(0) =  mult(4); E(1) =  mult(5); E(2) =  mult(6);
-    B(0) = -mult(7); B(1) = -mult(8); B(2) = -mult(9);
-    b = eps*B+matt_boost::cross_prod(E,P);
+    eps =  -mult(0);
+    P   = vector_t({ mult(1),  mult(2),  mult(3)});
+    E   = vector_t({ mult(4),  mult(5),  mult(6)});
+    B   = vector_t({-mult(7), -mult(8), -mult(9)});
+    b   = eps * B + matt_boost::cross_prod(E, P);
 
     transform(Ms, 9, -0.5 * std::atan2(b(0), b(1)), R, invR);
 
     // 4. Transformation with \gamma_{2}
-    eps  = -mult(0);
-    P(0) =  mult(1); P(1) =  mult(2); P(2) =  mult(3);
-    E(0) =  mult(4); E(1) =  mult(5); E(2) =  mult(6);
-    B(0) = -mult(7); B(1) = -mult(8); B(2) = -mult(9);
-    mr = boost::numeric::ublas::inner_prod(E,B);
-    b = eps*B+matt_boost::cross_prod(E,P);
+    eps =  -mult(0);
+    P   = vector_t({ mult(1),  mult(2),  mult(3)});
+    E   = vector_t({ mult(4),  mult(5),  mult(6)});
+    B   = vector_t({-mult(7), -mult(8), -mult(9)});
+    mr  = boost::numeric::ublas::inner_prod(E, B);
+    b   = eps * B + matt_boost::cross_prod(E, P);
 
     // Transformation distinction made according to function "rdm_Decouple_F"
     // in rdm.c of Dr. Christian Baumgarten
@@ -172,18 +122,18 @@ void RealDiracMatrix::diagonalize(matrix_t& Ms, sparse_matrix_t& R, sparse_matri
         transform(Ms, 2, 0.5 * std::atanh(b(1) / mr), R, invR);
     }
 
-    eps  = -mult(0);
-    P(0) =  mult(1); P(1) =  mult(2); P(2) =  mult(3);
-    E(0) =  mult(4); E(1) =  mult(5); E(2) =  mult(6);
-    B(0) = -mult(7); B(1) = -mult(8); B(2) = -mult(9);
+    eps =  -mult(0);
+    P   = vector_t({ mult(1),  mult(2),  mult(3)});
+    E   = vector_t({ mult(4),  mult(5),  mult(6)});
+    B   = vector_t({-mult(7), -mult(8), -mult(9)});
 
     // formula (31), paper: Geometrical method of decoupling
-    mr = boost::numeric::ublas::inner_prod(E,B);
-    mg = boost::numeric::ublas::inner_prod(B,P);
-    mb = boost::numeric::ublas::inner_prod(E,P);
+    mr = boost::numeric::ublas::inner_prod(E, B);
+    mg = boost::numeric::ublas::inner_prod(B, P);
+    mb = boost::numeric::ublas::inner_prod(E, P);
 
-    double P2 = boost::numeric::ublas::inner_prod(P,P);
-    double E2 = boost::numeric::ublas::inner_prod(E,E);
+    double P2 = boost::numeric::ublas::inner_prod(P, P);
+    double E2 = boost::numeric::ublas::inner_prod(E, E);
 
     // 5. Transform with \gamma_{0}
     transform(Ms, 0, 0.25 * std::atan2(mb,0.5 * (E2 - P2)), R, invR);
@@ -225,16 +175,6 @@ RealDiracMatrix::symplex(const matrix_t& M) {
 }
 
 
-typename RealDiracMatrix::matrix_t
-RealDiracMatrix::cosymplex(const matrix_t& M) {
-    /*
-     * formula (16), p, 3
-     */
-    sparse_matrix_t rdm0 = getRDM(0);
-    return 0.5 * (M - matt_boost::gemmm<matrix_t>(rdm0,boost::numeric::ublas::trans(M),rdm0));
-}
-
-
 void RealDiracMatrix::transform(matrix_t& M, short i, double phi,
                                 sparse_matrix_t& Rtot, sparse_matrix_t& invRtot)
 {
@@ -258,7 +198,7 @@ void RealDiracMatrix::transform(short i, double phi,
     if (phi) {  // if phi == 0 --> nothing happens, since R and invR would be identity_matrix matrix
         sparse_matrix_t I = boost::numeric::ublas::identity_matrix<double>(4);
 
-        if (i < 7 && i != 0 && i > 10 && i != 14) {
+        if ((i < 7 && i != 0) || (i > 10 && i != 14)) {
             R = I * std::cosh(phi) + getRDM(i) * std::sinh(phi);
             invR = I * std::cosh(phi) - getRDM(i) * std::sinh(phi);
         } else {

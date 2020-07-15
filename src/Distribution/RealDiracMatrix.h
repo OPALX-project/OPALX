@@ -40,7 +40,10 @@ public:
     /// Dense matrix type definition
     typedef boost::numeric::ublas::matrix<double> matrix_t;
     /// Dense vector type definition
-    typedef boost::numeric::ublas::vector<double> vector_t;
+    typedef boost::numeric::ublas::vector<
+        double,
+        std::vector<double>
+    > vector_t;
 
     /// Default constructor (sets only NumOfRDMs and DimOfRDMs)
     RealDiracMatrix();
@@ -50,21 +53,6 @@ public:
         * @returns the i-th Real Dirac matrix
         */
     sparse_matrix_t getRDM(short);
-
-    /*!
-     * Decomposes a real-valued 4x4 matrix into a linear combination
-     * and returns a vector containing the coefficients
-     * @param M an arbitrary real-valued 4x4 matrix
-     */
-    vector_t decompose(const matrix_t&);
-
-    /*!
-     * Takes a vector of coefficients, evaluates the linear combination of
-     * RDMs with these coefficients and returns a 4x4 matrix
-     *
-     * @param coeffs is a vector of coefficients (at most length NumOfRDMs)
-     */
-    matrix_t combine(const vector_t&);
 
     /*!
      * Brings a 4x4 symplex matrix into Hamilton form and
@@ -91,22 +79,10 @@ public:
      */
     matrix_t symplex(const matrix_t&);
 
-    /*!
-     * @param M 4x4 real-valued matrix
-     * @returns the cosymplex part of a 4x4 real-valued matrix
-     */
-    matrix_t cosymplex(const matrix_t&);
-
-    /// The number of real Dirac matrices
-    short NumOfRDMs;
-    /// The matrix dimension (4x4)
-    short DimOfRDMs;
-
-
 private:
-    ///
     /*!
      * Applies a rotation to the matrix M by a given angle
+     *
      * @param M is the matrix to be transformed
      * @param i is the i-th RDM used for transformation
      * @param phi is the angle of rotation
@@ -115,8 +91,24 @@ private:
      */
     void transform(matrix_t&, short, double, sparse_matrix_t&, sparse_matrix_t&);
 
+    /*!
+     * Obtain transformation matrices.
+     *
+     * @param i is the i-th RDM used for transformation
+     * @param phi is the angle of rotation
+     * @param R is a reference to the transformation matrix
+     * @param invR is a reference to the inverse of the transformation matrix
+     */
     void transform(short, double, sparse_matrix_t&, sparse_matrix_t&);
 
+    /*!
+     * Update quantites to decouple the sigma-matrix
+     *
+     * @param sigma current state of sigma-matrix
+     * @param i is the i-th step
+     * @param R is a reference to the transformation matrix
+     * @param invR is a reference to the inverse of the transformation matrix
+     */
     void update(matrix_t& sigma, short i, sparse_matrix_t& R, sparse_matrix_t& invR);
 };
 
