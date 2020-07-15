@@ -562,7 +562,7 @@ void SigmaGenerator::initialize(double nuz, double ravg)
     tmp = std::sqrt(tmp);               // [tmp] = 1/m^{2}
 
     if (a < tmp)
-        throw OpalException("Error in SigmaGenerator::initialize()",
+        throw OpalException("SigmaGenerator::initialize()",
                             "Square root of negative number.");
 
     if (h * h * nuz * nuz <= K)
