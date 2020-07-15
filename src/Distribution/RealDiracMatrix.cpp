@@ -26,6 +26,7 @@
 #include "Utilities/OpalException.h"
 
 #include <cmath>
+#include <string>
 #include "matrix_vector_operation.h"
 
 RealDiracMatrix::RealDiracMatrix() : NumOfRDMs(16), DimOfRDMs(4) {};
@@ -107,8 +108,6 @@ RealDiracMatrix::combine(const vector_t& coeffs) {
     return M;
 }
 
-
-#include <iomanip>
 
 void RealDiracMatrix::diagonalize(matrix_t& Ms, sparse_matrix_t& R, sparse_matrix_t& invR) {
 
