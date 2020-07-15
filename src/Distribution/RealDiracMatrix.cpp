@@ -259,7 +259,7 @@ void RealDiracMatrix::transform(short i, double phi,
     if (phi) {  // if phi == 0 --> nothing happens, since R and invR would be identity_matrix matrix
         sparse_matrix_t I = boost::numeric::ublas::identity_matrix<double>(4);
 
-        if (i < 7 && i != 0 && i < 11 && i != 14) {
+        if (i < 7 && i != 0 && i > 10 && i != 14) {
             R = I * std::cosh(phi) + getRDM(i) * std::sinh(phi);
             invR = I * std::cosh(phi) - getRDM(i) * std::sinh(phi);
         } else {
