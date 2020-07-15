@@ -95,7 +95,7 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W,
 #ifdef DEBUG
     if (C <= 0)
         throw OpalException("RectangularDomain::getBoundaryStencil",
-                            "Stencil C is <= 0! This case should never occure!");
+                            "Stencil C is <= 0! This case should never occur!");
 #endif
 }
 
