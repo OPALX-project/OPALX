@@ -2374,9 +2374,7 @@ void Distribution::generateMatchedGauss(const SigmaGenerator::matrix_t& sigma,
                                 "Negative value on the diagonal of the sigma matrix.");
     }
 
-    double gamma = E_m / massIneV + 1.0;
-    // beta * gamma
-    double bgam = std::sqrt(gamma * gamma - 1.0);
+    double bgam = Util::getBetaGamma(E_m, massIneV);
 
     /*
      * only used for printing

@@ -98,8 +98,7 @@ SigmaGenerator::SigmaGenerator(double I,
     , prinit_m(0.0)
 {
     // minimum beta*gamma
-    double minGamma = Emin_m / m_m + 1.0;
-    double bgam = std::sqrt(minGamma * minGamma - 1.0);
+    double bgam = Util::getBetaGamma(Emin_m, m_m);
 
     // set emittances (initialization like that due to old compiler version)
     // [ex] = [ey] = [ez] = pi*mm*mrad --> [emittance] = m rad
