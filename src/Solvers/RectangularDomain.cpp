@@ -90,13 +90,6 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W,
 
     if (z == nr[2] - 1)
         B = 0.0;
-
-    //simple check if center value of stencil is positive
-#ifdef DEBUG
-    if (C <= 0)
-        throw OpalException("RectangularDomain::getBoundaryStencil",
-                            "Stencil C is <= 0! This case should never occur!");
-#endif
 }
 
 void RectangularDomain::getBoundaryStencil(int idx, double &W, double &E,
