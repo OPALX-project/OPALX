@@ -106,8 +106,8 @@ void RectangularDomain::getBoundaryStencil(int idx, double &W, double &E,
 
 }
 
-void RectangularDomain::getNeighbours(int idx, double &W, double &E, double &S,
-                                      double &N, double &F, double &B)
+void RectangularDomain::getNeighbours(int idx, int &W, int &E, int &S,
+                                      int &N, int &F, int &B)
 {
     int x = 0, y = 0, z = 0;
 
@@ -116,8 +116,8 @@ void RectangularDomain::getNeighbours(int idx, double &W, double &E, double &S,
 
 }
 
-void RectangularDomain::getNeighbours(int x, int y, int z, double &W, double &E,
-                                      double &S, double &N, double &F, double &B)
+void RectangularDomain::getNeighbours(int x, int y, int z, int &W, int &E,
+                                      int &S, int &N, int &F, int &B)
 {
     if (x > 0)
         W = getIdx(x - 1, y, z);
@@ -152,11 +152,13 @@ void RectangularDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_
 {
     // apply bounding box increment, i.e., "BBOXINCR" input argument
     double zsize = rmax[2] - rmin[2];
-    this->zMin_m = rmin[2] - zsize * (1.0 + dh);
-    this->zMax_m = rmax[2] + zsize * (1.0 + dh);
 
-    origin = Vector_t(-a_m, -b_m, this->zMin_m);
-    mymax  = Vector_t( a_m,  b_m, this->zMax_m);
+    setMinMaxZ(rmin[2] - zsize * (1.0 + dh),
+               rmax[2] + zsize * (1.0 + dh));
+
+    origin = Vector_t(-a_m, -b_m, getMinZ());
+
+    Vector_t mymax = Vector_t(a_m, b_m, getMaxZ());
 
     for (int i = 0; i < 3; ++i)
         hr[i]   = (mymax[i] - origin[i]) / nr[i];
