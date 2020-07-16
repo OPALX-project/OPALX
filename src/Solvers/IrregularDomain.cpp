@@ -33,3 +33,13 @@ void IrregularDomain::getNeighbours(int id, int &W, int &E, int &S,
     getCoord(id, x, y, z);
     getNeighbours(x, y, z, W, E, S, N, F, B);
 }
+
+
+void IrregularDomain::getBoundaryStencil(int id, double &W, double &E, double &S,
+                                         double &N, double &F, double &B, double &C,
+                                         double &scaleFactor)
+{
+    int idx = 0, idy = 0, idz = 0;
+    getCoord(id, idx, idy, idz);
+    getBoundaryStencil(idx, idy, idz, W, E, S, N, F, B, C, scaleFactor);
+}

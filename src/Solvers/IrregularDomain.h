@@ -71,7 +71,7 @@ public:
                                     double &C, double &scaleFactor) = 0;
 
     /// method to calculate the stencil at a boundary points
-    /// \param idx index of the current element in the matrix
+    /// \param id index of the current element in the matrix
     /// \param W stencil value of the element in the west of idx: (x-1)
     /// \param E stencil value of the element in the east of idx: (x+1)
     /// \param S stencil value of the element in the south of idx: (y-1)
@@ -79,9 +79,9 @@ public:
     /// \param F stencil value of the element in front of idx: (z-1)
     /// \param B stencil value of the element in the back of idx: (z+1)
     /// \param C stencil value of the element in the center
-    virtual void getBoundaryStencil(int idx, double &W, double &E, double &S,
-                                    double &N, double &F, double &B, double &C,
-                                    double &scaleFactor) = 0;
+    void getBoundaryStencil(int id, double &W, double &E, double &S,
+                            double &N, double &F, double &B, double &C,
+                            double &scaleFactor);
 
     /// method to calculate the neighbours in the matrix of the current index (x,y,z)
     /// \param x index of the current element in the matrix
