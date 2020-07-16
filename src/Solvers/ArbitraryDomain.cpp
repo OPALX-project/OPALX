@@ -383,16 +383,6 @@ int ArbitraryDomain::getNumXY(int z) {
     return numXY[z];
 }
 
-void ArbitraryDomain::getBoundaryStencil(int idxyz, double &W, double &E, double &S,
-                                         double &N, double &F, double &B, double &C,
-                                         double &scaleFactor)
-{
-    int idx = 0, idy = 0, idz = 0;
-
-    getCoord(idxyz, idx, idy, idz);
-    getBoundaryStencil(idx, idy, idz, W, E, S, N, F, B, C, scaleFactor);
-}
-
 void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W,
                                          double &E, double &S, double &N, double &F,
                                          double &B, double &C, double &scaleFactor)

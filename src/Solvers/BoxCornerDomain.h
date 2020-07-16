@@ -79,10 +79,6 @@ public:
     void getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B,
                             double &C, double &scaleFactor);
 
-    /// returns discretization at 3D index
-    void getBoundaryStencil(int idx, double &W, double &E, double &S, double &N, double &F, double &B, double &C,
-                            double &scaleFactor);
-
     /// returns index of neighbours at (x,y,z)
     void getNeighbours(int x, int y, int z, int &W, int &E, int &S, int &N, int &F, int &B);
 
