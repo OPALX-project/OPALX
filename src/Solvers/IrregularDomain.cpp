@@ -26,6 +26,11 @@
 
 #include "Solvers/IrregularDomain.h"
 
+IrregularDomain::IrregularDomain(const Vector_t& nr, const Vector_t& hr)
+    : nr_m(nr)
+    , hr_m(hr)
+{ }
+
 
 void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)
 {
@@ -39,19 +44,19 @@ void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)
     if (x > 0 && isInside(x - 1, y, z))
         index.west = getIdx(x - 1, y, z);
 
-    if (x < nr[0] - 1 && isInside(x + 1, y, z))
+    if (x < nr_m[0] - 1 && isInside(x + 1, y, z))
         index.east = getIdx(x + 1, y, z);
 
     if (y > 0 && isInside(x, y - 1, z))
         index.south = getIdx(x, y - 1, z);
 
-    if (y < nr[1] - 1 && isInside(x, y + 1, z))
+    if (y < nr_m[1] - 1 && isInside(x, y + 1, z))
         index.north = getIdx(x, y + 1, z);
 
     if (z > 0 && isInside(x, y, z - 1))
         index.front = getIdx(x, y, z - 1);
 
-    if (z < nr[2] - 1 && isInside(x, y, z + 1))
+    if (z < nr_m[2] - 1 && isInside(x, y, z + 1))
         index.back = getIdx(x, y, z + 1);
 }
 
@@ -78,5 +83,5 @@ void IrregularDomain::resizeMesh(Vector_t& origin, Vector_t& hr,
 {
     origin = min_m;
     for (int i = 0; i < 3; i++)
-        hr[i] = (max_m[i] - min_m[i]) / nr[i];
+        hr[i] = (max_m[i] - min_m[i]) / nr_m[i];
 };

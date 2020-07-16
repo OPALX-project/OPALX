@@ -107,10 +107,10 @@ public:
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
-        const double xx = (x - (nr[0] - 1) / 2.0) * hr[0];
-        const double yy = (y - (nr[1] - 1) / 2.0) * hr[1];
-        const double b = getB(z * hr[2]);
-        return (xx < getXRangeMax() && yy < b && z != 0 && z != nr[2] - 1);
+        const double xx = (x - (nr_m[0] - 1) / 2.0) * hr_m[0];
+        const double yy = (y - (nr_m[1] - 1) / 2.0) * hr_m[1];
+        const double b = getB(z * hr_m[2]);
+        return (xx < getXRangeMax() && yy < b && z != 0 && z != nr_m[2] - 1);
     }
 
     void compute(Vector_t hr, NDIndex<3> localId);
@@ -163,12 +163,12 @@ private:
     }
 
     inline double getYIntersection(double cy, int z) {
-        return (cy < 0) ? min_m(1) : getB(z * hr[2]);
+        return (cy < 0) ? min_m(1) : getB(z * hr_m[2]);
     }
 
     /// conversion from (x,y,z) to index in xyz plane
     inline int toCoordIdx(int x, int y, int z) {
-        return (z * nr[1] + y) * nr[0] + x;
+        return (z * nr_m[1] + y) * nr_m[0] + x;
     }
 
     /// conversion from (x,y,z) to index on the 3D grid
@@ -185,10 +185,10 @@ private:
 
         int idxx = CoordMap[idx];
 
-        x = idxx % (int)nr[0];
-        idxx /= nr[0];
-        y = idxx % (int)nr[1];
-        idxx /= nr[1];
+        x = idxx % (int)nr_m[0];
+        idxx /= nr_m[0];
+        y = idxx % (int)nr_m[1];
+        idxx /= nr_m[1];
         z = idxx;
 
     }

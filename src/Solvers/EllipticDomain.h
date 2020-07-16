@@ -53,13 +53,13 @@ public:
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
-        double xx = getXRangeMin() + hr[0] * (x + 0.5);
-        double yy = getYRangeMin() + hr[1] * (y + 0.5);
+        double xx = getXRangeMin() + hr_m[0] * (x + 0.5);
+        double yy = getYRangeMin() + hr_m[1] * (y + 0.5);
 
         bool isInsideEllipse = (xx * xx / (getXRangeMax() * getXRangeMax()) +
                                 yy * yy / (getYRangeMax() * getYRangeMax()) < 1);
 
-        return (isInsideEllipse && z > 0 && z < nr[2] - 1);
+        return (isInsideEllipse && z > 0 && z < nr_m[2] - 1);
     }
 
     int getNumXY(int /*z*/) { return nxy_m; }
@@ -96,7 +96,7 @@ private:
     int interpolationMethod_m;
 
     /// conversion from (x,y) to index in xy plane
-    inline int toCoordIdx(int x, int y) { return y * nr[0] + x; }
+    inline int toCoordIdx(int x, int y) { return y * nr_m[0] + x; }
 
     /// conversion from (x,y,z) to index on the 3D grid
     inline int getIdx(int x, int y, int z) {
@@ -110,9 +110,9 @@ private:
     inline void getCoord(int idx, int &x, int &y, int &z) {
         int ixy = idx % nxy_m;
         int xy = coordMap_m[ixy];
-        int inr = (int)nr[0];
+        int inr = (int)nr_m[0];
         x = xy % inr;
-        y = (xy - x) / nr[0];
+        y = (xy - x) / nr_m[0];
         z = (idx - ixy) / nxy_m + 1;
     }
 

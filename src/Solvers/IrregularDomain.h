@@ -57,6 +57,10 @@ public:
     typedef Stencil<int>    StencilIndex_t;
     typedef Stencil<double> StencilValue_t;
 
+    IrregularDomain(const Vector_t& nr,
+                    const Vector_t& hr);
+
+
     /** method to compute the intersection points with the boundary geometry
      * (stored in some appropriate data structure)
      * \param hr updated mesh spacings
@@ -104,10 +108,10 @@ public:
     /// \return boolean indicating if the point lies inside the boundary
     virtual bool isInside(int x, int y, int z) = 0;
 
-    Vector_t getNr() { return nr; }
-    Vector_t getHr() { return hr; }
-    void setNr(Vector_t nri) { nr = nri; }
-    void setHr(Vector_t hri) { hr = hri; }
+    Vector_t getNr() { return nr_m; }
+    Vector_t getHr() { return hr_m; }
+    void setNr(Vector_t nr) { nr_m = nr; }
+    void setHr(Vector_t hr) { hr_m = hr; }
 
     void setMinMaxZ(double minz, double maxz) { zMin_m=minz; zMax_m=maxz; }
     double getMinZ() { return zMin_m; }
@@ -145,9 +149,9 @@ protected:
 
     // a irregular domain is always defined on a grid
     /// number of mesh points in each direction
-    Vector_t nr;
+    Vector_t nr_m;
     /// mesh-spacings in each direction
-    Vector_t hr;
+    Vector_t hr_m;
 
     /// min/max of bunch in floor coordinates
     double zMin_m;

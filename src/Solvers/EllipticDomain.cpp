@@ -37,14 +37,13 @@
 
 EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
                                std::string interpl)
+    : IrregularDomain(nr, hr)
 {
     Vector_t min(-bgeom->getA(), -bgeom->getB(), bgeom->getS());
     Vector_t max( bgeom->getA(),  bgeom->getB(), bgeom->getS() + bgeom->getLength());
     setRangeMin(min);
     setRangeMax(max);
     setMinMaxZ(min[2], max[2]);
-    setNr(nr);
-    setHr(hr);
 
     if (interpl == "CONSTANT")
         interpolationMethod_m = CONSTANT;
@@ -92,8 +91,8 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
      * grid points per plane --> otherwise we might
      * get not unique global indices in the Tpetra::CrsMatrix
      */
-    for (x = 0; x < nr[0]; ++x) {
-        for (y = 0; y < nr[1]; ++y) {
+    for (x = 0; x < nr_m[0]; ++x) {
+        for (y = 0; y < nr_m[1]; ++y) {
             if (isInside(x, y, 1)) {
                 idxMap_m[toCoordIdx(x, y)] = idx;
                 coordMap_m[idx++] = toCoordIdx(x, y);
@@ -116,7 +115,7 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
 
             // calculate intersection with the ellipse
             for (x = localId[0].first(); x <= localId[0].last(); x++) {
-                pos = getXRangeMin() + hr[0] * (x + 0.5);
+                pos = getXRangeMin() + hr_m[0] * (x + 0.5);
                 if (std::abs(pos) >= getXRangeMax())
                 {
                     intersectYDir_m.insert(std::pair<int, double>(x, 0));
@@ -130,7 +129,7 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
             }
 
             for (y = localId[0].first(); y < localId[1].last(); y++) {
-                pos = getYRangeMin() + hr[1] * (y + 0.5);
+                pos = getYRangeMin() + hr_m[1] * (y + 0.5);
                 if (std::abs(pos) >= getYRangeMax())
                 {
                     intersectXDir_m.insert(std::pair<int, double>(y, 0));
@@ -159,7 +158,7 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& 
     mymax  = Vector_t(getXRangeMax(), getYRangeMax(), getMaxZ());
 
     for (int i = 0; i < 3; ++i)
-        hr[i] = (mymax[i] - origin[i]) / nr[i];
+        hr[i] = (mymax[i] - origin[i]) / nr_m[i];
 }
 
 void EllipticDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
@@ -189,16 +188,16 @@ void EllipticDomain::constantInterpolation(int x, int y, int z, StencilValue_t& 
 {
     scaleFactor = 1.0;
 
-    value.west  = -1.0 / (hr[0] * hr[0]);
-    value.east  = -1.0 / (hr[0] * hr[0]);
-    value.north = -1.0 / (hr[1] * hr[1]);
-    value.south = -1.0 / (hr[1] * hr[1]);
-    value.front = -1.0 / (hr[2] * hr[2]);
-    value.back  = -1.0 / (hr[2] * hr[2]);
+    value.west  = -1.0 / (hr_m[0] * hr_m[0]);
+    value.east  = -1.0 / (hr_m[0] * hr_m[0]);
+    value.north = -1.0 / (hr_m[1] * hr_m[1]);
+    value.south = -1.0 / (hr_m[1] * hr_m[1]);
+    value.front = -1.0 / (hr_m[2] * hr_m[2]);
+    value.back  = -1.0 / (hr_m[2] * hr_m[2]);
 
-    value.center =  2.0 / (hr[0] * hr[0])
-                 +  2.0 / (hr[1] * hr[1])
-                 +  2.0 / (hr[2] * hr[2]);
+    value.center =  2.0 / (hr_m[0] * hr_m[0])
+                 +  2.0 / (hr_m[1] * hr_m[1])
+                 +  2.0 / (hr_m[2] * hr_m[2]);
 
     // we are a right boundary point
     if (!isInside(x + 1, y, z))
@@ -225,8 +224,8 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& va
 {
     scaleFactor = 1.0;
 
-    double cx = getXRangeMin() + hr[0] * (x + 0.5);
-    double cy = getYRangeMin() + hr[1] * (y + 0.5);
+    double cx = getXRangeMin() + hr_m[0] * (x + 0.5);
+    double cy = getYRangeMin() + hr_m[1] * (y + 0.5);
 
     double dx = 0.0;
     std::multimap<int, double>::iterator it = intersectXDir_m.find(y);
@@ -242,10 +241,10 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& va
     dy = it->second;
 
 
-    double dw = hr[0];
-    double de = hr[0];
-    double dn = hr[1];
-    double ds = hr[1];
+    double dw = hr_m[0];
+    double de = hr_m[0];
+    double dn = hr_m[1];
+    double ds = hr_m[1];
     value.center = 0.0;
 
     // we are a right boundary point
@@ -285,9 +284,9 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& va
     }
 
     // handle boundary condition in z direction
-    value.front = -1.0 / (hr[2] * hr[2]);
-    value.back  = -1.0 / (hr[2] * hr[2]);
-    value.center += 2.0 / (hr[2] * hr[2]);
+    value.front = -1.0 / (hr_m[2] * hr_m[2]);
+    value.back  = -1.0 / (hr_m[2] * hr_m[2]);
+    value.center += 2.0 / (hr_m[2] * hr_m[2]);
     robinBoundaryStencil(z, value.front, value.back, value.center);
 }
 
@@ -297,8 +296,8 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z,
 {
     scaleFactor = 1.0;
 
-    double cx = (x - (nr[0] - 1) / 2.0) * hr[0];
-    double cy = (y - (nr[1] - 1) / 2.0) * hr[1];
+    double cx = (x - (nr_m[0] - 1) / 2.0) * hr_m[0];
+    double cy = (y - (nr_m[1] - 1) / 2.0) * hr_m[1];
 
     // since every vector for elliptic domains has ALWAYS size 2 we
     // can catch all cases manually
@@ -314,10 +313,10 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z,
         ++it;
     dy = it->second;
 
-    double dw = hr[0];
-    double de = hr[0];
-    double dn = hr[1];
-    double ds = hr[1];
+    double dw = hr_m[0];
+    double de = hr_m[0];
+    double dn = hr_m[1];
+    double ds = hr_m[1];
 
     value.west = 0.0;
     value.east = 0.0;
@@ -370,14 +369,14 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z,
     }
 
     // handle boundary condition in z direction
-    value.front = -1.0 / (hr[2] * hr[2]);
-    value.back  = -1.0 / (hr[2] * hr[2]);
-    value.center += 2.0 / (hr[2] * hr[2]);
+    value.front = -1.0 / (hr_m[2] * hr_m[2]);
+    value.back  = -1.0 / (hr_m[2] * hr_m[2]);
+    value.center += 2.0 / (hr_m[2] * hr_m[2]);
     robinBoundaryStencil(z, value.front, value.back, value.center);
 }
 
 void EllipticDomain::robinBoundaryStencil(int z, double &F, double &B, double &C) {
-    if (z == 0 || z == nr[2] - 1) {
+    if (z == 0 || z == nr_m[2] - 1) {
 
         // case where we are on the Robin BC in Z-direction
         // where we distinguish two cases
@@ -390,8 +389,8 @@ void EllipticDomain::robinBoundaryStencil(int z, double &F, double &B, double &C
 
         // add contribution of Robin discretization to center point
         // d the distance between the center of the bunch and the boundary
-        double d = 0.5 * hr[2] * (nr[2] - 1);
-        C += 2.0 / (d * hr[2]);
+        double d = 0.5 * hr_m[2] * (nr_m[2] - 1);
+        C += 2.0 / (d * hr_m[2]);
     }
 }
 

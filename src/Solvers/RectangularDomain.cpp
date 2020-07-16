@@ -28,17 +28,17 @@
 #include "Solvers/RectangularDomain.h"
 #include "Utilities/OpalException.h"
 
-RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t hr) {
+RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t hr)
+    : IrregularDomain(nr, hr)
+{
     setRangeMin(Vector_t(-a, -b, getMinZ()));
-    setRangeMax(Vector_t( a,  b, getMax/()));
-    setNr(nr);
-    setHr(hr);
+    setRangeMax(Vector_t( a,  b, getMaxZ()));
     nxy_m = nr[0] * nr[1];
 }
 
 void RectangularDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     setHr(hr);
-    nxy_m = nr[0] * nr[1];
+    nxy_m = nr_m[0] * nr_m[1];
 }
 
 int RectangularDomain::getNumXY(int /*z*/) {
@@ -50,22 +50,22 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& 
 {
     //scaleFactor = 1.0;
 
-    //W = -1/hr[0]*1/hr[0];
-    //E = -1/hr[0]*1/hr[0];
-    //N = -1/hr[1]*1/hr[1];
-    //S = -1/hr[1]*1/hr[1];
-    //F = -1/hr[2]*1/hr[2];
-    //B = -1/hr[2]*1/hr[2];
-    //C = 2/hr[0]*1/hr[0] + 2/hr[1]*1/hr[1] + 2/hr[2]*1/hr[2];
+    //W = -1/hr_m_m[0]*1/hr_m[0];
+    //E = -1/hr_m[0]*1/hr_m[0];
+    //N = -1/hr_m[1]*1/hr_m[1];
+    //S = -1/hr_m[1]*1/hr_m[1];
+    //F = -1/hr_m[2]*1/hr_m[2];
+    //B = -1/hr_m[2]*1/hr_m[2];
+    //C = 2/hr_m[0]*1/hr_m[0] + 2/hr_m[1]*1/hr_m[1] + 2/hr_m[2]*1/hr_m[2];
 
-    scaleFactor  = hr[0] * hr[1] * hr[2];
-    value.west   = -hr[1] * hr[2] / hr[0];
-    value.east   = -hr[1] * hr[2] / hr[0];
-    value.north  = -hr[0] * hr[2] / hr[1];
-    value.south  = -hr[0] * hr[2] / hr[1];
-    value.front  = -hr[0] * hr[1] / hr[2];
-    value.back   = -hr[0] * hr[1] / hr[2];
-    value.center = 2 * hr[1] * hr[2] / hr[0] + 2 * hr[0] * hr[2] / hr[1] + 2 * hr[0] * hr[1] / hr[2];
+    scaleFactor  = hr_m[0] * hr_m[1] * hr_m[2];
+    value.west   = -hr_m[1] * hr_m[2] / hr_m[0];
+    value.east   = -hr_m[1] * hr_m[2] / hr_m[0];
+    value.north  = -hr_m[0] * hr_m[2] / hr_m[1];
+    value.south  = -hr_m[0] * hr_m[2] / hr_m[1];
+    value.front  = -hr_m[0] * hr_m[1] / hr_m[2];
+    value.back   = -hr_m[0] * hr_m[1] / hr_m[2];
+    value.center = 2 * hr_m[1] * hr_m[2] / hr_m[0] + 2 * hr_m[0] * hr_m[2] / hr_m[1] + 2 * hr_m[0] * hr_m[1] / hr_m[2];
 
     if(!isInside(x + 1, y, z))
         value.east = 0.0; //we are a right boundary point
@@ -82,10 +82,10 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& 
     //dirichlet
     if(z == 0)
         value.front = 0.0;
-    if(z == nr[2] - 1)
+    if(z == nr_m[2] - 1)
         value.back = 0.0;
 
-    if(false /*z == 0 || z == nr[2]-1*/) {
+    if(false /*z == 0 || z == nr_m[2]-1*/) {
 
         //case where we are on the Robin BC in Z-direction
         //where we distinguish two cases
@@ -98,14 +98,14 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& 
 
         //add contribution of Robin discretization to center point
         //d the distance between the center of the bunch and the boundary
-        //double cx = (x-(nr[0]-1)/2)*hr[0];
-        //double cy = (y-(nr[1]-1)/2)*hr[1];
-        //double cz = hr[2]*(nr[2]-1);
+        //double cx = (x-(nr_m[0]-1)/2)*hr_m[0];
+        //double cy = (y-(nr_m[1]-1)/2)*hr_m[1];
+        //double cz = hr_m[2]*(nr_m[2]-1);
         //double d = sqrt(cx*cx+cy*cy+cz*cz);
-        double d = hr[2] * (nr[2] - 1) / 2;
-        //cout << cx << " " << cy << " " << cz << " " << 2/(d*hr[2]) << endl;
-        value.center += 2 / (d * hr[2]);
-        //C += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
+        double d = hr_m[2] * (nr_m[2] - 1) / 2;
+        //cout << cx << " " << cy << " " << cz << " " << 2/(d*hr_m[2]) << endl;
+        value.center += 2 / (d * hr_m[2]);
+        //C += 2/((hr_m[2]*(nr_m[2]-1)/2.0) * hr_m[2]);
 
         //scale all stencil-points in z-plane with 0.5 (Neumann discretization)
         value.west   /= 2.0;
