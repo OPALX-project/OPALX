@@ -86,9 +86,6 @@ public:
     void setYRangeMax(double ymax){ maxCoords_m(1) = ymax; }
     void setZRangeMax(double zmax){ maxCoords_m(2) = zmax; }
 
-
-    bool hasGeometryChanged() { return hasGeometryChanged_m; }
-
 private:
     BoundaryGeometry *bgeom_m;
 
@@ -130,9 +127,6 @@ private:
 
     // Interpolation type
     int interpolationMethod;
-
-    // Flag indicating if geometry has changed for the current time-step
-    bool hasGeometryChanged_m;
 
     Vector_t Geo_nr_m;
     Vector_t Geo_hr_m;

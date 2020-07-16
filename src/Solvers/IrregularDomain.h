@@ -133,7 +133,9 @@ public:
     virtual double getZRangeMax() = 0;
 
     virtual int getIdx(int x, int y, int z) = 0;
-    virtual bool hasGeometryChanged() = 0;
+
+    bool hasGeometryChanged();
+
     virtual ~IrregularDomain() {};
 
     virtual void resizeMesh(Vector_t& origin, Vector_t& hr,
@@ -169,9 +171,19 @@ protected:
     /// mean position of bunch (m)
     Vector_t rMean_m;
     Quaternion_t globalToLocalQuaternion_m;
+
+    /// flag indicating if geometry has changed for the current time-step
+    bool hasGeometryChanged_m;
+
 };
 
+
+inline bool IrregularDomain::hasGeometryChanged() {
+    return hasGeometryChanged_m;
+}
+
 #endif
+
 
 // vi: set et ts=4 sw=4 sts=4:
 // Local Variables:
