@@ -26,6 +26,35 @@
 
 #include "Solvers/IrregularDomain.h"
 
+
+void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)
+{
+    index.west  = -1;
+    index.east  = -1;
+    index.south = -1;
+    index.north = -1;
+    index.front = -1;
+    index.back  = -1;
+
+    if (x > 0 && isInside(x - 1, y, z))
+        index.west = getIdx(x - 1, y, z);
+
+    if (x < nr[0] - 1 && isInside(x + 1, y, z))
+        index.east = getIdx(x + 1, y, z);
+
+    if (y > 0 && isInside(x, y - 1, z))
+        index.south = getIdx(x, y - 1, z);
+
+    if (y < nr[1] - 1 && isInside(x, y + 1, z))
+        index.north = getIdx(x, y + 1, z);
+
+    if (z > 0 && isInside(x, y, z - 1))
+        index.front = getIdx(x, y, z - 1);
+
+    if (z < nr[2] - 1 && isInside(x, y, z + 1))
+        index.back = getIdx(x, y, z + 1);
+}
+
 void IrregularDomain::getNeighbours(int id, StencilIndex_t& index)
 {
     int x = 0, y = 0, z = 0;

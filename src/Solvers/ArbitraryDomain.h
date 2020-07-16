@@ -59,9 +59,6 @@ public:
     void getBoundaryStencil(int idx, int idy, int idz, StencilValue_t& value,
                             double &scaleFactor);
 
-    /// returns index of neighbours at (x,y,z)
-    void getNeighbours(int idx, int idy, int idz, StencilIndex_t& index);
-
     /// returns type of boundary condition
     std::string getType() {return "Geometric";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
