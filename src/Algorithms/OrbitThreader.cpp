@@ -31,7 +31,6 @@ OrbitThreader::OrbitThreader(const PartData &ref,
                              double maxDiffZBunch,
                              double t,
                              double dt,
-                             size_t maxIntegSteps,
                              double zstop,
                              OpalBeamline &bl) :
     r_m(r),
@@ -39,7 +38,6 @@ OrbitThreader::OrbitThreader(const PartData &ref,
     pathLength_m(s),
     time_m(t),
     dt_m(dt),
-    maxIntegSteps_m(maxIntegSteps),
     zstop_m(zstop),
     itsOpalBeamline_m(bl),
     errorFlag_m(0),
@@ -82,17 +80,16 @@ OrbitThreader::OrbitThreader(const PartData &ref,
     }
 
     distTrackBack_m = std::min(pathLength_m, std::max(0.0, maxDiffZBunch));
+    computeBoundingBox();
 }
 
 void OrbitThreader::execute() {
     double initialPathLength = pathLength_m;
-    computeMaximalImplicitDrift2();
-    double maxDistance = computeMaximalImplicitDrift();
 
     auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
     std::set<std::string> visitedElements;
 
-    trackBack(2 * maxDistance);
+    trackBack();
 
     Vector_t nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
@@ -110,7 +107,8 @@ void OrbitThreader::execute() {
         double initialS = pathLength_m;
         Vector_t initialR = r_m;
         Vector_t initialP = p_m;
-        integrate(elementSet, maxIntegSteps_m, 2 * maxDistance);
+        double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
+        integrate(elementSet, maxDistance);
 
         registerElement(elementSet, initialS,  initialR, initialP);
 
@@ -147,7 +145,7 @@ void OrbitThreader::execute() {
     processElementRegister();
 }
 
-void OrbitThreader::integrate(const IndexMap::value_t &activeSet, size_t /*maxSteps*/, double maxDrift) {
+void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double maxDrift) {
     static size_t step = 0;
     CoordinateSystemTrafo labToBeamline = itsOpalBeamline_m.getCSTrafoLab2Local();
     const double oldPathLength = pathLength_m;
@@ -282,7 +280,7 @@ double OrbitThreader::getMaxDesignEnergy(const IndexMap::value_t &elementSet) co
     return designEnergy;
 }
 
-void OrbitThreader::trackBack(double maxDrift) {
+void OrbitThreader::trackBack() {
     dt_m *= -1;
     double initialPathLength = pathLength_m;
 
@@ -290,11 +288,12 @@ void OrbitThreader::trackBack(double maxDrift) {
     integrator_m.push(nextR, p_m, dt_m);
     nextR *= Physics::c * dt_m;
 
-    maxDrift = std::min(maxDrift, distTrackBack_m);
     while (std::abs(initialPathLength - pathLength_m) < distTrackBack_m) {
         auto elementSet = itsOpalBeamline_m.getElements(nextR);
 
-        integrate(elementSet, 1000, maxDrift);
+        double maxDrift = computeDriftLengthToBoundingBox(elementSet, r_m, -p_m);
+        maxDrift = std::min(maxDrift, distTrackBack_m);
+        integrate(elementSet, maxDrift);
 
         nextR = r_m / (Physics::c * dt_m);
         integrator_m.push(nextR, p_m, dt_m);
@@ -389,7 +388,7 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
     }
 }
 
-void OrbitThreader::computeMaximalImplicitDrift2() {
+void OrbitThreader::computeBoundingBox() {
     FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
     FieldList::iterator it = allElements.begin();
     const FieldList::iterator end = allElements.end();
@@ -403,76 +402,40 @@ void OrbitThreader::computeMaximalImplicitDrift2() {
         ElementBase::BoundingBox other = it->getBoundingBoxInLabCoords();
         globalBoundingBox_m.getCombinedBoundingBox(other);
     }
+
+    Vector_t const& X = globalBoundingBox_m.lowerLeftCorner;
+    Vector_t const& Y = globalBoundingBox_m.upperRightCorner;
+    Vector_t delta = Y - X;
+    Vector_t dX(delta(0), 0, 0), dY(0, delta(1), 0), dZ(0, 0, delta(2));
+    std::vector<Vector_t> corners{X, X + dX, X + dX + dY, X + dY, Y, Y - dX, Y - dX - dY, Y - dY};
+    std::vector<std::vector<unsigned int>> paths{{0, 1, 2, 3}, {4, 5, 6, 7}, {0, 1, 7, 6}, {1, 2, 4, 7}, {2, 3, 5, 4}, {3, 0, 6, 5}};
+
+    std::ofstream out("boundingBox.gpl");
+    std::ofstream traj("trajectories.gpl");
+    for (std::vector<unsigned int> const& path: paths) {
+        for (unsigned int i = 0; i < 5; ++ i) {
+            Vector_t const& point = corners[path[i % 4]];
+            out << point(0) << "\t" << point(1) << "\t" << point(2) << std::endl;
+        }
+        out << std::endl;
+    }
 }
 
-double OrbitThreader::computeMaximalImplicitDrift() {
-    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
-    double maxDrift = 0.0;
-
-    MarkerRep start("#S");
-    CoordinateSystemTrafo toEdge(r_m, getQuaternion(p_m, Vector_t(0, 0, 1)));
-    start.setElementLength(0.0);
-    start.setCSTrafoGlobal2Local(toEdge);
-    std::shared_ptr<Component> startPtr(static_cast<Marker*>(start.clone()));
-    allElements.push_front(ClassicField(startPtr, 0.0, 0.0));
-
-    FieldList::iterator it = allElements.begin();
-    const FieldList::iterator end = allElements.end();
-    for (; it != end; ++ it) {
-        auto element1 = it->getElement();
-        const auto &toEdge = element1->getCSTrafoGlobal2Local();
-        auto toEnd = element1->getEdgeToEnd() * toEdge;
-        Vector_t end1 = toEnd.transformFrom(Vector_t(0, 0, 0));
-        Vector_t directionEnd = toEnd.rotateFrom(Vector_t(0, 0, 1));
-        if (element1->getType() == ElementBase::RBEND ||
-            element1->getType() == ElementBase::SBEND ||
-            element1->getType() == ElementBase::RBEND3D ) {
-            auto toBegin = element1->getEdgeToBegin() * toEdge;
-
-            BendBase *bend = static_cast<BendBase*>(element1.get());
-            double angleRelativeToFace = bend->getEntranceAngle() - bend->getBendAngle();
-            directionEnd = toBegin.rotateFrom(Vector_t(sin(angleRelativeToFace), 0, cos(angleRelativeToFace)));
+double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
+                                                      const Vector_t & position,
+                                                      const Vector_t & direction) const {
+    if (elements.empty() ||
+        (elements.size() == 1 && (*elements.begin())->getType() == ElementBase::ElementType::DRIFT)) {
+        boost::optional<Vector_t> intersectionPoint = globalBoundingBox_m.getPointOfIntersection(position, direction);
+        double maxDrift = intersectionPoint ? euclidean_norm(intersectionPoint.get() - position): 10.0;
+        if (intersectionPoint) {
+            std::ofstream traj("trajectories.gpl", std::ios::app);
+            traj << position(0) << "\t" << position(1) << "\t" << position(2) << std::endl;
+            traj << intersectionPoint.get()(0) << "\t" << intersectionPoint.get()(1) << "\t" << intersectionPoint.get()(2) << std::endl;
+            traj << std::endl;
         }
-
-        double minDistanceLocal = std::numeric_limits<double>::max();
-        FieldList::iterator it2 = allElements.begin();
-        for (; it2 != end; ++ it2) {
-            if (it == it2) continue;
-
-            auto element2 = it2->getElement();
-            const auto &toEdge = element2->getCSTrafoGlobal2Local();
-            auto toBegin = element2->getEdgeToBegin() * toEdge;
-            auto toEnd = element2->getEdgeToEnd() * toEdge;
-            Vector_t begin2 = toBegin.transformFrom(Vector_t(0, 0, 0));
-            Vector_t end2 = toEnd.transformFrom(Vector_t(0, 0, 0));
-            Vector_t directionBegin = toBegin.rotateFrom(Vector_t(0, 0, 1));
-            if (element2->getType() == ElementBase::RBEND ||
-                element2->getType() == ElementBase::SBEND ||
-                element2->getType() == ElementBase::RBEND3D ) {
-                BendBase *bend = static_cast<BendBase*>(element2.get());
-                double E1 = bend->getEntranceAngle();
-                directionBegin = toBegin.rotateFrom(Vector_t(sin(E1), 0, cos(E1)));
-            }
-
-
-            double distance = euclidean_norm(begin2 - end1);
-            double directionProjection = dot(directionEnd, directionBegin);
-            bool overlapping = dot(begin2 - end1, directionBegin) < 0.0? true: false;
-
-            if (!overlapping &&
-                directionProjection > 0.999 &&
-                minDistanceLocal > distance) {
-                minDistanceLocal = distance;
-            }
-        }
-
-        if (maxDrift < minDistanceLocal &&
-            minDistanceLocal != std::numeric_limits<double>::max()) {
-            maxDrift = minDistanceLocal;
-        }
+        return maxDrift;
     }
 
-    maxDrift = std::min(maxIntegSteps_m * std::abs(dt_m) * Physics::c, maxDrift);
-
-    return maxDrift;
+    return std::numeric_limits<double>::max();
 }

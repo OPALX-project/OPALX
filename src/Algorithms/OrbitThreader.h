@@ -20,7 +20,6 @@ public:
                   double maxDiffZBunch,
                   double t,
                   double dT,
-                  size_t maxIntegSteps,
                   double zstop,
                   OpalBeamline &bl);
 
@@ -48,8 +47,6 @@ private:
     /// the time step
     double dt_m;
 
-    /// the number of time steps to track
-    const size_t maxIntegSteps_m;
     /// final position in path length
     const double zstop_m;
 
@@ -80,8 +77,8 @@ private:
 
     std::multimap<std::string, elementPosition> elementRegistry_m;
 
-    void trackBack(double maxDrift);
-    void integrate(const IndexMap::value_t &activeSet, size_t maxSteps, double maxDrift = 10.0);
+    void trackBack();
+    void integrate(const IndexMap::value_t &activeSet, double maxDrift = 10.0);
     bool containsCavity(const IndexMap::value_t &activeSet);
     void autophaseCavities(const IndexMap::value_t &activeSet, const std::set<std::string> &visitedElements);
     double getMaxDesignEnergy(const IndexMap::value_t &elementSet) const;
@@ -89,8 +86,11 @@ private:
     void registerElement(const IndexMap::value_t &elementSet, double, const Vector_t &r, const Vector_t &p);
     void processElementRegister();
     void setDesignEnergy(FieldList &allElements, const std::set<std::string> &visitedElements);
-    void computeMaximalImplicitDrift2();
-    double computeMaximalImplicitDrift();
+    void computeBoundingBox();
+    // double computeMaximalImplicitDrift();
+    double computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
+                                           const Vector_t & position,
+                                           const Vector_t & direction) const;
 };
 
 inline
