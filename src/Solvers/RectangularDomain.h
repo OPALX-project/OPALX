@@ -52,8 +52,6 @@ public:
 
     /// returns index of neighbours at (x,y,z)
     using IrregularDomain::getNeighbours;
-    /// returns type of boundary condition
-    std::string getType() {return "Rectangular";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int /*z*/) {
         double xx = (x - (nr[0] - 1) / 2.0) * hr[0];

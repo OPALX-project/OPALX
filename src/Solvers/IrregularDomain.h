@@ -97,10 +97,6 @@ public:
 
     virtual void getCoord(int idx, int &x, int &y, int &z) = 0;
 
-    /// method that identifies a specialized boundary geometry
-    /// \return std::string containing a description of the boundary geometry used
-    virtual std::string getType() = 0;
-
     /// method that checks if a given point lies inside the boundary
     /// \param x index of the current element in the matrix
     /// \param y index of the current element in the matrix
