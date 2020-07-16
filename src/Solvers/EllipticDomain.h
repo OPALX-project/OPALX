@@ -39,6 +39,8 @@
 class EllipticDomain : public IrregularDomain {
 
 public:
+    using IrregularDomain::StencilIndex_t;
+    using IrregularDomain::StencilValue_t;
 
     EllipticDomain(Vector_t nr, Vector_t hr);
 
@@ -53,14 +55,11 @@ public:
     ~EllipticDomain();
 
     /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z,
-                            double &W, double &E, double &S,
-                            double &N, double &F, double &B,
-                            double &C, double &scaleFactor);
+    void getBoundaryStencil(int x, int y, int z, StencilValue_t& values,
+                            double &scaleFactor);
 
     /// returns index of neighbours at (x,y,z)
-    void getNeighbours(int x, int y, int z, int &W, int &E,
-                       int &S, int &N, int &F, int &B);
+    void getNeighbours(int x, int y, int z, StencilIndex_t& index);
 
     /// returns type of boundary condition
     std::string getType() {return "Elliptic";}
@@ -150,19 +149,13 @@ private:
     }
 
     /// different interpolation methods for boundary points
-    void constantInterpolation(int x, int y, int z,
-                               double &W, double &E, double &S,
-                               double &N, double &F, double &B,
-                               double &C, double &scaleFactor);
+    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                               double &scaleFactor);
 
-    void linearInterpolation(int x, int y, int z, double &W,
-                             double &E, double &S, double &N,
-                             double &F, double &B, double &C,
+    void linearInterpolation(int x, int y, int z, StencilValue_t& value,
                              double &scaleFactor);
 
-    void quadraticInterpolation(int x, int y, int z, double &W,
-                                double &E, double &S, double &N,
-                                double &F, double &B, double &C,
+    void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
                                 double &scaleFactor);
 
     /// function to handle the open boundary condition in longitudinal direction

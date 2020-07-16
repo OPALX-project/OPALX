@@ -69,6 +69,8 @@ Test in which of the 3 parts of the geometry we are in.
 class BoxCornerDomain : public IrregularDomain {
 
 public:
+    using IrregularDomain::StencilIndex_t;
+    using IrregularDomain::StencilValue_t;
 
     BoxCornerDomain(Vector_t nr, Vector_t hr);
     BoxCornerDomain(double A, double B, double C, double Length, double L1, double L2, Vector_t nr, Vector_t hr,
@@ -76,11 +78,10 @@ public:
     ~BoxCornerDomain();
 
     /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B,
-                            double &C, double &scaleFactor);
+    void getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double &scaleFactor);
 
     /// returns index of neighbours at (x,y,z)
-    void getNeighbours(int x, int y, int z, int &W, int &E, int &S, int &N, int &F, int &B);
+    void getNeighbours(int x, int y, int z, StencilIndex_t& index);
 
     /// returns type of boundary condition
     std::string getType() {return "BoxCorner";}
@@ -232,9 +233,14 @@ private:
     }
 
     /// different interpolation methods for boundary points
-    void constantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
-    void linearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
-    void quadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                               double &scaleFactor);
+
+    void linearInterpolation(int x, int y, int z, StencilValue_t& value,
+                             double &scaleFactor);
+
+    void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
+                                double &scaleFactor);
 
 };
 
