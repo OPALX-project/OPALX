@@ -126,7 +126,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                     currentGeometry->getL1(),
                                     currentGeometry->getL2(),
                                     orig_nr_m, hr_m, interpl));
-            bp_m->compute(itsBunch_m->get_hr());
+            bp_m->compute(itsBunch_m->get_hr(), layout_m->getLocalNDIndex());
         } else {
             throw OpalException("MGPoissonSolver::MGPoissonSolver",
                                 "Geometry not known");

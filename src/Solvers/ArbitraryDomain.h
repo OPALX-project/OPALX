@@ -76,8 +76,6 @@ public:
     bool isInside(int idx, int idy, int idz);
     /// returns number of nodes in xy plane
     int getNumXY(int idz);
-    // calculates intersection
-    void compute(Vector_t hr);
     // calculates intersection with rotated and shifted geometry
     void compute(Vector_t hr, NDIndex<3> localId);
 
