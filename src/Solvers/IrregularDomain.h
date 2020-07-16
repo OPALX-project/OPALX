@@ -121,12 +121,15 @@ public:
 
     Quaternion_t getGlobalToLocalQuaternion() { return globalToLocalQuaternion_m;}
 
-    virtual double getXRangeMin() = 0;
-    virtual double getXRangeMax() = 0;
-    virtual double getYRangeMin() = 0;
-    virtual double getYRangeMax() = 0;
-    virtual double getZRangeMin() = 0;
-    virtual double getZRangeMax() = 0;
+    double getXRangeMin();
+    double getXRangeMax();
+    double getYRangeMin();
+    double getYRangeMax();
+    double getZRangeMin();
+    double getZRangeMax();
+
+    void setRangeMin(const Vector_t&);
+    void setRangeMax(const Vector_t&);
 
     virtual int getIdx(int x, int y, int z) = 0;
 
@@ -136,21 +139,7 @@ public:
 
     virtual void resizeMesh(Vector_t& origin, Vector_t& hr,
                             const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
-                            double /*dh*/)
-    {
-        double xmin = getXRangeMin();
-        double xmax = getXRangeMax();
-        double ymin = getYRangeMin();
-        double ymax = getYRangeMax();
-        double zmin = getZRangeMin();
-        double zmax = getZRangeMax();
-
-        origin = Vector_t(xmin, ymin , zmin);
-        Vector_t mymax = Vector_t(xmax, ymax , zmax);
-
-        for (int i = 0; i < 3; i++)
-            hr[i] = (mymax[i] - origin[i]) / nr[i];
-    };
+                            double /*dh*/);
 
 protected:
 
@@ -164,6 +153,9 @@ protected:
     double zMin_m;
     double zMax_m;
 
+    Vector_t min_m;
+    Vector_t max_m;
+
     /// mean position of bunch (m)
     Vector_t rMean_m;
     Quaternion_t globalToLocalQuaternion_m;
@@ -176,6 +168,38 @@ protected:
 
 inline bool IrregularDomain::hasGeometryChanged() {
     return hasGeometryChanged_m;
+}
+
+inline double IrregularDomain::getXRangeMin() {
+    return min_m(0);
+}
+
+inline double IrregularDomain::getXRangeMax() {
+    return max_m(0);
+}
+
+inline double IrregularDomain::getYRangeMin() {
+    return min_m(1);
+}
+
+inline double IrregularDomain::getYRangeMax() {
+    return max_m(1);
+}
+
+inline double IrregularDomain::getZRangeMin() {
+    return min_m(2);
+}
+
+inline double IrregularDomain::getZRangeMax() {
+    return max_m(2);
+}
+
+inline void IrregularDomain::setRangeMin(const Vector_t& min) {
+    min_m = min;
+}
+
+inline void IrregularDomain::setRangeMax(const Vector_t& max) {
+    max_m = max;
 }
 
 #endif
