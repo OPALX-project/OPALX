@@ -58,9 +58,6 @@ public:
     void getBoundaryStencil(int x, int y, int z, StencilValue_t& values,
                             double &scaleFactor);
 
-    /// returns type of boundary condition
-    std::string getType() {return "Elliptic";}
-
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
         double xx = - semiMajor_m + hr[0] * (x + 0.5);

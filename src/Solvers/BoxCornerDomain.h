@@ -80,10 +80,6 @@ public:
     /// returns discretization at (x,y,z)
     void getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double &scaleFactor);
 
-    /// returns type of boundary condition
-    std::string getType() {return "BoxCorner";}
-
-
     /// we do not need this
     int getNumXY(int /*z*/) { return -1;}
 
