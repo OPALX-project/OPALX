@@ -122,8 +122,6 @@ public:
     //TODO: ?
     int getStartIdx() {return 0;}
 
-    bool hasGeometryChanged() { return hasGeometryChanged_m; }
-
 private:
 
     //XXX: since the Y coorindate is dependent on the Z value we need (int,
@@ -178,8 +176,6 @@ private:
 
     /// interpolation type
     int interpolationMethod;
-    /// flag indicating if geometry has changed for the current time-step
-    bool hasGeometryChanged_m;
 
     /// for debug reasons
    std::ofstream os_m;
