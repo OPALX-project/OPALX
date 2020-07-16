@@ -43,6 +43,8 @@ class BoundaryGeometry;
 class ArbitraryDomain : public IrregularDomain {
 
 public:
+    using IrregularDomain::StencilIndex_t;
+    using IrregularDomain::StencilValue_t;
 
     ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
                     std::string interpl);
@@ -54,13 +56,11 @@ public:
     ~ArbitraryDomain();
 
     /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int idx, int idy, int idz, double &W, double &E,
-                            double &S, double &N, double &F, double &B, double &C,
+    void getBoundaryStencil(int idx, int idy, int idz, StencilValue_t& value,
                             double &scaleFactor);
 
     /// returns index of neighbours at (x,y,z)
-    void getNeighbours(int idx, int idy, int idz, int &W,
-                       int &E, int &S, int &N, int &F, int &B);
+    void getNeighbours(int idx, int idy, int idz, StencilIndex_t& index);
 
     /// returns type of boundary condition
     std::string getType() {return "Geometric";}
@@ -158,17 +158,14 @@ private:
     }
 
     // Different interpolation methods for boundary points
-    void constantInterpolation(int idx, int idy, int idz, double &W, double &E,
-                               double &S, double &N, double &F, double &B,
-                               double &C, double &scaleFactor);
+    void constantInterpolation(int idx, int idy, int idz, StencilValue_t& value,
+                               double &scaleFactor);
 
-    void linearInterpolation(int idx, int idy, int idz, double &W, double &E,
-                             double &S, double &N, double &F, double &B,
-                             double &C, double &scaleFactor);
+    void linearInterpolation(int idx, int idy, int idz, StencilValue_t& value,
+                             double &scaleFactor);
 
-    void quadraticInterpolation(int idx, int idy, int idz, double &W, double &E,
-                                double &S, double &N, double &F, double &B,
-                                double &C, double &scaleFactor);
+    void quadraticInterpolation(int idx, int idy, int idz, StencilValue_t& value,
+                                double &scaleFactor);
 
     // Rotate positive axes with quaternion -DW
     inline void rotateWithQuaternion(Vector_t &v, Quaternion_t const quaternion);

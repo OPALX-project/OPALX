@@ -43,6 +43,20 @@ class IrregularDomain {
 
 public:
 
+    template<typename T>
+    struct Stencil {
+        T center;   // x,   y,   z
+        T west;     // x-1, y,   z
+        T east;     // x+1, y,   z
+        T north;    // x,   y+1, z
+        T south;    // x,   y-1, z
+        T front;    // x,   y,   z-1
+        T back;     // x,   y,   z+1
+    };
+
+    typedef Stencil<int>    StencilIndex_t;
+    typedef Stencil<double> StencilValue_t;
+
     /** method to compute the intersection points with the boundary geometry
      * (stored in some appropriate data structure)
      * \param hr updated mesh spacings
@@ -58,46 +72,27 @@ public:
     /// \param x index of the current element in the matrix
     /// \param y index of the current element in the matrix
     /// \param z index of the current element in the matrix
-    /// \param W stencil value of the element in the west of idx: (x-1)
-    /// \param E stencil value of the element in the east of idx: (x+1)
-    /// \param S stencil value of the element in the south of idx: (y-1)
-    /// \param N stencil value of the element in the north of idx: (y+1)
-    /// \param F stencil value of the element in front of idx: (z-1)
-    /// \param B stencil value of the element in the back of idx: (z+1)
-    /// \param C stencil value of the element in the center
+    /// \param values of stencil element
+    /// \param scaleFactor of stencil values
     virtual void getBoundaryStencil(int x, int y, int z,
-                                    double &W, double &E, double &S,
-                                    double &N, double &F, double &B,
-                                    double &C, double &scaleFactor) = 0;
+                                    StencilValue_t& value,
+                                    double &scaleFactor) = 0;
 
     /// method to calculate the stencil at a boundary points
     /// \param id index of the current element in the matrix
-    /// \param W stencil value of the element in the west of idx: (x-1)
-    /// \param E stencil value of the element in the east of idx: (x+1)
-    /// \param S stencil value of the element in the south of idx: (y-1)
-    /// \param N stencil value of the element in the north of idx: (y+1)
-    /// \param F stencil value of the element in front of idx: (z-1)
-    /// \param B stencil value of the element in the back of idx: (z+1)
-    /// \param C stencil value of the element in the center
-    void getBoundaryStencil(int id, double &W, double &E, double &S,
-                            double &N, double &F, double &B, double &C,
+    // \param values of stencil element
+    /// \param scaleFactor of stencil values
+    void getBoundaryStencil(int id, StencilValue_t& value,
                             double &scaleFactor);
 
     /// method to calculate the neighbours in the matrix of the current index (x,y,z)
     /// \param x index of the current element in the matrix
     /// \param y index of the current element in the matrix
     /// \param z index of the current element in the matrix
-    /// \param W stencil index of the element in the west of idx: (x-1)
-    /// \param E stencil index of the element in the east of idx: (x+1)
-    /// \param S stencil index of the element in the south of idx: (y-1)
-    /// \param N stencil index of the element in the north of idx: (y+1)
-    /// \param F stencil index of the element in front of idx: (z-1)
-    /// \param B stencil index of the element in the back of idx: (z+1)
-    virtual void getNeighbours(int x, int y, int z, int &W, int &E, int &S,
-                               int &N, int &F, int &B) = 0;
+    /// \param index stencil indices of an element
+    virtual void getNeighbours(int x, int y, int z, StencilIndex_t& index) = 0;
 
-    void getNeighbours(int idx, int &W, int &E, int &S, int &N,
-                       int &F, int &B);
+    void getNeighbours(int idx, StencilIndex_t& index);
 
 
     virtual void getCoord(int idx, int &x, int &y, int &z) = 0;

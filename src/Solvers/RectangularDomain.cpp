@@ -53,8 +53,9 @@ int RectangularDomain::getNumXY(int /*z*/) {
     return nxy_m;
 }
 
-void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-
+void RectangularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
+                                           double &scaleFactor)
+{
     //scaleFactor = 1.0;
 
     //W = -1/hr[0]*1/hr[0];
@@ -65,32 +66,32 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, doubl
     //B = -1/hr[2]*1/hr[2];
     //C = 2/hr[0]*1/hr[0] + 2/hr[1]*1/hr[1] + 2/hr[2]*1/hr[2];
 
-    scaleFactor = hr[0] * hr[1] * hr[2];
-    W = -hr[1] * hr[2] / hr[0];
-    E = -hr[1] * hr[2] / hr[0];
-    N = -hr[0] * hr[2] / hr[1];
-    S = -hr[0] * hr[2] / hr[1];
-    F = -hr[0] * hr[1] / hr[2];
-    B = -hr[0] * hr[1] / hr[2];
-    C = 2 * hr[1] * hr[2] / hr[0] + 2 * hr[0] * hr[2] / hr[1] + 2 * hr[0] * hr[1] / hr[2];
+    scaleFactor  = hr[0] * hr[1] * hr[2];
+    value.west   = -hr[1] * hr[2] / hr[0];
+    value.east   = -hr[1] * hr[2] / hr[0];
+    value.north  = -hr[0] * hr[2] / hr[1];
+    value.south  = -hr[0] * hr[2] / hr[1];
+    value.front  = -hr[0] * hr[1] / hr[2];
+    value.back   = -hr[0] * hr[1] / hr[2];
+    value.center = 2 * hr[1] * hr[2] / hr[0] + 2 * hr[0] * hr[2] / hr[1] + 2 * hr[0] * hr[1] / hr[2];
 
     if(!isInside(x + 1, y, z))
-        E = 0.0; //we are a right boundary point
+        value.east = 0.0; //we are a right boundary point
 
     if(!isInside(x - 1, y, z))
-        W = 0.0; //we are a left boundary point
+        value.west = 0.0; //we are a left boundary point
 
     if(!isInside(x, y + 1, z))
-        N = 0.0; //we are a upper boundary point
+        value.north = 0.0; //we are a upper boundary point
 
     if(!isInside(x, y - 1, z))
-        S = 0.0; //we are a lower boundary point
+        value.south = 0.0; //we are a lower boundary point
 
     //dirichlet
     if(z == 0)
-        F = 0.0;
+        value.front = 0.0;
     if(z == nr[2] - 1)
-        B = 0.0;
+        value.back = 0.0;
 
     if(false /*z == 0 || z == nr[2]-1*/) {
 
@@ -99,9 +100,9 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, doubl
         //IFF: this values should not matter because they
         //never make it into the discretization matrix
         if(z == 0)
-            F = 0.0;
+            value.front = 0.0;
         else
-            B = 0.0;
+            value.back = 0.0;
 
         //add contribution of Robin discretization to center point
         //d the distance between the center of the bunch and the boundary
@@ -111,55 +112,55 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, doubl
         //double d = sqrt(cx*cx+cy*cy+cz*cz);
         double d = hr[2] * (nr[2] - 1) / 2;
         //cout << cx << " " << cy << " " << cz << " " << 2/(d*hr[2]) << endl;
-        C += 2 / (d * hr[2]);
+        value.center += 2 / (d * hr[2]);
         //C += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
 
         //scale all stencil-points in z-plane with 0.5 (Neumann discretization)
-        W /= 2.0;
-        E /= 2.0;
-        N /= 2.0;
-        S /= 2.0;
-        C /= 2.0;
-        scaleFactor *= 0.5;
+        value.west   /= 2.0;
+        value.east   /= 2.0;
+        value.north  /= 2.0;
+        value.south  /= 2.0;
+        value.center /= 2.0;
+        scaleFactor  *= 0.5;
     }
 
 
     //simple check if center value of stencil is positive
 #ifdef DEBUG
-    if(C <= 0)
+    if(value.center <= 0)
         throw OpalException("RectangularDomain::getBoundaryStencil",
                             "Stencil C is <= 0! This case should never occure!");
 #endif
 }
 
-void RectangularDomain::getNeighbours(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B) {
+void RectangularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index) {
 
     if(x > 0)
-        W = getIdx(x - 1, y, z);
+        index.west = getIdx(x - 1, y, z);
     else
-        W = -1;
+        index.west = -1;
     if(x < nr[0] - 1)
-        E = getIdx(x + 1, y, z);
+        index.east = getIdx(x + 1, y, z);
     else
-        E = -1;
+        index.east = -1;
 
     if(y < nr[1] - 1)
-        N = getIdx(x, y + 1, z);
+        index.north = getIdx(x, y + 1, z);
     else
-        N = -1;
+        index.north = -1;
     if(y > 0)
-        S = getIdx(x, y - 1, z);
+        index.south = getIdx(x, y - 1, z);
     else
-        S = -1;
+        index.south = -1;
 
     if(z > 0)
-        F = getIdx(x, y, z - 1);
+        index.front = getIdx(x, y, z - 1);
     else
-        F = -1;
+        index.front = -1;
     if(z < nr[2] - 1)
-        B = getIdx(x, y, z + 1);
+        index.back = getIdx(x, y, z + 1);
     else
-        B = -1;
+        index.back = -1;
 }
 
 /*

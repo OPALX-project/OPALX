@@ -383,59 +383,56 @@ int ArbitraryDomain::getNumXY(int z) {
     return numXY[z];
 }
 
-void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W,
-                                         double &E, double &S, double &N, double &F,
-                                         double &B, double &C, double &scaleFactor)
+void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz,
+                                         StencilValue_t& value, double &scaleFactor)
 {
     scaleFactor = 1.0;
     // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod){
     case CONSTANT:
-        constantInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
+        constantInterpolation(idx,idy,idz,value,scaleFactor);
         break;
     case LINEAR:
-        linearInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
+        linearInterpolation(idx,idy,idz,value,scaleFactor);
         break;
     case QUADRATIC:
-        //  QuadraticInterpolation(idx,idy,idz,W,E,S,N,F,B,C,scaleFactor);
+        //  QuadraticInterpolation(idx,idy,idz,value,scaleFactor);
         break;
     }
 
     // stencil center value has to be positive!
-    assert(C > 0);
+    assert(value.center > 0);
 }
 
-void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz, double& W,
-                                            double& E, double& S, double& N, double& F,
-                                            double& B, double& C, double& /*scaleFactor*/)
+void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
+                                            StencilValue_t& value, double& /*scaleFactor*/)
 {
-    W = -1/(hr[0]*hr[0]);
-    E = -1/(hr[0]*hr[0]);
-    N = -1/(hr[1]*hr[1]);
-    S = -1/(hr[1]*hr[1]);
-    F = -1/(hr[2]*hr[2]);
-    B = -1/(hr[2]*hr[2]);
-    C = 2/(hr[0]*hr[0]) + 2/(hr[1]*hr[1]) + 2/(hr[2]*hr[2]);
+    value.west = -1/(hr[0]*hr[0]);
+    value.east = -1/(hr[0]*hr[0]);
+    value.north = -1/(hr[1]*hr[1]);
+    value.south = -1/(hr[1]*hr[1]);
+    value.front = -1/(hr[2]*hr[2]);
+    value.back = -1/(hr[2]*hr[2]);
+    value.center = 2/(hr[0]*hr[0]) + 2/(hr[1]*hr[1]) + 2/(hr[2]*hr[2]);
 
     if(!isInside(idx-1,idy,idz))
-        W = 0.0;
+        value.west = 0.0;
     if(!isInside(idx+1,idy,idz))
-        E = 0.0;
+        value.east = 0.0;
 
     if(!isInside(idx,idy+1,idz))
-        N = 0.0;
+        value.north = 0.0;
     if(!isInside(idx,idy-1,idz))
-        S = 0.0;
+        value.south = 0.0;
 
     if(!isInside(idx,idy,idz-1))
-        F = 0.0;
+        value.front = 0.0;
     if(!isInside(idx,idy,idz+1))
-        B = 0.0;
+        value.back = 0.0;
 }
 
-void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W,
-                                          double& E, double& S, double& N, double& F,
-                                          double& B, double& C, double &scaleFactor)
+void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz,
+                                          StencilValue_t& value, double &scaleFactor)
 {
     scaleFactor = 1;
 
@@ -449,7 +446,7 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W,
     double dy_s=hr[1];
     double dz_f=hr[2];
     double dz_b=hr[2];
-    C = 0.0;
+    value.center = 0.0;
 
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
 
@@ -467,29 +464,29 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W,
         dz_f = std::abs(IntersectLoZ.find(coordxyz)->second - cz);
 
     if(dx_w != 0)
-        W = -(dz_f + dz_b) * (dy_n + dy_s) / dx_w;
+        value.west = -(dz_f + dz_b) * (dy_n + dy_s) / dx_w;
     else
-        W = 0;
+        value.west = 0;
     if(dx_e != 0)
-        E = -(dz_f + dz_b) * (dy_n + dy_s) / dx_e;
+        value.east = -(dz_f + dz_b) * (dy_n + dy_s) / dx_e;
     else
-        E = 0;
+        value.east = 0;
     if(dy_n != 0)
-        N = -(dz_f + dz_b) * (dx_w + dx_e) / dy_n;
+        value.north = -(dz_f + dz_b) * (dx_w + dx_e) / dy_n;
     else
-        N = 0;
+        value.north = 0;
     if(dy_s != 0)
-        S = -(dz_f + dz_b) * (dx_w + dx_e) / dy_s;
+        value.south = -(dz_f + dz_b) * (dx_w + dx_e) / dy_s;
     else
-        S = 0;
+        value.south = 0;
     if(dz_f != 0)
-        F = -(dx_w + dx_e) * (dy_n + dy_s) / dz_f;
+        value.front = -(dx_w + dx_e) * (dy_n + dy_s) / dz_f;
     else
-        F = 0;
+        value.front = 0;
     if(dz_b != 0)
-        B = -(dx_w + dx_e) * (dy_n + dy_s) / dz_b;
+        value.back = -(dx_w + dx_e) * (dy_n + dy_s) / dz_b;
     else
-        B = 0;
+        value.back = 0;
 
     //RHS scaleFactor for current 3D index
     //0.5* comes from discretiztaion
@@ -514,44 +511,43 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W,
     if(dy_s == 0)
         m2 = dy_n;
 
-    C = 2 / hr[2];
+    value.center = 2 / hr[2];
     if(dx_w != 0 || dx_e != 0)
-        C *= (dx_w + dx_e);
+        value.center *= (dx_w + dx_e);
     if(dy_n != 0 || dy_s != 0)
-        C *= (dy_n + dy_s);
+        value.center *= (dy_n + dy_s);
     if(dx_w != 0 || dx_e != 0)
-        C += (dz_f + dz_b) * (dy_n + dy_s) * (dx_w + dx_e) / m1;
+        value.center += (dz_f + dz_b) * (dy_n + dy_s) * (dx_w + dx_e) / m1;
     if(dy_n != 0 || dy_s != 0)
-        C += (dz_f + dz_b) * (dx_w + dx_e) * (dy_n + dy_s) / m2;
+        value.center += (dz_f + dz_b) * (dx_w + dx_e) * (dy_n + dy_s) / m2;
 }
 
-void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, int &W,
-                                    int &E, int &S, int &N, int &F, int &B)
+void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, StencilIndex_t& index)
 {
-    W = getIdx(idx - 1, idy, idz);
-    E = getIdx(idx + 1, idy, idz);
-    N = getIdx(idx, idy + 1, idz);
-    S = getIdx(idx, idy - 1, idz);
-    F = getIdx(idx, idy, idz - 1);
-    B = getIdx(idx, idy, idz + 1);
+    index.west  = getIdx(idx - 1, idy, idz);
+    index.east  = getIdx(idx + 1, idy, idz);
+    index.north = getIdx(idx, idy + 1, idz);
+    index.south = getIdx(idx, idy - 1, idz);
+    index.front = getIdx(idx, idy, idz - 1);
+    index.back  = getIdx(idx, idy, idz + 1);
 
     if(!isInside(idx+1,idy,idz))
-        E = -1;
+        index.east = -1;
 
     if(!isInside(idx-1,idy,idz))
-        W = -1;
+        index.west = -1;
 
     if(!isInside(idx,idy+1,idz))
-        N = -1;
+        index.north = -1;
 
     if(!isInside(idx,idy-1,idz))
-        S = -1;
+        index.south = -1;
 
     if(!isInside(idx,idy,idz-1))
-        F = -1;
+        index.front = -1;
 
     if(!isInside(idx,idy,idz+1))
-        B = -1;
+        index.back = -1;
 
 }
 
