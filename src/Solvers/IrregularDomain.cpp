@@ -26,20 +26,18 @@
 
 #include "Solvers/IrregularDomain.h"
 
-void IrregularDomain::getNeighbours(int id, int &W, int &E, int &S,
-                                    int &N, int &F, int &B)
+void IrregularDomain::getNeighbours(int id, StencilIndex_t& index)
 {
     int x = 0, y = 0, z = 0;
     getCoord(id, x, y, z);
-    getNeighbours(x, y, z, W, E, S, N, F, B);
+    getNeighbours(x, y, z, index);
 }
 
 
-void IrregularDomain::getBoundaryStencil(int id, double &W, double &E, double &S,
-                                         double &N, double &F, double &B, double &C,
+void IrregularDomain::getBoundaryStencil(int id, StencilValue_t& value,
                                          double &scaleFactor)
 {
     int idx = 0, idy = 0, idz = 0;
     getCoord(id, idx, idy, idz);
-    getBoundaryStencil(idx, idy, idz, W, E, S, N, F, B, C, scaleFactor);
+    getBoundaryStencil(idx, idy, idz, value, scaleFactor);
 }

@@ -33,6 +33,8 @@
 class RectangularDomain : public IrregularDomain {
 
 public:
+    using IrregularDomain::StencilIndex_t;
+    using IrregularDomain::StencilValue_t;
 
     /// constructor
     RectangularDomain(Vector_t nr, Vector_t hr);
@@ -45,10 +47,12 @@ public:
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);
     /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor);
+    void getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
+                            double &scaleFactor);
+
     /// returns index of neighbours at (x,y,z)
     using IrregularDomain::getNeighbours;
-    void getNeighbours(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B);
+    void getNeighbours(int x, int y, int z, StencilIndex_t& index);
     /// returns type of boundary condition
     std::string getType() {return "Rectangular";}
     /// queries if a given (x,y,z) coordinate lies inside the domain

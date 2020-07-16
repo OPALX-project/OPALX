@@ -155,83 +155,84 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
 }
 
 
-void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double &scaleFactor) {
 
     // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod) {
         case CONSTANT:
-            constantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            constantInterpolation(x, y, z, value, scaleFactor);
             break;
         case LINEAR:
-            linearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            linearInterpolation(x, y, z, value, scaleFactor);
             break;
         case QUADRATIC:
-            quadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            quadraticInterpolation(x, y, z, value, scaleFactor);
             break;
     }
 
     // stencil center value has to be positive!
-    assert(C > 0);
+    assert(value.center > 0);
 }
 
-void BoxCornerDomain::getNeighbours(int x, int y, int z, int &W, int &E, int &S, int &N, int &F, int &B) {
+void BoxCornerDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index) {
 
     if(x > 0)
-        W = getIdx(x - 1, y, z);
+        index.west = getIdx(x - 1, y, z);
     else
-        W = -1;
+        index.west = -1;
     if(x < nr[0] - 1)
-        E = getIdx(x + 1, y, z);
+        index.east = getIdx(x + 1, y, z);
     else
-        E = -1;
+        index.east = -1;
 
     if(y < nr[1] - 1)
-        N = getIdx(x, y + 1, z);
+        index.north = getIdx(x, y + 1, z);
     else
-        N = -1;
+        index.north = -1;
     if(y > 0)
-        S = getIdx(x, y - 1, z);
+        index.south = getIdx(x, y - 1, z);
     else
-        S = -1;
+        index.south = -1;
 
     if(z > 0)
-        F = getIdx(x, y, z - 1);
+        index.front = getIdx(x, y, z - 1);
     else
-        F = -1;
+        index.front = -1;
     if(z < nr[2] - 1)
-        B = getIdx(x, y, z + 1);
+        index.back = getIdx(x, y, z + 1);
     else
-        B = -1;
+        index.back = -1;
 
 }
 
-void BoxCornerDomain::constantInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-
+void BoxCornerDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                                            double &scaleFactor)
+{
     scaleFactor = 1.0;
 
-    W = -1 / hr[0] * 1 / hr[0];
-    E = -1 / hr[0] * 1 / hr[0];
-    N = -1 / hr[1] * 1 / hr[1];
-    S = -1 / hr[1] * 1 / hr[1];
-    F = -1 / hr[2] * 1 / hr[2];
-    B = -1 / hr[2] * 1 / hr[2];
-    C = 2 / hr[0] * 1 / hr[0] + 2 / hr[1] * 1 / hr[1] + 2 / hr[2] * 1 / hr[2];
+    value.west   = -1 / hr[0] * 1 / hr[0];
+    value.east   = -1 / hr[0] * 1 / hr[0];
+    value.north  = -1 / hr[1] * 1 / hr[1];
+    value.south  = -1 / hr[1] * 1 / hr[1];
+    value.front  = -1 / hr[2] * 1 / hr[2];
+    value.back   = -1 / hr[2] * 1 / hr[2];
+    value.center = 2 / hr[0] * 1 / hr[0] + 2 / hr[1] * 1 / hr[1] + 2 / hr[2] * 1 / hr[2];
 
     // we are a right boundary point
     if(!isInside(x + 1, y, z))
-        E = 0.0;
+        value.east = 0.0;
 
     // we are a left boundary point
     if(!isInside(x - 1, y, z))
-        W = 0.0;
+        value.west = 0.0;
 
     // we are a upper boundary point
     if(!isInside(x, y + 1, z))
-        N = 0.0;
+        value.north = 0.0;
 
     // we are a lower boundary point
     if(!isInside(x, y - 1, z))
-        S = 0.0;
+        value.south = 0.0;
 
     if(z == 1 || z == nr[2] - 2) {
 
@@ -240,9 +241,9 @@ void BoxCornerDomain::constantInterpolation(int x, int y, int z, double &W, doub
         // IFF: this values should not matter because they
         // never make it into the discretization matrix
         if(z == 1)
-            F = 0.0;
+            value.front = 0.0;
         else
-            B = 0.0;
+            value.back = 0.0;
 
         // add contribution of Robin discretization to center point
         // d the distance between the center of the bunch and the boundary
@@ -251,22 +252,23 @@ void BoxCornerDomain::constantInterpolation(int x, int y, int z, double &W, doub
         //double cz = hr[2]*(nr[2]-1);
         //double d = sqrt(cx*cx+cy*cy+cz*cz);
         double d = hr[2] * (nr[2] - 1) / 2;
-        C += 2 / (d * hr[2]);
-        //C += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
+        value.center += 2 / (d * hr[2]);
+        //value.center += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
 
         // scale all stencil-points in z-plane with 0.5 (Robin discretization)
-        W /= 2.0;
-        E /= 2.0;
-        N /= 2.0;
-        S /= 2.0;
-        C /= 2.0;
-        scaleFactor *= 0.5;
+        value.west   /= 2.0;
+        value.east   /= 2.0;
+        value.north  /= 2.0;
+        value.south  /= 2.0;
+        value.center /= 2.0;
+        scaleFactor  *= 0.5;
     }
 
 }
 
-void BoxCornerDomain::linearInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-
+void BoxCornerDomain::linearInterpolation(int x, int y, int z, StencilValue_t& value,
+                                          double &scaleFactor)
+{
     scaleFactor = 1.0;
 
     double cx = x * hr[0] - (nr[0] - 1) * hr[0] / 2.0;
@@ -296,51 +298,51 @@ void BoxCornerDomain::linearInterpolation(int x, int y, int z, double &W, double
     double de = hr[0];
     double dn = hr[1];
     double ds = hr[1];
-    C = 0.0;
+    value.center = 0.0;
 
     //we are a right boundary point
     if(!isInside(x + 1, y, z)) {
         double dx = getXIntersection(cx, z);
-        C += 1 / ((dx - cx) * de);
-        E = 0.0;
+        value.center += 1 / ((dx - cx) * de);
+        value.east = 0.0;
     } else {
-        C += 1 / (de * de);
-        E = -1 / (de * de);
+        value.center += 1 / (de * de);
+        value.east = -1 / (de * de);
     }
 
     //we are a left boundary point
     if(!isInside(x - 1, y, z)) {
         double dx = getXIntersection(cx, z);
-        C += 1 / ((std::abs(dx) - std::abs(cx)) * dw);
-        W = 0.0;
+        value.center += 1 / ((std::abs(dx) - std::abs(cx)) * dw);
+        value.west = 0.0;
     } else {
-        C += 1 / (dw * dw);
-        W = -1 / (dw * dw);
+        value.center += 1 / (dw * dw);
+        value.west = -1 / (dw * dw);
     }
 
     //we are a upper boundary point
     if(!isInside(x, y + 1, z)) {
         double dy = getYIntersection(cy, z);
-        C += 1 / ((dy - cy) * dn);
-        N = 0.0;
+        value.center += 1 / ((dy - cy) * dn);
+        value.north = 0.0;
     } else {
-        C += 1 / (dn * dn);
-        N = -1 / (dn * dn);
+        value.center += 1 / (dn * dn);
+        value.north = -1 / (dn * dn);
     }
 
     //we are a lower boundary point
     if(!isInside(x, y - 1, z)) {
         double dy = getYIntersection(cy, z);
-        C += 1 / ((std::abs(dy) - std::abs(cy)) * ds);
-        S = 0.0;
+        value.center += 1 / ((std::abs(dy) - std::abs(cy)) * ds);
+        value.south = 0.0;
     } else {
-        C += 1 / (ds * ds);
-        S = -1 / (ds * ds);
+        value.center += 1 / (ds * ds);
+        value.south = -1 / (ds * ds);
     }
 
-    F = -1 / (hr[2] * hr[2]);
-    B = -1 / (hr[2] * hr[2]);
-    C += 2 / (hr[2] * hr[2]);
+    value.front = -1 / (hr[2] * hr[2]);
+    value.back = -1 / (hr[2] * hr[2]);
+    value.center += 2 / (hr[2] * hr[2]);
 
     // handle boundary condition in z direction
     if(z == 0 || z == nr[2] - 1) {
@@ -348,28 +350,29 @@ void BoxCornerDomain::linearInterpolation(int x, int y, int z, double &W, double
         // case where we are on the NEUMAN BC in Z-direction
         // where we distinguish two cases
         if(z == 0)
-            F = 0.0;
+            value.front = 0.0;
         else
-            B = 0.0;
+            value.back = 0.0;
 
         //hr[2]*(nr2[2]-1)/2 = radius
         double d = hr[2] * (nr[2] - 1) / 2;
-        C += 2 / (d * hr[2]);
+        value.center += 2 / (d * hr[2]);
 
-        W /= 2.0;
-        E /= 2.0;
-        N /= 2.0;
-        S /= 2.0;
-        C /= 2.0;
-        scaleFactor *= 0.5;
+        value.west   /= 2.0;
+        value.east   /= 2.0;
+        value.north  /= 2.0;
+        value.south  /= 2.0;
+        value.center /= 2.0;
+        scaleFactor  *= 0.5;
 
     }
 
 }
 
 //FIXME: this probably needs some cleanup/rewriting
-void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-
+void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
+                                             double &scaleFactor)
+{
     double cx = (x - (nr[0] - 1) / 2.0) * hr[0];
     double cy = (y - (nr[1] - 1) / 2.0) * hr[1];
 
@@ -400,13 +403,13 @@ void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, double &W, dou
     double de = hr[0];
     double dn = hr[1];
     double ds = hr[1];
-    W = 1.0;
-    E = 1.0;
-    N = 1.0;
-    S = 1.0;
-    F = 1.0;
-    B = 1.0;
-    C = 0.0;
+    value.west   = 1.0;
+    value.east   = 1.0;
+    value.north  = 1.0;
+    value.south  = 1.0;
+    value.front  = 1.0;
+    value.back   = 1.0;
+    value.center = 0.0;
 
     //TODO: = cx+hr[0] > dx && cx > 0
     //if((x-nr[0]/2.0+1)*hr[0] > dx && cx > 0) {
@@ -438,43 +441,43 @@ void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, double &W, dou
     //we are a right boundary point
     if(!isInside(x + 1, y, z)) {
         de = dx - cx;
-        E = 0.0;
+        value.east = 0.0;
     }
 
     //if((x-nr[0]/2.0-1)*hr[0] < dx && cx < 0) {
     //we are a left boundary point
     if(!isInside(x - 1, y, z)) {
         dw = std::abs(dx) - std::abs(cx);
-        W = 0.0;
+        value.west = 0.0;
     }
 
     //if((y-nr[1]/2.0+1)*hr[1] > dy && cy > 0) {
     //we are a upper boundary point
     if(!isInside(x, y + 1, z)) {
         dn = dy - cy;
-        N = 0.0;
+        value.north = 0.0;
     }
 
     //if((y-nr[1]/2.0-1)*hr[1] < dy && cy < 0) {
     //we are a lower boundary point
     if(!isInside(x, y - 1, z)) {
         ds = std::abs(dy) - std::abs(cy);
-        S = 0.0;
+        value.south = 0.0;
     }
 
     //2/dw*(dw_de)
-    W *= -1.0 / (dw * (dw + de));
-    E *= -1.0 / (de * (dw + de));
-    N *= -1.0 / (dn * (dn + ds));
-    S *= -1.0 / (ds * (dn + ds));
-    F = -1 / (hr[2] * (hr[2] + hr[2]));
-    B = -1 / (hr[2] * (hr[2] + hr[2]));
+    value.west  *= -1.0 / (dw * (dw + de));
+    value.east  *= -1.0 / (de * (dw + de));
+    value.north *= -1.0 / (dn * (dn + ds));
+    value.south *= -1.0 / (ds * (dn + ds));
+    value.front = -1 / (hr[2] * (hr[2] + hr[2]));
+    value.back  = -1 / (hr[2] * (hr[2] + hr[2]));
 
     //TODO: problem when de,dw,dn,ds == 0
     //is NOT a regular BOUND PT
-    C += 1 / de * 1 / dw;
-    C += 1 / dn * 1 / ds;
-    C += 1 / hr[2] * 1 / hr[2];
+    value.center += 1 / de * 1 / dw;
+    value.center += 1 / dn * 1 / ds;
+    value.center += 1 / hr[2] * 1 / hr[2];
     scaleFactor = 0.5;
 
 
@@ -575,21 +578,21 @@ void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, double &W, dou
         // case where we are on the NEUMAN BC in Z-direction
         // where we distinguish two cases
         if(z == 0)
-            F = 0.0;
+            value.front = 0.0;
         else
-            B = 0.0;
+            value.back = 0.0;
 
-        //C += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
+        //value.center += 2/((hr[2]*(nr[2]-1)/2.0) * hr[2]);
         //hr[2]*(nr2[2]-1)/2 = radius
         double d = hr[2] * (nr[2] - 1) / 2;
-        C += 2 / (d * hr[2]);
+        value.center += 2 / (d * hr[2]);
 
-        W /= 2.0;
-        E /= 2.0;
-        N /= 2.0;
-        S /= 2.0;
-        C /= 2.0;
-        scaleFactor /= 2.0;
+        value.west   /= 2.0;
+        value.east   /= 2.0;
+        value.north  /= 2.0;
+        value.south  /= 2.0;
+        value.center /= 2.0;
+        scaleFactor  /= 2.0;
 
     }
 }

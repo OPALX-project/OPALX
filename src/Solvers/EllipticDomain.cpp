@@ -179,9 +179,7 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& 
         hr[i] = (mymax[i] - origin[i]) / nr[i];
 }
 
-void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W,
-                                        double &E, double &S, double &N,
-                                        double &F, double &B, double &C,
+void EllipticDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
                                         double &scaleFactor)
 {
     scaleFactor = 1.0;
@@ -189,96 +187,92 @@ void EllipticDomain::getBoundaryStencil(int x, int y, int z, double &W,
     // determine which interpolation method we use for points near the boundary
     switch (interpolationMethod_m) {
         case CONSTANT:
-            constantInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            constantInterpolation(x, y, z, value, scaleFactor);
             break;
         case LINEAR:
-            linearInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            linearInterpolation(x, y, z, value, scaleFactor);
             break;
         case QUADRATIC:
-            quadraticInterpolation(x, y, z, W, E, S, N, F, B, C, scaleFactor);
+            quadraticInterpolation(x, y, z, value, scaleFactor);
             break;
     }
 
     // stencil center value has to be positive!
-    assert(C > 0);
+    assert(value.center > 0);
 }
 
-void EllipticDomain::getNeighbours(int x, int y, int z, int &W, int &E,
-                                   int &S, int &N, int &F, int &B)
+void EllipticDomain::getNeighbours(int x, int y, int z,
+                                   StencilIndex_t& index)
 {
     if (x > 0)
-        W = getIdx(x - 1, y, z);
+        index.west = getIdx(x - 1, y, z);
     else
-        W = -1;
+        index.west = -1;
 
     if (x < nr[0] - 1)
-        E = getIdx(x + 1, y, z);
+        index.east = getIdx(x + 1, y, z);
     else
-        E = -1;
+        index.east = -1;
 
     if (y < nr[1] - 1)
-        N = getIdx(x, y + 1, z);
+        index.north = getIdx(x, y + 1, z);
     else
-        N = -1;
+        index.north = -1;
 
     if (y > 0)
-        S = getIdx(x, y - 1, z);
+        index.south = getIdx(x, y - 1, z);
     else
-        S = -1;
+        index.south = -1;
 
     if (z > 0)
-        F = getIdx(x, y, z - 1);
+        index.front = getIdx(x, y, z - 1);
     else
-        F = -1;
+        index.front = -1;
 
     if (z < nr[2] - 1)
-        B = getIdx(x, y, z + 1);
+        index.back = getIdx(x, y, z + 1);
     else
-        B = -1;
+        index.back = -1;
 
 }
 
-void EllipticDomain::constantInterpolation(int x, int y, int z, double &WV,
-                                           double &EV, double &SV, double &NV,
-                                           double &FV, double &BV, double &CV,
+void EllipticDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
                                            double &scaleFactor)
 {
     scaleFactor = 1.0;
 
-    WV = -1.0 / (hr[0] * hr[0]);
-    EV = -1.0 / (hr[0] * hr[0]);
-    NV = -1.0 / (hr[1] * hr[1]);
-    SV = -1.0 / (hr[1] * hr[1]);
-    FV = -1.0 / (hr[2] * hr[2]);
-    BV = -1.0 / (hr[2] * hr[2]);
+    value.west  = -1.0 / (hr[0] * hr[0]);
+    value.east  = -1.0 / (hr[0] * hr[0]);
+    value.north = -1.0 / (hr[1] * hr[1]);
+    value.south = -1.0 / (hr[1] * hr[1]);
+    value.front = -1.0 / (hr[2] * hr[2]);
+    value.back  = -1.0 / (hr[2] * hr[2]);
 
-    CV =  2.0 / (hr[0] * hr[0])
-       +  2.0 / (hr[1] * hr[1])
-       +  2.0 / (hr[2] * hr[2]);
+    value.center =  2.0 / (hr[0] * hr[0])
+                 +  2.0 / (hr[1] * hr[1])
+                 +  2.0 / (hr[2] * hr[2]);
 
     // we are a right boundary point
     if (!isInside(x + 1, y, z))
-        EV = 0.0;
+        value.east = 0.0;
 
     // we are a left boundary point
     if (!isInside(x - 1, y, z))
-        WV = 0.0;
+        value.west = 0.0;
 
     // we are a upper boundary point
     if (!isInside(x, y + 1, z))
-        NV = 0.0;
+        value.north = 0.0;
 
     // we are a lower boundary point
     if (!isInside(x, y - 1, z))
-        SV = 0.0;
+        value.south = 0.0;
 
     // handle boundary condition in z direction
-    robinBoundaryStencil(z, FV, BV, CV);
+    robinBoundaryStencil(z, value.front, value.back, value.center);
 }
 
-void EllipticDomain::linearInterpolation(int x, int y, int z, double &W,
-                                         double &E, double &S, double &N,
-                                         double &F, double &B, double &C,
+void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& value,
                                          double &scaleFactor)
 {
     scaleFactor = 1.0;
@@ -304,54 +298,53 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, double &W,
     double de = hr[0];
     double dn = hr[1];
     double ds = hr[1];
-    C = 0.0;
+    value.center = 0.0;
 
     // we are a right boundary point
     if (!isInside(x + 1, y, z)) {
-        C += 1.0 / ((dx - cx) * de);
-        E = 0.0;
+        value.center += 1.0 / ((dx - cx) * de);
+        value.east = 0.0;
     } else {
-        C += 1.0 / (de * de);
-        E = -1.0 / (de * de);
+        value.center += 1.0 / (de * de);
+        value.east = -1.0 / (de * de);
     }
 
     // we are a left boundary point
     if (!isInside(x - 1, y, z)) {
-        C += 1.0 / ((std::abs(dx) - std::abs(cx)) * dw);
-        W = 0.0;
+        value.center += 1.0 / ((std::abs(dx) - std::abs(cx)) * dw);
+        value.west = 0.0;
     } else {
-        C += 1.0 / (dw * dw);
-        W = -1.0 / (dw * dw);
+        value.center += 1.0 / (dw * dw);
+        value.west = -1.0 / (dw * dw);
     }
 
     // we are a upper boundary point
     if (!isInside(x, y + 1, z)) {
-        C += 1.0 / ((dy - cy) * dn);
-        N = 0.0;
+        value.center += 1.0 / ((dy - cy) * dn);
+        value.north = 0.0;
     } else {
-        C += 1.0 / (dn * dn);
-        N = -1.0 / (dn * dn);
+        value.center += 1.0 / (dn * dn);
+        value.north = -1.0 / (dn * dn);
     }
 
     // we are a lower boundary point
     if (!isInside(x, y - 1, z)) {
-        C += 1.0 / ((std::abs(dy) - std::abs(cy)) * ds);
-        S = 0.0;
+        value.center += 1.0 / ((std::abs(dy) - std::abs(cy)) * ds);
+        value.south = 0.0;
     } else {
-        C += 1.0 / (ds * ds);
-        S = -1.0 / (ds * ds);
+        value.center += 1.0 / (ds * ds);
+        value.south = -1.0 / (ds * ds);
     }
 
     // handle boundary condition in z direction
-    F = -1.0 / (hr[2] * hr[2]);
-    B = -1.0 / (hr[2] * hr[2]);
-    C += 2.0 / (hr[2] * hr[2]);
-    robinBoundaryStencil(z, F, B, C);
+    value.front = -1.0 / (hr[2] * hr[2]);
+    value.back  = -1.0 / (hr[2] * hr[2]);
+    value.center += 2.0 / (hr[2] * hr[2]);
+    robinBoundaryStencil(z, value.front, value.back, value.center);
 }
 
 void EllipticDomain::quadraticInterpolation(int x, int y, int z,
-                                            double &W, double &E, double &S,
-                                            double &N, double &F, double &B, double &C,
+                                            StencilValue_t& value,
                                             double &scaleFactor)
 {
     scaleFactor = 1.0;
@@ -378,61 +371,61 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z,
     double dn = hr[1];
     double ds = hr[1];
 
-    W = 0.0;
-    E = 0.0;
-    S = 0.0;
-    N = 0.0;
-    C = 0.0;
+    value.west = 0.0;
+    value.east = 0.0;
+    value.south = 0.0;
+    value.north = 0.0;
+    value.center = 0.0;
 
     // we are a right boundary point
     if (!isInside(x + 1, y, z)) {
         double s = dx - cx;
-        C -= 2.0 * (s - 1.0) / (s * de);
-        E = 0.0;
-        W += (s - 1.0) / ((s + 1.0) * de);
+        value.center -= 2.0 * (s - 1.0) / (s * de);
+        value.east = 0.0;
+        value.west += (s - 1.0) / ((s + 1.0) * de);
     } else {
-        C += 1.0 / (de * de);
-        E = -1.0 / (de * de);
+        value.center += 1.0 / (de * de);
+        value.east = -1.0 / (de * de);
     }
 
     // we are a left boundary point
     if (!isInside(x - 1, y, z)) {
         double s = std::abs(dx) - std::abs(cx);
-        C -= 2.0 * (s - 1.0) / (s * de);
-        W = 0.0;
-        E += (s - 1.0) / ((s + 1.0) * de);
+        value.center -= 2.0 * (s - 1.0) / (s * de);
+        value.west = 0.0;
+        value.east += (s - 1.0) / ((s + 1.0) * de);
     } else {
-        C += 1.0 / (dw * dw);
-        W = -1.0 / (dw * dw);
+        value.center += 1.0 / (dw * dw);
+        value.west = -1.0 / (dw * dw);
     }
 
     // we are a upper boundary point
     if (!isInside(x, y + 1, z)) {
         double s = dy - cy;
-        C -= 2.0 * (s - 1.0) / (s * dn);
-        N = 0.0;
-        S += (s - 1.0) / ((s + 1.0) * dn);
+        value.center -= 2.0 * (s - 1.0) / (s * dn);
+        value.north = 0.0;
+        value.south += (s - 1.0) / ((s + 1.0) * dn);
     } else {
-        C += 1.0 / (dn * dn);
-        N = -1.0 / (dn * dn);
+        value.center += 1.0 / (dn * dn);
+        value.north = -1.0 / (dn * dn);
     }
 
     // we are a lower boundary point
     if (!isInside(x, y - 1, z)) {
         double s = std::abs(dy) - std::abs(cy);
-        C -= 2.0 * (s - 1.0) / (s * dn);
-        S = 0.0;
-        N += (s - 1.0) / ((s + 1.0) * dn);
+        value.center -= 2.0 * (s - 1.0) / (s * dn);
+        value.south = 0.0;
+        value.north += (s - 1.0) / ((s + 1.0) * dn);
     } else {
-        C += 1.0 / (ds * ds);
-        S = -1.0 / (ds * ds);
+        value.center += 1.0 / (ds * ds);
+        value.south = -1.0 / (ds * ds);
     }
 
     // handle boundary condition in z direction
-    F = -1.0 / (hr[2] * hr[2]);
-    B = -1.0 / (hr[2] * hr[2]);
-    C += 2.0 / (hr[2] * hr[2]);
-    robinBoundaryStencil(z, F, B, C);
+    value.front = -1.0 / (hr[2] * hr[2]);
+    value.back  = -1.0 / (hr[2] * hr[2]);
+    value.center += 2.0 / (hr[2] * hr[2]);
+    robinBoundaryStencil(z, value.front, value.back, value.center);
 }
 
 void EllipticDomain::robinBoundaryStencil(int z, double &F, double &B, double &C) {
