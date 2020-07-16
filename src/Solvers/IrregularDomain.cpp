@@ -25,11 +25,23 @@
 //
 
 #include "Solvers/IrregularDomain.h"
+#include "Utilities/OpalException.h"
 
-IrregularDomain::IrregularDomain(const Vector_t& nr, const Vector_t& hr)
+IrregularDomain::IrregularDomain(const Vector_t& nr, const Vector_t& hr,
+                                 const std::string& interpl)
     : nr_m(nr)
     , hr_m(hr)
-{ }
+{
+    if (interpl == "CONSTANT")
+        interpolationMethod_m = CONSTANT;
+    else if (interpl == "LINEAR")
+        interpolationMethod_m = LINEAR;
+    else if (interpl == "QUADRATIC")
+        interpolationMethod_m = QUADRATIC;
+    else
+        throw OpalException("IrregularDomain::IrregularDomain",
+                            "No interpolation method '" + interpl + "' available.");
+}
 
 
 void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)

@@ -92,9 +92,6 @@ private:
     /// number of nodes in the xy plane (for this case: independent of the z coordinate)
     int nxy_m;
 
-    /// interpolation type
-    int interpolationMethod_m;
-
     /// conversion from (x,y) to index in xy plane
     inline int toCoordIdx(int x, int y) { return y * nr_m[0] + x; }
 

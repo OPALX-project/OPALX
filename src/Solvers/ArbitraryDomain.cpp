@@ -41,7 +41,7 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
                                   Vector_t hr,
                                   std::string interpl)
-    : IrregularDomain(nr, hr)
+    : IrregularDomain(nr, hr, interpl)
 {
     bgeom_m  = bgeom;
 
@@ -58,13 +58,6 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     }
 
     startId = 0;
-
-    if (interpl == "CONSTANT")
-        interpolationMethod = CONSTANT;
-    else if(interpl == "LINEAR")
-        interpolationMethod = LINEAR;
-    else if(interpl == "QUADRATIC")
-        interpolationMethod = QUADRATIC;
 }
 
 ArbitraryDomain::~ArbitraryDomain() {
@@ -388,7 +381,7 @@ void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz,
 {
     scaleFactor = 1.0;
     // determine which interpolation method we use for points near the boundary
-    switch(interpolationMethod){
+    switch(interpolationMethod_m){
     case CONSTANT:
         constantInterpolation(idx,idy,idz,value,scaleFactor);
         break;

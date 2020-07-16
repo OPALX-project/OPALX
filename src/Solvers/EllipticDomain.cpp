@@ -37,20 +37,13 @@
 
 EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
                                std::string interpl)
-    : IrregularDomain(nr, hr)
+    : IrregularDomain(nr, hr, interpl)
 {
     Vector_t min(-bgeom->getA(), -bgeom->getB(), bgeom->getS());
     Vector_t max( bgeom->getA(),  bgeom->getB(), bgeom->getS() + bgeom->getLength());
     setRangeMin(min);
     setRangeMax(max);
     setMinMaxZ(min[2], max[2]);
-
-    if (interpl == "CONSTANT")
-        interpolationMethod_m = CONSTANT;
-    else if (interpl == "LINEAR")
-        interpolationMethod_m = LINEAR;
-    else if (interpl == "QUADRATIC")
-        interpolationMethod_m = QUADRATIC;
 }
 
 EllipticDomain::~EllipticDomain() {

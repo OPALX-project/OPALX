@@ -58,7 +58,8 @@ public:
     typedef Stencil<double> StencilValue_t;
 
     IrregularDomain(const Vector_t& nr,
-                    const Vector_t& hr);
+                    const Vector_t& hr,
+                    const std::string& interpl);
 
 
     /** method to compute the intersection points with the boundary geometry
@@ -166,6 +167,9 @@ protected:
 
     /// flag indicating if geometry has changed for the current time-step
     bool hasGeometryChanged_m;
+
+    /// interpolation type
+    int interpolationMethod_m;
 
 };
 
