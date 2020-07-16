@@ -79,9 +79,9 @@ public:
     /// \param z index of the current element in the matrix
     /// \param values of stencil element
     /// \param scaleFactor of stencil values
-    virtual void getBoundaryStencil(int x, int y, int z,
+    void getBoundaryStencil(int x, int y, int z,
                                     StencilValue_t& value,
-                                    double &scaleFactor) = 0;
+                                    double &scaleFactor);
 
     /// method to calculate the stencil at a boundary points
     /// \param id index of the current element in the matrix
@@ -147,6 +147,17 @@ public:
                             double /*dh*/);
 
 protected:
+
+    /// different interpolation methods for boundary points
+    virtual void constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                               double &scaleFactor);
+
+    virtual void linearInterpolation(int x, int y, int z, StencilValue_t& value,
+                             double &scaleFactor);
+
+    virtual void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
+                                double &scaleFactor);
+
 
     // a irregular domain is always defined on a grid
     /// number of mesh points in each direction

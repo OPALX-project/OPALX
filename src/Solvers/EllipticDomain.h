@@ -47,10 +47,6 @@ public:
 
     ~EllipticDomain();
 
-    /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z, StencilValue_t& values,
-                            double &scaleFactor);
-
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
         double xx = getXRangeMin() + hr_m[0] * (x + 0.5);
@@ -115,13 +111,13 @@ private:
 
     /// different interpolation methods for boundary points
     void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor);
+                               double &scaleFactor) override;
 
     void linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                             double &scaleFactor);
+                             double &scaleFactor) override;
 
     void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                double &scaleFactor);
+                                double &scaleFactor) override;
 
     /// function to handle the open boundary condition in longitudinal direction
     void robinBoundaryStencil(int z, double &F, double &B, double &C);

@@ -90,9 +90,6 @@ public:
                     std::string interpl);
     ~BoxCornerDomain();
 
-    /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double &scaleFactor);
-
     /// we do not need this
     int getNumXY(int /*z*/) { return -1;}
 
@@ -192,13 +189,13 @@ private:
 
     /// different interpolation methods for boundary points
     void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor);
+                               double &scaleFactor) override;
 
     void linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                             double &scaleFactor);
+                             double &scaleFactor) override;
 
     void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                double &scaleFactor);
+                                double &scaleFactor) override;
 
 };
 
