@@ -119,7 +119,8 @@ void ArbitraryDomain::compute(Vector_t hr){
                         IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -129,7 +130,8 @@ void ArbitraryDomain::compute(Vector_t hr){
                         IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -140,7 +142,8 @@ void ArbitraryDomain::compute(Vector_t hr){
                         IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -150,7 +153,8 @@ void ArbitraryDomain::compute(Vector_t hr){
                         IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -161,7 +165,8 @@ void ArbitraryDomain::compute(Vector_t hr){
                         IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -171,12 +176,14 @@ void ArbitraryDomain::compute(Vector_t hr){
                         IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
                 } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                    *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                    *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy
+                          << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                 }
             }
@@ -285,7 +292,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                         IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -296,7 +304,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                         IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -310,7 +319,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                         IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -321,7 +331,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                         IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -335,7 +346,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                         IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
 
@@ -346,13 +358,15 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                         IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                        *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                        *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy
+                              << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                     }
                 } else {
                     IsInsideMap[toCoordIdx(idx, idy, idz)] = false;
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
-                    *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy << "," << idz << " P=" << P <<" I=" << I << endl;
+                    *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy
+                          << "," << idz << " P=" << P <<" I=" << I << endl;
 #endif
                 }
             }
@@ -505,15 +519,20 @@ int ArbitraryDomain::getNumXY(int z) {
     return numXY[z];
 }
 
-void ArbitraryDomain::getBoundaryStencil(int idxyz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
+void ArbitraryDomain::getBoundaryStencil(int idxyz, double &W, double &E, double &S,
+                                         double &N, double &F, double &B, double &C,
+                                         double &scaleFactor)
+{
     int idx = 0, idy = 0, idz = 0;
 
     getCoord(idxyz, idx, idy, idz);
     getBoundaryStencil(idx, idy, idz, W, E, S, N, F, B, C, scaleFactor);
 }
 
-void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-
+void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W,
+                                         double &E, double &S, double &N, double &F,
+                                         double &B, double &C, double &scaleFactor)
+{
     scaleFactor = 1.0;
     // determine which interpolation method we use for points near the boundary
     switch(interpolationMethod){
@@ -532,8 +551,10 @@ void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz, double &W, d
     assert(C > 0);
 }
 
-void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double& /*scaleFactor*/) {
-
+void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz, double& W,
+                                            double& E, double& S, double& N, double& F,
+                                            double& B, double& C, double& /*scaleFactor*/)
+{
     W = -1/(hr[0]*hr[0]);
     E = -1/(hr[0]*hr[0]);
     N = -1/(hr[1]*hr[1]);
@@ -558,7 +579,9 @@ void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz, double& W
         B = 0.0;
 }
 
-void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W, double& E, double& S, double& N, double& F, double& B, double& C, double &scaleFactor)
+void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W,
+                                          double& E, double& S, double& N, double& F,
+                                          double& B, double& C, double &scaleFactor)
 {
     scaleFactor = 1;
 
@@ -648,16 +671,18 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W, 
         C += (dz_f + dz_b) * (dx_w + dx_e) * (dy_n + dy_s) / m2;
 }
 
-void ArbitraryDomain::getNeighbours(int id, int &W, int &E, int &S, int &N, int &F, int &B) {
-
+void ArbitraryDomain::getNeighbours(int id, int &W, int &E, int &S,
+                                    int &N, int &F, int &B)
+{
     int idx = 0, idy = 0, idz = 0;
 
     getCoord(id, idx, idy, idz);
     getNeighbours(idx, idy, idz, W, E, S, N, F, B);
 }
 
-void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, int &W, int &E, int &S, int &N, int &F, int &B) {
-
+void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, int &W,
+                                    int &E, int &S, int &N, int &F, int &B)
+{
     W = getIdx(idx - 1, idy, idz);
     E = getIdx(idx + 1, idy, idz);
     N = getIdx(idx, idy + 1, idz);
