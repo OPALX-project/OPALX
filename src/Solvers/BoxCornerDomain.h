@@ -118,7 +118,6 @@ public:
     /// set semi-major
     //void setSemiMajor(double sm) {SemiMajor = sm;}
 
-    void compute(Vector_t hr);
     void compute(Vector_t hr, NDIndex<3> localId);
 
     double getXRangeMin() { return -A_m; }
