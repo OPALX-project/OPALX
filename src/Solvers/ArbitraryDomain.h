@@ -107,9 +107,6 @@ private:
     // Mapping all cells that are inside the geometry
     std::map<int, bool> IsInsideMap;
 
-    // Interpolation type
-    int interpolationMethod;
-
     Vector_t geomCentroid_m;
     Vector_t minCoords_m;
     Vector_t maxCoords_m;

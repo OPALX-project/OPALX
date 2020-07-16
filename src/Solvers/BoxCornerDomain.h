@@ -147,9 +147,6 @@ private:
     /// length of the structure
     double length_m;
 
-    /// interpolation type
-    int interpolationMethod;
-
     /// for debug reasons
     std::ofstream os_m;
 
