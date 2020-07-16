@@ -68,22 +68,6 @@ public:
 
     int getStartId() {return startId;}
 
-    double getXRangeMin(){ return minCoords_m(0); }
-    double getYRangeMin(){ return minCoords_m(1); }
-    double getZRangeMin(){ return minCoords_m(2); }
-
-    double getXRangeMax(){ return maxCoords_m(0); }
-    double getYRangeMax(){ return maxCoords_m(1); }
-    double getZRangeMax(){ return maxCoords_m(2); }
-
-    void setXRangeMin(double xmin){ minCoords_m(0) = xmin; }
-    void setYRangeMin(double ymin){ minCoords_m(1) = ymin; }
-    void setZRangeMin(double zmin){ minCoords_m(2) = zmin; }
-
-    void setXRangeMax(double xmax){ maxCoords_m(0) = xmax; }
-    void setYRangeMax(double ymax){ maxCoords_m(1) = ymax; }
-    void setZRangeMax(double zmax){ maxCoords_m(2) = zmax; }
-
 private:
     BoundaryGeometry *bgeom_m;
 
