@@ -28,17 +28,9 @@
 #include "Solvers/RectangularDomain.h"
 #include "Utilities/OpalException.h"
 
-RectangularDomain::RectangularDomain(Vector_t nr, Vector_t hr) {
-    setNr(nr);
-    setHr(hr);
-    a_m = 0.1;
-    b_m = 0.1;
-    nxy_m = nr[0] * nr[1];
-}
-
 RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t hr) {
-    a_m = a;
-    b_m = b;
+    setRangeMin(Vector_t(-a, -b, getMinZ()));
+    setRangeMax(Vector_t( a,  b, getMax/()));
     setNr(nr);
     setHr(hr);
     nxy_m = nr[0] * nr[1];

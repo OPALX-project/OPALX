@@ -42,15 +42,8 @@ public:
     using IrregularDomain::StencilIndex_t;
     using IrregularDomain::StencilValue_t;
 
-    EllipticDomain(Vector_t nr, Vector_t hr);
-
-    EllipticDomain(double semimajor, double semiminor, Vector_t nr,
-                   Vector_t hr, std::string interpl);
-
     EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr,
                    Vector_t hr, std::string interpl);
-
-    EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, std::string interpl);
 
     ~EllipticDomain();
 
@@ -60,11 +53,11 @@ public:
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int z) {
-        double xx = - semiMajor_m + hr[0] * (x + 0.5);
-        double yy = - semiMinor_m + hr[1] * (y + 0.5);
+        double xx = getXRangeMin() + hr[0] * (x + 0.5);
+        double yy = getYRangeMin() + hr[1] * (y + 0.5);
 
-        bool isInsideEllipse = (xx * xx / (semiMajor_m * semiMajor_m) +
-                                yy * yy / (semiMinor_m * semiMinor_m) < 1);
+        bool isInsideEllipse = (xx * xx / (getXRangeMax() * getXRangeMax()) +
+                                yy * yy / (getYRangeMax() * getYRangeMax()) < 1);
 
         return (isInsideEllipse && z > 0 && z < nr[2] - 1);
     }
@@ -74,13 +67,6 @@ public:
 
     /// calculates intersection
     void compute(Vector_t hr, NDIndex<3> localId);
-
-    double getXRangeMin() { return -semiMajor_m; }
-    double getXRangeMax() { return semiMajor_m;  }
-    double getYRangeMin() { return -semiMinor_m; }
-    double getYRangeMax() { return semiMinor_m;  }
-    double getZRangeMin() { return zMin_m; }
-    double getZRangeMax() { return zMax_m; }
 
     void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
                     const Vector_t& rmax, double dh);
@@ -102,12 +88,6 @@ private:
 
     /// mapping idx -> (x,y,z)
     std::map<int, int> coordMap_m;
-
-    /// semi-major of the ellipse
-    double semiMajor_m;
-
-    /// semi-minor of the ellipse
-    double semiMinor_m;
 
     /// number of nodes in the xy plane (for this case: independent of the z coordinate)
     int nxy_m;

@@ -42,9 +42,11 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t /*hr*/,
                                   std::string interpl){
     bgeom_m  = bgeom;
-    minCoords_m = bgeom->getmincoords();
-    maxCoords_m = bgeom->getmaxcoords();
-    geomCentroid_m = (minCoords_m + maxCoords_m)/2.0;
+
+    setRangeMin(bgeom->getmincoords());
+    setRangeMax(bgeom->getmaxcoords());
+
+    geomCentroid_m = (min_m + max_m)/2.0;
 
     bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
     if (have_inside_pt == false) {
@@ -54,7 +56,7 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     }
     setNr(nr);
     for(int i=0; i<3; i++)
-        Geo_hr_m[i] = (maxCoords_m[i] - minCoords_m[i])/nr[i];
+        Geo_hr_m[i] = (max_m[i] - min_m[i])/nr[i];
     setHr(Geo_hr_m);
 
     startId = 0;
@@ -111,17 +113,17 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 
         //saveP_old[2] = (idz - (nr[2]-1)/2.0)*hr[2];
-        P[2] = minCoords_m[2] + (idz + 0.5) * hr[2];
+        P[2] = min_m[2] + (idz + 0.5) * hr[2];
 
         for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
 
             //saveP_old[1] = (idy - (nr[1]-1)/2.0)*hr[1];
-            P[1] = minCoords_m[1] + (idy + 0.5) * hr[1];
+            P[1] = min_m[1] + (idy + 0.5) * hr[1];
 
             for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 
                 //saveP_old[0] = (idx - (nr[0]-1)/2.0)*hr[0];
-                P[0] = minCoords_m[0] + (idx + 0.5) * hr[0];
+                P[0] = min_m[0] + (idx + 0.5) * hr[0];
 
                 // *gmsg << "Now working on point " << saveP << " (original was " << saveP_old << ")" << endl;
 
@@ -326,9 +328,9 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
   inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
   Vector_t P;
 
-  P[0] = minCoords_m[0] + (idx + 0.5) * hr[0];
-  P[1] = minCoords_m[1] + (idy + 0.5) * hr[1];
-  P[2] = minCoords_m[2] + (idz + 0.5) * hr[2];
+  P[0] = min_m[0] + (idx + 0.5) * hr[0];
+  P[1] = min_m[1] + (idy + 0.5) * hr[1];
+  P[2] = min_m[2] + (idz + 0.5) * hr[2];
 
   return (bgeom_m->fastIsInside(globalInsideP0_m, P) % 2 == 0);
   }

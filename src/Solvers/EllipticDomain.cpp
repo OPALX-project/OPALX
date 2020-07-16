@@ -35,16 +35,14 @@
 //FIXME: ORDER HOW TO TRAVERSE NODES IS FIXED, THIS SHOULD BE MORE GENERIC! (PLACES MARKED)
 
 
-EllipticDomain::EllipticDomain(Vector_t nr, Vector_t hr) {
-    setNr(nr);
-    setHr(hr);
-}
-
-EllipticDomain::EllipticDomain(double semimajor, double semiminor, Vector_t nr,
-                               Vector_t hr, std::string interpl)
-    : semiMajor_m(semimajor)
-    , semiMinor_m(semiminor)
+EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
+                               std::string interpl)
 {
+    Vector_t min(-bgeom->getA(), -bgeom->getB(), bgeom->getS());
+    Vector_t max( bgeom->getA(),  bgeom->getB(), bgeom->getS() + bgeom->getLength());
+    setRangeMin(min);
+    setRangeMax(max);
+    setMinMaxZ(min[2], max[2]);
     setNr(nr);
     setHr(hr);
 
@@ -55,21 +53,6 @@ EllipticDomain::EllipticDomain(double semimajor, double semiminor, Vector_t nr,
     else if (interpl == "QUADRATIC")
         interpolationMethod_m = QUADRATIC;
 }
-
-EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
-                               std::string interpl)
-    : EllipticDomain(bgeom->getA(), bgeom->getB(), nr, hr, interpl)
-{
-    setMinMaxZ(bgeom->getS(), bgeom->getLength());
-}
-
-EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, std::string interpl)
-    : EllipticDomain(bgeom, nr,
-                     Vector_t(2.0 * bgeom->getA() / nr[0],
-                              2.0 * bgeom->getB() / nr[1],
-                              (bgeom->getLength() - bgeom->getS()) / nr[2]),
-                     interpl)
-{ }
 
 EllipticDomain::~EllipticDomain() {
     //nothing so far
@@ -125,16 +108,16 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
         case LINEAR:
         case QUADRATIC:
 
-            double smajsq = semiMajor_m * semiMajor_m;
-            double sminsq = semiMinor_m * semiMinor_m;
+            double smajsq = getXRangeMax() * getXRangeMax();
+            double sminsq = getYRangeMax() * getYRangeMax();
             double yd = 0.0;
             double xd = 0.0;
             double pos = 0.0;
 
             // calculate intersection with the ellipse
             for (x = localId[0].first(); x <= localId[0].last(); x++) {
-                pos = - semiMajor_m + hr[0] * (x + 0.5);
-                if (std::abs(pos) >= semiMajor_m)
+                pos = getXRangeMin() + hr[0] * (x + 0.5);
+                if (std::abs(pos) >= getXRangeMax())
                 {
                     intersectYDir_m.insert(std::pair<int, double>(x, 0));
                     intersectYDir_m.insert(std::pair<int, double>(x, 0));
@@ -147,8 +130,8 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
             }
 
             for (y = localId[0].first(); y < localId[1].last(); y++) {
-                pos = - semiMinor_m + hr[1] * (y + 0.5);
-                if (std::abs(pos) >= semiMinor_m)
+                pos = getYRangeMin() + hr[1] * (y + 0.5);
+                if (std::abs(pos) >= getYRangeMax())
                 {
                     intersectXDir_m.insert(std::pair<int, double>(y, 0));
                     intersectXDir_m.insert(std::pair<int, double>(y, 0));
@@ -172,8 +155,8 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& 
     setMinMaxZ(rmin[2] - zsize * (1.0 + dh),
                rmax[2] + zsize * (1.0 + dh));
 
-    origin = Vector_t(-semiMajor_m, -semiMinor_m, getMinZ());
-    mymax  = Vector_t( semiMajor_m,  semiMinor_m, getMaxZ());
+    origin = Vector_t(getXRangeMin(), getYRangeMin(), getMinZ());
+    mymax  = Vector_t(getXRangeMax(), getYRangeMax(), getMaxZ());
 
     for (int i = 0; i < 3; ++i)
         hr[i] = (mymax[i] - origin[i]) / nr[i];
@@ -242,8 +225,8 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& va
 {
     scaleFactor = 1.0;
 
-    double cx = - semiMajor_m + hr[0] * (x + 0.5);
-    double cy = - semiMinor_m + hr[1] * (y + 0.5);
+    double cx = getXRangeMin() + hr[0] * (x + 0.5);
+    double cy = getYRangeMin() + hr[1] * (y + 0.5);
 
     double dx = 0.0;
     std::multimap<int, double>::iterator it = intersectXDir_m.find(y);

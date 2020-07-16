@@ -70,3 +70,13 @@ void IrregularDomain::getBoundaryStencil(int id, StencilValue_t& value,
     getCoord(id, idx, idy, idz);
     getBoundaryStencil(idx, idy, idz, value, scaleFactor);
 }
+
+
+void IrregularDomain::resizeMesh(Vector_t& origin, Vector_t& hr,
+                                 const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
+                                 double /*dh*/)
+{
+    origin = min_m;
+    for (int i = 0; i < 3; i++)
+        hr[i] = (max_m[i] - min_m[i]) / nr[i];
+};

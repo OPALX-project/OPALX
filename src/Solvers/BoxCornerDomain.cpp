@@ -35,18 +35,14 @@
 
 extern Inform *gmsg;
 
-BoxCornerDomain::BoxCornerDomain(Vector_t nr, Vector_t hr) {
-    setNr(nr);
-    setHr(hr);
-}
-
-BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double Length, double L1, double L2, Vector_t nr, Vector_t hr, std::string interpl) {
-    A_m = A;
-    B_m = B;
+BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double length,
+                                 double L1, double L2, Vector_t nr, Vector_t hr,
+                                 std::string interpl)
+{
+    setRangeMin(Vector_t(-A, -B, L1));
+    setRangeMax(Vector_t( A,  B, L1 + L2));
     C_m = C;
-    Length_m = Length;
-    L1_m = L1;
-    L2_m = L2;
+    length_m = length;
 
     setNr(nr);
     setHr(hr);
@@ -93,11 +89,8 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     double bL= getB(getMinZ());
     double bH= getB(getMaxZ());
 
-    actBMin_m = -B_m;
+    actBMin_m = getYRangeMin();
     actBMax_m = std::max(bL,bH);
-
-    INFOMSG(" BoxCorner L= " << Length_m << " L1= " << L1_m << " L2= " << L2_m << " A= " << A_m << " B= " << B_m << " C= " << C_m
-            << " bL= " << bL << " bH= " << bH <<  " actBMin= " << actBMin_m << " actBMax=max(bL,bH)= " << actBMax_m << endl);
 
     //reset number of points inside domain
 
@@ -138,14 +131,14 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
             for(int x = 0; x < nr[0]; x++) {
                 // the x coordinate does not change in the CornerBox geometry
                 std::pair<int, int> pos(x, z);
-                IntersectXDir.insert(std::pair< std::pair<int, int>, double >(pos, 0.5*A_m));
-                IntersectXDir.insert(std::pair< std::pair<int, int>, double >(pos, -0.5*A_m));
+                IntersectXDir.insert(std::pair< std::pair<int, int>, double >(pos, 0.5*getXRangeMax()));
+                IntersectXDir.insert(std::pair< std::pair<int, int>, double >(pos, 0.5*getXRangeMin()));
             }
 
             for(int y = 0; y < nr[1]; y++) {
                 std::pair<int, int> pos(y, z);
                 double yt = getB(z*hr[2]);
-                double yb = -0.5*B_m;
+                double yb = 0.5*getYRangeMin();
                 IntersectXDir.insert(std::pair< std::pair<int, int>, double >(pos, yt));
                 IntersectXDir.insert(std::pair< std::pair<int, int>, double >(pos, yb));
             }

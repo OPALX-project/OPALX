@@ -36,9 +36,11 @@ public:
     using IrregularDomain::StencilIndex_t;
     using IrregularDomain::StencilValue_t;
 
-    /// constructor
-    RectangularDomain(Vector_t nr, Vector_t hr);
-    /// constructor
+    /**
+     * \param a is the longer side a of the rectangle
+     * \param b is the shorter side b of the rectangle
+     *
+     */
     RectangularDomain(double a, double b, Vector_t nr, Vector_t hr);
 
     /// calculates intersection with the beam pipe
@@ -56,28 +58,12 @@ public:
     inline bool isInside(int x, int y, int /*z*/) {
         double xx = (x - (nr[0] - 1) / 2.0) * hr[0];
         double yy = (y - (nr[1] - 1) / 2.0) * hr[1];
-        return (xx <= a_m && yy < b_m);
+        return (xx <= getXRangeMax() && yy < getYRangeMax());
     }
-
-    void setB_m(double b) {b_m = b;}
-    void setA_m(double a) {a_m = a;}
-
-    double getXRangeMin() { return -a_m; }
-    double getXRangeMax() { return a_m; }
-    double getYRangeMin() { return -b_m; }
-    double getYRangeMax() { return b_m; }
-    double getZRangeMin() { return getMinZ(); }
-    double getZRangeMax() { return getMaxZ(); }
-
 
     int getStartIdx() {return 0;}
 
 private:
-
-    /// longer side a of the rectangles
-    double a_m;
-    /// shorter side b of the rectangles
-    double b_m;
     /// number of nodes in the xy plane (for this case: independent of the z coordinate)
     int nxy_m;
 
