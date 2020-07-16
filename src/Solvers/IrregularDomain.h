@@ -47,7 +47,6 @@ public:
      * (stored in some appropriate data structure)
      * \param hr updated mesh spacings
      */
-    virtual void compute(Vector_t hr) = 0;
     virtual void compute(Vector_t hr, NDIndex<3> localId) = 0;
     /** method to get the number of gridpoints in a given z plane
      * \param z coordinate of the z plane

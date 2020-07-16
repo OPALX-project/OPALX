@@ -44,7 +44,7 @@ RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t h
     nxy_m = nr[0] * nr[1];
 }
 
-void RectangularDomain::compute(Vector_t hr){
+void RectangularDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     setHr(hr);
     nxy_m = nr[0] * nr[1];
 }

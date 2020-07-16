@@ -88,10 +88,6 @@ public:
 
 
     /// calculates intersection
-    void compute(Vector_t /*hr*/) {
-        throw OpalException("EllipticDomain::compute()", "This function is not available.");
-    }
-
     void compute(Vector_t hr, NDIndex<3> localId);
 
     double getXRangeMin() { return -semiMajor_m; }
