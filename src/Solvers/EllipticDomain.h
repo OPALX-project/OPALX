@@ -85,9 +85,6 @@ public:
     double getZRangeMin() { return zMin_m; }
     double getZRangeMax() { return zMax_m; }
 
-    bool hasGeometryChanged() { return hasGeometryChanged_m; }
-
-
     void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
                     const Vector_t& rmax, double dh);
 
@@ -120,9 +117,6 @@ private:
 
     /// interpolation type
     int interpolationMethod_m;
-
-    /// flag indicating if geometry has changed for the current time-step
-    bool hasGeometryChanged_m;
 
     /// conversion from (x,y) to index in xy plane
     inline int toCoordIdx(int x, int y) { return y * nr[0] + x; }
