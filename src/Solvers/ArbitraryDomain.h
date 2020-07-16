@@ -55,10 +55,6 @@ public:
 
     ~ArbitraryDomain();
 
-    /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int idx, int idy, int idz, StencilValue_t& value,
-                            double &scaleFactor);
-
     /// queries if a given (x,y,z) coordinate lies inside the domain
     bool isInside(int idx, int idy, int idz);
     /// returns number of nodes in xy plane
@@ -127,13 +123,10 @@ private:
 
     // Different interpolation methods for boundary points
     void constantInterpolation(int idx, int idy, int idz, StencilValue_t& value,
-                               double &scaleFactor);
+                               double &scaleFactor) override;
 
     void linearInterpolation(int idx, int idy, int idz, StencilValue_t& value,
-                             double &scaleFactor);
-
-    void quadraticInterpolation(int idx, int idy, int idz, StencilValue_t& value,
-                                double &scaleFactor);
+                             double &scaleFactor) override;
 
     // Rotate positive axes with quaternion -DW
     inline void rotateWithQuaternion(Vector_t &v, Quaternion_t const quaternion);

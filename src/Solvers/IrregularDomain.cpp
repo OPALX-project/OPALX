@@ -27,6 +27,8 @@
 #include "Solvers/IrregularDomain.h"
 #include "Utilities/OpalException.h"
 
+#include <cassert>
+
 IrregularDomain::IrregularDomain(const Vector_t& nr, const Vector_t& hr,
                                  const std::string& interpl)
     : nr_m(nr)
@@ -72,11 +74,35 @@ void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)
         index.back = getIdx(x, y, z + 1);
 }
 
+
 void IrregularDomain::getNeighbours(int id, StencilIndex_t& index)
 {
     int x = 0, y = 0, z = 0;
     getCoord(id, x, y, z);
     getNeighbours(x, y, z, index);
+}
+
+
+void IrregularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
+                                         double &scaleFactor)
+{
+    scaleFactor = 1.0;
+
+    // determine which interpolation method we use for points near the boundary
+    switch (interpolationMethod_m) {
+        case CONSTANT:
+            constantInterpolation(x, y, z, value, scaleFactor);
+            break;
+        case LINEAR:
+            linearInterpolation(x, y, z, value, scaleFactor);
+            break;
+        case QUADRATIC:
+            quadraticInterpolation(x, y, z, value, scaleFactor);
+            break;
+    }
+
+    // stencil center value has to be positive!
+    assert(value.center > 0);
 }
 
 
@@ -97,3 +123,27 @@ void IrregularDomain::resizeMesh(Vector_t& origin, Vector_t& hr,
     for (int i = 0; i < 3; i++)
         hr[i] = (max_m[i] - min_m[i]) / nr_m[i];
 };
+
+
+void IrregularDomain::constantInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
+                                            StencilValue_t& /*value*/, double &/*scaleFactor*/)
+{
+    throw OpalException("IrregularDomain::constantInterpolation()",
+                        "No constant interpolation method Implemented!");
+}
+
+
+void IrregularDomain::linearInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
+                                          StencilValue_t& /*value*/, double &/*scaleFactor*/)
+{
+    throw OpalException("IrregularDomain::linearInterpolation()",
+                        "No linear interpolation method Implemented!");
+}
+
+
+void IrregularDomain::quadraticInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
+                                             StencilValue_t& /*value*/, double &/*scaleFactor*/)
+{
+    throw OpalException("IrregularDomain::quadraticInterpolation()",
+                        "No quadratic interpolation method Implemented!");
+}

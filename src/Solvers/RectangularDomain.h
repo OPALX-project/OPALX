@@ -48,9 +48,6 @@ public:
 
     /// returns number of nodes in xy plane (here independent of z coordinate)
     int getNumXY(int z);
-    /// returns discretization at (x,y,z)
-    void getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
-                            double &scaleFactor);
 
     /// returns index of neighbours at (x,y,z)
     using IrregularDomain::getNeighbours;
@@ -83,6 +80,8 @@ private:
         z = (idx - ixy) / nxy_m;
     }
 
+    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                               double &scaleFactor) override;
 };
 
 #endif

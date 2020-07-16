@@ -45,8 +45,8 @@ int RectangularDomain::getNumXY(int /*z*/) {
     return nxy_m;
 }
 
-void RectangularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
-                                           double &scaleFactor)
+void RectangularDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                                              double &scaleFactor)
 {
     //scaleFactor = 1.0;
 
