@@ -522,36 +522,6 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz,
         value.center += (dz_f + dz_b) * (dx_w + dx_e) * (dy_n + dy_s) / m2;
 }
 
-void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, StencilIndex_t& index)
-{
-    index.west  = getIdx(idx - 1, idy, idz);
-    index.east  = getIdx(idx + 1, idy, idz);
-    index.north = getIdx(idx, idy + 1, idz);
-    index.south = getIdx(idx, idy - 1, idz);
-    index.front = getIdx(idx, idy, idz - 1);
-    index.back  = getIdx(idx, idy, idz + 1);
-
-    if(!isInside(idx+1,idy,idz))
-        index.east = -1;
-
-    if(!isInside(idx-1,idy,idz))
-        index.west = -1;
-
-    if(!isInside(idx,idy+1,idz))
-        index.north = -1;
-
-    if(!isInside(idx,idy-1,idz))
-        index.south = -1;
-
-    if(!isInside(idx,idy,idz-1))
-        index.front = -1;
-
-    if(!isInside(idx,idy,idz+1))
-        index.back = -1;
-
-}
-
-
 inline void ArbitraryDomain::crossProduct(double A[], double B[], double C[]) {
     C[0] = A[1] * B[2] - A[2] * B[1];
     C[1] = A[2] * B[0] - A[0] * B[2];

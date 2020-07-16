@@ -90,7 +90,7 @@ public:
     /// \param y index of the current element in the matrix
     /// \param z index of the current element in the matrix
     /// \param index stencil indices of an element
-    virtual void getNeighbours(int x, int y, int z, StencilIndex_t& index) = 0;
+    void getNeighbours(int x, int y, int z, StencilIndex_t& index);
 
     void getNeighbours(int idx, StencilIndex_t& index);
 
