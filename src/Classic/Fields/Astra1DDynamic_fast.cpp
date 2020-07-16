@@ -1,11 +1,13 @@
 #include "Fields/Astra1DDynamic_fast.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
+#include "Utilities/OpalException.h"
 #include "Physics/Physics.h"
 
 #include <fstream>
 #include <ios>
 
+extern Inform *gmsg;
 Astra1DDynamic_fast::Astra1DDynamic_fast(std::string aFilename):
     Astra1D_fast(aFilename)
 {
@@ -82,11 +84,16 @@ bool Astra1DDynamic_fast::getFieldstrength(const Vector_t &R, Vector_t &E, Vecto
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
-    double ez = gsl_spline_eval(onAxisInterpolants_m[0], R(2) - zbegin_m, onAxisAccel_m[0]);
-    double ezp = gsl_spline_eval(onAxisInterpolants_m[1], R(2) - zbegin_m, onAxisAccel_m[1]);
-    double ezpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2) - zbegin_m, onAxisAccel_m[2]);
-    double ezppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2) - zbegin_m, onAxisAccel_m[3]);
-
+    double ez, ezp, ezpp, ezppp;
+    try {
+        ez = gsl_spline_eval(onAxisInterpolants_m[0], R(2) - zbegin_m, onAxisAccel_m[0]);
+        ezp = gsl_spline_eval(onAxisInterpolants_m[1], R(2) - zbegin_m, onAxisAccel_m[1]);
+        ezpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2) - zbegin_m, onAxisAccel_m[2]);
+        ezppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2) - zbegin_m, onAxisAccel_m[3]);
+    } catch (OpalException const& e) {
+        throw OpalException("Astra1DDynamice_fast::getFieldstrength",
+                            "The requested interpolation point, " + std::to_string(R(2)) + " is out of range");
+    }
     // expand the field off-axis
     const double f  = -(ezpp  + ez *  xlrep_m * xlrep_m) / 16.;
     const double fp = -(ezppp + ezp * xlrep_m * xlrep_m) / 16.;
@@ -115,6 +122,7 @@ void Astra1DDynamic_fast::getFieldDimensions(double &zBegin, double &zEnd) const
     zBegin = zbegin_m;
     zEnd = zend_m;
 }
+
 void Astra1DDynamic_fast::getFieldDimensions(double &/*xIni*/, double &/*xFinal*/, double &/*yIni*/, double &/*yFinal*/, double &/*zIni*/, double &/*zFinal*/) const {}
 
 void Astra1DDynamic_fast::swap()
@@ -206,4 +214,3 @@ int Astra1DDynamic_fast::stripFileHeader(std::ifstream &file) {
 
     return accuracy;
 }
-

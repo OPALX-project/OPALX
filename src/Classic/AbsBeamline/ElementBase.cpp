@@ -348,37 +348,51 @@ bool ElementBase::BoundingBox::isInside(const Vector_t & position) const {
 
 boost::optional<Vector_t>
 ElementBase::BoundingBox::getPointOfIntersection(const Vector_t & position,
-                                                                         const Vector_t & direction) const {
-    Vector_t relativePosition = position - lowerLeftCorner;
+                                                 const Vector_t & direction) const {
+    Vector_t relativePosition = lowerLeftCorner - position;
     Vector_t diagonal = upperRightCorner - lowerLeftCorner;
+    Vector_t normalizedDirection = direction / euclidean_norm(direction);
+    // *gmsg << "position: " << position << "\n"
+    //       << "normalizedDirection: " << normalizedDirection << "\n"
+    //       << "lowerLeftCorner: " << lowerLeftCorner << "\n"
+    //       << "upperRightCorner: " << upperRightCorner << "\n"
+    //       << "diagonal: " << diagonal << endl;
 
-    for (unsigned int i = 0; i < 2; ++ i) {
+    for (int i = -1; i < 2; i += 2) {
         for (unsigned int d = 0; d < 3; ++ d) {
-            double projectedDirection = direction[d];
+            double projectedDirection = normalizedDirection[d];
+            // *gmsg << "\n" << "projectedDirection: " << projectedDirection << "\n";
             if (std::abs(projectedDirection) < 1e-10) {
                 continue;
             }
 
             double distanceNearestPoint = relativePosition[d];
             double tau = distanceNearestPoint / projectedDirection;
+            // *gmsg << "distanceNearestPoint: " << distanceNearestPoint << "\n"
+            //       << "relativePosition: " << relativePosition << "\n"
+            //       << "tau: " << tau << "\n";
             if (tau < 0) {
                 continue;
             }
-            Vector_t intersectionPoint = relativePosition + tau * direction;
+            Vector_t delta = tau * normalizedDirection;
+            Vector_t relativeIntersectionPoint = i * (relativePosition - delta);
 
-            double sign = 1 - 2 * i;
-            if (sign * intersectionPoint[(d + 1) % 3] < 0.0 ||
-                sign * intersectionPoint[(d + 1) % 3] > diagonal[(d + 1) % 3] ||
-                sign * intersectionPoint[(d + 2) % 3] < 0.0 ||
-                sign * intersectionPoint[(d + 2) % 3] > diagonal[(d + 2) % 3]) {
+            // *gmsg << "delta: " << delta << "\n"
+            //       << "relativeIntersectionPoint: " << relativeIntersectionPoint << endl;
+
+            // *gmsg << sign * intersectionPoint[(d + 1) % 3] << "\t" << sign * relativeIntersectionPoint[(d + 2) % 3] << "\t";
+            if (relativeIntersectionPoint[(d + 1) % 3] < 0.0 ||
+                relativeIntersectionPoint[(d + 1) % 3] > diagonal[(d + 1) % 3] ||
+                relativeIntersectionPoint[(d + 2) % 3] < 0.0 ||
+                relativeIntersectionPoint[(d + 2) % 3] > diagonal[(d + 2) % 3]) {
                 continue;
             }
 
-            return position + tau * direction;
+            return position + tau * normalizedDirection;
         }
         relativePosition = upperRightCorner - position;
     }
-
+    // *gmsg << endl;
     return boost::none;
 }
 
