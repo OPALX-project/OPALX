@@ -110,8 +110,6 @@ private:
     // Interpolation type
     int interpolationMethod;
 
-    Vector_t Geo_nr_m;
-    Vector_t Geo_hr_m;
     Vector_t geomCentroid_m;
     Vector_t minCoords_m;
     Vector_t maxCoords_m;

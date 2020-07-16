@@ -39,8 +39,10 @@
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
                                   Vector_t nr,
-                                  Vector_t /*hr*/,
-                                  std::string interpl){
+                                  Vector_t hr,
+                                  std::string interpl)
+    : IrregularDomain(nr, hr)
+{
     bgeom_m  = bgeom;
 
     setRangeMin(bgeom->getmincoords());
@@ -54,10 +56,6 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
             "ArbitraryDomain::ArbitraryDomain()",
             "No point inside geometry found/set!");
     }
-    setNr(nr);
-    for(int i=0; i<3; i++)
-        Geo_hr_m[i] = (max_m[i] - min_m[i])/nr[i];
-    setHr(Geo_hr_m);
 
     startId = 0;
 
@@ -87,11 +85,11 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
         localToGlobalQuaternion_m[i] = -globalToLocalQuaternion_m[i];
 
     int zGhostOffsetLeft  = (localId[2].first()== 0) ? 0 : 1;
-    int zGhostOffsetRight = (localId[2].last() == nr[2] - 1) ? 0 : 1;
+    int zGhostOffsetRight = (localId[2].last() == nr_m[2] - 1) ? 0 : 1;
     int yGhostOffsetLeft  = (localId[1].first()== 0) ? 0 : 1;
-    int yGhostOffsetRight = (localId[1].last() == nr[1] - 1) ? 0 : 1;
+    int yGhostOffsetRight = (localId[1].last() == nr_m[1] - 1) ? 0 : 1;
     int xGhostOffsetLeft  = (localId[0].first()== 0) ? 0 : 1;
-    int xGhostOffsetRight = (localId[0].last() == nr[0] - 1) ? 0 : 1;
+    int xGhostOffsetRight = (localId[0].last() == nr_m[0] - 1) ? 0 : 1;
 
     hasGeometryChanged_m = true;
 
@@ -112,17 +110,17 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     // example (-0.13 to +0.025). -DW
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 
-        //saveP_old[2] = (idz - (nr[2]-1)/2.0)*hr[2];
+        //saveP_old[2] = (idz - (nr_m[2]-1)/2.0)*hr[2];
         P[2] = min_m[2] + (idz + 0.5) * hr[2];
 
         for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
 
-            //saveP_old[1] = (idy - (nr[1]-1)/2.0)*hr[1];
+            //saveP_old[1] = (idy - (nr_m[1]-1)/2.0)*hr[1];
             P[1] = min_m[1] + (idy + 0.5) * hr[1];
 
             for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 
-                //saveP_old[0] = (idx - (nr[0]-1)/2.0)*hr[0];
+                //saveP_old[0] = (idx - (nr_m[0]-1)/2.0)*hr[0];
                 P[0] = min_m[0] + (idx + 0.5) * hr[0];
 
                 // *gmsg << "Now working on point " << saveP << " (original was " << saveP_old << ")" << endl;
@@ -244,8 +242,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     //number of ghost nodes to the left
     int numGhostNodesLeft = 0;
     if(localId[2].first() != 0) {
-        for(int idx = 0; idx < nr[0]; idx++) {
-            for(int idy = 0; idy < nr[1]; idy++) {
+        for(int idx = 0; idx < nr_m[0]; idx++) {
+            for(int idy = 0; idy < nr_m[1]; idy++) {
                 if(isInside(idx, idy, localId[2].first() - zGhostOffsetLeft))
                     numGhostNodesLeft++;
             }
@@ -259,8 +257,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     numXY.clear();
     for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         int numxy = 0;
-        for(int idx = 0; idx < nr[0]; idx++) {
-            for(int idy = 0; idy < nr[1]; idy++) {
+        for(int idx = 0; idx < nr_m[0]; idx++) {
+            for(int idy = 0; idy < nr_m[1]; idy++) {
                 if(isInside(idx, idy, idz))
                     numxy++;
             }
@@ -281,8 +279,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     INFOMSG(level2 << "* Building up index and coordinate map..." << endl);
 
     for(int idz = localId[2].first() - zGhostOffsetLeft; idz <= localId[2].last() + zGhostOffsetRight; idz++) {
-        for(int idy = 0; idy < nr[1]; idy++) {
-            for(int idx = 0; idx < nr[0]; idx++) {
+        for(int idy = 0; idy < nr_m[1]; idy++) {
+            for(int idx = 0; idx < nr_m[0]; idx++) {
                 if(isInside(idx, idy, idz)) {
                     IdxMap[toCoordIdx(idx, idy, idz)] = index;
                     CoordMap[index] = toCoordIdx(idx, idy, idz);
@@ -297,7 +295,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
 // Conversion from (x,y,z) to index in xyz plane
 inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
-    return (idz * nr[1] + idy) * nr[0]  + idx;
+    return (idz * nr_m[1] + idy) * nr_m[0]  + idx;
 }
 
 // Conversion from (x,y,z) to index on the 3D grid
@@ -312,10 +310,10 @@ int ArbitraryDomain::getIdx(int idx, int idy, int idz) {
 // Conversion from a 3D index to (x,y,z)
 inline void ArbitraryDomain::getCoord(int idxyz, int &idx, int &idy, int &idz) {
     int id = CoordMap[idxyz];
-    idx = id % (int)nr[0];
-    id /= nr[0];
-    idy = id % (int)nr[1];
-    id /= nr[1];
+    idx = id % (int)nr_m[0];
+    id /= nr_m[0];
+    idy = id % (int)nr_m[1];
+    id /= nr_m[1];
     idz = id;
 }
 
@@ -328,9 +326,9 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
   inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
   Vector_t P;
 
-  P[0] = min_m[0] + (idx + 0.5) * hr[0];
-  P[1] = min_m[1] + (idy + 0.5) * hr[1];
-  P[2] = min_m[2] + (idz + 0.5) * hr[2];
+  P[0] = min_m[0] + (idx + 0.5) * hr_m[0];
+  P[1] = min_m[1] + (idy + 0.5) * hr_m[1];
+  P[2] = min_m[2] + (idz + 0.5) * hr_m[2];
 
   return (bgeom_m->fastIsInside(globalInsideP0_m, P) % 2 == 0);
   }
@@ -340,9 +338,9 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
   inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
   Vector_t P;
 
-  P[0] = (idx - (nr[0]-1)/2.0) * hr[0];
-  P[1] = (idy - (nr[1]-1)/2.0) * hr[1];
-  P[2] = (idz - (nr[2]-1)/2.0) * hr[2];
+  P[0] = (idx - (nr_m[0]-1)/2.0) * hr_m[0];
+  P[1] = (idy - (nr_m[1]-1)/2.0) * hr_m[1];
+  P[2] = (idz - (nr_m[2]-1)/2.0) * hr_m[2];
 
   bool ret = false;
   int  countH, countL;
@@ -409,13 +407,13 @@ void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz,
 void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
                                             StencilValue_t& value, double& /*scaleFactor*/)
 {
-    value.west = -1/(hr[0]*hr[0]);
-    value.east = -1/(hr[0]*hr[0]);
-    value.north = -1/(hr[1]*hr[1]);
-    value.south = -1/(hr[1]*hr[1]);
-    value.front = -1/(hr[2]*hr[2]);
-    value.back = -1/(hr[2]*hr[2]);
-    value.center = 2/(hr[0]*hr[0]) + 2/(hr[1]*hr[1]) + 2/(hr[2]*hr[2]);
+    value.west = -1/(hr_m[0]*hr_m[0]);
+    value.east = -1/(hr_m[0]*hr_m[0]);
+    value.north = -1/(hr_m[1]*hr_m[1]);
+    value.south = -1/(hr_m[1]*hr_m[1]);
+    value.front = -1/(hr_m[2]*hr_m[2]);
+    value.back = -1/(hr_m[2]*hr_m[2]);
+    value.center = 2/(hr_m[0]*hr_m[0]) + 2/(hr_m[1]*hr_m[1]) + 2/(hr_m[2]*hr_m[2]);
 
     if(!isInside(idx-1,idy,idz))
         value.west = 0.0;
@@ -438,29 +436,29 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz,
 {
     scaleFactor = 1;
 
-    double cx = (idx - (nr[0]-1)/2.0)*hr[0];
-    double cy = (idy - (nr[1]-1)/2.0)*hr[1];
-    double cz = (idz - (nr[2]-1)/2.0)*hr[2];
+    double cx = (idx - (nr_m[0]-1)/2.0)*hr_m[0];
+    double cy = (idy - (nr_m[1]-1)/2.0)*hr_m[1];
+    double cz = (idz - (nr_m[2]-1)/2.0)*hr_m[2];
 
-    double dx_w=hr[0];
-    double dx_e=hr[0];
-    double dy_n=hr[1];
-    double dy_s=hr[1];
-    double dz_f=hr[2];
-    double dz_b=hr[2];
+    double dx_w=hr_m[0];
+    double dx_e=hr_m[0];
+    double dy_n=hr_m[1];
+    double dy_s=hr_m[1];
+    double dz_f=hr_m[2];
+    double dz_b=hr_m[2];
     value.center = 0.0;
 
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
 
-    if (idx == nr[0]-1)
+    if (idx == nr_m[0]-1)
         dx_e = std::abs(IntersectHiX.find(coordxyz)->second - cx);
     if (idx == 0)
         dx_w = std::abs(IntersectLoX.find(coordxyz)->second - cx);
-    if (idy == nr[1]-1)
+    if (idy == nr_m[1]-1)
         dy_n = std::abs(IntersectHiY.find(coordxyz)->second - cy);
     if (idy == 0)
         dy_s = std::abs(IntersectLoY.find(coordxyz)->second - cy);
-    if (idz == nr[2]-1)
+    if (idz == nr_m[2]-1)
         dz_b = std::abs(IntersectHiZ.find(coordxyz)->second - cz);
     if (idz == 0)
         dz_f = std::abs(IntersectLoZ.find(coordxyz)->second - cz);
@@ -513,7 +511,7 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz,
     if(dy_s == 0)
         m2 = dy_n;
 
-    value.center = 2 / hr[2];
+    value.center = 2 / hr_m[2];
     if(dx_w != 0 || dx_e != 0)
         value.center *= (dx_w + dx_e);
     if(dy_n != 0 || dy_s != 0)

@@ -141,8 +141,10 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                 "Please set PARFFTX=FALSE, PARFFTY=FALSE, PARFFTT=TRUE in \n"
                                 "the definition of the field solver in the input file.\n");
         }
+        Vector_t hr = (currentGeometry->getmaxcoords() -
+                       currentGeometry->getmincoords()) / orig_nr_m;
         bp_m = std::unique_ptr<IrregularDomain>(
-            new ArbitraryDomain(currentGeometry, orig_nr_m, hr_m, interpl));
+            new ArbitraryDomain(currentGeometry, orig_nr_m, hr, interpl));
     }
 
     map_p = Teuchos::null;

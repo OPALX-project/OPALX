@@ -56,8 +56,8 @@ public:
     using IrregularDomain::getNeighbours;
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int /*z*/) {
-        double xx = (x - (nr[0] - 1) / 2.0) * hr[0];
-        double yy = (y - (nr[1] - 1) / 2.0) * hr[1];
+        double xx = (x - (nr_m[0] - 1) / 2.0) * hr_m[0];
+        double yy = (y - (nr_m[1] - 1) / 2.0) * hr_m[1];
         return (xx <= getXRangeMax() && yy < getYRangeMax());
     }
 
@@ -70,16 +70,16 @@ private:
     /// conversion from (x,y,z) to index on the 3D grid
     inline int getIdx(int x, int y, int z) {
         if(isInside(x, y, z) && x >= 0 && y >= 0 && z >= 0)
-            return y * nr[0] + x + z * nxy_m;
+            return y * nr_m[0] + x + z * nxy_m;
         else
             return -1;
     }
     /// conversion from a 3D index to (x,y,z)
     inline void getCoord(int idx, int &x, int &y, int &z) {
         int ixy = idx % nxy_m;
-        int inr = nr[0];
+        int inr = nr_m[0];
         x = ixy % inr;
-        y = (ixy - x) / nr[0];
+        y = (ixy - x) / nr_m[0];
         z = (idx - ixy) / nxy_m;
     }
 
