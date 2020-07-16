@@ -193,7 +193,6 @@ void ParallelTTracker::execute() {
     prepareSections();
 
     double minTimeStep = stepSizes_m.getMinTimeStep();
-    unsigned long long totalNumSteps = stepSizes_m.getNumStepsFinestResolution();
 
     itsOpalBeamline_m.activateElements();
 
@@ -248,7 +247,6 @@ void ParallelTTracker::execute() {
                       -rmin(2),
                       itsBunch_m->getT(),
                       (back_track? -minTimeStep: minTimeStep),
-                      totalNumSteps,
                       stepSizes_m.getFinalZStop() + 2 * rmax(2),
                       itsOpalBeamline_m);
 
