@@ -183,14 +183,6 @@ void BoxCornerDomain::getBoundaryStencil(int idx, double &W, double &E, double &
 }
 
 
-void BoxCornerDomain::getNeighbours(int idx, int &W, int &E, int &S, int &N, int &F, int &B) {
-
-    int x = 0, y = 0, z = 0;
-    getCoord(idx, x, y, z);
-    getNeighbours(x, y, z, W, E, S, N, F, B);
-
-}
-
 void BoxCornerDomain::getNeighbours(int x, int y, int z, int &W, int &E, int &S, int &N, int &F, int &B) {
 
     if(x > 0)

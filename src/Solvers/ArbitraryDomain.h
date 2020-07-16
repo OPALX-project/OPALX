@@ -66,10 +66,6 @@ public:
     void getNeighbours(int idx, int idy, int idz, int &W,
                        int &E, int &S, int &N, int &F, int &B);
 
-    /// returns index of neighbours at 3D index
-    void getNeighbours(int idxyz, int &W, int &E,
-                       int &S, int &N, int &F, int &B);
-
     /// returns type of boundary condition
     std::string getType() {return "Geometric";}
     /// queries if a given (x,y,z) coordinate lies inside the domain

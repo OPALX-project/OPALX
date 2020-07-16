@@ -67,9 +67,6 @@ public:
     void getNeighbours(int x, int y, int z, int &W, int &E,
                        int &S, int &N, int &F, int &B);
 
-    /// returns index of neighbours at 3D index
-    void getNeighbours(int idx, int &W, int &E, int &S, int &N, int &F, int &B);
-
     /// returns type of boundary condition
     std::string getType() {return "Elliptic";}
 

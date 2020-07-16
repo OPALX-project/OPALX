@@ -213,14 +213,6 @@ void EllipticDomain::getBoundaryStencil(int idx, double &W, double &E,
 }
 
 
-void EllipticDomain::getNeighbours(int idx, int &W, int &E, int &S, int &N, int &F, int &B) {
-
-    int x = 0, y = 0, z = 0;
-    getCoord(idx, x, y, z);
-    getNeighbours(x, y, z, W, E, S, N, F, B);
-
-}
-
 void EllipticDomain::getNeighbours(int x, int y, int z, int &W, int &E,
                                    int &S, int &N, int &F, int &B)
 {

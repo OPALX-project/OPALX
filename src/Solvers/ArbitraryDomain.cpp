@@ -535,15 +535,6 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz, double& W,
         C += (dz_f + dz_b) * (dx_w + dx_e) * (dy_n + dy_s) / m2;
 }
 
-void ArbitraryDomain::getNeighbours(int id, int &W, int &E, int &S,
-                                    int &N, int &F, int &B)
-{
-    int idx = 0, idy = 0, idz = 0;
-
-    getCoord(id, idx, idy, idz);
-    getNeighbours(idx, idy, idz, W, E, S, N, F, B);
-}
-
 void ArbitraryDomain::getNeighbours(int idx, int idy, int idz, int &W,
                                     int &E, int &S, int &N, int &F, int &B)
 {

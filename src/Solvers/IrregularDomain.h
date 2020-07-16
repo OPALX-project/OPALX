@@ -96,8 +96,11 @@ public:
     virtual void getNeighbours(int x, int y, int z, int &W, int &E, int &S,
                                int &N, int &F, int &B) = 0;
 
-    virtual void getNeighbours(int idx, int &W, int &E, int &S, int &N,
-                               int &F, int &B) = 0;
+    void getNeighbours(int idx, int &W, int &E, int &S, int &N,
+                       int &F, int &B);
+
+
+    virtual void getCoord(int idx, int &x, int &y, int &z) = 0;
 
     /// method that identifies a specialized boundary geometry
     /// \return std::string containing a description of the boundary geometry used
