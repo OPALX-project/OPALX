@@ -59,8 +59,6 @@ public:
     void getBoundaryStencil(int idx, int idy, int idz, StencilValue_t& value,
                             double &scaleFactor);
 
-    /// returns type of boundary condition
-    std::string getType() {return "Geometric";}
     /// queries if a given (x,y,z) coordinate lies inside the domain
     bool isInside(int idx, int idy, int idz);
     /// returns number of nodes in xy plane
