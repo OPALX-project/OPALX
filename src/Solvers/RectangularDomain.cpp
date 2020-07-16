@@ -29,7 +29,7 @@
 #include "Utilities/OpalException.h"
 
 RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t hr)
-    : IrregularDomain(nr, hr)
+    : IrregularDomain(nr, hr, "CONSTANT")
 {
     setRangeMin(Vector_t(-a, -b, getMinZ()));
     setRangeMax(Vector_t( a,  b, getMaxZ()));

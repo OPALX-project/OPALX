@@ -38,19 +38,12 @@ extern Inform *gmsg;
 BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double length,
                                  double L1, double L2, Vector_t nr, Vector_t hr,
                                  std::string interpl)
-    : IrregularDomain(nr, hr)
+    : IrregularDomain(nr, hr, interpl)
 {
     setRangeMin(Vector_t(-A, -B, L1));
     setRangeMax(Vector_t( A,  B, L1 + L2));
     C_m = C;
     length_m = length;
-
-    if(interpl == "CONSTANT")
-        interpolationMethod = CONSTANT;
-    else if(interpl == "LINEAR")
-        interpolationMethod = LINEAR;
-    else if(interpl == "QUADRATIC")
-        interpolationMethod = QUADRATIC;
 
     if(Ippl::getNodes() == 1) {
       *gmsg << " Write BoxCorner data to file boxcorner.dat" << endl;
@@ -115,7 +108,7 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
 
     //XXX: calculate intersection on the fly
     /*
-    switch(interpolationMethod) {
+    switch(interpolationMethod_m) {
 
     case CONSTANT:
         break;
@@ -149,7 +142,7 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
 void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double &scaleFactor) {
 
     // determine which interpolation method we use for points near the boundary
-    switch(interpolationMethod) {
+    switch(interpolationMethod_m) {
         case CONSTANT:
             constantInterpolation(x, y, z, value, scaleFactor);
             break;
