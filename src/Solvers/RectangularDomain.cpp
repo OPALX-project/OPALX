@@ -133,36 +133,6 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& 
 #endif
 }
 
-void RectangularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index) {
-
-    if(x > 0)
-        index.west = getIdx(x - 1, y, z);
-    else
-        index.west = -1;
-    if(x < nr[0] - 1)
-        index.east = getIdx(x + 1, y, z);
-    else
-        index.east = -1;
-
-    if(y < nr[1] - 1)
-        index.north = getIdx(x, y + 1, z);
-    else
-        index.north = -1;
-    if(y > 0)
-        index.south = getIdx(x, y - 1, z);
-    else
-        index.south = -1;
-
-    if(z > 0)
-        index.front = getIdx(x, y, z - 1);
-    else
-        index.front = -1;
-    if(z < nr[2] - 1)
-        index.back = getIdx(x, y, z + 1);
-    else
-        index.back = -1;
-}
-
 /*
 void MGPoissonSolver::getNeighbours(const int idx, int& W, int& E, int& S, int& N, int& F, int& B, int& numOutOfDomain)
 {
