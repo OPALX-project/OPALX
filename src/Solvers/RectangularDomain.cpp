@@ -132,15 +132,6 @@ void RectangularDomain::getBoundaryStencil(int x, int y, int z, double &W, doubl
 #endif
 }
 
-void RectangularDomain::getBoundaryStencil(int idx, double &W, double &E, double &S, double &N, double &F, double &B, double &C, double &scaleFactor) {
-
-    int x = 0, y = 0, z = 0;
-
-    getCoord(idx, x, y, z);
-    getBoundaryStencil(x, y, z, W, E, S, N, F, B, C, scaleFactor);
-
-}
-
 void RectangularDomain::getNeighbours(int x, int y, int z, double &W, double &E, double &S, double &N, double &F, double &B) {
 
     if(x > 0)
