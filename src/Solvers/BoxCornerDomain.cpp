@@ -138,26 +138,6 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     */
 }
 
-
-void BoxCornerDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double &scaleFactor) {
-
-    // determine which interpolation method we use for points near the boundary
-    switch(interpolationMethod_m) {
-        case CONSTANT:
-            constantInterpolation(x, y, z, value, scaleFactor);
-            break;
-        case LINEAR:
-            linearInterpolation(x, y, z, value, scaleFactor);
-            break;
-        case QUADRATIC:
-            quadraticInterpolation(x, y, z, value, scaleFactor);
-            break;
-    }
-
-    // stencil center value has to be positive!
-    assert(value.center > 0);
-}
-
 void BoxCornerDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
                                             double &scaleFactor)
 {

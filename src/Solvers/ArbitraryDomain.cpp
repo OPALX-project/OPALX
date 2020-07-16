@@ -376,27 +376,6 @@ int ArbitraryDomain::getNumXY(int z) {
     return numXY[z];
 }
 
-void ArbitraryDomain::getBoundaryStencil(int idx, int idy, int idz,
-                                         StencilValue_t& value, double &scaleFactor)
-{
-    scaleFactor = 1.0;
-    // determine which interpolation method we use for points near the boundary
-    switch(interpolationMethod_m){
-    case CONSTANT:
-        constantInterpolation(idx,idy,idz,value,scaleFactor);
-        break;
-    case LINEAR:
-        linearInterpolation(idx,idy,idz,value,scaleFactor);
-        break;
-    case QUADRATIC:
-        //  QuadraticInterpolation(idx,idy,idz,value,scaleFactor);
-        break;
-    }
-
-    // stencil center value has to be positive!
-    assert(value.center > 0);
-}
-
 void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
                                             StencilValue_t& value, double& /*scaleFactor*/)
 {

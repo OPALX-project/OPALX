@@ -154,28 +154,6 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& 
         hr[i] = (mymax[i] - origin[i]) / nr_m[i];
 }
 
-void EllipticDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
-                                        double &scaleFactor)
-{
-    scaleFactor = 1.0;
-
-    // determine which interpolation method we use for points near the boundary
-    switch (interpolationMethod_m) {
-        case CONSTANT:
-            constantInterpolation(x, y, z, value, scaleFactor);
-            break;
-        case LINEAR:
-            linearInterpolation(x, y, z, value, scaleFactor);
-            break;
-        case QUADRATIC:
-            quadraticInterpolation(x, y, z, value, scaleFactor);
-            break;
-    }
-
-    // stencil center value has to be positive!
-    assert(value.center > 0);
-}
-
 void EllipticDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
                                            double &scaleFactor)
 {
