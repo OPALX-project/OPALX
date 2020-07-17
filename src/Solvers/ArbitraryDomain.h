@@ -97,8 +97,6 @@ private:
     std::map<int, bool> IsInsideMap;
 
     Vector_t geomCentroid_m;
-    Vector_t minCoords_m;
-    Vector_t maxCoords_m;
     Vector_t globalInsideP0_m;
 
     // Conversion from (x,y,z) to index in xyz plane
