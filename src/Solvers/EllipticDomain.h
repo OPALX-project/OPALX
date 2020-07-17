@@ -32,19 +32,17 @@
 #include <map>
 #include <string>
 #include <cmath>
-#include "IrregularDomain.h"
+#include "Solvers/RegularDomain.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Utilities/OpalException.h"
 
-class EllipticDomain : public IrregularDomain {
+class EllipticDomain : public RegularDomain {
 
 public:
     EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr,
                    Vector_t hr, std::string interpl);
 
     ~EllipticDomain();
-
-    int getNumXY() const override;
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     bool isInside(int x, int y, int z) const {
@@ -60,9 +58,6 @@ public:
     /// calculates intersection
     void compute(Vector_t hr, NDIndex<3> localId);
 
-    void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
-                    const Vector_t& rmax, double dh) override;
-
 private:
 
     /// Map from a single coordinate (x or y) to a list of intersection values with
@@ -75,19 +70,16 @@ private:
     /// all intersection points with grid lines in Y direction
     EllipticPointList_t intersectYDir_m;
 
-    /// number of nodes in the xy plane (for this case: independent of the z coordinate)
-    int nxy_m;
-
     /// conversion from (x,y) to index in xy plane
     int toCoordIdx(int x, int y) const { return y * nr_m[0] + x; }
 
     /// conversion from (x,y,z) to index on the 3D grid
     int indexAccess(int x, int y, int z) const {
-        return idxMap_m.at(toCoordIdx(x, y)) + z * nxy_m;
+        return idxMap_m.at(toCoordIdx(x, y)) + z * getNumXY();
     }
 
     int coordAccess(int idx) const {
-        int ixy = idx % nxy_m;
+        int ixy = idx % getNumXY();
         return coordMap_m.at(ixy);
     }
 
