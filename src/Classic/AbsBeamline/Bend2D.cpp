@@ -1686,28 +1686,23 @@ ElementBase::BoundingBox Bend2D::getBoundingBoxInLabCoords() const {
     CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
     CoordinateSystemTrafo toEnd = getEdgeToEnd() * csTrafoGlobal2Local_m;
 
-    const double &x = aperture_m.second[0];
-    const double &y = aperture_m.second[1];
-
-    std::vector<Vector_t> corners(8);
-    for (int i = -1; i < 2; i += 2) {
-        for (int j = -1; j < 2; j += 2) {
-            unsigned int idx = (i + 1)/2 + (j + 1);
-            corners[idx] = toBegin.transformFrom(Vector_t(i * x, j * y, 0.0));
-            corners[idx + 4] = toEnd.transformFrom(Vector_t(i * x, j * y, 0.0));
-        }
-    }
+    std::vector<Vector_t> outline = getOutline();
 
     BoundingBox bb;
-    bb.lowerLeftCorner = bb.upperRightCorner = corners[0];
+    bb.lowerLeftCorner = std::numeric_limits<double>::max();
+    bb.upperRightCorner = std::numeric_limits<double>::lowest();
 
-    for (unsigned int i = 1; i < 8u; ++ i) {
-        for (unsigned int d; d < 3u; ++ d) {
-            if (bb.lowerLeftCorner(d) > corners[i](d)) {
-                bb.lowerLeftCorner(d) = corners[i](d);
-            }
-            if (bb.upperRightCorner(d) < corners[i](d)) {
-                bb.upperRightCorner(d) = corners[i](d);
+    Vector_t dY(0, 0.5 * getFullGap(), 0);
+    for (int i = -1; i < 2; i += 2) {
+        for (const Vector_t & vec: outline) {
+            Vector_t vecInLabCoords = csTrafoGlobal2Local_m.transformFrom(vec + i * dY);
+            for (unsigned int d = 0; d < 3; ++ d) {
+                if (vecInLabCoords(d) < bb.lowerLeftCorner(d)) {
+                    bb.lowerLeftCorner(d) = vecInLabCoords(d);
+                }
+                if (vecInLabCoords(d) > bb.upperRightCorner(d)) {
+                    bb.upperRightCorner(d) = vecInLabCoords(d);
+                }
             }
         }
     }
