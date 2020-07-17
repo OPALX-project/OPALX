@@ -74,9 +74,6 @@ L2 = getZRangeMax() - getZRangeMin
 class BoxCornerDomain : public IrregularDomain {
 
 public:
-    using IrregularDomain::StencilIndex_t;
-    using IrregularDomain::StencilValue_t;
-
     /**
      * \param A depth of the box
      * \param B maximal height of the box
@@ -86,12 +83,12 @@ public:
      * \param L2 length of the corner
      */
     BoxCornerDomain(double A, double B, double C, double length,
-                    double L1, double L2, Vector_t nr, Vector_t hr,
+                    double L1, double L2, IntVector_t nr, Vector_t hr,
                     std::string interpl);
     ~BoxCornerDomain();
 
     /// as a function of z, determine the hight (B) of the geometry
-    inline double getB(double z) {
+    inline double getB(double z) const {
       if((z < getZRangeMin()) || (z > getZRangeMax()))
             return getYRangeMax();
         else
@@ -99,11 +96,11 @@ public:
     }
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
-    inline bool isInside(int x, int y, int z) {
+    inline bool isInside(int x, int y, int z) const {
         const double xx = (x - (nr_m[0] - 1) / 2.0) * hr_m[0];
         const double yy = (y - (nr_m[1] - 1) / 2.0) * hr_m[1];
         const double b = getB(z * hr_m[2]);
-        return (xx < getXRangeMax() && yy < b && z != 0 && z != nr_m[2] - 1);
+        return (xx < getXRangeMax() && yy < b && z >= 0 && z < nr_m[2]);
     }
 
     void compute(Vector_t hr, NDIndex<3> localId);
@@ -136,33 +133,37 @@ private:
 
 
 
-    inline double getXIntersection(double cx, int /*z*/) {
+    inline double getXIntersection(double cx, int /*z*/) const {
         return (cx < 0) ? getXRangeMin() : getXRangeMax();
     }
 
-    inline double getYIntersection(double cy, int z) {
+    inline double getYIntersection(double cy, int z) const {
         return (cy < 0) ? getYRangeMin() : getB(z * hr_m[2]);
     }
 
     /// conversion from (x,y,z) to index in xyz plane
-    inline int toCoordIdx(int x, int y, int z) {
+    inline int toCoordIdx(int x, int y, int z) const {
         return (z * nr_m[1] + y) * nr_m[0] + x;
     }
 
     /// conversion from (x,y,z) to index on the 3D grid
-    int indexAccess(int x, int y, int z) {
-        return idxMap_m[toCoordIdx(x, y, z)];
+    int indexAccess(int x, int y, int z) const {
+        return idxMap_m.at(toCoordIdx(x, y, z));
+    }
+
+    int coordAccess(int idx) const {
+        return coordMap_m.at(idx);
     }
 
     /// different interpolation methods for boundary points
     void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) override;
+                               double &scaleFactor) const override;
 
     void linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                             double &scaleFactor) override;
+                             double &scaleFactor) const override;
 
     void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                double &scaleFactor) override;
+                                double &scaleFactor) const override;
 
 };
 

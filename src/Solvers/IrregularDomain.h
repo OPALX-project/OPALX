@@ -55,8 +55,9 @@ public:
 
     typedef Stencil<int>    StencilIndex_t;
     typedef Stencil<double> StencilValue_t;
+    typedef Vektor<int, 3>  IntVector_t;
 
-    IrregularDomain(const Vector_t& nr,
+    IrregularDomain(const IntVector_t& nr,
                     const Vector_t& hr,
                     const std::string& interpl);
 
@@ -75,57 +76,64 @@ public:
     /// \param scaleFactor of stencil values
     void getBoundaryStencil(int x, int y, int z,
                                     StencilValue_t& value,
-                                    double &scaleFactor);
+                                    double &scaleFactor) const;
 
     /// method to calculate the stencil at a boundary points
     /// \param id index of the current element in the matrix
     // \param values of stencil element
     /// \param scaleFactor of stencil values
     void getBoundaryStencil(int id, StencilValue_t& value,
-                            double &scaleFactor);
+                            double &scaleFactor) const;
 
     /// method to calculate the neighbours in the matrix of the current index (x,y,z)
     /// \param x index of the current element in the matrix
     /// \param y index of the current element in the matrix
     /// \param z index of the current element in the matrix
     /// \param index stencil indices of an element
-    void getNeighbours(int x, int y, int z, StencilIndex_t& index);
+    void getNeighbours(int x, int y, int z, StencilIndex_t& index) const;
 
-    void getNeighbours(int idx, StencilIndex_t& index);
+    void getNeighbours(int idx, StencilIndex_t& index) const;
 
     /// Conversion from a 3D index to (x,y,z)
-    virtual void getCoord(int idx, int &x, int &y, int &z);
+    virtual void getCoord(int idx, int &x, int &y, int &z) const;
 
     /// Conversion from (x,y,z) to index on the 3D grid
-    int getIdx(int x, int y, int z);
+    int getIdx(int x, int y, int z) const;
+
+    virtual int getNumXY() const { return nr_m[0] * nr_m[1]; }
 
     /// method that checks if a given point lies inside the boundary
     /// \param x index of the current element in the matrix
     /// \param y index of the current element in the matrix
     /// \param z index of the current element in the matrix
     /// \return boolean indicating if the point lies inside the boundary
-    virtual bool isInside(int x, int y, int z) = 0;
+    virtual bool isInside(int x, int y, int z)  const = 0;
 
-    Vector_t getNr() { return nr_m; }
-    Vector_t getHr() { return hr_m; }
-    void setNr(Vector_t nr) { nr_m = nr; }
-    void setHr(Vector_t hr) { hr_m = hr; }
+    IntVector_t getNr() const { return nr_m; }
+    Vector_t    getHr() const { return hr_m; }
 
-    void setMinMaxZ(double minz, double maxz) { zMin_m=minz; zMax_m=maxz; }
-    double getMinZ() { return zMin_m; }
-    double getMaxZ() { return zMax_m; }
+    void setNr(IntVector_t nr) { nr_m = nr; }
+    void setHr(Vector_t hr)    { hr_m = hr; }
 
-    double getXRangeMin();
-    double getXRangeMax();
-    double getYRangeMin();
-    double getYRangeMax();
-    double getZRangeMin();
-    double getZRangeMax();
+    void setMinMaxZ(double minz, double maxz) {
+        zMin_m = minz;
+        zMax_m = maxz;
+    }
 
-    void setRangeMin(const Vector_t&);
-    void setRangeMax(const Vector_t&);
+    double getMinZ() const { return zMin_m; }
+    double getMaxZ() const { return zMax_m; }
 
-    bool hasGeometryChanged();
+    double getXRangeMin() const { return min_m(0); }
+    double getXRangeMax() const { return max_m(0); }
+    double getYRangeMin() const { return min_m(1); }
+    double getYRangeMax() const { return max_m(1); }
+    double getZRangeMin() const { return min_m(2); }
+    double getZRangeMax() const { return max_m(2); }
+
+    void setRangeMin(const Vector_t& min) { min_m = min; }
+    void setRangeMax(const Vector_t& max) { max_m = max; }
+
+    bool hasGeometryChanged() const { return hasGeometryChanged_m; }
 
     virtual ~IrregularDomain() {};
 
@@ -135,22 +143,24 @@ public:
 
 protected:
 
-    virtual int indexAccess(int x, int y, int z) = 0;
+    virtual int indexAccess(int x, int y, int z) const = 0;
+
+    virtual int coordAccess(int idx) const = 0;
 
     /// different interpolation methods for boundary points
     virtual void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor);
+                               double &scaleFactor) const;
 
     virtual void linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                             double &scaleFactor);
+                             double &scaleFactor) const;
 
     virtual void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                double &scaleFactor);
+                                double &scaleFactor) const;
 
 
     // a irregular domain is always defined on a grid
     /// number of mesh points in each direction
-    Vector_t nr_m;
+    IntVector_t nr_m;
     /// mesh-spacings in each direction
     Vector_t hr_m;
 
@@ -174,43 +184,6 @@ protected:
     std::map<int, int> coordMap_m;
 
 };
-
-
-inline bool IrregularDomain::hasGeometryChanged() {
-    return hasGeometryChanged_m;
-}
-
-inline double IrregularDomain::getXRangeMin() {
-    return min_m(0);
-}
-
-inline double IrregularDomain::getXRangeMax() {
-    return max_m(0);
-}
-
-inline double IrregularDomain::getYRangeMin() {
-    return min_m(1);
-}
-
-inline double IrregularDomain::getYRangeMax() {
-    return max_m(1);
-}
-
-inline double IrregularDomain::getZRangeMin() {
-    return min_m(2);
-}
-
-inline double IrregularDomain::getZRangeMax() {
-    return max_m(2);
-}
-
-inline void IrregularDomain::setRangeMin(const Vector_t& min) {
-    min_m = min;
-}
-
-inline void IrregularDomain::setRangeMax(const Vector_t& max) {
-    max_m = max;
-}
 
 #endif
 

@@ -38,7 +38,7 @@
 #include "Utilities/OpalException.h"
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
-                                  Vector_t nr,
+                                  IntVector_t nr,
                                   Vector_t hr,
                                   std::string interpl)
     : IrregularDomain(nr, hr, interpl)
@@ -242,23 +242,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     INFOMSG(level2 << "* Done." << endl);
 }
 
-// Conversion from (x,y,z) to index in xyz plane
-inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
-    return (idz * nr_m[1] + idy) * nr_m[0]  + idx;
-}
-
-
-int ArbitraryDomain::indexAccess(int x, int y, int z) {
-    return idxMap_m[toCoordIdx(x, y, z)];
-}
-
-inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
-
-    return isInsideMap_m[toCoordIdx(idx, idy, idz)];
-}
-
 void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
-                                            StencilValue_t& value, double& /*scaleFactor*/)
+                                            StencilValue_t& value, double& /*scaleFactor*/) const
 {
     value.west = -1/(hr_m[0]*hr_m[0]);
     value.east = -1/(hr_m[0]*hr_m[0]);
@@ -285,7 +270,7 @@ void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
 }
 
 void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz,
-                                          StencilValue_t& value, double &scaleFactor)
+                                          StencilValue_t& value, double &scaleFactor) const
 {
     scaleFactor = 1;
 

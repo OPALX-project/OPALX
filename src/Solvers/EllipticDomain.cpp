@@ -35,7 +35,7 @@
 //FIXME: ORDER HOW TO TRAVERSE NODES IS FIXED, THIS SHOULD BE MORE GENERIC! (PLACES MARKED)
 
 
-EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
+EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr, Vector_t hr,
                                std::string interpl)
     : IrregularDomain(nr, hr, interpl)
 {
@@ -51,10 +51,16 @@ EllipticDomain::~EllipticDomain() {
 }
 
 
+int EllipticDomain::getNumXY() const {
+    return nxy_m;
+}
+
+
+
 // for this geometry we only have to calculate the intersection on
 // one x-y-plane
 // for the moment we center the ellipse around the center of the grid
-void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
+void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
     // there is nothing to be done if the mesh spacings in x and y have not changed
     if (hr[0] == getHr()[0] &&
         hr[1] == getHr()[1])
@@ -84,8 +90,8 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId){
      * grid points per plane --> otherwise we might
      * get not unique global indices in the Tpetra::CrsMatrix
      */
-    for (x = 0; x < nr_m[0]; ++x) {
-        for (y = 0; y < nr_m[1]; ++y) {
+    for (y = 0; y < nr_m[1]; ++y) {
+        for (x = 0; x < nr_m[0]; ++x) {
             if (isInside(x, y, 1)) {
                 idxMap_m[toCoordIdx(x, y)] = idx;
                 coordMap_m[idx++] = toCoordIdx(x, y);
@@ -155,7 +161,7 @@ void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& 
 }
 
 void EllipticDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                                           double &scaleFactor)
+                                           double &scaleFactor) const
 {
     scaleFactor = 1.0;
 
@@ -191,7 +197,7 @@ void EllipticDomain::constantInterpolation(int x, int y, int z, StencilValue_t& 
 }
 
 void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                                         double &scaleFactor)
+                                         double &scaleFactor) const
 {
     scaleFactor = 1.0;
 
@@ -199,7 +205,7 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& va
     double cy = getYRangeMin() + hr_m[1] * (y + 0.5);
 
     double dx = 0.0;
-    std::multimap<int, double>::iterator it = intersectXDir_m.find(y);
+    std::multimap<int, double>::const_iterator it = intersectXDir_m.find(y);
 
     if (cx < 0)
         ++it;
@@ -263,7 +269,7 @@ void EllipticDomain::linearInterpolation(int x, int y, int z, StencilValue_t& va
 
 void EllipticDomain::quadraticInterpolation(int x, int y, int z,
                                             StencilValue_t& value,
-                                            double &scaleFactor)
+                                            double &scaleFactor) const
 {
     scaleFactor = 1.0;
 
@@ -273,7 +279,7 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z,
     // since every vector for elliptic domains has ALWAYS size 2 we
     // can catch all cases manually
     double dx = 0.0;
-    std::multimap<int, double>::iterator it = intersectXDir_m.find(y);
+    std::multimap<int, double>::const_iterator it = intersectXDir_m.find(y);
     if (cx < 0)
         ++it;
     dx = it->second;
@@ -346,7 +352,7 @@ void EllipticDomain::quadraticInterpolation(int x, int y, int z,
     robinBoundaryStencil(z, value.front, value.back, value.center);
 }
 
-void EllipticDomain::robinBoundaryStencil(int z, double &F, double &B, double &C) {
+void EllipticDomain::robinBoundaryStencil(int z, double &F, double &B, double &C) const {
     if (z == 0 || z == nr_m[2] - 1) {
 
         // case where we are on the Robin BC in Z-direction

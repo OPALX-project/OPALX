@@ -39,30 +39,29 @@
 class EllipticDomain : public IrregularDomain {
 
 public:
-    using IrregularDomain::StencilIndex_t;
-    using IrregularDomain::StencilValue_t;
-
-    EllipticDomain(BoundaryGeometry *bgeom, Vector_t nr,
+    EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr,
                    Vector_t hr, std::string interpl);
 
     ~EllipticDomain();
 
+    int getNumXY() const override;
+
     /// queries if a given (x,y,z) coordinate lies inside the domain
-    inline bool isInside(int x, int y, int z) {
+    bool isInside(int x, int y, int z) const {
         double xx = getXRangeMin() + hr_m[0] * (x + 0.5);
         double yy = getYRangeMin() + hr_m[1] * (y + 0.5);
 
         bool isInsideEllipse = (xx * xx / (getXRangeMax() * getXRangeMax()) +
                                 yy * yy / (getYRangeMax() * getYRangeMax()) < 1);
 
-        return (isInsideEllipse && z > 0 && z < nr_m[2] - 1);
+        return (isInsideEllipse && z >= 0 && z < nr_m[2]);
     }
 
     /// calculates intersection
     void compute(Vector_t hr, NDIndex<3> localId);
 
     void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
-                    const Vector_t& rmax, double dh);
+                    const Vector_t& rmax, double dh) override;
 
 private:
 
@@ -76,44 +75,34 @@ private:
     /// all intersection points with grid lines in Y direction
     EllipticPointList_t intersectYDir_m;
 
-    /// mapping (x,y,z) -> idx
-    std::map<int, int> idxMap_m;
-
-    /// mapping idx -> (x,y,z)
-    std::map<int, int> coordMap_m;
-
     /// number of nodes in the xy plane (for this case: independent of the z coordinate)
     int nxy_m;
 
     /// conversion from (x,y) to index in xy plane
-    inline int toCoordIdx(int x, int y) { return y * nr_m[0] + x; }
+    int toCoordIdx(int x, int y) const { return y * nr_m[0] + x; }
 
     /// conversion from (x,y,z) to index on the 3D grid
-    int indexAccess(int x, int y, int z) {
-        return idxMap_m[toCoordIdx(x, y)] + (z - 1) * nxy_m;
+    int indexAccess(int x, int y, int z) const {
+        return idxMap_m.at(toCoordIdx(x, y)) + z * nxy_m;
     }
 
-    /// conversion from a 3D index to (x,y,z)
-    void getCoord(int idx, int &x, int &y, int &z) override {
+    int coordAccess(int idx) const {
         int ixy = idx % nxy_m;
-        int xy = coordMap_m[ixy];
-        x = xy % (int)nr_m[0];
-        y = (xy - x) / nr_m[0];
-        z = (idx - ixy) / nxy_m + 1;
+        return coordMap_m.at(ixy);
     }
 
     /// different interpolation methods for boundary points
     void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) override;
+                               double &scaleFactor) const override;
 
     void linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                             double &scaleFactor) override;
+                             double &scaleFactor) const override;
 
     void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                double &scaleFactor) override;
+                                double &scaleFactor) const override;
 
     /// function to handle the open boundary condition in longitudinal direction
-    void robinBoundaryStencil(int z, double &F, double &B, double &C);
+    void robinBoundaryStencil(int z, double &F, double &B, double &C) const;
 };
 
 #endif //#ifdef ELLIPTICAL_DOMAIN_H
