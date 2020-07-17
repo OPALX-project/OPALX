@@ -112,9 +112,6 @@ public:
 
     void compute(Vector_t hr, NDIndex<3> localId);
 
-    //TODO: ?
-    int getStartIdx() {return 0;}
-
 private:
 
     //XXX: since the Y coorindate is dependent on the Z value we need (int,

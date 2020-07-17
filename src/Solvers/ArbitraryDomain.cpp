@@ -54,8 +54,6 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
             "ArbitraryDomain::ArbitraryDomain()",
             "No point inside geometry found/set!");
     }
-
-    startId = 0;
 }
 
 ArbitraryDomain::~ArbitraryDomain() {
