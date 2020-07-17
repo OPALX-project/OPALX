@@ -49,10 +49,6 @@ public:
     ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
                     std::string interpl);
 
-    ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
-                    Vector_t globalMeanR, Quaternion_t globalToLocalQuaternion,
-                    std::string interpl);
-
     ~ArbitraryDomain();
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
@@ -80,9 +76,6 @@ private:
 
     /// all intersection points with gridlines in Z direction
     PointList IntersectHiZ, IntersectLoZ;
-
-    //    Quaternion_t globalToLocalQuaternion_m;  because defined in parent class
-    Quaternion_t localToGlobalQuaternion_m;
 
     int startId;
 
@@ -113,13 +106,6 @@ private:
 
     void linearInterpolation(int idx, int idy, int idz, StencilValue_t& value,
                              double &scaleFactor) override;
-
-    // Rotate positive axes with quaternion -DW
-    inline void rotateWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
-
-    inline void rotateXAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
-    inline void rotateYAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
-    inline void rotateZAxisWithQuaternion(Vector_t &v, Quaternion_t const quaternion);
 };
 
 #endif

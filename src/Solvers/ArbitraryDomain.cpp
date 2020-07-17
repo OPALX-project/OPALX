@@ -68,11 +68,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
     setHr(hr);
 
-    globalToLocalQuaternion_m = getGlobalToLocalQuaternion();
-    localToGlobalQuaternion_m[0] = globalToLocalQuaternion_m[0];
-    for (int i=1; i<4; i++)
-        localToGlobalQuaternion_m[i] = -globalToLocalQuaternion_m[i];
-
     int zGhostOffsetLeft  = (localId[2].first()== 0) ? 0 : 1;
     int zGhostOffsetRight = (localId[2].last() == nr_m[2] - 1) ? 0 : 1;
     int yGhostOffsetLeft  = (localId[1].first()== 0) ? 0 : 1;
@@ -116,8 +111,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
                 //P = saveP;
 
-                //rotateWithQuaternion(P, localToGlobalQuaternion_m);
-
                 if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
 
                     // Fill the map with true or false values for very fast isInside tests
@@ -133,11 +126,9 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
                     std::tuple<int, int, int> pos(idx, idy, idz);
 
-                    //rotateZAxisWithQuaternion(dir, localToGlobalQuaternion_m);
                     dir = Vector_t(0, 0, 1);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -147,7 +138,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -156,11 +146,9 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 #endif
                     }
 
-                    //rotateYAxisWithQuaternion(dir, localToGlobalQuaternion_m);
                     dir = Vector_t(0, 1, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -170,7 +158,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -179,11 +166,9 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 #endif
                     }
 
-                    //rotateXAxisWithQuaternion(dir, localToGlobalQuaternion_m);
                     dir = Vector_t(1, 0, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -193,7 +178,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)){
-                        //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
@@ -480,56 +464,6 @@ inline void ArbitraryDomain::crossProduct(double A[], double B[], double C[]) {
     C[0] = A[1] * B[2] - A[2] * B[1];
     C[1] = A[2] * B[0] - A[0] * B[2];
     C[2] = A[0] * B[1] - A[1] * B[0];
-}
-
-inline void ArbitraryDomain::rotateWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
-    // rotates a Vector_t (3 elements) using a quaternion.
-    // Flip direction of rotation by quaternionVectorcomponent *= -1
-
-    Vector_t const quaternionVectorComponent = Vector_t(quaternion(1), quaternion(2), quaternion(3));
-    double const quaternionScalarComponent = quaternion(0);
-
-    v = 2.0 * dot(quaternionVectorComponent, v) * quaternionVectorComponent
-        + (quaternionScalarComponent * quaternionScalarComponent
-           -  dot(quaternionVectorComponent, quaternionVectorComponent)) * v
-        + 2.0 * quaternionScalarComponent * cross(quaternionVectorComponent, v);
-}
-
-inline void ArbitraryDomain::rotateXAxisWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
-    // rotates the positive xaxis using a quaternion.
-
-    v(0) = (quaternion(0) * quaternion(0)
-            + quaternion(1) * quaternion(1)
-            - quaternion(2) * quaternion(2)
-            - quaternion(3) * quaternion(3));
-
-    v(1) = 2.0 * (quaternion(1) * quaternion(2) + quaternion(0) * quaternion(3));
-    v(2) = 2.0 * (quaternion(1) * quaternion(3) - quaternion(0) * quaternion(2));
-}
-
-inline void ArbitraryDomain::rotateYAxisWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
-    // rotates the positive yaxis using a quaternion.
-
-    v(0) = 2.0 * (quaternion(1) * quaternion(2) - quaternion(0) * quaternion(3));
-
-    v(1) = (quaternion(0) * quaternion(0)
-            - quaternion(1) * quaternion(1)
-            + quaternion(2) * quaternion(2)
-            - quaternion(3) * quaternion(3));
-
-    v(2) = 2.0 * (quaternion(2) * quaternion(3) + quaternion(0) * quaternion(1));
-}
-
-inline void ArbitraryDomain::rotateZAxisWithQuaternion(Vector_t & v, Quaternion_t const quaternion) {
-    // rotates the positive zaxis using a quaternion.
-    v(0) = 2.0 * (quaternion(1) * quaternion(3) + quaternion(0) * quaternion(2));
-    v(1) = 2.0 * (quaternion(2) * quaternion(3) - quaternion(0) * quaternion(1));
-
-    v(2) = (quaternion(0) * quaternion(0)
-            - quaternion(1) * quaternion(1)
-            - quaternion(2) * quaternion(2)
-            + quaternion(3) * quaternion(3));
-
 }
 
 // vi: set et ts=4 sw=4 sts=4:
