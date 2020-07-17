@@ -90,8 +90,6 @@ private:
 
     // Here we store the number of nodes in a xy layer for a given z coordinate
     std::map<int, int> numXY;
-    std::map<int, int> numYZ;
-    std::map<int, int> numXZ;
 
     // Mapping all cells that are inside the geometry
     std::map<int, bool> IsInsideMap;
