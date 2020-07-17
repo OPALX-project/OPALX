@@ -98,8 +98,11 @@ public:
 
     void getNeighbours(int idx, StencilIndex_t& index);
 
+    /// Conversion from a 3D index to (x,y,z)
+    virtual void getCoord(int idx, int &x, int &y, int &z);
 
-    virtual void getCoord(int idx, int &x, int &y, int &z) = 0;
+    /// Conversion from (x,y,z) to index on the 3D grid
+    int getIdx(int x, int y, int z);
 
     /// method that checks if a given point lies inside the boundary
     /// \param x index of the current element in the matrix
@@ -127,8 +130,6 @@ public:
     void setRangeMin(const Vector_t&);
     void setRangeMax(const Vector_t&);
 
-    virtual int getIdx(int x, int y, int z) = 0;
-
     bool hasGeometryChanged();
 
     virtual ~IrregularDomain() {};
@@ -138,6 +139,8 @@ public:
                             double /*dh*/);
 
 protected:
+
+    virtual int indexAccess(int x, int y, int z) = 0;
 
     /// different interpolation methods for boundary points
     virtual void constantInterpolation(int x, int y, int z, StencilValue_t& value,

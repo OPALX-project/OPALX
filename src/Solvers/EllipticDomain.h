@@ -92,19 +92,15 @@ private:
     inline int toCoordIdx(int x, int y) { return y * nr_m[0] + x; }
 
     /// conversion from (x,y,z) to index on the 3D grid
-    inline int getIdx(int x, int y, int z) {
-        if (isInside(x, y, z))
-            return idxMap_m[toCoordIdx(x, y)] + (z - 1) * nxy_m;
-        else
-            return -1;
+    int indexAccess(int x, int y, int z) {
+        return idxMap_m[toCoordIdx(x, y)] + (z - 1) * nxy_m;
     }
 
     /// conversion from a 3D index to (x,y,z)
-    inline void getCoord(int idx, int &x, int &y, int &z) {
+    void getCoord(int idx, int &x, int &y, int &z) override {
         int ixy = idx % nxy_m;
         int xy = coordMap_m[ixy];
-        int inr = (int)nr_m[0];
-        x = xy % inr;
+        x = xy % (int)nr_m[0];
         y = (xy - x) / nr_m[0];
         z = (idx - ixy) / nxy_m + 1;
     }

@@ -83,6 +83,22 @@ void IrregularDomain::getNeighbours(int id, StencilIndex_t& index)
 }
 
 
+void IrregularDomain::getCoord(int idx, int& x, int& y, int& z) {
+    int id = coordMap_m[idx];
+    x = id % (int)nr_m[0];
+    id /= nr_m[0];
+    y = id % (int)nr_m[1];
+    id /= nr_m[1];
+    z = id;
+}
+
+
+int IrregularDomain::getIdx(int x, int y, int z) {
+    if (x < 0 || y < 0 || z < 0 || !isInside(x, y, z))
+        return -1;
+    return indexAccess(x, y, z);
+}
+
 void IrregularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
                                          double &scaleFactor)
 {
