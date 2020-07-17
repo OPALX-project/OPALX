@@ -25,6 +25,7 @@ RegularDomain::RegularDomain(const IntVector_t& nr,
     , nxy_m(nr[0] * nr[1])
 { }
 
+
 void RegularDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
                                 const Vector_t& rmax, double dh)
 {
@@ -41,4 +42,60 @@ void RegularDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& r
 
     for (int i = 0; i < 3; ++i)
         hr[i] = (mymax[i] - origin[i]) / nr_m[i];
+}
+
+
+void RegularDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                                          double &scaleFactor) const
+{
+    scaleFactor = 1.0;
+    value.west  = -1.0 / (hr_m[0] * hr_m[0]);
+    value.east  = -1.0 / (hr_m[0] * hr_m[0]);
+    value.north = -1.0 / (hr_m[1] * hr_m[1]);
+    value.south = -1.0 / (hr_m[1] * hr_m[1]);
+    value.front = -1.0 / (hr_m[2] * hr_m[2]);
+    value.back  = -1.0 / (hr_m[2] * hr_m[2]);
+
+    value.center = 2.0 / (hr_m[0] * hr_m[0])
+                 + 2.0 / (hr_m[1] * hr_m[1])
+                 + 2.0 / (hr_m[2] * hr_m[2]);
+
+    // we are a right boundary point
+    if (!isInside(x + 1, y, z))
+        value.east = 0.0;
+
+    // we are a left boundary point
+    if (!isInside(x - 1, y, z))
+        value.west = 0.0;
+
+    // we are a upper boundary point
+    if (!isInside(x, y + 1, z))
+        value.north = 0.0;
+
+    // we are a lower boundary point
+    if (!isInside(x, y - 1, z))
+        value.south = 0.0;
+
+    // handle boundary condition in z direction
+    robinBoundaryStencil(z, value.front, value.back, value.center);
+}
+
+
+void RegularDomain::robinBoundaryStencil(int z, double &F, double &B, double &C) const {
+    if (z == 0 || z == nr_m[2] - 1) {
+
+        // case where we are on the Robin BC in Z-direction
+        // where we distinguish two cases
+        // IFF: this values should not matter because they
+        // never make it into the discretization matrix
+        if (z == 0)
+            F = 0.0;
+        else
+            B = 0.0;
+
+        // add contribution of Robin discretization to center point
+        // d the distance between the center of the bunch and the boundary
+        double d = 0.5 * hr_m[2] * (nr_m[2] - 1);
+        C += 2.0 / (d * hr_m[2]);
+    }
 }
