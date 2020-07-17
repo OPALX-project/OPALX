@@ -19,6 +19,7 @@ if (ENABLE_SAAMG_SOLVER)
         IrregularDomain.cpp
         MGPoissonSolver.cpp
         RectangularDomain.cpp
+        RegularDomain.cpp
         )
 
     list (APPEND HDRS
@@ -28,6 +29,7 @@ if (ENABLE_SAAMG_SOLVER)
         IrregularDomain.h
         MGPoissonSolver.h
         RectangularDomain.h
+        RegularDomain.h
         )
 
 endif ()
