@@ -41,10 +41,6 @@ void RectangularDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     nxy_m = nr_m[0] * nr_m[1];
 }
 
-int RectangularDomain::getNumXY(int /*z*/) {
-    return nxy_m;
-}
-
 void RectangularDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
                                               double &scaleFactor)
 {

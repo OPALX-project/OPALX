@@ -46,9 +46,6 @@ public:
     /// calculates intersection with the beam pipe
     void compute(Vector_t hr, NDIndex<3> /*localId*/);
 
-    /// returns number of nodes in xy plane (here independent of z coordinate)
-    int getNumXY(int z);
-
     /// returns index of neighbours at (x,y,z)
     using IrregularDomain::getNeighbours;
     /// queries if a given (x,y,z) coordinate lies inside the domain
