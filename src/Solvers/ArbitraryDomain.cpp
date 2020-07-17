@@ -91,15 +91,15 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     // example (-0.13 to +0.025). -DW
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 
-        P[2] = min_m[2] + (idz + 0.5) * hr[2];
+        P[2] = getZRangeMin() + (idz + 0.5) * hr[2];
 
         for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
 
-            P[1] = min_m[1] + (idy + 0.5) * hr[1];
+            P[1] = getYRangeMin() + (idy + 0.5) * hr[1];
 
             for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 
-                P[0] = min_m[0] + (idx + 0.5) * hr[0];
+                P[0] = getXRangeMin() + (idx + 0.5) * hr[0];
 
                 if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
 

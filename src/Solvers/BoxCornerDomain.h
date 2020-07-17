@@ -65,10 +65,10 @@ Test in which of the 3 parts of the geometry we are in.
         b = B-C;
 
 
-A  = max_m(0)
-B  = max_m(1)
-L1 = min_m(2)
-L2 = max_m(2) - min_m(2)
+A  = getXRangeMax()
+B  = getYRangeMax()
+L1 = getZRangeMin()
+L2 = getZRangeMax() - getZRangeMin
 */
 
 class BoxCornerDomain : public IrregularDomain {
@@ -92,10 +92,10 @@ public:
 
     /// as a function of z, determine the hight (B) of the geometry
     inline double getB(double z) {
-      if((z < min_m(2)) || (z > max_m(2)))
-            return max_m(1);
+      if((z < getZRangeMin()) || (z > getZRangeMax()))
+            return getYRangeMax();
         else
-            return max_m(1) - C_m;
+            return getYRangeMax() - C_m;
     }
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
@@ -137,11 +137,11 @@ private:
 
 
     inline double getXIntersection(double cx, int /*z*/) {
-        return (cx < 0) ? min_m(0) : max_m(0);
+        return (cx < 0) ? getXRangeMin() : getXRangeMax();
     }
 
     inline double getYIntersection(double cy, int z) {
-        return (cy < 0) ? min_m(1) : getB(z * hr_m[2]);
+        return (cy < 0) ? getYRangeMin() : getB(z * hr_m[2]);
     }
 
     /// conversion from (x,y,z) to index in xyz plane
