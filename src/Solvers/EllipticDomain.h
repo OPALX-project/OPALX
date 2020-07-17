@@ -84,17 +84,11 @@ private:
     }
 
     /// different interpolation methods for boundary points
-    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) const override;
-
     void linearInterpolation(int x, int y, int z, StencilValue_t& value,
                              double &scaleFactor) const override;
 
     void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
                                 double &scaleFactor) const override;
-
-    /// function to handle the open boundary condition in longitudinal direction
-    void robinBoundaryStencil(int z, double &F, double &B, double &C) const;
 };
 
 #endif //#ifdef ELLIPTICAL_DOMAIN_H
