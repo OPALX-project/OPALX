@@ -86,7 +86,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
     // Calculate intersection
     Vector_t P, dir, I;
-    // Vector_t saveP, saveP_old;
     Vector_t P0 = globalInsideP0_m;
 
     // We cannot assume that the geometry is symmetric about the xy, xz, and yz planes!
@@ -94,22 +93,15 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     // example (-0.13 to +0.025). -DW
     for (int idz = localId[2].first()-zGhostOffsetLeft; idz <= localId[2].last()+zGhostOffsetRight; idz++) {
 
-        //saveP_old[2] = (idz - (nr_m[2]-1)/2.0)*hr[2];
         P[2] = min_m[2] + (idz + 0.5) * hr[2];
 
         for (int idy = localId[1].first()-yGhostOffsetLeft; idy <= localId[1].last()+yGhostOffsetRight; idy++) {
 
-            //saveP_old[1] = (idy - (nr_m[1]-1)/2.0)*hr[1];
             P[1] = min_m[1] + (idy + 0.5) * hr[1];
 
             for (int idx = localId[0].first()-xGhostOffsetLeft; idx <= localId[0].last()+xGhostOffsetRight; idx++) {
 
-                //saveP_old[0] = (idx - (nr_m[0]-1)/2.0)*hr[0];
                 P[0] = min_m[0] + (idx + 0.5) * hr[0];
-
-                // *gmsg << "Now working on point " << saveP << " (original was " << saveP_old << ")" << endl;
-
-                //P = saveP;
 
                 if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
 
@@ -280,62 +272,6 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
 
     return IsInsideMap[toCoordIdx(idx, idy, idz)];
 }
-
-/*
-  inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
-  Vector_t P;
-
-  P[0] = min_m[0] + (idx + 0.5) * hr_m[0];
-  P[1] = min_m[1] + (idy + 0.5) * hr_m[1];
-  P[2] = min_m[2] + (idz + 0.5) * hr_m[2];
-
-  return (bgeom_m->fastIsInside(globalInsideP0_m, P) % 2 == 0);
-  }
-*/
-
-/*
-  inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
-  Vector_t P;
-
-  P[0] = (idx - (nr_m[0]-1)/2.0) * hr_m[0];
-  P[1] = (idy - (nr_m[1]-1)/2.0) * hr_m[1];
-  P[2] = (idz - (nr_m[2]-1)/2.0) * hr_m[2];
-
-  bool ret = false;
-  int  countH, countL;
-  std::multimap < std::tuple<int, int, int>, double >::iterator itrH, itrL;
-  std::tuple<int, int, int> coordxyz(idx, idy, idz);
-
-  //check if z is inside with x,y coords
-  itrH = IntersectHiZ.find(coordxyz);
-  itrL = IntersectLoZ.find(coordxyz);
-
-  countH = IntersectHiZ.count(coordxyz);
-  countL = IntersectLoZ.count(coordxyz);
-  if(countH == 1 && countL == 1)
-  ret = (P[2] <= itrH->second) && (P[2] >= itrL->second);
-
-  //check if y is inside with x,z coords
-  itrH = IntersectHiY.find(coordxyz);
-  itrL = IntersectLoY.find(coordxyz);
-
-  countH = IntersectHiY.count(coordxyz);
-  countL = IntersectLoY.count(coordxyz);
-  if(countH == 1 && countL == 1)
-  ret = ret && (P[1] <= itrH->second) && (P[1] >= itrL->second);
-
-  //check if x is inside with y,z coords
-  itrH = IntersectHiX.find(coordxyz);
-  itrL = IntersectLoX.find(coordxyz);
-
-  countH = IntersectHiX.count(coordxyz);
-  countL = IntersectLoX.count(coordxyz);
-  if(countH == 1 && countL == 1)
-  ret = ret && (P[0] <= itrH->second) && (P[0] >= itrL->second);
-
-  return ret;
-  }
-*/
 
 int ArbitraryDomain::getNumXY(int z) {
 
