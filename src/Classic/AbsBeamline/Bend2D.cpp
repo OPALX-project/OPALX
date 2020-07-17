@@ -1702,7 +1702,7 @@ ElementBase::BoundingBox Bend2D::getBoundingBoxInLabCoords() const {
     bb.upperRightCorner = std::numeric_limits<double>::lowest();
 
     Vector_t dY(0, 0.5 * getFullGap(), 0);
-    for (int i = -1; i < 2; i += 2) {
+    for (int i : {-1, 1}) {
         for (const Vector_t & vec: outline) {
             Vector_t vecInLabCoords = csTrafoGlobal2Local_m.transformFrom(vec + i * dY);
             for (unsigned int d = 0; d < 3; ++ d) {
