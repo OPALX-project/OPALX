@@ -58,8 +58,6 @@ public:
     // calculates intersection with rotated and shifted geometry
     void compute(Vector_t hr, NDIndex<3> localId);
 
-    int getStartId() {return startId;}
-
 private:
     BoundaryGeometry *bgeom_m;
 
@@ -76,8 +74,6 @@ private:
 
     /// all intersection points with gridlines in Z direction
     PointList IntersectHiZ, IntersectLoZ;
-
-    int startId;
 
     // Here we store the number of nodes in a xy layer for a given z coordinate
     std::map<int, int> numXY;
