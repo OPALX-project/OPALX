@@ -402,23 +402,6 @@ void OrbitThreader::computeBoundingBox() {
         ElementBase::BoundingBox other = it->getBoundingBoxInLabCoords();
         globalBoundingBox_m.getCombinedBoundingBox(other);
     }
-
-    Vector_t const& X = globalBoundingBox_m.lowerLeftCorner;
-    Vector_t const& Y = globalBoundingBox_m.upperRightCorner;
-    Vector_t delta = Y - X;
-    Vector_t dX(delta(0), 0, 0), dY(0, delta(1), 0), dZ(0, 0, delta(2));
-    std::vector<Vector_t> corners{X, X + dX, X + dX + dY, X + dY, Y, Y - dX, Y - dX - dY, Y - dY};
-    std::vector<std::vector<unsigned int>> paths{{0, 1, 2, 3}, {4, 5, 6, 7}, {0, 1, 7, 6}, {1, 2, 4, 7}, {2, 3, 5, 4}, {3, 0, 6, 5}};
-
-    std::ofstream out("boundingBox.gpl");
-    std::ofstream traj("trajectories.gpl");
-    for (std::vector<unsigned int> const& path: paths) {
-        for (unsigned int i = 0; i < 5; ++ i) {
-            Vector_t const& point = corners[path[i % 4]];
-            out << point(0) << "\t" << point(1) << "\t" << point(2) << std::endl;
-        }
-        out << std::endl;
-    }
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
