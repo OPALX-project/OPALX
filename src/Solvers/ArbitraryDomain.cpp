@@ -105,7 +105,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
                     // Fill the map with true or false values for very fast isInside tests
                     // during the rest of the fieldsolve.
-                    IsInsideMap[toCoordIdx(idx, idy, idz)] = true;
+                    isInsideMap_m[toCoordIdx(idx, idy, idz)] = true;
 
                     // Replace the old reference point with the new point (which we know is
                     // inside because we just tested for it. This makes the algorithm faster
@@ -176,7 +176,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 #endif
                     }
                 } else {
-                    IsInsideMap[toCoordIdx(idx, idy, idz)] = false;
+                    isInsideMap_m[toCoordIdx(idx, idy, idz)] = false;
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                     *gmsg << "OUTSIDE" << " x,y,z= " << idx << "," << idy
                           << "," << idz << " P=" << P <<" I=" << I << endl;
@@ -203,7 +203,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
     //xy points in z plane
     int numtotal = 0;
-    numXY.clear();
+    numXY_m.clear();
     for(int idz = localId[2].first(); idz <= localId[2].last(); idz++) {
         int numxy = 0;
         for(int idx = 0; idx < nr_m[0]; idx++) {
@@ -212,7 +212,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     numxy++;
             }
         }
-        numXY[idz-localId[2].first()] = numxy;
+        numXY_m[idz-localId[2].first()] = numxy;
         numtotal += numxy;
     }
 
@@ -254,7 +254,7 @@ int ArbitraryDomain::indexAccess(int x, int y, int z) {
 
 inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
 
-    return IsInsideMap[toCoordIdx(idx, idy, idz)];
+    return isInsideMap_m[toCoordIdx(idx, idy, idz)];
 }
 
 void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
