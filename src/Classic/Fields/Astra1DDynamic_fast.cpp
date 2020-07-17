@@ -1,3 +1,24 @@
+//
+// Class Astra1DDynamic_fast
+//
+// This class provides a reader for Astra style field maps. It pre-computes the field
+// on a lattice to increase the performance during simulation.
+//
+// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020 Christof Metzger-Kraus
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Fields/Astra1DDynamic_fast.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
@@ -7,7 +28,6 @@
 #include <fstream>
 #include <ios>
 
-extern Inform *gmsg;
 Astra1DDynamic_fast::Astra1DDynamic_fast(std::string aFilename):
     Astra1D_fast(aFilename)
 {
@@ -91,7 +111,7 @@ bool Astra1DDynamic_fast::getFieldstrength(const Vector_t &R, Vector_t &E, Vecto
         ezpp = gsl_spline_eval(onAxisInterpolants_m[2], R(2) - zbegin_m, onAxisAccel_m[2]);
         ezppp = gsl_spline_eval(onAxisInterpolants_m[3], R(2) - zbegin_m, onAxisAccel_m[3]);
     } catch (OpalException const& e) {
-        throw OpalException("Astra1DDynamice_fast::getFieldstrength",
+        throw OpalException("Astra1DDynamic_fast::getFieldstrength",
                             "The requested interpolation point, " + std::to_string(R(2)) + " is out of range");
     }
     // expand the field off-axis
