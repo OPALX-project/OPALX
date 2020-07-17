@@ -1,3 +1,25 @@
+//
+// Class OrbitThreader
+//
+// This class determines the design path by tracking the reference particle through
+// the 3D lattice.
+//
+// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020 Christof Metzger-Kraus
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
 
@@ -410,14 +432,7 @@ double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared
     if (elements.empty() ||
         (elements.size() == 1 && (*elements.begin())->getType() == ElementBase::ElementType::DRIFT)) {
         boost::optional<Vector_t> intersectionPoint = globalBoundingBox_m.getPointOfIntersection(position, direction);
-        double maxDrift = intersectionPoint ? euclidean_norm(intersectionPoint.get() - position): 10.0;
-        if (intersectionPoint) {
-            std::ofstream traj("trajectories.gpl", std::ios::app);
-            traj << position(0) << "\t" << position(1) << "\t" << position(2) << std::endl;
-            traj << intersectionPoint.get()(0) << "\t" << intersectionPoint.get()(1) << "\t" << intersectionPoint.get()(2) << std::endl;
-            traj << std::endl;
-        }
-        return maxDrift;
+        return intersectionPoint ? euclidean_norm(intersectionPoint.get() - position): 10.0;
     }
 
     return std::numeric_limits<double>::max();
