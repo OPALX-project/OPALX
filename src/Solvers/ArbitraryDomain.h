@@ -61,19 +61,19 @@ public:
 private:
     BoundaryGeometry *bgeom_m;
 
-    /** PointList maps from an (x,z) resp. (y,z) pair to double values
+    /** PointList_t maps from an (x,z) resp. (y,z) pair to double values
      * (=intersections with boundary)
      */
-    typedef std::multimap< std::tuple<int, int, int>, double > PointList;
+    typedef std::multimap< std::tuple<int, int, int>, double > PointList_t;
 
     /// all intersection points with gridlines in X direction
-    PointList IntersectHiX, IntersectLoX;
+    PointList_t intersectHiX_m, intersectLoX_m;
 
     /// all intersection points with gridlines in Y direction
-    PointList IntersectHiY, IntersectLoY;
+    PointList_t intersectHiY_m, intersectLoY_m;
 
     /// all intersection points with gridlines in Z direction
-    PointList IntersectHiZ, IntersectLoZ;
+    PointList_t intersectHiZ_m, intersectLoZ_m;
 
     // Here we store the number of nodes in a xy layer for a given z coordinate
     std::map<int, int> numXY;
