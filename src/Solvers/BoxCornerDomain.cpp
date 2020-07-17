@@ -86,8 +86,8 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     //reset number of points inside domain
 
     // clear previous coordinate maps
-    IdxMap.clear();
-    CoordMap.clear();
+    idxMap_m.clear();
+    coordMap_m.clear();
     //clear previous intersection points
     IntersectYDir.clear();
     IntersectXDir.clear();
@@ -99,8 +99,8 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
         for(y = 0; y < nr_m[1]; y++) {
             for(z = 0; z < nr_m[2]; z++) {
                 if(isInside(x, y, z)) {
-                    IdxMap[toCoordIdx(x, y, z)] = idx;
-                    CoordMap[idx++] = toCoordIdx(x, y, z);
+                    idxMap_m[toCoordIdx(x, y, z)] = idx;
+                    coordMap_m[idx++] = toCoordIdx(x, y, z);
                 }
             }
         }

@@ -182,6 +182,12 @@ protected:
     /// interpolation type
     int interpolationMethod_m;
 
+    /// mapping (x,y,z) -> idx
+    std::map<int, int> idxMap_m;
+
+    /// mapping idx -> (x,y,z)
+    std::map<int, int> coordMap_m;
+
 };
 
 

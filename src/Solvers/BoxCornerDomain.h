@@ -130,12 +130,6 @@ private:
     /// all intersection points with grid lines in Y direction
     BoxCornerPointList IntersectYDir;
 
-    /// mapping (x,y,z) -> idx
-    std::map<int, int> IdxMap;
-
-    /// mapping idx -> (x,y,z)
-    std::map<int, int> CoordMap;
-
     /// because the geometry can change in the y direction
     double actBMin_m;
 
@@ -169,7 +163,7 @@ private:
     /*inline*/
     inline int getIdx(int x, int y, int z) {
         if(isInside(x, y, z) && x >= 0 && y >= 0 && z >= 0)
-            return IdxMap[toCoordIdx(x, y, z)];
+            return idxMap_m[toCoordIdx(x, y, z)];
         else
             return -1;
     }
@@ -177,7 +171,7 @@ private:
     /// conversion from a 3D index to (x,y,z)
     inline void getCoord(int idx, int &x, int &y, int &z) {
 
-        int idxx = CoordMap[idx];
+        int idxx = coordMap_m[idx];
 
         x = idxx % (int)nr_m[0];
         idxx /= nr_m[0];

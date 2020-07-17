@@ -265,8 +265,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     startIdx -= numtotal;
 
     // Build up index and coord map
-    IdxMap.clear();
-    CoordMap.clear();
+    idxMap_m.clear();
+    coordMap_m.clear();
     int index = startIdx - numGhostNodesLeft;
 
     INFOMSG(level2 << "* Building up index and coordinate map..." << endl);
@@ -275,8 +275,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
         for(int idy = 0; idy < nr_m[1]; idy++) {
             for(int idx = 0; idx < nr_m[0]; idx++) {
                 if(isInside(idx, idy, idz)) {
-                    IdxMap[toCoordIdx(idx, idy, idz)] = index;
-                    CoordMap[index] = toCoordIdx(idx, idy, idz);
+                    idxMap_m[toCoordIdx(idx, idy, idz)] = index;
+                    coordMap_m[index] = toCoordIdx(idx, idy, idz);
                     index++;
                 }
             }
@@ -295,14 +295,14 @@ inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
 int ArbitraryDomain::getIdx(int idx, int idy, int idz) {
 
     if(isInside(idx, idy, idz) && idx >= 0 && idy >= 0 && idz >= 0)
-        return IdxMap[toCoordIdx(idx, idy, idz)];
+        return idxMap_m[toCoordIdx(idx, idy, idz)];
     else
         return -1;
 }
 
 // Conversion from a 3D index to (x,y,z)
 inline void ArbitraryDomain::getCoord(int idxyz, int &idx, int &idy, int &idz) {
-    int id = CoordMap[idxyz];
+    int id = coordMap_m[idxyz];
     idx = id % (int)nr_m[0];
     id /= nr_m[0];
     idy = id % (int)nr_m[1];
