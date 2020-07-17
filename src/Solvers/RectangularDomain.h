@@ -60,9 +60,6 @@ private:
     int coordAccess(int idx) const {
         return idx % getNumXY();
     }
-
-    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) const override;
 };
 
 #endif

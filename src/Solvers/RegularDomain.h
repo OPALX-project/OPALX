@@ -38,7 +38,14 @@ public:
     void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
                     const Vector_t& rmax, double dh) override;
 
+protected:
+    /// function to handle the open boundary condition in longitudinal direction
+    void robinBoundaryStencil(int z, double &F, double &B, double &C) const;
+
 private:
+    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
+                               double &scaleFactor) const override;
+
     /// number of nodes in the xy plane (for this case: independent of the z coordinate)
     int nxy_m;
 };

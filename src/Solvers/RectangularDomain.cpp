@@ -40,39 +40,4 @@ void RectangularDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     setHr(hr);
 }
 
-void RectangularDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                                              double &scaleFactor) const
-{
-    scaleFactor = 1.0;
-    value.west  = -1.0 / (hr[0] * hr[0]);
-    value.east  = -1.0 / (hr[0] * hr[0]);
-    value.north = -1.0 / (hr[1] * hr[1]);
-    value.south = -1.0 / (hr[1] * hr[1]);
-    value.front = -1.0 / (hr[2] * hr[2]);
-    value.back  = -1.0 / (hr[2] * hr[2]);
-
-    value.center = 2.0 / (hr[0] * hr[0])
-                 + 2.0 / (hr[1] * hr[1])
-                 + 2.0 / (hr[2] * hr[2]);
-
-    if (!isInside(x + 1, y, z))
-        value.east = 0.0; //we are a right boundary point
-
-    if (!isInside(x - 1, y, z))
-        value.west = 0.0; //we are a left boundary point
-
-    if (!isInside(x, y + 1, z))
-        value.north = 0.0; //we are a upper boundary point
-
-    if (!isInside(x, y - 1, z))
-        value.south = 0.0; //we are a lower boundary point
-
-    //dirichlet
-    if (z == 0)
-        value.front = 0.0;
-
-    if (z == nr[2] - 1)
-        value.back = 0.0;
-}
-
 #endif //#ifdef HAVE_SAAMG_SOLVER
