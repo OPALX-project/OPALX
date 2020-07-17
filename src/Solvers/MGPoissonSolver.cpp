@@ -300,7 +300,6 @@ void MGPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     nr_m[1] = orig_nr_m[1];
     nr_m[2] = orig_nr_m[2];
 
-    bp_m->setGlobalMeanR(itsBunch_m->getGlobalMeanR());
     bp_m->setGlobalToLocalQuaternion(itsBunch_m->getGlobalToLocalQuaternion());
     bp_m->setNr(nr_m);
 

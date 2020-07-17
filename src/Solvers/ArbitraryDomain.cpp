@@ -48,8 +48,6 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
     setRangeMin(bgeom->getmincoords());
     setRangeMax(bgeom->getmaxcoords());
 
-    geomCentroid_m = (min_m + max_m)/2.0;
-
     bool have_inside_pt = bgeom->getInsidePoint(globalInsideP0_m);
     if (have_inside_pt == false) {
         throw OpalException(
@@ -69,8 +67,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     INFOMSG(level2 << "* Starting the Boundary Intersection Tests..." << endl);
 
     setHr(hr);
-
-    globalMeanR_m = getGlobalMeanR();
 
     globalToLocalQuaternion_m = getGlobalToLocalQuaternion();
     localToGlobalQuaternion_m[0] = globalToLocalQuaternion_m[0];
@@ -121,8 +117,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                 //P = saveP;
 
                 //rotateWithQuaternion(P, localToGlobalQuaternion_m);
-                //P += geomCentroid_m; //sorry, this doesn't make sense. -DW
-                //P += globalMeanR_m;
 
                 if (bgeom_m->fastIsInside(P0, P) % 2 == 0) {
 
@@ -143,8 +137,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     dir = Vector_t(0, 0, 1);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        //I -= geomCentroid_m;
-                        //I -= globalMeanR_m;
                         //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
@@ -155,8 +147,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-                        //I -= geomCentroid_m;
-                        //I -= globalMeanR_m;
                         //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
@@ -170,8 +160,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     dir = Vector_t(0, 1, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        //I -= geomCentroid_m;
-                        //I -= globalMeanR_m;
                         //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
@@ -182,8 +170,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-                        //I -= geomCentroid_m;
-                        //I -= globalMeanR_m;
                         //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
@@ -197,8 +183,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     dir = Vector_t(1, 0, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        //I -= geomCentroid_m;
-                        //I -= globalMeanR_m;
                         //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
@@ -209,8 +193,6 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)){
-                        //I -= geomCentroid_m;
-                        //I -= globalMeanR_m;
                         //rotateWithQuaternion(I, globalToLocalQuaternion_m);
                         IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
