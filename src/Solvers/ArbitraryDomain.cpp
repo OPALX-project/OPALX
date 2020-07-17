@@ -247,23 +247,9 @@ inline int ArbitraryDomain::toCoordIdx(int idx, int idy, int idz) {
     return (idz * nr_m[1] + idy) * nr_m[0]  + idx;
 }
 
-// Conversion from (x,y,z) to index on the 3D grid
-int ArbitraryDomain::getIdx(int idx, int idy, int idz) {
 
-    if(isInside(idx, idy, idz) && idx >= 0 && idy >= 0 && idz >= 0)
-        return idxMap_m[toCoordIdx(idx, idy, idz)];
-    else
-        return -1;
-}
-
-// Conversion from a 3D index to (x,y,z)
-inline void ArbitraryDomain::getCoord(int idxyz, int &idx, int &idy, int &idz) {
-    int id = coordMap_m[idxyz];
-    idx = id % (int)nr_m[0];
-    id /= nr_m[0];
-    idy = id % (int)nr_m[1];
-    id /= nr_m[1];
-    idz = id;
+int ArbitraryDomain::indexAccess(int x, int y, int z) {
+    return idxMap_m[toCoordIdx(x, y, z)];
 }
 
 inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {

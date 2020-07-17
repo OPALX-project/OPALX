@@ -154,25 +154,8 @@ private:
     }
 
     /// conversion from (x,y,z) to index on the 3D grid
-    /*inline*/
-    inline int getIdx(int x, int y, int z) {
-        if(isInside(x, y, z) && x >= 0 && y >= 0 && z >= 0)
-            return idxMap_m[toCoordIdx(x, y, z)];
-        else
-            return -1;
-    }
-
-    /// conversion from a 3D index to (x,y,z)
-    inline void getCoord(int idx, int &x, int &y, int &z) {
-
-        int idxx = coordMap_m[idx];
-
-        x = idxx % (int)nr_m[0];
-        idxx /= nr_m[0];
-        y = idxx % (int)nr_m[1];
-        idxx /= nr_m[1];
-        z = idxx;
-
+    int indexAccess(int x, int y, int z) {
+        return idxMap_m[toCoordIdx(x, y, z)];
     }
 
     /// different interpolation methods for boundary points
