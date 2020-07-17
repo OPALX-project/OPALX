@@ -163,9 +163,6 @@ protected:
     Vector_t min_m;
     Vector_t max_m;
 
-    /// mean position of bunch (m)
-    Vector_t rMean_m;
-
     /// flag indicating if geometry has changed for the current time-step
     bool hasGeometryChanged_m;
 
