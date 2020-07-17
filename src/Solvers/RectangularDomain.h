@@ -58,8 +58,6 @@ public:
         return (xx <= getXRangeMax() && yy < getYRangeMax());
     }
 
-    int getStartIdx() {return 0;}
-
 private:
     /// number of nodes in the xy plane (for this case: independent of the z coordinate)
     int nxy_m;
