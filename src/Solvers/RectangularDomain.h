@@ -1,6 +1,7 @@
 //
 // Class RectangularDomain
-//   :FIXME: add brief description
+//   This class provides a rectangular beam pipe. The mesh adapts to the bunch
+//   in longitudinal direction.
 //
 // Copyright (c) 2008,        Yves Ineichen, ETH Zürich,
 //               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -28,9 +29,9 @@
 
 #include <vector>
 #include <string>
-#include "IrregularDomain.h"
+#include "Solvers/RegularDomain.h"
 
-class RectangularDomain : public IrregularDomain {
+class RectangularDomain : public RegularDomain {
 
 public:
     /**
@@ -51,16 +52,13 @@ public:
     }
 
 private:
-    /// number of nodes in the xy plane (for this case: independent of the z coordinate)
-    int nxy_m;
-
     /// conversion from (x,y,z) to index on the 3D grid
     int indexAccess(int x, int y, int z) const {
-        return y * nr_m[0] + x + z * nxy_m;
+        return y * nr_m[0] + x + z * getNumXY();
     }
 
     int coordAccess(int idx) const {
-        return idx % nxy_m;
+        return idx % getNumXY();
     }
 
     void constantInterpolation(int x, int y, int z, StencilValue_t& value,

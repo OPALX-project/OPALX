@@ -37,7 +37,7 @@
 
 EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr, Vector_t hr,
                                std::string interpl)
-    : IrregularDomain(nr, hr, interpl)
+    : RegularDomain(nr, hr, interpl)
 {
     Vector_t min(-bgeom->getA(), -bgeom->getB(), bgeom->getS());
     Vector_t max( bgeom->getA(),  bgeom->getB(), bgeom->getS() + bgeom->getLength());
@@ -49,13 +49,6 @@ EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr, Vector_t
 EllipticDomain::~EllipticDomain() {
     //nothing so far
 }
-
-
-int EllipticDomain::getNumXY() const {
-    return nxy_m;
-}
-
-
 
 // for this geometry we only have to calculate the intersection on
 // one x-y-plane
@@ -72,7 +65,6 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
     setHr(hr);
     hasGeometryChanged_m = true;
     //reset number of points inside domain
-    nxy_m = 0;
 
     // clear previous coordinate maps
     idxMap_m.clear();
@@ -85,6 +77,8 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
     int idx = 0;
     int x, y;
 
+    int nxy = 0;
+
     /* we need to scan the full x-y-plane on all cores
      * in order to figure out the number of valid
      * grid points per plane --> otherwise we might
@@ -95,10 +89,12 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
             if (isInside(x, y, 1)) {
                 idxMap_m[toCoordIdx(x, y)] = idx;
                 coordMap_m[idx++] = toCoordIdx(x, y);
-                nxy_m++;
+                nxy++;
             }
         }
     }
+
+    setNumXY(nxy);
 
     switch (interpolationMethod_m) {
         case CONSTANT:
@@ -140,24 +136,6 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
                 }
             }
     }
-}
-
-void EllipticDomain::resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
-                                const Vector_t& rmax, double dh)
-{
-    Vector_t mymax = Vector_t(0.0, 0.0, 0.0);
-
-    // apply bounding box increment dh, i.e., "BBOXINCR" input argument
-    double zsize = rmax[2] - rmin[2];
-
-    setMinMaxZ(rmin[2] - zsize * (1.0 + dh),
-               rmax[2] + zsize * (1.0 + dh));
-
-    origin = Vector_t(getXRangeMin(), getYRangeMin(), getMinZ());
-    mymax  = Vector_t(getXRangeMax(), getYRangeMax(), getMaxZ());
-
-    for (int i = 0; i < 3; ++i)
-        hr[i] = (mymax[i] - origin[i]) / nr_m[i];
 }
 
 void EllipticDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
