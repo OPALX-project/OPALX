@@ -58,9 +58,6 @@ public:
         return (isInsideEllipse && z > 0 && z < nr_m[2] - 1);
     }
 
-    int getNumXY(int /*z*/) { return nxy_m; }
-
-
     /// calculates intersection
     void compute(Vector_t hr, NDIndex<3> localId);
 

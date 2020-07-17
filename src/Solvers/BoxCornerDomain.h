@@ -90,10 +90,6 @@ public:
                     std::string interpl);
     ~BoxCornerDomain();
 
-    /// we do not need this
-    int getNumXY(int /*z*/) { return -1;}
-
-
     /// as a function of z, determine the hight (B) of the geometry
     inline double getB(double z) {
       if((z < min_m(2)) || (z > max_m(2)))

@@ -66,11 +66,6 @@ public:
      * \param hr updated mesh spacings
      */
     virtual void compute(Vector_t hr, NDIndex<3> localId) = 0;
-    /** method to get the number of gridpoints in a given z plane
-     * \param z coordinate of the z plane
-     * \return int number of grid nodes in the given z plane
-     */
-    virtual int getNumXY(int z) = 0;
 
     /// method to calculate the stencil at a boundary points
     /// \param x index of the current element in the matrix

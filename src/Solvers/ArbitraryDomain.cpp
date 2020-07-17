@@ -257,11 +257,6 @@ inline bool ArbitraryDomain::isInside(int idx, int idy, int idz) {
     return IsInsideMap[toCoordIdx(idx, idy, idz)];
 }
 
-int ArbitraryDomain::getNumXY(int z) {
-
-    return numXY[z];
-}
-
 void ArbitraryDomain::constantInterpolation(int idx, int idy, int idz,
                                             StencilValue_t& value, double& /*scaleFactor*/)
 {
