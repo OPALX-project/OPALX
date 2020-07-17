@@ -94,12 +94,6 @@ private:
     // Conversion from a 3D index to (x,y,z)
     inline void getCoord(int idxyz, int &x, int &y, int &z);
 
-    inline void crossProduct(double A[], double B[], double C[]);
-
-    inline double dotProduct(double v1[], double v2[]) {
-        return (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]);
-    }
-
     // Different interpolation methods for boundary points
     void constantInterpolation(int idx, int idy, int idz, StencilValue_t& value,
                                double &scaleFactor) override;
