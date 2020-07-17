@@ -29,7 +29,6 @@
 #include <vector>
 #include <string>
 #include "Algorithms/PBunchDefs.h"
-#include "Algorithms/Quaternion.h"
 
 /// enumeration corresponding to different interpolation methods at the boundary
 enum {
@@ -118,11 +117,6 @@ public:
     double getMinZ() { return zMin_m; }
     double getMaxZ() { return zMax_m; }
 
-    void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion){
-        globalToLocalQuaternion_m = globalToLocalQuaternion;}
-
-    Quaternion_t getGlobalToLocalQuaternion() { return globalToLocalQuaternion_m;}
-
     double getXRangeMin();
     double getXRangeMax();
     double getYRangeMin();
@@ -171,7 +165,6 @@ protected:
 
     /// mean position of bunch (m)
     Vector_t rMean_m;
-    Quaternion_t globalToLocalQuaternion_m;
 
     /// flag indicating if geometry has changed for the current time-step
     bool hasGeometryChanged_m;
