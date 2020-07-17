@@ -118,9 +118,6 @@ public:
     double getMinZ() { return zMin_m; }
     double getMaxZ() { return zMax_m; }
 
-    void setGlobalMeanR(Vector_t rmean) { rMean_m = rmean;}
-    Vector_t getGlobalMeanR() { return rMean_m; }
-
     void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion){
         globalToLocalQuaternion_m = globalToLocalQuaternion;}
 
