@@ -375,7 +375,7 @@ ElementBase::BoundingBox::getPointOfIntersection(const Vector_t & position,
                 continue;
             }
 
-            return position + tau * normalizedDirection;
+            return position + delta;
         }
         relativePosition = upperRightCorner - position;
     }
