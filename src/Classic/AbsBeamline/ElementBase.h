@@ -84,11 +84,6 @@ class ElementImage;
 class ParticleMatterInteractionHandler;
 class WakeFunction;
 
-struct BoundaryBox {
-    Vector_t lowerLeftEdge;
-    Vector_t upperRightEdge;
-};
-
 class ElementBase: public RCObject {
 
 public:
@@ -372,6 +367,15 @@ public:
         }
 
         bool isInside(const Vector_t &) const;
+
+        /*! Computes the intersection point between a bounding box and the ray which
+         *  has the direction 'direction' and starts at the position 'position'. If
+         *  the position is inside the box then the algorithm should find an inter-
+         *  section point should be found.
+         *
+         *  @param position the position where the ray starts
+         *  @param direction the direction of the ray
+         */
         boost::optional<Vector_t> getPointOfIntersection(const Vector_t & position,
                                                          const Vector_t & direction) const;
     };
