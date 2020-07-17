@@ -24,6 +24,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Solvers/BoxCornerDomain.h"
+#include "Utilities/OpalException.h"
 
 #include <map>
 #include <string>
@@ -33,17 +34,18 @@
 
 //FIXME: ORDER HOW TO TRAVERSE NODES IS FIXED, THIS SHOULD BE MORE GENERIC! (PLACES MARKED)
 
-extern Inform *gmsg;
-
 BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double length,
                                  double L1, double L2, IntVector_t nr, Vector_t hr,
                                  std::string interpl)
-    : IrregularDomain(nr, hr, interpl)
+    : RegularDomain(nr, hr, interpl)
 {
     setRangeMin(Vector_t(-A, -B, L1));
     setRangeMax(Vector_t( A,  B, L1 + L2));
     C_m = C;
     length_m = length;
+
+    throw OpalException("BoxCornerDomain::BoxCornerDomain()",
+                        "This domain is currently not supported!");
 }
 
 BoxCornerDomain::~BoxCornerDomain() {
@@ -126,67 +128,6 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
         }
     }
     */
-}
-
-void BoxCornerDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                                            double &scaleFactor) const
-{
-    scaleFactor = 1.0;
-
-    value.west   = -1 / hr_m[0] * 1 / hr_m[0];
-    value.east   = -1 / hr_m[0] * 1 / hr_m[0];
-    value.north  = -1 / hr_m[1] * 1 / hr_m[1];
-    value.south  = -1 / hr_m[1] * 1 / hr_m[1];
-    value.front  = -1 / hr_m[2] * 1 / hr_m[2];
-    value.back   = -1 / hr_m[2] * 1 / hr_m[2];
-    value.center = 2 / hr_m[0] * 1 / hr_m[0] + 2 / hr_m[1] * 1 / hr_m[1] + 2 / hr_m[2] * 1 / hr_m[2];
-
-    // we are a right boundary point
-    if(!isInside(x + 1, y, z))
-        value.east = 0.0;
-
-    // we are a left boundary point
-    if(!isInside(x - 1, y, z))
-        value.west = 0.0;
-
-    // we are a upper boundary point
-    if(!isInside(x, y + 1, z))
-        value.north = 0.0;
-
-    // we are a lower boundary point
-    if(!isInside(x, y - 1, z))
-        value.south = 0.0;
-
-    if(z == 1 || z == nr_m[2] - 2) {
-
-        // case where we are on the Robin BC in Z-direction
-        // where we distinguish two cases
-        // IFF: this values should not matter because they
-        // never make it into the discretization matrix
-        if(z == 1)
-            value.front = 0.0;
-        else
-            value.back = 0.0;
-
-        // add contribution of Robin discretization to center point
-        // d the distance between the center of the bunch and the boundary
-        //double cx = (x-(nr_m[0]-1)/2)*hr_m[0];
-        //double cy = (y-(nr_m[1]-1)/2)*hr_m[1];
-        //double cz = hr_m[2]*(nr_m[2]-1);
-        //double d = sqrt(cx*cx+cy*cy+cz*cz);
-        double d = hr_m[2] * (nr_m[2] - 1) / 2;
-        value.center += 2 / (d * hr_m[2]);
-        //value.center += 2/((hr_m[2]*(nr_m[2]-1)/2.0) * hr_m[2]);
-
-        // scale all stencil-points in z-plane with 0.5 (Robin discretization)
-        value.west   /= 2.0;
-        value.east   /= 2.0;
-        value.north  /= 2.0;
-        value.south  /= 2.0;
-        value.center /= 2.0;
-        scaleFactor  *= 0.5;
-    }
-
 }
 
 void BoxCornerDomain::linearInterpolation(int x, int y, int z, StencilValue_t& value,

@@ -29,9 +29,7 @@
 #include <map>
 #include <string>
 #include <cmath>
-#include <iostream>  // Neeeded for stream I/O
-#include <fstream>   // Needed for file I/O
-#include "IrregularDomain.h"
+#include "Solvers/RegularDomain.h"
 
 
 /*
@@ -71,7 +69,7 @@ L1 = getZRangeMin()
 L2 = getZRangeMax() - getZRangeMin
 */
 
-class BoxCornerDomain : public IrregularDomain {
+class BoxCornerDomain : public RegularDomain {
 
 public:
     /**
@@ -156,9 +154,6 @@ private:
     }
 
     /// different interpolation methods for boundary points
-    void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) const override;
-
     void linearInterpolation(int x, int y, int z, StencilValue_t& value,
                              double &scaleFactor) const override;
 
