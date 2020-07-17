@@ -36,7 +36,7 @@
 extern Inform *gmsg;
 
 BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double length,
-                                 double L1, double L2, Vector_t nr, Vector_t hr,
+                                 double L1, double L2, IntVector_t nr, Vector_t hr,
                                  std::string interpl)
     : IrregularDomain(nr, hr, interpl)
 {
@@ -129,7 +129,7 @@ void BoxCornerDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
 }
 
 void BoxCornerDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                                            double &scaleFactor)
+                                            double &scaleFactor) const
 {
     scaleFactor = 1.0;
 
@@ -190,7 +190,7 @@ void BoxCornerDomain::constantInterpolation(int x, int y, int z, StencilValue_t&
 }
 
 void BoxCornerDomain::linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                                          double &scaleFactor)
+                                          double &scaleFactor) const
 {
     scaleFactor = 1.0;
 
@@ -294,7 +294,7 @@ void BoxCornerDomain::linearInterpolation(int x, int y, int z, StencilValue_t& v
 
 //FIXME: this probably needs some cleanup/rewriting
 void BoxCornerDomain::quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                             double &scaleFactor)
+                                             double &scaleFactor) const
 {
     double cx = (x - (nr_m[0] - 1) / 2.0) * hr_m[0];
     double cy = (y - (nr_m[1] - 1) / 2.0) * hr_m[1];

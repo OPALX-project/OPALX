@@ -28,21 +28,20 @@
 #include "Solvers/RectangularDomain.h"
 #include "Utilities/OpalException.h"
 
-RectangularDomain::RectangularDomain(double a, double b, Vector_t nr, Vector_t hr)
+RectangularDomain::RectangularDomain(double a, double b, IntVector_t nr, Vector_t hr)
     : IrregularDomain(nr, hr, "CONSTANT")
+    , nxy_m(nr[0] * nr[1])
 {
     setRangeMin(Vector_t(-a, -b, getMinZ()));
     setRangeMax(Vector_t( a,  b, getMaxZ()));
-    nxy_m = nr[0] * nr[1];
 }
 
 void RectangularDomain::compute(Vector_t hr, NDIndex<3> /*localId*/){
     setHr(hr);
-    nxy_m = nr_m[0] * nr_m[1];
 }
 
 void RectangularDomain::constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                                              double &scaleFactor)
+                                              double &scaleFactor) const
 {
     //scaleFactor = 1.0;
 

@@ -33,23 +33,18 @@
 class RectangularDomain : public IrregularDomain {
 
 public:
-    using IrregularDomain::StencilIndex_t;
-    using IrregularDomain::StencilValue_t;
-
     /**
      * \param a is the longer side a of the rectangle
      * \param b is the shorter side b of the rectangle
      *
      */
-    RectangularDomain(double a, double b, Vector_t nr, Vector_t hr);
+    RectangularDomain(double a, double b, IntVector_t nr, Vector_t hr);
 
     /// calculates intersection with the beam pipe
     void compute(Vector_t hr, NDIndex<3> /*localId*/);
 
-    /// returns index of neighbours at (x,y,z)
-    using IrregularDomain::getNeighbours;
     /// queries if a given (x,y,z) coordinate lies inside the domain
-    inline bool isInside(int x, int y, int /*z*/) {
+    inline bool isInside(int x, int y, int /*z*/) const {
         double xx = (x - (nr_m[0] - 1) / 2.0) * hr_m[0];
         double yy = (y - (nr_m[1] - 1) / 2.0) * hr_m[1];
         return (xx <= getXRangeMax() && yy < getYRangeMax());
@@ -60,20 +55,16 @@ private:
     int nxy_m;
 
     /// conversion from (x,y,z) to index on the 3D grid
-    int indexAccess(int x, int y, int z) {
+    int indexAccess(int x, int y, int z) const {
         return y * nr_m[0] + x + z * nxy_m;
     }
 
-    /// conversion from a 3D index to (x,y,z)
-    void getCoord(int idx, int &x, int &y, int &z) override {
-        int ixy = idx % nxy_m;
-        x = ixy % (int)nr_m[0];
-        y = (ixy - x) / nr_m[0];
-        z = (idx - ixy) / nxy_m;
+    int coordAccess(int idx) const {
+        return idx % nxy_m;
     }
 
     void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) override;
+                               double &scaleFactor) const override;
 };
 
 #endif
