@@ -352,35 +352,22 @@ ElementBase::BoundingBox::getPointOfIntersection(const Vector_t & position,
     Vector_t relativePosition = lowerLeftCorner - position;
     Vector_t diagonal = upperRightCorner - lowerLeftCorner;
     Vector_t normalizedDirection = direction / euclidean_norm(direction);
-    // *gmsg << "position: " << position << "\n"
-    //       << "normalizedDirection: " << normalizedDirection << "\n"
-    //       << "lowerLeftCorner: " << lowerLeftCorner << "\n"
-    //       << "upperRightCorner: " << upperRightCorner << "\n"
-    //       << "diagonal: " << diagonal << endl;
 
-    for (int i = -1; i < 2; i += 2) {
+    for (int i : {-1, 1}) {
         for (unsigned int d = 0; d < 3; ++ d) {
             double projectedDirection = normalizedDirection[d];
-            // *gmsg << "\n" << "projectedDirection: " << projectedDirection << "\n";
             if (std::abs(projectedDirection) < 1e-10) {
                 continue;
             }
 
             double distanceNearestPoint = relativePosition[d];
             double tau = distanceNearestPoint / projectedDirection;
-            // *gmsg << "distanceNearestPoint: " << distanceNearestPoint << "\n"
-            //       << "relativePosition: " << relativePosition << "\n"
-            //       << "tau: " << tau << "\n";
             if (tau < 0) {
                 continue;
             }
             Vector_t delta = tau * normalizedDirection;
             Vector_t relativeIntersectionPoint = i * (relativePosition - delta);
 
-            // *gmsg << "delta: " << delta << "\n"
-            //       << "relativeIntersectionPoint: " << relativeIntersectionPoint << endl;
-
-            // *gmsg << sign * intersectionPoint[(d + 1) % 3] << "\t" << sign * relativeIntersectionPoint[(d + 2) % 3] << "\t";
             if (relativeIntersectionPoint[(d + 1) % 3] < 0.0 ||
                 relativeIntersectionPoint[(d + 1) % 3] > diagonal[(d + 1) % 3] ||
                 relativeIntersectionPoint[(d + 2) % 3] < 0.0 ||
@@ -392,7 +379,7 @@ ElementBase::BoundingBox::getPointOfIntersection(const Vector_t & position,
         }
         relativePosition = upperRightCorner - position;
     }
-    // *gmsg << endl;
+
     return boost::none;
 }
 
