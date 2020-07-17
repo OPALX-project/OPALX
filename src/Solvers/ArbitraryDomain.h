@@ -81,8 +81,6 @@ private:
     /// all intersection points with gridlines in Z direction
     PointList IntersectHiZ, IntersectLoZ;
 
-    // meanR to shift from global to local frame
-    Vector_t globalMeanR_m;
     //    Quaternion_t globalToLocalQuaternion_m;  because defined in parent class
     Quaternion_t localToGlobalQuaternion_m;
 
@@ -94,7 +92,6 @@ private:
     // Mapping all cells that are inside the geometry
     std::map<int, bool> IsInsideMap;
 
-    Vector_t geomCentroid_m;
     Vector_t globalInsideP0_m;
 
     // Conversion from (x,y,z) to index in xyz plane
