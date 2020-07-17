@@ -75,12 +75,12 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
     hasGeometryChanged_m = true;
 
-    IntersectLoX.clear();
-    IntersectHiX.clear();
-    IntersectLoY.clear();
-    IntersectHiY.clear();
-    IntersectLoZ.clear();
-    IntersectHiZ.clear();
+    intersectLoX_m.clear();
+    intersectHiX_m.clear();
+    intersectLoY_m.clear();
+    intersectHiY_m.clear();
+    intersectLoZ_m.clear();
+    intersectHiZ_m.clear();
 
     // Calculate intersection
     Vector_t P, dir, I;
@@ -119,7 +119,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     dir = Vector_t(0, 0, 1);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        IntersectHiZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
+                        intersectHiZ_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                         *gmsg << "zdir=+1 " << dir << " x,y,z= " << idx << "," << idy
@@ -128,7 +128,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-                        IntersectLoZ.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
+                        intersectLoZ_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                         *gmsg << "zdir=-1 " << -dir << " x,y,z= " << idx << "," << idy
@@ -139,7 +139,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     dir = Vector_t(0, 1, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        IntersectHiY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
+                        intersectHiY_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                         *gmsg << "ydir=+1 " << dir << " x,y,z= " << idx << "," << idy
@@ -148,7 +148,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)) {
-                        IntersectLoY.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
+                        intersectLoY_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                         *gmsg << "ydir=-1" << -dir << " x,y,z= " << idx << "," << idy
@@ -159,7 +159,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     dir = Vector_t(1, 0, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
-                        IntersectHiX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
+                        intersectHiX_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                         *gmsg << "xdir=+1 " << dir << " x,y,z= " << idx << "," << idy
@@ -168,7 +168,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
                     }
 
                     if (bgeom_m->intersectRayBoundary(P, -dir, I)){
-                        IntersectLoX.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
+                        intersectLoX_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));
                     } else {
 #ifdef DEBUG_INTERSECT_RAY_BOUNDARY
                         *gmsg << "xdir=-1 " << -dir << " x,y,z= " << idx << "," << idy
@@ -323,17 +323,17 @@ void ArbitraryDomain::linearInterpolation(int idx, int idy, int idz,
     std::tuple<int, int, int> coordxyz(idx, idy, idz);
 
     if (idx == nr_m[0]-1)
-        dx_e = std::abs(IntersectHiX.find(coordxyz)->second - cx);
+        dx_e = std::abs(intersectHiX_m.find(coordxyz)->second - cx);
     if (idx == 0)
-        dx_w = std::abs(IntersectLoX.find(coordxyz)->second - cx);
+        dx_w = std::abs(intersectLoX_m.find(coordxyz)->second - cx);
     if (idy == nr_m[1]-1)
-        dy_n = std::abs(IntersectHiY.find(coordxyz)->second - cy);
+        dy_n = std::abs(intersectHiY_m.find(coordxyz)->second - cy);
     if (idy == 0)
-        dy_s = std::abs(IntersectLoY.find(coordxyz)->second - cy);
+        dy_s = std::abs(intersectLoY_m.find(coordxyz)->second - cy);
     if (idz == nr_m[2]-1)
-        dz_b = std::abs(IntersectHiZ.find(coordxyz)->second - cz);
+        dz_b = std::abs(intersectHiZ_m.find(coordxyz)->second - cz);
     if (idz == 0)
-        dz_f = std::abs(IntersectLoZ.find(coordxyz)->second - cz);
+        dz_f = std::abs(intersectLoZ_m.find(coordxyz)->second - cz);
 
     if(dx_w != 0)
         value.west = -(dz_f + dz_b) * (dy_n + dy_s) / dx_w;
