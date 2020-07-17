@@ -29,7 +29,7 @@
 
 #include <cassert>
 
-IrregularDomain::IrregularDomain(const Vector_t& nr, const Vector_t& hr,
+IrregularDomain::IrregularDomain(const IntVector_t& nr, const Vector_t& hr,
                                  const std::string& interpl)
     : nr_m(nr)
     , hr_m(hr)
@@ -46,7 +46,7 @@ IrregularDomain::IrregularDomain(const Vector_t& nr, const Vector_t& hr,
 }
 
 
-void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)
+void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index) const
 {
     index.west  = -1;
     index.east  = -1;
@@ -75,32 +75,28 @@ void IrregularDomain::getNeighbours(int x, int y, int z, StencilIndex_t& index)
 }
 
 
-void IrregularDomain::getNeighbours(int id, StencilIndex_t& index)
-{
+void IrregularDomain::getNeighbours(int id, StencilIndex_t& index) const {
     int x = 0, y = 0, z = 0;
     getCoord(id, x, y, z);
     getNeighbours(x, y, z, index);
 }
 
 
-void IrregularDomain::getCoord(int idx, int& x, int& y, int& z) {
-    int id = coordMap_m[idx];
-    x = id % (int)nr_m[0];
-    id /= nr_m[0];
-    y = id % (int)nr_m[1];
-    id /= nr_m[1];
-    z = id;
+void IrregularDomain::getCoord(int idx, int& x, int& y, int& z) const {
+    int xy = coordAccess(idx);
+    x = xy % nr_m[0];
+    y = (xy - x) / nr_m[0];
+    z = idx / getNumXY();
 }
 
-
-int IrregularDomain::getIdx(int x, int y, int z) {
+int IrregularDomain::getIdx(int x, int y, int z) const {
     if (x < 0 || y < 0 || z < 0 || !isInside(x, y, z))
         return -1;
     return indexAccess(x, y, z);
 }
 
 void IrregularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& value,
-                                         double &scaleFactor)
+                                         double &scaleFactor) const
 {
     scaleFactor = 1.0;
 
@@ -123,7 +119,7 @@ void IrregularDomain::getBoundaryStencil(int x, int y, int z, StencilValue_t& va
 
 
 void IrregularDomain::getBoundaryStencil(int id, StencilValue_t& value,
-                                         double &scaleFactor)
+                                         double &scaleFactor) const
 {
     int idx = 0, idy = 0, idz = 0;
     getCoord(id, idx, idy, idz);
@@ -142,7 +138,7 @@ void IrregularDomain::resizeMesh(Vector_t& origin, Vector_t& hr,
 
 
 void IrregularDomain::constantInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
-                                            StencilValue_t& /*value*/, double &/*scaleFactor*/)
+                                            StencilValue_t& /*value*/, double &/*scaleFactor*/) const
 {
     throw OpalException("IrregularDomain::constantInterpolation()",
                         "No constant interpolation method Implemented!");
@@ -150,7 +146,7 @@ void IrregularDomain::constantInterpolation(int /*idx*/, int /*idy*/, int /*idz*
 
 
 void IrregularDomain::linearInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
-                                          StencilValue_t& /*value*/, double &/*scaleFactor*/)
+                                          StencilValue_t& /*value*/, double &/*scaleFactor*/) const
 {
     throw OpalException("IrregularDomain::linearInterpolation()",
                         "No linear interpolation method Implemented!");
@@ -158,7 +154,7 @@ void IrregularDomain::linearInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
 
 
 void IrregularDomain::quadraticInterpolation(int /*idx*/, int /*idy*/, int /*idz*/,
-                                             StencilValue_t& /*value*/, double &/*scaleFactor*/)
+                                             StencilValue_t& /*value*/, double &/*scaleFactor*/) const
 {
     throw OpalException("IrregularDomain::quadraticInterpolation()",
                         "No quadratic interpolation method Implemented!");

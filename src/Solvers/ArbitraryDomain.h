@@ -43,16 +43,16 @@ class BoundaryGeometry;
 class ArbitraryDomain : public IrregularDomain {
 
 public:
-    using IrregularDomain::StencilIndex_t;
-    using IrregularDomain::StencilValue_t;
-
-    ArbitraryDomain(BoundaryGeometry *bgeom, Vector_t nr, Vector_t hr,
+    ArbitraryDomain(BoundaryGeometry *bgeom, IntVector_t nr, Vector_t hr,
                     std::string interpl);
 
     ~ArbitraryDomain();
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
-    bool isInside(int idx, int idy, int idz);
+    bool isInside(int idx, int idy, int idz) const {
+        return isInsideMap_m.at(toCoordIdx(idx, idy, idz));
+    }
+
     // calculates intersection with rotated and shifted geometry
     void compute(Vector_t hr, NDIndex<3> localId);
 
@@ -82,17 +82,25 @@ private:
     Vector_t globalInsideP0_m;
 
     // Conversion from (x,y,z) to index in xyz plane
-    inline int toCoordIdx(int idx, int idy, int idz);
+    int toCoordIdx(int idx, int idy, int idz) const {
+        return (idz * nr_m[1] + idy) * nr_m[0]  + idx;
+    }
 
     // Conversion from (x,y,z) to index on the 3D grid
-    int indexAccess(int x, int y, int z);
+    int indexAccess(int x, int y, int z) const {
+        return idxMap_m.at(toCoordIdx(x, y, z));
+    }
+
+    int coordAccess(int idx) const {
+        return coordMap_m.at(idx);
+    }
 
     // Different interpolation methods for boundary points
     void constantInterpolation(int idx, int idy, int idz, StencilValue_t& value,
-                               double &scaleFactor) override;
+                               double &scaleFactor) const override;
 
     void linearInterpolation(int idx, int idy, int idz, StencilValue_t& value,
-                             double &scaleFactor) override;
+                             double &scaleFactor) const override;
 };
 
 #endif
