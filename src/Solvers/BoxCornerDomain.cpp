@@ -44,16 +44,6 @@ BoxCornerDomain::BoxCornerDomain(double A, double B, double C, double length,
     setRangeMax(Vector_t( A,  B, L1 + L2));
     C_m = C;
     length_m = length;
-
-    if(Ippl::getNodes() == 1) {
-      *gmsg << " Write BoxCorner data to file boxcorner.dat" << endl;
-      std::string file("boxcorner.dat");
-      os_m.open(file.c_str());
-      if(os_m.bad()) {
-          *gmsg << "Unable to open output file " <<  file << endl;
-      }
-      //os_m << "# ...." << endl;
-    }
 }
 
 BoxCornerDomain::~BoxCornerDomain() {
