@@ -138,9 +138,6 @@ private:
     /// length of the structure
     double length_m;
 
-    /// for debug reasons
-    std::ofstream os_m;
-
     /// height of the corner
     double C_m;
 
