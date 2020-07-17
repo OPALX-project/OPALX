@@ -372,7 +372,7 @@ public:
         /*! Computes the intersection point between a bounding box and the ray which
          *  has the direction 'direction' and starts at the position 'position'. If
          *  the position is inside the box then the algorithm should find an inter-
-         *  section point should be found.
+         *  section point.
          *
          *  @param position the position where the ray starts
          *  @param direction the direction of the ray
