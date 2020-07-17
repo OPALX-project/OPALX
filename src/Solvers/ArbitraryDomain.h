@@ -53,8 +53,6 @@ public:
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     bool isInside(int idx, int idy, int idz);
-    /// returns number of nodes in xy plane
-    int getNumXY(int z);
     // calculates intersection with rotated and shifted geometry
     void compute(Vector_t hr, NDIndex<3> localId);
 
