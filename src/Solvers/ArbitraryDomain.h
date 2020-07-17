@@ -93,13 +93,6 @@ private:
     std::map<int, int> numYZ;
     std::map<int, int> numXZ;
 
-    // Number of nodes in the xy plane (for this case: independent of the z coordinate)
-    int nxy_m[1000];
-    // mapping (x,y,z) -> idxyz
-    std::map<int, int> IdxMap;
-    // Mapping idxyz -> (x,y,z)
-    std::map<int, int> CoordMap;
-
     // Mapping all cells that are inside the geometry
     std::map<int, bool> IsInsideMap;
 
