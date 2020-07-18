@@ -75,8 +75,8 @@ public:
     /// \param values of stencil element
     /// \param scaleFactor of stencil values
     void getBoundaryStencil(int x, int y, int z,
-                                    StencilValue_t& value,
-                                    double &scaleFactor) const;
+                            StencilValue_t& value,
+                            double &scaleFactor) const;
 
     /// method to calculate the stencil at a boundary points
     /// \param id index of the current element in the matrix
