@@ -84,8 +84,8 @@ void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
      * grid points per plane --> otherwise we might
      * get not unique global indices in the Tpetra::CrsMatrix
      */
-    for (y = 0; y < nr_m[1]; ++y) {
-        for (x = 0; x < nr_m[0]; ++x) {
+    for (x = 0; x < nr_m[0]; ++x) {
+        for (y = 0; y < nr_m[1]; ++y) {
             if (isInside(x, y, 1)) {
                 idxMap_m[toCoordIdx(x, y)] = idx;
                 coordMap_m[idx++] = toCoordIdx(x, y);
