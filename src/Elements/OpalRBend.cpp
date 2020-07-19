@@ -181,18 +181,17 @@ void OpalRBend::update() {
                             "RBend requires non-zero DESIGNENERGY");
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+    double gap = Attributes::getReal(itsAttr[GAP]);
+    bend->setFullGap(gap);
 
-    // if(itsAttr[APERT])
-    //     throw OpalException("OpalRBend::fillRegisteredAttributes",
-    //                         "APERTURE in RBEND not supported; use GAP and HAPERT instead");
+    if(itsAttr[APERT])
+        throw OpalException("OpalRBend::update",
+                            "APERTURE in RBEND not supported; use GAP and HAPERT instead");
 
     if(itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        double gap = Attributes::getReal(itsAttr[GAP]);
         bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, gap, 1.0}));
     } else {
-        double gap = Attributes::getReal(itsAttr[GAP]);
         bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({0.5, gap, 1.0}));
     }
 
