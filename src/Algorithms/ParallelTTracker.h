@@ -244,8 +244,6 @@ private:
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
 
-    unsigned long totalParticlesInSimulation_m;
-
     /********************** END VARIABLES ***********************************/
 
     void kickParticles(const BorisPusher &pusher);
