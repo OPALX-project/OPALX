@@ -4,7 +4,9 @@
 //   The visitor class for tracking particles with time as independent
 //   variable.
 //
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+//               2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020, Christof Metzger-Kraus
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -191,7 +193,6 @@ void ParallelTTracker::execute() {
     prepareSections();
 
     double minTimeStep = stepSizes_m.getMinTimeStep();
-    unsigned long long totalNumSteps = stepSizes_m.getNumStepsFinestResolution();
 
     itsOpalBeamline_m.activateElements();
 
@@ -246,7 +247,6 @@ void ParallelTTracker::execute() {
                       -rmin(2),
                       itsBunch_m->getT(),
                       (back_track? -minTimeStep: minTimeStep),
-                      totalNumSteps,
                       stepSizes_m.getFinalZStop() + 2 * rmax(2),
                       itsOpalBeamline_m);
 
