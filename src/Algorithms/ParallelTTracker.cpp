@@ -75,8 +75,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    particleMatterStatus_m(false),
-    totalParticlesInSimulation_m(0)
+    particleMatterStatus_m(false)
 {}
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
@@ -108,8 +107,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    particleMatterStatus_m(false),
-    totalParticlesInSimulation_m(0)
+    particleMatterStatus_m(false)
 {
     for (unsigned int i = 0; i < zstop.size(); ++ i) {
         stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -257,7 +255,6 @@ void ParallelTTracker::execute() {
     saveCavityPhases();
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-    totalParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
     setTime();
 
@@ -588,7 +585,6 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
             ne = itsBunch_m->destroyT();
         }
         numParticlesInSimulation_m  = itsBunch_m->getTotalNum();
-        totalParticlesInSimulation_m -= ne;
         deletedParticles_m = true;
     }
 
@@ -599,7 +595,7 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
 
     if (ne > 0) {
         msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << totalParticlesInSimulation_m << " particles" << endl;
+            << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
 }
 
