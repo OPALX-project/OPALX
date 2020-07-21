@@ -692,31 +692,22 @@ void Bend2D::findBendStrength() {
     if (error < tolerance)
         return;
 
-    double fieldStep = estimateFieldAdjustmentStep(actualBendAngle);
+    double fieldStep = std::copysign(1.0, fieldAmplitude_m) * std::abs(estimateFieldAdjustmentStep(actualBendAngle));
     double amplitude1 = fieldAmplitude_m;
+    double amplitude2 = amplitude1;
     double bendAngle1 = actualBendAngle;
+    double bendAngle2 = bendAngle1;
 
-    double amplitude2 = fieldAmplitude_m + fieldStep;
-    fieldAmplitude_m = amplitude2;
-    double bendAngle2 = calculateBendAngle();
+    int stepSign = std::abs(bendAngle1) > std::abs(angle_m) ? -1: 1;
+    while (true) {
+        amplitude1 = amplitude2;
+        bendAngle1 = bendAngle2;
 
-    if (std::abs(bendAngle1) > std::abs(angle_m)) {
-        while (std::abs(bendAngle2) > std::abs(angle_m)) {
-            amplitude1 = amplitude2;
-            bendAngle1 = bendAngle2;
-
-            amplitude2 += fieldStep;
-            fieldAmplitude_m = amplitude2;
-            bendAngle2 = calculateBendAngle();
-        }
-    } else {
-        while (std::abs(bendAngle2) < std::abs(angle_m)) {
-            amplitude1 = amplitude2;
-            bendAngle1 = bendAngle2;
-
-            amplitude2 += fieldStep;
-            fieldAmplitude_m = amplitude2;
-            bendAngle2 = calculateBendAngle();
+        amplitude2 += stepSign * fieldStep;
+        fieldAmplitude_m = amplitude2;
+        bendAngle2 = calculateBendAngle();
+        if (stepSign * (std::abs(bendAngle2) - std::abs(angle_m)) > 0) {
+            break;
         }
     }
 
@@ -1689,4 +1680,32 @@ std::array<double,2> Bend2D::getExitFringeFieldLength() const {
     extFFL[1] = ( exitParameter2_m-exitParameter1_m ); //before edge
 
     return extFFL;
+}
+
+ElementBase::BoundingBox Bend2D::getBoundingBoxInLabCoords() const {
+    CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toEnd = getEdgeToEnd() * csTrafoGlobal2Local_m;
+
+    std::vector<Vector_t> outline = getOutline();
+
+    BoundingBox bb;
+    bb.lowerLeftCorner = std::numeric_limits<double>::max();
+    bb.upperRightCorner = std::numeric_limits<double>::lowest();
+
+    Vector_t dY(0, 0.5 * getFullGap(), 0);
+    for (int i : {-1, 1}) {
+        for (const Vector_t & vec: outline) {
+            Vector_t vecInLabCoords = csTrafoGlobal2Local_m.transformFrom(vec + i * dY);
+            for (unsigned int d = 0; d < 3; ++ d) {
+                if (vecInLabCoords(d) < bb.lowerLeftCorner(d)) {
+                    bb.lowerLeftCorner(d) = vecInLabCoords(d);
+                }
+                if (vecInLabCoords(d) > bb.upperRightCorner(d)) {
+                    bb.upperRightCorner(d) = vecInLabCoords(d);
+                }
+            }
+        }
+    }
+
+    return bb;
 }
