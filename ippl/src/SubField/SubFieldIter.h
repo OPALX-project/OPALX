@@ -127,7 +127,11 @@ public:
       MyDomain(&(const_cast<S&>(s))),
       CurrentLField(ldf),
       MyBrackets(B) {
-	LFPtr = (*CurrentLField).second.get();
+      if (CurrentLField != getBareField().end_if()) {
+          LFPtr = (*CurrentLField).second.get();
+      } else {
+          LFPtr = nullptr;
+      }
   }
 
   // Default constructor
@@ -156,9 +160,15 @@ public:
 
   // Go to the next LField.
   typename BareField<T,Dim>::iterator_if nextLField() {
-    ++CurrentLField;
-    LFPtr = (*CurrentLField).second.get();
-    return CurrentLField;
+      if (CurrentLField != getBareField().end_if()) {
+          ++CurrentLField;
+      }
+      if (CurrentLField != getBareField().end_if()) {
+          LFPtr = (*CurrentLField).second.get();
+      } else {
+          LFPtr = nullptr;
+      }
+      return CurrentLField;
   }
 
   // Return the LField pointed to by LFPtr
