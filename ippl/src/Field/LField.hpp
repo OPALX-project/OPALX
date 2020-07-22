@@ -714,7 +714,7 @@ LField<T,Dim>::allocateStorage(int newsize)
 
   // Allocate the storage, creating some extra to account for offset, and
   // then add in the offset.
-  P = new T[newsize + extra];
+  P = new T[newsize + extra]();
   P += extra;
 
   ADDIPPLSTAT(incLFieldBytes, (newsize+extra)*sizeof(T));
