@@ -103,6 +103,7 @@
 #include "Index/SIndex.h"
 #include "Field/BareField.h"
 #include "Field/LField.h"
+#include "Utility/IpplException.h"
 #include "Utility/PAssert.h"
 #include "PETE/IpplExpressions.h"
 
@@ -169,6 +170,8 @@ public:
   typename BareField<T,Dim>::iterator_if nextLField() {
       if (CurrentLField != getBareField().end_if()) {
           ++CurrentLField;
+      } else {
+          throw IpplException("SubFieldIter::nextLField()", "Reached the container end, no next LField!");
       }
       if (CurrentLField != getBareField().end_if()) {
           LFPtr = (*CurrentLField).second.get();
