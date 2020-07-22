@@ -54,6 +54,9 @@ ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
             "ArbitraryDomain::ArbitraryDomain()",
             "No point inside geometry found/set!");
     }
+
+    throw OpalException("ArbitraryDomain::ArbitraryDomain()",
+                        "This domain is currently not available.");
 }
 
 ArbitraryDomain::~ArbitraryDomain() {
