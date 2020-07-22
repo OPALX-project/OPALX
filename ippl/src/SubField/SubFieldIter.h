@@ -171,7 +171,7 @@ public:
       if (CurrentLField != getBareField().end_if()) {
           ++CurrentLField;
       } else {
-          throw IpplException("SubFieldIter::nextLField()", "Reached the container end, no next LField!");
+          throw IpplException("SubFieldIterBase::nextLField()", "Reached the container end, no next LField!");
       }
       if (CurrentLField != getBareField().end_if()) {
           LFPtr = (*CurrentLField).second.get();
