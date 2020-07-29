@@ -188,14 +188,11 @@
 (defconst opal-font-lock-keywords-3
   (append
      opal-font-lock-keywords-optimise
-     opal-font-lock-special_operators
-     opal-font-lock-special_constants
      opal-font-lock-keywords-programflow
      opal-font-lock-keywords-simul
      opal-font-lock-keywords-controlstm
      opal-font-lock-keywords-elements
      opal-font-lock-keywords-beamspec
-     opal-font-lock-keywords-matchingmet
      opal-font-lock-keywords-orbit_corr
      opal-font-lock-keywords-plot
      opal-font-lock-keywords-parameters
