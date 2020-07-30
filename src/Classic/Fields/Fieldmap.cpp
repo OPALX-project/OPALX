@@ -740,10 +740,10 @@ void Fieldmap::write3DField(unsigned int nx,
     if (Ippl::myNode() != 0 ||
         (ef.size() != numpoints && bf.size() != numpoints)) return;
 
-    size_t extensionStart = Filename_m.find_last_of('.');
+    boost::filesystem::path p(Filename_m);
     std::string fname = Util::combineFilePath({
         OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-        Filename_m.substr(0,extensionStart) + ".vtk"
+        p.stem().string() + ".vtk"
     });
     std::ofstream of;
     of.open (fname);
