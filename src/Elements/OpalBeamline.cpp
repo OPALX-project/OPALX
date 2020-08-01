@@ -160,7 +160,11 @@ void OpalBeamline::switchElementsOff(const double &min, ElementBase::ElementType
 }
 
 void OpalBeamline::switchElementsOff() {
-    for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit)
+    elements_m.sort([](const ClassicField& a, const ClassicField& b) {
+                        return a.getElement()->getName() < b.getElement()->getName();
+                    });
+
+    for (FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit)
         (*flit).setOff();
 }
 
