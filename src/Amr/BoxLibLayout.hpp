@@ -41,7 +41,6 @@
 #include "Message/Formatter.h"
 #include "Utilities/OpalException.h"
 
-#include <cassert>
 #include <cmath>
 
 template <class T, unsigned Dim>
@@ -473,7 +472,7 @@ void BoxLibLayout<T, Dim>::buildLevelMask(int lev, const int ncells) {
 
 template <class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::clearLevelMask(int lev) {
-    assert(lev < (int)masks_m.size());
+    BL_ASSERT(lev < (int)masks_m.size());
     masks_m[lev].reset(nullptr);
 }
 
@@ -810,8 +809,8 @@ void BoxLibLayout<T, Dim>::initBaseBox_m(int nGridPoints,
     AmrDomain_t real_box;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
 
-        assert(lowerBound[d] < 0);
-        assert(upperBound[d] > 0);
+        BL_ASSERT(lowerBound[d] < 0);
+        BL_ASSERT(upperBound[d] > 0);
 
         real_box.setLo(d, lowerBound[d] * (1.0 + dh));
         real_box.setHi(d, upperBound[d] * (1.0 + dh));
