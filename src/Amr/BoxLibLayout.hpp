@@ -39,6 +39,7 @@
 #include "BoxLibLayout.h"
 
 #include "Message/Formatter.h"
+#include "Utility/PAssert.h"
 #include "Utilities/OpalException.h"
 
 #include <cmath>
@@ -472,7 +473,7 @@ void BoxLibLayout<T, Dim>::buildLevelMask(int lev, const int ncells) {
 
 template <class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::clearLevelMask(int lev) {
-    BL_ASSERT(lev < (int)masks_m.size());
+    PAssert(lev < (int)masks_m.size());
     masks_m[lev].reset(nullptr);
 }
 
@@ -547,9 +548,9 @@ bool BoxLibLayout<T, Dim>::Where(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     if (lev_max == -1)
         lev_max = finestLevel();
 
-    BL_ASSERT(lev_max <= finestLevel());
+    PAssert(lev_max <= finestLevel());
 
-    BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
+    PAssert(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
 
     std::vector< std::pair<int, AmrBox_t> > isects;
 
@@ -557,7 +558,7 @@ bool BoxLibLayout<T, Dim>::Where(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     {
         const AmrIntVect_t& iv = Index(p, ip, lev);
         const AmrGrid_t& ba = ParticleBoxArray(lev);
-        BL_ASSERT(ba.ixType().cellCentered());
+        PAssert(ba.ixType().cellCentered());
 
         if (lev == (int)p.Level[ip]) {
             // The fact that we are here means this particle does not belong to any finer grids.
@@ -604,7 +605,7 @@ bool BoxLibLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T
     if (lev_max == -1)
         lev_max = finestLevel();
 
-    BL_ASSERT(lev_max <= finestLevel());
+    PAssert(lev_max <= finestLevel());
     //
     // Create a copy "dummy" particle to check for periodic outs.
     //
@@ -677,7 +678,7 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
                 //
                 R[i] += .125*geom.CellSize(i);
 
-            BL_ASSERT(R[i] >= geom.ProbLo(i));
+            PAssert(R[i] >= geom.ProbLo(i));
 
             shifted = true;
         }
@@ -699,7 +700,7 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
                 //
                 R[i] -= .125*geom.CellSize(i);
 
-            BL_ASSERT(R[i] <= geom.ProbHi(i));
+            PAssert(R[i] <= geom.ProbHi(i));
 
             shifted = true;
         }
@@ -809,8 +810,8 @@ void BoxLibLayout<T, Dim>::initBaseBox_m(int nGridPoints,
     AmrDomain_t real_box;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
 
-        BL_ASSERT(lowerBound[d] < 0);
-        BL_ASSERT(upperBound[d] > 0);
+        PAssert(lowerBound[d] < 0);
+        PAssert(upperBound[d] > 0);
 
         real_box.setLo(d, lowerBound[d] * (1.0 + dh));
         real_box.setHi(d, upperBound[d] * (1.0 + dh));
