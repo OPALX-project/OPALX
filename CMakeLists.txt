@@ -203,13 +203,6 @@ if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
     endif ()
 endif ()
 
-option (ENABLE_OPAL_FEL "Enable OPAL FEL" OFF)
-if (ENABLE_OPAL_FEL)
-    message (STATUS "Enable OPAL FEL: " ${ENABLE_OPAL_FEL})
-    find_package (MITHRA MODULE REQUIRED)
-    add_definitions (-DOPAL_FEL)
-endif()
-
 option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
 if (DBG_SCALARFIELD)
     message (STATUS "Write scalar rho_m field is enabled ")
