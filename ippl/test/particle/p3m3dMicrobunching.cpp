@@ -22,7 +22,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Ippl.h"
-#include <cassert>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -35,6 +34,7 @@
 #include "Particle/PairBuilder/HashPairBuilderPeriodic.h"
 #include "Particle/PairBuilder/HashPairBuilderPeriodicParallel.h"
 #include "Particle/PairBuilder/PairConditions.h"
+#include "Utility/PAssert.h"
 #include "math.h"
 //#include "FixedAlgebra/FMatrix.h"
 
@@ -464,7 +464,7 @@ class ChargedParticles : public IpplParticleBase<PL> {
                     h5_prop_t props = H5CreateFileProp ();
                     MPI_Comm comm = Ippl::getComm();
                     h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
-                    assert (h5err != H5_ERR);
+                    PAssert (h5err != H5_ERR);
                     H5f_m = H5OpenFile(fn.c_str(), H5_O_WRONLY, props);
                 }
 
