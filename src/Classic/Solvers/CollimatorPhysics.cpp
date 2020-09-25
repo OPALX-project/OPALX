@@ -35,7 +35,7 @@
 #include "Utilities/Util.h"
 #include "Utilities/Timer.h"
 
-#include "Ippl.h"
+#include "Utility/Inform.h"
 
 #include <gsl/gsl_randist.h>
 
@@ -43,6 +43,8 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+
+#include <sys/time.h>
 
 namespace {
     struct DegraderInsideTester: public InsideTester {

@@ -21,13 +21,12 @@
 #include "AbsBeamline/Degrader.h"
 #include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 #include "Physics/Physics.h"
-#include "Utilities/Util.h"
 #include <memory>
+#include <string>
 
 extern Inform *gmsg;
 
