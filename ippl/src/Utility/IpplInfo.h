@@ -56,7 +56,6 @@
 
 // forward declarations
 class Communicate;
-class Inform;
 class IpplStats;
 class IpplInfo;
 std::ostream& operator<<(std::ostream&, const IpplInfo&);
