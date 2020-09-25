@@ -180,7 +180,7 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
     fieldmap_m->getFieldDimensions(startField_m, endField);
     if (endField <= startField_m) {
         throw GeneralClassicException("RFCavity::initialise",
-                                      "The length of the field map '" + filename_m + "' is zero or negativ");
+                                      "The length of the field map '" + filename_m + "' is zero or negative");
     }
 
     msg << level2 << getName() << " using file ";
