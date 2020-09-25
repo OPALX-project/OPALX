@@ -635,12 +635,6 @@ bool BeamStrippingPhysics::stillActive() {
     return locPartsInMat_m != 0;
 }
 
-bool BeamStrippingPhysics::stillAlive(PartBunchBase<double, 3> */*bunch*/) {
-    bool beamstrippingAlive = true;
-    return beamstrippingAlive;
-}
-
-
 /*
     Cross sections parameters for interaction with air
     -- [1] -> Nitrogen
