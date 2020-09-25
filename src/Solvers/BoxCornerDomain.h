@@ -34,8 +34,7 @@
 
 /*
 
-    A and B are the half apperture of the box
-
+    A and B are the half aperture of the box
 
                                      / (A,B)
                                     /
@@ -85,7 +84,7 @@ public:
                     std::string interpl);
     ~BoxCornerDomain();
 
-    /// as a function of z, determine the hight (B) of the geometry
+    /// as a function of z, determine the height (B) of the geometry
     inline double getB(double z) const {
       if((z < getZRangeMin()) || (z > getZRangeMax()))
             return getYRangeMax();
