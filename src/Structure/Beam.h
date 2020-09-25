@@ -22,6 +22,7 @@
 #include "Algorithms/PartData.h"
 
 #include <ostream>
+#include <string>
 
 class Inform;
 

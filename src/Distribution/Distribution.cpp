@@ -27,7 +27,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartBunchBase.h"
-#include "Structure/Beam.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"

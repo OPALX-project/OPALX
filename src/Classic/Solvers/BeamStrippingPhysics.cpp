@@ -31,7 +31,7 @@
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 
-#include "Ippl.h"
+#include "Utility/Inform.h"
 
 #include <iostream>
 #include <fstream>

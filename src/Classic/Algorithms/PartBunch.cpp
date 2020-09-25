@@ -17,31 +17,23 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Algorithms/PartBunch.h"
-#include "FixedAlgebra/FMatrix.h"
-#include "FixedAlgebra/FVector.h"
+
 #include <cfloat>
 #include <memory>
 #include <utility>
 
-
-#include "Distribution/Distribution.h"  // OPAL file
-#include "Structure/FieldSolver.h"      // OPAL file
-#include "Utilities/GeneralClassicException.h"
+#include "FixedAlgebra/FMatrix.h"
+#include "FixedAlgebra/FVector.h"
+#include "Particle/ParticleBalancer.h"
 
 #include "Algorithms/ListElem.h"
-
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_histogram.h>
-#include <gsl/gsl_cdf.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_sf_erf.h>
-#include <gsl/gsl_qrng.h>
+#include "Distribution/Distribution.h"
+#include "Structure/FieldSolver.h"
+#include "Utilities/GeneralClassicException.h"
 
 #ifdef DBG_SCALARFIELD
     #include "Structure/FieldWriter.h"
 #endif
-
-
 
 //#define FIELDSTDOUT
 

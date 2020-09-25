@@ -21,18 +21,18 @@
 #ifndef COLLIMATORPHYSICS_HH
 #define COLLIMATORPHYSICS_HH
 
-#include <vector>
 #include "Solvers/ParticleMatterInteractionHandler.hh"
+
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
-#include "AbsBeamline/Component.h"
-#include "AbsBeamline/CCollimator.h"
-#include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Degrader.h"
 #include <gsl/gsl_rng.h>
 
 #include "Utility/IpplTimings.h"
 
-class ElementBase;
+#include <memory>
+#include <utility>
+#include <string>
+#include <vector>
 
 template <class T, unsigned Dim>
 class PartBunchBase;
