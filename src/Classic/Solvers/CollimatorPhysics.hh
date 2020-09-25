@@ -75,15 +75,14 @@ public:
 
     virtual const std::string getType() const;
 
-    void print(Inform& os);
-    bool stillActive();
-    bool stillAlive(PartBunchBase<double, 3> *bunch);
+    virtual void print(Inform& os);
+    virtual bool stillActive();
 
-    double getTime();
-    std::string getName();
-    size_t getParticlesInMat();
-    unsigned getRediffused();
-    unsigned int getNumEntered();
+    virtual double getTime();
+    virtual std::string getName();
+    virtual size_t getParticlesInMat();
+    virtual unsigned getRediffused();
+    virtual unsigned int getNumEntered();
     void computeInteraction();
 
     virtual bool computeEnergyLoss(Vector_t &P,
