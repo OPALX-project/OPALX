@@ -416,7 +416,6 @@ int main(int argc, char *argv[]) {
     } catch(SDDSParserException &ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
-        std::stringstream msg;
         errorMsg << "\n*** Error detected by function \""
                  << ex.where() << "\"\n";
         std::string what = ex.what();
@@ -432,7 +431,6 @@ int main(int argc, char *argv[]) {
     } catch(IpplException &ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
-        std::stringstream msg;
         errorMsg << "\n*** Error detected by function \""
                  << ex.where() << "\"\n";
         std::string what = ex.what();

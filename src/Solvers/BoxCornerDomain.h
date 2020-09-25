@@ -122,13 +122,8 @@ private:
 
     double actBMax_m;
 
-    /// length of the structure
-    double length_m;
-
     /// height of the corner
     double C_m;
-
-
 
     inline double getXIntersection(double cx, int /*z*/) const {
         return (cx < 0) ? getXRangeMin() : getXRangeMax();

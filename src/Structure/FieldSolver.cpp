@@ -135,7 +135,6 @@ FieldSolver::FieldSolver():
                                                       "FFT, "
                                                       "FFTPERIODIC, "
                                                       "SAAMG, "
-                                                      "AMR, "
                                                       "NONE ");
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
