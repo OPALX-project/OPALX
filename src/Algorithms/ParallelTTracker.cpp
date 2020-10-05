@@ -1378,11 +1378,3 @@ void ParallelTTracker::evenlyDistributeParticles() {
         MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
     }
 }
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c++
-// c-basic-offset: 4
-// indent-tabs-mode: nil
-// require-final-newline: nil
-// End:
