@@ -674,11 +674,3 @@ void CollimatorPhysics::gatherStatistics() {
     rediffusedStat_m = partStatistics[2];
     stoppedPartStat_m = partStatistics[3];
 }
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c
-// c-basic-offset: 4
-// indent-tabs-mode: nil
-// require-final-newline: nil
-// End:
