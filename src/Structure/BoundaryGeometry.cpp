@@ -42,8 +42,81 @@ extern Inform* gmsg;
 #define PointID(triangle_id, vertex_id) Triangles_m[triangle_id][vertex_id]
 #define Point(triangle_id, vertex_id)   Points_m[Triangles_m[triangle_id][vertex_id]]
 
-#define EPS 10e-10
+/*
+  In the following namespaces various approximately floating point
+  comparisons are implemented. The used implementation is selected
+  via
 
+  namespaces cmp = IMPLEMENTATION;
+
+*/
+
+/*
+  First we define some macros for function common in all namespaces.
+*/
+#define FUNC_EQ(x, y) inline bool eq(double x, double y) { \
+        return almost_eq(x, y);                            \
+    }
+
+#define FUNC_EQ_ZERO(x) inline bool eq_zero(double x) { \
+        return almost_eq_zero(x);                       \
+    }
+
+#define FUNC_LE(x, y) inline bool le(double x, double y) { \
+        if (almost_eq(x, y)) {                             \
+            return true;                                   \
+        }                                                  \
+        return x < y;                                      \
+    }
+
+#define FUNC_LE_ZERO(x) inline bool le_zero(double x) { \
+        if (almost_eq_zero(x)) {                        \
+            return true;                                \
+        }                                               \
+        return x < 0.0;                                 \
+    }
+
+#define FUNC_LT(x, y) inline bool lt(double x, double y) { \
+        if (almost_eq(x, y)) {                             \
+            return false;                                  \
+        }                                                  \
+        return x < y;                                      \
+    }
+
+#define FUNC_LT_ZERO(x) inline bool lt_zero(double x) {      \
+        if (almost_eq_zero(x)) {                             \
+            return false;                                    \
+        }                                                    \
+        return x < 0.0;                                      \
+    }
+
+#define FUNC_GE(x, y) inline bool ge(double x, double y) {      \
+        if (almost_eq(x, y)) {                                  \
+            return true;                                        \
+        }                                                       \
+        return x > y;                                           \
+    }
+
+#define FUNC_GE_ZERO(x) inline bool ge_zero(double x) { \
+        if (almost_eq_zero(x)) {                        \
+            return true;                                \
+        }                                               \
+        return x > 0.0;                                 \
+    }
+
+#define FUNC_GT(x, y) inline bool gt(double x, double y) { \
+        if (almost_eq(x, y)) {                             \
+            return false;                                  \
+        }                                                  \
+        return x > y;                                      \
+    }
+
+#define FUNC_GT_ZERO(x) inline bool gt_zero(double x) { \
+        if (almost_eq_zero(x)) {                        \
+            return false;                               \
+        }                                               \
+        return x > 0.0;                                 \
+    }
 
 namespace cmp_diff {
 
@@ -51,7 +124,7 @@ namespace cmp_diff {
       Link:
       https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
     */
-    inline bool cmp(double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
+    inline bool almost_eq(double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
         const double diff = std::fabs(A - B);
@@ -66,46 +139,30 @@ namespace cmp_diff {
             return true;
         return false;
     }
-    
-    bool eq(double x, double y) {
-        return cmp(x, y);
+
+    inline bool almost_eq_zero(double A, double maxDiff = 1e-15) {
+        const double diff = std::fabs(A);
+        return (diff <= maxDiff);
     }
 
-    bool le(double x, double y) {
-        if (cmp(x, y)) {
-            return true;
-        }
-        return x < y;
-    }
-
-    bool lt(double x, double y) {
-        if (cmp(x, y)) {
-            return false;
-        }
-        return x < y;
-    }
-
-    bool ge(double x, double y) {
-        if (cmp(x, y)) {
-            return true;
-        }
-        return x > y;
-    }
-
-    bool gt(double x, double y) {
-        if (cmp(x, y)) {
-            return false;
-        }
-        return x > y;
-    }
-
+    FUNC_EQ(x, y);
+    FUNC_EQ_ZERO(x);
+    FUNC_LE(x, y);
+    FUNC_LE_ZERO(x);
+    FUNC_LT(x, y);
+    FUNC_LT_ZERO(x);
+    FUNC_GE(x, y);
+    FUNC_GE_ZERO(x);
+    FUNC_GT(x, y);
+    FUNC_GT_ZERO(x);
 }
 
-namespace cmp_ulp {
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-aliasing"
-    inline int cmp(double A, double B, double maxDiff = 1e-15, int maxUlps = 10000) {
+namespace cmp_ulp_obsolete {
+    /*
+      See:
+      https://www.cygnus-software.com/papers/comparingfloats/comparing_floating_point_numbers_obsolete.htm
+    */
+    inline bool almost_eq(double A, double B, double maxDiff = 1e-20, int maxUlps = 1000) {
         // Make sure maxUlps is non-negative and small enough that the
         // default NAN won't compare as equal to anything.
         // assert(maxUlps > 0 && maxUlps < 4 * 1024 * 1024);
@@ -120,13 +177,19 @@ namespace cmp_ulp {
             return true;
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
         auto aInt = *(int64_t*)&A;
+#pragma GCC diagnostic pop
         // Make aInt lexicographically ordered as a twos-complement int
         if (aInt < 0) {
             aInt = 0x8000000000000000 - aInt;
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
         auto bInt = *(int64_t*)&B;
+#pragma GCC diagnostic pop
         // Make bInt lexicographically ordered as a twos-complement int
         if (bInt < 0) {
             bInt = 0x8000000000000000 - bInt;
@@ -137,39 +200,68 @@ namespace cmp_ulp {
         }
         return false;
     }
+
+    inline bool almost_eq_zero(double A, double maxDiff = 1e-15) {
+        // no need to handle NaN's!
+        return (std::abs(A) <= maxDiff);
+    }
+    FUNC_EQ(x, y);
+    FUNC_EQ_ZERO(x);
+    FUNC_LE(x, y);
+    FUNC_LE_ZERO(x);
+    FUNC_LT(x, y);
+    FUNC_LT_ZERO(x);
+    FUNC_GE(x, y);
+    FUNC_GE_ZERO(x);
+    FUNC_GT(x, y);
+    FUNC_GT_ZERO(x);
+}
+
+namespace cmp_ulp {
+    /*
+      See:
+      https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+    */
+    inline bool almost_eq(double A, double B, double maxDiff = 1e-20, int maxUlps = 1000) {
+        // handle NaN's
+        // Note: comparing something with a NaN is always false!
+        if (A != A || B != B) {
+            return false;
+        }
+
+        // Check if the numbers are really close -- needed
+        // when comparing numbers near zero.
+        if (std::fabs(A - B) <= maxDiff)
+            return true;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+        auto aInt = *(int64_t*)&A;
+        auto bInt = *(int64_t*)&B;
 #pragma GCC diagnostic pop
 
-    bool eq(double x, double y) {
-        return cmp(x, y);
-    }
-
-    bool le(double x, double y) {
-        if (cmp(x, y)) {
-            return true;
-        }
-        return x < y;
-    }
-
-    bool lt(double x, double y) {
-        if (cmp(x, y)) {
+        // Different signs means they do not match.
+        // Note: a negative floating point number is also negative as integer.
+        if ((aInt < 0) != (bInt < 0))
             return false;
-        }
-        return x < y;
+ 
+        // Find the difference in ULPs.
+        return (std::abs(aInt - bInt) <= maxUlps);
     }
 
-    bool ge(double x, double y) {
-        if (cmp(x, y)) {
-            return true;
-        }
-        return x > y;
+    inline bool almost_eq_zero(double A, double maxDiff = 1e-15) {
+        return (std::fabs(A) <= maxDiff);
     }
-
-    bool gt(double x, double y) {
-        if (cmp(x, y)) {
-            return false;
-        }
-        return x > y;
-    }
+    FUNC_EQ(x, y);
+    FUNC_EQ_ZERO(x);
+    FUNC_LE(x, y);
+    FUNC_LE_ZERO(x);
+    FUNC_LT(x, y);
+    FUNC_LT_ZERO(x);
+    FUNC_GE(x, y);
+    FUNC_GE_ZERO(x);
+    FUNC_GT(x, y);
+    FUNC_GT_ZERO(x);
 }
 
 namespace cmp = cmp_ulp;
@@ -493,7 +585,7 @@ check_line (
 
   Test if 3D point is inside 3D triangle
 */
-
+#define EPS 10e-10
 static inline int
 SIGN3 (
     Vector_t A
@@ -502,6 +594,7 @@ SIGN3 (
             (A[1] < EPS) ? 2 : 0 | (A[1] > -EPS) ? 16 : 0 |
             (A[2] < EPS) ? 1 : 0 | (A[2] > -EPS) ? 8 : 0);
 }
+#undef EPS
 
 static int
 point_triangle_intersection (
@@ -644,30 +737,37 @@ triangle_intersects_cube (
      if one of the diagonals is parallel to the plane, the other will
      intersect the plane
    */
-   double denom;
-   if(std::abs(denom=(norm[0] + norm[1] + norm[2]))>EPS) {
+   double denom = norm[0] + norm[1] + norm[2];
+   if (cmp::eq_zero(std::abs(denom)) == false) {
        /* skip parallel diagonals to the plane; division by 0 can occure */
        Vector_t hitpp = d / denom;
-       if (std::abs(hitpp[0]) <= 0.5)
-           if (point_triangle_intersection(hitpp,t) == INSIDE) return(INSIDE);
+       if (cmp::le(std::abs(hitpp[0]), 0.5))
+           if (point_triangle_intersection(hitpp,t) == INSIDE)
+               return(INSIDE);
    }
-   if(std::abs(denom=(norm[0] + norm[1] - norm[2]))>EPS) {
+   denom = norm[0] + norm[1] - norm[2];
+   if (cmp::eq_zero(std::abs(denom)) == false) {
        Vector_t hitpn;
        hitpn[2] = -(hitpn[0] = hitpn[1] = d / denom);
-       if (std::abs(hitpn[0]) <= 0.5)
-           if (point_triangle_intersection(hitpn,t) == INSIDE) return(INSIDE);
+       if (cmp::le(std::abs(hitpn[0]), 0.5))
+           if (point_triangle_intersection(hitpn,t) == INSIDE)
+               return(INSIDE);
    }
-   if(std::abs(denom=(norm[0] - norm[1] + norm[2]))>EPS) {
+   denom = norm[0] - norm[1] + norm[2];
+   if (cmp::eq_zero(std::abs(denom)) == false) {
        Vector_t hitnp;
        hitnp[1] = -(hitnp[0] = hitnp[2] = d / denom);
-       if (std::abs(hitnp[0]) <= 0.5)
-           if (point_triangle_intersection(hitnp,t) == INSIDE) return(INSIDE);
+       if (cmp::le(std::abs(hitnp[0]), 0.5))
+           if (point_triangle_intersection(hitnp,t) == INSIDE)
+               return(INSIDE);
    }
-   if(std::abs(denom=(norm[0] - norm[1] - norm[2]))>EPS) {
+   denom = norm[0] - norm[1] - norm[2];
+   if (cmp::eq_zero(std::abs(denom)) == false) {
        Vector_t hitnn;
        hitnn[1] = hitnn[2] = -(hitnn[0] = d / denom);
-       if (std::abs(hitnn[0]) <= 0.5)
-           if (point_triangle_intersection(hitnn,t) == INSIDE) return(INSIDE);
+       if (cmp::le(std::abs(hitnn[0]), 0.5))
+           if (point_triangle_intersection(hitnn,t) == INSIDE)
+               return(INSIDE);
    }
 
    /*
@@ -767,7 +867,7 @@ public:
         if (cmp::lt(tzmax, tmax_))
             tmax_ = tzmax;
         tmax = tmax_;
-        return cmp::ge(tmax, 0.0);
+        return cmp::ge_zero(tmax);
     }
 
     inline bool intersect (
@@ -815,7 +915,7 @@ static inline Vector_t normalVector (
     ) {
     const Vector_t N = cross (B - A, C - A);
     const double magnitude = std::sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
-    PAssert (cmp::gt(magnitude, 0.0)); // in case we have degenerated triangles
+    PAssert (cmp::gt_zero(magnitude)); // in case we have degenerated triangles
     return N / magnitude;
 }
 
@@ -1087,8 +1187,8 @@ BoundaryGeometry::intersectLineTriangle (
     const Vector_t w0 = P0 - V0;
     const double a = -dot(n,w0);
     const double b = dot(n,dir);
-    if (cmp::eq(b, 0.0)) {              // ray is  parallel to triangle plane
-        if (cmp::eq(a, 0.0)) {                   // ray lies in triangle plane
+    if (cmp::eq_zero(b)) {              // ray is  parallel to triangle plane
+        if (cmp::eq_zero(a)) {          // ray lies in triangle plane
             return 1;
         } else {                        // ray disjoint from plane
             return 0;
@@ -1099,12 +1199,12 @@ BoundaryGeometry::intersectLineTriangle (
     const double r = a / b;
     switch (kind) {
     case RAY:
-        if (cmp::lt(r, 0.0)) {           // ray goes away from triangle
+        if (cmp::lt_zero(r)) {          // ray goes away from triangle
             return 0;                   // => no intersect
         }
         break;
     case SEGMENT:
-        if (cmp::lt(r, 0.0) || cmp::lt(1.0, r)) { // intersection on extended
+        if (cmp::lt_zero(r) || cmp::lt(1.0, r)) { // intersection on extended
             return 0;                   // segment
         }
         break;
@@ -1124,17 +1224,17 @@ BoundaryGeometry::intersectLineTriangle (
 
     // get and test parametric coords
     const double s = (uv * wv - vv * wu) / D;
-    if (cmp::lt(s, 0.0) || cmp::gt(s, 1.0)) {           // I is outside T
+    if (cmp::lt_zero(s) || cmp::gt(s, 1.0)) {           // I is outside T
         return 0;
     }
     const double t = (uv * wu - uu * wv) / D;
-    if (cmp::lt(t, 0.0) || cmp::gt((s + t), 1.0)) {     // I is outside T
+    if (cmp::lt_zero(t) || cmp::gt((s + t), 1.0)) {     // I is outside T
         return 0;
     }
     // intersection point is in triangle
-    if (cmp::lt(r, 0.0)) {              // in extended segment in opposite
+    if (cmp::lt_zero(r)) {              // in extended segment in opposite
         return 2;                       // direction of ray
-    } else if (cmp::le(0.0, r) && cmp::le(r, 1.0)) { // in segment
+    } else if (cmp::ge_zero(r) && cmp::le(r, 1.0)) { // in segment
         return 3;
     } else {                            // in extended segment in
         return 4;                       // direction of ray
@@ -2148,9 +2248,9 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
         case 1:                     // line and triangle are in same plane
         case 3:                     // unique intersection in segment
             double t;
-            if (cmp::eq(Q[0] - P[0], 0.0) == false) {
+            if (cmp::eq_zero(Q[0] - P[0]) == false) {
                 t = (tmp_intersect_pt[0] - P[0]) / (Q[0] - P[0]);
-            } else if (cmp::eq(Q[1] - P[1], 0.0) == false) {
+            } else if (cmp::eq_zero(Q[1] - P[1]) == false) {
                 t = (tmp_intersect_pt[1] - P[1]) / (Q[1] - P[1]);
             } else {
                 t = (tmp_intersect_pt[2] - P[2]) / (Q[2] - P[2]);
