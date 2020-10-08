@@ -127,12 +127,12 @@ namespace cmp_diff {
     inline bool almost_eq(double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
-        const double diff = std::fabs(A - B);
+        const double diff = std::abs(A - B);
         if (diff <= maxDiff)
             return true;
 
-        A = std::fabs(A);
-        B = std::fabs(B);
+        A = std::abs(A);
+        B = std::abs(B);
         const double largest = (B > A) ? B : A;
 
         if (diff <= largest * maxRelDiff)
@@ -141,7 +141,7 @@ namespace cmp_diff {
     }
 
     inline bool almost_eq_zero(double A, double maxDiff = 1e-15) {
-        const double diff = std::fabs(A);
+        const double diff = std::abs(A);
         return (diff <= maxDiff);
     }
 
@@ -231,7 +231,7 @@ namespace cmp_ulp {
 
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
-        if (std::fabs(A - B) <= maxDiff)
+        if (std::abs(A - B) <= maxDiff)
             return true;
 
 #pragma GCC diagnostic push
@@ -242,7 +242,7 @@ namespace cmp_ulp {
 
         // Different signs means they do not match.
         // Note: a negative floating point number is also negative as integer.
-        if ((aInt < 0) != (bInt < 0))
+        if ( std::signbit(aInt) != std::signbit(bInt))
             return false;
  
         // Find the difference in ULPs.
@@ -250,7 +250,7 @@ namespace cmp_ulp {
     }
 
     inline bool almost_eq_zero(double A, double maxDiff = 1e-15) {
-        return (std::fabs(A) <= maxDiff);
+        return (std::abs(A) <= maxDiff);
     }
     FUNC_EQ(x, y);
     FUNC_EQ_ZERO(x);
