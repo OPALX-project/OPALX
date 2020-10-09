@@ -169,11 +169,11 @@ namespace cmp_ulp_obsolete {
 
         // handle NaN's
         // Note: comparing something with a NaN is always false!
-        if (A != A || B != B) {
+        if (std::isnan(A) || std::isnan(B)) {
             return false;
         }
 
-        if (std::abs(A - B) <= maxDiff) {
+        if (std::abs (A - B) <= maxDiff) {
             return true;
         }
 
@@ -195,7 +195,7 @@ namespace cmp_ulp_obsolete {
             bInt = 0x8000000000000000 - bInt;
         }
 
-        if (std::abs(aInt - bInt) <= maxUlps) {
+        if (std::abs (aInt - bInt) <= maxUlps) {
             return true;
         }
         return false;
@@ -586,7 +586,7 @@ check_line (
 
   Test if 3D point is inside 3D triangle
 */
-#define EPS 10e-10
+constexpr double EPS = 10e-15;
 static inline int
 SIGN3 (
     Vector_t A
@@ -595,7 +595,6 @@ SIGN3 (
             (A[1] < EPS) ? 2 : 0 | (A[1] > -EPS) ? 16 : 0 |
             (A[2] < EPS) ? 1 : 0 | (A[2] > -EPS) ? 8 : 0);
 }
-#undef EPS
 
 static int
 point_triangle_intersection (
