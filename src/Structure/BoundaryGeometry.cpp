@@ -222,16 +222,17 @@ namespace cmp_ulp {
       See:
       https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
     */
-    inline bool almost_eq(double A, double B, double maxDiff = 1e-20, int maxUlps = 1000) {
+
+
+    inline bool almost_eq (double A, double B, double maxDiff = 1e-20, int maxUlps = 1000) {
         // handle NaN's
-        // Note: comparing something with a NaN is always false!
-        if (A != A || B != B) {
+        if (std::isnan (A) || std::isnan (B)) {
             return false;
         }
 
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
-        if (std::abs(A - B) <= maxDiff)
+        if (std::abs (A - B) <= maxDiff)
             return true;
 
 #pragma GCC diagnostic push
@@ -242,15 +243,15 @@ namespace cmp_ulp {
 
         // Different signs means they do not match.
         // Note: a negative floating point number is also negative as integer.
-        if ( std::signbit(aInt) != std::signbit(bInt))
+        if (std::signbit (aInt) != std::signbit (bInt))
             return false;
- 
+
         // Find the difference in ULPs.
-        return (std::abs(aInt - bInt) <= maxUlps);
+        return (std::abs (aInt - bInt) <= maxUlps);
     }
 
     inline bool almost_eq_zero(double A, double maxDiff = 1e-15) {
-        return (std::abs(A) <= maxDiff);
+        return (std::abs (A) <= maxDiff);
     }
     FUNC_EQ(x, y);
     FUNC_EQ_ZERO(x);
