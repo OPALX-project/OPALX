@@ -107,6 +107,8 @@ public:
     static void writeStatistics();
 
     virtual int getRequiredNumberOfTimeSteps() const override;
+
+    virtual bool isInside(const Vector_t &r) const override;
 private:
 
     // Not implemented.
@@ -132,5 +134,13 @@ int Monitor::getRequiredNumberOfTimeSteps() const
 {
     return 1;
 }
+
+inline
+bool Monitor::isInside(const Vector_t &r) const
+{
+    const double length = getElementLength();
+    return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
+}
+
 
 #endif // CLASSIC_Monitor_HH
