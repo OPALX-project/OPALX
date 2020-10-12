@@ -26,6 +26,11 @@ namespace Util {
     }
 
     inline
+    Vector_t getBeta(Vector_t p) {
+        return p / getGamma(p);
+    }
+  
+    inline
     double getEnergy(Vector_t p, double mass) {
         return (getGamma(p) - 1.0) * mass;
     }
@@ -34,6 +39,11 @@ namespace Util {
     double getP(double E, double mass) {
         double gamma = E / mass + 1;
         return sqrt(std::pow(gamma, 2.0) - 1.0);
+    }
+
+    inline
+    double convertMomentumeVToBetaGamma(double p, double mass) {
+        return p / mass;
     }
 
     inline
