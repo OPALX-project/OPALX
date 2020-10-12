@@ -29,6 +29,11 @@ namespace Util {
     }
 
     inline
+    Vector_t getBeta(Vector_t p) {
+        return p / getGamma(p);
+    }
+
+    inline
     double getKineticEnergy(Vector_t p, double mass) {
         return (getGamma(p) - 1.0) * mass;
     }
@@ -45,7 +50,7 @@ namespace Util {
     double convertMomentumeVToBetaGamma(double p, double mass) {
         return p / mass;
     }
-  
+
     inline
     std::string getTimeString(double time, unsigned int precision = 3) {
         std::string timeUnit(" [ps]");
@@ -170,7 +175,7 @@ namespace Util {
     }
 
     Vector_t getTaitBryantAngles(Quaternion rotation, const std::string &elementName = "");
-  
+
     std::string toUpper(const std::string &str);
 
     std::string combineFilePath(std::initializer_list<std::string>);
