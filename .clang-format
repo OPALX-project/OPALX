@@ -1,0 +1,21 @@
+---
+Language:        Cpp
+BasedOnStyle:  Google
+AccessModifierOffset: -4
+AlignAfterOpenBracket: AlwaysBreak
+#AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+BreakBeforeBinaryOperators: NonAssignment
+ColumnLimit:     100
+IndentWidth:     4
+#IndentCaseLabels: false
+IncludeBlocks: Preserve
+IndentGotoLabels: false
+NamespaceIndentation: All 
+SpaceBeforeCpp11BracedList: true
+SpaceBeforeParens: Always
+...
+
