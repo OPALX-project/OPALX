@@ -74,15 +74,17 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t 
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
     const double &dt = RefPartBunch_m->dt[i];
-    const double recpgamma = Physics::c * dt / Util::getGamma(P);
-    const double middle = 0.5 * getElementLength();
+    const Vector_t singleStep  = Physics::c * dt * Util::getBeta(P);
     if (online_m && type_m == SPATIAL) {
-        if (dt * R(2) < dt * middle && // multiply with dt to allow back tracking
-            dt * (R(2) + P(2) * recpgamma) > dt * middle) {
-            double frac = (middle - R(2)) / (P(2) * recpgamma);
+        if (dt * R(2) < 0.0 &&
+            dt * (R(2) + singleStep(2)) > 0.0) {
+            double frac = R(2) / singleStep(2);
 
-            lossDs_m->addParticle(R + frac * recpgamma * P,
-                                  P, RefPartBunch_m->ID[i], t + frac * dt, 0);
+            lossDs_m->addParticle(R + frac * singleStep,
+                                  P,
+                                  RefPartBunch_m->ID[i],
+                                  t + frac * dt,
+                                  0);
         }
     }
 
@@ -96,15 +98,15 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
                                        Vector_t &) {
     if (!OpalData::getInstance()->isInPrepState()) {
         const double dt = RefPartBunch_m->getdT();
-        const double recpgamma = Physics::c * dt / Util::getGamma(P);
-        const double middle = 0.5 * getElementLength();
+        const double cdt = Physics::c * dt;
+        const Vector_t singleStep = cdt * Util::getBeta(P);
 
-        if (dt * R(2) < dt * middle && // multiply with dt to allow back tracking
-            dt * (R(2) + P(2) * recpgamma) > dt * middle) {
-            double frac = (middle - R(2)) / (P(2) * recpgamma);
+        if (dt * R(2) < 0.0 &&
+            dt * (R(2) + singleStep(2)) > 0.0) {
+            double frac = -R(2) / singleStep(2);
             double time = t + frac * dt;
-            Vector_t dR = (0.5 + frac) * P * recpgamma;
-            double ds = euclidean_norm(dR);
+            Vector_t dR = frac * singleStep;
+            double ds = euclidean_norm(dR + 0.5 * singleStep);
             lossDs_m->addReferenceParticle(csTrafoGlobal2Local_m.transformFrom(R + dR),
                                            csTrafoGlobal2Local_m.rotateFrom(P),
                                            time,
@@ -115,10 +117,13 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
                 const unsigned int localNum = RefPartBunch_m->getLocalNum();
 
                 for (unsigned int i = 0; i < localNum; ++ i) {
-                    const double recpgamma = Physics::c * dt / Util::getGamma(RefPartBunch_m->P[i]);
-                    lossDs_m->addParticle(RefPartBunch_m->R[i] + frac * RefPartBunch_m->P[i] * recpgamma - halfLength_s,
-                                          RefPartBunch_m->P[i], RefPartBunch_m->ID[i],
-                                          time, 0);
+                    Vector_t shift = ((frac - 0.5) * cdt * Util::getBeta(RefPartBunch_m->P[i])
+                                      - singleStep);
+                    lossDs_m->addParticle(RefPartBunch_m->R[i] + shift,
+                                          RefPartBunch_m->P[i],
+                                          RefPartBunch_m->ID[i],
+                                          time,
+                                          0);
                 }
                 OpalData::OPENMODE openMode;
                 if (numPassages_m > 0) {

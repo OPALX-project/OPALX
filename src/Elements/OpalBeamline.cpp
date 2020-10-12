@@ -322,9 +322,6 @@ void OpalBeamline::compute3DLattice() {
         if (element->getType() == ElementBase::SOURCE) {
             beginThis3D(2) -= thisLength;
         }
-        if (element->getType() == ElementBase::MONITOR) {
-            beginThis3D(2) -= 0.5 * thisLength;
-        }
 
         Vector_t endThis3D;
         if (element->getType() == ElementBase::SBEND ||
