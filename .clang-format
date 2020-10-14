@@ -15,7 +15,4 @@ IndentWidth:     4
 IncludeBlocks: Preserve
 IndentGotoLabels: false
 NamespaceIndentation: All 
-SpaceBeforeCpp11BracedList: true
-SpaceBeforeParens: Always
 ...
-
