@@ -11,7 +11,6 @@ AllowShortLoopsOnASingleLine: false
 BreakBeforeBinaryOperators: NonAssignment
 ColumnLimit:     100
 IndentWidth:     4
-#IndentCaseLabels: false
 IncludeBlocks: Preserve
 IndentGotoLabels: false
 NamespaceIndentation: All 
