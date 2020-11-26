@@ -117,6 +117,11 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
+#ifdef ENABLE_OPAL_FEL
+    /// Apply the algorithm to an undulator.
+    virtual void visitUndulator(const Undulator &);
+#endif
+
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
 
