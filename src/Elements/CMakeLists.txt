@@ -49,12 +49,6 @@ set (_SRCS
     OpalStripper.cpp
     )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-add_opal_sources (${_SRCS})
-
 set (HDRS
     OpalBeamline.h
     OpalBeamStripping.h
@@ -104,5 +98,16 @@ set (HDRS
     OpalOffset/OpalLocalCartesianOffset.h
     OpalOffset/OpalLocalCylindricalOffset.h
     )
+
+if (ENABLE_OPAL_FEL)
+    list (APPEND _SRCS OpalUndulator.cpp)
+    list (APPEND HDRS OpalUndulator.h)
+endif ()
+
+include_directories (
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+add_opal_sources (${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Elements/OpalOffset")
