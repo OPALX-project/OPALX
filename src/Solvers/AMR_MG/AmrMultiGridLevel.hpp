@@ -1,3 +1,24 @@
+//
+// Class AmrMultiGridLevel
+//   This class represents a single AMR level, i.e. it stores all matrices
+//   and vectors of a level.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #define AMR_NO_SCALE false
 
 
@@ -9,8 +30,7 @@ AmrMultiGridLevel<MatrixType,
                                                  const AmrGeometry_t& _geom,
                                                  const AmrIntVect_t& rr,
                                                  const boundary_t* bc,
-                                                 const Teuchos::RCP<comm_t>& comm,
-                                                 const Teuchos::RCP<node_t>& node)
+                                                 const Teuchos::RCP<comm_t>& comm)
     : grids(_grids),
       dmap(_dmap),
       geom(_geom),
@@ -50,7 +70,7 @@ AmrMultiGridLevel<MatrixType,
     
     this->buildLevelMask();
     
-    this->buildMap(comm, node);
+    this->buildMap(comm);
     
     
     residual_p = Teuchos::rcp( new vector_t(map_p, false) );
@@ -195,8 +215,7 @@ bool AmrMultiGridLevel<MatrixType, VectorType>::isValid(const AmrIntVect_t& iv) 
 
 
 template <class MatrixType, class VectorType>
-void AmrMultiGridLevel<MatrixType, VectorType>::buildMap(const Teuchos::RCP<comm_t>& comm,
-                                                         const Teuchos::RCP<node_t>& node)
+void AmrMultiGridLevel<MatrixType, VectorType>::buildMap(const Teuchos::RCP<comm_t>& comm)
 {
     
     go_t localNumElements = 0;
@@ -242,5 +261,5 @@ void AmrMultiGridLevel<MatrixType, VectorType>::buildMap(const Teuchos::RCP<comm
     // numGlobalElements == N
     go_t N = grids.numPts();
     
-    map_p = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm, node) );
+    map_p = Teuchos::rcp( new dmap_t(N, globalindices, baseIndex, comm) );
 }

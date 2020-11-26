@@ -1,28 +1,26 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalCCollimator.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalCCollimator
-//   The class of OPAL Cyclotron collimators.
+// Class OpalCCollimator
+//   The CCOLLIMATOR element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann, Jianjun Yang $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalCCollimator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 #include "Physics/Physics.h"
 
-using Physics::pi;
 
 // Class OpalCCollimator
 // ------------------------------------------------------------------------
@@ -48,25 +46,16 @@ OpalCCollimator::OpalCCollimator():
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Output filename");
 
-    registerRealAttribute("XSTART");
-    registerRealAttribute("XEND");
-    registerRealAttribute("YSTART");
-    registerRealAttribute("YEND");
-    registerRealAttribute("ZSTART");
-    registerRealAttribute("ZEND");
-    registerRealAttribute("WIDTH");
-    registerStringAttribute("OUTFN");
-
     registerOwnership();
 
-    setElement((new CCollimatorRep("CCOLLIMATOR"))->makeAlignWrapper());
+    setElement(new CCollimatorRep("CCOLLIMATOR"));
 }
 
 
 OpalCCollimator::OpalCCollimator(const std::string &name, OpalCCollimator *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new CCollimatorRep(name))->makeAlignWrapper());
+    setElement(new CCollimatorRep(name));
 }
 
 
@@ -81,24 +70,22 @@ OpalCCollimator *OpalCCollimator::clone(const std::string &name) {
 }
 
 
-void OpalCCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
-
 void OpalCCollimator::update() {
     OpalElement::update();
 
     CCollimatorRep *coll =
-        dynamic_cast<CCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<CCollimatorRep *>(getElement());
+    const double mm2m = 1e-3;
+    double xstart = mm2m * Attributes::getReal(itsAttr[XSTART]);
+    double xend   = mm2m * Attributes::getReal(itsAttr[XEND]);
+    double ystart = mm2m * Attributes::getReal(itsAttr[YSTART]);
+    double yend   = mm2m * Attributes::getReal(itsAttr[YEND]);
+    double zstart = mm2m * Attributes::getReal(itsAttr[ZSTART]);
+    double zend   = mm2m * Attributes::getReal(itsAttr[ZEND]);
+    double width  = mm2m * Attributes::getReal(itsAttr[WIDTH]);
+
     double length = Attributes::getReal(itsAttr[LENGTH]);
-    double xstart = Attributes::getReal(itsAttr[XSTART]);
-    double xend = Attributes::getReal(itsAttr[XEND]);
-    double ystart = Attributes::getReal(itsAttr[YSTART]);
-    double yend = Attributes::getReal(itsAttr[YEND]);
-    double zstart = Attributes::getReal(itsAttr[ZSTART]);
-    double zend = Attributes::getReal(itsAttr[ZEND]);
-    double width = Attributes::getReal(itsAttr[WIDTH]);
+
     coll->setElementLength(length);
     coll->setDimensions(xstart, xend, ystart, yend, zstart, zend, width);
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));

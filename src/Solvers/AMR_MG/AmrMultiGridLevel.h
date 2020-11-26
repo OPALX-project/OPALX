@@ -1,3 +1,24 @@
+//
+// Class AmrMultiGridLevel
+//   This class represents a single AMR level, i.e. it stores all matrices
+//   and vectors of a level.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef AMR_MULTI_GRID_LEVEL
 #define AMR_MULTI_GRID_LEVEL
 
@@ -32,7 +53,6 @@ public:
     
     typedef amr::comm_t comm_t;
     typedef amr::dmap_t dmap_t;
-    typedef amr::node_t node_t;
     typedef amr::global_ordinal_t go_t;
     typedef amr::scalar_t scalar_t;
     typedef amr::local_ordinal_t lo_t;
@@ -75,7 +95,6 @@ public:
      * @param rr refinement ratio
      * @param bc physical boundaries (x, y, z)
      * @param comm MPI communicator
-     * @param node Kokkos node type (Serial, OpenMP, CUDA)
      */
     AmrMultiGridLevel(const Vector_t& meshScaling,
                       const amrex::BoxArray& _grids,
@@ -83,8 +102,7 @@ public:
                       const AmrGeometry_t& _geom,
                       const AmrIntVect_t& rr,
                       const boundary_t* bc,
-                      const Teuchos::RCP<comm_t>& comm,
-                      const Teuchos::RCP<node_t>& node);
+                      const Teuchos::RCP<comm_t>& comm);
     
     ~AmrMultiGridLevel();
     
@@ -177,10 +195,8 @@ private:
     /*!
      * Build Tpetra::Map of this level
      * @param comm MPI communicator
-     * @param node Kokkos node type
      */
-    void buildMap(const Teuchos::RCP<comm_t>& comm,
-                  const Teuchos::RCP<node_t>& node);
+    void buildMap(const Teuchos::RCP<comm_t>& comm);
     
 public:
     const amrex::BoxArray& grids;           ///< boxes of this level

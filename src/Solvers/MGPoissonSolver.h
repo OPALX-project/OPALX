@@ -1,10 +1,36 @@
-////////////////////////////////////////////////////////////////////////////
-// This class contains methods for solving Poisson's equation for the
-// space charge portion of the calculation.
-////////////////////////////////////////////////////////////////////////////
-
-#ifdef HAVE_SAAMG_SOLVER
-
+//
+// Class MGPoissonSolver
+//   This class contains methods for solving Poisson's equation for the
+//   space charge portion of the calculation.
+//
+//   A smoothed aggregation based AMG preconditioned iterative solver for space charge
+//   \see FFTPoissonSolver
+//   \warning This solver is in an EXPERIMENTAL STAGE. For reliable simulations use the FFTPoissonSolver
+//
+// Copyright (c) 2008,        Yves Ineichen, ETH Zürich,
+//               2013 - 2015, Tülin Kaman, Paul Scherrer Institut, Villigen PSI, Switzerland
+//               2017 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the master thesis
+// "A Parallel Multigrid Solver for Beam Dynamics"
+// and the paper
+// "A fast parallel Poisson solver on irregular domains applied to beam dynamics simulations"
+// (https://doi.org/10.1016/j.jcp.2010.02.022)
+//
+// In 2020, the code was ported to the second generation Trilinos packages,
+// i.e., Epetra --> Tpetra, ML --> MueLu. See also issue #507.
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef MG_POISSON_SOLVER_H_
 #define MG_POISSON_SOLVER_H_
 
@@ -12,65 +38,22 @@
 #include "PoissonSolver.h"
 #include "IrregularDomain.h"
 //////////////////////////////////////////////////////////////
-#include "ml_include.h"
 
-#ifdef HAVE_MPI
 #include "mpi.h"
-#include "Epetra_MpiComm.h"
-#else
-#include "Epetra_SerialComm.h"
-#endif
 
-#if defined(HAVE_ML_EPETRA) && defined(HAVE_ML_TEUCHOS) && defined(HAVE_ML_AZTECOO)
+#include <Tpetra_Vector.hpp>
+#include <Tpetra_CrsMatrix.hpp>
 
-#include "Epetra_Map.h"
-#include "Epetra_Vector.h"
-#include "Epetra_CrsMatrix.h"
-#include "Epetra_MpiComm.h"
+#include <Teuchos_DefaultMpiComm.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#include <BelosLinearProblem.hpp>
+#include <BelosSolverFactory.hpp>
+
+#include <MueLu.hpp>
+#include <MueLu_TpetraOperator.hpp>
+
 #include "Teuchos_ParameterList.hpp"
-// #include "BelosLinearProblem.hpp"
-// #include "BelosRCGSolMgr.hpp"
-
 #include "Algorithms/PartBunch.h"
-
-#include "BelosTypes.hpp"
-
-namespace Belos {
-    template <class ScalarType, class MV, class OP>
-    class LinearProblem;
-
-    template <class ScalarType, class MV, class OP>
-    class OperatorTraits;
-
-    template<class ScalarType, class MV>
-    class MultiVecTraits;
-
-    template<class ScalarType, class MV, class OP>
-    class SolverManager;
-
-    class EpetraPrecOp;
-
-    template <class ScalarType, class MV, class OP>
-    class StatusTestGenResNorm;
-}
-
-namespace ML_Epetra {
-    class MultiLevelPreconditioner;
-
-    int SetDefaults(std::string ProblemType, Teuchos::ParameterList & List,
-                    int * options, double * params, const bool OverWrite);
-}
-
-#pragma GCC diagnostic pop
-
-// using Teuchos::RCP;
-// using Teuchos::rcp;
-// using namespace ML_Epetra;
-// using namespace Isorropia;
-//////////////////////////////////////////////////////////////
 
 typedef UniformCartesian<3, double> Mesh_t;
 typedef ParticleSpatialLayout<double, 3>::SingleParticlePos_t Vector_t;
@@ -80,25 +63,44 @@ typedef CenteredFieldLayout<3, Mesh_t, Center_t> FieldLayout_t;
 typedef Field<double, 3, Mesh_t, Center_t> Field_t;
 
 enum {
-    NO,
     STD_PREC,
     REUSE_PREC,
     REUSE_HIERARCHY
 };
 
-/**
- * \class MGPoissonSolver
- * \brief A smoothed aggregation based AMG preconditioned iterative solver for space charge
- * \see FFTPoissonSolver
- * \warning This solver is in an EXPERIMENTAL STAGE. For reliable simulations use the FFTPoissonSolver
- *
- */
 class BoundaryGeometry;
 
 class MGPoissonSolver : public PoissonSolver {
 
 public:
-    MGPoissonSolver(PartBunch *beam,Mesh_t *mesh, FieldLayout_t *fl, std::vector<BoundaryGeometry *> geometries, std::string itsolver, std::string interpl, double tol, int maxiters, std::string precmode);
+    typedef Tpetra::Vector<>                            TpetraVector_t;
+    typedef Tpetra::MultiVector<>                       TpetraMultiVector_t;
+    typedef Tpetra::Map<>                               TpetraMap_t;
+    typedef Tpetra::Vector<>::scalar_type               TpetraScalar_t;
+    typedef Tpetra::Vector<>::global_ordinal_type       TpetraGlobalOrdinal_t;
+    typedef Tpetra::Operator<>                          TpetraOperator_t;
+    typedef MueLu::TpetraOperator<>                     MueLuTpetraOperator_t;
+    typedef Tpetra::CrsMatrix<>                         TpetraCrsMatrix_t;
+    typedef Teuchos::MpiComm<int>                       Comm_t;
+
+    typedef Teuchos::ParameterList                      ParameterList_t;
+
+    typedef Belos::SolverManager<TpetraScalar_t,
+                                 TpetraMultiVector_t,
+                                 TpetraOperator_t>      SolverManager_t;
+
+    typedef Belos::LinearProblem<TpetraScalar_t,
+                                 TpetraMultiVector_t,
+                                 TpetraOperator_t>      LinearProblem_t;
+
+
+
+    MGPoissonSolver(PartBunch *beam,Mesh_t *mesh,
+                    FieldLayout_t *fl,
+                    std::vector<BoundaryGeometry *> geometries,
+                    std::string itsolver, std::string interpl,
+                    double tol, int maxiters, std::string precmode);
+
     ~MGPoissonSolver();
 
     /// given a charge-density field rho and a set of mesh spacings hr, compute
@@ -111,24 +113,34 @@ public:
     /// set a geometry
     void setGeometry(std::vector<BoundaryGeometry *> geometries);
 
-    /// force Solver to recompute Epetra_Map
-    void recomputeMap() { hasParallelDecompositionChanged_m = true; }
-
-    double getXRangeMin(unsigned short level) { return bp->getXRangeMin(); }
-    double getXRangeMax(unsigned short level) { return bp->getXRangeMax(); }
-    double getYRangeMin(unsigned short level) { return bp->getYRangeMin(); }
-    double getYRangeMax(unsigned short level) { return bp->getYRangeMax(); }
-    double getZRangeMin(unsigned short level) { return bp->getZRangeMin(); }
-    double getZRangeMax(unsigned short level) { return bp->getZRangeMax(); }
-    void test(PartBunchBase<double, 3> *bunch) { }
+    double getXRangeMin(unsigned short /*level*/) { return bp_m->getXRangeMin(); }
+    double getXRangeMax(unsigned short /*level*/) { return bp_m->getXRangeMax(); }
+    double getYRangeMin(unsigned short /*level*/) { return bp_m->getYRangeMin(); }
+    double getYRangeMax(unsigned short /*level*/) { return bp_m->getYRangeMax(); }
+    double getZRangeMin(unsigned short /*level*/) { return bp_m->getZRangeMin(); }
+    double getZRangeMax(unsigned short /*level*/) { return bp_m->getZRangeMax(); }
+    void test(PartBunchBase<double, 3>* /*bunch*/) { }
     /// useful load balance information
     void printLoadBalanceStats();
 
     void extrapolateLHS();
 
+    void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
+                    const Vector_t& rmax, double dh)
+    {
+        bp_m->resizeMesh(origin, hr, rmin, rmax, dh);
+    }
+
     Inform &print(Inform &os) const;
 
+
+
 private:
+
+    bool isMatrixfilled_m;
+
+    // true if CG and GMRES; false if BiCGStab
+    bool useLeftPrec_m;
 
     //TODO: we need to update this and maybe change attached
     //solver!
@@ -138,13 +150,7 @@ private:
     /// container for multiple geometries
     std::vector<BoundaryGeometry *> geometries_m;
 
-    /// flag notifying us that the geometry (discretization) has changed
-    bool hasGeometryChanged_m;
-    /// flag is set when OPAL changed decomposition of mesh
-    bool hasParallelDecompositionChanged_m;
     int repartFreq_m;
-    /// flag specifying if problem is redistributed with RCB
-    bool useRCB_m;
     /// flag specifying if we are verbose
     bool verbose_m;
 
@@ -152,62 +158,42 @@ private:
     double tol_m;
     /// maximal number of iterations for the iterative solver
     int maxiters_m;
-    /// iterative solver we are applying: CG, BiCGStab or GMRES
-    int itsolver_m;
     /// preconditioner mode
     int precmode_m;
-    /// number of iterations in the solve of the previous time step
-    int numIter_m;
-    /// percentage the iteration count can increase before recomputing the preconditioner
-    int tolerableIterationsCount_m;
-    /// force the solver to recompute the preconditioner
-    bool forcePreconditionerRecomputation_m;
     /// maximum number of blocks in Krylov space
     int numBlocks_m;
     /// number of vectors in recycle space
     int recycleBlocks_m;
 
     /// structure that holds boundary points
-    IrregularDomain *bp;
+    std::unique_ptr<IrregularDomain> bp_m;
 
     /// right hand side of our problem
-    Teuchos::RCP<Epetra_Vector> RHS;
+    Teuchos::RCP<TpetraVector_t> RHS;
     /// left hand side of the linear system of equations we solve
-    Teuchos::RCP<Epetra_Vector> LHS;
+    Teuchos::RCP<TpetraVector_t> LHS;
     /// matrix used in the linear system of equations
-    Teuchos::RCP<Epetra_CrsMatrix> A;
+    Teuchos::RCP<TpetraCrsMatrix_t> A;
 
-    /// ML preconditioner object
-    ML_Epetra::MultiLevelPreconditioner *MLPrec;
-    /// Epetra_Map holding the processor distribution of data
-    Epetra_Map *Map;
+    /// Map holding the processor distribution of data
+    Teuchos::RCP<TpetraMap_t> map_p;
+
     /// communicator used by Trilinos
-    Epetra_MpiComm Comm;
+    Teuchos::RCP<const Comm_t> comm_mp;
 
     /// last N LHS's for extrapolating the new LHS as starting vector
-    uint nLHS_m;
-    Teuchos::RCP<Epetra_MultiVector> P;
-    std::deque< Epetra_Vector > OldLHS;
+    unsigned int nLHS_m;
+    Teuchos::RCP<TpetraMultiVector_t> P_mp;
+    std::deque< TpetraVector_t > OldLHS;
 
-    /// Solver (Belos RCG)
-    typedef double                          ST;
-    typedef Epetra_Operator                 OP;
-    typedef Epetra_MultiVector              MV;
-    typedef Belos::OperatorTraits<ST, MV, OP> OPT;
-    typedef Belos::MultiVecTraits<ST, MV>    MVT;
+    Teuchos::RCP<LinearProblem_t> problem_mp;
+    Teuchos::RCP<SolverManager_t>  solver_mp;
 
-    //Belos::LinearProblem<double, MV, OP> problem;
-    typedef Belos::LinearProblem<ST, MV, OP> problem;
-    Teuchos::RCP< problem > problem_ptr;
+    /// MueLu preconditioner object
+    Teuchos::RCP<MueLuTpetraOperator_t> prec_mp;
 
-    typedef Belos::SolverManager<ST, MV, OP> solver;
-    Teuchos::RCP< solver > solver_ptr;
-
-    Teuchos::RCP< Belos::EpetraPrecOp > prec_m;
-    Teuchos::RCP< Belos::StatusTestGenResNorm< ST, MV, OP > > convStatusTest;
-
-    /// parameter list for the ML solver
-    Teuchos::ParameterList MLList_m;
+    /// parameter list for the MueLu solver
+    Teuchos::ParameterList MueLuList_m;
     /// parameter list for the iterative solver (Belos)
     Teuchos::ParameterList belosList;
 
@@ -240,125 +226,33 @@ private:
 
     void deletePtr();
 
-    /// recomputes the Epetra_Map
+    /// recomputes the map
     void computeMap(NDIndex<3> localId);
 
-    /// redistributes Map with RCB
-    /// \param localId local IPPL grid node indices
-    void redistributeWithRCB(NDIndex<3> localId);
-
-    /// converts IPPL grid to a 3D Epetra_Map
+    /// converts IPPL grid to a 3D map
     /// \param localId local IPPL grid node indices
     void IPPLToMap3D(NDIndex<3> localId);
 
     /** returns a discretized stencil that has Neumann BC in z direction and
      * Dirichlet BC on the surface of a specified geometry
      * \param hr gridspacings in each direction
-     * \param Epetra_CrsMatrix holding the stencil
      * \param RHS right hand side might be scaled
      */
-    void ComputeStencil(Vector_t hr, Teuchos::RCP<Epetra_Vector> RHS);
+    void ComputeStencil(Vector_t hr, Teuchos::RCP<TpetraVector_t> RHS);
 
 
 
 protected:
-
     /// Setup the parameters for the Belos iterative solver.
-    inline void SetupBelosList() {
-        belosList.set("Maximum Iterations", maxiters_m);
-        belosList.set("Convergence Tolerance", tol_m);
-
-        if(numBlocks_m != 0 && recycleBlocks_m != 0){//only set if solver==RCGSolMgr
-            belosList.set("Num Blocks", numBlocks_m);               // Maximum number of blocks in Krylov space
-            belosList.set("Num Recycled Blocks", recycleBlocks_m); // Number of vectors in recycle space
-        }
-        if(verbose_m) {
-            belosList.set("Verbosity", Belos::Errors + Belos::Warnings + Belos::TimingDetails + Belos::FinalSummary + Belos::StatusTestDetails);
-            belosList.set("Output Frequency", 1);
-        } else
-            belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
-      }
+    void setupBelosList();
 
     /// Setup the parameters for the SAAMG preconditioner.
-    inline void SetupMLList() {
-        ML_Epetra::SetDefaults("SA", MLList_m, 0, 0, true);
-
-        MLList_m.set("max levels", 8);
-        MLList_m.set("increasing or decreasing", "increasing");
-
-        // we use a V-cycle
-        MLList_m.set("prec type", "MGV");
-
-        // uncoupled aggregation is used (every processor aggregates
-        // only local data)
-        MLList_m.set("aggregation: type", "Uncoupled");
-
-        // smoother related parameters
-        MLList_m.set("smoother: type","Chebyshev");
-        MLList_m.set("smoother: sweeps", 3);
-        MLList_m.set("smoother: pre or post", "both");
-
-        // on the coarsest level we solve with  Tim Davis' implementation of
-        // Gilbert-Peierl's left-looking sparse partial pivoting algorithm,
-        // with Eisenstat & Liu's symmetric pruning. Gilbert's version appears
-        // as \c [L,U,P]=lu(A) in MATLAB. It doesn't exploit dense matrix
-        // kernels, but it is the only sparse LU factorization algorithm known to be
-        // asymptotically optimal, in the sense that it takes time proportional to the
-        // number of floating-point operations.
-        MLList_m.set("coarse: type", "Amesos-KLU");
-
-        //XXX: or use Chebyshev coarse level solver
-        // SEE PAPER FOR EVALUATION KLU vs. Chebyshev
-        //MLList.set("coarse: sweeps", 10);
-        //MLList.set("coarse: type", "Chebyshev");
-
-        // Controls the amount of printed information.
-        // Ranges from 0 to 10 (0 is no output, and
-        // 10 is incredibly detailed output). Default: 0
-        if(verbose_m)
-            MLList_m.set("ML output", 10);
-
-        // heuristic for max coarse size depending on number of processors
-        int coarsest_size = std::max(Comm.NumProc() * 10, 1024);
-        MLList_m.set("coarse: max size", coarsest_size);
-
-    }
-
+    void setupMueLuList();
 };
-
 
 
 inline Inform &operator<<(Inform &os, const MGPoissonSolver &fs) {
     return fs.print(os);
 }
 
-#else
-
-#include <stdlib.h>
-#include <stdio.h>
-#ifdef HAVE_MPI
-#include "mpi.h"
 #endif
-
-int main(int argc, char *argv[]) {
-#ifdef HAVE_MPI
-    MPI_Init(&argc, &argv);
-#endif
-
-    puts("Please configure ML with:");
-    puts("--enable-epetra");
-    puts("--enable-teuchos");
-    puts("--enable-aztecoo");
-
-#ifdef HAVE_MPI
-    MPI_Finalize();
-#endif
-
-    return(EXIT_SUCCESS);
-}
-
-#endif /* #if defined(HAVE_ML_EPETRA) && defined(HAVE_ML_TEUCHOS) && defined(HAVE_ML_AZTECOO) */
-
-#endif /* #ifndef MG_POISSON_SOLVER_H_ */
-
-#endif /* #ifdef HAVE_SAAMG_SOLVER */

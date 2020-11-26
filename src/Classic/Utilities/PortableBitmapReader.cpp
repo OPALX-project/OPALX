@@ -19,9 +19,8 @@ PortableBitmapReader::PortableBitmapReader(const std::string &input) {
 }
 
 std::string PortableBitmapReader::getNextPart(std::istream &in) {
-    char c;
     do {
-        c = in.get();
+        char c = in.get();
         if (c == '#') {
             do {
                 c = in.get();
@@ -107,7 +106,7 @@ void PortableBitmapReader::readImageBinary(std::istream &in) {
     }
 }
 
-void PortableBitmapReader::print(std::ostream &out) const {
+void PortableBitmapReader::print(std::ostream &/*out*/) const {
     for (unsigned int i = 0; i < height_m; ++ i) {
         for (unsigned int j = 0; j < width_m; ++ j) {
             if (j % 8 == 0) {

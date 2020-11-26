@@ -1,10 +1,29 @@
+//
+// Class AmrSmoother
+//   Interface to Ifpack2 smoothers of the Trilinos package.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AmrSmoother.h"
 
 #include <map>
 #include <utility>
 
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
 
 AmrSmoother::AmrSmoother(const Teuchos::RCP<const matrix_t>& A,
                          const Smoother& smoother,
@@ -33,7 +52,6 @@ AmrSmoother::~AmrSmoother() {
 
 
 void AmrSmoother::smooth(const Teuchos::RCP<vector_t>& x,
-                         const Teuchos::RCP<matrix_t>& A,
                          const Teuchos::RCP<vector_t>& b)
 {
     prec_mp->apply(*b, *x, Teuchos::NO_TRANS,
@@ -50,7 +68,7 @@ AmrSmoother::convertToEnumSmoother(const std::string& smoother) {
     map["SGS"]    = Smoother::SGS;
     map["JACOBI"] = Smoother::JACOBI;
     
-    auto sm = map.find(Util::toUpper(smoother));
+    auto sm = map.find(smoother);
     
     if ( sm == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",

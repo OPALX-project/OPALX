@@ -42,11 +42,10 @@
 #include "Parser/FileStream.h"
 #include "Parser/StringStream.h"
 #include "Algorithms/PartBunchBase.h"
-#include "Algorithms/bet/EnvelopeBunch.h"
 // /DTA
 
 #define MAX_NUM_INSTANCES 10
-using namespace std;
+
 
 // Class OpalData::ClearReference
 // ------------------------------------------------------------------------
@@ -117,10 +116,6 @@ struct OpalDataImpl {
 
     DataSink *dataSink_m;
 
-    bool hasSLBunchAllocated_m;
-    // The particle bunch to be tracked.
-    EnvelopeBunch *slbunch_m;
-
     // In units of seconds. This is half of tEmission
     double gPhaseShift_m;
 
@@ -143,7 +138,6 @@ struct OpalDataImpl {
 
     bool isInOPALCyclMode_m;
     bool isInOPALTMode_m;
-    bool isInOPALEnvMode_m;
     bool isOptimizerFlag_m;
     bool isInPrepState_m;
 
@@ -162,17 +156,14 @@ OpalDataImpl::OpalDataImpl():
     restart_dump_freq_m(1), last_step_m(0),
     hasBunchAllocated_m(false),
     hasDataSinkAllocated_m(false),
-    hasSLBunchAllocated_m(false),
     gPhaseShift_m(0.0),
     maxTrackSteps_m(0),
     isInOPALCyclMode_m(false),
     isInOPALTMode_m(false),
-    isInOPALEnvMode_m(false),
     isOptimizerFlag_m(false),
     isInPrepState_m(false)
 {
     bunch_m    = nullptr;
-    slbunch_m  = nullptr;
     dataSink_m = nullptr;
     bg_m       = nullptr;
     mesh_m     = nullptr;
@@ -188,7 +179,6 @@ OpalDataImpl::~OpalDataImpl() {
     //delete PL_m; //this gets deleted by FL_m
 
     delete bunch_m;
-    delete slbunch_m;
     delete bg_m;
     delete dataSink_m;
 
@@ -275,12 +265,10 @@ void OpalData::reset() {
     p->hasRestartFile_m = false;
     p->hasBunchAllocated_m = false;
     p->hasDataSinkAllocated_m = false;
-    p->hasSLBunchAllocated_m = false;
     p->gPhaseShift_m = 0.0;
     p->maxPhases_m.clear();
     p->isInOPALCyclMode_m = false;
     p->isInOPALTMode_m = false;
-    p->isInOPALEnvMode_m = false;
     p->isInPrepState_m = false;
     p->isOptimizerFlag_m = false;
 }
@@ -293,10 +281,6 @@ bool OpalData::isInOPALTMode() {
     return  p->isInOPALTMode_m;
 }
 
-bool OpalData::isInOPALEnvMode() {
-    return p->isInOPALEnvMode_m;
-}
-
 bool OpalData::isOptimizerRun() {
     return p->isOptimizerFlag_m;
 }
@@ -307,10 +291,6 @@ void OpalData::setInOPALCyclMode() {
 
 void OpalData::setInOPALTMode() {
     p->isInOPALTMode_m = true;
-}
-
-void OpalData::setInOPALEnvMode() {
-    p->isInOPALEnvMode_m = true;
 }
 
 void OpalData::setOptimizerFlag() {
@@ -388,22 +368,6 @@ void OpalData::setLastStep(const int &step) {
 
 int OpalData::getLastStep() const {
     return p->last_step_m;
-}
-
-bool OpalData::hasSLBunchAllocated() {
-    return p->hasSLBunchAllocated_m;
-}
-
-void OpalData::slbunchIsAllocated() {
-    p->hasSLBunchAllocated_m = true;
-}
-
-void OpalData::setSLPartBunch(EnvelopeBunch *b) {
-    p->slbunch_m = b;
-}
-
-EnvelopeBunch *OpalData::getSLPartBunch() {
-    return p->slbunch_m;
 }
 
 bool OpalData::hasBunchAllocated() {
@@ -560,8 +524,8 @@ void OpalData::define(Object *newObject) {
 
                 if(table->isDependent(name)) {
                     if(Options::info) {
-                        cerr << endl << "Erasing dependent table \"" << tableName
-                             << "\"." << endl << endl;
+                    	std::cerr << std::endl << "Erasing dependent table \""
+                                  << tableName << "\"." << std::endl;
                     }
 
                     // Remove table from directory.
@@ -635,8 +599,8 @@ void OpalData::makeDirty(Object *obj) {
 void OpalData::printNames(std::ostream &os, const std::string &pattern) {
     int column = 0;
     RegularExpression regex(pattern);
-    os << endl << "Object names matching the pattern \""
-       << pattern << "\":" << endl;
+    os << std::endl << "Object names matching the pattern \""
+       << pattern << "\":" << std::endl;
 
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
         index != p->mainDirectory.end(); ++index) {
@@ -653,14 +617,14 @@ void OpalData::printNames(std::ostream &os, const std::string &pattern) {
                     column++;
                 } while((column % 20) != 0);
             } else {
-                os << endl;
+                os << std::endl;
                 column = 0;
             }
         }
     }
 
-    if(column) os << endl;
-    os << endl;
+    if(column) os << std::endl;
+    os << std::endl;
 }
 
 
@@ -710,6 +674,10 @@ std::string OpalData::getTitle() {
     return p->itsTitle_m;
 }
 
+std::string OpalData::getAuxiliaryOutputDirectory() const {
+    return "data";
+}
+
 std::string OpalData::getInputFn() {
     return p->inputFn_m;
 }
@@ -746,72 +714,44 @@ void OpalData::update() {
     }
 }
 
-std::vector<std::string> OpalData::getAllNames() {
+
+std::map<std::string, std::string> OpalData::getVariableData() {
+    std::map<std::string, std::string> udata;
+    std::vector<std::string> uvars = this->getVariableNames();
+    for (auto& uvar : uvars) {
+        Object *tmpObject = OpalData::getInstance()->find(uvar);
+        if (dynamic_cast<RealVariable*>(tmpObject)) {
+            RealVariable* variable = dynamic_cast<RealVariable*>(OpalData::getInstance()->find(uvar));
+            udata[uvar] = std::to_string(variable->getReal());
+        } else if (dynamic_cast<StringConstant*>(tmpObject)) {
+            StringConstant* variable = dynamic_cast<StringConstant*>(OpalData::getInstance()->find(uvar));
+            udata[uvar] = variable->getString();
+        } else {
+            throw OpalException("OpalData::getVariableData()",
+                                "Type of '" + uvar + "' not supported. "
+                                "Only support for REAL and STRING.");
+        }
+    }
+    return udata;
+}
+
+std::vector<std::string> OpalData::getVariableNames() {
     std::vector<std::string> result;
 
     for(ObjectDir::const_iterator index = p->mainDirectory.begin();
         index != p->mainDirectory.end(); ++index) {
         std::string tmpName = (*index).first;
-        if(!tmpName.empty()) result.push_back(tmpName);
-        //// DTA
-        //if (!tmpName.empty()) {
-        //  Object *tmpObject = OPAL.find(tmpName);
-        //  std::cerr << tmpObject->getCategory() << "\t" << tmpName << "\t";
-        //  string bi = (tmpObject->isBuiltin()) ? "BUILT-IN" : "";
-        //  std::cerr << bi << std::endl;
-        //}
-        //// /DTA
-    }
-
-    // DTA
-    std::cout << "\nUser-defined variables:\n";
-    const OpalParser mp;
-    // FileStream *is;
-    // is = new FileStream("/home/research/dabell/projects/opal9/src/tmp/myExpr.txt");
-    // StringStream *ss;
-    // ss = new StringStream("myVar:=ALPHA+BETA;");
-    for(ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); ++index) {
-        std::string tmpName = (*index).first;
-        if(!tmpName.empty()) {
+        if (!tmpName.empty()) {
             Object *tmpObject = OpalData::getInstance()->find(tmpName);
-            if(!tmpObject || tmpObject->isBuiltin()) continue;
-            if(tmpObject->getCategory() == "VARIABLE") {
-                std::cout << tmpName;
-                if(dynamic_cast<RealVariable *>(&*tmpObject)) {
-                    RealVariable &variable = *dynamic_cast<RealVariable *>(OpalData::getInstance()->find(tmpName));
-                    std::cout << "\te= " << variable.value().getBase().getImage();
-                    std::cout << "\tr= " << variable.getReal();
-                    std::cout << "\ta= " << variable.itsAttr[0];
-                    //Attributes::setReal(variable.itsAttr[0],137.);
-                    //std::cout << "\te= " << variable.value().getBase().getImage();
-                    //std::cout << "\tx= " << variable.itsAttr[0];
+            if (tmpObject) {
+                if (!tmpObject || tmpObject->isBuiltin())
+                    continue;
+                if (tmpObject->getCategory() == "VARIABLE") {
+                    result.push_back(tmpName);
                 }
-                std::cout << std::endl;
             }
-            //    if(tmpName=="MYL"){
-            //      std::cout << "myL noted" << std::endl;
-            //      RealVariable& variable = *dynamic_cast<RealVariable*>(OPAL.find(tmpName));
-            //      std::cout << tmpName;
-            //      std::cout << "\te= " << variable.value().getBase().getImage();
-            //      std::cout << "\tr= " << variable.getReal();
-            //      std::cout << "\ta= " << variable.itsAttr[0] << std::endl;
-            //      mp.run(is);
-            //      std::cout << tmpName;
-            //      std::cout << "\te= " << variable.value().getBase().getImage();
-            //      std::cout << "\tr= " << variable.getReal();
-            //      std::cout << "\ta= " << variable.itsAttr[0] << std::endl;
-            //      mp.run(ss);
-            //    }
         }
     }
-    std::cout << std::endl;
-    ////TxAttributeSet data(variableName);
-    ////const RealVariable& var = *dynamic_cast<RealVariable*>(OPAL.find(variableName));
-    ////data.appendString("expression",variable.value().getBase().getImage());
-    ////data.appendParam("value",variable.getReal());
-    //// /DTA
-
     return result;
 }
 

@@ -18,6 +18,7 @@ public:
 
     Quaternion operator*(const double &) const;
     Quaternion operator*(const Quaternion &) const;
+    Quaternion& operator=(const Quaternion &) = default;
     Quaternion& operator*=(const Quaternion &);
     Quaternion operator/(const double &) const;
 
@@ -79,7 +80,7 @@ double Quaternion::Norm() const
 inline
 double Quaternion::length() const
 {
-    return sqrt(this->Norm());
+    return std::sqrt(this->Norm());
 }
 
 inline

@@ -32,7 +32,6 @@
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
 #include "Expressions/SValue.h"
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
@@ -78,14 +77,14 @@ OpalMultipoleTCurvedConstRadius::OpalMultipoleTCurvedConstRadius():
     registerOwnership();
 
 
-    setElement((new MultipoleTCurvedConstRadius("MULTIPOLETCURVEDCONSTRADIUS"))->makeWrappers());
+    setElement(new MultipoleTCurvedConstRadius("MULTIPOLETCURVEDCONSTRADIUS"));
 }
 
 
 OpalMultipoleTCurvedConstRadius::OpalMultipoleTCurvedConstRadius(const std::string &name,
                                                                  OpalMultipoleTCurvedConstRadius *parent):
     OpalElement(name, parent) {
-    setElement((new MultipoleTCurvedConstRadius(name))->makeWrappers());
+    setElement(new MultipoleTCurvedConstRadius(name));
 }
 
 
@@ -103,40 +102,12 @@ void OpalMultipoleTCurvedConstRadius::print(std::ostream &os) const {
 }
 
 
-void OpalMultipoleTCurvedConstRadius::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-    const MultipoleTCurvedConstRadius *multT =
-        dynamic_cast<const MultipoleTCurvedConstRadius*>(base.removeAlignWrapper());
-
-    for(unsigned int order = 1; order <= multT->getTransMaxOrder(); order++) {
-        std::ostringstream ss;
-        ss << order;
-        std::string orderString = ss.str();
-        std::string attrName = "TP" + orderString;
-        registerRealAttribute(attrName)->setReal(multT->getTransProfile(order));
-    }
-
-    registerRealAttribute("LFRINGE")->setReal(multT->getFringeLength().at(0));
-    registerRealAttribute("RFRINGE")->setReal(multT->getFringeLength().at(1));
-    registerRealAttribute("VAPERT")->setReal(multT->getAperture()[0]);
-    registerRealAttribute("HAPERT")->setReal(multT->getAperture()[1]);
-    registerRealAttribute("MAXFORDER")->setReal(multT->getMaxOrder());
-    registerRealAttribute("MAXXORDER")->setReal(multT->getMaxXOrder());
-    registerRealAttribute("ROTATION")->setReal(multT->getRotation());
-    registerRealAttribute("ANGLE")->setReal(multT->getBendAngle());
-    registerRealAttribute("EANGLE")->setReal(multT->getEntranceAngle());
-    registerRealAttribute("BBLENGTH")->setReal(multT->getBoundingBoxLength());
-
-}
-
-
 void OpalMultipoleTCurvedConstRadius::update() {
     OpalElement::update();
 
     // Magnet length.
     MultipoleTCurvedConstRadius *multT =
-    dynamic_cast<MultipoleTCurvedConstRadius*>(getElement()->removeWrappers());
+    dynamic_cast<MultipoleTCurvedConstRadius*>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle = Attributes::getReal(itsAttr[ANGLE]);
     double boundingBoxLength = Attributes::getReal(itsAttr[BBLENGTH]);
@@ -178,5 +149,5 @@ void OpalMultipoleTCurvedConstRadius::update() {
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(multT);
 
-    setElement(multT->makeWrappers());
+    setElement(multT);
 }

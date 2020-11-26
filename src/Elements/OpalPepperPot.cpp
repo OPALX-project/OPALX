@@ -1,33 +1,30 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalPepperPot.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalPepperPot
-//   The class of OPAL elliptic collimators.
+// Class OpalPepperPot
+//   The PEPPERPOT element.
+//   The class of OPAL pepperpot collimators.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalPepperPot.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/FlexibleCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 
 
-// Class OpalPepperPot
-// ------------------------------------------------------------------------
-
 OpalPepperPot::OpalPepperPot():
     OpalElement(SIZE, "PEPPERPOT",
-                "The \"PEPPERPOT\" element defines an elliptic collimator."),
+                "The \"PEPPERPOT\" element defines an pepperpot collimator."),
     parmatint_m(NULL) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Size in x of the pepperpot in m");
@@ -42,23 +39,16 @@ OpalPepperPot::OpalPepperPot():
     itsAttr[R] = Attributes::makeReal
                  ("R", "Radios of a holes in m");
 
-    registerStringAttribute("OUTFN");
-    registerRealAttribute("XSIZE");
-    registerRealAttribute("YSIZE");
-    registerRealAttribute("R");
-    registerRealAttribute("NHOLX");
-    registerRealAttribute("NHOLY");
-
     registerOwnership();
 
-    setElement((new FlexibleCollimatorRep("PEPPERPOT"))->makeAlignWrapper());
+    setElement(new FlexibleCollimatorRep("PEPPERPOT"));
 }
 
 
 OpalPepperPot::OpalPepperPot(const std::string &name, OpalPepperPot *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new FlexibleCollimatorRep(name))->makeAlignWrapper());
+    setElement(new FlexibleCollimatorRep(name));
 }
 
 
@@ -73,22 +63,11 @@ OpalPepperPot *OpalPepperPot::clone(const std::string &name) {
 }
 
 
-void OpalPepperPot::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-
-
-    // const FlexibleCollimatorRep *ppo =
-    //     dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
-    // attributeRegistry["XSIZE"]->setReal(ppo->getXsize());
-    // attributeRegistry["YSIZE"]->setReal(ppo->getYsize());
-
-}
-
 void OpalPepperPot::update() {
     OpalElement::update();
 
     FlexibleCollimatorRep *ppo =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<FlexibleCollimatorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     ppo->setElementLength(length);
     ppo->setOutputFN(Attributes::getString(itsAttr[OUTFN]));

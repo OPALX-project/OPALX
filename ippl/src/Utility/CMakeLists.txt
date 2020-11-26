@@ -4,74 +4,56 @@ set (_SRCS
     DiscMeta.cpp
     DiscParticleFunctions.cpp
     FieldDebugFunctions.cpp
-    ParticleDebugFunctions.cpp
     Inform.cpp
-    Pool.cpp
     IpplCounter.cpp
+    IpplInfo.cpp
+    IpplMemoryUsage.cpp
+    IpplMessageCounter.cpp
     IpplStats.cpp
     IpplTimings.cpp
-    IpplMessageCounter.cpp
-    IpplMemoryUsage.cpp
-    IpplInfo.cpp
-    RNGSimple.cpp
+    PAssert.cpp
+    ParticleDebugFunctions.cpp
     RNGXDiv.cpp
-    RNGXCI.cpp
     RandomNumberGen.cpp
     StaticIpplInfo.cpp
     Timer.cpp
     Unique.cpp
     User.cpp
     UserList.cpp
-    PAssert.cpp
     )
 
 set (_HDRS
     DiscBuffer.h
     DiscConfig.h
-    DiscField.hpp
     DiscField.h
+    DiscField.hpp
     DiscMeta.h
-    DiscParticle.hpp
     DiscParticle.h
     DiscType.h
-    FieldBlock.hpp
-    FieldBlock.h
-    FieldDebug.hpp
     FieldDebug.h
+    FieldDebug.hpp
     FieldDebugFunctions.h
-    FieldDebugPrint.hpp
     FieldDebugPrint.h
-    FieldPrint.hpp
+    FieldDebugPrint.hpp
     FieldPrint.h
-    FieldView.hpp
-    FieldView.h
+    FieldPrint.hpp
     Inform.h
-    IplCounter.h
     IpplCounter.h
+    IpplException.h
     IpplInfo.h
     IpplMemoryUsage.h
     IpplMessageCounter.h
     IpplStats.h
     IpplTimings.h
-    my_auto_ptr.h
     NamedObj.h
-    ParticleDebug.hpp
-    ParticleDebug.h
-    ParticleDebugFunctions.h
     PAssert.h
-    Pooled.hpp
-    Pooled.h
-    Pool.h
-    RandomNumberGen.h
-    RefBlock.h
-    RefCounted.h
+    ParticleDebug.h
+    ParticleDebug.hpp
+    ParticleDebugFunctions.h
     RNGAssignDefs.h
-    RNGBitReverse.h
-    RNGLattice.h
-    RNGRand.h
-    RNGSimple.h
-    RNGXCI.h
     RNGXDiv.h
+    RandomNumberGen.h
+    RefCounted.h
     SequenceGen.h
     StaticIpplInfo.h
     Timer.h
@@ -79,8 +61,9 @@ set (_HDRS
     User.h
     UserList.h
     Vec.h
-    vmap.hpp
+    my_auto_ptr.h
     vmap.h
+    vmap.hpp
     )
 
 include_directories (
@@ -91,11 +74,3 @@ add_ippl_sources (${_SRCS})
 add_ippl_headers (${_HDRS})
 
 install (FILES ${_HDRS} DESTINATION include/Utility)
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

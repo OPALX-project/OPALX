@@ -1,3 +1,24 @@
+//
+// Class: Hamiltonian
+//   Constructs thick lens Hamiltonian up to arbitrary order for beamline elements
+//
+// Copyright (c) 2018, Philippe Ganz, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Master thesis
+// "s-based maps from TPS & Lie-Series applied to Proton-Therapy Gantries"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "Hamiltonian.h"
 
 Hamiltonian::Hamiltonian(int truncOrder) : truncOrder_m(truncOrder)
@@ -27,7 +48,7 @@ Hamiltonian::series_t Hamiltonian::drift(const double& gamma0)
 
 Hamiltonian::series_t Hamiltonian::rbend(double& beta0,
                             double& gamma0,
-                            double& q,
+                            double& /*q*/,
                             double& h,
                             double& k0)
 {
@@ -77,8 +98,8 @@ Hamiltonian::series_t Hamiltonian::sbend(const double& gamma0,
 Hamiltonian::series_t Hamiltonian::bendFringe(
                 double& beta0,
                 double& gamma0,
-                double& h,
-                double& k0,
+                double& /*h*/,
+                double& /*k0*/,
                 series_t& ax,
                 series_t& az)
 {
@@ -114,7 +135,7 @@ Hamiltonian::series_t Hamiltonian::bendFringe(
 
 
 Hamiltonian::series_t Hamiltonian::quadrupole(const double& gamma0,
-                                              const double& q,
+                                              const double& /*q*/,
                                               const double& k1)
 {
     double beta0 = this->getBeta_m(gamma0);

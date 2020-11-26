@@ -1,3 +1,23 @@
+//
+// Class SampleCmd
+//   This class defines the SAMPLE command.
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Sample/SampleCmd.h"
 #include "Sample/Sampler.h"
 #include "Sample/OpalSample.h"
@@ -34,6 +54,7 @@
 #include "Expression/NumberOfPeaks.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
+#include "Expression/SeptumExpr.h"
 
 #include <boost/filesystem.hpp>
 
@@ -77,11 +98,11 @@ SampleCmd::SampleCmd():
         ("OUTPUT", "Name used in output file sample");
     itsAttr[OUTDIR] = Attributes::makeString
         ("OUTDIR", "Name of directory used to run and store sample output files");
-    itsAttr[OBJECTIVES] = Attributes::makeStringArray
+    itsAttr[OBJECTIVES] = Attributes::makeUpperCaseStringArray
         ("OBJECTIVES", "List of expressions to evaluate and store");
     itsAttr[STOREOBJECTIVES] = Attributes::makeStringArray
         ("STOREOBJECTIVES", "List of stat variables to store");
-    itsAttr[DVARS] = Attributes::makeStringArray
+    itsAttr[DVARS] = Attributes::makeUpperCaseStringArray
         ("DVARS", "List of sampling variables to be used");
     itsAttr[SAMPLINGS] = Attributes::makeStringArray
         ("SAMPLINGS", "List of sampling methods to be used");
@@ -99,7 +120,7 @@ SampleCmd::SampleCmd():
         ("RASTER", "Scan full space given by design variables (default: true)", true);
     itsAttr[SEED] = Attributes::makeReal
         ("SEED", "Seed for global random number generator (default: 42)", 42);
-    itsAttr[KEEP] = Attributes::makeStringArray
+    itsAttr[KEEP] = Attributes::makeUpperCaseStringArray
         ("KEEP", "List of files to keep for each simulation. (default: all files kept)");
     itsAttr[RESTART_FILE] = Attributes::makeString
         ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
@@ -156,7 +177,6 @@ void SampleCmd::execute() {
     std::map<std::string, std::pair<double, double> > vars;
 
     for (std::string &name : dvarsstr) {
-        name = Util::toUpper(name);
         Object *obj = opal->find(name);
         DVar* dvar = dynamic_cast<DVar*>(obj);
         if (dvar == nullptr) {
@@ -219,11 +239,14 @@ void SampleCmd::execute() {
     funcs.insert(std::pair<std::string, client::function::type>
                  ("statVariableAt", ff));
 
+    ff = SeptumExpr();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("septum", ff));
+
     //////////////////////////////////////////////////////////////////////////
 
     std::set<std::string> objExpressions; // check if all unique objective expressions
     for (std::string name: objectivesstr) {
-        name = Util::toUpper(name);
         Object *obj = opal->find(name);
         Objective* objective = dynamic_cast<Objective*>(obj);
         if (objective == nullptr) {
@@ -438,6 +461,8 @@ void SampleCmd::execute() {
     }
     *gmsg << endl;
 
+    std::map<std::string, std::string> userVariables = opal->getVariableData();
+
     Inform *origGmsg = gmsg;
     gmsg = 0;
     try {
@@ -457,7 +482,7 @@ void SampleCmd::execute() {
 
         boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm, funcs, dvars,
                                                   objectives, sampleMethods,
-                                                  storeobjstr, filesToKeep));
+                                                  storeobjstr, filesToKeep, userVariables));
         if (comm->isWorker())
             popEnvironment();
 

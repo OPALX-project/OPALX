@@ -1,3 +1,21 @@
+//
+// Class PluginElement
+//   Abstract Interface for (Cyclotron) Plugin Elements (CCollimator, Probe, Stripper, Septum)
+//   Implementation via Non-Virtual Interface Template Method
+//
+// Copyright (c) 2018-2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_PluginElement_HH
 #define CLASSIC_PluginElement_HH
 
@@ -9,12 +27,6 @@ template <class T, unsigned Dim>
 class PartBunchBase;
 
 class LossDataSink;
-
-// Class PluginElement
-// ------------------------------------------------------------------------
-/// Abstract Interface for (Cyclotron) Plugin Elements (Probe, Stripper, Septum etc.)
-/// Implementation via Non-Virtual Interface Template Method
-
 class PluginElement: public Component {
 
 public:
@@ -82,7 +94,7 @@ private:
     /// Finalise call after check
     bool finaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpdate) {return doFinaliseCheck(bunch, flagNeedUpdate);}
     /// Pure virtual hook for initialise
-    virtual void doInitialise(PartBunchBase<double, 3> *bunch) {}
+    virtual void doInitialise(PartBunchBase<double, 3>* /*bunch*/) {}
     /// Pure virtual hook for check
     virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) = 0;
     /// Virtual hook for setGeom
@@ -99,7 +111,6 @@ private:
 protected:
     /* Members */
     std::string filename_m; /**< The name of the outputfile*/
-    double position_m;
     ///@{ input geometry positions
     double xstart_m;
     double xend_m;

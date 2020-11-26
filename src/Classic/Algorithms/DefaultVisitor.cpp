@@ -1,77 +1,61 @@
-// ------------------------------------------------------------------------
-// $RCSfile: DefaultVisitor.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.2 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: DefaultVisitor
-//   Defines the default interface for a BeamlineVisitor.
+// Class DefaultVisitor
+//   The default interface for a BeamlineVisitor.
+//   A default implementation for all visitors that can iterate over a
+//   beam line representation.
+//   This abstract base class implements the default behaviour for the
+//   structural classes Beamline and FlaggedElmPtr.
+//   It also holds the data required for all visitors in a protected area.
 //
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/05/03 08:16:04 $
-// $Author: mad $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Algorithms/DefaultVisitor.h"
 
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
-#include "AbsBeamline/Diagnostic.h"
-#include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
+#include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Lambertson.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
-#include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
-#include "AbsBeamline/Patch.h"
+#include "AbsBeamline/MultipoleTStraight.h"
+#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/VariableRFCavity.h"
-#include "AbsBeamline/VariableRFCavityFringeField.h"
-#include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
-#include "AbsBeamline/VerticalFFAMagnet.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/Source.h"
-#include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
-
-#include "Algorithms/MapIntegrator.h"
-#include "Algorithms/TrackIntegrator.h"
+#include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/VariableRFCavity.h"
+#include "AbsBeamline/VariableRFCavityFringeField.h"
+#include "AbsBeamline/VerticalFFAMagnet.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
-
-#include "ComponentWrappers/CorrectorWrapper.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
-#include "ComponentWrappers/RBendWrapper.h"
-#include "ComponentWrappers/SBendWrapper.h"
-#include "ComponentWrappers/CyclotronWrapper.h"
 
 #include "AbsBeamline/Ring.h" // OPAL file
 
@@ -95,11 +79,6 @@ DefaultVisitor::~DefaultVisitor()
 void DefaultVisitor::execute() {
     local_flip = ( back_beam && ! back_track )  ||  ( back_track && ! back_beam );
     itsLine.accept(*this);
-}
-
-
-void DefaultVisitor::visitBeamBeam(const BeamBeam &bb) {
-    applyDefault(bb);
 }
 
 void DefaultVisitor::visitBeamStripping(const BeamStripping &bstp) {
@@ -126,20 +105,12 @@ void DefaultVisitor::visitDegrader(const Degrader &deg) {
     applyDefault(deg);
 }
 
-void DefaultVisitor::visitDiagnostic(const Diagnostic &diag) {
-    applyDefault(diag);
-}
-
 void DefaultVisitor::visitDrift(const Drift &drf) {
     applyDefault(drf);
 }
 
 void DefaultVisitor::visitFlexibleCollimator(const FlexibleCollimator &coll) {
     applyDefault(coll);
-}
-
-void DefaultVisitor::visitLambertson(const Lambertson &lamb) {
-    applyDefault(lamb);
 }
 
 void DefaultVisitor::visitMarker(const Marker &mark) {
@@ -179,10 +150,6 @@ void DefaultVisitor::visitRing(const Ring &ring) {
 }
 
 
-void DefaultVisitor::visitPatch(const Patch &patch) {
-    applyDefault(patch);
-}
-
 void DefaultVisitor::visitProbe(const Probe &probe) {
     applyDefault(probe);
 }
@@ -214,11 +181,6 @@ void DefaultVisitor::visitTravelingWave(const TravelingWave &trw) {
 }
 
 
-void DefaultVisitor::visitRFQuadrupole(const RFQuadrupole &quad) {
-    applyDefault(quad);
-}
-
-
 void DefaultVisitor::visitSBend(const SBend &bend) {
     applyDefault(bend);
 }
@@ -237,11 +199,6 @@ void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet &mag) {
     applyDefault(mag);
 }
 
-void DefaultVisitor::visitSeparator(const Separator &sep) {
-    applyDefault(sep);
-}
-
-
 void DefaultVisitor::visitSeptum(const Septum &sept) {
     applyDefault(sept);
 }
@@ -256,16 +213,8 @@ void DefaultVisitor::visitSource(const Source &sou) {
 }
 
 
-void DefaultVisitor::visitParallelPlate(const ParallelPlate &pplate) {
-    applyDefault(pplate);
-}
-
-void DefaultVisitor::visitCyclotronValley(const CyclotronValley &cv) {
-    applyDefault(cv);
-}
-
-void DefaultVisitor::visitStripper(const Stripper &cv) {
-    applyDefault(cv);
+void DefaultVisitor::visitStripper(const Stripper &stripper) {
+    applyDefault(stripper);
 }
 
 void DefaultVisitor::visitBeamline(const Beamline &bl) {
@@ -283,54 +232,6 @@ void DefaultVisitor::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
     } else {
         fep.getElement()->accept(*this);
     }
-}
-
-
-void DefaultVisitor::visitAlignWrapper(const AlignWrapper &wrap) {
-    // Default behaviour: Apply algorithm to the non-offset element.
-    wrap.getElement()->accept(*this);
-}
-
-
-void DefaultVisitor::visitCorrectorWrapper(const CorrectorWrapper &wrap) {
-    visitCorrector(wrap);
-}
-
-void DefaultVisitor::visitCyclotronWrapper(const CyclotronWrapper &wrap) {
-    visitCyclotron(wrap);
-}
-
-
-void DefaultVisitor::visitMultipoleWrapper(const MultipoleWrapper &wrap) {
-    visitMultipole(wrap);
-}
-
-
-void DefaultVisitor::visitRBendWrapper(const RBendWrapper &wrap) {
-    visitRBend(wrap);
-}
-
-
-void DefaultVisitor::visitSBendWrapper(const SBendWrapper &wrap) {
-    visitSBend(wrap);
-}
-
-
-void DefaultVisitor::visitIntegrator(const Integrator &i) {
-    // Default: cannot use integrator.
-    i.getElement()->accept(*this);
-}
-
-
-void DefaultVisitor::visitMapIntegrator(const MapIntegrator &i) {
-    // Default: cannot use integrator.
-    i.getElement()->accept(*this);
-}
-
-
-void DefaultVisitor::visitTrackIntegrator(const TrackIntegrator &i) {
-    // Default: cannot use integrator.
-    i.getElement()->accept(*this);
 }
 
 

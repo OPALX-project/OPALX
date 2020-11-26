@@ -46,16 +46,12 @@ namespace {
 
         // BEAM CURRENT AND EMITTANCES:
         BCURRENT,   // Beam current in A
-        EX,         // Horizontal emittance
-        EY,         // Vertical emittance
-        ET,         // Longitudinal emittance
 
         // BEAM FREQUENCY
         BFREQ,  // Beam frequency in MHz
 
         // DESCRIPTION OF BUNCHES:
         NPART,      // Number of particles per bunch
-        NSLICE,     // Number of slices per bunch
         SIZE
     };
 }
@@ -89,12 +85,6 @@ Beam::Beam():
     // BEAM CURRENT AND EMITTANCES:
     itsAttr[BCURRENT] = Attributes::makeReal
                         ("BCURRENT", "Beam current in A (all bunches)");
-    itsAttr[EX] = Attributes::makeReal
-                  ("EX", "Horizontal emittance");
-    itsAttr[EY] = Attributes::makeReal
-                  ("EY", "Vertical emittance");
-    itsAttr[ET] = Attributes::makeReal
-                  ("ET", "Longitudinal emittance");
 
     // BEAM FREQUENCY
     itsAttr[BFREQ] = Attributes::makeReal
@@ -103,8 +93,6 @@ Beam::Beam():
     // DESCRIPTION OF BUNCHES:
     itsAttr[NPART] = Attributes::makeReal
                      ("NPART", "Number of particles in bunch");
-    itsAttr[NSLICE] = Attributes::makeReal
-                      ("NSLICE", "Number of slices in bunch");
 
     // Set up default beam.
     Beam *defBeam = clone("UNNAMED_BEAM");
@@ -157,28 +145,9 @@ Beam *Beam::find(const std::string &name) {
     return beam;
 }
 
-size_t Beam::getNumberOfParticles() {
+size_t Beam::getNumberOfParticles() const {
     return (size_t)Attributes::getReal(itsAttr[NPART]);
 }
-
-size_t Beam::getNumberOfSlices() {
-    return (size_t)Attributes::getReal(itsAttr[NSLICE]);
-}
-
-double Beam::getEX() const {
-    return Attributes::getReal(itsAttr[EX]);
-}
-
-
-double Beam::getEY() const {
-    return Attributes::getReal(itsAttr[EY]);
-}
-
-
-double Beam::getET() const {
-    return Attributes::getReal(itsAttr[ET]);
-}
-
 
 const PartData &Beam::getReference() const {
     // Cast away const, to allow logically constant Beam to update.
@@ -206,20 +175,15 @@ double Beam::getFrequency() const {
     return Attributes::getReal(itsAttr[BFREQ]);
 }
 
-void Beam::setEX(double value) {
-    Attributes::setReal(itsAttr[EX], value);
+double Beam::getChargePerParticle() const {
+    return std::copysign(1.0, getCharge()) * getCurrent()
+        / (getFrequency() * 1.0e6)
+        / getNumberOfParticles();
 }
 
-
-void Beam::setEY(double value) {
-    Attributes::setReal(itsAttr[EY], value);
+double Beam::getMassPerParticle() const {
+    return getMass() * getChargePerParticle() / (getCharge() * Physics::q_e);
 }
-
-
-void Beam::setET(double value) {
-    Attributes::setReal(itsAttr[ET], value);
-}
-
 
 void Beam::update() {
     // Find the particle name.
@@ -263,6 +227,7 @@ void Beam::update() {
     double charge = itsAttr[CHARGE] ? Attributes::getReal(itsAttr[CHARGE]) : 1.0;
     reference = PartData(charge, mass, 1.0);
 
+    // Checks
     if(itsAttr[GAMMA]) {
         double gamma = Attributes::getReal(itsAttr[GAMMA]);
         if(gamma > 1.0) {
@@ -287,7 +252,7 @@ void Beam::update() {
             throw OpalException("Beam::update()",
                                 "\"PC\" should be greater than 0.");
         }
-    };
+    }
 
     // Set default name.
     if(getOpalName().empty()) setOpalName("UNNAMED_BEAM");

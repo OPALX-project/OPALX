@@ -1,3 +1,35 @@
+//
+// Class SamplePilot
+//   The sample Pilot (Master): Coordinates requests by sampler to workers.
+//   Every worker thread notifies the master here if idle or not. When
+//   available the master dispatches one of the pending simulations to the
+//   worker who will run the specified simulation and report results back to
+//   the master.
+//   @see SampleWorker
+//   @see Sampler
+//   @tparam Opt_t type of the sampler
+//   @tparam Sim_t type of the simulation
+//   @tparam SolPropagationGraph_t strategy to distribute solution between
+//           master islands
+//   @tparam Comm_t comm splitter strategy
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Yves Ineichen, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef __SAMPLE_PILOT_H__
 #define __SAMPLE_PILOT_H__
 
@@ -5,25 +37,6 @@
 #include "Sample/SampleWorker.h"
 #include "Expression/Parser/function.hpp"
 
-/**
- *  \class SamplePilot
- *  \brief The sample Pilot (Master): Coordinates requests by sampler
- *  to workers.
- *
- *  Every worker thread notifies the master here if idle or not. When
- *  available the master dispatches one of the pending simulations to the
- *  worker who will run the specified simulation and report results back to
- *  the master.
- *
- *  @see SampleWorker
- *  @see Sampler
- *
- *  @tparam Opt_t type of the sampler
- *  @tparam Sim_t type of the simulation
- *  @tparam SolPropagationGraph_t strategy to distribute solution between
- *          master islands
- *  @tparam Comm_t comm splitter strategy
- */
 template <
       class Opt_t
     , class Sim_t
@@ -46,7 +59,8 @@ public:
                                 std::shared_ptr<SamplingMethod>
                               >& sampleMethods,
                 const std::vector<std::string> &storeobjstr,
-                const std::vector<std::string> &filesToKeep)
+                const std::vector<std::string> &filesToKeep,
+                const std::map<std::string, std::string> &userVariables)
         : Pilot<Opt_t,
                 Sim_t,
                 SolPropagationGraph_t,
@@ -57,7 +71,8 @@ public:
                         obj,
                         Expressions::Named_t(),
                         {},
-                        false)
+                        false,
+                        {})
         , sampleMethods_m(sampleMethods)
     {
         if (obj.size() == 0) {
@@ -67,7 +82,7 @@ public:
             };
         }
 
-        this->setup(known_expr_funcs, storeobjstr, filesToKeep);
+        this->setup(known_expr_funcs, storeobjstr, filesToKeep, userVariables);
     }
 
     virtual ~SamplePilot()
@@ -86,7 +101,8 @@ protected:
     virtual
     void setup(functionDictionary_t known_expr_funcs,
                const std::vector<std::string> &storeobjstr,
-               const std::vector<std::string> &filesToKeep)
+               const std::vector<std::string> &filesToKeep,
+               const std::map<std::string, std::string> &userVariables)
     {
         this->global_rank_ = this->comm_->globalRank();
 
@@ -96,7 +112,7 @@ protected:
 
         // here the control flow starts to diverge
         if      ( this->comm_->isOptimizer() ) { startSampler(); }
-        else if ( this->comm_->isWorker()    ) { startWorker(storeobjstr, filesToKeep); }
+        else if ( this->comm_->isWorker()    ) { startWorker(storeobjstr, filesToKeep, userVariables); }
         else if ( this->comm_->isPilot()     ) { this->startPilot();     }
     }
 
@@ -118,7 +134,8 @@ protected:
 
     using  Pilot<Opt_t, Sim_t, SolPropagationGraph_t, Comm_t>::startWorker;
     void startWorker(const std::vector<std::string> &storeobjstr,
-                     const std::vector<std::string> &filesToKeep)
+                     const std::vector<std::string> &filesToKeep,
+                     const std::map<std::string, std::string> &userVariables)
     {
         std::ostringstream os;
         os << "\033[01;35m" << "  " << this->global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
@@ -135,7 +152,7 @@ protected:
         boost::scoped_ptr< SampleWorker<Sim_t> > w(
                                                    new SampleWorker<Sim_t>(this->objectives_, this->constraints_, simName,
                                                                            this->comm_->getBundle(), this->cmd_args_,
-                                                                           storeobjstr, filesToKeep));
+                                                                           storeobjstr, filesToKeep, userVariables));
 
         std::cout << "Stop Worker.." << std::endl;
     }

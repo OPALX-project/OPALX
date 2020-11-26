@@ -23,11 +23,7 @@ namespace client
     template <typename Iterator>
     struct annotation
     {
-#if BOOST_VERSION >= 106200
         template <typename>
-#else
-        template <typename, typename>
-#endif
         struct result { typedef void type; };
 
         std::vector<Iterator>& iters;
@@ -52,7 +48,7 @@ namespace client
             }
 
             template <typename T>
-            void operator()(T& x) const
+            void operator()(T& /*x*/) const
             {
                 // no-op
             }

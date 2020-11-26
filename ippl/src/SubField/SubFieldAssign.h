@@ -1,10 +1,6 @@
-// -*- C++ -*-
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
 
@@ -72,9 +68,3 @@ SUB_ASSIGNMENT_OPERATORS(maxeq,OpMaxAssign)
 #include "SubField/SubFieldAssign.hpp"
 
 #endif // SUB_FIELD_ASSIGN_H
-
-/***************************************************************************
- * $RCSfile: SubFieldAssign.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: SubFieldAssign.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $ 
- ***************************************************************************/

@@ -33,7 +33,6 @@ SBend3D::SBend3D(const std::string &name)
         : Component(name), map_m(NULL),
          planarArcGeometry_m(1., 1.), fieldUnits_m(1.), lengthUnits_m(1.),
          polyOrder_m(1), smoothOrder_m(1), dummy() {
-    setElType(isDrift);
 }
 
 SBend3D::SBend3D(const SBend3D &right)
@@ -45,7 +44,6 @@ SBend3D::SBend3D(const SBend3D &right)
     RefPartBunch_m = right.RefPartBunch_m;
     if (right.map_m != NULL)
         map_m = new SectorMagneticFieldMap(*right.map_m);
-    setElType(isDrift);
 }
 
 SBend3D::~SBend3D() {
@@ -70,13 +68,13 @@ bool SBend3D::apply(const size_t &i, const double &t,
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-bool SBend3D::apply(const Vector_t &R, const Vector_t &P,
-                    const double &t, Vector_t &E, Vector_t &B) {
+bool SBend3D::apply(const Vector_t &R, const Vector_t &/*P*/,
+                    const double &/*t*/, Vector_t &E, Vector_t &B) {
     //std::cerr << "ROGERS SBend3D::apply " << R << " " << B << std::endl;
     return map_m->getFieldstrength(R, E, B);
 }
 
-void SBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
+void SBend3D::initialise(PartBunchBase<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
     RefPartBunch_m = bunch;
 }
 

@@ -1,19 +1,28 @@
-// -*- C++ -*-
-/**************************************************************************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- *	mpirun -np 4 ./p3m3dEquiPart Nx Ny Nz l_beam l_box particleDensity r_cut alpha dt eps iterations charge_per_part m_part printEvery
- * 	alpha is the splitting parameter for pm and pp, eps is the smoothing factor and Si are the coordinates of the charged sphere center
- *
- *
- *************************************************************************************************************************************/
+//
+// Application p3m3dHeating
+//   mpirun -np 4 ./p3m3dHeating Nx Ny Nz l_beam l_box particleDensity r_cut alpha dt
+//                               eps iterations charge_per_part m_part printEvery
+//
+//   alpha is the splitting parameter for pm and pp,
+//   eps is the smoothing factor and Si are the coordinates of the charged sphere center
+//
+// Copyright (c) 2016, Benjamin Ulmer, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Master thesis
+// "The P3M Model on Emerging Computer Architectures With Application to Microbunching"
+// (http://amas.web.psi.ch/people/aadelmann/ETH-Accel-Lecture-1/projectscompleted/cse/thesisBUlmer.pdf)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Ippl.h"
 #include <string>
 #include <vector>
@@ -27,10 +36,10 @@
 #include "Particle/PairBuilder/HashPairBuilderPeriodic.h"
 #include "Particle/PairBuilder/HashPairBuilderPeriodicParallel.h"
 #include "Particle/PairBuilder/PairConditions.h"
+#include "Utility/PAssert.h"
 #include "math.h"
 
 #include <random>
-#include <cassert>
 
 #include "VTKFieldWriterParallel.hpp"
 #include "ChargedParticleFactory.hpp"
@@ -50,7 +59,7 @@ typedef CenteredFieldLayout<Dim, Mesh_t, Center_t>                    FieldLayou
 typedef Field<double, Dim, Mesh_t, Center_t>                          Field_t;
 typedef Field<int, Dim, Mesh_t, Center_t>                             IField_t;
 typedef Field<Vector_t, Dim, Mesh_t, Center_t>                        VField_t;
-typedef Field<dcomplex, Dim, Mesh_t, Center_t>                        CxField_t;
+typedef Field<std::complex<double>, Dim, Mesh_t, Center_t>                        CxField_t;
 typedef FFT<CCTransform, Dim, double>                                 FFT_t;
 
 typedef IntCIC                                                        IntrplCIC_t;
@@ -85,11 +94,11 @@ struct SpecializedGreensFunction<3> {
                     elem[2]=Index(k,k);
                     r = real(sqrt(grn.localElement(elem)));
                     if(elem==elem0) {
-                        //grn.localElement(elem) = ke*dcomplex(2*alpha/sqrt(M_PI)) ;
+                        //grn.localElement(elem) = ke*std::complex<double>(2*alpha/sqrt(M_PI)) ;
                         grn.localElement(elem) = 0 ;
                     }
                     else
-                        grn.localElement(elem) = ke*dcomplex(erf(alpha*r)/(r+eps));
+                        grn.localElement(elem) = ke*std::complex<double>(erf(alpha*r)/(r+eps));
                 }
             }
         }
@@ -101,14 +110,14 @@ struct SpecializedGreensFunction<3> {
 template<class PL>
 class ChargedParticles : public IpplParticleBase<PL> {
 public:
-    ParticleAttrib<double>     	Q;
-    ParticleAttrib<double>     	m;
-    ParticleAttrib<double>     	Phi; //electrostatic potential
-    ParticleAttrib<Vector_t> 	EF;
-    ParticleAttrib<Vector_t>	v; //velocity of the particles
-    ParticleAttrib<int>	ID; //velocity of the particles
+    ParticleAttrib<double>      Q;
+    ParticleAttrib<double>      m;
+    ParticleAttrib<double>      Phi; //electrostatic potential
+    ParticleAttrib<Vector_t>    EF;
+    ParticleAttrib<Vector_t>    v; //velocity of the particles
+    ParticleAttrib<int> ID; //velocity of the particles
 
-    ChargedParticles(PL* pl, Vektor<double,3> nr, e_dim_tag decomp[Dim],Vektor<double,3> extend_l_, Vektor<double,3> extend_r_) :
+    ChargedParticles(PL* pl, Vektor<double,3> nr, e_dim_tag /*decomp*/[Dim],Vektor<double,3> extend_l_, Vektor<double,3> extend_r_) :
     IpplParticleBase<PL>(pl),
     nr_m(nr),
     extend_l(extend_l_),
@@ -198,9 +207,9 @@ public:
         double loc_avg_vel[Dim]={0.0,0.0,0.0};
 
         for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
-	  for(unsigned i = 0; i < Dim; i++) {
-	    loc_avg_vel[i]   += this->v[k](i);
-	  }
+          for(unsigned i = 0; i < Dim; i++) {
+            loc_avg_vel[i]   += this->v[k](i);
+          }
         }
         reduce(&(loc_avg_vel[0]), &(loc_avg_vel[0]) + Dim,
                &(avg_vel[0]), OpAddAssign());
@@ -213,9 +222,9 @@ public:
         m << "avg_vel[0]= " << avg_vel[0] << " avg_vel[1]= " << avg_vel[1] << " avg_vel[2]= " << avg_vel[2] <<  endl;
 
         for(unsigned long k = 0; k < this->getLocalNum(); ++k) {
-	  for(unsigned i = 0; i < Dim; i++) {
-	    loc_temp[i]   += (this->v[k](i)-avg_vel[i])*(this->v[k](i)-avg_vel[i]);
-	  }
+          for(unsigned i = 0; i < Dim; i++) {
+            loc_temp[i]   += (this->v[k](i)-avg_vel[i])*(this->v[k](i)-avg_vel[i]);
+          }
         }
         reduce(&(loc_temp[0]), &(loc_temp[0]) + Dim,
                &(temperature[0]), OpAddAssign());
@@ -373,20 +382,9 @@ public:
     }
 
 
-    void calculatePairForces(double interaction_radius, double eps, double alpha) {
-        if (interaction_radius>0){
-            if (Ippl::getNodes() > 1) {
-                HashPairBuilderPeriodicParallel< ChargedParticles<playout_t> > HPB(*this);
-                HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
-            }
-            else {
-                HashPairBuilderPeriodic< ChargedParticles<playout_t> > HPB(*this);
-                HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
-            }
-        }
-    }
+    void calculatePairForces(double interaction_radius, double eps, double alpha);
 
-    void calculateGridForces(double interaction_radius, double alpha, double eps, int it=0, bool normalizeSphere=0) {
+    void calculateGridForces(double /*interaction_radius*/, double alpha, double eps, int /*it*/=0, bool /*normalizeSphere*/=0) {
         // (1) scatter charge to charge density grid and transform to fourier space
         //this->Q.scatter(this->rho_m, this->R, IntrplTSC_t());
         rho_m[domain_m]=0; //!!!!!! there has to be a better way than setting rho to 0 every time
@@ -479,9 +477,9 @@ public:
 #if defined (NDEBUG)
         (void)h5err;
 #endif
-        assert (h5err != H5_ERR);
+        PAssert (h5err != H5_ERR);
         H5f_m = H5OpenFile (fn.c_str(), H5_O_RDONLY, props);
-        assert (H5f_m != (h5_file_t)H5_ERR);
+        PAssert (H5f_m != (h5_file_t)H5_ERR);
         H5CloseProp (props);
     }
 
@@ -603,6 +601,21 @@ struct ApplyField {
     double eps;
     double a;
 };
+
+template<class PL>
+void ChargedParticles<PL>::calculatePairForces(double interaction_radius, double eps, double alpha)
+{
+    if (interaction_radius>0){
+        if (Ippl::getNodes() > 1) {
+            HashPairBuilderPeriodicParallel< ChargedParticles<playout_t> > HPB(*this);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+        }
+        else {
+            HashPairBuilderPeriodic< ChargedParticles<playout_t> > HPB(*this);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+        }
+    }
+}
 
 int main(int argc, char *argv[]){
     Ippl ippl(argc, argv);

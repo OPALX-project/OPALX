@@ -1,20 +1,27 @@
+//
+// Class BeamStripping
+//   Defines the abstract interface environment for
+//   beam stripping physics.
+//
+// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Optimizing the radioisotope production of the novel AMIT
+// superconducting weak focusing cyclotron"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_BeamStripping_HH
 #define CLASSIC_BeamStripping_HH
-
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: BeamStripping
-//   Defines the abstract interface for a beam BeamStripping
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-// $Date: 2018/11 $
-// $Author: PedroCalvo$
-// ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
 
@@ -70,13 +77,7 @@ public:
     /// Apply visitor to BeamStripping.
     virtual void accept(BeamlineVisitor &) const;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
-
-    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
-
     virtual bool checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl, const int turnnumber, const double t, const double tstep);
-
-    virtual bool checkBeamStripping(Vector_t r, Vector_t rmin, Vector_t rmax);
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
 
@@ -134,7 +135,7 @@ private:
     std::string pmapfn_m; /// stores the filename of the pressure map
     double pscale_m;      /// a scale factor for the P-field
     double temperature_m; /// K
-    double stop_m;
+    bool stop_m;          /// Flag if particles should be stripped or stopped
     ///@}
 
     ///@{ size limits took from cyclotron

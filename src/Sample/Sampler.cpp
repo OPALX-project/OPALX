@@ -1,3 +1,24 @@
+//
+// Class Sampler
+//   This class creates, dispatches and dumps new individuals.
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Yves Ineichen, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include <iostream>
 #include <string>
 #include <limits>
@@ -11,16 +32,17 @@
 #include "Util/MPIHelper.h"
 
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <boost/filesystem.hpp>
 
-Sampler::Sampler(Expressions::Named_t objectives,
-                 Expressions::Named_t constraints,
-                 DVarContainer_t dvars,
-                 size_t dim, Comm::Bundle_t comms,
-                 CmdArguments_t args,
-                 std::vector<double> hypervolRef,
-                 int nrWorkerGroups)
+Sampler::Sampler(Expressions::Named_t /*objectives*/,
+                 Expressions::Named_t /*constraints*/,
+                 DVarContainer_t /*dvars*/,
+                 size_t /*dim*/, Comm::Bundle_t comms,
+                 CmdArguments_t /*args*/,
+                 std::vector<double> /*hypervolRef*/,
+                 int /*nrWorkerGroups*/)
     : Optimizer(comms.opt)
 {
     throw OptPilotException("Sampler::Sampler",

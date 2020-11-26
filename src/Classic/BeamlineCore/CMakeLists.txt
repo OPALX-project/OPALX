@@ -1,10 +1,8 @@
 set (_SRCS
-    BeamBeamRep.cpp
     BeamStrippingRep.cpp
     CCollimatorRep.cpp
     CorrectorRep.cpp
     CyclotronRep.cpp
-    CyclotronValleyRep.cpp
     DegraderRep.cpp
     DriftRep.cpp
     FlexibleCollimatorRep.cpp
@@ -12,14 +10,11 @@ set (_SRCS
     MonitorRep.cpp
     MultipoleRep.cpp
     Octupole.cpp
-    ParallelPlateRep.cpp
-    PatchRep.cpp
     ProbeRep.cpp
     Quadrupole.cpp
     RBendRep.cpp
     RFCavityRep.cpp
     SBendRep.cpp
-    SeparatorRep.cpp
     SeptumRep.cpp
     Sextupole.cpp
     SkewOctupole.cpp
@@ -30,9 +25,7 @@ set (_SRCS
     StripperRep.cpp
     TravelingWaveRep.cpp
     XCorrectorRep.cpp
-    XMonitorRep.cpp
     YCorrectorRep.cpp
-    YMonitorRep.cpp
     )
 
 include_directories (
@@ -42,12 +35,10 @@ include_directories (
 add_opal_sources (${_SRCS})
 
 set (HDRS
-    BeamBeamRep.h
     BeamStrippingRep.h
     CCollimatorRep.h
     CorrectorRep.h
     CyclotronRep.h
-    CyclotronValleyRep.h
     DegraderRep.h
     DriftRep.h
     FlexibleCollimatorRep.h
@@ -55,14 +46,11 @@ set (HDRS
     MonitorRep.h
     MultipoleRep.h
     Octupole.h
-    ParallelPlateRep.h
-    PatchRep.h
     ProbeRep.h
     Quadrupole.h
     RBendRep.h
     RFCavityRep.h
     SBendRep.h
-    SeparatorRep.h
     SeptumRep.h
     Sextupole.h
     SingleMultipole.h
@@ -74,17 +62,7 @@ set (HDRS
     StripperRep.h
     TravelingWaveRep.h
     XCorrectorRep.h
-    XMonitorRep.h
     YCorrectorRep.h
-    YMonitorRep.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/BeamlineCore")
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

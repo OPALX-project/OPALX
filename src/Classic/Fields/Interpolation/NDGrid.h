@@ -28,10 +28,10 @@
 #ifndef _CLASSIC_FIELDS_NDGRID_HH_
 #define _CLASSIC_FIELDS_NDGRID_HH_
 
-#include <vector>
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 #include <ostream>
+#include <vector>
 
 #include "Fields/Interpolation/Mesh.h"
 
@@ -329,7 +329,7 @@ void NDGrid::coordLowerBound(const double& x, const int& dimension, int& xIndex)
     if (constantSpacing_m) {
         double x0 = coord_m[dimension][0];
         double x1 = coord_m[dimension][1];
-        xIndex = static_cast<int>(floor((x - x0)/(x1-x0)));
+        xIndex = static_cast<int>(std::floor((x - x0)/(x1-x0)));
         int coordSize = static_cast<int>(coord_m[dimension].size()); 
         if (xIndex >= coordSize) {
             xIndex = coordSize-1;

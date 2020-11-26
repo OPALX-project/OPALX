@@ -25,7 +25,6 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/EMField.h"
-#include "Algorithms/Vektor.h"
 
 class PartData;
 
@@ -99,10 +98,6 @@ public:
     //  and magnetic fields at point [b]P[/b] for time [b]t[/b].
     EBVectors EBfield(const Point3D &P, double t) const;
 
-    virtual void addKR(int i, double t, Vector_t &K) {};
-
-    virtual void addKT(int i, double t, Vector_t &K) {};
-
     virtual bool apply(const size_t &i,
                        const double &t,
                        Vector_t &E,
@@ -132,13 +127,13 @@ public:
      *  \returns true if particle is outside the field map, else false
      *  Default for component is to return false and make no change to A and phi
      */
-    virtual bool getPotential(const Vector_t &R, 
-                               const double &t,
-                               Vector_t &A,
-                               double &phi) {return false;}
+    virtual bool getPotential(const Vector_t &/*R*/,
+                              const double &/*t*/,
+                              Vector_t &/*A*/,
+                              double &/*phi*/) {return false;}
 
     virtual double getDesignEnergy() const;
-    virtual void setDesignEnergy(const double& energy, bool changeable);
+    virtual void setDesignEnergy(const double& energy, bool changeable = true);
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) = 0;
 
@@ -170,8 +165,7 @@ public:
     virtual std::string getComponentType() const { return ""; };
 
     /// Return design element.
-    //  If a component is a wrapper, this method returns a pointer to
-    //  its underlying design element, otherwise a pointer to this component.
+    //  If this method returns a pointer to this component.
     //  The default version returns ``this''.
     virtual const ElementBase &getDesign() const;
 
@@ -234,7 +228,7 @@ inline EBVectors Component::EBfield(const Point3D &P, double t) const
 inline void Component::setExitFaceSlope(const double &m)
 { exit_face_slope_m = m; }
 
-inline void Component::setDesignEnergy(const double& energy, bool changeable = true )
+inline void Component::setDesignEnergy(const double &/*energy*/, bool /*changeable*/)
 { }
 
 inline double Component::getDesignEnergy() const

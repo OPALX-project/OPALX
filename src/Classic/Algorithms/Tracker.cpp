@@ -1,28 +1,65 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Tracker.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Tracker
-//   The visitor class for tracking a bunch of particles through a beamline
-//   using a thin-lens approximation for all elements.
+// Class Tracker
+//  Track particles or bunches.
+//  An abstract base class for all visitors capable of tracking particles
+//  through a beam element.
+//  [P]
+//  Phase space coordinates (in this order):
+//  [DL]
+//  [DT]x:[DD]
+//    horizontal displacement (metres).
+//  [DT]p_x/p_r:[DD]
+//     horizontal canonical momentum (no dimension).
+//  [DT]y:[DD]
+//    vertical displacement (metres).
+//  [DT]p_y/p_r:[DD]
+//    vertical canonical momentum (no dimension).
+//  [DT]delta_p/p_r:[DD]
+//    relative momentum error (no dimension).
+//  [DT]v*delta_t:[DD]
+//    time difference delta_t w.r.t. the reference frame which moves with
+//    uniform velocity
+//  [P]
+//    v_r = c*beta_r = p_r/m
+//  [P]
+//    along the design orbit, multiplied by the instantaneous velocity v of
+//    the particle (metres).
+//  [/DL]
+//  Where
+//  [DL]
+//  [DT]p_r:[DD]
+//    is the constant reference momentum defining the reference frame velocity.
+//  [DT]m:[DD]
+//    is the rest mass of the particles.
+//  [/DL]
+//  Other units used:
+//  [DL]
+//  [DT]reference momentum:[DD]
+//    electron-volts.
+//  [DT]accelerating voltage:[DD]
+//    volts.
+//  [DT]separator voltage:[DD]
+//    volts.
+//  [DT]frequencies:[DD]
+//    hertz.
+//  [DT]phase lags:[DD]
+//    multiples of (2*pi).
+//  [/DL]
 //
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 18:57:53 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Algorithms/Tracker.h"
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/Patch.h"
-#include "Algorithms/MapIntegrator.h"
 #include "Fields/BMultipoleField.h"
 
 //FIXME Remove headers and dynamic_cast in readOneBunchFromFile
@@ -44,17 +81,8 @@ typedef FTps<double, 6> Series;
 
 Tracker::Tracker(const Beamline &beamline, const PartData &reference,
                  bool backBeam, bool backTrack):
-    AbstractTracker(beamline, reference, backBeam, backTrack),
-    itsBeamline_m(beamline),
-    itsBunch_m(nullptr)
-{
-// #ifdef ENABLE_AMR
-//     if ( Options::amr )
-//         itsBunch = new AmrPartBunch(&reference);
-//     else
-// #endif
-//         itsBunch = new PartBunch(&reference);
-}
+    Tracker(beamline, nullptr, reference, backBeam, backTrack)
+{}
 
 
 Tracker::Tracker(const Beamline &beamline,
@@ -91,45 +119,6 @@ void Tracker::visitComponent(const Component &comp) {
 }
 
 
-void Tracker::visitPatch(const Patch &patch) {
-    Euclid3D transform = patch.getPatch();
-    if(back_path) transform = Inverse(transform);
-    applyTransform(transform);
-}
-
-
-void Tracker::visitAlignWrapper(const AlignWrapper &wrap) {
-    if(wrap.offset().isIdentity()) {
-        wrap.getElement()->accept(*this);
-    } else {
-        Euclid3D e1 = wrap.getEntranceTransform();
-        Euclid3D e2 = wrap.getExitTransform();
-
-        if(back_path) {
-            // Tracking right to left.
-            applyTransform(Inverse(e2));
-            wrap.getElement()->accept(*this);
-            applyTransform(Inverse(e1));
-        } else {
-            // Tracking left to right.
-            applyTransform(e1);
-            wrap.getElement()->accept(*this);
-            applyTransform(e2);
-        }
-    }
-}
-
-
-void Tracker::visitTrackIntegrator(const TrackIntegrator &i) {
-    i.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
-}
-
-
-void Tracker::visitMapIntegrator(const MapIntegrator &i) {
-    i.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
-}
-
-
 void Tracker::applyDrift(double length) {
     double kin = itsReference.getM() / itsReference.getP();
     double refTime = length / itsReference.getBeta();
@@ -140,10 +129,10 @@ void Tracker::applyDrift(double length) {
             double px = part.px();
             double py = part.py();
             double pt = part.pt() + 1.0;
-            double lByPz = length / sqrt(pt * pt - px * px - py * py);
+            double lByPz = length / std::sqrt(pt * pt - px * px - py * py);
             part.x() += px * lByPz;
             part.y() += py * lByPz;
-            part.t() += pt * (refTime / sqrt(pt * pt + kin * kin) - lByPz);
+            part.t() += pt * (refTime / std::sqrt(pt * pt + kin * kin) - lByPz);
         }
         itsBunch_m->set_part(part, i);
     }
@@ -209,7 +198,7 @@ void Tracker::applyTransform(const Euclid3D &euclid, double refLength) {
             double px = part.px();
             double py = part.py();
             double pt = part.pt() + 1.0;
-            double pz = sqrt(pt * pt - px * px - py * py);
+            double pz = std::sqrt(pt * pt - px * px - py * py);
 
             part.px() = euclid.M(0, 0) * px + euclid.M(1, 0) * py + euclid.M(2, 0) * pz;
             part.py() = euclid.M(0, 1) * px + euclid.M(1, 1) * py + euclid.M(2, 1) * pz;
@@ -225,7 +214,7 @@ void Tracker::applyTransform(const Euclid3D &euclid, double refLength) {
                 euclid.M(0, 2) * x + euclid.M(1, 2) * y - euclid.M(2, 2) * euclid.getZ();
             double sByPz = s2 / pz;
 
-            double E = sqrt(pt * pt + kin * kin);
+            double E = std::sqrt(pt * pt + kin * kin);
             part.x() = x2 - sByPz * part.px();
             part.y() = y2 - sByPz * part.py();
             part.t() += pt * (refTime / E + sByPz);

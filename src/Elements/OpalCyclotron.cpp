@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalCyclotron.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalCyclotron
-//   The class of OPAL cyclotron.
+// Class OpalCyclotron
+//   The OpalCyclotron element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include <numeric>
 
 #include "Elements/OpalCyclotron.h"
@@ -28,9 +27,6 @@
 
 #include "TrimCoils/OpalTrimCoil.h"
 #include "TrimCoils/TrimCoil.h"
-
-// Class OpalCyclotron
-// ------------------------------------------------------------------------
 
 OpalCyclotron::OpalCyclotron():
     OpalElement(SIZE, "CYCLOTRON",
@@ -84,7 +80,7 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[RFPHI]    = Attributes::makeRealArray
                         ("RFPHI", "Initial phase(s) of the electric field map(s) [deg]");
 
-    itsAttr[TYPE]     = Attributes::makeString
+    itsAttr[TYPE]     = Attributes::makeUpperCaseString
                         ("TYPE", "Used to identify special cyclotron types");
 
     itsAttr[MINZ]     = Attributes::makeReal
@@ -103,10 +99,10 @@ OpalCyclotron::OpalCyclotron():
                         ("GEOMETRY", "Boundary Geometry for the Cyclotron");
 
     itsAttr[FMLOWE]     = Attributes::makeReal
-                        ("FMLOWE", "Minimal Energy [MeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
+                        ("FMLOWE", "Minimal Energy [GeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
 
     itsAttr[FMHIGHE]     = Attributes::makeReal
-                        ("FMHIGHE","Maximal Energy [MeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
+                        ("FMHIGHE","Maximal Energy [GeV] the fieldmap can accept. Used in GAUSSMATCHED", -1.0);
 
     itsAttr[SPIRAL]     = Attributes::makeBool
                         ("SPIRAL","Flag whether or not this is a spiral inflector simulation", false);
@@ -117,41 +113,15 @@ OpalCyclotron::OpalCyclotron():
     itsAttr[TRIMCOIL]   = Attributes::makeStringArray
                         ("TRIMCOIL", "List of trim coils");
 
-
-    registerStringAttribute("FMAPFN");
-    registerStringAttribute("GEOMETRY");
-    registerStringAttribute("RFMAPFN");
-    registerStringAttribute("RFFCFN");
-    registerStringAttribute("RFVCFN");
-    registerStringAttribute("TYPE");
-    registerRealAttribute("CYHARMON");
-    registerRealAttribute("RINIT");
-    registerRealAttribute("PRINIT");
-    registerRealAttribute("PHIINIT");
-    registerRealAttribute("ZINIT");
-    registerRealAttribute("PZINIT");
-    registerRealAttribute("SYMMETRY");
-    registerRealAttribute("RFFREQ");
-    registerRealAttribute("BSCALE");
-    registerRealAttribute("ESCALE");
-    registerRealAttribute("RFPHI");
-    registerRealAttribute("MINZ");
-    registerRealAttribute("MAXZ");
-    registerRealAttribute("MINR");
-    registerRealAttribute("MAXR");
-    registerRealAttribute("FMLOWE");
-    registerRealAttribute("FMHIGHE");
-    registerRealAttribute("TRIMCOILTHRESHOLD");
-
     registerOwnership();
 
-    setElement((new CyclotronRep("CYCLOTRON"))->makeAlignWrapper());
+    setElement(new CyclotronRep("CYCLOTRON"));
 }
 
 OpalCyclotron::OpalCyclotron(const std::string &name, OpalCyclotron *parent):
     OpalElement(name, parent),
     obgeo_m(nullptr) {
-    setElement((new CyclotronRep(name))->makeAlignWrapper());
+    setElement(new CyclotronRep(name));
 }
 
 
@@ -164,15 +134,9 @@ OpalCyclotron *OpalCyclotron::clone(const std::string &name) {
 }
 
 
-void OpalCyclotron::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
-
 void OpalCyclotron::update() {
     CyclotronRep *cycl =
-        dynamic_cast<CyclotronRep *>(getElement()->removeWrappers());
+        dynamic_cast<CyclotronRep *>(getElement());
 
     std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
 
@@ -217,8 +181,8 @@ void OpalCyclotron::update() {
     cycl->setMinZ(minz);
     cycl->setMaxZ(maxz);
 
-    cycl->setFMLowE(fmLowE);
-    cycl->setFMHighE(fmHighE);
+    cycl->setFMLowE(fmLowE * 1.0e3);    // convert GeV to MeV
+    cycl->setFMHighE(fmHighE * 1.0e3);  // convert GeV to MeV
 
     cycl->setSpiralFlag(spiral_flag);
     cycl->setTrimCoilThreshold(trimCoilThreshold);

@@ -1,26 +1,30 @@
-
-// -*- C++ -*-
-/**************************************************************************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- *
- * Example:      interaction radius
- *                    /
- *         grid size /  particles    distribution
- *          / |  \  /    /             /
- * ./p3m3d 16 16 16 5. 1000 [uniform|random|point] --commlib mpi --info 9 | tee field.txt
- *
- *  using the "point" distribution will only place one particle
- *
- *************************************************************************************************************************************/
-
+//
+// Application p3m3d
+//   Example:      interaction radius
+//                      /
+//           grid size /  particles    distribution
+//            / |  \  /    /             /
+//   ./p3m3d 16 16 16 5. 1000 [uniform|random|point] --commlib mpi --info 9 | tee field.txt
+//
+//   using the "point" distribution will only place one particle
+//
+// Copyright (c) 2016, Benjamin Ulmer, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Master thesis
+// "The P3M Model on Emerging Computer Architectures With Application to Microbunching"
+// (http://amas.web.psi.ch/people/aadelmann/ETH-Accel-Lecture-1/projectscompleted/cse/thesisBUlmer.pdf)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Ippl.h"
 #include <string>
 #include <vector>
@@ -46,7 +50,7 @@ typedef CenteredFieldLayout<Dim, Mesh_t, Center_t>                    FieldLayou
 typedef Field<double, Dim, Mesh_t, Center_t>                          Field_t;
 typedef Field<int, Dim, Mesh_t, Center_t>                             IField_t;
 typedef Field<Vector_t, Dim, Mesh_t, Center_t>                        VField_t;
-typedef Field<dcomplex, Dim, Mesh_t, Center_t>                        CxField_t;
+typedef Field<std::complex<double>, Dim, Mesh_t, Center_t>            CxField_t;
 typedef FFT<RCTransform, Dim, double>                                 FFT_t;
 typedef IntCIC                                                        IntrplCIC_t;
 typedef IntNGP                                                        IntrplNGP_t;
@@ -160,11 +164,7 @@ public:
     }
 
 
-    void calculatePairForces(double interaction_radius)
-    {
-        HashPairBuilder< ChargedParticles<playout_t> > HPB(*this);
-        HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius));
-    }
+    void calculatePairForces(double interaction_radius);
 
     //setup and use the FFT solver
     void calculateGridForces(double interaction_radius)
@@ -434,8 +434,15 @@ struct ApplyField {
     double R;
 };
 
+template<class PL>
+void ChargedParticles<PL>::calculatePairForces(double interaction_radius)
+{
+    HashPairBuilder< ChargedParticles<playout_t> > HPB(*this);
+    HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius));
+}
+
 int main(int argc, char *argv[]){
-    Ippl ippl(argc, argv);
+    Ippl ippl(argc, argv);
     Inform msg(argv[0]);
     Inform msg2all(argv[0],INFORM_ALL_NODES);
 

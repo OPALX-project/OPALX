@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalCollimator.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalFlexibleCollimator
-//   The class of OPAL elliptic collimators.
+// Class OpalFlexibleCollimator
+//   The ECOLLIMATOR element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalFlexibleCollimator.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/FlexibleCollimatorRep.h"
@@ -24,12 +23,9 @@
 
 #include <boost/regex.hpp>
 
-// Class OpalFlexibleCollimator
-// ------------------------------------------------------------------------
-
 OpalFlexibleCollimator::OpalFlexibleCollimator():
     OpalElement(SIZE, "FLEXIBLECOLLIMATOR",
-                "The \"FLEXIBLECOLLIMATOR\" element defines a slit."),
+                "The \"FLEXIBLECOLLIMATOR\" element defines a flexible collimator."),
     partMatInt_m(NULL) {
     itsAttr[FNAME] = Attributes::makeString
                      ("FNAME", "File name containing description of holes");
@@ -39,21 +35,16 @@ OpalFlexibleCollimator::OpalFlexibleCollimator():
                     ("OUTFN", "File name of log file for deleted particles");
     itsAttr[DUMP] = Attributes::makeBool
                     ("DUMP", "Save quadtree and holes of collimator", false);
-
-    registerStringAttribute("OUTFN");
-    registerStringAttribute("DESC");
-    registerStringAttribute("FNAME");
-
     registerOwnership();
 
-    setElement((new FlexibleCollimatorRep("FLEXIBLECOLLIMATOR"))->makeAlignWrapper());
+    setElement(new FlexibleCollimatorRep("FLEXIBLECOLLIMATOR"));
 }
 
 
 OpalFlexibleCollimator::OpalFlexibleCollimator(const std::string &name, OpalFlexibleCollimator *parent):
     OpalElement(name, parent),
     partMatInt_m(NULL) {
-    setElement((new FlexibleCollimatorRep(name))->makeAlignWrapper());
+    setElement(new FlexibleCollimatorRep(name));
 }
 
 
@@ -68,20 +59,11 @@ OpalFlexibleCollimator *OpalFlexibleCollimator::clone(const std::string &name) {
 }
 
 
-void OpalFlexibleCollimator::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-
-    const FlexibleCollimatorRep *coll =
-        dynamic_cast<const FlexibleCollimatorRep *>(base.removeWrappers());
-    attributeRegistry["DESCRIPTION"]->setString(coll->getDescription());
-}
-
-
 void OpalFlexibleCollimator::update() {
     OpalElement::update();
 
     FlexibleCollimatorRep *coll =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement()->removeWrappers());
+        dynamic_cast<FlexibleCollimatorRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     coll->setElementLength(length);
 

@@ -51,9 +51,6 @@ public:
     /// Make clone.
     virtual OpalRBend3D *clone(const std::string &name);
 
-    /// Fill in all registered attributes.
-    virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
-
     /// Update the embedded CLASSIC bend.
     virtual void update();
 

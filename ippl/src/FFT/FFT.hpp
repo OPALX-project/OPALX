@@ -15,13 +15,7 @@
 #include "FFT/FFT.h"
 #include "FieldLayout/FieldLayout.h"
 #include "Field/BareField.h"
-#include "Utility/IpplStats.h"
-
-#ifdef IPPL_PRINTDEBUG
-#define FFTDBG(x) x
-#else
-#define FFTDBG(x)
-#endif
+//#include "Utility/IpplStats.h"
 
 //=============================================================================
 // FFT CCTransform Constructors
@@ -943,135 +937,6 @@ FFT<RCTransform,Dim,T>::~FFT(void) {
 
 }
 
-//-----------------------------------------------------------------------------
-// real-to-complex fft; direction is +1 or -1
-//-----------------------------------------------------------------------------
-
-/*
-  gpu version of fft if dks enabled transfers realfield_t to gpu, allocates memory
-  on gpu for result field (complex), does the fft and returns
-*/
-#ifdef IPPL_DKS
-template <size_t Dim, class T>
-void
-FFT<RCTransform,Dim,T>::transformDKSRC(
-    int direction,
-    typename FFT<RCTransform,Dim,T>::RealField_t& f,
-    void* real_ptr,
-    void* comp_ptr,
-    DKSOPAL &dksbase,
-    int streamId,
-    const bool& constInput)
-{
-    //check the domain of incoming field
-    const Layout_t& in_layout = f.getLayout();
-    const Domain_t& in_dom = in_layout.getDomain();
-
-    PAssert_EQ( this->checkDomain(this->getDomain(), in_dom), true);
-
-    size_t nTransformDims = this->numTransformDims();
-
-    //*** just use f field as is and keep decomposition as defined in input file ***//
-    RealField_t* tempR = &f;
-
-    typename RealField_t::const_iterator_if rl_i = tempR->begin_if();
-
-    // get the lfields
-    RealLField_t* rldf = (*rl_i).second.get();
-    // make sure we are uncompressed
-    rldf->Uncompress();
-    // get the raw data pointers
-    T* localreal = rldf->getP();
-
-    /** get global dimensions of real domain and local dimensions of real subdomain
-        calc global dimensions of complex subdomain */
-    int NR_l[Dim], NR_g[Dim], NC_g[Dim];
-    for (size_t d = 0; d < Dim; d++) {
-        NR_l[d] = (int)rldf->size(d);
-        NR_g[d] = (int)tempR->getDomain()[d].length();
-        NC_g[d] = NR_g[d];
-    }
-    NC_g[0] = (NC_g[0] / 2) + 1;
-
-    //get global and local domain sizes
-    int sizereal = NR_l[0]*NR_l[1]*NR_l[2];
-    int totalreal = tempR->getDomain().size();
-    //int totalcomp = NC_g[0]*NC_g[1]*NC_g[2];
-
-    //local vnodes get starting position for real field subdomains
-    int *idx = new int[Ippl::getNodes()];
-    int *idy = new int[Ippl::getNodes()];
-    int *idz = new int[Ippl::getNodes()];
-    for (typename Layout_t::const_iterator_iv i_s = tempR->getLayout().begin_iv(); i_s != tempR->getLayout().end_iv(); ++i_s) {
-        Domain_t tmp = (*i_s).second->getDomain();
-        int node = (*i_s).second->getNode();
-        idx[node] = tmp[0].min();
-        idy[node] = tmp[1].min();
-        idz[node] = tmp[2].min();
-    }
-
-    //remote vnodes get starting position for real field subdomains
-    for (typename Layout_t::iterator_dv remote = tempR->getLayout().begin_rdv(); remote != tempR->getLayout().end_rdv(); ++remote) {
-        Domain_t tmp = (*remote).second->getDomain();
-        int node = (*remote).second->getNode();
-        idx[node] = tmp[0].min();
-        idy[node] = tmp[1].min();
-        idz[node] = tmp[2].min();
-    }
-
-    int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
-
-    if (Ippl::myNode() == 0) {
-
-        //if only one node is working do dksbase write otherwise use cuda aware mpi
-        if (Ippl::getNodes() > 1) {
-
-            if (streamId == -1) {
-                //gather data from different mpi processes directly into gpu buffer
-                dksbase.gather3DData( real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l,
-                                      idx, idy, idz,
-                                      Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
-            } else {
-                //gather data using CUDA IPC for async data transfer
-                dksbase.gather3DDataAsync<T>( real_ptr, localreal, NR_g, NR_l, id, streamId);
-                //sync needed to wait for data transfer to finish
-                dksbase.syncDevice();
-                MPI_Barrier(Ippl::getComm());
-            }
-
-        } else {
-            //write real data to device
-            dksbase.writeDataAsync<T>(real_ptr, localreal, totalreal, streamId);
-            //dksbase.writeData<T>(real_ptr, localreal, totalreal);
-        }
-
-        //call real to complex fft
-        dksbase.callR2CFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g, streamId);
-
-        //normalize fft
-        if (direction == +1)
-            dksbase.callNormalizeFFT(comp_ptr, nTransformDims, (int*) NC_g, streamId);
-
-    } else {
-        if (streamId == -1) {
-            //send data via gatherv to gpu controled by root process
-            dksbase.gather3DData( NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
-                                  Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
-        } else {
-            //transfer data to device memory
-            dksbase.gather3DDataAsync<T>( real_ptr, localreal, NR_g, NR_l, id, streamId);
-            //sync needed to wait for data transfer to finish
-            dksbase.syncDevice();
-            MPI_Barrier(Ippl::getComm());
-        }
-
-    }
-    /* end dks part */
-
-    // finish timing the whole mess
-}
-#endif
-
 template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transform(
@@ -1080,10 +945,6 @@ FFT<RCTransform,Dim,T>::transform(
     typename FFT<RCTransform,Dim,T>::ComplexField_t& g,
     const bool& constInput)
 {
-    FFTDBG(Inform tmsg("FFT-RC-forward"));
-
-    // time the whole mess
-
     // indicate we're doing another fft
     // incipplstat(incffts);
 
@@ -1141,8 +1002,6 @@ FFT<RCTransform,Dim,T>::transform(
 
 
         // transpose AND PERMUTE TO REAL FIELD WITH TRANSFORM DIM FIRST
-        FFTDBG(tmsg << "doing transpose of real field into temporary ");
-        FFTDBG(tmsg << "with layout = " << tempR->getLayout() << std::endl);
         (*tempR)[tempR->getDomain()] = f[in_dom];
 
     }
@@ -1177,8 +1036,6 @@ FFT<RCTransform,Dim,T>::transform(
                 temp = &g;
         }
     }
-
-    FFTDBG(tmsg << "doing real->complex fft of first dimension ..." << std::endl);
 
     // loop over all the vnodes, working on the lfield in each.
     typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
@@ -1250,10 +1107,6 @@ FFT<RCTransform,Dim,T>::transform(
 
         if (!skipTranspose) {
             // transpose and permute to field with transform dim first
-            FFTDBG(tmsg << "doing complex->complex transpose into field ");
-            FFTDBG(tmsg << "with layout = " << tempFields_m[idim]->getLayout());
-            FFTDBG(tmsg << std::endl);
-
             (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
                 (*temp)[temp->getLayout().getDomain()];
 
@@ -1267,10 +1120,6 @@ FFT<RCTransform,Dim,T>::transform(
             // so do the transpose here using g instead
 
             // transpose and permute to field with transform dim first
-            FFTDBG(tmsg << "doing final complex->complex transpose ");
-            FFTDBG(tmsg << "into return ");
-            FFTDBG(tmsg << "with layout = " << g.getLayout());
-            FFTDBG(tmsg << std::endl);
 
             g[out_dom] = (*temp)[temp->getLayout().getDomain()];
 
@@ -1280,9 +1129,6 @@ FFT<RCTransform,Dim,T>::transform(
             temp = &g;  // field* management aid
 
         }
-
-
-        FFTDBG(tmsg << "doing complex->complex fft of other dimension .." << std::endl);
 
         // loop over all the vnodes, working on the lfield in each.
         typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -1319,11 +1165,6 @@ FFT<RCTransform,Dim,T>::transform(
 
 
         // Now assign into output Field, and compress last temp's storage:
-        FFTDBG(tmsg << "Doing cleanup complex->complex transpose ");
-        FFTDBG(tmsg << "into return ");
-        FFTDBG(tmsg << "with layout = " << g.getLayout());
-        FFTDBG(tmsg << std::endl);
-
         g[out_dom] = (*temp)[temp->getLayout().getDomain()];
 
         if (this->compressTemps()) *temp = 0;
@@ -1342,140 +1183,6 @@ FFT<RCTransform,Dim,T>::transform(
 // RC FFT; opposite direction, from complex to real
 //-----------------------------------------------------------------------------
 
-
-/*
-  GPU version of CR inverse FFT uses complex field stored on GPU to perform inverse fft
-  transfers back the real field
-*/
-#ifdef IPPL_DKS
-template <size_t Dim, class T>
-void
-FFT<RCTransform,Dim,T>::transformDKSCR(
-    int direction,
-    RealField_t& g,
-    void* real_ptr,
-    void* comp_ptr,
-    DKSOPAL &dksbase,
-    int streamId,
-    const bool& constInput)
-{
-
-    const Layout_t& out_layout = g.getLayout();
-    const Domain_t& out_dom = out_layout.getDomain();
-
-    //if (Ippl::myNode() == 0)
-    //  std::cout << "DEBUG INVERSE g: " << g.getLayout() << std::endl;
-
-    PAssert_EQ( this->checkDomain(this->getDomain(),out_dom), true);
-
-    size_t nTransformDims = this->numTransformDims();
-
-    // see if we can put final result directly into g
-    RealField_t* tempR;
-
-    //***Use g as is and keep decomposition as defined in input file***/
-    tempR = &g;
-
-    typename RealField_t::const_iterator_if rl_i = tempR->begin_if();
-
-    // Get the LFields
-    RealLField_t* rldf = (*rl_i).second.get();
-    // make sure we are uncompressed
-    rldf->Uncompress();
-
-    // get the raw data pointers
-    T* localreal = rldf->getP();
-
-    //get sizes of global domains and local subdomains
-    int NR_l[Dim], NR_g[Dim], NC_g[Dim];
-    for (size_t d=0; d<Dim; d++) {
-        NR_l[d] = (int)rldf->size(d);
-        NR_g[d] = (int)tempR->getDomain()[d].length();
-        NC_g[d] = NR_g[d];
-    }
-    NC_g[0] = (NC_g[0] / 2) + 1;
-
-    //get sizes of global and local domains
-    int totalreal = tempR->getDomain().size();
-
-    //local vnodes get starting position for real field subdomains
-    int *idx = new int[Ippl::getNodes()];
-    int *idy = new int[Ippl::getNodes()];
-    int *idz = new int[Ippl::getNodes()];
-    for (typename Layout_t::const_iterator_iv i_s = tempR->getLayout().begin_iv(); i_s != tempR->getLayout().end_iv(); ++i_s) {
-        Domain_t tmp = (*i_s).second->getDomain();
-        int node = (*i_s).second->getNode();
-        idx[node] = tmp[0].min();
-        idy[node] = tmp[1].min();
-        idz[node] = tmp[2].min();
-    }
-
-    //remote vnodes get starting position for real field subdomains
-    for (typename Layout_t::iterator_dv remote = tempR->getLayout().begin_rdv(); remote != tempR->getLayout().end_rdv(); ++remote) {
-        Domain_t tmp = (*remote).second->getDomain();
-        int node = (*remote).second->getNode();
-        idx[node] = tmp[0].min();
-        idy[node] = tmp[1].min();
-        idz[node] = tmp[2].min();
-    }
-
-    int id[3] = {idx[Ippl::myNode()], idy[Ippl::myNode()], idz[Ippl::myNode()]};
-
-    /* DKS part */
-    if (Ippl::myNode() == 0) {
-
-        //call real to complex fft
-        dksbase.callC2RFFT(real_ptr, comp_ptr, nTransformDims, (int*)NR_g, streamId);
-
-        //normalize
-        if (direction == +1)
-            dksbase.callNormalizeC2RFFT(real_ptr, nTransformDims, (int*)NR_g, streamId);
-
-        if (Ippl::getNodes() > 1) {
-            dksbase.syncDevice();
-            MPI_Barrier(Ippl::getComm());
-            /*
-              dksbase.scatter3DData(real_ptr, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l,
-              idx, idy, idz, Ippl::getNodes(), Ippl::myNode(),
-              0, Ippl::getComm() );
-            */
-            dksbase.scatter3DDataAsync<T>(real_ptr, localreal, NR_g, NR_l, id);
-            MPI_Barrier(Ippl::getComm());
-            dksbase.syncDevice();
-            MPI_Barrier(Ippl::getComm());
-        } else {
-            //read real data from device
-            dksbase.readDataAsync<T>(real_ptr, localreal, totalreal, streamId);
-            dksbase.syncDevice();
-            //dksbase.readData<T>(real_ptr, localreal, totalreal);
-        }
-
-    } else {
-
-        //receive data from GPU controled by root process
-        MPI_Barrier(Ippl::getComm());
-        /*
-          dksbase.scatter3DData(NULL, localreal, sizereal, MPI_DOUBLE, NR_g, NR_l, idx, idy, idz,
-          Ippl::getNodes(), Ippl::myNode(), 0, Ippl::getComm() );
-        */
-        dksbase.scatter3DDataAsync<T>(real_ptr, localreal, NR_g, NR_l, id);
-        MPI_Barrier(Ippl::getComm());
-        dksbase.syncDevice();
-        MPI_Barrier(Ippl::getComm());
-    }
-    /* end dks part */
-
-    // Now assign into output Field, and compress last temp's storage:
-    if (tempR != &g) {
-        g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
-        if (this->compressTemps()) *tempR = 0;
-    }
-
-    // finish timing the whole mess
-}
-#endif
-
-
 template <size_t Dim, class T>
 void
 FFT<RCTransform,Dim,T>::transform(
@@ -1484,8 +1191,6 @@ FFT<RCTransform,Dim,T>::transform(
     typename FFT<RCTransform,Dim,T>::RealField_t& g,
     const bool& constInput)
 {
-    FFTDBG(Inform tmsg("FFT-RC-reverse"));
-
     // indicate we're doing another FFT
     // INCIPPLSTAT(incFFTs);
 
@@ -1531,8 +1236,6 @@ FFT<RCTransform,Dim,T>::transform(
 
         if (!skipTranspose) {
             // transpose and permute to Field with transform dim first
-            FFTDBG(tmsg << "Doing complex->complex transpose into field ");
-            FFTDBG(tmsg << "with layout = "<<tempFields_m[idim]->getLayout()<<std::endl);
             (*tempFields_m[idim])[tempLayouts_m[idim]->getDomain()] =
                 (*temp)[temp->getLayout().getDomain()];
 
@@ -1541,9 +1244,6 @@ FFT<RCTransform,Dim,T>::transform(
                 *temp = 0;
             temp = tempFields_m[idim];  // Field* management aid
         }
-
-        FFTDBG(tmsg << "Doing complex->complex fft of other dimension .." << std::endl);
-
 
         // Loop over all the Vnodes, working on the LField in each.
         typename ComplexField_t::const_iterator_if l_i, l_end = temp->end_if();
@@ -1630,8 +1330,6 @@ FFT<RCTransform,Dim,T>::transform(
 
     if (!skipTemp) {
         // transpose and permute to complex Field with transform dim first
-        FFTDBG(tmsg << "Doing final complex->complex transpose into field ");
-        FFTDBG(tmsg << "with layout = "<<tempFields_m[0]->getLayout()<<std::endl);
         (*tempFields_m[0])[tempLayouts_m[0]->getDomain()] =
             (*temp)[temp->getLayout().getDomain()];
 
@@ -1640,9 +1338,6 @@ FFT<RCTransform,Dim,T>::transform(
             *temp = 0;
         temp = tempFields_m[0];
     }
-
-
-    FFTDBG(tmsg << "Doing complex->real fft of final dimension ..." << std::endl);
 
     // Loop over all the Vnodes, working on the LField in each.
     typename RealField_t::const_iterator_if rl_i, rl_end = tempR->end_if();
@@ -1691,8 +1386,6 @@ FFT<RCTransform,Dim,T>::transform(
 
 
         // Now assign into output Field, and compress last temp's storage:
-        FFTDBG(tmsg << "Doing cleanup real->real transpose into return ");
-        FFTDBG(tmsg << "with layout = " << g.getLayout() << std::endl);
         g[out_dom] = (*tempR)[tempR->getLayout().getDomain()];
 
         if (this->compressTemps())
@@ -3598,10 +3291,3 @@ FFT<SineTransform,1U,T>::transform(
 
     return;
 }
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c
-// c-basic-offset: 4
-// indent-tabs-mode:nil
-// End:

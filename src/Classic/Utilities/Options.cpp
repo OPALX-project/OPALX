@@ -1,3 +1,21 @@
+//
+// Namespace Options
+//   The global OPAL option flags.
+//   This namespace contains the global option flags.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "OptionTypes.h"
 #include "Utilities/ClassicRandom.h"
 #include <string>
@@ -10,7 +28,6 @@ namespace Options {
     bool warn = true;
     int warnLevel = 1;
     bool csrDump = false;
-    bool ppdebug = false;
 
     // If true create symmetric distribution
     bool cZero = false;
@@ -96,14 +113,12 @@ namespace Options {
     // opal version of input file
     int version = 10000;
 
-#ifdef ENABLE_AMR
     bool amr = false;
 
     /// The frequency to dump AMR grid data and particles into file
     int amrYtDumpFreq = 10;
     
     int amrRegridFreq = 10;
-#endif
 
     bool memoryDump = false;
 

@@ -1,11 +1,7 @@
-// -*- C++ -*-
 /***************************************************************************
  *
  * The IPPL Framework
  * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
  ***************************************************************************/
 
 #ifndef	ANTI_SYM_TENZOR_H
@@ -72,8 +68,8 @@ public:
   // Construct from a Tenzor.
   // Extract the antisymmetric part.
   AntiSymTenzor( const Tenzor<T,D>& t ) {
-    for (int i=1; i<D; ++i) {
-      for (int j=0; j<i; ++j)
+    for (unsigned int i=1; i<D; ++i) {
+      for (unsigned int j=0; j<i; ++j)
 	(*this)[((i-1)*i/2)+j] = (t(i,j)-t(j,i))*0.5;
     }
   }
@@ -157,15 +153,15 @@ public:
       : elem_m(model.elem_m), where_m(model.where_m) { }
     const AssignProxy &operator=(const AssignProxy &a)
       {
-	PAssert_EQ(where_m != 0 || a.elem_m == -a.elem_m, true);
-	elem_m = where_m < 0 ? -a.elem_m : a.elem_m;
-	return *this;
+        PAssert_EQ(where_m != 0 || (a.elem_m == -a.elem_m), true);
+        elem_m = where_m < 0 ? -a.elem_m : a.elem_m;
+        return *this;
       }
     const AssignProxy &operator=(const Element_t &e)
       {
-	PAssert_EQ(where_m != 0 || e == -e, true);
-	elem_m = where_m < 0 ? -e : e;
-	return *this;
+        PAssert_EQ(where_m != 0 || (e == -e), true);
+        elem_m = where_m < 0 ? -e : e;
+        return *this;
       }
 
     operator Element_t() const
@@ -300,7 +296,7 @@ public:
   AntiSymTenzor(DontInitialize) {}
 
   // Construct from a Tenzor: still a no-op here:
-  AntiSymTenzor( const Tenzor<T,1>& t ) { }
+  AntiSymTenzor( const Tenzor<T,1>& /*t*/) { }
 
   ~AntiSymTenzor() {}
 
@@ -358,13 +354,13 @@ public:
       : elem_m(model.elem_m), where_m(model.where_m) {}
     const AssignProxy& operator=(const AssignProxy& a)
       {
-	PAssert_EQ(where_m != 0 || a.elem_m == -a.elem_m, true);
+        PAssert_EQ(where_m != 0 || (a.elem_m == -a.elem_m), true);
 	elem_m = where_m < 0 ? -a.elem_m : a.elem_m;
 	return *this;
       }
     const AssignProxy& operator=(const Element_t& e)
       {
-	PAssert_EQ(where_m != 0 || e == -e, true);
+        PAssert_EQ(where_m != 0 || (e == -e), true);
 	elem_m = where_m < 0 ? -e : e;
 	return *this;
       }
@@ -418,7 +414,7 @@ public:
 
   //----------------------------------------------------------------------
   // Comparison operators.
-  bool operator==(const AntiSymTenzor<T,1>& that) const {
+  bool operator==(const AntiSymTenzor<T,1>& /*that*/) const {
     return true;
   }
   bool operator!=(const AntiSymTenzor<T,1>& that) const {
@@ -480,7 +476,7 @@ inline AntiSymTenzor<T,D> transpose(const AntiSymTenzor<T,D>& rhs) {
 // For D=3, det is zero, because diagonal elements are zero:
 template<class T>
 inline T
-det(const AntiSymTenzor<T,3>& t)
+det(const AntiSymTenzor<T,3>& /*t*/)
 {
   return T(0.0);
 }
@@ -496,7 +492,7 @@ det(const AntiSymTenzor<T,2>& t)
 // For D=1, det is zero, because diagonal elements are zero:
 template<class T>
 inline T
-det(const AntiSymTenzor<T,1>& t)
+det(const AntiSymTenzor<T,1>& /*t*/)
 {
   return T(0.0);
 }
@@ -508,7 +504,7 @@ det(const AntiSymTenzor<T,1>& t)
 // Only implement for 1D, 2D, 3D:
 
 template <class T, unsigned D>
-inline Tenzor<T,D> cofactors(const AntiSymTenzor<T,D>& rhs) {
+inline Tenzor<T,D> cofactors(const AntiSymTenzor<T,D>& /*rhs*/) {
   PInsist(D<4, "AntiSymTenzor cofactors() function not implemented for D>3!");
   return Tenzor<T,D>(-999999.999999);
 }
@@ -545,7 +541,7 @@ inline Tenzor<T,2> cofactors(const AntiSymTenzor<T,2>& rhs) {
 // For D=1, cofactor is the unit tensor, because det = single tensor element
 // value:
 template <class T>
-inline Tenzor<T,1> cofactors(const AntiSymTenzor<T,1>& rhs) {
+inline Tenzor<T,1> cofactors(const AntiSymTenzor<T,1>& /*rhs*/) {
   Tenzor<T,1> result = Tenzor<T,1>(1);
   return result;
 }
@@ -697,9 +693,9 @@ dotdot(const SymTenzor<T1,D> &lhs, const AntiSymTenzor<T2,D> &rhs)
 template<class T, unsigned D>
 inline std::ostream& operator<<(std::ostream& out, const AntiSymTenzor<T,D>& rhs) {
   if (D >= 1) {
-    for (int i=0; i<D; i++) {
+    for (unsigned int i=0; i<D; i++) {
       out << "(";
-      for (int j=0; j<D-1; j++) {
+      for (unsigned int j=0; j<D-1; j++) {
 	out << rhs(i,j) << " , ";
       }
       out << rhs(i,D-1) << ")";
@@ -714,10 +710,3 @@ inline std::ostream& operator<<(std::ostream& out, const AntiSymTenzor<T,D>& rhs
 //////////////////////////////////////////////////////////////////////
 
 #endif // ANTI_SYM_TENZOR_H
-
-/***************************************************************************
- * $RCSfile: AntiSymTenzor.h,v $
- * $Revision: 1.1.1.1 $
- * IPPL_VERSION_ID: $Id: AntiSymTenzor.h,v 1.1.1.1 2003/01/23 07:40:24 adelmann Exp $
- ***************************************************************************/
-

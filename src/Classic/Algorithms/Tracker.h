@@ -1,40 +1,6 @@
-#ifndef CLASSIC_Tracker_HH
-#define CLASSIC_Tracker_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: Tracker.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Tracker
-//
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
-//
-// $Date: 2004/11/12 18:57:53 $
-// $Author: adelmann $
-//
-// ------------------------------------------------------------------------
-
-#include "Algorithms/AbstractTracker.h"
-#include "Algorithms/PartBunchBase.h"
-#include "Algorithms/PartData.h"
-#include "FixedAlgebra/FTps.h"
-
-#include "Utilities/ClassicField.h"
-
-class BMultipoleField;
-class Euclid3D;
-class OpalParticle;
-
-
 // Class Tracker
-// ------------------------------------------------------------------------
-/// Track particles or bunches.
+//  Track particles or bunches.
 //  An abstract base class for all visitors capable of tracking particles
 //  through a beam element.
 //  [P]
@@ -79,7 +45,33 @@ class OpalParticle;
 //  [DT]phase lags:[DD]
 //    multiples of (2*pi).
 //  [/DL]
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+#ifndef CLASSIC_Tracker_HH
+#define CLASSIC_Tracker_HH
 
+#include "Algorithms/AbstractTracker.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartData.h"
+#include "FixedAlgebra/FTps.h"
+
+#include "Utilities/ClassicField.h"
+
+class BMultipoleField;
+class Euclid3D;
+class OpalParticle;
 
 class Tracker: public AbstractTracker {
 
@@ -89,8 +81,8 @@ public:
     //  The beam line to be tracked is [b]bl[/b].
     //  The particle reference data are taken from [b]data[/b].
     //  The particle bunch is initially empty.
-    //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
-    //  If [b]revTrack[/b] is true, we track against the beam.
+    //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
+    //  If [b]backTrack[/b] is true, we track against the beam.
     Tracker(const Beamline &, const PartData &,
             bool backBeam, bool backTrack);
 
@@ -98,8 +90,8 @@ public:
     //  The beam line to be tracked is [b]bl[/b].
     //  The particle reference data are taken from [b]data[/b].
     //  The particle bunch is taken from [b]bunch[/b].
-    //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
-    //  If [b]revTrack[/b] is true, we track against the beam.
+    //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
+    //  If [b]backTrack[/b] is true, we track against the beam.
     Tracker(const Beamline &, PartBunchBase<double, 3> *bunch,
             const PartData &, bool backBeam, bool backTrack);
 
@@ -118,26 +110,11 @@ public:
     //  This override calls the component to track the bunch.
     virtual void visitComponent(const Component &);
 
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
-
-    /// Apply the algorithm to an align wrapper.
-    virtual void visitAlignWrapper(const AlignWrapper &);
-
-    /// Apply the algorithm to an integrator capable of tracking.
-    virtual void visitTrackIntegrator(const TrackIntegrator &);
-
-    /// Apply the algorithm to an integrator capable of mapping.
-    virtual void visitMapIntegrator(const MapIntegrator &);
-
     /// set total number of tracked bunches
-    virtual void setNumBunch(int) {};
+    virtual void setNumBunch(short) {};
 
     /// get total number of tracked bunches
-    virtual int  getNumBunch() { return 0; }
-
-    /// set multipacting flag
-    //virtual void setMpacflg(bool /* mpacflg */) {};
+    virtual short getNumBunch() { return 0; }
 
     // standing wave structures
     FieldList cavities_m;

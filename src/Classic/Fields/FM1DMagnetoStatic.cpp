@@ -72,18 +72,18 @@ bool FM1DMagnetoStatic::getFieldstrength(const Vector_t &R, Vector_t &E,
         Vector_t &B) const {
 
     std::vector<double> fieldComponents;
-    computeFieldOnAxis(R(2), fieldComponents);
+    computeFieldOnAxis(R(2) - zBegin_m, fieldComponents);
     computeFieldOffAxis(R, E, B, fieldComponents);
 
     return false;
 }
 
 bool FM1DMagnetoStatic::getFieldDerivative(const Vector_t &R,
-        Vector_t &E,
+        Vector_t &/*E*/,
         Vector_t &B,
-        const DiffDirection &dir) const {
+        const DiffDirection &/*dir*/) const {
 
-    double kz = Physics::two_pi * R(2) / length_m + Physics::pi;
+    double kz = Physics::two_pi * (R(2) - zBegin_m) / length_m + Physics::pi;
     double bZPrime = 0.0;
 
     int coefIndex = 1;
@@ -101,16 +101,13 @@ bool FM1DMagnetoStatic::getFieldDerivative(const Vector_t &R,
     return false;
 }
 
-void FM1DMagnetoStatic::getFieldDimensions(double &zBegin, double &zEnd,
-        double &rBegin, double &rEnd) const {
+void FM1DMagnetoStatic::getFieldDimensions(double &zBegin, double &zEnd) const {
     zBegin = zBegin_m;
     zEnd = zEnd_m;
-    rBegin = rBegin_m;
-    rEnd = rEnd_m;
 }
-void FM1DMagnetoStatic::getFieldDimensions(double &xIni, double &xFinal,
-        double &yIni, double &yFinal,
-        double &zIni, double &zFinal) const {
+void FM1DMagnetoStatic::getFieldDimensions(double &/*xIni*/, double &/*xFinal*/,
+                                           double &/*yIni*/, double &/*yFinal*/,
+                                           double &/*zIni*/, double &/*zFinal*/) const {
 }
 
 void FM1DMagnetoStatic::swap()
@@ -127,7 +124,7 @@ double FM1DMagnetoStatic::getFrequency() const {
     return 0.0;
 }
 
-void FM1DMagnetoStatic::setFrequency(double freq)
+void FM1DMagnetoStatic::setFrequency(double /*freq*/)
 { }
 
 bool FM1DMagnetoStatic::checkFileData(std::ifstream &fieldFile,
@@ -136,14 +133,14 @@ bool FM1DMagnetoStatic::checkFileData(std::ifstream &fieldFile,
     double tempDouble;
     for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
         parsingPassed = parsingPassed
-                        && interpreteLine<double>(fieldFile, tempDouble);
+                        && interpretLine<double>(fieldFile, tempDouble);
 
     return parsingPassed && interpreteEOF(fieldFile);
 
 }
 
 void FM1DMagnetoStatic::computeFieldOffAxis(const Vector_t &R,
-        Vector_t &E,
+                                            Vector_t &/*E*/,
         Vector_t &B,
         std::vector<double> fieldComponents) const {
 
@@ -226,7 +223,7 @@ double FM1DMagnetoStatic::readFileData(std::ifstream &fieldFile,
 
     double maxBz = 0.0;
     for(int dataIndex = 0; dataIndex < numberOfGridPoints_m; dataIndex++) {
-        interpreteLine<double>(fieldFile, fieldData[numberOfGridPoints_m
+        interpretLine<double>(fieldFile, fieldData[numberOfGridPoints_m
                                - 1 + dataIndex]);
         if(std::abs(fieldData[numberOfGridPoints_m + dataIndex]) > maxBz)
             maxBz = std::abs(fieldData[numberOfGridPoints_m + dataIndex]);
@@ -253,11 +250,11 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
 
     bool parsingPassed = true;
     try {
-        parsingPassed = interpreteLine<std::string, int>(fieldFile,
+        parsingPassed = interpretLine<std::string, int>(fieldFile,
                                                          tempString,
                                                          accuracy_m);
     } catch (GeneralClassicException &e) {
-        parsingPassed = interpreteLine<std::string, int, std::string>(fieldFile,
+        parsingPassed = interpretLine<std::string, int, std::string>(fieldFile,
                                                                       tempString,
                                                                       accuracy_m,
                                                                       tempString);
@@ -272,11 +269,11 @@ bool FM1DMagnetoStatic::readFileHeader(std::ifstream &fieldFile) {
         normalize_m = (tempString == "TRUE");
     }
     parsingPassed = parsingPassed &&
-                    interpreteLine<double, double, int>(fieldFile, zBegin_m,
+                    interpretLine<double, double, int>(fieldFile, zBegin_m,
                             zEnd_m,
                             numberOfGridPoints_m);
     parsingPassed = parsingPassed &&
-                    interpreteLine<double, double, int>(fieldFile, rBegin_m,
+                    interpretLine<double, double, int>(fieldFile, rBegin_m,
                             rEnd_m, tempInt);
 
     ++ numberOfGridPoints_m;

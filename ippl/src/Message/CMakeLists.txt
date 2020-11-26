@@ -10,8 +10,6 @@ set (_SRCS
 set (_HDRS
     CommCreator.h
     CommMPI.h
-    CommPM.h
-    CommSHMEMPI.h
     Communicate.h
     CRC.h
     DataTypes.h
@@ -33,11 +31,3 @@ add_ippl_sources (${_SRCS})
 add_ippl_headers (${_HDRS})
 
 install (FILES ${_HDRS} DESTINATION include/Message)
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

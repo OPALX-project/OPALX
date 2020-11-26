@@ -1,3 +1,23 @@
+//
+// Class Ifpack2Preconditioner
+//   Interface to Ifpack2 preconditioners.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Utilities/OpalException.h"
 
 template <class Level>
@@ -10,7 +30,7 @@ Ifpack2Preconditioner<Level>::Ifpack2Preconditioner(Preconditioner prec)
 
 template <class Level>
 void Ifpack2Preconditioner<Level>::create(const Teuchos::RCP<amr::matrix_t>& A,
-                                          Level* level_p)
+                                          Level* /*level_p*/)
 {
     Ifpack2::Factory factory;
     

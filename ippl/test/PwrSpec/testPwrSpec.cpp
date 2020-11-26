@@ -56,22 +56,18 @@ enum BC_t {OOO,OOP,PPP};
 enum InterPol_t {NGP,CIC};
 
 const double pi = acos(-1.0);
-const double qmmax = 1.0;       // maximum value for particle q/m
-const double dt = 1.0;          // size of timestep
 
 class ChargedParticles : public IpplParticleBase<playout_t> {
 public:
 
-    ChargedParticles(playout_t* pl, BC_t bc, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool gCells) :
+    ChargedParticles(playout_t* pl, BC_t /*bc*/, Vector_t hr, Vector_t rmin, Vector_t rmax, e_dim_tag decomp[Dim], bool /*gCells*/) :
         IpplParticleBase<playout_t>(pl),
-        bco_m(bc),
         hr_m(hr),
         rmin_m(rmin),
-        rmax_m(rmax),
-        withGuardCells_m(gCells)
+        rmax_m(rmax)
     {
         setupBCs();
-        for(int i=0; i<Dim; i++)
+        for(unsigned int i=0; i<Dim; i++)
             decomp_m[i]=decomp[i];
     }
     
@@ -95,7 +91,7 @@ public:
 
         NDIndex<Dim> domain = getFieldLayout().getDomain();
 
-        for(int i=0; i<Dim; i++)
+        for(unsigned int i=0; i<Dim; i++)
             nr_m[i] = domain[i].length();
 
         int nx = nr_m[0];
@@ -130,7 +126,7 @@ public:
 private:
 
     inline void setBCAllOpen() {
-        for (int i=0; i < 2*Dim; i++) {
+        for (unsigned int i=0; i < 2*Dim; i++) {
             this->getBConds()[i] = ParticleNoBCond;
             bc_m[i]  = new ZeroFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
@@ -138,7 +134,7 @@ private:
     }
 
     inline void setBCAllPeriodic() {
-        for (int i=0; i < 2*Dim; i++) {
+        for (unsigned int i=0; i < 2*Dim; i++) {
             this->getBConds()[i] = ParticlePeriodicBCond;
             bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
@@ -146,12 +142,12 @@ private:
     }
 
     inline void setBCOOP() {
-        for (int i=0; i < 2*Dim - 2; i++) {
+        for (unsigned int i=0; i < 2*Dim - 2; i++) {
             bc_m[i]  = new ZeroFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new ZeroFace<Vector_t,Dim,Mesh_t,Center_t>(i);
             this->getBConds()[i] = ParticleNoBCond;
         }
-        for (int i= 2*Dim - 2; i < 2*Dim; i++) {
+        for (unsigned int i= 2*Dim - 2; i < 2*Dim; i++) {
             bc_m[i]  = new PeriodicFace<double  ,Dim,Mesh_t,Center_t>(i);
             vbc_m[i] = new PeriodicFace<Vector_t,Dim,Mesh_t,Center_t>(i);
             this->getBConds()[i] = ParticlePeriodicBCond;
@@ -170,9 +166,6 @@ private:
     Vector_t rmin_m;
     Vector_t rmax_m;
 
-    BC_t bco_m;
-
-    bool withGuardCells_m;
     e_dim_tag decomp_m[Dim];
 
 public:
@@ -190,14 +183,14 @@ class PwrSpec
 {
 public:
 
-    typedef Field<dcomplex, Dim, Mesh_t, Center_t>          CxField_t;
+    typedef Field<std::complex<double>, Dim, Mesh_t, Center_t> CxField_t;
     typedef Field<T, Dim, Mesh_t, Center_t>                 RxField_t;
     typedef FFT<CCTransform, Dim, T>                        FFT_t;
 
     // constructor and destructor
     PwrSpec(Mesh_t *mesh, FieldLayout_t *FL):
-        layout_m(FL),
-        mesh_m(mesh)
+        mesh_m(mesh),
+        layout_m(FL)
     {
 
         Inform msg ("FFT doInit");
@@ -212,12 +205,12 @@ public:
         msg << "GDomain " << gDomain_m << " GDomainL " << gDomainL_m << endl;
 
 
-        for (int i=0; i < 2*Dim; ++i) {
+        for (unsigned int i=0; i < 2*Dim; ++i) {
             bc_m[i] = new ParallelPeriodicFace<T,Dim,Mesh_t,Center_t>(i);
             zerobc_m[i] = new ZeroFace<T,Dim,Mesh_t,Center_t>(i);
         }
 
-        for(int d=0; d<Dim; d++) {
+        for(unsigned int d=0; d<Dim; d++) {
             dcomp_m[d]=layout_m->getRequestedDistribution(d);
             nr_m[d] = gDomain_m[d].length();
         }
@@ -404,15 +397,15 @@ int main(int argc, char *argv[]){
 
     NDIndex<Dim> domain;
     if (gCells) {
-        for(int i=0; i<Dim; i++)
+        for(unsigned int i=0; i<Dim; i++)
             domain[i] = domain[i] = Index(nr[i] + 1);
     }
     else {
-        for(int i=0; i<Dim; i++)
+        for(unsigned int i=0; i<Dim; i++)
             domain[i] = domain[i] = Index(nr[i]);
     }
 
-    for (int d=0; d < Dim; ++d)
+    for (unsigned int d=0; d < Dim; ++d)
         decomp[d] = PARALLEL;
 
     // create mesh and layout objects for this problem domain

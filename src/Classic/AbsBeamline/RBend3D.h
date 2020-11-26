@@ -65,10 +65,6 @@ public:
     /// Apply visitor to RBend3D.
     virtual void accept(BeamlineVisitor &) const override;
 
-    virtual void addKR(int i, double t, Vector_t &K) override;
-
-    virtual void addKT(int i, double t, Vector_t &K) override;
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
 
     virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) override;
@@ -79,18 +75,9 @@ public:
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual void goOnline(const double &kineticEnergy) override;
 
     virtual void goOffline() override;
-
-    //  Assign the field filename.
-    void setFieldMapFN(std::string fn);
-
-    void setFast(bool fast);
-
-    bool getFast() const;
 
     virtual ElementBase::ElementType getType() const override;
 
@@ -104,14 +91,10 @@ public:
 private:
     double trackRefParticleThrough(double dt, bool print = false);
 
-    //  std::string name;                 /**< The name of the object*/
-    Fieldmap *myFieldmap_m;
     double fieldAmplitudeError_m;         /**< scale multiplier error*/
 
     double startField_m;                  /**< startingpoint of field, m*/
     double lengthField_m;
-
-    bool fast_m;
 
     StraightGeometry geometry_m;
 

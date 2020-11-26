@@ -1,5 +1,4 @@
 set (_SRCS
-    AttCell.cpp
     OpalBeamStripping.cpp
     OpalBend.cpp
     OpalCavity.cpp
@@ -12,8 +11,6 @@ set (_SRCS
     OpalDegrader.cpp
     OpalElement.cpp
     OpalHKicker.cpp
-    OpalHMonitor.cpp
-    OpalInstrument.cpp
     OpalKicker.cpp
     OpalMarker.cpp
     OpalMonitor.cpp
@@ -27,7 +24,6 @@ set (_SRCS
     OpalOffset/OpalLocalCartesianOffset.cpp
     OpalOffset/OpalGlobalCylindricalOffset.cpp
     OpalOffset/OpalGlobalCartesianOffset.cpp
-    OpalPatch.cpp
     OpalProbe.cpp
     OpalPepperPot.cpp
     OpalPolynomialTimeDependence.cpp
@@ -39,23 +35,17 @@ set (_SRCS
     OpalSBend.cpp
     OpalSBend3D.cpp
     OpalScalingFFAMagnet.cpp
-    OpalSeparator.cpp
     OpalSeptum.cpp
     OpalSextupole.cpp
     OpalSlit.cpp
     OpalSolenoid.cpp
     OpalSource.cpp
     OpalSplineTimeDependence.cpp
-    OpalSRot.cpp
     OpalVariableRFCavity.cpp
     OpalVariableRFCavityFringeField.cpp
     OpalVerticalFFAMagnet.cpp
     OpalVKicker.cpp
-    OpalVMonitor.cpp
-    OpalYRot.cpp
     OpalBeamline.cpp
-    OpalParallelPlate.cpp
-    OpalCyclotronValley.cpp
     OpalStripper.cpp
     )
 
@@ -66,21 +56,17 @@ include_directories (
 add_opal_sources (${_SRCS})
 
 set (HDRS
-    AttCell.h
     OpalBeamline.h
     OpalBeamStripping.h
     OpalBend.h
     OpalCavity.h
     OpalCCollimator.h
     OpalCyclotron.h
-    OpalCyclotronValley.h
     OpalDegrader.h
     OpalDrift.h
     OpalECollimator.h
     OpalElement.h
     OpalHKicker.h
-    OpalHMonitor.h
-    OpalInstrument.h
     OpalKicker.h
     OpalMarker.h
     OpalMonitor.h
@@ -90,8 +76,6 @@ set (HDRS
     OpalMultipoleTCurvedConstRadius.h
     OpalMultipoleTCurvedVarRadius.h
     OpalOctupole.h
-    OpalParallelPlate.h
-    OpalPatch.h
     OpalPepperPot.h
     OpalPolynomialTimeDependence.h
     OpalProbe.h
@@ -103,22 +87,18 @@ set (HDRS
     OpalSBend3D.h
     OpalSBend.h
     OpalScalingFFAMagnet.h
-    OpalSeparator.h
     OpalSeptum.h
     OpalSextupole.h
     OpalSlit.h
     OpalSolenoid.h
     OpalSource.h
     OpalSplineTimeDependence.h
-    OpalSRot.h
     OpalStripper.h
     OpalTravelingWave.h
     OpalVariableRFCavity.h
     OpalVariableRFCavityFringeField.h
     OpalVerticalFFAMagnet.h
     OpalVKicker.h
-    OpalVMonitor.h
-    OpalYRot.h
     OpalOffset/OpalGlobalCartesianOffset.h
     OpalOffset/OpalGlobalCylindricalOffset.h
     OpalOffset/OpalLocalCartesianOffset.h
@@ -126,11 +106,3 @@ set (HDRS
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Elements/OpalOffset")
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

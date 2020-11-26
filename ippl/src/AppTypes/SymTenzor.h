@@ -78,9 +78,9 @@ public:
   // Construct from a Tenzor.
   // Extract the symmetric part.
   SymTenzor(const Tenzor<T,D>& t) {
-    for (int i=0; i<D; ++i) {
+    for (unsigned int i=0; i<D; ++i) {
       (*this)(i,i) = t(i,i);
-      for (int j=i+1; j<D; ++j)
+      for (unsigned int j=i+1; j<D; ++j)
 	(*this)(i,j) = (t(i,j)+t(j,i))*0.5;
     }
   }
@@ -105,9 +105,9 @@ public:
     return *this;
   }
   const SymTenzor<T,D>& operator= (const Tenzor<T,D> &rhs) {
-    for (int i=0; i<D; ++i) {
+    for (unsigned int i=0; i<D; ++i) {
       (*this)(i,i) = rhs(i,i);
-      for (int j=i+1; j<D; ++j)
+      for (unsigned int j=i+1; j<D; ++j)
 	(*this)(i,j) = (rhs(i,j)+rhs(j,i))*0.5;
     }
     return *this;
@@ -173,7 +173,7 @@ public:
   // Methods
 
   void diagonal(const T& rhs) {
-    for ( int i = 0 ; i < D ; i++ ) {
+    for (unsigned int i = 0 ; i < D ; i++ ) {
       X[((i+1)*i/2) + i] = rhs;
     }
   }
@@ -286,7 +286,7 @@ private:
 template <class T, unsigned D>
 inline T trace(const SymTenzor<T,D> &rhs) {
   T result = 0.0;
-  for (int i = 0 ; i < D ; i++ ) 
+  for (unsigned int i = 0 ; i < D ; i++ ) 
     result += rhs(i,i);
   return result;
 }
@@ -298,7 +298,7 @@ inline SymTenzor<T,D> transpose(const SymTenzor<T,D> &rhs) {
 
 // Determinant: only implement for 1D, 2D, 3D:
 template <class T, unsigned D>
-inline T det(const SymTenzor<T,D>& rhs) {
+inline T det(const SymTenzor<T,D>& /*rhs*/) {
   PInsist(D<3, "Tenzor det() function not implemented for D>3!");
   return T(-999999.999999);
 }
@@ -333,7 +333,7 @@ inline T det(const SymTenzor<T,1>& rhs) {
 // Only implement for 1D, 2D, 3D:
 
 template <class T, unsigned D>
-inline Tenzor<T,D> cofactors(const SymTenzor<T,D>& rhs) {
+inline Tenzor<T,D> cofactors(const SymTenzor<T,D>& /*rhs*/) {
   PInsist(D<4, "SymTenzor cofactors() function not implemented for D>3!");
   return Tenzor<T,D>(-999999.999999);
 }
@@ -368,7 +368,7 @@ inline Tenzor<T,2> cofactors(const SymTenzor<T,2>& rhs) {
 // For D=1, cofactor is the unit tensor, because det = single tensor element
 // value:
 template <class T>
-inline Tenzor<T,1> cofactors(const SymTenzor<T,1>& rhs) {
+inline Tenzor<T,1> cofactors(const SymTenzor<T,1>& /*rhs*/) {
   Tenzor<T,1> result = Tenzor<T,1>(1);
   return result;
 }
@@ -491,9 +491,9 @@ dotdot(const Tenzor<T1,D> &lhs, const SymTenzor<T2,D> &rhs)
 template<class T, unsigned D>
 inline std::ostream& operator<<(std::ostream& out, const SymTenzor<T,D>& rhs) {
   if (D >= 1) {
-    for (int i=0; i<D; i++) {
+    for (unsigned int i=0; i<D; i++) {
       out << "(";
-      for (int j=0; j<D-1; j++) {
+      for (unsigned int j=0; j<D-1; j++) {
 	out << rhs(i,j) << " , ";
       }
       out << rhs(i,D-1) << ")";

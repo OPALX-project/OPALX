@@ -34,15 +34,16 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
 #include "Utilities/Options.h"
-#include "Utilities/Round.h"
-#include <cassert>
+#include <cmath>
 #include <ctime>
 #include <exception>
 #include <iostream>
 #include <new>
 #include <boost/algorithm/string.hpp>
 
-#include <Ippl.h>
+#include "Message/GlobalComm.h"
+#include "Utility/Inform.h"
+#include "Utility/IpplInfo.h"
 
 using namespace Expressions;
 
@@ -178,7 +179,7 @@ void OpalParser::parseAction(Statement &stat) const {
     } else {
         std::string hint = getHint(cmdName, "command");
         if (hint != "") {
-            throw ParseError("OpalParser::parse()",
+            throw ParseError("OpalParser::parseAction()",
                              "Syntax error, " + hint);
         }
 
@@ -286,7 +287,7 @@ void OpalParser::parseAssign(Statement &stat) const {
     int index = 0;
 
     if(stat.delimiter('[')) {
-        index = int(Round(parseRealConst(stat)));
+        index = int(std::round(parseRealConst(stat)));
         parseDelimiter(stat, ']');
 
         if(index <= 0) {

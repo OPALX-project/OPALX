@@ -16,27 +16,19 @@
 #include "Field/LField.h"
 #include "Field/CompressedBrickIterator.h"
 #include "Index/NDIndex.h"
+#include "Meshes/Centering.h"
 #include "AppTypes/Vektor.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplException.h"
 
-#include <iostream>
+#include <ostream>
 #include <vector>
-#include <utility>
-#include <cmath>
 
 // Helper class and functions for finding nearest grid point given centering
 
 // A tag indicating the Field centering type
 template <class C>
 class CenteringTag {
-#ifdef IPPL_PURIFY
-  // Add explicit default/copy constructors and op= to avoid UMR's.
-public:
-  CenteringTag() {}
-  CenteringTag(const CenteringTag<C> &) {}
-  CenteringTag<C>& operator=(const CenteringTag<C> &) { return *this; }
-#endif
 };
 
 // Return NDIndex referring to the nearest Field element to the given position

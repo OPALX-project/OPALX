@@ -56,7 +56,7 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
             std::string tempString = "";
             double tempDouble = 0.0;
 
-            bool parsingPassed = interpreteLine<std::string, int, int, double>
+            bool parsingPassed = interpretLine<std::string, int, int, double>
                                  (inputFile,
                                   tempString,
                                   polyOrderEntry_m,
@@ -64,7 +64,7 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
                                   gapHeight_m);
 
             parsingPassed = parsingPassed &&
-                            interpreteLine<double, double, double, int>
+                            interpretLine<double, double, double, int>
                             (inputFile,
                              entranceParameter1_m,
                              entranceParameter2_m,
@@ -73,7 +73,7 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
                              false);
 
             parsingPassed = parsingPassed &&
-                            interpreteLine<double, double, double, int>
+                            interpretLine<double, double, double, int>
                             (inputFile,
                              exitParameter1_m,
                              exitParameter2_m,
@@ -84,7 +84,7 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
                 (index < polyOrderEntry_m + polyOrderExit_m + 2) && parsingPassed;
                 index++)
                 parsingPassed = parsingPassed &&
-                                interpreteLine<double>(inputFile, tempDouble);
+                                interpretLine<double>(inputFile, tempDouble);
 
             parsingPassed = parsingPassed && interpreteEOF(inputFile);
 
@@ -157,29 +157,29 @@ void FM1DProfile1::readMap() {
         std::string tempString;
         double tempDouble;
 
-        interpreteLine<std::string, int, int, double>(inputFile,
+        interpretLine<std::string, int, int, double>(inputFile,
                 tempString,
                 tempInt,
                 tempInt,
                 tempDouble);
-        interpreteLine<double, double, double, int>(inputFile,
+        interpretLine<double, double, double, int>(inputFile,
                 tempDouble,
                 tempDouble,
                 tempDouble,
                 tempInt);
-        interpreteLine<double, double, double, int>(inputFile,
+        interpretLine<double, double, double, int>(inputFile,
                 tempDouble,
                 tempDouble,
                 tempDouble,
                 tempInt);
 
         for(int index = 0; index < polyOrderEntry_m + 1; index++) {
-            interpreteLine<double>(inputFile,  tempDouble);
+            interpretLine<double>(inputFile,  tempDouble);
             engeCoeffsEntry_m.push_back(tempDouble);
         }
 
         for(int index = 0; index < polyOrderExit_m + 1; index++) {
-            interpreteLine<double>(inputFile, tempDouble);
+            interpretLine<double>(inputFile, tempDouble);
             engeCoeffsExit_m.push_back(tempDouble);
         }
 
@@ -208,7 +208,7 @@ void FM1DProfile1::readMap() {
 void FM1DProfile1::freeMap() {
 }
 
-bool FM1DProfile1::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
+bool FM1DProfile1::getFieldstrength(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/) const {
 
     /*
      * For this type of field map, the elements who use it calculate the field
@@ -218,26 +218,24 @@ bool FM1DProfile1::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B)
 
 }
 
-bool FM1DProfile1::getFieldDerivative(const Vector_t &R,
-                                      Vector_t &E,
-                                      Vector_t &B,
-                                      const DiffDirection &dir) const {
+bool FM1DProfile1::getFieldDerivative(const Vector_t &/*R*/,
+                                      Vector_t &/*E*/,
+                                      Vector_t &/*B*/,
+                                      const DiffDirection &/*dir*/) const {
     return false;
 }
 
 void FM1DProfile1::getFieldDimensions(double &sBegin,
-                                      double &sEnd,
-                                      double &rBegin,
-                                      double &rEnd) const {
+                                      double &sEnd) const {
     sBegin = sBegin_m;
     sEnd = sEnd_m;
 }
-void FM1DProfile1::getFieldDimensions(double &xIni,
-                                      double &xFinal,
-                                      double &yIni,
-                                      double &yFinal,
-                                      double &zIni,
-                                      double &zFinal) const {
+void FM1DProfile1::getFieldDimensions(double &/*xIni*/,
+                                      double &/*xFinal*/,
+                                      double &/*yIni*/,
+                                      double &/*yFinal*/,
+                                      double &/*zIni*/,
+                                      double &/*zFinal*/) const {
 
 }
 
@@ -254,7 +252,7 @@ double FM1DProfile1::getFrequency() const {
     return 0.0;
 }
 
-void FM1DProfile1::setFrequency(double freq)
+void FM1DProfile1::setFrequency(double /*freq*/)
 {}
 
 void FM1DProfile1::get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,

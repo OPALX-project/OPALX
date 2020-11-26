@@ -54,14 +54,10 @@ OpalLocalCartesianOffset::OpalLocalCartesianOffset()
              "x component of normal of end of the offset in coordinate system of the end of the upstream element [m].");
     itsAttr[END_NORMAL_Y] = Attributes::makeReal("END_NORMAL_Y",
              "y component of normal of end of the offset in coordinate system of the end of the upstream element [m].");
-    registerRealAttribute("END_POSITION_X");
-    registerRealAttribute("END_POSITION_Y");
-    registerRealAttribute("END_NORMAL_X");
-    registerRealAttribute("END_NORMAL_Y");
 
     registerOwnership();
 
-    setElement((new Offset("LOCAL_CARTESIAN_OFFSET"))->makeAlignWrapper());
+    setElement(new Offset("LOCAL_CARTESIAN_OFFSET"));
 }
 
 OpalLocalCartesianOffset* OpalLocalCartesianOffset::clone() {
@@ -84,33 +80,15 @@ OpalLocalCartesianOffset::OpalLocalCartesianOffset(const std::string &name, Opal
 
 OpalLocalCartesianOffset::~OpalLocalCartesianOffset() {}
 
-void OpalLocalCartesianOffset::fillRegisteredAttributes
-                                     (const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-    const Offset* offset = dynamic_cast<const Offset*>(&base);
-    if (offset == NULL) {
-        throw OpalException("OpalVariableRFCavity::fillRegisteredAttributes",
-                            "Failed to cast ElementBase to a VariableRFCavity");
-    }
-
-    Euclid3D trans = offset->getGeometry().getTotalTransform();
-    double rot = trans.getRotation().getAxis()(1);
-    attributeRegistry["END_POSITION_X"]->setReal(trans.getVector()(2));
-    attributeRegistry["END_POSITION_Y"]->setReal(trans.getVector()(0));
-    attributeRegistry["END_NORMAL_X"]->setReal(cos(rot));
-    attributeRegistry["END_NORMAL_Y"]->setReal(sin(rot));
-}
-
 void OpalLocalCartesianOffset::update() {
     // getOpalName() comes from AbstractObjects/Object.h
-    Offset *offset = dynamic_cast<Offset*>(getElement()->removeWrappers());
+    Offset *offset = dynamic_cast<Offset*>(getElement());
     std::string name = getOpalName();
     Vector_t pos(Attributes::getReal(itsAttr[END_POSITION_X]),
                  Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
     Vector_t norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
                   Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
-    Offset off = Offset(Offset::localCartesianOffset(name, pos, norm));
-    *offset = off;
-    setElement(offset->makeAlignWrapper());
+    *offset = Offset(Offset::localCartesianOffset(name, pos, norm));
+    setElement(offset);
 }
 }

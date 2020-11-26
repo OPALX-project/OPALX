@@ -20,7 +20,6 @@ set (HDRS
     AColumn.h
     ADeferred.h
     AList.h
-    ARefAttr.h
     ARefExpr.h
     ARow.h
     ASUnary.h
@@ -48,11 +47,3 @@ set (HDRS
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Expressions")
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

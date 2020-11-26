@@ -1,46 +1,60 @@
 //
-//  Copyright & License: See Copyright.readme in src directory
+// Class DataSink
+//   This class acts as an observer during the calculation. It generates diagnostic
+//   output of the accelerated beam such as statistical beam descriptors of particle
+//   positions, momenta, beam phase space (emittance) etc. These are written to file
+//   at periodic time steps during the calculation.
 //
+//   This class also writes the full beam phase space to an H5 file at periodic time
+//   steps in the calculation (this period is different from that of the statistical
+//   numbers).
 
-/**
-   \brief Class: DataSink
-
-   This class acts as an observer during the calculation. It generates diagnostic
-   output of the accelerated beam such as statistical beam descriptors of particle
-   positions, momenta, beam phase space (emittance) etc. These are written to file
-   at periodic time steps during the calculation.
-
-   This class also writes the full beam phase space to an H5 file at periodic time
-   steps in the calculation (this period is different from that of the statistical
-   numbers).
-
-   Class also writes processor load balancing data to file to track parallel
-   calculation efficiency.
-*/
-
+//   Class also writes processor load balancing data to file to track parallel
+//   calculation efficiency.
+//
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef _OPAL_DATA_SINK_H
 #define _OPAL_DATA_SINK_H
 
-#include "Algorithms/PBunchDefs.h"
+#include "Algorithms/Vektor.h"
 
+#include "SDDSWriter.h"
 #include "StatWriter.h"
 #include "H5Writer.h"
 #include "MultiBunchDump.h"
+
+#include <iomanip>
+#include <memory>
+#include <string>
+#include <vector>
 
 template <class T, unsigned Dim>
 class PartBunchBase;
 class BoundaryGeometry;
 class H5PartWrapper;
+class MultiBunchHandler;
 
 class DataSink {
-public:
+private:
     typedef StatWriter::losses_t            losses_t;
     typedef std::unique_ptr<StatWriter>     statWriter_t;
     typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
     typedef std::unique_ptr<H5Writer>       h5Writer_t;
     typedef std::unique_ptr<MultiBunchDump> mbWriter_t;
     
-    
+public:
     /** \brief Default constructor.
      *
      * The default constructor is called at the start of a new calculation (as
@@ -57,35 +71,17 @@ public:
                double refR, double refTheta, double refZ,
                double azimuth, double elevation, bool local) const;
     
-    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-    void dumpH5(EnvelopeBunch &beam, Vector_t FDext[],
-                double sposHead, double sposRef,
-                double sposTail) const;
-    
-    
     void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                   const double& azimuth = -1) const;
     
     void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
                   const losses_t &losses = losses_t(), const double& azimuth = -1) const;
     
-    //FIXME https://gitlab.psi.ch/OPAL/src/issues/245
-    void dumpSDDS(EnvelopeBunch &beam, Vector_t FDext[],
-                  double sposHead, double sposRef, double sposTail) const;
-
     /** \brief Write cavity information from  H5 file
      */
     void storeCavityInformation();
     
     void changeH5Wrapper(H5PartWrapper *h5wrapper);
-    
-    
-    /**
-     * Write particle loss data to an ASCII fille for histogram
-     * @param fn specifies the name of ASCII file
-     * @param beam
-     */
-    void writePartlossZASCII(PartBunchBase<double, 3> *beam, BoundaryGeometry &bg, std::string fn);
     
     /**
      * Write geometry points and surface triangles to vtk file
@@ -103,7 +99,7 @@ public:
      * @param fn specifies the name of vtk file contains the geometry
      *
      */
-    void writeImpactStatistics(PartBunchBase<double, 3> *beam,
+    void writeImpactStatistics(const PartBunchBase<double, 3> *beam,
                                long long int &step,
                                size_t &impact,
                                double &sey_num,
@@ -164,10 +160,3 @@ std::string DataSink::convertToString(int number, int setw) {
 
 
 #endif // DataSink_H_
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c++
-// c-basic-offset: 4
-// indent-tabs-mode:nil
-// End:

@@ -51,23 +51,18 @@ OpalVariableRFCavity::OpalVariableRFCavity():
                 "Full width of the cavity [m].");
     itsAttr[HEIGHT] = Attributes::makeReal("HEIGHT",
                 "Full height of the cavity [m].");
-    registerStringAttribute("PHASE_MODEL");
-    registerStringAttribute("AMPLITUDE_MODEL");
-    registerStringAttribute("FREQUENCY_MODEL");
-    registerRealAttribute("WIDTH");
-    registerRealAttribute("HEIGHT");
 
     registerOwnership();
 
-    setElement((new VariableRFCavity("VARIABLE_RF_CAVITY"))->makeAlignWrapper());
+    setElement(new VariableRFCavity("VARIABLE_RF_CAVITY"));
 }
 
 OpalVariableRFCavity::OpalVariableRFCavity(const std::string &name,
                                            OpalVariableRFCavity *parent) :
           OpalElement(name, parent) {
     VariableRFCavity *cavity = dynamic_cast<VariableRFCavity*>(
-                                        parent->getElement()->removeWrappers());
-    setElement((new VariableRFCavity(*cavity))->makeAlignWrapper());
+                                        parent->getElement());
+    setElement(new VariableRFCavity(*cavity));
 }
 
 OpalVariableRFCavity::~OpalVariableRFCavity() {
@@ -81,34 +76,11 @@ OpalVariableRFCavity *OpalVariableRFCavity::clone() {
     return new OpalVariableRFCavity(this->getOpalName(), this);
 }
 
-void OpalVariableRFCavity::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-    const VariableRFCavity* cavity = dynamic_cast<const VariableRFCavity*>(&base);
-    if (cavity == NULL) {
-        throw OpalException("OpalVariableRFCavity::fillRegisteredAttributes",
-                            "Failed to cast ElementBase to a VariableRFCavity");
-    }
-
-    attributeRegistry["L"]->setReal(cavity->getLength());
-    std::shared_ptr<AbstractTimeDependence> phase_model = cavity->getPhaseModel();
-    std::shared_ptr<AbstractTimeDependence> freq_model = cavity->getFrequencyModel();
-    std::shared_ptr<AbstractTimeDependence> amp_model = cavity->getAmplitudeModel();
-    std::string phase_name = AbstractTimeDependence::getName(phase_model);
-    std::string amp_name = AbstractTimeDependence::getName(amp_model);
-    std::string freq_name = AbstractTimeDependence::getName(freq_model);
-    attributeRegistry["PHASE_MODEL"]->setString(phase_name);
-    attributeRegistry["AMPLITUDE_MODEL"]->setString(amp_name);
-    attributeRegistry["FREQUENCY_MODEL"]->setString(freq_name);
-    attributeRegistry["WIDTH"]->setReal(cavity->getWidth());
-    attributeRegistry["HEIGHT"]->setReal(cavity->getHeight());
-}
-
 void OpalVariableRFCavity::update() {
     OpalElement::update();
 
     VariableRFCavity *cavity = dynamic_cast<VariableRFCavity*>(
-                                                getElement()->removeWrappers());
+                                                getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     cavity->setLength(length);
     std::string phaseName = Attributes::getString(itsAttr[PHASE_MODEL]);
@@ -121,5 +93,5 @@ void OpalVariableRFCavity::update() {
     cavity->setWidth(width);
     double height = Attributes::getReal(itsAttr[HEIGHT]);
     cavity->setHeight(height);
-    setElement(cavity->makeAlignWrapper());
+    setElement(cavity);
 }

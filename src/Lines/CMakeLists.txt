@@ -1,5 +1,4 @@
 set (_SRCS
-    FlatWriter.cpp
     Line.cpp
     LineTemplate.cpp
     Replacer.cpp
@@ -16,7 +15,6 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
-    FlatWriter.h
     Line.h
     LineTemplate.h
     Replacer.h
@@ -27,11 +25,3 @@ set (HDRS
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Lines")
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

@@ -6,9 +6,12 @@
 
 #include <string>
 #include <cstring>
+#include <limits>
 #include <sstream>
 #include <type_traits>
 #include <functional>
+#include <cmath>
+#include <initializer_list>
 
 // ------- DON'T DELETE: start --------
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -22,18 +25,30 @@ namespace Util {
 
     inline
     double getGamma(Vector_t p) {
-        return sqrt(dot(p, p) + 1.0);
+        return std::sqrt(dot(p, p) + 1.0);
     }
 
     inline
-    double getEnergy(Vector_t p, double mass) {
+    Vector_t getBeta(Vector_t p) {
+        return p / getGamma(p);
+    }
+
+    inline
+    double getKineticEnergy(Vector_t p, double mass) {
         return (getGamma(p) - 1.0) * mass;
     }
 
     inline
-    double getP(double E, double mass) {
-        double gamma = E / mass + 1;
-        return sqrt(std::pow(gamma, 2.0) - 1.0);
+    double getBetaGamma(double Ekin, double mass) {
+        double value = std::sqrt(std::pow(Ekin / mass + 1.0, 2) - 1.0);
+        if (value < std::numeric_limits<double>::epsilon())
+            value = std::sqrt(2 * Ekin / mass);
+        return value;
+    }
+
+    inline
+    double convertMomentumeVToBetaGamma(double p, double mass) {
+        return p / mass;
     }
 
     inline
@@ -162,6 +177,8 @@ namespace Util {
     Vector_t getTaitBryantAngles(Quaternion rotation, const std::string &elementName = "");
 
     std::string toUpper(const std::string &str);
+
+    std::string combineFilePath(std::initializer_list<std::string>);
 
     template <typename T>
     std::string toStringWithThousandSep(T value, char sep = '\'');

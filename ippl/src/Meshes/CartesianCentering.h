@@ -20,6 +20,8 @@
 #ifndef CARTESIAN_CENTERING_H
 #define CARTESIAN_CENTERING_H
 
+#include "Meshes/Centering.h"
+
 #include <iostream>
 #include <string>
 
@@ -30,23 +32,19 @@
 enum CenteringEnum {CELL=0, VERTEX=1, VERT=1};
 
 // Primary class for canned and user-defined cartesian centerings:
-template<const CenteringEnum* CE, unsigned Dim, unsigned NComponents=1U>
+template<CenteringEnum* CE, unsigned Dim, unsigned NComponents=1U>
 class CartesianCentering
 {
 public:
   static void print_Centerings(std::ostream&);  // Print function
   static std::string CenteringName;
 };
-template <const CenteringEnum* CE, unsigned Dim, unsigned NComponents>
+template <CenteringEnum* CE, unsigned Dim, unsigned NComponents>
 void CartesianCentering<CE,Dim,NComponents>::
 print_Centerings(std::ostream& out)
 {
-  int i,j;
-#ifndef __MWERKS__
-  // Crude workaround for a serious CW4 bug; is this caused by the default
-  // template parameter value for NComponents?
+  unsigned int i,j;
   out << CenteringName << std::endl;
-#endif // __MWERKS__
   out << "Dim = " << Dim << " ; NComponents = " << NComponents << std::endl;
   for (i=0;i<Dim;i++) {
     for (j=0;j<NComponents;j++) {

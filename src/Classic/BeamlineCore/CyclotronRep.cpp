@@ -1,27 +1,22 @@
-// ------------------------------------------------------------------------
-// $RCSfile: CyclotronRep.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.2.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: CyclotronRep
-//   Defines a concrete representation for a cyclotron.
+// Class CyclotronRep
+//   Representation for a cyclotron magnet system
 //
-// ------------------------------------------------------------------------
-// Class category: BeamlineCore
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 18:57:53 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "BeamlineCore/CyclotronRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndirectChannel.h"
-#include "ComponentWrappers/CyclotronWrapper.h"
 
 // Attribute access table.
 // ------------------------------------------------------------------------
@@ -36,16 +31,13 @@ namespace {
     static const Entry entries[] = {
         {
             "RINIT",
-            //      &CyclotronRep::getRadius,
-            //&CyclotronRep::setRadius
+            0, // :FIXME: Why commented out? &CyclotronRep::getRadius, 
+            0  // :FIXME: &CyclotronRep::setRadius
         },
         { 0, 0, 0 }
     };
 }
 
-
-// Class CyclotronRep
-// ------------------------------------------------------------------------
 
 CyclotronRep::CyclotronRep():
     Cyclotron(),
@@ -139,8 +131,3 @@ void CyclotronRep::setField(const BMultipoleField &f) {
     field = f;
 }
 
-ElementBase *CyclotronRep::makeFieldWrapper() {
-    ElementBase *wrap = new CyclotronWrapper(this);
-    wrap->setName(getName());
-    return wrap;
-}

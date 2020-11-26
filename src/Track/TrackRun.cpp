@@ -1,35 +1,29 @@
-// -----------------------------------------------------------------------
-// /*$RCSfile*/: TrackRun.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: TrackRun
-//   The class for the OPAL RUN command.
+// Class TrackRun
+//   The RUN command.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Track/TrackRun.h"
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ObjectFunction.h"
 #include "Algorithms/Tracker.h"
-#include "Algorithms/ThinTracker.h"
 #include "Algorithms/ThickTracker.h"
 
-#include "Algorithms/bet/EnvelopeBunch.h"
-
 #include "Algorithms/ParallelTTracker.h"
-#include "Algorithms/ParallelSliceTracker.h"
 #include "Algorithms/ParallelCyclotronTracker.h"
-#include "Algorithms/NilTracker.h"
 
 #include "Attributes/Attributes.h"
 #include "Beamlines/TBeamline.h"
@@ -39,8 +33,6 @@
 #include "Distribution/Distribution.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Round.h"
-#include "Utilities/Util.h"
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/FieldSolver.h"
@@ -48,23 +40,15 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Structure/H5PartWrapperForPC.h"
-#include "Structure/H5PartWrapperForPS.h"
 
 #include "OPALconfig.h"
 #include "changes.h"
 
-#include <boost/algorithm/string.hpp>
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
-
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 
 extern Inform *gmsg;
-
-using namespace Physics;
-
-// ------------------------------------------------------------------------
 
 namespace {
 
@@ -80,7 +64,6 @@ namespace {
         FIELDSOLVER,  // The field solver attached
         BOUNDARYGEOMETRY, // The boundary geometry
         DISTRIBUTION, // The particle distribution
-        MULTIPACTING, // MULTIPACTING flag
         TRACKBACK,
         SIZE
     };
@@ -97,13 +80,13 @@ TrackRun::TrackRun():
     fs(NULL),
     ds(NULL),
     phaseSpaceSink_m(NULL) {
-    itsAttr[METHOD] = Attributes::makeString
+    itsAttr[METHOD] = Attributes::makeUpperCaseString
                       ("METHOD", "Name of tracking algorithm to use:\n"
                        "\t\t\t\"THIN\" (default) or \"THICK, OPAL-T,OPAL-T3D, OPAL-CYCL\".", "THIN");
     itsAttr[TURNS] = Attributes::makeReal
                      ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron", 1.0);
 
-    itsAttr[MBMODE] = Attributes::makeString
+    itsAttr[MBMODE] = Attributes::makeUpperCaseString
                       ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl: FORCE or AUTO ", "FORCE");
 
     itsAttr[PARAMB] = Attributes::makeReal
@@ -113,7 +96,7 @@ TrackRun::TrackRun():
                                            "The scale parameter for binning in multi-bunch mode",
                                            0.01);
 
-    itsAttr[MB_BINNING] = Attributes::makeString
+    itsAttr[MB_BINNING] = Attributes::makeUpperCaseString
                           ("MB_BINNING", "Type of energy binning in multi-bunch mode: GAMMA or BUNCH", "GAMMA");
 
     itsAttr[BEAM] = Attributes::makeString
@@ -124,8 +107,6 @@ TrackRun::TrackRun():
                            ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default)", "NONE");
     itsAttr[DISTRIBUTION] = Attributes::makeStringArray
                              ("DISTRIBUTION", "List of particle distributions to be used ");
-    itsAttr[MULTIPACTING] = Attributes::makeBool
-                            ("MULTIPACTING", "Multipacting flag, default: false. Set true to initialize primary particles according to BoundaryGeometry", false);
     itsAttr[TRACKBACK] = Attributes::makeBool
         ("TRACKBACK", "Track in reverse direction, default: false", false);
     registerOwnership(AttributeHandler::SUB_COMMAND);
@@ -186,16 +167,9 @@ void TrackRun::execute() {
     }
 
     // Get algorithm to use.
-    std::string method = Util::toUpper(Attributes::getString(itsAttr[METHOD]));
-    if(method == "THIN") {
-        *gmsg << "  Method == \"THIN\"" << endl;
-        itsTracker = new ThinTracker(*Track::block->use->fetchLine(),
-                                     Track::block->bunch, Track::block->reference,
-                                     false, false);
-    } else if(method == "THICK") {
+    std::string method = Attributes::getString(itsAttr[METHOD]);
+    if (method == "THICK") {
         setupThickTracker();
-    } else if(method == "PARALLEL-SLICE" || method == "OPAL-E") {
-        setupSliceTracker();
     } else if(method == "PARALLEL-T" || method == "OPAL-T") {
         setupTTracker();
     } else if(method == "CYCLOTRON-T" || method == "OPAL-CYCL") {
@@ -206,7 +180,7 @@ void TrackRun::execute() {
     }
 
     if(method == "THIN" || method == "THICK") {
-        int turns = int(Round(Attributes::getReal(itsAttr[TURNS])));
+        int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
 
         // Track for the all but last turn.
         for(int turn = 1; turn < turns; ++turn) {
@@ -223,138 +197,9 @@ void TrackRun::execute() {
     }
 
     opal->bunchIsAllocated();
-    if(method == "PARALLEL-SLICE")
-        opal->slbunchIsAllocated();
 
     delete itsTracker;
 }
-
-void TrackRun::setupSliceTracker() {
-    OpalData::getInstance()->setInOPALEnvMode();
-    bool isFollowupTrack = opal->hasSLBunchAllocated();
-
-    if(!opal->hasSLBunchAllocated()) {
-        *gmsg << "* ********************************************************************************** " << endl;
-        *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, NEW TRACK" << endl;
-        *gmsg << "* ********************************************************************************** " << endl;
-    } else if(isFollowupTrack) {
-        *gmsg << "* ********************************************************************************** " << endl;
-        *gmsg << "* Selected Tracking Method == PARALLEL-SLICE, FOLLOWUP TRACK" << endl;
-        *gmsg << "* ********************************************************************************** " << endl;
-    }
-
-    Beam   *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-    Track::block->bunch->setBeamFrequency(beam->getFrequency() * 1e6);
-
-    if(opal->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPS(opal->getInputBasename() + std::string(".h5"),
-                                                  opal->getRestartStep(),
-                                                  OpalData::getInstance()->getRestartFileName(),
-                                                  H5_O_WRONLY);
-    } else if (isFollowupTrack) {
-        phaseSpaceSink_m = new H5PartWrapperForPS(opal->getInputBasename() + std::string(".h5"),
-                                                  -1,
-                                                  opal->getInputBasename() + std::string(".h5"),
-                                                  H5_O_WRONLY);
-    } else {
-        phaseSpaceSink_m = new H5PartWrapperForPS(opal->getInputBasename() + std::string(".h5"),
-                                                  H5_O_WRONLY);
-    }
-
-    std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
-    const size_t numberOfDistributions = distr_str.size();
-    if (numberOfDistributions == 0) {
-        dist = Distribution::find(defaultDistribution);
-    } else {
-        dist = Distribution::find(distr_str.at(0));
-        // dist->setNumberOfDistributions(numberOfDistributions);
-
-        // if(numberOfDistributions > 1) {
-        //     *gmsg << "Found more than one distribution: ";
-        //     for(size_t i = 1; i < numberOfDistributions; ++ i) {
-        //         Distribution *d = Distribution::find(distr_str.at(i));
-
-        //         d->setNumberOfDistributions(numberOfDistributions);
-        //         distrs_m.push_back(d);
-
-        //         *gmsg << " " << distr_str.at(i);
-        //     }
-        //     *gmsg << endl;
-        // }
-    }
-
-    fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
-    fs->initCartesianFields();
-
-    double charge = 0.0;
-
-    if(!opal->hasSLBunchAllocated()) {
-        if(!opal->inRestartRun()) {
-
-            dist->createOpalE(beam, distrs_m, Track::block->slbunch, 0.0, 0.0);
-            opal->setGlobalPhaseShift(0.5 * dist->getTEmission());
-
-        } else {
-            /***
-                reload slice distribution
-            */
-
-            dist->doRestartOpalE(Track::block->slbunch, beam->getNumberOfParticles(), opal->getRestartStep(), phaseSpaceSink_m);
-        }
-    } else {
-        charge = 1.0;
-    }
-
-    Track::block->slbunch->setdT(Track::block->dT.front());
-    // set the total charge
-    charge = beam->getCharge() * beam->getCurrent() / (beam->getFrequency() * 1e6);
-    Track::block->slbunch->setCharge(charge);
-    // set coupling constant
-    double coefE = 1.0 / (4 * pi * epsilon_0);
-    Track::block->slbunch->setCouplingConstant(coefE);
-    //Track::block->slbunch->calcBeamParameters();
-
-
-    initDataSink();
-
-    if (Track::block->bunch->getTotalNum() > 0) {
-        double spos = Track::block->zstart;
-        auto &zstop = Track::block->zstop;
-        auto it = Track::block->dT.begin();
-
-        unsigned int i = 0;
-        while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
-            ++ i;
-            ++ it;
-        }
-
-        Track::block->bunch->setdT(*it);
-    } else {
-        Track::block->zstart = 0.0;
-    }
-
-    if(!opal->hasBunchAllocated())
-        *gmsg << *dist << endl;
-    *gmsg << *beam << endl;
-    *gmsg << *Track::block->slbunch  << endl;
-    *gmsg << "Phase space dump frequency is set to " << Options::psDumpFreq
-          << " Inputfile is " << opal->getInputFn() << endl;
-
-
-    // findPhasesForMaxEnergy();
-
-    itsTracker = new ParallelSliceTracker(*Track::block->use->fetchLine(),
-                                          dynamic_cast<EnvelopeBunch &>(*Track::block->slbunch),
-                                          *ds,
-                                          Track::block->reference,
-                                          false,
-                                          false,
-                                          Track::block->localTimeSteps,
-                                          Track::block->zstart,
-                                          Track::block->zstop,
-                                          Track::block->dT);
-}
-
 
 
 void TrackRun::setupThickTracker()
@@ -414,7 +259,7 @@ void TrackRun::setupThickTracker()
       Track::block->bunch->setCharge(charge);
     }
     // set coupling constant
-    double coefE = 1.0 / (4 * pi * epsilon_0);
+    double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
     Track::block->bunch->setCouplingConstant(coefE);
 
 
@@ -514,35 +359,23 @@ void TrackRun::setupTTracker(){
     if (!isFollowupTrack && !opal->inRestartRun())
         Track::block->bunch->setT(Track::block->t0_m);
 
-    bool mpacflg = Attributes::getBool(itsAttr[MULTIPACTING]);
-    if(!mpacflg) {
-        if (Track::block->bunch->getIfBeamEmitting()) {
-            Track::block->bunch->setChargeZeroPart(charge);
-        } else {
-            Track::block->bunch->setCharge(charge);
-        }
-        // set coupling constant
-        double coefE = 1.0 / (4 * pi * epsilon_0);
-        Track::block->bunch->setCouplingConstant(coefE);
-
-
-        // statistical data are calculated (rms, eps etc.)
-        Track::block->bunch->calcBeamParameters();
+    if (Track::block->bunch->getIfBeamEmitting()) {
+        Track::block->bunch->setChargeZeroPart(charge);
     } else {
-        Track::block->bunch->setChargeZeroPart(charge);// just set bunch->qi_m=charge, don't set bunch->Q[] as we have not initialized any particle yet.
-        Track::block->bunch->calcBeamParametersInitial();// we have not initialized any particle yet.
+        Track::block->bunch->setCharge(charge);
     }
+    // set coupling constant
+    double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
+    Track::block->bunch->setCouplingConstant(coefE);
 
+    // statistical data are calculated (rms, eps etc.)
+    Track::block->bunch->calcBeamParameters();
 
     initDataSink();
 
     if(!opal->hasBunchAllocated()) {
-        if(!mpacflg) {
-            *gmsg << std::scientific;
-            *gmsg << *dist << endl;
-        } else {
-            *gmsg << "* Multipacting flag is true. The particle distribution in the run command will be ignored " << endl;
-        }
+        *gmsg << std::scientific;
+        *gmsg << *dist << endl;
     }
 
     if (Track::block->bunch->getTotalNum() > 0) {
@@ -585,8 +418,6 @@ void TrackRun::setupTTracker(){
                                       Track::block->zstop,
                                       Track::block->dT);
 #endif
-// #endif
-    // itsTracker->setMpacflg(mpacflg); // set multipacting flag in ParallelTTracker
 }
 
 void TrackRun::setupCyclotronTracker(){
@@ -619,9 +450,9 @@ void TrackRun::setupCyclotronTracker(){
     double macrocharge = 0.0;
 
     // multi-bunch parameters
-    const int specifiedNumBunch = int(std::abs(Round(Attributes::getReal(itsAttr[TURNS]))));
+    const int specifiedNumBunch = int(std::abs(std::round(Attributes::getReal(itsAttr[TURNS]))));
     const double mbPara         = Attributes::getReal(itsAttr[PARAMB]);
-    const std::string mbMode    = Util::toUpper(Attributes::getString(itsAttr[MBMODE]));
+    const std::string mbMode    = Attributes::getString(itsAttr[MBMODE]);
     const double mbEta          = Attributes::getReal(itsAttr[MB_ETA]);
     const std::string mbBinning = Attributes::getString(itsAttr[MB_BINNING]);
 
@@ -641,7 +472,7 @@ void TrackRun::setupCyclotronTracker(){
     }
 
     if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
-        macrocharge = beam->getCharge() * q_e;
+        macrocharge = beam->getCharge() * Physics::q_e;
         macromass = beam->getMass();
         dist->createOpalCycl(Track::block->bunch,
                              beam->getNumberOfParticles(),
@@ -650,16 +481,15 @@ void TrackRun::setupCyclotronTracker(){
     } else {
 
         /**
-           getFrequency() gets RF frequency [MHz], NOT isochronous  revolution frequency of particle!
+           getFrequency() gets RF frequency [MHz], NOT isochronous revolution frequency of particle!
            getCurrent() gets beamcurrent [A]
 
         */
-        macrocharge = beam->getCurrent() / (beam->getFrequency() * 1.0e6); // [MHz]-->[Hz]
+        macrocharge = beam->getChargePerParticle();
+        macromass   = beam->getMassPerParticle();
 
         if(!opal->hasBunchAllocated()) {
             if(!opal->inRestartRun()) {
-                macrocharge /= beam->getNumberOfParticles();
-                macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
                 dist->createOpalCycl(Track::block->bunch,
                                      beam->getNumberOfParticles(),
                                      beam->getCurrent(),
@@ -671,8 +501,6 @@ void TrackRun::setupCyclotronTracker(){
                                         opal->getRestartStep(),
                                         specifiedNumBunch,
                                         phaseSpaceSink_m);
-                macrocharge /= beam->getNumberOfParticles();
-                macromass = beam->getMass() * macrocharge / (beam->getCharge() * q_e);
             }
         }
     }
@@ -686,7 +514,7 @@ void TrackRun::setupCyclotronTracker(){
     Track::block->bunch->setStepsPerTurn(Track::block->stepsPerTurn);
 
     // set coupling constant
-    double coefE = 1.0 / (4 * pi * epsilon_0);
+    double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
     Track::block->bunch->setCouplingConstant(coefE);
 
     // statistical data are calculated (rms, eps etc.)
@@ -753,17 +581,14 @@ void TrackRun::setupCyclotronTracker(){
 void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
 
-    if (Util::toUpper(fs->getType()) != std::string("NONE")) {
+    if (fs->getType() != std::string("NONE")) {
         size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
         Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
         if (!opal->inRestartRun() && numParticles < numGridPoints
-#ifdef ENABLE_AMR
+            && fs->getType() != std::string("SAAMG") // in SPIRAL/SAAMG we're meshing the whole domain -DW
             && !Options::amr)
-#else
-            )
-#endif
         {
             throw OpalException("TrackRun::setupFieldsolver()",
                                 "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
@@ -804,44 +629,41 @@ void TrackRun::initDataSink(const int& numBunch) {
 
 double TrackRun::setDistributionParallelT(Beam *beam) {
 
-    // If multipacting flag is not set, get distribution(s).
-    if (!Attributes::getBool(itsAttr[MULTIPACTING])) {
-        /*
-         * Distribution(s) can be set via a single distribution or a list
-         * (array) of distributions. If an array is defined the first in the
-         * list is treated as the primary distribution. All others are added to
-         * it to create the full distribution.
-         */
-        std::vector<std::string> distributionArray
-            = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
-        const size_t numberOfDistributions = distributionArray.size();
+    /*
+     * Distribution(s) can be set via a single distribution or a list
+     * (array) of distributions. If an array is defined the first in the
+     * list is treated as the primary distribution. All others are added to
+     * it to create the full distribution.
+     */
+    std::vector<std::string> distributionArray
+        = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
+    const size_t numberOfDistributions = distributionArray.size();
 
-        if (numberOfDistributions == 0) {
-            dist = Distribution::find(defaultDistribution);
-        } else {
-            dist = Distribution::find(distributionArray.at(0));
-            dist->setNumberOfDistributions(numberOfDistributions);
+    if (numberOfDistributions == 0) {
+        dist = Distribution::find(defaultDistribution);
+    } else {
+        dist = Distribution::find(distributionArray.at(0));
+        dist->setNumberOfDistributions(numberOfDistributions);
 
-            if (numberOfDistributions > 1) {
-                *gmsg << endl
-                      << "---------------------------------" << endl
-                      << "Found more than one distribution:" << endl << endl;
-                *gmsg << "Main Distribution" << endl
-                      << "---------------------------------" << endl
-                      << distributionArray.at(0) << endl << endl
-                      << "Secondary Distribution(s)" << endl
-                      << "---------------------------------" << endl;
+        if (numberOfDistributions > 1) {
+            *gmsg << endl
+                  << "---------------------------------" << endl
+                  << "Found more than one distribution:" << endl << endl;
+            *gmsg << "Main Distribution" << endl
+                  << "---------------------------------" << endl
+                  << distributionArray.at(0) << endl << endl
+                  << "Secondary Distribution(s)" << endl
+                  << "---------------------------------" << endl;
 
-                for (size_t i = 1; i < numberOfDistributions; ++ i) {
-                    Distribution *distribution = Distribution::find(distributionArray.at(i));
-                    distribution->setNumberOfDistributions(numberOfDistributions);
-                    distrs_m.push_back(distribution);
+            for (size_t i = 1; i < numberOfDistributions; ++ i) {
+                Distribution *distribution = Distribution::find(distributionArray.at(i));
+                distribution->setNumberOfDistributions(numberOfDistributions);
+                distrs_m.push_back(distribution);
 
-                    *gmsg << distributionArray.at(i) << endl;
-                }
-                *gmsg << endl
-                      << "---------------------------------" << endl << endl;
+                *gmsg << distributionArray.at(i) << endl;
             }
+            *gmsg << endl
+                  << "---------------------------------" << endl << endl;
         }
     }
 
@@ -851,22 +673,20 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
     size_t numberOfParticles = beam->getNumberOfParticles();
     if (!opal->hasBunchAllocated()) {
         if (!opal->inRestartRun()) {
-            if (!Attributes::getBool(itsAttr[MULTIPACTING])) {
-                /*
-                 * Here we are not doing a restart or doing a mulitpactor run
-                 * and we do not have a bunch already allocated.
-                 */
-                Track::block->bunch->setDistribution(dist,
-                                                     distrs_m,
-                                                     numberOfParticles);
+            /*
+             * Here we are not doing a restart run
+             * and we do not have a bunch already allocated.
+             */
+            Track::block->bunch->setDistribution(dist,
+                                                 distrs_m,
+                                                 numberOfParticles);
 
-                /*
-                 * If this is an injected beam (rather than an emitted beam), we
-                 * make sure it doesn't have any particles at z < 0.
-                 */
+            /*
+             * If this is an injected beam (rather than an emitted beam), we
+             * make sure it doesn't have any particles at z < 0.
+             */
 
-                opal->setGlobalPhaseShift(0.5 * dist->getTEmission() + dist->getEmissionTimeShift());
-            }
+            opal->setGlobalPhaseShift(0.5 * dist->getTEmission() + dist->getEmissionTimeShift());
         } else {
             /*
              * Read in beam from restart file.
@@ -876,6 +696,6 @@ double TrackRun::setDistributionParallelT(Beam *beam) {
     }
 
     // Return charge per macroparticle.
-    return beam->getCharge() * beam->getCurrent() / (beam->getFrequency()*1.0e6) / numberOfParticles;
+    return beam->getChargePerParticle();
 
 }

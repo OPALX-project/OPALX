@@ -1,3 +1,20 @@
+//
+// Class OpalBeamline
+//   :FIXME: add class description
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
@@ -5,15 +22,9 @@
 #include <string>
 
 #include "Beamlines/Beamline.h"
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Degrader.h"
-#include "AbsBeamline/Diagnostic.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
-#include "AbsBeamline/RFQuadrupole.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Source.h"
 
@@ -25,9 +36,6 @@ template <class T, unsigned Dim>
 class PartBunchBase;
 class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
-
-//#define BEAMLINE_EOL  0x80000000   // end of line
-//#define BEAMLINE_PARTICLEMATTERINTERACTION 0x08000000 // has particle matter interaction
 
 class OpalBeamline {
 
@@ -60,8 +68,6 @@ public:
     double getEnd(const Vector_t &) const;
 
     void switchElements(const double &, const double &, const double &kineticEnergy, const bool &nomonitors = false);
-
-    void switchElementsOff(const double &, ElementBase::ElementType eltype = ElementBase::ANY);
     void switchElementsOff();
 
     ParticleMatterInteractionHandler *getParticleMatterInteractionHandler(const unsigned int &);
@@ -75,6 +81,7 @@ public:
     void visit(const T &, BeamlineVisitor &, PartBunchBase<double, 3> *);
 
     void prepareSections();
+    void positionElementRelative(std::shared_ptr<ElementBase>);
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
@@ -99,7 +106,9 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<doub
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField = 0.0;
-    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.removeWrappers()->clone()));
+    std::shared_ptr<T> elptr(dynamic_cast<T *>(element.clone()));
+
+    positionElementRelative(elptr);
 
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();
@@ -113,7 +122,9 @@ void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartB
     containsSource_m = true;
     double startField = 0.0;
     double endField = 0.0;
-    std::shared_ptr<Source> elptr(dynamic_cast<Source *>(element.removeWrappers()->clone()));
+    std::shared_ptr<Source> elptr(dynamic_cast<Source *>(element.clone()));
+
+    positionElementRelative(elptr);
 
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();
@@ -123,37 +134,7 @@ void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartB
 }
 
 template<> inline
-void OpalBeamline::visit<AlignWrapper>(const AlignWrapper &wrap, BeamlineVisitor &visitor, PartBunchBase<double, 3> *) {
-    wrap.getElement()->accept(visitor);
-}
-
-template<> inline
-void OpalBeamline::visit<BeamBeam>(const BeamBeam &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
-}
-
-template<> inline
-void OpalBeamline::visit<Diagnostic>(const Diagnostic &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
-}
-
-template<> inline
-void OpalBeamline::visit<Lambertson>(const Lambertson &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
-}
-
-template<> inline
-void OpalBeamline::visit<Marker>(const Marker &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-}
-
-template<> inline
-void OpalBeamline::visit<RFQuadrupole>(const RFQuadrupole &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
-}
-
-template<> inline
-void OpalBeamline::visit<Separator>(const Separator &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
+void OpalBeamline::visit<Marker>(const Marker &/*element*/, BeamlineVisitor &, PartBunchBase<double, 3> *) {
 }
 
 template<> inline

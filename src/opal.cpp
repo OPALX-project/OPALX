@@ -3,7 +3,6 @@
 extern Ippl *ippl;
 extern Inform *gmsg;
 
-
 #include "AbstractObjects/OpalData.h"
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
@@ -11,6 +10,7 @@ extern Inform *gmsg;
 #include "Utilities/OpalException.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/IpplInfoWrapper.h"
+#include "Utilities/Options.h"
 
 #include "OPALconfig.h"
 
@@ -18,16 +18,17 @@ extern Inform *gmsg;
     #include <AMReX.H>
 #endif
 
+#include "Message/Communicate.h"
 
-int run_opal(char *arg[], std::string inputfile, int restartStep,
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <string>
+
+int run_opal(char */*args*/[], std::string inputfile, int restartStep,
              int infoLevel, int warnLevel, MPI_Comm comm)
 {
     std::string::size_type startExtension    = inputfile.find_last_of('.');
-    // std::string::size_type startRelativePath = inputfile.find_last_of('/');
-    // std::string relativePath("");
-    // if (startRelativePath != std::string::npos) {
-    //     relativePath = inputfile.substr(0, startRelativePath + 1);
-    // }
     std::string outputFileName = inputfile.substr(0,startExtension) + ".out";
     std::ofstream output(outputFileName.c_str());
 
@@ -40,7 +41,8 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
     IpplInfo::Warn->setDestination(output);
 
 #ifdef ENABLE_AMR
-    amrex::Initialize(comm);
+    if (Options::amr)
+        amrex::Initialize(comm);
 #endif
 
     OpalData *opal = OpalData::getInstance();
@@ -82,7 +84,8 @@ int run_opal(char *arg[], std::string inputfile, int restartStep,
     delete gmsg;
 
 #ifdef ENABLE_AMR
-    amrex::Finalize(true);
+    if (Options::amr)
+        amrex::Finalize(true);
 #endif
 
     //FIXME: strange side effects

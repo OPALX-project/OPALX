@@ -1,22 +1,26 @@
+//
+// Class ParallelTTracker
+//   OPAL-T tracker.
+//   The visitor class for tracking particles with time as independent
+//   variable.
+//
+// Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+//               2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020, Christof Metzger-Kraus
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_ParallelTTracker_HH
 #define OPAL_ParallelTTracker_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: ParallelTTracker.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: ParallelTTracker
-//
-// ------------------------------------------------------------------------
-//
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
-//
-// ------------------------------------------------------------------------
 
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
@@ -30,17 +34,13 @@
 
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -50,13 +50,9 @@
 #include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -101,11 +97,6 @@ public:
 
     virtual ~ParallelTTracker();
 
-    virtual void visitAlignWrapper(const AlignWrapper &);
-
-    /// Apply the algorithm to a BeamBeam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a BeamStripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -119,17 +110,11 @@ public:
     /// Apply the algorithm to a Degrader.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a Diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a Drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a Marker.
     virtual void visitMarker(const Marker &);
@@ -158,14 +143,8 @@ public:
     /// Apply the algorithm to a RFCavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to a RFQuadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a SBend.
     virtual void visitSBend(const SBend &);
-
-    /// Apply the algorithm to a Separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a Septum.
     virtual void visitSeptum(const Septum &);
@@ -175,13 +154,6 @@ public:
 
     /// Apply the algorithm to a Solenoid.
     virtual void visitSource(const Source &);
-
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
-
-    /// Apply the algorithm to a CyclotronValley.
-    virtual void visitCyclotronValley(const CyclotronValley &);
-
 
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
@@ -250,31 +222,6 @@ private:
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
 
-    unsigned long totalParticlesInSimulation_m;
-
-#ifdef OPAL_DKS
-    DKSOPAL *dksbase;
-    void *r_ptr;
-    void *p_ptr;
-    void *Ef_ptr;
-    void *Bf_ptr;
-    void *dt_ptr;
-
-    int stream1;
-    int stream2;
-
-    int numDeviceElements;
-
-    void setupDKS();
-    void allocateDeviceMemory();
-    void freeDeviceMemory();
-    void sendRPdt();
-    void sendEfBf();
-    void pushParticlesDKS(bool send = true);
-    void kickParticlesDKS();
-
-#endif
-
     /********************** END VARIABLES ***********************************/
 
     void kickParticles(const BorisPusher &pusher);
@@ -321,13 +268,6 @@ private:
     void evenlyDistributeParticles();
 };
 
-inline void ParallelTTracker::visitAlignWrapper(const AlignWrapper &wrap) {
-    itsOpalBeamline_m.visit(wrap, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitBeamBeam(const BeamBeam &bb) {
-    itsOpalBeamline_m.visit(bb, *this, itsBunch_m);
-}
 
 inline void ParallelTTracker::visitBeamStripping(const BeamStripping &bstp) {
     itsOpalBeamline_m.visit(bstp, *this, itsBunch_m);
@@ -348,11 +288,6 @@ inline void ParallelTTracker::visitDegrader(const Degrader &deg) {
 }
 
 
-inline void ParallelTTracker::visitDiagnostic(const Diagnostic &diag) {
-    itsOpalBeamline_m.visit(diag, *this, itsBunch_m);
-}
-
-
 inline void ParallelTTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
@@ -360,11 +295,6 @@ inline void ParallelTTracker::visitDrift(const Drift &drift) {
 
 inline void ParallelTTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
-}
-
-
-inline void ParallelTTracker::visitLambertson(const Lambertson &lamb) {
-    itsOpalBeamline_m.visit(lamb, *this, itsBunch_m);
 }
 
 
@@ -409,17 +339,8 @@ inline void ParallelTTracker::visitTravelingWave(const TravelingWave &as) {
 }
 
 
-inline void ParallelTTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-    itsOpalBeamline_m.visit(rfq, *this, itsBunch_m);
-}
-
 inline void ParallelTTracker::visitSBend(const SBend &bend) {
     itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
-}
-
-
-inline void ParallelTTracker::visitSeparator(const Separator &sep) {
-    itsOpalBeamline_m.visit(sep, *this, itsBunch_m);
 }
 
 
@@ -436,14 +357,6 @@ inline void ParallelTTracker::visitSource(const Source &source) {
     itsOpalBeamline_m.visit(source, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::visitParallelPlate(const ParallelPlate &pplate) {
-    itsOpalBeamline_m.visit(pplate, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitCyclotronValley(const CyclotronValley &cv) {
-    itsOpalBeamline_m.visit(cv, *this, itsBunch_m);
-}
-
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
     int localNum = itsBunch_m->getLocalNum();
     for (int i = 0; i < localNum; ++i)
@@ -458,101 +371,5 @@ inline void ParallelTTracker::pushParticles(const BorisPusher &pusher) {
     }
     itsBunch_m->switchOffUnitlessPositions(true);
 }
-
-#ifdef OPAL_DKS
-inline void ParallelTTracker::setupDKS() {
-    dksbase = new DKSOPAL;
-    dksbase->setAPI("Cuda");
-    dksbase->setDevice("-gpu");
-    dksbase->initDevice();
-
-    dksbase->createStream(stream1);
-    dksbase->createStream(stream2);
-}
-
-
-inline void ParallelTTracker::allocateDeviceMemory() {
-
-    int ierr;
-    r_ptr = dksbase->allocateMemory<Vector_t>(itsBunch_m->getLocalNum(), ierr);
-    p_ptr = dksbase->allocateMemory<Vector_t>(itsBunch_m->getLocalNum(), ierr);
-    Ef_ptr = dksbase->allocateMemory<Vector_t>(itsBunch_m->getLocalNum(), ierr);
-    Bf_ptr = dksbase->allocateMemory<Vector_t>(itsBunch_m->getLocalNum(), ierr);
-    dt_ptr = dksbase->allocateMemory<double>(itsBunch_m->getLocalNum(), ierr);
-
-    if (Ippl::getNodes() == 1) {
-        dksbase->registerHostMemory(&itsBunch_m->R[0], itsBunch_m->getLocalNum());
-        dksbase->registerHostMemory(&itsBunch_m->P[0], itsBunch_m->getLocalNum());
-        dksbase->registerHostMemory(&itsBunch_m->Ef[0], itsBunch_m->getLocalNum());
-        dksbase->registerHostMemory(&itsBunch_m->Bf[0], itsBunch_m->getLocalNum());
-        dksbase->registerHostMemory(&itsBunch_m->dt[0], itsBunch_m->getLocalNum());
-
-    }
-
-    numDeviceElements = itsBunch_m->getLocalNum();
-}
-
-inline  void ParallelTTracker::freeDeviceMemory() {
-    dksbase->freeMemory<Vector_t>(r_ptr, numDeviceElements);
-    dksbase->freeMemory<Vector_t>(p_ptr, numDeviceElements);
-    dksbase->freeMemory<Vector_t>(Ef_ptr, numDeviceElements);
-    dksbase->freeMemory<Vector_t>(Bf_ptr, numDeviceElements);
-    dksbase->freeMemory<double>(dt_ptr, numDeviceElements);
-
-    if (Ippl::getNodes() == 1) {
-        dksbase->unregisterHostMemory(&itsBunch_m->R[0]);
-        dksbase->unregisterHostMemory(&itsBunch_m->P[0]);
-        dksbase->unregisterHostMemory(&itsBunch_m->Ef[0]);
-        dksbase->unregisterHostMemory(&itsBunch_m->Bf[0]);
-        dksbase->unregisterHostMemory(&itsBunch_m->dt[0]);
-    }
-}
-
-inline void ParallelTTracker::sendRPdt() {
-    dksbase->writeDataAsync<Vector_t>(r_ptr, &itsBunch_m->R[0], itsBunch_m->getLocalNum(), stream1);
-    dksbase->writeDataAsync<Vector_t>(p_ptr, &itsBunch_m->P[0], itsBunch_m->getLocalNum(), stream1);
-    dksbase->writeDataAsync<double>(dt_ptr, &itsBunch_m->dt[0], itsBunch_m->getLocalNum(), stream1);
-}
-
-inline void ParallelTTracker::sendEfBf() {
-    dksbase->writeDataAsync<Vector_t>(Ef_ptr, &itsBunch_m->Ef[0],
-                                      itsBunch_m->getLocalNum(), stream1);
-    dksbase->writeDataAsync<Vector_t>(Bf_ptr, &itsBunch_m->Bf[0],
-                                      itsBunch_m->getLocalNum(), stream1);
-}
-
-inline void ParallelTTracker::pushParticlesDKS(bool send) {
-
-    //send data to the GPU
-    if (send)
-        sendRPdt();
-    //execute particle push on the GPU
-    dksbase->callParallelTTrackerPush(r_ptr, p_ptr, dt_ptr, itsBunch_m->getLocalNum(),
-                                      Physics::c, stream1);
-    //get particles back to CPU
-    dksbase->readData<Vector_t>(r_ptr, &itsBunch_m->R[0], itsBunch_m->getLocalNum(), stream1);
-}
-
-inline
-void ParallelTTracker::kickParticlesDKS() {
-    //send data to the GPU
-    sendEfBf();
-    sendRPdt();
-
-    //sync device
-    dksbase->syncDevice();
-
-    //execute kick on the GPU
-    dksbase->callParallelTTrackerKick(r_ptr, p_ptr, Ef_ptr, Bf_ptr, dt_ptr,
-                                      itsReference.getQ(), itsReference.getM(),
-                                      itsBunch_m->getLocalNum(), Physics::c, stream2);
-
-    dksbase->syncDevice();
-
-    //get data back from GPU
-    dksbase->readDataAsync<Vector_t>(p_ptr, &itsBunch_m->P[0], itsBunch_m->getLocalNum(), stream2);
-
-}
-#endif
 
 #endif // OPAL_ParallelTTracker_HH

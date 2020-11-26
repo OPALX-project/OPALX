@@ -1,3 +1,28 @@
+//
+// Class OpalTrimCoil
+//   A TRIMCOIL definition is used to define a trim coil which can be applied
+//   to a Cyclotron.
+//
+// Copyright (c) 2018 - 2019, Matthias Frey and Jochem Snuverink,
+//                            Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+// and the paper
+// "Matching of turn pattern measurements for cyclotrons using multiobjective optimization"
+// (https://doi.org/10.1103/PhysRevAccelBeams.22.064602)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "TrimCoils/OpalTrimCoil.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -6,14 +31,9 @@
 #include "TrimCoils/TrimCoilPhaseFit.h"
 #include "TrimCoils/TrimCoilMirrored.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
-#include "Utility/IpplInfo.h"
+#include "Utility/Inform.h"
 
 extern Inform *gmsg;
-
-
-// Class OpalTrimCoil
-// ------------------------------------------------------------------------
 
 // The attributes of class OpalTrimCoil.
 namespace {
@@ -37,7 +57,7 @@ OpalTrimCoil::OpalTrimCoil():
     Definition(SIZE, "TRIMCOIL",
                "The \"TRIMCOIL\" statement defines a trim coil."),
     trimcoil_m(nullptr) {
-    itsAttr[TYPE]      = Attributes::makeString
+    itsAttr[TYPE]      = Attributes::makeUpperCaseString
                          ("TYPE", "Specifies the type of trim coil: PSI-BFIELD, PSI-PHASE, PSI-BFIELD-MIRRORED");
 
     itsAttr[COEFNUM]   = Attributes::makeRealArray
@@ -130,7 +150,7 @@ void OpalTrimCoil::update() {
 void OpalTrimCoil::initOpalTrimCoil() {
     if (trimcoil_m != nullptr) return;
 
-    std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    std::string type = Attributes::getString(itsAttr[TYPE]);
 
     double bmax   = Attributes::getReal(itsAttr[BMAX]);
     double phimin = Attributes::getReal(itsAttr[PHIMIN]);
@@ -166,7 +186,7 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        << "* TRIMCOIL       " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
 
-    std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    std::string type = Attributes::getString(itsAttr[TYPE]);
     if (type == "PSI-BFIELD" || type == "PSI-PHASE") {
         printPolynom(os,itsAttr[COEFNUM]);
         printPolynom(os,itsAttr[COEFDENOM]);
@@ -178,7 +198,7 @@ Inform& OpalTrimCoil::print(Inform &os) const {
        << "* RMIN           " << Attributes::getReal(itsAttr[RMIN]) << '\n'
        << "* RMAX           " << Attributes::getReal(itsAttr[RMAX]) << '\n';
 
-    if (Util::toUpper(Attributes::getString(itsAttr[TYPE])) == "PSI-BFIELD-MIRRORED") {
+    if (Attributes::getString(itsAttr[TYPE]) == "PSI-BFIELD-MIRRORED") {
         os << "* SLPTC          " << Attributes::getReal(itsAttr[SLPTC]) << '\n';
     }
     os << "* *********************************************************************************" << endl;

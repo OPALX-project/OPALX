@@ -49,10 +49,6 @@ bool Configure(int argc, char *argv[], InterPolT *interPol,
   Inform msg("Configure ");
   Inform errmsg("Error ");
 
-  string bc_str;
-  string interPol_str;
-  string dist_str;
-
   for (int i=1; i < argc; ++i) {
     string s(argv[i]);
     if (s == "-grid") {
@@ -105,9 +101,9 @@ int main(int argc, char *argv[])
   unsigned int nLoop;
   InterPolT interPol;
 
-  bool res = Configure(argc, argv, &interPol, &nx, &ny, &nz, 
-		       &test2do, &serialDim, &processes, &nLoop); 
-
+  /* bool res = */
+  Configure(argc, argv, &interPol, &nx, &ny, &nz,
+            &test2do, &serialDim, &processes, &nLoop);
 
   // The preceding cpp definition causes compile-time setting of D:
   const unsigned D=3U;
@@ -117,12 +113,12 @@ int main(int argc, char *argv[])
   unsigned ngrid[D];   // grid sizes
 
   // Used in evaluating correctness of results:
-  double realDiff;
+  double realDiff = -1.0;
   
   // Various counters, constants, etc:
-  int d;
+  unsigned int d;
   
-  int tag = Ippl::Comm->next_tag(IPPL_APP_TAG0);
+  /* int tag = */ Ippl::Comm->next_tag(IPPL_APP_TAG0);
   double pi = acos(-1.0);
   double twopi = 2.0*pi;
   // Timer:
@@ -186,16 +182,16 @@ int main(int argc, char *argv[])
     FieldLayout<D> layoutPPStan1h(ndiStandard1h,allParallel,vnodes);
     
     // create test Fields for complex-to-complex FFT
-    BareField<dcomplex,D> CFieldPPStan(layoutPPStan);
-    BareField<dcomplex,D> CFieldPPStan_save(layoutPPStan);
+    BareField<std::complex<double>,D> CFieldPPStan(layoutPPStan);
+    BareField<std::complex<double>,D> CFieldPPStan_save(layoutPPStan);
     BareField<double,D> diffFieldPPStan(layoutPPStan);
     
     // For calling FieldDebug functions from debugger, set up output format:
     setFormat(4,3);
 
     // Rather more complete test functions (sine or cosine mode):
-    dcomplex sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
-    dcomplex cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
+    std::complex<double> sfact(1.0,0.0);      // (1,0) for sine mode; (0,0) for cosine mode
+    std::complex<double> cfact(0.0,0.0);      // (0,0) for sine mode; (1,0) for cosine mode
 
     // Conditionally-compiled loading functions (couldn't make these
     double xfact, kx, yfact, ky, zfact, kz;

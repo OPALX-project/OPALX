@@ -1,4 +1,3 @@
-// -*- C++ -*-
 /***************************************************************************
  *
  * The IPPL Framework
@@ -13,17 +12,6 @@
  *
  ***************************************************************************/
 
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
-
-// include files
 #include "Particle/IpplParticleBase.h"
 #include "Particle/ParticleLayout.h"
 #include "Particle/ParticleAttrib.h"
@@ -33,6 +21,7 @@
 #include "Utility/PAssert.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplStats.h"
+#include "Utility/IpplException.h"
 #include <algorithm>
 
 /////////////////////////////////////////////////////////////////////
@@ -148,7 +137,11 @@ void IpplParticleBase<PLayout>::resetID(void) {
       Message* msg2 = new Message;
       msg2->put(lp[ip]);
       bool success = Ippl::Comm->send(msg2,ip,tag2);
-      PAssert(success);
+      if (success == false) {
+              throw IpplException (
+                      "IpplParticleBase<PLayout>::resetID()",
+                      "sending initial ID values failed.");
+      }
     }
     // we are done
     return;
@@ -159,7 +152,11 @@ void IpplParticleBase<PLayout>::resetID(void) {
     Message* msg1 = new Message;
     msg1->put(localNum);
     bool success = Ippl::Comm->send(msg1,master,tag1);
-    PAssert(success);
+    if (success == false) {
+            throw IpplException (
+                    "IpplParticleBase<PLayout>::resetID()",
+                    "sending initial ID values failed.");
+    }
     // now receive back our initial ID number
     size_t initialID = 0;
     int tag2 = Ippl::Comm->next_tag(P_RESET_ID_TAG,P_LAYOUT_CYCLE);
@@ -688,7 +685,7 @@ IpplParticleBase<PLayout>::ghostPutMessage(Message &msg,
 // retrieve particles from the given message and sending node and store them
 template<class PLayout>
 size_t
-IpplParticleBase<PLayout>::ghostGetMessage(Message& msg, int node) {
+IpplParticleBase<PLayout>::ghostGetMessage(Message& msg, int /*node*/) {
 
 
 
@@ -775,10 +772,3 @@ void IpplParticleBase<PLayout>::printDebug(Inform& o) {
   o << "    ";
   Layout->printDebug(o);
 }
-
-
-/***************************************************************************
- * $RCSfile: IpplParticleBase.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:28 $
- * IPPL_VERSION_ID: $Id: IpplParticleBase.cpp,v 1.1.1.1 2003/01/23 07:40:28 adelmann Exp $
- ***************************************************************************/

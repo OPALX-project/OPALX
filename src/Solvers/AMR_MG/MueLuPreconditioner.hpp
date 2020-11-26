@@ -1,13 +1,31 @@
+//
+// Class MueLuPreconditioner
+//   Interface to the SAAMG solver of MueLu. Here it is used as preconditioner for Belos
+//   iterative solvers.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include <AMReX.H>
 
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 
 template <class Level>
-MueLuPreconditioner<Level>::MueLuPreconditioner(const bool& rebalance,
-                                                const std::string& reuse)
-    : prec_mp(Teuchos::null),
-      coords_mp(Teuchos::null),
-      rebalance_m(rebalance)
+MueLuPreconditioner<Level>::MueLuPreconditioner(const std::string& reuse)
+    : prec_mp(Teuchos::null)
 {
     this->init_m(reuse);
 }
@@ -15,49 +33,11 @@ MueLuPreconditioner<Level>::MueLuPreconditioner(const bool& rebalance,
 
 template <class Level>
 void MueLuPreconditioner<Level>::create(const Teuchos::RCP<amr::matrix_t>& A,
-                                        Level* level_p)
+                                        Level* /*level_p*/)
 {
-
-    coords_mp = Teuchos::null;
-
-    if ( rebalance_m ) {
-        
-        const scalar_t* domain = level_p->geom.ProbLo();
-        const scalar_t* dx = level_p->cellSize();
-        
-        coords_mp = Teuchos::rcp(
-            new amr::multivector_t(A->getDomainMap(), AMREX_SPACEDIM, false)
-        );
-    
-        for (amrex::MFIter mfi(level_p->grids, level_p->dmap, true);
-             mfi.isValid(); ++mfi)
-        {
-            const AmrBox_t&       tbx = mfi.tilebox();
-            const lo_t* lo = tbx.loVect();
-            const lo_t* hi = tbx.hiVect();
-            
-            for (lo_t i = lo[0]; i <= hi[0]; ++i) {
-                for (lo_t j = lo[1]; j <= hi[1]; ++j) {
-#if AMREX_SPACEDIM == 3
-                    for (lo_t k = lo[2]; k <= hi[2]; ++k) {
-#endif
-                        AmrIntVect_t iv(D_DECL(i, j, k));
-                        go_t gidx = level_p->serialize(iv);
-                    
-                        coords_mp->replaceGlobalValue(gidx, 0, domain[0] + (0.5 + i) * dx[0]);
-                        coords_mp->replaceGlobalValue(gidx, 1, domain[1] + (0.5 + j) * dx[1]);
-#if AMREX_SPACEDIM == 3
-                        coords_mp->replaceGlobalValue(gidx, 2, domain[2] + (0.5 + k) * dx[2]);
-                    }
-#endif
-                }
-            }
-        }
-    }
-
-    prec_mp = MueLu::CreateTpetraPreconditioner(A, params_m, coords_mp);
-
-    coords_mp = Teuchos::null;
+    typedef Tpetra::Operator<scalar_t, lo_t, go_t, amr::node_t> TpetraOperator_t;
+    Teuchos::RCP<TpetraOperator_t> At = Teuchos::rcp_dynamic_cast<TpetraOperator_t>(A);
+    prec_mp = MueLu::CreateTpetraPreconditioner(At, params_m);
 }
 
 
@@ -84,7 +64,7 @@ MueLuPreconditioner<Level>::convertToMueLuReuseOption(const std::string& reuse) 
     map["S"]    = "S";
     map["FULL"] = "full";
     
-    auto muelu =  map.find(Util::toUpper(reuse));
+    auto muelu =  map.find(reuse);
     
     if ( muelu == map.end() )
         throw OpalException("MueLuPreconditioner::convertToMueLuReuseOption()",
@@ -108,8 +88,8 @@ void MueLuPreconditioner<Level>::init_m(const std::string& reuse) {
     params_m.set("sa: use filtered matrix", true);
     params_m.set("filtered matrix: reuse eigenvalue", false); // false: more expensive
     
-    params_m.set("repartition: enable", rebalance_m);
-    params_m.set("repartition: rebalance P and R", rebalance_m);
+    params_m.set("repartition: enable", false);
+    params_m.set("repartition: rebalance P and R", false);
     params_m.set("repartition: partitioner", "zoltan2");
     params_m.set("repartition: min rows per proc", 800);
     params_m.set("repartition: start level", 2);

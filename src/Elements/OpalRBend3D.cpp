@@ -48,19 +48,9 @@ OpalRBend3D::OpalRBend3D():
     itsAttr[DESIGNENERGY] = Attributes::makeReal
                             ("DESIGNENERGY", "the mean energy of the particles in MeV");
 
-    registerRealAttribute("ANGLE");
-    registerRealAttribute("K0L");
-    registerRealAttribute("K0SL");
-    registerRealAttribute("E1");
-    registerRealAttribute("E2");
-    registerStringAttribute("FMAPFN");
-    registerRealAttribute("GAP");
-    registerRealAttribute("HAPERT");
-    registerRealAttribute("DESIGNENERGY");
-
     registerOwnership();
 
-    setElement((new RBend3D("RBEND3D"))->makeWrappers());
+    setElement(new RBend3D("RBEND3D"));
 }
 
 OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
@@ -68,14 +58,12 @@ OpalRBend3D::OpalRBend3D(const std::string &name, OpalRBend3D *parent):
     owk_m(0),
     parmatint_m(NULL)
 {
-    setElement((new RBend3D(name))->makeWrappers());
+    setElement(new RBend3D(name));
 }
 
 OpalRBend3D::~OpalRBend3D() {
-    if(owk_m)
-        delete owk_m;
-    if(parmatint_m)
-        delete parmatint_m;
+    delete owk_m;
+    delete parmatint_m;
 }
 
 OpalRBend3D *OpalRBend3D::clone(const std::string &name) {
@@ -83,17 +71,12 @@ OpalRBend3D *OpalRBend3D::clone(const std::string &name) {
 }
 
 
-void OpalRBend3D::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
 void OpalRBend3D::update() {
     OpalElement::update();
 
     // Define geometry.
     RBend3D *bend =
-        dynamic_cast<RBend3D *>(getElement()->removeWrappers());
+        dynamic_cast<RBend3D *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
     double e1     = Attributes::getReal(itsAttr[E1]);
@@ -130,8 +113,11 @@ void OpalRBend3D::update() {
     bend->setEntranceAngle(e1);
 
     // Energy in eV.
-    if(itsAttr[DESIGNENERGY]) {
+    if(itsAttr[DESIGNENERGY] && Attributes::getReal(itsAttr[DESIGNENERGY]) != 0.0) {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+    } else if (bend->getName() != "RBEND3D") {
+        throw OpalException("OpalRBend3D::update",
+                            "RBend3D requires non-zero DESIGNENERGY");
     }
 
     bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
@@ -142,9 +128,9 @@ void OpalRBend3D::update() {
     }
 
     if(itsAttr[LENGTH]) {
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+        bend->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     } else
-        bend->setLength(0.0);
+        bend->setElementLength(0.0);
 
     if(itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));

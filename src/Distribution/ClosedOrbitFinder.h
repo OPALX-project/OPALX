@@ -1,15 +1,29 @@
-/**
- * @file ClosedOrbitFinder.h
- * The algorithm is based on the paper of M. M. Gordon: "Computation of closed orbits and basic focusing properties for
- * sector-focused cyclotrons and the design of 'cyclops'" (1983)
- * As template arguments one chooses the type of the variables and the integrator for the ODEs. The supported steppers can
- * be found on
- * http://www.boost.org/ where it is part of the library Odeint.
- *
- * @author Matthias Frey
- * @version 1.0
- */
-
+//
+// Class ClosedOrbitFinder
+//   This class finds a closed orbit of a cyclotron for a given energy.
+//   The algorithm is based on the paper of M. M. Gordon: "Computation of
+//   closed orbits and basic focusing properties for sector-focused cyclotrons
+//   and the design of 'cyclops'" (1983)
+//   As template arguments one chooses the type of the variables and the
+//   integrator for the ODEs. The supported steppers can be found on
+//   http://www.boost.org/ where it is part of the library Odeint.
+//
+// Copyright (c) 2014, Matthias Frey, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Semester thesis by Matthias Frey
+// "Matched Distributions in Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLOSEDORBITFINDER_H
 #define CLOSEDORBITFINDER_H
 
@@ -24,8 +38,8 @@
 #include <vector>
 
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Physics/Physics.h"
 
 #include "AbstractObjects/OpalData.h"
 
@@ -37,7 +51,6 @@
 
 extern Inform *gmsg;
 
-/// Finds a closed orbit of a cyclotron for a given energy
 template<typename Value_type, typename Size_type, class Stepper>
 class ClosedOrbitFinder
 {
@@ -56,6 +69,7 @@ class ClosedOrbitFinder
         /// Sets the initial values for the integration and calls findOrbit().
         /*!
          * @param E0 is the potential energy (particle energy at rest) [MeV].
+         * @param q is the particle charge [e]
          * @param N specifies the number of splits (2pi/N), i.e number of integration steps
          * @param cycl is the cyclotron element
          * @param domain is a boolean (default: true). If "true" the closed orbit is computed over a single sector,
@@ -63,7 +77,7 @@ class ClosedOrbitFinder
          * @param Nsectors is an int (default: 1). Number of sectors that the field map is averaged over
          * in order to avoid first harmonic. Only valid if domain is false
          */
-        ClosedOrbitFinder(value_type E0, size_type N,
+        ClosedOrbitFinder(value_type E0, value_type q, size_type N,
                           Cyclotron* cycl, bool domain = true, int Nsectors = 1);
 
         /// Returns the inverse bending radius (size of container N+1)
@@ -140,7 +154,7 @@ class ClosedOrbitFinder
 //         void computeVerticalOscillations();
 
         /// This function rotates the calculated closed orbit finder properties to the initial angle
-        container_type rotate(value_type angle, container_type& orbitProperty);
+        container_type rotate(value_type angle, const container_type& orbitProperty);
 
         /// Stores current position in horizontal direction for the solutions of the ODE with different initial values
         std::array<value_type,2> x_m; // x_m = [x1, x2]
@@ -173,6 +187,9 @@ class ClosedOrbitFinder
 
         /// Is the rest mass [MeV / c**2]
         value_type E0_m;
+
+        // Is the particle charge [e]
+        value_type q_m;
 
         /// Is the nominal orbital frequency
         /* (see paper of Dr. C. Baumgarten: "Transverse-Longitudinal
@@ -229,8 +246,8 @@ class ClosedOrbitFinder
         /*!
          * The lambda function takes the orbital frequency \f$ \omega_{o} \f$ as input argument.
          */
-        std::function<double(double, double)> bcon_m = [](double e0, double wo) {
-            return e0 * 1.0e7 / (/* physics::q0 */ 1.0 * Physics::c * Physics::c / wo);
+        std::function<double(double, double)> bcon_m = [this](double e0, double wo) {
+            return e0 * 1.0e7 / (q_m * Physics::c * Physics::c / wo);
         };
 
         Cyclotron* cycl_m;
@@ -244,12 +261,14 @@ template<typename Value_type, typename Size_type, class Stepper>
 ClosedOrbitFinder<Value_type,
                   Size_type,
                   Stepper>::ClosedOrbitFinder(value_type E0,
+                                              value_type q,
                                               size_type N, Cyclotron* cycl,
                                               bool domain, int nSectors)
     : nxcross_m(0)
     , nzcross_m(0)
     , E0_m(E0)
-    , wo_m(cycl->getRfFrequ()*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
+    , q_m(q)
+    , wo_m(cycl->getRfFrequ(0)*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
     , N_m(N)
     , dtheta_m(Physics::two_pi/value_type(N))
     , ravg_m(0)
@@ -429,20 +448,17 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
      *
      */
 
-    value_type E;     // starting energy
-    value_type E_fin; // final    energy
+    value_type E         = cycl_m->getFMLowE(); // starting energy
+    value_type E_fin     = ekin;                // final    energy
+    const value_type eps = dE * 1.0e-1;         // articial constant for stopping criteria
 
-    if ( isTuneMode ) {
-        E     = cycl_m->getFMLowE();
+    if (isTuneMode) {
         E_fin = cycl_m->getFMHighE();
-    } else {
-        E     = ekin;
-        E_fin = ekin;
     }
 
     namespace fs = boost::filesystem;
     fs::path dir = OpalData::getInstance()->getInputBasename();
-    dir = dir.parent_path() / "data";
+    dir = dir.parent_path() / OpalData::getInstance()->getAuxiliaryOutputDirectory();
     std::string tunefile = (dir / "tunes.dat").string();
 
     if ( isTuneMode ) {
@@ -451,6 +467,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         out << std::left
             << std::setw(15) << "# energy[MeV]"
             << std::setw(15) << "radius_ini[m]"
+            << std::setw(15) << "momentum_ini[Beta Gamma]"
             << std::setw(15) << "radius_avg[m]"
             << std::setw(15) << "nu_r"
             << std::setw(15) << "nu_z"
@@ -460,12 +477,16 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
     container_type init;
     enum Guess {NONE, FIRST, SECOND};
     Guess guess = NONE;
-    value_type rn1, pn1; // normalised r, pr value of previous closed orbit
-    value_type rn2, pn2; // normalised r, pr value of second to previous closed orbit
+    value_type rn1 = 0.0, pn1 = 0.0; // normalised r, pr value of previous closed orbit
+    value_type rn2 = 0.0, pn2 = 0.0; // normalised r, pr value of second to previous closed orbit
 
     // iterate until suggested energy (start with minimum energy)
     // increase energy by dE
-    for (; E <= E_fin ; E+=dE) {
+    *gmsg << level3 << "Start iteration to find closed orbit of energy " << E_fin << " MeV "
+          << "in steps of " << dE << " MeV." << endl;
+
+    for (; E <= E_fin + eps; E += dE) {
+
         error = std::numeric_limits<value_type>::max();
 
         // energy dependent values
@@ -507,11 +528,16 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
         vz_m[0]  = init[2];
         vpz_m[0] = init[3];
 
+        *gmsg << level3 << "    Try to find orbit for " << E << " MeV ... ";
+
         if ( !this->findOrbitOfEnergy_m(E, init, error, accuracy, maxit) ) {
-            *gmsg << "ClosedOrbitFinder didn't converge for energy " + std::to_string(E) + " MeV." << endl;
+            *gmsg << endl << "ClosedOrbitFinder didn't converge for energy " + std::to_string(E) + " MeV." << endl;
             guess = NONE;
             continue;
         }
+
+        *gmsg << level3 << "Successfully found." << endl;
+
         // store for next initial guess
         rn2 = rn1;
         pn2 = pn1;
@@ -542,12 +568,15 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbit(value_type acc
             out << std::left
                 << std::setw(15) << E
                 << std::setw(15) << reo
+                << std::setw(15) << peo
                 << std::setw(15) << ravg_m
                 << std::setw(15) << tunes.first
                 << std::setw(15) << tunes.second << std::endl;
             out.close();
         }
     }
+
+    *gmsg << level3 << "Finished closed orbit finder successfully." << endl;
 
     /* store last entry, since it is needed in computeVerticalOscillations(), because we have to do the same
      * number of integrations steps there.
@@ -589,7 +618,7 @@ bool ClosedOrbitFinder<Value_type, Size_type, Stepper>::findOrbitOfEnergy_m(
     // index for reaching next element of the arrays r and pr (no nicer way found yet)
     size_type idx = 0;
     // observer for storing the current value after each ODE step (e.g. Runge-Kutta step) into the containers of r and pr
-    auto store = [&](state_type& y, const value_type t)
+    auto store = [&](state_type& y, const value_type /*t*/)
     {
         r_m[idx]   = y[0];
         pr_m[idx]  = y[1];
@@ -772,7 +801,7 @@ Value_type ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeTune(const 
 
     bool uneven = (ncross % 2);
 
-    value_type abscos = std::fabs(cos);
+    value_type abscos = std::abs(cos);
     value_type muPrime;
     if (abscos > 1.0) {
         // store the number of crossings
@@ -870,15 +899,21 @@ void ClosedOrbitFinder<Value_type, Size_type, Stepper>::computeOrbitProperties(c
 
 template<typename Value_type, typename Size_type, class Stepper>
 inline typename ClosedOrbitFinder<Value_type, Size_type, Stepper>::container_type
-ClosedOrbitFinder<Value_type, Size_type, Stepper>::rotate(value_type angle, container_type &orbitProperty) {
+ClosedOrbitFinder<Value_type, Size_type, Stepper>::rotate(value_type angle, const container_type &orbitProperty) {
 
     container_type orbitPropertyCopy = orbitProperty;
 
     // compute the number of steps per degree
     value_type deg_step = N_m / 360.0;
 
+    if (angle < 0.0) {
+        angle = 360.0 + angle;
+    }
+
     // compute starting point
-    size_type start = deg_step * angle;
+    unsigned int start = deg_step * angle;
+
+    start %= orbitProperty.size();
 
     // copy end to start
     std::copy(orbitProperty.begin() + start, orbitProperty.end(), orbitPropertyCopy.begin());

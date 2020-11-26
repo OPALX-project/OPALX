@@ -1,24 +1,33 @@
-// ------------------------------------------------------------------------
-// $RCSfile: ParticleMatterInteraction.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: ParticleMatterInteraction
+// Class ParticleMatterInteraction
 //   The class for the OPAL PARTICLEMATTERINTERACTION command.
 //
-// $Date: 2009/07/14 22:09:00 $
-// $Author: C. Kraus $
+// Copyright (c) 2012-2019, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                          Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
+//                          Pedro Calvo, CIEMAT, Spain
+// All rights reserved
 //
-// ------------------------------------------------------------------------
+// Implemented as part of the PhD thesis
+// "Optimizing the radioisotope production of the novel AMIT
+// superconducting weak focusing cyclotron"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
+#include "Structure/ParticleMatterInteraction.h"
 
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Physics.h"
-#include "Structure/ParticleMatterInteraction.h"
 #include "Solvers/BeamStrippingPhysics.hh"
 #include "Solvers/CollimatorPhysics.hh"
 #include "Utilities/OpalException.h"
@@ -26,13 +35,6 @@
 
 extern Inform *gmsg;
 
-using namespace Physics;
-
-
-// Class ParticleMatterInteraction
-// ------------------------------------------------------------------------
-
-// The attributes of class ParticleMatterInteraction.
 namespace {
     enum {
         // DESCRIPTION OF SINGLE PARTICLE:
@@ -48,10 +50,10 @@ ParticleMatterInteraction::ParticleMatterInteraction():
                "The \"SURFACE_PHYSICS\" statement defines data for the particle mater interaction handler "
                "on an element."),
     handler_m(0) {
-    itsAttr[TYPE] = Attributes::makeString
+    itsAttr[TYPE] = Attributes::makeUpperCaseString
                     ("TYPE", "Specifies the particle mater interaction handler: Collimator");
 
-    itsAttr[MATERIAL] = Attributes::makeString
+    itsAttr[MATERIAL] = Attributes::makeUpperCaseString
                         ("MATERIAL", "The material of the surface");
 
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD",
@@ -78,7 +80,7 @@ ParticleMatterInteraction::ParticleMatterInteraction(const std::string &name, Pa
 
 
 ParticleMatterInteraction::~ParticleMatterInteraction() {
-    if(handler_m)
+    if (handler_m)
         delete handler_m;
 }
 
@@ -102,7 +104,7 @@ void ParticleMatterInteraction::execute() {
 ParticleMatterInteraction *ParticleMatterInteraction::find(const std::string &name) {
     ParticleMatterInteraction *parmatint = dynamic_cast<ParticleMatterInteraction *>(OpalData::getInstance()->find(name));
 
-    if(parmatint == 0) {
+    if (parmatint == 0) {
         throw OpalException("ParticleMatterInteraction::find()", "ParticleMatterInteraction \"" + name + "\" not found.");
     }
     return parmatint;
@@ -111,24 +113,24 @@ ParticleMatterInteraction *ParticleMatterInteraction::find(const std::string &na
 
 void ParticleMatterInteraction::update() {
     // Set default name.
-    if(getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATTERINTERACTION");
+    if (getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATTERINTERACTION");
 }
 
 
 void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase &element) {
 
-    std::string material = Util::toUpper(Attributes::getString(itsAttr[MATERIAL]));
+    std::string material = Attributes::getString(itsAttr[MATERIAL]);
     bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
 
-    const std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
-    if(type == "CCOLLIMATOR" ||
+    const std::string type = Attributes::getString(itsAttr[TYPE]);
+    if (type == "CCOLLIMATOR" ||
        type == "COLLIMATOR" ||
        type == "DEGRADER") {
 
         handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
         *gmsg << *this << endl;
     }
-    else if(type == "BEAMSTRIPPING") {
+    else if (type == "BEAMSTRIPPING") {
         handler_m = new BeamStrippingPhysics(getOpalName(), &element);
         *gmsg << *this << endl;
     }

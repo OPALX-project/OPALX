@@ -3,6 +3,7 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
+#include <cmath>
 #include <fstream>
 #include <ios>
 #include <algorithm>
@@ -25,9 +26,9 @@ FM3DMagnetoStaticExtended::FM3DMagnetoStaticExtended(std::string aFilename):
     if(file.good()) {
         bool parsing_passed = true;
         try {
-            parsing_passed = interpreteLine<std::string>(file, tmpString);
+            parsing_passed = interpretLine<std::string>(file, tmpString);
         } catch (GeneralClassicException &e) {
-            parsing_passed = interpreteLine<std::string, std::string>(file, tmpString, tmpString);
+            parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" &&
@@ -39,14 +40,14 @@ FM3DMagnetoStaticExtended::FM3DMagnetoStaticExtended(std::string aFilename):
             normalize_m = (tmpString == "TRUE");
         }
         parsing_passed = (parsing_passed &&
-                          interpreteLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m));
+                          interpretLine<double, double, unsigned int>(file, xbegin_m, xend_m, num_gridpx_m));
         parsing_passed = (parsing_passed &&
-                          interpreteLine<double, double, unsigned int>(file, ybegin_m, yend_m, num_gridpy_m));
+                          interpretLine<double, double, unsigned int>(file, ybegin_m, yend_m, num_gridpy_m));
         parsing_passed = (parsing_passed &&
-                          interpreteLine<double, double, unsigned int>(file, zbegin_m, zend_m, num_gridpz_m));
+                          interpretLine<double, double, unsigned int>(file, zbegin_m, zend_m, num_gridpz_m));
 
         for(unsigned long i = 0; (i < (num_gridpz_m + 1) * (num_gridpx_m + 1)) && parsing_passed; ++ i) {
-            parsing_passed = parsing_passed && interpreteLine<double>(file, tmpDouble);
+            parsing_passed = parsing_passed && interpretLine<double>(file, tmpDouble);
         }
 
         parsing_passed = parsing_passed &&
@@ -109,7 +110,7 @@ void FM3DMagnetoStaticExtended::readMap() {
         for(unsigned int i = 0; i < num_gridpx_m; i++) {
             for(unsigned int k = 0; k < num_gridpz_m; k++) {
                 unsigned long index = getIndex(i,0,k);
-                interpreteLine<double>(in, FieldstrengthBy_m[index]);
+                interpretLine<double>(in, FieldstrengthBy_m[index]);
             }
         }
         in.close();
@@ -121,7 +122,7 @@ void FM3DMagnetoStaticExtended::readMap() {
             double Bymax = 0.0;
 
             // find maximum field
-            unsigned int centerX = static_cast<unsigned int>(std::floor(-xbegin_m / hx_m + 0.5));
+            unsigned int centerX = static_cast<unsigned int>(std::round(-xbegin_m / hx_m));
             for(unsigned int k = 0; k < num_gridpz_m; ++ k) {
                 double By = FieldstrengthBy_m[getIndex(centerX, 0, k)];
                 if(std::abs(By) > std::abs(Bymax)) {
@@ -148,8 +149,6 @@ void FM3DMagnetoStaticExtended::readMap() {
             smoothData(FieldstrengthBz_m, j);
             smoothData(FieldstrengthBy_m, j);
         }
-
-        // saveField("data/" + Filename_m + ".ext", num_gridpy_m - 1);
 
         INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info")  << endl);
     }
@@ -683,7 +682,7 @@ double FM3DMagnetoStaticExtended::getWeightedData(double *data, const IndexTripl
     return factorX * factorY * factorZ * data[getIndex(i, j, k)];
 }
 
-bool FM3DMagnetoStaticExtended::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
+bool FM3DMagnetoStaticExtended::getFieldstrength(const Vector_t &R, Vector_t &/*E*/, Vector_t &B) const {
     if (isInside(R)) {
         Vector_t suppB = interpolateTrilinearly(R);
         suppB(0) *= copysign(1, R(1));
@@ -695,15 +694,13 @@ bool FM3DMagnetoStaticExtended::getFieldstrength(const Vector_t &R, Vector_t &E,
     return false;
 }
 
-bool FM3DMagnetoStaticExtended::getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const {
+bool FM3DMagnetoStaticExtended::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
     return false;
 }
 
-void FM3DMagnetoStaticExtended::getFieldDimensions(double &zBegin, double &zEnd, double &xbegin, double &xend) const {
+void FM3DMagnetoStaticExtended::getFieldDimensions(double &zBegin, double &zEnd) const {
     zBegin = zbegin_m;
     zEnd = zend_m;
-    xbegin = xbegin_m;
-    xend = xend_m;
 }
 
 void FM3DMagnetoStaticExtended::getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const {
@@ -726,5 +723,5 @@ double FM3DMagnetoStaticExtended::getFrequency() const {
     return 0.0;
 }
 
-void FM3DMagnetoStaticExtended::setFrequency(double freq)
+void FM3DMagnetoStaticExtended::setFrequency(double /*freq*/)
 { ;}

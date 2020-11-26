@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalProbe.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalProbe
-//   The class of OPAL Probes.
+// Class OpalProbe
+//   The Probe element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2009/10/07 10:06:06 $
-// $Author: bi $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalProbe.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
@@ -23,9 +22,6 @@
 #include "Structure/OpalWake.h"
 #include "Physics/Physics.h"
 
-
-// Class OpalProbe
-// ------------------------------------------------------------------------
 
 OpalProbe::OpalProbe():
     OpalElement(SIZE, "PROBE",
@@ -47,24 +43,16 @@ OpalProbe::OpalProbe():
     itsAttr[OUTFN] = Attributes::makeString
                      ("OUTFN", "Output filename");
 
-    registerRealAttribute("XSTART");
-    registerRealAttribute("XEND");
-    registerRealAttribute("YSTART");
-    registerRealAttribute("YEND");
-    registerRealAttribute("WIDTH");
-    registerRealAttribute("STEP");
-    registerStringAttribute("OUTFN");
-
     registerOwnership();
 
-    setElement((new ProbeRep("PROBE"))->makeAlignWrapper());
+    setElement(new ProbeRep("PROBE"));
 }
 
 
 OpalProbe::OpalProbe(const std::string &name, OpalProbe *parent):
     OpalElement(name, parent),
     owk_m(nullptr) {
-    setElement((new ProbeRep(name))->makeAlignWrapper());
+    setElement(new ProbeRep(name));
 }
 
 
@@ -78,22 +66,19 @@ OpalProbe *OpalProbe::clone(const std::string &name) {
 }
 
 
-void OpalProbe::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
-
 void OpalProbe::update() {
     OpalElement::update();
 
     ProbeRep *prob =
-        dynamic_cast<ProbeRep *>(getElement()->removeWrappers());
+        dynamic_cast<ProbeRep *>(getElement());
+    const double mm2m = 0.001;
+    double xstart = mm2m * Attributes::getReal(itsAttr[XSTART]);
+    double xend   = mm2m * Attributes::getReal(itsAttr[XEND]);
+    double ystart = mm2m * Attributes::getReal(itsAttr[YSTART]);
+    double yend   = mm2m * Attributes::getReal(itsAttr[YEND]);
+    double step   = mm2m * Attributes::getReal(itsAttr[STEP]);
+
     double length = Attributes::getReal(itsAttr[LENGTH]);
-    double xstart = Attributes::getReal(itsAttr[XSTART]);
-    double xend   = Attributes::getReal(itsAttr[XEND]);
-    double ystart = Attributes::getReal(itsAttr[YSTART]);
-    double yend   = Attributes::getReal(itsAttr[YEND]);
-    double step   = Attributes::getReal(itsAttr[STEP]);
 
     if(itsAttr[WAKEF] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));

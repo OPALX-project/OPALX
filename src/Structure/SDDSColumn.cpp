@@ -1,7 +1,25 @@
+//
+// Class SDDSColumn
+//   This class writes column entries of SDDS files.
+//
+// Copyright (c) 2019, Christof Metzger-Kraus, Open Sourcerer
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Structure/SDDSColumn.h"
 #include "Utilities/OpalException.h"
 
 #include <iomanip>
+#include <list>
 
 SDDSColumn::SDDSColumn(const std::string& name,
                        const std::string& type,
@@ -14,7 +32,37 @@ SDDSColumn::SDDSColumn(const std::string& name,
     writeFlags_m(flags),
     writePrecision_m(prec),
     set_m(false)
-{ }
+{
+    std::list<std::ios_base::fmtflags> numericalBase({std::ios_base::dec,
+                                                      std::ios_base::hex,
+                                                      std::ios_base::oct});
+    std::list<std::ios_base::fmtflags> floatFormat({std::ios_base::fixed,
+                                                    std::ios_base::scientific});
+    std::list<std::ios_base::fmtflags> adjustmentFlags({std::ios_base::internal,
+                                                        std::ios_base::left,
+                                                        std::ios_base::right});
+
+    // This code ensures that for each group of flags only one flag is given
+    for (std::ios_base::fmtflags flag: numericalBase) {
+        if (writeFlags_m & flag) {
+            writeFlags_m = (flag | (writeFlags_m & ~std::ios_base::basefield));
+            break;
+        }
+    }
+    for (std::ios_base::fmtflags flag: floatFormat) {
+        if (writeFlags_m & flag) {
+            writeFlags_m = (flag | (writeFlags_m & ~std::ios_base::floatfield));
+            break;
+        }
+    }
+    for (std::ios_base::fmtflags flag: adjustmentFlags) {
+        if (writeFlags_m & flag) {
+            writeFlags_m = (flag | (writeFlags_m & ~std::ios_base::adjustfield));
+            break;
+        }
+    }
+
+}
 
 
 void SDDSColumn::writeHeader(std::ostream& os,
@@ -38,7 +86,7 @@ void SDDSColumn::writeValue(std::ostream& os) const {
                             "value for column '" + name_m + "' isn't set");
     }
 
-    os.setf(writeFlags_m);
+    os.flags(writeFlags_m);
     os.precision(writePrecision_m);
     os << value_m << std::setw(10) << "\t";
     set_m = false;

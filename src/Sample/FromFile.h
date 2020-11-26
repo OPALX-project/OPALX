@@ -1,3 +1,27 @@
+//
+// Class FromFile
+//   This class parses a file that contains design variable values.
+//   Each column belongs to a design variable.
+//   The first line is considered as header and consists of the
+//   design variable name. The name has to agree with the string
+//   in the input file.
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_SEQUENCE_H
 #define OPAL_SEQUENCE_H
 
@@ -11,22 +35,13 @@
 
 #include <vector>
 
-/**
- * Parse file that contains design variable values.
- * Each column belongs to a design variable.
- * The first line is considered as header and consists of the
- * design variable name. The name has to agree with the string
- * in the input file.
- */
 class FromFile : public SamplingMethod
 {
 
 public:
 
     FromFile(const std::string &filename, const std::string &dvarName, size_t modulo)
-        : n_m(0)
-        , counter_m(0)
-        , mod_m(modulo)
+        : mod_m(modulo)
         , filename_m(filename)
         , dvarName_m(dvarName)
     {
@@ -64,10 +79,10 @@ public:
     }
 
     void create(boost::shared_ptr<SampleIndividual>& ind, size_t i) {
-        ind->genes[i] = getNext();
+        ind->genes[i] = getNext(ind->id);
     }
 
-    void allocate(const CmdArguments_t& args, const Comm::Bundle_t& comm) {
+    void allocate(const CmdArguments_t& /*args*/, const Comm::Bundle_t& /*comm*/) {
         std::ifstream in(filename_m);
 
         if ( !in.is_open() ) {
@@ -91,36 +106,10 @@ public:
                                 "Couldn't find the dvar '" + dvarName_m + "' in the file '" + filename_m + "'");
         }
 
-        int nSamples = args->getArg<int>("nsamples", true);
-        int nMasters = args->getArg<int>("num-masters", true);
-
-        int nLocSamples = nSamples / nMasters;
-        int rest = nSamples - nMasters * nLocSamples;
-
-        int id = comm.island_id;
-        if ( id < rest )
-            nLocSamples++;
-
-        int skip = 0;
-
-        if ( rest == 0 )
-            skip = nLocSamples * id;
-        else {
-            if ( id < rest ) {
-                skip = nLocSamples * id;
-            } else {
-                skip = (nLocSamples + 1) * rest + (id - rest) * nLocSamples;
-            }
-        }
-
-        while ( skip > 0 ) {
-            skip--;
-            in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
         std::string line;
         std::getline(in, line);
-        while (nLocSamples-- > 0) {
+
+        for (unsigned int i = 0; i < globalSize_m; ++i) {
             std::istringstream iss(line);
             std::vector<std::string> numbers({std::istream_iterator<std::string>{iss},
                                               std::istream_iterator<std::string>{}});
@@ -132,10 +121,9 @@ public:
         in.close();
     }
 
-    double getNext() {
-        double sample = chain_m[n_m];
-        incrementCounter();
-
+    double getNext(unsigned int id) {
+        int idx = int(id / mod_m) % globalSize_m;
+        double sample = chain_m[idx];
         return sample;
     }
 
@@ -143,23 +131,15 @@ public:
         return globalSize_m;
     }
 
+    ~FromFile() {}
+
 private:
     std::vector<double> chain_m;
-    unsigned int n_m;
-    size_t counter_m;
     size_t mod_m;
     std::string filename_m;
     std::string dvarName_m;
 
     unsigned int globalSize_m;
-
-    void incrementCounter() {
-        ++ counter_m;
-        if (counter_m % mod_m == 0)
-            ++ n_m;
-        if (n_m >= chain_m.size())
-            n_m = 0;
-    }
 };
 
 #endif

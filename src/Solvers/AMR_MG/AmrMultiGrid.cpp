@@ -1,3 +1,24 @@
+//
+// Class AmrMultiGrid
+//   Main class of the AMR Poisson multigrid solver.
+//   It implements the multigrid solver described in https://doi.org/10.1016/j.cpc.2019.106912
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AmrMultiGrid.h"
 
 #include <algorithm>
@@ -41,13 +62,12 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
     , lfine_m(0)
     , nlevel_m(1)
     , nBcPoints_m(0)
+    , snorm_m(norm)
     , eps_m(1.0e-10)
     , verbose_m(false)
     , fname_m(OpalData::getInstance()->getInputBasename() + std::string(".solver"))
     , flag_m(std::ios::out)
 {
-    node_mp = KokkosClassic::Details::getNode<amr::node_t>(); //KokkosClassic::DefaultNode::getDefaultNode();
-
 #if AMR_MG_TIMER
     this->initTimer_m();
 #endif
@@ -72,7 +92,7 @@ AmrMultiGrid::AmrMultiGrid(AmrBoxLib* itsAmrObject_p,
 
     // preconditioner
     const Preconditioner precond = this->convertToEnumPreconditioner_m(prec);
-    this->initPrec_m(precond, rebalance, reuse);
+    this->initPrec_m(precond, reuse);
 
     // base level solver
     const BaseSolver solver = this->convertToEnumBaseSolver_m(bsolver);
@@ -143,10 +163,6 @@ void AmrMultiGrid::solve(AmrScalarFieldContainer_t &rho,
 
 
 void AmrMultiGrid::setNumberOfSweeps(const std::size_t& nSweeps) {
-    if ( nSweeps < 0 )
-        throw OpalException("AmrMultiGrid::setNumberOfSweeps()",
-                            "The number of smoothing sweeps needs to be non-negative!");
-
     nSweeps_m = nSweeps;
 }
 
@@ -172,6 +188,11 @@ AmrMultiGrid::scalar_t AmrMultiGrid::getLevelResidualNorm(lo_t level) {
 
 void AmrMultiGrid::setVerbose(bool verbose) {
     verbose_m = verbose;
+}
+
+
+void AmrMultiGrid::setTolerance(const scalar_t& eps) {
+    eps_m = eps;
 }
 
 
@@ -232,8 +253,7 @@ void AmrMultiGrid::initLevels_m(const amrex::Vector<AmrField_u>& rho,
                                                          geom[ilev],
                                                          rr,
                                                          bc_m,
-                                                         comm_mp,
-                                                         node_mp));
+                                                         comm_mp));
         } else {
             mglevel_m[lev]->buildLevelMask();
         }
@@ -818,10 +838,10 @@ void AmrMultiGrid::buildMultiLevel_m(const amrex::Vector<AmrField_u>& rho,
                                                             cfab, invdx2);
 
                             this->buildFineBoundaryMatrix_m(lev, gidx, iv,
-                                                            mfab, rfab, cfab);
+                                                            mfab, rfab);
 
                             this->buildCompositePoissonMatrix_m(lev, gidx, iv, mfab,
-                                                                rfab, cfab, invdx2);
+                                                                rfab, invdx2);
 
                             if (lev > lbase_m || (lev == lbase_m && !solver_mp->hasOperator())) {
                                 this->buildNoFinePoissonMatrix_m(lev, gidx, iv, mfab, invdx2);
@@ -1093,7 +1113,6 @@ void AmrMultiGrid::buildCompositePoissonMatrix_m(const lo_t& level,
                                                  const AmrIntVect_t& iv,
                                                  const basefab_t& mfab,
                                                  const basefab_t& rfab,
-                                                 const basefab_t& cfab,
                                                  const scalar_t* invdx2)
 {
     /*
@@ -1405,8 +1424,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
                                              const go_t& gidx,
                                              const AmrIntVect_t& iv,
                                              const basefab_t& mfab,
-                                             const basefab_t& rfab,
-                                             const basefab_t& cfab)
+                                             const basefab_t& rfab)
 {
     /* fine: level + 1
      * coarse (this): level
@@ -1429,8 +1447,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
     auto fill = [&](umap_t& map,
                     D_DECL(int ii, int jj, int kk),
                     int* begin, int* end, int d,
-                    const AmrIntVect_t& iv, int shift,
-                    int sign)
+                    const AmrIntVect_t& iv, int shift)
     {
         for (int iref = ii - begin[0]; iref <= ii + end[0]; ++iref) {
             for (int jref = jj - begin[1]; jref <= jj + end[1]; ++jref) {
@@ -1513,7 +1530,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
                         // iterate over all fine cells at the interface
                         // start with lower cells --> cover coarse neighbour
                         // cell
-                        fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
+                        fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift);
                         break;
                     }
                     case 1:
@@ -1525,7 +1542,7 @@ void AmrMultiGrid::buildFineBoundaryMatrix_m(const lo_t& level,
 #if AMREX_SPACEDIM == 3
                         int kk = covered[2] << 1; // refinemet in z
 #endif
-                        fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift, 1.0);
+                        fill(map, D_DECL(ii, jj, kk), &begin[0], &end[0], d, iv, shift);
                         break;
                     }
                 }
@@ -1742,7 +1759,7 @@ void AmrMultiGrid::smooth_m(const lo_t& level,
 #endif
 
     // base level has no smoother --> l - 1
-    smoother_m[level-1]->smooth(e, mglevel_m[level]->Anf_p, r);
+    smoother_m[level-1]->smooth(e, r);
 
 #if AMR_MG_TIMER
     IpplTimings::stopTimer(smoothTimer_m);
@@ -1959,7 +1976,6 @@ void AmrMultiGrid::initBaseSolver_m(const BaseSolver& solver,
 
 
 void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
-                              const bool& rebalance,
                               const std::string& reuse)
 {
     switch ( prec ) {
@@ -1975,7 +1991,7 @@ void AmrMultiGrid::initPrec_m(const Preconditioner& prec,
         case Preconditioner::SA:
         {
             std::string muelu = MueLuPreconditioner_t::convertToMueLuReuseOption(reuse);
-            prec_mp.reset( new MueLuPreconditioner_t(rebalance, muelu) );
+            prec_mp.reset( new MueLuPreconditioner_t(muelu) );
             break;
         }
         case Preconditioner::NONE:
@@ -1996,7 +2012,7 @@ AmrMultiGrid::convertToEnumBoundary_m(const std::string& bc) {
     map["OPEN"]         = Boundary::OPEN;
     map["PERIODIC"]     = Boundary::PERIODIC;
 
-    auto boundary = map.find(Util::toUpper(bc));
+    auto boundary = map.find(bc);
 
     if ( boundary == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBoundary_m()",
@@ -2012,7 +2028,7 @@ AmrMultiGrid::convertToEnumInterpolater_m(const std::string& interp) {
     map["LAGRANGE"]     = Interpolater::LAGRANGE;
     map["PC"]           = Interpolater::PIECEWISE_CONST;
 
-    auto interpolater = map.find(Util::toUpper(interp));
+    auto interpolater = map.find(interp);
 
     if ( interpolater == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumInterpolater_m()",
@@ -2053,7 +2069,7 @@ AmrMultiGrid::convertToEnumBaseSolver_m(const std::string& bsolver) {
 #endif
     map["SA"]               = BaseSolver::SA;
 
-    auto solver = map.find(Util::toUpper(bsolver));
+    auto solver = map.find(bsolver);
 
     if ( solver == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumBaseSolver_m()",
@@ -2072,7 +2088,7 @@ AmrMultiGrid::convertToEnumPreconditioner_m(const std::string& prec) {
 
     MueLuPreconditioner_t::fillMap(map);
 
-    auto precond = map.find(Util::toUpper(prec));
+    auto precond = map.find(prec);
 
     if ( precond == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumPreconditioner_m()",
@@ -2095,9 +2111,7 @@ AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     map["L2"]   = Norm::L2;
     map["LINF"] = Norm::LINF;
 
-    snorm_m = Util::toUpper(norm);
-
-    auto n = map.find(snorm_m);
+    auto n = map.find(norm);
 
     if ( n == map.end() )
         throw OpalException("AmrMultiGrid::convertToEnumNorm_m()",
@@ -2171,7 +2185,7 @@ void AmrMultiGrid::writeSDDSHeader_m(std::ofstream& outfile) {
             << comm_mp->getSize() << '\n'
             << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #" << Util::getGitRevision() << '\n'
             << (OpalData::getInstance()->isInOPALTMode()? "opal-t":
-                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-env")) << std::endl;
+                (OpalData::getInstance()->isInOPALCyclMode()? "opal-cycl": "opal-map")) << std::endl;
 }
 
 

@@ -2,21 +2,18 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
 
 #ifndef BCOND_H
 #define BCOND_H
 
-// include files
-#include "AppTypes/dcomplex.h"
+#include "Utility/IpplInfo.h"
 #include "Utility/RefCounted.h"
 #include "Utility/vmap.h"
 
 #include <iostream>
+#include <complex>
 
 // forward declarations
 template <unsigned D> class NDIndex;
@@ -81,56 +78,26 @@ struct ApplyToComponentType< AntiSymTenzor<T,D> >
 
 class scalar_tag
 {
-#ifdef IPPL_PURIFY
-public:
-  scalar_tag() {}
-  scalar_tag(const scalar_tag &) {}
-  scalar_tag& operator=(const scalar_tag &) { return *this; }
-#endif
 };
 
 class vektor_tag
 {
-#ifdef IPPL_PURIFY
-public:
-  vektor_tag() {}
-  vektor_tag(const vektor_tag &) {}
-  vektor_tag& operator=(const vektor_tag &) { return *this; }
-#endif
 };
 
 class tenzor_tag
 {
-#ifdef IPPL_PURIFY
-public:
-  tenzor_tag() {}
-  tenzor_tag(const tenzor_tag &) {}
-  tenzor_tag& operator=(const tenzor_tag &) { return *this; }
-#endif
 };
 
 class symtenzor_tag
 {
-#ifdef IPPL_PURIFY
-public:
-  symtenzor_tag() {}
-  symtenzor_tag(const symtenzor_tag &) {}
-  symtenzor_tag& operator=(const symtenzor_tag &) { return *this; }
-#endif
 };
 
 class antisymtenzor_tag
 {
-#ifdef IPPL_PURIFY
-public:
-  antisymtenzor_tag() {}
-  antisymtenzor_tag(const antisymtenzor_tag &) {}
-  antisymtenzor_tag& operator=(const antisymtenzor_tag &) { return *this; }
-#endif
 };
 
 // Implement tag types for intrinsic types:
-inline scalar_tag get_tag(dcomplex) { return scalar_tag(); }
+inline scalar_tag get_tag(std::complex<double>) { return scalar_tag(); }
 inline scalar_tag get_tag(double)   { return scalar_tag(); }
 inline scalar_tag get_tag(float)    { return scalar_tag(); }
 inline scalar_tag get_tag(int)      { return scalar_tag(); }
@@ -196,11 +163,6 @@ public:
   virtual void apply( Field<T,D,M,C>& ) = 0;
   virtual BCondBase<T,D,M,C>* clone() const = 0;
 
-  // The convert_type() implementation is commented out, since it doesn't
-  // work in general. If nobody really needs it, it will eventually be
-  // eliminated; if somebody needs it, somebody needs to do a new 
-  // implementation. --TJW
-  //  virtual BCondBase<int,D,M,C>* convert_type(int) const = 0;
   virtual void write(std::ostream&) const;
 
   // Return component of Field element on which BC applies
@@ -240,8 +202,6 @@ public:
     iterator; 
   typedef typename vmap<int, RefCountedP <BCondBase<T,D,M,C> > >::const_iterator 
     const_iterator; 
-  // See comments in BCondBase class definition regarding convert_type() --TJW
-  //  BConds<int,D,M,C>* convert_type(int) const ;
   void apply( Field<T,D,M,C>& a );
   bool changesPhysicalCells() const;
   virtual void write(std::ostream&) const;
@@ -664,12 +624,6 @@ public:
   {
     return new FunctionFace<T,D,M,C>( *this );
   }
-  // See comments in BCondBase class definition regarding convert_type() --TJW
-  //  BCondBase<int,D,M,C>* convert_type(int) const
-  //  {
-  //    assert(false);
-  //    return 0;
-  //  }
 
   // Print out information about the BC to a stream.
   virtual void write(std::ostream& out) const;
@@ -719,12 +673,6 @@ public:
   {
     return new ComponentFunctionFace<T,D,M,C>( *this );
   }
-  // See comments in BCondBase class definition regarding convert_type() --TJW
-  //  BCondBase<int,D,M,C>* convert_type(int) const
-  //  {
-  //    assert(false);
-  //    return 0;
-  //  }
 
   // Print out information about the BC to a stream.
   virtual void write(std::ostream& out) const;

@@ -1,22 +1,32 @@
+//
+// Class ParallelCyclotronTracker
+//   Tracker for OPAL-Cycl
+//
+// Copyright (c) 2007 - 2014, Jianjun Yang, Andreas Adelmann and Matthias Toggweiler,
+//                            Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2014,        Daniel Winklehner, MIT, Cambridge, MA, USA
+// Copyright (c) 2012 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Beam dynamics in high intensity cyclotrons including neighboring bunch effects"
+// and the paper
+// "Beam dynamics in high intensity cyclotrons including neighboring bunch effects:
+// Model, implementation, and application"
+// (https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.13.064201)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_ParallelCyclotronTracker_HH
 #define OPAL_ParallelCyclotronTracker_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: ParallelCyclotronTracker.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: ParallelCyclotron
-//
-// ------------------------------------------------------------------------
-//
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
-//
-// ------------------------------------------------------------------------
 
 #include "Algorithms/Tracker.h"
 #include "AbsBeamline/ElementBase.h"
@@ -33,9 +43,6 @@ class LossDataSink;
 
 template <class T, unsigned Dim>
 class PartBunchBase;
-
-// Class ParallelCyclotronTracker
-// ------------------------------------------------------------------------
 
 struct CavityCrossData {
     RFCavity * cavity;
@@ -87,9 +94,6 @@ public:
     /// Apply the algorithm to a RFCavity.
     virtual void visitRFCavity(const RFCavity &);
 
-    /// Apply the algorithm to a BeamBeam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a Beam Stripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -102,17 +106,11 @@ public:
     /// Apply the algorithm to a Degrader
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a Diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a Drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a Marker.
     virtual void visitMarker(const Marker &);
@@ -144,9 +142,6 @@ public:
     /// Apply the algorithm to a RBend.
     virtual void visitRBend(const RBend &);
 
-    /// Apply the algorithm to a RFQuadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a SBend.
     virtual void visitSBend(const SBend &);
 
@@ -156,9 +151,6 @@ public:
     /// Apply the algorithm to a ScalingFFAMagnet.
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &bend);
 
-    /// Apply the algorithm to a Separator.
-    virtual void visitSeparator(const Separator &);
-
     /// Apply the algorithm to a Septum.
     virtual void visitSeptum(const Septum &);
 
@@ -167,12 +159,6 @@ public:
 
     /// Apply the algorithm to a charge stripper.
     virtual void visitStripper(const Stripper &);
-
-    /// Apply the algorithm to a ParallelPlate, it is empty for cyclotrontracker .
-    virtual void visitParallelPlate(const ParallelPlate &);
-
-    /// Apply the algorithm to a CyclotronValley.it is empty for cyclotrontracker .
-    virtual void visitCyclotronValley(const CyclotronValley &);
 
     /// Apply the algorithm to a VariabelRFCavity.
     virtual void visitVariableRFCavity(const VariableRFCavity &cav);

@@ -1,35 +1,29 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalSBend.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalSBend
-//   The class of OPAL rectangular bend magnets.
+// Class OpalSBend
+//   The SBEND element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalSBend.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Fields/BMultipoleField.h"
-#include "ComponentWrappers/SBendWrapper.h"
 #include "Physics/Physics.h"
 #include "Structure/OpalWake.h"
 #include "Structure/ParticleMatterInteraction.h"
 #include "Utilities/OpalException.h"
-#include <cmath>
-
-// Class OpalSBend
-// ------------------------------------------------------------------------
 
 OpalSBend::OpalSBend():
     OpalBend("SBEND",
@@ -52,10 +46,8 @@ OpalSBend::OpalSBend(const std::string &name, OpalSBend *parent):
 
 
 OpalSBend::~OpalSBend() {
-    if(owk_m)
-        delete owk_m;
-    if(parmatint_m)
-        delete parmatint_m;
+    delete owk_m;
+    delete parmatint_m;
 }
 
 
@@ -64,57 +56,11 @@ OpalSBend *OpalSBend::clone(const std::string &name) {
 }
 
 
-void OpalSBend::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-
-    // Get the desired field.
-    const SBendWrapper *bend =
-        dynamic_cast<const SBendWrapper *>(base.removeAlignWrapper());
-    BMultipoleField field;
-
-    // Get the desired field.
-    if(flag == ERROR_FLAG) {
-        field = bend->errorField();
-    } else if(flag == ACTUAL_FLAG) {
-        field = bend->getField();
-    } else if(flag == IDEAL_FLAG) {
-        field = bend->getDesign().getField();
-    }
-
-    double length = getLength();
-    double scale = Physics::c / OpalData::getInstance()->getP0();
-    if(length != 0.0) scale *= length;
-
-    for(int i = 1; i <= field.order(); ++i) {
-        std::string normName("K0L");
-        normName[1] += (i - 1);
-        attributeRegistry[normName]->setReal(scale * field.normal(i));
-
-        std::string skewName("K0SL");
-        skewName[1] += (i - 1);
-        attributeRegistry[skewName]->setReal(scale * field.skew(i));
-        scale *= double(i);
-    }
-
-    // Store pole face information.
-    attributeRegistry["E1"]->setReal(bend->getEntryFaceRotation());
-    attributeRegistry["E2"]->setReal(bend->getExitFaceRotation());
-    attributeRegistry["H1"]->setReal(bend->getEntryFaceCurvature());
-    attributeRegistry["H2"]->setReal(bend->getExitFaceCurvature());
-
-    // Store integration parameters.
-    attributeRegistry["SLICES"]->setReal(bend->getSlices());
-    attributeRegistry["STEPSIZE"]->setReal(bend->getStepsize());
-    //attributeRegistry["FMAPFN"]->setString(bend->getFieldMapFN());
-}
-
-
 void OpalSBend::update() {
     OpalElement::update();
 
     // Define geometry.
-    SBendRep *bend = dynamic_cast<SBendRep *>(getElement()->removeWrappers());
+    SBendRep *bend = dynamic_cast<SBendRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double angle  = Attributes::getReal(itsAttr[ANGLE]);
     double e1     = Attributes::getReal(itsAttr[E1]);
@@ -147,7 +93,7 @@ void OpalSBend::update() {
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
     //JMJ 4/10/2000: above line replaced
     //    length ? angle / length : angle;
-    // to avoid closed orbit created by SBEND with defalt K0.
+    // to avoid closed orbit created by SBEND with default K0.
     field.setNormalComponent(1, factor * k0);
     field.setSkewComponent(1, factor * Attributes::getReal(itsAttr[K0S]));
     field.setNormalComponent(2, factor * Attributes::getReal(itsAttr[K1]));
@@ -179,11 +125,11 @@ void OpalSBend::update() {
 
     if(itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update",
-                            "GREATERTHANPI not supportet any more");
+                            "GREATERTHANPI not supported anymore");
 
     if(itsAttr[ROTATION])
         throw OpalException("OpalSBend::update",
-                            "ROTATION not supportet any more; use PSI instead");
+                            "ROTATION not supported anymore; use PSI instead");
 
     if(itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
@@ -199,25 +145,26 @@ void OpalSBend::update() {
     bend->setExitAngle(e2);
 
     // Units are eV.
-    if(itsAttr[DESIGNENERGY]) {
+    if(itsAttr[DESIGNENERGY] && Attributes::getReal(itsAttr[DESIGNENERGY]) != 0.0) {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+    } else if (bend->getName() != "SBEND") {
+        throw OpalException("OpalSBend::update",
+                            "SBend requires non-zero DESIGNENERGY");
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+    double gap = Attributes::getReal(itsAttr[GAP]);
+    bend->setFullGap(gap);
 
     if(itsAttr[APERT])
-        throw OpalException("OpalRBend::fillRegisteredAttributes",
-                            "APERTURE in RBEND not supported; use GAP and HAPERT instead");
+        throw OpalException("OpalSBend::update",
+                            "APERTURE in SBEND not supported; use GAP and HAPERT instead");
 
     if(itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, gap, 1.0}));
+    } else {
+        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({0.5, gap, 1.0}));
     }
-
-    if(itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
-    else
-        bend->setLength(0.0);
 
     if(itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));

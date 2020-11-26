@@ -53,10 +53,6 @@ OpalGlobalCartesianOffset::OpalGlobalCartesianOffset()
              "x component of normal of end of the offset in coordinate system of the end of the upstream element.");
     itsAttr[END_NORMAL_Y] = Attributes::makeReal("END_NORMAL_Y",
              "y component of normal of end of the offset in coordinate system of the end of the upstream element.");
-    registerRealAttribute("END_POSITION_X");
-    registerRealAttribute("END_POSITION_Y");
-    registerRealAttribute("END_NORMAL_X");
-    registerRealAttribute("END_NORMAL_Y");
 
     registerOwnership();
 }
@@ -75,11 +71,6 @@ OpalGlobalCartesianOffset::OpalGlobalCartesianOffset(const std::string &name, Op
 
 OpalGlobalCartesianOffset::~OpalGlobalCartesianOffset() {}
 
-void OpalGlobalCartesianOffset::fillRegisteredAttributes
-                                     (const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
 void OpalGlobalCartesianOffset::update() {
     // getOpalName() comes from AbstractObjects/Object.h
     std::string name = getOpalName();
@@ -89,6 +80,6 @@ void OpalGlobalCartesianOffset::update() {
                   Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
     Offset* off = new Offset(Offset::globalCartesianOffset(name, pos, norm));
     // is this a memory leak?
-    setElement(off->makeAlignWrapper());
+    setElement(off);
 }
 }

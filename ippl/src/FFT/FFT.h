@@ -20,10 +20,6 @@
 
 #include "FFT/FFTBase.h"
 
-#ifdef IPPL_DKS
-#include "DKSOPAL.h"
-#endif
-
 // forward declarations
 //template <unsigned Dim> class FieldLayout;
 #include "FieldLayout/FieldLayout.h"
@@ -56,11 +52,6 @@ class FFT : public FFTBase<Dim,T> {};
 */
 template <size_t Dim, class T>
 class FFT<CCTransform,Dim,T> : public FFTBase<Dim,T> {
-
-private:
-#ifdef IPPL_DKS
-    DKSOPAL base;
-#endif
 
 public:
 
@@ -101,31 +92,7 @@ FFT(const Domain_t& cdomain, const bool& compressTemps=false)
             transformTypes[d] = FFTBase<Dim,T>::ccFFT;  // all transforms are complex-to-complex
             normFact /= lengths[d];
         }
-    
-#ifdef IPPL_DKS
-#ifdef IPPL_DKS_OPENCL
-        INFOMSG("Init DKS base opencl" << endl);
-        base.setAPI("OpenCL", 6);
-        base.setDevice("-gpu", 4);
-        base.initDevice();
-    		
-#endif
-    	
-#ifdef IPPL_DKS_CUDA
-        INFOMSG("Init DKS base cuda" << endl);
-        base.setAPI("Cuda", 4);
-        base.setDevice("-gpu", 4);
-        base.initDevice();
-#endif
-    	
-#ifdef IPPL_DKS_MIC
-        INFOMSG("Init DKS base MIC" << endl);
-        base.setAPI("OpenMP", 6);
-        base.setDevice("-mic", 4);
-        base.initDevice();
-#endif
-#endif
-    
+
         // set up FFT Engine
         this->getEngine().setup(Dim, transformTypes, lengths);
         // set up the temporary fields
@@ -473,11 +440,7 @@ public:
 
     /** real-to-complex FFT on GPU: transfer the real field to GPU execute FFT
         return the pointer to memory on GPU where complex results are stored
-    */     
-#ifdef IPPL_DKS
-    void transformDKSRC(int direction, RealField_t &f, void* real_ptr, void* comp_ptr,
-                        DKSOPAL &dksbase, int streamId = -1, const bool& constInput=false);
-#endif
+    */
     /** complex-to-real FFT
         Same as above, but with input and output field types reversed.
     */
@@ -485,14 +448,10 @@ public:
                    const bool& constInput=false);
     void transform(const char* directionName, ComplexField_t& f,
                    RealField_t& g, const bool& constInput=false);
-		 
+
     /** complex-to-real FFT on GPU: pass pointer to GPU memory where complex field
         is stored, do the inverse FFT and transfer real field back to host memory
     */
-#ifdef IPPL_DKS
-    void transformDKSCR(int direction, RealField_t& g, void* real_ptr, void* comp_ptr, 
-                        DKSOPAL &dksbase, int streamId = -1, const bool& constInput=false);
-#endif
 
 private:
 
@@ -999,10 +958,3 @@ FFT<SineTransform,1U,T>::transform(
 }
 #include "FFT/FFT.hpp"
 #endif // IPPL_FFT_FFT_H
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c
-// c-basic-offset: 4
-// indent-tabs-mode:nil
-// End:

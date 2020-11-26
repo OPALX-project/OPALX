@@ -1,3 +1,24 @@
+//
+// Class MueLuPreconditioner
+//   Interface to the SAAMG solver of MueLu. Here it is used as preconditioner for Belos
+//   iterative solvers.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef MUELU_PRECONDITIONER_H
 #define MUELU_PRECONDITIONER_H
 
@@ -31,8 +52,7 @@ public:
     
 public:
     
-    MueLuPreconditioner(const bool& rebalance,
-                        const std::string& reuse);
+    explicit MueLuPreconditioner(const std::string& reuse);
     
     void create(const Teuchos::RCP<amr::matrix_t>& A, Level* level_p =  nullptr);
     
@@ -49,10 +69,6 @@ private:
     Teuchos::ParameterList params_m;
     
     Teuchos::RCP<precond_t> prec_mp;
-
-    Teuchos::RCP<amr::multivector_t> coords_mp;
-    
-    const bool rebalance_m;
 };
 
 #include "MueLuPreconditioner.hpp"

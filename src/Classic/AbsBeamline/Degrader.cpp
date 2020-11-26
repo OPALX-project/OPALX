@@ -21,17 +21,14 @@
 #include "AbsBeamline/Degrader.h"
 #include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 #include "Physics/Physics.h"
-#include "Utilities/Util.h"
 #include <memory>
+#include <string>
 
 extern Inform *gmsg;
-
-using namespace std;
 
 // Class Degrader
 // ------------------------------------------------------------------------
@@ -54,23 +51,14 @@ Degrader::Degrader(const Degrader &right):
 {}
 
 Degrader::Degrader(const std::string &name):
-    Component(name),
-    filename_m(""),
-    PosX_m(0),
-    PosY_m(0),
-    PosZ_m(0),
-    MomentumX_m(0),
-    MomentumY_m(0),
-    MomentumZ_m(0),
-    time_m(0),
-    id_m(0)
+    Component(name)
 {}
 
 
 Degrader::~Degrader() {
 
-  if(online_m)
-    goOffline();
+    if(online_m)
+        goOffline();
 }
 
 
@@ -87,13 +75,13 @@ inline bool Degrader::isInMaterial(double z ) {
     return ((z > 0.0) && (z <= getElementLength()));
 }
 
-bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
+bool Degrader::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t &/*B*/) {
 
     const Vector_t &R = RefPartBunch_m->R[i];
     const Vector_t &P = RefPartBunch_m->P[i];
-    const double recpgamma = Physics::c * RefPartBunch_m->dt[i] / sqrt(1.0  + dot(P, P));
+    const double recpgamma = Physics::c * RefPartBunch_m->dt[i] / std::sqrt(1.0  + dot(P, P));
 
-    if(isInMaterial(R(2))) {
+    if (isInMaterial(R(2))) {
         //if particle was allready marked as -1 (it means it should have gone into degrader but didn't)
         //set the label to -2 (will not go into degrader and will be deleted when particles per core > 2)
         if (RefPartBunch_m->Bin[i] < 0)
@@ -117,9 +105,9 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B)
 
 bool Degrader::applyToReferenceParticle(const Vector_t &R,
                                         const Vector_t &P,
-                                        const double &t,
+                                        const double &/*t*/,
                                         Vector_t &E,
-                                        Vector_t &B) {
+                                        Vector_t &/*B*/) {
     if (!isInMaterial(R(2))) return false;
 
     Vector_t updatedP = P;
@@ -131,13 +119,8 @@ bool Degrader::applyToReferenceParticle(const Vector_t &R,
 }
 
 void Degrader::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
-    RefPartBunch_m = bunch;
+    initialise(bunch);
     endField = startField + getElementLength();
-
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
 }
 
 void Degrader::initialise(PartBunchBase<double, 3> *bunch) {
@@ -151,20 +134,22 @@ void Degrader::initialise(PartBunchBase<double, 3> *bunch) {
 
 void Degrader::finalise()
 {
-  *gmsg << "* Finalize Degrader" << endl;
+    *gmsg << "* Finalize Degrader" << endl;
 }
 
 void Degrader::goOnline(const double &) {
     Inform msg("Degrader::goOnline ");
 
-    PosX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    PosY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    PosZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    MomentumX_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    MomentumY_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    MomentumZ_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    time_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
-    id_m.reserve((int)(1.1 * RefPartBunch_m->getLocalNum()));
+    int maximumSize = (int)(1.1 * RefPartBunch_m->getLocalNum());
+
+    PosX_m.reserve(maximumSize);
+    PosY_m.reserve(maximumSize);
+    PosZ_m.reserve(maximumSize);
+    MomentumX_m.reserve(maximumSize);
+    MomentumY_m.reserve(maximumSize);
+    MomentumZ_m.reserve(maximumSize);
+    time_m.reserve(maximumSize);
+    id_m.reserve(maximumSize);
     online_m = true;
 }
 
@@ -183,7 +168,7 @@ void Degrader::setOutputFN(std::string fn) {
     filename_m = fn;
 }
 
-string Degrader::getOutputFN() {
+std::string Degrader::getOutputFN() {
     if (filename_m == std::string(""))
         return getName();
     else
@@ -200,7 +185,7 @@ ElementBase::ElementType Degrader::getType() const {
     return DEGRADER;
 }
 
-string Degrader::getDegraderShape() {
+std::string Degrader::getDegraderShape() {
     return "DEGRADER";
 
 }

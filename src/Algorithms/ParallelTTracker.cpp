@@ -1,38 +1,39 @@
-// ------------------------------------------------------------------------
-// $RCSfile: ParallelTTracker.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: ParallelTTracker
+// Class ParallelTTracker
+//   OPAL-T tracker.
 //   The visitor class for tracking particles with time as independent
 //   variable.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+//               2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020, Christof Metzger-Kraus
+// All rights reserved
 //
-// $Date: 2004/11/12 20:10:11 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Algorithms/ParallelTTracker.h"
 
 #include <cfloat>
-#include <iostream>
+#include <cmath>
 #include <fstream>
+#include <limits>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <limits>
-#include <cmath>
 
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
-#include "Lines/Sequence.h"
 
 #include "Solvers/CSRWakeFunction.hh"
 
@@ -75,15 +76,8 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    particleMatterStatus_m(false),
-    totalParticlesInSimulation_m(0)
-{
-
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled)
-        setupDKS();
-#endif
-}
+    particleMatterStatus_m(false)
+{}
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    PartBunchBase<double, 3> *bunch,
@@ -114,8 +108,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
     WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    particleMatterStatus_m(false),
-    totalParticlesInSimulation_m(0)
+    particleMatterStatus_m(false)
 {
     for (unsigned int i = 0; i < zstop.size(); ++ i) {
         stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -123,19 +116,9 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
 
     stepSizes_m.sortAscendingZStop();
     stepSizes_m.resetIterator();
-
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled)
-        setupDKS();
-#endif
 }
 
-ParallelTTracker::~ParallelTTracker() {
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled)
-        delete dksbase;
-#endif
-}
+ParallelTTracker::~ParallelTTracker() {}
 
 void ParallelTTracker::visitBeamline(const Beamline &bl) {
     const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
@@ -209,7 +192,6 @@ void ParallelTTracker::execute() {
     prepareSections();
 
     double minTimeStep = stepSizes_m.getMinTimeStep();
-    unsigned long long totalNumSteps = stepSizes_m.getNumStepsFinestResolution();
 
     itsOpalBeamline_m.activateElements();
 
@@ -264,8 +246,7 @@ void ParallelTTracker::execute() {
                       -rmin(2),
                       itsBunch_m->getT(),
                       (back_track? -minTimeStep: minTimeStep),
-                      totalNumSteps,
-                      stepSizes_m.getFinalZStop() + 2 * rmax(2),
+                      stepSizes_m,
                       itsOpalBeamline_m);
 
     oth.execute();
@@ -273,7 +254,6 @@ void ParallelTTracker::execute() {
     saveCavityPhases();
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-    totalParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
     setTime();
 
@@ -295,11 +275,6 @@ void ParallelTTracker::execute() {
           << "max integration steps " << stepSizes_m.getMaxSteps() << ", next step= " << step << endl;
 
     setOptionalVariables();
-
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled)
-        allocateDeviceMemory();
-#endif
 
     globalEOL_m = false;
     wakeStatus_m = false;
@@ -382,11 +357,6 @@ void ParallelTTracker::execute() {
     OPALTimer::Timer myt3;
     *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
 
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled)
-        freeDeviceMemory();
-#endif
-
     Monitor::writeStatistics();
 
     OpalData::getInstance()->setPriorTrack();
@@ -405,15 +375,7 @@ void ParallelTTracker::prepareSections() {
 void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
     IpplTimings::startTimer(timeIntegrationTimer1_m);
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled)
-        pushParticlesDKS();
-    else
-        pushParticles(pusher);
-#else
     pushParticles(pusher);
-#endif
-
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
 }
 
@@ -438,20 +400,9 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
     */
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
-#ifdef OPAL_DKS
-    if (IpplInfo::DKSEnabled) {
-        kickParticlesDKS();
-        pushParticlesDKS(false);
-    } else {
-        kickParticles(pusher);
-        pushParticles(pusher);
-    }
-#else
     kickParticles(pusher);
-
     //switchElements();
     pushParticles(pusher);
-#endif
 
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++ i) {
@@ -633,7 +584,6 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
             ne = itsBunch_m->destroyT();
         }
         numParticlesInSimulation_m  = itsBunch_m->getTotalNum();
-        totalParticlesInSimulation_m -= ne;
         deletedParticles_m = true;
     }
 
@@ -644,7 +594,7 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
 
     if (ne > 0) {
         msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << totalParticlesInSimulation_m << " particles" << endl;
+            << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
 }
 
@@ -723,7 +673,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
     Inform msg("ParallelTTracker ", *gmsg);
     std::set<IndexMap::value_t::value_type> elementsWithParticleMatterInteraction;
     std::set<ParticleMatterInteractionHandler*> particleMatterinteractionHandlers;
-    std::pair<double, double> currentRange(0.0, 0.0);
+    IndexMap::key_t currentRange{0.0, 0.0};
 
     while (elements.size() > 0) {
         auto it = elements.begin();
@@ -731,9 +681,9 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
             elementsWithParticleMatterInteraction.insert(*it);
             particleMatterinteractionHandlers.insert((*it)->getParticleMatterInteraction());
 
-            std::pair<double, double> range = oth.getRange(*it, pathLength_m);
-            currentRange.first = std::min(currentRange.first, range.first);
-            currentRange.second = std::max(currentRange.second, range.second);
+            IndexMap::key_t range = oth.getRange(*it, pathLength_m);
+            currentRange.begin = std::min(currentRange.begin, range.begin);
+            currentRange.end = std::max(currentRange.end, range.end);
 
             IndexMap::value_t touching = oth.getTouchingElements(range);
             elements.insert(touching.begin(), touching.end());
@@ -822,7 +772,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
                 }
                 boundingSphere.first = refToLocalCSTrafo.transformTo(boundingSphere.first);
 
-                it->apply(itsBunch_m, boundingSphere, totalParticlesInSimulation_m);
+                it->apply(itsBunch_m, boundingSphere);
                 it->print(msg);
 
                 boundingSphere.first = localToRefCSTrafo.transformTo(boundingSphere.first);
@@ -995,7 +945,7 @@ void ParallelTTracker::prepareEmission() {
 
 }
 
-void ParallelTTracker::writePhaseSpace(const long long step, bool psDump, bool statDump) {
+void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
     extern Inform *gmsg;
     Inform msg("OPAL ", *gmsg);
     Vector_t externalE, externalB;
@@ -1207,7 +1157,7 @@ void ParallelTTracker::findStartPosition(const BorisPusher &pusher) {
     selectDT();
 
     if ((back_track && itsOpalBeamline_m.containsSource()) ||
-        Util::getEnergy(itsBunch_m->RefPartP_m, itsBunch_m->getM()) < 1e-3) {
+        Util::getKineticEnergy(itsBunch_m->RefPartP_m, itsBunch_m->getM()) < 1e-3) {
         double gamma = 0.1 / itsBunch_m->getM() + 1.0;
         double beta = sqrt(1.0 - 1.0 / std::pow(gamma, 2));
         itsBunch_m->RefPartP_m = itsBunch_m->toLabTrafo_m.rotateTo(beta * gamma * Vector_t(0, 0, 1));
@@ -1428,10 +1378,3 @@ void ParallelTTracker::evenlyDistributeParticles() {
         MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
     }
 }
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c++
-// c-basic-offset: 4
-// indent-tabs-mode:nil
-// End:

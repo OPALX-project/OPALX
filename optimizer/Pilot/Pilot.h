@@ -1,3 +1,41 @@
+//
+// Class Pilot
+//   The Optimization Pilot (Master): Coordinates requests by optimizer
+//   to workers and reports results back on a given communicator.
+//
+//   Every worker thread notifies the master here if idle or not. When
+//   available the master dispatches one of the pending simulations to the
+//   worker who will run the specified simulation and report results back to
+//   the master. The Optimizer class will poll the scheduler to check if some
+//   (or all) results are available and continue to optimize and request new
+//   simulation results.
+//
+//   @see Worker
+//   @see Optimizer
+//
+//   @tparam Opt_t type of the optimizer
+//   @tparam Sim_t type of the simulation
+//   @tparam SolPropagationGraph_t strategy to distribute solution between
+//           master islands
+//   @tparam Comm_t comm splitter strategy
+//
+// Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Toward massively parallel multi-objective optimization with application to
+// particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef __PILOT_H__
 #define __PILOT_H__
 
@@ -55,27 +93,6 @@
 
 
 
-/**
- *  \class Pilot
- *  \brief The Optimization Pilot (Master): Coordinates requests by optimizer
- *  to workers and reports results back on a given communicator.
- *
- *  Every worker thread notifies the master here if idle or not. When
- *  available the master dispatches one of the pending simulations to the
- *  worker who will run the specified simulation and report results back to
- *  the master. The Optimizer class will poll the scheduler to check if some
- *  (or all) results are available and continue to optimize and request new
- *  simulation results.
- *
- *  @see Worker
- *  @see Optimizer
- *
- *  @tparam Opt_t type of the optimizer
- *  @tparam Sim_t type of the simulation
- *  @tparam SolPropagationGraph_t strategy to distribute solution between
- *          master islands
- *  @tparam Comm_t comm splitter strategy
- */
 template <
           class Opt_t
         , class Sim_t
@@ -113,7 +130,8 @@ public:
           const Expressions::Named_t &obj,
           const Expressions::Named_t &cons,
           std::vector<double> hypervolRef = {},
-          bool isOptimizerRun = true)
+          bool isOptimizerRun = true,
+          const std::map<std::string, std::string> &userVariables = {})
         : Poller(comm->mpiComm())
         , comm_(comm)
         , cmd_args_(args)
@@ -123,7 +141,7 @@ public:
         , hypervolRef_(hypervolRef)
     {
         if (isOptimizerRun)
-            setup(known_expr_funcs);
+            setup(known_expr_funcs, userVariables);
     }
 
     virtual ~Pilot()
@@ -185,7 +203,8 @@ protected:
     boost::scoped_ptr<Trace> job_trace_;
 
 private:
-    void setup(functionDictionary_t known_expr_funcs) {
+    void setup(functionDictionary_t known_expr_funcs,
+               const std::map<std::string, std::string> &userVariables) {
         global_rank_ = comm_->globalRank();
 
         if(global_rank_ == 0) {
@@ -210,13 +229,13 @@ private:
 
         // here the control flow starts to diverge
         if      ( comm_->isOptimizer() ) { startOptimizer(); }
-        else if ( comm_->isWorker()    ) { startWorker();    }
+        else if ( comm_->isWorker()    ) { startWorker(userVariables); }
         else if ( comm_->isPilot()     ) { startPilot();     }
     }
 
 protected:
 
-    void parseInputFile(functionDictionary_t known_expr_funcs, bool isOptimizationRun) {
+    void parseInputFile(functionDictionary_t /*known_expr_funcs*/, bool isOptimizationRun) {
 
         try {
             input_file_ = cmd_args_->getArg<std::string>("inputfile", true);
@@ -267,7 +286,7 @@ protected:
     }
 
     virtual
-    void startWorker() {
+    void startWorker(const std::map<std::string, std::string> &userVariables) {
 
         std::ostringstream os;
         os << "\033[01;35m" << "  " << global_rank_ << " (PID: " << getpid() << ") ▶ Worker"
@@ -283,7 +302,7 @@ protected:
 
         boost::scoped_ptr< Worker<Sim_t> > w(
                 new Worker<Sim_t>(objectives_, constraints_, simName,
-                    comm_->getBundle(), cmd_args_));
+                    comm_->getBundle(), cmd_args_, userVariables));
 
         std::cout << "Stop Worker.." << std::endl;
     }

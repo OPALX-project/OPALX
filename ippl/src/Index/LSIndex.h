@@ -2,7 +2,7 @@
 /***************************************************************************
  *
  * The IPPL Framework
- * 
+ *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -14,13 +14,12 @@
 // include files
 #include "Index/SOffset.h"
 #include "FieldLayout/Vnode.h"
-#include "Utility/RefCounted.h"
 #include "Utility/Vec.h"
 
 #include <vector>
 
 /***********************************************************************
- * 
+ *
  * LSIndex represents a set of single-point indices for a Field, just
  * for a single vnode.  SIndex contains a list of these LSIndex objects.
  * Expressions involving sparse indices are constrained to have the same
@@ -30,7 +29,7 @@
  ***********************************************************************/
 
 template<unsigned int Dim>
-class LSIndex : public RefCounted {
+class LSIndex {
 
 public:
   // useful typedefs
@@ -42,15 +41,15 @@ public:
 public:
   // constructors
   LSIndex(Vnode<Dim>* vn)
-    : compressed(false), VN(vn)
+    : VN(vn), compressed(false)
     {
       Strides[0] = 1;
       for (unsigned int d=1; d < Dim; ++d)
-	Strides[d] = Strides[d-1] * vn->getDomain()[d-1].length();
+        Strides[d] = Strides[d-1] * vn->getDomain()[d-1].length();
     }
   LSIndex(const LSIndex<Dim>& lsi)
-    : compressed(lsi.compressed), IndexList(lsi.IndexList),
-      VN(lsi.VN), Strides(lsi.Strides) { }
+    : VN(lsi.VN), IndexList(lsi.IndexList), compressed(lsi.compressed),
+      Strides(lsi.Strides) { }
 
   // destructor
   ~LSIndex() { }
@@ -90,9 +89,9 @@ public:
     if (compressed) {
       int mval = n;
       for (unsigned int d=(Dim-1); d >= 1; --d) {
-	int dval = mval / Strides[d];
-	mval -= dval * Strides[d];
-	CompressedPoint[d] = dval + VN->getDomain()[d].first();
+        int dval = mval / Strides[d];
+        mval -= dval * Strides[d];
+        CompressedPoint[d] = dval + VN->getDomain()[d].first();
       }
       CompressedPoint[0] = mval + VN->getDomain()[0].first();
 
@@ -167,7 +166,7 @@ public:
   iterator find(const SOffset<Dim>& indx) {
     for (iterator a = begin(); a != end(); ++a)
       if (*a == indx)
-	return a;
+        return a;
     return end();
   }
 
@@ -175,7 +174,7 @@ public:
   bool hasIndex(const SOffset<Dim>& indx) const {
     for (const_iterator a = begin(); a != end(); ++a)
       if (*a == indx)
-	return true;
+        return true;
     return false;
   }
 
@@ -210,6 +209,5 @@ private:
 /***************************************************************************
  * $RCSfile: LSIndex.h,v $   $Author: adelmann $
  * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: LSIndex.h,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
+ * IPPL_VERSION_ID: $Id: LSIndex.h,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $
  ***************************************************************************/
-
