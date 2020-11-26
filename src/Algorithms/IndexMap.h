@@ -1,3 +1,25 @@
+//
+// Class IndexMap
+//
+// This class stores and prints the sequence of elements that the referenc particle passes.
+// Each time the reference particle enters or leaves an element an entry is added to the map.
+// With help of this map one can determine which element can be found at a given position.
+//
+// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020 Christof Metzger-Kraus
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_INDEXMAP_H
 #define OPAL_INDEXMAP_H
 
@@ -14,7 +36,14 @@
 class IndexMap
 {
 public:
-    typedef std::pair<double, double> key_t;
+    struct Range
+    {
+        typedef double first_type;
+        typedef double second_type;
+        first_type begin;
+        second_type end;
+    };
+    typedef Range key_t;
     typedef std::set<std::shared_ptr<Component> > value_t;
 
     IndexMap();
@@ -30,9 +59,8 @@ public:
     size_t size() const;
 
     size_t numElements() const;
-    std::pair<double, double> getRange(const IndexMap::value_t::value_type &element,
-                                       double position) const;
-    IndexMap::value_t getTouchingElements(const std::pair<double, double> &range);
+    key_t getRange(const IndexMap::value_t::value_type &element, double position) const;
+    value_t getTouchingElements(const key_t &range) const;
 
     class OutOfBounds: public OpalException {
     public:
@@ -53,10 +81,10 @@ private:
     public:
         bool operator()(const key_t x , const key_t y) const
         {
-            if (x.first < y.first) return true;
+            if (x.begin < y.begin) return true;
 
-            if (x.first == y.first) {
-                if (x.second < y.second) return true;
+            if (x.begin == y.begin) {
+                if (x.end < y.end) return true;
             }
 
             return false;

@@ -1,6 +1,5 @@
 set (_SRCS
     ArithmeticError.cpp
-    AttributeError.cpp
     CLRangeError.cpp
     ClassicException.cpp
     ClassicField.cpp
@@ -12,7 +11,6 @@ set (_SRCS
     EigenvalueError.cpp
     FormatError.cpp
     GeneralClassicException.cpp
-    InverseGauss.cpp
     LogicalError.cpp
     Mesher.cpp
     MSLang.cpp
@@ -33,7 +31,6 @@ set (_SRCS
     MSLang/Translation.cpp
     MSLang/Triangle.cpp
     MSLang/Union.cpp
-    NormalFormError.cpp
     Options.cpp
     OverflowError.cpp
     ParseError.cpp
@@ -54,7 +51,6 @@ add_opal_sources (${_SRCS})
 
 set (HDRS
     ArithmeticError.h
-    AttributeError.h
     CLRangeError.h
     ClassicException.h
     ClassicField.h
@@ -66,7 +62,6 @@ set (HDRS
     EigenvalueError.h
     FormatError.h
     GeneralClassicException.h
-    InverseGauss.h
     LogicalError.h
     Mesher.h
     MSLang.h
@@ -89,7 +84,6 @@ set (HDRS
     MSLang/Translation.h
     MSLang/Triangle.h
     MSLang/Union.h
-    NormalFormError.h
     OptionTypes.h
     Options.h
     OverflowError.h
@@ -104,11 +98,3 @@ set (HDRS
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Utilities")
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

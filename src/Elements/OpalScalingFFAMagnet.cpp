@@ -62,24 +62,11 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
                                        "Offset to the end of the magnet, i.e. placement of the next element. Default is centre_length + 4*end_length.");
     itsAttr[AZIMUTHAL_EXTENT] = Attributes::makeReal("AZIMUTHAL_EXTENT",
                                        "The field will be assumed zero if particles are more than AZIMUTHAL_EXTENT from the magnet centre (psi=0). Default is CENTRE_LENGTH/2.+5.*END_LENGTH [m].");
-    registerRealAttribute("B0");
-    registerRealAttribute("R0");
-    registerRealAttribute("FIELD_INDEX");
-    registerRealAttribute("TAN_DELTA");
-    registerRealAttribute("MAX_Y_POWER");
-    registerRealAttribute("END_LENGTH");
-    registerRealAttribute("CENTRE_LENGTH");
-    registerRealAttribute("RADIAL_NEG_EXTENT");
-    registerRealAttribute("RADIAL_POS_EXTENT");
-    registerRealAttribute("HEIGHT");
-    registerRealAttribute("MAGNET_START");
-    registerRealAttribute("MAGNET_END");
-    registerRealAttribute("AZIMUTHAL_EXTENT");
     registerOwnership();
 
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet("ScalingFFAMagnet");
     magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
-    setElement(magnet->makeAlignWrapper());
+    setElement(magnet);
 }
 
 
@@ -88,7 +75,7 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string &name,
     OpalElement(name, parent) {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(name);
     magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
-    setElement(magnet->makeAlignWrapper());
+    setElement(magnet);
 }
 
 
@@ -101,14 +88,8 @@ OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string &name) {
 }
 
 
-void OpalScalingFFAMagnet::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
-
 void OpalScalingFFAMagnet::update() {
-    ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement()->removeWrappers());
+    ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
 
     // use L = r0*theta; we define the magnet ito length for UI but ito angles
     // internally; and use m as external default unit and mm internally
@@ -175,6 +156,6 @@ void OpalScalingFFAMagnet::update() {
         magnet->setAzimuthalExtent(defaultExtent);
     }
     magnet->initialise();
-    setElement(magnet->makeAlignWrapper());
+    setElement(magnet);
 
 }

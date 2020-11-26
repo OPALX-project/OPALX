@@ -1,38 +1,31 @@
+//
+// Class DefaultVisitor
+//   The default interface for a BeamlineVisitor.
+//   A default implementation for all visitors that can iterate over a
+//   beam line representation.
+//   This abstract base class implements the default behaviour for the
+//   structural classes Beamline and FlaggedElmPtr.
+//   It also holds the data required for all visitors in a protected area.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_DefaultVisitor_HH
 #define CLASSIC_DefaultVisitor_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: DefaultVisitor.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: DefaultVisitor
-//   The default interface for a BeamlineVisitor.
-//
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/05/03 08:16:04 $
-// $Author: mad $
-//
-// ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
 class ElementBase;
-
-// Class DefaultVisitor
-// ------------------------------------------------------------------------
-/// Default algorithms.
-//  A default implementation for all visitors that can iterate over a
-//  beam line representation.
-//  This abstract base class implements the default behaviour for the
-//  structural classes Beamline and FlaggedElmPtr, and for all wrappers.
-//  It also holds the data required for all visitors in a protected area.
 
 class DefaultVisitor: public BeamlineVisitor {
 
@@ -51,9 +44,6 @@ public:
 
     /// Apply the algorithm to the top-level beamline.
     virtual void execute();
-
-    /// Apply the algorithm to a beam-beam.
-    virtual void visitBeamBeam(const BeamBeam &);
 
     /// Apply the algorithm to a beam stripping.
     virtual void visitBeamStripping(const BeamStripping &);
@@ -76,17 +66,11 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
@@ -112,9 +96,6 @@ public:
     /// Apply the algorithm to an Offset.
     virtual void visitOffset(const Offset &);
 
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
-
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &prob);
 
@@ -136,9 +117,6 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to a RF quadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
 
@@ -151,9 +129,6 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &);
 
-    /// Apply the algorithm to a separator.
-    virtual void visitSeparator(const Separator &);
-
     /// Apply the algorithm to a septum.
     virtual void visitSeptum(const Septum &);
 
@@ -163,12 +138,6 @@ public:
     /// Apply the algorithm to a source.
     virtual void visitSource(const Source &);
 
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
-
-    /// Apply the algorithm to a CyclotronValley.
-    virtual void visitCyclotronValley(const CyclotronValley &);
-
     /// Apply the algorithm to a charge stripper.
     virtual void visitStripper(const Stripper &);
 
@@ -177,35 +146,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
-
-
-    /// Apply the algorithm to an align wrapper..
-    virtual void visitAlignWrapper(const AlignWrapper &);
-
-    /// Apply the algorithm to an corrector wrapper..
-    virtual void visitCorrectorWrapper(const CorrectorWrapper &);
-
-    /// Apply the algorithm to an cyclotron wrapper..
-    virtual void visitCyclotronWrapper(const CyclotronWrapper &);
-
-    /// Apply the algorithm to an multipole wrapper..
-    virtual void visitMultipoleWrapper(const MultipoleWrapper &);
-
-    /// Apply the algorithm to an RBend wrapper..
-    virtual void visitRBendWrapper(const RBendWrapper &);
-
-    /// Apply the algorithm to an SBend wrapper..
-    virtual void visitSBendWrapper(const SBendWrapper &);
-
-
-    /// Apply the algorithm to a generic integrator.
-    virtual void visitIntegrator(const Integrator &);
-
-    /// Apply the algorithm to an integrator capable of mapping.
-    virtual void visitMapIntegrator(const MapIntegrator &);
-
-    /// Apply the algorithm to an integrator capable of tracking.
-    virtual void visitTrackIntegrator(const TrackIntegrator &);
 
 protected:
 

@@ -25,6 +25,7 @@
 
 // include files
 #include "Utility/IpplInfo.h"
+#include "Utility/Inform.h"
 #include "Utility/IpplStats.h"
 #include "Utility/PAssert.h"
 #include "Utility/RandomNumberGen.h"
@@ -81,26 +82,6 @@ void IpplInfo::deleteGlobals() {
 
 std::stack<StaticIpplInfo> IpplInfo::stashedStaticMembers;
 
-//dks base member of IpplInfo initialized to default values
-bool IpplInfo::DKSEnabled = false;
-
-#ifdef IPPL_DKS
-
-#ifdef IPPL_DKS_CUDA
-DKSOPAL *IpplInfo::DKS = new DKSOPAL("Cuda", "-gpu");
-#endif
-
-#ifdef IPPL_DKS_OPENCL
-DKSOPAL *IpplInfo::DKS = new DKSOPAL("OpenCL", "-gpu");
-#endif
-
-#ifdef IPPL_DKS_MIC
-DKSOPAL *IpplInfo::DKS = new DKSOPAL("OpenMP", "-mic");
-#endif
-
-#endif
-
-
 // should we use the optimization of deferring guard cell fills until
 // absolutely needed?  Can be changed to true by specifying the
 // flag --defergcfill
@@ -130,17 +111,6 @@ int  IpplInfo::ChunkSize = 512*1024; // 512K == 64K doubles
 bool IpplInfo::PerSMPParallelIO = false;
 bool IpplInfo::offsetStorage = false;
 bool IpplInfo::extraCompressChecks = false;
-bool IpplInfo::useDirectIO = false;
-
-
-#ifdef IPPL_COMM_ALARMS
-// A timeout quantity, in seconds, to allow us to wait a certain number
-// of seconds before we signal a timeout when we're trying to rece
-// a message.  By default, this will be zero; change it with the
-// --msgtimeout <seconds> flag
-unsigned int IpplInfo::CommTimeoutSeconds = 0;
-#endif
-
 
 /////////////////////////////////////////////////////////////////////
 // print out current state to the given output stream
@@ -169,17 +139,6 @@ std::ostream& operator<<(std::ostream& o, const IpplInfo&) {
     o << IpplInfo::useChecksums() << "\n";
     o << "  Retransmit messages on error (only if checkums on)? ";
     o << IpplInfo::retransmit() << "\n";
-
-#ifdef IPPL_DIRECTIO
-    o << "  Use Direct-IO? " << IpplInfo::useDirectIO << "\n";
-#endif
-
-#ifdef IPPL_COMM_ALARMS
-    if (IpplInfo::getCommTimeout() > 0) {
-        o << "  Allowed message receive timeout length (in seconds): ";
-        o << IpplInfo::getCommTimeout() << "\n";
-    }
-#endif
 
     o << "  Elapsed wall-clock time (in seconds): ";
     o << IpplInfo::Stats->getTime().clock_time() << "\n";
@@ -345,7 +304,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 printsummary = true;
 
             } else if ( ( strcmp(argv[i], "--ipplversion") == 0 ) ) {
-                printVersion(false);
+                printVersion();
                 std::string options = compileOptions();
                 std::string header("Compile-time options: ");
                 while (options.length() > 58) {
@@ -368,7 +327,7 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
             } else if ( ( strcmp(argv[i], "--ipplversionall") == 0 ) ||
                         ( strcmp(argv[i], "-vall") == 0 ) ) {
-                printVersion(true);
+                printVersion();
                 std::string options = compileOptions();
                 std::string header("Compile-time options: ");
                 while (options.length() > 58) {
@@ -397,27 +356,6 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                 else
                     param_error(argv[i],
                             "Please specify an output level from 0 to 5", 0);
-
-            } else if ( ( strcmp(argv[i], "--use-dks") == 0 ) ) {
-                // Set DKSEnabled to true if OPAL is compiled with DKS.
-	      #ifdef IPPL_DKS
-	      int ndev = 0;
-	      DKS->getDeviceCount(ndev);
-	      if (ndev > 0) {
-		DKSEnabled = true;
-		INFOMSG("DKS enabled OPAL will use GPU where possible");
-		INFOMSG(endl);
-	      } else {
-		DKSEnabled = false;
-		INFOMSG("No GPU device detected! --use-dks flag will have no effect");
-		INFOMSG(endl);
-	      }
-	      //TODO: check if any device is available and disable DKS if there isn't
-	      #else
-	      DKSEnabled = false;
-	      INFOMSG("OPAL compiled without DKS, " << argv[i] << " flag has no effect");
-	      INFOMSG(endl);
-	      #endif
 
             } else if ( ( strcmp(argv[i], "--warn") == 0 ) ) {
                 // Set the output level for warning messages.
@@ -495,16 +433,6 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                     param_error(argv[i],
                             "Please specify a timeout value (in seconds)", 0);
                 }
-#ifdef IPPL_COMM_ALARMS
-            } else if ( ( strcmp(argv[i], "--msgtimeout") == 0 ) ) {
-                // Set the timeout period for receiving messages
-                if ( (i + 1) < argc && argv[i+1][0] != '-' && atoi(argv[i+1]) >= 0 )
-                    CommTimeoutSeconds = atoi(argv[++i]);
-                else
-                    param_error(argv[i],
-                            "Please specify a timeout value (in seconds)", 0);
-#endif
-
             } else if ( ( strcmp(argv[i], "--defergcfill") == 0 ) ) {
                 // Turn on the defer guard cell fill optimization
                 deferGuardCellFills = true;
@@ -523,12 +451,8 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
             } else if ( ( strcmp(argv[i], "--directio") == 0 ) ) {
                 // Turn on the use of Direct-IO, if possible
-#ifdef IPPL_DIRECTIO
-                useDirectIO = true;
-#else
                 param_error(argv[i],
                         "Direct-IO is not available in this build of IPPL", 0);
-#endif
             } else if ( ( strcmp(argv[i], "--maxfftnodes") == 0 ) ) {
                 // Limit the number of nodes that can participate in FFT operations
                 if ( (i + 1) < argc && argv[i+1][0] != '-' && atoi(argv[i+1]) > 0 )
@@ -550,7 +474,6 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
 
             } else {
                 // Unknown option; just ignore it.
-                DEBUGMSG(level3 << "Unknown command-line option " << argv[i] << endl);
                 if (stripargs)
                     retargv[retargc++] = argv[i];
             }
@@ -687,13 +610,7 @@ IpplInfo& IpplInfo::operator=(const IpplInfo&) {
     return *this;
 }
 
-
-/////////////////////////////////////////////////////////////////////
-// abort: kill the comm and exit the program, in an emergency.  This
-// will exit with an error code.  If the given exit code is < 0, the
-// program will call the system abort().  If the exit code is >= 0,
-// the program will call the system exit() with the given error code.
-void IpplInfo::abort(const char *msg, int exitcode) {
+void IpplInfo::abort(const char *msg) {
     // print out message, if one was provided
     if (msg != 0) {
         ERRORMSG(msg << endl);
@@ -724,7 +641,7 @@ void IpplInfo::abort(const char *msg, int exitcode) {
 // The node which calls abortAllNodes will print out the given message;
 // the other nodes will print out that they are aborting due to a message
 // from this node.
-void IpplInfo::abortAllNodes(const char *msg, bool abortThisNode) {
+void IpplInfo::abortAllNodes(const char *msg) {
     // print out message, if one was provided
     if (msg != 0) {
         ERRORMSG(msg << endl);
@@ -744,29 +661,6 @@ void IpplInfo::abortAllNodes(const char *msg, bool abortThisNode) {
     throw std::runtime_error("Error form IpplInfo::abortAllNodes");
 
 }
-
-void IpplInfo::exitAllNodes(const char *msg, bool exitThisNode) {
-    // print out message, if one was provided
-    if (msg != 0) {
-        ERRORMSG(msg << endl);
-    }
-
-    // print out final stats, if necessary
-    if (PrintStats) {
-        Inform statsmsg("Stats", INFORM_ALL_NODES);
-        statsmsg << IpplInfo();
-        printStatistics(statsmsg);
-    }
-
-    // broadcast out the kill message, if necessary
-    if (getNodes() > 1)
-        Comm->broadcast_others(new Message, IPPL_EXIT_TAG);
-
-    // Now quit ourselves
-    if (exitThisNode)
-        exit(1);
-}
-
 
 /////////////////////////////////////////////////////////////////////
 // getNodes: return the number of 'Nodes' in use for the computation
@@ -836,10 +730,7 @@ int IpplInfo::mySMPNode() {
 /////////////////////////////////////////////////////////////////////
 // printVersion: print out a version summary.  If the argument is true,
 // print out a detailed listing, otherwise a summary.
-void IpplInfo::printVersion(bool printFull) {
-#ifdef OPAL_DKS
-    INFOMSG("DKS Version " << IPPL_DKS_VERSION << endl);
-#endif
+void IpplInfo::printVersion(void) {
     INFOMSG("IPPL Framework version " << version() << endl);
     INFOMSG("Last build date: " << compileDate() << " by user ");
     INFOMSG(compileUser() << endl);
@@ -878,18 +769,12 @@ void IpplInfo::printHelp(char** argv) {
     INFOMSG("   --nofieldcompression: Turn off compression in the Field classes.\n");
     INFOMSG("   --offsetstorage     : Turn on random LField storage offsets.\n");
     INFOMSG("   --extracompcheck    : Turn on extra compression checks in evaluator.\n");
-#ifdef IPPL_COMM_ALARMS
-    INFOMSG("   --msgtimeout <n>    : Set receive timeout time, in secs.\n");
-#endif
     INFOMSG("   --checksums         : Turn on CRC checksums for messages.\n");
     INFOMSG("   --retransmit        : Resent messages if a CRC error occurs.\n");
     INFOMSG("   --maxfftnodes <n>   : Limit the nodes that work on FFT's.\n");
     INFOMSG("   --chunksize <n>     : Set I/O chunk size.  Can end w/K,M,G.\n");
     INFOMSG("   --persmppario       : Enable on-SMP parallel IO option.\n");
     INFOMSG("   --nopersmppario     : Disable on-SMP parallel IO option (default).\n");
-#ifdef IPPL_DIRECTIO
-    INFOMSG("   --directio          : Use Direct-IO if possible.\n");
-#endif
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -973,7 +858,7 @@ void IpplInfo::param_error(const char *param, const char *msg,
     if ( msg != 0 )
         ERRORMSG(": " << msg);
     ERRORMSG(endl);
-    IpplInfo::abort(0, 0);
+    IpplInfo::abort(0);
 }
 
 void IpplInfo::param_error(const char *param, const char *msg1,
@@ -987,7 +872,7 @@ void IpplInfo::param_error(const char *param, const char *msg1,
     if ( msg2 != 0 )
         ERRORMSG(msg2);
     ERRORMSG(endl);
-    IpplInfo::abort(0, 0);
+    IpplInfo::abort(0);
 }
 
 
@@ -1114,7 +999,6 @@ void IpplInfo::stash() {
     obj.noFieldCompression =  noFieldCompression;
     obj.offsetStorage =       offsetStorage;
     obj.extraCompressChecks = extraCompressChecks;
-    obj.useDirectIO =         useDirectIO;
     obj.communicator_m =      communicator_m;
     obj.NumCreated =          NumCreated;
     obj.CommInitialized =     CommInitialized;
@@ -1133,10 +1017,6 @@ void IpplInfo::stash() {
     obj.ChunkSize =           ChunkSize;
     obj.PerSMPParallelIO =    PerSMPParallelIO;
 
-#ifdef IPPL_COMM_ALARMS
-    obj.CommTimeoutSeconds = CommTimeoutSeconds;
-#endif
-
     stashedStaticMembers.push(obj);
 
     Comm = 0;
@@ -1150,7 +1030,6 @@ void IpplInfo::stash() {
     noFieldCompression = false;
     offsetStorage = false;
     extraCompressChecks = false;
-    useDirectIO = false;
     communicator_m = MPI_COMM_WORLD;
     NumCreated = 0;
     CommInitialized = false;
@@ -1197,7 +1076,6 @@ void IpplInfo::pop() {
     noFieldCompression =  obj.noFieldCompression;
     offsetStorage =       obj.offsetStorage;
     extraCompressChecks = obj.extraCompressChecks;
-    useDirectIO =         obj.useDirectIO;
     communicator_m =      obj.communicator_m;
     NumCreated =          obj.NumCreated;
     CommInitialized =     obj.CommInitialized;
@@ -1215,38 +1093,4 @@ void IpplInfo::pop() {
     MaxFFTNodes =         obj.MaxFFTNodes;
     ChunkSize =           obj.ChunkSize;
     PerSMPParallelIO =    obj.PerSMPParallelIO;
-
-#ifdef IPPL_COMM_ALARMS
-    CommTimeoutSeconds = obj.CommTimeoutSeconds;
-#endif
 }
-
-#ifdef IPPL_RUNTIME_ERRCHECK
-/////////////////////////////////////////////////////////////////////
-// special routine used in runtime debugging error detection
-void __C_runtime_error ( int trap_code, char *name, int line_no, ... ) {
-    switch ( trap_code ) {
-        /* Subscript range violations: */
-    case BRK_RANGE:
-        fprintf ( stderr, "error: Subscript range violation" );
-        break;
-
-        /* Others (unknown trap codes): */
-    default:
-        fprintf ( stderr, "error: Trap %d ", trap_code );
-        break;
-    }
-
-    fprintf ( stderr, " in '%s'", name);
-    if ( line_no != -1 )
-        fprintf ( stderr, " (line %d)", line_no );
-    exit (99);
-}
-#endif
-
-
-/***************************************************************************
- * $RCSfile: IpplInfo.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: IpplInfo.cpp,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
- ***************************************************************************/

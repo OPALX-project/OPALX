@@ -1,3 +1,23 @@
+//
+// Class MemoryProfiler
+//   This class writes a SDDS file with virtual memory usage information (Linux only).
+//
+// Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_MEMORY_PROFILER_H
 #define OPAL_MEMORY_PROFILER_H
 
@@ -38,7 +58,7 @@ public:
                     // included (since Linux 2.6.34).
     };
     
-    void write(PartBunchBase<double, 3> *beam) override;
+    void write(const PartBunchBase<double, 3> *beam) override;
     
 private:
     void header();
@@ -46,7 +66,6 @@ private:
     void compute(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg);
     
 private:
-    std::string fname_m;
     std::map<std::string, int> procinfo_m;
     vm_t vmem_m;
     units_t unit_m;

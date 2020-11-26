@@ -36,7 +36,6 @@
  *   INFOMSG("This is some information " << 34 << endl);
  *   WARNMSG("This is a warning " << 34 << endl);
  *   ERRORMSG("This is an error message " << 34 << endl);
- *   DEBUGMSG("This is some debugging info " << 34 << endl);
  *
  * There is also a 'typedef IpplInfo Ippl' here, so you can simply use
  * the name 'Ippl' instead of the longer 'IpplInfo' to access this class.
@@ -44,9 +43,8 @@
  */
 
 // include files
-#include "Utility/Inform.h"
-#include "Message/Communicate.h"
 #include "Utility/StaticIpplInfo.h"
+#include "Utility/Inform.h"
 
 #include <iostream>
 #include <stack>
@@ -56,23 +54,11 @@
 //(without further increasing the number of defines).
 #include <mpi.h>
 
-//DKS include
-#ifdef IPPL_DKS
-#include "DKSOPAL.h"
-#endif
-
 // forward declarations
+class Communicate;
 class IpplStats;
 class IpplInfo;
 std::ostream& operator<<(std::ostream&, const IpplInfo&);
-
-
-#ifdef IPPL_RUNTIME_ERRCHECK
-// special routine used in runtime debugging error detection
-extern "C" {
-void __C_runtime_error (int trap_code, char *name, int line_no, ...);
-};
-#endif
 
 
 class IpplInfo {
@@ -95,10 +81,6 @@ public:
   // the statistics collection object
   static IpplStats *Stats;
 
-
-#ifdef IPPL_DKS
-  static DKSOPAL *DKS;
-#endif
 
   // Constructor 1: specify the argc, argv values from the cmd line.
   // The second argument controls whether the IPPL-specific command line
@@ -152,24 +134,11 @@ public:
   // Standard IPPL action methods (such as abort, etc)
   //
 
-  // Kill the communication and exit the program, in an emergency.  This
-  // will exit with an error code.  If the given exit code is < 0, the
-  // program will call the system abort().  If the exit code is >= 0,
-  // the program will call the system exit() with the given error code.
-  static void abort(const char * = 0, int exitcode = (-1));
+  // Kill the communication and throw runtime error exception.
+  static void abort(const char * = 0);
 
-  // Signal to ALL the nodes that we should exit or abort.  If we abort,
-  // a core file will be produced.  If we exit, no core file will be made.
-  // The node which calls abortAllNodes will print out the given message;
-  // the other nodes will print out that they are aborting due to a message
-  // from this node.  The final boolean argument indicates whether the
-  // calling node should abort or exit just as the other nodes are being
-  // asked to do; if this is false, then only the other nodes will be
-  // instructed to quit, and it will be up to the caller to abort or exit
-  // the current node.  This makes it possible to ask all other nodes to
-  // exit, but have your own node abort.
-  static void abortAllNodes(const char * = 0, bool thisnode = true);
-  static void exitAllNodes(const char * = 0, bool thisnode = true);
+  // Signal to ALL the nodes to abort and throw runtime error exception
+  static void abortAllNodes(const char * = 0);
 
   //
   // Functions which return information about the current Ippl application.
@@ -220,13 +189,6 @@ public:
   // return true if we should try to retransmit messages on error
   static bool retransmit() { return (UseChecksums && Retransmit); }
 
-#ifdef IPPL_COMM_ALARMS
-  // A timeout quantity, in seconds, to allow us to wait a certain number
-  // of seconds before we signal a timeout when we're trying to receive
-  // a message.
-  static unsigned int getCommTimeout() { return CommTimeoutSeconds; }
-#endif
-
   // Static data about a limit to the number of nodes that should be used
   // in FFT operations.  If this is <= 0 or > number of nodes, it is ignored.
   static int maxFFTNodes() { return MaxFFTNodes; }
@@ -249,7 +211,7 @@ public:
 
   // printVersion: print out a version summary.  If the argument is true,
   // print out a detailed listing, otherwise a summary.
-  static void printVersion(bool = false);
+  static void printVersion(void);
 
   static void printHelp(char** argv);
 
@@ -281,9 +243,6 @@ public:
   // library (from IpplVersions.h)
   static const char *compileUser();
 
-  //Static flag telling wheteher to use DKS when runnign OPAL
-  static bool DKSEnabled;
-
   // stash all static members
   static void stash();
 
@@ -304,11 +263,6 @@ public:
   // Static flag telling whether to try to do a TryCompress after each
   // individual LField has been processed in an expression.
   static bool extraCompressChecks;
-
-  // Static flag telling whether to try to use direct-io.  This is only
-  // possible if the library is compiled with the IPPL_DIRECTIO option,
-  // and you are on a system that provides this capablity.
-  static bool useDirectIO;
 
   // Static routine giving one a place to stop at with #$%$%#1 stupid
   // debuggers.
@@ -371,14 +325,6 @@ private:
   // try to read from a single file (vs just having one node do it).
   static bool PerSMPParallelIO;
 
-#ifdef IPPL_COMM_ALARMS
-  // A timeout quantity, in seconds, to allow us to wait a certain number
-  // of seconds before we signal a timeout when we're trying to receive
-  // a message.  By default, this will be zero; change it with the
-  // --msgtimeout <seconds> flag
-  static unsigned int CommTimeoutSeconds;
-#endif
-
   static std::stack<StaticIpplInfo> stashedStaticMembers;
 
   // Indicate an error occurred while trying to parse the given command-line
@@ -397,14 +343,6 @@ private:
 #define INFOMSG(msg)  { *IpplInfo::Info << msg; }
 #define WARNMSG(msg)  { *IpplInfo::Warn << msg; }
 #define ERRORMSG(msg) { *IpplInfo::Error << msg; }
-
-// special macro to print debugging messages
-#ifdef IPPL_PRINTDEBUG
-#define DEBUGMSG(msg) { *IpplInfo::Debug << msg; }
-#else
-#define DEBUGMSG(msg)
-#endif
-
 
 // typedef so that we can have a 'Ippl' class that's easier to manipulate
 typedef IpplInfo Ippl;

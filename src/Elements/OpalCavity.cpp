@@ -1,21 +1,20 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalCavity.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalCavity
-//   The class of OPAL RF cavities.
+// Class OpalCavity
+//   The RFCAVITY element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalCavity.h"
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
@@ -25,10 +24,6 @@
 #include "Structure/BoundaryGeometry.h"
 #include "Physics/Physics.h"
 
-extern Inform *gmsg;
-
-// Class OpalCavity
-// ------------------------------------------------------------------------
 
 OpalCavity::OpalCavity():
     OpalElement(SIZE, "RFCAVITY",
@@ -45,16 +40,6 @@ OpalCavity::OpalCavity():
                    ("LAG", "Phase lag (rad)");
     itsAttr[DLAG] = Attributes::makeReal
                     ("DLAG", "Phase lag error (rad)");
-    itsAttr[HARMON] = Attributes::makeReal
-                      ("HARMON", "Harmonic number");
-    itsAttr[BETARF] = Attributes::makeReal
-                      ("BETRF", "beta_RF");
-    itsAttr[PG] = Attributes::makeReal
-                  ("PG", "RF power in MW");
-    itsAttr[ZSHUNT] = Attributes::makeReal
-                      ("SHUNT", "Shunt impedance in MOhm");
-    itsAttr[TFILL] = Attributes::makeReal
-                     ("TFILL", "Fill time in microseconds");
     itsAttr[FMAPFN] = Attributes::makeString
                       ("FMAPFN", "Filename of the fieldmap");
     itsAttr[GEOMETRY] = Attributes::makeString
@@ -85,29 +70,9 @@ OpalCavity::OpalCavity():
     itsAttr[FREQUENCY_MODEL] = Attributes::makeString("FREQUENCY_MODEL",
                                                       "The name of the frequency time dependence model.");
 
-    registerRealAttribute("VOLT");
-    registerRealAttribute("DVOLT");
-    registerRealAttribute("FREQ");
-    registerRealAttribute("LAG");
-    registerRealAttribute("DLAG");
-    registerStringAttribute("FMAPFN");
-    registerStringAttribute("GEOMETRY");
-    registerRealAttribute("RMIN");
-    registerRealAttribute("RMAX");
-    registerRealAttribute("ANGLE");
-    registerRealAttribute("PDIS");
-    registerRealAttribute("GAPWIDTH");
-    registerRealAttribute("PHI0");
-    registerRealAttribute("DESIGNENERGY");
-
-    // attibutes for timedependent values
-    registerStringAttribute("PHASE_MODEL");
-    registerStringAttribute("AMPLITUDE_MODEL");
-    registerStringAttribute("FREQUENCY_MODEL");
-
     registerOwnership();
 
-    setElement((new RFCavityRep("RFCAVITY"))->makeAlignWrapper());
+    setElement(new RFCavityRep("RFCAVITY"));
 }
 
 
@@ -115,13 +80,12 @@ OpalCavity::OpalCavity(const std::string &name, OpalCavity *parent):
     OpalElement(name, parent),
     owk_m(NULL),
     obgeo_m(NULL) {
-    setElement((new RFCavityRep(name))->makeAlignWrapper());
+    setElement(new RFCavityRep(name));
 }
 
 
 OpalCavity::~OpalCavity() {
-    if(owk_m)
-        delete owk_m;
+    delete owk_m;
 }
 
 
@@ -130,33 +94,18 @@ OpalCavity *OpalCavity::clone(const std::string &name) {
 }
 
 
-void OpalCavity::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-
-    if(flag != ERROR_FLAG) {
-        const RFCavityRep *rfc =
-            dynamic_cast<const RFCavityRep *>(base.removeWrappers());
-        attributeRegistry["VOLT"]->setReal(rfc->getAmplitude());
-        attributeRegistry["FREQ"]->setReal(rfc->getFrequency());
-        attributeRegistry["LAG"]->setReal(rfc->getPhase());
-        attributeRegistry["FMAPFN"]->setString(rfc->getFieldMapFN());
-    }
-}
-
-
 void OpalCavity::update() {
     OpalElement::update();
 
-    using Physics::two_pi;
     RFCavityRep *rfc =
-        dynamic_cast<RFCavityRep *>(getElement()->removeWrappers());
+        dynamic_cast<RFCavityRep *>(getElement());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
     double peak  = Attributes::getReal(itsAttr[VOLT]);
     double peakError  = Attributes::getReal(itsAttr[DVOLT]);
     double phase  = Attributes::getReal(itsAttr[LAG]);
     double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq   = 1e6 * two_pi * Attributes::getReal(itsAttr[FREQ]);
+    double freq   = 1e6 * Physics::two_pi * Attributes::getReal(itsAttr[FREQ]);
     std::string fmapfn = Attributes::getString(itsAttr[FMAPFN]);
     std::string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);

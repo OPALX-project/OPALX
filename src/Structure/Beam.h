@@ -22,6 +22,7 @@
 #include "Algorithms/PartData.h"
 
 #include <ostream>
+#include <string>
 
 class Inform;
 
@@ -54,15 +55,6 @@ public:
     /// Find named BEAM.
     static Beam *find(const std::string &name);
 
-    /// Return emittance for mode 1.
-    double getEX() const;
-
-    /// Return emittance for mode 2.
-    double getEY() const;
-
-    /// Return emittance for mode 3.
-    double getET() const;
-
     //ff => get gamma value
     double getGamma() const;
 
@@ -70,10 +62,7 @@ public:
     double getPC() const;
 
     /// Return the number of (macro)particles
-    size_t getNumberOfParticles();
-
-    /// Return the number of slices
-    size_t getNumberOfSlices();
+    size_t getNumberOfParticles() const;
 
     /// Return the embedded CLASSIC PartData.
     const PartData &getReference() const;
@@ -93,14 +82,11 @@ public:
     /// Return Particle's rest mass in GeV
     double getMass() const;
 
-    /// Store emittance for mode 1.
-    void setEX(double);
+    /// Charge per macro particle in C
+    double getChargePerParticle() const;
 
-    /// Store emittance for mode 2.
-    void setEY(double);
-
-    /// Store emittance for mode 3.
-    void setET(double);
+    /// Mass per macro particle in GeV/c^2
+    double getMassPerParticle() const;
 
     /// Update the BEAM data.
     virtual void update();

@@ -3,21 +3,6 @@
  *
  * The IPPL Framework
  *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- * Visit www.amas.web.psi for more details
- *
- ***************************************************************************/
-
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
@@ -186,7 +171,7 @@ void ConstantFace<T,D,M,C>::write(std::ostream& out) const
   out << "ConstantFace"
       << ", Face=" << BCondBase<T,D,M,C>::m_face
       << ", Constant=" << this->Offset
-      << endl;
+      << std::endl;
 }
 
 template<class T, unsigned int D, class M, class C>
@@ -363,14 +348,9 @@ ComponentFunctionFace(typename ApplyToComponentType<T>::type
 template<class T>
 struct OpPeriodic
 {
-#ifdef IPPL_PURIFY
-  OpPeriodic() {}
-  OpPeriodic(const OpPeriodic<T> &) {}
-  OpPeriodic<T>& operator=(const OpPeriodic<T> &) { return *this; }
-#endif
 };
 template<class T>
-inline void PETE_apply(const OpPeriodic<T>& e, T& a, const T& b) {a = b; }
+inline void PETE_apply(const OpPeriodic<T>& /*e*/, T& a, const T& b) {a = b; }
 
 // Special, for applying to single component of multicomponent elemental type:
 template<class T>
@@ -398,7 +378,7 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,short)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,long)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,float)
 COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,double)
-COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,std::complex<double>)
 
 
 //////////////////////////////////////////////////////////////////////
@@ -425,14 +405,9 @@ COMPONENT_APPLY_BUILTIN(OpPeriodicComponent,dcomplex)
 template<class T>
 struct OpInterpolation
 {
-#ifdef IPPL_PURIFY
-  OpInterpolation() {}
-  OpInterpolation(const OpInterpolation<T> &) {}
-  OpInterpolation<T>& operator=(const OpInterpolation<T> &) { return *this; }
-#endif
 };
 template<class T>
-inline void PETE_apply(const OpInterpolation<T>& e, T& a, const T& b) {a = a + b; }
+inline void PETE_apply(const OpInterpolation<T>& /*e*/, T& a, const T& b) {a = a + b; }
 
 // Special, for applying to single component of multicomponent elemental type:
 template<class T>
@@ -462,7 +437,7 @@ COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,short)
 COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,long)
 COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,float)
 COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,double)
-COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpInterpolationComponent,std::complex<double>)
 //////////////////////////////////////////////////////////////////////
 
 //----------------------------------------------------------------------------
@@ -490,7 +465,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Vert>& pf,
 template<class T, unsigned D, class M>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,Edge>& pf,
 			 Field<T,D,M,Edge>& A );
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& pf,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A );
@@ -545,8 +520,6 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Cell>& pf,
       slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
       offset = domain[d].length();
     }
-
-  DEBUGMSG("PeriodicFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
 
   // Loop over the ones the slab touches.
   typename Field<T,D,M,Cell>::iterator_if fill_i;
@@ -639,8 +612,6 @@ void InterpolationFaceBCApply(InterpolationFace<T,D,M,Cell>& pf,
       slab[d] = Index( domain[d].min() - A.leftGuard(d), domain[d].min()-1 );
       offset = domain[d].length();
     }
-
-  DEBUGMSG("InterpolationFaceBCApply domain" << domain << " d= " << d << " slab= " << slab[d] << endl);
 
   // Loop over the ones the slab touches.
   typename Field<T,D,M,Cell>::iterator_if fill_i;
@@ -905,7 +876,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,Edge>& pf,
 // Specialization of PeriodicFace::apply() for CartesianCentering centering.
 // Rather, indirectly-called specialized global function PeriodicFaceBCApply
 //-----------------------------------------------------------------------------
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& pf,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
@@ -929,7 +900,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 	  allComponents) {
 	// Make sure all components are really centered the same, as assumed:
 	CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	for (int c=1; c<NC; c++) { // Compare other components with 1st
+	for (unsigned int c=1; c<NC; c++) { // Compare other components with 1st
 	  if (CE[c + d*NC] != centering0)
 	    ERRORMSG("PeriodicFaceBCApply: BCond thinks all components have"
 		     << " same centering along direction " << d
@@ -964,7 +935,7 @@ void PeriodicFaceBCApply(PeriodicFace<T,D,M,
 	  allComponents) {
 	// Make sure all components are really centered the same, as assumed:
 	CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	for (int c=1; c<NC; c++) { // Compare other components with 1st
+	for (unsigned int c=1; c<NC; c++) { // Compare other components with 1st
 	  if (CE[c + d*NC] != centering0)
 	    ERRORMSG("PeriodicFaceBCApply: BCond thinks all components have"
 		     << " same centering along direction " << d
@@ -1204,7 +1175,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,Edge> &A,
 
 // See comments above - vert centering wrong, I think.
 
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 inline void
 CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 			   const ParallelPeriodicFace<T,D,M,
@@ -1236,7 +1207,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component
 	                                           // along dir d
-	  for (int c = 1; c < NC; c++)
+	  for (unsigned int c = 1; c < NC; c++)
 	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
@@ -1293,7 +1264,7 @@ CalcParallelPeriodicDomain(const Field<T,D,M,CartesianCentering<CE,D,NC> >& A,
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component
 	                                           // along dir d
-	  for (int c = 1; c < NC; c++)
+	  for (unsigned int c = 1; c < NC; c++)
 	    { // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
 		ERRORMSG("ParallelPeriodicFaceBCApply:"
@@ -2787,7 +2758,7 @@ COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,short)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,long)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,float)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,double)
-COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpExtrapolateComponent,std::complex<double>)
 
 //////////////////////////////////////////////////////////////////////
 
@@ -2812,7 +2783,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Vert>& ef,
 template<class T, unsigned D, class M>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Edge>& ef,
 			    Field<T,D,M,Edge>& A );
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A );
@@ -2824,8 +2795,6 @@ void ExtrapolateFace<T,D,M,C>::apply( Field<T,D,M,C>& A )
 }
 
 
-//#pragma GCC push_options
-//#pragma GCC optimize "no-tree-vrp"
 template<class T, unsigned D, class M, class C>
 inline void
 ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
@@ -2891,7 +2860,6 @@ ExtrapolateFaceBCApply2(const NDIndex<D> &dest, const NDIndex<D> &src,
 	 (ef.getOffset(),ef.getSlope(),ef.getComponent())).apply();
     }
 }
-//#pragma GCC pop_options
 
 
 //-----------------------------------------------------------------------------
@@ -3294,7 +3262,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,Edge>& ef,
 // Specialization of ExtrapolateFace::apply() for CartesianCentering centering.
 // Rather,indirectly-called specialized global function ExtrapolateFaceBCApply:
 //-----------------------------------------------------------------------------
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
@@ -3334,7 +3302,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
@@ -3408,7 +3376,7 @@ void ExtrapolateFaceBCApply(ExtrapolateFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 
@@ -3578,7 +3546,7 @@ COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,short)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,long)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,float)
 COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,double)
-COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpExtrapolateAndZeroComponent,std::complex<double>)
 
 // Special, for assigning to single component of multicomponent elemental type:
 template<class T>
@@ -3603,7 +3571,7 @@ COMPONENT_APPLY_BUILTIN(OpAssignComponent,short)
 COMPONENT_APPLY_BUILTIN(OpAssignComponent,long)
 COMPONENT_APPLY_BUILTIN(OpAssignComponent,float)
 COMPONENT_APPLY_BUILTIN(OpAssignComponent,double)
-COMPONENT_APPLY_BUILTIN(OpAssignComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpAssignComponent,std::complex<double>)
 
 //////////////////////////////////////////////////////////////////////
 
@@ -3628,7 +3596,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Vert>& ef,
 template<class T, unsigned D, class M>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Edge>& ef,
 			    Field<T,D,M,Edge>& A );
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A );
@@ -4235,7 +4203,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,Edge>& ef,
 // centering.  Rather,indirectly-called specialized global function
 // ExtrapolateAndZeroFaceBCApply:
 //-----------------------------------------------------------------------------
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 			    CartesianCentering<CE,D,NC> >& ef,
 			    Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
@@ -4276,7 +4244,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 	      if (CE[c + d*NC] != centering0)
@@ -4363,7 +4331,7 @@ void ExtrapolateAndZeroFaceBCApply(ExtrapolateAndZeroFace<T,D,M,
 	  // Make sure all components are really centered the same, as assumed:
 
 	  CenteringEnum centering0 = CE[0 + d*NC]; // 1st component along dir d
-	  for (int c=1; c<NC; c++)
+	  for (unsigned int c=1; c<NC; c++)
 	    {
 	      // Compare other components with 1st
 
@@ -4557,7 +4525,7 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,Vert>& ff,
 template<class T, unsigned D, class M>
 void FunctionFaceBCApply(FunctionFace<T,D,M,Edge>& ff,
 			 Field<T,D,M,Edge>& A );
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void FunctionFaceBCApply(FunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A );
@@ -4834,7 +4802,7 @@ void FunctionFaceBCApply(FunctionFace<T,D,M,Edge>& ff,
 // Specialization of FunctionFace::apply() for CartesianCentering centering.
 // Rather, indirectly-called specialized global function FunctionFaceBCApply:
 //-----------------------------------------------------------------------------
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void FunctionFaceBCApply(FunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
@@ -4982,7 +4950,7 @@ COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,short)
 COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,long)
 COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,float)
 COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,double)
-COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,dcomplex)
+COMPONENT_APPLY_BUILTIN(OpBCFunctionEqComponent,std::complex<double>)
 
 
 //////////////////////////////////////////////////////////////////////
@@ -5008,7 +4976,7 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Vert>& ff,
 template<class T, unsigned D, class M>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Edge>& ff,
 				  Field<T,D,M,Edge>& A );
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,
 				  CartesianCentering<CE,D,NC> >& ff,
 				  Field<T,D,M,
@@ -5291,7 +5259,7 @@ void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,Edge>& ff,
 //CartesianCentering centering.  Rather, indirectly-called specialized
 //global function ComponentFunctionFaceBCApply:
 //-----------------------------------------------------------------------------
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 void ComponentFunctionFaceBCApply(ComponentFunctionFace<T,D,M,
 			 CartesianCentering<CE,D,NC> >& ff,
 			 Field<T,D,M,CartesianCentering<CE,D,NC> >& A )
@@ -5434,14 +5402,7 @@ void EurekaFace<T,D,M,C>::apply(Field<T,D,M,C>& field)
 // for any classes except Vektor, Tenzor and SymTenzor.
 //
 
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-template<class T, int D>
-#else
 template<class T>
-#endif // __MWERKS__
 struct EurekaAssign
 {
   static const T& get(const T& x, int) {
@@ -5502,16 +5463,8 @@ fillSlabWithZero(Field<T,D,M,C>& field,
                   // Check to see if the component is zero.
                   // Check through a class so that this statement
                   // isn't a compile error if T is something like int.
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-                  if ( EurekaAssign<T,D>::get(*lf.begin(),component)==0 )
-                    continue;
-#else
                   if ( EurekaAssign<T>::get(*lf.begin(),component)==0 )
                     continue;
-#endif // __MWERKS__
                 }
               // Not compressed to zero.
               // Have to uncompress.
@@ -5543,14 +5496,7 @@ fillSlabWithZero(Field<T,D,M,C>& field,
           else
             {
               // The type of the expression.
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-	      typedef BrickExpression<D,Lhs_t,Rhs_t,EurekaAssign<T,D> > Expr_t;
-#else
 	      typedef BrickExpression<D,Lhs_t,Rhs_t,EurekaAssign<T> > Expr_t;
-#endif // __MWERKS__
 
 	      // Sanity check.
 	      PAssert_GE(component, 0);
@@ -5569,14 +5515,7 @@ fillSlabWithZero(Field<T,D,M,C>& field,
 //
 
 template<class T, unsigned int D>
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-struct EurekaAssign< Vektor<T,D>, D >
-#else
 struct EurekaAssign< Vektor<T,D> >
-#endif // __MWERKS__
 {
   static T& get( Vektor<T,D>& x, int c ) { return x[c]; }
   static T  get( const Vektor<T,D>& x, int c ) { return x[c]; }
@@ -5585,14 +5524,7 @@ struct EurekaAssign< Vektor<T,D> >
 };
 
 template<class T, unsigned int D>
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-struct EurekaAssign< Tenzor<T,D>, D >
-#else
 struct EurekaAssign< Tenzor<T,D> >
-#endif // __MWERKS__
 {
   static T& get( Tenzor<T,D>& x, int c ) { return x[c]; }
   static T  get( const Tenzor<T,D>& x, int c ) { return x[c]; }
@@ -5601,14 +5533,7 @@ struct EurekaAssign< Tenzor<T,D> >
 };
 
 template<class T, unsigned int D>
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-struct EurekaAssign< AntiSymTenzor<T,D>, D >
-#else
 struct EurekaAssign< AntiSymTenzor<T,D> >
-#endif // __MWERKS__
 {
   static T& get( AntiSymTenzor<T,D>& x, int c ) { return x[c]; }
   static T  get( const AntiSymTenzor<T,D>& x, int c ) { return x[c]; }
@@ -5617,14 +5542,7 @@ struct EurekaAssign< AntiSymTenzor<T,D> >
 };
 
 template<class T, unsigned int D>
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-struct EurekaAssign< SymTenzor<T,D>, D >
-#else
 struct EurekaAssign< SymTenzor<T,D> >
-#endif // __MWERKS__
 {
   static T& get( SymTenzor<T,D>& x, int c ) { return x[c]; }
   static T  get( const SymTenzor<T,D>& x, int c ) { return x[c]; }
@@ -5637,25 +5555,12 @@ struct EurekaAssign< SymTenzor<T,D> >
 // Assign a component of the right hand side to a component of the left.
 //
 
-#ifdef __MWERKS__
-// Work around CodeWarrior 4 Professional template-matching bug; requires
-// putting D template parameter on EurekaAssign struct and all the
-// specializations:
-template<class T, int D>
-inline void PETE_apply(const EurekaAssign<T,D>& e, T& a, const T& b)
-{
-  EurekaAssign<T,D>::get(a,e.m_component) =
-    EurekaAssign<T,D>::get(b,e.m_component);
-}
-#else
 template<class T>
 inline void PETE_apply(const EurekaAssign<T>& e, T& a, const T& b)
 {
   EurekaAssign<T>::get(a,e.m_component) =
     EurekaAssign<T>::get(b,e.m_component);
 }
-#endif // __MWERKS__
-
 
 //////////////////////////////////////////////////////////////////////
 
@@ -5745,7 +5650,7 @@ calcEurekaSlabToFill(const Field<T,D,M,Edge>& field, int face,int)
 //   If that component is cell, the number of guard cells.
 //
 
-template<class T, unsigned D, class M, const CenteringEnum* CE, unsigned NC>
+template<class T, unsigned D, class M, CenteringEnum* CE, unsigned NC>
 static NDIndex<D>
 calcEurekaSlabToFill(const Field<T,D,M,CartesianCentering<CE,D,NC> >& field,
                      int face,
@@ -5852,7 +5757,7 @@ LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
 				   const NDIndex<D> &src1,
 				   const NDIndex<D> &src2,
 				   LField<T,D> &fill,
-				   LinearExtrapolateFace<T,D,M,C> &ef,
+                                   LinearExtrapolateFace<T,D,M,C> &/*ef*/,
 				   int slopeMultipplier)
 {
   // If 'fill' is compressed and applying the boundary condition on the
@@ -5872,7 +5777,7 @@ LinearExtrapolateFaceBCApply2(const NDIndex<D> &dest,
   // Couldn't figure out how to use BrickExpression here. Just iterate through
   // all the elements in all 3 LField iterators (which are BrickIterators) and
   // do the calculation one element at a time:
-  for ( ; lhs != endi, rhs1 != endi, rhs2 != endi;
+  for ( ; lhs != endi && rhs1 != endi && rhs2 != endi;
 	++lhs, ++rhs1, ++rhs2) {
     *lhs = (*rhs2 - *rhs1)*slopeMultipplier + *rhs1;
   }
@@ -6290,8 +6195,3 @@ void PatchBC<T,D,M,C>::apply( Field<T,D,M,C>& A )
 
 #undef COMPONENT_APPLY_BUILTIN
 
-/***************************************************************************
- * $RCSfile: BCond.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:26 $
- * IPPL_VERSION_ID: $Id: BCond.cpp,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $
- ***************************************************************************/

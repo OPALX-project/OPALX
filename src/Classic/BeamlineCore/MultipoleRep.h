@@ -1,32 +1,25 @@
+//
+// Class MultipoleRep
+//   Representation for a general multipole.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_MultipoleRep_HH
 #define CLASSIC_MultipoleRep_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: MultipoleRep.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: MultipoleRep
-//
-// ------------------------------------------------------------------------
-// Class category: BeamlineCore
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:33 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
 #include "AbsBeamline/Multipole.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-
-
-// Class MultipoleRep
-// ------------------------------------------------------------------------
-/// Representation for a general multipole.
 
 class MultipoleRep: public Multipole {
 
@@ -67,18 +60,8 @@ public:
     //  Version for constant object.
     virtual const StraightGeometry &getGeometry() const;
 
-    /// Construct an image.
-    //  Return the image of the element, containing the name and type string
-    //  of the element, and a copy of the user-defined attributes.
-    virtual ElementImage *getImage() const;
-
     /// Set mulitpole field.
     virtual void setField(const BMultipoleField &field);
-
-    /// Allow field errors.
-    //  Build a FieldWrapper pointing to the multipole and return a pointer to
-    //  that wrapper.
-    virtual ElementBase *makeFieldWrapper();
 
 private:
 

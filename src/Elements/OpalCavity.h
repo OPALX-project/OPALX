@@ -1,28 +1,24 @@
+//
+// Class OpalCavity
+//   The RFCAVITY element.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_OpalCavity_HH
 #define OPAL_OpalCavity_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: OpalCavity.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: OpalCavity
-//
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
-//
-// ------------------------------------------------------------------------
-
 #include "Elements/OpalElement.h"
-
-// Class OpalCavity
-// ------------------------------------------------------------------------
-/// The RFCAVITY element.
 
 class OpalWake;
 class BoundaryGeometry;
@@ -39,11 +35,6 @@ public:
         FREQ,           // The RF frequency.
         LAG,            // The phase lag.
         DLAG,           // The phase lag error.
-        HARMON,         // The harmonic number.
-        BETARF,         // The beta_RF.
-        PG,             // The RF power.
-        ZSHUNT,         // The shunt impedance.
-        TFILL,          // The filling time.
         FMAPFN,         // The filename of the fieldmap
         FAST,           // Faster but less accurate
         APVETO,         // Do not use this cavity in the Autophase procedure
@@ -67,9 +58,6 @@ public:
 
     /// Make clone.
     virtual OpalCavity *clone(const std::string &name);
-
-    /// Fill in all registered attributes.
-    virtual void fillRegisteredAttributes(const ElementBase &, ValueFlag);
 
     /// Update the embedded CLASSIC cavity.
     virtual void update();

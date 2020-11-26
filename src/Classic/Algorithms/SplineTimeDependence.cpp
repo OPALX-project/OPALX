@@ -31,6 +31,8 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Algorithms/SplineTimeDependence.h"
 
+#include "Utility/Inform.h"
+
 SplineTimeDependence::SplineTimeDependence(size_t splineOrder,
                                            std::vector<double> times,
                                            std::vector<double> values)
@@ -38,7 +40,7 @@ SplineTimeDependence::SplineTimeDependence(size_t splineOrder,
     setSpline(splineOrder, times, values);
 }
 
-SplineTimeDependence::SplineTimeDependence(const SplineTimeDependence& rhs)
+SplineTimeDependence::SplineTimeDependence(const SplineTimeDependence& /*rhs*/)
     : spline_m(NULL), acc_m(NULL) {
     setSpline(splineOrder_m, times_m, values_m);
 }

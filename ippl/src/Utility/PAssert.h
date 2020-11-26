@@ -1,16 +1,11 @@
-// -*- C++ -*-
 /***************************************************************************
  *
  * The IPPL Framework
  *
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
+  ***************************************************************************/
 
 #ifndef PASSERT_H
 #define PASSERT_H
-#include "Utility/IpplInfo.h"
 
 #include <exception>
 #include <stdexcept>
@@ -57,17 +52,11 @@ public:
     assertion( const char *cond, const char *file, int line );
     assertion( const char *m );
     assertion( const assertion& a );
-  ~assertion() throw() { delete[] msg; }
+    ~assertion() throw() { delete[] msg; }
     assertion& operator=( const assertion& a );
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-#endif
-    const char* what()  { return msg; }
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
 
+    using std::runtime_error::what;
+    virtual const char* what() { return msg; };
 };
 
 //---------------------------------------------------------------------------//
@@ -77,12 +66,9 @@ public:
 //---------------------------------------------------------------------------//
 
 // These are the functions that will be called in the assert macros.
-
 void toss_cookies( const char *cond, const char *file, int line );
 template <class S, class T>
 void toss_cookies( const char *cond, const char *astr, const char *bstr, S a, T b, const char *file, int line) {
-
-    //Ippl::exitAllNodes(cond, false);
 
     std::string what = "Assertion '" + std::string(cond) + "' failed. \n";
     what += std::string(astr) + " = " + std::to_string(a) + ", ";
@@ -92,7 +78,6 @@ void toss_cookies( const char *cond, const char *astr, const char *bstr, S a, T 
 
     throw std::runtime_error(what);
 }
-
 
 void insist( const char *cond, const char *msg, const char *file, int line );
 
@@ -146,9 +131,3 @@ void insist( const char *cond, const char *msg, const char *file, int line );
 //---------------------------------------------------------------------------//
 
 #endif // PASSERT_H
-
-/***************************************************************************
- * $RCSfile: PAssert.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:33 $
- * IPPL_VERSION_ID: $Id: PAssert.h,v 1.1.1.1 2003/01/23 07:40:33 adelmann Exp $
- ***************************************************************************/

@@ -73,6 +73,7 @@
 // include files
 #include "Particle/ParticleAttribBase.h"
 #include "Particle/ParticleAttribElem.h"
+#include "Particle/PAssign.h"
 #include "SubParticle/SubParticleAttrib.h"
 #include "DataSource/DataSource.h"
 #include "DataSource/MakeDataSource.h"
@@ -202,7 +203,7 @@ public:
     void
     scatter(Field<T,Dim,M,C>& f,
             const ParticleAttrib< Vektor<PT,Dim> >& pp,
-            const IntOp& intop) const {
+            const IntOp& /*intop*/) const {
 
 
         // make sure field is uncompressed and guard cells are zeroed
@@ -231,7 +232,7 @@ public:
     void
     scatter(Field<T,Dim,M,C>& f,
             const ParticleAttrib< Vektor<PT,Dim> >& pp,
-            const IntOp& intop,
+            const IntOp& /*intop*/,
             ParticleAttrib<CacheData>& cache) const {
 
 
@@ -714,6 +715,9 @@ public:
     const PETE_Return_t& operator*(void) const { return *curr; }
 
     T const * operator->() const { return getP(); }
+
+    ParticleAttribConstIterator<T>& operator=(const ParticleAttribConstIterator<T>&) = default;
+
 
     ParticleAttribConstIterator<T>& operator++(void) {
         ++curr;

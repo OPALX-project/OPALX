@@ -1,3 +1,25 @@
+//
+// Class IndexMap
+//
+// This class stores and prints the sequence of elements that the referenc particle passes.
+// Each time the reference particle enters or leaves an element an entry is added to the map.
+// With help of this map one can determine which element can be found at a given position.
+//
+// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020 Christof Metzger-Kraus
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include <map>
 #include <limits>
 #include <iostream>
@@ -10,6 +32,7 @@
 #include "AbsBeamline/Bend2D.h"
 #include "Physics/Physics.h"
 #include "Structure/ElementPositionWriter.h"
+#include "Utilities/Util.h"
 
 extern Inform *gmsg;
 
@@ -32,16 +55,16 @@ void IndexMap::print(std::ostream &out) const {
     auto mapIti = mapRange2Element_m.begin();
     auto mapItf = mapRange2Element_m.end();
 
-    double totalLength = (*mapRange2Element_m.rbegin()).first.second;
+    double totalLength = (*mapRange2Element_m.rbegin()).first.end;
     unsigned int numDigits = std::floor(std::max(0.0, log(totalLength) / log(10.0))) + 1;
 
     for (; mapIti != mapItf; mapIti++) {
-        const auto key = (*mapIti).first;
-        const auto val = (*mapIti).second;
+        const key_t key = (*mapIti).first;
+        const value_t val = (*mapIti).second;
         out << "Key: ("
-            << std::setw(numDigits + 7) << std::right << key.first
+            << std::setw(numDigits + 7) << std::right << key.begin
             << " - "
-            << std::setw(numDigits + 7) << std::right << key.second
+            << std::setw(numDigits + 7) << std::right << key.end
             << ") number of overlapping elements " << val.size() << "\n";
 
         for (auto element: val) {
@@ -56,7 +79,7 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     value_t elementSet;
 
     map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
-    if (rit != mapRange2Element_m.rend() && lowerLimit > (*rit).first.second) {
+    if (rit != mapRange2Element_m.rend() && lowerLimit > (*rit).first.end) {
         throw OutOfBounds("IndexMap::query", "out of bounds");
     }
 
@@ -64,8 +87,8 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     const map_t::iterator end = mapRange2Element_m.end();
 
     for (; it != end; ++ it) {
-        const double low = (*it).first.first;
-        const double high = (*it).first.second;
+        const double low = (*it).first.begin;
+        const double high = (*it).first.end;
 
         if (lowerLimit < high && upperLimit >= low) break;
     }
@@ -74,7 +97,7 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
 
     map_t::iterator last = std::next(it);
     for (; last != end; ++ last) {
-        const double low = (*last).first.first;
+        const double low = (*last).first.begin;
 
         if (upperLimit < low) break;
     }
@@ -91,10 +114,10 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
     if (initialS > finalS) {
         std::swap(initialS, finalS);
     }
-    key_t key(initialS, finalS * oneMinusEpsilon_m);
+    key_t key{initialS, finalS * oneMinusEpsilon_m};
 
     mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
-    totalPathLength_m = (*mapRange2Element_m.rbegin()).first.second;
+    totalPathLength_m = (*mapRange2Element_m.rbegin()).first.end;
 
     value_t::iterator setIt = val.begin();
     const value_t::iterator setEnd = val.end();
@@ -109,8 +132,8 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
             for (auto it = itpair.first; it != itpair.second; ++ it) {
                 key_t &currentRange = it->second;
 
-                if (almostEqual(key.first, currentRange.second / oneMinusEpsilon_m)) {
-                    currentRange.second = key.second;
+                if (almostEqual(key.begin, currentRange.end / oneMinusEpsilon_m)) {
+                    currentRange.end = key.end;
                     extendedExisting = true;
                     break;
                 }
@@ -127,10 +150,9 @@ void IndexMap::tidyUp(double zstop) {
 
     if (rit != mapRange2Element_m.rend() &&
         (*rit).second.size() == 0 &&
-        zstop > (*rit).first.first &&
-        zstop < (*rit).first.second) {
+        zstop > (*rit).first.begin) {
 
-        key_t key((*rit).first.first, zstop);
+        key_t key{(*rit).first.begin, zstop};
         value_t val;
 
         mapRange2Element_m.erase(std::next(rit).base());
@@ -174,8 +196,8 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 
         const auto &sectorRange = (*mapIti).first;
 
-        double sectorBegin = sectorRange.first;
-        double sectorEnd = sectorRange.second;
+        double sectorBegin = sectorRange.begin;
+        double sectorEnd = sectorRange.end;
 
         std::vector<std::tuple<double, std::vector<double>, std::string> > currentSector(4);
         std::get<0>(currentSector[0]) = sectorBegin;
@@ -194,8 +216,8 @@ void IndexMap::saveSDDS(double initialPathLength) const {
             auto end = elementPassages.second;
             for (; passage != end; ++ passage) {
                 const auto &elementRange = (*passage).second;
-                double elementBegin = elementRange.first;
-                double elementEnd = elementRange.second;
+                double elementBegin = elementRange.begin;
+                double elementEnd = elementRange.end;
 
                 if (elementBegin <= sectorBegin &&
                     elementEnd >= sectorEnd) {
@@ -204,7 +226,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
             }
 
             const auto &elementRange = (*passage).second;
-            if (elementRange.first < sectorBegin) {
+            if (elementRange.begin < sectorBegin) {
                 ::insertFlags(std::get<1>(currentSector[0]), element);
                 std::get<2>(currentSector[0]) += element->getName() + ", ";
             }
@@ -215,7 +237,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
             ::insertFlags(std::get<1>(currentSector[2]), element);
             std::get<2>(currentSector[2]) += element->getName() + ", ";
 
-            if (elementRange.second > sectorEnd) {
+            if (elementRange.end > sectorEnd) {
                 ::insertFlags(std::get<1>(currentSector[3]), element);
                 std::get<2>(currentSector[3]) += element->getName() + ", ";
             }
@@ -243,7 +265,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 
         unsigned int i = 0;
         for (; i < numEntries; ++ i) {
-            if (std::get<0>(sectors[i]) >= range.first) {
+            if (std::get<0>(sectors[i]) >= range.begin) {
                 break;
             }
         }
@@ -251,16 +273,16 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         if (i == numEntries) continue;
 
         unsigned int j = ++ i;
-        while (std::get<0>(sectors[j]) < range.second) {
+        while (std::get<0>(sectors[j]) < range.end) {
             ++ j;
         }
 
-        double length = range.second - range.first;
+        double length = range.end - range.begin;
         for (; i <= j; ++ i) {
             double pos = std::get<0>(sectors[i]);
             auto &items = std::get<1>(sectors[i]);
 
-            items[RFCAVITY] = 1.0 - 2 * (pos - range.first) / length;
+            items[RFCAVITY] = 1.0 - 2 * (pos - range.begin) / length;
         }
     }
 
@@ -275,7 +297,10 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         sectors.insert(sectors.end(), tmp.begin(), tmp.end());
     }
 
-    std::string fileName("data/" + OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds");
+    std::string fileName = Util::combineFilePath({
+        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+        OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds"
+    });
     ElementPositionWriter writer(fileName);
 
     for (auto sector: sectors) {
@@ -347,18 +372,18 @@ namespace {
     }
 }
 
-std::pair<double, double> IndexMap::getRange(const IndexMap::value_t::value_type &element,
-                                             double position) const {
+IndexMap::key_t IndexMap::getRange(const IndexMap::value_t::value_type &element,
+                                   double position) const {
     double minDistance = std::numeric_limits<double>::max();
-    std::pair<double, double> range(0.0, 0.0);
+    key_t range{0.0, 0.0};
     const std::pair<invertedMap_t::const_iterator, invertedMap_t::const_iterator> its = mapElement2Range_m.equal_range(element);
     if (std::distance(its.first, its.second) == 0)
         throw OpalException("IndexMap::getRange()",
                             "Element \"" + element->getName() + "\" not registered");
 
     for (invertedMap_t::const_iterator it = its.first; it != its.second; ++ it) {
-        double distance = std::min(std::abs((*it).second.first - position),
-                                   std::abs((*it).second.second - position));
+        double distance = std::min(std::abs((*it).second.begin - position),
+                                   std::abs((*it).second.end - position));
         if (distance < minDistance) {
             minDistance = distance;
             range = (*it).second;
@@ -368,14 +393,14 @@ std::pair<double, double> IndexMap::getRange(const IndexMap::value_t::value_type
     return range;
 }
 
-IndexMap::value_t IndexMap::getTouchingElements(const std::pair<double, double> &range) {
-    map_t::iterator it = mapRange2Element_m.begin();
-    const map_t::iterator end = mapRange2Element_m.end();
-    IndexMap::value_t touchingElements;
+IndexMap::value_t IndexMap::getTouchingElements(const IndexMap::key_t &range) const {
+    map_t::const_iterator it = mapRange2Element_m.begin();
+    const map_t::const_iterator end = mapRange2Element_m.end();
+    value_t touchingElements;
 
     for (; it != end; ++ it) {
-        if (almostEqual(it->first.first, range.second) ||
-            almostEqual(it->first.second, range.first))
+        if (almostEqual(it->first.begin, range.begin) ||
+            almostEqual(it->first.end, range.end))
             touchingElements.insert((it->second).begin(), (it->second).end());
     }
 

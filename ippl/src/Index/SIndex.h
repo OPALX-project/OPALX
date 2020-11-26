@@ -16,7 +16,6 @@
 #include "Index/SOffset.h"
 #include "Index/LSIndex.h"
 #include "FieldLayout/FieldLayoutUser.h"
-#include "Utility/RefCounted.h"
 #include "Utility/Inform.h"
 #include <memory>
 
@@ -280,13 +279,13 @@ private:
   // to indicate whether it is zero or not.
   SOffset<Dim> Offset;
 
+  // our list of indices for each local vnode
+  container_t IndexList;
+
   // our 'bounding box', which is the region that is or should be iterated
   // over to determine what points are in this sparse index list.  By default,
   // this is the domain of the FieldLayout
   NDIndex<Dim> BoundingBox;
-
-  // our list of indices for each local vnode
-  container_t IndexList;
 
   // a special constructor, taking another SIndex and an Offset.  This
   // version is almost like a copy constructor, except that the given Offset

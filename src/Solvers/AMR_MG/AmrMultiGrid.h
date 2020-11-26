@@ -1,3 +1,24 @@
+//
+// Class AmrMultiGrid
+//   Main class of the AMR Poisson multigrid solver.
+//   It implements the multigrid solver described in https://doi.org/10.1016/j.cpc.2019.106912
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef AMR_MULTI_GRID_H
 #define AMR_MULTI_GRID_H
 
@@ -199,6 +220,12 @@ public:
      * Enable solver info dumping into SDDS file
      */
     void setVerbose(bool verbose);
+
+
+    /*!
+     * Change accuracy of solver
+     */
+    void setTolerance(const scalar_t& eps);
     
     double getXRangeMin(unsigned short level = 0);
     double getXRangeMax(unsigned short level = 0);
@@ -383,7 +410,6 @@ private:
                                        const AmrIntVect_t& iv,
                                        const basefab_t& mfab,
                                        const basefab_t& rfab,
-                                       const basefab_t& cfab,
                                        const scalar_t* invdx2);
     
     /*!
@@ -446,18 +472,17 @@ private:
      *      x^{(l)} = B_{fine}\cdot x^{(l+1)}
      * \f]
      * Dirichlet boundary condition. Flux matching.
-     * @param iv is the current cell
-     * @param cells all coarse cells that are at the crse-fine interface but are
-     * not refined
-     * @param crse_fine_ba coarse cells that got refined
      * @param level the finest level is omitted
+     * @param gidx the global index
+     * @param iv is the current cell
+     * @param mfab is the mask (internal cell, boundary cell, ...) of that level
+     * @param rfab is the mask between levels
      */
     void buildFineBoundaryMatrix_m(const lo_t& level,
                                    const go_t& gidx,
                                    const AmrIntVect_t& iv,
                                    const basefab_t& mfab,
-                                   const basefab_t& rfab,
-                                   const basefab_t& cfab);
+                                   const basefab_t& rfab);
     
     /*!
      * Copy data from AMReX to Trilinos
@@ -574,11 +599,9 @@ private:
     /*!
      * Instantiate a preconditioner for the bottom solver
      * @param precond type
-     * @param rebalance preconditioner (SA only)
      * @param reuse types of SA hierarchy
      */
     void initPrec_m(const Preconditioner& prec,
-                    const bool& rebalance,
                     const std::string& reuse);
     
     /*!
@@ -638,7 +661,6 @@ private:
     
 private:
     Teuchos::RCP<comm_t> comm_mp;       ///< communicator
-    Teuchos::RCP<amr::node_t> node_mp;  ///< kokkos node
     
     /// interpolater without coarse-fine interface
     std::unique_ptr<AmrInterpolater<AmrMultiGridLevel_t> > interp_mp;
@@ -674,7 +696,7 @@ private:
     Norm norm_m;            ///< norm for convergence criteria (l1, l2, linf)
     std::string snorm_m;    ///< norm for convergence criteria
     
-    const scalar_t eps_m;   ///< rhs scale for convergence
+    scalar_t eps_m;         ///< rhs scale for convergence
     
     bool verbose_m;                 ///< If true, a SDDS file is written
     std::string fname_m;            ///< SDDS filename

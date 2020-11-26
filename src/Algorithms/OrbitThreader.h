@@ -1,7 +1,29 @@
+//
+// Class OrbitThreader
+//
+// This class determines the design path by tracking the reference particle through
+// the 3D lattice.
+//
+// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020 Christof Metzger-Kraus
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_ORBITTHREADER_H
 #define OPAL_ORBITTHREADER_H
 
 #include "Algorithms/IndexMap.h"
+#include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Vektor.h"
 #include "Elements/OpalBeamline.h"
 #include "Steppers/BorisPusher.h"
@@ -20,8 +42,7 @@ public:
                   double maxDiffZBunch,
                   double t,
                   double dT,
-                  size_t maxIntegSteps,
-                  double zstop,
+                  StepSizeConfig stepSizes,
                   OpalBeamline &bl);
 
     void execute();
@@ -29,9 +50,9 @@ public:
     IndexMap::value_t query(IndexMap::key_t::first_type step,
                             IndexMap::key_t::second_type length);
 
-    std::pair<double, double> getRange(const IndexMap::value_t::value_type &element,
-                                       double position) const;
-    IndexMap::value_t getTouchingElements(const std::pair<double, double> &range);
+    IndexMap::key_t getRange(const IndexMap::value_t::value_type &element,
+                             double position) const;
+    IndexMap::value_t getTouchingElements(const IndexMap::key_t &range) const;
 
 private:
     /// position of reference particle in lab coordinates
@@ -48,9 +69,8 @@ private:
     /// the time step
     double dt_m;
 
-    /// the number of time steps to track
-    const size_t maxIntegSteps_m;
     /// final position in path length
+    StepSizeConfig stepSizes_m;
     const double zstop_m;
 
     OpalBeamline &itsOpalBeamline_m;
@@ -63,6 +83,8 @@ private:
 
     std::ofstream logger_m;
     size_t loggingFrequency_m;
+
+    ElementBase::BoundingBox globalBoundingBox_m;
 
     struct elementPosition {
         double startField_m;
@@ -78,8 +100,8 @@ private:
 
     std::multimap<std::string, elementPosition> elementRegistry_m;
 
-    void trackBack(double maxDrift);
-    void integrate(const IndexMap::value_t &activeSet, size_t maxSteps, double maxDrift = 10.0);
+    void trackBack();
+    void integrate(const IndexMap::value_t &activeSet, double maxDrift = 10.0);
     bool containsCavity(const IndexMap::value_t &activeSet);
     void autophaseCavities(const IndexMap::value_t &activeSet, const std::set<std::string> &visitedElements);
     double getMaxDesignEnergy(const IndexMap::value_t &elementSet) const;
@@ -87,7 +109,13 @@ private:
     void registerElement(const IndexMap::value_t &elementSet, double, const Vector_t &r, const Vector_t &p);
     void processElementRegister();
     void setDesignEnergy(FieldList &allElements, const std::set<std::string> &visitedElements);
-    double computeMaximalImplicitDrift();
+    void computeBoundingBox();
+    void updateBoundingBoxWithCurrentPosition();
+    double computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
+                                           const Vector_t & position,
+                                           const Vector_t & direction) const;
+
+    void checkElementLengths(const std::set<std::shared_ptr<Component>>& elements);
 };
 
 inline
@@ -97,13 +125,13 @@ IndexMap::value_t OrbitThreader::query(IndexMap::key_t::first_type pathLength,
 }
 
 inline
-std::pair<double, double> OrbitThreader::getRange(const IndexMap::value_t::value_type &element,
-                                                  double position) const {
+IndexMap::key_t OrbitThreader::getRange(const IndexMap::value_t::value_type &element,
+                                        double position) const {
     return imap_m.getRange(element, position);
 }
 
 inline
-IndexMap::value_t OrbitThreader::getTouchingElements(const std::pair<double, double> &range) {
+IndexMap::value_t OrbitThreader::getTouchingElements(const IndexMap::key_t &range) const {
     return imap_m.getTouchingElements(range);
 }
 

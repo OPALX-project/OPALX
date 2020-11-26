@@ -34,6 +34,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 #define INFORM_ALL_NODES        (-1)
 
@@ -95,11 +96,7 @@ public:
 
   // functions used to change format state; used just as for iostreams
 
-#ifdef IPPL_IOFLAG_BUG
-  typedef long FmtFlags_t;
-#else
   typedef std::ios_base::fmtflags FmtFlags_t;
-#endif
 
   FmtFlags_t setf(FmtFlags_t setbits, FmtFlags_t field)
   { return FormatBuf.setf(setbits,field); }

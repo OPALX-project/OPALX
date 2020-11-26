@@ -23,10 +23,6 @@ public:
     /// Apply visitor to Source.
     virtual void accept(BeamlineVisitor &) const override;
 
-    virtual void addKR(int i, double t, Vector_t &K) override;
-
-    virtual void addKT(int i, double t, Vector_t &K) override;
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
 
     virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
@@ -43,15 +39,25 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const override;
 
+    virtual int getRequiredNumberOfTimeSteps() const override;
+
+    void setTransparent();
 private:
 
-    double ElementEdge_m;
     double startField_m;           /**< startingpoint of field, m*/
     double endField_m;
+
+    bool isTransparent_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
     // Not implemented.
     void operator=(const Source &);
 };
+
+inline
+int Source::getRequiredNumberOfTimeSteps() const
+{
+    return 0;
+}
 #endif // CLASSIC_SOURCE_HH

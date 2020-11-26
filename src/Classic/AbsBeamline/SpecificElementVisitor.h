@@ -1,3 +1,20 @@
+//
+// Class SpecificElementVisitor
+//   :FIXME: Add file description
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef SPECIFICELEMENTVISITOR_H
 #define SPECIFICELEMENTVISITOR_H
 
@@ -5,18 +22,14 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
-#include "AbsBeamline/Diagnostic.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Lambertson.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -25,7 +38,6 @@
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
-#include "AbsBeamline/Patch.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Ring.h"
@@ -33,29 +45,17 @@
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/RFQuadrupole.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
-#include "AbsBeamline/Separator.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/Source.h"
-#include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/CyclotronValley.h"
 #include "AbsBeamline/Stripper.h"
 
+#include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
-
-#include "ComponentWrappers/CorrectorWrapper.h"
-#include "ComponentWrappers/CyclotronWrapper.h"
-#include "ComponentWrappers/MultipoleWrapper.h"
-#include "ComponentWrappers/RBendWrapper.h"
-#include "ComponentWrappers/SBendWrapper.h"
-
-#include "Algorithms/MapIntegrator.h"
-#include "Algorithms/TrackIntegrator.h"
 
 template <class ELEM1, class ELEM2>
 struct CastsTrait {
@@ -82,9 +82,6 @@ public:
 
     virtual void execute();
 
-    /// Apply the algorithm to a beam-beam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a beam stripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -106,17 +103,11 @@ public:
     /// Apply the algorithm to a drift.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
@@ -142,9 +133,6 @@ public:
     /// Apply the algorithm to an Offset.
     virtual void visitOffset(const Offset &);
 
-    /// Apply the algorithm to a patch.
-    virtual void visitPatch(const Patch &pat);
-
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &prob);
 
@@ -167,17 +155,11 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to a RF quadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend3D(const SBend3D &);
-
-    /// Apply the algorithm to a separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a septum.
     virtual void visitSeptum(const Septum &);
@@ -194,12 +176,6 @@ public:
     /// Apply the algorithm to a spiral sector magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &);
 
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
-
-    /// Apply the algorithm to a CyclotronValley.
-    virtual void visitCyclotronValley(const CyclotronValley &);
-
     /// Apply the algorithm to a charge stripper.
     virtual void visitStripper(const Stripper &);
 
@@ -208,35 +184,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
-
-
-    /// Apply the algorithm to an align wrapper..
-    virtual void visitAlignWrapper(const AlignWrapper &);
-
-    /// Apply the algorithm to an corrector wrapper..
-    virtual void visitCorrectorWrapper(const CorrectorWrapper &);
-
-    /// Apply the algorithm to an cyclotron wrapper..
-    virtual void visitCyclotronWrapper(const CyclotronWrapper &);
-
-    /// Apply the algorithm to an multipole wrapper..
-    virtual void visitMultipoleWrapper(const MultipoleWrapper &);
-
-    /// Apply the algorithm to an RBend wrapper..
-    virtual void visitRBendWrapper(const RBendWrapper &);
-
-    /// Apply the algorithm to an SBend wrapper..
-    virtual void visitSBendWrapper(const SBendWrapper &);
-
-
-    /// Apply the algorithm to a generic integrator.
-    virtual void visitIntegrator(const Integrator &);
-
-    /// Apply the algorithm to an integrator capable of mapping.
-    virtual void visitMapIntegrator(const MapIntegrator &);
-
-    /// Apply the algorithm to an integrator capable of tracking.
-    virtual void visitTrackIntegrator(const TrackIntegrator &);
 
     size_t size() const;
 
@@ -271,11 +218,6 @@ SpecificElementVisitor<ELEM>::SpecificElementVisitor(const Beamline &beamline):
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::execute()
 { }
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitBeamBeam(const BeamBeam &element) {
-    CastsTrait<ELEM, BeamBeam>::apply(allElementsOfTypeE, element);
-}
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitBeamStripping(const BeamStripping &element) {
@@ -313,11 +255,6 @@ void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitDiagnostic(const Diagnostic &element) {
-    CastsTrait<ELEM, Diagnostic>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
 }
@@ -325,11 +262,6 @@ void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator &element) {
     CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitLambertson(const Lambertson &element) {
-    CastsTrait<ELEM, Lambertson>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
@@ -373,11 +305,6 @@ void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitPatch(const Patch &element) {
-    CastsTrait<ELEM, Patch>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitProbe(const Probe &element) {
     CastsTrait<ELEM, Probe>::apply(allElementsOfTypeE, element);
 }
@@ -416,11 +343,6 @@ void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave &eleme
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitRFQuadrupole(const RFQuadrupole &element) {
-    CastsTrait<ELEM, RFQuadrupole>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
     CastsTrait<ELEM, SBend>::apply(allElementsOfTypeE, element);
 }
@@ -441,11 +363,6 @@ void SpecificElementVisitor<ELEM>::visitVerticalFFAMagnet(const VerticalFFAMagne
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitSeparator(const Separator &element) {
-    CastsTrait<ELEM, Separator>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSeptum(const Septum &element) {
     CastsTrait<ELEM, Septum>::apply(allElementsOfTypeE, element);
 }
@@ -458,16 +375,6 @@ void SpecificElementVisitor<ELEM>::visitSolenoid(const Solenoid &element) {
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSource(const Source &element) {
     CastsTrait<ELEM, Source>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitParallelPlate(const ParallelPlate &element) {
-    CastsTrait<ELEM, ParallelPlate>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitCyclotronValley(const CyclotronValley &element) {
-    CastsTrait<ELEM, CyclotronValley>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
@@ -484,52 +391,6 @@ template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr &element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitAlignWrapper(const AlignWrapper &element) {
-    const ElementBase* wrappedElement = element.getElement();
-    wrappedElement->accept(*this);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitCorrectorWrapper(const CorrectorWrapper &element) {
-    CastsTrait<ELEM, CorrectorWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitCyclotronWrapper(const CyclotronWrapper &element) {
-    CastsTrait<ELEM, CyclotronWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipoleWrapper(const MultipoleWrapper &element) {
-    CastsTrait<ELEM, MultipoleWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitRBendWrapper(const RBendWrapper &element) {
-    CastsTrait<ELEM, RBendWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitSBendWrapper(const SBendWrapper &element) {
-    CastsTrait<ELEM, SBendWrapper>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitIntegrator(const Integrator &element) {
-
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitMapIntegrator(const MapIntegrator &element) {
-
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitTrackIntegrator(const TrackIntegrator &element) {
-
 }
 
 template<class ELEM>

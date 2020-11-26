@@ -3,9 +3,6 @@
  *
  * The IPPL Framework
  * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
  ***************************************************************************/
 
 // Ippl.h
@@ -14,6 +11,8 @@
 
 #ifndef IPPL_H
 #define IPPL_H
+
+#include <complex>
 
 // IPPL Communicate classes
 #include "Message/Communicate.h"
@@ -55,10 +54,8 @@
 #include "Field/IndexedBareField.h"
 #include "Field/IndexedField.h"
 #include "Field/GuardCellSizes.h"
-#include "Utility/FieldBlock.h"
 #include "Utility/FieldPrint.h"
 #include "Utility/FieldDebugPrint.h"
-#include "Utility/FieldView.h"
 #include "Utility/FieldDebug.h"
 #include "Utility/DiscField.h"
 
@@ -90,16 +87,11 @@
 #include "Particle/IntTSC.h"
 #include "Particle/IntSUDS.h"
 
-#ifdef HAVE_EXPDE
-#include "Particle/ParticleLayoutFromGrid.h"
-#endif
-
 // IPPL sparse index expression operations
 #include "SubField/SubFieldAssign.h"
 #include "SubParticle/SubParticleAssign.h"
 
 // IPPL Math Types
-#include "AppTypes/dcomplex.h"
 #include "AppTypes/Vektor.h"
 #include "AppTypes/Tenzor.h"
 #include "AppTypes/SymTenzor.h"
@@ -114,7 +106,5 @@
 
 // IPPL Load balancing
 #include "FieldLayout/BinaryBalancer.h"
-#include "FieldLayout/ConejoBalancer.h"
-#include "FieldLayout/VnodeMultiBalancer.h"
 
 #endif

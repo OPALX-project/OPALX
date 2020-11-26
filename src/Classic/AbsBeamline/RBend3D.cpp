@@ -22,9 +22,11 @@
 #include "Utilities/Options.h"
 #include "Structure/MeshGenerator.h"
 #include "Physics/Physics.h"
+#include "Utilities/Util.h"
 
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 extern Inform *gmsg;
 
@@ -38,77 +40,51 @@ RBend3D::RBend3D():
 
 RBend3D::RBend3D(const RBend3D &right):
     BendBase(right),
-    myFieldmap_m(right.myFieldmap_m),
     fieldAmplitudeError_m(right.fieldAmplitudeError_m),
     startField_m(right.startField_m),
     lengthField_m(right.lengthField_m),
-    fast_m(right.fast_m),
     geometry_m(right.geometry_m),
     dummyField_m() {
-    setElType(isDipole);
 }
 
 
 RBend3D::RBend3D(const std::string &name):
     BendBase(name),
-    myFieldmap_m(NULL),
     fieldAmplitudeError_m(0.0),
     startField_m(0.0),
     lengthField_m(0.0),
-    fast_m(false),
     geometry_m(),
     dummyField_m() {
-    setElType(isDipole);
 }
 
 
 RBend3D::~RBend3D() {
-    //    Fieldmap::deleteFieldmap(filename_m);
 }
 
 void RBend3D::accept(BeamlineVisitor &visitor) const {
     visitor.visitRBend3D(*this);
 }
 
-void RBend3D::setFieldMapFN(std::string fn) {
-    fileName_m = fn;
-}
-
-void RBend3D::setFast(bool fast) {
-    fast_m = fast;
-}
-
-
-bool RBend3D::getFast() const {
-    return fast_m;
-}
-
-void RBend3D::addKR(int i, double t, Vector_t &K) {
-}
-
-void RBend3D::addKT(int i, double t, Vector_t &K) {
-}
-
 bool RBend3D::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-bool RBend3D::apply(const Vector_t &R, const Vector_t &P, const  double &t, Vector_t &E, Vector_t &B) {
+bool RBend3D::apply(const Vector_t &R, const Vector_t &/*P*/, const  double &/*t*/, Vector_t &/*E*/, Vector_t &B) {
     const Vector_t tmpR(R(0), R(1), R(2) - startField_m);
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
-    myFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+    fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
 
     B += (fieldAmplitude_m + fieldAmplitudeError_m) * tmpB;
 
     return false;
 }
 
-bool RBend3D::applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const  double &t, Vector_t &E, Vector_t &B) {
+bool RBend3D::applyToReferenceParticle(const Vector_t &R, const Vector_t &/*P*/, const  double &/*t*/, Vector_t &/*E*/, Vector_t &B) {
     const Vector_t tmpR(R(0), R(1), R(2) - startField_m);
     Vector_t tmpE(0.0), tmpB(0.0);
 
-    myFieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
+    fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
     B += fieldAmplitude_m * tmpB;
 
     return false;
@@ -119,73 +95,59 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
 
     RefPartBunch_m = bunch;
 
-    myFieldmap_m = Fieldmap::getFieldmap(fileName_m, fast_m);
-    if(myFieldmap_m != NULL) {
+    fieldmap_m = Fieldmap::getFieldmap(fileName_m, fast_m);
+    if(fieldmap_m != NULL) {
         msg << level2 << getName() << " using file ";
-        myFieldmap_m->getInfo(&msg);
+        fieldmap_m->getInfo(&msg);
         goOnline(0.0);
 
-        double zBegin = 0.0, zEnd = 0.0, rBegin = 0.0, rEnd = 0.0;
-        myFieldmap_m->getFieldDimensions(zBegin, zEnd, rBegin, rEnd);
+        double zBegin = 0.0, zEnd = 0.0;
+        fieldmap_m->getFieldDimensions(zBegin, zEnd);
 
-        if (length_m == 0.0) {
+        if (getElementLength() == 0.0) {
             chordLength_m = 0.0;
             double fieldLength = zEnd - zBegin;
             double z = 0.0, dz = fieldLength / 1000;
             Vector_t E(0.0), B(0.0);
             while (z < fieldLength && B(1) < 0.5) {
-                myFieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
+                fieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
                 z += dz;
             }
             double zEntryEdge = z;
             z = fieldLength;
             B(1) = 0.0;
             while (z > 0.0 && B(1) < 0.5) {
-                myFieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
+                fieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
                 z -= dz;
             }
             chordLength_m = z - zEntryEdge;
-            length_m = chordLength_m;
+            setElementLength(chordLength_m);
         } else {
-            chordLength_m = length_m;
+            chordLength_m = getElementLength();
         }
 
         startField_m = zBegin;
         lengthField_m = zEnd - zBegin;
         endField = startField + lengthField_m;
 
-        if (bX_m * bX_m + bY_m * bY_m > 0.0) {
-            double refCharge = bunch->getQ();
-            rotationZAxis_m += atan2(bX_m, bY_m);
-            if (refCharge < 0.0) {
-                rotationZAxis_m -= Physics::pi;
-            }
-            fieldAmplitude_m = (refCharge *
-                                std::abs(sqrt(pow(bY_m, 2.0) + pow(bX_m, 2.0)) / refCharge));
-            angle_m = trackRefParticleThrough(bunch->getdT(), Options::writeBendTrajectories);
-        } else {
+        if (angle_m != 0.0) {
             if (angle_m < 0.0) {
                 // Negative angle is a positive bend rotated 180 degrees.
-                entranceAngle_m = copysign(1, angle_m) * entranceAngle_m;
+                entranceAngle_m = std::copysign(1, angle_m) * entranceAngle_m;
                 angle_m = std::abs(angle_m);
                 rotationZAxis_m += Physics::pi;
             }
-
-            const double refCharge = RefPartBunch_m->getQ();
-            const double refMass = RefPartBunch_m->getM();
-            const double refGamma = designEnergy_m / refMass + 1.0;
-            const double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
 
             Vector_t B(0.0), E(0.0);
             double z = 0.0, dz = lengthField_m / 999;
             double integratedBy = 0.0;
 
-            myFieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
+            fieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
             integratedBy += 0.5 * B(1);
             z = dz;
             while (z < lengthField_m) {
                 B = 0.0; E = 0.0;
-                myFieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
+                fieldmap_m->getFieldstrength(Vector_t(0.0, 0.0, z), E, B);
                 integratedBy += B(1);
                 z += dz;
             }
@@ -193,7 +155,7 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
             integratedBy *= lengthField_m / 1000;
 
             // estimate magnitude of field
-            fieldAmplitude_m = refCharge * refMass * refBetaGamma * angle_m / (Physics::c * integratedBy);
+            fieldAmplitude_m = calcFieldAmplitude(integratedBy / angle_m);
 
             double angle = trackRefParticleThrough(bunch->getdT());
             double error = (angle_m - angle) / angle_m;
@@ -208,7 +170,16 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
 
             if (Options::writeBendTrajectories)
                 trackRefParticleThrough(bunch->getdT(), true);
+        } else {
+            double refCharge = bunch->getQ();
+            rotationZAxis_m += std::atan2(fieldAmplitudeX_m, fieldAmplitudeY_m);
+            if (refCharge < 0.0) {
+                rotationZAxis_m -= Physics::pi;
+            }
+            fieldAmplitude_m = std::copysign(1.0, refCharge) * std::hypot(fieldAmplitudeX_m, fieldAmplitudeY_m);
+            angle_m = trackRefParticleThrough(bunch->getdT(), Options::writeBendTrajectories);
         }
+
     } else {
         endField = startField;
     }
@@ -216,10 +187,6 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
 
 void RBend3D::finalise()
 {}
-
-bool RBend3D::bends() const {
-    return true;
-}
 
 void RBend3D::goOnline(const double &) {
     Fieldmap::readMap(fileName_m);
@@ -233,7 +200,7 @@ void RBend3D::goOffline() {
 
 void RBend3D::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = startField_m;
-    zEnd = startField_m + length_m;
+    zEnd = startField_m + getElementLength();
 }
 
 
@@ -243,7 +210,7 @@ ElementBase::ElementType RBend3D::getType() const {
 
 bool RBend3D::isInside(const Vector_t &r) const {
     Vector_t tmpR(r(0), r(1), r(2) - startField_m);
-    return myFieldmap_m->isInside(tmpR);
+    return fieldmap_m->isInside(tmpR);
 }
 
 ElementBase* RBend3D::clone() const {
@@ -268,9 +235,9 @@ const EMField &RBend3D::getField() const {
 
 MeshData RBend3D::getSurfaceMesh() const {
     Vector_t XIni, XFinal;
-    myFieldmap_m->getFieldDimensions(XIni(0), XFinal(0),
-                                     XIni(1), XFinal(1),
-                                     XIni(2), XFinal(2));
+    fieldmap_m->getFieldDimensions(XIni(0), XFinal(0),
+                                   XIni(1), XFinal(1),
+                                   XIni(2), XFinal(2));
 
     MeshData mesh;
     mesh.vertices_m.push_back(Vector_t(XIni(0),   XIni(1),   XIni(2)));
@@ -299,16 +266,19 @@ MeshData RBend3D::getSurfaceMesh() const {
 }
 
 double RBend3D::trackRefParticleThrough(double dt, bool print) {
-    const double refMass = RefPartBunch_m->getM();
-    const double refGamma = designEnergy_m / refMass + 1.0;
-    const double refBetaGamma = sqrt(pow(refGamma, 2.0) - 1.0);
-    const double stepSize = refBetaGamma / refGamma * Physics::c * dt;
+    const double refGamma     = calcGamma();
+    const double refBetaGamma = calcBetaGamma();
+    const double stepSize     = refBetaGamma / refGamma * Physics::c * dt;
     const Vector_t scaleFactor(Physics::c * dt);
     print = print && (Ippl::myNode() == 0);
 
     std::ofstream trajectoryOutput;
     if (print) {
-        trajectoryOutput.open("data/" + OpalData::getInstance()->getInputBasename() + "_" + getName() + "_traj.dat");
+        std::string fname = Util::combineFilePath({
+            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            OpalData::getInstance()->getInputBasename() + "_" + getName() + "_traj.dat"
+        });
+        trajectoryOutput.open(fname);
         trajectoryOutput.precision(12);
         trajectoryOutput << "# " << std::setw(18) << "s"
                          << std::setw(20) << "x"
@@ -321,10 +291,10 @@ double RBend3D::trackRefParticleThrough(double dt, bool print) {
     BorisPusher pusher(*RefPartBunch_m->getReference());
 
     Vector_t X(0.0), P(0.0);
-    X(0) = startField_m * tan(entranceAngle_m);
+    X(0) = startField_m * std::tan(entranceAngle_m);
     X(2) = startField_m;
-    P(0) = refBetaGamma * sin(entranceAngle_m);
-    P(2) = refBetaGamma * cos(entranceAngle_m);
+    P(0) = refBetaGamma * std::sin(entranceAngle_m);
+    P(2) = refBetaGamma * std::cos(entranceAngle_m);
 
     while ((X(2) - startField_m) < lengthField_m && 0.5 * deltaS < lengthField_m) {
         Vector_t E(0.0), B(0.0);
@@ -351,5 +321,5 @@ double RBend3D::trackRefParticleThrough(double dt, bool print) {
         deltaS += stepSize;
     }
 
-    return -atan2(P(0), P(2)) + entranceAngle_m;
+    return -std::atan2(P(0), P(2)) + entranceAngle_m;
 }

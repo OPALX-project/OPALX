@@ -1,18 +1,24 @@
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
 // Class: ThickTracker
-//   The visitor class for building a map of given order for a beamline
-//   using a finite-length lenses for all elements.
-//   Multipole-like elements are done by expanding the Lie series.
-//
+//   Tracks using thick-lens algorithm.
 // ------------------------------------------------------------------------
 //
-// $Author: ganz_p $
+// Copyright (c) 2018, Philippe Ganz, ETH Zürich
+// All rights reserved
 //
-// ------------------------------------------------------------------------
-
+// Implemented as part of the Master thesis
+// "s-based maps from TPS & Lie-Series applied to Proton-Therapy Gantries"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
 #include <cfloat>
 #include <fstream>
@@ -25,6 +31,7 @@
 
 #include "Classic/Algorithms/PartData.h"
 
+#include "Structure/DataSink.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utilities/Timer.h"
@@ -60,14 +67,14 @@ ThickTracker::ThickTracker(const Beamline &beamline,
 
 ThickTracker::ThickTracker(const Beamline &beamline,
                            PartBunchBase<double, 3> *bunch,
-                           Beam &beam,
+                           Beam &/*beam*/,
                            DataSink &ds,
                            const PartData &reference,
                            bool revBeam, bool revTrack,
-                           const std::vector<unsigned long long> &maxSteps,
+                           const std::vector<unsigned long long> &/*maxSteps*/,
                            double zstart,
                            const std::vector<double> &zstop,
-                           const std::vector<double> &dt,
+                           const std::vector<double> &/*dt*/,
                            const int& truncOrder)
     : Tracker(beamline, bunch, reference, revBeam, revTrack)
     , hamiltonian_m(truncOrder)

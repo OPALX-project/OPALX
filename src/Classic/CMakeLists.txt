@@ -7,8 +7,6 @@ add_subdirectory(BeamlineCore)
 add_subdirectory(BeamlineGeometry)
 add_subdirectory(Beamlines)
 add_subdirectory(Channels)
-add_subdirectory(ComponentWrappers)
-add_subdirectory(Construction)
 add_subdirectory(Fields)
 add_subdirectory(Filters)
 add_subdirectory(FixedAlgebra)
@@ -21,11 +19,3 @@ add_subdirectory(TrimCoils)
 add_subdirectory(Utilities)
 
 set(OPAL_SRCS "${OPAL_SRCS}" PARENT_SCOPE)
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

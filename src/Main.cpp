@@ -17,9 +17,6 @@
 
 #include "opal.h"
 
-Ippl *ippl;
-Inform *gmsg;
-
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -33,58 +30,43 @@ Inform *gmsg;
 
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"
-#include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/EarlyLeaveException.h"
 #include "Utilities/Util.h"
+
+#include "Util/SDDSParser/SDDSParserException.h"
 
 #include "OPALconfig.h"
 
 #ifdef ENABLE_AMR
 #include <AMReX_ParallelDescriptor.H>
 #endif
-/*
-  Includes related to the optimizer
-*/
-#include "boost/smart_ptr.hpp"
 
-#include "Pilot/Pilot.h"
-#include "Util/CmdArguments.h"
-#include "Util/OptPilotException.h"
-
-#include "Optimizer/EA/FixedPisaNsga2.h"
-#include "Optimizer/EA/BlendCrossover.h"
-#include "Optimizer/EA/IndependentBitMutation.h"
-
-#include "Optimize/OpalSimulation.h"
-
-#include "Comm/CommSplitter.h"
-#include "Comm/Topology/NoCommTopology.h"
-#include "Comm/Splitter/ManyMasterSplit.h"
-#include "Comm/MasterGraph/SocialNetworkGraph.h"
-
-#include "Expression/Parser/function.hpp"
-#include "Expression/FromFile.h"
-#include "Expression/SumErrSq.h"
-#include "Expression/SDDSVariable.h"
-#include "Expression/RadialPeak.h"
-#include "Expression/SumErrSqRadialPeak.h"
-#include "Expression/ProbeVariable.h"
+// IPPL
+#include "Message/Communicate.h"
+#include "Utility/Inform.h"
+#include "Utility/IpplException.h"
+#include "Utility/IpplInfo.h"
+#include "Utility/IpplTimings.h"
 
 #include <gsl/gsl_errno.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string/predicate.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 #include <set>
-#include <algorithm>
+
+Ippl *ippl;
+Inform *gmsg;
 
 namespace {
     void errorHandlerGSL(const char *reason,
                          const char *file,
-                         int line,
-                         int gsl_errno) {
+                         int /*line*/,
+                         int /*gsl_errno*/) {
         throw OpalException(file, reason);
     }
 }
@@ -152,45 +134,15 @@ int main(int argc, char *argv[]) {
           << "The optimiser (former opt-Pilot) is integrated " << endl
           << endl;
 
-#ifdef OPAL_DKS
-    *gmsg << "OPAL compiled with DKS (Dynamic Kernel Scheduler) Version "
-          << DKS_VERSION;
-    if (IpplInfo::DKSEnabled)
-      *gmsg << " GPU present" << endl << endl;
-    else
-      *gmsg << " GPU not present" << endl << endl;
-#endif
-
     *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
     *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
-
-    /*
-      Make a directory data for some of the output
-    */
-    if(Ippl::myNode() == 0) {
-        if (!fs::exists("data")) {
-            boost::system::error_code error_code;
-            if (!fs::create_directory("data", error_code)) {
-                std::cerr << error_code.message() << std::endl;
-                // use error code to prevent create_directory from throwing an exception
-            }
-        }
-    }
-    Ippl::Comm->barrier();
-    if (!fs::is_directory("data")) {
-        std::cerr << "unable to create directory; aborting" << std::endl;
-        abort();
-    }
-
     const OpalParser parser;
 
-    //  DTA
     std::cout.precision(16);
     std::cout.setf(std::ios::scientific, std::ios::floatfield);
     std::cerr.precision(16);
     std::cerr.setf(std::ios::scientific, std::ios::floatfield);
-    // /DTA
 
     // Set global truncation orders.
     FTps<double, 2>::setGlobalTruncOrder(20);
@@ -198,6 +150,25 @@ int main(int argc, char *argv[]) {
     FTps<double, 6>::setGlobalTruncOrder(10);
 
     OpalData *opal = OpalData::getInstance();
+
+    /*
+      Make a directory data for some of the output
+    */
+    if(Ippl::myNode() == 0) {
+        if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
+            boost::system::error_code error_code;
+            if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
+                std::cerr << error_code.message() << std::endl;
+                // use error code to prevent create_directory from throwing an exception
+            }
+        }
+    }
+    Ippl::Comm->barrier();
+    if (!fs::is_directory(opal->getAuxiliaryOutputDirectory())) {
+        std::cerr << "unable to create directory; aborting" << std::endl;
+        abort();
+    }
+
     opal->storeArguments(argc, argv);
     try {
         Configure::configure();
@@ -260,7 +231,7 @@ int main(int argc, char *argv[]) {
                 } else if (argStr == std::string("-version") ||
                            argStr == std::string("--version")) {
                     INFOMSG("OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. " << Util::getGitRevision() << endl);
-                    IpplInfo::printVersion(true);
+                    IpplInfo::printVersion();
                     std::string options = (IpplInfo::compileOptions() +
                                            std::string(" ") +
                                            std::string(OPAL_COMPILE_OPTIONS) +
@@ -427,7 +398,6 @@ int main(int argc, char *argv[]) {
     } catch(SDDSParserException &ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
-        std::stringstream msg;
         errorMsg << "\n*** Error detected by function \""
                  << ex.where() << "\"\n";
         std::string what = ex.what();
@@ -443,7 +413,6 @@ int main(int argc, char *argv[]) {
     } catch(IpplException &ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
-        std::stringstream msg;
         errorMsg << "\n*** Error detected by function \""
                  << ex.where() << "\"\n";
         std::string what = ex.what();

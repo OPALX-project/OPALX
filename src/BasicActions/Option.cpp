@@ -1,32 +1,32 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Option.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Option
-//   The class for the OPAL OPTION command.
+// Class Option
+//   The OPTION command.
+//   The user interface allowing setting of OPAL options.
+//   The actual option flags are contained in namespace Options.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:37 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "BasicActions/Option.h"
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/OptionTypes.h"
 #include "Utilities/ClassicRandom.h"
+
+#include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
-#include "Utilities/Util.h"
-
-#include "Utilities/OpalException.h"
-
 #include "Utility/IpplMemoryUsage.h"
 
 #include <ctime>
@@ -39,9 +39,6 @@ extern Inform *gmsg;
 using namespace Options;
 
 std::string DumpFrameToString(DumpFrame df);
-
-// Class Option
-// ------------------------------------------------------------------------
 
 namespace {
     // The attributes of class Option.
@@ -66,7 +63,6 @@ namespace {
         EBDUMP,
         CSRDUMP,
         AUTOPHASE,
-        PPDEBUG,
         SURFDUMPFREQ,
         NUMBLOCKS,
         RECYCLEBLOCKS,
@@ -148,7 +144,7 @@ Option::Option():
        "to the beam mass is larger than REMOTEPARTDEL times of the beam rms size, "
        "its default values is 0 (no delete) ",0.0);
 
-    itsAttr[PSDUMPFRAME] = Attributes::makeString
+    itsAttr[PSDUMPFRAME] = Attributes::makeUpperCaseString
                                 ("PSDUMPFRAME", "Controls the frame of phase space dump in "
                                  "stat file and h5 file. If 'GLOBAL' OPAL will dump in the "
                                  "lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will "
@@ -198,10 +194,6 @@ Option::Option():
                           "acceleration. Defines the number of refinements of the "
                           "search range", autoPhase);
 
-    itsAttr[PPDEBUG] = Attributes::makeBool
-                       ("PPDEBUG", "If true, use special initial velocity distribution "
-                        "for parallel plate and print special debug output", ppdebug);
-
     itsAttr[SURFDUMPFREQ] =  Attributes::makeReal
                              ("SURFDUMPFREQ", "The frequency to dump surface-particle "
                               "interaction data, its default value is -1 (no dump).",
@@ -211,7 +203,7 @@ Option::Option():
                       ("CZERO", "If set to true a symmetric distribution is "
                        "created -> centroid == 0.0 ", cZero);
 
-    itsAttr[RNGTYPE] =  Attributes::makeString
+    itsAttr[RNGTYPE] =  Attributes::makeUpperCaseString
                         ("RNGTYPE", "RANDOM (default), Quasi-random number "
                          "generators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
 
@@ -290,22 +282,23 @@ Option::Option(const std::string &name, Option *parent):
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
-    Attributes::setString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpFrame));
+    Attributes::setUpperCaseString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
     Attributes::setReal(itsAttr[REMOTEPARTDEL], remotePartDel);
     Attributes::setReal(itsAttr[REPARTFREQ], repartFreq);
+    Attributes::setReal(itsAttr[MINBINEMITTED], minBinEmitted);
+    Attributes::setReal(itsAttr[MINSTEPFORREBIN], minStepForRebin);
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
-    Attributes::setBool(itsAttr[PPDEBUG], ppdebug);
     Attributes::setReal(itsAttr[SURFDUMPFREQ], surfDumpFreq);
     Attributes::setBool(itsAttr[CZERO], cZero);
     Attributes::setBool(itsAttr[CLOTUNEONLY], cloTuneOnly);
-    Attributes::setString(itsAttr[RNGTYPE], std::string(rngtype));
+    Attributes::setUpperCaseString(itsAttr[RNGTYPE], std::string(rngtype));
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
@@ -346,7 +339,6 @@ void Option::execute() {
     rhoDump = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump = Attributes::getBool(itsAttr[EBDUMP]);
     csrDump = Attributes::getBool(itsAttr[CSRDUMP]);
-    ppdebug = Attributes::getBool(itsAttr[PPDEBUG]);
     enableHDF5 = Attributes::getBool(itsAttr[ENABLEHDF5]);
     version = Attributes::getReal(itsAttr[VERSION]);
 #ifdef ENABLE_AMR
@@ -384,7 +376,7 @@ void Option::execute() {
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
 
-    handlePsDumpFrame(Util::toUpper(Attributes::getString(itsAttr[PSDUMPFRAME])));
+    handlePsDumpFrame(Attributes::getString(itsAttr[PSDUMPFRAME]));
 
     if(itsAttr[ASCIIDUMP]) {
         asciidump = Attributes::getBool(itsAttr[ASCIIDUMP]);
@@ -436,6 +428,14 @@ void Option::execute() {
 
     if(itsAttr[REPARTFREQ]) {
         repartFreq = int(Attributes::getReal(itsAttr[REPARTFREQ]));
+    }
+
+    if (itsAttr[MINBINEMITTED]) {
+        minBinEmitted = int(Attributes::getReal(itsAttr[MINBINEMITTED]));
+    }
+
+    if (itsAttr[MINSTEPFORREBIN]) {
+        minStepForRebin = int(Attributes::getReal(itsAttr[MINSTEPFORREBIN]));
     }
 
     if(itsAttr[REBINFREQ]) {

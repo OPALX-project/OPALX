@@ -1,18 +1,24 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
-
+//
+// Class LField
+//   Local Field class
+//
+// Copyright (c) 2003 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef LFIELD_H
 #define LFIELD_H
 
 // include files
-#include "Utility/Pooled.h"
 #include "Field/CompressedBrickIterator.h"
 
 #include <iostream>
@@ -48,10 +54,10 @@ struct ToTheDim<1>
 
 // This stores the local data for a Field.
 template<class T, unsigned Dim>
-class LField : public Pooled< LField<T,Dim> >
+class LField
 {
 
-public: 
+public:
   // An iterator for the contents of this LField.
   typedef CompressedBrickIterator<T,Dim> iterator;
 
@@ -67,14 +73,14 @@ public:
   //     allocated = domain of "allocated" region, which includes guards
   //     vnode = global vnode ID number (see below)
   LField(const NDIndex<Dim>& owned,
-	 const NDIndex<Dim>& allocated,
-	 int vnode = -1);
+         const NDIndex<Dim>& allocated,
+         int vnode = -1);
 
   //UL: for pinned memory allocation
   LField(const NDIndex<Dim>& owned,
-	 const NDIndex<Dim>& allocated,
-	 int vnode,
-	 bool p);
+         const NDIndex<Dim>& allocated,
+         int vnode,
+         bool p);
 
   // Copy constructor.
   LField(const LField<T,Dim>&);
@@ -181,7 +187,7 @@ public:
 
   void AddToOverlapCache(LField<T, Dim> *newCacheItem)
     {
-      if (overlap.size() == 0) 
+      if (overlap.size() == 0)
         overlap.reserve(ToTheDim<Dim>::calc(3)-1);
       overlap.push_back(newCacheItem);
       overlapCacheInited = true;
@@ -287,8 +293,8 @@ template<class T, unsigned Dim>
 inline
 std::ostream& operator<<(std::ostream& out, const LField<T,Dim>& a)
 {
-  
-  
+
+
   a.write(out);
   return out;
 }
@@ -298,9 +304,3 @@ std::ostream& operator<<(std::ostream& out, const LField<T,Dim>& a)
 #include "Field/LField.hpp"
 
 #endif // LFIELD_H
-
-/***************************************************************************
- * $RCSfile: LField.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:26 $
- * IPPL_VERSION_ID: $Id: LField.h,v 1.1.1.1 2003/01/23 07:40:26 adelmann Exp $ 
- ***************************************************************************/

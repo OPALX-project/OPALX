@@ -1,3 +1,21 @@
+//
+// Class LBalWriter
+//   This class writes a SDDS file with MPI load balancing information.
+//
+// Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Christof Metzger-Kraus, Open Sourcerer
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "LBalWriter.h"
 
 #include "OPALconfig.h"
@@ -15,8 +33,11 @@ LBalWriter::LBalWriter(const std::string& fname, bool restart)
 { }
 
 
-void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
-
+#ifdef ENABLE_AMR
+void LBalWriter::fillHeader(PartBunchBase<double, 3> * beam) {
+#else
+void LBalWriter::fillHeader() {
+#endif
     if (this->hasColumns()) {
         return;
     }
@@ -71,21 +92,24 @@ void LBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 }
 
 
+#ifdef ENABLE_AMR
 void LBalWriter::write(PartBunchBase<double, 3> *beam) {
 
-    beam->gatherLoadBalanceStatistics();
-
-#ifdef ENABLE_AMR
     if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
         amrbeam->gatherLevelStatistics();
     }
+#else
+void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
 #endif
 
     if ( Ippl::myNode() != 0 )
         return;
 
-
+#ifdef ENABLE_AMR
     this->fillHeader(beam);
+#else
+    this->fillHeader();
+#endif
 
     this->open();
 

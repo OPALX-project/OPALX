@@ -39,13 +39,12 @@
 
 #include "Utilities/LogicalError.h"
 
-#include <math.h>
-
 #include <algorithm>
-#include <vector>
-#include <iostream>
+#include <cmath>
 #include <fstream>
+#include <iostream>
 #include <string>
+#include <vector>
 
 using namespace interpolation;
 
@@ -190,8 +189,9 @@ std::string SectorMagneticFieldMap::SymmetryToString
           ));
 }
 
+/*
 bool SectorMagneticFieldMap::getFieldstrengthPolar
-                    (const Vector_t &R_p, Vector_t &E_p, Vector_t &B_p) const {
+                    (const Vector_t &R_p, Vector_t &, Vector_t &B_p) const {
     // vector_t::operator[i] const returns by value, not by const reference
     // so we need to make an array here
     double R_temp[3] = {R_p[0], R_p[1], R_p[2]};
@@ -203,13 +203,14 @@ bool SectorMagneticFieldMap::getFieldstrengthPolar
     SectorField::convertToPolar(R_temp, &(B_p[0]));
     return false;
 }
+*/
 
-bool SectorMagneticFieldMap::getFieldstrength
-                    (const Vector_t &R_c, Vector_t &E_c, Vector_t &B_c) const {
+bool SectorMagneticFieldMap::getFieldstrength (
+        const Vector_t &R_c, Vector_t &/*E_c*/, Vector_t &B_c) const {
     // coordinate transform; field is in the x-z plane but OPAL-CYCL assumes
     // x-y plane; rotate to the start of the bend and into polar coordinates;
     // apply mirror symmetry about the midplane
-    double radius = (getPolarBoundingBoxMin()[0]+getPolarBoundingBoxMax()[0])/2;
+    double radius   = (getPolarBoundingBoxMin()[0]+getPolarBoundingBoxMax()[0])/2;
     double midplane = (getPolarBoundingBoxMin()[1]+getPolarBoundingBoxMax()[1])/2;
     double R_temp[3] = {R_c(0)+radius, R_c(1), R_c(2)};
     double B_temp[3] = {0., 0., 0.};
@@ -274,8 +275,8 @@ void SectorMagneticFieldMap::print(std::ostream& out) {
        << std::endl;
 }
 
-bool SectorMagneticFieldMap::getFieldDerivative(const Vector_t &R, Vector_t &E,
-                               Vector_t &B, const DiffDirection &dir) const {
+bool SectorMagneticFieldMap::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/,
+                                                Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
     throw(LogicalError("SectorMagneticFieldMap::getFieldDerivative",
                        "Field map derivatives not implemented"));
 }
@@ -374,7 +375,7 @@ const std::string SectorMagneticFieldMap::IO::errMsg1 =
 VectorMap* SectorMagneticFieldMap::IO::getInterpolator
                         (const std::vector< std::vector<double> > field_points,
                          ThreeDGrid* grid,
-                         SectorMagneticFieldMap::symmetry sym) {
+                         SectorMagneticFieldMap::symmetry /*sym*/) {
     // build field arrays
     double *** Bx, *** By, *** Bz;
     int index = 0;
@@ -418,10 +419,10 @@ VectorMap* SectorMagneticFieldMap::IO::getInterpolator
 bool SectorMagneticFieldMap::IO::comparator(std::vector<double> field_item1,
                      std::vector<double> field_item2) {
     const int* order = sortOrder_m;
-    if (fabs(field_item1[order[0]] - field_item2[order[0]]) > floatTolerance_m) {
+    if (std::abs(field_item1[order[0]] - field_item2[order[0]]) > floatTolerance_m) {
         return field_item1[order[0]] < field_item2[order[0]];
     }
-    if (fabs(field_item1[order[1]] - field_item2[order[1]]) > floatTolerance_m) {
+    if (std::abs(field_item1[order[1]] - field_item2[order[1]]) > floatTolerance_m) {
         return field_item1[order[1]] < field_item2[order[1]];
     }
     return field_item1[order[2]] < field_item2[order[2]];
@@ -484,7 +485,7 @@ bool SectorMagneticFieldMap::IO::floatGreaterEqual(double in1, double in2) {
 
 ThreeDGrid* SectorMagneticFieldMap::IO::generateGrid
                        (const std::vector< std::vector<double> > field_points,
-                        SectorMagneticFieldMap::symmetry sym) {
+                        SectorMagneticFieldMap::symmetry /*sym*/) {
     std::vector<double>   r_grid(1, field_points[0][0]);
     std::vector<double>   y_grid(1, field_points[0][1]);
     std::vector<double> phi_grid(1, field_points[0][2]);

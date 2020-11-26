@@ -28,7 +28,6 @@
 template <class T = double, unsigned Dim = 3>
 class PartBunchBase;
 
-class EnvelopeBunch;
 class AttributeBase;
 class Object;
 class Table;
@@ -39,9 +38,6 @@ class BoundaryGeometry;
 // store element name, max phase
 typedef std::pair<std::string, double > MaxPhasesT;
 typedef std::map<double, double> energyEvolution_t;
-typedef energyEvolution_t::value_type energyEvData_t;
-
-
 
 // Class OpalData
 // ------------------------------------------------------------------------
@@ -151,16 +147,15 @@ public:
         virtual void operator()(Object *) const;
     };
 
-    std::vector<std::string> getAllNames();
+    std::map<std::string, std::string> getVariableData();
+    std::vector<std::string> getVariableNames();
 
     bool isInOPALCyclMode();
     bool isInOPALTMode();
-    bool isInOPALEnvMode();
     bool isOptimizerRun();
 
     void setInOPALCyclMode();
     void setInOPALTMode();
-    void setInOPALEnvMode();
     void setOptimizerFlag();
 
     bool isInPrepState();
@@ -183,6 +178,9 @@ public:
 
     /// get the step where to restart
     int getRestartStep();
+
+    /// get the name of the the additional data directory
+    std::string getAuxiliaryOutputDirectory() const;
 
     /// get opals input filename
     std::string getInputFn();
@@ -232,15 +230,6 @@ public:
     DataSink *getDataSink();
 
     void setDataSink(DataSink *s);
-
-    /// true if we already allocated a ParticleBunch object
-    bool hasSLBunchAllocated();
-
-    void slbunchIsAllocated();
-
-    EnvelopeBunch *getSLPartBunch();
-
-    void setSLPartBunch(EnvelopeBunch *p);
 
     /// units: (sec)
     void   setGlobalPhaseShift(double shift);

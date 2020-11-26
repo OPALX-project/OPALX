@@ -197,34 +197,6 @@ public:
   // from continuous to integer data.
   NDIndex<Dim> convert_region(const NDRegion<T,Dim>&) const;
 
-#ifdef IPPL_USE_MEMBER_TEMPLATES
-  //mwerks  template < unsigned D >
-  //mwerks  NDRegion<T,Dim> convert_index(const NDIndex<D>&) const;
-  template < unsigned D >
-  NDRegion<T,Dim>
-  convert_index(const NDIndex<D>& ni) const {
-    NDRegion<T,Dim> new_pregion; // Needed in TAU_TYPE_STRING
-    
-    
-
-    PInsist(D==Dim,"Dimension of input NDIndex does not match RegionLayout!!");
-    return new_pregion;
-  }
-
-  //mwerks  template < unsigned D >
-  //mwerks  NDIndex<Dim> convert_region(const NDRegion<T,D>&) const;
-  template < unsigned D >
-  NDIndex<Dim>
-  convert_region(const NDRegion<T,D>& nr) const {
-    NDIndex<Dim> index;
-    
-    
-
-    PInsist(D==Dim,"Dimension of input NDRegion does not match RegionLayout!!");
-    return index;
-  }
-#endif
-
   // Compare RegionLayouts to see if they represent the same domain.
   bool operator==(const RegionLayout<T,Dim,MeshType>& x) {
     return Domain == x.Domain;
@@ -315,16 +287,8 @@ private:
 
   // Calculate the boundary region of the given mesh, and the number of
   // vertices
-#if defined(__MWERKS__)
-#if __MWERKS__ < 0x2300
-  const NDRegion<T,Dim> getMeshDomain(MeshType *);
-#else
-  NDRegion<T,Dim> getMeshDomain(MeshType *);
-#endif
-#else
   // Is this really a C++ error here, or just something mwerksCW4 doesn't grok?
   NDRegion<T,Dim> getMeshDomain(MeshType *);
-#endif // __MWERKS__
   NDIndex<Dim>    getMeshVertices(MeshType *);
 
   //

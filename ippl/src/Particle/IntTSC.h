@@ -46,7 +46,7 @@ public:
   // scatter particle data into Field using particle position and mesh
   template <class FT, class M, class C, class PT>
   static
-  void scatter(const FT& pdata, Field<FT,Dim,M,C>& f,
+  void scatter(const FT& /*pdata*/, Field<FT,Dim,M,C>& f,
 	       const Vektor<PT,Dim>& ppos, const M& mesh) {
     CenteringTag<C> ctag;
     Vektor<PT,Dim> gpos, dpos, delta;
@@ -89,9 +89,9 @@ public:
   // and cache mesh information for reuse
   template <class FT, class M, class C, class PT>
   static
-  void scatter(const FT& pdata, Field<FT,Dim,M,C>& f,
+  void scatter(const FT& /*pdata*/, Field<FT,Dim,M,C>& f,
 	       const Vektor<PT,Dim>& ppos, const M& mesh,
-               NDIndex<Dim>& ngp, int lgpoff[Dim], Vektor<PT,Dim>& dpos) {
+               NDIndex<Dim>& ngp, int [Dim], Vektor<PT,Dim>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,Dim> gpos, delta;
     CompressedBrickIterator<FT,Dim> fiter;
@@ -129,9 +129,9 @@ public:
   // scatter particle data into Field using cached mesh information
   template <class FT, class M, class C, class PT>
   static
-  void scatter(const FT& pdata, Field<FT,Dim,M,C>& f,
-	       const NDIndex<Dim>& ngp, const int lgpoff[Dim],
-               const Vektor<PT,Dim>& dpos) {
+  void scatter(const FT& /*pdata**/, Field<FT,Dim,M,C>& f,
+	       const NDIndex<Dim>& ngp, const int /*lgpoff*/ [Dim],
+               const Vektor<PT,Dim>& /*dpos*/) {
     CompressedBrickIterator<FT,Dim> fiter;
     // Try to find ngp in local fields and get iterator
     fiter = getFieldIter(f,ngp);
@@ -145,7 +145,7 @@ public:
   // gather particle data from Field using particle position and mesh
   template <class FT, class M, class C, class PT>
   static
-  void gather(FT& pdata, const Field<FT,Dim,M,C>& f,
+  void gather(FT& /*pdata*/, const Field<FT,Dim,M,C>& f,
 	      const Vektor<PT,Dim>& ppos, const M& mesh) {
     CenteringTag<C> ctag;
     Vektor<PT,Dim> gpos, dpos, delta;
@@ -187,9 +187,9 @@ public:
   // and cache mesh information for reuse
   template <class FT, class M, class C, class PT>
   static
-  void gather(FT& pdata, const Field<FT,Dim,M,C>& f,
+  void gather(FT& /*pdata*/, const Field<FT,Dim,M,C>& f,
 	      const Vektor<PT,Dim>& ppos, const M& mesh,
-              NDIndex<Dim>& ngp, int lgpoff[Dim], Vektor<PT,Dim>& dpos) {
+              NDIndex<Dim>& ngp, int /*lgpoff*/[Dim], Vektor<PT,Dim>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,Dim> gpos, delta;
     CompressedBrickIterator<FT,Dim> fiter;
@@ -227,9 +227,9 @@ public:
   // gather particle data from Field using cached mesh information
   template <class FT, class M, class C, class PT>
   static
-  void gather(FT& pdata, const Field<FT,Dim,M,C>& f,
-	      const NDIndex<Dim>& ngp, const int lgpoff[Dim],
-              const Vektor<PT,Dim>& dpos) {
+  void gather(FT& /*pdata*/, const Field<FT,Dim,M,C>& f,
+	      const NDIndex<Dim>& ngp, const int /*lgpoff*/[Dim],
+              const Vektor<PT,Dim>& /*dpos*/) {
     CompressedBrickIterator<FT,Dim> fiter;
     // Try to find ngp in local fields and get iterator
     fiter = getFieldIter(f,ngp);
@@ -275,19 +275,14 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into local elements
-	/*
-    *fiter += .25*(3.-4.dpos(0)*dpos(0)) * pdata;
-    fiter.offset(-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
-    fiter.offset(+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
-	*/
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-				 fiter.offset(p0) += W(p0,0) * pdata;
-	}
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        fiter.offset(p0) += W(p0,0) * pdata;
+    }
     return;
   }
 
@@ -297,7 +292,7 @@ public:
   static
   void scatter(const FT& pdata, Field<FT,1U,M,C>& f,
 	       const Vektor<PT,1U>& ppos, const M& mesh,
-               NDIndex<1U>& ngp, int lgpoff[1U], Vektor<PT,1U>& dpos) {
+               NDIndex<1U>& ngp, int /*lgpoff*/ [1U], Vektor<PT,1U>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,1U> gpos, delta;
     CompressedBrickIterator<FT,1U> fiter;
@@ -314,28 +309,22 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into local elements
-	/*
-    *fiter += .25*(3.-4.dpos(0)*dpos(0)) * pdata;
-    fiter.offset(-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
-    fiter.offset(+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
-	*/
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-				 fiter.offset(p0) += W(p0,0) * pdata;
-	}
-
-	return;
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        fiter.offset(p0) += W(p0,0) * pdata;
+    }
+    return;
   }
 
   // scatter particle data into Field using cached mesh information
   template <class FT, class M, class C, class PT>
   static
   void scatter(const FT& pdata, Field<FT,1U,M,C>& f,
-	       const NDIndex<1U>& ngp, const int lgpoff[1U],
+	       const NDIndex<1U>& ngp, const int /*lgpoff*/ [1U],
                const Vektor<PT,1U>& dpos) {
     CompressedBrickIterator<FT,1U> fiter;
     // Try to find ngp in local fields and get iterator
@@ -343,19 +332,14 @@ public:
     // adjust position of Field iterator to lgp position
     //fiter.moveBy(lgpoff);
     // accumulate into local elements
-	/*
-	*fiter += .25*(3.-4.dpos(0)*dpos(0)) * pdata;
-    fiter.offset(-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
-    fiter.offset(+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * pdata;
-	*/
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-				 fiter.offset(p0) += W(p0,0) * pdata;
-	}
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        fiter.offset(p0) += W(p0,0) * pdata;
+    }
 
     return;
   }
@@ -382,23 +366,15 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into particle attrib
-   /* pdata = (1 - dpos(0)) * (*fiter) +
-            dpos(0)       * fiter.offset(1);*/
-			/*
-	pdata = .25*(3.-4.dpos(0)*dpos(0)) * (*fiter) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(-1) +
-			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1);
-*/
-   auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	for (int p0=-1; p0<=1; ++p0) {
-				 pdata += W(p0,0)*fiter.offset(p0);
-	}
-
+    pdata = 0;
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        pdata += W(p0,0) * fiter.offset(p0);
+    }
     return;
   }
 
@@ -408,7 +384,7 @@ public:
   static
   void gather(FT& pdata, const Field<FT,1U,M,C>& f,
 	      const Vektor<PT,1U>& ppos, const M& mesh,
-              NDIndex<1U>& ngp, int lgpoff[1U], Vektor<PT,1U>& dpos) {
+              NDIndex<1U>& ngp, int /*lgpoff*/ [1U], Vektor<PT,1U>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,1U> gpos, delta;
     CompressedBrickIterator<FT,1U> fiter;
@@ -425,21 +401,15 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into particle attrib
-	/*
-	pdata = .25*(3.-4.dpos(0)*dpos(0)) * (*fiter) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(-1) +
-			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1);
-	 */
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	for (int p0=-1; p0<=1; ++p0) {
-				 pdata += W(p0,0)*fiter.offset(p0);
-	}
-
+    pdata = 0;
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        pdata += W(p0,0) * fiter.offset(p0);
+    }
 
     return;
   }
@@ -448,26 +418,21 @@ public:
   template <class FT, class M, class C, class PT>
   static
   void gather(FT& pdata, const Field<FT,1U,M,C>& f,
-	      const NDIndex<1U>& ngp, const int lgpoff[1U],
+	      const NDIndex<1U>& ngp, const int /*lgpoff*/[1U],
               const Vektor<PT,1U>& dpos) {
     CompressedBrickIterator<FT,1U> fiter;
     // Try to find ngp in local fields and get iterator
     fiter = getFieldIter(f,ngp);
      // accumulate into particle attrib
-	/*
-	pdata = .25*(3.-4.dpos(0)*dpos(0)) * (*fiter) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(-1) +
-			 .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * fiter.offset(+1);
-	 */
-	 auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	for (int p0=-1; p0<=1; ++p0) {
-				 pdata += W(p0,0)*fiter.offset(p0);
-	}
+    pdata = 0;
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        pdata += W(p0,0) * fiter.offset(p0);
+    }
 
     return;
   }
@@ -507,27 +472,16 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into local elements
-	/*
-    *fiter += .25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,0) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-	fiter.offset(-1,+1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(0,-1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(0,+1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,-1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,0) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-*/
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-				 fiter.offset(p0,p1) += W(p0,0) * W(p1,1) * pdata;
-		}
-	}
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            fiter.offset(p0,p1) += W(p0,0) * W(p1,1) * pdata;
+        }
+    }
     return;
   }
 
@@ -537,7 +491,7 @@ public:
   static
   void scatter(const FT& pdata, Field<FT,2U,M,C>& f,
 	       const Vektor<PT,2U>& ppos, const M& mesh,
-               NDIndex<2U>& ngp, int lgpoff[2U], Vektor<PT,2U>& dpos) {
+               NDIndex<2U>& ngp, int /*lgpoff*/[2U], Vektor<PT,2U>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,2U> gpos, delta;
     CompressedBrickIterator<FT,2U> fiter;
@@ -554,28 +508,16 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into local elements
-	/*
-   *fiter += .25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,0) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-	fiter.offset(-1,+1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(0,-1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(0,+1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,-1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,0) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-*/
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
-
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-				 fiter.offset(p0,p1) += W(p0,0) * W(p1,1) * pdata;
-		}
-	}
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            fiter.offset(p0,p1) += W(p0,0) * W(p1,1) * pdata;
+        }
+    }
 
     return;
   }
@@ -584,7 +526,7 @@ public:
   template <class FT, class M, class C, class PT>
   static
   void scatter(const FT& pdata, Field<FT,2U,M,C>& f,
-	       const NDIndex<2U>& ngp, const int lgpoff[2U],
+	       const NDIndex<2U>& ngp, const int /*lpgoff*/[2U],
                const Vektor<PT,2U>& dpos) {
     CompressedBrickIterator<FT,2U> fiter;
     // Try to find ngp in local fields and get iterator
@@ -592,28 +534,16 @@ public:
     // adjust position of Field iterator to lgp position
    // fiter.moveBy(lgpoff);
     // accumulate into local elements
-	/*
-  *fiter += .25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,-1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-    fiter.offset(-1,0) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-	fiter.offset(-1,+1) += .125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(0,-1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(0,+1) += .25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,-1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,0) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * pdata;
-	fiter.offset(+1,+1) += .125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * pdata;
-*/
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
-
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-				 fiter.offset(p0,p1) += W(p0,0) * W(p1,1) * pdata;
-		}
-	}
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            fiter.offset(p0,p1) += W(p0,0) * W(p1,1) * pdata;
+        }
+    }
 
     return;
   }
@@ -640,29 +570,17 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into particle attrib
-	/*
-   pdata = 	.25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * (*fiter) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) +
-		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +
-			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(0,-1) +
-			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * 	fiter.offset(0,+1) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) *fiter.offset(+1,-1) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(+1,0) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(+1,+1) ;
-	*/
-	pdata = 0;
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    pdata = 0;
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-				 pdata += W(p0,0) * W(p1,1) * fiter.offset(p0,p1);
-		}
-	}
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            pdata += W(p0,0) * W(p1,1) * fiter.offset(p0,p1);
+        }
+    }
     return;
   }
 
@@ -672,7 +590,7 @@ public:
   static
   void gather(FT& pdata, const Field<FT,2U,M,C>& f,
 	      const Vektor<PT,2U>& ppos, const M& mesh,
-              NDIndex<2U>& ngp, int lgpoff[2U], Vektor<PT,2U>& dpos) {
+              NDIndex<2U>& ngp, int /*lgpoff*/[2U], Vektor<PT,2U>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,2U> gpos, delta;
     CompressedBrickIterator<FT,2U> fiter;
@@ -689,30 +607,17 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into particle attrib
-	/*
-    pdata = 	.25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * (*fiter) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) +
-		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +
-			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(0,-1) +
-			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * 	fiter.offset(0,+1) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) *fiter.offset(+1,-1) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(+1,0) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(+1,+1) ;
-	*/
+    pdata = 0;
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
-
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-				 pdata += W(p0,0) * W(p1,1) * fiter.offset(p0,p1);
-		}
-	}
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            pdata += W(p0,0) * W(p1,1) * fiter.offset(p0,p1);
+        }
+    }
     return;
   }
 
@@ -720,36 +625,23 @@ public:
   template <class FT, class M, class C, class PT>
   static
   void gather(FT& pdata, const Field<FT,2U,M,C>& f,
-	      const NDIndex<2U>& ngp, const int lgpoff[2U],
+	      const NDIndex<2U>& ngp, const int /*lgpoff*/[2U],
               const Vektor<PT,2U>& dpos) {
     CompressedBrickIterator<FT,2U> fiter;
     // Try to find ngp in local fields and get iterator
     fiter = getFieldIter(f,ngp);
     // accumulate into particle attrib
-	/*
-    pdata = 	.25*(3.-4.dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * (*fiter) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,-1) +
-		.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(-1,0) +
-			.125*(1.-4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(-1,+1) +
-			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(0,-1) +
-			.25*(3.-4.dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * 	fiter.offset(0,+1) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) *  .125*(1.-4.*dpos(1)+4.*dpos(1)*dpos(1)) *fiter.offset(+1,-1) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .25*(3.-4.dpos(1)*dpos(1)) * fiter.offset(+1,0) +
-			.125*(1.+4.*dpos(0)+4.*dpos(0)*dpos(0)) * .125*(1.+4.*dpos(1)+4.*dpos(1)*dpos(1)) * fiter.offset(+1,+1) ;
-	*/
+    pdata = 0;
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
-
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-				 pdata += W(p0,0) * W(p1,1) * fiter.offset(p0,p1);
-		}
-	}
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            pdata += W(p0,0) * W(p1,1) * fiter.offset(p0,p1);
+        }
+    }
     return;
   }
 
@@ -790,21 +682,18 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into local elements
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	//double interpol_tot = 0;
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-			for (int p2=-1; p2<=1; ++p2) {
-				 fiter.offset(p0,p1,p2) += W(p0,0) * W(p1,1) * W(p2,2) * pdata;
-				  //interpol_tot+=  W(p0,0) * W(p1,1) * W(p2,2) * pdata;
-			}
-		}
-	}
-	//std::cout << "the total interpolation is = " << interpol_tot << std::endl;
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            for (int p2 = -1; p2 <= 1; ++p2) {
+                fiter.offset(p0,p1,p2) += W(p0,0) * W(p1,1) * W(p2,2) * pdata;
+            }
+        }
+    }
     return;
   }
 
@@ -814,7 +703,7 @@ public:
   static
   void scatter(const FT& pdata, Field<FT,3U,M,C>& f,
 	       const Vektor<PT,3U>& ppos, const M& mesh,
-               NDIndex<3U>& ngp, int lgpoff[3U], Vektor<PT,3U>& dpos) {
+               NDIndex<3U>& ngp, int /*lgpoff*/[3U], Vektor<PT,3U>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,3U> gpos, delta;
     CompressedBrickIterator<FT,3U> fiter;
@@ -831,22 +720,18 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into local elements
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	//double interpol_tot = 0;
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-			for (int p2=-1; p2<=1; ++p2) {
-				 fiter.offset(p0,p1,p2) += W(p0,0) * W(p1,1) * W(p2,2) * pdata;
-				 //interpol_tot+=  W(p0,0) * W(p1,1) * W(p2,2) * pdata;
-			}
-		}
-	}
-
-//	std::cout << "the total interpolation is = " << interpol_tot << std::endl;
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            for (int p2 = -1; p2 <= 1; ++p2) {
+                fiter.offset(p0,p1,p2) += W(p0,0) * W(p1,1) * W(p2,2) * pdata;
+            }
+        }
+    }
     return;
   }
 
@@ -854,29 +739,24 @@ public:
   template <class FT, class M, class C, class PT>
   static
   void scatter(const FT& pdata, Field<FT,3U,M,C>& f,
-	       const NDIndex<3U>& ngp, const int lgpoff[3U],
+	       const NDIndex<3U>& ngp, const int /*lgpoff*/[3U],
                const Vektor<PT,3U>& dpos) {
     CompressedBrickIterator<FT,3U> fiter;
     // Try to find ngp in local fields and get iterator
     fiter = getFieldIter(f,ngp);
 
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-			for (int p2=-1; p2<=1; ++p2) {
-				 fiter.offset(p0,p1,p2) += W(p0,0) * W(p1,1) * W(p2,2) * pdata;
-			}
-		}
-	}
-
-//	std::cout << "HELLOOO from scatter" << std::endl;
-
-
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            for (int p2 = -1; p2 <= 1; ++p2) {
+                fiter.offset(p0,p1,p2) += W(p0,0) * W(p1,1) * W(p2,2) * pdata;
+            }
+        }
+    }
     return;
   }
 
@@ -902,22 +782,19 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into particle attrib
+    pdata = 0;
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
-
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-			for (int p2=-1; p2<=1; ++p2) {
-				 pdata += W(p0,0) * W(p1,1) * W(p2,2) * fiter.offset(p0,p1,p2);
-			}
-		}
-	}
-	//std::cout << "GATHERED pdata = " << pdata << std::endl;
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            for (int p2 = -1; p2 <= 1; ++p2) {
+                pdata += W(p0,0) * W(p1,1) * W(p2,2) * fiter.offset(p0,p1,p2);
+            }
+        }
+    }
     return;
   }
 
@@ -927,7 +804,7 @@ public:
   static
   void gather(FT& pdata, const Field<FT,3U,M,C>& f,
 	      const Vektor<PT,3U>& ppos, const M& mesh,
-              NDIndex<3U>& ngp, int lgpoff[3U], Vektor<PT,3U>& dpos) {
+              NDIndex<3U>& ngp, int /*lgpoff*/[3U], Vektor<PT,3U>& dpos) {
     CenteringTag<C> ctag;
     Vektor<PT,3U> gpos, delta;
     CompressedBrickIterator<FT,3U> fiter;
@@ -944,21 +821,19 @@ public:
     // normalize dpos by mesh spacing
     dpos /= delta;
     // accumulate into particle attrib
+    pdata = 0;
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	pdata = 0;
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
-
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-			for (int p2=-1; p2<=1; ++p2) {
-				 pdata += W(p0,0) * W(p1,1) * W(p2,2) * fiter.offset(p0,p1,p2);
-			}
-		}
-	}
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            for (int p2 = -1; p2 <= 1; ++p2) {
+                pdata += W(p0,0) * W(p1,1) * W(p2,2) * fiter.offset(p0,p1,p2);
+            }
+        }
+    }
     return;
   }
 
@@ -966,7 +841,7 @@ public:
   template <class FT, class M, class C, class PT>
   static
   void gather(FT& pdata, const Field<FT,3U,M,C>& f,
-	      const NDIndex<3U>& ngp, const int lgpoff[3U],
+	      const NDIndex<3U>& ngp, const int /*lgpoff*/[3U],
               const Vektor<PT,3U>& dpos) {
     CompressedBrickIterator<FT,3U> fiter;
     // Try to find ngp in local fields and get iterator
@@ -974,20 +849,19 @@ public:
     // adjust position of Field iterator to lgp position
     //fiter.moveBy(lgpoff);
     // accumulate into particle attrib
-	pdata = 0;
-	auto W = [dpos](unsigned p, unsigned i) {
-		if (p==-1) return .125*(1.-4.*dpos(i)+4.*dpos(i)*dpos(i));
-		else if (p==0) return .25*(3.-4.*dpos(i)*dpos(i));
-		else if (p==+1) return .125*(1.+4.*dpos(i)+4.*dpos(i)*dpos(i)); };
+    pdata = 0;
+    auto W = [dpos](int p, unsigned i) {
+        if      (p==-1) return .125 * (1 - 4 * dpos(i) + 4 * dpos(i) * dpos(i));
+        else if (p==0)  return .25  * (3 - 4 * dpos(i) * dpos(i));
+        else if (p==+1) return .125 * (1 + 4 * dpos(i) + 4 * dpos(i) * dpos(i)); };
 
-	for (int p0=-1; p0<=1; ++p0) {
-		for (int p1=-1; p1<=1; ++p1) {
-			for (int p2=-1; p2<=1; ++p2) {
-				 pdata += W(p0,0) * W(p1,1) * W(p2,2) * fiter.offset(p0,p1,p2);
-			}
-		}
-	}
-
+    for (int p0 = -1; p0 <= 1; ++p0) {
+        for (int p1 = -1; p1 <= 1; ++p1) {
+            for (int p2 = -1; p2 <= 1; ++p2) {
+                pdata += W(p0,0) * W(p1,1) * W(p2,2) * fiter.offset(p0,p1,p2);
+            }
+        }
+    }
     return;
   }
 
