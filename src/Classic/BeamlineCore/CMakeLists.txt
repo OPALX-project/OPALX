@@ -28,12 +28,6 @@ set (_SRCS
     YCorrectorRep.cpp
     )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-add_opal_sources (${_SRCS})
-
 set (HDRS
     BeamStrippingRep.h
     CCollimatorRep.h
@@ -64,5 +58,16 @@ set (HDRS
     XCorrectorRep.h
     YCorrectorRep.h
     )
+
+if (ENABLE_OPAL_FEL)
+    list (APPEND _SRCS UndulatorRep.cpp)
+    list (APPEND HDRS UndulatorRep.h)
+endif ()
+
+include_directories (
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+add_opal_sources (${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/BeamlineCore")

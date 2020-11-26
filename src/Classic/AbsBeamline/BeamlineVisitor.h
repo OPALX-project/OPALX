@@ -69,6 +69,9 @@ class Solenoid;
 class Source;
 class Stripper;
 class TravelingWave;
+#ifdef ENABLE_OPAL_FEL
+class Undulator;
+#endif
 class VariableRFCavity;
 class VariableRFCavityFringeField;
 class VerticalFFAMagnet;
@@ -155,6 +158,11 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &) = 0;
+
+#ifdef ENABLE_OPAL_FEL
+    /// Apply the algorithm to an undulator space.
+    virtual void visitUndulator(const Undulator &) = 0;
+#endif
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &) = 0;
