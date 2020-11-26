@@ -147,7 +147,6 @@ class PPSolveFactoryTestFixture : public ::testing::Test {
                                      << value2D[0] <<  " " << value2D[1] << std::endl;
             values2D.push_back(value2D);
         }
-        
     }
 };
 
@@ -212,7 +211,63 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
 
 // check smoothed quadratic fit exactly reproduces data on and off grid points
 // except near to the boundary
-TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadraticSmoothed) {
+double f(double x) {
+    return x*x+x+1;
+}
+
+TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
+    std::vector<std::vector<double> > gridPoints = {{0., 1., 2., 3., 4., 5., 6.}};
+    std::vector<std::vector<double> > values1D(gridPoints[0].size(), std::vector<double>(1, 0.));
+    for (size_t i = 0; i < gridPoints[0].size(); ++i) {
+        values1D[i][0] = f(gridPoints[0][i]);
+    }
+    Mesh* mesh = new NDGrid(gridPoints);
+
+    PPSolveFactory* fac = NULL;
+    PolynomialPatch* patch = NULL;
+    try {
+        fac = new PPSolveFactory(mesh, values1D, 1, 2);
+        patch = fac->solve();
+        delete fac;
+    } catch (GeneralClassicException& exc) {
+        std::cerr << exc.what() << " " << exc.where() << std::endl;
+        throw;
+    }
+    // Check that we correctly generate polynomials with values that match f(x)
+    // at mesh points
+    std::vector<double> value(1, 0.);
+    for(size_t i = 0; i < gridPoints.size(); ++i) {
+        patch->function(&gridPoints[0][i], &value[0]);
+        EXPECT_NEAR(value[0], f(gridPoints[0][i]), 1e-6);
+    }
+
+    // Check that we correctly generate polynomials with values and derivatives
+    // matched at the edge of each mesh "cell" and 0 at boundary
+    int derivIndex[] = {1};
+    std::vector<double> position(1, 0.);
+    std::vector<std::vector<double> > values(4, std::vector<double>(1, 0.));
+    for (size_t i = 0; i+1 < gridPoints[0].size(); ++i) {
+        std::vector<double> start = {(gridPoints[0][i]-gridPoints[0][i+1])/2};
+        std::vector<double> end = {-start[0]};
+        position[0] = (gridPoints[0][i]+gridPoints[0][i+1])/2.0;
+        SquarePolynomialVector* poly = patch->getPolynomialVector(&position[0]);
+        SquarePolynomialVector derivPoly = poly->Deriv(&derivIndex[0]);
+        poly->F(&start[0], &values[0][0]);
+        derivPoly.F(&start[0], &values[1][0]);
+        if (i > 1) {
+            EXPECT_NEAR(values[0][0], values[2][0], 1e-6); // check neighbouring values match
+            EXPECT_NEAR(values[1][0], values[3][0], 1e-6); // check neighbouring derivatives match
+        }
+        poly->F(&end[0], &values[2][0]);
+        derivPoly.F(&end[0], &values[3][0]);
+        std::cerr << "At pos: " << position[0] << " ";
+        std::cerr << "Values: " << values[0][0] << " " << values[2][0] << " ";
+        std::cerr << "Derivs: " << values[1][0] << " " << values[3][0] << std::endl;
+    }
+    EXPECT_NEAR(values[3][0], 0., 1e-6); // derivative 0.0 at boundary
+}
+
+TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic2DSmoothed) {
     //OpalTestUtilities::SilenceTest silencer;
     Mesh* mesh = grid2D->clone();
     PPSolveFactory* fac = NULL;
