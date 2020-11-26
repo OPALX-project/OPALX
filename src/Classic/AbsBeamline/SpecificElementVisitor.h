@@ -54,6 +54,10 @@
 #include "AbsBeamline/Source.h"
 #include "AbsBeamline/Stripper.h"
 
+#ifdef ENABLE_OPAL_FEL
+#include "AbsBeamline/Undulator.h"
+#endif
+
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
@@ -154,6 +158,11 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitTravelingWave(const TravelingWave &);
+
+#ifdef ENABLE_OPAL_FEL
+    /// Apply the algorithm to an undulator.
+    virtual void visitUndulator(const Undulator &);
+#endif
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
@@ -341,6 +350,13 @@ template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave &element) {
     CastsTrait<ELEM, TravelingWave>::apply(allElementsOfTypeE, element);
 }
+
+#ifdef ENABLE_OPAL_FEL
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitUndulator(const Undulator &element) {
+    CastsTrait<ELEM, Undulator>::apply(allElementsOfTypeE, element);
+}
+#endif
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {

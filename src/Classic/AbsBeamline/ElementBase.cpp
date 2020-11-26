@@ -232,6 +232,10 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "Stripper";
     case TRAVELINGWAVE:
         return "TravelingWave";
+#ifdef ENABLE_OPAL_FEL
+    case UNDULATOR:
+        return "Undulator";
+#endif
     case VARIABLERFCAVITY:
         return "VariableRFCavity";
     case ANY:

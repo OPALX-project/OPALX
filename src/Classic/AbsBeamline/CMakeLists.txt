@@ -43,12 +43,6 @@ set (_SRCS
     VerticalFFAMagnet.cpp
     )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-add_opal_sources (${_SRCS})
-
 set (HDRS
     AttributeSet.h
     BeamlineVisitor.h
@@ -91,5 +85,16 @@ set (HDRS
     VariableRFCavityFringeField.h
     VerticalFFAMagnet.h
     )
+
+if (ENABLE_OPAL_FEL)
+    list (APPEND _SRCS Undulator.cpp)
+    list (APPEND HDRS Undulator.h)
+endif ()
+
+include_directories (
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+add_opal_sources (${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline")

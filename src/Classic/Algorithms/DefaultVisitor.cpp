@@ -54,6 +54,10 @@
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
+#ifdef ENABLE_OPAL_FEL
+#include "AbsBeamline/Undulator.h"
+#endif
+
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
@@ -180,6 +184,11 @@ void DefaultVisitor::visitTravelingWave(const TravelingWave &trw) {
     applyDefault(trw);
 }
 
+#ifdef ENABLE_OPAL_FEL
+void DefaultVisitor::visitUndulator(const Undulator &u) {
+    applyDefault(u);
+}
+#endif
 
 void DefaultVisitor::visitSBend(const SBend &bend) {
     applyDefault(bend);
