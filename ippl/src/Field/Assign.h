@@ -13,7 +13,7 @@
 
 // include files
 #include "PETE/IpplExpressions.h"
-#include "AppTypes/dcomplex.h"
+#include <complex>
 
 // forward declarations
 template<class T, unsigned Dim> class BareField;
@@ -46,12 +46,6 @@ template<class T, unsigned Dim, unsigned Brackets> class IndexedBareField;
 template <bool IsExpr>
 class ExprTag
 {
-#ifdef IPPL_PURIFY
-public:
-  ExprTag() {}
-  ExprTag(const ExprTag<IsExpr> &) {}
-  ExprTag<IsExpr>& operator=(const ExprTag<IsExpr> &) { return *this; }
-#endif
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -74,28 +68,11 @@ assign(const IndexedBareField<T1,Dim,Dim> &a, RHS b, OP op, ExprTag<true> et) {
   assign(a, b, op, et, true);
 }
 
-#ifdef __MWERKS__
-// Work around CodeWarrior 4.0 bug
-// Component = Expression
-template<class A, class RHS, class OP, class Tag, class TP>
-void
-assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS rhs, OP op, Tag tag) {
-  assign(lhs, rhs, op, tag, true);
-}
-
-// Component = Expression
-template<class A, class RHS, class OP, class Tag, class TP>
-void
-assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS rhs, OP op, Tag,
-       bool fillGC); // tjw added fillGC 12/16/1997 new BC hack
-
-#else
 // Component = Expression
 template<class A, class RHS, class OP, class Tag, class TP>
 void
 assign(PETE_TUTree<OpParens<TP>,A> lhs, RHS rhs, OP op, Tag,
        bool fillGC=true); // tjw added fillGC 12/16/1997 new BC hack
-#endif // __MWERKS__
 
 // BareField = BareField, with communication.
 template<class T1, unsigned D1, class RHS, class Op>
@@ -128,7 +105,7 @@ assign(IndexedBareField<T,D,D> a, const T& b, OP op, ExprTag<true>)
 
 template<class T> struct IsExprTrait { enum { IsExpr = T::IsExpr } ; };
 template<> struct IsExprTrait<double>   { enum { IsExpr = 1 }; };
-template<> struct IsExprTrait<dcomplex> { enum { IsExpr = 1 }; };
+template<> struct IsExprTrait<std::complex<double>> { enum { IsExpr = 1 }; };
 template<> struct IsExprTrait<float>    { enum { IsExpr = 1 }; };
 template<> struct IsExprTrait<short>    { enum { IsExpr = 1 }; };
 template<> struct IsExprTrait<int>      { enum { IsExpr = 1 }; };
@@ -191,35 +168,10 @@ FUNC(const PETE_TUTree<OpParens<TP>,A>& lhs, const double& rhs)	\
 }								\
 template<class A, class TP>					\
 inline void							\
-FUNC(const PETE_TUTree<OpParens<TP>,A>& lhs, const dcomplex& rhs)\
+FUNC(const PETE_TUTree<OpParens<TP>,A>& lhs, const std::complex<double>& rhs)\
 {								\
-  assign(lhs,PETE_Scalar<dcomplex>(rhs),OP(),ExprTag<true>());	\
+  assign(lhs,PETE_Scalar<std::complex<double>>(rhs),OP(),ExprTag<true>());	\
 }
-
-#ifdef UNDEFINED
-
-template<class LHS>							\
-inline void								\
-FUNC(const PETE_Expr<LHS>& lhs, double rhs)				\
-{									\
-  assign(lhs.PETE_unwrap(),PETE_Scalar<double>(rhs),OP(),ExprTag<true>());	\
-}									\
-									\
-template<class LHS>							\
-inline void								\
-FUNC(const PETE_Expr<LHS>& lhs, float rhs)				\
-{									\
-  assign(lhs.PETE_unwrap(),PETE_Scalar<float>(rhs),OP(),ExprTag<true>());	\
-}									\
-									\
-template<class LHS>							\
-inline void								\
-FUNC(const PETE_Expr<LHS>& lhs, int rhs)				\
-{									\
-  assign(lhs.PETE_unwrap(),PETE_Scalar<int>(rhs),OP(),ExprTag<true>());	\
-}
-
-#endif
 
 ASSIGNMENT_OPERATORS(assign,OpAssign)
 ASSIGNMENT_OPERATORS(operator<<,OpAssign)

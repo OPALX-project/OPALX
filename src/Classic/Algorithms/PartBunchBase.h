@@ -1,29 +1,53 @@
+//
+// Class PartBunchBase
+//   Base class for representing particle bunches.
+//
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef PART_BUNCH_BASE_H
 #define PART_BUNCH_BASE_H
 
-#include "Ippl.h"
-#include "Particle/AbstractParticle.h" //TODO should be in Ippl.h
-#include "Algorithms/PBunchDefs.h"
-#include "Algorithms/OpalParticle.h"
+#include "Utility/IpplTimings.h"
+#include "Particle/AbstractParticle.h"
+#include "Particle/ParticleAttrib.h"
+
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/OpalParticle.h"
+#include "Algorithms/PBunchDefs.h"
+#include "Algorithms/Quaternion.h"
+#include "Algorithms/Vektor.h"
+
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
-#include "Algorithms/PartBins.h"
-#include "Algorithms/PartBinsCyc.h"
-#include "Algorithms/PartData.h"
-#include "Algorithms/Quaternion.h"
 
-#include <iosfwd>
+#include <memory>
+#include <utility>
 #include <vector>
 
-#include "Structure/LossDataSink.h"
-#include "Structure/FieldSolver.h"
-#include "Algorithms/ListElem.h"
-
 class Distribution;
+class FieldSolver;
+class PartBins;
+class PartBinsCyc;
+class PartData;
 
-template <class T, int, int> class FMatrix;
-template <class T, int> class FVector;
+namespace ParticleType {
+    enum type { REGULAR,
+                FIELDEMISSION,
+                SECONDARY,
+                NEWSECONDARY,
+                STRIPPED};
+}
 
 template <class T, unsigned Dim>
 class PartBunchBase
@@ -41,8 +65,6 @@ public:
     enum UnitState_t { units = 0, unitless = 1 };
 
 public:
-
-    explicit PartBunchBase(AbstractParticle<T, Dim>* pb);
 
     virtual ~PartBunchBase() { }
 
@@ -81,9 +103,9 @@ public:
                          std::vector<Distribution *> addedDistributions,
                          size_t &np);
 
-    bool isGridFixed();
+    bool isGridFixed() const;
 
-    bool hasBinning();
+    bool hasBinning() const;
 
 
     /*
@@ -111,8 +133,6 @@ public:
     void updateNumTotal();
 
     void rebin();
-
-    int getNumBins();
 
     int getLastemittedBin();
 
@@ -215,7 +235,7 @@ public:
      * @param none
      *
      */
-    double get_sPos();
+    double get_sPos() const;
 
     void set_sPos(double s);
 
@@ -264,15 +284,6 @@ public:
     // set the mass per simulation particle
     void setMass(double mass);
 
-    /// \brief Need Ek for the Schottky effect calculation (eV)
-    double getEkin() const;
-
-    /// Need the work function for the Schottky effect calculation (eV)
-    double getWorkFunctionRf() const;
-
-    /// Need the laser energy for the Schottky effect calculation (eV)
-    double getLaserEnergy() const;
-
     /// get the total charge per simulation particle
     double getCharge() const;
 
@@ -318,7 +329,7 @@ public:
     Quaternion_t getGlobalToLocalQuaternion();
 
     void setSteptoLastInj(int n);
-    int getSteptoLastInj();
+    int getSteptoLastInj() const;
 
     /// calculate average angle of longitudinal direction of bins
     double calcMeanPhi();
@@ -342,7 +353,7 @@ public:
     void resetM(double m);
     void setPType(ParticleType::type);
     ///@}
-    double getdE();
+    double getdE() const;
     virtual double getGamma(int i);
     virtual double getBeta(int i);
     virtual void actT();
@@ -361,8 +372,6 @@ public:
     void iterateEmittedBin(int binNumber);
 
     void calcEMean();
-
-    void correctEnergy(double avrgp);
 
     Inform &print(Inform &os);
 
@@ -406,6 +415,8 @@ public:
 
 //     virtual void setFieldLayout(FieldLayout_t* fLayout) = 0;
     virtual FieldLayout_t &getFieldLayout() = 0;
+
+    virtual void resizeMesh() { };
 
     /*
      * Wrapped member functions of IpplParticleBase
@@ -504,24 +515,8 @@ public:
     ParticleType::type refPType_m;
     CoordinateSystemTrafo toLabTrafo_m;
 
-
-    /// avoid calls to Ippl::myNode()
-    int myNode_m;
-
-    /// avoid calls to Ippl::getNodes()
-    int nodes_m;
-
-    /// if the grid does not have to adapt
-    bool fixed_grid;
-
     // The structure for particle binning
     PartBins *pbin_m;
-
-    std::unique_ptr<LossDataSink> lossDs_m;
-
-    // save particles in case of one core
-    std::unique_ptr<Inform> pmsg_m;
-    std::unique_ptr<std::ofstream> f_stream;
 
     /// timer for IC, can not be in Distribution.h
     IpplTimings::TimerRef distrReload_m;
@@ -533,11 +528,15 @@ public:
     /// if a local node has less than 2 particles  lowParticleCount_m == true
     bool lowParticleCount_m;
 
-    /// timer for selfField calculation
-    IpplTimings::TimerRef selfFieldTimer_m;
-
     // get 2nd order momentum matrix
     FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix();
+
+private:
+    // save particles in case of one core
+    std::unique_ptr<Inform> pmsg_m;
+    std::unique_ptr<std::ofstream> f_stream;
+    /// if the grid does not have to adapt
+    bool fixed_grid;
 
 protected:
     IpplTimings::TimerRef boundpTimer_m;
@@ -546,6 +545,8 @@ protected:
     IpplTimings::TimerRef statParamTimer_m;
 
     IpplTimings::TimerRef histoTimer_m;
+    /// timer for selfField calculation
+    IpplTimings::TimerRef selfFieldTimer_m;
 
 
     const PartData *reference;
@@ -632,11 +633,8 @@ protected:
     /// counter to store the distribution dump
     int distDump_m;
 
-    ///
-    int fieldDBGStep_m;
-
     /// Mesh enlargement
-    double dh_m; /// in % how much the mesh is enlarged
+    double dh_m; /// relative enlargement of the mesh
 
     /// if larger than 0, emitt particles for tEmission_m [s]
     double tEmission_m;

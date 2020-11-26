@@ -1,70 +1,54 @@
+//
+// Class: ThickTracker
+//   Tracks using thick-lens algorithm.
+// ------------------------------------------------------------------------
+//
+// Copyright (c) 2018, Philippe Ganz, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Master thesis
+// "s-based maps from TPS & Lie-Series applied to Proton-Therapy Gantries"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
 #ifndef OPAL_ThickTracker_HH
 #define OPAL_ThickTracker_HH
 
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: ThickTracker
-//
-// ------------------------------------------------------------------------
-//
-// $Author: ganz_p $
-//
-// ------------------------------------------------------------------------
-
 #include "Algorithms/Tracker.h"
-#include "Structure/DataSink.h"
 
 #include "Hamiltonian.h"
 
-#include "MapAnalyser.h"
-
 #include "Algorithms/IndexMap.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamStripping.h"
-#include "AbsBeamline/CCollimator.h"
-#include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/CyclotronValley.h"
-#include "AbsBeamline/Diagnostic.h"
-#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
-#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Lambertson.h"
-#include "AbsBeamline/Marker.h"
-#include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/ParallelPlate.h"
-#include "AbsBeamline/Probe.h"
-#include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/RFQuadrupole.h"
-#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Separator.h"
-#include "AbsBeamline/Septum.h"
-#include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/TravelingWave.h"
 
 #include "Elements/OpalBeamline.h"
 
-#include "Structure/Beam.h"
-
-//#include <array>
 #include <cmath>
-
+#include <list>
+#include <string>
 #include <tuple>
+#include <vector>
 
 class BMultipoleField;
+class DataSink;
 
 template <class T, unsigned Dim>
 class PartBunchBase;
 
-
-
-// Class ThickTracker
-// ------------------------------------------------------------------------
 /// Track using thick-lens algorithm.
 // [p]
 // Phase space coordinates numbering:
@@ -87,7 +71,6 @@ class PartBunchBase;
 // [row]reference momentum   [&]electron-volts [/row]
 // [row]velocity             [&]metres/second  [/row]
 // [row]accelerating voltage [&]volts          [/row]
-// [row]separator voltage    [&]volts          [/row]
 // [row]frequencies          [&]hertz          [/row]
 // [row]phase lags           [&]$2*pi$         [/row]
 // [/tab][p]
@@ -103,14 +86,13 @@ class PartBunchBase;
 
 class ThickTracker: public Tracker {
 
-public:
+private:
     typedef Hamiltonian::series_t                       series_t;
-    typedef MapAnalyser::fMatrix_t                      fMatrix_t;
-    typedef MapAnalyser::cfMatrix_t                     cfMatrix_t;
     typedef FVps<double, 6>                             map_t;
     typedef FVector<double, 6>                          particle_t;
     typedef std::tuple<series_t, std::size_t, double>   tuple_t;
     typedef std::list<tuple_t>                          beamline_t;
+    typedef FMatrix<double, 6, 6>                       fMatrix_t;
 
 public:
 
@@ -143,12 +125,6 @@ public:
 
     virtual ~ThickTracker();
 
-
-    virtual void visitAlignWrapper(const AlignWrapper &);
-
-    /// Apply the algorithm to a BeamBeam.
-    virtual void visitBeamBeam(const BeamBeam &);
-
     /// Apply the algorithm to a BeamStripping.
     virtual void visitBeamStripping(const BeamStripping &);
 
@@ -161,17 +137,11 @@ public:
     /// Apply the algorithm to a Degrader.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a Diagnostic.
-    virtual void visitDiagnostic(const Diagnostic &);
-
     /// Apply the algorithm to a Drift.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
-    /// Apply the algorithm to a Lambertson.
-    virtual void visitLambertson(const Lambertson &);
 
     /// Apply the algorithm to a Marker.
     virtual void visitMarker(const Marker &);
@@ -193,28 +163,14 @@ public:
     /// Apply the algorithm to a RFCavity.
     virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to a RFQuadrupole.
-    virtual void visitRFQuadrupole(const RFQuadrupole &);
-
     /// Apply the algorithm to a SBend.
     virtual void visitSBend(const SBend &);
-
-    /// Apply the algorithm to a Separator.
-    virtual void visitSeparator(const Separator &);
 
     /// Apply the algorithm to a Septum.
     virtual void visitSeptum(const Septum &);
 
     /// Apply the algorithm to a Solenoid.
     virtual void visitSolenoid(const Solenoid &);
-
-    /// Apply the algorithm to a ParallelPlate.
-    virtual void visitParallelPlate(const ParallelPlate &);
-
-    /// Apply the algorithm to a CyclotronValley.
-    virtual void visitCyclotronValley(const CyclotronValley &);
-
-
 
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
@@ -359,7 +315,6 @@ private:
 
 
     Hamiltonian hamiltonian_m;
-    MapAnalyser mapAnalyser_m;
 
 
     Vector_t RefPartR_m;
@@ -384,41 +339,26 @@ private:
     IpplTimings::TimerRef mapTracking_m;    ///< track particles trough maps of elements_m
 };
 
-inline void ThickTracker::visitAlignWrapper(const AlignWrapper &wrap) {
-//     itsOpalBeamline_m.visit(wrap, *this, itsBunch_m);
-    this->throwElementError_m("AlignWrapper");
-}
-
-inline void ThickTracker::visitBeamBeam(const BeamBeam &bb) {
-//     itsOpalBeamline_m.visit(bb, *this, itsBunch_m);
-    this->throwElementError_m("BeamBeam");
-}
 
 inline void ThickTracker::visitBeamStripping(const BeamStripping &bstp) {
     itsOpalBeamline_m.visit(bstp, *this, itsBunch_m);
 }
 
-inline void ThickTracker::visitCCollimator(const CCollimator &coll) {
+inline void ThickTracker::visitCCollimator(const CCollimator &/*coll*/) {
 //     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
     this->throwElementError_m("CCollimator");
 }
 
 
-inline void ThickTracker::visitCorrector(const Corrector &corr) {
+inline void ThickTracker::visitCorrector(const Corrector &/*coll*/) {
 //     itsOpalBeamline_m.visit(corr, *this, itsBunch_m);
     this->throwElementError_m("Corrector");
 }
 
 
-inline void ThickTracker::visitDegrader(const Degrader &deg) {
+inline void ThickTracker::visitDegrader(const Degrader &/*deg*/) {
 //     itsOpalBeamline_m.visit(deg, *this, itsBunch_m);
     this->throwElementError_m("Degrader");
-}
-
-
-inline void ThickTracker::visitDiagnostic(const Diagnostic &diag) {
-//     itsOpalBeamline_m.visit(diag, *this, itsBunch_m);
-    this->throwElementError_m("Diagnostic");
 }
 
 
@@ -436,25 +376,20 @@ inline void ThickTracker::visitDrift(const Drift &drift) {
 }
 
 
-inline void ThickTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
+inline void ThickTracker::visitFlexibleCollimator(const FlexibleCollimator &/*coll*/) {
 //     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
     this->throwElementError_m("FlexibleCollimator");
 }
 
 
-inline void ThickTracker::visitLambertson(const Lambertson &lamb) {
-//     itsOpalBeamline_m.visit(lamb, *this, itsBunch_m);
-    this->throwElementError_m("Lambertson");
-}
 
-
-inline void ThickTracker::visitMarker(const Marker &marker) {
+inline void ThickTracker::visitMarker(const Marker &/*marker*/) {
 //     itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
 //     this->throwElementError_m("Marker");
 }
 
 
-inline void ThickTracker::visitMonitor(const Monitor &mon) {
+inline void ThickTracker::visitMonitor(const Monitor &/*mon*/) {
 //     itsOpalBeamline_m.visit(mon, *this, itsBunch_m);
     this->throwElementError_m("Monitor");
 }
@@ -479,33 +414,28 @@ inline void ThickTracker::visitMultipole(const Multipole &mult) {
                                          length));
 }
 
-inline void ThickTracker::visitProbe(const Probe &prob) {
+inline void ThickTracker::visitProbe(const Probe &/*probe*/) {
 //     itsOpalBeamline_m.visit(prob, *this, itsBunch_m);
     this->throwElementError_m("Probe");
 }
 
 
-inline void ThickTracker::visitRBend(const RBend &bend) {
+inline void ThickTracker::visitRBend(const RBend &/*bend*/) {
 //     itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
     this->throwElementError_m("RBend");
 }
 
 
-inline void ThickTracker::visitRFCavity(const RFCavity &as) {
+inline void ThickTracker::visitRFCavity(const RFCavity &/*as*/) {
 //     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
     this->throwElementError_m("RFCavity");
 }
 
-inline void ThickTracker::visitTravelingWave(const TravelingWave &as) {
+inline void ThickTracker::visitTravelingWave(const TravelingWave &/*as*/) {
 //     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
     this->throwElementError_m("TravelingWave");
 }
 
-
-inline void ThickTracker::visitRFQuadrupole(const RFQuadrupole &rfq) {
-//     itsOpalBeamline_m.visit(rfq, *this, itsBunch_m);
-    this->throwElementError_m("RFQuadrupole");
-}
 
 inline void ThickTracker::visitSBend(const SBend &bend) {
     itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
@@ -560,32 +490,16 @@ inline void ThickTracker::visitSBend(const SBend &bend) {
 }
 
 
-inline void ThickTracker::visitSeparator(const Separator &sep) {
-//     itsOpalBeamline_m.visit(sep, *this, itsBunch_m);
-    this->throwElementError_m("Separator");
-}
-
-
-inline void ThickTracker::visitSeptum(const Septum &sept) {
+inline void ThickTracker::visitSeptum(const Septum &/*sept*/) {
 //     itsOpalBeamline_m.visit(sept, *this, itsBunch_m);
     this->throwElementError_m("Septum");
 }
 
 
-inline void ThickTracker::visitSolenoid(const Solenoid &solenoid) {
+inline void ThickTracker::visitSolenoid(const Solenoid &/*solenoid*/) {
 //     itsOpalBeamline_m.visit(solenoid, *this, itsBunch_m);
     this->throwElementError_m("Solenoid");
 }
 
-
-inline void ThickTracker::visitParallelPlate(const ParallelPlate &pplate) {
-//     itsOpalBeamline_m.visit(pplate, *this, itsBunch_m);
-    this->throwElementError_m("ParallelPlate");
-}
-
-inline void ThickTracker::visitCyclotronValley(const CyclotronValley &cv) {
-//     itsOpalBeamline_m.visit(cv, *this, itsBunch_m);
-    this->throwElementError_m("CyclotronValley");
-}
 
 #endif // OPAL_ThickTracker_HH

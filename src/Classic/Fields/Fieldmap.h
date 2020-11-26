@@ -71,9 +71,10 @@ public:
 
     static std::string typeset_msg(const std::string &msg, const std::string &title);
 
+    // Note: getFieldstrength() returns true if R is outside of the field!
     virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const = 0;
     virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const = 0;
-    virtual void getFieldDimensions(double &zBegin, double &zEnd, double &rBegin, double &rEnd) const = 0;
+    virtual void getFieldDimensions(double &zBegin, double &zEnd) const = 0;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const = 0;
     virtual void swap() = 0;
     virtual void getInfo(Inform *msg) = 0;
@@ -97,13 +98,19 @@ public:
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & onaxis);
 
-    virtual bool isInside(const Vector_t &r) const;
+    virtual bool isInside(const Vector_t &/*r*/) const { return true; }
 
     virtual void readMap() = 0;
     virtual void freeMap() = 0;
 
 protected:
-    Fieldmap(const std::string &aFilename);
+    Fieldmap () = delete;
+
+    Fieldmap(const std::string& aFilename)
+        : Filename_m(aFilename),
+        lines_read_m(0),
+        normalize_m(true) { };
+
     virtual ~Fieldmap() { ;};
     MapType Type;
 
@@ -111,26 +118,29 @@ protected:
     int lines_read_m;
 
     bool normalize_m;
-    void getLine(std::ifstream &in, std::string &buffer);
+    void getLine(std::ifstream & in, std::string & buffer) {
+        getLine(in, lines_read_m, buffer);
+    }
+
     static void getLine(std::ifstream &in, int &lines_read, std::string &buffer);
+
     template<class S>
-    bool interpreteLine(std::ifstream &in, S &value, const bool &file_length_known = true);
+    bool interpretLine(std::ifstream &in, S &value, const bool &file_length_known = true);
     template<class S, class T>
-    bool interpreteLine(std::ifstream &in, S &value1, T &value2, const bool &file_length_known = true);
+    bool interpretLine(std::ifstream &in, S &value1, T &value2, const bool &file_length_known = true);
     template<class S, class T, class U>
-    bool interpreteLine(std::ifstream &in, S &value1, T &value2, U &value3, const bool &file_length_known = true);
+    bool interpretLine(std::ifstream &in, S &value1, T &value2, U &value3, const bool &file_length_known = true);
     template<class S, class T, class U, class V>
-    bool interpreteLine(std::ifstream &in, S &value1, T &value2, U &value3, V &value4, const bool &file_length_known = true);
+    bool interpretLine(std::ifstream &in, S &value1, T &value2, U &value3, V &value4, const bool &file_length_known = true);
     template<class S>
-    bool interpreteLine(std::ifstream &in, S &value1, S &value2, S &value3, S &value4, S &value5, S &value6, const bool &file_length_known = true);
+    bool interpretLine(std::ifstream &in, S &value1, S &value2, S &value3, S &value4, S &value5, S &value6, const bool &file_length_known = true);
 
     bool interpreteEOF(std::ifstream &in);
 
-    void interpreteWarning(const std::string &error_msg, const std::string &expecting, const std::string &found);
-    void interpreteWarning(const std::ios_base::iostate &state,
-                           const bool &read_all,
-                           const std::string &error_msg,
-                           const std::string &found);
+    void interpretWarning(const std::ios_base::iostate &state,
+                          const bool &read_all,
+                          const std::string &error_msg,
+                          const std::string &found);
     void missingValuesWarning();
     void exceedingValuesWarning();
 
@@ -187,22 +197,5 @@ private:
     static std::map<std::string, FieldmapDescription> FieldmapDictionary;
 
 };
-
-inline Fieldmap::Fieldmap(const std::string & aFilename) :
-    Filename_m(aFilename),
-    lines_read_m(0),
-    normalize_m(true)
-{ }
-
-
-inline void Fieldmap::getLine(std::ifstream & in, std::string & buffer)
-{
-    getLine(in, lines_read_m, buffer);
-}
-
-inline bool Fieldmap::isInside(const Vector_t &r) const
-{
-    return true;
-}
 
 #endif

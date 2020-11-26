@@ -1,26 +1,21 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalElement.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.2.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalElement
-//   The base class for all OPAL beamline elements.
-
-//   and for printing in OPAL-8 format.
+// Class OpalElement
+//   Base class for all beam line elements.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2002/12/09 15:06:07 $
-// $Author: jsberg $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalElement.h"
-#include "AbsBeamline/AlignWrapper.h"
-#include "AbsBeamline/ElementImage.h"
 #include "AbsBeamline/Bend2D.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
@@ -31,7 +26,6 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
-#include "Utilities/Round.h"
 #include "Utilities/Util.h"
 
 #include <cmath>
@@ -40,15 +34,10 @@
 #include <vector>
 #include <boost/regex.hpp>
 
-extern Inform *gmsg;
-// Class OpalElement
-// ------------------------------------------------------------------------
-
-std::map < std::string, OwnPtr<AttCell> > OpalElement::attributeRegistry;
 
 OpalElement::OpalElement(int size, const char *name, const char *help):
     Element(size, name, help), itsSize(size) {
-    itsAttr[TYPE]   = Attributes::makeString
+    itsAttr[TYPE]   = Attributes::makeUpperCaseString
                       ("TYPE", "The element design type (the project name)");
     itsAttr[LENGTH] = Attributes::makeReal
                       ("L", "The element length in m");
@@ -101,32 +90,6 @@ OpalElement::OpalElement(int size, const char *name, const char *help):
     for (unsigned int i = 0; i < end; ++ i) {
         AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
     }
-
-    static bool first = true;
-    if(first) {
-        registerStringAttribute("NAME");
-        registerStringAttribute("TYPE");
-        registerStringAttribute("CLASS");
-        registerStringAttribute("KEYWORD");
-        registerRealAttribute("L");
-        registerStringAttribute("WAKEF");
-        registerStringAttribute("PARTICLEMATTERINTERACTION");
-        registerStringAttribute("APERT");
-        registerRealAttribute("X");
-        registerRealAttribute("Y");
-        registerRealAttribute("Z");
-        registerRealAttribute("THETA");
-        registerRealAttribute("PHI");
-        registerRealAttribute("PSI");
-        registerRealAttribute("DX");
-        registerRealAttribute("DY");
-        registerRealAttribute("DZ");
-        registerRealAttribute("DTHETA");
-        registerRealAttribute("DPHI");
-        registerRealAttribute("DPSI");
-        first = false;
-    }
-
 }
 
 
@@ -138,83 +101,6 @@ OpalElement::OpalElement(const std::string &name, OpalElement *parent):
 OpalElement::~OpalElement()
 {}
 
-
-void OpalElement::
-fillRegisteredAttributes(const ElementBase &base, ValueFlag) {
-    // Fill in the common data for all elements.
-    attributeRegistry["NAME"]->setString(getOpalName());
-    attributeRegistry["TYPE"]->setString(getTypeName());
-    attributeRegistry["CLASS"]->setString(getParent()->getOpalName());
-    attributeRegistry["KEYWORD"]->setString(getBaseObject()->getOpalName());
-    attributeRegistry["L"]->setReal(base.getElementLength());
-
-    CoordinateSystemTrafo global2local = base.getCSTrafoGlobal2Local();
-    Vector_t origin = global2local.getOrigin();
-    Vector_t orientation = Util::getTaitBryantAngles(global2local.getRotation().conjugate());
-    attributeRegistry["X"]->setReal(origin[0]);
-    attributeRegistry["Y"]->setReal(origin[1]);
-    attributeRegistry["Z"]->setReal(origin[2]);
-    attributeRegistry["THETA"]->setReal(orientation[0]);
-    attributeRegistry["PHI"]->setReal(orientation[1]);
-    attributeRegistry["PSI"]->setReal(orientation[2]);
-
-    // Misalignments.
-    const AlignWrapper *wrap = dynamic_cast<const AlignWrapper *>(&base);
-    if(wrap) {
-        double dx, dy, dz, dphi, dtheta, dpsi;
-        wrap->offset().getAll(dx, dy, dz, dtheta, dphi, dpsi);
-        attributeRegistry["DX"]->setReal(dx);
-        attributeRegistry["DY"]->setReal(dy);
-        attributeRegistry["DZ"]->setReal(dz);
-        attributeRegistry["DTHETA"]->setReal(dtheta);
-        attributeRegistry["DPHI"]->setReal(dphi);
-        attributeRegistry["DPSI"]->setReal(dpsi);
-    }
-
-    CoordinateSystemTrafo misalignment = base.getMisalignment();
-    Vector_t misalignmentShift = misalignment.getOrigin();
-    Vector_t misalignmentAngles = Util::getTaitBryantAngles(misalignment.getRotation().conjugate());
-
-    attributeRegistry["DX"]->setReal(misalignmentShift(0));
-    attributeRegistry["DY"]->setReal(misalignmentShift(1));
-    attributeRegistry["DZ"]->setReal(misalignmentShift(2));
-    attributeRegistry["DTHETA"]->setReal(misalignmentAngles[0]);
-    attributeRegistry["DPHI"]->setReal(misalignmentAngles[1]);
-    attributeRegistry["DPSI"]->setReal(misalignmentAngles[2]);
-
-    // Fill in the "unknown" attributes.
-    ElementImage *image = base.ElementBase::getImage();
-    AttributeSet::const_iterator cur = image->begin();
-    AttributeSet::const_iterator end = image->end();
-    for(; cur != end; ++cur) {
-        attributeRegistry[cur->first]->setReal(cur->second);
-    }
-}
-
-
-AttCell *OpalElement::findRegisteredAttribute(const std::string &name) {
-    AttCell *cell = &*attributeRegistry[name];
-
-    if(cell == 0) {
-        std::string::size_type i = 0;
-
-        if(name[i] == 'K') {
-            ++i;
-            while(isdigit(name[i])) ++i;
-            if(name[i] == 'S') ++i;
-
-            if(name[i] == 'L'  &&  ++i == name.length()) {
-                attributeRegistry[name] = cell = new AttReal();
-            } else {
-                throw OpalException("OpalElement::findRegisteredAttribute()",
-                                    "There is no element which has an attribute "
-                                    "called \"" + name + "\".");
-            }
-        }
-    }
-
-    return cell;
-}
 
 std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert() const {
 
@@ -404,7 +290,7 @@ void OpalElement::parse(Statement &stat) {
         }
 
         if(stat.delimiter('[')) {
-            int index = int(Round(Expressions::parseRealConst(stat)));
+            int index = int(std::round(Expressions::parseRealConst(stat)));
             Expressions::parseDelimiter(stat, ']');
 
             if(stat.delimiter('=')) {
@@ -440,18 +326,6 @@ void OpalElement::print(std::ostream &os) const {
     os << head;
     os << ';'; // << "JMJdebug OPALElement.cc" ;
     os << std::endl;
-}
-
-
-void OpalElement::setRegisteredAttribute
-(const std::string &name, double value) {
-    attributeRegistry[name]->setReal(value);
-}
-
-
-void OpalElement::setRegisteredAttribute
-(const std::string &name, const std::string &value) {
-    attributeRegistry[name]->setString(value);
 }
 
 
@@ -517,7 +391,7 @@ void OpalElement::printMultipoleStrength
         {
             double sn = Attributes::getReal(sNorm);
             double ss = Attributes::getReal(sSkew);
-            double strength = sqrt(sn * sn + ss * ss);
+            double strength = std::sqrt(sn * sn + ss * ss);
             if(strength) {
                 std::ostringstream ts;
                 ts << strength;
@@ -526,7 +400,7 @@ void OpalElement::printMultipoleStrength
                     image = "(" + image + ")*(" + length.getImage() + ")";
                 }
                 printAttribute(os, sName, image, len);
-                double tilt = - atan2(ss, sn) / double(div);
+                double tilt = - std::atan2(ss, sn) / double(div);
                 if(tilt) printAttribute(os, tName, tilt, len);
             }
         }
@@ -562,7 +436,7 @@ void OpalElement::printMultipoleStrength
 }
 
 void OpalElement::update() {
-    ElementBase *base = getElement()->removeWrappers();
+    ElementBase *base = getElement();
 
     auto apert = getApert();
     base->setAperture(apert.first, apert.second);
@@ -574,13 +448,14 @@ void OpalElement::update() {
         Quaternion rotation;
 
         if (dir.size() == 3) {
-            Quaternion rotTheta(cos(0.5 * dir[0]), 0,                 sin(0.5 * dir[0]), 0);
-            Quaternion rotPhi(cos(0.5 * dir[1]),   sin(0.5 * dir[1]), 0,                 0);
-            Quaternion rotPsi(cos(0.5 * dir[2]),   0,                 0,                 sin(0.5 * dir[2]));
+            Quaternion rotTheta(std::cos(0.5 * dir[0]), 0,                 std::sin(0.5 * dir[0]), 0);
+            Quaternion rotPhi(std::cos(0.5 * dir[1]),   std::sin(0.5 * dir[1]), 0,                 0);
+            Quaternion rotPsi(std::cos(0.5 * dir[2]),   0,                 0,                 std::sin(0.5 * dir[2]));
             rotation = rotTheta * (rotPhi * rotPsi);
         } else {
             if (itsAttr[ORIENTATION]) {
-                throw OpalException("Line::parse","Parameter orientation is array of 3 values (theta, phi, psi);\n" +
+                throw OpalException("OpalElement::update",
+                                    "Parameter orientation is array of 3 values (theta, phi, psi);\n" +
                                     std::to_string(dir.size()) + " values provided");
             }
         }
@@ -589,7 +464,8 @@ void OpalElement::update() {
             origin = Vector_t(ori[0], ori[1], ori[2]);
         } else {
             if (itsAttr[ORIGIN]) {
-                throw OpalException("Line::parse","Parameter origin is array of 3 values (x, y, z);\n" +
+                throw OpalException("OpalElement::update",
+                                    "Parameter origin is array of 3 values (x, y, z);\n" +
                                     std::to_string(ori.size()) + " values provided");
             }
         }
@@ -620,9 +496,9 @@ void OpalElement::update() {
         const double phi = Attributes::getReal(itsAttr[PHI]);
         const double psi = Attributes::getReal(itsAttr[PSI]);
 
-        Quaternion rotTheta(cos(0.5 * theta), 0,              sin(0.5 * theta), 0);
-        Quaternion rotPhi(cos(0.5 * phi),     sin(0.5 * phi), 0,                0);
-        Quaternion rotPsi(cos(0.5 * psi),     0,              0,                sin(0.5 * psi));
+        Quaternion rotTheta(std::cos(0.5 * theta), 0,              std::sin(0.5 * theta), 0);
+        Quaternion rotPhi(std::cos(0.5 * phi),     std::sin(0.5 * phi), 0,                0);
+        Quaternion rotPsi(std::cos(0.5 * psi),     0,              0,                std::sin(0.5 * psi));
         Quaternion rotation = rotTheta * (rotPhi * rotPsi);
 
         CoordinateSystemTrafo global2local(origin,
@@ -638,9 +514,9 @@ void OpalElement::update() {
     double dtheta = Attributes::getReal(itsAttr[DTHETA]);
     double dphi = Attributes::getReal(itsAttr[DPHI]);
     double dpsi = Attributes::getReal(itsAttr[DPSI]);
-    Quaternion rotationY(cos(0.5 * dtheta), 0,               sin(0.5 * dtheta), 0);
-    Quaternion rotationX(cos(0.5 * dphi),   sin(0.5 * dphi), 0,                 0);
-    Quaternion rotationZ(cos(0.5 * dpsi),   0,               0,                 sin(0.5 * dpsi));
+    Quaternion rotationY(std::cos(0.5 * dtheta), 0,               std::sin(0.5 * dtheta), 0);
+    Quaternion rotationX(std::cos(0.5 * dphi),   std::sin(0.5 * dphi), 0,                 0);
+    Quaternion rotationZ(std::cos(0.5 * dpsi),   0,               0,                 std::sin(0.5 * dpsi));
     Quaternion misalignmentRotation = rotationY * rotationX * rotationZ;
     CoordinateSystemTrafo misalignment(misalignmentShift,
                                        misalignmentRotation.conjugate());
@@ -680,23 +556,6 @@ void OpalElement::printAttribute
     printAttribute(os, name, ss.str(), len);
 }
 
-
-AttCell *OpalElement::registerRealAttribute(const std::string &name) {
-    OwnPtr<AttCell> &cell = attributeRegistry[name];
-    if(! cell.isValid()) {
-        cell = new AttReal();
-    }
-    return &*cell;
-}
-
-
-AttCell *OpalElement::registerStringAttribute(const std::string &name) {
-    OwnPtr<AttCell> &cell = attributeRegistry[name];
-    if(! cell.isValid()) {
-        cell = new AttString();
-    }
-    return &*cell;
-}
 
 void OpalElement::registerOwnership() const {
     if (getParent() != 0) return;

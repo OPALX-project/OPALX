@@ -1,12 +1,40 @@
+//
+// Class: MapAnalyser
+//   Organizes the function for a linear map analysis from
+//   ThickTracker.
+//   Transfer map -> tunes, symplecticity and stability
+//   Sigma Matrix -> (not projected) beam emittance
+//
+// This class is in an unfinished state.
+// For some dicussion see https://gitlab.psi.ch/OPAL/src/issues/464
+// Some cleanup was done in https://gitlab.psi.ch/OPAL/src/merge_requests/294
+//
+// Copyright (c) 2018, Philippe Ganz, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the Master thesis
+// "s-based maps from TPS & Lie-Series applied to Proton-Therapy Gantries"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
 #ifndef MAP_ANALYSER_H
 #define MAP_ANALYSER_H
 
 #include "Classic/FixedAlgebra/FMatrix.h"
 
+#include "Utility/IpplTimings.h"
+
 #include <array>
 #include <complex>
-
-#include <Ippl.h>
 
 class MapAnalyser
 {
@@ -17,11 +45,11 @@ public:
     MapAnalyser();
 
     /*!
-     * Analyzes the transfer matrix
+     * Analyzes the transfer matrix for tunes, symplecticity and stability
      *
      * @param tMatrix Transfer matrix
      */
-    void linTAnalyze(const fMatrix_t& tMatrix);
+    void linTAnalyze(const fMatrix_t& /*tMatrix*/) {};
 
 
     /*!
@@ -29,7 +57,7 @@ public:
      *
      * @ param sigMatrix Sigma Matrix
      */
-    void linSigAnalyze(fMatrix_t& sigMatrix);
+    void linSigAnalyze(fMatrix_t& /*sigMatrix*/) {};
 private:
 
     /*!
@@ -72,7 +100,6 @@ private:
      */
     cfMatrix_t getBlockDiagonal_m(const fMatrix_t& M, cfMatrix_t& eigenVecM, cfMatrix_t& invEigenVecM);
 
-
     /*!
      * :TODO: WIP Prints phase shift
      *
@@ -81,8 +108,6 @@ private:
      * @param oldN \f$\mathbf{N}\f$ matrix
      */
     void printPhaseShift_m(fMatrix_t& Sigma, fMatrix_t tM, cfMatrix_t& oldN);
-
-
 
     /*!
     * sets a symplectic \f$ \mathbf{N} \f$ matrix. \n
@@ -93,8 +118,6 @@ private:
     * @param invN inverted symplectic \f$\mathbf{N}^{-1}\f$ matrix
     */
     void setNMatrix_m(fMatrix_t& M, cfMatrix_t& N, cfMatrix_t& invN);
-
-
 
 
     fMatrix_t createRotMatrix_m(std::array<double, 3> phi);
@@ -109,7 +132,9 @@ private:
 
     cfMatrix_t invertMatrix_m(const cfMatrix_t &M);
 
-    void rearrangeEigen_m(cfMatrix_t& EigenVal, cfMatrix_t& EigenVec);
+    void rearrangeEigen_m(cfMatrix_t& /*EigenVal*/, cfMatrix_t& /*EigenVec*/) {};
+
+    void normalizeEigen_m(cfMatrix_t& eigenVec, cfMatrix_t& invEigenVec);
 
 private:
     IpplTimings::TimerRef mapAnalysis_m;

@@ -25,7 +25,6 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
-extern Inform *gmsg;
 
 // Class Corrector
 // ------------------------------------------------------------------------
@@ -74,8 +73,8 @@ bool Corrector::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B
 
 bool Corrector::apply(const Vector_t &R,
                       const Vector_t &P,
-                      const double &t,
-                      Vector_t &E,
+                      const double &/*t*/,
+                      Vector_t &/*E*/,
                       Vector_t &B) {
 
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
@@ -116,7 +115,7 @@ void Corrector::goOnline(const double &) {
     }
 
     if (!kickFieldSet_m) {
-        const double momentum = sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
+        const double momentum = std::sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
         const double magnitude = momentum / (Physics::c * pathLength);
         kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
     }
@@ -132,7 +131,7 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     if (RefPartBunch_m) {
         if (!kickFieldSet_m) {
             const double pathLength = getGeometry().getElementLength();
-            const double momentum = sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
+            const double momentum = std::sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
             const double magnitude = momentum / (Physics::c * pathLength);
             kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
         }
@@ -152,3 +151,4 @@ void Corrector::getDimensions(double &zBegin, double &zEnd) const
 ElementBase::ElementType Corrector::getType() const {
     return CORRECTOR;
 }
+

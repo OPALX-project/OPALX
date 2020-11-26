@@ -231,12 +231,19 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadraticSmoothed) {
     
     MMatrix<double> testCoeffs = test->GetCoefficientsAsMatrix();
     // check values match at grid points
-    std::vector<double> point({-1, -2}), testValue(2), refValue(2);
+    std::vector<double> point({0, 0}), testValue(2), refValue(2);
     test->F(&point[0], &testValue[0]);
     ref2D.F(&point[0], &refValue[0]);
     EXPECT_NEAR(testValue[0], refValue[0], 1e-12);
     EXPECT_NEAR(testValue[1], refValue[1], 1e-12);
-
+    std::cout << "Testing at  " << point[0] << " " << point[1] << std::endl;
+    std::cout << "Gives       " << testValue[0] << " " << testValue[1] << std::endl;
+    std::cout << "Compared to " << refValue[0] << " " << refValue[1] << std::endl;
+    std::cout << "Ref a" << std::endl;
+    std::cout << refCoeffs2D << std::endl;
+    std::cout << "Test a" << std::endl;
+    std::cout << testCoeffs << std::endl;
+    return;
 
     // check derivatives match at grid points
     std::vector<double> d11RefPosition({2., 4.});
@@ -376,7 +383,7 @@ void plot(int n_points, std::vector<double> start, std::vector<double> end, Poly
     test_index++;
 }
 #else // PolynomialPatchTest_MakePlots
-void plot(int n_points, std::vector<double> start, std::vector<double> end, PolynomialPatch* patch, int n_grid_points, std::string title) {
+    void plot(int /*n_points*/, std::vector<double> /*start*/, std::vector<double> /*end*/, PolynomialPatch* /*patch*/, int /*n_grid_points*/, std::string /*title*/) {
 }
 #endif // PolynomialPatchTest_MakePlots
 }

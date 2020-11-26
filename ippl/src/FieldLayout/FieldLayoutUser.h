@@ -3,9 +3,6 @@
  *
  * The IPPL Framework
  * 
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
  ***************************************************************************/
 
 #ifndef FIELD_LAYOUT_USER_H
@@ -31,10 +28,10 @@ class FieldLayoutUser : public User {
 
 public:
   // constructor - the base class selects a unique ID value
-  FieldLayoutUser();
+  FieldLayoutUser() {};
 
   // destructor, nothing to do here
-  virtual ~FieldLayoutUser();
+  virtual ~FieldLayoutUser() {};
 
   //
   // virtual functions for FieldLayoutUser's
@@ -45,9 +42,3 @@ public:
 };
 
 #endif // FIELD_LAYOUT_USER_H
-
-/***************************************************************************
- * $RCSfile: FieldLayoutUser.h,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:27 $
- * IPPL_VERSION_ID: $Id: FieldLayoutUser.h,v 1.1.1.1 2003/01/23 07:40:27 adelmann Exp $ 
- ***************************************************************************/

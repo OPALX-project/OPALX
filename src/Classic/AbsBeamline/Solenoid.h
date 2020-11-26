@@ -53,10 +53,6 @@ public:
     void setKS(double ks);
     void setDKS(double ks);
 
-    virtual void addKR(int i, double t, Vector_t &K) override;
-
-    virtual void addKT(int i, double t, Vector_t &K) override;
-
     virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
 
     virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) override;
@@ -86,8 +82,6 @@ public:
 
     virtual bool isInside(const Vector_t &r) const override;
 
-    virtual double getElementLength() const override;
-
     virtual void getElementDimensions(double &zBegin, double &zEnd) const override;
 
     virtual CoordinateSystemTrafo getEdgeToBegin() const override;
@@ -102,7 +96,6 @@ private:
     double scaleError_m;                /**< scale multiplier error*/
 
     double startField_m;           /**< startingpoint of field, m*/
-    double length_m;
 
     bool fast_m;
     // Not implemented.
@@ -123,7 +116,7 @@ CoordinateSystemTrafo Solenoid::getEdgeToBegin() const
 inline
 CoordinateSystemTrafo Solenoid::getEdgeToEnd() const
 {
-    CoordinateSystemTrafo ret(Vector_t(0, 0, startField_m + length_m),
+    CoordinateSystemTrafo ret(Vector_t(0, 0, startField_m + getElementLength()),
                               Quaternion(1, 0, 0, 0));
 
     return ret;

@@ -4,10 +4,6 @@ project (MSLANG)
 set (MSLANG_VERSION_MAJOR 0)
 set (MSLANG_VERSION_MINOR 1)
 
-add_definitions (-DIPPL_MPI)
-add_definitions (-DIPPL_DONT_POOL)
-add_definitions (-DIPPL_USE_XDIV_RNG)
-add_definitions (-DIPPL_USE_PARTIAL_SPECIALIZATION)
 add_definitions (-DNOCTAssert)
 
 include_directories (
@@ -20,6 +16,7 @@ include_directories (
 link_directories (
     ${IPPL_LIBRARY_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${Boost_LIBRARY_DIRS}
 )
 
 set (MSLANG_LIBS
@@ -32,6 +29,7 @@ set (MSLANG_LIBS
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARY}
     ${Boost_LIBRARIES}
+    boost_timer
     m
     z
 )
@@ -41,11 +39,3 @@ add_executable (mslang mslang.cpp)
 target_link_libraries (mslang ${MSLANG_LIBS})
 
 install (TARGETS mslang RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-
-# vi: set et ts=4 sw=4 sts=4:
-  
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

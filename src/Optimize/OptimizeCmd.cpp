@@ -6,7 +6,6 @@
 #include "Attributes/Attributes.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
 
 //#include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
@@ -38,6 +37,7 @@
 #include "Expression/NumberOfPeaks.h"
 #include "Expression/SumErrSqRadialPeak.h"
 #include "Expression/ProbeVariable.h"
+#include "Expression/SeptumExpr.h"
 
 #include <boost/filesystem.hpp>
 
@@ -154,9 +154,9 @@ OptimizeCmd::OptimizeCmd():
         ("FIELDMAPDIR", "Directory where field maps are stored");
     itsAttr[DISTDIR] = Attributes::makeString
         ("DISTDIR", "Directory where distributions are stored", "");
-    itsAttr[CROSSOVER] = Attributes::makeString
+    itsAttr[CROSSOVER] = Attributes::makeUpperCaseString
         ("CROSSOVER", "Type of cross over (default: Blend)", "Blend");
-    itsAttr[MUTATION] = Attributes::makeString
+    itsAttr[MUTATION] = Attributes::makeUpperCaseString
         ("MUTATION", "Type of bit mutation (default: IndependentBit)", "IndependentBit");
     itsAttr[RESTART_FILE] = Attributes::makeString
         ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
@@ -235,6 +235,10 @@ void OptimizeCmd::execute() {
     ff = sameSDDSVariable(fname);
     funcs.insert(std::pair<std::string, client::function::type>
                  ("statVariableAt", ff));
+
+    ff = SeptumExpr();
+    funcs.insert(std::pair<std::string, client::function::type>
+                 ("septum", ff));
 
     //////////////////////////////////////////////////////////////////////////
 
@@ -506,8 +510,6 @@ void OptimizeCmd::popEnvironment() {
 }
 
 OptimizeCmd::CrossOver OptimizeCmd::crossoverSelection(std::string crossover) {
-    crossover = Util::toUpper(crossover);
-
     std::map<std::string, CrossOver> map;
     map["BLEND"] = CrossOver::Blend;
     map["NAIVEONEPOINT"] = CrossOver::NaiveOnePoint;
@@ -537,8 +539,6 @@ OptimizeCmd::CrossOver OptimizeCmd::crossoverSelection(std::string crossover) {
 }
 
 OptimizeCmd::Mutation OptimizeCmd::mutationSelection(std::string mutation) {
-    mutation = Util::toUpper(mutation);
-
     std::map<std::string, Mutation> map;
     map["INDEPENDENTBIT"] = Mutation::IndependentBit;
     map["ONEBIT"] = Mutation::OneBit;
@@ -577,6 +577,9 @@ void OptimizeCmd::run(const CmdArguments_t& args,
     CrossOver crossover = this->crossoverSelection(Attributes::getString(itsAttr[CROSSOVER]));
     Mutation mutation = this->mutationSelection(Attributes::getString(itsAttr[MUTATION]));
 
+
+    std::map<std::string, std::string> userVariables = OpalData::getInstance()->getVariableData();
+
     switch ( crossover + mutation ) {
         case CrossOver::Blend + Mutation::IndependentBit:
         {
@@ -586,7 +589,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::Blend + Mutation::OneBit:
@@ -597,7 +601,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::NaiveOnePoint + Mutation::IndependentBit:
@@ -608,7 +613,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::NaiveOnePoint + Mutation::OneBit:
@@ -619,7 +625,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::NaiveUniform + Mutation::IndependentBit:
@@ -630,7 +637,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::NaiveUniform + Mutation::OneBit:
@@ -641,7 +649,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::SimulatedBinary + Mutation::IndependentBit:
@@ -652,7 +661,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         case CrossOver::SimulatedBinary + Mutation::OneBit:
@@ -663,7 +673,8 @@ void OptimizeCmd::run(const CmdArguments_t& args,
             boost::scoped_ptr<pilot_t> pi(new pilot_t(args, comm,
                                               funcs, dvars,
                                               objectives, constraints,
-                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE])));
+                                              Attributes::getRealArray(itsAttr[HYPERVOLREFERENCE]),
+                                              true, userVariables));
             break;
         }
         default:

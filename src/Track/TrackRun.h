@@ -1,26 +1,27 @@
+//
+// Class TrackRun
+//   The RUN command.
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef OPAL_TrackRun_HH
 #define OPAL_TrackRun_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: TrackRun.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: TrackRun
-//
-// ------------------------------------------------------------------------
-//
-// $Date: 2004/11/12 20:10:12 $
-// $Author: adelmann $
-//
-// ------------------------------------------------------------------------
 
 #include "AbstractObjects/Action.h"
 
 #include <string>
+#include <vector>
 
 class Beam;
 class OpalData;
@@ -30,10 +31,6 @@ class Tracker;
 class ParallelTTracker;
 class FieldSolver;
 class H5PartWrapper;
-
-// Class TrackRun
-// ------------------------------------------------------------------------
-/// The RUN command.
 
 class TrackRun: public Action {
 
@@ -59,7 +56,6 @@ private:
     // Clone constructor.
     TrackRun(const std::string &name, TrackRun *parent);
 
-    void setupSliceTracker();
     void setupTTracker();
     void setupCyclotronTracker();
     void setupThickTracker();

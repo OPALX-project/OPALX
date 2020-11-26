@@ -1,3 +1,23 @@
+//
+// Class AmrLagrangeInterpolater
+//   Lagrange interpolation for coarse-fine interfaces.
+//
+// Copyright (c) 2017 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Utilities/OpalException.h"
 
 #if AMREX_SPACEDIM == 3
@@ -73,11 +93,11 @@ AmrLagrangeInterpolater<Level>::AmrLagrangeInterpolater(Order order)
 
 template <class Level>
 void AmrLagrangeInterpolater<Level>::stencil(
-    const AmrIntVect_t& iv,
-    const basefab_t& fab,
-    typename Level::umap_t& map,
-    const typename Level::scalar_t& scale,
-    Level* mglevel)
+    const AmrIntVect_t& /*iv*/,
+    const basefab_t& /*fab*/,
+    typename Level::umap_t& /*map*/,
+    const typename Level::scalar_t& /*scale*/,
+    Level* /*mglevel*/)
 {
     
 }
@@ -178,7 +198,7 @@ void AmrLagrangeInterpolater<Level>::crseLinear_m(
     const AmrIntVect_t& iv,
     typename Level::umap_t& map,
     const typename Level::scalar_t& scale,
-    lo_t dir, lo_t shift, const basefab_t& rfab,
+    lo_t dir, lo_t /*shift*/, const basefab_t& rfab,
     const AmrIntVect_t& riv,
     Level* mglevel)
 {

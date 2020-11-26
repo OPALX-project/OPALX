@@ -1,17 +1,41 @@
+//
+// Class Sampler
+//   This class creates, dispatches and dumps new individuals.
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Yves Ineichen, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef __OPAL_SAMPLER_H__
 #define __OPAL_SAMPLER_H__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <string>
 #include <sstream>
 #include <vector>
 #include <map>
+#include <memory>
+#include <queue>
 #include <utility>
 #include <fstream>
 #include <list>
+#include <memory>
+#include <queue>
 
 #include "Comm/types.h"
 #include "Util/Types.h"
@@ -22,22 +46,7 @@
 #include "Sample/SamplingMethod.h"
 
 #include <boost/smart_ptr.hpp>
-#include <boost/chrono.hpp>
 
-#include <memory>
-
-#include <queue>
-
-#include <boost/property_tree/ptree.hpp>
-
-
-/**
- *  \class Sampler
- *  \brief Implementing sampling
- */
-// template<
-//       template <class> class SamplingOperator
-// >
 class Sampler : public Optimizer {
 
 public:

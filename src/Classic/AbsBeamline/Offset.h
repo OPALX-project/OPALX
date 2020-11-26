@@ -160,7 +160,7 @@ class Offset : public Component {
     void initialise(PartBunchBase<double, 3> *bunch, double &startField,
                             double &endField) override;
     void finalise() override;
-    void getDimensions(double &zBegin, double &zEnd) const override {}
+    void getDimensions(double &/*zBegin*/, double &/*zEnd*/) const override {}
 
     void setEndPosition(Vector_t position);
     Vector_t getEndPosition() const;
@@ -209,7 +209,7 @@ class Offset : public Component {
     Vector_t _end_direction;
     bool     _is_local;
     // The offset's geometry.
-    Euclid3DGeometry* geometry_m;
+    Euclid3DGeometry* geometry_m = nullptr;
     static const double lengthUnits_m;
 };
 

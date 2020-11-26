@@ -7,7 +7,6 @@ set (_SRCS
 set (HDRS
     FFTBoxPoissonSolver.h
     FFTPoissonSolver.h
-    IrregularDomain.h
     P3MPoissonSolver.h
     PoissonSolver.h
     )
@@ -17,16 +16,20 @@ if (ENABLE_SAAMG_SOLVER)
         ArbitraryDomain.cpp
         BoxCornerDomain.cpp
         EllipticDomain.cpp
+        IrregularDomain.cpp
         MGPoissonSolver.cpp
         RectangularDomain.cpp
+        RegularDomain.cpp
         )
 
     list (APPEND HDRS
         ArbitraryDomain.h
         BoxCornerDomain.h
         EllipticDomain.h
+        IrregularDomain.h
         MGPoissonSolver.h
         RectangularDomain.h
+        RegularDomain.h
         )
 
 endif ()
@@ -57,11 +60,3 @@ include_directories (
 add_opal_sources (${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers")
-
-# vi: set et ts=4 sw=4 sts=4:
-
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

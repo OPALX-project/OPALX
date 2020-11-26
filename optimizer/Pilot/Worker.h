@@ -1,3 +1,32 @@
+//
+// Class Worker
+//   A worker MPI entity consists of a processor group that runs a
+//   simulation of type Sim_t. The main loop in run() accepts new jobs from the
+//   master process runs the simulation and reports back the results.
+//
+//   @see Pilot
+//   @see Poller
+//   @see MPIHelper.h
+//
+//   @tparam Sim_T type of simulation to run
+//
+// Copyright (c) 2010 - 2013, Yves Ineichen, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Toward massively parallel multi-objective optimization with application to
+// particle accelerators" (https://doi.org/10.3929/ethz-a-009792359)
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef __WORKER_H__
 #define __WORKER_H__
 
@@ -12,18 +41,6 @@
 #include "Util/MPIHelper.h"
 #include "Util/CmdArguments.h"
 
-/**
- *  \class Worker
- *  \brief A worker MPI entity consists of a processor group that runs a
- *  simulation of type Sim_t. The main loop in run() accepts new jobs from the
- *  master process runs the simulation and reports back the results.
- *
- *  @see Pilot
- *  @see Poller
- *  @see MPIHelper.h
- *
- *  @tparam Sim_T type of simulation to run
- */
 template <class Sim_t>
 class Worker : protected Poller {
 
@@ -51,9 +68,11 @@ public:
            std::string simName,
            Comm::Bundle_t comms,
            CmdArguments_t args,
+           const std::map<std::string, std::string> &userVariables,
            bool isOptimizer = true)
         : Poller(comms.worker)
         , cmd_args_(args)
+        , userVariables_(userVariables)
     {
         objectives_      = objectives;
         constraints_     = constraints;
@@ -121,8 +140,8 @@ protected:
 
                         try {
                             SimPtr_t sim(new Sim_t(objectives_, constraints_,
-                                    params, simulation_name_, coworker_comm_,
-                                    cmd_args_));
+                                                   params, simulation_name_, coworker_comm_,
+                                                   cmd_args_, userVariables_));
 
                             sim->run();
                         } catch(OptPilotException &ex) {
@@ -150,6 +169,8 @@ protected:
     int pilot_rank_;
     std::string simulation_name_;
     CmdArguments_t cmd_args_;
+
+    const std::map<std::string, std::string> userVariables_;
 
     /// notify coworkers of incoming broadcast
     void notifyCoWorkers(int tag) {
@@ -203,7 +224,8 @@ protected:
             reqVarContainer_t requested_results;
             try {
                 SimPtr_t sim(new Sim_t(objectives_, constraints_,
-                        params, simulation_name_, coworker_comm_, cmd_args_));
+                                       params, simulation_name_, coworker_comm_, cmd_args_,
+                                       userVariables_));
 
                 // run simulation in a "blocking" fashion
                 sim->run();

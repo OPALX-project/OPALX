@@ -1,17 +1,27 @@
+//
+// Class BeamStrippingPhysics
+//   This class provides beam stripping physical processes as
+//   particle matter interaction type.
+//
+// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Optimizing the radioisotope production of the novel AMIT
+// superconducting weak focusing cyclotron"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef BEAMSTRIPPINGPHYSICS_HH
 #define BEAMSTRIPPINGPHYSICS_HH
-
-// ------------------------------------------------------------------------
-//
-// Class: BeamStrippingPhysics
-//   Defines the beam stripping physics models
-//
-// ------------------------------------------------------------------------
-// Class category: ParticleMatterInteraction
-// ------------------------------------------------------------------------
-// $Date: 2018/11 $
-// $Author: PedroCalvo$
-//-------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/ElementBase.h"
@@ -38,25 +48,23 @@ public:
 
     void setCyclotron(Cyclotron* cycl) { cycl_m = cycl; };
 
-    void apply(PartBunchBase<double, 3> *bunch,
-               const std::pair<Vector_t, double> &boundingSphere,
-               size_t numParticlesInSimulation = 0);
+    virtual void apply(PartBunchBase<double, 3> *bunch,
+                       const std::pair<Vector_t, double> &boundingSphere);
 
     virtual const std::string getType() const;
-    void print(Inform& msg);
-    bool stillActive();
-    bool stillAlive(PartBunchBase<double, 3> *bunch);
+    virtual void print(Inform& msg);
+    virtual bool stillActive();
 
-    inline double getTime() {return T_m;}
-    std::string getName() {return element_ref_m->getName();}
-    size_t getParticlesInMat() {return locPartsInMat_m;}
-    unsigned getRediffused() {return rediffusedStat_m;}
-    unsigned int getNumEntered() {return bunchToMatStat_m;}
+    virtual inline double getTime() {return T_m;}
+    virtual std::string getName() {return element_ref_m->getName();}
+    virtual size_t getParticlesInMat() {return locPartsInMat_m;}
+    virtual unsigned getRediffused() {return rediffusedStat_m;}
+    virtual unsigned int getNumEntered() {return bunchToMatStat_m;}
     inline void doPhysics(PartBunchBase<double, 3> *bunch);
 
 private:
 
-    void crossSection(const Vector_t &R, double Eng);
+    void crossSection(double Eng);
 
     double csAnalyticFunctionNakai(double Eng, double Eth, int &i);
     
@@ -75,9 +83,9 @@ private:
     void transformToHminus(PartBunchBase<double, 3> *bunch, size_t &i);
     void transformToH3plus(PartBunchBase<double, 3> *bunch, size_t &i);
 
-    bool computeEnergyLoss(Vector_t &P,
-                           const double deltat,
-                           bool includeFluctuations = true) const { return false;}
+    bool computeEnergyLoss(Vector_t &/*P*/, const double /*deltat*/, bool /*includeFluctuations*/) const {
+        return false;
+    }
 
     Cyclotron *cycl_m;
     BeamStripping *bstp_m;

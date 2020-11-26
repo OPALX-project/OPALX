@@ -1,9 +1,22 @@
+//
+// Class GreenWakeFunction
+//
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Solvers/GreenWakeFunction.hh"
 #include "Algorithms/PartBunchBase.h"
 #include "Utilities/GeneralClassicException.h"
-#ifdef ENABLE_WAKE_TESTS
-#include "Solvers/TestLambda.h" // used for tests
-#endif
 
 #include <fstream>
 #include <string>
@@ -14,25 +27,18 @@
 #include "gsl/gsl_fft_real.h"
 #include "gsl/gsl_fft_halfcomplex.h"
 
-using namespace std;
 
 //IFF: TEST
 //#define ENABLE_WAKE_DEBUG
 //#define ENABLE_WAKE_DUMP
-//#define ENABLE_WAKE_TESTS
 //#define ENABLE_WAKE_TESTS_FFT_OUT
-//#define readWakeFromFile
-//#define WakeFile "test.sdds"
 
 
 /**
- * @brief   just a Testfunction!  Calculate the energy of the Wakefunction with the lambda
- *
  *
  * @todo        In this code one can only apply either the longitudinal wakefield or the transversal wakefield. One should implement that both wakefields can be applied to the particle beam
  * @todo        NBins must be set equal to MT of the fieldsolver. This should be changed. (the length of lineDensity_m must be NBins and not to MT)
  *
- * @param[in]   ref
  * @param[in]   NBIN number of Bins
  * @param[in]   Z0 impedance of the tube
  * @param[in]   radius radius of the tube
@@ -44,8 +50,7 @@ using namespace std;
  * @param[in]   fname read wake from file
  */
 GreenWakeFunction::GreenWakeFunction(const std::string &name,
-                                     ElementBase *element,
-                                     vector<Filter *> filters,
+                                     std::vector<Filter *> filters,
                                      int NBIN,
                                      double Z0,
                                      double radius,
@@ -55,7 +60,7 @@ GreenWakeFunction::GreenWakeFunction(const std::string &name,
                                      int direction,
                                      bool constLength,
                                      std::string fname):
-    WakeFunction(name, element, NBIN),
+    WakeFunction(name, NBIN),
     lineDensity_m(),
     //~ FftWField_m(0),
     NBin_m(NBIN),
@@ -92,9 +97,9 @@ GreenWakeFunction::~GreenWakeFunction() {
  * @param[in]   length of vector
  * @param[out]  first: lowIndex, second: hiIndex
  */
-pair<int, int> GreenWakeFunction::distrIndices(int vectLen) {
+std::pair<int, int> GreenWakeFunction::distrIndices(int vectLen) {
 
-    pair<int, int> dist;
+    std::pair<int, int> dist;
 
     //IFF: properly distribute remainder
     int rem = vectLen - (vectLen / Ippl::getNodes()) * Ippl::getNodes();
@@ -108,10 +113,6 @@ pair<int, int> GreenWakeFunction::distrIndices(int vectLen) {
 }
 
 void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
-#ifdef ENABLE_WAKE_TESTS
-    // overwrite the line density
-    testApply(bunch);
-#else
 
     Vector_t rmin, rmax;
     double charge = bunch->getChargePerParticle();
@@ -129,15 +130,15 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
     mindist = rmin(2);
     switch(direction_m) {
         case LONGITUDINAL:
-            spacing = abs(rmax(2) - rmin(2));
+            spacing = std::abs(rmax(2) - rmin(2));
             break; //FIXME: Kann mann das Spacing immer ändern?
         case TRANSVERSAL:
             spacing = rmax(0) * rmax(0) + rmax(1) * rmax(1);
             break;
         default:
-            throw GeneralClassicException("GreenWakeFunction", "invalid direction specified");
+            throw GeneralClassicException("GreenWakeFunction::apply", "invalid direction specified");
     }
-    assert(NBin_m > 0);
+    PAssert(NBin_m > 0);
     spacing /= (NBin_m - 1); //FIXME: why -1? CKR: because grid spacings = grid points - 1
 
     // Calculate the Wakefield if needed
@@ -163,7 +164,7 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
 #endif
 
     // smooth the line density of the particle bunch
-    for(vector<Filter *>::const_iterator fit = filters_m.begin(); fit != filters_m.end(); ++fit) {
+    for(std::vector<Filter *>::const_iterator fit = filters_m.begin(); fit != filters_m.end(); ++fit) {
         (*fit)->apply(lineDensity_m);
     }
 
@@ -186,7 +187,7 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
                 int idx = (int)(floor((bunch->R[i](2) - mindist) / spacing));
                 //IFF: should be ok
                 if(idx == NBin_m) idx--;
-                assert(idx >= 0 && idx < NBin_m);
+                PAssert(idx >= 0 && idx < NBin_m);
                 double dE = OutEnergy[idx];
                 bunch->Ef[i](2) += dE;
 
@@ -200,12 +201,12 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
                 int idx = (int)(floor((bunch->R[i](2) - mindist) / spacing));
                 //IFF: should be ok
                 if(idx == NBin_m) idx--;
-                assert(idx >= 0 && idx < NBin_m);
+                PAssert(idx >= 0 && idx < NBin_m);
                 double dE = OutEnergy[idx];
 
                 // ACHTUNG spacing auch in transversal richtung
                 double dist = sqrt(bunch->R[i](0) * bunch->R[i](0) + bunch->R[i](1) * bunch->R[i](1));
-                assert(dist > 0);
+                PAssert(dist > 0);
                 bunch->Ef[i](0) += dE * bunch->R[i](0) / dist;
                 bunch->Ef[i](1) += dE * bunch->R[i](1) / dist;
 
@@ -213,7 +214,7 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
             break;
 
         default:
-            throw GeneralClassicException("GreenWakeFunction", "invalid direction specified");
+            throw GeneralClassicException("GreenWakeFunction::apply", "invalid direction specified");
     }
 
 #ifdef ENABLE_WAKE_DUMP
@@ -227,48 +228,6 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
        << "# tau = " << tau << "\n"
        << "# direction = " << direction << "\n"
        << "# spacing = " << spacing << "\n"
-       << "# Lbunch = " << NBin_m << "\n";
-    for(int i = 0; i < NBin_m; i++) {
-        f2 << i + 1 << " " << OutEnergy[i] << "\n";
-    }
-    f2.flush();
-    f2.close();
-#endif
-
-#endif //ENABLE_WAKE_TESTS
-}
-
-/**
- * @brief   Just a test function
- */
-void GreenWakeFunction::testApply(PartBunchBase<double, 3> *bunch) {
-#ifdef ENABLE_WAKE_TESTS
-    double spacing;
-    // determine K and charge
-    double charge = 0.8e-9; // nC
-    double K = 0.20536314319923724e-9; //K normalizes nC data in lambda.h?
-    spacing = 1e-6; //IFF: charge in testLambda.h in 1um spacings
-    NBin_m = 294;
-    std::vector<double> OutEnergy(NBin_m);
-
-    if(FftWField_m.empty()) {
-        FftWField_m.resize(2*NBin_m - 1);
-        CalcWakeFFT(spacing);
-    } else if(!constLength_m) {
-        CalcWakeFFT(spacing);
-    }
-
-    compEnergy(K, charge, testLambda, OutEnergy.data());
-
-    ofstream  f2("OutEnergy.dat");
-    f2 << "# Energy of the Wake calculated in Opal\n"
-       << "# Z0 = " << Z0_m << "\n"
-       << "# radius = " << radius_m << "\n"
-       << "# sigma = " << sigma_m << "\n"
-       << "# acMode = " << acMode_m << "\n"
-       << "# tau = " << tau_m << "\n"
-       << "# direction = " << direction_m << "\n"
-       << "# spacing = " << spacing_m << "\n"
        << "# Lbunch = " << NBin_m << "\n";
     for(int i = 0; i < NBin_m; i++) {
         f2 << i + 1 << " " << OutEnergy[i] << "\n";
@@ -349,7 +308,7 @@ void GreenWakeFunction::compEnergy(const double K,
  */
 void GreenWakeFunction::compEnergy(const double K,
                                    const double charge,
-                                   vector<double> lambda,
+                                   std::vector<double> lambda,
                                    double *OutEnergy) {
     int N = 2 * NBin_m - 1;
     // Allocate Space for the zero padded lambda and its Fourier Transformed
@@ -413,26 +372,9 @@ void GreenWakeFunction::CalcWakeFFT(double spacing) {
     gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(M);
     gsl_fft_real_workspace *work = gsl_fft_real_workspace_alloc(M);
 
-    const pair<int, int> myDist = distrIndices(NBin_m);
+    const std::pair<int, int> myDist = distrIndices(NBin_m);
     const int lowIndex = myDist.first;
     const int hiIndex  = myDist.second;
-
-#ifdef ENABLE_WAKE_TESTS
-    ofstream file;
-
-    if(Ippl::myNode() == 0) {
-        file.open("wake.dat");
-        file << "# Wake calculated in Opal" << "\n"
-             << "# Z0 = " << Z0_m << "\n"
-             << "# radius = " << radius_m << "\n"
-             << "# sigma = " << sigma_m << "\n"
-             << "# mode = " << acMode_m << "\n"
-             << "# tau = " << tau_m << "\n"
-             << "# direction = " << direction_m << "\n"
-             << "# spacing = " << spacing << "\n"
-             << "# Lbunch = " << NBin_m << "\n";
-    }
-#endif
 
     for(int i = 0; i < M; i ++) {
         FftWField_m[i] = 0.0;
@@ -459,17 +401,6 @@ void GreenWakeFunction::CalcWakeFFT(double spacing) {
       Reduce the results
       */
     reduce(&(FftWField_m[0]), &(FftWField_m[0]) + NBin_m, &(FftWField_m[0]), OpAddAssign());
-
-
-#ifdef ENABLE_WAKE_TESTS
-    if(Ippl::myNode() == 0) {
-        for(int i = 0; i < NBin_m; i++) {
-            file << i + 1 << "   " << FftWField_m[i] << "\n";
-        }
-        file.flush();
-        file.close();
-    }
-#endif
 
 #ifdef ENABLE_WAKE_TESTS_FFT_OUT
     std::vector<double> wf(2*NBin_m-1);

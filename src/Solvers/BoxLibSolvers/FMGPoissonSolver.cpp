@@ -1,11 +1,33 @@
+//
+// Class FMGPoissonSolver
+//   Interface to the Fortran based AMR Poisson multigrid solver of BoxLib.
+//   The Fortran solver is part of AMReX till version 18.07
+//   (Link: https://github.com/AMReX-Codes/amrex/archive/18.07.tar.gz)
+//
+// Copyright (c) 2016 - 2020, Matthias Frey, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 #include "FMGPoissonSolver.h"
+
+#include "Utility/PAssert.h"
 
 #include "Utilities/OpalException.h"
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_Interpolater.H>
-
-#include <cassert>
 
 FMGPoissonSolver::FMGPoissonSolver(AmrBoxLib* itsAmrObject_p)
     : AmrPoissonSolver<AmrBoxLib>(itsAmrObject_p),
@@ -26,7 +48,7 @@ void FMGPoissonSolver::solve(AmrScalarFieldContainer_t& rho,
                              AmrVectorFieldContainer_t& efield,
                              unsigned short baseLevel,
                              unsigned short finestLevel,
-                             bool prevAsGuess)
+                             bool /*prevAsGuess*/)
 {
     const GeomContainer_t& geom = itsAmrObject_mp->Geom();
 
@@ -48,14 +70,14 @@ void FMGPoissonSolver::solve(AmrScalarFieldContainer_t& rho,
 
     amrex::Vector< AmrField_t > tmp(rho.size());
 
-    assert(baseLevel <= finestLevel);
-    assert(finestLevel < (int)rho.size());
+    PAssert(baseLevel <= finestLevel);
+    PAssert(finestLevel < (int)rho.size());
 
     for (int lev = baseLevel; lev <= finestLevel ; ++lev) {
         const AmrProcMap_t& dmap = rho[lev]->DistributionMap();
         grad_phi_edge[lev].resize(AMREX_SPACEDIM);
         tmp[lev].define(rho[lev]->boxArray(), dmap, AMREX_SPACEDIM, 1);
-        
+
         for (int n = 0; n < AMREX_SPACEDIM; ++n) {
             AmrGrid_t ba = rho[lev]->boxArray();
             grad_phi_edge[lev][n].reset(new AmrField_t(ba.surroundingNodes(n), dmap, 1, 1));

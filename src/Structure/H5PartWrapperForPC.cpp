@@ -11,8 +11,6 @@
 #include "Utilities/Util.h"
 #include "Physics/Physics.h"
 
-#include <boost/filesystem.hpp>
-
 #include <sstream>
 #include <set>
 
@@ -475,12 +473,14 @@ void H5PartWrapperForPC::writeStepData(PartBunchBase<double, 3>* bunch) {
 
     size_t IDZero = bunch->getLocalNum();
     bool found = false;
+#ifndef ENABLE_AMR
     for(size_t k = 0; k < IDZero; ++ k) {
         if (bunch->ID[k] == 0) {
             found = true;
             IDZero = k;
         }
     }
+#endif
 
     const size_t numLocalParticles = (found? bunch->getLocalNum() - 1: bunch->getLocalNum());
     const size_t skipID = IDZero;

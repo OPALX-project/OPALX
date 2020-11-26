@@ -64,24 +64,9 @@ OpalRingDefinition::OpalRingDefinition() :
     itsAttr[MAX_R] = Attributes::makeReal("MAX_R",
                                            "Maximum allowed radius during tracking [m]. If not defined, any radius is allowed. If MAX_R is defined, MIN_R must also be defined.");
 
-    registerRealAttribute("LAT_RINIT");
-    registerRealAttribute("LAT_PHIINIT");
-    registerRealAttribute("LAT_THETAINIT");
-    registerRealAttribute("BEAM_RINIT");
-    registerRealAttribute("BEAM_PHIINIT");
-    registerRealAttribute("BEAM_PRINIT");
-    registerRealAttribute("HARMONIC_NUMBER");
-    registerRealAttribute("SYMMETRY");
-    registerRealAttribute("SCALE");
-    registerRealAttribute("RFFREQ");
-    registerStringAttribute("IS_CLOSED");
-    registerRealAttribute("SCALE");
-    registerRealAttribute("MIN_R");
-    registerRealAttribute("MAX_R");
-
     registerOwnership();
 
-    setElement((new Ring("RING"))->makeAlignWrapper());
+    setElement(new Ring("RING"));
 }
 
 OpalRingDefinition* OpalRingDefinition::clone(const std::string &name) {
@@ -94,18 +79,13 @@ void OpalRingDefinition::print(std::ostream& out) const {
 
 OpalRingDefinition::OpalRingDefinition(const std::string &name, OpalRingDefinition *parent):
     OpalElement(name, parent) {
-    setElement((new Ring(name))->makeAlignWrapper());
+    setElement(new Ring(name));
 }
 
 OpalRingDefinition::~OpalRingDefinition() {}
 
-void OpalRingDefinition::fillRegisteredAttributes
-(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
 void OpalRingDefinition::update() {
-    Ring *ring = dynamic_cast<Ring*>(getElement()->removeWrappers());
+    Ring *ring = dynamic_cast<Ring*>(getElement());
     double degree = Physics::pi/180.;
     double metres = 1e3;
     ring->setBeamPhiInit(Attributes::getReal(itsAttr[BEAM_PHIINIT]));
@@ -138,5 +118,5 @@ void OpalRingDefinition::update() {
         ring->setRingAperture(minR, maxR);
     }
 
-    setElement(ring->makeWrappers());
+    setElement(ring);
 }

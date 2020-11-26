@@ -25,10 +25,6 @@ set (_HDRS
   MakeDataSource.h
   PtclAttribDataSource.h
   PtclBaseDataSource.h
-  ScalarDataSource.hpp
-  ScalarDataSource.h
-  StringDataSource.hpp
-  StringDataSource.h
   )
 
 include_directories (
@@ -39,11 +35,3 @@ ADD_IPPL_SOURCES (${_SRCS})
 ADD_IPPL_HEADERS (${_HDRS})
 
 install (FILES ${_HDRS} DESTINATION include/DataSource)
-
-# vi: set et ts=4 sw=4 sts=4:
-  
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

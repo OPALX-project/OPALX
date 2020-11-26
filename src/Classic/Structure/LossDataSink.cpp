@@ -1,6 +1,5 @@
 #include "Structure/LossDataSink.h"
 
-#include "Ippl.h"
 #include "Utilities/Options.h"
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/GeneralClassicException.h"
@@ -9,7 +8,10 @@
 #include <boost/filesystem.hpp>
 #include "OPALconfig.h"
 
-#include <cassert>
+#include "Message/GlobalComm.h"
+#include "Utility/IpplInfo.h"
+
+#include <cmath>
 
 #define ADD_ATTACHMENT( fname ) {             \
     h5_int64_t h5err = H5AddAttachment (H5file_m, fname); \
@@ -478,7 +480,7 @@ void LossDataSink::saveASCII() {
         }
         bool res = Ippl::Comm->send(smsg, 0, tag);
         if(! res)
-            ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;);
+            ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl);
     }
 }
 
@@ -644,7 +646,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     stat.refTime_m = refTime_m[setIdx];
     stat.RefPartR_m = RefPartR_m[setIdx];
     stat.RefPartP_m = RefPartP_m[setIdx];
-    stat.nTotal_m = (unsigned long)floor(plainData[0] + 0.5);
+    stat.nTotal_m = (unsigned long)std::round(plainData[0]);
 
     for(unsigned int i = 0 ; i < 3u; i++) {
         stat.rmean_m(i) = centroid[2 * i] / stat.nTotal_m;
@@ -679,11 +681,3 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
     return stat;
 }
-
-
-// vi: set et ts=4 sw=4 sts=4:
-// Local Variables:
-// mode:c++
-// c-basic-offset: 4
-// indent-tabs-mode:nil
-// End:

@@ -1,12 +1,47 @@
+//
+// Class BoxLibLayout
+//   In contrast to AMReX, OPAL is optimized for the
+//   distribution of particles to cores. In AMReX the ParGDB object
+//   is responsible for the particle to core distribution. This
+//   layout is derived from this object and does all important
+//   bunch updates. It is the interface for AMReX and Ippl.
+//
+//   In AMReX, the geometry, i.e. physical domain, is fixed
+//   during the whole computation. Particles leaving the domain
+//   would be deleted. In order to prevent this we map the particles
+//   onto the domain [-1, 1]^3. Furthermore, it makes sure
+//   that we have enougth grid points to represent the bunch
+//   when its charges are scattered on the grid for the self-field
+//   computation.
+//
+//   The self-field computation and the particle-to-core update
+//   are performed in the particle mapped domain.
+//
+// Copyright (c) 2016 - 2020, Matthias Frey, Uldis Locans, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef BoxLibLayout_HPP
 #define BoxLibLayout_HPP
 
 #include "BoxLibLayout.h"
 
 #include "Message/Formatter.h"
+#include "Utility/PAssert.h"
 #include "Utilities/OpalException.h"
 
-#include <cassert>
 #include <cmath>
 
 template <class T, unsigned Dim>
@@ -128,8 +163,8 @@ void BoxLibLayout<T, Dim>::setDomainRatio(const std::vector<double>& ratio) {
 
 
 template<class T, unsigned Dim>
-void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& PData,
-                                  const ParticleAttrib<char>* canSwap)
+void BoxLibLayout<T, Dim>::update(IpplParticleBase< BoxLibLayout<T,Dim> >& /*PData*/,
+                                  const ParticleAttrib<char>* /*canSwap*/)
 {
     /* Exit since we need AmrParticleBase with grids and levels for particles for this layout
      * if IpplParticleBase is used something went wrong
@@ -179,10 +214,8 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 
     std::multimap<unsigned, unsigned> p2n; //node ID, particle
 
-    int *msgsend = new int[N];
-    std::fill(msgsend, msgsend+N, 0);
-    int *msgrecv = new int[N];
-    std::fill(msgrecv, msgrecv+N, 0);
+    std::vector<int> msgsend(N);
+    std::vector<int> msgrecv(N);
 
     unsigned sent = 0;
     size_t lBegin = LocalNumPerLevel.begin(lev_min);
@@ -234,7 +267,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
     }
 
     //reduce message count so every node knows how many messages to receive
-    MPI_Allreduce(msgsend, msgrecv, N, MPI_INT, MPI_SUM, Ippl::getComm());
+    allreduce(msgsend.data(), msgrecv.data(), N, std::plus<int>());
 
     int tag = Ippl::Comm->next_tag(P_SPATIAL_TRANSFER_TAG,P_LAYOUT_CYCLE);
 
@@ -321,8 +354,6 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
         delete buffers[j];
     }
 
-    delete[] msgsend;
-    delete[] msgrecv;
     delete format;
 
     // there is extra work to do if there are multipple nodes, to distribute
@@ -331,7 +362,7 @@ void BoxLibLayout<T, Dim>::update(AmrParticleBase< BoxLibLayout<T,Dim> >& PData,
 
     //save how many total particles we have
     size_t TotalNum = 0;
-    MPI_Allreduce(&LocalNum, &TotalNum, 1, MPI_INT, MPI_SUM, Ippl::getComm());
+    allreduce(&LocalNum, &TotalNum, 1, std::plus<size_t>());
 
     // update our particle number counts
     PData.setTotalNum(TotalNum);    // set the total atom count
@@ -442,7 +473,7 @@ void BoxLibLayout<T, Dim>::buildLevelMask(int lev, const int ncells) {
 
 template <class T, unsigned Dim>
 void BoxLibLayout<T, Dim>::clearLevelMask(int lev) {
-    assert(lev < (int)masks_m.size());
+    PAssert(lev < (int)masks_m.size());
     masks_m[lev].reset(nullptr);
 }
 
@@ -517,9 +548,9 @@ bool BoxLibLayout<T, Dim>::Where(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     if (lev_max == -1)
         lev_max = finestLevel();
 
-    BL_ASSERT(lev_max <= finestLevel());
+    PAssert(lev_max <= finestLevel());
 
-    BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
+    PAssert(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
 
     std::vector< std::pair<int, AmrBox_t> > isects;
 
@@ -527,7 +558,7 @@ bool BoxLibLayout<T, Dim>::Where(AmrParticleBase< BoxLibLayout<T,Dim> >& p,
     {
         const AmrIntVect_t& iv = Index(p, ip, lev);
         const AmrGrid_t& ba = ParticleBoxArray(lev);
-        BL_ASSERT(ba.ixType().cellCentered());
+        PAssert(ba.ixType().cellCentered());
 
         if (lev == (int)p.Level[ip]) {
             // The fact that we are here means this particle does not belong to any finer grids.
@@ -574,7 +605,7 @@ bool BoxLibLayout<T, Dim>::EnforcePeriodicWhere (AmrParticleBase< BoxLibLayout<T
     if (lev_max == -1)
         lev_max = finestLevel();
 
-    BL_ASSERT(lev_max <= finestLevel());
+    PAssert(lev_max <= finestLevel());
     //
     // Create a copy "dummy" particle to check for periodic outs.
     //
@@ -647,7 +678,7 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
                 //
                 R[i] += .125*geom.CellSize(i);
 
-            BL_ASSERT(R[i] >= geom.ProbLo(i));
+            PAssert(R[i] >= geom.ProbLo(i));
 
             shifted = true;
         }
@@ -669,7 +700,7 @@ bool BoxLibLayout<T, Dim>::PeriodicShift (SingleParticlePos_t R) const
                 //
                 R[i] -= .125*geom.CellSize(i);
 
-            BL_ASSERT(R[i] <= geom.ProbHi(i));
+            PAssert(R[i] <= geom.ProbHi(i));
 
             shifted = true;
         }
@@ -779,8 +810,8 @@ void BoxLibLayout<T, Dim>::initBaseBox_m(int nGridPoints,
     AmrDomain_t real_box;
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
 
-        assert(lowerBound[d] < 0);
-        assert(upperBound[d] > 0);
+        PAssert(lowerBound[d] < 0);
+        PAssert(upperBound[d] > 0);
 
         real_box.setLo(d, lowerBound[d] * (1.0 + dh));
         real_box.setHi(d, upperBound[d] * (1.0 + dh));

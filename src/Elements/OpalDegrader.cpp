@@ -1,29 +1,25 @@
-// ------------------------------------------------------------------------
-// $RCSfile: OpalDegrader.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: OpalDegrader
-//   The class of OPAL Degrader.
+// Class OpalDegrader
+//   The DEGRADER element.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:33:39 $
-// $Author: Andreas Adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Elements/OpalDegrader.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DegraderRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 
-
-// Class OpalDegrader
-// ------------------------------------------------------------------------
 
 OpalDegrader::OpalDegrader():
     OpalElement(SIZE, "DEGRADER",
@@ -36,18 +32,16 @@ OpalDegrader::OpalDegrader():
     itsAttr[OUTFN] = Attributes::makeString
         ("OUTFN", "Degrader output filename");
 
-    registerStringAttribute("OUTFN");
-
     registerOwnership();
 
-    setElement((new DegraderRep("DEGRADER"))->makeAlignWrapper());
+    setElement(new DegraderRep("DEGRADER"));
 }
 
 
 OpalDegrader::OpalDegrader(const std::string &name, OpalDegrader *parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement((new DegraderRep(name))->makeAlignWrapper());
+    setElement(new DegraderRep(name));
 }
 
 
@@ -62,16 +56,11 @@ OpalDegrader *OpalDegrader::clone(const std::string &name) {
 }
 
 
-void OpalDegrader::fillRegisteredAttributes(const ElementBase &base, ValueFlag flag) {
-    OpalElement::fillRegisteredAttributes(base, flag);
-}
-
-
 void OpalDegrader::update() {
     OpalElement::update();
 
     DegraderRep *deg =
-        dynamic_cast<DegraderRep *>(getElement()->removeWrappers());
+        dynamic_cast<DegraderRep *>(getElement());
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
 

@@ -1,6 +1,4 @@
 set (_SRCS
-  FieldLayoutUser.cpp
-  MultiBalancer.cpp
   VRB.cpp
   )
 
@@ -9,15 +7,10 @@ set (_HDRS
   BinaryBalancer.h
   CenteredFieldLayout.hpp
   CenteredFieldLayout.h
-  ConejoBalancer.hpp
-  ConejoBalancer.h
   FieldLayout.hpp
   FieldLayout.h
   FieldLayoutUser.h
-  MultiBalancer.h
   Vnode.h
-  VnodeMultiBalancer.hpp
-  VnodeMultiBalancer.h
   VRB.h
   )
 
@@ -29,11 +22,3 @@ ADD_IPPL_SOURCES (${_SRCS})
 ADD_IPPL_HEADERS (${_HDRS})
 
 install (FILES ${_HDRS} DESTINATION include/FieldLayout)
-
-# vi: set et ts=4 sw=4 sts=4:
-  
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:

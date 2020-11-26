@@ -15,7 +15,7 @@ TEST(GaussTest, FullSigmaTest1) {
     const double expectedR22 = 0.7998;
     const double expectedR33 = 2.498;
     const double expectedR44 = 0.6212;
-    const double expectedR55 =  1.537;
+    const double expectedR55 = 1.537;
     const double expectedR66 = 0.9457;
 
     const double expectedR21 = -0.40993;
@@ -34,7 +34,7 @@ TEST(GaussTest, FullSigmaTest1) {
 
     Distribution dist;
 
-    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
+    Attributes::setUpperCaseString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
@@ -55,7 +55,7 @@ TEST(GaussTest, FullSigmaTest1) {
     dist.checkIfEmitted();
     size_t numParticles = 1000000;
     dist.totalNumberParticles_m = numParticles;
-    dist.create(numParticles, Physics::m_p);
+    dist.create(numParticles, Physics::m_p, Physics::z_p);
 
     double R11 = sqrt(gsl_stats_variance(&(dist.xDist_m[0]), 1, dist.xDist_m.size())) * 1e3;
     double R22 = sqrt(gsl_stats_variance(&(dist.pxDist_m[0]), 1, dist.pxDist_m.size()));
@@ -112,7 +112,7 @@ TEST(GaussTest, FullSigmaTest2) {
 
     Distribution dist;
 
-    Attributes::setString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
+    Attributes::setUpperCaseString(dist.itsAttr[Attrib::Distribution::TYPE], "GAUSS");
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAX], expectedR11 * 1e-3);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAPX], expectedR22);
     Attributes::setReal(dist.itsAttr[Attrib::Distribution::SIGMAY], expectedR33 * 1e-3);
@@ -140,7 +140,7 @@ TEST(GaussTest, FullSigmaTest2) {
 
     size_t numParticles = 1000000;
     dist.totalNumberParticles_m = numParticles;
-    dist.create(numParticles, Physics::m_p);
+    dist.create(numParticles, Physics::m_p, Physics::z_p);
 
     double R11 = sqrt(gsl_stats_variance(&(dist.xDist_m[0]), 1, dist.xDist_m.size())) * 1e3;
     double R22 = sqrt(gsl_stats_variance(&(dist.pxDist_m[0]), 1, dist.pxDist_m.size()));

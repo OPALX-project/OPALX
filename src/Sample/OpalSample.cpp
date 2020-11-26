@@ -1,3 +1,24 @@
+//
+// Class OpalSample
+//   The SAMPLING definition.
+//   A SAMPLING definition is used to run the optimizer in sample mode.
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Sample/OpalSample.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -13,9 +34,6 @@
 #include "Sample/LatinHyperCube.h"
 #include "Sample/SampleRandomizedSequence.h"
 
-
-// Class OpalSample
-// ------------------------------------------------------------------------
 
 // The attributes of class OpalSample.
 namespace {
@@ -36,7 +54,7 @@ OpalSample::OpalSample():
                "The \"SAMPLING\" statement defines methods used for the optimizer in sample mode.")
     , size_m(1)
 {
-    itsAttr[TYPE]       = Attributes::makeString
+    itsAttr[TYPE]       = Attributes::makeUpperCaseString
                           ("TYPE", "UNIFORM_INT, UNIFORM, GAUSSIAN, FROMFILE, LATIN_HYPERCUBE");
 
     itsAttr[VARIABLE]   = Attributes::makeString
@@ -91,13 +109,13 @@ void OpalSample::initialize(const std::string &dvarName,
                             double lower,
                             double upper,
                             size_t modulo,
-                            bool sequence) {
+                            bool /*sequence*/) {
 
     if ( lower >= upper )
         throw OpalException("OpalSample::initialize()",
                             "Lower bound >= upper bound.");
 
-    std::string type = Util::toUpper(Attributes::getString(itsAttr[TYPE]));
+    std::string type = Attributes::getString(itsAttr[TYPE]);
 
     int seed = Attributes::getReal(itsAttr[SEED]);
     size_m = Attributes::getReal(itsAttr[N]);

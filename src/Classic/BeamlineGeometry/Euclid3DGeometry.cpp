@@ -29,6 +29,7 @@
 
 #include "Utilities/GeneralClassicException.h"
 #include <cmath>
+#include <algorithm>
 
 Euclid3DGeometry::Euclid3DGeometry(Euclid3D transformation)
     : BGeometryBase(), transformation_m(transformation) {
@@ -48,7 +49,7 @@ const Euclid3DGeometry &Euclid3DGeometry::operator=(const Euclid3DGeometry &rhs)
 }
 
 double Euclid3DGeometry::getArcLength() const {
-    return sqrt(dot(transformation_m.getVector(),
+    return std::sqrt(dot(transformation_m.getVector(),
                     transformation_m.getVector()));
 }
 
@@ -57,11 +58,15 @@ double Euclid3DGeometry::getElementLength() const {
 }
 
 void Euclid3DGeometry::setElementLength(double length) {
+    if (length < 0.0) {
+        throw GeneralClassicException("Euclid3DGeometry::setElementLength",
+                                      "The length of an element has to be positive");
+    }
     Vector3D newVector = transformation_m.getVector()*(length/getArcLength());
     transformation_m.setDisplacement(newVector);
 }
 
-Euclid3D Euclid3DGeometry::getTransform(double fromS, double toS) const {
+Euclid3D Euclid3DGeometry::getTransform(double /*fromS*/, double /*toS*/) const {
     throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
 }
 

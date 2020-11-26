@@ -1,55 +1,41 @@
-// ------------------------------------------------------------------------
-// $RCSfile: PartBunch.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
 // Class PartBunch
-//   Interface to a particle bunch.
-//   Can be used to avoid use of a template in user code.
+//   Particle Bunch.
+//   A representation of a particle bunch as a vector of particles.
 //
-// ------------------------------------------------------------------------
-// Class category: Algorithms
-// ------------------------------------------------------------------------
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 18:57:53 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Algorithms/PartBunch.h"
-#include "FixedAlgebra/FMatrix.h"
-#include "FixedAlgebra/FVector.h"
-#include <iostream>
+
 #include <cfloat>
-#include <fstream>
-#include <iomanip>
 #include <memory>
 #include <utility>
 
-
-#include "Distribution/Distribution.h"  // OPAL file
-#include "Structure/FieldSolver.h"      // OPAL file
-#include "Utilities/GeneralClassicException.h"
+#include "FixedAlgebra/FMatrix.h"
+#include "FixedAlgebra/FVector.h"
+#include "Particle/ParticleBalancer.h"
 
 #include "Algorithms/ListElem.h"
+#include "Distribution/Distribution.h"
+#include "Structure/FieldSolver.h"
+#include "Utilities/GeneralClassicException.h"
 
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_histogram.h>
-#include <gsl/gsl_cdf.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_sf_erf.h>
-#include <gsl/gsl_qrng.h>
+#ifdef DBG_SCALARFIELD
+    #include "Structure/FieldWriter.h"
+#endif
 
-#include <boost/format.hpp>
-
-//#define DBG_SCALARFIELD
 //#define FIELDSTDOUT
-
-// Class PartBunch
-// ------------------------------------------------------------------------
 
 PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
     PartBunchBase<double, 3>(new PartBunch::pbase_t(new Layout_t()), ref),
@@ -129,8 +115,7 @@ void PartBunch::computeSelfFields(int binNumber) {
 
     if(fs_m->hasValidSolver()) {
         /// Mesh the whole domain
-        if(fs_m->getFieldSolverType() == "SAAMG")
-            resizeMesh();
+        resizeMesh();
 
         /// Scatter charge onto space charge grid.
         this->Q *= this->dt;
@@ -228,7 +213,7 @@ void PartBunch::computeSelfFields(int binNumber) {
          *  \f[ B_z = B_z^{'} = 0 \f]
          *
          */
-        double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
+        double betaC = std::sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
 
         Bf(0) = Bf(0) - betaC * Eftmp(1);
         Bf(1) = Bf(1) + betaC * Eftmp(0);
@@ -255,56 +240,15 @@ void PartBunch::computeSelfFields(int binNumber) {
         /// and must be converted to the right units.
         imagePotential *= getCouplingConstant();
 
-        const int dumpFreq = 100;
 #ifdef DBG_SCALARFIELD
+        const int dumpFreq = 100;
         VField_t tmp_eg = eg_m;
 
-
-        if (Ippl::getNodes() == 1 && (fieldDBGStep_m + 1) % dumpFreq == 0) {
-#else
-        VField_t tmp_eg;
-
-        if (false) {
-#endif
-            INFOMSG(level1 << "*** START DUMPING SCALAR FIELD ***" << endl);
-
-
-            std::string SfileName = OpalData::getInstance()->getInputBasename();
-            boost::format phi_fn("data/%1%-phi_scalar-%|2$05|.dat");
-            phi_fn % SfileName % (fieldDBGStep_m / dumpFreq);
-
-            std::ofstream fstr2(phi_fn.str());
-            fstr2.precision(9);
-
-            NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-            Vector_t origin = rho_m.get_mesh().get_origin();
-            Vector_t spacing(rho_m.get_mesh().get_meshSpacing(0),
-                             rho_m.get_mesh().get_meshSpacing(1),
-                             rho_m.get_mesh().get_meshSpacing(2));
-            Vector_t rmin, rmax;
-            get_bounds(rmin, rmax);
-
-            INFOMSG(level1
-                    << (rmin(0) - origin(0)) / spacing(0) << "\t"
-                    << (rmin(1)  - origin(1)) / spacing(1) << "\t"
-                    << (rmin(2)  - origin(2)) / spacing(2) << "\t"
-                    << rmin(2) << endl);
-            for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-                for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                    for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                        fstr2 << std::setw(5) << x + 1
-                              << std::setw(5) << y + 1
-                              << std::setw(5) << z + 1
-                              << std::setw(17) << origin(2) + z * spacing(2)
-                              << std::setw(17) << rho_m[x][y][z].get()
-                              << std::setw(17) << imagePotential[x][y][z].get() << std::endl;
-                    }
-                }
-            }
-            fstr2.close();
-
-            INFOMSG(level1 << "*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        if ((localTrackStep_m + 1) % dumpFreq == 0) {
+            FieldWriter fwriter;
+            fwriter.dumpField(rho_m, "phi", "V", localTrackStep_m / dumpFreq, &imagePotential);
         }
+#endif
 
         /// IPPL Grad numerical computes gradient to find the
         /// electric field (in rest frame of this bin's image
@@ -343,48 +287,12 @@ void PartBunch::computeSelfFields(int binNumber) {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        if (Ippl::getNodes() == 1 && (fieldDBGStep_m + 1) % dumpFreq == 0) {
-#else
-        if (false) {
-#endif
-            INFOMSG(level1 << "*** START DUMPING E FIELD ***" << endl);
-
-            std::string SfileName = OpalData::getInstance()->getInputBasename();
-            boost::format phi_fn("data/%1%-e_field-%|2$05|.dat");
-            phi_fn % SfileName % (fieldDBGStep_m / dumpFreq);
-
-            std::ofstream fstr2(phi_fn.str());
-            fstr2.precision(9);
-
-            Vector_t origin = eg_m.get_mesh().get_origin();
-            Vector_t spacing(eg_m.get_mesh().get_meshSpacing(0),
-                             eg_m.get_mesh().get_meshSpacing(1),
-                             eg_m.get_mesh().get_meshSpacing(2));
-
-            NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-            for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-                for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                    for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                        Vector_t ef = eg_m[x][y][z].get() + tmp_eg[x][y][z].get();
-                        fstr2 << std::setw(5) << x + 1
-                              << std::setw(5) << y + 1
-                              << std::setw(5) << z + 1
-                              << std::setw(17) << origin(2) + z * spacing(2)
-                              << std::setw(17) << ef(0)
-                              << std::setw(17) << ef(1)
-                              << std::setw(17) << ef(2) << std::endl;
-                    }
-                }
-            }
-
-            fstr2.close();
-
-            //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-            //MPI_File_close(&file);
-
-            INFOMSG(level1 << "*** FINISHED DUMPING E FIELD ***" << endl);
+        tmp_eg += eg_m;
+        if ((localTrackStep_m + 1) % dumpFreq == 0) {
+            FieldWriter fwriter;
+            fwriter.dumpField(tmp_eg, "e", "V/m", localTrackStep_m / dumpFreq);
         }
-        fieldDBGStep_m++;
+#endif
 
         /// Interpolate electric field at particle positions.  We reuse the
         /// cached information about where the particles are relative to the
@@ -411,12 +319,14 @@ void PartBunch::computeSelfFields(int binNumber) {
 }
 
 void PartBunch::resizeMesh() {
+    if (fs_m->getFieldSolverType() != "SAAMG") {
+        return;
+    }
+
     double xmin = fs_m->solver_m->getXRangeMin();
     double xmax = fs_m->solver_m->getXRangeMax();
     double ymin = fs_m->solver_m->getYRangeMin();
     double ymax = fs_m->solver_m->getYRangeMax();
-    double zmin = fs_m->solver_m->getZRangeMin();
-    double zmax = fs_m->solver_m->getZRangeMax();
 
     if(xmin > rmin_m[0] || xmax < rmax_m[0] ||
        ymin > rmin_m[1] || ymax < rmax_m[1]) {
@@ -427,7 +337,7 @@ void PartBunch::resizeMesh() {
                R[n](1) < ymin || R[n](1) > ymax) {
 
                 // delete the particle
-                INFOMSG(level2 << "destroyed particle with id=" << ID[n] << endl;);
+                INFOMSG(level2 << "destroyed particle with id=" << ID[n] << endl);
                 destroy(1, n);
             }
 
@@ -437,14 +347,14 @@ void PartBunch::resizeMesh() {
         boundp();
         get_bounds(rmin_m, rmax_m);
     }
-    Vector_t mymin = Vector_t(xmin, ymin , zmin);
-    Vector_t mymax = Vector_t(xmax, ymax , zmax);
 
-    for (int i = 0; i < 3; i++)
-        hr_m[i]   = (mymax[i] - mymin[i])/nr_m[i];
+    Vector_t origin = Vector_t(0.0, 0.0, 0.0);
+
+    // update the mesh origin and mesh spacing hr_m
+    fs_m->solver_m->resizeMesh(origin, hr_m, rmin_m, rmax_m, dh_m);
 
     getMesh().set_meshSpacing(&(hr_m[0]));
-    getMesh().set_origin(mymin);
+    getMesh().set_origin(origin);
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
@@ -467,8 +377,7 @@ void PartBunch::computeSelfFields() {
 
     if(fs_m->hasValidSolver()) {
         //mesh the whole domain
-        if(fs_m->getFieldSolverType() == "SAAMG")
-            resizeMesh();
+        resizeMesh();
 
         //scatter charges onto grid
         this->Q *= this->dt;
@@ -479,7 +388,7 @@ void PartBunch::computeSelfFields() {
         //calculating mesh-scale factor
         double gammaz = sum(this->P)[2] / getTotalNum();
         gammaz *= gammaz;
-        gammaz = sqrt(gammaz + 1.0);
+        gammaz = std::sqrt(gammaz + 1.0);
         double scaleFactor = 1;
         // double scaleFactor = Physics::c * getdT();
         //and get meshspacings in real units [m]
@@ -492,24 +401,8 @@ void PartBunch::computeSelfFields() {
         rho_m *= tmp2;
 
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ofstream fstr1;
-        fstr1.precision(9);
-
-        std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::to_string(fieldDBGStep_m);
-        fstr1.open(rho_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr1.close();
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        FieldWriter fwriter;
+        fwriter.dumpField(rho_m, "rho", "C/m^3", localTrackStep_m);
 #endif
 
         // charge density is in rho_m
@@ -529,24 +422,7 @@ void PartBunch::computeSelfFields() {
 
         //write out rho
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-
-        std::ofstream fstr2;
-        fstr2.precision(9);
-
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::to_string(fieldDBGStep_m);
-        fstr2.open(phi_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr2.close();
-
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        fwriter.dumpField(rho_m, "phi", "V", localTrackStep_m);
 #endif
 
         // IPPL Grad divides by hr_m [m] resulting in
@@ -577,33 +453,7 @@ void PartBunch::computeSelfFields() {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::to_string(fieldDBGStep_m);
-        fstr.open(e_field.c_str(), std::ios::out);
-        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-
-        fstr.close();
-        fieldDBGStep_m++;
-
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
-
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+        fwriter.dumpField(eg_m, "e", "V/m", localTrackStep_m);
 #endif
 
         // interpolate electric field at particle positions.  We reuse the
@@ -619,7 +469,7 @@ void PartBunch::computeSelfFields() {
          *  \f[ B_z = B_z^{'} = 0 \f]
          *
          */
-        double betaC = sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
+        double betaC = std::sqrt(gammaz * gammaz - 1.0) / gammaz / Physics::c;
 
         Bf(0) = Bf(0) - betaC * Ef(1);
         Bf(1) = Bf(1) + betaC * Ef(0);
@@ -652,8 +502,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
     if(fs_m->hasValidSolver()) {
         /// mesh the whole domain
-        if(fs_m->getFieldSolverType() == "SAAMG")
-            resizeMesh();
+        resizeMesh();
 
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
@@ -669,27 +518,8 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ofstream fstr1;
-        fstr1.precision(9);
-
-        std::ostringstream istr;
-        istr << fieldDBGStep_m;
-
-        std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
-        fstr1.open(rho_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr1.close();
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        FieldWriter fwriter;
+        fwriter.dumpField(rho_m, "rho", "C/m^3", localTrackStep_m);
 #endif
 
         /// now charge density is in rho_m
@@ -708,24 +538,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 
         // If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-
-        std::ofstream fstr2;
-        fstr2.precision(9);
-
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
-        fstr2.open(phi_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr2.close();
-
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        fwriter.dumpField(rho_m, "phi", "V", localTrackStep_m);
 #endif
 
         /// calculate electric field vectors from field potential
@@ -758,34 +571,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
 #endif
 
 #ifdef DBG_SCALARFIELD
-        // If debug flag is set, dump vector field (electric field) into file under ./data/
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
-        fstr.open(e_field.c_str(), std::ios::out);
-        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-
-        fstr.close();
-        fieldDBGStep_m++;
-
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
-
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+        fwriter.dumpField(eg_m, "e", "V/m", localTrackStep_m);
 #endif
 
         /// interpolate electric field at particle positions.
@@ -795,7 +581,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
         // but because we already transformed E_trans into the moving frame we have to
         // add 1/gamma so we are using the E_trans from the rest frame -DW
-        double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+        double betaC = std::sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
         /// calculate B field from E field
         Bf(0) =  betaC * Ef(2);
@@ -844,8 +630,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
     if(fs_m->hasValidSolver()) {
         /// mesh the whole domain
-        if(fs_m->getFieldSolverType() == "SAAMG")
-            resizeMesh();
+        resizeMesh();
 
         /// scatter particles charge onto grid.
         this->Q.scatter(this->rho_m, this->R, IntrplCIC_t());
@@ -861,27 +646,8 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-        std::ofstream fstr1;
-        fstr1.precision(9);
-
-        std::ostringstream istr;
-        istr << fieldDBGStep_m;
-
-        std::string SfileName = OpalData::getInstance()->getInputBasename();
-
-        std::string rho_fn = std::string("data/") + SfileName + std::string("-rho_scalar-") + std::string(istr.str());
-        fstr1.open(rho_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx1 = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx1[0].first(); x <= myidx1[0].last(); x++) {
-            for (int y = myidx1[1].first(); y <= myidx1[1].last(); y++) {
-                for (int z = myidx1[2].first(); z <= myidx1[2].last(); z++) {
-                    fstr1 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr1.close();
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        FieldWriter fwriter;
+        fwriter.dumpField(rho_m, "rho", "C/m^3", localTrackStep_m);
 #endif
 
         /// now charge density is in rho_m
@@ -898,24 +664,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         // If debug flag is set, dump scalar field (potential 'phi') into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING SCALAR FIELD ***" << endl);
-
-        std::ofstream fstr2;
-        fstr2.precision(9);
-
-        std::string phi_fn = std::string("data/") + SfileName + std::string("-phi_scalar-") + std::string(istr.str());
-        fstr2.open(phi_fn.c_str(), std::ios::out);
-        NDIndex<3> myidx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidx[0].first(); x <= myidx[0].last(); x++) {
-            for (int y = myidx[1].first(); y <= myidx[1].last(); y++) {
-                for (int z = myidx[2].first(); z <= myidx[2].last(); z++) {
-                    fstr2 << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  rho_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-        fstr2.close();
-
-        INFOMSG("*** FINISHED DUMPING SCALAR FIELD ***" << endl);
+        fwriter.dumpField(rho_m, "phi", "V", localTrackStep_m);
 #endif
 
         /// calculate electric field vectors from field potential
@@ -955,40 +704,14 @@ void PartBunch::computeSelfFields_cycl(int bin) {
 
         // If debug flag is set, dump vector field (electric field) into file under ./data/
 #ifdef DBG_SCALARFIELD
-        INFOMSG("*** START DUMPING E FIELD ***" << endl);
-        //ostringstream oss;
-        //MPI_File file;
-        //MPI_Status status;
-        //MPI_Info fileinfo;
-        //MPI_File_open(Ippl::getComm(), "rho_scalar", MPI_MODE_WRONLY | MPI_MODE_CREATE, fileinfo, &file);
-        std::ofstream fstr;
-        fstr.precision(9);
-
-        std::string e_field = std::string("data/") + SfileName + std::string("-e_field-") + std::string(istr.str());
-        fstr.open(e_field.c_str(), std::ios::out);
-        NDIndex<3> myidxx = getFieldLayout().getLocalNDIndex();
-        for (int x = myidxx[0].first(); x <= myidxx[0].last(); x++) {
-            for (int y = myidxx[1].first(); y <= myidxx[1].last(); y++) {
-                for (int z = myidxx[2].first(); z <= myidxx[2].last(); z++) {
-                    fstr << x + 1 << " " << y + 1 << " " << z + 1 << " " <<  eg_m[x][y][z].get() << std::endl;
-                }
-            }
-        }
-
-        fstr.close();
-        fieldDBGStep_m++;
-
-        //MPI_File_write_shared(file, (char*)oss.str().c_str(), oss.str().length(), MPI_CHAR, &status);
-        //MPI_File_close(&file);
-
-        INFOMSG("*** FINISHED DUMPING E FIELD ***" << endl);
+        fwriter.dumpField(eg_m, "e", "V/m", localTrackStep_m);
 #endif
 
         /// Interpolate electric field at particle positions.
         Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
 
         /// Calculate coefficient
-        double betaC = sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
+        double betaC = std::sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
         /// Calculate B_bin field from E_bin field accumulate B and E field
         Bf(0) = Bf(0) + betaC * Eftmp(2);
@@ -1087,7 +810,7 @@ void PartBunch::updateDomainLength(Vektor<int, 3>& grid) {
 }
 
 
-void PartBunch::updateFields(const Vector_t& hr, const Vector_t& origin) {
+void PartBunch::updateFields(const Vector_t& /*hr*/, const Vector_t& origin) {
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(origin);
     rho_m.initialize(getMesh(),
@@ -1099,41 +822,6 @@ void PartBunch::updateFields(const Vector_t& hr, const Vector_t& origin) {
                     GuardCellSizes<Dimension>(1),
                     vbc_m);
 }
-
-
-/**
- * Here we emit particles from the cathode. All particles in a new simulation (not a restart) initially reside in the bin
- container "pbin_m" and are not part of the beam bunch (so they cannot "see" fields, space charge etc.). In pbin_m, particles
- are sorted into the bins of a time histogram that describes the longitudinal time distribution of the beam, where the number
- of bins is given by \f$NBIN \times SBIN\f$. \f$NBIN\f$ and \f$SBIN\f$ are parameters given when defining the initial beam
- distribution. During emission, the time step of the simulation is set so that an integral number of these bins are emitted each step.
- Once all of the particles have been emitted, the simulation time step is reset to the value defined in the input file.
-
- A typical integration time step, \f$\Delta t\f$, is broken down into 3 sub-steps:
-
- 1) Drift particles for \f$\frac{\Delta t}{2}\f$.
-
- 2) Calculate fields and advance momentum.
-
- 3) Drift particles for \f$\frac{\Delta t}{2}\f$ at the new momentum to complete the
- full time step.
-
- The difficulty for emission is that at the cathode position there is a step function discontinuity in the  fields. If we
- apply the typical integration time step across this boundary, we get an artificial numerical bunching of the beam, especially
- at very high accelerating fields. This function takes the cathode position boundary into account in order to achieve
- smoother particle emission.
-
- During an emission step, an integral number of time bins from the distribution histogram are emitted. However, each particle
- contained in those time bins will actually be emitted from the cathode at a different time, so will only spend some fraction
- of the total time step, \f$\Delta t_{full-timestep}\f$, in the simulation. The trick to emission is to give each particle
- a unique time step, \f$Delta t_{temp}\f$, that is equal to the actual time during the emission step that the particle
- exists in the simulation. For the next integration time step, the particle's time step is set back to the global time step,
- \f$\Delta t_{full-timestep}\f$.
-  */
-
-
-
-
 
 inline
 PartBunch::VectorPair_t PartBunch::getEExtrema() {

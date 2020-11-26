@@ -1,3 +1,23 @@
+//
+// Class GridLBalWriter
+//   This class writes a SDDS file with AMR grid load balancing information.
+//
+// Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "GridLBalWriter.h"
 
 #include "Utilities/Timer.h"
@@ -11,7 +31,7 @@ GridLBalWriter::GridLBalWriter(const std::string& fname, bool restart)
 { }
 
 
-void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
+void GridLBalWriter::fillHeader(const PartBunchBase<double, 3> *beam) {
 
     if (this->hasColumns()) {
         return;
@@ -19,7 +39,7 @@ void GridLBalWriter::fillHeader(PartBunchBase<double, 3> *beam) {
 
     columns_m.addColumn("t", "double", "ns", "Time");
 
-    AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam);
+    const AmrPartBunch* amrbeam = dynamic_cast<const AmrPartBunch*>(beam);
 
     if ( !amrbeam )
         throw OpalException("GridLBalWriter::fillHeader()",

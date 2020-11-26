@@ -1,21 +1,37 @@
+//
+// Class SampleWorker
+//   A worker MPI entity consists of a processor group that runs a
+//   simulation of type Sim_t. The main loop in run() accepts new jobs from the
+//   master process runs the simulation and reports back the results.
+//
+//   @see SamplePilot
+//   @see Worker
+//   @see MPIHelper.h
+//
+//   @tparam Sim_T type of simulation to run
+//
+// Copyright (c) 2018, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                     Yves Ineichen, ETH Zürich
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef __SAMPLE_WORKER_H__
 #define __SAMPLE_WORKER_H__
 
 #include "Pilot/Worker.h"
 
-
-/**
- *  \class SampleWorker
- *  \brief A worker MPI entity consists of a processor group that runs a
- *  simulation of type Sim_t. The main loop in run() accepts new jobs from the
- *  master process runs the simulation and reports back the results.
- *
- *  @see SamplePilot
- *  @see Worker
- *  @see MPIHelper.h
- *
- *  @tparam Sim_T type of simulation to run
- */
 template <class Sim_t>
 class SampleWorker : protected Worker<Sim_t> {
 
@@ -27,8 +43,9 @@ public:
                  Comm::Bundle_t comms,
                  CmdArguments_t args,
                  const std::vector<std::string> &storeobjstr,
-                 const std::vector<std::string> &filesToKeep)
-        : Worker<Sim_t>(objectives, constraints, simName, comms, args, false)
+                 const std::vector<std::string> &filesToKeep,
+                 const std::map<std::string, std::string> &userVariables)
+        : Worker<Sim_t>(objectives, constraints, simName, comms, args, userVariables, false)
         , statVariablesToStore_m(storeobjstr)
         , filesToKeep_m(filesToKeep)
     {
@@ -94,9 +111,10 @@ protected:
                         MPI_Bcast_params(params, this->leader_pid_, this->coworker_comm_);
 
                         try {
-                            typename Worker<Sim_t>::SimPtr_t sim(new Sim_t(this->objectives_, this->constraints_,
-                                    params, this->simulation_name_, this->coworker_comm_,
-                                    this->cmd_args_));
+                            typename Worker<Sim_t>::SimPtr_t sim(
+                                new Sim_t(this->objectives_, this->constraints_,
+                                          params, this->simulation_name_, this->coworker_comm_,
+                                          this->cmd_args_, this->userVariables_));
 
                             sim->setFilename(job_id);
 
@@ -138,11 +156,12 @@ protected:
             reqVarContainer_t requested_results;
             try {
                 typename Worker<Sim_t>::SimPtr_t sim(new Sim_t(this->objectives_,
-                                       this->constraints_,
-                                       params,
-                                       this->simulation_name_,
-                                       this->coworker_comm_,
-                                       this->cmd_args_));
+                                                               this->constraints_,
+                                                               params,
+                                                               this->simulation_name_,
+                                                               this->coworker_comm_,
+                                                               this->cmd_args_,
+                                                               this->userVariables_));
 
                 sim->setFilename(job_id);
 

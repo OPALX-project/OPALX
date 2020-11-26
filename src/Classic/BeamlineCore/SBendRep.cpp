@@ -1,32 +1,26 @@
-// ------------------------------------------------------------------------
-// $RCSfile: SBendRep.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.2.2.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: SBendRep
-//   Defines a concrete representation for a sector (curved) bend.
+// Class SBendRep
+//   Representation for a sector bend magnet.
+//   A sector bend magnet has a planar arc geometry about which its
+//   multipole components are specified.
 //
-// ------------------------------------------------------------------------
-// Class category: BeamlineCore
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2004/11/12 18:57:53 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "BeamlineCore/SBendRep.h"
-#include "AbsBeamline/ElementImage.h"
 #include "Channels/IndexedChannel.h"
 #include "Channels/IndirectChannel.h"
-#include "ComponentWrappers/SBendWrapper.h"
 #include <cctype>
-
-// Attribute access table.
-// ------------------------------------------------------------------------
 
 namespace {
     struct Entry {
@@ -70,9 +64,6 @@ namespace {
     };
 }
 
-
-// Class SBendRep
-// ------------------------------------------------------------------------
 
 SBendRep::SBendRep():
     SBend(),
@@ -161,43 +152,6 @@ const PlanarArcGeometry &SBendRep::getGeometry() const {
 }
 
 
-ElementImage *SBendRep::getImage() const {
-    ElementImage *image = ElementBase::getImage();
-
-    for(const Entry *table = entries; table->name != 0; ++table) {
-        image->setAttribute(table->name, (this->*(table->get))());
-    }
-
-    for(int n = 1; n <= field.order(); n++) {
-        char buffer[20];
-        char *p = buffer;
-        int k = n;
-
-        while(k != 0) {
-            *p++ = k % 10 + '0';
-            k /= 10;
-        }
-
-        std::string name(" ");
-        while(p > buffer) name += *--p;
-
-        double b = field.getNormalComponent(n);
-        if(b != 0.0) {
-            name[0] = 'b';
-            image->setAttribute(name, b);
-        }
-
-        double a = field.getSkewComponent(n);
-        if(a != 0.0) {
-            name[0] = 'a';
-            image->setAttribute(name, a);
-        }
-    }
-
-    return image;
-}
-
-
 double SBendRep::getB() const {
     return field.getNormalComponent(1);
 }
@@ -260,11 +214,4 @@ void SBendRep::setStepsize(double ds) {
 
 void SBendRep::setField(const BMultipoleField &f) {
     field = f;
-}
-
-
-ElementBase *SBendRep::makeFieldWrapper() {
-    ElementBase *wrap = new SBendWrapper(this);
-    wrap->setName(getName());
-    return wrap;
 }

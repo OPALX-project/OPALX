@@ -19,13 +19,10 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/SBend.h"
-#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Utilities/Options.h"
 #include "Fields/Fieldmap.h"
-#include "AbstractObjects/OpalData.h"
-#include <iostream>
-#include <fstream>
+
+#include <string>
 
 extern Inform *gmsg;
 
@@ -91,13 +88,12 @@ ElementBase::ElementType SBend::getType() const {
 }
 
 
-bool SBend::findChordLength(Inform &msg,
-                            double &chordLength) {
+bool SBend::findChordLength(double &chordLength) {
 
     /*
      * Find bend chord length. If this was not set by the user using the
      * L (length) attribute, infer it from the field map.
      */
-    chordLength = getLength();
+    chordLength = getElementLength();
     return true;
 }

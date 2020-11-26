@@ -1,29 +1,22 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- * Visit www.amas.web.psi for more details
- *
- ***************************************************************************/
+//
+// Class ParticleInteractLayout
+//   Please note: for the time being this class is *not* used! But since it
+//   might be used in future projects, we keep this file.
+//
+// Copyright (c) 2003 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
-
-// include files
 #include "Particle/ParticleInteractLayout.h"
 #include "Particle/ParticleBConds.h"
 #include "Particle/IpplParticleBase.h"
@@ -32,7 +25,6 @@
 #include "Utility/IpplInfo.h"
 #include "Message/Communicate.h"
 #include "Message/Message.h"
-
 
 #include <algorithm>
 
@@ -177,8 +169,6 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data() {
 
   unsigned int j, d;			// loop variables
 
-  DEBUGMSG("ParticleInteractLayout: rebuilding interaction node data."<<endl);
-
   // initialize data about interaction nodes, and get the inter radius
   InteractionNodes = 0;
   T interRad = 2.0 * getMaxInteractionRadius();
@@ -206,16 +196,12 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data() {
 
     // use the RegionLayout to find all remote Vnodes which touch the domain
     // being checked here
-    DEBUGMSG("  Checking domain " << chkDom << endl);
     typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN =
       this->RLayout.touch_range_rdv(chkDom);
     typename RegionLayout<T,Dim,Mesh>::touch_iterator_dv tVN = touchingVN.first;
-    DEBUGMSG("  Touching vnodes:" << endl);
     for ( ; tVN != touchingVN.second; ++tVN) {
       // note that we need to send a message to the node which contains
       // this remote Vnode
-      DEBUGMSG("    vnode: node = " << ((*tVN).second)->getNode());
-      DEBUGMSG(", domain = " << ((*tVN).second)->getDomain() << endl);
       unsigned vn = ((*tVN).second)->getNode();
       if ( ! InterNodeList[vn] ) {
 	InterNodeList[vn] = true;
@@ -223,8 +209,6 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data() {
       }
     }
   }
-
-  DEBUGMSG("  There are " << InteractionNodes << " inter. nodes." << endl);
 
   // set the flag indicating the swap ghost particle routine should
   // be called the next time we try to access a pairlist or do anything
@@ -245,8 +229,6 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data(
 {
   unsigned int j, d;			// loop variables
   unsigned pe = Ippl::myNode();
-
-  DEBUGMSG("ParticleInteractLayout: rebuilding interaction node data."<<endl);
 
   // initialize data about interaction nodes, and get the inter radius
   InteractionNodes = 0;
@@ -288,14 +270,10 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data(
 
     // use the RegionLayout to find all remote Vnodes which touch
     // the domain being checked here
-    DEBUGMSG("  Checking domain " << chkDom << endl);
     touchingVN = this->RLayout.touch_range_rdv(chkDom);
-    DEBUGMSG("  Touching vnodes:" << endl);
     for (tVN = touchingVN.first; tVN != touchingVN.second; ++tVN) {
       // note that we need to send a message to the node which contains
       // this remote Vnode
-      DEBUGMSG("    vnode: node = " << ((*tVN).second)->getNode());
-      DEBUGMSG(", domain = " << ((*tVN).second)->getDomain() << endl);
       unsigned vn = ((*tVN).second)->getNode();
       if ( ! InterNodeList[vn] ) {
         InterNodeList[vn] = true;
@@ -357,14 +335,10 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data(
 
       // use the RegionLayout to find all remote Vnodes which touch
       // the domain being checked here
-      DEBUGMSG("  Checking domain " << refDom << endl);
       touchingVN = this->RLayout.touch_range_rdv(refDom);
-      DEBUGMSG("  Touching vnodes:" << endl);
       for (tVN = touchingVN.first; tVN != touchingVN.second; ++tVN) {
         // note that we need to send a message to the node which contains
         // this remote Vnode
-        DEBUGMSG("    vnode: node = " << ((*tVN).second)->getNode());
-        DEBUGMSG(", domain = " << ((*tVN).second)->getDomain() << endl);
         unsigned vn = ((*tVN).second)->getNode();
         if ( ! InterNodeList[vn] ) {
           InterNodeList[vn] = true;
@@ -388,8 +362,6 @@ void ParticleInteractLayout<T,Dim,Mesh>::rebuild_interaction_data(
     }
 
   }
-
-  DEBUGMSG("  There are " << InteractionNodes << " inter. nodes." << endl);
 
   // set the flag indicating the swap ghost particle routine should
   // be called the next time we try to access a pairlist or do anything
@@ -1008,9 +980,6 @@ void ParticleInteractLayout<T,Dim,Mesh>::Repartition(UserList* userlist) {
   // perform actions to restructure our data due to a change in the
   // RegionLayout
   if (userlist->getUserListID() == this->RLayout.get_Id()) {
-    // recalculate which nodes are our neighbors in each dimension
-      this->rebuild_neighbor_data();
-
     // clear out current interaction node storage; if the next update
     // indicates we have a non-zero interaction radius, this info will be
     // rebuilt (by calling rebuild_interaction_data)
@@ -1019,10 +988,3 @@ void ParticleInteractLayout<T,Dim,Mesh>::Repartition(UserList* userlist) {
     NeedGhostSwap = true;
   }
 }
-
-
-/***************************************************************************
- * $RCSfile: ParticleInteractLayout.cpp,v $   $Author: adelmann $
- * $Revision: 1.1.1.1 $   $Date: 2003/01/23 07:40:29 $
- * IPPL_VERSION_ID: $Id: ParticleInteractLayout.cpp,v 1.1.1.1 2003/01/23 07:40:29 adelmann Exp $
- ***************************************************************************/

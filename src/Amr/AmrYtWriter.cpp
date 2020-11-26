@@ -1,3 +1,27 @@
+//
+// Class AmrYtWriter
+//   This concrete class writes output files that are readable by yt
+//   (cf. http://yt-project.org/). We have a fork of yt in
+//   the repository at https://gitlab.psi.ch/frey_m/yt.
+//   The functions of this class are copied from AMReX and modified to fit
+//   our needs.
+//
+// Copyright (c) 2016 - 2020, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// Implemented as part of the PhD thesis
+// "Precise Simulations of Multibunches in High Intensity Cyclotrons"
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AmrYtWriter.h"
 
 #include <AMReX_Utility.H>
@@ -47,7 +71,8 @@ AmrYtWriter::AmrYtWriter(int step, int bin)
     namespace fs = boost::filesystem;
     
     fs::path dir = OpalData::getInstance()->getInputBasename();
-    boost::filesystem::path path = dir.parent_path() / "data" / "amr" / "yt";
+    std::string dataDir = OpalData::getInstance()->getAuxiliaryOutputDirectory();
+    boost::filesystem::path path = dir.parent_path() / dataDir / "amr" / "yt";
     dir_m = amrex::Concatenate((path / "plt").string(), step, 10);
     dir_m += "-";
     dir_m = amrex::Concatenate(dir_m, bin, 3);
@@ -271,7 +296,7 @@ void AmrYtWriter::writeFields(const amr::AmrScalarFieldContainer_t& rho,
 
 
 void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
-                             const double& time,
+                             const double& /*time*/,
                              const double& gamma)
 {
     /* According to
@@ -471,9 +496,9 @@ void AmrYtWriter::writeBunch(const AmrPartBunch* bunch_p,
         std::string filePrefix(LevelDir);
         filePrefix += '/';
         filePrefix += "DATA_";
-        bool groupSets(false), setBuf(true);
 
         if (gotsome) {
+            bool groupSets(false), setBuf(true);
             for(amrex::NFilesIter nfi(nOutFiles, filePrefix, groupSets, setBuf); nfi.ReadyToWrite(); ++nfi) {
                 std::ofstream& myStream = (std::ofstream&) nfi.Stream();
                 //

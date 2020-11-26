@@ -6,7 +6,6 @@ set (_SRCS
   BeamSequence.cpp
   Definition.cpp
   Directory.cpp
-  Editor.cpp
   Element.cpp
   Invalidator.cpp
   OpalData.cpp
@@ -33,7 +32,6 @@ set (HDRS
     BeamSequence.h
     Definition.h
     Directory.h
-    Editor.h
     Element.h
     Expressions.h
     Invalidator.h
@@ -48,11 +46,3 @@ set (HDRS
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbstractObjects")
-
-# vi: set et ts=4 sw=4 sts=4:
-  
-# Local Variables:
-# mode: cmake
-# cmake-tab-width: 4
-# indent-tabs-mode: nil
-# End:
