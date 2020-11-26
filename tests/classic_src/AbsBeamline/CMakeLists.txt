@@ -12,6 +12,10 @@ set (_SRCS
     VerticalFFAMagnetTest.cpp
 )
 
+if (ENABLE_OPAL_FEL)
+    list (APPEND _SRCS UndulatorTest.cpp)
+endif ()
+
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
