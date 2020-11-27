@@ -1,11 +1,20 @@
-// Distribution class
 //
-// Copyright (c) 2008-2020
-// Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved.
+// Class Distribution
+//   This class defines the initial beam that is injected or emitted into the simulation.
 //
-// OPAL is licensed under GNU GPL version 3.
-
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Distribution/Distribution.h"
 #include "Distribution/ClosedOrbitFinder.h"
 #include "AbsBeamline/SpecificElementVisitor.h"
@@ -69,9 +78,6 @@ namespace {
     }
 }
 
-//
-// Class Distribution
-// ------------------------------------------------------------------------
 
 Distribution::Distribution():
     Definition( Attrib::Legacy::Distribution::SIZE, "DISTRIBUTION",
