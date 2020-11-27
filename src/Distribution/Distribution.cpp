@@ -1013,11 +1013,11 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
     std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
     if (Ippl::myNode() == 0) {
         inputFile.open(fileName.c_str());
-        if (inputFile.fail())
-            throw OpalException("Distribution::createDistributionFromFile",
-                                "Open file operation failed, please check if \""
-                                + fileName
-                                + "\" really exists.");
+    }
+    if (inputFile.fail()) {
+        throw OpalException("Distribution::createDistributionFromFile",
+                            "Open file operation failed, please check if \""
+                            + fileName + "\" really exists.");
     }
 
     size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
