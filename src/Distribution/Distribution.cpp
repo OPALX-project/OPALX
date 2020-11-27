@@ -1011,13 +1011,17 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
     // Data input file is only read by node 0.
     std::ifstream inputFile;
     std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
+    bool failedOpen = 0;
     if (Ippl::myNode() == 0) {
         inputFile.open(fileName.c_str());
+        failedOpen = static_cast<bool>(inputFile.fail());
     }
-    if (inputFile.fail()) {
+    reduce(failedOpen,failedOpen,OpAddAssign());
+    if (failedOpen) {
         throw OpalException("Distribution::createDistributionFromFile",
                             "Open file operation failed, please check if \""
-                            + fileName + "\" really exists.");
+                            + fileName
+                            + "\" really exists.");
     }
 
     size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
