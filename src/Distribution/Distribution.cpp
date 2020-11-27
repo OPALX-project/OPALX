@@ -45,6 +45,7 @@
 
 #include <sys/time.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
 
@@ -1001,28 +1002,25 @@ size_t Distribution::getNumberOfParticlesInFile(std::ifstream &inputFile) {
 
 void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, double massIneV) {
 
+    // Data input file is only read by node 0.
+    std::ifstream inputFile;
+    std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
+    if (!boost::filesystem::exists("fileName")) {
+        throw OpalException("Distribution::createDistributionFromFile",
+                            "Open file operation failed, please check if \""
+                            + fileName +
+                            "\" really exists.");
+    }
+    if (Ippl::myNode() == 0) {
+        inputFile.open(fileName.c_str());
+    }
+
     *gmsg << level3 << "\n"
           << "------------------------------------------------------------------------------------\n";
     *gmsg << "READ INITIAL DISTRIBUTION FROM FILE \""
           << Attributes::getString(itsAttr[Attrib::Distribution::FNAME])
           << "\"\n";
     *gmsg << "------------------------------------------------------------------------------------\n" << endl;
-
-    // Data input file is only read by node 0.
-    std::ifstream inputFile;
-    std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
-    bool failedOpen = 0;
-    if (Ippl::myNode() == 0) {
-        inputFile.open(fileName.c_str());
-        failedOpen = static_cast<bool>(inputFile.fail());
-    }
-    reduce(failedOpen,failedOpen,OpAddAssign());
-    if (failedOpen) {
-        throw OpalException("Distribution::createDistributionFromFile",
-                            "Open file operation failed, please check if \""
-                            + fileName
-                            + "\" really exists.");
-    }
 
     size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
     /*
