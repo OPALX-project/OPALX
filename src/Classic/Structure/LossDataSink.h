@@ -1,7 +1,20 @@
 //
-//  Copyright & License: See Copyright.readme in src directory
+// Class LossDataSink
+//   This class writes file attributes to describe phase space of loss files
 //
-
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef LOSSDATASINK_H_
 #define LOSSDATASINK_H_
 
@@ -94,29 +107,21 @@ private:
     void openH5(h5_int32_t mode = H5_O_WRONLY);
 
     void appendASCII() {
-        if(Ippl::myNode() == 0) {
+        if (Ippl::myNode() == 0) {
             os_m.open(fn_m.c_str(), std::ios::app);
         }
     }
 
-    void writeHeaderASCII() {
-        if(Ippl::myNode() == 0) {
-            //FIXME Issue #45 (Cyclotron units)
-            os_m << "# Element " << element_m << " x (m),  y (m),  z (m),  px ( ),  py ( ),  pz ( ), id";
-            if (time_m.size() != 0) {
-                os_m << ",  turn, bunchNumber, time (ns) ";
-            }
-            os_m << std::endl;
-        }
-    }
+    void writeHeaderASCII();
     void writeHeaderH5();
 
     void saveASCII();
     void saveH5(unsigned int setIdx);
 
     void closeASCII() {
-        if(Ippl::myNode() == 0)
+        if (Ippl::myNode() == 0) {
             os_m.close();
+        }
     }
 
     bool hasNoParticlesToDump();
@@ -153,7 +158,6 @@ private:
     std::vector<double> py_m;
     std::vector<double> pz_m;
     std::vector<size_t> bunchNum_m;
-
     std::vector<size_t> turn_m;
     std::vector<double> time_m;
 
