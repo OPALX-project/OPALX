@@ -42,7 +42,7 @@ class SolveFactoryTestFixture : public ::testing::Test {
 };
 
 TEST(SolveFactoryTest, TestSolveNoDerivs) {
-    //OpalTestUtilities::SilenceTest silencer;
+    OpalTestUtilities::SilenceTest silencer;
 
     // we make a reference poly vector
     std::vector<double> data(27);
