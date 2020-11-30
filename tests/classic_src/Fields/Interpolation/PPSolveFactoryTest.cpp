@@ -99,7 +99,7 @@ TEST(PPSolveFactoryTest, TestNearbyPointsSquares) {
 class PPSolveFactoryTestFixture : public ::testing::Test {
   protected:
     std::vector<std::vector<double> > values;
-    int np;
+    int np1, np2, np3;
     // 3D
     SquarePolynomialVector ref;
     ThreeDGrid* grid;
@@ -118,10 +118,12 @@ class PPSolveFactoryTestFixture : public ::testing::Test {
         refCoeffs = MMatrix<double>(2, 27, &data[0]);
         ref = SquarePolynomialVector(3, refCoeffs);
         // we get some data
-        np = 6;
+        np1 = 6;
+        np2 = 7;
+        np3 = 8;
         // choose the grid so that a midpoint falls at 0/0/0; we want to compare it
         // later on...
-        grid = new ThreeDGrid(1., 2., 3., -2.5, -5.0, -7.5, np, np, np);
+        grid = new ThreeDGrid(1., 2., 3., -2.5, -5.0, -7.5, np1, np2, np3);
         for (Mesh::Iterator it = grid->begin(); it < grid->end(); ++it) {
             std::vector<double> value(2);
             ref.F(&it.getPosition()[0], &value[0]);
@@ -137,14 +139,11 @@ class PPSolveFactoryTestFixture : public ::testing::Test {
         ref2D = SquarePolynomialVector(3, refCoeffs2D);
         std::vector<double> start = {-1., -2.};
         std::vector<double> step  = {2., 4.};
-        std::vector<int> nsteps = {np, np};
+        std::vector<int> nsteps = {np1, np2};
         grid2D = new NDGrid(2, &nsteps[0], &step[0], &start[0]);
         for (Mesh::Iterator it = grid2D->begin(); it < grid2D->end(); ++it) {
             std::vector<double> value2D(2);
             ref2D.F(&it.getPosition()[0], &value2D[0]);
-            std::cerr << "values2D " << it.getPosition()[0] << " "
-                                     << it.getPosition()[1] << " ** "
-                                     << value2D[0] <<  " " << value2D[1] << std::endl;
             values2D.push_back(value2D);
         }
     }
@@ -198,7 +197,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic) {
         }
 
     // now check that the values in each polynomial are correct
-    ThreeDGrid testGrid(1./4., 2./4., 3./4., -1., -2., -3., np*4-1, np*4-1, np*4-1);
+    ThreeDGrid testGrid(1./4., 2./4., 3./4., -1., -2., -3., np1*4-1, np2*4-1, np3*4-1);
     for (Mesh::Iterator it = testGrid.begin(); it < testGrid.end(); ++it) {
         std::vector<double> refValue(2);
         std::vector<double> testValue(2);
@@ -216,7 +215,9 @@ double f(double x) {
 }
 
 TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
-    std::vector<std::vector<double> > gridPoints = {{0., 1., 2., 3., 4., 5., 6.}};
+    OpalTestUtilities::SilenceTest silencer;
+
+    std::vector<std::vector<double> > gridPoints = {{-1., 1., 3., 5., 7., 9., 11.}};
     std::vector<std::vector<double> > values1D(gridPoints[0].size(), std::vector<double>(1, 0.));
     for (size_t i = 0; i < gridPoints[0].size(); ++i) {
         values1D[i][0] = f(gridPoints[0][i]);
@@ -230,7 +231,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
         patch = fac->solve();
         delete fac;
     } catch (GeneralClassicException& exc) {
-        std::cerr << exc.what() << " " << exc.where() << std::endl;
+        std::cout << exc.what() << " " << exc.where() << std::endl;
         throw;
     }
     // Check that we correctly generate polynomials with values that match f(x)
@@ -260,9 +261,9 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
         }
         poly->F(&end[0], &values[2][0]);
         derivPoly.F(&end[0], &values[3][0]);
-        std::cerr << "At pos: " << position[0] << " ";
-        std::cerr << "Values: " << values[0][0] << " " << values[2][0] << " ";
-        std::cerr << "Derivs: " << values[1][0] << " " << values[3][0] << std::endl;
+        std::cout << "At pos: " << position[0] << " ";
+        std::cout << "Values: " << values[0][0] << " " << values[2][0] << " ";
+        std::cout << "Derivs: " << values[1][0] << " " << values[3][0] << std::endl;
     }
     EXPECT_NEAR(values[3][0], 0., 1e-6); // derivative 0.0 at boundary
 }
@@ -270,6 +271,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
 TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic2DSmoothed) {
     //OpalTestUtilities::SilenceTest silencer;
     Mesh* mesh = grid2D->clone();
+    //Mesh* dual = grid2D->dual();
     PPSolveFactory* fac = NULL;
     PolynomialPatch* patch = NULL;
     try {
@@ -280,69 +282,93 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic2DSmoothed) {
         std::cerr << exc.what() << " " << exc.where() << std::endl;
         throw;
     }
-    // first check that the polynomial at 0, 0, 0 is the same as ref
-    std::vector<double> zero({0., 0.});
-    SquarePolynomialVector* test = patch->getPolynomialVector(&zero[0]);
-    
-    MMatrix<double> testCoeffs = test->GetCoefficientsAsMatrix();
-    // check values match at grid points
-    std::vector<double> point({0, 0}), testValue(2), refValue(2);
-    test->F(&point[0], &testValue[0]);
-    ref2D.F(&point[0], &refValue[0]);
-    EXPECT_NEAR(testValue[0], refValue[0], 1e-12);
-    EXPECT_NEAR(testValue[1], refValue[1], 1e-12);
-    std::cout << "Testing at  " << point[0] << " " << point[1] << std::endl;
-    std::cout << "Gives       " << testValue[0] << " " << testValue[1] << std::endl;
-    std::cout << "Compared to " << refValue[0] << " " << refValue[1] << std::endl;
-    std::cout << "Ref a" << std::endl;
-    std::cout << refCoeffs2D << std::endl;
-    std::cout << "Test a" << std::endl;
-    std::cout << testCoeffs << std::endl;
-    return;
-
-    // check derivatives match at grid points
-    std::vector<double> d11RefPosition({2., 4.});
-    std::vector<int> d11Index({1, 1});
-    // get derivatives of neighbouring polynomials; test is at 0, 0 and ref is
-    // at 2, 4; so diagonal, the 11 derivatives should match (and also 01, 10
-    // but I don't bother testing those)
-    SquarePolynomialVector d11Test = test->Deriv(&d11Index[0]);
-    SquarePolynomialVector d11Ref =
-                    patch->getPolynomialVector(&d11RefPosition[0])->Deriv(&d11Index[0]);
-
-    // position in local coordinate system of the neighbouring polynomials
-    std::vector<double> d11RefPoint({-1., -2.}), d11TestPoint({1., 2.});
-    std::vector<double> d11RefValue(2, 0.), d11TestValue(2, 0);
-
-    d11Ref.F(&d11RefPoint[0], &d11RefValue[0]);
-    d11Test.F(&d11TestPoint[0], &d11TestValue[0]);
-
-    EXPECT_NEAR(d11RefValue[0], d11TestValue[0], 1e-12);
-    EXPECT_NEAR(d11RefValue[1], d11TestValue[1], 1e-12);
-    std::cout << "Ref" << std::endl;
-    std::cout << refCoeffs2D << std::endl;
-    std::cout << "Test" << std::endl;
-    std::cout << testCoeffs << std::endl;
-    return;
-    ASSERT_EQ(testCoeffs.num_row(), refCoeffs2D.num_row());
-    ASSERT_EQ(testCoeffs.num_col(), refCoeffs2D.num_col());
-    for (size_t i = 0; i < testCoeffs.num_row(); ++i) {
-        for (size_t j = 0; j < testCoeffs.num_row(); ++j) {
-            EXPECT_NEAR(testCoeffs(i+1, j+1), refCoeffs2D(i+1, j+1), 1e-6)
-                                               << "col " << i << " row " << j;
-        }
+    // first check that the fitted values (0th derivative) match input values on
+    // grid points
+    for (Mesh::Iterator it = mesh->begin(); it != mesh->end(); it++) {
+        std::vector<double> pos = it.getPosition();
+        std::vector<double> value1(2);
+        patch->function(&pos[0], &value1[0]);
+        std::vector<double> value2 = values2D[it.toInteger()];
+        EXPECT_NEAR(value1[0], value2[0], 1e-6);
+        EXPECT_NEAR(value1[1], value2[1], 1e-6);
     }
 
-    return;
-    // now check that the values returned by each polynomial are correct
-    ThreeDGrid testGrid(1./4., 2./4., 3./4., -1., -2., -3., np*4-1, np*4-1, np*4-1);
-    for (Mesh::Iterator it = testGrid.begin(); it < testGrid.end(); ++it) {
-        std::vector<double> refValue(2);
-        std::vector<double> testValue(2);
-        ref.F(&it.getPosition()[0], &refValue[0]);
-        patch->function(&it.getPosition()[0], &testValue[0]);
-        for (size_t i = 0; i < 2; ++i) {
-            EXPECT_NEAR(refValue[i], testValue[i], 1e-6) << std::endl << it;
+
+    // now check that appropriate derivatives match neighbours on grid points:
+    NDGrid* dual = dynamic_cast<NDGrid*>(mesh->dual());
+    // grid size:
+    std::vector<double> step = {dual->coord(2, 0)-dual->coord(1, 0), dual->coord(2, 1)-dual->coord(1, 1)};
+    // indexes the derivative at each point:
+    std::vector< std::vector< std::vector<int> > > derivIndexVector = {
+        {{1, 0}},
+        {{0, 1}},
+        {{1, 0}, {0, 1}, {1, 1}}
+    };
+    // Pointer to the neighbouring polynomial in the grid
+    std::vector< std::vector<int> > deltaIndex = {{1, 0}, {0, 1}, {1, 1}};
+    // vector from the current polynomial to the point at which the derivatives
+    // are supposed to match with neighbour
+    std::vector< std::vector<double> > forwardDeltaVector = {
+        {+step[0]/2., -step[1]/2.},
+        {-step[0]/2., +step[1]/2.},
+        {+step[0]/2., +step[1]/2.},
+    };
+    // vector from the neighbouring polynomial to the point at which the
+    // derivatives are supposed to match with current polynomial
+    std::vector< std::vector<double> > backwardDeltaVector = {
+        {-step[0]/2., -step[1]/2.},
+        {-step[0]/2., -step[1]/2.},
+        {-step[0]/2., -step[1]/2.},
+    };
+    // iterate over all mesh points and calculate derivatives; check that
+    // derivatives match, as they are supposed to, with neighbour
+    for (Mesh::Iterator it00 = dual->begin(); it00 != dual->end(); it00++) {
+        bool verbose = false;
+        if (verbose) {std::cout << "\n";}
+        for (size_t deltaI = 0; deltaI < deltaIndex.size() && deltaI < derivIndexVector.size(); deltaI++) {
+            for (size_t derivI = 0; derivI < derivIndexVector[deltaI].size(); derivI++) {
+                std::vector<int> thisDeltaVector = deltaIndex[deltaI];
+                std::vector<int> thisDerivVector = derivIndexVector[deltaI][derivI];
+                std::vector<double> pos00 = it00.getPosition();
+                Mesh::Iterator itDelta(it00);
+                Mesh::Iterator boundCheck(it00);
+                boundCheck[0] += 1;
+                boundCheck[1] += 1;
+                itDelta[0] += thisDeltaVector[0];
+                itDelta[1] += thisDeltaVector[1];
+                std::vector<double> pos1(2, 0.0), pos2(2, 0.0), posDelta(2, 0.0);
+                std::vector<double> derivCalc1(2, 0.0);
+                if (!itDelta.isOutOfBounds()) {
+                    posDelta = itDelta.getPosition();
+                    SquarePolynomialVector* polyDelta = patch->getPolynomials()[itDelta.toInteger()];
+                    SquarePolynomialVector derivDelta = polyDelta->Deriv(&thisDerivVector[0]);
+                    pos1 = backwardDeltaVector[deltaI];
+                    derivDelta.F(&pos1[0], &derivCalc1[0]);
+                }
+                SquarePolynomialVector* poly00 = patch->getPolynomials()[it00.toInteger()];
+                SquarePolynomialVector deriv = poly00->Deriv(&thisDerivVector[0]);
+                std::vector<double> derivCalc2(2, 0.0);
+                pos2 = forwardDeltaVector[deltaI];
+                deriv.F(&pos2[0], &derivCalc2[0]);
+                if (verbose) {
+                    std::cout << "Delta " << thisDeltaVector[0] << " " << thisDeltaVector[1];
+                    std::cout << " deriv " << thisDerivVector[0] << " " << thisDerivVector[1] << std::endl;
+                    std::cout << "    OOB: " << boundCheck.isOutOfBounds() << " " << itDelta.isOutOfBounds();
+                    std::cout << " here: " << it00[0] << " " << it00[1];
+                    std::cout << " chck: " << boundCheck[0] << " " << boundCheck[1];
+                    std::cout << " dlt: " << itDelta[0] << " " << itDelta[1];
+                    std::cout << " last: " << (dual->end()-1)[0] << " " << (dual->end()-1)[1] << std::endl;
+
+                    std::cout << "    Offset from this      " << pos00[0] << " " << pos00[1]
+                              << " by "<< pos2[0] << " " << pos2[1] << std::endl;
+                    std::cout << "    Offset from neighbour " << posDelta[0] << " " << posDelta[1]
+                              << " by "<< pos1[0] << " " << pos1[1] << std::endl;
+                    std::cout << "    deriv this      " << derivCalc2[0] << " " << derivCalc2[1] << std::endl; 
+                    std::cout << "    deriv neighbour " << derivCalc1[0] << " " << derivCalc1[1] << std::endl; 
+                }
+                EXPECT_NEAR(derivCalc1[0], derivCalc2[0], 1e-6);
+                EXPECT_NEAR(derivCalc1[1], derivCalc2[1], 1e-6);
+            }
         }
     }
 }
