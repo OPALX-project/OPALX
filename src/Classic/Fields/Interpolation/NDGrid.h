@@ -106,6 +106,9 @@ class NDGrid : public Mesh {
      */
     NDGrid(std::vector< std::vector<double> > gridCoordinates);
 
+    /** Copy constructor */
+    NDGrid(const NDGrid& grid);
+
     /** Destructor */
     ~NDGrid() {;}
 
@@ -261,6 +264,16 @@ class NDGrid : public Mesh {
      *  @returns iterator that points to the grid location closest to position.
      */
     Mesh::Iterator getNearest(const double* position) const;
+
+    /** Returns true if it is off the edge of the grid.
+     *
+     *  @param it: iterator to check; dimensionality of it is not checked.
+     *             Behaviour is undetermined if it is less than position 
+     *             dimension of the mesh - but likely to be memory error.
+     *
+     *  @returns true if it is off the edge of the grid.
+     */
+    inline bool isOutOfBounds(const Mesh::Iterator& it) const;
 
 protected:
 

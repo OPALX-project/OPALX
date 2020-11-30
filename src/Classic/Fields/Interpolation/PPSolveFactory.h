@@ -120,7 +120,7 @@ class PPSolveFactory {
     void getPoints();
     void getValues(Mesh::Iterator it);
     void getDerivPoints();
-    void getDerivs(Mesh::Iterator it);
+    void getDerivs(const Mesh::Iterator& it);
 
     // nothing calls this method but I don't quite feel brave enough to remove
     // it...
