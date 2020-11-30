@@ -1,3 +1,20 @@
+//
+// Class LossDataSink
+//   This class writes file attributes to describe phase space of loss files
+//
+// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Structure/LossDataSink.h"
 
 #include "Utilities/Options.h"
@@ -88,7 +105,7 @@
 
 #define OPEN_FILE( fname, mode, props ) {        \
     H5file_m = H5OpenFile (fname, mode, props); \
-    if(H5file_m == (h5_file_t)H5_ERR) { \
+    if (H5file_m == (h5_file_t)H5_ERR) { \
         std::stringstream ss;                                               \
         ss << "failed to open file " << fn_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
@@ -222,6 +239,19 @@ void LossDataSink::writeHeaderH5() {
     ADD_ATTACHMENT (OpalData::getInstance()->getInputFn().c_str());
 }
 
+
+void LossDataSink::writeHeaderASCII() {
+    bool hasTime = hasTimeAttribute();
+    if(Ippl::myNode() == 0) {
+        os_m << "# Element " << element_m << " x (m),  y (m),  z (m),  px ( ),  py ( ),  pz ( ), id";
+        if (hasTime) {
+            os_m << ", turn, bunchNumber, time (ns) ";
+        }
+        os_m << std::endl;
+    }
+}
+
+
 void LossDataSink::addReferenceParticle(const Vector_t &x,
                                         const  Vector_t &p,
                                         double time,
@@ -350,7 +380,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     std::unique_ptr<size_t[]>  locN(new size_t[Ippl::getNodes()]);
     std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
 
-    for(int i = 0; i < Ippl::getNodes(); i++) {
+    for (int i = 0; i < Ippl::getNodes(); i++) {
         globN[i] = locN[i] = 0;
     }
 
@@ -397,10 +427,10 @@ void LossDataSink::saveASCII() {
     */
     int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
     bool hasTime = hasTimeAttribute(); // reduce needed for the case when node 0 has no particles
-    if(Ippl::Comm->myNode() == 0) {
+    if (Ippl::Comm->myNode() == 0) {
         const unsigned partCount = x_m.size();
 
-        for(unsigned i = 0; i < partCount; i++) {
+        for (unsigned i = 0; i < partCount; i++) {
             os_m << element_m   << "   ";
             os_m << x_m[i] << "   ";
             os_m << y_m[i] << "   ";
@@ -418,16 +448,16 @@ void LossDataSink::saveASCII() {
         }
 
         int notReceived =  Ippl::getNodes() - 1;
-        while(notReceived > 0) {
+        while (notReceived > 0) {
             unsigned dataBlocks = 0;
             int node = COMM_ANY_NODE;
             Message *rmsg =  Ippl::Comm->receive_block(node, tag);
-            if(rmsg == 0) {
+            if (rmsg == 0) {
                 ERRORMSG("LossDataSink: Could not receive from client nodes output." << endl);
             }
             notReceived--;
             rmsg->get(&dataBlocks);
-            for(unsigned i = 0; i < dataBlocks; i++) {
+            for (unsigned i = 0; i < dataBlocks; i++) {
                 long id;
                 size_t bunchNum, turn;
                 double rx, ry, rz, px, py, pz, time;
@@ -464,7 +494,7 @@ void LossDataSink::saveASCII() {
         Message *smsg = new Message();
         const unsigned msgsize = x_m.size();
         smsg->put(msgsize);
-        for(unsigned i = 0; i < msgsize; i++) {
+        for (unsigned i = 0; i < msgsize; i++) {
             smsg->put(id_m[i]);
             smsg->put(x_m[i]);
             smsg->put(y_m[i]);
@@ -479,8 +509,9 @@ void LossDataSink::saveASCII() {
             }
         }
         bool res = Ippl::Comm->send(smsg, 0, tag);
-        if(! res)
+        if (! res) {
             ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl);
+        }
     }
 }
 
@@ -599,7 +630,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     data[0].sum = nLoc;
 
     unsigned int idx = startIdx;
-    for(unsigned long k = 0; k < nLoc; ++ k, ++ idx) {
+    for (unsigned long k = 0; k < nLoc; ++ k, ++ idx) {
         part[1] = px_m[idx];
         part[3] = py_m[idx];
         part[5] = pz_m[idx];
@@ -607,9 +638,9 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         part[2] = y_m[idx];
         part[4] = z_m[idx];
 
-        for(int i = 0; i < 6; i++) {
+        for (int i = 0; i < 6; i++) {
             localCentroid[i] += part[i];
-            for(int j = 0; j <= i; j++) {
+            for (int j = 0; j <= i; j++) {
                 localMoments[i * 6 + j] += part[i] * part[j];
             }
         }
@@ -621,8 +652,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         ::cminmax(rminmax[4], rminmax[5], z_m[idx]);
     }
 
-    for(int i = 0; i < 6; i++) {
-        for(int j = 0; j < i; j++) {
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < i; j++) {
             localMoments[j * 6 + i] = localMoments[i * 6 + j];
         }
     }
@@ -648,7 +679,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     stat.RefPartP_m = RefPartP_m[setIdx];
     stat.nTotal_m = (unsigned long)std::round(plainData[0]);
 
-    for(unsigned int i = 0 ; i < 3u; i++) {
+    for (unsigned int i = 0 ; i < 3u; i++) {
         stat.rmean_m(i) = centroid[2 * i] / stat.nTotal_m;
         stat.pmean_m(i) = centroid[(2 * i) + 1] / stat.nTotal_m;
         stat.rsqsum_m(i) = (moments[2 * i * 6 + 2 * i] -
@@ -667,7 +698,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
     stat.rpsum_m /= stat.nTotal_m;
 
-    for(unsigned int i = 0 ; i < 3u; i++) {
+    for (unsigned int i = 0 ; i < 3u; i++) {
         stat.rrms_m(i) = sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
         stat.prms_m(i) = sqrt(std::max(0.0, stat.psqsum_m(i)) / stat.nTotal_m);
         stat.eps_norm_m(i)  =  std::sqrt(std::max(0.0, stat.eps2_m(i)));
