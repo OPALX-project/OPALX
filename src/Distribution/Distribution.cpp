@@ -1,11 +1,20 @@
-// Distribution class
 //
-// Copyright (c) 2008-2020
-// Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved.
+// Class Distribution
+//   This class defines the initial beam that is injected or emitted into the simulation.
 //
-// OPAL is licensed under GNU GPL version 3.
-
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Distribution/Distribution.h"
 #include "Distribution/ClosedOrbitFinder.h"
 #include "AbsBeamline/SpecificElementVisitor.h"
@@ -45,6 +54,7 @@
 
 #include <sys/time.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
 
@@ -68,9 +78,6 @@ namespace {
     }
 }
 
-//
-// Class Distribution
-// ------------------------------------------------------------------------
 
 Distribution::Distribution():
     Definition( Attrib::Legacy::Distribution::SIZE, "DISTRIBUTION",
@@ -1001,24 +1008,25 @@ size_t Distribution::getNumberOfParticlesInFile(std::ifstream &inputFile) {
 
 void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, double massIneV) {
 
+    // Data input file is only read by node 0.
+    std::ifstream inputFile;
+    std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
+    if (!boost::filesystem::exists(fileName)) {
+        throw OpalException("Distribution::createDistributionFromFile",
+                            "Open file operation failed, please check if \""
+                            + fileName +
+                            "\" really exists.");
+    }
+    if (Ippl::myNode() == 0) {
+        inputFile.open(fileName.c_str());
+    }
+
     *gmsg << level3 << "\n"
           << "------------------------------------------------------------------------------------\n";
     *gmsg << "READ INITIAL DISTRIBUTION FROM FILE \""
           << Attributes::getString(itsAttr[Attrib::Distribution::FNAME])
           << "\"\n";
     *gmsg << "------------------------------------------------------------------------------------\n" << endl;
-
-    // Data input file is only read by node 0.
-    std::ifstream inputFile;
-    std::string fileName = Attributes::getString(itsAttr[Attrib::Distribution::FNAME]);
-    if (Ippl::myNode() == 0) {
-        inputFile.open(fileName.c_str());
-        if (inputFile.fail())
-            throw OpalException("Distribution::createDistributionFromFile",
-                                "Open file operation failed, please check if \""
-                                + fileName
-                                + "\" really exists.");
-    }
 
     size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
     /*
