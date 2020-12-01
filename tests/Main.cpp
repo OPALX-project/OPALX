@@ -19,10 +19,8 @@ class NewLineAdder: public ::testing::EmptyTestEventListener {
 namespace {
     void errorHandlerGSL(const char *reason,
                          const char *file,
-                         int line,
-                         int gsl_errno) {
-        if(line) {}  // stop gcc unused-parameter warning
-        if(gsl_errno) {}   // stop gcc unused-parameter warning
+                         int /*line*/,
+                         int /*gsl_errno*/) { // commented to stop gcc warning
         throw OpalException(file, reason);
     }
 }

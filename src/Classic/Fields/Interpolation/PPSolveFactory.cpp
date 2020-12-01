@@ -215,22 +215,6 @@ void PPSolveFactory::getDerivPoints() {
             for (size_t k = 0; k < edgePoints[j].size(); ++k) {
                 derivIndices_m.back()[equalAxes[k]] = edgePoints[j][k];
             }
-            int index = 0;
-            // potential bug ... derivIndexByPower_m is never used, is it
-            // needed?
-            while (true) {
-                bool isEqual = true;
-                std::vector<int> polyIndex =
-                           SquarePolynomialVector::IndexByPower(index, posDim);
-                for (int k = 0; k < posDim && isEqual; ++k) {
-                    isEqual = polyIndex[k] == derivIndices_m.back()[k];
-                }
-                if (isEqual) {
-                    // derivIndexByPower_m.push_back(index);
-                    break;
-                }
-                ++index;
-            }
         }
     }
 
@@ -339,14 +323,6 @@ PolynomialPatch* PPSolveFactory::solve() {
         // The polynomial is found using simultaneous equation solve
         polynomials_m[it.toInteger()] = solver.PolynomialSolve
                                                   (thisValues_m, derivValues_m);
-        {
-            std::vector<int> index({1, 1});
-            std::vector<double> pos({1, 2});
-            std::vector<double> val(2);
-            SquarePolynomialVector d11Output = polynomials_m[it.toInteger()]->Deriv(&index[0]);
-            d11Output.F(&pos[0], &val[0]);
-            
-        }
     }
     return new PolynomialPatch(polyMesh_m, points_m, polynomials_m);
 }
