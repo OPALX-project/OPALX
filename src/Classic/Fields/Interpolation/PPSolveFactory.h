@@ -150,7 +150,6 @@ class PPSolveFactory {
     std::vector< std::vector<int> > derivOrigins_m;
     std::vector< std::vector<int> > derivIndices_m;
     std::vector< MVector<double> > derivPolyVec_m;
-    std::vector<int> derivIndexByPower_m;
 
     std::vector<std::vector<std::vector<int> > > edgePoints_m;
     std::vector< std::vector<int> > smoothingPoints_m;
