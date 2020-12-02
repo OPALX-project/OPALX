@@ -228,10 +228,8 @@ class Mesh::Iterator {
     virtual inline void addState(const Mesh::Iterator& it);
 
     friend class Mesh;
-    friend class TwoDGrid;
     friend class ThreeDGrid;
     friend class NDGrid;
-    friend class TriangularMesh;
 
     friend Mesh::Iterator  operator++(Mesh::Iterator& lhs, int);
     friend Mesh::Iterator  operator--(Mesh::Iterator& lhs, int);
