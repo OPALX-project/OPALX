@@ -40,11 +40,11 @@ PolynomialPatch::PolynomialPatch(Mesh* grid_points,
     // validate input data
     if (grid_points_ == NULL)
         throw GeneralClassicException(
-                "PolynomialPatch::PolynomialPatch",                   
+                "PolynomialPatch::PolynomialPatch",
                 "PolynomialPatch grid_points_ was NULL");
     if (validity_region_ == NULL)
         throw GeneralClassicException(
-                "PolynomialPatch::PolynomialPatch",                   
+                "PolynomialPatch::PolynomialPatch",
                 "PolynomialPatch validity_region_ was NULL");
     if (points_.size() == 0) {
         throw GeneralClassicException(
