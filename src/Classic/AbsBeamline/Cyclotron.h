@@ -35,7 +35,6 @@ class Fieldmap;
 class LossDataSink;
 class TrimCoil;
 
-enum BFieldType {PSIBF,CARBONBF,ANSYSBF,AVFEQBF,FFABF,BANDRF,SYNCHRO};
 
 struct BfieldData {
     std::string filename;
@@ -60,19 +59,12 @@ struct BfieldData {
     std::vector<double> g3;  // for Btheta
 
     // Grid-Size
-    //need to be read from inputfile.
-    int nrad, ntet;
-
-    // one more grid line is stored in azimuthal direction:
-    int ntetS;
-
-    // total grid points number.
-    int ntot;
+    int nrad, ntet; //need to be read from inputfile.
+    int ntetS;      // one more grid line is stored in azimuthal direction
+    int ntot;       // total grid points number.
 
     // Mean and Maximas
     double bacc, dbtmx, dbttmx, dbtttmx;
-
-
 };
 
 struct BPositions {
@@ -88,16 +80,22 @@ struct BPositions {
 };
 
 
-// Class Cyclotron
-// ------------------------------------------------------------------------
-/// Interface for a Cyclotron.
-//  This class defines the abstract interface for a Cyclotron.
-
 class Cyclotron: public Component {
+
 public:
 
+    enum class BFieldType {
+        PSIBF,
+        CARBONBF,
+        ANSYSBF,
+        AVFEQBF,
+        FFABF,
+        BANDRF,
+        SYNCHRO
+    };
+
     /// Constructor with given name.
-    explicit Cyclotron(const std::string &name);
+    explicit Cyclotron(const std::string& name);
 
     Cyclotron();
     Cyclotron(const Cyclotron &);
@@ -122,13 +120,11 @@ public:
     void setRFFCoeffFN(std::vector<std::string> rff_coeff_fn);
     void setRFVCoeffFN(std::vector<std::string> rfv_coeff_fn);
     
-    int getFieldFlag(const std::string& type) const;
-
-    void setType(std::string t);
+    void setCyclotronType(std::string t);
     const std::string &getCyclotronType() const;
     virtual ElementBase::ElementType getType() const;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
+    virtual void getDimensions(double& zBegin, double& zEnd) const;
 
     unsigned int getNumberOfTrimcoils() const;
 
@@ -165,7 +161,7 @@ public:
     void   setEScale(std::vector<double> bs);
     virtual double getEScale(unsigned int i) const;
 
-    void setTrimCoils(const std::vector<TrimCoil*> &trimcoils);
+    void setTrimCoils(const std::vector<TrimCoil*>& trimcoils);
 
     void setSuperpose(std::vector<bool> flag);
     virtual bool getSuperpose(unsigned int i) const;
@@ -191,17 +187,17 @@ public:
     void setSpiralFlag(bool spiral_flag);
     virtual bool getSpiralFlag() const;
 
-    virtual bool apply(const size_t &id, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const size_t& id, const double& t, Vector_t& E, Vector_t& B);
 
-    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const Vector_t& R, const Vector_t& P, const double& t, Vector_t& E, Vector_t& B);
 
     virtual void apply(const double& rad, const double& z,
                        const double& tet_rad, double& br,
                        double& bt, double& bz);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, const int &fieldflag, const double &scaleFactor);
+    virtual void initialise(PartBunchBase<double, 3>* bunch, const double& scaleFactor);
 
     virtual void finalise();
 
@@ -217,34 +213,38 @@ public:
                      double& bt,
                      double& bz);
     
-    void read(const int &fieldflag, const double &scaleFactor);
-    
+    void read(const double& scaleFactor);
+
+    void setBFieldType();
+
+    BFieldType fieldType_m;
+
 private:
     /// Apply trim coils (calculate field contributions) with smooth field transition
     void applyTrimCoil  (const double r, const double z, const double tet_rad, double& br, double& bz);
     /// Apply trim coils (calculate field contributions)
-    void applyTrimCoil_m(const double r, const double z, const double tet_rad, double *br, double *bz);
+    void applyTrimCoil_m(const double r, const double z, const double tet_rad, double* br, double* bz);
+
 
 protected:
-    
-    
+   
     void   getdiffs();
 
-    double gutdf5d(double *f, double dx, const int kor, const int krl, const int lpr);
+    double gutdf5d(double* f, double dx, const int kor, const int krl, const int lpr);
 
     void   initR(double rmin, double dr, int nrad);
 
-    void   getFieldFromFile(const double &scaleFactor);
-    void   getFieldFromFile_Carbon(const double &scaleFactor);
-    void   getFieldFromFile_CYCIAE(const double &scaleFactor);
-    void   getFieldFromFile_AVFEQ(const double &scaleFactor);
-    void   getFieldFromFile_FFA(const double &scaleFactor);
-    void   getFieldFromFile_BandRF(const double &scaleFactor);
-    void   getFieldFromFile_Synchrocyclotron(const double &scaleFactor);
+    void   getFieldFromFile_Ring(const double& scaleFactor);
+    void   getFieldFromFile_Carbon(const double& scaleFactor);
+    void   getFieldFromFile_CYCIAE(const double& scaleFactor);
+    void   getFieldFromFile_AVFEQ(const double& scaleFactor);
+    void   getFieldFromFile_FFA(const double& scaleFactor);
+    void   getFieldFromFile_BandRF(const double& scaleFactor);
+    void   getFieldFromFile_Synchrocyclotron(const double& scaleFactor);
 
     inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
 
-    
+
 private:
 
     std::string fmapfn_m; /* stores the filename of the fieldmap */
@@ -267,7 +267,7 @@ private:
     bool spiral_flag_m;
     double trimCoilThreshold_m; ///< B-field threshold for applying trim coil
 
-    std::string type_m; /* what type of field we use */
+    std::string typeName_m; // name of the TYPE parameter in cyclotron
     double harm_m;
 
     double bscale_m; // a scale factor for the B-field
@@ -286,9 +286,6 @@ private:
 
     // Not implemented.
     void operator=(const Cyclotron &) = delete;
-
-
-    BFieldType myBFieldType_m;
 
     // RF field map handler
     //    Fieldmap *RFfield;

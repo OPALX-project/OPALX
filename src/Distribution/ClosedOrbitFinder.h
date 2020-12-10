@@ -290,8 +290,7 @@ ClosedOrbitFinder<Value_type,
         N_m /=  cycl_m->getSymmetry();
     }
 
-    cycl_m->read(cycl_m->getFieldFlag(cycl_m->getCyclotronType()),
-                 cycl_m->getBScale());
+    cycl_m->read(cycl_m->getBScale());
 
     // reserve storage for the orbit and momentum (--> size = 0, capacity = N_m+1)
     /*
