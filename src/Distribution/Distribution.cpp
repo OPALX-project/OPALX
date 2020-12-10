@@ -1225,9 +1225,10 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
     else
         *gmsg << "* SECTOR: " << "match using single sector" << endl;
 
-    *gmsg << "* NSTEPS = " << Nint << endl
-          << "* HN= "      << CyclotronElement->getCyclHarm()
-          << "  PHIINIT= " << CyclotronElement->getPHIinit()  << endl
+    *gmsg << "* NSTEPS = "    << Nint << endl
+          << "* HN = "        << CyclotronElement->getCyclHarm()
+          << "  PHIINIT = "   << CyclotronElement->getPHIinit()    << endl
+          << "* FIELD MAP = " << CyclotronElement->getFieldMapFN() << endl
           << "* ----------------------------------------------------" << endl;
 
     if ( CyclotronElement->getFMLowE()  < 0 ||
