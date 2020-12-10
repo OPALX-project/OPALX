@@ -396,8 +396,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // useful information
     spiral_flag = cycl_m->getSpiralFlag();
 
-    if(spiral_flag) {
-
+    if (spiral_flag) {
         *gmsg << endl << "* This is a Spiral Inflector Simulation! This means the following:" << endl;
         *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;
         *gmsg         << "*     (Use BANDRF type cyclotron and use RFMAPFN to load both magnetic" << endl;
@@ -416,7 +415,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     }
 
     // Fresh run (no restart):
-    if(!OpalData::getInstance()->inRestartRun()) {
+    if (!OpalData::getInstance()->inRestartRun()) {
 
         // Get reference values from cyclotron element
         // For now, these are still stored in mm. should be the only ones. -DW
@@ -426,7 +425,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         referencePr    = cycl_m->getPRinit();
         referencePz    = cycl_m->getPZinit();
 
-        if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+        if (referenceTheta <= -180.0 || referenceTheta > 180.0) {
             throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                 "PHIINIT is out of [-180, 180)!");
         }
@@ -437,25 +436,22 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         float insqrt = referencePtot * referencePtot - \
             referencePr * referencePr - referencePz * referencePz;
 
-        if(insqrt < 0) {
+        if (insqrt < 0) {
 
-            if(insqrt > -1.0e-10) {
-
+            if (insqrt > -1.0e-10) {
                 referencePt = 0.0;
-
             } else {
-
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "Pt imaginary!");
             }
 
         } else {
-
             referencePt = std::sqrt(insqrt);
         }
 
-        if(referencePtot < 0.0)
+        if (referencePtot < 0.0) {
             referencePt *= -1.0;
+        }
         // End calculate referencePt
 
         // Restart a run:
@@ -463,15 +459,15 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
         // If the user wants to save the restarted run in local frame,
         // make sure the previous h5 file was local too
-      if (Options::psDumpFrame != Options::GLOBAL) {
-        if (!previousH5Local) {
+        if (Options::psDumpFrame != Options::GLOBAL) {
+            if (!previousH5Local) {
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a local restart from a global h5 file!");
-        }
+            }
             // Else, if the user wants to save the restarted run in global frame,
             // make sure the previous h5 file was global too
-      } else {
-        if (previousH5Local) {
+        } else {
+            if (previousH5Local) {
                 throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                     "You are trying a global restart from a local h5 file!");
             }
@@ -481,7 +477,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         referencePhi *= Physics::deg2rad;
         referencePsi *= Physics::deg2rad;
         referencePtot = bega;
-        if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+        if (referenceTheta <= -180.0 || referenceTheta > 180.0) {
             throw OpalException("Error in ParallelCyclotronTracker::visitCyclotron",
                                 "PHIINIT is out of [-180, 180)!");
         }
@@ -539,21 +535,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
         *gmsg << std::boolalpha << "* Superpose electric field maps -> " << superpose << endl;
     }
 
-    /**
-     * To ease the initialise() function, set a integral parameter fieldflag internally.
-     * Its value is  by the option "TYPE" of the element  "CYCLOTRON"
-     * fieldflag = 1, readin PSI format measured field file (default)
-     * fieldflag = 2, readin carbon cyclotron field file created by Jianjun Yang, TYPE=CARBONCYCL
-     * fieldflag = 3, readin ANSYS format file for CYCIAE-100 created by Jianjun Yang, TYPE=CYCIAE
-     * fieldflag = 4, readin AVFEQ format file for Riken cyclotrons
-     * fieldflag = 5, readin FFA format file for MSU/FNAL FFA
-     * fieldflag = 6, readin both median plane B field map and 3D E field map of RF cavity for compact cyclotron
-     * fieldflag = 7, read in fields for Daniel's synchrocyclotron simulations
-     */
-    int fieldflag = cycl_m->getFieldFlag(type);
-
-    // Read in cyclotron field maps (midplane + 3D fields if desired).
-    cycl_m->initialise(itsBunch_m, fieldflag, cycl_m->getBScale());
+    // Read in cyclotron field maps 
+    cycl_m->initialise(itsBunch_m, cycl_m->getBScale());
 
     double BcParameter[8] = {};
 
