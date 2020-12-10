@@ -170,7 +170,7 @@ void OpalCyclotron::update() {
 
     cycl->setBScale(bscale);
 
-    cycl->setType(type);
+    cycl->setCyclotronType(type);
     cycl->setCyclHarm(harmnum);
 
     cycl->setMinR(minr);
@@ -218,9 +218,9 @@ void OpalCyclotron::update() {
     cycl->setRfFrequ(rff_str);
     cycl->setSuperpose(superpose_str);
 
-    if(itsAttr[GEOMETRY] && obgeo_m == nullptr) {
+    if (itsAttr[GEOMETRY] && obgeo_m == nullptr) {
       obgeo_m = BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY]));
-      if(obgeo_m) {
+      if (obgeo_m) {
           cycl->setBoundaryGeometry(obgeo_m);
       }
     }
