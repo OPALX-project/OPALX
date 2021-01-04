@@ -1,20 +1,18 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Main.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.9.2.2 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Main program for OPAL
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
-// ------------------------------------------------------------------------
+// All rights reserved
 //
-// $Date: 2004/11/12 20:10:10 $
-// $Author: adelmann $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "opal.h"
 
 #include "H5hut.h"
@@ -69,6 +67,52 @@ namespace {
                          int /*gsl_errno*/) {
         throw OpalException(file, reason);
     }
+
+    void printStdoutHeader() {
+        OPALTimer::Timer simtimer;
+        std::string dateStr(simtimer.date());
+        std::string timeStr(simtimer.time());
+        std::string mySpace("            ");
+
+        *gmsg << mySpace <<  "   ____  _____       ___ " << endl;
+        *gmsg << mySpace <<  "  / __ \\|  __ \\ /\\   | | " << endl;
+        *gmsg << mySpace <<  " | |  | | |__) /  \\  | |" << endl;
+        *gmsg << mySpace <<  " | |  | |  ___/ /\\ \\ | |" << endl ;
+        *gmsg << mySpace <<  " | |__| | |  / ____ \\| |____" << endl;
+        *gmsg << mySpace <<  "  \\____/|_| /_/    \\_\\______|" << endl;
+
+        std::string gitRevision = "git rev. " + Util::getGitRevision();
+        std::string copyRight = "(c) PSI, http://amas.web.psi.ch";
+        *gmsg << endl
+              << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_PROJECT_VERSION << "\n"
+              << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n" << endl
+              << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n" << endl
+              << "The optimiser (former opt-Pilot) is integrated " << endl
+              << endl;
+
+        *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
+        *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
+    }
+
+    void printHelp() {
+        printStdoutHeader();
+
+        INFOMSG("\n");
+        INFOMSG("Usage: opal [<option> <option> ...]\n");
+        INFOMSG("   The possible values for <option> are:\n");
+        INFOMSG("   --version           : Print the version of opal.\n");
+        INFOMSG("   --version-full      : Print the version of opal with additional informations.\n");
+        INFOMSG("   --git-revision      : Print the revision hash of the repository.\n");
+        INFOMSG("   --input <fname>     : Specifies the input file <fname>.\n");
+        INFOMSG("   --restart <n>       : Performes a restart from step <n>.\n");
+        INFOMSG("   --restartfn <fname> : Uses the file <fname> to restart from.\n");
+#ifdef ENABLE_AMR
+        INFOMSG("   --noInitAMR         : Disable initialization of AMR\n");
+#endif
+        Ippl::printHelp();
+        INFOMSG("   --help              : Display this command-line summary.\n");
+        INFOMSG(endl);
+    }
 }
 
 
@@ -100,11 +144,6 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    OPALTimer::Timer simtimer;
-
-    std::string dateStr(simtimer.date());
-    std::string timeStr(simtimer.time());
-
     H5SetVerbosityLevel(1); //65535);
 
     gsl_set_error_handler(&errorHandlerGSL);
@@ -112,30 +151,8 @@ int main(int argc, char *argv[]) {
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
 
-    Inform hmsg("");
-    std::string mySpace("            ");
 
     if(Ippl::myNode() == 0) remove("errormsg.txt");
-
-    hmsg << mySpace <<  "   ____  _____       ___ " << endl;
-    hmsg << mySpace <<  "  / __ \\|  __ \\ /\\   | | " << endl;
-    hmsg << mySpace <<  " | |  | | |__) /  \\  | |" << endl;
-    hmsg << mySpace <<  " | |  | |  ___/ /\\ \\ | |" << endl ;
-    hmsg << mySpace <<  " | |__| | |  / ____ \\| |____" << endl;
-    hmsg << mySpace <<  "  \\____/|_| /_/    \\_\\______|" << endl;
-
-
-    std::string gitRevision = "git rev. " + Util::getGitRevision();
-    std::string copyRight = "(c) PSI, http://amas.web.psi.ch";
-    *gmsg << endl
-          << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_PROJECT_VERSION << "\n"
-          << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n" << endl
-          << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n" << endl
-          << "The optimiser (former opt-Pilot) is integrated " << endl
-          << endl;
-
-    *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
-    *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
     const OpalParser parser;
 
@@ -198,7 +215,8 @@ int main(int argc, char *argv[]) {
             }
             FileStream::setEcho(Options::echo);
         } else {
-            *gmsg << "Couldn't find startup file \"" << startup << "\".\n"
+            *gmsg << level5
+                  << "Couldn't find startup file \"" << startup << "\".\n"
                   << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
         }
 
@@ -206,30 +224,25 @@ int main(int argc, char *argv[]) {
             // Run commands from standard input
             parser.run(new TerminalStream("OPAL"));
         } else {
-            int arg = -1;
+            int inputFileArgument = -1;
             std::string fname;
             std::string restartFileName;
             //         // will write dumping date into a new h5 file
             for(int ii = 1; ii < argc; ++ ii) {
                 std::string argStr = std::string(argv[ii]);
                 // The sequence of the two arguments is free
-                if (argStr == std::string("--input")) {
-                    ++ ii;
-                    arg = ii;
-                    INFOMSG(argv[ii] << endl);
-                    continue;
-                } else if (argStr == std::string("-restart") ||
-                           argStr == std::string("--restart")) {
-                    opal->setRestartRun();
-                    opal->setRestartStep(atoi(argv[++ ii]));
-                    opal->setRestartFileName(argv[1]);
-                    continue;
-                } else if (argStr == std::string("-restartfn") ||
-                           argStr == std::string("--restartfn")) {
-                    restartFileName = std::string(argv[++ ii]);
-                    continue;
-                } else if (argStr == std::string("-version") ||
-                           argStr == std::string("--version")) {
+                if (argStr == std::string("-h") ||
+                    argStr == std::string("-help") ||
+                    argStr == std::string("--help")) {
+                    ::printHelp();
+                    exit(0);
+                } else if (argStr == std::string("--version")) {
+                    if (Ippl::myNode() == 0) {
+                        std::cout << OPAL_PROJECT_VERSION << std::endl;
+                    }
+                    exit(0);
+                } else if (argStr == std::string("--version-full")) {
+                    ::printStdoutHeader();
                     INFOMSG("OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. " << Util::getGitRevision() << endl);
                     IpplInfo::printVersion();
                     std::string options = (IpplInfo::compileOptions() +
@@ -262,44 +275,47 @@ int main(int argc, char *argv[]) {
                     }
                     INFOMSG(header << options << endl);
                     exit(0);
+                } else if (argStr == std::string("--git-revision")) {
+                    if (Ippl::myNode() == 0) {
+                        std::cout << Util::getGitRevision() << std::endl;
+                    }
+                    exit(0);
+                } else if (argStr == std::string("--input")) {
+                    ++ ii;
+                    inputFileArgument = ii;
+                    continue;
+                } else if (argStr == std::string("-restart") ||
+                           argStr == std::string("--restart")) {
+                    opal->setRestartRun();
+                    opal->setRestartStep(atoi(argv[++ ii]));
+                    continue;
+                } else if (argStr == std::string("-restartfn") ||
+                           argStr == std::string("--restartfn")) {
+                    restartFileName = std::string(argv[++ ii]);
+                    continue;
                 } else if ( argStr.find("noInitAMR") != std::string::npos) {
                     // do nothing here
-                } else if (argStr == std::string("-help") ||
-                           argStr == std::string("--help")) {
-                    IpplInfo::printHelp(argv);
-                    INFOMSG("   --version            : Print a brief version summary.\n");
-                    INFOMSG("   --input <fname>      : Specifies the input file <fname>.\n");
-                    INFOMSG("   --restart <n>        : Performes a restart from step <n>.\n");
-                    INFOMSG("   --restartfn <fname>  : Uses the file <fname> to restart from.\n");
-                    INFOMSG("   --help               : Display this command-line summary.\n");
-                    INFOMSG(endl);
-                    exit(0);
                 } else {
-                    if (arg == -1 &&
+                    if (inputFileArgument == -1 &&
                         (ii == 1 || ii + 1 == argc) &&
                         argv[ii][0] != '-') {
-                        arg = ii;
+                        inputFileArgument = ii;
                         continue;
                     } else {
                         INFOMSG("Unknown argument \"" << argStr << "\"" << endl);
-                        IpplInfo::printHelp(argv);
-                        INFOMSG("   --version            : Print a brief version summary.\n");
-                        INFOMSG("   --input <fname>      : Specifies the input file <fname>.\n");
-                        INFOMSG("   --restart <n>        : Performes a restart from step <n>.\n");
-                        INFOMSG("   --restartfn <fname>  : Uses the file <fname> to restart from.\n");
-                        INFOMSG("   --help               : Display this command-line summary.\n");
-                        INFOMSG(endl);
+                        ::printHelp();
                         exit(1);
                     }
                 }
             }
 
-            if (arg == -1) {
+            ::printStdoutHeader();
+            if (inputFileArgument == -1) {
                 INFOMSG("No input file provided!" << endl);
                 exit(1);
             }
 
-            fname = std::string(argv[arg]);
+            fname = std::string(argv[inputFileArgument]);
             if (!fs::exists(fname)) {
                 INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
                 exit(1);
