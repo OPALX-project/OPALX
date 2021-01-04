@@ -1,29 +1,30 @@
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- * This program was prepared by PSI.
- * All rights in the program are reserved by PSI.
- * Neither PSI nor the author(s)
- * makes any warranty, express or implied, or assumes any liability or
- * responsibility for the use of this software
- *
- * Visit www.amas.web.psi for more details
- *
- ***************************************************************************/
-
-// -*- C++ -*-
-/***************************************************************************
- *
- * The IPPL Framework
- *
- *
- * Visit http://people.web.psi.ch/adelmann/ for more details
- *
- ***************************************************************************/
-
-// include files
+//
+// IpplInfo has the following capabilities:
+//   1) It initializes all globally-used Ippl variables, such as the
+//      Communicate class and other manager classes;
+//   2) It parses command-line arguments to determine how to configure the
+//      global state of the Ippl application;
+//   3) It properly selects and configures the Communicate class, generally
+//      resulting in initialization of the parallel machine;
+//   4) It offers to the user a single class with access member functions to
+//      query for information about the Ippl application (such as what is
+//      the Communicate class instance to use, how many processors are there
+//      in the current run, etc.)
+//
+// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Utility/IpplInfo.h"
 #include "Utility/Inform.h"
 #include "Utility/IpplStats.h"
@@ -465,7 +466,9 @@ IpplInfo::IpplInfo(int& argc, char**& argv, int removeargs, MPI_Comm mpicomm) {
                     ( strcmp(argv[i], "-h") == 0 ) ||
                     ( strcmp(argv[i], "-?") == 0 ) ) {
                 // print out summary of command line switches and exit
-                printHelp(argv);
+                INFOMSG("Usage: " << argv[0] << " [<option> <option> ...]\n");
+                INFOMSG("   The possible values for <option> are:\n");
+                printHelp();
                 INFOMSG("   --ipplversion       : Print a brief version summary.\n");
                 INFOMSG("   --ipplversionall    : Print a detailed version summary.\n");
                 INFOMSG("   --ipplhelp          : Display this command-line summary.\n");
@@ -738,9 +741,7 @@ void IpplInfo::printVersion(void) {
 }
 
 
-void IpplInfo::printHelp(char** argv) {
-    INFOMSG("Usage: " << argv[0] << " [<option> <option> ...]\n");
-    INFOMSG("       The possible values for <option> are:\n");
+void IpplInfo::printHelp() {
     INFOMSG("   --summary           : Print IPPL lib summary at start.\n");
     INFOMSG("   --processes <n>     : Number of parallel nodes to use.\n");
     INFOMSG("   --commlib <x>       : Selects a parallel comm. library.\n");
