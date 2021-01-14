@@ -126,9 +126,7 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
     if (type.empty()) {
         throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
                             "TYPE is not defined for PARTICLEMATTERINTERACTION");    
-    } else if (type == "CCOLLIMATOR" ||
-               type == "COLLIMATOR" ||
-               type == "DEGRADER") {
+    } else if (type == "COLLIMATOR" || type == "DEGRADER") {
          handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
          *gmsg << *this << endl;
     } else if (type == "BEAMSTRIPPING") {
