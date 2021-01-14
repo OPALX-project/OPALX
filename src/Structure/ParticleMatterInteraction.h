@@ -41,40 +41,39 @@ public:
     virtual ~ParticleMatterInteraction();
 
     /// Test if replacement is allowed.
-    //  Can replace only by another WAKE.
-    virtual bool canReplaceBy(Object *object);
+    virtual bool canReplaceBy(Object* object);
 
     /// Make clone.
-    virtual ParticleMatterInteraction *clone(const std::string &name);
+    virtual ParticleMatterInteraction* clone(const std::string& name);
 
     /// Check the PARTICLEMATTERINTERACTION data.
     virtual void execute();
 
     /// Find named PARTICLEMATTERINTERACTION.
-    static ParticleMatterInteraction *find(const std::string &name);
+    static ParticleMatterInteraction* find(const std::string& name);
 
     /// Update the PARTICLEMATTERINTERACTION data.
     virtual void update();
 
-    void print(std::ostream &os) const;
+    void print(std::ostream& os) const;
 
-    void initParticleMatterInteractionHandler(ElementBase &element);
+    void initParticleMatterInteractionHandler(ElementBase& element);
 
-    void updateElement(ElementBase *element);
+    void updateElement(ElementBase* element);
 
-    ParticleMatterInteractionHandler *handler_m;
+    ParticleMatterInteractionHandler* handler_m;
 
 private:
 
     // Not implemented.
-    ParticleMatterInteraction(const ParticleMatterInteraction &);
-    void operator=(const ParticleMatterInteraction &);
+    ParticleMatterInteraction(const ParticleMatterInteraction&);
+    void operator=(const ParticleMatterInteraction&);
 
     // Clone constructor.
-    ParticleMatterInteraction(const std::string &name, ParticleMatterInteraction *parent);
+    ParticleMatterInteraction(const std::string& name, ParticleMatterInteraction* parent);
 };
 
-inline std::ostream &operator<<(std::ostream &os, const ParticleMatterInteraction &b) {
+inline std::ostream& operator<<(std::ostream& os, const ParticleMatterInteraction& b) {
     b.print(os);
     return os;
 }
