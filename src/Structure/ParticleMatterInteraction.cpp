@@ -123,20 +123,21 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
     bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
 
     const std::string type = Attributes::getString(itsAttr[TYPE]);
-    if (type == "CCOLLIMATOR" ||
-       type == "COLLIMATOR" ||
-       type == "DEGRADER") {
-
-        handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
-        *gmsg << *this << endl;
-    }
-    else if (type == "BEAMSTRIPPING") {
-        handler_m = new BeamStrippingPhysics(getOpalName(), &element);
-        *gmsg << *this << endl;
-    }
-    else {
-        handler_m = 0;
-        INFOMSG(getOpalName() + ": no particle mater interaction handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
+    if (type.empty()) {
+        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                            "TYPE is not defined for PARTICLEMATTERINTERACTION");    
+    } else if (type == "CCOLLIMATOR" ||
+               type == "COLLIMATOR" ||
+               type == "DEGRADER") {
+         handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
+         *gmsg << *this << endl;
+    } else if (type == "BEAMSTRIPPING") {
+         handler_m = new BeamStrippingPhysics(getOpalName(), &element);
+         *gmsg << *this << endl;
+    } else {
+        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                            getOpalName() + ": TYPE == " + Attributes::getString(itsAttr[TYPE])
+                            + " is not defined!");
     }
 }
 
