@@ -47,10 +47,10 @@ namespace {
 ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATTERINTERACTION",
                "The \"PARTICLEMATTERINTERACTION\" statement defines data for "
-               "the particle mater interaction handler on an element."),
+               "the particle matter interaction handler on an element."),
     handler_m(0) {
     itsAttr[TYPE] = Attributes::makeUpperCaseString
-        ("TYPE", "Specifies the particle mater interaction handler: COLLIMATOR, DEGRADER, BEAMSTRIPPING");
+        ("TYPE", "Specifies the particle matter interaction handler: COLLIMATOR, DEGRADER, BEAMSTRIPPING");
 
     itsAttr[MATERIAL] = Attributes::makeUpperCaseString
         ("MATERIAL", "The material of the surface");
