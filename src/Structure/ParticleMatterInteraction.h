@@ -2,7 +2,7 @@
 // Class ParticleMatterInteraction
 //   The class for the OPAL PARTICLEMATTERINTERACTION command.
 //
-// Copyright (c) 2012-2019, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2012-2021, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                          Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
 //                          Pedro Calvo, CIEMAT, Spain
 // All rights reserved
@@ -24,36 +24,12 @@
 #ifndef OPAL_PARTICLEMATTERINTERACTION_HH
 #define OPAL_PARTICLEMATTERINTERACTION_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: Wake.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Wake
-//
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:33:44 $
-// $Author: Andreas Adelmann $
-//
-// ------------------------------------------------------------------------
-
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 
 class ElementBase;
 class Inform;
-
-// Class Wake
-// ------------------------------------------------------------------------
-/// The WAKE definition.
-//  A WAKE definition is used by most physics commands to define the
-//  particle charge and the reference momentum, together with some other
-//  data.
 
 class ParticleMatterInteraction: public Definition {
 

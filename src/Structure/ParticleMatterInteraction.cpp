@@ -2,7 +2,7 @@
 // Class ParticleMatterInteraction
 //   The class for the OPAL PARTICLEMATTERINTERACTION command.
 //
-// Copyright (c) 2012-2019, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2012-2021, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                          Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
 //                          Pedro Calvo, CIEMAT, Spain
 // All rights reserved
@@ -21,7 +21,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #include "Structure/ParticleMatterInteraction.h"
 
 #include "AbsBeamline/ElementBase.h"
@@ -37,9 +36,9 @@ extern Inform *gmsg;
 
 namespace {
     enum {
-        // DESCRIPTION OF SINGLE PARTICLE:
-        TYPE,       // The type of the wake
-        MATERIAL,   // From of the tube
+        // DESCRIPTION OF PARTICLE MATTER INTERACTION:
+        TYPE,
+        MATERIAL,
         ENABLERUTHERFORD,
         SIZE
     };
@@ -47,17 +46,17 @@ namespace {
 
 ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATTERINTERACTION",
-               "The \"SURFACE_PHYSICS\" statement defines data for the particle mater interaction handler "
-               "on an element."),
+               "The \"PARTICLEMATTERINTERACTION\" statement defines data for "
+               "the particle mater interaction handler on an element."),
     handler_m(0) {
     itsAttr[TYPE] = Attributes::makeUpperCaseString
-                    ("TYPE", "Specifies the particle mater interaction handler: Collimator");
+        ("TYPE", "Specifies the particle mater interaction handler: COLLIMATOR, DEGRADER, BEAMSTRIPPING");
 
     itsAttr[MATERIAL] = Attributes::makeUpperCaseString
-                        ("MATERIAL", "The material of the surface");
+        ("MATERIAL", "The material of the surface");
 
-    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD",
-                                                     "Enable large angle scattering", true);
+    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool
+        ("ENABLERUTHERFORD", "Enable large angle scattering", true);
 
     ParticleMatterInteraction *defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
     defParticleMatterInteraction->builtin = true;
