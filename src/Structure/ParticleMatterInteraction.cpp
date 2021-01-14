@@ -32,7 +32,7 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
 namespace {
     enum {
@@ -58,7 +58,7 @@ ParticleMatterInteraction::ParticleMatterInteraction():
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool
         ("ENABLERUTHERFORD", "Enable large angle scattering", true);
 
-    ParticleMatterInteraction *defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
+    ParticleMatterInteraction* defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
     defParticleMatterInteraction->builtin = true;
 
     try {
@@ -72,7 +72,7 @@ ParticleMatterInteraction::ParticleMatterInteraction():
 }
 
 
-ParticleMatterInteraction::ParticleMatterInteraction(const std::string &name, ParticleMatterInteraction *parent):
+ParticleMatterInteraction::ParticleMatterInteraction(const std::string& name, ParticleMatterInteraction* parent):
     Definition(name, parent),
     handler_m(parent->handler_m)
 {}
@@ -84,13 +84,13 @@ ParticleMatterInteraction::~ParticleMatterInteraction() {
 }
 
 
-bool ParticleMatterInteraction::canReplaceBy(Object *object) {
+bool ParticleMatterInteraction::canReplaceBy(Object* object) {
     // Can replace only by another PARTICLEMATTERINTERACTION.
-    return dynamic_cast<ParticleMatterInteraction *>(object) != 0;
+    return dynamic_cast<ParticleMatterInteraction*>(object) != 0;
 }
 
 
-ParticleMatterInteraction *ParticleMatterInteraction::clone(const std::string &name) {
+ParticleMatterInteraction* ParticleMatterInteraction::clone(const std::string& name) {
     return new ParticleMatterInteraction(name, this);
 }
 
@@ -100,8 +100,8 @@ void ParticleMatterInteraction::execute() {
 }
 
 
-ParticleMatterInteraction *ParticleMatterInteraction::find(const std::string &name) {
-    ParticleMatterInteraction *parmatint = dynamic_cast<ParticleMatterInteraction *>(OpalData::getInstance()->find(name));
+ParticleMatterInteraction* ParticleMatterInteraction::find(const std::string& name) {
+    ParticleMatterInteraction* parmatint = dynamic_cast<ParticleMatterInteraction*>(OpalData::getInstance()->find(name));
 
     if (parmatint == 0) {
         throw OpalException("ParticleMatterInteraction::find()", "ParticleMatterInteraction \"" + name + "\" not found.");
@@ -116,7 +116,7 @@ void ParticleMatterInteraction::update() {
 }
 
 
-void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase &element) {
+void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase& element) {
 
     std::string material = Attributes::getString(itsAttr[MATERIAL]);
     bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
@@ -138,11 +138,11 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
     }
 }
 
-void ParticleMatterInteraction::updateElement(ElementBase *element) {
+void ParticleMatterInteraction::updateElement(ElementBase* element) {
     handler_m->updateElement(element);
 }
 
-void ParticleMatterInteraction::print(std::ostream &os) const {
+void ParticleMatterInteraction::print(std::ostream& os) const {
     os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N ****************** " << std::endl;
     os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
