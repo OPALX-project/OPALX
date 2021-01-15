@@ -9,6 +9,7 @@
 #include "Physics/Physics.h"
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
 #include "Message/Communicate.h"
 #include "Message/Message.h"
@@ -462,10 +463,11 @@ void H5PartWrapper::copyStepData(
     REPORTONERROR(H5PartSetNumParticles(file_m, numParticles));
 
     std::vector<char> buffer(numParticles * sizeof(h5_float64_t));
-    h5_float32_t *f32buffer = reinterpret_cast<h5_float32_t*>(&buffer[0]);
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    char* buffer_ptr = Util::c_data(buffer);
+    h5_float32_t *f32buffer = reinterpret_cast<h5_float32_t*>(buffer_ptr);
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
+    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(buffer_ptr);
+    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(buffer_ptr);
 
    h5_ssize_t numDatasets = H5PartGetNumDatasets(source);
 

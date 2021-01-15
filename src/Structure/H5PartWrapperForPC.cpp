@@ -161,7 +161,9 @@ void H5PartWrapperForPC::readStepData(PartBunchBase<double, 3>* bunch,
     numParticles = lastParticle - firstParticle + 1;
 
     std::vector<char> buffer(numParticles * sizeof(h5_float64_t));
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
+    char* buffer_ptr = Util::c_data(buffer);
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
+    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(buffer_ptr);
 
     READDATA(Float64, file_m, "x", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
@@ -205,16 +207,12 @@ void H5PartWrapperForPC::readStepData(PartBunchBase<double, 3>* bunch,
     }
 
     if ( bunch->getNumBunch() > 1 ) {
-        std::vector<char> ibuffer(numParticles * sizeof(h5_int64_t));
-        h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&ibuffer[0]);
         READDATA(Int64, file_m, "bin", i64buffer);
         for(long int n = 0; n < numParticles; ++ n) {
             bunch->Bin[n] = i64buffer[n];
         }
     }
 
-    std::vector<char> ibuffer(numParticles * sizeof(h5_int64_t));
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&ibuffer[0]);
     READDATA(Int64, file_m, "bunchNumber", i64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
         bunch->bunchNum[n] = i64buffer[n];
@@ -486,8 +484,9 @@ void H5PartWrapperForPC::writeStepData(PartBunchBase<double, 3>* bunch) {
     const size_t skipID = IDZero;
 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int64_t   *i64buffer = reinterpret_cast<h5_int64_t*>  (&buffer[0]);
+    char* buffer_ptr = Util::c_data(buffer);
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
+    h5_int64_t   *i64buffer = reinterpret_cast<h5_int64_t*>  (buffer_ptr);
 
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));

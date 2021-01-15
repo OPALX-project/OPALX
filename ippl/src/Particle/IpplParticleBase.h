@@ -100,7 +100,8 @@
 #include "AppTypes/Vektor.h"
 #include "DataSource/DataSource.h"
 #include "DataSource/MakeDataSource.h"
-#include "Message/Formatter.h"
+#include "Message/Format.h"
+#include "Message/MsgBuffer.h"
 #include <vector>
 #include <utility>
 #include <iostream>
