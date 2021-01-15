@@ -99,6 +99,9 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
         add_link_options (-fopenmp)
     endif ()
 
+    # Enables extra error checking in the form of precondition assertion, such
+    # as bounds checking and null pointer checks when dereferencing smart pointers
+    add_compile_options(-Wp,-D_GLIBCXX_ASSERTIONS)
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, if you are having problems.")
 endif ()
