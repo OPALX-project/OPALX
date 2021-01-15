@@ -196,6 +196,13 @@ namespace Util {
 
     std::string base64_encode(const std::string &string_to_encode);//unsigned char const* , unsigned int len);
     std::string base64_decode(std::string const& s);
+
+    template<typename T, typename A>
+    T* c_data(std::vector<T,A>& v) { return v.empty() ? static_cast<T*>(0) : &(v[0]); }
+
+    template<typename T, typename A>
+    T const* c_data(std::vector<T,A> const& v) { return v.empty() ? static_cast<T const*>(0) : &(v[0]); }
+
 }
 
 template <typename T>

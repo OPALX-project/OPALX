@@ -142,8 +142,9 @@ void H5PartWrapperForPT::readStepData(PartBunchBase<double, 3>* bunch, h5_ssize_
     numParticles = lastParticle - firstParticle + 1;
 
     std::vector<char> buffer(numParticles * sizeof(h5_float64_t));
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
+    char* buffer_ptr = Util::c_data(buffer);
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
+    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(buffer_ptr);
 
     READDATA(Float64, file_m, "x", f64buffer);
     for(long int n = 0; n < numParticles; ++ n) {
@@ -390,9 +391,10 @@ void H5PartWrapperForPT::writeStepData(PartBunchBase<double, 3>* bunch) {
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
 
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
+    char* buffer_ptr = Util::c_data(buffer);
+    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
+    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(buffer_ptr);
+    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(buffer_ptr);
 
     for(size_t i = 0; i < numLocalParticles; ++ i)
         f64buffer[i] =  bunch->R[i](0);
