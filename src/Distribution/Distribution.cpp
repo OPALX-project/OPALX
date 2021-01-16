@@ -1003,11 +1003,13 @@ size_t Distribution::getNumberOfParticlesInFile(std::ifstream &inputFile) {
 void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, double massIneV) {
 
     *gmsg << level3 << "\n"
-          << "------------------------------------------------------------------------------------\n";
+          << "-------------------------------------------------------------------"
+             "-----------------\n";
     *gmsg << "READ INITIAL DISTRIBUTION FROM FILE \""
-          << Attributes::getString(itsAttr[Attrib::Distribution::FNAME])
-          << "\"\n";
-    *gmsg << "------------------------------------------------------------------------------------\n" << endl;
+          << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << "\"\n";
+    *gmsg << "-------------------------------------------------------------------"
+             "-----------------\n"
+          << endl;
 
     // Data input file is only read by node 0.
     std::ifstream inputFile;
@@ -1030,26 +1032,25 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
 
     pmean_m = 0.0;
 
-    size_t numPartsToSend = 0;
     unsigned int distributeFrequency = 1000;
-    size_t singleDataSize = (/*sizeof(int) +*/ 6 * sizeof(double));
-    unsigned int dataSize = distributeFrequency * singleDataSize;
-    std::vector<char> data;
+    size_t singleDataSize            = 6;
+    unsigned int dataSize            = distributeFrequency * singleDataSize;
+    std::vector<double> data(dataSize);
 
-    data.reserve(dataSize);
-
-    const char* buffer;
     if (Ippl::myNode() == 0) {
-        char lineBuffer[1024];
-        unsigned int numParts = 0;
+        constexpr unsigned int bufferSize = 1024;
+        char lineBuffer[bufferSize];
+        unsigned int numParts                         = 0;
+        std::vector<double>::iterator currentPosition = data.begin();
         while (!inputFile.eof()) {
-            inputFile.getline(lineBuffer, 1024);
+            inputFile.getline(lineBuffer, bufferSize);
 
             Vector_t R(0.0), P(0.0);
 
             std::istringstream line(lineBuffer);
             line >> R(0);
-            if (line.rdstate()) break;
+            if (line.rdstate())
+                break;
             line >> P(0);
             line >> R(1);
             line >> P(1);
@@ -1068,19 +1069,14 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
             pmean_m += P;
 
             if (saveProcessor > 0u) {
-                buffer = reinterpret_cast<const char*>(&R[0]);
-                data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
-                buffer = reinterpret_cast<const char*>(&P[0]);
-                data.insert(data.end(), buffer, buffer + 3 * sizeof(double));
-                ++ numPartsToSend;
+                currentPosition = std::copy(&(R[0]), &(R[0]) + 3, currentPosition);
+                currentPosition = std::copy(&(P[0]), &(P[0]) + 3, currentPosition);
 
-                if (numPartsToSend % distributeFrequency == 0) {
+                if (currentPosition == data.end()) {
                     MPI_Bcast(&dataSize, 1, MPI_UNSIGNED, 0, Ippl::getComm());
-                    MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
-                    numPartsToSend = 0;
+                    MPI_Bcast(&(data[0]), dataSize, MPI_DOUBLE, 0, Ippl::getComm());
 
-                    std::vector<char>().swap(data);
-                    data.reserve(dataSize);
+                    currentPosition = data.begin();
                 }
             } else {
                 xDist_m.push_back(R(0));
@@ -1091,53 +1087,49 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
                 pzDist_m.push_back(P(2));
             }
 
-            ++ numParts;
-            ++ saveProcessor;
+            ++numParts;
+            ++saveProcessor;
         }
 
-        dataSize = (numberOfParticlesRead == numParts? data.size(): std::numeric_limits<unsigned int>::max());
+        dataSize =
+            (numberOfParticlesRead == numParts ? currentPosition - data.begin()
+                                               : std::numeric_limits<unsigned int>::max());
+
         MPI_Bcast(&dataSize, 1, MPI_UNSIGNED, 0, Ippl::getComm());
         if (numberOfParticlesRead != numParts) {
-            throw OpalException("Distribution::createDistributionFromFile",
-                                "Found " +
-                                std::to_string(numParts) +
-                                " particles in file '" +
-                                fileName +
-                                "' instead of " +
-                                std::to_string(numberOfParticlesRead));
+            throw OpalException(
+                "Distribution::createDistributionFromFile",
+                "Found " + std::to_string(numParts) + " particles in file '" + fileName
+                    + "' instead of " + std::to_string(numberOfParticlesRead));
         }
-        MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+        MPI_Bcast(&(data[0]), dataSize, MPI_DOUBLE, 0, Ippl::getComm());
 
     } else {
         do {
             MPI_Bcast(&dataSize, 1, MPI_UNSIGNED, 0, Ippl::getComm());
             if (dataSize == std::numeric_limits<unsigned int>::max()) {
-                throw OpalException("Distribution::createDistributionFromFile",
-                                    "Couldn't find " +
-                                    std::to_string(numberOfParticlesRead) +
-                                    " particles in file '" +
-                                    fileName + "'");
+                throw OpalException(
+                    "Distribution::createDistributionFromFile",
+                    "Couldn't find " + std::to_string(numberOfParticlesRead)
+                        + " particles in file '" + fileName + "'");
             }
-            MPI_Bcast(&data[0], dataSize, MPI_CHAR, 0, Ippl::getComm());
+            MPI_Bcast(&(data[0]), dataSize, MPI_DOUBLE, 0, Ippl::getComm());
 
             size_t i = 0;
             while (i < dataSize) {
-
-                if (saveProcessor + 1 == (unsigned) Ippl::myNode()) {
-                    const double *tmp = reinterpret_cast<const double*>(&data[i]);
+                if (saveProcessor + 1 == (unsigned)Ippl::myNode()) {
+                    const double* tmp = &(data[i]);
                     xDist_m.push_back(tmp[0]);
                     yDist_m.push_back(tmp[1]);
                     tOrZDist_m.push_back(tmp[2]);
                     pxDist_m.push_back(tmp[3]);
                     pyDist_m.push_back(tmp[4]);
                     pzDist_m.push_back(tmp[5]);
-                    i += 6 * sizeof(double);
-                } else {
-                    i += singleDataSize;
                 }
+                i += singleDataSize;
 
-                ++ saveProcessor;
-                if (saveProcessor + 1 >= (unsigned) Ippl::getNodes()) {
+                ++saveProcessor;
+                if (saveProcessor + 1 >= (unsigned)Ippl::getNodes()) {
                     saveProcessor = 0;
                 }
             }
@@ -1150,7 +1142,6 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
     if (Ippl::myNode() == 0)
         inputFile.close();
 }
-
 
 void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
                                                   double massIneV,
