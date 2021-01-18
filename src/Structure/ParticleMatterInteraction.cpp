@@ -2,7 +2,7 @@
 // Class ParticleMatterInteraction
 //   The class for the OPAL PARTICLEMATTERINTERACTION command.
 //
-// Copyright (c) 2012-2019, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2012-2021, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                          Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
 //                          Pedro Calvo, CIEMAT, Spain
 // All rights reserved
@@ -21,7 +21,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #include "Structure/ParticleMatterInteraction.h"
 
 #include "AbsBeamline/ElementBase.h"
@@ -33,13 +32,13 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
 namespace {
     enum {
-        // DESCRIPTION OF SINGLE PARTICLE:
-        TYPE,       // The type of the wake
-        MATERIAL,   // From of the tube
+        // DESCRIPTION OF PARTICLE MATTER INTERACTION:
+        TYPE,
+        MATERIAL,
         ENABLERUTHERFORD,
         SIZE
     };
@@ -47,19 +46,19 @@ namespace {
 
 ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATTERINTERACTION",
-               "The \"SURFACE_PHYSICS\" statement defines data for the particle mater interaction handler "
-               "on an element."),
+               "The \"PARTICLEMATTERINTERACTION\" statement defines data for "
+               "the particle matter interaction handler on an element."),
     handler_m(0) {
     itsAttr[TYPE] = Attributes::makeUpperCaseString
-                    ("TYPE", "Specifies the particle mater interaction handler: Collimator");
+        ("TYPE", "Specifies the particle matter interaction handler: COLLIMATOR, DEGRADER, BEAMSTRIPPING");
 
     itsAttr[MATERIAL] = Attributes::makeUpperCaseString
-                        ("MATERIAL", "The material of the surface");
+        ("MATERIAL", "The material of the surface");
 
-    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool("ENABLERUTHERFORD",
-                                                     "Enable large angle scattering", true);
+    itsAttr[ENABLERUTHERFORD] = Attributes::makeBool
+        ("ENABLERUTHERFORD", "Enable large angle scattering", true);
 
-    ParticleMatterInteraction *defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
+    ParticleMatterInteraction* defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
     defParticleMatterInteraction->builtin = true;
 
     try {
@@ -73,7 +72,7 @@ ParticleMatterInteraction::ParticleMatterInteraction():
 }
 
 
-ParticleMatterInteraction::ParticleMatterInteraction(const std::string &name, ParticleMatterInteraction *parent):
+ParticleMatterInteraction::ParticleMatterInteraction(const std::string& name, ParticleMatterInteraction* parent):
     Definition(name, parent),
     handler_m(parent->handler_m)
 {}
@@ -85,13 +84,13 @@ ParticleMatterInteraction::~ParticleMatterInteraction() {
 }
 
 
-bool ParticleMatterInteraction::canReplaceBy(Object *object) {
+bool ParticleMatterInteraction::canReplaceBy(Object* object) {
     // Can replace only by another PARTICLEMATTERINTERACTION.
-    return dynamic_cast<ParticleMatterInteraction *>(object) != 0;
+    return dynamic_cast<ParticleMatterInteraction*>(object) != 0;
 }
 
 
-ParticleMatterInteraction *ParticleMatterInteraction::clone(const std::string &name) {
+ParticleMatterInteraction* ParticleMatterInteraction::clone(const std::string& name) {
     return new ParticleMatterInteraction(name, this);
 }
 
@@ -101,8 +100,8 @@ void ParticleMatterInteraction::execute() {
 }
 
 
-ParticleMatterInteraction *ParticleMatterInteraction::find(const std::string &name) {
-    ParticleMatterInteraction *parmatint = dynamic_cast<ParticleMatterInteraction *>(OpalData::getInstance()->find(name));
+ParticleMatterInteraction* ParticleMatterInteraction::find(const std::string& name) {
+    ParticleMatterInteraction* parmatint = dynamic_cast<ParticleMatterInteraction*>(OpalData::getInstance()->find(name));
 
     if (parmatint == 0) {
         throw OpalException("ParticleMatterInteraction::find()", "ParticleMatterInteraction \"" + name + "\" not found.");
@@ -117,34 +116,33 @@ void ParticleMatterInteraction::update() {
 }
 
 
-void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase &element) {
+void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase& element) {
 
     std::string material = Attributes::getString(itsAttr[MATERIAL]);
     bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
 
     const std::string type = Attributes::getString(itsAttr[TYPE]);
-    if (type == "CCOLLIMATOR" ||
-       type == "COLLIMATOR" ||
-       type == "DEGRADER") {
-
-        handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
-        *gmsg << *this << endl;
-    }
-    else if (type == "BEAMSTRIPPING") {
-        handler_m = new BeamStrippingPhysics(getOpalName(), &element);
-        *gmsg << *this << endl;
-    }
-    else {
-        handler_m = 0;
-        INFOMSG(getOpalName() + ": no particle mater interaction handler attached, TYPE == " << Attributes::getString(itsAttr[TYPE]) << endl);
+    if (type.empty()) {
+        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                            "TYPE is not defined for PARTICLEMATTERINTERACTION");    
+    } else if (type == "COLLIMATOR" || type == "DEGRADER") {
+         handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
+         *gmsg << *this << endl;
+    } else if (type == "BEAMSTRIPPING") {
+         handler_m = new BeamStrippingPhysics(getOpalName(), &element);
+         *gmsg << *this << endl;
+    } else {
+        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                            getOpalName() + ": TYPE == " + Attributes::getString(itsAttr[TYPE])
+                            + " is not defined!");
     }
 }
 
-void ParticleMatterInteraction::updateElement(ElementBase *element) {
+void ParticleMatterInteraction::updateElement(ElementBase* element) {
     handler_m->updateElement(element);
 }
 
-void ParticleMatterInteraction::print(std::ostream &os) const {
+void ParticleMatterInteraction::print(std::ostream& os) const {
     os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N ****************** " << std::endl;
     os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
