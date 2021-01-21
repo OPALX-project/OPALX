@@ -67,7 +67,8 @@ public:
     CollimatorPhysics(const std::string &name,
                       ElementBase *element,
                       std::string &mat,
-                      bool enableRutherford);
+                      bool enableRutherford,
+                      double lowEnergyThr);
     ~CollimatorPhysics();
 
     virtual void apply(PartBunchBase<double, 3> *bunch,
@@ -156,6 +157,7 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m;
 
     bool enableRutherford_m;
+    double lowEnergyThr_m;
 
     IpplTimings::TimerRef DegraderApplyTimer_m;
     IpplTimings::TimerRef DegraderLoopTimer_m;

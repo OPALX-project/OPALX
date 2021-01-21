@@ -91,7 +91,8 @@ namespace {
 CollimatorPhysics::CollimatorPhysics(const std::string &name,
                                      ElementBase *element,
                                      std::string &material,
-                                     bool enableRutherford):
+                                     bool enableRutherford,
+                                     double lowEnergyThr):
     ParticleMatterInteractionHandler(name, element),
     T_m(0.0),
     dT_m(0.0),
@@ -113,7 +114,8 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name,
     Eavg_m(0.0),
     Emax_m(0.0),
     Emin_m(0.0),
-    enableRutherford_m(enableRutherford)
+    enableRutherford_m(enableRutherford),
+    lowEnergyThr_m(lowEnergyThr)
 {
 
     gsl_rng_env_setup();
@@ -339,7 +341,7 @@ bool CollimatorPhysics::computeEnergyLoss(Vector_t &P,
     beta = std::sqrt(1.0 - 1.0 / std::pow(gamma, 2));
     P = gamma * beta * P / euclidean_norm(P);
 
-    bool stopped = (Ekin < 10 || dEdx > 0);
+    bool stopped = (Ekin < lowEnergyThr_m * 1e3 || dEdx > 0);
     return stopped;
 }
 
