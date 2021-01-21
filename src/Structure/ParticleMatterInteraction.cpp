@@ -40,6 +40,7 @@ namespace {
         TYPE,
         MATERIAL,
         ENABLERUTHERFORD,
+        LOWENERGYTHR,
         SIZE
     };
 }
@@ -57,6 +58,9 @@ ParticleMatterInteraction::ParticleMatterInteraction():
 
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool
         ("ENABLERUTHERFORD", "Enable large angle scattering", true);
+
+    itsAttr[LOWENERGYTHR] = Attributes::makeReal
+        ("LOWENERGYTHR", "Lower Energy threshold for energy loss calculation [MeV]. Default = 0.01 MeV", 0.01);
 
     ParticleMatterInteraction* defParticleMatterInteraction = clone("UNNAMED_PARTICLEMATTERINTERACTION");
     defParticleMatterInteraction->builtin = true;
@@ -118,15 +122,16 @@ void ParticleMatterInteraction::update() {
 
 void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase& element) {
 
-    std::string material = Attributes::getString(itsAttr[MATERIAL]);
-    bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-
     const std::string type = Attributes::getString(itsAttr[TYPE]);
+    std::string material   = Attributes::getString(itsAttr[MATERIAL]);
+    bool enableRutherford  = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
+    double lowEnergyThr    = Attributes::getReal(itsAttr[LOWENERGYTHR]);
+
     if (type.empty()) {
         throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
                             "TYPE is not defined for PARTICLEMATTERINTERACTION");    
     } else if (type == "COLLIMATOR" || type == "DEGRADER") {
-         handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford);
+         handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
          *gmsg << *this << endl;
     } else if (type == "BEAMSTRIPPING") {
          handler_m = new BeamStrippingPhysics(getOpalName(), &element);
@@ -146,9 +151,11 @@ void ParticleMatterInteraction::print(std::ostream& os) const {
     os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N ****************** " << std::endl;
     os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n';
-
-    if ( Attributes::getString(itsAttr[TYPE]) != "BEAMSTRIPPING" ) 
+ 
+    if ( Attributes::getString(itsAttr[TYPE]) != "BEAMSTRIPPING" ) {
         os << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
+        os << "* LOWENERGYTHR   " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV" << '\n';
+    }
 
     os << "* ********************************************************************************** " << std::endl;
 }
