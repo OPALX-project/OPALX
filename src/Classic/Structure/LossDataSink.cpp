@@ -368,22 +368,22 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
     }
     // Write all data
-    WRITE_DATA_FLOAT64 ("x", &x_m[startIdx]);
-    WRITE_DATA_FLOAT64 ("y", &y_m[startIdx]);
-    WRITE_DATA_FLOAT64 ("z", &z_m[startIdx]);
-    WRITE_DATA_FLOAT64 ("px", &px_m[startIdx]);
-    WRITE_DATA_FLOAT64 ("py", &py_m[startIdx]);
-    WRITE_DATA_FLOAT64 ("pz", &pz_m[startIdx]);
+    WRITE_DATA_FLOAT64 ("x", x_m.data() + startIdx);
+    WRITE_DATA_FLOAT64 ("y", y_m.data() + startIdx);
+    WRITE_DATA_FLOAT64 ("z", z_m.data() + startIdx);
+    WRITE_DATA_FLOAT64 ("px", px_m.data() + startIdx);
+    WRITE_DATA_FLOAT64 ("py", py_m.data() + startIdx);
+    WRITE_DATA_FLOAT64 ("pz", pz_m.data() + startIdx);
 
     /// Write particle id numbers.
     std::vector<h5_int64_t> larray(id_m.begin() + startIdx, id_m.end() );
-    WRITE_DATA_INT64 ("id", &larray[0]);
+    WRITE_DATA_INT64 ("id", larray.data());
     if (hasTimeAttribute()) {
-        WRITE_DATA_FLOAT64 ("time", &time_m[startIdx]);
+        WRITE_DATA_FLOAT64 ("time", time_m.data() + startIdx);
         larray.assign (turn_m.begin() + startIdx, turn_m.end() );
-        WRITE_DATA_INT64 ("turn", &larray[0]);
+        WRITE_DATA_INT64 ("turn", larray.data());
         larray.assign (bunchNum_m.begin() + startIdx, bunchNum_m.end() );
-        WRITE_DATA_INT64 ("bunchNumber", &larray[0]);
+        WRITE_DATA_INT64 ("bunchNumber", larray.data());
     }
 
     ++ H5call_m;
