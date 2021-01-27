@@ -38,7 +38,7 @@ using namespace interpolation;
 class SolveFactoryTestFixture : public ::testing::Test {
   protected:
 
-    
+
 };
 
 TEST(SolveFactoryTest, TestSolveNoDerivs) {
@@ -105,7 +105,7 @@ TEST(SolveFactoryTest, TestSolveDerivs) {
         }
     }
 
-    // fill by hand the 
+    // fill by hand the
     std::vector< std::vector<double> > deriv_pos( {
         {2, 0}, {2, 1}, {2, 2}, {1, 2}, {0, 2}
     });
@@ -113,7 +113,7 @@ TEST(SolveFactoryTest, TestSolveDerivs) {
         {0,1}, {0,1}, {1,1}, {1,0}, {1,0}
     });
     std::vector<std::vector<double> > deriv_values(deriv_pos.size(),
-                                                   std::vector<double>(2));
+                                                   std::vector<double>(3));
     for (size_t i = 0; i < deriv_pos.size(); ++i) {
         SquarePolynomialVector refDeriv = ref.Deriv(&deriv_indices[i][0]);
         refDeriv.F(&deriv_pos[i][0], &deriv_values[i][0]);

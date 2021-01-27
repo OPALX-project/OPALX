@@ -150,6 +150,19 @@ SquarePolynomialVector* SolveFactory::PolynomialSolve(
               "Values and derivatives over or under constrained"
         );
     }
+    for (int i = 1; i < nCoeffs && i < n_poly_coeffs_; ++i) {
+        if (values[i].size() < values[0].size()) {
+            throw GeneralClassicException("SolveFactory::PolynomialSolve",
+                                          "The vector of values is too short");
+        }
+    }
+    for (int i = 0; i < nDerivs; ++ i) {
+        if (deriv_values[i].size() < values[0].size()) {
+            throw GeneralClassicException("SolveFactory::PolynomialSolve",
+                                          "The vector of derivative values is too short");
+        }
+    }
+
     int valueDim = 0;
     if (values.size() != 0) {
         valueDim = values[0].size();
