@@ -18,6 +18,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/Option.h"
+#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
 #include "Utilities/Options.h"
@@ -65,7 +66,7 @@ namespace {
         AUTOPHASE,
         SURFDUMPFREQ,
         NUMBLOCKS,
-        RECYCLEBLOCKS,
+         RECYCLEBLOCKS,
         NLHS,
         CZERO,
         RNGTYPE,
@@ -491,6 +492,11 @@ void Option::execute() {
     if(Attributes::getBool(itsAttr[TELL])) {
         *gmsg << "\nCurrent settings of options:\n" << *this << endl;
     }
+
+    Option* main = dynamic_cast<Option*>(OpalData::getInstance()->find("OPTION"));
+    if (main) {
+        main->update(itsAttr);
+    }
 }
 
 void Option::handlePsDumpFrame(const std::string &dumpFrame) {
@@ -517,5 +523,11 @@ std::string DumpFrameToString(DumpFrame df) {
     case GLOBAL:
     default:
         return std::string("GLOBAL");
+    }
+}
+
+void Option::update(const std::vector<Attribute>& othersAttributes) {
+    for (int i = 0; i < SIZE; ++ i) {
+        itsAttr[i] = othersAttributes[i];
     }
 }
