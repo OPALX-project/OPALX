@@ -39,6 +39,7 @@ public:
 
 private:
     void handlePsDumpFrame(const std::string &dumpFrame);
+    void update(const std::vector<Attribute>&);
 
     // Not implemented.
     Option(const Option &);
