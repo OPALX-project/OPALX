@@ -2,7 +2,7 @@
 // Class Physics
 //   A namespace defining various mathematical and physical constants.
 //
-// Copyright (c) 2015-2019, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
+// Copyright (c) 2015-2021, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
 //                          Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
@@ -23,9 +23,6 @@
 #ifndef CLASSIC_Physics_HH
 #define CLASSIC_Physics_HH
 
-
-// Class Physics
-// ------------------------------------------------------------------------
 
 namespace Physics {
 
@@ -128,6 +125,9 @@ namespace Physics {
     /// The xenon rest mass in GeV
     constexpr double m_xe       = 124 * amu;
 
+    /// The alpha particle rest mass in GeV
+    constexpr double m_alpha    = 4.001506179127 * amu;
+
     /// The hydrogen atom rest mass in GeV
     constexpr double m_h        = 1.00782503224 * amu;
 
@@ -137,7 +137,7 @@ namespace Physics {
     /// The H3+ rest mass in GeV
     constexpr double m_h3p       = 3.02293 * amu;
 
-    constexpr double PMASS      = 1.67262192369e-27;  // kg
+    constexpr double PMASS      = 1.67262192369e-27; // kg
 
     constexpr double EMASS      = 9.1093837015e-31; // kg
 
@@ -149,7 +149,6 @@ namespace Physics {
     constexpr double e0m        = 1.75882001076e+11;
     // e/mc
     constexpr double e0mc       = e0m / c;
-
 };
 
 #endif // CLASSIC_Physics_HH

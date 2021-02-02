@@ -82,7 +82,7 @@ bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int /*turnnumbe
     int pflag = 0;
     // now check each particle in bunch
     for (unsigned int i = 0; i < tempnum; ++i) {
-        if (bunch->PType[i] == ParticleType::REGULAR && bunch->R[i](2) < zend_m && bunch->R[i](2) > zstart_m ) {
+        if (bunch->POrigin[i] == ParticleOrigin::REGULAR && bunch->R[i](2) < zend_m && bunch->R[i](2) > zstart_m ) {
             // only now careful check in r
             pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
             /// bunch->Bin[i] != -1 makes sure the particle is not stored in more than one collimator

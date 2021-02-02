@@ -1341,8 +1341,8 @@ void ParallelTTracker::evenlyDistributeParticles() {
                 send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->dt[idx]));
                 send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->PType[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(short));
+                buffer = reinterpret_cast<const char*>(&(itsBunch_m->POrigin[idx]));
+                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(ParticleOrigin));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->TriID[idx]));
                 send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(int));
                 buffer = reinterpret_cast<const char*>(&(itsBunch_m->ID[idx]));
@@ -1384,10 +1384,10 @@ void ParallelTTracker::evenlyDistributeParticles() {
             j += 9 * sizeof(double);
 
             {
-                const short *buffer = reinterpret_cast<const short*>(recvbuf + j);
-                itsBunch_m->PType[idx] = buffer[0];
+                const ParticleOrigin *buffer = reinterpret_cast<const ParticleOrigin*>(recvbuf + j);
+                itsBunch_m->POrigin[idx] = buffer[0];
             }
-            j += sizeof(short);
+            j += sizeof(ParticleOrigin);
 
             {
                 const int *buffer = reinterpret_cast<const int*>(recvbuf + j);
