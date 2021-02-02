@@ -1,3 +1,20 @@
+//
+// Class ParticleMatterInteractionHandler
+//   Defines the handler for particle-matter interactions in the elements
+//
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef PARTICLEMATTERINTERACTIONHANDLER_HH
 #define PARTICLEMATTERINTERACTIONHANDLER_HH
 
@@ -11,11 +28,12 @@ class PartBunchBase;
 class Inform;
 
 class ParticleMatterInteractionHandler {
+
 public:
-    ParticleMatterInteractionHandler(std::string name, ElementBase *elref);
+    ParticleMatterInteractionHandler(std::string name, ElementBase* elref);
     virtual ~ParticleMatterInteractionHandler() { };
-    virtual void apply(PartBunchBase<double, 3> *bunch,
-                       const std::pair<Vector_t, double> &boundingSphere) = 0;
+    virtual void apply(PartBunchBase<double, 3>* bunch,
+                       const std::pair<Vector_t, double>& boundingSphere) = 0;
     virtual const std::string getType() const = 0;
     virtual void print(Inform& os) = 0;
     virtual bool stillActive() = 0;
@@ -26,29 +44,30 @@ public:
     virtual unsigned int getNumEntered() = 0;
     void setFlagAllParticlesIn(bool p);
     bool getFlagAllParticlesIn() const;
-    void updateElement(ElementBase *newref);
+    void updateElement(ElementBase* newref);
     ElementBase* getElement();
 
-    virtual bool computeEnergyLoss(Vector_t &P,//double &Eng,
+    virtual bool computeEnergyLoss(PartBunchBase<double, 3>* bunch,
+                                   Vector_t& P,
                                    const double deltat,
                                    bool includeFluctuations = true) const = 0;
 protected:
-    ElementBase *element_ref_m;
+    ElementBase* element_ref_m;
     bool allParticleInMat_m; ///< if all particles are in matter stay inside the particle matter interaction
+
 private:
     const std::string name_m;
-
 };
 
 inline
-ParticleMatterInteractionHandler::ParticleMatterInteractionHandler(std::string name, ElementBase *elref):
+ParticleMatterInteractionHandler::ParticleMatterInteractionHandler(std::string name, ElementBase* elref):
     element_ref_m(elref),
     allParticleInMat_m(false),
     name_m(name)
 {}
 
 inline
-void ParticleMatterInteractionHandler::updateElement(ElementBase *newref) {
+void ParticleMatterInteractionHandler::updateElement(ElementBase* newref) {
     element_ref_m = newref;
 }
 

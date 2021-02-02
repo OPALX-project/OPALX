@@ -3,7 +3,7 @@
 //   Defines the abstract interface environment for
 //   beam stripping physics.
 //
-// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -44,17 +44,14 @@
 throw GeneralClassicException("BeamStripping::getPressureFromFile",\
                               "fscanf returned EOF at " #arg);
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
-// Class BeamStripping
-// ------------------------------------------------------------------------
 
 BeamStripping::BeamStripping():
     BeamStripping("")
 {}
 
-
-BeamStripping::BeamStripping(const BeamStripping &right):
+BeamStripping::BeamStripping(const BeamStripping& right):
     Component(right),
     gas_m(right.gas_m),
     pressure_m(right.pressure_m),
@@ -69,9 +66,9 @@ BeamStripping::BeamStripping(const BeamStripping &right):
     parmatint_m(NULL) {
 }
 
-BeamStripping::BeamStripping(const std::string &name):
+BeamStripping::BeamStripping(const std::string& name):
     Component(name),
-    gas_m(""),
+    gas_m(ResidualGas::NOGAS),
     pressure_m(0.0),
     pmapfn_m(""),
     pscale_m(0.0),
@@ -84,13 +81,13 @@ BeamStripping::BeamStripping(const std::string &name):
     parmatint_m(NULL) {
 }
 
-
 BeamStripping::~BeamStripping() {
     if (online_m)
         goOffline();
 }
 
-void BeamStripping::accept(BeamlineVisitor &visitor) const {
+
+void BeamStripping::accept(BeamlineVisitor& visitor) const {
     visitor.visitBeamStripping(*this);
 }
 
@@ -142,16 +139,27 @@ double BeamStripping::getPScale() const {
 }
 
 void BeamStripping::setResidualGas(std::string gas) {
-    gas_m = gas;
+    if (gas == "AIR") {
+        gas_m = ResidualGas::AIR;
+    } else if (gas == "H2") {
+        gas_m = ResidualGas::H2;
+    }
 }
 
-std::string BeamStripping::getResidualGas() const {
-    if (gas_m == "H2" || gas_m == "AIR")
-        return gas_m;
-    else {
-        throw GeneralClassicException("BeamStripping::getResidualGas",
-                                      "Residual gas " + gas_m + " not found");
-    }
+ResidualGas BeamStripping::getResidualGas() const {
+    return gas_m;
+}
+
+std::string BeamStripping::getResidualGasName() {
+    switch (gas_m) {
+    case ResidualGas::AIR:
+        return "AIR";
+    case ResidualGas::H2:
+        return "H2";
+    default:
+       throw GeneralClassicException("BeamStripping::getResidualGasName",
+                                      "Residual gas not found");
+    }		
 }
 
 void BeamStripping::setStop(bool stopflag) {
@@ -163,8 +171,7 @@ bool BeamStripping::getStop() const {
 }
 
 
-bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl,
-                                       const int /*turnnumber*/, const double /*t*/, const double /*tstep*/) {
+bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3>* bunch, Cyclotron* cycl) {
 
     bool flagNeedUpdate = false;
 
@@ -194,12 +201,12 @@ bool BeamStripping::checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotro
 }
 
 
-void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
+void BeamStripping::initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) {
     endField = startField + getElementLength();
     initialise(bunch, pscale_m);
 }
 
-void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, const double &scaleFactor) {
+void BeamStripping::initialise(PartBunchBase<double, 3>* bunch, const double& scaleFactor) {
 
     RefPartBunch_m = bunch;
 
@@ -214,7 +221,6 @@ void BeamStripping::initialise(PartBunchBase<double, 3> *bunch, const double &sc
     goOnline(-1e6);
 
     // change the mass and charge to simulate real particles
-    //*gmsg << "* Mass and charge have been reseted for beam stripping " <<  endl;
     for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
         bunch->M[i] = bunch->getM()*1E-9;
         bunch->Q[i] = bunch->getQ() * Physics::q_e;
@@ -240,7 +246,7 @@ bool BeamStripping::bends() const {
     return false;
 }
 
-void BeamStripping::getDimensions(double &/*zBegin*/, double &/*zEnd*/) const {}
+void BeamStripping::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {}
 
 ElementBase::ElementType BeamStripping::getType() const {
     return BEAMSTRIPPING;
@@ -250,17 +256,18 @@ std::string BeamStripping::getBeamStrippingShape() {
     return "BeamStripping";
 }
 
-int BeamStripping::checkPoint(const double &x, const double &y, const double &z) {
+int BeamStripping::checkPoint(const double& x, const double& y, const double& z) {
     int cn;
     double rpos = std::sqrt(x * x + y * y);
-    if (z >= maxz_m || z <= minz_m || rpos >= maxr_m || rpos <= minr_m)
+    if (z >= maxz_m || z <= minz_m || rpos >= maxr_m || rpos <= minr_m) {
         cn = 0;
-    else
+    } else {
         cn = 1;
+    }
     return (cn);  // 0 if out, and 1 if in
 }
 
-double BeamStripping::checkPressure(const double &x, const double &y) {
+double BeamStripping::checkPressure(const double& x, const double& y) {
 
     double pressure = 0.0;
 
@@ -296,7 +303,7 @@ double BeamStripping::checkPressure(const double &x, const double &y) {
         // include zero degree point
         it++;
         double epsilon = 0.06;
-        if  (tet > 360 - epsilon && tet < 360 + epsilon) it = 0;
+        if (tet > 360 - epsilon && tet < 360 + epsilon) it = 0;
 
         int r1t1, r2t1, r1t2, r2t2;
         // r1t1 : the index of the "min angle, min radius" point in the 2D field array.
@@ -317,18 +324,15 @@ double BeamStripping::checkPressure(const double &x, const double &y) {
                 *gmsg << level4 << getName() << ": Take constant value through BeamStripping::getPressure" << endl;
                 pressure = getPressure();
             }
-        }
-        else if (ir >= PField.nrad) {
+        } else if (ir >= PField.nrad) {
             *gmsg << level4 << getName() << ": Particle out of maximum radial position of pressure field map." << endl;
             *gmsg << level4 << getName() << ": Take constant value through BeamStripping::getPressure" << endl;
             pressure = getPressure();
-        }
-        else {
+        } else {
             throw GeneralClassicException("BeamStripping::checkPressure",
                                           "Pressure data not found");
         }
-    }
-    else {
+    } else {
         pressure = getPressure();
     }
 
@@ -345,9 +349,9 @@ void BeamStripping::initR(double rmin, double dr, int nrad) {
 }
 
 // Read pressure map from external file.
-void BeamStripping::getPressureFromFile(const double &scaleFactor) {
+void BeamStripping::getPressureFromFile(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE* f = NULL;
 
     *gmsg << "* " << endl;
     *gmsg << "* Reading pressure field map " << pmapfn_m << endl;
@@ -356,7 +360,8 @@ void BeamStripping::getPressureFromFile(const double &scaleFactor) {
 
     if ((f = std::fopen(pmapfn_m.c_str(), "r")) == NULL) {
         throw GeneralClassicException("BeamStripping::getPressureFromFile",
-                                      "failed to open file '" + pmapfn_m + "', please check if it exists");
+                                      "failed to open file '" + pmapfn_m +
+                                      "', please check if it exists");
     }
 
     CHECK_BSTP_FSCANF_EOF(std::fscanf(f, "%lf", &PP.rmin));

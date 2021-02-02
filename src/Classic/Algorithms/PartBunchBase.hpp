@@ -2,7 +2,7 @@
 // Class PartBunchBase
 //   Base class for representing particle bunches.
 //
-// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2008 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -23,7 +23,7 @@
 
 #include "Distribution/Distribution.h"
 
-#include "AbstractObjects/OpalData.h"   // OPAL file
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartData.h"
@@ -35,10 +35,10 @@
 #include "Utilities/SwitcherError.h"
 #include "Utilities/Util.h"
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
 template <class T, unsigned Dim>
-PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref)
+PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData* ref)
     : R(*(pb->R_p)),
       ID(*(pb->ID_p)),
       pbin_m(nullptr),
@@ -159,7 +159,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setEnergyBins(int numberOfEnergyBins) {
     bingamma_m = std::unique_ptr<double[]>(new double[numberOfEnergyBins]);
     binemitted_m = std::unique_ptr<size_t[]>(new size_t[numberOfEnergyBins]);
-    for(int i = 0; i < numberOfEnergyBins; i++)
+    for (int i = 0; i < numberOfEnergyBins; i++)
         binemitted_m[i] = 0;
 }
 
@@ -177,16 +177,16 @@ bool PartBunchBase<T, Dim>::weHaveEnergyBins() {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
 
-    if(unit_state_ == unitless)
+    if (unit_state_ == unitless)
         throw SwitcherError("PartBunch::switchToUnitlessPositions",
                             "Cannot make a unitless PartBunch unitless");
 
     bool hasToReset = false;
-    if(!R.isDirty()) hasToReset = true;
+    if (!R.isDirty()) hasToReset = true;
 
-    for(size_t i = 0; i < getLocalNum(); i++) {
+    for (size_t i = 0; i < getLocalNum(); i++) {
         double dt = getdT();
-        if(use_dt_per_particle)
+        if (use_dt_per_particle)
             dt = this->dt[i];
 
         R[i] /= Vector_t(Physics::c * dt);
@@ -194,24 +194,23 @@ void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) 
 
     unit_state_ = unitless;
 
-    if(hasToReset) R.resetDirtyFlag();
+    if (hasToReset) R.resetDirtyFlag();
 }
-
 
 //FIXME: unify methods, use convention that all particles have own dt
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
 
-    if(unit_state_ == units)
+    if (unit_state_ == units)
         throw SwitcherError("PartBunch::switchOffUnitlessPositions",
                             "Cannot apply units twice to PartBunch");
 
     bool hasToReset = false;
-    if(!R.isDirty()) hasToReset = true;
+    if (!R.isDirty()) hasToReset = true;
 
-    for(size_t i = 0; i < getLocalNum(); i++) {
+    for (size_t i = 0; i < getLocalNum(); i++) {
         double dt = getdT();
-        if(use_dt_per_particle)
+        if (use_dt_per_particle)
             dt = this->dt[i];
 
         R[i] *= Vector_t(Physics::c * dt);
@@ -219,7 +218,7 @@ void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle)
 
     unit_state_ = units;
 
-    if(hasToReset) R.resetDirtyFlag();
+    if (hasToReset) R.resetDirtyFlag();
 }
 
 
@@ -230,13 +229,11 @@ void PartBunchBase<T, Dim>::do_binaryRepart() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setDistribution(Distribution *d,
-                                            std::vector<Distribution *> addedDistributions,
-                                            size_t &np)
-{
+void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
+                                            std::vector<Distribution*> addedDistributions,
+                                            size_t& np) {
     Inform m("setDistribution " );
     dist_m = d;
-
     dist_m->createOpalT(this, addedDistributions, np);
 
 //    if (Options::cZero)
@@ -281,8 +278,7 @@ bool PartBunchBase<T, Dim>::doEmission() {
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::weHaveBins() const {
-
-    if(pbin_m != NULL)
+    if (pbin_m != NULL)
         return pbin_m->weHaveBins();
     else
         return false;
@@ -290,7 +286,7 @@ bool PartBunchBase<T, Dim>::weHaveBins() const {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPBins(PartBins *pbin) {
+void PartBunchBase<T, Dim>::setPBins(PartBins* pbin) {
     pbin_m = pbin;
     *gmsg << *pbin_m << endl;
     setEnergyBins(pbin_m->getNBins());
@@ -298,7 +294,7 @@ void PartBunchBase<T, Dim>::setPBins(PartBins *pbin) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPBins(PartBinsCyc *pbin) {
+void PartBunchBase<T, Dim>::setPBins(PartBinsCyc* pbin) {
     pbin_m = pbin;
     setEnergyBins(pbin_m->getNBins());
 }
@@ -329,7 +325,7 @@ void PartBunchBase<T, Dim>::rebin() {
 
 template <class T, unsigned Dim>
 int PartBunchBase<T, Dim>::getLastemittedBin() {
-    if(pbin_m != NULL)
+    if (pbin_m != NULL)
         return pbin_m->getLastemittedBin();
     else
         return 0;
@@ -338,7 +334,7 @@ int PartBunchBase<T, Dim>::getLastemittedBin() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
-    if(pbin_m != NULL) {
+    if (pbin_m != NULL) {
         pbin_m->setPartNum(bin, num);
     }
 }
@@ -351,18 +347,18 @@ void PartBunchBase<T, Dim>::calcGammas() {
 
     size_t s = 0;
 
-    for(int i = 0; i < emittedBins; i++)
+    for (int i = 0; i < emittedBins; i++)
         bingamma_m[i] = 0.0;
 
-    for(unsigned int n = 0; n < getLocalNum(); n++)
+    for (unsigned int n = 0; n < getLocalNum(); n++)
         bingamma_m[this->Bin[n]] += std::sqrt(1.0 + dot(this->P[n], this->P[n]));
 
     std::unique_ptr<size_t[]> particlesInBin(new size_t[emittedBins]);
     reduce(bingamma_m.get(), bingamma_m.get() + emittedBins, bingamma_m.get(), OpAddAssign());
     reduce(binemitted_m.get(), binemitted_m.get() + emittedBins, particlesInBin.get(), OpAddAssign());
-    for(int i = 0; i < emittedBins; i++) {
+    for (int i = 0; i < emittedBins; i++) {
         size_t &pInBin = particlesInBin[i];
-        if(pInBin != 0) {
+        if (pInBin != 0) {
             bingamma_m[i] /= pInBin;
             INFOMSG(level2 << "Bin " << std::setw(3) << i
                            << " gamma = " << std::setw(8) << std::scientific
@@ -378,12 +374,12 @@ void PartBunchBase<T, Dim>::calcGammas() {
     particlesInBin.reset();
 
 
-    if(s != getTotalNum() && !OpalData::getInstance()->hasGlobalGeometry())
+    if (s != getTotalNum() && !OpalData::getInstance()->hasGlobalGeometry())
         ERRORMSG("sum(Bins)= " << s << " != sum(R)= " << getTotalNum() << endl;);
 
-    if(emittedBins >= 2) {
-        for(int i = 1; i < emittedBins; i++) {
-            if(binemitted_m[i - 1] != 0 && binemitted_m[i] != 0)
+    if (emittedBins >= 2) {
+        for (int i = 1; i < emittedBins; i++) {
+            if (binemitted_m[i - 1] != 0 && binemitted_m[i] != 0)
                 INFOMSG(level2 << "d(gamma)= " << 100.0 * std::abs(bingamma_m[i - 1] - bingamma_m[i]) / bingamma_m[i] << " [%] "
                         << "between bin " << i - 1 << " and " << i << endl);
         }
@@ -396,9 +392,9 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
 
     const int emittedBins = pbin_m->getLastemittedBin();
 
-    for(int i = 0; i < emittedBins; i++)
+    for (int i = 0; i < emittedBins; i++)
         bingamma_m[i] = 0.0;
-    for(unsigned int n = 0; n < getLocalNum(); n++) {
+    for (unsigned int n = 0; n < getLocalNum(); n++) {
         if ( this->Bin[n] > -1 ) {
             bingamma_m[this->Bin[n]] += std::sqrt(1.0 + dot(this->P[n], this->P[n]));
         }
@@ -406,11 +402,12 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
 
     allreduce(*bingamma_m.get(), emittedBins, std::plus<double>());
 
-    for(int i = 0; i < emittedBins; i++) {
-        if(pbin_m->getTotalNumPerBin(i) > 0)
+    for (int i = 0; i < emittedBins; i++) {
+        if (pbin_m->getTotalNumPerBin(i) > 0) {
             bingamma_m[i] /= pbin_m->getTotalNumPerBin(i);
-        else
+        } else {
             bingamma_m[i] = 0.0;
+        }
         INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i)
                        << " gamma = " << bingamma_m[i] << endl);
     }
@@ -442,7 +439,7 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
     std::size_t localnum = 0;
     const Vector_t meanR = get_rmean();
 
-    for(unsigned long k = 0; k < getLocalNum(); ++ k)
+    for (unsigned long k = 0; k < getLocalNum(); ++ k)
         if (std::abs(R[k](0) - meanR(0)) > x(0) ||
             std::abs(R[k](1) - meanR(1)) > x(1) ||
             std::abs(R[k](2) - meanR(2)) > x(2)) {
@@ -471,9 +468,8 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
  */
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
-                                            std::vector<double> &lineDensity,
-                                            std::pair<double, double> &meshInfo)
-{
+                                            std::vector<double>& lineDensity,
+                                            std::pair<double, double>& meshInfo) {
     Vector_t rmin, rmax;
     get_bounds(rmin, rmax);
 
@@ -509,7 +505,6 @@ void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
 }
 
 
-
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::boundp() {
     /*
@@ -517,12 +512,12 @@ void PartBunchBase<T, Dim>::boundp() {
      */
 
     IpplTimings::startTimer(boundpTimer_m);
-    //if(!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
+    //if (!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
     if ( !(R.isDirty() || ID.isDirty() ) && stateOfLastBoundP_ == unit_state_) return; //-DW
 
     stateOfLastBoundP_ = unit_state_;
 
-    if(!isGridFixed()) {
+    if (!isGridFixed()) {
         const int dimIdx = (dcBeam_m? 2: 3);
 
         /**
@@ -538,7 +533,7 @@ void PartBunchBase<T, Dim>::boundp() {
         Vector_t len = rmax_m - rmin_m;
 
         double volume = 1.0;
-        for(int i = 0; i < dimIdx; i++) {
+        for (int i = 0; i < dimIdx; i++) {
             double length = std::abs(rmax_m[i] - rmin_m[i]);
             if (length < 1e-10) {
                 rmax_m[i] += 1e-10;
@@ -579,7 +574,7 @@ void PartBunchBase<T, Dim>::boundp() {
         }
         //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 
-        if(hr_m[0] * hr_m[1] * hr_m[2] <= 0) {
+        if (hr_m[0] * hr_m[1] * hr_m[2] <= 0) {
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
 
@@ -605,14 +600,13 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
     IpplTimings::startTimer(boundpTimer_m);
 
     std::unique_ptr<size_t[]> countLost;
-    if(weHaveBins()) {
+    if (weHaveBins()) {
         const int tempN = pbin_m->getLastemittedBin();
         countLost = std::unique_ptr<size_t[]>(new size_t[tempN]);
-        for(int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
+        for (int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
     }
 
     this->updateDomainLength(nr_m);
-
 
     IpplTimings::startTimer(boundpBoundsTimer_m);
     get_bounds(rmin_m, rmax_m);
@@ -626,20 +620,20 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
     if (checkfactor != 0) {
         //INFOMSG("checkfactor= " << checkfactor << endl);
         // check the bunch if its full size is larger than checkfactor times of its rms size
-        if(checkfactor < 0) {
+        if (checkfactor < 0) {
             checkfactor *= -1;
             if (len[0] > checkfactor * rrms_m[0] ||
                 len[1] > checkfactor * rrms_m[1] ||
-                len[2] > checkfactor * rrms_m[2])
-            {
-                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                len[2] > checkfactor * rrms_m[2]  ) {
+
+                for (unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
                     /* delete the particle if the distance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
                     if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
                         std::abs(R[ii](1) - rmean_m(1)) > checkfactor * rrms_m[1] ||
-                        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
-                    {
+                        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]  ) {
+
                         // put particle onto deletion list
                         destroy(1, ii);
                         //update bin parameter
@@ -651,18 +645,17 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
                     }
                 }
             }
-        }
-        else {
+        } else {
             if (len[0] > checkfactor * rrms_m[0] ||
-                len[2] > checkfactor * rrms_m[2])
-            {
-                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
+                len[2] > checkfactor * rrms_m[2]  ) {
+
+                for (unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
                     /* delete the particle if the distance to the beam center
                      * is larger than 8 times of beam's rms size
                      */
                     if (std::abs(R[ii](0) - rmean_m(0)) > checkfactor * rrms_m[0] ||
-                        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2])
-                    {
+                        std::abs(R[ii](2) - rmean_m(2)) > checkfactor * rrms_m[2]  ) {
+
                         // put particle onto deletion list
                         destroy(1, ii);
                         //update bin parameter
@@ -677,7 +670,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
         }
     }
 
-    for(int i = 0; i < dimIdx; i++) {
+    for (int i = 0; i < dimIdx; i++) {
         double length = std::abs(rmax_m[i] - rmin_m[i]);
         rmax_m[i] += dh_m * length;
         rmin_m[i] -= dh_m * length;
@@ -687,7 +680,7 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
     // rescale mesh
     this->updateFields(hr_m, rmin_m);
 
-    if(weHaveBins()) {
+    if (weHaveBins()) {
         pbin_m->updatePartInBin_cyc(countLost.get());
     }
 
@@ -718,21 +711,22 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
     size_t ne = 0;
     const size_t localNum = getLocalNum();
 
-    if(weHaveEnergyBins()) {
+    if (weHaveEnergyBins()) {
         tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[getNumberOfEnergyBins()]);
-        for(int i = 0; i < getNumberOfEnergyBins(); i++) {
+        for (int i = 0; i < getNumberOfEnergyBins(); i++) {
             tmpbinemitted[i] = 0;
         }
-        for(unsigned int i = 0; i < localNum; i++) {
+        for (unsigned int i = 0; i < localNum; i++) {
             if (Bin[i] < 0) {
                 ne++;
                 destroy(1, i);
-            } else
+            } else {
                 tmpbinemitted[Bin[i]]++;
+            }
         }
     } else {
-        for(unsigned int i = 0; i < localNum; i++) {
-            if((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
+        for (unsigned int i = 0; i < localNum; i++) {
+            if ((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
                 ne++;
                 destroy(1, i);
             }
@@ -751,9 +745,9 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
     calcBeamParameters();
     gatherLoadBalanceStatistics();
 
-    if(weHaveEnergyBins()) {
+    if (weHaveEnergyBins()) {
         const int lastBin = dist_m->getLastEmittedEnergyBin();
-        for(int i = 0; i < lastBin; i++) {
+        for (int i = 0; i < lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
         }
     }
@@ -772,12 +766,12 @@ size_t PartBunchBase<T, Dim>::destroyT() {
     const size_t totalNum = getTotalNum();
     size_t ne = 0;
 
-    if(weHaveEnergyBins()) {
+    if (weHaveEnergyBins()) {
         tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[getNumberOfEnergyBins()]);
-        for(int i = 0; i < getNumberOfEnergyBins(); i++) {
+        for (int i = 0; i < getNumberOfEnergyBins(); i++) {
             tmpbinemitted[i] = 0;
         }
-        for(unsigned int i = 0; i < localNum; i++) {
+        for (unsigned int i = 0; i < localNum; i++) {
             if (Bin[i] < 0) {
                 destroy(1, i);
                 ++ ne;
@@ -786,8 +780,8 @@ size_t PartBunchBase<T, Dim>::destroyT() {
         }
     } else {
         Inform dmsg("destroy: ", INFORM_ALL_NODES);
-        for(size_t i = 0; i < localNum; i++) {
-            if((Bin[i] < 0)) {
+        for (size_t i = 0; i < localNum; i++) {
+            if ((Bin[i] < 0)) {
                 if ((localNum - ne) > minNumParticlesPerCore) {   // need in minimum x particles per node
                     ne++;
                     destroy(1, i);
@@ -807,7 +801,7 @@ size_t PartBunchBase<T, Dim>::destroyT() {
 
     if (weHaveEnergyBins()) {
         const int lastBin = dist_m->getLastEmittedEnergyBin();
-        for(int i = 0; i < lastBin; i++) {
+        for (int i = 0; i < lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
         }
     }
@@ -819,35 +813,31 @@ size_t PartBunchBase<T, Dim>::destroyT() {
     return totalNum - newTotalNum;
 }
 
+
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getPx(int /*i*/) {
     return 0.0;
 }
-
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getPy(int) {
     return 0.0;
 }
 
-
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getPz(int) {
     return 0.0;
 }
-
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getPx0(int) {
     return 0.0;
 }
 
-
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getPy0(int) {
     return 0;
 }
-
 
 //ff
 template <class T, unsigned Dim>
@@ -855,13 +845,11 @@ double PartBunchBase<T, Dim>::getX(int i) {
     return this->R[i](0);
 }
 
-
 //ff
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getY(int i) {
     return this->R[i](1);
 }
-
 
 //ff
 template <class T, unsigned Dim>
@@ -869,13 +857,11 @@ double PartBunchBase<T, Dim>::getZ(int i) {
     return this->R[i](2);
 }
 
-
 //ff
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getX0(int /*i*/) {
     return 0.0;
 }
-
 
 //ff
 template <class T, unsigned Dim>
@@ -890,7 +876,7 @@ void PartBunchBase<T, Dim>::setZ(int /*i*/, double /*zcoo*/) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
+void PartBunchBase<T, Dim>::get_bounds(Vector_t& rmin, Vector_t& rmax) {
 
     this->getLocalBounds(rmin, rmax);
 
@@ -911,7 +897,7 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t &rmin, Vector_t &rmax) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::getLocalBounds(Vector_t &rmin, Vector_t &rmax) {
+void PartBunchBase<T, Dim>::getLocalBounds(Vector_t& rmin, Vector_t& rmax) {
     const size_t localNum = getLocalNum();
     if (localNum == 0) {
         double maxValue = 1e8;
@@ -1013,12 +999,12 @@ OpalParticle PartBunchBase<T, Dim>::get_part(int ii) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::maximumAmplitudes(const FMatrix<double, 6, 6> &D,
-                                              double &axmax, double &aymax) {
+void PartBunchBase<T, Dim>::maximumAmplitudes(const FMatrix<double, 6, 6>& D,
+                                              double& axmax, double& aymax) {
     axmax = aymax = 0.0;
     OpalParticle part;
 
-    for(unsigned int ii = 0; ii < getLocalNum(); ii++) {
+    for (unsigned int ii = 0; ii < getLocalNum(); ii++) {
 
         part = get_part(ii);
 
@@ -1210,7 +1196,7 @@ void PartBunchBase<T, Dim>::set_meshEnlargement(double dh) {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
 
-    for(int i = 0; i < Ippl::getNodes(); i++)
+    for (int i = 0; i < Ippl::getNodes(); i++)
         globalPartPerNode_m[i] = 0;
 
     std::size_t localnum = getLocalNum();
@@ -1243,8 +1229,8 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
 
     get_bounds(rmin_m, rmax_m);
 
-    if(totalNum == 0) {
-        for(unsigned int i = 0 ; i < Dim; i++) {
+    if (totalNum == 0) {
+        for (unsigned int i = 0 ; i < Dim; i++) {
             rmean_m(i) = 0.0;
             pmean_m(i) = 0.0;
             rrms_m(i) = 0.0;
@@ -1261,19 +1247,19 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
     const size_t intN = calcMoments();
     const double N = static_cast<double>(intN);
 
-    for(unsigned int i = 0 ; i < Dim; i++) {
+    for (unsigned int i = 0 ; i < Dim; i++) {
         rmean_m(i) = centroid_m[2 * i] / N;
         pmean_m(i) = centroid_m[(2 * i) + 1] / N;
         rsqsum(i) = moments_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
         psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - N * pmean_m(i) * pmean_m(i);
-        if(psqsum(i) < 0)
+        if (psqsum(i) < 0)
             psqsum(i) = 0;
         rpsum(i) = moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
     }
     eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
     rpsum /= N;
 
-    for(unsigned int i = 0 ; i < Dim; i++) {
+    for (unsigned int i = 0 ; i < Dim; i++) {
         rrms_m(i) = std::sqrt(rsqsum(i) / N);
         prms_m(i) = std::sqrt(psqsum(i) / N);
         eps_norm_m(i)  =  std::sqrt(std::max(eps2(i), zero));
@@ -1291,7 +1277,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
 
     // Find unnormalized emittance.
     double gamma = 0.0;
-    for(size_t i = 0; i < locNp; i++)
+    for (size_t i = 0; i < locNp; i++)
         gamma += std::sqrt(1.0 + dot(P[i], P[i]));
 
     allreduce(&gamma, 1, std::plus<double>());
@@ -1322,14 +1308,14 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
 
     const double N =  static_cast<double>(getTotalNum());
 
-    if(N == 0) {
+    if (N == 0) {
         rmean_m = Vector_t(0.0);
         pmean_m = Vector_t(0.0);
         rrms_m  = Vector_t(0.0);
         prms_m  = Vector_t(0.0);
         eps_m   = Vector_t(0.0);
     } else {
-        if(Ippl::myNode() == 0) {
+        if (Ippl::myNode() == 0) {
             // fixme:  the following code is crap!
             // Only use one node as this function will get called only once before
             // particles have been emitted (at least in principle).
@@ -1339,19 +1325,19 @@ void PartBunchBase<T, Dim>::calcBeamParametersInitial() {
             const double  N =  static_cast<double>(pbin_m->getNp());
             calcMomentsInitial();
 
-            for(unsigned int i = 0 ; i < Dim; i++) {
+            for (unsigned int i = 0 ; i < Dim; i++) {
                 rmean_m(i) = centroid_m[2 * i] / N;
                 pmean_m(i) = centroid_m[(2 * i) + 1] / N;
                 rsqsum(i) = moments_m(2 * i, 2 * i) - N * rmean_m(i) * rmean_m(i);
                 psqsum(i) = moments_m((2 * i) + 1, (2 * i) + 1) - N * pmean_m(i) * pmean_m(i);
-                if(psqsum(i) < 0)
+                if (psqsum(i) < 0)
                     psqsum(i) = 0;
                 rpsum(i) =  moments_m((2 * i), (2 * i) + 1) - N * rmean_m(i) * pmean_m(i);
             }
             eps2 = (rsqsum * psqsum - rpsum * rpsum) / (N * N);
             rpsum /= N;
 
-            for(unsigned int i = 0 ; i < Dim; i++) {
+            for (unsigned int i = 0 ; i < Dim; i++) {
 
                 rrms_m(i) = std::sqrt(rsqsum(i) / N);
                 prms_m(i) = std::sqrt(psqsum(i) / N);
@@ -1380,7 +1366,7 @@ void PartBunchBase<T, Dim>::setCouplingConstant(double c) {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setCharge(double q) {
     qi_m = q;
-    if(getTotalNum() != 0)
+    if (getTotalNum() != 0)
         Q = qi_m;
     else
         WARNMSG("Could not set total charge in PartBunch::setCharge based on getTotalNum" << endl);
@@ -1420,7 +1406,7 @@ void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
        CAN not re-inizialize ParticleLayout
        this is an IPPL issue
      */
-    if(!OpalData::getInstance()->hasBunchAllocated()) {
+    if (!OpalData::getInstance()->hasBunchAllocated()) {
         this->initialize(fs_m->getFieldLayout());
 //         this->setMesh(fs_m->getMesh());
 //         this->setFieldLayout(fs_m->getFieldLayout());
@@ -1430,7 +1416,7 @@ void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::hasFieldSolver() {
-    if(fs_m)
+    if (fs_m)
         return fs_m->hasValidSolver();
     else
         return false;
@@ -1440,7 +1426,7 @@ bool PartBunchBase<T, Dim>::hasFieldSolver() {
 /// \brief Return the fieldsolver type if we have a fieldsolver
 template <class T, unsigned Dim>
 std::string PartBunchBase<T, Dim>::getFieldSolverType() const {
-    if(fs_m)
+    if (fs_m)
         return fs_m->getFieldSolverType();
     else
         return "";
@@ -1603,21 +1589,20 @@ double PartBunchBase<T, Dim>::calcMeanPhi() {
     double py[emittedBins];
     double meanPhi = 0.0;
 
-    for(int ii = 0; ii < emittedBins; ii++) {
+    for (int ii = 0; ii < emittedBins; ii++) {
         phi[ii] = 0.0;
         px[ii] = 0.0;
         py[ii] = 0.0;
     }
 
-    for(unsigned int ii = 0; ii < getLocalNum(); ii++) {
-
+    for (unsigned int ii = 0; ii < getLocalNum(); ii++) {
         px[Bin[ii]] += P[ii](0);
         py[Bin[ii]] += P[ii](1);
     }
 
     reduce(px, px + emittedBins, px, OpAddAssign());
     reduce(py, py + emittedBins, py, OpAddAssign());
-    for(int ii = 0; ii < emittedBins; ii++) {
+    for (int ii = 0; ii < emittedBins; ii++) {
         phi[ii] = calculateAngle(px[ii], py[ii]);
         meanPhi += phi[ii];
         INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * 180.0 / Physics::pi - 90.0 << "[degree]" << endl);
@@ -1642,31 +1627,31 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
     calcGammas_cycl();
     int maxbin = pbin_m->getNBins();
     size_t partInBin[maxbin];
-    for(int ii = 0; ii < maxbin; ii++) partInBin[ii] = 0;
+    for (int ii = 0; ii < maxbin; ii++) partInBin[ii] = 0;
 
     double pMin0 = 1.0e9;
     double pMin = 0.0;
     double maxbinIndex = 0;
 
-    for(unsigned long int n = 0; n < getLocalNum(); n++) {
+    for (unsigned long int n = 0; n < getLocalNum(); n++) {
         double temp_betagamma = std::sqrt(std::pow(P[n](0), 2) + std::pow(P[n](1), 2));
-        if(pMin0 > temp_betagamma)
+        if (pMin0 > temp_betagamma)
             pMin0 = temp_betagamma;
     }
     reduce(pMin0, pMin, OpMinAssign());
     INFOMSG("minimal beta*gamma = " << pMin << endl);
 
     double asinh0 = std::asinh(pMin);
-    for(unsigned long int n = 0; n < getLocalNum(); n++) {
+    for (unsigned long int n = 0; n < getLocalNum(); n++) {
 
         double temp_betagamma = std::sqrt(std::pow(P[n](0), 2) + std::pow(P[n](1), 2));
         int itsBinID = std::floor((std::asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
         Bin[n] = itsBinID;
-        if(maxbinIndex < itsBinID) {
+        if (maxbinIndex < itsBinID) {
             maxbinIndex = itsBinID;
         }
 
-        if(itsBinID >= maxbin) {
+        if (itsBinID >= maxbin) {
             ERRORMSG("The bin number limit is " << maxbin << ", please increase the energy interval and try again" << endl);
             return false;
         } else
@@ -1682,7 +1667,6 @@ bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
     calcGammas_cycl();
 
     return true;
-
 }
 
 
@@ -1733,14 +1717,96 @@ double PartBunchBase<T, Dim>::getE() const {
 
 
 template <class T, unsigned Dim>
-ParticleType::type PartBunchBase<T, Dim>::getPType() const {
+ParticleOrigin PartBunchBase<T, Dim>::getPOrigin() const {
+    return refPOrigin_m;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setPOrigin(ParticleOrigin origin) {
+    refPOrigin_m = origin;
+}
+
+
+template <class T, unsigned Dim>
+ParticleType PartBunchBase<T, Dim>::getPType() const {
     return refPType_m;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPType(ParticleType::type type) {
-    refPType_m = type;
+std::string PartBunchBase<T, Dim>::getPTypeString() {
+
+    switch (refPType_m) {
+    case ParticleType::ELECTRON:
+        return "ELECTRON";
+    case ParticleType::PROTON:
+        return "PROTON";
+    case ParticleType::POSITRON:
+        return "POSITRON";
+    case ParticleType::ANTIPROTON:
+        return "ANTIPROTON";
+    case ParticleType::CARBON:
+        return "CARBON";
+    case ParticleType::HMINUS:
+        return "HMINUS";
+    case ParticleType::URANIUM:
+        return "URANIUM";
+    case ParticleType::MUON:
+        return "MUON";
+    case ParticleType::DEUTERON:
+        return "DEUTERON";
+    case ParticleType::XENON:
+        return "XENON";
+    case ParticleType::H2P:
+        return "H2P";
+    case ParticleType::ALPHA:
+        return "ALPHA";
+    case ParticleType::HYDROGEN:
+        return "HYDROGEN";
+    case  ParticleType::H3P:
+        return "H3P";
+    default:
+        INFOMSG("Unknown type for OPAL particles" << endl);
+        return "UNNAMED";
+    }
 }
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setPType(std::string type) {
+
+    if (type == "ELECTRON") {
+        refPType_m = ParticleType::ELECTRON;
+    } else if (type == "PROTON") {
+        refPType_m = ParticleType::PROTON;
+    } else if (type == "POSITRON") {
+        refPType_m = ParticleType::POSITRON;
+    } else if (type == "ANTIPROTON") {
+        refPType_m = ParticleType::ANTIPROTON;
+    } else if (type == "CARBON") {
+        refPType_m = ParticleType::CARBON;
+    } else if (type == "HMINUS") {
+        refPType_m = ParticleType::HMINUS;
+    } else if (type == "URANIUM") {
+        refPType_m = ParticleType::URANIUM;
+    } else if (type == "MUON") {
+        refPType_m = ParticleType::MUON;
+    } else if (type == "DEUTERON") {
+        refPType_m = ParticleType::DEUTERON;
+    } else if (type == "XENON") {
+        refPType_m = ParticleType::XENON;
+    } else if (type == "H2P") {
+        refPType_m = ParticleType::H2P;
+    } else if (type == "ALPHA") {
+        refPType_m = ParticleType::ALPHA;
+    } else if (type == "HYDROGEN") {
+        refPType_m = ParticleType::HYDROGEN;
+    } else if (type == "H3P") {
+        refPType_m = ParticleType::H3P;
+    } else {
+        INFOMSG("Unknown type for OPAL particles. Default ParticleType::UNNAMED is set" << endl);
+        refPType_m = ParticleType::UNNAMED;
+    }
+}
+
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::resetQ(double q)  {
@@ -1785,14 +1851,13 @@ double PartBunchBase<T, Dim>::getBeta(int /*i*/) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::actT()
-{
+void PartBunchBase<T, Dim>::actT() {
     // do nothing here
 };
 
 
 template <class T, unsigned Dim>
-const PartData *PartBunchBase<T, Dim>::getReference() const {
+const PartData* PartBunchBase<T, Dim>::getReference() const {
     return reference;
 }
 
@@ -1817,7 +1882,7 @@ void PartBunchBase<T, Dim>::calcEMean() {
 
     eKin_m = 0.0;
 
-    for(unsigned int k = 0; k < locNp; k++) {
+    for (unsigned int k = 0; k < locNp; k++) {
         eKin_m += std::sqrt(dot(P[k], P[k]) + 1.0);
     }
 
@@ -1830,9 +1895,9 @@ void PartBunchBase<T, Dim>::calcEMean() {
 }
 
 template <class T, unsigned Dim>
-Inform &PartBunchBase<T, Dim>::print(Inform &os) {
+Inform& PartBunchBase<T, Dim>::print(Inform& os) {
 
-    if(getTotalNum() != 0) {  // to suppress Nans
+    if (getTotalNum() != 0) {  // to suppress Nans
         Inform::FmtFlags_t ff = os.flags();
 
         double pathLength = get_sPos();
@@ -1887,12 +1952,10 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
     std::vector<double> loc_moments(4 * Dim + Dim * ( 2 * Dim + 1 ));
 
     long int totalNum = this->getTotalNum();
-    if (!Options::amr && OpalData::getInstance()->isInOPALCyclMode())
-    {
-        /* FIXME After issue 287 is resolved this shouldn't be necessary
-         * anymore
-         */
-        for(unsigned long k = 0; k < localNum; ++ k) {
+    if (!Options::amr && OpalData::getInstance()->isInOPALCyclMode()) {
+        //FIXME After issue 287 is resolved this shouldn't be necessary anymore
+
+        for (unsigned long k = 0; k < localNum; ++ k) {
             if (ID[k] == 0) {
                 part[1] = P[k](0);
                 part[3] = P[k](1);
@@ -1904,7 +1967,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
                 unsigned int l = 2 * Dim;
                 for (unsigned int i = 0; i < 2 * Dim; ++i) {
                     loc_moments[i] -= part[i];
-                    for(unsigned int j = 0; j <= i; j++) {
+                    for (unsigned int j = 0; j <= i; j++) {
                         loc_moments[l++] -= part[i] * part[j];
                     }
                 }
@@ -1922,7 +1985,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         allreduce(totalNum, 1, std::less<long int>());
     }
 
-    for(unsigned long k = 0; k < localNum; ++ k) {
+    for (unsigned long k = 0; k < localNum; ++ k) {
         part[1] = P[k](0);
         part[3] = P[k](1);
         part[5] = P[k](2);
@@ -1933,7 +1996,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
         unsigned int l = 2 * Dim;
         for (unsigned int i = 0; i < 2 * Dim; ++i) {
             loc_moments[i] += part[i];
-            for(unsigned int j = 0; j <= i; j++) {
+            for (unsigned int j = 0; j <= i; j++) {
                 loc_moments[l++] += part[i] * part[j];
             }
         }
@@ -1953,7 +2016,7 @@ size_t PartBunchBase<T, Dim>::calcMoments() {
 
     unsigned int l = 2 * Dim;
     for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        for(unsigned int j = 0; j <= i; j++) {
+        for (unsigned int j = 0; j <= i; j++) {
             moments_m(i, j) = loc_moments[l++];
             moments_m(j, i) = moments_m(i, j);
         }
@@ -1987,19 +2050,19 @@ void PartBunchBase<T, Dim>::calcMomentsInitial() {
 
     double part[2 * Dim];
 
-    for(unsigned int i = 0; i < 2 * Dim; ++i) {
+    for (unsigned int i = 0; i < 2 * Dim; ++i) {
         centroid_m[i] = 0.0;
-        for(unsigned int j = 0; j <= i; ++j) {
+        for (unsigned int j = 0; j <= i; ++j) {
             moments_m(i, j) = 0.0;
             moments_m(j, i) = moments_m(i, j);
         }
     }
 
-    for(size_t k = 0; k < pbin_m->getNp(); k++) {
-        for(int binNumber = 0; binNumber < pbin_m->getNBins(); binNumber++) {
+    for (size_t k = 0; k < pbin_m->getNp(); k++) {
+        for (int binNumber = 0; binNumber < pbin_m->getNBins(); binNumber++) {
             std::vector<double> p;
 
-            if(pbin_m->getPart(k, binNumber, p)) {
+            if (pbin_m->getPart(k, binNumber, p)) {
                 part[0] = p.at(0);
                 part[1] = p.at(3);
                 part[2] = p.at(1);
@@ -2007,9 +2070,9 @@ void PartBunchBase<T, Dim>::calcMomentsInitial() {
                 part[4] = p.at(2);
                 part[5] = p.at(5);
 
-                for(unsigned int i = 0; i < 2 * Dim; ++i) {
+                for (unsigned int i = 0; i < 2 * Dim; ++i) {
                     centroid_m[i] += part[i];
-                    for(unsigned int j = 0; j <= i; ++j) {
+                    for (unsigned int j = 0; j <= i; ++j) {
                         moments_m(i, j) += part[i] * part[j];
                     }
                 }
@@ -2017,8 +2080,8 @@ void PartBunchBase<T, Dim>::calcMomentsInitial() {
         }
     }
 
-    for(unsigned int i = 0; i < 2 * Dim; ++i) {
-        for(unsigned int j = 0; j < i; ++j) {
+    for (unsigned int i = 0; i < 2 * Dim; ++i) {
+        for (unsigned int j = 0; j < i; ++j) {
             moments_m(j, i) = moments_m(i, j);
         }
     }
@@ -2035,7 +2098,7 @@ double PartBunchBase<T, Dim>::calculateAngle(double x, double y) {
 
 
 template <class T, unsigned Dim>
-Inform &operator<<(Inform &os, PartBunchBase<T, Dim> &p) {
+Inform& operator<<(Inform &os, PartBunchBase<T, Dim>& p) {
     return p.print(os);
 }
 
@@ -2070,6 +2133,7 @@ void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
     std::swap(Bin[i], Bin[j]);
     std::swap(dt[i], dt[j]);
     std::swap(PType[i], PType[j]);
+    std::swap(POrigin[i], POrigin[j]);
     std::swap(TriID[i], TriID[j]);
     std::swap(cavityGapCrossed[i], cavityGapCrossed[j]);
     std::swap(bunchNum[i], bunchNum[j]);
@@ -2095,26 +2159,26 @@ void PartBunchBase<T, Dim>::setBCForDCBeam() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::updateFields(const Vector_t &/*hr*/, const Vector_t &/*origin*/) {
+void PartBunchBase<T, Dim>::updateFields(const Vector_t& /*hr*/, const Vector_t& /*origin*/) {
 }
 
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
+
     pb->addAttribute(P);
     pb->addAttribute(Q);
     pb->addAttribute(M);
     pb->addAttribute(Phi);
     pb->addAttribute(Ef);
     pb->addAttribute(Eftmp);
-
     pb->addAttribute(Bf);
     pb->addAttribute(Bin);
     pb->addAttribute(dt);
     pb->addAttribute(PType);
+    pb->addAttribute(POrigin);
     pb->addAttribute(TriID);
     pb->addAttribute(cavityGapCrossed);
-
     pb->addAttribute(bunchNum);
 
     boundpTimer_m       = IpplTimings::getTimer("Boundingbox");
@@ -2127,7 +2191,6 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
 
     distrCreate_m       = IpplTimings::getTimer("Create Distr");
     distrReload_m       = IpplTimings::getTimer("Load Distr");
-
 
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
@@ -2213,7 +2276,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::update() {
     try {
         pbase->update();
-    } catch (const IpplException &ex) {
+    } catch (const IpplException& ex) {
         throw OpalException(ex.where(), ex.what());
     }
 }
@@ -2222,7 +2285,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
     try {
         pbase->update(canSwap);
-    } catch (const IpplException &ex) {
+    } catch (const IpplException& ex) {
         throw OpalException(ex.where(), ex.what());
     }
 }
