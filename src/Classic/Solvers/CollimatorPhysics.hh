@@ -1,9 +1,9 @@
 //
 // Class CollimatorPhysics
+//   Defines the physical processes of beam scattering 
+//   and energy loss by heavy charged particles
 //
-// Defines the collimator physics models
-//
-// Copyright (c) 2009 - 2020, Bi, Yang, Stachel, Adelmann
+// Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
 //                            Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
@@ -17,7 +17,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef COLLIMATORPHYSICS_HH
 #define COLLIMATORPHYSICS_HH
 
@@ -25,13 +24,14 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
+
 #include <gsl/gsl_rng.h>
 
 #include "Utility/IpplTimings.h"
 
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
 template <class T, unsigned Dim>
@@ -64,15 +64,15 @@ struct InsideTester {
 
 class CollimatorPhysics: public ParticleMatterInteractionHandler {
 public:
-    CollimatorPhysics(const std::string &name,
-                      ElementBase *element,
-                      std::string &mat,
+    CollimatorPhysics(const std::string& name,
+                      ElementBase* element,
+                      std::string& mat,
                       bool enableRutherford,
                       double lowEnergyThr);
     ~CollimatorPhysics();
 
-    virtual void apply(PartBunchBase<double, 3> *bunch,
-                       const std::pair<Vector_t, double> &boundingSphere);
+    virtual void apply(PartBunchBase<double, 3>* bunch,
+                       const std::pair<Vector_t, double>& boundingSphere);
 
     virtual const std::string getType() const;
 
@@ -84,28 +84,29 @@ public:
     virtual size_t getParticlesInMat();
     virtual unsigned getRediffused();
     virtual unsigned int getNumEntered();
-    void computeInteraction();
+    void computeInteraction(PartBunchBase<double, 3>* bunch);
 
-    virtual bool computeEnergyLoss(Vector_t &P,
+    virtual bool computeEnergyLoss(PartBunchBase<double, 3>* bunch,
+                                   Vector_t& P,
                                    const double deltat,
                                    bool includeFluctuations = true) const;
 
 private:
 
     void configureMaterialParameters();
-    void computeCoulombScattering(Vector_t &R,
-                                  Vector_t &P,
+    void computeCoulombScattering(Vector_t& R,
+                                  Vector_t& P,
                                   double dt);
 
-    void applyRotation(Vector_t &P,
-                       Vector_t &R,
+    void applyRotation(Vector_t& P,
+                       Vector_t& R,
                        double xplane,
                        double thetacou);
-    void applyRandomRotation(Vector_t &P, double theta0);
+    void applyRandomRotation(Vector_t& P, double theta0);
 
-    void copyFromBunch(PartBunchBase<double, 3> *bunch,
-                       const std::pair<Vector_t, double> &boundingSphere);
-    void addBackToBunch(PartBunchBase<double, 3> *bunch);
+    void copyFromBunch(PartBunchBase<double, 3>* bunch,
+                       const std::pair<Vector_t, double>& boundingSphere);
+    void addBackToBunch(PartBunchBase<double, 3>* bunch);
 
     void deleteParticleFromLocalVector();
 
@@ -118,6 +119,9 @@ private:
 
     double  T_m;                               // own time, maybe larger than in the bunch object
     double dT_m;                               // dt from bunch
+
+    double mass_m;                             // mass from bunch (eV)
+    double charge_m;                           // charge from bunch (elementary charges)
 
     gsl_rng *rGen_m;                           // random number generator
 
@@ -133,10 +137,21 @@ private:
     double X0_m;                               // the radiation length in [m]
     double I_m;                                // the mean excitation energy [eV]
 
-    double A2_c;                               // coefficients to fit model to measurement data
-    double A3_c;                               // see e.g. page 16-20 in H. H. Andersen, J. F. Ziegler,
-    double A4_c;                               // "Hydrogen Stopping Powers and Ranges in All Elements",
-    double A5_c;                               // Pergamon Press, 1977
+    /* 
+       coefficients to fit model to measurement data according to Andersen-Ziegler formulae.
+       see ICRU-49, "Stopping Powers and Ranges for Protons  and Alpha Particles",
+       chapter 'Electronic (Collision) Stopping Powers in the Low-Energy Region'
+    */
+    double A1_c;
+    double A2_c;
+    double A3_c;
+    double A4_c;
+    double A5_c;
+    double B1_c;
+    double B2_c;
+    double B3_c;
+    double B4_c;
+    double B5_c;
 
     // number of particles that enter the material in current step (count for single step)
     unsigned int bunchToMatStat_m;

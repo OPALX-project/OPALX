@@ -565,7 +565,7 @@ void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
     double temperature = elptr->getTemperature();
     *gmsg << "* Temperature  = " << temperature << " [K]" << endl;
 
-    std::string gas = elptr->getResidualGas();
+    std::string gas = elptr->getResidualGasName();
     *gmsg << "* Residual gas = " << gas << endl;
 
     bool stop = elptr->getStop();
@@ -2047,8 +2047,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
         if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
             BeamStripping *bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
-            bstp->checkBeamStripping(itsBunch_m, cycl_m, turnnumber_m,
-                                     itsBunch_m->getT()*1e9 /*[ns]*/, dt);
+            bstp->checkBeamStripping(itsBunch_m, cycl_m);
         }
     }
 
