@@ -58,53 +58,55 @@ struct PPositions {
     double  Pfact; // MULTIPLICATION FACTOR FOR PRESSURE MAP
 };
 
+enum class ResidualGas:short {AIR,
+                              H2,
+                              NOGAS};
 
-
-// Class BeamStripping
-// ------------------------------------------------------------------------
 
 class BeamStripping: public Component {
 
 public:
 
     /// Constructor with given name.
-    explicit BeamStripping(const std::string &name);
+    explicit BeamStripping(const std::string& name);
 
     BeamStripping();
-    BeamStripping(const BeamStripping &rhs);
+    BeamStripping(const BeamStripping& rhs);
     virtual ~BeamStripping();
 
     /// Apply visitor to BeamStripping.
-    virtual void accept(BeamlineVisitor &) const;
+    virtual void accept(BeamlineVisitor&) const;
 
-    virtual bool checkBeamStripping(PartBunchBase<double, 3> *bunch, Cyclotron* cycl, const int turnnumber, const double t, const double tstep);
+    virtual bool checkBeamStripping(PartBunchBase<double, 3>* bunch,
+                                    Cyclotron* cycl);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3>* bunch,
+                            double& startField, double& endField);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, const double &scaleFactor);
+    virtual void initialise(PartBunchBase<double, 3>* bunch,
+                            const double& scaleFactor);
 
     virtual void finalise();
 
     virtual bool bends() const;
 
-    virtual void goOnline(const double &kineticEnergy);
-
+    virtual void goOnline(const double& kineticEnergy);
     virtual void goOffline();
 
     virtual ElementBase::ElementType getType() const;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
+    virtual void getDimensions(double& zBegin, double& zEnd) const;
 
     std::string  getBeamStrippingShape();
 
-    int checkPoint(const double &x, const double &y, const double &z);
+    int checkPoint(const double& x, const double& y, const double& z);
     
-    double checkPressure(const double &x, const double &y);
+    double checkPressure(const double& x, const double& y);
 
-    void setPressure(double pressure) ;
+    void setPressure(double pressure);
     double getPressure() const;
 
-    void setTemperature(double temperature) ;
+    void setTemperature(double temperature);
     double getTemperature() const;
 
     void setPressureMapFN(std::string pmapfn);
@@ -114,7 +116,8 @@ public:
     virtual double getPScale() const;
 
     void setResidualGas(std::string gas);
-    virtual std::string getResidualGas() const;
+    ResidualGas getResidualGas() const;
+    std::string getResidualGasName();
 
     void setStop(bool stopflag);
     virtual bool getStop() const;
@@ -130,7 +133,7 @@ protected:
 private:
 
     ///@{ parameters for BeamStripping
-    std::string gas_m;
+    ResidualGas gas_m;
     double pressure_m;    /// mbar
     std::string pmapfn_m; /// stores the filename of the pressure map
     double pscale_m;      /// a scale factor for the P-field
@@ -145,7 +148,7 @@ private:
     double maxz_m;   /// mm
     ///@}
 
-    ParticleMatterInteractionHandler *parmatint_m;
+    ParticleMatterInteractionHandler* parmatint_m;
 
 protected:
     // object of Matrices including pressure field map and its derivates

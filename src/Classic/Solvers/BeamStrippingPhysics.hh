@@ -1,9 +1,9 @@
 //
 // Class BeamStrippingPhysics
-//   This class provides beam stripping physical processes as
-//   particle matter interaction type.
+//   Defines the physical processes of residual gas 
+//   interactions and Lorentz stripping
 //
-// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -43,13 +43,13 @@ class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
 
 public:
 
-    BeamStrippingPhysics(const std::string &name, ElementBase *element);
+    BeamStrippingPhysics(const std::string& name, ElementBase* element);
     ~BeamStrippingPhysics();
 
     void setCyclotron(Cyclotron* cycl) { cycl_m = cycl; };
 
-    virtual void apply(PartBunchBase<double, 3> *bunch,
-                       const std::pair<Vector_t, double> &boundingSphere);
+    virtual void apply(PartBunchBase<double, 3>* bunch,
+                       const std::pair<Vector_t, double>& boundingSphere);
 
     virtual const std::string getType() const;
     virtual void print(Inform& msg);
@@ -60,46 +60,47 @@ public:
     virtual size_t getParticlesInMat() {return locPartsInMat_m;}
     virtual unsigned getRediffused() {return rediffusedStat_m;}
     virtual unsigned int getNumEntered() {return bunchToMatStat_m;}
-    inline void doPhysics(PartBunchBase<double, 3> *bunch);
+
+    inline void doPhysics(PartBunchBase<double, 3>* bunch);
 
 private:
 
-    void crossSection(double Eng);
+    void crossSection(PartBunchBase<double, 3>* bunch, size_t& i, double Eng);
 
-    double csAnalyticFunctionNakai(double Eng, double Eth, int &i);
+    double csAnalyticFunctionNakai(double Eng, double Eth, int& i);
     
     double csAnalyticFunctionTabata(double Eng, double Eth,
-                            double a1, double a2, double a3, double a4, double a5, double a6);
+                                    double a1, double a2, double a3,
+                                    double a4, double a5, double a6);
                               
     double csChebyshevFitting(double Eng, double Emin, double Emax);
 
-    bool gasStripping(double &deltas);
+    bool gasStripping(double& deltas);
+    bool lorentzStripping(double& gamma, double& E);
 
-    bool lorentzStripping(double &gamma, double &E);
+    void secondaryParticles(PartBunchBase<double, 3>* bunch, size_t& i, bool pdead_LS);
+    void transformToProton(PartBunchBase<double, 3>* bunch, size_t& i);
+    void transformToHydrogen(PartBunchBase<double, 3>* bunch, size_t& i);
+    void transformToHminus(PartBunchBase<double, 3>* bunch, size_t& i);
+    void transformToH3plus(PartBunchBase<double, 3>* bunch, size_t& i);
 
-    void secondaryParticles(PartBunchBase<double, 3> *bunch, size_t &i, bool pdead_LS);
-    void transformToProton(PartBunchBase<double, 3> *bunch, size_t &i);
-    void transformToHydrogen(PartBunchBase<double, 3> *bunch, size_t &i);
-    void transformToHminus(PartBunchBase<double, 3> *bunch, size_t &i);
-    void transformToH3plus(PartBunchBase<double, 3> *bunch, size_t &i);
-
-    bool computeEnergyLoss(Vector_t &/*P*/, const double /*deltat*/, bool /*includeFluctuations*/) const {
+    bool computeEnergyLoss(PartBunchBase<double, 3>* /*bunch*/,
+                           Vector_t& /*P*/,
+                           const double /*deltat*/,
+                           bool /*includeFluctuations*/) const {
         return false;
     }
 
-    Cyclotron *cycl_m;
-    BeamStripping *bstp_m;
+    Cyclotron* cycl_m;
+    BeamStripping* bstp_m;
     ElementBase::ElementType bstpshape_m;
 
-    gsl_rng * r_m;
+    gsl_rng* r_m;
 
-    double T_m;    /// s
-    double dT_m;   /// s
-
+    double T_m;    // s
+    double dT_m;   // s
     double mass_m;
     double charge_m;
-
-    std::string gas_m;
     double pressure_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;

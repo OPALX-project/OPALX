@@ -112,7 +112,7 @@ void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam)
 
     Ppos_t coord, momentum;
     ParticleAttrib<double> mass, charge;
-    ParticleAttrib<short> ptype;
+    ParticleAttrib<ParticleOrigin> porigin;
 
     std::size_t localNum = beam->getLocalNum();
 
@@ -128,8 +128,8 @@ void MultiBunchHandler::saveBunch(PartBunchBase<double, 3> *beam)
     charge.create(localNum);
     charge = beam->Q;
 
-    ptype.create(localNum);
-    ptype = beam->PType;
+    porigin.create(localNum);
+    porigin = beam->POrigin;
 
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("REFPR", 0.0),
@@ -234,7 +234,7 @@ bool MultiBunchHandler::readBunch(PartBunchBase<double, 3> *beam,
         beam->P[localNum] = tmpBunch->P[ii];
         beam->M[localNum] = tmpBunch->M[ii];
         beam->Q[localNum] = tmpBunch->Q[ii];
-        beam->PType[localNum] = ParticleType::REGULAR;
+        beam->POrigin[localNum] = ParticleOrigin::REGULAR;
         beam->Bin[localNum] = bunchNum;
         beam->bunchNum[localNum] = bunchNum;
     }

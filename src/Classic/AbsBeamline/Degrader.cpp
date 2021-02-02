@@ -111,7 +111,7 @@ bool Degrader::applyToReferenceParticle(const Vector_t &R,
     if (!isInMaterial(R(2))) return false;
 
     Vector_t updatedP = P;
-    bool isDead = getParticleMatterInteraction()->computeEnergyLoss(updatedP, RefPartBunch_m->getdT(), false);
+    bool isDead = getParticleMatterInteraction()->computeEnergyLoss(RefPartBunch_m, updatedP, RefPartBunch_m->getdT(), false);
     double deltaP = euclidean_norm(updatedP) - euclidean_norm(P);
     E(2) += deltaP * RefPartBunch_m->getM() / (RefPartBunch_m->getdT() * RefPartBunch_m->getQ() * Physics::c);
 

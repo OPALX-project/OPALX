@@ -323,6 +323,8 @@ void TrackRun::setupTTracker(){
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
     Track::block->bunch->setBeamFrequency(beam->getFrequency() * 1e6);
 
+    Track::block->bunch->setPType(beam->getParticleName());
+
     if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
         // Ask the dictionary if BoundaryGeometry is allocated.
         // If it is allocated use the allocated BoundaryGeometry
@@ -436,7 +438,8 @@ void TrackRun::setupCyclotronTracker(){
 
     setupFieldsolver();
 
-    Track::block->bunch->PType = ParticleType::REGULAR;
+    Track::block->bunch->setPType(beam->getParticleName());
+    Track::block->bunch->POrigin = ParticleOrigin::REGULAR;
 
     std::vector<std::string> distr_str = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
     if (distr_str.size() == 0) {
