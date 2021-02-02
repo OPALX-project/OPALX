@@ -1,9 +1,9 @@
 //
 // Class CollimatorPhysics
+//   Defines the physical processes of beam scattering 
+//   and energy loss by heavy charged particles
 //
-// Defines the collimator physics models
-//
-// Copyright (c) 2009 - 2020, Bi, Yang, Stachel, Adelmann
+// Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
 //                            Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
@@ -17,7 +17,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-
 #include "Solvers/CollimatorPhysics.hh"
 #include "Physics/Physics.h"
 #include "Physics/Material.h"
@@ -39,63 +38,65 @@
 
 #include <gsl/gsl_randist.h>
 
-#include <cmath>
-#include <iostream>
-#include <fstream>
 #include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <iostream>
 
 #include <sys/time.h>
 
 namespace {
     struct DegraderInsideTester: public InsideTester {
-        explicit DegraderInsideTester(ElementBase * el) {
+        explicit DegraderInsideTester(ElementBase* el) {
             deg_m = static_cast<Degrader*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R) override {
+        bool checkHit(const Vector_t& R) override {
             return deg_m->isInMaterial(R(2));
         }
 
     private:
-        Degrader *deg_m;
+        Degrader* deg_m;
     };
 
     struct CollimatorInsideTester: public InsideTester {
-        explicit CollimatorInsideTester(ElementBase * el) {
+        explicit CollimatorInsideTester(ElementBase* el) {
             col_m = static_cast<CCollimator*>(el);
         }
         virtual
-        bool checkHit(const Vector_t &R)  override {
+        bool checkHit(const Vector_t& R)  override {
             return col_m->checkPoint(R(0), R(1));
         }
 
     private:
-        CCollimator *col_m;
+        CCollimator* col_m;
     };
 
     struct FlexCollimatorInsideTester: public InsideTester {
-        explicit FlexCollimatorInsideTester(ElementBase * el) {
+        explicit FlexCollimatorInsideTester(ElementBase* el) {
             col_m = static_cast<FlexibleCollimator*>(el);
         }
 
         virtual
-        bool checkHit(const Vector_t &R)  override {
+        bool checkHit(const Vector_t& R)  override {
             return col_m->isStopped(R);
         }
 
     private:
-        FlexibleCollimator *col_m;
+        FlexibleCollimator* col_m;
     };
 }
 
-CollimatorPhysics::CollimatorPhysics(const std::string &name,
-                                     ElementBase *element,
-                                     std::string &material,
+CollimatorPhysics::CollimatorPhysics(const std::string& name,
+                                     ElementBase* element,
+                                     std::string& material,
                                      bool enableRutherford,
                                      double lowEnergyThr):
     ParticleMatterInteractionHandler(name, element),
     T_m(0.0),
     dT_m(0.0),
+    mass_m(0.0),
+    charge_m(0.0),
     material_m(material),
     hitTester_m(nullptr),
     Z_m(0),
@@ -103,6 +104,7 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name,
     rho_m(0.0),
     X0_m(0.0),
     I_m(0.0),
+    A1_c(0.0),
     A2_c(0.0),
     A3_c(0.0),
     A4_c(0.0),
@@ -151,8 +153,8 @@ CollimatorPhysics::CollimatorPhysics(const std::string &name,
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
 
-    DegraderApplyTimer_m = IpplTimings::getTimer("DegraderApply");
-    DegraderLoopTimer_m = IpplTimings::getTimer("DegraderLoop");
+    DegraderApplyTimer_m   = IpplTimings::getTimer("DegraderApply");
+    DegraderLoopTimer_m    = IpplTimings::getTimer("DegraderLoop");
     DegraderDestroyTimer_m = IpplTimings::getTimer("DegraderDestroy");
 }
 
@@ -177,14 +179,20 @@ void  CollimatorPhysics::configureMaterialParameters() {
     rho_m = material->getMassDensity();
     X0_m = material->getRadiationLength();
     I_m = material->getMeanExcitationEnergy();
+    A1_c = material->getStoppingPowerFitCoefficients(Physics::Material::A1);
     A2_c = material->getStoppingPowerFitCoefficients(Physics::Material::A2);
     A3_c = material->getStoppingPowerFitCoefficients(Physics::Material::A3);
     A4_c = material->getStoppingPowerFitCoefficients(Physics::Material::A4);
     A5_c = material->getStoppingPowerFitCoefficients(Physics::Material::A5);
+    B1_c = material->getStoppingPowerFitCoefficients(Physics::Material::B1);
+    B2_c = material->getStoppingPowerFitCoefficients(Physics::Material::B2);
+    B3_c = material->getStoppingPowerFitCoefficients(Physics::Material::B3);
+    B4_c = material->getStoppingPowerFitCoefficients(Physics::Material::B4);
+    B5_c = material->getStoppingPowerFitCoefficients(Physics::Material::B5);
 }
 
-void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
-                              const std::pair<Vector_t, double> &boundingSphere) {
+void CollimatorPhysics::apply(PartBunchBase<double, 3>* bunch,
+                              const std::pair<Vector_t, double>& boundingSphere) {
     IpplTimings::startTimer(DegraderApplyTimer_m);
 
     /*
@@ -208,6 +216,9 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
     dT_m = bunch->getdT();
     T_m  = bunch->getT();
 
+    mass_m     = bunch->getM();
+    charge_m   = bunch->getQ();
+
     bool onlyOneLoopOverParticles = ! (allParticleInMat_m);
 
     do {
@@ -215,15 +226,13 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
         push();
         setTimeStepForLeavingParticles();
 
-        /*
-          if we are not looping copy newly arrived particles
-        */
-        if (onlyOneLoopOverParticles)
+        // if we are not looping copy newly arrived particles
+        if (onlyOneLoopOverParticles) {
             copyFromBunch(bunch, boundingSphere);
-
+        }
         addBackToBunch(bunch);
 
-        computeInteraction();
+        computeInteraction(bunch);
 
         push();
         resetTimeStep();
@@ -244,100 +253,139 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3> *bunch,
     IpplTimings::stopTimer(DegraderApplyTimer_m);
 }
 
-void CollimatorPhysics::computeInteraction() {
-    /***
+void CollimatorPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
+    /*
         Do physics if
+        -- correct type of particle
         -- particle not stopped (locParts_m[i].label != -1.0)
 
         Absorbed particle i: locParts_m[i].label = -1.0;
     */
+    ParticleType pType = bunch->getPType();
+    if (pType == ParticleType::PROTON   ||
+        pType == ParticleType::DEUTERON ||
+        pType == ParticleType::HMINUS   ||
+        pType == ParticleType::MUON     ||
+        pType == ParticleType::H2P      ||
+        pType == ParticleType::ALPHA     ) {
 
-    for (size_t i = 0; i < locParts_m.size(); ++i) {
-        if (locParts_m[i].label != -1) {
-            Vector_t &R = locParts_m[i].Rincol;
-            Vector_t &P = locParts_m[i].Pincol;
-            double &dt  = locParts_m[i].DTincol;
+        for (size_t i = 0; i < locParts_m.size(); ++i) {
+            if (locParts_m[i].label != -1) {
+                Vector_t& R = locParts_m[i].Rincol;
+                Vector_t& P = locParts_m[i].Pincol;
+                double& dt  = locParts_m[i].DTincol;
 
-            if (hitTester_m->checkHit(R)) {
-                bool pdead = computeEnergyLoss(P, dt);
-                if (!pdead) {
-                    /*
-                      Now scatter and transport particle in material.
-                      The checkHit call just above will detect if the
-                      particle is rediffused from the material into vacuum.
-                    */
+                if (hitTester_m->checkHit(R)) {
+                    bool pdead = computeEnergyLoss(bunch, P, dt);
+                    if (!pdead) {
+                        /*
+                          Now scatter and transport particle in material.
+                          The checkHit call just above will detect if the
+                          particle is rediffused from the material into vacuum.
+                        */
 
-                    computeCoulombScattering(R, P, dt);
-                } else {
-                    // The particle is stopped in the material, set label to -1
-                    locParts_m[i].label = -1.0;
-                    ++ stoppedPartStat_m;
-                    lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
+                        computeCoulombScattering(R, P, dt);
+                    } else {
+                        // The particle is stopped in the material, set label to -1
+                        locParts_m[i].label = -1.0;
+                        ++ stoppedPartStat_m;
+                        lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
+                    }
                 }
             }
         }
+    } else {
+        throw GeneralClassicException(
+                "CollimatorPhysics::computeInteraction",
+                "Particle " + bunch->getPTypeString() +
+                " is not supported for scattering interactions!");    
     }
-
-    /*
-      delete absorbed particles
-    */
+    // delete absorbed particles
     deleteParticleFromLocalVector();
 }
 
-/// Energy Loss:  using the Bethe-Bloch equation.
-/// Energy straggling: For relatively thick absorbers such that the number of collisions is large,
-/// the energy loss distribution is shown to be Gaussian in form.
+/// Energy Loss: using the Bethe-Bloch equation.
+/// In low-energy region use Andersen-Ziegler fitting (only for protons)
+/// Energy straggling: For relatively thick absorbers such that the number of collisions
+/// is large, the energy loss distribution is shown to be Gaussian in form.
 /// See Particle Physics Booklet, chapter 'Passage of particles through matter' or
 /// Review of Particle Physics, DOI: 10.1103/PhysRevD.86.010001, page 329 ff
 // -------------------------------------------------------------------------
-bool CollimatorPhysics::computeEnergyLoss(Vector_t &P,
+bool CollimatorPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch, 
+                                          Vector_t& P,
                                           const double deltat,
                                           bool includeFluctuations) const {
 
+    ParticleType pType = bunch->getPType();
     constexpr double m2cm = 1e2;
+    constexpr double eV2keV = 1e-3;
     constexpr double GeV2keV = 1e6;
+
     constexpr double massElectron_keV = Physics::m_e * GeV2keV;
-    constexpr double massProton_keV = Physics::m_p * GeV2keV;
-    constexpr double massProton_amu = Physics::m_p / Physics::amu;
-    constexpr double chargeProton = Physics::z_p;
+
+    const double mass_keV = mass_m * eV2keV;
+
     constexpr double K = 4.0 * Physics::pi * Physics::Avo * Physics::r_e * m2cm * Physics::r_e * m2cm * massElectron_keV;
 
     double gamma = Util::getGamma(P);
     const double gammaSqr = std::pow(gamma, 2);
     const double betaSqr = 1.0 - 1.0 / gammaSqr;
     double beta = std::sqrt(betaSqr);
-    double Ekin = (gamma - 1) * massProton_keV;
+    double Ekin = (gamma - 1) * mass_keV;
     double dEdx = 0.0;
+    double epsilon = 0.0;
 
     const double deltas = deltat * beta * Physics::c;
     const double deltasrho = deltas * m2cm * rho_m;
 
-    if (Ekin >= 600) {
-        constexpr double eV2keV = 1e-3;
-        constexpr double massRatio = Physics::m_e / Physics::m_p;
-        double Tmax = (2.0 * massElectron_keV * betaSqr * gammaSqr /
-                       (std::pow(gamma + massRatio, 2) - (gammaSqr - 1.0)));
+    const double massRatio = massElectron_keV / mass_keV;
+    double Tmax = (2.0 * massElectron_keV * betaSqr * gammaSqr /
+                  (std::pow(gamma + massRatio, 2) - (gammaSqr - 1.0)));
 
-        dEdx = (-K * std::pow(chargeProton, 2) * Z_m / (A_m * betaSqr) *
-                (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * eV2keV, 2)) - betaSqr));
+    if (pType != ParticleType::ALPHA) {
 
-        Ekin += deltasrho * dEdx;
-    } else if (Ekin > 10) {
-        const double Ts = Ekin / massProton_amu;
-        const double epsilon_low = A2_c * pow(Ts, 0.45);
-        const double epsilon_high = (A3_c / Ts) * log(1 + (A4_c / Ts) + (A5_c * Ts));
-        const double epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
-        dEdx = -epsilon / (1e18 * (A_m / Physics::Avo));
-
-        Ekin += deltasrho * dEdx;
+        if (Ekin >= 600 && Ekin < 1e7) {
+            dEdx = (-K * std::pow(charge_m, 2) * Z_m / (A_m * betaSqr) *
+                    (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * eV2keV, 2)) - betaSqr));
+        } else if (pType == ParticleType::PROTON && Ekin < 600) {
+            constexpr double massProton_amu = Physics::m_p / Physics::amu;
+            const double Ts = Ekin / massProton_amu;
+            if (Ekin > 10) {
+                const double epsilon_low = A2_c * std::pow(Ts, 0.45);
+                const double epsilon_high = (A3_c / Ts) * std::log(1 + (A4_c / Ts) + (A5_c * Ts));
+                epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
+            } else if (Ekin > 1) {
+                epsilon = A1_c * std::pow(Ts, 0.5);
+            }
+            dEdx = -epsilon / (1e18 * (A_m / Physics::Avo));
+        } else {
+            INFOMSG(level4 << "Particle energy out of the valid range "
+                              "for energy loss calculation." << endl);
+        }
+    } else {
+        if (Ekin > 10000 && Ekin < 1e6) {
+            dEdx = (-K * std::pow(charge_m, 2) * Z_m / (A_m * betaSqr) *
+                    (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * eV2keV, 2)) - betaSqr));
+        } else if (Ekin > 1 && Ekin <= 10000) {
+            const double T = Ekin * 1e-3; //MeV 
+            const double epsilon_low = B1_c * std::pow(1000*T, B2_c);
+            const double epsilon_high = (B3_c / T) * std::log(1 + (B4_c / T) + (B5_c * T));
+            epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
+            dEdx = -epsilon / (1e18 * (A_m / Physics::Avo));
+        } else {
+            INFOMSG(level4 << "Particle energy out of the valid range "
+                              "for energy loss calculation." << endl);
+        }
     }
+
+    Ekin += deltasrho * dEdx;
 
     if (includeFluctuations) {
         double sigma_E = std::sqrt(K * massElectron_keV * rho_m * (Z_m / A_m) * deltas * m2cm);
         Ekin += gsl_ran_gaussian(rGen_m, sigma_E);
     }
 
-    gamma = Ekin / massProton_keV + 1.0;
+    gamma = Ekin / mass_keV + 1.0;
     beta = std::sqrt(1.0 - 1.0 / std::pow(gamma, 2));
     P = gamma * beta * P / euclidean_norm(P);
 
@@ -347,38 +395,38 @@ bool CollimatorPhysics::computeEnergyLoss(Vector_t &P,
 
 
 // Implement the rotation in 2 dimensions here
-// For details see:
-//  J. Beringer et al. (Particle Data Group), "Passage of particles through matter"
-//  Phys. Rev. D 86, 010001 (2012),
-void  CollimatorPhysics::applyRotation(Vector_t &P,
-                                       Vector_t &R,
+// For details see: J. Beringer et al. (Particle Data Group),
+// "Passage of particles through matter", Phys. Rev. D 86, 010001 (2012)
+// -------------------------------------------------------------------------
+void  CollimatorPhysics::applyRotation(Vector_t& P,
+                                       Vector_t& R,
                                        double shift,
                                        double thetacou) {
     // Calculate the angle between the transverse and longitudinal component of the momentum
     double Psixz = std::fmod(std::atan2(P(0), P(2)) + Physics::two_pi, Physics::two_pi);
 
-    R(0) = R(0) + shift * cos(Psixz);
-    R(2) = R(2) - shift * sin(Psixz);
+    R(0) = R(0) + shift * std::cos(Psixz);
+    R(2) = R(2) - shift * std::sin(Psixz);
 
     // Apply the rotation about the random angle thetacou
     double Px = P(0);
-    P(0) =  Px * cos(thetacou) + P(2) * sin(thetacou);
-    P(2) = -Px * sin(thetacou) + P(2) * cos(thetacou);
+    P(0) =  Px * std::cos(thetacou) + P(2) * std::sin(thetacou);
+    P(2) = -Px * std::sin(thetacou) + P(2) * std::cos(thetacou);
 }
 
-void CollimatorPhysics::applyRandomRotation(Vector_t &P, double theta0) {
+void CollimatorPhysics::applyRandomRotation(Vector_t& P, double theta0) {
 
     double thetaru = 2.5 / std::sqrt(gsl_rng_uniform(rGen_m)) * 2.0 * theta0;
     double phiru = Physics::two_pi * gsl_rng_uniform(rGen_m);
 
     double normPtrans = std::sqrt(P(0) * P(0) + P(1) * P(1));
     double Theta = std::atan(normPtrans / std::abs(P(2)));
-    double CosT = cos(Theta);
-    double SinT = sin(Theta);
+    double CosT = std::cos(Theta);
+    double SinT = std::sin(Theta);
 
-    Vector_t X(cos(phiru)*sin(thetaru),
-               sin(phiru)*sin(thetaru),
-               cos(thetaru));
+    Vector_t X(std::cos(phiru)*std::sin(thetaru),
+               std::sin(phiru)*std::sin(thetaru),
+               std::cos(thetaru));
     X *= euclidean_norm(P);
 
     Vector_t W(-P(1), P(0), 0.0);
@@ -391,21 +439,18 @@ void CollimatorPhysics::applyRandomRotation(Vector_t &P, double theta0) {
 /// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
 /// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
 //--------------------------------------------------------------------------
-void  CollimatorPhysics::computeCoulombScattering(Vector_t &R,
-                                                  Vector_t &P,
+void  CollimatorPhysics::computeCoulombScattering(Vector_t& R,
+                                                  Vector_t& P,
                                                   double dt) {
 
-    constexpr double GeV2eV = 1e9;
-    constexpr double massProton_eV = Physics::m_p * GeV2eV;
-    constexpr double chargeProton = Physics::z_p;
     constexpr double sqrtThreeInv = 0.57735026918962576451; // sqrt(1.0 / 3.0)
     const double normP = euclidean_norm(P);
     const double gammaSqr = std::pow(normP, 2) + 1.0;
     const double beta = std::sqrt(1.0 - 1.0 / gammaSqr);
     const double deltas = dt * beta * Physics::c;
-    const double theta0 = (13.6e6 / (beta * normP * massProton_eV) *
-                           chargeProton * std::sqrt(deltas / X0_m) *
-                           (1.0 + 0.038 * log(deltas / X0_m)));
+    const double theta0 = (13.6e6 / (beta * normP * mass_m) *
+                           charge_m * std::sqrt(deltas / X0_m) *
+                           (1.0 + 0.038 * std::log(deltas / X0_m)));
 
     double phi = Physics::two_pi * gsl_rng_uniform(rGen_m);
     for (unsigned int i = 0; i < 2; ++ i) {
@@ -438,7 +483,7 @@ void  CollimatorPhysics::computeCoulombScattering(Vector_t &R,
     }
 }
 
-void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch) {
+void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
 
     const size_t nL = locParts_m.size();
     if (nL == 0) return;
@@ -447,7 +492,7 @@ void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch) {
     const double elementLength = element_ref_m->getElementLength();
 
     for (size_t i = 0; i < nL; ++ i) {
-        Vector_t &R = locParts_m[i].Rincol;
+        Vector_t& R = locParts_m[i].Rincol;
 
         if (R[2] >= elementLength) {
 
@@ -457,7 +502,6 @@ void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch) {
               Binincol is still <0, but now the particle is rediffused
               from the material and hence this is not a "lost" particle anymore
             */
-
             bunch->Bin[numLocalParticles] = 1;
             bunch->R[numLocalParticles]   = R;
             bunch->P[numLocalParticles]   = locParts_m[i].Pincol;
@@ -478,14 +522,12 @@ void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3> *bunch) {
         }
     }
 
-    /*
-      delete particles that went to the bunch
-    */
+    // delete particles that went to the bunch
     deleteParticleFromLocalVector();
 }
 
-void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3> *bunch,
-                                      const std::pair<Vector_t, double> &boundingSphere)
+void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
+                                      const std::pair<Vector_t, double>& boundingSphere)
 {
     const size_t nL = bunch->getLocalNum();
     if (nL == 0) return;
@@ -555,8 +597,8 @@ void CollimatorPhysics::print(Inform &msg) {
     Inform::FmtFlags_t ff = msg.flags();
 
     if (totalPartsInMat_m > 0 ||
-        bunchToMatStat_m > 0 ||
-        rediffusedStat_m > 0 ||
+        bunchToMatStat_m  > 0 ||
+        rediffusedStat_m  > 0 ||
         stoppedPartStat_m > 0) {
 
         OPALTimer::Timer time;
@@ -586,8 +628,8 @@ namespace {
 
 void CollimatorPhysics::deleteParticleFromLocalVector() {
     /*
-      the particle to be deleted (label < 0) are all at the end of
-      the vector.
+      the particle to be deleted (label < 0) are all 
+      at the end of the vector.
     */
     sort(locParts_m.begin(), locParts_m.end(), myCompF);
 
@@ -611,8 +653,8 @@ void CollimatorPhysics::deleteParticleFromLocalVector() {
 
 void CollimatorPhysics::push() {
     for (size_t i = 0; i < locParts_m.size(); ++i) {
-        Vector_t &R  = locParts_m[i].Rincol;
-        Vector_t &P  = locParts_m[i].Pincol;
+        Vector_t& R  = locParts_m[i].Rincol;
+        Vector_t& P  = locParts_m[i].Pincol;
         double gamma = Util::getGamma(P);
 
         R += 0.5 * dT_m * Physics::c * P / gamma;
@@ -629,9 +671,9 @@ void CollimatorPhysics::setTimeStepForLeavingParticles() {
     const double elementLength = element_ref_m->getElementLength();
 
     for (size_t i = 0; i < locParts_m.size(); ++i) {
-        Vector_t &R  = locParts_m[i].Rincol;
-        Vector_t &P  = locParts_m[i].Pincol;
-        double   &dt = locParts_m[i].DTincol;
+        Vector_t& R  = locParts_m[i].Rincol;
+        Vector_t& P  = locParts_m[i].Pincol;
+        double& dt   = locParts_m[i].DTincol;
         double gamma = Util::getGamma(P);
         Vector_t stepLength = dT_m * Physics::c * P / gamma;
 
@@ -651,7 +693,7 @@ void CollimatorPhysics::setTimeStepForLeavingParticles() {
 
 void CollimatorPhysics::resetTimeStep() {
     for (size_t i = 0; i < locParts_m.size(); ++i) {
-        double &dt = locParts_m[i].DTincol;
+        double& dt = locParts_m[i].DTincol;
         dt = dT_m;
     }
 
