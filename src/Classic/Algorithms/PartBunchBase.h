@@ -41,13 +41,25 @@ class PartBins;
 class PartBinsCyc;
 class PartData;
 
-namespace ParticleType {
-    enum type { REGULAR,
-                FIELDEMISSION,
-                SECONDARY,
-                NEWSECONDARY,
-                STRIPPED};
-}
+enum class ParticleOrigin:short {REGULAR,
+                               SECONDARY,
+                               STRIPPED};
+
+enum class ParticleType:short {ELECTRON,
+                               PROTON,
+                               POSITRON,
+                               ANTIPROTON,
+                               CARBON,
+                               HMINUS,
+                               URANIUM,
+                               MUON,
+                               DEUTERON,
+                               XENON,
+                               H2P,
+                               ALPHA,
+                               HYDROGEN,
+                               H3P,
+                               UNNAMED};
 
 template <class T, unsigned Dim>
 class PartBunchBase
@@ -65,19 +77,18 @@ public:
     enum UnitState_t { units = 0, unitless = 1 };
 
 public:
-
     virtual ~PartBunchBase() { }
 
-    PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData *ref);
+    PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData* ref);
 
-    PartBunchBase(const PartBunchBase &rhs) = delete; // implement if needed
+    PartBunchBase(const PartBunchBase& rhs) = delete; // implement if needed
 
     /*
      * Bunch common member functions
      */
 
     // This is required since we initialize the Layout and the RegionLayout with default constructor
-    virtual void initialize(FieldLayout_t *fLayout) = 0;
+    virtual void initialize(FieldLayout_t* fLayout) = 0;
 
     bool getIfBeamEmitting();
 
@@ -99,9 +110,9 @@ public:
     //FIXME: unify methods, use convention that all particles have own dt
     void switchOffUnitlessPositions(bool use_dt_per_particle = false);
 
-    void setDistribution(Distribution *d,
-                         std::vector<Distribution *> addedDistributions,
-                         size_t &np);
+    void setDistribution(Distribution* d,
+                         std::vector<Distribution*> addedDistributions,
+                         size_t& np);
 
     bool isGridFixed() const;
 
@@ -120,9 +131,9 @@ public:
 
     bool weHaveBins() const;
 
-    void setPBins(PartBins *pbin);
+    void setPBins(PartBins* pbin);
 
-    void setPBins(PartBinsCyc *pbin);
+    void setPBins(PartBinsCyc* pbin);
 
     /** \brief Emit particles in the given bin
         i.e. copy the particles from the bin structure into the
@@ -155,8 +166,8 @@ public:
     /** \brief returns the number of particles outside of a box defined by x */
     size_t calcNumPartsOutside(Vector_t x);
 
-    void calcLineDensity(unsigned int nBins, std::vector<double> &lineDensity,
-                         std::pair<double, double> &meshInfo);
+    void calcLineDensity(unsigned int nBins, std::vector<double>& lineDensity,
+                         std::pair<double, double>& meshInfo);
 
     void setBeamFrequency(double v);
 
@@ -177,7 +188,6 @@ public:
     /*
        Read out coordinates
      */
-
     virtual double getPx(int i);
     virtual double getPy(int i);
     virtual double getPz(int i);
@@ -194,9 +204,9 @@ public:
 
     virtual void setZ(int i, double zcoo);
 
-    void get_bounds(Vector_t &rmin, Vector_t &rmax);
+    void get_bounds(Vector_t& rmin, Vector_t& rmax);
 
-    void getLocalBounds(Vector_t &rmin, Vector_t &rmax);
+    void getLocalBounds(Vector_t& rmin, Vector_t& rmax);
 
     std::pair<Vector_t, double> getBoundingSphere();
 
@@ -206,7 +216,6 @@ public:
     /*
        Compatibility function push_back
      */
-
     void push_back(OpalParticle p);
 
     void set_part(FVector<double, 6> z, int ii);
@@ -219,8 +228,8 @@ public:
     //  The matrix [b]D[/b] is used to normalise the first two modes.
     //  The maximum normalised amplitudes for these modes are stored
     //  in [b]axmax[/b] and [b]aymax[/b].
-    void maximumAmplitudes(const FMatrix<double, 6, 6> &D,
-                           double &axmax, double &aymax);
+    void maximumAmplitudes(const FMatrix<double, 6, 6>& D,
+                           double& axmax, double& aymax);
 
     void   setdT(double dt);
     double getdT() const;
@@ -240,7 +249,6 @@ public:
     void set_sPos(double s);
 
     double get_gamma() const;
-
     double get_meanKineticEnergy() const;
     Vector_t get_origin() const;
     Vector_t get_maxExtent() const;
@@ -258,7 +266,6 @@ public:
 
     double get_Dx() const;
     double get_Dy() const;
-
     double get_DDx() const;
     double get_DDy() const;
 
@@ -270,7 +277,6 @@ public:
     void get_PBounds(Vector_t &min, Vector_t &max) const;
 
     void calcBeamParameters();
-
     void calcBeamParametersInitial(); // Calculate initial beam parameters before emission.
 
     double getCouplingConstant() const;
@@ -344,21 +350,24 @@ public:
     double getM() const;
     double getP() const;
     double getE() const;
-    ParticleType::type getPType() const;
+    ParticleOrigin getPOrigin() const;
+    ParticleType getPType() const;
+    std::string getPTypeString();
     double getInitialBeta() const;
     double getInitialGamma() const;
     ///@}
     ///@{ Set reference data
     void resetQ(double q);
     void resetM(double m);
-    void setPType(ParticleType::type);
+    void setPOrigin(ParticleOrigin);
+    void setPType(std::string type);
     ///@}
     double getdE() const;
     virtual double getGamma(int i);
     virtual double getBeta(int i);
     virtual void actT();
 
-    const PartData *getReference() const;
+    const PartData* getReference() const;
 
     double getEmissionDeltaT();
 
@@ -373,7 +382,7 @@ public:
 
     void calcEMean();
 
-    Inform &print(Inform &os);
+    Inform& print(Inform& os);
 
     /*
      * (Pure) virtual member functions
@@ -385,14 +394,14 @@ public:
 
     virtual void resetInterpolationCache(bool clearCache = false);
 
-    /** \brief calculates back the max/min of the efield on the grid */
+    //brief calculates back the max/min of the efield on the grid
     virtual VectorPair_t getEExtrema() = 0;
 
     virtual double getRho(int x, int y, int z) = 0;
 
     virtual void computeSelfFields() = 0;
 
-    /** /brief used for self fields with binned distribution */
+    //brief used for self fields with binned distribution
     virtual void computeSelfFields(int bin) = 0;
 
     virtual void computeSelfFields_cycl(double gamma) = 0;
@@ -414,7 +423,7 @@ public:
 //     virtual Mesh_t &getMesh() = 0;
 
 //     virtual void setFieldLayout(FieldLayout_t* fLayout) = 0;
-    virtual FieldLayout_t &getFieldLayout() = 0;
+    virtual FieldLayout_t& getFieldLayout() = 0;
 
     virtual void resizeMesh() { };
 
@@ -433,7 +442,7 @@ public:
     unsigned int getMinimumNumberOfParticlesPerCore() const;
     void setMinimumNumberOfParticlesPerCore(unsigned int n);
 
-    ParticleLayout<T, Dim> & getLayout();
+    ParticleLayout<T, Dim>& getLayout();
     const ParticleLayout<T, Dim>& getLayout() const;
 
     bool getUpdateFlag(UpdateFlags_t f) const;
@@ -485,38 +494,36 @@ public:
     /*
      * Bunch attributes
      */
-
-
     ParticlePos_t& R;
     ParticleIndex_t& ID;
 
-
     // Particle container attributes
-    ParticleAttrib< Vector_t > P;      // particle momentum //  ParticleSpatialLayout<double, 3>::ParticlePos_t P;
-    ParticleAttrib< double >   Q;      // charge per simulation particle, unit: C.
-    ParticleAttrib< double >   M;      // mass per simulation particle, for multi-species particle tracking, unit:GeV/c^2.
-    ParticleAttrib< double >   Phi;    // the electric potential
-    ParticleAttrib< Vector_t > Ef;     // e field vector
-    ParticleAttrib< Vector_t > Eftmp;  // e field vector for gun simulations
+    ParticleAttrib< Vector_t >     P;      // particle momentum //  ParticleSpatialLayout<double, 3>::ParticlePos_t P;
+    ParticleAttrib< double >       Q;      // charge per simulation particle, unit: C.
+    ParticleAttrib< double >       M;      // mass per simulation particle, for multi-species particle tracking, unit:GeV/c^2.
+    ParticleAttrib< double >       Phi;    // the electric potential
+    ParticleAttrib< Vector_t >     Ef;     // e field vector
+    ParticleAttrib< Vector_t >     Eftmp;  // e field vector for gun simulations
 
-    ParticleAttrib< Vector_t > Bf;    // b field vector
-    ParticleAttrib< int >      Bin;   // holds the bin in which the particle is in, if zero particle is marked for deletion
-    ParticleAttrib< double >   dt;   // holds the dt timestep for particle
-
-    ParticleAttrib< short >    PType; // we can distinguish dark current particles from primary particle
-    ParticleAttrib< int >      TriID; // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
-    ParticleAttrib< short >    cavityGapCrossed; ///< particle just crossed cavity gap (for ParallelCyclotronTracker)
-
-    ParticleAttrib< short >    bunchNum; // bunch number to which particle belongs (multi-bunch mode)
-
+    ParticleAttrib< Vector_t >     Bf;     // b field vector
+    ParticleAttrib< int >          Bin;    // holds the bin in which the particle is in, if zero particle is marked for deletion
+    ParticleAttrib< double >       dt;     // holds the dt timestep for particle
+    ParticleAttrib< ParticleType > PType;  // particle names
+    ParticleAttrib< ParticleOrigin > POrigin;  // we can distinguish dark current particles from primary particle
+    ParticleAttrib< int >          TriID;  // holds the ID of triangle that the particle hit. Only for BoundaryGeometry case.
+    ParticleAttrib< short >        cavityGapCrossed; // particle just crossed cavity gap (for ParallelCyclotronTracker)
+    ParticleAttrib< short >        bunchNum; // bunch number to which particle belongs (multi-bunch mode)
 
     Vector_t RefPartR_m;
     Vector_t RefPartP_m;
-    ParticleType::type refPType_m;
+
     CoordinateSystemTrafo toLabTrafo_m;
 
+    ParticleOrigin refPOrigin_m;
+    ParticleType refPType_m;
+
     // The structure for particle binning
-    PartBins *pbin_m;
+    PartBins* pbin_m;
 
     /// timer for IC, can not be in Distribution.h
     IpplTimings::TimerRef distrReload_m;
@@ -548,13 +555,11 @@ protected:
     /// timer for selfField calculation
     IpplTimings::TimerRef selfFieldTimer_m;
 
+    const PartData* reference;
 
-    const PartData *reference;
-
-
-//     /*
-//       Member variables starts here
-//     */
+    /*
+       Member variables starts here
+     */
 
     // unit state of PartBunch
     UnitState_t unit_state_;
@@ -601,7 +606,6 @@ protected:
 
     /// rms emittance (not normalized)
     Vector_t eps_m;
-
     /// rms normalized emittance
     Vector_t eps_norm_m;
 
@@ -613,7 +617,6 @@ protected:
     /// dispersion x & y
     double Dx_m;
     double Dy_m;
-
     /// derivative of the dispersion
     double DDx_m;
     double DDy_m;
@@ -624,7 +627,7 @@ protected:
     Vektor<int, 3> nr_m;
 
     /// stores the used field solver
-    FieldSolver *fs_m;
+    FieldSolver* fs_m;
 
     double couplingConstant_m;
 
@@ -674,8 +677,7 @@ protected:
 
     std::unique_ptr<size_t[]> globalPartPerNode_m;
 
-
-    Distribution *dist_m;
+    Distribution* dist_m;
 
     // flag to tell if we are a DC-beam
     bool dcBeam_m;
