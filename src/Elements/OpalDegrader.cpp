@@ -38,7 +38,7 @@ OpalDegrader::OpalDegrader():
 }
 
 
-OpalDegrader::OpalDegrader(const std::string &name, OpalDegrader *parent):
+OpalDegrader::OpalDegrader(const std::string& name, OpalDegrader* parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
     setElement(new DegraderRep(name));
@@ -46,12 +46,12 @@ OpalDegrader::OpalDegrader(const std::string &name, OpalDegrader *parent):
 
 
 OpalDegrader::~OpalDegrader() {
-    if(parmatint_m)
+    if (parmatint_m)
         delete parmatint_m;
 }
 
 
-OpalDegrader *OpalDegrader::clone(const std::string &name) {
+OpalDegrader* OpalDegrader::clone(const std::string& name) {
     return new OpalDegrader(name, this);
 }
 
@@ -59,15 +59,18 @@ OpalDegrader *OpalDegrader::clone(const std::string &name) {
 void OpalDegrader::update() {
     OpalElement::update();
 
-    DegraderRep *deg =
-        dynamic_cast<DegraderRep *>(getElement());
+    DegraderRep* deg =
+        dynamic_cast<DegraderRep*>(getElement());
+
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
 
     deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
+        ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
+        parmatint_m = orig->clone(matterDescriptor);
         parmatint_m->initParticleMatterInteractionHandler(*deg);
         deg->setParticleMatterInteraction(parmatint_m->handler_m);
     }

@@ -75,7 +75,6 @@ public:
                        const std::pair<Vector_t, double>& boundingSphere);
 
     virtual const std::string getType() const;
-
     virtual void print(Inform& os);
     virtual bool stillActive();
 
@@ -84,6 +83,7 @@ public:
     virtual size_t getParticlesInMat();
     virtual unsigned getRediffused();
     virtual unsigned int getNumEntered();
+
     void computeInteraction(PartBunchBase<double, 3>* bunch);
 
     virtual bool computeEnergyLoss(PartBunchBase<double, 3>* bunch,
@@ -123,8 +123,7 @@ private:
     double mass_m;                             // mass from bunch (eV)
     double charge_m;                           // charge from bunch (elementary charges)
 
-    gsl_rng *rGen_m;                           // random number generator
-
+    gsl_rng* rGen_m;                           // random number generator
     std::string material_m;                    // type of material e.g. aluminum
     std::unique_ptr<InsideTester> hitTester_m; // tests whether particles are inside material
     ElementBase::ElementType collshape_m;      // the type of element (DEGRADER, CCOLLIMATOR or FLEXIBLECOLLIMATOR)
@@ -191,6 +190,11 @@ void CollimatorPhysics::calcStat(double Eng) {
 inline
 double CollimatorPhysics::getTime() {
     return T_m;
+}
+
+inline
+std::string CollimatorPhysics::getName() {
+    return (element_ref_m->getName() + "_" + name_m);
 }
 
 inline
