@@ -78,11 +78,11 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string& name, ElementBase*
     bunchToMatStat_m(0),
     stoppedPartStat_m(0),
     rediffusedStat_m(0),
-    locPartsInMat_m(0)
+    totalPartsInMat_m(0)
 {
-    bstp_m = dynamic_cast<BeamStripping* >(getElement());
-    bstpshape_m = element_ref_m->getType();
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(element_ref_m->getName(), !Options::asciidump));
+    bstp_m = dynamic_cast<BeamStripping*>(getElement());
+
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
 
     const gsl_rng_type* T;
     gsl_rng_env_setup();
@@ -100,9 +100,6 @@ BeamStrippingPhysics::~BeamStrippingPhysics() {
     gsl_rng_free(r_m);
 }
 
-const std::string BeamStrippingPhysics::getType() const {
-    return "BeamStrippingPhysics";
-}
 
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
                                  const std::pair<Vector_t, double>& /*boundingSphere*/) {
@@ -624,7 +621,7 @@ void BeamStrippingPhysics::print(Inform& /*msg*/) {
 }
 
 bool BeamStrippingPhysics::stillActive() {
-    return locPartsInMat_m != 0;
+    return totalPartsInMat_m != 0;
 }
 
 /*

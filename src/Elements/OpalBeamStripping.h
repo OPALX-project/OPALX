@@ -25,9 +25,6 @@
 #include "Elements/OpalElement.h"
 
 class ParticleMatterInteraction;
-// Class OpalBeamStripping
-// ------------------------------------------------------------------------
-/// The BEAMSTRIPPING element.
 
 class OpalBeamStripping: public OpalElement {
 
@@ -50,7 +47,7 @@ public:
     virtual ~OpalBeamStripping();
 
     /// Make clone.
-    virtual OpalBeamStripping *clone(const std::string &name);
+    virtual OpalBeamStripping* clone(const std::string& name);
 
     /// Update the embedded CLASSIC beam stripping.
     virtual void update();
@@ -58,12 +55,12 @@ public:
 private:
 
     // Not implemented.
-    OpalBeamStripping(const OpalBeamStripping &);
-    void operator=(const OpalBeamStripping &);
+    OpalBeamStripping(const OpalBeamStripping&);
+    void operator=(const OpalBeamStripping&);
 
     // Clone constructor.
-    OpalBeamStripping(const std::string &name, OpalBeamStripping *parent);
-    ParticleMatterInteraction *parmatint_m;
+    OpalBeamStripping(const std::string& name, OpalBeamStripping* parent);
+    ParticleMatterInteraction* parmatint_m;
 };
 
 #endif // OPAL_OpalBeamStripping_HH

@@ -109,6 +109,11 @@ CollimatorPhysics::CollimatorPhysics(const std::string& name,
     A3_c(0.0),
     A4_c(0.0),
     A5_c(0.0),
+    B1_c(0.0),
+    B2_c(0.0),
+    B3_c(0.0),
+    B4_c(0.0),
+    B5_c(0.0),
     bunchToMatStat_m(0),
     stoppedPartStat_m(0),
     rediffusedStat_m(0),
@@ -165,9 +170,6 @@ CollimatorPhysics::~CollimatorPhysics() {
         gsl_rng_free(rGen_m);
 }
 
-std::string CollimatorPhysics::getName() {
-    return element_ref_m->getName();
-}
 
 /// The material of the collimator
 //  ------------------------------------------------------------------------
@@ -215,9 +217,8 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3>* bunch,
 
     dT_m = bunch->getdT();
     T_m  = bunch->getT();
-
-    mass_m     = bunch->getM();
-    charge_m   = bunch->getQ();
+    mass_m   = bunch->getM();
+    charge_m = bunch->getQ();
 
     bool onlyOneLoopOverParticles = ! (allParticleInMat_m);
 
@@ -289,7 +290,7 @@ void CollimatorPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
                         // The particle is stopped in the material, set label to -1
                         locParts_m[i].label = -1.0;
                         ++ stoppedPartStat_m;
-                        lossDs_m->addParticle(R, P, -locParts_m[i].IDincol);
+                        lossDs_m->addParticle(R, P, locParts_m[i].IDincol);
                     }
                 }
             }
@@ -305,7 +306,7 @@ void CollimatorPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
 }
 
 /// Energy Loss: using the Bethe-Bloch equation.
-/// In low-energy region use Andersen-Ziegler fitting (only for protons)
+/// In low-energy region use Andersen-Ziegler fitting (only for protons and alpha)
 /// Energy straggling: For relatively thick absorbers such that the number of collisions
 /// is large, the energy loss distribution is shown to be Gaussian in form.
 /// See Particle Physics Booklet, chapter 'Passage of particles through matter' or
@@ -553,7 +554,7 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
             // location form the edge of the material. Only use this time step
             // for the computation of the interaction with the material, not for
             // the integration of the particles. This will ensure that the momenta
-            // of all particles are reduced by approcimately the same amount in
+            // of all particles are reduced by approximately the same amount in
             // computeEnergyLoss.
             double betaz = bunch->P[i](2) / Util::getGamma(bunch->P[i]);
             double stepWidth = betaz * Physics::c * bunch->dt[i];
@@ -603,8 +604,8 @@ void CollimatorPhysics::print(Inform &msg) {
 
         OPALTimer::Timer time;
         msg << level2
-            << "--- CollimatorPhysics - Name " << element_ref_m->getName()
-            << " Material " << material_m << "\n"
+            << "--- CollimatorPhysics - Name: " << name_m << "\n"
+            << "Material: " << material_m << " - Element: " << element_ref_m->getName() << "\n"
             << "Particle Statistics @ " << time.time() << "\n"
             << std::setw(21) << "entered: " << Util::toStringWithThousandSep(bunchToMatStat_m) << "\n"
             << std::setw(21) << "rediffused: " << Util::toStringWithThousandSep(rediffusedStat_m) << "\n"

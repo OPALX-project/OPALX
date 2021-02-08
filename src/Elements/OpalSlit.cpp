@@ -40,7 +40,7 @@ OpalSlit::OpalSlit():
 }
 
 
-OpalSlit::OpalSlit(const std::string &name, OpalSlit *parent):
+OpalSlit::OpalSlit(const std::string& name, OpalSlit* parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
     setElement(new FlexibleCollimatorRep(name));
@@ -48,12 +48,12 @@ OpalSlit::OpalSlit(const std::string &name, OpalSlit *parent):
 
 
 OpalSlit::~OpalSlit() {
-    if(parmatint_m)
+    if (parmatint_m)
         delete parmatint_m;
 }
 
 
-OpalSlit *OpalSlit::clone(const std::string &name) {
+OpalSlit* OpalSlit::clone(const std::string& name) {
     return new OpalSlit(name, this);
 }
 
@@ -61,8 +61,9 @@ OpalSlit *OpalSlit::clone(const std::string &name) {
 void OpalSlit::update() {
     OpalElement::update();
 
-    FlexibleCollimatorRep *coll =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement());
+    FlexibleCollimatorRep* coll =
+        dynamic_cast<FlexibleCollimatorRep*>(getElement());
+
     double length = Attributes::getReal(itsAttr[LENGTH]);
     coll->setElementLength(length);
 
@@ -76,8 +77,10 @@ void OpalSlit::update() {
 
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
+        ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
+        parmatint_m = orig->clone(matterDescriptor);
         parmatint_m->initParticleMatterInteractionHandler(*coll);
         coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }

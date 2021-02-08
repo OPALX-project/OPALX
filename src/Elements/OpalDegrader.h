@@ -40,7 +40,7 @@ public:
     virtual ~OpalDegrader();
 
     /// Make clone.
-    virtual OpalDegrader *clone(const std::string &name);
+    virtual OpalDegrader* clone(const std::string& name);
 
     /// Update the embedded CLASSIC collimator.
     virtual void update();
@@ -48,13 +48,13 @@ public:
 private:
 
     // Not implemented.
-    OpalDegrader(const OpalDegrader &);
-    void operator=(const OpalDegrader &);
+    OpalDegrader(const OpalDegrader&);
+    void operator=(const OpalDegrader&);
 
     // Clone constructor.
-    OpalDegrader(const std::string &name, OpalDegrader *parent);
+    OpalDegrader(const std::string& name, OpalDegrader* parent);
 
-    ParticleMatterInteraction *parmatint_m;
+    ParticleMatterInteraction* parmatint_m;
 };
 
 #endif // OPAL_OpalDegrader_HH
