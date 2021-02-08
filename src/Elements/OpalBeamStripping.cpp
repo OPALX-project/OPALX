@@ -27,9 +27,6 @@
 #include "Structure/ParticleMatterInteraction.h"
 
 
-// Class OpalBeamStripping
-// ------------------------------------------------------------------------
-
 OpalBeamStripping::OpalBeamStripping():
     OpalElement(SIZE, "BEAMSTRIPPING",
                 "The \"BEAMSTRIPPING\" element defines a beam stripping interaction"),
@@ -53,7 +50,7 @@ OpalBeamStripping::OpalBeamStripping():
 }
 
 
-OpalBeamStripping::OpalBeamStripping(const std::string &name, OpalBeamStripping *parent):
+OpalBeamStripping::OpalBeamStripping(const std::string& name, OpalBeamStripping* parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
     setElement(new BeamStrippingRep(name));
@@ -65,7 +62,7 @@ OpalBeamStripping::~OpalBeamStripping() {
 }
 
 
-OpalBeamStripping *OpalBeamStripping::clone(const std::string &name) {
+OpalBeamStripping* OpalBeamStripping::clone(const std::string& name) {
     return new OpalBeamStripping(name, this);
 }
 
@@ -73,8 +70,8 @@ OpalBeamStripping *OpalBeamStripping::clone(const std::string &name) {
 void OpalBeamStripping::update() {
     OpalElement::update();
 
-    BeamStrippingRep *bstp =
-        dynamic_cast<BeamStrippingRep *>(getElement());
+    BeamStrippingRep* bstp =
+        dynamic_cast<BeamStrippingRep*>(getElement());
 
     double pressure     = Attributes::getReal(itsAttr[PRESSURE]);
     double temperature  = Attributes::getReal(itsAttr[TEMPERATURE]);
@@ -91,7 +88,9 @@ void OpalBeamStripping::update() {
     bstp->setResidualGas(gas);
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
+        ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
+        parmatint_m = orig->clone(matterDescriptor);
         parmatint_m->initParticleMatterInteractionHandler(*bstp);
         bstp->setParticleMatterInteraction(parmatint_m->handler_m);
     }

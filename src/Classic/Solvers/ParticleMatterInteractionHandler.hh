@@ -51,11 +51,10 @@ public:
                                    Vector_t& P,
                                    const double deltat,
                                    bool includeFluctuations = true) const = 0;
+
 protected:
     ElementBase* element_ref_m;
     bool allParticleInMat_m; ///< if all particles are in matter stay inside the particle matter interaction
-
-private:
     const std::string name_m;
 };
 
