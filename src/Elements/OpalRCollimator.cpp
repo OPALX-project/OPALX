@@ -41,7 +41,7 @@ OpalRCollimator::OpalRCollimator():
 }
 
 
-OpalRCollimator::OpalRCollimator(const std::string &name, OpalRCollimator *parent):
+OpalRCollimator::OpalRCollimator(const std::string& name, OpalRCollimator* parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
     setElement(new FlexibleCollimatorRep(name));
@@ -53,7 +53,7 @@ OpalRCollimator::~OpalRCollimator() {
 }
 
 
-OpalRCollimator *OpalRCollimator::clone(const std::string &name) {
+OpalRCollimator* OpalRCollimator::clone(const std::string& name) {
     return new OpalRCollimator(name, this);
 }
 
@@ -61,8 +61,9 @@ OpalRCollimator *OpalRCollimator::clone(const std::string &name) {
 void OpalRCollimator::update() {
     OpalElement::update();
 
-    FlexibleCollimatorRep *coll =
-        dynamic_cast<FlexibleCollimatorRep *>(getElement());
+    FlexibleCollimatorRep* coll =
+        dynamic_cast<FlexibleCollimatorRep*>(getElement());
+
     coll->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
 
     if (getOpalName() != "RCOLLIMATOR") {
@@ -75,8 +76,10 @@ void OpalRCollimator::update() {
         coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     }
 
-    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
-        parmatint_m = (ParticleMatterInteraction::find(Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION])))->clone(getOpalName() + std::string("_parmatint"));
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
+        ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
+        parmatint_m = orig->clone(matterDescriptor);
         parmatint_m->initParticleMatterInteractionHandler(*coll);
         coll->setParticleMatterInteraction(parmatint_m->handler_m);
     }
