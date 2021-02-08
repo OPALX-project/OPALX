@@ -32,8 +32,8 @@
 #include <gsl/gsl_rng.h>
 
 template <class T, unsigned Dim>
-
 class PartBunchBase;
+
 class LossDataSink;
 class Inform;
 class Cyclotron;
@@ -55,11 +55,11 @@ public:
     virtual void print(Inform& msg);
     virtual bool stillActive();
 
-    virtual inline double getTime() {return T_m;}
-    virtual std::string getName() {return element_ref_m->getName();}
-    virtual size_t getParticlesInMat() {return locPartsInMat_m;}
-    virtual unsigned getRediffused() {return rediffusedStat_m;}
-    virtual unsigned int getNumEntered() {return bunchToMatStat_m;}
+    virtual double getTime();
+    virtual std::string getName();
+    virtual size_t getParticlesInMat();
+    virtual unsigned getRediffused();
+    virtual unsigned int getNumEntered();
 
     inline void doPhysics(PartBunchBase<double, 3>* bunch);
 
@@ -93,7 +93,6 @@ private:
 
     Cyclotron* cycl_m;
     BeamStripping* bstp_m;
-    ElementBase::ElementType bstpshape_m;
 
     gsl_rng* r_m;
 
@@ -113,7 +112,7 @@ private:
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
     unsigned rediffusedStat_m;
-    size_t locPartsInMat_m;
+    size_t totalPartsInMat_m;
 
     static const double csCoefSingle_Hminus[3][9];
     static const double csCoefDouble_Hminus[3][9];
@@ -136,5 +135,35 @@ private:
     static double a_m[9];
     static double b_m[3][9];
 };
+
+inline
+double BeamStrippingPhysics::getTime() {
+    return T_m;
+}
+
+inline
+std::string BeamStrippingPhysics::getName() {
+    return (element_ref_m->getName() + "_" + name_m);
+}
+
+inline
+size_t BeamStrippingPhysics::getParticlesInMat() {
+    return totalPartsInMat_m;
+}
+
+inline
+unsigned int BeamStrippingPhysics::getRediffused() {
+    return rediffusedStat_m;
+}
+
+inline
+unsigned int BeamStrippingPhysics::getNumEntered() {
+    return bunchToMatStat_m;
+}
+
+inline
+const std::string BeamStrippingPhysics::getType() const {
+    return "BeamStrippingPhysics";
+}
 
 #endif //BEAMSTRIPPINGPHYSICS_HH
