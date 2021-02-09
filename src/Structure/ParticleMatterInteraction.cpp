@@ -28,7 +28,7 @@
 #include "Attributes/Attributes.h"
 #include "Physics/Physics.h"
 #include "Solvers/BeamStrippingPhysics.hh"
-#include "Solvers/CollimatorPhysics.hh"
+#include "Solvers/ScatteringPhysics.hh"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
@@ -51,7 +51,7 @@ ParticleMatterInteraction::ParticleMatterInteraction():
                "the particle matter interaction handler on an element."),
     handler_m(0) {
     itsAttr[TYPE] = Attributes::makeUpperCaseString
-        ("TYPE", "Specifies the particle matter interaction handler: COLLIMATOR, DEGRADER, BEAMSTRIPPING");
+        ("TYPE", "Specifies the particle matter interaction handler: SCATTERING, BEAMSTRIPPING");
 
     itsAttr[MATERIAL] = Attributes::makeUpperCaseString
         ("MATERIAL", "The material of the surface");
@@ -130,8 +130,8 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
     if (type.empty()) {
         throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
                             "TYPE is not defined for PARTICLEMATTERINTERACTION");    
-    } else if (type == "COLLIMATOR" || type == "DEGRADER") {
-         handler_m = new CollimatorPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
+    } else if (type == "SCATTERING") {
+         handler_m = new ScatteringPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
          *gmsg << *this << endl;
     } else if (type == "BEAMSTRIPPING") {
          handler_m = new BeamStrippingPhysics(getOpalName(), &element);
@@ -152,7 +152,7 @@ void ParticleMatterInteraction::print(std::ostream& os) const {
     os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
        << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n'
        << "* ELEMENT        " << handler_m->getElement()->getName() << '\n'; 
-    if ( Attributes::getString(itsAttr[TYPE]) != "BEAMSTRIPPING" ) {
+    if ( Attributes::getString(itsAttr[TYPE]) == "SCATTERING" ) {
         os << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
         os << "* LOWENERGYTHR   " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV" << '\n';
     }

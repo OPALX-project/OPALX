@@ -37,7 +37,7 @@ class PartBunchBase;
 class LossDataSink;
 class Inform;
 class Cyclotron;
-class BeamStripping;
+class Vacuum;
 
 class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
 
@@ -92,7 +92,7 @@ private:
     }
 
     Cyclotron* cycl_m;
-    BeamStripping* bstp_m;
+    Vacuum* vac_m;
 
     gsl_rng* r_m;
 

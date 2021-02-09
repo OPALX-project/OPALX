@@ -1,5 +1,5 @@
 //
-// Class BeamStripping
+// Class Vacuum
 //   Defines the abstract interface environment for
 //   beam stripping physics.
 //
@@ -20,8 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_BeamStripping_HH
-#define CLASSIC_BeamStripping_HH
+#ifndef CLASSIC_Vacuum_HH
+#define CLASSIC_Vacuum_HH
 
 #include "AbsBeamline/Component.h"
 
@@ -63,21 +63,21 @@ enum class ResidualGas:short {AIR,
                               NOGAS};
 
 
-class BeamStripping: public Component {
+class Vacuum: public Component {
 
 public:
 
     /// Constructor with given name.
-    explicit BeamStripping(const std::string& name);
+    explicit Vacuum(const std::string& name);
 
-    BeamStripping();
-    BeamStripping(const BeamStripping& rhs);
-    virtual ~BeamStripping();
+    Vacuum();
+    Vacuum(const Vacuum& rhs);
+    virtual ~Vacuum();
 
-    /// Apply visitor to BeamStripping.
+    /// Apply visitor to Vacuum.
     virtual void accept(BeamlineVisitor&) const;
 
-    virtual bool checkBeamStripping(PartBunchBase<double, 3>* bunch,
+    virtual bool checkVacuum(PartBunchBase<double, 3>* bunch,
                                     Cyclotron* cycl);
 
     virtual void initialise(PartBunchBase<double, 3>* bunch,
@@ -97,7 +97,7 @@ public:
 
     virtual void getDimensions(double& zBegin, double& zEnd) const;
 
-    std::string  getBeamStrippingShape();
+    std::string  getVacuumShape();
 
     int checkPoint(const double& x, const double& y, const double& z);
     
@@ -132,7 +132,7 @@ protected:
 
 private:
 
-    ///@{ parameters for BeamStripping
+    ///@{ parameters for Vacuum
     ResidualGas gas_m;
     double pressure_m;    /// mbar
     std::string pmapfn_m; /// stores the filename of the pressure map
@@ -158,4 +158,4 @@ protected:
     PPositions PP;
 };
 
-#endif // CLASSIC_BeamStripping_HH
+#endif // CLASSIC_Vacuum_HH

@@ -1,6 +1,6 @@
 //
-// Class OpalBeamStripping
-//   The class of OPAL beam stripping.
+// Class OpalVacuum
+//   The class of OPAL Vacuum.
 //
 // Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
@@ -19,17 +19,17 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "Elements/OpalVacuum.h"
 
 #include "Attributes/Attributes.h"
-#include "BeamlineCore/BeamStrippingRep.h"
-#include "Elements/OpalBeamStripping.h"
+#include "BeamlineCore/VacuumRep.h"
 #include "Physics/Physics.h"
 #include "Structure/ParticleMatterInteraction.h"
 
 
-OpalBeamStripping::OpalBeamStripping():
-    OpalElement(SIZE, "BEAMSTRIPPING",
-                "The \"BEAMSTRIPPING\" element defines a beam stripping interaction"),
+OpalVacuum::OpalVacuum():
+    OpalElement(SIZE, "VACUUM",
+                "The \"VACUUM\" element defines the vacuum conditions for beam stripping interactions"),
     parmatint_m(NULL) {
     itsAttr[PRESSURE]        = Attributes::makeReal
         ("PRESSURE", " Pressure in the accelerator, [mbar]");
@@ -46,32 +46,32 @@ OpalBeamStripping::OpalBeamStripping():
     
     registerOwnership();
     
-    setElement(new BeamStrippingRep("BEAMSTRIPPING"));
+    setElement(new VacuumRep("VACUUM"));
 }
 
 
-OpalBeamStripping::OpalBeamStripping(const std::string& name, OpalBeamStripping* parent):
+OpalVacuum::OpalVacuum(const std::string& name, OpalVacuum* parent):
     OpalElement(name, parent),
     parmatint_m(NULL) {
-    setElement(new BeamStrippingRep(name));
+    setElement(new VacuumRep(name));
 }
 
 
-OpalBeamStripping::~OpalBeamStripping() {
+OpalVacuum::~OpalVacuum() {
     delete parmatint_m;
 }
 
 
-OpalBeamStripping* OpalBeamStripping::clone(const std::string& name) {
-    return new OpalBeamStripping(name, this);
+OpalVacuum* OpalVacuum::clone(const std::string& name) {
+    return new OpalVacuum(name, this);
 }
 
 
-void OpalBeamStripping::update() {
+void OpalVacuum::update() {
     OpalElement::update();
 
-    BeamStrippingRep* bstp =
-        dynamic_cast<BeamStrippingRep*>(getElement());
+    VacuumRep* vac =
+        dynamic_cast<VacuumRep*>(getElement());
 
     double pressure     = Attributes::getReal(itsAttr[PRESSURE]);
     double temperature  = Attributes::getReal(itsAttr[TEMPERATURE]);
@@ -80,21 +80,21 @@ void OpalBeamStripping::update() {
     bool   stop         = Attributes::getBool(itsAttr[STOP]);
     std::string gas     = Attributes::getString(itsAttr[GAS]);
 
-    bstp->setPressure(pressure);
-    bstp->setTemperature(temperature);
-    bstp->setPressureMapFN(pmap);
-    bstp->setPScale(pscale);
-    bstp->setStop(stop);
-    bstp->setResidualGas(gas);
+    vac->setPressure(pressure);
+    vac->setTemperature(temperature);
+    vac->setPressureMapFN(pmap);
+    vac->setPScale(pscale);
+    vac->setStop(stop);
+    vac->setResidualGas(gas);
 
     if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);
-        parmatint_m->initParticleMatterInteractionHandler(*bstp);
-        bstp->setParticleMatterInteraction(parmatint_m->handler_m);
+        parmatint_m->initParticleMatterInteractionHandler(*vac);
+        vac->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
     // Transmit "unknown" attributes.
-    OpalElement::updateUnknown(bstp);
+    OpalElement::updateUnknown(vac);
 }

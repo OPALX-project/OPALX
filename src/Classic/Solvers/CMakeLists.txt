@@ -1,9 +1,9 @@
 set (_SRCS
     BeamStrippingPhysics.cpp
-    CollimatorPhysics.cpp
-    CSRWakeFunction.cpp
     CSRIGFWakeFunction.cpp
+    CSRWakeFunction.cpp
     GreenWakeFunction.cpp
+    ScatteringPhysics.cpp
     )
 
 include_directories (
@@ -14,12 +14,12 @@ add_opal_sources (${_SRCS})
 
 set (HDRS
     BeamStrippingPhysics.hh
-    GreenWakeFunction.hh
-    CollimatorPhysics.hh
-    CSRWakeFunction.hh
-    ParticleMatterInteractionHandler.hh
-    WakeFunction.hh
     CSRIGFWakeFunction.hh
+    CSRWakeFunction.hh
+    GreenWakeFunction.hh
+    ParticleMatterInteractionHandler.hh
+    ScatteringPhysics.hh
+    WakeFunction.hh
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers")

@@ -22,8 +22,8 @@
 //
 #include "Solvers/BeamStrippingPhysics.hh"
 
-#include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/Cyclotron.h"
+#include "AbsBeamline/Vacuum.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartData.h"
 #include "Physics/Physics.h"
@@ -50,16 +50,16 @@ namespace {
     };
     struct BeamStrippingInsideTester: public InsideTester {
         explicit BeamStrippingInsideTester(ElementBase* el) {
-            bstp_m = static_cast<BeamStripping*>(el);
+            vac_m = static_cast<Vacuum*>(el);
         }
         virtual bool checkHit(const Vector_t& R) {
-            return bstp_m->checkPoint(R(0), R(1), R(2));
+            return vac_m->checkPoint(R(0), R(1), R(2));
         }
         double getPressure(const Vector_t& R) {
-            return bstp_m->checkPressure(R(0), R(1));
+            return vac_m->checkPressure(R(0), R(1));
         }
     private:
-        BeamStripping* bstp_m;
+        Vacuum* vac_m;
     };
 }
 
@@ -80,7 +80,7 @@ BeamStrippingPhysics::BeamStrippingPhysics(const std::string& name, ElementBase*
     rediffusedStat_m(0),
     totalPartsInMat_m(0)
 {
-    bstp_m = dynamic_cast<BeamStripping*>(getElement());
+    vac_m = dynamic_cast<Vacuum*>(getElement());
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
 
@@ -135,7 +135,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
     Vector_t extE = Vector_t(0.0, 0.0, 0.0);
     Vector_t extB = Vector_t(0.0, 0.0, 0.0); //kGauss
 
-    bool stop = bstp_m->getStop();
+    bool stop = vac_m->getStop();
 
     InsideTester* tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
@@ -190,9 +190,9 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
 
 void BeamStrippingPhysics::crossSection(PartBunchBase<double, 3>* bunch, size_t& i, double Eng){
 
-    const double temperature = bstp_m->getTemperature(); // K
+    const double temperature = vac_m->getTemperature(); // K
     const ParticleType& pType = bunch->PType[i];
-    const ResidualGas& gas = bstp_m->getResidualGas();
+    const ResidualGas& gas = vac_m->getResidualGas();
 
     Eng *=1E6; //keV
     double Eth = 0.0;
