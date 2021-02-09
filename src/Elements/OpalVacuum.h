@@ -1,6 +1,6 @@
 //
-// Class OpalBeamStripping
-//   The class of OPAL beam stripping.
+// Class OpalVacuum
+//   The class of OPAL Vacuum.
 //
 // Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
@@ -19,18 +19,18 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef OPAL_OpalBeamStripping_HH
-#define OPAL_OpalBeamStripping_HH
+#ifndef OPAL_OpalVacuum_HH
+#define OPAL_OpalVacuum_HH
 
 #include "Elements/OpalElement.h"
 
 class ParticleMatterInteraction;
 
-class OpalBeamStripping: public OpalElement {
+class OpalVacuum: public OpalElement {
 
 public:
 
-    /// The attributes of class OpalBeamStripping.
+    /// The attributes of class OpalVacuum.
     enum {
         PRESSURE = COMMON,   // Pressure in mbar
         TEMPERATURE,         // Temperature of residual gas
@@ -42,25 +42,25 @@ public:
     };
 
     /// Exemplar constructor.
-    OpalBeamStripping();
+    OpalVacuum();
 
-    virtual ~OpalBeamStripping();
+    virtual ~OpalVacuum();
 
     /// Make clone.
-    virtual OpalBeamStripping* clone(const std::string& name);
+    virtual OpalVacuum* clone(const std::string& name);
 
-    /// Update the embedded CLASSIC beam stripping.
+    /// Update the embedded CLASSIC vacuum.
     virtual void update();
 
 private:
 
     // Not implemented.
-    OpalBeamStripping(const OpalBeamStripping&);
-    void operator=(const OpalBeamStripping&);
+    OpalVacuum(const OpalVacuum&);
+    void operator=(const OpalVacuum&);
 
     // Clone constructor.
-    OpalBeamStripping(const std::string& name, OpalBeamStripping* parent);
+    OpalVacuum(const std::string& name, OpalVacuum* parent);
     ParticleMatterInteraction* parmatint_m;
 };
 
-#endif // OPAL_OpalBeamStripping_HH
+#endif // OPAL_OpalVacuum_HH

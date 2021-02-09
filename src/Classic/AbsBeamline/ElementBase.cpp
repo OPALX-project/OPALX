@@ -192,8 +192,6 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
     switch (type) {
     case BEAMLINE:
         return "Beamline";
-    case BEAMSTRIPPING:
-        return "BeamStripping";
     case CCOLLIMATOR:
         return "CCollimator";
     case CORRECTOR:
@@ -232,6 +230,8 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "Stripper";
     case TRAVELINGWAVE:
         return "TravelingWave";
+    case VACUUM:
+        return "Vacuum";
 #ifdef ENABLE_OPAL_FEL
     case UNDULATOR:
         return "Undulator";

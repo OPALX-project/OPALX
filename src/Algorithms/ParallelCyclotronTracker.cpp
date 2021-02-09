@@ -37,14 +37,11 @@
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/OpalData.h"
 
-#include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
-#include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -53,17 +50,19 @@
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
+#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
-#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/Stripper.h"
+#include "AbsBeamline/Vacuum.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
@@ -323,62 +322,6 @@ void ParallelCyclotronTracker::closeFiles() {
     }
 }
 
-/**
- *
- * @param ring
- */
-void ParallelCyclotronTracker::visitRing(const Ring &ring) {
-
-    *gmsg << "* ----------------------------- Adding Ring ------------------------------ *" << endl;
-
-    delete opalRing_m;
-
-    opalRing_m = dynamic_cast<Ring*>(ring.clone());
-
-    myElements.push_back(opalRing_m);
-
-    opalRing_m->initialise(itsBunch_m);
-
-    referenceR = opalRing_m->getBeamRInit();
-    referencePr = opalRing_m->getBeamPRInit();
-    referenceTheta = opalRing_m->getBeamPhiInit();
-
-    if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
-        throw OpalException("Error in ParallelCyclotronTracker::visitRing",
-                            "PHIINIT is out of [-180, 180)!");
-    }
-
-    referenceZ = 0.0;
-    referencePz = 0.0;
-
-    referencePtot = itsReference.getGamma() * itsReference.getBeta();
-    referencePt = std::sqrt(referencePtot * referencePtot - referencePr * referencePr);
-
-    if(referencePtot < 0.0)
-        referencePt *= -1.0;
-
-    sinRefTheta_m = std::sin(referenceTheta * Physics::deg2rad);
-    cosRefTheta_m = std::cos(referenceTheta * Physics::deg2rad);
-
-    double BcParameter[8] = {}; // zero initialise array
-
-    buildupFieldList(BcParameter, ElementBase::RING, opalRing_m);
-
-    // Finally print some diagnostic
-    *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
-    *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
-    *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Total reference momentum   = " << referencePtot * 1000.0
-          << " [MCU]" << endl;
-    *gmsg << "* Reference azimuthal momentum  = " << referencePt * 1000.0
-          << " [MCU]" << endl;
-    *gmsg << "* Reference radial momentum     = " << referencePr * 1000.0
-          << " [MCU]" << endl;
-    *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry "
-          << endl;
-    *gmsg << "* Harmonic number h= " << opalRing_m->getHarmonicNumber() << " "
-          << endl;
-}
 
 /**
  *
@@ -547,39 +490,6 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     buildupFieldList(BcParameter, ElementBase::CYCLOTRON, cycl_m);
 }
 
-
-void ParallelCyclotronTracker::visitBeamStripping(const BeamStripping &bstp) {
-    *gmsg << "* ------------------------------ Beam Stripping ------------------------------" << endl;
-
-    BeamStripping* elptr = dynamic_cast<BeamStripping *>(bstp.clone());
-    myElements.push_back(elptr);
-
-    double BcParameter[8] = {};
-
-    if(elptr->getPressureMapFN() == "") {
-        double pressure = elptr->getPressure();
-        *gmsg << "* Pressure     = " << pressure << " [mbar]" << endl;
-        BcParameter[0] = pressure;
-    }
-
-    double temperature = elptr->getTemperature();
-    *gmsg << "* Temperature  = " << temperature << " [K]" << endl;
-
-    std::string gas = elptr->getResidualGasName();
-    *gmsg << "* Residual gas = " << gas << endl;
-
-    bool stop = elptr->getStop();
-    *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
-
-    elptr->initialise(itsBunch_m, elptr->getPScale());
-    
-    BcParameter[1] = temperature;
-    BcParameter[2] = stop;
-
-    buildupFieldList(BcParameter, ElementBase::BEAMSTRIPPING, elptr);
-
-}
-
 /**
  *
  *
@@ -647,7 +557,6 @@ void ParallelCyclotronTracker::visitDegrader(const Degrader &deg) {
 
 }
 
-
 /**
  *
  *
@@ -667,7 +576,12 @@ void ParallelCyclotronTracker::visitFlexibleCollimator(const FlexibleCollimator 
 
 }
 
-void ParallelCyclotronTracker::visitOffset(const Offset & off) {
+/**
+ *
+ *
+ * @param off
+ */
+void ParallelCyclotronTracker::visitOffset(const Offset& off) {
     if (opalRing_m == NULL)
         throw OpalException(
                             "ParallelCylcotronTracker::visitOffset",
@@ -823,53 +737,6 @@ void ParallelCyclotronTracker::visitRBend(const RBend &bend) {
     myElements.push_back(dynamic_cast<RBend *>(bend.clone()));
 }
 
-void ParallelCyclotronTracker::visitSBend3D(const SBend3D &bend) {
-    *gmsg << "Adding SBend3D" << endl;
-    if (opalRing_m != NULL)
-        opalRing_m->appendElement(bend);
-    else
-        throw OpalException("ParallelCyclotronTracker::visitSBend3D",
-                            "Need to define a RINGDEFINITION to use SBend3D element");
-}
-
-void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet &bend) {
-    *gmsg << "Adding ScalingFFAMagnet" << endl;
-    if (opalRing_m != NULL) {
-        opalRing_m->appendElement(bend);
-    } else {
-        throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
-                            "Need to define a RINGDEFINITION to use ScalingFFAMagnet element");
-    }
-}
-
-void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity &cav) {
-    *gmsg << "Adding Variable RF Cavity" << endl;
-    if (opalRing_m != NULL)
-        opalRing_m->appendElement(cav);
-    else
-        throw OpalException("ParallelCyclotronTracker::visitVariableRFCavity",
-                            "Need to define a RINGDEFINITION to use VariableRFCavity element");
-}
-
-void ParallelCyclotronTracker::visitVariableRFCavityFringeField
-                                  (const VariableRFCavityFringeField &cav) {
-    *gmsg << "Adding Variable RF Cavity with Fringe Field" << endl;
-    if (opalRing_m != NULL)
-        opalRing_m->appendElement(cav);
-    else
-        throw OpalException("ParallelCyclotronTracker::visitVariableRFCavityFringeField",
-                            "Need to define a RINGDEFINITION to use VariableRFCavity element");
-}
-
-void ParallelCyclotronTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet &mag) {
-    *gmsg << "Adding Vertical FFA Magnet" << endl;
-    if (opalRing_m != NULL)
-        opalRing_m->appendElement(mag);
-    else
-        throw OpalException("ParallelCyclotronTracker::visitVerticalFFAMagnet",
-                            "Need to define a RINGDEFINITION to use VerticalFFAMagnet element");
-}
-
 /**
  *
  *
@@ -963,12 +830,88 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
 
 /**
  *
+ * @param ring
+ */
+void ParallelCyclotronTracker::visitRing(const Ring &ring) {
+
+    *gmsg << "* ----------------------------- Adding Ring ------------------------------ *" << endl;
+
+    delete opalRing_m;
+
+    opalRing_m = dynamic_cast<Ring*>(ring.clone());
+
+    myElements.push_back(opalRing_m);
+
+    opalRing_m->initialise(itsBunch_m);
+
+    referenceR = opalRing_m->getBeamRInit();
+    referencePr = opalRing_m->getBeamPRInit();
+    referenceTheta = opalRing_m->getBeamPhiInit();
+
+    if(referenceTheta <= -180.0 || referenceTheta > 180.0) {
+        throw OpalException("Error in ParallelCyclotronTracker::visitRing",
+                            "PHIINIT is out of [-180, 180)!");
+    }
+
+    referenceZ = 0.0;
+    referencePz = 0.0;
+
+    referencePtot = itsReference.getGamma() * itsReference.getBeta();
+    referencePt = std::sqrt(referencePtot * referencePtot - referencePr * referencePr);
+
+    if(referencePtot < 0.0)
+        referencePt *= -1.0;
+
+    sinRefTheta_m = std::sin(referenceTheta * Physics::deg2rad);
+    cosRefTheta_m = std::cos(referenceTheta * Physics::deg2rad);
+
+    double BcParameter[8] = {}; // zero initialise array
+
+    buildupFieldList(BcParameter, ElementBase::RING, opalRing_m);
+
+    // Finally print some diagnostic
+    *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
+    *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
+    *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
+    *gmsg << "* Total reference momentum   = " << referencePtot * 1000.0
+          << " [MCU]" << endl;
+    *gmsg << "* Reference azimuthal momentum  = " << referencePt * 1000.0
+          << " [MCU]" << endl;
+    *gmsg << "* Reference radial momentum     = " << referencePr * 1000.0
+          << " [MCU]" << endl;
+    *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry "
+          << endl;
+    *gmsg << "* Harmonic number h= " << opalRing_m->getHarmonicNumber() << " "
+          << endl;
+}
+
+/**
+ *
  *
  * @param bend
  */
 void ParallelCyclotronTracker::visitSBend(const SBend &bend) {
     *gmsg << "In SBend; L = " << bend.getElementLength() << " however the element is missing " << endl;
     myElements.push_back(dynamic_cast<SBend *>(bend.clone()));
+}
+
+void ParallelCyclotronTracker::visitSBend3D(const SBend3D &bend) {
+    *gmsg << "Adding SBend3D" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(bend);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitSBend3D",
+                            "Need to define a RINGDEFINITION to use SBend3D element");
+}
+
+void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet &bend) {
+    *gmsg << "Adding ScalingFFAMagnet" << endl;
+    if (opalRing_m != NULL) {
+        opalRing_m->appendElement(bend);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
+                            "Need to define a RINGDEFINITION to use ScalingFFAMagnet element");
+    }
 }
 
 /**
@@ -997,7 +940,6 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
 
     double width = elptr->getWidth();
     *gmsg << "* Width   = " << width << " [m]" << endl;
-
 
     // initialise, do nothing
     elptr->initialise(itsBunch_m);
@@ -1033,7 +975,6 @@ void ParallelCyclotronTracker::visitSolenoid(const Solenoid &solenoid) {
  *
  * @param stripper
  */
-
 void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     *gmsg << "* ------------------------------ Stripper ------------------------------" << endl;
@@ -1078,6 +1019,87 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
 
     buildupFieldList(BcParameter, ElementBase::STRIPPER, elptr);
 }
+
+/**
+ *
+ *
+ * @param vac
+ */
+void ParallelCyclotronTracker::visitVacuum(const Vacuum &vac) {
+    *gmsg << "* ------------------------------ Vacuum ------------------------------" << endl;
+
+    Vacuum* elptr = dynamic_cast<Vacuum*>(vac.clone());
+    myElements.push_back(elptr);
+
+    double BcParameter[8] = {};
+
+    if(elptr->getPressureMapFN() == "") {
+        double pressure = elptr->getPressure();
+        *gmsg << "* Pressure     = " << pressure << " [mbar]" << endl;
+        BcParameter[0] = pressure;
+    }
+
+    double temperature = elptr->getTemperature();
+    *gmsg << "* Temperature  = " << temperature << " [K]" << endl;
+
+    std::string gas = elptr->getResidualGasName();
+    *gmsg << "* Residual gas = " << gas << endl;
+
+    bool stop = elptr->getStop();
+    *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
+
+    elptr->initialise(itsBunch_m, elptr->getPScale());
+    
+    BcParameter[1] = temperature;
+    BcParameter[2] = stop;
+
+    buildupFieldList(BcParameter, ElementBase::VACUUM, elptr);
+
+}
+
+/**
+ *
+ *
+ * @param cav
+ */
+void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity &cav) {
+    *gmsg << "Adding Variable RF Cavity" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(cav);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitVariableRFCavity",
+                            "Need to define a RINGDEFINITION to use VariableRFCavity element");
+}
+
+/**
+ *
+ *
+ * @param cav
+ */
+void ParallelCyclotronTracker::visitVariableRFCavityFringeField
+                                  (const VariableRFCavityFringeField &cav) {
+    *gmsg << "Adding Variable RF Cavity with Fringe Field" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(cav);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitVariableRFCavityFringeField",
+                            "Need to define a RINGDEFINITION to use VariableRFCavity element");
+}
+
+/**
+ *
+ *
+ * @param mag
+ */
+void ParallelCyclotronTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet &mag) {
+    *gmsg << "Adding Vertical FFA Magnet" << endl;
+    if (opalRing_m != NULL)
+        opalRing_m->appendElement(mag);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitVerticalFFAMagnet",
+                            "Need to define a RINGDEFINITION to use VerticalFFAMagnet element");
+}
+
 
 /**
  *
@@ -2045,9 +2067,9 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
     IpplTimings::startTimer(PluginElemTimer_m);
 
     for(beamline_list::iterator sindex = ++(FieldDimensions.begin()); sindex != FieldDimensions.end(); ++sindex) {
-        if(((*sindex)->first) == ElementBase::BEAMSTRIPPING) {
-            BeamStripping *bstp = static_cast<BeamStripping *>(((*sindex)->second).second);
-            bstp->checkBeamStripping(itsBunch_m, cycl_m);
+        if(((*sindex)->first) == ElementBase::VACUUM) {
+            Vacuum* vac = static_cast<Vacuum*>(((*sindex)->second).second);
+            vac->checkVacuum(itsBunch_m, cycl_m);
         }
     }
 
