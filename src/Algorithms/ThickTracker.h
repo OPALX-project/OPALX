@@ -1,7 +1,6 @@
 //
-// Class: ThickTracker
+// Class ThickTracker
 //   Tracks using thick-lens algorithm.
-// ------------------------------------------------------------------------
 //
 // Copyright (c) 2018, Philippe Ganz, ETH Zürich
 // All rights reserved
@@ -28,12 +27,12 @@
 #include "Hamiltonian.h"
 
 #include "Algorithms/IndexMap.h"
-#include "AbsBeamline/BeamStripping.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/SBend.h"
+#include "AbsBeamline/Vacuum.h"
 
 #include "Elements/OpalBeamline.h"
 
@@ -125,60 +124,61 @@ public:
 
     virtual ~ThickTracker();
 
-    /// Apply the algorithm to a BeamStripping.
-    virtual void visitBeamStripping(const BeamStripping &);
+    /// Apply the algorithm to the top-level beamline.
+    //  overwrite the execute-methode from DefaultVisitor
+    virtual void execute();
+    
+    /// Apply the algorithm to a beam line.
+    //  overwrite the execute-methode from DefaultVisitor
+    virtual void visitBeamline(const Beamline &);
 
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator &);
 
-    /// Apply the algorithm to a Corrector.
+    /// Apply the algorithm to a closed orbit corrector.
     virtual void visitCorrector(const Corrector &);
 
-    /// Apply the algorithm to a Degrader.
+    /// Apply the algorithm to a degrader.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a Drift.
+    /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
 
-    /// Apply the algorithm to a Marker.
+    /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
 
-    /// Apply the algorithm to a Monitor.
+    /// Apply the algorithm to a beam position monitor.
     virtual void visitMonitor(const Monitor &);
 
-    /// Apply the algorithm to a Multipole.
+    /// Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole &);
-    /// Apply the algorithm to a Probe.
+
+    /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &);
 
-    /// Apply the algorithm to a RBend.
+    /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend &);
 
-    /// Apply the algorithm to a RFCavity.
+    /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
 
-    /// Apply the algorithm to a RFCavity.
-    virtual void visitTravelingWave(const TravelingWave &);
-
-    /// Apply the algorithm to a SBend.
+    /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend &);
 
-    /// Apply the algorithm to a Septum.
+    /// Apply the algorithm to a septum.
     virtual void visitSeptum(const Septum &);
 
-    /// Apply the algorithm to a Solenoid.
+    /// Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid &);
 
-    /// Apply the algorithm to a beam line.
-    //  overwrite the execute-methode from DefaultVisitor
-    virtual void visitBeamline(const Beamline &);
+   /// Apply the algorithm to a traveling wave.
+    virtual void visitTravelingWave(const TravelingWave &);
 
-    /// Apply the algorithm to the top-level beamline.
-    //  overwrite the execute-methode from DefaultVisitor
-    virtual void execute();
+    /// Apply the algorithm to a vacuum space.
+    virtual void visitVacuum(const Vacuum &);
 
     void prepareSections();
 
@@ -186,8 +186,8 @@ public:
     void insertFringeField(SBend* pSBend, std::list<structMapTracking>& mBL, double& beta0,
              double& gamma0, double& P0, double& q, std::array<double,2>& entrFringe, std::string e);
      */
-private:
 
+private:
 
     // Not implemented.
     ThickTracker() = delete;
@@ -198,8 +198,6 @@ private:
         throw LogicalError("ThickTracker::execute()",
                            "Element '" + element + "' not supported.");
     }
-
-
 
     /*!
      * Tests the order of the elements in the beam line according to their position
@@ -340,10 +338,6 @@ private:
 };
 
 
-inline void ThickTracker::visitBeamStripping(const BeamStripping &bstp) {
-    itsOpalBeamline_m.visit(bstp, *this, itsBunch_m);
-}
-
 inline void ThickTracker::visitCCollimator(const CCollimator &/*coll*/) {
 //     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
     this->throwElementError_m("CCollimator");
@@ -431,11 +425,6 @@ inline void ThickTracker::visitRFCavity(const RFCavity &/*as*/) {
     this->throwElementError_m("RFCavity");
 }
 
-inline void ThickTracker::visitTravelingWave(const TravelingWave &/*as*/) {
-//     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
-    this->throwElementError_m("TravelingWave");
-}
-
 
 inline void ThickTracker::visitSBend(const SBend &bend) {
     itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
@@ -501,5 +490,15 @@ inline void ThickTracker::visitSolenoid(const Solenoid &/*solenoid*/) {
     this->throwElementError_m("Solenoid");
 }
 
+
+inline void ThickTracker::visitTravelingWave(const TravelingWave &/*as*/) {
+//     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+    this->throwElementError_m("TravelingWave");
+}
+
+
+inline void ThickTracker::visitVacuum(const Vacuum &vac) {
+    itsOpalBeamline_m.visit(vac, *this, itsBunch_m);
+}
 
 #endif // OPAL_ThickTracker_HH
