@@ -1,7 +1,6 @@
 //
-// Class: ThickTracker
+// Class ThickTracker
 //   Tracks using thick-lens algorithm.
-// ------------------------------------------------------------------------
 //
 // Copyright (c) 2018, Philippe Ganz, ETH Zürich
 // All rights reserved
@@ -38,10 +37,7 @@
 
 #include "Physics/Physics.h"
 
-//
-// Class ThickTracker
-// ------------------------------------------------------------------------
-//
+
 ThickTracker::ThickTracker(const Beamline &beamline,
                            const PartData &reference,
                            bool revBeam, bool revTrack)

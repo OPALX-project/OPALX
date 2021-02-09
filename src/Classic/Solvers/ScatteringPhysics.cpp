@@ -1,5 +1,5 @@
 //
-// Class CollimatorPhysics
+// Class ScatteringPhysics
 //   Defines the physical processes of beam scattering 
 //   and energy loss by heavy charged particles
 //
@@ -17,7 +17,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#include "Solvers/CollimatorPhysics.hh"
+#include "Solvers/ScatteringPhysics.hh"
 #include "Physics/Physics.h"
 #include "Physics/Material.h"
 #include "Algorithms/PartBunchBase.h"
@@ -87,7 +87,7 @@ namespace {
     };
 }
 
-CollimatorPhysics::CollimatorPhysics(const std::string& name,
+ScatteringPhysics::ScatteringPhysics(const std::string& name,
                                      ElementBase* element,
                                      std::string& material,
                                      bool enableRutherford,
@@ -152,7 +152,7 @@ CollimatorPhysics::CollimatorPhysics(const std::string& name,
         hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
         break;
     default:
-        throw OpalException("CollimatorPhysics::CollimatorPhysics",
+        throw OpalException("ScatteringPhysics::ScatteringPhysics",
                             "Unsupported element type");
     }
 
@@ -163,7 +163,7 @@ CollimatorPhysics::CollimatorPhysics(const std::string& name,
     DegraderDestroyTimer_m = IpplTimings::getTimer("DegraderDestroy");
 }
 
-CollimatorPhysics::~CollimatorPhysics() {
+ScatteringPhysics::~ScatteringPhysics() {
     locParts_m.clear();
     lossDs_m->save();
     if (rGen_m)
@@ -173,7 +173,7 @@ CollimatorPhysics::~CollimatorPhysics() {
 
 /// The material of the collimator
 //  ------------------------------------------------------------------------
-void  CollimatorPhysics::configureMaterialParameters() {
+void  ScatteringPhysics::configureMaterialParameters() {
 
     auto material = Physics::Material::getMaterial(material_m);
     Z_m = material->getAtomicNumber();
@@ -193,14 +193,14 @@ void  CollimatorPhysics::configureMaterialParameters() {
     B5_c = material->getStoppingPowerFitCoefficients(Physics::Material::B5);
 }
 
-void CollimatorPhysics::apply(PartBunchBase<double, 3>* bunch,
+void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
                               const std::pair<Vector_t, double>& boundingSphere) {
     IpplTimings::startTimer(DegraderApplyTimer_m);
 
     /*
       Particles that have entered material are flagged as Bin[i] == -1.
 
-      Flagged particles are copied to a local structure within Collimator Physics locParts_m.
+      Flagged particles are copied to a local structure within Scattering Physics locParts_m.
 
       Particles in that structure will be pushed in the material and either come
       back to the bunch or will be fully stopped in the material.
@@ -254,7 +254,7 @@ void CollimatorPhysics::apply(PartBunchBase<double, 3>* bunch,
     IpplTimings::stopTimer(DegraderApplyTimer_m);
 }
 
-void CollimatorPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
+void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
     /*
         Do physics if
         -- correct type of particle
@@ -297,7 +297,7 @@ void CollimatorPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
         }
     } else {
         throw GeneralClassicException(
-                "CollimatorPhysics::computeInteraction",
+                "ScatteringPhysics::computeInteraction",
                 "Particle " + bunch->getPTypeString() +
                 " is not supported for scattering interactions!");    
     }
@@ -312,7 +312,7 @@ void CollimatorPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
 /// See Particle Physics Booklet, chapter 'Passage of particles through matter' or
 /// Review of Particle Physics, DOI: 10.1103/PhysRevD.86.010001, page 329 ff
 // -------------------------------------------------------------------------
-bool CollimatorPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch, 
+bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch, 
                                           Vector_t& P,
                                           const double deltat,
                                           bool includeFluctuations) const {
@@ -399,7 +399,7 @@ bool CollimatorPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
 // For details see: J. Beringer et al. (Particle Data Group),
 // "Passage of particles through matter", Phys. Rev. D 86, 010001 (2012)
 // -------------------------------------------------------------------------
-void  CollimatorPhysics::applyRotation(Vector_t& P,
+void  ScatteringPhysics::applyRotation(Vector_t& P,
                                        Vector_t& R,
                                        double shift,
                                        double thetacou) {
@@ -415,7 +415,7 @@ void  CollimatorPhysics::applyRotation(Vector_t& P,
     P(2) = -Px * std::sin(thetacou) + P(2) * std::cos(thetacou);
 }
 
-void CollimatorPhysics::applyRandomRotation(Vector_t& P, double theta0) {
+void ScatteringPhysics::applyRandomRotation(Vector_t& P, double theta0) {
 
     double thetaru = 2.5 / std::sqrt(gsl_rng_uniform(rGen_m)) * 2.0 * theta0;
     double phiru = Physics::two_pi * gsl_rng_uniform(rGen_m);
@@ -440,7 +440,7 @@ void CollimatorPhysics::applyRandomRotation(Vector_t& P, double theta0) {
 /// Coulomb Scattering: Including Multiple Coulomb Scattering and large angle Rutherford Scattering.
 /// Using the distribution given in Classical Electrodynamics, by J. D. Jackson.
 //--------------------------------------------------------------------------
-void  CollimatorPhysics::computeCoulombScattering(Vector_t& R,
+void  ScatteringPhysics::computeCoulombScattering(Vector_t& R,
                                                   Vector_t& P,
                                                   double dt) {
 
@@ -484,7 +484,7 @@ void  CollimatorPhysics::computeCoulombScattering(Vector_t& R,
     }
 }
 
-void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
+void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
 
     const size_t nL = locParts_m.size();
     if (nL == 0) return;
@@ -527,7 +527,7 @@ void CollimatorPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
     deleteParticleFromLocalVector();
 }
 
-void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
+void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
                                       const std::pair<Vector_t, double>& boundingSphere)
 {
     const size_t nL = bunch->getLocalNum();
@@ -594,7 +594,7 @@ void CollimatorPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
     IpplTimings::stopTimer(DegraderDestroyTimer_m);
 }
 
-void CollimatorPhysics::print(Inform &msg) {
+void ScatteringPhysics::print(Inform &msg) {
     Inform::FmtFlags_t ff = msg.flags();
 
     if (totalPartsInMat_m > 0 ||
@@ -604,7 +604,7 @@ void CollimatorPhysics::print(Inform &msg) {
 
         OPALTimer::Timer time;
         msg << level2
-            << "--- CollimatorPhysics - Name: " << name_m << "\n"
+            << "--- ScatteringPhysics - Name: " << name_m << "\n"
             << "Material: " << material_m << " - Element: " << element_ref_m->getName() << "\n"
             << "Particle Statistics @ " << time.time() << "\n"
             << std::setw(21) << "entered: " << Util::toStringWithThousandSep(bunchToMatStat_m) << "\n"
@@ -617,7 +617,7 @@ void CollimatorPhysics::print(Inform &msg) {
     msg.flags(ff);
 }
 
-bool CollimatorPhysics::stillActive() {
+bool ScatteringPhysics::stillActive() {
     return totalPartsInMat_m != 0;
 }
 
@@ -627,7 +627,7 @@ namespace {
     }
 }
 
-void CollimatorPhysics::deleteParticleFromLocalVector() {
+void ScatteringPhysics::deleteParticleFromLocalVector() {
     /*
       the particle to be deleted (label < 0) are all 
       at the end of the vector.
@@ -652,7 +652,7 @@ void CollimatorPhysics::deleteParticleFromLocalVector() {
     }
 }
 
-void CollimatorPhysics::push() {
+void ScatteringPhysics::push() {
     for (size_t i = 0; i < locParts_m.size(); ++i) {
         Vector_t& R  = locParts_m[i].Rincol;
         Vector_t& P  = locParts_m[i].Pincol;
@@ -668,7 +668,7 @@ void CollimatorPhysics::push() {
 // of the interaction with the material, not for the integration of
 // the particles. This will ensure that the momenta of all particles
 // are reduced by  approcimately the same amount in computeEnergyLoss.
-void CollimatorPhysics::setTimeStepForLeavingParticles() {
+void ScatteringPhysics::setTimeStepForLeavingParticles() {
     const double elementLength = element_ref_m->getElementLength();
 
     for (size_t i = 0; i < locParts_m.size(); ++i) {
@@ -692,7 +692,7 @@ void CollimatorPhysics::setTimeStepForLeavingParticles() {
     }
 }
 
-void CollimatorPhysics::resetTimeStep() {
+void ScatteringPhysics::resetTimeStep() {
     for (size_t i = 0; i < locParts_m.size(); ++i) {
         double& dt = locParts_m[i].DTincol;
         dt = dT_m;
@@ -701,7 +701,7 @@ void CollimatorPhysics::resetTimeStep() {
 }
 
 
-void CollimatorPhysics::gatherStatistics() {
+void ScatteringPhysics::gatherStatistics() {
 
     unsigned int locPartsInMat;
     locPartsInMat = locParts_m.size();
