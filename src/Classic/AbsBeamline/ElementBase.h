@@ -107,7 +107,6 @@ public:
     };
 
     enum ElementType {BEAMLINE
-                    , BEAMSTRIPPING
                     , CCOLLIMATOR
                     , CORRECTOR
                     , CYCLOTRON
@@ -133,6 +132,7 @@ public:
                     , STRIPPER
                     , TRAVELINGWAVE
                     , UNDULATOR
+                    , VACUUM
                     , VARIABLERFCAVITY
                     , ANY};
 
