@@ -1,8 +1,8 @@
 //
-// Class BeamStrippingRep
-//   Defines a concrete representation for beam stripping.
+// Class VacuumRep
+//   Defines a concrete representation for vacuum conditions.
 //
-// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -19,23 +19,23 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_BeamStrippingRep_HH
-#define CLASSIC_BeamStrippingRep_HH
+#ifndef CLASSIC_VacuumRep_HH
+#define CLASSIC_VacuumRep_HH
 
-#include "AbsBeamline/BeamStripping.h"
+#include "AbsBeamline/Vacuum.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Fields/NullField.h"
 
-class BeamStrippingRep: public BeamStripping {
+class VacuumRep: public Vacuum {
 
 public:
 
     /// Constructor with given name.
-    explicit BeamStrippingRep(const std::string &name);
+    explicit VacuumRep(const std::string &name);
 
-    BeamStrippingRep();
-    BeamStrippingRep(const BeamStrippingRep &);
-    virtual ~BeamStrippingRep();
+    VacuumRep();
+    VacuumRep(const VacuumRep &);
+    virtual ~VacuumRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
@@ -69,7 +69,7 @@ public:
 private:
 
     // Not implemented.
-    void operator=(const BeamStrippingRep &);
+    void operator=(const VacuumRep &);
 
     // The zero magnetic field.
     NullField field;
@@ -79,4 +79,4 @@ private:
 
 };
 
-#endif // CLASSIC_BeamStrippingRep_HH
+#endif // CLASSIC_VacuumRep_HH

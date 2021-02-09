@@ -1,5 +1,5 @@
 //
-// Class CollimatorPhysics
+// Class ScatteringPhysics
 //   Defines the physical processes of beam scattering 
 //   and energy loss by heavy charged particles
 //
@@ -17,8 +17,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef COLLIMATORPHYSICS_HH
-#define COLLIMATORPHYSICS_HH
+#ifndef SCATTERINGPHYSICS_HH
+#define SCATTERINGPHYSICS_HH
 
 #include "Solvers/ParticleMatterInteractionHandler.hh"
 
@@ -62,14 +62,14 @@ struct InsideTester {
 };
 
 
-class CollimatorPhysics: public ParticleMatterInteractionHandler {
+class ScatteringPhysics: public ParticleMatterInteractionHandler {
 public:
-    CollimatorPhysics(const std::string& name,
+    ScatteringPhysics(const std::string& name,
                       ElementBase* element,
                       std::string& mat,
                       bool enableRutherford,
                       double lowEnergyThr);
-    ~CollimatorPhysics();
+    ~ScatteringPhysics();
 
     virtual void apply(PartBunchBase<double, 3>* bunch,
                        const std::pair<Vector_t, double>& boundingSphere);
@@ -179,7 +179,7 @@ private:
 };
 
 inline
-void CollimatorPhysics::calcStat(double Eng) {
+void ScatteringPhysics::calcStat(double Eng) {
     Eavg_m += Eng;
     if (Emin_m > Eng)
         Emin_m = Eng;
@@ -188,33 +188,33 @@ void CollimatorPhysics::calcStat(double Eng) {
 }
 
 inline
-double CollimatorPhysics::getTime() {
+double ScatteringPhysics::getTime() {
     return T_m;
 }
 
 inline
-std::string CollimatorPhysics::getName() {
+std::string ScatteringPhysics::getName() {
     return (element_ref_m->getName() + "_" + name_m);
 }
 
 inline
-size_t CollimatorPhysics::getParticlesInMat() {
+size_t ScatteringPhysics::getParticlesInMat() {
     return totalPartsInMat_m;
 }
 
 inline
-unsigned int CollimatorPhysics::getRediffused() {
+unsigned int ScatteringPhysics::getRediffused() {
     return rediffusedStat_m;
 }
 
 inline
-unsigned int CollimatorPhysics::getNumEntered() {
+unsigned int ScatteringPhysics::getNumEntered() {
     return bunchToMatStat_m;
 }
 
 inline
-const std::string CollimatorPhysics::getType() const {
-    return "CollimatorPhysics";
+const std::string ScatteringPhysics::getType() const {
+    return "ScatteringPhysics";
 }
 
-#endif //COLLIMATORPHYSICS_HH
+#endif //SCATTERINGPHYSICS_HH
