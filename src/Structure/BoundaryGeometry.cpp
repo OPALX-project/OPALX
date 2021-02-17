@@ -1980,9 +1980,8 @@ Change orientation if diff is:
                         isOriented[neighbor_id] = true;
                         triangles[queue_end++] = neighbor_id;
                     }
-                    if (++queue_cursor >= queue_end) break;
-                    triangle_id = triangles[queue_cursor];
-                } while (true);
+                    queue_cursor++;
+                } while (queue_cursor < queue_end && (triangle_id = triangles[queue_cursor],true));
             } while (queue_end < bg->Triangles_m.size());
 
             if (parts == 1) {
