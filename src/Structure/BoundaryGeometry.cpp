@@ -1962,26 +1962,27 @@ Change orientation if diff is:
                   Find next untested triangle, trivial for the first sub-mesh.
                   There is a least one not yet tested triangle!
                 */
-                while (isOriented [triangle_id])
+                while (isOriented[triangle_id])
                     triangle_id++;
 
                 // ensure that normal of this triangle is inward pointing
                 if (!hasInwardPointingNormal (bg, triangle_id)) {
                     std::swap (bg->PointID (triangle_id, 2), bg->PointID (triangle_id, 3));
                 }
-                isOriented [triangle_id] = true;
+                isOriented[triangle_id] = true;
 
                 // loop over all triangles in sub-mesh
-                triangles [queue_end++] = triangle_id;
+                triangles[queue_end++] = triangle_id;
                 do {
-                    for (auto neighbor_id: neighbors [triangle_id]) {
-                        if (isOriented [neighbor_id]) continue;
+                    for (auto neighbor_id: neighbors[triangle_id]) {
+                        if (isOriented[neighbor_id]) continue;
                         orientTriangle (bg, triangle_id, neighbor_id);
-                        isOriented [neighbor_id] = true;
+                        isOriented[neighbor_id] = true;
                         triangles[queue_end++] = neighbor_id;
                     }
-                    triangle_id = triangles [++queue_cursor];
-                } while (queue_cursor < queue_end);
+                    if (++queue_cursor >= queue_end) break;
+                    triangle_id = triangles[queue_cursor];
+                } while (true);
             } while (queue_end < bg->Triangles_m.size());
 
             if (parts == 1) {
