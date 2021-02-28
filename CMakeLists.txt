@@ -26,6 +26,13 @@ set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
 set (CMAKE_CXX_FLAGS_RELEASE "-O3")
 set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+if (uppercase_CMAKE_BUILD_TYPE MATCHES "^(DEBUG|RELWITHDEBINFO)$")
+    option (BUILD_FOR_PRODUCTION "Disable all assertion checks; Only use for production" OFF)
+else()
+    option (BUILD_FOR_PRODUCTION "Disable all assertion checks; Only use for production" ON)
+endif()
+
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
@@ -101,7 +108,9 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 
     # Enables extra error checking in the form of precondition assertion, such
     # as bounds checking and null pointer checks when dereferencing smart pointers
-    add_compile_options(-Wp,-D_GLIBCXX_ASSERTIONS)
+    if (NOT ${BUILD_FOR_PRODUCTION})
+        add_compile_options(-Wp,-D_GLIBCXX_ASSERTIONS)
+    endif()
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, if you are having problems.")
 endif ()
