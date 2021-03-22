@@ -2,7 +2,7 @@
 
 #include "opal_test_utilities/SilenceTest.h"
 
-#include "Solvers/GreenWakeFunction.hh"
+#include "Solvers/GreenWakeFunction.h"
 
 #include "TestLambda.h" // Profile of the bunch
 

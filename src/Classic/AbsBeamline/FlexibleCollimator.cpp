@@ -26,7 +26,7 @@
 #include "Fields/Fieldmap.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Utilities/Util.h"
 
 #include <memory>
@@ -113,9 +113,10 @@ bool FlexibleCollimator::apply(const size_t &i, const double &t, Vector_t &/*E*/
     if (pdead) {
         if (lossDs_m) {
             double frac = -R(2) / P(2) * recpgamma;
-            lossDs_m->addParticle(R, P,
-                                  RefPartBunch_m->ID[i],
-                                  t + frac * dt, 0);
+            lossDs_m->addParticle(OpalParticle(RefPartBunch_m->ID[i],
+                                               R, P,
+                                               t + frac * dt,
+                                               RefPartBunch_m->Q[i], RefPartBunch_m->M[i]));
         }
         ++ losses_m;
     }

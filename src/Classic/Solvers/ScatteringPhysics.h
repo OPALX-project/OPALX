@@ -1,6 +1,6 @@
 //
 // Class ScatteringPhysics
-//   Defines the physical processes of beam scattering 
+//   Defines the physical processes of beam scattering
 //   and energy loss by heavy charged particles
 //
 // Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
@@ -20,7 +20,7 @@
 #ifndef SCATTERINGPHYSICS_HH
 #define SCATTERINGPHYSICS_HH
 
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
@@ -49,6 +49,7 @@ typedef struct {             // struct for description of particle in material
     int Binincol;            // bin number
     double DTincol;          // time step size
     double Qincol;           // charge
+    double Mincol;           // mass
     Vector_t Bfincol;        // magnetic field
     Vector_t Efincol;        // electric field
 } PART;
@@ -136,7 +137,7 @@ private:
     double X0_m;                               // the radiation length in [m]
     double I_m;                                // the mean excitation energy [eV]
 
-    /* 
+    /*
        coefficients to fit model to measurement data according to Andersen-Ziegler formulae.
        see ICRU-49, "Stopping Powers and Ranges for Protons  and Alpha Particles",
        chapter 'Electronic (Collision) Stopping Powers in the Low-Energy Region'

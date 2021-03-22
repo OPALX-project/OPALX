@@ -23,7 +23,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Physics/Physics.h"
 #include <memory>
 #include <string>

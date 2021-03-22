@@ -60,9 +60,9 @@ void OpalMonitor::update() {
     mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if (Attributes::getString(itsAttr[TYPE]) == "TEMPORAL") {
-        mon->setType(Monitor::TEMPORAL);
+        mon->setCollectionType(CollectionType::TEMPORAL);
     } else {
-        mon->setType(Monitor::SPATIAL);
+        mon->setCollectionType(CollectionType::SPATIAL);
     }
 
     // Transmit "unknown" attributes.
