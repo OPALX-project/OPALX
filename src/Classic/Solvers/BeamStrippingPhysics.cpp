@@ -1,6 +1,6 @@
 //
 // Class BeamStrippingPhysics
-//   Defines the physical processes of residual gas 
+//   Defines the physical processes of residual gas
 //   interactions and Lorentz stripping
 //
 // Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
@@ -20,7 +20,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include "Solvers/BeamStrippingPhysics.hh"
+#include "Solvers/BeamStrippingPhysics.h"
 
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Vacuum.h"
@@ -167,8 +167,9 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
             }
 
             if (pdead_GS == true || pdead_LS == true) {
-                lossDs_m->addParticle(bunch->R[i], bunch->P[i], bunch->ID[i],
-                                      bunch->getT()*1e9, 0, bunch->bunchNum[i]);
+                lossDs_m->addParticle(OpalParticle(bunch->ID[i], bunch->R[i], bunch->P[i],
+                                                   bunch->getT() * 1e9,
+                                                   bunch->Q[i], bunch->M[i]));
                 if (stop) {
                     bunch->Bin[i] = -1;
                     stoppedPartStat_m++;
@@ -294,7 +295,7 @@ void BeamStrippingPhysics::crossSection(PartBunchBase<double, 3>* bunch, size_t&
             a8 = csCoefProtonProduction_H2plus_Tabata[8];
             a9 = csCoefProtonProduction_H2plus_Tabata[9];
             a10 = csCoefProtonProduction_H2plus_Tabata[10];
-            CS_a = csAnalyticFunctionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) + 
+            CS_a = csAnalyticFunctionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) +
                 csAnalyticFunctionTabata(Eng, Eth, a5, a6, 0.0, 0.0, a7, a8) +
                 a9 * csAnalyticFunctionTabata(Eng/a10, Eth/a10, a5, a6, 0.0, 0.0, a7, a8);
 

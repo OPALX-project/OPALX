@@ -209,7 +209,6 @@ void H5PartWrapperForPT::writeHeader() {
     OPAL_version << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " # git rev. " << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
-
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
@@ -292,14 +291,13 @@ void H5PartWrapperForPT::writeStep(PartBunchBase<double, 3>* bunch, const std::m
     if (bunch->getTotalNum() == 0) return;
 
     open(H5_O_APPENDONLY);
+    bunch->calcBeamParameters();
     writeStepHeader(bunch, additionalStepAttributes);
     writeStepData(bunch);
     close();
 }
 
 void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const std::map<std::string, double>& additionalStepAttributes) {
-    bunch->calcBeamParameters();
-
     double   actPos   = bunch->get_sPos();
     double   t        = bunch->getT();
     Vector_t rmin     = bunch->get_origin();
