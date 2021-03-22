@@ -54,11 +54,6 @@ public:
         XY
     };
 
-    enum Type {
-        TEMPORAL,
-        SPATIAL
-    };
-
     /// Constructor with given name.
     explicit Monitor(const std::string &name);
 
@@ -102,7 +97,7 @@ public:
 
     void setOutputFN(std::string fn);
 
-    void setType(Type type);
+    void setCollectionType(CollectionType type);
 
     static void writeStatistics();
 
@@ -115,7 +110,7 @@ private:
     void operator=(const Monitor &);
     std::string filename_m;               /**< The name of the outputfile*/
     Plane plane_m;
-    Type type_m;
+    CollectionType type_m;
     unsigned int numPassages_m;
 
     std::unique_ptr<LossDataSink> lossDs_m;
@@ -125,7 +120,7 @@ private:
 };
 
 inline
-void Monitor::setType(Monitor::Type type) {
+void Monitor::setCollectionType(CollectionType type) {
     type_m = type;
 }
 

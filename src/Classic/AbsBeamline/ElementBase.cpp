@@ -65,8 +65,8 @@
 #include <string>
 
 #include "Structure/BoundaryGeometry.h"    // OPAL file
-#include "Solvers/WakeFunction.hh"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/WakeFunction.h"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 
 
 ElementBase::ElementBase():

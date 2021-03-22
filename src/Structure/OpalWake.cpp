@@ -17,9 +17,9 @@
 //
 
 #include "Structure/OpalWake.h"
-#include "Solvers/GreenWakeFunction.hh"
-#include "Solvers/CSRWakeFunction.hh"
-#include "Solvers/CSRIGFWakeFunction.hh"
+#include "Solvers/GreenWakeFunction.h"
+#include "Solvers/CSRWakeFunction.h"
+#include "Solvers/CSRIGFWakeFunction.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/OpalException.h"

@@ -20,8 +20,11 @@
 
 //////////////////////////////////////////////////////////////
 #include "Algorithms/Vektor.h"
+#include "Algorithms/OpalParticle.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
+
+#include <boost/optional.hpp>
 
 #include <string>
 #include <fstream>
@@ -66,15 +69,21 @@ namespace std {
         }
     };
 }
+enum class CollectionType: unsigned short {
+                                           SPATIAL = 0,
+                                           TEMPORAL
+};
+
 /*
   - In the destructor we do ALL the file handling
   - h5hut_mode_m defines h5hut or ASCII
  */
 class LossDataSink {
  public:
-    LossDataSink();
 
-    LossDataSink(std::string elem, bool hdf5Save, ElementBase::ElementType type = ElementBase::ANY);
+    LossDataSink() = default;
+
+    LossDataSink(std::string elem, bool hdf5Save, CollectionType = CollectionType::TEMPORAL);
 
     LossDataSink(const LossDataSink &rsh);
     ~LossDataSink() noexcept(false);
@@ -89,10 +98,7 @@ class LossDataSink {
                               double spos,
                               long long globalTrackStep);
 
-    void addParticle(const Vector_t &x, const Vector_t &p, const size_t id);
-
-    void addParticle(const Vector_t &x, const Vector_t &p, const size_t  id,
-                     const double time, const size_t turn, const size_t& bunchNum = 0);
+    void addParticle(const OpalParticle &, const boost::optional<std::pair<int, short int>> &turnBunchNumPair = boost::none);
 
     size_t size() const;
 
@@ -124,9 +130,8 @@ private:
         }
     }
 
-    bool hasNoParticlesToDump();
-
-    bool hasTimeAttribute();
+    bool hasNoParticlesToDump() const;
+    bool hasTurnInformations() const;
 
     void reportOnError(h5_int64_t rc, const char* file, int line);
 
@@ -150,16 +155,9 @@ private:
     /// Current record, or time step, of H5 file.
     h5_int64_t H5call_m;
 
-    std::vector<long>   id_m;
-    std::vector<double>  x_m;
-    std::vector<double>  y_m;
-    std::vector<double>  z_m;
-    std::vector<double> px_m;
-    std::vector<double> py_m;
-    std::vector<double> pz_m;
-    std::vector<size_t> bunchNum_m;
-    std::vector<size_t> turn_m;
-    std::vector<double> time_m;
+    std::vector<OpalParticle> particles_m;
+    std::vector<size_t> bunchNumber_m;
+    std::vector<size_t> turnNumber_m;
 
     std::vector<Vector_t> RefPartR_m;
     std::vector<Vector_t> RefPartP_m;
@@ -169,12 +167,12 @@ private:
 
     std::vector<unsigned long> startSet_m;
 
-    ElementBase::ElementType type_m;
+    CollectionType collectionType_m;
 };
 
 inline
 size_t LossDataSink::size() const {
-    return x_m.size();
+    return particles_m.size();
 }
 
 inline

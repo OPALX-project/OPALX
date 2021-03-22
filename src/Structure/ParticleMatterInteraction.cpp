@@ -27,8 +27,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Physics.h"
-#include "Solvers/BeamStrippingPhysics.hh"
-#include "Solvers/ScatteringPhysics.hh"
+#include "Solvers/BeamStrippingPhysics.h"
+#include "Solvers/ScatteringPhysics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 

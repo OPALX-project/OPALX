@@ -363,8 +363,10 @@ void TrackRun::setupTTracker(){
 
     if (Track::block->bunch->getIfBeamEmitting()) {
         Track::block->bunch->setChargeZeroPart(charge);
+        Track::block->bunch->setMassZeroPart(beam->getMassPerParticle());
     } else {
         Track::block->bunch->setCharge(charge);
+        Track::block->bunch->setMass(beam->getMassPerParticle());
     }
     // set coupling constant
     double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);

@@ -26,7 +26,7 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>

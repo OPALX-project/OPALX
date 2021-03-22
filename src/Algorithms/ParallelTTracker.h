@@ -60,7 +60,7 @@
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
-#include "Solvers/WakeFunction.hh"
+#include "Solvers/WakeFunction.h"
 
 #include <list>
 #include <vector>
