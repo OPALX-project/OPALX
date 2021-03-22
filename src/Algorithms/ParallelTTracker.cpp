@@ -35,7 +35,7 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 
-#include "Solvers/CSRWakeFunction.hh"
+#include "Solvers/CSRWakeFunction.h"
 
 #include "AbstractObjects/OpalData.h"
 
@@ -47,7 +47,7 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "Utilities/Timer.h"
 #include "Utilities/OpalException.h"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Structure/BoundaryGeometry.h"
 #include "AbsBeamline/Monitor.h"
 
@@ -473,15 +473,14 @@ void ParallelTTracker::emitParticles(long long step) {
 
 
 void ParallelTTracker::computeSpaceChargeFields(unsigned long long step) {
-    if (numParticlesInSimulation_m <= minBinEmitted_m) return;
-
-    if (!itsBunch_m->hasFieldSolver()) return;
+    if (numParticlesInSimulation_m <= minBinEmitted_m || !itsBunch_m->hasFieldSolver()) {
+        return;
+    }
 
     itsBunch_m->calcBeamParameters();
     Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t(0, 0, 1));
     CoordinateSystemTrafo beamToReferenceCSTrafo(Vector_t(0, 0, pathLength_m), alignment.conjugate());
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
-
     const unsigned int localNum1 = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum1; ++ i) {
         itsBunch_m->R[i] = referenceToBeamCSTrafo.transformTo(itsBunch_m->R[i]);

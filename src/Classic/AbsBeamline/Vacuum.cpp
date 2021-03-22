@@ -27,8 +27,8 @@
 #include "Algorithms/PartBunchBase.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
-#include "Solvers/BeamStrippingPhysics.hh"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/BeamStrippingPhysics.h"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/GeneralClassicException.h"
 

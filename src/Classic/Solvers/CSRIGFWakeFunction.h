@@ -17,7 +17,7 @@
 #ifndef CSRIGFWAKEFUNCTION_HH
 #define CSRIGFWAKEFUNCTION_HH
 
-#include "Solvers/WakeFunction.hh"
+#include "Solvers/WakeFunction.h"
 
 #include <memory>
 #include <vector>
