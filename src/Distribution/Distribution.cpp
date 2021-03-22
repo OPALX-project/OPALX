@@ -1633,6 +1633,7 @@ size_t Distribution::emitParticles(PartBunchBase<double, 3> *beam, double eZ) {
                     = Vector_t(px, py, pz);
                 beam->Bin[numberOfEmittedParticles] = currentEnergyBin_m - 1;
                 beam->Q[numberOfEmittedParticles] = beam->getChargePerParticle();
+                beam->M[numberOfEmittedParticles] = beam->getMassPerParticle();
                 beam->Ef[numberOfEmittedParticles] = Vector_t(0.0);
                 beam->Bf[numberOfEmittedParticles] = Vector_t(0.0);
                 beam->PType[numberOfEmittedParticles] = beam->getPType();
@@ -2750,12 +2751,12 @@ void Distribution::injectBeam(PartBunchBase<double, 3> *beam) {
                                       pzDist_m.at(partIndex));
 
         beam->Q[partIndex] = beam->getChargePerParticle();
+        beam->M[partIndex] = beam->getMassPerParticle();
         beam->Ef[partIndex] = Vector_t(0.0);
         beam->Bf[partIndex] = Vector_t(0.0);
         beam->PType[partIndex] = beam->getPType();
         beam->POrigin[partIndex] = ParticleOrigin::REGULAR;
         beam->TriID[partIndex] = 0;
-
         if (numberOfEnergyBins_m > 0) {
             size_t binNumber = findEBin(tOrZDist_m.at(partIndex));
             beam->Bin[partIndex] = binNumber;

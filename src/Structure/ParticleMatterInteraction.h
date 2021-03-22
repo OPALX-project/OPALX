@@ -26,7 +26,7 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-#include "Solvers/ParticleMatterInteractionHandler.hh"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 
 class ElementBase;
 class Inform;

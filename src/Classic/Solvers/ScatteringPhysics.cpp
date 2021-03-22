@@ -1,6 +1,6 @@
 //
 // Class ScatteringPhysics
-//   Defines the physical processes of beam scattering 
+//   Defines the physical processes of beam scattering
 //   and energy loss by heavy charged particles
 //
 // Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
@@ -17,7 +17,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#include "Solvers/ScatteringPhysics.hh"
+#include "Solvers/ScatteringPhysics.h"
 #include "Physics/Physics.h"
 #include "Physics/Material.h"
 #include "Algorithms/PartBunchBase.h"
@@ -206,6 +206,20 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
       back to the bunch or will be fully stopped in the material.
     */
 
+    ParticleType pType = bunch->getPType();
+    if (pType != ParticleType::PROTON   &&
+        pType != ParticleType::DEUTERON &&
+        pType != ParticleType::HMINUS   &&
+        pType != ParticleType::MUON     &&
+        pType != ParticleType::H2P      &&
+        pType != ParticleType::ALPHA) {
+
+        throw GeneralClassicException(
+                "ScatteringPhysics::apply",
+                "Particle " + bunch->getPTypeString() +
+                " is not supported for scattering interactions!");
+    }
+
     Eavg_m = 0.0;
     Emax_m = 0.0;
     Emin_m = 0.0;
@@ -262,45 +276,34 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
 
         Absorbed particle i: locParts_m[i].label = -1.0;
     */
-    ParticleType pType = bunch->getPType();
-    if (pType == ParticleType::PROTON   ||
-        pType == ParticleType::DEUTERON ||
-        pType == ParticleType::HMINUS   ||
-        pType == ParticleType::MUON     ||
-        pType == ParticleType::H2P      ||
-        pType == ParticleType::ALPHA     ) {
+    for (size_t i = 0; i < locParts_m.size(); ++i) {
+        if (locParts_m[i].label != -1) {
+            Vector_t &R = locParts_m[i].Rincol;
+            Vector_t &P = locParts_m[i].Pincol;
+            double &dt  = locParts_m[i].DTincol;
 
-        for (size_t i = 0; i < locParts_m.size(); ++i) {
-            if (locParts_m[i].label != -1) {
-                Vector_t& R = locParts_m[i].Rincol;
-                Vector_t& P = locParts_m[i].Pincol;
-                double& dt  = locParts_m[i].DTincol;
+            if (hitTester_m->checkHit(R)) {
+                bool pdead = computeEnergyLoss(bunch, P, dt);
+                if (!pdead) {
+                    /*
+                      Now scatter and transport particle in material.
+                      The checkHit call just above will detect if the
+                      particle is rediffused from the material into vacuum.
+                    */
 
-                if (hitTester_m->checkHit(R)) {
-                    bool pdead = computeEnergyLoss(bunch, P, dt);
-                    if (!pdead) {
-                        /*
-                          Now scatter and transport particle in material.
-                          The checkHit call just above will detect if the
-                          particle is rediffused from the material into vacuum.
-                        */
-
-                        computeCoulombScattering(R, P, dt);
-                    } else {
-                        // The particle is stopped in the material, set label to -1
-                        locParts_m[i].label = -1.0;
-                        ++ stoppedPartStat_m;
-                        lossDs_m->addParticle(R, P, locParts_m[i].IDincol);
-                    }
+                    computeCoulombScattering(R, P, dt);
+                } else {
+                    // The particle is stopped in the material, set label to -1
+                    locParts_m[i].label = -1.0;
+                    ++ stoppedPartStat_m;
+                    lossDs_m->addParticle(OpalParticle(locParts_m[i].IDincol,
+                                                       R, P, T_m,
+                                                       locParts_m[i].Qincol, locParts_m[i].Mincol));
                 }
             }
         }
-    } else {
-        throw GeneralClassicException(
-                "ScatteringPhysics::computeInteraction",
-                "Particle " + bunch->getPTypeString() +
-                " is not supported for scattering interactions!");    
     }
+
     // delete absorbed particles
     deleteParticleFromLocalVector();
 }
@@ -312,7 +315,7 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
 /// See Particle Physics Booklet, chapter 'Passage of particles through matter' or
 /// Review of Particle Physics, DOI: 10.1103/PhysRevD.86.010001, page 329 ff
 // -------------------------------------------------------------------------
-bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch, 
+bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
                                           Vector_t& P,
                                           const double deltat,
                                           bool includeFluctuations) const {
@@ -368,7 +371,7 @@ bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
             dEdx = (-K * std::pow(charge_m, 2) * Z_m / (A_m * betaSqr) *
                     (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * eV2keV, 2)) - betaSqr));
         } else if (Ekin > 1 && Ekin <= 10000) {
-            const double T = Ekin * 1e-3; //MeV 
+            const double T = Ekin * 1e-3; //MeV
             const double epsilon_low = B1_c * std::pow(1000*T, B2_c);
             const double epsilon_high = (B3_c / T) * std::log(1 + (B4_c / T) + (B5_c * T));
             epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
@@ -507,6 +510,7 @@ void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
             bunch->R[numLocalParticles]   = R;
             bunch->P[numLocalParticles]   = locParts_m[i].Pincol;
             bunch->Q[numLocalParticles]   = locParts_m[i].Qincol;
+            bunch->M[numLocalParticles]   = locParts_m[i].Mincol;
             bunch->Bf[numLocalParticles]  = 0.0;
             bunch->Ef[numLocalParticles]  = 0.0;
             bunch->dt[numLocalParticles]  = dT_m;
@@ -571,6 +575,7 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
             x.Rincol       = bunch->R[i];
             x.Pincol       = bunch->P[i];
             x.Qincol       = bunch->Q[i];
+            x.Mincol       = bunch->M[i];
             x.Bfincol      = bunch->Bf[i];
             x.Efincol      = bunch->Ef[i];
             x.label        = 0;            // alive in matter
@@ -629,7 +634,7 @@ namespace {
 
 void ScatteringPhysics::deleteParticleFromLocalVector() {
     /*
-      the particle to be deleted (label < 0) are all 
+      the particle to be deleted (label < 0) are all
       at the end of the vector.
     */
     sort(locParts_m.begin(), locParts_m.end(), myCompF);

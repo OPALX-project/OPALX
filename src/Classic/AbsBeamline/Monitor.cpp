@@ -57,7 +57,7 @@ Monitor::Monitor(const std::string &name):
     Component(name),
     filename_m(""),
     plane_m(OFF),
-    type_m(SPATIAL),
+    type_m(CollectionType::SPATIAL),
     numPassages_m(0)
 {}
 
@@ -75,16 +75,17 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t 
     const Vector_t &P = RefPartBunch_m->P[i];
     const double &dt = RefPartBunch_m->dt[i];
     const Vector_t singleStep  = Physics::c * dt * Util::getBeta(P);
-    if (online_m && type_m == SPATIAL) {
+    if (online_m && type_m == CollectionType::SPATIAL) {
         if (dt * R(2) < 0.0 &&
             dt * (R(2) + singleStep(2)) > 0.0) {
             double frac = R(2) / singleStep(2);
 
-            lossDs_m->addParticle(R + frac * singleStep,
-                                  P,
-                                  RefPartBunch_m->ID[i],
-                                  t + frac * dt,
-                                  0);
+            lossDs_m->addParticle(OpalParticle(RefPartBunch_m->ID[i],
+                                               R + frac * singleStep,
+                                               P,
+                                               t + frac * dt,
+                                               RefPartBunch_m->Q[i],
+                                               RefPartBunch_m->M[i]));
         }
     }
 
@@ -113,17 +114,18 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
                                            RefPartBunch_m->get_sPos() + ds,
                                            RefPartBunch_m->getGlobalTrackStep());
 
-            if (type_m == TEMPORAL) {
+            if (type_m == CollectionType::TEMPORAL) {
                 const unsigned int localNum = RefPartBunch_m->getLocalNum();
 
                 for (unsigned int i = 0; i < localNum; ++ i) {
                     Vector_t shift = ((frac - 0.5) * cdt * Util::getBeta(RefPartBunch_m->P[i])
                                       - singleStep);
-                    lossDs_m->addParticle(RefPartBunch_m->R[i] + shift,
-                                          RefPartBunch_m->P[i],
-                                          RefPartBunch_m->ID[i],
-                                          time,
-                                          0);
+                    lossDs_m->addParticle(OpalParticle(RefPartBunch_m->ID[i],
+                                                       RefPartBunch_m->R[i] + shift,
+                                                       RefPartBunch_m->P[i],
+                                                       time,
+                                                       RefPartBunch_m->Q[i],
+                                                       RefPartBunch_m->M[i]));
                 }
                 OpalData::OPENMODE openMode;
                 if (numPassages_m > 0) {
@@ -170,7 +172,7 @@ void Monitor::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
         }
     }
 
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, getType()));
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, type_m));
 }
 
 void Monitor::finalise() {
@@ -187,7 +189,7 @@ void Monitor::goOffline() {
         statFileEntries_sm.insert(std::make_pair(stat.spos_m, stat));
     }
 
-    if (type_m != TEMPORAL) {
+    if (type_m != CollectionType::TEMPORAL) {
         lossDs_m->save(numPassages_m);
     }
 }

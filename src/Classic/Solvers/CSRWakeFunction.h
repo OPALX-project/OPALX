@@ -17,7 +17,7 @@
 #ifndef CSRWAKEFUNCTION_HH
 #define CSRWAKEFUNCTION_HH
 
-#include "Solvers/WakeFunction.hh"
+#include "Solvers/WakeFunction.h"
 
 #include <memory>
 #include <vector>

@@ -13,13 +13,13 @@ include_directories (
 add_opal_sources (${_SRCS})
 
 set (HDRS
-    BeamStrippingPhysics.hh
-    CSRIGFWakeFunction.hh
-    CSRWakeFunction.hh
-    GreenWakeFunction.hh
-    ParticleMatterInteractionHandler.hh
-    ScatteringPhysics.hh
-    WakeFunction.hh
+    BeamStrippingPhysics.h
+    CSRIGFWakeFunction.h
+    CSRWakeFunction.h
+    GreenWakeFunction.h
+    ParticleMatterInteractionHandler.h
+    ScatteringPhysics.h
+    WakeFunction.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Solvers")
