@@ -54,8 +54,10 @@ bool Source::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t &
     if (online_m && R(2) <= 0.0 && P(2) < 0.0) {
         double frac = -R(2) / (P(2) * recpgamma);
 
-        lossDs_m->addParticle(R + frac * recpgamma * P,
-                              P, RefPartBunch_m->ID[i], t + frac * dt, 0);
+        lossDs_m->addParticle(OpalParticle(RefPartBunch_m->ID[i],
+                                           R + frac * recpgamma * P, P,
+                                           t + frac * dt,
+                                           RefPartBunch_m->Q[i], RefPartBunch_m->M[i]));
 
         return true;
     }
@@ -70,8 +72,7 @@ void Source::initialise(PartBunchBase<double, 3> *bunch, double &startField, dou
 
     std::string filename = getName();
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename,
-                                                              !Options::asciidump,
-                                                              getType()));
+                                                              !Options::asciidump));
 
 }
 

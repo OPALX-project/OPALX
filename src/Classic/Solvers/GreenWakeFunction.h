@@ -18,7 +18,7 @@
 #define GREENWAKEFUNCTION_HH
 
 #include "Filters/Filter.h"
-#include "Solvers/WakeFunction.hh"
+#include "Solvers/WakeFunction.h"
 #include "Physics/Physics.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"

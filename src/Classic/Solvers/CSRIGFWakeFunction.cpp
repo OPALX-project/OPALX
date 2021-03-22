@@ -15,7 +15,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "AbstractObjects/OpalData.h"
-#include "Solvers/CSRIGFWakeFunction.hh"
+#include "Solvers/CSRIGFWakeFunction.h"
 #include "Solvers/RootFinderForCSR.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Filters/Filter.h"
