@@ -66,7 +66,7 @@ bool CCollimator::doPreCheck(PartBunchBase<double, 3> *bunch) {
         double rbunch_min = std::hypot(xmin, ymin);
         double rbunch_max = std::hypot(xmax, ymax);
 
-        if( rbunch_max > rmin_m && rbunch_min < rmax_m ){ // check similar to z
+        if ( rbunch_max > rmin_m && rbunch_min < rmax_m ){ // check similar to z
             return true;
         }
     }
@@ -75,7 +75,7 @@ bool CCollimator::doPreCheck(PartBunchBase<double, 3> *bunch) {
 
 // rectangle collimators in cyclotron cylindrical coordinates
 // when there is no particlematterinteraction, the particle hitting collimator is deleted directly
-bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double /*t*/, const double /*tstep*/) {
+bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double /*tstep*/) {
 
     bool flagNeedUpdate = false;
     size_t tempnum = bunch->getLocalNum();
@@ -90,7 +90,7 @@ bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber,
                 if (!parmatint_m)
                     lossDs_m->addParticle(OpalParticle(bunch->ID[i],
                                                        bunch->R[i], bunch->P[i],
-                                                       bunch->getT(), bunch->Q[i], bunch->M[i]),
+                                                       t, bunch->Q[i], bunch->M[i]),
                                           std::make_pair(turnnumber, bunch->bunchNum[i]));
                 bunch->Bin[i] = -1;
                 flagNeedUpdate = true;
