@@ -205,7 +205,7 @@ void ParallelCyclotronTracker::bgf_main_collision_test() {
         if(res >= 0) {
             lossDs_m->addParticle(OpalParticle(itsBunch_m->ID[i],
                                                itsBunch_m->R[i], itsBunch_m->P[i],
-                                               itsBunch_m->getT()*1e9,
+                                               itsBunch_m->getT(),
                                                itsBunch_m->Q[i], itsBunch_m->M[i]),
                                   std::make_pair(turnnumber_m, itsBunch_m->bunchNum[i]));
             itsBunch_m->Bin[i] = -1;
@@ -2079,7 +2079,7 @@ bool ParallelCyclotronTracker::applyPluginElements(const double dt) {
     for (PluginElement* element : pluginElements_m) {
         bool tmp = element->check(itsBunch_m,
                                   turnnumber_m,
-                                  itsBunch_m->getT() * 1e9  /*[ns]*/,
+                                  itsBunch_m->getT(),
                                   dt);
         flag |= tmp;
 
