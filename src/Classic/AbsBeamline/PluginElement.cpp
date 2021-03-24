@@ -20,8 +20,10 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
+#include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 
 PluginElement::PluginElement():PluginElement("")
