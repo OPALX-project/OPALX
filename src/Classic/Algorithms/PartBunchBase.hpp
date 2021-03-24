@@ -1201,6 +1201,7 @@ template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcBeamParameters() {
 
     IpplTimings::startTimer(statParamTimer_m);
+    get_bounds(rmin_m, rmax_m);
     momentsComputer_m.compute(*this);
     IpplTimings::stopTimer(statParamTimer_m);
 }
