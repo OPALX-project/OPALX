@@ -56,6 +56,7 @@ Cyclotron::Cyclotron():
 
 Cyclotron::Cyclotron(const Cyclotron& right):
     Component(right),
+    fieldType_m(right.fieldType_m),
     fmapfn_m(right.fmapfn_m),
     rffrequ_m(right.rffrequ_m),
     rfphi_m(right.rfphi_m),
@@ -403,7 +404,7 @@ bool Cyclotron::apply(const size_t& id, const double& t, Vector_t& E, Vector_t& 
 
     if (flagNeedUpdate) {
         lossDs_m->addParticle(OpalParticle(id, RefPartBunch_m->R[id], RefPartBunch_m->P[id],
-                                           t, RefPartBunch_m->Q[id], RefPartBunch_m->M[id]),
+                                           t*1.0e-9, RefPartBunch_m->Q[id], RefPartBunch_m->M[id]),
                               std::make_pair(0, RefPartBunch_m->bunchNum[id]));
         RefPartBunch_m->Bin[id] = -1;
     }
@@ -671,7 +672,7 @@ double Cyclotron::gutdf5d(double* f, double dx, const int kor,
         result += C[j][krl][kor] * *(f + j * lpr);
     }
 
-    return result / (FAC[kor] * pow(dx, (kor + 1)));
+    return result / (FAC[kor] * std::pow(dx, (kor + 1)));
 }
 
 
@@ -782,7 +783,7 @@ void Cyclotron::read(const double& scaleFactor) {
             break;
         }
         case BFieldType::AVFEQBF: {
-            *gmsg << "* Read AVFEQ data (Riken)" << endl; 
+            *gmsg << "* Read AVFEQ data (Riken)" << endl;
             getFieldFromFile_AVFEQ(scaleFactor);
             break;
         }
@@ -802,7 +803,7 @@ void Cyclotron::read(const double& scaleFactor) {
             break;
         }
     }
-    
+
     // calculate the radii of initial grid.
     initR(BP.rmin, BP.delr, Bfield.nrad);
 
