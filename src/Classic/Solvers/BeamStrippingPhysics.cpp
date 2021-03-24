@@ -104,22 +104,22 @@ BeamStrippingPhysics::~BeamStrippingPhysics() {
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
                                  const std::pair<Vector_t, double>& /*boundingSphere*/) {
 
+    ParticleType pType = bunch->getPType();
+    if (pType != ParticleType::PROTON   &&
+        pType != ParticleType::HMINUS   &&
+        pType != ParticleType::H2P      &&
+        pType != ParticleType::HYDROGEN) {
+
+        throw GeneralClassicException(
+                "BeamStrippingPhysics::apply",
+                "Particle " + bunch->getPTypeString() +
+                " is not supported for residual stripping interactions!");
+    }
+
     dT_m = bunch->getdT();
 
-    ParticleType pType = bunch->getPType();
-    if (pType == ParticleType::PROTON  ||
-        pType == ParticleType::HMINUS  ||
-        pType == ParticleType::H2P     ||
-        pType == ParticleType::HYDROGEN ) {
-
-        if (bunch->get_sPos() != 0) {
-            doPhysics(bunch);
-        }
-    } else {
-        throw GeneralClassicException(
-            "BeamStrippingPhysics::apply",
-            "Particle " + bunch->getPTypeString() +
-            " is not supported for residual stripping interactions!");
+    if (bunch->get_sPos() != 0) {
+        doPhysics(bunch);
     }
 }
 
@@ -167,8 +167,9 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
             }
 
             if (pdead_GS == true || pdead_LS == true) {
-                lossDs_m->addParticle(OpalParticle(bunch->ID[i], bunch->R[i], bunch->P[i],
-                                                   bunch->getT() * 1e9,
+                lossDs_m->addParticle(OpalParticle(bunch->ID[i],
+                                                   bunch->R[i], bunch->P[i],
+                                                   bunch->getT(),
                                                    bunch->Q[i], bunch->M[i]));
                 if (stop) {
                     bunch->Bin[i] = -1;

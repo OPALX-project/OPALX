@@ -101,15 +101,15 @@ bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const
         // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
         double dist1 = (A_m * bunch->R[i](0) + B_m * bunch->R[i](1) + C_m) / R_m; // [m]
         double dist2 = dist1 * std::sqrt(1.0 + 1.0 / tangle / tangle);
-        double dt = dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P[i], bunch->P[i]))) * Physics::c) * 1.0e9;
+        double dt = dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P[i], bunch->P[i]))) * Physics::c);
 
         probepoint = bunch->R[i] + dist2 * bunch->P[i] / euclidean_norm(bunch->P[i]);
 
         // peak finder uses millimetre not metre
         peakfinder_m->addParticle(probepoint * 1e3);
 
-        lossDs_m->addParticle(OpalParticle(bunch->ID[i], probepoint, bunch->P[i], t+dt,
-                                           bunch->Q[i], bunch->M[i]),
+        lossDs_m->addParticle(OpalParticle(bunch->ID[i], probepoint, bunch->P[i],
+                                           t+dt, bunch->Q[i], bunch->M[i]),
                               std::make_pair(turnnumber, bunch->bunchNum[i]));
     }
 

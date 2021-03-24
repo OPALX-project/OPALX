@@ -152,7 +152,7 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
         hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
         break;
     default:
-        throw OpalException("ScatteringPhysics::ScatteringPhysics",
+        throw GeneralClassicException("ScatteringPhysics::ScatteringPhysics",
                             "Unsupported element type");
     }
 
