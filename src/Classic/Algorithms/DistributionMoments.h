@@ -58,6 +58,9 @@ public:
     double getTotalMass() const;
     double getTotalNumParticles() const;
 private:
+    bool isParticleExcluded(const OpalParticle &) const;
+    template<class InputIt>
+    void computeMeans(const InputIt &, const InputIt &);
     template<class InputIt>
     void computeStatistics(const InputIt &, const InputIt &);
     void fillMembers(std::vector<double> const&);
@@ -208,4 +211,5 @@ double DistributionMoments::getTotalNumParticles() const
 {
     return totalNumParticles_m;
 }
+
 #endif
