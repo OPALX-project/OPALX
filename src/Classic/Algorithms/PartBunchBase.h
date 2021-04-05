@@ -180,7 +180,7 @@ public:
     virtual void boundp();
 
     /** delete particles which are too far away from the center of beam*/
-    void boundp_destroy();
+    void boundp_destroyCycl();
 
     /** This is only temporary in order to get the collimator and pepperpot working */
     size_t boundp_destroyT();
@@ -514,9 +514,6 @@ public:
     size_t getDestroyNum() const;
     size_t getGhostNum() const;
 
-    unsigned int getMinimumNumberOfParticlesPerCore() const;
-    void setMinimumNumberOfParticlesPerCore(unsigned int n);
-
     ParticleLayout<T, Dim>& getLayout();
     const ParticleLayout<T, Dim>& getLayout() const;
 
@@ -606,9 +603,6 @@ public:
 
     // For AMTS integrator in OPAL-T
     double dtScInit_m, deltaTau_m;
-
-    /// if a local node has less than 2 particles  lowParticleCount_m == true
-    bool lowParticleCount_m;
 
     // get 2nd order momentum matrix
     FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix();

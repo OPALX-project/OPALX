@@ -42,7 +42,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
     : R(*(pb->R_p)),
       ID(*(pb->ID_p)),
       pbin_m(nullptr),
-      lowParticleCount_m(false),
       pmsg_m(nullptr),
       f_stream(nullptr),
       fixed_grid(false),
@@ -578,9 +577,7 @@ void PartBunchBase<T, Dim>::boundp() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::boundp_destroy() {
-
-    Inform gmsgAll("boundp_destroy ", INFORM_ALL_NODES);
+void PartBunchBase<T, Dim>::boundp_destroyCycl() {
 
     Vector_t len;
     const int dimIdx = 3;
@@ -690,52 +687,36 @@ void PartBunchBase<T, Dim>::boundp_destroy() {
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::boundp_destroyT() {
 
-    const unsigned int minNumParticlesPerCore = getMinimumNumberOfParticlesPerCore();
-
     this->updateDomainLength(nr_m);
 
-    std::unique_ptr<size_t[]> tmpbinemitted;
+    std::vector<size_t> tmpbinemitted;
 
     boundp();
 
     size_t ne = 0;
     const size_t localNum = getLocalNum();
 
-    if (weHaveEnergyBins()) {
-        tmpbinemitted = std::unique_ptr<size_t[]>(new size_t[getNumberOfEnergyBins()]);
-        for (int i = 0; i < getNumberOfEnergyBins(); i++) {
-            tmpbinemitted[i] = 0;
+    double rzmean = momentsComputer_m.getMeanPosition()(2);
+    double rzrms = momentsComputer_m.getStandardDeviationPosition()(2);
+    const bool haveEnergyBins = weHaveEnergyBins();
+    if (haveEnergyBins) {
+        tmpbinemitted.resize(getNumberOfEnergyBins(), 0.0);
+    }
+    for (unsigned int i = 0; i < localNum; i++) {
+        if (Bin[i] < 0 || (Options::remotePartDel > 0 && std::abs(R[i](2) - rzmean) < Options::remotePartDel * rzrms)) {
+            ne++;
+            destroy(1, i);
+        } else if (haveEnergyBins) {
+            tmpbinemitted[Bin[i]]++;
         }
-        for (unsigned int i = 0; i < localNum; i++) {
-            if (Bin[i] < 0) {
-                ne++;
-                destroy(1, i);
-            } else {
-                tmpbinemitted[Bin[i]]++;
-            }
-        }
-    } else {
-        for (unsigned int i = 0; i < localNum; i++) {
-            if ((Bin[i] < 0) && ((localNum - ne) > minNumParticlesPerCore)) {   // need in minimum x particles per node
-                ne++;
-                destroy(1, i);
-            }
-        }
-        lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
-        reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
     }
 
-    if (lowParticleCount_m) {
-        Inform m ("boundp_destroyT a) ", INFORM_ALL_NODES);
-        m << level3 << "Warning low number of particles on some cores localNum= "
-          << localNum << " ne= " << ne << " NLocal= " << getLocalNum() << endl;
-    } else {
-        boundp();
-    }
+    boundp();
+
     calcBeamParameters();
     gatherLoadBalanceStatistics();
 
-    if (weHaveEnergyBins()) {
+    if (haveEnergyBins) {
         const int lastBin = dist_m->getLastEmittedEnergyBin();
         for (int i = 0; i < lastBin; i++) {
             binemitted_m[i] = tmpbinemitted[i];
@@ -749,7 +730,6 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
 template <class T, unsigned Dim>
 size_t PartBunchBase<T, Dim>::destroyT() {
 
-    const unsigned int minNumParticlesPerCore = getMinimumNumberOfParticlesPerCore();
     std::unique_ptr<size_t[]> tmpbinemitted;
 
     const size_t localNum = getLocalNum();
@@ -772,14 +752,10 @@ size_t PartBunchBase<T, Dim>::destroyT() {
         Inform dmsg("destroy: ", INFORM_ALL_NODES);
         for (size_t i = 0; i < localNum; i++) {
             if ((Bin[i] < 0)) {
-                if ((localNum - ne) > minNumParticlesPerCore) {   // need in minimum x particles per node
-                    ne++;
-                    destroy(1, i);
-                }
+                ne++;
+                destroy(1, i);
             }
         }
-        lowParticleCount_m = ((localNum - ne) <= minNumParticlesPerCore);
-        reduce(lowParticleCount_m, lowParticleCount_m, OpOr());
     }
 
     if (ne > 0) {
@@ -1889,9 +1865,6 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
     globalPartPerNode_m = std::unique_ptr<size_t[]>(new size_t[Ippl::getNodes()]);
 
     pmsg_m.release();
-
-    // set the default IPPL behaviour
-    setMinimumNumberOfParticlesPerCore(0);
 }
 
 
@@ -1924,16 +1897,6 @@ void PartBunchBase<T, Dim>::setTotalNum(size_t n) {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setLocalNum(size_t n) {
     pbase_m->setLocalNum(n);
-}
-
-template <class T, unsigned Dim>
-unsigned int PartBunchBase<T, Dim>::getMinimumNumberOfParticlesPerCore() const {
-    return pbase_m->getMinimumNumberOfParticlesPerCore();
-}
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setMinimumNumberOfParticlesPerCore(unsigned int n) {
-    pbase_m->setMinimumNumberOfParticlesPerCore(n);
 }
 
 template <class T, unsigned Dim>
