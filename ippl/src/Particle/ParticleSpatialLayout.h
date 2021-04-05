@@ -1094,7 +1094,6 @@ protected:
 
         std::multimap<unsigned, unsigned> p2n; //<node ID, particle ID>
 
-        int minParticlesPerNode = PData.getMinimumNumberOfParticlesPerCore();
         int particlesLeft = LocalNum;
         bool responsibleNodeNotFound = false;
         for (unsigned int ip=0; ip<LocalNum; ++ip)
@@ -1112,9 +1111,6 @@ protected:
 
             if (found)
                 continue;
-
-            if (particlesLeft <= minParticlesPerNode)
-	        break; //leave atleast minimum number of particles per core
 
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
@@ -1224,7 +1220,6 @@ protected:
 
         std::multimap<unsigned, unsigned> p2n; //<node ID, particle ID>
 
-        int minParticlesPerNode = PData.getMinimumNumberOfParticlesPerCore();
         int particlesLeft = LocalNum;
         bool responsibleNodeNotFound = false;
         for (unsigned int ip=0; ip<LocalNum; ++ip)
@@ -1245,9 +1240,6 @@ protected:
 
             if (found)
                 continue;
-
-            if (particlesLeft <= minParticlesPerNode)
-                continue; //leave atleast minimum number of particles per core
 
             typename RegionLayout<T,Dim,Mesh>::touch_range_dv touchingVN = RLayout.touch_range_rdv(pLoc);
 
