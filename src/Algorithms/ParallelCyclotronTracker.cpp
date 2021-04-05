@@ -3345,7 +3345,7 @@ void ParallelCyclotronTracker::computeSpaceChargeFields_m() {
         //itsBunch_m->R *= Vector_t(0.001); // mm --> m
 
         if ((step_m + 1) % Options::boundpDestroyFreq == 0)
-            itsBunch_m->boundp_destroy();
+            itsBunch_m->boundp_destroyCycl();
         else
             itsBunch_m->boundp();
 

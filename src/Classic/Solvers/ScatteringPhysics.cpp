@@ -547,10 +547,8 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
 
     size_t ne = 0;
     std::set<size_t> partsToDel;
-    const unsigned int minNumOfParticlesPerCore = bunch->getMinimumNumberOfParticlesPerCore();
     for (size_t i = 0; i < nL; ++ i) {
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
-            ((nL - ne) > minNumOfParticlesPerCore) &&
             hitTester_m->checkHit(bunch->R[i]))
         {
             // adjust the time step for those particles that enter the material
