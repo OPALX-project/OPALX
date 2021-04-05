@@ -44,6 +44,52 @@ void DistributionMoments::compute(const std::vector<OpalParticle>::const_iterato
     computeStatistics(first, last);
 }
 
+template<class InputIt>
+void DistributionMoments::computeMeans(const InputIt &first, const InputIt &last)
+{
+    unsigned int localNum = last - first;
+    std::vector<double> localStatistics(10);
+    for (InputIt it = first; it != last; ++ it) {
+        OpalParticle const& particle = *it;
+        if (isParticleExcluded(particle)) {
+            -- localNum;
+            continue;
+        }
+        unsigned int l = 0;
+        for (unsigned int i = 0; i < 6; ++ i, ++ l) {
+            localStatistics[l] += particle[i];
+        }
+
+        // l = 6
+        localStatistics[l++] += particle.getTime();
+
+        double gamma = Util::getGamma(particle.getP());
+        double eKin = (gamma - 1.0) * particle.getMass();
+        localStatistics[l++] += eKin;
+        localStatistics[l++] += gamma;
+    }
+    localStatistics.back() = localNum;
+
+    allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
+    totalNumParticles_m = localStatistics.back();
+
+    double perParticle = 1.0 / totalNumParticles_m;
+    unsigned int l = 0;
+
+    for (; l < 6; ++ l) {
+        centroid_m[l] = localStatistics[l];
+    }
+    for (unsigned int i = 0; i < 3; ++ i) {
+        meanR_m(i) = centroid_m[2 * i] * perParticle;
+        meanP_m(i) = centroid_m[2 * i + 1] * perParticle;
+    }
+
+    meanTime_m = localStatistics[l++] * perParticle;
+
+    meanKineticEnergy_m = localStatistics[l++] * perParticle;
+    meanGamma_m = localStatistics[l++] * perParticle;
+}
+
 /* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments + 2 * Dim (3rd and 4th order moments)
  * --> 1st order moments: 0, ..., 2 * Dim - 1
  * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
@@ -59,26 +105,24 @@ void DistributionMoments::computeStatistics(const InputIt &first, const InputIt 
 {
     reset();
 
-    unsigned int localNum = last - first;
-    std::vector<double> localStatistics(41);
+    computeMeans(first, last);
+
+    double perParticle = 1.0 / totalNumParticles_m;
+    std::vector<double> localStatistics(37);
     for (InputIt it = first; it != last; ++ it) {
         OpalParticle const& particle = *it;
-        //FIXME After issue 287 is resolved this shouldn't be necessary anymore
-        if (!Options::amr
-            && OpalData::getInstance()->isInOPALCyclMode()
-            && particle.getId() == 0) {
-            -- localNum;
+        if (isParticleExcluded(particle)) {
             continue;
         }
         unsigned int l = 6;
         for (unsigned int i = 0; i < 6; ++ i) {
-            localStatistics[i] += particle[i];
+            localStatistics[i] += std::pow(particle[i] - centroid_m[i] * perParticle, 2);
             for (unsigned int j = 0; j <= i; ++ j, ++ l) {
                 localStatistics[l] += particle[i] * particle[j];
             }
         }
-        localStatistics[l++] += particle.getTime();
-        localStatistics[l++] += std::pow(particle.getTime(), 2);
+
+        localStatistics[l++] += std::pow(particle.getTime() - meanTime_m, 2);
 
         for (unsigned int i = 0; i < 3; ++ i, l += 2) {
             double r2 = std::pow(particle[i], 2);
@@ -86,41 +130,25 @@ void DistributionMoments::computeStatistics(const InputIt &first, const InputIt 
             localStatistics[l + 1] += r2 * r2;
         }
 
-        double gamma = Util::getGamma(particle.getP());
-        double eKin = (gamma - 1.0) * particle.getMass();
-        localStatistics[l++] += eKin;
-        localStatistics[l++] += std::pow(eKin, 2);
-        localStatistics[l++] += gamma;
+        double eKin = Util::getKineticEnergy(particle.getP(), particle.getMass());
+        localStatistics[l++] += std::pow(eKin - meanKineticEnergy_m, 2);
         localStatistics[l++] += particle.getCharge();
         localStatistics[l++] += particle.getMass();
     }
-    localStatistics.back() = localNum;
 
     allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
-    totalNumParticles_m = localStatistics.back();
 
     fillMembers(localStatistics);
 }
 
-void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> const& bunch)
-{
-    double data[] = {0.0, 0.0};
-    for (OpalParticle const& particle: bunch) {
-        data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
-    }
-    data[1] = bunch.getLocalNum();
-    allreduce(data, 2, std::plus<double>());
-
-    meanKineticEnergy_m = data[0] / data[1];
-}
-
 void DistributionMoments::fillMembers(std::vector<double> const& localMoments) {
-    Vector_t squaredEps, fac, squaredSumR, squaredSumP, sumRP;
+    Vector_t squaredEps, fac, sumRP;
     double perParticle = 1.0 / totalNumParticles_m;
 
     unsigned int l = 0;
-    for (; l < 6; ++ l) {
-        centroid_m[l] = localMoments[l];
+    for (; l < 6; l += 2) {
+        stdR_m(l / 2) = std::sqrt(localMoments[l] * perParticle);
+        stdP_m(l / 2) = std::sqrt(localMoments[l + 1] * perParticle);
     }
 
     for (unsigned int i = 0; i < 6; ++ i) {
@@ -130,8 +158,7 @@ void DistributionMoments::fillMembers(std::vector<double> const& localMoments) {
         }
     }
 
-    meanTime_m = localMoments[l++] * perParticle;
-    stdTime_m = std::sqrt(localMoments[l++] * perParticle - std::pow(meanTime_m, 2));
+    stdTime_m = localMoments[l++] * perParticle;
 
     for (unsigned int i = 0; i < 3; ++ i, l += 2) {
         double w1 = centroid_m[2 * i] * perParticle;
@@ -144,37 +171,32 @@ void DistributionMoments::fillMembers(std::vector<double> const& localMoments) {
         halo_m(i) -= Options::haloShift;
     }
 
-    meanKineticEnergy_m = localMoments[l++] * perParticle;
-    stdKineticEnergy_m = std::sqrt(localMoments[l++] * perParticle - std::pow(meanKineticEnergy_m, 2));
+    stdKineticEnergy_m = std::sqrt(localMoments[l++] * perParticle);
 
-    meanGamma_m = localMoments[l++] * perParticle;
     totalCharge_m = localMoments[l++];
     totalMass_m = localMoments[l++];
 
     for (unsigned int i = 0; i < 3; ++ i) {
-        meanR_m(i) = centroid_m[2 * i] * perParticle;
-        meanP_m(i) = centroid_m[2 * i + 1] * perParticle;
-        squaredSumR(i) = moments_m(2 * i, 2 * i) - totalNumParticles_m * std::pow(meanR_m(i), 2);
-        squaredSumP(i) = std::max(0.0,
-                                  moments_m(2 * i + 1, 2 * i + 1) - totalNumParticles_m * std::pow(meanP_m(i), 2));
-        sumRP(i) = moments_m(2 * i, 2 * i + 1) - totalNumParticles_m * meanR_m(i) * meanP_m(i);
-    }
-
-    squaredEps = (squaredSumR * squaredSumP - sumRP * sumRP) * std::pow(perParticle, 2);
-    sumRP *= perParticle;
-
-    for (unsigned int i = 0; i < 3; ++ i) {
-        stdR_m(i) = std::sqrt(squaredSumR(i) * perParticle);
-        stdP_m(i) = std::sqrt(squaredSumP(i) * perParticle);
+        sumRP(i) = moments_m(2 * i, 2 * i + 1) * perParticle -  meanR_m(i) * meanP_m(i);
+        stdRP_m(i) = sumRP(i) / (stdR_m(i) * stdP_m(i));
+        squaredEps(i) = std::pow(stdR_m(i) * stdP_m(i), 2) - std::pow(sumRP(i), 2);
         normalizedEps_m(i) = std::sqrt(std::max(squaredEps(i), 0.0));
-        double tmp = stdR_m(i) * stdP_m(i);
-        fac(i) = (std::abs(tmp) < 1e-10) ? 0.0: 1.0 / tmp;
     }
-
-    stdRP_m = sumRP * fac;
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m = normalizedEps_m / Vector_t(betaGamma);
+}
+
+void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> const& bunch)
+{
+    double data[] = {0.0, 0.0};
+    for (OpalParticle const& particle: bunch) {
+        data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
+    }
+    data[1] = bunch.getLocalNum();
+    allreduce(data, 2, std::plus<double>());
+
+    meanKineticEnergy_m = data[0] / data[1];
 }
 
 void DistributionMoments::reset()
@@ -200,4 +222,12 @@ void DistributionMoments::reset()
     totalCharge_m = 0.0;
     totalMass_m = 0.0;
     totalNumParticles_m = 0;
+}
+
+bool DistributionMoments::isParticleExcluded(const OpalParticle &particle) const
+{
+    //FIXME After issue 287 is resolved this shouldn't be necessary anymore
+    return !Options::amr
+        && OpalData::getInstance()->isInOPALCyclMode()
+        && particle.getId() == 0;
 }
