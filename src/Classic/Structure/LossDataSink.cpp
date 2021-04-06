@@ -28,7 +28,7 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
 #define WRITE_FILEATTRIB_STRING( attribute, value ) {             \
     h5_int64_t h5err = H5WriteFileAttribString (H5file_m, attribute, value); \
@@ -263,7 +263,7 @@ void LossDataSink::writeHeaderH5() {
 
 void LossDataSink::writeHeaderASCII() {
     bool hasTurn = hasTurnInformations();
-    if(Ippl::myNode() == 0) {
+    if (Ippl::myNode() == 0) {
         os_m << "# Element: " << element_m << ", x (m),  y (m),  z (m),  px ( ),  py ( ),  pz ( ), id";
         if (hasTurn) {
             os_m << ",  turn ( ), bunchNumber ( )";
@@ -312,7 +312,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
         if (!Options::enableHDF5) return;
 
         fn_m = element_m + std::string(".h5");
-        INFOMSG(level2 << "Save " << fn_m << endl);
+        *gmsg << level2 << "Save " << fn_m << endl;
         if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
             openH5();
             writeHeaderH5();
@@ -326,10 +326,9 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
         }
         CLOSE_FILE ();
         H5file_m = 0;
-    }
-    else {
+    } else {
         fn_m = element_m + std::string(".loss");
-        INFOMSG(level2 << "Save " << fn_m << endl);
+        *gmsg << level2 << "Save " << fn_m << endl;
         if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
             openASCII();
             writeHeaderASCII();
@@ -367,8 +366,10 @@ bool LossDataSink::hasNoParticlesToDump() const {
 }
 
 bool LossDataSink::hasTurnInformations() const {
+
     bool hasTurnInformation = !turnNumber_m.empty();
-    allreduce(hasTurnInformation, 1, std::logical_and<bool>());
+
+    allreduce(hasTurnInformation, 1, std::logical_or<bool>());
 
     return hasTurnInformation > 0;
 }
@@ -481,7 +482,7 @@ void LossDataSink::saveASCII() {
     */
     int tag = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
     bool hasTurn = hasTurnInformations();
-    if(Ippl::Comm->myNode() == 0) {
+    if (Ippl::Comm->myNode() == 0) {
         const unsigned partCount = particles_m.size();
 
         for (unsigned i = 0; i < partCount; i++) {
@@ -512,7 +513,7 @@ void LossDataSink::saveASCII() {
             notReceived--;
             rmsg->get(&dataBlocks);
             rmsg->get(&hasTurn);
-            for(unsigned i = 0; i < dataBlocks; i++) {
+            for (unsigned i = 0; i < dataBlocks; i++) {
                 long id;
                 size_t bunchNum, turn;
                 double rx, ry, rz, px, py, pz, time;
@@ -538,7 +539,7 @@ void LossDataSink::saveASCII() {
         const unsigned msgsize = particles_m.size();
         smsg->put(msgsize);
         smsg->put(hasTurn);
-        for(unsigned i = 0; i < msgsize; i++) {
+        for (unsigned i = 0; i < msgsize; i++) {
             const OpalParticle& particle = particles_m[i];
             smsg->put(particle.getX());
             smsg->put(particle.getY());
@@ -554,7 +555,7 @@ void LossDataSink::saveASCII() {
             smsg->put(particle.getTime());
         }
         bool res = Ippl::Comm->send(smsg, 0, tag);
-        if (! res) {
+        if (!res) {
             ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl);
         }
     }
@@ -664,7 +665,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     data[0].sum = nLoc;
 
     unsigned int idx = startIdx;
-    for(unsigned long k = 0; k < nLoc; ++ k, ++ idx) {
+    for (unsigned long k = 0; k < nLoc; ++ k, ++ idx) {
         const OpalParticle& particle = particles_m[idx];
 
         part[0] = particle.getX();
