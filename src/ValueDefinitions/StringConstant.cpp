@@ -1,30 +1,28 @@
-// ------------------------------------------------------------------------
-// $RCSfile: StringConstant.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.2 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: StringConstant
-//   Implements a OPAL STRING_CONSTANT definition.
+// Class StringConstant
+//   The STRING CONSTANT definition.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2001/08/13 15:26:42 $
-// $Author: jowett $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "ValueDefinitions/StringConstant.h"
+
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Utilities/Util.h"
+
 #include <iostream>
 
-
-// Class StringConstant
-// ------------------------------------------------------------------------
 
 StringConstant::StringConstant():
     ValueDefinition(1, "STRING_CONSTANT",
@@ -68,11 +66,9 @@ StringConstant *StringConstant::clone(const std::string &name) {
 }
 
 
-
 std::string StringConstant::getString() const {
     return Attributes::getString(itsAttr[0]);
 }
-
 
 
 void StringConstant::print(std::ostream &os) const {
