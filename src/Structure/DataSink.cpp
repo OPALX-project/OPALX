@@ -150,7 +150,7 @@ void DataSink::changeH5Wrapper(H5PartWrapper *h5wrapper) {
 
 
 void DataSink::writeGeomToVtk(BoundaryGeometry &bg, std::string fn) {
-    if(Ippl::myNode() == 0) {
+    if (Ippl::myNode() == 0 && Options::enableVTK) {
         bg.writeGeomToVtk (fn);
     }
 }
