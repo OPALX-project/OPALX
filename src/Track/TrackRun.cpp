@@ -104,7 +104,7 @@ TrackRun::TrackRun():
     itsAttr[FIELDSOLVER] = Attributes::makeString
                            ("FIELDSOLVER", "Field solver to be used ", "FIELDSOLVER");
     itsAttr[BOUNDARYGEOMETRY] = Attributes::makeString
-                           ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default)", "NONE");
+                                ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default)", "NONE");
     itsAttr[DISTRIBUTION] = Attributes::makeStringArray
                              ("DISTRIBUTION", "List of particle distributions to be used ");
     itsAttr[TRACKBACK] = Attributes::makeBool
@@ -222,8 +222,8 @@ void TrackRun::setupThickTracker()
         // Ask the dictionary if BoundaryGeometry is allocated.
         // If it is allocated use the allocated BoundaryGeometry
         if (!OpalData::getInstance()->hasGlobalGeometry()) {
-            BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
-                clone(getOpalName() + std::string("_geometry"));
+            const std::string geomDescriptor = Attributes::getString(itsAttr[BOUNDARYGEOMETRY]);
+            BoundaryGeometry* bg = BoundaryGeometry::find(geomDescriptor)->clone(geomDescriptor);
             OpalData::getInstance()->setGlobalGeometry(bg);
         }
     }
@@ -329,8 +329,8 @@ void TrackRun::setupTTracker(){
         // Ask the dictionary if BoundaryGeometry is allocated.
         // If it is allocated use the allocated BoundaryGeometry
         if (!OpalData::getInstance()->hasGlobalGeometry()) {
-            BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
-                clone(getOpalName() + std::string("_geometry"));
+            const std::string geomDescriptor = Attributes::getString(itsAttr[BOUNDARYGEOMETRY]);
+            BoundaryGeometry* bg = BoundaryGeometry::find(geomDescriptor)->clone(geomDescriptor);
             OpalData::getInstance()->setGlobalGeometry(bg);
         }
     }
@@ -432,8 +432,8 @@ void TrackRun::setupCyclotronTracker(){
         // Ask the dictionary if BoundaryGeometry is allocated.
         // If it is allocated use the allocated BoundaryGeometry
         if (!OpalData::getInstance()->hasGlobalGeometry()) {
-            BoundaryGeometry *bg = BoundaryGeometry::find(Attributes::getString(itsAttr[BOUNDARYGEOMETRY]))->
-                clone(getOpalName() + std::string("_geometry"));
+            const std::string geomDescriptor = Attributes::getString(itsAttr[BOUNDARYGEOMETRY]);
+            BoundaryGeometry* bg = BoundaryGeometry::find(geomDescriptor)->clone(geomDescriptor);
             OpalData::getInstance()->setGlobalGeometry(bg);
         }
     }
