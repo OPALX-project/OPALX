@@ -32,21 +32,21 @@ public:
     virtual ~Option();
 
     /// Make clone.
-    virtual Option *clone(const std::string &name);
+    virtual Option* clone(const std::string& name);
 
     /// Execute the command.
     virtual void execute();
 
 private:
-    void handlePsDumpFrame(const std::string &dumpFrame);
+    void handlePsDumpFrame(const std::string& dumpFrame);
     void update(const std::vector<Attribute>&);
 
     // Not implemented.
-    Option(const Option &);
-    void operator=(const Option &);
+    Option(const Option&);
+    void operator=(const Option&);
 
     // Clone constructor.
-    Option(const std::string &name, Option *parent);
+    Option(const std::string& name, Option* parent);
 };
 
 #endif // OPAL_Option_HH
