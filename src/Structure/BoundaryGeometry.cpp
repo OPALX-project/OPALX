@@ -20,10 +20,11 @@
 
 #include "Structure/BoundaryGeometry.h"
 
+#include <algorithm>
 #include <cmath>
+#include <ctime>
 #include <fstream>
 #include <string>
-#include <algorithm>
 
 #include "H5hut.h"
 #include <cfloat>
@@ -32,8 +33,12 @@
 #include "Algorithms/PartBunchBase.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
-#include "Utilities/Options.h"
+#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
+
+#include <boost/filesystem.hpp>
+
 #include <gsl/gsl_sys.h>
 
 extern Inform* gmsg;
@@ -328,6 +333,7 @@ Vector_t get_min_extent (std::vector<Vector_t>& coords) {
   write legacy VTK file of voxel mesh
 */
 static void write_voxel_mesh (
+    std::string fname,
     const std::unordered_map< int, std::unordered_set<int> >& ids,
     const Vector_t& hr_m,
     const Vektor<int,3>& nr,
@@ -336,12 +342,10 @@ static void write_voxel_mesh (
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
     std::ofstream of;
-    std::string fname = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-        "testBBox.vtk"
-    });
+
+    *gmsg << "* Writing VTK file of voxel mesh." << endl;
     of.open (fname);
-    assert (of.is_open ());
+    PAssert (of.is_open ());
     of.precision (6);
 
     of << "# vtk DataFile Version 2.0" << std::endl;
@@ -1029,6 +1033,7 @@ BoundaryGeometry::BoundaryGeometry() :
     TPartInside_m =   IpplTimings::getTimer ("Particle Inside");
 
     h5FileName_m = Attributes::getString (itsAttr[FGEOM]);
+
     try {
         defGeometry->update ();
         OpalData::getInstance ()->define (defGeometry);
@@ -1040,7 +1045,6 @@ BoundaryGeometry::BoundaryGeometry() :
 
     if (!h5FileName_m.empty ())
         initialize ();
-
 }
 
 BoundaryGeometry::BoundaryGeometry(
@@ -1608,18 +1612,38 @@ BoundaryGeometry::computeMeshVoxelization (void) {
         }
     } // for_each triangle
     *gmsg << "* Mesh voxelization done." << endl;
-    if(Ippl::myNode() == 0) {
-        write_voxel_mesh (voxelMesh_m.ids,
-                          voxelMesh_m.sizeOfVoxel,
-                          voxelMesh_m.nr_m,
-                          voxelMesh_m.minExtent);
+
+    // write voxel mesh into VTK file
+    if (Ippl::myNode() == 0 && Options::enableVTK) {
+        std::string vtkFileName = Util::combineFilePath({
+            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            "testBBox.vtk"
+        });
+        bool writeVTK = false;
+
+        if (!boost::filesystem::exists(vtkFileName)) {
+            writeVTK = true;
+        } else {
+            std::time_t t_geom = boost::filesystem::last_write_time(h5FileName_m);
+            std::time_t t_vtk = boost::filesystem::last_write_time(vtkFileName);
+            if (std::difftime(t_geom,t_vtk) > 0)
+                writeVTK = true;
+        }
+
+        if (writeVTK) {
+            write_voxel_mesh (vtkFileName,
+                              voxelMesh_m.ids,
+                              voxelMesh_m.sizeOfVoxel,
+                              voxelMesh_m.nr_m,
+                              voxelMesh_m.minExtent);
+        }
     }
 }
 
 void BoundaryGeometry::initialize () {
 
     class Local {
-        
+
     public:
 
         static void computeGeometryInterval (BoundaryGeometry* bg) {
@@ -1997,6 +2021,12 @@ Change orientation if diff is:
     debugFlags_m = 0;
     *gmsg << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer (Tinitialize_m);
+
+    if (!boost::filesystem::exists(h5FileName_m)) {
+        throw OpalException("BoundaryGeometry::BoundaryGeometry",
+                            "Failed to open file '" + h5FileName_m +
+                            "', please check if it exists");
+    }
 
     *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
 
