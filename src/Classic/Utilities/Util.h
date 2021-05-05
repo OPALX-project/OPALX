@@ -47,7 +47,7 @@ namespace Util {
     }
 
     inline
-    double convertMomentumeVToBetaGamma(double p, double mass) {
+    double convertMomentumEVoverCToBetaGamma(double p, double mass) {
         return p / mass;
     }
 

@@ -73,7 +73,7 @@ namespace EmissionModelT
 namespace InputMomentumUnitsT
 {
     enum InputMomentumUnitsT {NONE,
-                              EV
+                              EVOVERC
                               };
 }
 

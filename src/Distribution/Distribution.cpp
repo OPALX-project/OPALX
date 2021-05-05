@@ -873,11 +873,17 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
     std::string inputUnits = Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]);
     if (inputUnits == "NONE")
         inputMoUnits_m = InputMomentumUnitsT::NONE;
-    else if (inputUnits == "EV")
-        inputMoUnits_m = InputMomentumUnitsT::EV;
+    else if (inputUnits == "EVOVERC")
+        inputMoUnits_m = InputMomentumUnitsT::EVOVERC;
+    else if (inputUnits == "") {
+        *gmsg << "No momentum units were specified, using default units (see manual)." << endl;
+        inputMoUnits_m = inputMoUnits;        
+    }   
     else
-        inputMoUnits_m = inputMoUnits;
-
+        throw OpalException("Distribution::chooseInputMomentumUnits",
+                            "Unkown momentum units '" + inputUnits +
+                            "' !\nINPUTMOUNITS should be 'NONE' or 'EVOVERC'. " +
+                            "See manual for more information.");
 }
 
 void Distribution::createDistributionBinomial(size_t numberOfParticles, double massIneV) {
@@ -1065,10 +1071,10 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
             if (saveProcessor >= (unsigned)Ippl::getNodes())
                 saveProcessor = 0;
 
-            if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-                P(0) = Util::convertMomentumeVToBetaGamma(P(0), massIneV);
-                P(1) = Util::convertMomentumeVToBetaGamma(P(1), massIneV);
-                P(2) = Util::convertMomentumeVToBetaGamma(P(2), massIneV);
+            if (inputMoUnits_m == InputMomentumUnitsT::EVOVERC) {
+                P(0) = Util::convertMomentumEVoverCToBetaGamma(P(0), massIneV);
+                P(1) = Util::convertMomentumEVoverCToBetaGamma(P(1), massIneV);
+                P(2) = Util::convertMomentumEVoverCToBetaGamma(P(2), massIneV);
             }
 
             pmean_m += P;
@@ -1356,10 +1362,10 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
     setupParticleBins(beam->getM(),beam);
 
     /*
-     * Set what units to use for input momentum units. Default is
-     * eV.
+     * Set what units to use for input momentum units. Default in OPAL-cycl
+     * is eV/c.
      */
-    chooseInputMomentumUnits(InputMomentumUnitsT::EV);
+    chooseInputMomentumUnits(InputMomentumUnitsT::EVOVERC);
 
     /*
      * Determine the number of particles for each distribution. For OPAL-cycl
@@ -1413,8 +1419,8 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
 
     // This is PC from BEAM
     double deltaP = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETP]);
-    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-        deltaP = Util::convertMomentumeVToBetaGamma(deltaP, beam->getM());
+    if (inputMoUnits_m == InputMomentumUnitsT::EVOVERC) {
+        deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
     }
 
     avrgpz_m = beam->getP()/beam->getM() + deltaP;
@@ -1422,7 +1428,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     totalNumberParticles_m = numberOfParticles;
 
     /*
-     * Set what units to use for input momentum units. Default is
+     * Set what units to use for input momentum units. Default in OPAL-T is
      * unitless (i.e. BetaXGamma, BetaYGamma, BetaZGamma).
      */
     chooseInputMomentumUnits(InputMomentumUnitsT::NONE);
@@ -3330,7 +3336,7 @@ void Distribution::setAttributes() {
 
     itsAttr[Attrib::Distribution::INPUTMOUNITS]
         = Attributes::makeUpperCaseString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
-                                          " Currently \"NONE\" or \"EV\".", "");
+                                          " Currently \"NONE\" or \"EVOVERC\".", "");
 
     // Attributes for beam emission.
     itsAttr[Attrib::Distribution::EMITTED]
@@ -3643,10 +3649,10 @@ void Distribution::setSigmaP_m(double massIneV) {
     }
 
     // Check what input units we are using for momentum.
-    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-        sigmaP_m[0] = Util::convertMomentumeVToBetaGamma(sigmaP_m[0], massIneV);
-        sigmaP_m[1] = Util::convertMomentumeVToBetaGamma(sigmaP_m[1], massIneV);
-        sigmaP_m[2] = Util::convertMomentumeVToBetaGamma(sigmaP_m[2], massIneV);
+    if (inputMoUnits_m == InputMomentumUnitsT::EVOVERC) {
+        sigmaP_m[0] = Util::convertMomentumEVoverCToBetaGamma(sigmaP_m[0], massIneV);
+        sigmaP_m[1] = Util::convertMomentumEVoverCToBetaGamma(sigmaP_m[1], massIneV);
+        sigmaP_m[2] = Util::convertMomentumEVoverCToBetaGamma(sigmaP_m[2], massIneV);
     }
 }
 
@@ -4139,10 +4145,10 @@ void Distribution::shiftDistCoordinates(double massIneV) {
             WARNMSG("PT & PZ are obsolete and will be ignored. The moments of the beam is defined with PC" << endl);
 
         // Check input momentum units.
-        if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-            deltaPx = Util::convertMomentumeVToBetaGamma(deltaPx, massIneV);
-            deltaPy = Util::convertMomentumeVToBetaGamma(deltaPy, massIneV);
-            deltaPz = Util::convertMomentumeVToBetaGamma(deltaPz, massIneV);
+        if (inputMoUnits_m == InputMomentumUnitsT::EVOVERC) {
+            deltaPx = Util::convertMomentumEVoverCToBetaGamma(deltaPx, massIneV);
+            deltaPy = Util::convertMomentumEVoverCToBetaGamma(deltaPy, massIneV);
+            deltaPz = Util::convertMomentumEVoverCToBetaGamma(deltaPz, massIneV);
         }
 
         size_t endIdx = startIdx + particlesPerDist_m[i];
@@ -4422,9 +4428,9 @@ void Distribution::adjustPhaseSpace(double massIneV) {
     double deltaPx = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPX]);
     double deltaPy = Attributes::getReal(itsAttr[Attrib::Distribution::OFFSETPY]);
     // Check input momentum units.
-    if (inputMoUnits_m == InputMomentumUnitsT::EV) {
-        deltaPx = Util::convertMomentumeVToBetaGamma(deltaPx, massIneV);
-        deltaPy = Util::convertMomentumeVToBetaGamma(deltaPy, massIneV);
+    if (inputMoUnits_m == InputMomentumUnitsT::EVOVERC) {
+        deltaPx = Util::convertMomentumEVoverCToBetaGamma(deltaPx, massIneV);
+        deltaPy = Util::convertMomentumEVoverCToBetaGamma(deltaPy, massIneV);
     }
 
     double avrg[6];
