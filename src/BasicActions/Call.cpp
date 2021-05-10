@@ -27,6 +27,7 @@
 
 #include <iostream>
 
+extern Inform* gmsg;
 
 Call::Call():
     Action(1, "CALL",
@@ -57,14 +58,11 @@ void Call::execute() {
     std::string file = Attributes::getString(itsAttr[0]);
 
     if (Options::info && Ippl::myNode() == 0) {
-        std::cerr << "Start reading input stream \"" << file << "\"." << std::endl;
+        *gmsg << "* Reading input stream \"" << file
+              << "\" from CALL command.\n" << endl;
     }
 
     OpalParser().run(new FileStream(file));
-
-    if (Options::info && Ippl::myNode() == 0) {
-        std::cerr << "End reading input stream \"" << file << "\"." << std::endl;
-    }
 }
 
 
