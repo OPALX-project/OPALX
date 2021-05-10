@@ -138,8 +138,7 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
          *gmsg << *this << endl;
     } else {
         throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
-                            getOpalName() + ": TYPE == " + Attributes::getString(itsAttr[TYPE])
-                            + " is not defined!");
+                            getOpalName() + ": TYPE == " + type + " is not defined!");
     }
 }
 
@@ -148,13 +147,13 @@ void ParticleMatterInteraction::updateElement(ElementBase* element) {
 }
 
 void ParticleMatterInteraction::print(std::ostream& os) const {
-    os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N ****************** " << std::endl;
-    os << "* PARTICLEMATTERINTERACTION " << getOpalName() << '\n'
-       << "* TYPE           " << Attributes::getString(itsAttr[TYPE]) << '\n'
-       << "* ELEMENT        " << handler_m->getElement()->getName() << '\n'; 
+    os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N **************** " << std::endl;
+    os << "* PARTICLEMATTERINTERACTION  " << getOpalName() << '\n'
+       << "* TYPE                       " << Attributes::getString(itsAttr[TYPE]) << '\n'
+       << "* ELEMENT                    " << handler_m->getElement()->getName() << '\n';
     if ( Attributes::getString(itsAttr[TYPE]) == "SCATTERING" ) {
-        os << "* MATERIAL       " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
-        os << "* LOWENERGYTHR   " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV" << '\n';
+        os << "* MATERIAL                   " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
+        os << "* LOWENERGYTHR               " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV\n";
     }
     os << "* ********************************************************************************** " << std::endl;
 }

@@ -18,8 +18,7 @@
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Solvers/ScatteringPhysics.h"
-#include "Physics/Physics.h"
-#include "Physics/Material.h"
+
 #include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/FlexibleCollimator.h"
@@ -28,6 +27,8 @@
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Multipole.h"
+#include "Physics/Physics.h"
+#include "Physics/Material.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
@@ -54,7 +55,6 @@ namespace {
         bool checkHit(const Vector_t& R) override {
             return deg_m->isInMaterial(R(2));
         }
-
     private:
         Degrader* deg_m;
     };
@@ -67,7 +67,6 @@ namespace {
         bool checkHit(const Vector_t& R)  override {
             return col_m->checkPoint(R(0), R(1));
         }
-
     private:
         CCollimator* col_m;
     };
@@ -76,12 +75,10 @@ namespace {
         explicit FlexCollimatorInsideTester(ElementBase* el) {
             col_m = static_cast<FlexibleCollimator*>(el);
         }
-
         virtual
         bool checkHit(const Vector_t& R)  override {
             return col_m->isStopped(R);
         }
-
     private:
         FlexibleCollimator* col_m;
     };
@@ -153,7 +150,7 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
         break;
     default:
         throw GeneralClassicException("ScatteringPhysics::ScatteringPhysics",
-                            "Unsupported element type");
+                                      "Unsupported element type");
     }
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
@@ -254,7 +251,7 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
 
         IpplTimings::stopTimer(DegraderLoopTimer_m);
 
-        T_m += dT_m;              // update local time
+        T_m += dT_m; // update local time
 
         gatherStatistics();
 
@@ -324,10 +321,8 @@ bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
     constexpr double m2cm = 1e2;
     constexpr double eV2keV = 1e-3;
     constexpr double GeV2keV = 1e6;
-
-    constexpr double massElectron_keV = Physics::m_e * GeV2keV;
-
     const double mass_keV = mass_m * eV2keV;
+    constexpr double massElectron_keV = Physics::m_e * GeV2keV;
 
     constexpr double K = 4.0 * Physics::pi * Physics::Avo * Physics::r_e * m2cm * Physics::r_e * m2cm * massElectron_keV;
 
@@ -607,8 +602,10 @@ void ScatteringPhysics::print(Inform &msg) {
 
         OPALTimer::Timer time;
         msg << level2
-            << "--- ScatteringPhysics - Name: " << name_m << "\n"
-            << "Material: " << material_m << " - Element: " << element_ref_m->getName() << "\n"
+            << "--- ScatteringPhysics\n"
+            << "Name: " << name_m << " - "
+            << "Material: " << material_m << " - "
+            << "Element: " << element_ref_m->getName() << "\n"
             << "Particle Statistics @ " << time.time() << "\n"
             << std::setw(21) << "entered: " << Util::toStringWithThousandSep(bunchToMatStat_m) << "\n"
             << std::setw(21) << "rediffused: " << Util::toStringWithThousandSep(rediffusedStat_m) << "\n"
@@ -700,7 +697,6 @@ void ScatteringPhysics::resetTimeStep() {
         double& dt = locParts_m[i].DTincol;
         dt = dT_m;
     }
-
 }
 
 

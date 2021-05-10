@@ -536,11 +536,12 @@ void TrackRun::setupCyclotronTracker(){
         *gmsg << "* Selected Tracking Method == CYCLOTRON-T, FOLLOWUP TRACK" << endl;
         *gmsg << "* ********************************************************************************** " << endl;
     }
-    *gmsg << "* Number of neighbour bunches= " << specifiedNumBunch << endl;
-    *gmsg << "* DT                         = " << Track::block->dT.front() << endl;
-    *gmsg << "* MAXSTEPS                   = " << Track::block->localTimeSteps.front() << endl;
-    *gmsg << "* Phase space dump frequency = " << Options::psDumpFreq << endl;
-    *gmsg << "* Statistics dump frequency  = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
+    *gmsg << "* Number of neighbour bunches = " << specifiedNumBunch << endl;
+    *gmsg << "* DT                          = " << Track::block->dT.front() << endl;
+    *gmsg << "* MAXSTEPS                    = " << Track::block->localTimeSteps.front() << endl;
+    *gmsg << "* STEPSPERTURN                = " << Track::block->stepsPerTurn << endl;
+    *gmsg << "* Phase space dump frequency  = " << Options::psDumpFreq << endl;
+    *gmsg << "* Statistics dump frequency   = " << Options::statDumpFreq << " w.r.t. the time step." << endl;
     *gmsg << "* ********************************************************************************** " << endl;
 
     itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),

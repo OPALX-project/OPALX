@@ -70,7 +70,7 @@ Vacuum::Vacuum(const std::string& name):
     gas_m(ResidualGas::NOGAS),
     pressure_m(0.0),
     pmapfn_m(""),
-    pscale_m(0.0),
+    pscale_m(1.0),
     temperature_m(0.0),
     stop_m(true),
     minr_m(0.0),
@@ -95,9 +95,9 @@ void Vacuum::setPressure(double pressure) {
 }
 
 double Vacuum::getPressure() const {
-    if (pressure_m > 0.0)
+    if (pressure_m > 0.0) {
         return pressure_m;
-    else {
+    } else {
         throw LogicalError("Vacuum::getPressure",
                            "Pressure must not be zero");
     }
@@ -108,9 +108,9 @@ void Vacuum::setTemperature(double temperature) {
 }
 
 double Vacuum::getTemperature() const {
-    if (temperature_m > 0.0)
+    if (temperature_m > 0.0) {
         return temperature_m;
-    else {
+    } else {
         throw LogicalError("Vacuum::getTemperature",
                            "Temperature must not be zero");
     }
@@ -129,9 +129,9 @@ void Vacuum::setPScale(double ps) {
 }
 
 double Vacuum::getPScale() const {
-    if (pscale_m > 0.0)
+    if (pscale_m > 0.0) {
         return pscale_m;
-    else {
+    } else {
         throw LogicalError("Vacuum::getPScale",
                            "PScale must be positive");
     }
@@ -151,14 +151,17 @@ ResidualGas Vacuum::getResidualGas() const {
 
 std::string Vacuum::getResidualGasName() {
     switch (gas_m) {
-    case ResidualGas::AIR:
-        return "AIR";
-    case ResidualGas::H2:
-        return "H2";
-    default:
-       throw GeneralClassicException("Vacuum::getResidualGasName",
-                                      "Residual gas not found");
-    }		
+        case ResidualGas::AIR: {
+            return "AIR";
+        }
+        case ResidualGas::H2: {
+            return "H2";
+        }
+        default: {
+           throw GeneralClassicException("Vacuum::getResidualGasName",
+                                         "Residual gas not found");
+        }
+    }
 }
 
 void Vacuum::setStop(bool stopflag) {
@@ -231,7 +234,7 @@ void Vacuum::initialise(PartBunchBase<double, 3>* bunch, const double& scaleFact
 void Vacuum::finalise() {
     if (online_m)
         goOffline();
-    *gmsg << "* Finalize Beam Stripping" << endl;
+    *gmsg << "* Finalize vacuum" << endl;
 }
 
 void Vacuum::goOnline(const double &) {
@@ -353,7 +356,7 @@ void Vacuum::getPressureFromFile(const double& scaleFactor) {
     FILE* f = NULL;
 
     *gmsg << "* " << endl;
-    *gmsg << "* Reading pressure field map " << pmapfn_m << endl;
+    *gmsg << "* Reading pressure field map " << endl;
 
     PP.Pfact = scaleFactor;
 
@@ -402,7 +405,6 @@ void Vacuum::getPressureFromFile(const double& scaleFactor) {
             PField.pfld[idx(i, k)] *= PP.Pfact;
         }
     }
-    *gmsg << "*" << endl;
 
     std::fclose(f);
 }

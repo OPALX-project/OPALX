@@ -1025,15 +1025,6 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
         inputFile.open(fileName.c_str());
     }
 
-    *gmsg << level3 << "\n"
-          << "-------------------------------------------------------------------"
-             "-----------------\n";
-    *gmsg << "READ INITIAL DISTRIBUTION FROM FILE \""
-          << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << "\"\n";
-    *gmsg << "-------------------------------------------------------------------"
-             "-----------------\n"
-          << endl;
-
     size_t numberOfParticlesRead = getNumberOfParticlesInFile(inputFile);
     /*
      * We read in the particle information using node zero, but save the particle
@@ -3040,7 +3031,7 @@ void Distribution::printDistMultiGauss(Inform &os) const {
 void Distribution::printDistFromFile(Inform &os) const {
     os << "* Distribution type: FROMFILE" << endl;
     os << "* " << endl;
-    os << "* Input file:        "
+    os << "* Input file: "
        << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << endl;
 }
 

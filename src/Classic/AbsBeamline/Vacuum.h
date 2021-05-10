@@ -33,8 +33,8 @@ class Cyclotron;
 
 struct PFieldData {
     std::string filename;
-    // known from file: field and three theta derivatives
-    std::vector<double> pfld;   //Pz
+    // pressure field known from file
+    std::vector<double> pfld;
 
     // Grid-Size
     //need to be read from inputfile.
@@ -58,10 +58,11 @@ struct PPositions {
     double  Pfact; // MULTIPLICATION FACTOR FOR PRESSURE MAP
 };
 
-enum class ResidualGas:short {AIR,
-                              H2,
-                              NOGAS};
-
+enum class ResidualGas:short {
+    NOGAS = -1,
+    AIR   = 0,
+    H2    = 1
+};
 
 class Vacuum: public Component {
 
