@@ -28,6 +28,7 @@
 
 #include <iostream>
 
+extern Inform* gmsg;
 
 namespace {
     enum {
@@ -41,8 +42,6 @@ namespace {
         SIZE
     };
 }
-
-extern Inform* gmsg;
 
 Select::Select():
     Action(SIZE, "SELECT",
@@ -116,14 +115,14 @@ void Select::select(const Beamline& bl) {
         Flagger flagger(bl, true);
         flagger.execute();
         if (Options::info) {
-            *gmsg << level3 << "\nAll elements selected.\n" << endl;
+            *gmsg << level2 << "\nAll elements selected.\n" << endl;
         }
     } else if (Attributes::getBool(itsAttr[CLEAR])) {
         // Deselect all selections.
         Flagger flagger(bl, false);
         flagger.execute();
         if (Options::info) {
-            *gmsg << level3 << "\nAll elements de-selected.\n" << endl;
+            *gmsg << level2 << "\nAll elements de-selected.\n" << endl;
         }
     } else {
         Selector sel(bl,
@@ -133,16 +132,16 @@ void Select::select(const Beamline& bl) {
                      Attributes::getString(itsAttr[PATTERN]));
         sel.execute();
 
-        int count = sel.getCount();
-
-        if (count == 0) {
-            *gmsg << level3 << "No elements";
-        } else if (count == 1) {
-            *gmsg << level3 << "\n1 element";
-        } else {
-            *gmsg << level3 << '\n' << count << " elements";
+        if (Options::info) {
+            int count = sel.getCount();
+            if (count == 0) {
+                *gmsg << level2 << "No elements";
+            } else if (count == 1) {
+                *gmsg << level2 << "\n1 element";
+            } else {
+                *gmsg << level2 << '\n' << count << " elements";
+            }
+            *gmsg << level2 << " selected.\n" << endl;
         }
-
-        *gmsg << level3 << " selected.\n" << endl;
     }
 }

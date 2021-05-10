@@ -343,7 +343,7 @@ static void write_voxel_mesh (
     const size_t numpoints = 8 * ids.size ();
     std::ofstream of;
 
-    *gmsg << "* Writing VTK file of voxel mesh." << endl;
+    *gmsg << level2 << "* Writing VTK file of voxel mesh." << endl;
     of.open (fname);
     PAssert (of.is_open ());
     of.precision (6);
@@ -1361,7 +1361,7 @@ bool
 BoundaryGeometry::findInsidePoint (
     void
     ) {
-    *gmsg << "* searching for a point inside the geometry" << endl;
+    *gmsg << level2 << "* Searching for a point inside the geometry..." << endl;
     /*
       find line segment
     */
@@ -1545,7 +1545,8 @@ BoundaryGeometry::mapVoxelIndices2ID (
         if (!(0 <= i && i < voxelMesh_m.nr_m[0] &&                      \
               0 <= j && j < voxelMesh_m.nr_m[1] &&                      \
               0 <= k && k < voxelMesh_m.nr_m[2])) {                     \
-            *gmsg << "* " << __func__ << ":"                            \
+            *gmsg << level2                                             \
+                  << "* " << __func__ << ":"                            \
                   << "  WARNING: pt=" << pt                             \
                   << "  is outside the bbox"                            \
                   << "  i=" << i                                        \
@@ -1611,7 +1612,7 @@ BoundaryGeometry::computeMeshVoxelization (void) {
             }
         }
     } // for_each triangle
-    *gmsg << "* Mesh voxelization done." << endl;
+    *gmsg << level2 << "* Mesh voxelization done." << endl;
 
     // write voxel mesh into VTK file
     if (Ippl::myNode() == 0 && Options::enableVTK) {
@@ -1867,7 +1868,7 @@ Change orientation if diff is:
 
                 neighbors [triangle_id] = intersect;
             }
-            *gmsg << "* " << __func__ << ": Computing neighbors done" << endl;
+            *gmsg << level2 << "* " << __func__ << ": Computing neighbors done" << endl;
         }
 
         /*
@@ -2009,37 +2010,30 @@ Change orientation if diff is:
             } while (queue_end < bg->Triangles_m.size());
 
             if (parts == 1) {
-                *gmsg << "* " << __func__ << ": mesh is contiguous." << endl;
+                *gmsg << level2 << "* " << __func__ << ": mesh is contiguous." << endl;
             } else {
-                *gmsg << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts." << endl;
+                *gmsg << level2 << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts." << endl;
             }
-            *gmsg << "* Triangle Normal built done." << endl;
+            *gmsg << level2 <<"* Triangle Normal built done." << endl;
         }
 
     };
 
     debugFlags_m = 0;
-    *gmsg << "* Initializing Boundary Geometry..." << endl;
+    *gmsg << level2 << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer (Tinitialize_m);
 
     if (!boost::filesystem::exists(h5FileName_m)) {
-        throw OpalException("BoundaryGeometry::BoundaryGeometry",
+        throw OpalException("BoundaryGeometry::initialize",
                             "Failed to open file '" + h5FileName_m +
                             "', please check if it exists");
     }
-
-    *gmsg << "* Filename: " << h5FileName_m.c_str() << endl;
 
     double xscale = Attributes::getReal(itsAttr[XSCALE]);
     double yscale = Attributes::getReal(itsAttr[YSCALE]);
     double zscale = Attributes::getReal(itsAttr[ZSCALE]);
     double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]);
     double zshift = (double)(Attributes::getReal (itsAttr[ZSHIFT]));
-
-    *gmsg << "* X-scale all points of geometry by " << xscale << endl;
-    *gmsg << "* Y-scale all points of geometry by " << yscale << endl;
-    *gmsg << "* Z-scale all points of geometry by " << zscale << endl;
-    *gmsg << "* Scale all points of geometry by " << xyzscale << endl;
 
     h5_int64_t rc;
 #if defined (NDEBUG)
@@ -2090,7 +2084,7 @@ Change orientation if diff is:
     }
     H5FedCloseMesh (m);
     H5CloseFile (f);
-    *gmsg << "* Reading mesh done." << endl;
+    *gmsg << level2 << "* Reading mesh done." << endl;
 
     Local::computeGeometryInterval (this);
     computeMeshVoxelization ();
@@ -2115,17 +2109,14 @@ Change orientation if diff is:
         haveInsidePoint_m = findInsidePoint();
     }
     if (haveInsidePoint_m == true) {
-        *gmsg << "* using as point inside the geometry: ("
+        *gmsg << level2 << "* using as point inside the geometry: ("
               << insidePoint_m[0] << ", "
               << insidePoint_m[1] << ", "
-              << insidePoint_m[2] << ")"
-              << endl;
+              << insidePoint_m[2] << ")" << endl;
     } else {
-        *gmsg << "* no point inside the geometry found!"
-              << endl;
+        *gmsg << level2 << "* no point inside the geometry found!" << endl;
     }
-    
-  
+
     Local::makeTriangleNormalInwardPointing (this);
 
     TriNormals_m.resize (Triangles_m.size());
@@ -2140,7 +2131,7 @@ Change orientation if diff is:
         TriNormals_m[i] = normalVector (A, B, C);
 
     }
-    *gmsg << "* Triangle barycent built done." << endl;
+    *gmsg << level2 << "* Triangle barycent built done." << endl;
 
     *gmsg << *this << endl;
     Ippl::Comm->barrier();
@@ -2476,27 +2467,30 @@ Inform&
 BoundaryGeometry::printInfo (Inform& os) const {
     os << endl;
     os << "* ************* B O U N D A R Y  G E O M E T R Y *********************************** " << endl;
-    os << "* GEOMETRY                   " << getOpalName () << '\n'
-       << "* FGEOM                      " << Attributes::getString (itsAttr[FGEOM]) << '\n'
-       << "* TOPO                       " << Attributes::getString (itsAttr[TOPO]) << '\n'
-       << "* LENGTH                     " << Attributes::getReal (itsAttr[LENGTH]) << '\n'
-       << "* S                          " << Attributes::getReal (itsAttr[S]) << '\n'
-       << "* A                          " << Attributes::getReal (itsAttr[A]) << '\n'
-       << "* B                          " << Attributes::getReal (itsAttr[B]) << '\n';
+    os << "* GEOMETRY                  " << getOpalName () << '\n'
+       << "* FGEOM                     " << Attributes::getString (itsAttr[FGEOM])  << '\n'
+       << "* TOPO                      " << Attributes::getString (itsAttr[TOPO])   << '\n'
+       << "* XSCALE                    " << Attributes::getReal (itsAttr[XSCALE])   << '\n'
+       << "* YSCALE                    " << Attributes::getReal (itsAttr[YSCALE])   << '\n'
+       << "* ZSCALE                    " << Attributes::getReal (itsAttr[ZSCALE])   << '\n'
+       << "* XYZSCALE                  " << Attributes::getReal (itsAttr[XYZSCALE]) << '\n'
+       << "* LENGTH                    " << Attributes::getReal (itsAttr[LENGTH])   << '\n'
+       << "* S                         " << Attributes::getReal (itsAttr[S]) << '\n'
+       << "* A                         " << Attributes::getReal (itsAttr[A]) << '\n'
+       << "* B                         " << Attributes::getReal (itsAttr[B]) << '\n';
     if (getTopology () == std::string ("BOXCORNER")) {
-        os << "* C                          " << Attributes::getReal (itsAttr[C]) << '\n'
-           << "* L1                         " << Attributes::getReal (itsAttr[L1]) << '\n'
-           << "* L1                         " << Attributes::getReal (itsAttr[L2]) << '\n';
+        os << "* C                         " << Attributes::getReal (itsAttr[C]) << '\n'
+           << "* L1                        " << Attributes::getReal (itsAttr[L1]) << '\n'
+           << "* L2                        " << Attributes::getReal (itsAttr[L2]) << '\n';
     }
-    os << "* Total triangle num         " << Triangles_m.size() << '\n'
-       << "* Total points num           " << Points_m.size () << '\n'
-       << "* Geometry bounds(m) Max=    " << maxExtent_m << '\n'
-       << "*                    Min=    " << minExtent_m << '\n'
-       << "* Geometry length(m)         " << maxExtent_m - minExtent_m << '\n'
-       << "* Resolution of voxel mesh   " << voxelMesh_m.nr_m << '\n'
-       << "* Size of voxel              " << voxelMesh_m.sizeOfVoxel << '\n'
-       << "* Number of voxels in mesh   " << voxelMesh_m.ids.size () << '\n'
-        << endl;
+    os << "* Total triangle num        " << Triangles_m.size() << '\n'
+       << "* Total points num          " << Points_m.size () << '\n'
+       << "* Geometry bounds(m) Max=   " << maxExtent_m << '\n'
+       << "*                    Min=   " << minExtent_m << '\n'
+       << "* Geometry length(m)        " << maxExtent_m - minExtent_m << '\n'
+       << "* Resolution of voxel mesh  " << voxelMesh_m.nr_m << '\n'
+       << "* Size of voxel             " << voxelMesh_m.sizeOfVoxel << '\n'
+       << "* Number of voxels in mesh  " << voxelMesh_m.ids.size () << endl;
     os << "* ********************************************************************************** " << endl;
     return os;
 }
