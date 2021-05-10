@@ -50,7 +50,7 @@ IndexMap::IndexMap():
 void IndexMap::print(std::ostream &out) const {
     if (mapRange2Element_m.size() == 0) return;
 
-    out << "Size of map " << mapRange2Element_m.size() << " sections " << std::endl;
+    out << "* Size of map " << mapRange2Element_m.size() << " sections " << std::endl;
     out << std::fixed << std::setprecision(6);
     auto mapIti = mapRange2Element_m.begin();
     auto mapItf = mapRange2Element_m.end();
@@ -61,14 +61,14 @@ void IndexMap::print(std::ostream &out) const {
     for (; mapIti != mapItf; mapIti++) {
         const key_t key = (*mapIti).first;
         const value_t val = (*mapIti).second;
-        out << "Key: ("
+        out << "* Key: ("
             << std::setw(numDigits + 7) << std::right << key.begin
             << " - "
             << std::setw(numDigits + 7) << std::right << key.end
             << ") number of overlapping elements " << val.size() << "\n";
 
         for (auto element: val) {
-            out << std::setw(25 + 2 * numDigits) << " " << element->getName() << "\n";
+            out << "* " << std::setw(25 + 2 * numDigits) << " " << element->getName() << "\n";
         }
     }
 }
