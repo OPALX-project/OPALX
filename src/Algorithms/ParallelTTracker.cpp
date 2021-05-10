@@ -30,30 +30,28 @@
 #include <sstream>
 #include <string>
 
+#include "AbsBeamline/Monitor.h"
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
-#include "Beamlines/Beamline.h"
-#include "Beamlines/FlaggedBeamline.h"
-
-#include "Solvers/CSRWakeFunction.h"
-
-#include "AbstractObjects/OpalData.h"
-
 #include "BasicActions/Option.h"
-#include "Utilities/Options.h"
-#include "Utilities/Util.h"
-
-#include "Distribution/Distribution.h"
-#include "ValueDefinitions/RealVariable.h"
-#include "Utilities/Timer.h"
-#include "Utilities/OpalException.h"
-#include "Solvers/ParticleMatterInteractionHandler.h"
-#include "Structure/BoundaryGeometry.h"
-#include "AbsBeamline/Monitor.h"
-
 #ifdef ENABLE_OPAL_FEL
 #include "BeamlineCore/UndulatorRep.h"
 #endif
+#include "Beamlines/Beamline.h"
+#include "Beamlines/FlaggedBeamline.h"
+#include "Distribution/Distribution.h"
+#include "Elements/OpalBeamline.h"
+#include "Solvers/CSRWakeFunction.h"
+#include "Solvers/ParticleMatterInteractionHandler.h"
+#include "Structure/BoundaryGeometry.h"
+#include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
+#include "Utilities/Timer.h"
+#include "Utilities/Util.h"
+#include "ValueDefinitions/RealVariable.h"
+
+extern Inform* gmsg;
 
 class PartData;
 
@@ -268,15 +266,16 @@ void ParallelTTracker::execute() {
 
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
-    *gmsg << "Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
+    *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
           << "zstart at: " << Util::getLengthString(pathLength_m)
           << endl;
 
     prepareEmission();
 
-    *gmsg << level1
-          << "Executing ParallelTTracker, initial dt= " << Util::getTimeString(itsBunch_m->getdT()) << ";\n"
-          << "max integration steps " << stepSizes_m.getMaxSteps() << ", next step= " << step << endl;
+    *gmsg << "* Executing ParallelTTracker\n"
+          << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << "\n"
+          << "* Max integration steps = " << stepSizes_m.getMaxSteps()
+          << ", next step = " << step << endl << endl;
 
     setOptionalVariables();
 
@@ -359,7 +358,8 @@ void ParallelTTracker::execute() {
     itsOpalBeamline_m.switchElementsOff();
 
     OPALTimer::Timer myt3;
-    *gmsg << "done executing ParallelTTracker at " << myt3.time() << endl;
+    *gmsg << endl << "* Done executing ParallelTTracker at "
+          << myt3.time() << endl << endl;
 
     Monitor::writeStatistics();
 

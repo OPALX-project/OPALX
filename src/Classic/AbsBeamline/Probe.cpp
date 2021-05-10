@@ -45,7 +45,6 @@ void Probe::accept(BeamlineVisitor &visitor) const {
 }
 
 void Probe::doInitialise(PartBunchBase<double, 3> *bunch) {
-    *gmsg << "* Initialize probe" << endl;
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
     peakfinder_m = std::unique_ptr<PeakFinder> (new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
 }

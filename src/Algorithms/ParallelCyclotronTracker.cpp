@@ -34,9 +34,6 @@
 #include <numeric>
 #include <cmath>
 
-#include "AbstractObjects/Element.h"
-#include "AbstractObjects/OpalData.h"
-
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
@@ -47,9 +44,9 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/MultipoleTBase.h"
-#include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
+#include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/Probe.h"
@@ -67,8 +64,14 @@
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
+#include "AbstractObjects/Element.h"
+#include "AbstractObjects/OpalData.h"
+
 #include "Algorithms/Ctunes.h"
 #include "Algorithms/PolynomialTimeDependence.h"
+
+#include "BasicActions/DumpEMFields.h"
+#include "BasicActions/DumpFields.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
@@ -77,16 +80,12 @@
 
 #include "Physics/Physics.h"
 
-#include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
-
-#include "BasicActions/DumpFields.h"
-#include "BasicActions/DumpEMFields.h"
-
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/DataSink.h"
 #include "Structure/LossDataSink.h"
 
+#include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 constexpr double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
 
@@ -331,8 +330,7 @@ void ParallelCyclotronTracker::closeFiles() {
  * @param cycl
  */
 void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
-
-    *gmsg << "* -------------------------- Adding Cyclotron ---------------------------- *" << endl;
+    *gmsg << "* ----------------------------- Cyclotron -------------------------------- *" << endl;
 
     cycl_m = dynamic_cast<Cyclotron *>(cycl.clone());
     myElements.push_back(cycl_m);
@@ -340,7 +338,6 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // Is this a Spiral Inflector Simulation? If yes, we'll give the user some
     // useful information
     spiral_flag = cycl_m->getSpiralFlag();
-
     if (spiral_flag) {
         *gmsg << endl << "* This is a Spiral Inflector Simulation! This means the following:" << endl;
         *gmsg         << "* 1.) It is up to the user to provide appropriate geometry, electric and magnetic fields!" << endl;
@@ -454,7 +451,7 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     // *gmsg << "* Rf frequency= " << rff << " [MHz]" << endl;
 
     std::string fmfn = cycl_m->getFieldMapFN();
-    *gmsg << "* Field map file name = " << fmfn << " " << endl;
+    *gmsg << "* Field map file = " << fmfn << " " << endl;
 
     std::string type = cycl_m->getCyclotronType();
     *gmsg << "* Type of cyclotron = " << type << " " << endl;
@@ -498,29 +495,30 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
  * @param coll
  */
 void ParallelCyclotronTracker::visitCCollimator(const CCollimator &coll) {
-
-    *gmsg << "* ------------------------------ Collimator ------------------------------" << endl;
+    *gmsg << "* ----------------------------- Collimator ------------------------------- *" << endl;
 
     CCollimator* elptr = dynamic_cast<CCollimator *>(coll.clone());
     myElements.push_back(elptr);
 
+    *gmsg << "* Name    = " << elptr->getName() << endl;
+
     double xstart = elptr->getXStart();
-    *gmsg << "* Xstart  = " << xstart << " [m]" << endl;
+    *gmsg << "* XStart  = " << xstart << " [m]" << endl;
 
     double xend = elptr->getXEnd();
-    *gmsg << "* Xend    = " << xend << " [m]" << endl;
+    *gmsg << "* XEnd    = " << xend << " [m]" << endl;
 
     double ystart = elptr->getYStart();
-    *gmsg << "* Ystart  = " << ystart << " [m]" << endl;
+    *gmsg << "* YStart  = " << ystart << " [m]" << endl;
 
     double yend = elptr->getYEnd();
-    *gmsg << "* Yend    = " << yend << " [m]" << endl;
+    *gmsg << "* YEnd    = " << yend << " [m]" << endl;
 
     double zstart = elptr->getZStart();
-    *gmsg << "* Zstart  = " << zstart << " [m]" << endl;
+    *gmsg << "* ZStart  = " << zstart << " [m]" << endl;
 
     double zend = elptr->getZEnd();
-    *gmsg << "* Zend    = " << zend << " [m]" << endl;
+    *gmsg << "* ZEnd    = " << zend << " [m]" << endl;
 
     double width = elptr->getWidth();
     *gmsg << "* Width   = " << width << " [m]" << endl;
@@ -696,7 +694,8 @@ void ParallelCyclotronTracker::visitMultipoleTCurvedVarRadius(const MultipoleTCu
  * @param prob
  */
 void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
-    *gmsg << "* ------------------------------  Probe ------------------------------" << endl;
+    *gmsg << "* ----------------------------- Probe ------------------------------------ *" << endl;
+
     Probe *elptr = dynamic_cast<Probe *>(prob.clone());
     myElements.push_back(elptr);
 
@@ -725,7 +724,6 @@ void ParallelCyclotronTracker::visitProbe(const Probe &prob) {
     BcParameter[3] = yend;
     BcParameter[4] = 1 ; // width
 
-    // store probe parameters in the list
     buildupFieldList(BcParameter, ElementBase::PROBE, elptr);
 }
 
@@ -745,8 +743,7 @@ void ParallelCyclotronTracker::visitRBend(const RBend &bend) {
  * @param as
  */
 void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
-
-    *gmsg << "* ------------------------------ RFCavity ------------------------------" << endl;
+    *gmsg << "* ----------------------------- RFCavity --------------------------------- * " << endl;
 
     RFCavity *elptr = dynamic_cast<RFCavity *>(as.clone());
     myElements.push_back(elptr);
@@ -756,6 +753,8 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
         throw OpalException("ParallelCyclotronTracker::visitRFCavity",
                             "The ParallelCyclotronTracker can only play with cyclotron type RF system currently ...");
     }
+
+    *gmsg << "* Name    = " << elptr->getName() << endl;
 
     double rmin = elptr->getRmin();
     *gmsg << "* Minimal radius of cavity= " << rmin << " [mm]" << endl;
@@ -767,7 +766,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     *gmsg << "* RF frequency (2*pi*f)= " << rff << " [rad/s]" << endl;
 
     std::string fmfn = elptr->getFieldMapFN();
-    *gmsg << "* RF Field map file name= " << fmfn << endl;
+    *gmsg << "* RF Field map file = " << fmfn << endl;
 
     double angle = elptr->getAzimuth();
     *gmsg << "* Cavity azimuth position= " << angle << " [deg] " << endl;
@@ -799,24 +798,23 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
     if (elptr->getFrequencyModelName() != "") {
         freq_atd = AbstractTimeDependence::getTimeDependence(elptr->getFrequencyModelName());
         *gmsg << "* Variable frequency RF Model name " << elptr->getFrequencyModelName() << endl;
-    }
-    else
+    } else {
         freq_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
+    }
 
     if (elptr->getAmplitudeModelName() != "") {
         ampl_atd = AbstractTimeDependence::getTimeDependence(elptr->getAmplitudeModelName());
         *gmsg << "* Variable amplitude RF Model name " << elptr->getAmplitudeModelName() << endl;
-    }
-    else
+    } else {
         ampl_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
+    }
 
     if (elptr->getPhaseModelName() != "") {
         phase_atd = AbstractTimeDependence::getTimeDependence(elptr->getPhaseModelName());
         *gmsg << "* Variable phase RF Model name " << elptr->getPhaseModelName() << endl;
-    }
-    else
+    } else {
         phase_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
-
+    }
     // read cavity voltage profile data from file.
     elptr->initialise(itsBunch_m, freq_atd, ampl_atd, phase_atd);
 
@@ -835,8 +833,7 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
  * @param ring
  */
 void ParallelCyclotronTracker::visitRing(const Ring &ring) {
-
-    *gmsg << "* ----------------------------- Adding Ring ------------------------------ *" << endl;
+    *gmsg << "* ----------------------------- Ring ------------------------------------- *" << endl;
 
     delete opalRing_m;
 
@@ -922,11 +919,12 @@ void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet &ben
  * @param sept
  */
 void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
-
-    *gmsg << endl << "* ------------------------------ Septum ------------------------------- *" << endl;
+    *gmsg << "* ----------------------------- Septum ----------------------------------- *" << endl;
 
     Septum *elptr = dynamic_cast<Septum *>(sept.clone());
     myElements.push_back(elptr);
+
+    *gmsg << "* Name    = " << elptr->getName() << endl;
 
     double xstart = elptr->getXStart();
     *gmsg << "* XStart  = " << xstart << " [m]" << endl;
@@ -954,7 +952,6 @@ void ParallelCyclotronTracker::visitSeptum(const Septum &sept) {
     BcParameter[3] = yend;
     BcParameter[4] = width;
 
-    // store septum parameters in the list
     buildupFieldList(BcParameter, ElementBase::SEPTUM, elptr);
 }
 
@@ -978,8 +975,7 @@ void ParallelCyclotronTracker::visitSolenoid(const Solenoid &solenoid) {
  * @param stripper
  */
 void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
-
-    *gmsg << "* ------------------------------ Stripper ------------------------------" << endl;
+    *gmsg << "* ----------------------------- Stripper --------------------------------- *" << endl;
 
     Stripper *elptr = dynamic_cast<Stripper *>(stripper.clone());
     myElements.push_back(elptr);
@@ -1005,7 +1001,9 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
     *gmsg << "* Mass of the outcoming particle = " << opmass << " [GeV/c^2]" << endl;
 
     bool stop = elptr->getStop();
-    *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
+    *gmsg << std::boolalpha
+          << "* Particles stripped will be deleted after interaction -> "
+          << stop << endl;
 
     elptr->initialise(itsBunch_m);
 
@@ -1028,17 +1026,21 @@ void ParallelCyclotronTracker::visitStripper(const Stripper &stripper) {
  * @param vac
  */
 void ParallelCyclotronTracker::visitVacuum(const Vacuum &vac) {
-    *gmsg << "* ------------------------------ Vacuum ------------------------------" << endl;
+    *gmsg << "* ----------------------------- Vacuum ----------------------------------- *" << endl;
 
     Vacuum* elptr = dynamic_cast<Vacuum*>(vac.clone());
     myElements.push_back(elptr);
 
     double BcParameter[8] = {};
 
-    if(elptr->getPressureMapFN() == "") {
-        double pressure = elptr->getPressure();
+    double pressure = elptr->getPressure();
+
+    if (elptr->getPressureMapFN() != "") {
+        std::string pmfn = elptr->getPressureMapFN();
+        *gmsg << "* Pressure field map file = " << pmfn << " " << endl;
+        *gmsg << "* Default pressure = " << pressure << " [mbar]" << endl;
+    } else  {
         *gmsg << "* Pressure     = " << pressure << " [mbar]" << endl;
-        BcParameter[0] = pressure;
     }
 
     double temperature = elptr->getTemperature();
@@ -1048,15 +1050,17 @@ void ParallelCyclotronTracker::visitVacuum(const Vacuum &vac) {
     *gmsg << "* Residual gas = " << gas << endl;
 
     bool stop = elptr->getStop();
-    *gmsg << std::boolalpha << "* Particles stripped will be deleted after interaction -> " << stop << endl;
+    *gmsg << std::boolalpha
+          << "* Particles stripped will be deleted after interaction -> "
+          << stop << endl;
 
     elptr->initialise(itsBunch_m, elptr->getPScale());
 
+    BcParameter[0] = pressure;
     BcParameter[1] = temperature;
     BcParameter[2] = stop;
 
     buildupFieldList(BcParameter, ElementBase::VACUUM, elptr);
-
 }
 
 /**
@@ -1122,13 +1126,12 @@ void ParallelCyclotronTracker::buildupFieldList(double BcParameter[], ElementBas
     (localpair->second).second = elptr;
 
     // always put cyclotron as the first element in the list.
-    if(elementType == ElementBase::RING || elementType == ElementBase::CYCLOTRON) {
+    if (elementType == ElementBase::RING || elementType == ElementBase::CYCLOTRON) {
         sindex = FieldDimensions.begin();
     } else {
         sindex = FieldDimensions.end();
     }
     FieldDimensions.insert(sindex, localpair);
-
 }
 
 /**
@@ -1147,15 +1150,12 @@ void ParallelCyclotronTracker::checkNumPart(std::string s) {
     int maxnlp = 111111;
     reduce(nlp, minnlp, OpMinAssign());
     reduce(nlp, maxnlp, OpMaxAssign());
-    *gmsg << s << " min local particle number " << minnlp << " max local particle number: " << maxnlp << endl;
+    *gmsg << s << "min local particle number: "<< minnlp << endl;
+    *gmsg << "*                     max local particle number: " << maxnlp << endl;
 }
 
-/**
- *
- *
- */
-void ParallelCyclotronTracker::execute() {
 
+void ParallelCyclotronTracker::execute() {
     /*
       Initialize common variables and structures
       for the integrators
@@ -1179,34 +1179,32 @@ void ParallelCyclotronTracker::execute() {
         opalRing_m->lockRing();
 
     // Display the selected elements
-    *gmsg << "* ---------------------------------------------------" << endl;
+    *gmsg << "* ------------------------------------------------------------------------ *" << endl;
     *gmsg << "* The selected Beam line elements are :" << endl;
-
-    for(auto fd : FieldDimensions) {
+    for (auto fd : FieldDimensions) {
         ElementBase::ElementType type = fd->first;
         *gmsg << "* -> " <<  ElementBase::getTypeString(type) << endl;
-        if(type == ElementBase::RFCAVITY) {
+        if (type == ElementBase::RFCAVITY) {
             RFCavity* cav = static_cast<RFCavity*>((fd->second).second);
             CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * 0.001};
             cavCrossDatas_m.push_back(ccd);
-        } else if( type == ElementBase::CCOLLIMATOR ||
-                   type == ElementBase::PROBE       ||
-                   type == ElementBase::SEPTUM      ||
-                   type == ElementBase::STRIPPER) {
+        } else if ( type == ElementBase::CCOLLIMATOR ||
+                    type == ElementBase::PROBE       ||
+                    type == ElementBase::SEPTUM      ||
+                    type == ElementBase::STRIPPER) {
             PluginElement* element = static_cast<PluginElement*>((fd->second).second);
             pluginElements_m.push_back(element);
         }
     }
-
-    *gmsg << "* ---------------------------------------------------" << endl;
+    *gmsg << "* ------------------------------------------------------------------------ *" << endl << endl;
 
     // Get BoundaryGeometry that is already initialized
     bgf_m = OpalData::getInstance()->getGlobalGeometry();
     if (bgf_m)
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink("GEOM",!Options::asciidump));
+        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(bgf_m->getOpalName(),!Options::asciidump));
 
     // External field arrays for dumping
-    for(int k = 0; k < 2; k++)
+    for (int k = 0; k < 2; k++)
         FDext_m[k] = Vector_t(0.0, 0.0, 0.0);
 
     extE_m = Vector_t(0.0, 0.0, 0.0);
@@ -1221,38 +1219,41 @@ void ParallelCyclotronTracker::execute() {
                                 std::placeholders::_3,
                                 std::placeholders::_4);
 
-    switch ( stepper_m )
-    {
-        case stepper::INTEGRATOR::RK4:
+    switch ( stepper_m ) {
+        case stepper::INTEGRATOR::RK4: {
             *gmsg << "* 4th order Runge-Kutta integrator" << endl;
             itsStepper_mp.reset(new RK4<function_t>(func));
             break;
-        case stepper::INTEGRATOR::LF2:
+        }
+        case stepper::INTEGRATOR::LF2: {
             *gmsg << "* 2nd order Leap-Frog integrator" << endl;
             itsStepper_mp.reset(new LF2<function_t>(func));
             break;
-        case stepper::INTEGRATOR::MTS:
+        }
+        case stepper::INTEGRATOR::MTS: {
             *gmsg << "* Multiple time stepping (MTS) integrator" << endl;
             break;
-        case stepper::INTEGRATOR::UNDEFINED:
+        }
+        case stepper::INTEGRATOR::UNDEFINED: {
         default:
             itsStepper_mp.reset(nullptr);
             throw OpalException("ParallelCyclotronTracker::execute",
                                 "Invalid name of TIMEINTEGRATOR in Track command");
+        }
     }
 
-    if ( stepper_m == stepper::INTEGRATOR::MTS)
+    if ( stepper_m == stepper::INTEGRATOR::MTS) {
         MtsTracker();
-    else
+    } else {
         GenericTracker();
+    }
 
-
-    *gmsg << "* ----------------------------------------------- *" << endl;
+    *gmsg << "* ------------------------------------------------------------------------ *" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
-    for(auto fd : FieldDimensions) {
+    for (auto fd : FieldDimensions) {
         ((fd->second).second)->finalise();
     }
-    *gmsg << "* ----------------------------------------------- *" << endl;
+    *gmsg << "* ------------------------------------------------------------------------ *" << endl;
 }
 
 
@@ -1271,42 +1272,38 @@ void ParallelCyclotronTracker::MtsTracker() {
     std::tie(t, dt, oldReferenceTheta) = initializeTracking_m();
 
     int const numSubsteps = std::max(Options::mtsSubsteps, 1);
-
-    *gmsg << "MTS: Number of substeps per step is " << numSubsteps << endl;
+    *gmsg << "* MTS: Number of substeps per step is " << numSubsteps << endl;
 
     double const dt_inner = dt / double(numSubsteps);
-
-    *gmsg << "MTS: The inner time step is therefore " << dt_inner << " [ns]" << endl;
+    *gmsg << "* MTS: The inner time step is therefore " << dt_inner << " [ns]" << endl;
 
 //     int SteptoLastInj = itsBunch_m->getSteptoLastInj();
 
     bool flagTransition = false; // flag to determine when to transit from single-bunch to multi-bunches mode
 
-
-    *gmsg << "* ---------------------------- Start tracking ----------------------------" << endl;
+    *gmsg << "* ---------------------- Start tracking ---------------------------------- *" << endl;
 
     if ( itsBunch_m->hasFieldSolver() )
         computeSpaceChargeFields_m();
 
-    for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
+    for (; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
         bool finishedTurn = false;
 
-        if(step_m % Options::sptDumpFreq == 0) {
+        if (step_m % Options::sptDumpFreq == 0) {
             singleParticleDump();
         }
 
         Ippl::Comm->barrier();
 
         // First half kick from space charge force
-        if(itsBunch_m->hasFieldSolver()) {
+        if (itsBunch_m->hasFieldSolver()) {
             kick(0.5 * dt);
         }
 
         // Substeps for external field integration
-        for(int n = 0; n < numSubsteps; ++n)
+        for (int n = 0; n < numSubsteps; ++n)
             borisExternalFields(dt_inner);
-
 
         // bunch injection
         // TODO: Where is correct location for this piece of code? Beginning/end of step? Before field solve?
@@ -1318,7 +1315,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             // if field solver is not available , only update bunch, to transfer particles between nodes if needed,
             // reset parameters such as LocalNum, initialTotalNum_m.
             // INFOMSG("No space charge Effects are included!"<<endl;);
-            if((step_m % Options::repartFreq * 100) == 0) { //TODO: why * 100?
+            if ((step_m % Options::repartFreq * 100) == 0) { //TODO: why * 100?
                 Vector_t const meanP = calcMeanP();
                 double const phi = calculateAngle(meanP(0), meanP(1)) - 0.5 * Physics::pi;
                 Vector_t const meanR = calcMeanR();
@@ -1330,7 +1327,7 @@ void ParallelCyclotronTracker::MtsTracker() {
         }
 
         // Second half kick from space charge force
-        if(itsBunch_m->hasFieldSolver())
+        if (itsBunch_m->hasFieldSolver())
             kick(0.5 * dt);
 
         // recalculate bingamma and reset the BinID for each particles according to its current gamma
@@ -1357,7 +1354,7 @@ void ParallelCyclotronTracker::MtsTracker() {
             // both for single bunch and multi-bunch
             // avoid dump at the first step
             // finishedTurn has not been changed in first push
-            if( isTurnDone() ) {
+            if ( isTurnDone() ) {
                 ++turnnumber_m;
                 finishedTurn = true;
 
@@ -1376,12 +1373,11 @@ void ParallelCyclotronTracker::MtsTracker() {
         // printing + updating bunch parameters + updating t
         update_m(t, dt, finishedTurn);
 
-
     }
 
     // Some post-integration stuff
     *gmsg << endl;
-    *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
+    *gmsg << "* ---------------------- DONE TRACKING PARTICLES ------------------------- *" << endl;
 
 
     //FIXME
@@ -1394,10 +1390,6 @@ void ParallelCyclotronTracker::MtsTracker() {
 }
 
 
-/**
- *
- *
- */
 void ParallelCyclotronTracker::GenericTracker() {
     /*
      * variable             unit        meaning
@@ -1435,34 +1427,34 @@ void ParallelCyclotronTracker::GenericTracker() {
      *     Main integration loop    *
      ********************************/
     *gmsg << endl;
-    *gmsg << "* --------------------------------- Start tracking ------------------------------------ *" << endl;
+    *gmsg << "* ---------------------- Start tracking ---------------------------------- *" << endl;
 
-    for(; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
+    for (; (step_m < maxSteps_m) && (itsBunch_m->getTotalNum()>0); step_m++) {
 
         bool finishedTurn = false;
 
-        switch (mode_m)
-        {
-            case MODE::SEO:
-            { // initialTotalNum_m == 2
+        switch (mode_m) {
+            case MODE::SEO: {
+                // initialTotalNum_m == 2
                 seoMode_m(t, dt, finishedTurn, Ttime, Tdeltr, Tdeltz, TturnNumber);
                 break;
             }
-            case MODE::SINGLE:
-            { // initialTotalNum_m == 1
+            case MODE::SINGLE: {
+                // initialTotalNum_m == 1
                 singleMode_m(t, dt, finishedTurn, oldReferenceTheta);
                 break;
             }
-            case MODE::BUNCH:
-            { // initialTotalNum_m > 2
+            case MODE::BUNCH: {
+                // initialTotalNum_m > 2
                 // Start Tracking for number of particles > 2 (i.e. not single and not SEO mode)
                 bunchMode_m(t, dt, finishedTurn);
                 break;
             }
-            case MODE::UNDEFINED:
+            case MODE::UNDEFINED: {
             default:
                 throw OpalException("ParallelCyclotronTracker::GenericTracker()",
                                     "No such tracking mode.");
+            }
         }
         // Update bunch and some parameters and output some info
         update_m(t, dt, finishedTurn);
@@ -1471,7 +1463,7 @@ void ParallelCyclotronTracker::GenericTracker() {
 
     // Some post-integration stuff
     *gmsg << endl;
-    *gmsg << "* ---------------------------- DONE TRACKING PARTICLES -------------------------------- * " << endl;
+    *gmsg << "* ---------------------- DONE TRACKING PARTICLES ------------------------- *" << endl;
 
     finalizeTracking_m(Ttime, Tdeltr, Tdeltz, TturnNumber);
 }
@@ -2180,11 +2172,8 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate){
         reduce(locNumLost, globLostParticleNum, 1, std::plus<size_t>());
 
         if ( globLostParticleNum > 0 ) {
-            *gmsg << "At step " << step_m
-                  << ", lost "  << globLostParticleNum << " particles "
-                  << "on stripper, collimator, septum, geometry, "
-                  << "out of cyclotron aperture or beam stripping"
-                  << endl;
+            *gmsg << level3 << "At step " << step_m
+                  << ", lost "  << globLostParticleNum << " particles" << endl;
         }
 
         if (totalnum[bunchCount] == 0) {
@@ -2364,9 +2353,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     itsBunch_m->boundp();
 
-    checkNumPart(std::string("* Before repartition: "));
+    checkNumPart(std::string("\n* Before repartition: "));
     repartition();
-    checkNumPart(std::string("* After repartition:  "));
+    checkNumPart(std::string("\n* After repartition:  "));
 
     itsBunch_m->calcBeamParameters();
 
