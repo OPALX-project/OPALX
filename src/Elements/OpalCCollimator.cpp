@@ -40,8 +40,6 @@ OpalCCollimator::OpalCCollimator():
                       ("ZEND", "End of vertical coordinate, [mm], default value: 100", 100.0);
     itsAttr[WIDTH]  = Attributes::makeReal
                       ("WIDTH", "Width of the collimator [mm]");
-    itsAttr[OUTFN]  = Attributes::makeString
-                      ("OUTFN", "Output filename");
 
     registerOwnership();
 

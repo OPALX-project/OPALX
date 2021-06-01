@@ -1,40 +1,37 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Monitor.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Monitor
+// Class Monitor
 //   Defines the abstract interface for a beam position monitor.
 //
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
+// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
 //
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AbsBeamline/Monitor.h"
-#include "Physics/Physics.h"
-#include "Algorithms/PartBunchBase.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Fields/Fieldmap.h"
+#include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "Structure/MonitorStatisticsWriter.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
+
 #include <boost/filesystem.hpp>
-#include "AbstractObjects/OpalData.h"
-#include "Structure/MonitorStatisticsWriter.h"
 
 #include <fstream>
 #include <memory>
 
-
-// Class Monitor
-// ------------------------------------------------------------------------
 
 std::map<double, SetStatistics> Monitor::statFileEntries_sm;
 const double Monitor::halfLength_s = 0.005;
@@ -147,27 +144,25 @@ void Monitor::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
     endField = startField + halfLength_s;
     startField -= halfLength_s;
 
-    if (filename_m == std::string(""))
-        filename_m = getName();
-    else
-        filename_m = filename_m.substr(0, filename_m.rfind("."));
-
     const size_t totalNum = bunch->getTotalNum();
     double currentPosition = endField;
     if (totalNum > 0) {
         currentPosition = bunch->get_sPos();
     }
 
+    filename_m = getOutputFN();
+
     if (OpalData::getInstance()->getOpenMode() == OpalData::OPENMODE::WRITE ||
         currentPosition < startField) {
+
         namespace fs = boost::filesystem;
 
         fs::path lossFileName = fs::path(filename_m + ".h5");
         if (fs::exists(lossFileName)) {
             Ippl::Comm->barrier();
-            if (Ippl::myNode() == 0)
+            if (Ippl::myNode() == 0) {
                 fs::remove(lossFileName);
-
+            }
             Ippl::Comm->barrier();
         }
     }
@@ -196,10 +191,6 @@ void Monitor::goOffline() {
 
 bool Monitor::bends() const {
     return false;
-}
-
-void Monitor::setOutputFN(std::string fn) {
-    filename_m = fn;
 }
 
 void Monitor::getDimensions(double &zBegin, double &zEnd) const {

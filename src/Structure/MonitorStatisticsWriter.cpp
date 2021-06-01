@@ -1,7 +1,24 @@
-#include "MonitorStatisticsWriter.h"
+//
+// Class MonitorStatisticsWriter
+//   This class writes statistics of monitor element.
+//
+// Copyright (c) 2019, Christof Metzger-Kraus, Open Sourcerer
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+#include "Structure/MonitorStatisticsWriter.h"
 
 #include "Structure/LossDataSink.h"
-#include "Ippl.h"
+#include "Utility/IpplInfo.h"
 
 MonitorStatisticsWriter::MonitorStatisticsWriter(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
@@ -56,11 +73,11 @@ void MonitorStatisticsWriter::fillHeader() {
 }
 
 
-void MonitorStatisticsWriter::addRow(const SetStatistics &set) {
+void MonitorStatisticsWriter::addRow(const SetStatistics& set) {
 
-    if ( Ippl::myNode() != 0 )
+    if ( Ippl::myNode() != 0 ) {
         return;
-
+    }
 
     this->fillHeader();
 
@@ -68,7 +85,7 @@ void MonitorStatisticsWriter::addRow(const SetStatistics &set) {
 
     this->writeHeader();
 
-    columns_m.addColumnValue("name", set.element_m);
+    columns_m.addColumnValue("name", set.outputName_m);
     columns_m.addColumnValue("s", set.spos_m);
     columns_m.addColumnValue("t", set.refTime_m);
     columns_m.addColumnValue("numParticles", set.nTotal_m);
