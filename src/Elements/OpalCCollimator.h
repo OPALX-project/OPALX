@@ -35,7 +35,6 @@ public:
         ZSTART,           // Top boundary
         ZEND,             // Bottom boundary
         WIDTH,            // The width of collimator
-        OUTFN,            // Output filename
         SIZE
     };
 
