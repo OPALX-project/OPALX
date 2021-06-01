@@ -31,8 +31,6 @@ OpalFlexibleCollimator::OpalFlexibleCollimator():
                      ("FNAME", "File name containing description of holes");
     itsAttr[DESC]  = Attributes::makeString
                      ("DESCRIPTION", "String describing the distribution of holes");
-    itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "File name of log file for deleted particles");
     itsAttr[DUMP]  = Attributes::makeBool
                      ("DUMP", "Save quadtree and holes of collimator", false);
     registerOwnership();

@@ -936,7 +936,7 @@ void Cyclotron::initialise(PartBunchBase<double, 3>* bunch, double& /*startField
 
 void Cyclotron::initialise(PartBunchBase<double, 3>* bunch, const double& scaleFactor) {
     RefPartBunch_m = bunch;
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));
 
     this->read(scaleFactor);
 }

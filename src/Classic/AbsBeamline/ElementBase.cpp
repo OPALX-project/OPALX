@@ -1,6 +1,6 @@
 //
 // Class ElementBase
-//   The very base class for beam line representation objects.  A beam line
+//   The very base class for beam line representation objects. A beam line
 //   is modelled as a composite structure having a single root object
 //   (the top level beam line), which contains both ``single'' leaf-type
 //   elements (Components), as well as sub-lines (composites).
@@ -47,7 +47,7 @@
 //   This returns a full deep copy.
 //   [/OL]
 //
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -61,13 +61,13 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "AbsBeamline/ElementBase.h"
+
 #include "Channels/Channel.h"
-#include <string>
-
-#include "Structure/BoundaryGeometry.h"    // OPAL file
-#include "Solvers/WakeFunction.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
+#include "Solvers/WakeFunction.h"
+#include "Structure/BoundaryGeometry.h"
 
+#include <string>
 
 ElementBase::ElementBase():
     ElementBase("")
@@ -89,14 +89,16 @@ ElementBase::ElementBase(const ElementBase &right):
     parmatint_m(right.parmatint_m),
     positionIsFixed(right.positionIsFixed),
     elementPosition_m(right.elementPosition_m),
-    elemedgeSet_m(right.elemedgeSet_m)
+    elemedgeSet_m(right.elemedgeSet_m),
+    outputfn_m(right.outputfn_m)
 {
 
-    if(parmatint_m) {
+    if (parmatint_m) {
         parmatint_m->updateElement(this);
     }
-    if(bgeometry_m)
+    if (bgeometry_m) {
         bgeometry_m->updateElement(this);
+    }
 }
 
 
@@ -114,7 +116,8 @@ ElementBase::ElementBase(const std::string &name):
     parmatint_m(NULL),
     positionIsFixed(false),
     elementPosition_m(0.0),
-    elemedgeSet_m(false)
+    elemedgeSet_m(false),
+    outputfn_m("")
 {}
 
 
@@ -123,9 +126,7 @@ ElementBase::~ElementBase()
 {}
 
 
-const std::string &ElementBase::getName() const
-
-{
+const std::string &ElementBase::getName() const {
     return elementID;
 }
 
@@ -138,7 +139,7 @@ void ElementBase::setName(const std::string &name) {
 double ElementBase::getAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
-    if(aChannel != NULL) {
+    if (aChannel != NULL) {
         double val = *aChannel;
         delete aChannel;
         return val;
@@ -151,7 +152,7 @@ double ElementBase::getAttribute(const std::string &aKey) const {
 bool ElementBase::hasAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
-    if(aChannel != NULL) {
+    if (aChannel != NULL) {
         delete aChannel;
         return true;
     } else {
@@ -168,7 +169,7 @@ void ElementBase::removeAttribute(const std::string &aKey) {
 void ElementBase::setAttribute(const std::string &aKey, double val) {
     Channel *aChannel = getChannel(aKey, true);
 
-    if(aChannel != NULL  &&  aChannel->isSettable()) {
+    if (aChannel != NULL  &&  aChannel->isSettable()) {
         *aChannel = val;
         delete aChannel;
     } else
@@ -230,12 +231,12 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
         return "Stripper";
     case TRAVELINGWAVE:
         return "TravelingWave";
-    case VACUUM:
-        return "Vacuum";
 #ifdef ENABLE_OPAL_FEL
     case UNDULATOR:
         return "Undulator";
 #endif
+    case VACUUM:
+        return "Vacuum";
     case VARIABLERFCAVITY:
         return "VariableRFCavity";
     case ANY:
@@ -245,7 +246,7 @@ std::string ElementBase::getTypeString(ElementBase::ElementType type) {
 }
 
 ElementBase *ElementBase::copyStructure() {
-    if(isSharable()) {
+    if (isSharable()) {
         return this;
     } else {
         return clone();
@@ -259,7 +260,7 @@ void ElementBase::makeSharable() {
 
 
 bool ElementBase::update(const AttributeSet &set) {
-    for(AttributeSet::const_iterator i = set.begin(); i != set.end(); ++i) {
+    for (AttributeSet::const_iterator i = set.begin(); i != set.end(); ++i) {
         setAttribute(i->first, i->second);
     }
 

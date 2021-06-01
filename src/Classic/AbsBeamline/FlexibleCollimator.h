@@ -1,10 +1,8 @@
 //
 // Class FlexibleCollimator
+//   Defines the abstract interface for a collimator.
 //
-// Abstract collimator.
-// Class FlexibleCollimator defines the abstract interface for a collimator.
-//
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
 // This file is part of OPAL.
@@ -17,12 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef CLASSIC_FlexibleCollimator_HH
 #define CLASSIC_FlexibleCollimator_HH
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/MSLang.h"
+#include "Utilities/MSLang/BoundingBox.h"
 #include "Utilities/MSLang/QuadTree.h"
 
 #include <memory>
@@ -68,9 +66,6 @@ public:
 
     void print();
 
-    void setOutputFN(const std::string &fn);
-    std::string getOutputFN() const;
-
     unsigned int getLosses() const;
 
     void setDescription(const std::string &desc);
@@ -90,8 +85,6 @@ private:
     mslang::BoundingBox bb_m;
     mslang::QuadTree tree_m;
 
-    std::string filename_m;               /**< The name of the outputfile*/
-
     bool informed_m;
     unsigned int losses_m;
     std::unique_ptr<LossDataSink> lossDs_m;
@@ -107,16 +100,6 @@ unsigned int FlexibleCollimator::getLosses() const {
 inline
 bool FlexibleCollimator::bends() const {
     return false;
-}
-
-inline
-void FlexibleCollimator::setOutputFN(const std::string &fn) {
-    filename_m = fn;
-}
-
-inline
-std::string FlexibleCollimator::getOutputFN() const {
-    return filename_m;
 }
 
 inline

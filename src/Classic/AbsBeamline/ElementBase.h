@@ -1,6 +1,6 @@
 //
 // Class ElementBase
-//   The very base class for beam line representation objects.  A beam line
+//   The very base class for beam line representation objects. A beam line
 //   is modelled as a composite structure having a single root object
 //   (the top level beam line), which contains both ``single'' leaf-type
 //   elements (Components), as well as sub-lines (composites).
@@ -47,7 +47,7 @@
 //   This returns a full deep copy.
 //   [/OL]
 //
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -64,11 +64,11 @@
 #define CLASSIC_ElementBase_HH
 
 #include "AbsBeamline/AttributeSet.h"
-#include "BeamlineGeometry/Geometry.h"
-#include "BeamlineGeometry/Euclid3D.h"
-#include "MemoryManagement/RCObject.h"
-#include "Algorithms/Quaternion.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Quaternion.h"
+#include "BeamlineGeometry/Euclid3D.h"
+#include "BeamlineGeometry/Geometry.h"
+#include "MemoryManagement/RCObject.h"
 #include "Utilities/GeneralClassicException.h"
 
 #include <boost/optional.hpp>
@@ -86,7 +86,6 @@ class WakeFunction;
 class ElementBase: public RCObject {
 
 public:
-
     /// Constructor with given name.
     explicit ElementBase(const std::string &name);
 
@@ -145,12 +144,12 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual BGeometryBase  &getGeometry() = 0;
+    virtual BGeometryBase &getGeometry() = 0;
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const BGeometryBase  &getGeometry() const = 0;
+    virtual const BGeometryBase &getGeometry() const = 0;
 
     /// Get arc length.
     //  Return the entire arc length measured along the design orbit
@@ -264,7 +263,6 @@ public:
     //  If any error occurs, this method throws an exception.
     virtual void accept(BeamlineVisitor &visitor) const = 0;
 
-
     /// Return clone.
     //  Return an identical deep copy of the element.
     virtual ElementBase *clone() const = 0;
@@ -299,7 +297,6 @@ public:
     virtual BoundaryGeometry *getBoundaryGeometry() const;
 
     virtual bool hasBoundaryGeometry() const;
-
 
     /// attach a wake field to the element
     virtual void setWake(WakeFunction *wf);
@@ -374,6 +371,12 @@ public:
 
     virtual int getRequiredNumberOfTimeSteps() const;
 
+    /// Set output filename
+    void setOutputFN(std::string fn);
+    /// Get output filename
+    std::string getOutputFN() const;
+
+
 protected:
     bool isInsideTransverse(const Vector_t &r) const;
 
@@ -390,8 +393,8 @@ protected:
 
     double rotationZAxis_m;
 
-private:
 
+private:
     // Not implemented.
     void operator=(const ElementBase &);
 
@@ -413,6 +416,8 @@ private:
     bool elemedgeSet_m;
     ///@}
     std::queue<std::pair<double, double> > actionRange_m;
+
+    std::string outputfn_m; /**< The name of the outputfile*/
 };
 
 
@@ -500,20 +505,19 @@ bool ElementBase::hasParticleMatterInteraction() const
 { return parmatint_m != NULL; }
 
 inline
-void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo &trafo)
-{
+void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo &trafo) {
     if (positionIsFixed) return;
 
     csTrafoGlobal2Local_m = trafo;
 }
 
 inline
-CoordinateSystemTrafo ElementBase::getCSTrafoGlobal2Local() const
-{ return csTrafoGlobal2Local_m; }
+CoordinateSystemTrafo ElementBase::getCSTrafoGlobal2Local() const {
+    return csTrafoGlobal2Local_m;
+}
 
 inline
-CoordinateSystemTrafo ElementBase::getEdgeToBegin() const
-{
+CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
     CoordinateSystemTrafo ret(Vector_t(0, 0, 0),
                               Quaternion(1, 0, 0, 0));
 
@@ -521,8 +525,7 @@ CoordinateSystemTrafo ElementBase::getEdgeToBegin() const
 }
 
 inline
-CoordinateSystemTrafo ElementBase::getEdgeToEnd() const
-{
+CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(Vector_t(0, 0, getElementLength()),
                               Quaternion(1, 0, 0, 0));
 
@@ -530,21 +533,18 @@ CoordinateSystemTrafo ElementBase::getEdgeToEnd() const
 }
 
 inline
-void ElementBase::setAperture(const ApertureType& type, const std::vector<double> &args)
-{
+void ElementBase::setAperture(const ApertureType& type, const std::vector<double> &args) {
     aperture_m.first = type;
     aperture_m.second = args;
 }
 
 inline
-std::pair<ElementBase::ApertureType, std::vector<double> > ElementBase::getAperture() const
-{
+std::pair<ElementBase::ApertureType, std::vector<double> > ElementBase::getAperture() const {
     return aperture_m;
 }
 
 inline
-bool ElementBase::isInside(const Vector_t &r) const
-{
+bool ElementBase::isInside(const Vector_t &r) const {
     const double length = getElementLength();
     return r(2) >= 0.0 && r(2) < length && isInsideTransverse(r);
 }
@@ -612,13 +612,27 @@ double ElementBase::getElementPosition() const {
 }
 
 inline
-bool ElementBase::isElementPositionSet() const
-{ return elemedgeSet_m; }
+bool ElementBase::isElementPositionSet() const {
+    return elemedgeSet_m;
+}
 
 inline
-int ElementBase::getRequiredNumberOfTimeSteps() const
-{
+int ElementBase::getRequiredNumberOfTimeSteps() const {
     return 10;
+}
+
+inline
+void ElementBase::setOutputFN(const std::string fn) {
+    outputfn_m = fn;
+}
+
+inline
+std::string ElementBase::getOutputFN() const {
+    if (outputfn_m.empty()) {
+        return getName();
+    } else {
+        return outputfn_m.substr(0, outputfn_m.rfind("."));
+    }
 }
 
 #endif // CLASSIC_ElementBase_HH

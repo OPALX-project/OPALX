@@ -1,3 +1,20 @@
+//
+// Class Source
+//   Defines the abstract interface for a source.
+//
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_SOURCE_HH
 #define CLASSIC_SOURCE_HH
 
@@ -5,6 +22,7 @@
 #include "Structure/LossDataSink.h"
 
 class OpalBeamline;
+class LossDataSink;
 
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -42,14 +60,16 @@ public:
     virtual int getRequiredNumberOfTimeSteps() const override;
 
     void setTransparent();
+
+
 private:
 
-    double startField_m;           /**< startingpoint of field, m*/
+    double startField_m; /**< startingpoint of field, m*/
     double endField_m;
 
     bool isTransparent_m;
 
-    std::unique_ptr<LossDataSink> lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m; /**< Handling for store the particle out of region*/
 
     // Not implemented.
     void operator=(const Source &);

@@ -52,8 +52,6 @@ OpalStripper::OpalStripper():
                      ("OPYIELD", "Yield (Particle number of the outcome particle) per income particle");
     itsAttr[STOP] = Attributes::makeBool
       ("STOP", "Option Whether stop tracking at the stripper. Default: true", true);
-    itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "Output filename");
 
     registerOwnership();
 

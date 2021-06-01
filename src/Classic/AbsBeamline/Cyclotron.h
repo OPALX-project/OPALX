@@ -247,14 +247,14 @@ protected:
 
 private:
 
-    std::string fmapfn_m; /* stores the filename of the fieldmap */
+    std::string fmapfn_m; /**< Stores the filename of the B-fieldmap*/
     std::vector<double> rffrequ_m;
     std::vector< std::vector<double> > rffc_m;
     std::vector<double> rfvrequ_m;
     std::vector< std::vector<double> > rfvc_m;
     std::vector<double> rfphi_m;
-    std::vector<double> escale_m;  // a scale factor for the E-field
-    std::vector<bool> superpose_m; // electric fields are superposed or not
+    std::vector<double> escale_m;  /**< A scale factor for the E-field*/
+    std::vector<bool> superpose_m; /**< A flag for superpose electric fields*/
 
     double symmetry_m;
 
@@ -265,15 +265,14 @@ private:
     double pzinit_m;
 
     bool spiral_flag_m;
-    double trimCoilThreshold_m; ///< B-field threshold for applying trim coil
+    double trimCoilThreshold_m; /**< B-field threshold for applying trim coil*/
 
-    std::string typeName_m; // name of the TYPE parameter in cyclotron
+    std::string typeName_m; /**< Name of the TYPE parameter in cyclotron*/
     double harm_m;
 
-    double bscale_m; // a scale factor for the B-field
+    double bscale_m; /**< A scale factor for the B-field*/
 
-    /// Trim coils
-    std::vector<TrimCoil*> trimcoils_m;
+    std::vector<TrimCoil*> trimcoils_m; /**< Trim coils*/
 
     double minr_m;
     double maxr_m;
@@ -294,8 +293,7 @@ private:
     std::vector<std::string> RFFCoeff_fn_m;
     std::vector<std::string> RFVCoeff_fn_m;
 
-    // handling for store the particle out of region
-    std::unique_ptr<LossDataSink> lossDs_m;
+    std::unique_ptr<LossDataSink> lossDs_m; /**< Handling for store the particle out of region*/
 
     // Necessary for quick and dirty phase output -DW
     int waiting_for_gap = 1;

@@ -29,8 +29,6 @@ OpalDegrader::OpalDegrader():
         ("XSIZE", "not used",0.0);
     itsAttr[YSIZE] = Attributes::makeReal
         ("YSIZE", "not used",0.0);
-    itsAttr[OUTFN] = Attributes::makeString
-        ("OUTFN", "Degrader output filename");
 
     registerOwnership();
 

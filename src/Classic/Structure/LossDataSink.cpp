@@ -142,7 +142,7 @@ namespace {
 }
 
 SetStatistics::SetStatistics():
-    element_m(""),
+    outputName_m(""),
     spos_m(0.0),
     refTime_m(0.0),
     tmean_m(0.0),
@@ -166,10 +166,10 @@ SetStatistics::SetStatistics():
     fac_m(0.0)
     { }
 
-LossDataSink::LossDataSink(std::string elem, bool hdf5Save, CollectionType collectionType):
+LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType collectionType):
     h5hut_mode_m(hdf5Save),
     H5file_m(0),
-    element_m(elem),
+    outputName_m(outfn),
     H5call_m(0),
     collectionType_m(collectionType)
 {
@@ -181,7 +181,7 @@ LossDataSink::LossDataSink(std::string elem, bool hdf5Save, CollectionType colle
 LossDataSink::LossDataSink(const LossDataSink &rhs):
     h5hut_mode_m(rhs.h5hut_mode_m),
     H5file_m(rhs.H5file_m),
-    element_m(rhs.element_m),
+    outputName_m(rhs.outputName_m),
     H5call_m(rhs.H5call_m),
     RefPartR_m(rhs.RefPartR_m),
     RefPartP_m(rhs.RefPartP_m),
@@ -264,7 +264,7 @@ void LossDataSink::writeHeaderH5() {
 void LossDataSink::writeHeaderASCII() {
     bool hasTurn = hasTurnInformations();
     if (Ippl::myNode() == 0) {
-        os_m << "# Element: " << element_m << ", x (m),  y (m),  z (m),  px ( ),  py ( ),  pz ( ), id";
+        os_m << "# x (m),  y (m),  z (m),  px ( ),  py ( ),  pz ( ), id";
         if (hasTurn) {
             os_m << ",  turn ( ), bunchNumber ( )";
         }
@@ -300,7 +300,7 @@ void LossDataSink::addParticle(const OpalParticle &particle, const boost::option
 
 void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
 
-    if (element_m == std::string("")) return;
+    if (outputName_m.empty()) return;
     if (hasNoParticlesToDump()) return;
 
     if (openMode == OpalData::OPENMODE::UNDEFINED) {
@@ -311,7 +311,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
     if (h5hut_mode_m) {
         if (!Options::enableHDF5) return;
 
-        fn_m = element_m + std::string(".h5");
+        fn_m = outputName_m + std::string(".h5");
         *gmsg << level2 << "Save " << fn_m << endl;
         if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
             openH5();
@@ -327,7 +327,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
         CLOSE_FILE ();
         H5file_m = 0;
     } else {
-        fn_m = element_m + std::string(".loss");
+        fn_m = outputName_m + std::string(".loss");
         *gmsg << level2 << "Save " << fn_m << endl;
         if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
             openASCII();
@@ -709,7 +709,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     double *moments = plainData + 7;
     double *others = plainData + 43;
 
-    stat.element_m = element_m;
+    stat.outputName_m = outputName_m;
     stat.spos_m = spos_m[setIdx];
     stat.refTime_m = refTime_m[setIdx];
     stat.RefPartR_m = RefPartR_m[setIdx];
@@ -728,7 +728,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
                            stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i));
     }
     stat.tmean_m = others[0] / stat.nTotal_m;
-    stat.trms_m = sqrt(std::max(0.0, (others[1] / stat.nTotal_m - std::pow(stat.tmean_m, 2))));
+    stat.trms_m = std::sqrt(std::max(0.0, (others[1] / stat.nTotal_m - std::pow(stat.tmean_m, 2))));
 
     stat.eps2_m = ((stat.rsqsum_m * stat.psqsum_m - stat.rpsum_m * stat.rpsum_m) /
                    (1.0 * stat.nTotal_m * stat.nTotal_m));
@@ -736,8 +736,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     stat.rpsum_m /= stat.nTotal_m;
 
     for (unsigned int i = 0 ; i < 3u; i++) {
-        stat.rrms_m(i) = sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
-        stat.prms_m(i) = sqrt(std::max(0.0, stat.psqsum_m(i)) / stat.nTotal_m);
+        stat.rrms_m(i) = std::sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
+        stat.prms_m(i) = std::sqrt(std::max(0.0, stat.psqsum_m(i)) / stat.nTotal_m);
         stat.eps_norm_m(i)  =  std::sqrt(std::max(0.0, stat.eps2_m(i)));
         double tmp = stat.rrms_m(i) * stat.prms_m(i);
         stat.fac_m(i) = (tmp == 0) ? 0.0 : 1.0 / tmp;

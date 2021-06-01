@@ -30,7 +30,6 @@ public:
     enum {
         XSIZE = COMMON,  // The horizontal half-size.
         YSIZE,           // The vertical half-size.
-        OUTFN,
         SIZE
     };
 
