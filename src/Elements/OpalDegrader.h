@@ -30,7 +30,6 @@ public:
     enum {
         XSIZE = COMMON,  // not used
         YSIZE,           // not used
-        OUTFN,
         SIZE
     };
 

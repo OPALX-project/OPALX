@@ -30,8 +30,6 @@ OpalPepperPot::OpalPepperPot():
                      ("XSIZE", "Size in x of the pepperpot in m");
     itsAttr[YSIZE] = Attributes::makeReal
                      ("YSIZE", "Size in y of the pepperpot in m");
-    itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "Pepperpot output filename");
     itsAttr[NHOLX] = Attributes::makeReal
                      ("NHOLX", "Number of holes in x");
     itsAttr[NHOLY] = Attributes::makeReal

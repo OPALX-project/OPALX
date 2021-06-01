@@ -37,7 +37,7 @@
 struct SetStatistics {
     SetStatistics();
 
-    std::string element_m;
+    std::string outputName_m;
     double spos_m;
     double refTime_m; // ns
     double tmean_m; // ns
@@ -83,7 +83,7 @@ class LossDataSink {
 
     LossDataSink() = default;
 
-    LossDataSink(std::string elem, bool hdf5Save, CollectionType = CollectionType::TEMPORAL);
+    LossDataSink(std::string outfn, bool hdf5Save, CollectionType = CollectionType::TEMPORAL);
 
     LossDataSink(const LossDataSink &rsh);
     ~LossDataSink() noexcept(false);
@@ -150,7 +150,7 @@ private:
     /// used to write out data in H5hut mode
     h5_file_t H5file_m;
 
-    std::string element_m;
+    std::string outputName_m;
 
     /// Current record, or time step, of H5 file.
     h5_int64_t H5call_m;

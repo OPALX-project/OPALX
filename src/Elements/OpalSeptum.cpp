@@ -38,8 +38,6 @@ OpalSeptum::OpalSeptum():
                     ("YEND", "End of y coordinate");
     itsAttr[WIDTH] = Attributes::makeReal
                      ("WIDTH", "Width of the septum");
-    itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "Output filename");
 
     registerOwnership();
 
