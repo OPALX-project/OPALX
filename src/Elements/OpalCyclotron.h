@@ -57,13 +57,12 @@ public:
         SIZE
     };
 
-
     OpalCyclotron();
 
     virtual ~OpalCyclotron();
 
     /// Make clone.
-    virtual OpalCyclotron *clone(const std::string &name);
+    virtual OpalCyclotron* clone(const std::string& name);
 
     /// Update the embedded CLASSIC cavity.
     virtual void update();
@@ -71,13 +70,13 @@ public:
 private:
 
     // Not implemented.
-    OpalCyclotron(const OpalCyclotron &);
-    void operator=(const OpalCyclotron &);
+    OpalCyclotron(const OpalCyclotron&);
+    void operator=(const OpalCyclotron&);
 
     // Clone constructor.
-    OpalCyclotron(const std::string &name, OpalCyclotron *parent);
+    OpalCyclotron(const std::string& name, OpalCyclotron* parent);
 
-    BoundaryGeometry *obgeo_m;
+    BoundaryGeometry* obgeo_m;
 
 };
 

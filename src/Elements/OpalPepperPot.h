@@ -34,7 +34,6 @@ public:
         NHOLY,
         XSIZE,
         YSIZE,
-        OUTFN,
         SIZE
     };
 

@@ -1,23 +1,38 @@
-
+//
+// Class Source
+//   Defines the abstract interface for a source.
+//
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AbsBeamline/Source.h"
-#include "Algorithms/PartBunchBase.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
-#include "Elements/OpalBeamline.h"
+#include "Structure/LossDataSink.h"
+#include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 #include <iostream>
 #include <fstream>
 
-extern Inform *gmsg;
-
-// Class Source
-// ------------------------------------------------------------------------
 
 Source::Source():
     Source("")
 {}
-
 
 Source::Source(const Source &right):
     Component(right),
@@ -25,7 +40,6 @@ Source::Source(const Source &right):
     endField_m(right.endField_m),
     isTransparent_m(right.isTransparent_m)
 {}
-
 
 Source::Source(const std::string &name):
     Component(name),
@@ -36,7 +50,6 @@ Source::Source(const std::string &name):
 
 Source::~Source() {
 }
-
 
 void Source::accept(BeamlineVisitor &visitor) const {
     visitor.visitSource(*this);
@@ -70,10 +83,8 @@ void Source::initialise(PartBunchBase<double, 3> *bunch, double &startField, dou
     endField = startField;
     startField -= getElementLength();
 
-    std::string filename = getName();
-    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename,
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(),
                                                               !Options::asciidump));
-
 }
 
 void Source::finalise()
@@ -82,7 +93,6 @@ void Source::finalise()
 bool Source::bends() const {
     return false;
 }
-
 
 void Source::goOnline(const double &) {
     online_m = true;
@@ -97,7 +107,6 @@ void Source::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = startField_m;
     zEnd = endField_m;
 }
-
 
 ElementBase::ElementType Source::getType() const {
     return SOURCE;

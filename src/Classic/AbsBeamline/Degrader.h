@@ -1,26 +1,22 @@
+//
+// Class Degrader
+//   Defines the abstract interface for a beam degrader.
+//
+// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 #ifndef CLASSIC_Degrader_HH
 #define CLASSIC_Degrader_HH
-
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: Degrader
-//   Defines the abstract interface for a beam Degrader.
-//   *** MISSING *** Degrader interface is still incomplete.
-//
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -30,11 +26,6 @@
 #include <vector>
 
 class LossDataSink;
-
-// Class Degrader
-// ------------------------------------------------------------------------
-/// Abstract collimator.
-//  Class Degrader defines the abstract interface for a collimator.
 
 class Degrader: public Component {
 
@@ -88,17 +79,12 @@ public:
 
     std::string  getDegraderShape(); // AAA
 
-    void setOutputFN(std::string fn);
-    std::string getOutputFN();
-
     virtual bool isInMaterial(double z);
 
 private:
 
     // Not implemented.
     void operator=(const Degrader &);
-
-    std::string filename_m;               /**< The name of the outputfile*/
 
     std::vector<double> PosX_m;
     std::vector<double> PosY_m;

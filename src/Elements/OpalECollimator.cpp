@@ -31,8 +31,6 @@ OpalECollimator::OpalECollimator():
                      ("XSIZE", "Horizontal half-aperture in m");
     itsAttr[YSIZE] = Attributes::makeReal
                      ("YSIZE", "Vertical half-aperture in m");
-    itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "Monitor output filename");
 
     registerOwnership();
 

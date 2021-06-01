@@ -40,8 +40,6 @@ OpalProbe::OpalProbe():
                      ("WIDTH", "Width of the probe, not used.");
     itsAttr[STEP] = Attributes::makeReal
                      ("STEP", "Step size of the probe [mm]", 1.0);
-    itsAttr[OUTFN] = Attributes::makeString
-                     ("OUTFN", "Output filename");
 
     registerOwnership();
 

@@ -1,37 +1,34 @@
-// ------------------------------------------------------------------------
-// $RCSfile: Degrader.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Degrader
-//   Defines the abstract interface for a beam Degrader.
+// Class Degrader
+//   Defines the abstract interface for a beam degrader.
 //
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
+// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
 //
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
-
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
 #include "AbsBeamline/Degrader.h"
-#include "Algorithms/PartBunchBase.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Physics/Physics.h"
+#include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
-#include "Solvers/ParticleMatterInteractionHandler.h"
-#include "Physics/Physics.h"
+
 #include <memory>
 #include <string>
 
 extern Inform *gmsg;
 
-// Class Degrader
-// ------------------------------------------------------------------------
 
 Degrader::Degrader():
     Degrader("")
@@ -39,7 +36,6 @@ Degrader::Degrader():
 
 Degrader::Degrader(const Degrader &right):
     Component(right),
-    filename_m(right.filename_m),
     PosX_m(right.PosX_m),
     PosY_m(right.PosY_m),
     PosZ_m(right.PosZ_m),
@@ -56,7 +52,6 @@ Degrader::Degrader(const std::string &name):
 
 
 Degrader::~Degrader() {
-
     if(online_m)
         goOffline();
 }
@@ -84,11 +79,11 @@ bool Degrader::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t
     if (isInMaterial(R(2))) {
         //if particle was allready marked as -1 (it means it should have gone into degrader but didn't)
         //set the label to -2 (will not go into degrader and will be deleted when particles per core > 2)
-        if (RefPartBunch_m->Bin[i] < 0)
+        if (RefPartBunch_m->Bin[i] < 0) {
             RefPartBunch_m->Bin[i] = -2;
-        else
+        } else {
             RefPartBunch_m->Bin[i] = -1;
-
+        }
         double frac = -R(2) / P(2) * recpgamma;
         PosX_m.push_back(R(0));
         PosY_m.push_back(R(1));
@@ -125,15 +120,10 @@ void Degrader::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
 
 void Degrader::initialise(PartBunchBase<double, 3> *bunch) {
     RefPartBunch_m = bunch;
-    if (filename_m == std::string(""))
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
-    else
-        lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(filename_m.substr(0, filename_m.rfind(".")), !Options::asciidump));
+    lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));
 }
 
-
-void Degrader::finalise()
-{
+void Degrader::finalise() {
     *gmsg << "* Finalize Degrader" << endl;
 }
 
@@ -164,21 +154,9 @@ bool Degrader::bends() const {
     return false;
 }
 
-void Degrader::setOutputFN(std::string fn) {
-    filename_m = fn;
-}
-
-std::string Degrader::getOutputFN() {
-    if (filename_m == std::string(""))
-        return getName();
-    else
-        return filename_m.substr(0, filename_m.rfind("."));
-}
-
 void Degrader::getDimensions(double &zBegin, double &zEnd) const {
     zBegin = 0.0;
     zEnd = getElementLength();
-
 }
 
 ElementBase::ElementType Degrader::getType() const {
@@ -187,5 +165,4 @@ ElementBase::ElementType Degrader::getType() const {
 
 std::string Degrader::getDegraderShape() {
     return "DEGRADER";
-
 }
