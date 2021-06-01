@@ -1,25 +1,22 @@
-#ifndef CLASSIC_Monitor_HH
-#define CLASSIC_Monitor_HH
-
-// ------------------------------------------------------------------------
-// $RCSfile: Monitor.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: Monitor
+// Class Monitor
 //   Defines the abstract interface for a beam position monitor.
 //
-// ------------------------------------------------------------------------
-// Class category: AbsBeamline
-// ------------------------------------------------------------------------
+// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved.
 //
-// $Date: 2000/03/27 09:32:31 $
-// $Author: fci $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+//
+#ifndef CLASSIC_Monitor_HH
+#define CLASSIC_Monitor_HH
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -31,12 +28,6 @@
 template <class T, unsigned Dim>
 class PartBunchBase;
 class BeamlineVisitor;
-
-// Class Monitor
-// ------------------------------------------------------------------------
-/// Interface for beam position monitors.
-//  Class Monitor defines the abstract interface for general beam position
-//  monitors.
 
 class Monitor: public Component {
 
@@ -95,8 +86,6 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const override;
 
-    void setOutputFN(std::string fn);
-
     void setCollectionType(CollectionType type);
 
     static void writeStatistics();
@@ -108,7 +97,7 @@ private:
 
     // Not implemented.
     void operator=(const Monitor &);
-    std::string filename_m;               /**< The name of the outputfile*/
+    std::string filename_m; /**< The name of the outputfile*/
     Plane plane_m;
     CollectionType type_m;
     unsigned int numPassages_m;
