@@ -17,12 +17,14 @@
 //
 #include "BasicActions/DumpFields.h"
 
-#include "AbsBeamline/Component.h"
 #include "AbstractObjects/OpalData.h"
+#include "AbsBeamline/Component.h"
 #include "Attributes/Attributes.h"
 #include "Fields/Interpolation/ThreeDGrid.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
+
+#include <boost/filesystem.hpp>
 
 #include <fstream>
 
@@ -134,12 +136,12 @@ void DumpFields::writeFields(Component* field) {
 void DumpFields::checkInt(double real, std::string name, double tolerance) {
     if (std::abs(std::floor(real) - real) > tolerance) {
         throw OpalException("DumpFields::checkInt",
-                            "Value for "+name+
+                            "Value for " + name +
                             " should be an integer but a real value was found");
     }
     if (std::floor(real) < 0.5) {
         throw OpalException("DumpFields::checkInt",
-                            "Value for "+name+" should be 1 or more");
+                            "Value for " + name + " should be 1 or more");
     }
 }
 
@@ -155,17 +157,23 @@ void DumpFields::writeFieldThis(Component* field) {
 
     *gmsg << *this << endl;
 
-    std::string fname = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-        filename_m
-    });
+    std::string fname;
+    if (boost::filesystem::path(filename_m).is_absolute() == true) {
+        fname = filename_m;
+    } else {
+        fname = Util::combineFilePath({
+            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            filename_m
+        });
+    }
+
     double time = 0.;
     Vector_t point(0., 0., 0.);
     Vector_t centroid(0., 0., 0.);
     std::ofstream fout(fname.c_str(), std::ofstream::out);
     if (!fout.good()) {
         throw OpalException("DumpFields::writeFieldThis",
-                            "Failed to open DumpFields file "+filename_m);
+                            "Failed to open DumpFields file " + filename_m);
     }
     // set precision
     fout << grid_m->end().toInteger() << "\n";
@@ -188,22 +196,22 @@ void DumpFields::writeFieldThis(Component* field) {
     }
     if (!fout.good()) {
         throw OpalException("DumpFields::writeFieldThis",
-                            "Something went wrong during writing "+filename_m);
+                            "Something went wrong during writing " + filename_m);
     }
     fout.close();
 }
 
 void DumpFields::print(std::ostream& os) const {
     os << "* ************* D U M P  F I E L D S *********************************************** " << std::endl;
-    os << "* File name: " << Attributes::getString(itsAttr[FILE_NAME]) << '\n'
-       << "* X_START = "  << Attributes::getReal(itsAttr[X_START])     << " [m]\n"
-       << "* DX      = "  << Attributes::getReal(itsAttr[DX])          << " [m]\n"
-       << "* X_STEPS = "  << Attributes::getReal(itsAttr[X_STEPS])     << '\n'
-       << "* Y_START = "  << Attributes::getReal(itsAttr[Y_START])     << " [m]\n"
-       << "* DY      = "  << Attributes::getReal(itsAttr[DY])          << " [m]\n"
-       << "* Y_STEPS = "  << Attributes::getReal(itsAttr[Y_STEPS])     << '\n'
-       << "* Z_START = "  << Attributes::getReal(itsAttr[Z_START])     << " [m]\n"
-       << "* DZ      = "  << Attributes::getReal(itsAttr[DZ])          << " [m]\n"
-       << "* Z_STEPS = "  << Attributes::getReal(itsAttr[Z_STEPS])     << '\n';
+    os << "* File name: " << filename_m << '\n'
+       << "* X_START = "  << Attributes::getReal(itsAttr[X_START]) << " [m]\n"
+       << "* DX      = "  << Attributes::getReal(itsAttr[DX])      << " [m]\n"
+       << "* X_STEPS = "  << Attributes::getReal(itsAttr[X_STEPS]) << '\n'
+       << "* Y_START = "  << Attributes::getReal(itsAttr[Y_START]) << " [m]\n"
+       << "* DY      = "  << Attributes::getReal(itsAttr[DY])      << " [m]\n"
+       << "* Y_STEPS = "  << Attributes::getReal(itsAttr[Y_STEPS]) << '\n'
+       << "* Z_START = "  << Attributes::getReal(itsAttr[Z_START]) << " [m]\n"
+       << "* DZ      = "  << Attributes::getReal(itsAttr[DZ])      << " [m]\n"
+       << "* Z_STEPS = "  << Attributes::getReal(itsAttr[Z_STEPS]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
