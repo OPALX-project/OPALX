@@ -79,11 +79,6 @@ public:
         SIZE
     };
 
-    enum class CoordinateSystem {
-        CARTESIAN,
-        CYLINDRICAL
-    };
-
     /** Constructor */
     DumpEMFields();
 
@@ -129,6 +124,12 @@ public:
     void print(std::ostream& os) const;
 
 private:
+
+    enum class CoordinateSystem {
+        CARTESIAN,
+        CYLINDRICAL
+    };
+
     virtual void writeFieldThis(Component* field);
     virtual void buildGrid();
     void parseCoordinateSystem();
