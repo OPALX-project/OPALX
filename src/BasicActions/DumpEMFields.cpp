@@ -18,13 +18,15 @@
 //
 #include "BasicActions/DumpEMFields.h"
 
-#include "AbsBeamline/Component.h"
 #include "AbstractObjects/OpalData.h"
+#include "AbsBeamline/Component.h"
 #include "Attributes/Attributes.h"
 #include "Fields/Interpolation/NDGrid.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
+
+#include <boost/filesystem.hpp>
 
 #include <fstream>
 #include <cmath>
@@ -39,8 +41,7 @@ DumpEMFields::DumpEMFields() :
            "field file, for checking that fields are generated correctly. "
            "The fields are written out on a grid in space and time."),
     grid_m(NULL),
-    filename_m(""),
-    coordinates_m(CoordinateSystem::CARTESIAN) {
+    filename_m("") {
 
     // would be nice if "steps" could be integer
     itsAttr[FILE_NAME] = Attributes::makeString
@@ -107,7 +108,7 @@ DumpEMFields::DumpEMFields() :
 }
 
 DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent):
-    Action(name, parent)
+    Action(name, parent), grid_m(NULL)
 {}
 
 DumpEMFields::~DumpEMFields() {
@@ -214,12 +215,12 @@ void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
     real += tolerance; // prevent rounding error
     if (std::abs(std::floor(real) - real) > 2*tolerance) {
         throw OpalException("DumpEMFields::checkInt",
-                            "Value for "+name+
+                            "Value for " + name +
                             " should be an integer but a real value was found");
     }
     if (std::floor(real) < 0.5) {
         throw OpalException("DumpEMFields::checkInt",
-                            "Value for "+name+" should be 1 or more");
+                            "Value for " + name + " should be 1 or more");
     }
 }
 
@@ -271,9 +272,9 @@ void DumpEMFields::writeFieldLine(Component* field,
     Vector_t Eout = E;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
         // pointIn is r, phi, z 
-        Bout[0] = B[0]*std::cos(pointIn[1])+B[1]*std::sin(pointIn[1]);
+        Bout[0] =  B[0]*std::cos(pointIn[1])+B[1]*std::sin(pointIn[1]);
         Bout[1] = -B[0]*std::sin(pointIn[1])+B[1]*std::cos(pointIn[1]);
-        Eout[0] = E[0]*std::cos(pointIn[1])+E[1]*std::sin(pointIn[1]);
+        Eout[0] =  E[0]*std::cos(pointIn[1])+E[1]*std::sin(pointIn[1]);
         Eout[1] = -E[0]*std::sin(pointIn[1])+E[1]*std::cos(pointIn[1]);
         fout << pointIn[0] << " " << pointIn[1]*Physics::rad2deg << " " << pointIn[2] << " " << time << " ";
     } else {
@@ -296,22 +297,28 @@ void DumpEMFields::writeFieldThis(Component* field) {
 
     *gmsg << *this << endl;
 
-    std::string fname = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-        filename_m
-    });
+    std::string fname;
+    if (boost::filesystem::path(filename_m).is_absolute() == true) {
+        fname = filename_m;
+    } else {
+        fname = Util::combineFilePath({
+            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+            filename_m
+        });
+    }
+
     std::vector<double> point_std(4);
     Vector_t point(0., 0., 0.);
     std::ofstream fout;
     try {
-        fout.open(filename_m.c_str(), std::ofstream::out);
+        fout.open(fname.c_str(), std::ofstream::out);
     } catch (std::exception& exc) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "Failed to open DumpEMFields file "+filename_m);
+                            "Failed to open DumpEMFields file " + filename_m);
     }
     if (!fout.good()) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "Failed to open DumpEMFields file "+filename_m);
+                            "Failed to open DumpEMFields file " + filename_m);
     }
     // set precision
     writeHeader(fout);
@@ -327,7 +334,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
     }
     if (!fout.good()) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "Something went wrong during writing "+filename_m);
+                            "Something went wrong during writing " + filename_m);
     }
     fout.close();
 }
