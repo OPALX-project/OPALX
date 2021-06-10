@@ -571,7 +571,7 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
             stat = readStatement(is);
         } else if(token.isDel('?')) {
             // Give help.
-            *gmsg << "\ntry typing \"HELP\" or \"SHOW\" for help.\n" << endl;
+            *gmsg << "\ntry typing \"HELP\" for help.\n" << endl;
             stat = readStatement(is);
         } else if(! token.isEOF()) {
             stat = new SimpleStatement(token.getFile(), token.getLine());

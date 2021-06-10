@@ -420,7 +420,7 @@ void ElementBase::BoundingBox::print(std::ostream & out) const {
     std::vector<std::vector<unsigned int>> paths{{0, 1, 2, 3}, {0, 1, 7, 6}, {1, 2, 4, 7}, {2, 3, 5, 4}, {3, 0, 6, 5}, {4, 5, 6, 7}};
 
     out << std::setprecision(8);
-    for (const std::vector<unsigned int> path: paths) {
+    for (const std::vector<unsigned int>& path: paths) {
         for (unsigned int i : {0, 1, 2, 3, 0}) {
             const Vector_t & corner = corners[path[i]];
             out << std::setw(16) << corner(0)
