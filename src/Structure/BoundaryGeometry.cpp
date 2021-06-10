@@ -595,9 +595,9 @@ static inline int
 SIGN3 (
     Vector_t A
     ) {
-    return ((A[0] < EPS) ? 4 : 0 | (A[0] > -EPS) ? 32 : 0 |
-            (A[1] < EPS) ? 2 : 0 | (A[1] > -EPS) ? 16 : 0 |
-            (A[2] < EPS) ? 1 : 0 | (A[2] > -EPS) ? 8 : 0);
+    return (((A[0] < EPS) ? 4 : 0) | ((A[0] > -EPS) ? 32 : 0) |
+            ((A[1] < EPS) ? 2 : 0) | ((A[1] > -EPS) ? 16 : 0) |
+            ((A[2] < EPS) ? 1 : 0) | ((A[2] > -EPS) ? 8  : 0));
 }
 
 static int
