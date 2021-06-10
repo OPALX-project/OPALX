@@ -46,7 +46,7 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator &right):
     lossDs_m(nullptr),
     parmatint_m(NULL)
 {
-    for (const std::shared_ptr<mslang::Base> obj: right.holes_m) {
+    for (const std::shared_ptr<mslang::Base>& obj: right.holes_m) {
         holes_m.emplace_back(obj->clone());
     }
 
