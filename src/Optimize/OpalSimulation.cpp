@@ -446,7 +446,7 @@ std::map<std::string, std::vector<double> > OpalSimulation::getData(const std::v
         std::vector<double> values;
         values.reserve(column.size());
         auto type = parser.getColumnType(var);
-        for (const auto val: column) {
+        for (const auto& val: column) {
             values.push_back(parser.getBoostVariantValue<double>(val,(int)type));
         }
         ret.insert(std::make_pair(var, values));
