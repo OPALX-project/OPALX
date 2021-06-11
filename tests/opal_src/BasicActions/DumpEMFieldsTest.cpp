@@ -41,6 +41,8 @@
 
 #include "opal_test_utilities/SilenceTest.h"
 
+#include "boost/filesystem.hpp"
+
 namespace DumpEMFieldsTest {
 
 void setOneAttribute(DumpEMFields* dump, std::string name, double value) {
@@ -138,61 +140,38 @@ TEST(DumpEMFieldsTest, executeTest) {
     execute_throws(&dump1, "should throw due to nsteps not integer");
 }
 
-void clear_files() {
+void clear_files(std::set<std::string> const& files) {
 
-    std::string fname1 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test1"
-    });
-    std::string fname2 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test2"
-    });
-    std::string fname3 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test3"
-    });
-    std::string fname4 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test4"
-    });
-    std::string fnameCyl = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testCyl"
-    });
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
 
-    size_t n_str_array = 0;
-    std::string str_array[5] = {fname1, fname2, fname3, fname4, fnameCyl};
-    for (size_t i = 0; i < n_str_array; ++i) {
-        if (std::fopen(str_array[i].c_str(), "r") != NULL) {
-            std::remove(str_array[i].c_str());
-        }
+    for (const std::string& fname : files) {
+        boost::filesystem::remove(Util::combineFilePath({auxDirectory, fname}));
     }
 }
 
 TEST(DumpEMFieldsTest, writeFieldsCartTest) {
     OpalTestUtilities::SilenceTest silencer;
 
-    std::string fname1 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test1"
-    });
-    std::string fname2 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test2"
-    });
-    std::string fname3 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test3"
-    });
-    std::string fname4 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test4"
-    });
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
+    boost::filesystem::create_directory(auxDirectory);
 
-    clear_files();
+    std::string fname1 = "test5";
+    std::string fname2 = "test6";
+    std::string fname3 = "test7";
+    std::string fname4 = "test8";
+
+    clear_files({fname1, fname2, fname3, fname4});
     DumpEMFields dump1;
-    setAttributesCart(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., "test1");
+    setAttributesCart(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., fname1);
     dump1.execute();
     DumpEMFields dump2;
-    setAttributesCart(&dump2, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., "test2");
+    setAttributesCart(&dump2, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., fname2);
     dump2.execute();
     DumpEMFields dump3;
-    setAttributesCart(&dump3, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., "test3");
+    setAttributesCart(&dump3, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., fname3);
     // note we don't execute dump3; so it should not be written
     DumpEMFields dump4;
-    setAttributesCart(&dump4, 0.1, 0.1, 3.,   -0.1, 0.2, 2.,   0.2, 0.3, 2.,   1., 1., 2., "test4");
+    setAttributesCart(&dump4, 0.1, 0.1, 3.,   -0.1, 0.2, 2.,   0.2, 0.3, 2.,   1., 1., 2., fname4);
     dump4.execute();
     MockComponent comp;
     try {
@@ -200,13 +179,13 @@ TEST(DumpEMFieldsTest, writeFieldsCartTest) {
     } catch (OpalException& exc) {
         EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;;
     }
-    std::ifstream fin1(fname1);
+    std::ifstream fin1(Util::combineFilePath({auxDirectory, fname1}));
     EXPECT_TRUE(fin1.good());
-    std::ifstream fin2(fname2);
+    std::ifstream fin2(Util::combineFilePath({auxDirectory, fname2}));
     EXPECT_TRUE(fin2.good());
-    std::ifstream fin3(fname3);
+    std::ifstream fin3(Util::combineFilePath({auxDirectory, fname3}));
     EXPECT_FALSE(fin3.good()); // does not exist
-    std::ifstream fin4(fname4);
+    std::ifstream fin4(Util::combineFilePath({auxDirectory, fname4}));
     EXPECT_TRUE(fin4.good());
     int n_lines;
     fin4 >> n_lines;
@@ -240,19 +219,20 @@ TEST(DumpEMFieldsTest, writeFieldsCartTest) {
         EXPECT_NEAR(line[8], -line[5], tol);
         EXPECT_NEAR(line[9], -line[6], tol);
     }
-    // clear_files();
+    clear_files({fname1, fname2, fname3, fname4});
 }
 
 TEST(DumpEMFieldsTest, writeFieldsCylTest) {
     OpalTestUtilities::SilenceTest silencer;
 
-    std::string fnameCyl = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testCyl"
-    });
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
+    boost::filesystem::create_directory(auxDirectory);
 
-    clear_files();
+    std::string fnameCyl = "testCyl";
+
+    clear_files({fnameCyl});
     DumpEMFields dump;
-    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90.*Physics::deg2rad, 45.*Physics::deg2rad, 16,   0.2, 0.3, 2.,   1., 1., 2., "testCyl");
+    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90.*Physics::deg2rad, 45.*Physics::deg2rad, 16,   0.2, 0.3, 2.,   1., 1., 2., fnameCyl);
     dump.execute();
     // depending on execution order, this might write cartesian tests as well... never mind
     MockComponent comp;
@@ -261,7 +241,7 @@ TEST(DumpEMFieldsTest, writeFieldsCylTest) {
     } catch (OpalException& exc) {
         EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;;
     }
-    std::ifstream fin(fnameCyl);
+    std::ifstream fin(Util::combineFilePath({auxDirectory, fnameCyl}));
     EXPECT_TRUE(fin.good());
     int n_lines;
     fin >> n_lines;
@@ -297,7 +277,7 @@ TEST(DumpEMFieldsTest, writeFieldsCylTest) {
         EXPECT_NEAR(line[8], -line[5], tol);
         EXPECT_NEAR(line[9], -line[6], tol);
     }
-    clear_files();
+    clear_files({fnameCyl});
 
     // EXPECT_TRUE(false) << "Do DumpEMFields cylindrical documentation!";
 }

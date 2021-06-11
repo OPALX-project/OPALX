@@ -39,6 +39,8 @@
 
 #include "opal_test_utilities/SilenceTest.h"
 
+#include "boost/filesystem.hpp"
+
 namespace test {
 
 void test() {}
@@ -106,58 +108,39 @@ TEST(DumpFieldsTest, executeTest) {
     execute_throws(&dump1, "should throw due to nsteps not integer");
 }
 
-void clear_files() {
+void clear_files(std::set<std::string> const& files) {
 
-    std::string fname1 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test1"
-    });
-    std::string fname2 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test2"
-    });
-    std::string fname3 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test3"
-    });
-    std::string fname4 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test4"
-    });
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
 
-    size_t n_str_array = 4;
-    std::string str_array[4] = {fname1,fname2,fname3,fname4};
-    for (size_t i = 0; i < n_str_array; ++i) {
-        if (std::fopen(str_array[i].c_str(), "r") != NULL) {
-            std::remove(str_array[i].c_str());
-        }
+    for (const std::string& fname : files) {
+        boost::filesystem::remove(Util::combineFilePath({auxDirectory, fname}));
     }
 }
 
 TEST(DumpFieldsTest, writeFieldsTest) {
     OpalTestUtilities::SilenceTest silencer;
 
-    std::string fname1 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test1"
-    });
-    std::string fname2 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test2"
-    });
-    std::string fname3 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test3"
-    });
-    std::string fname4 = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(), "test4"
-    });
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
 
-    clear_files();
+    boost::filesystem::create_directory(auxDirectory);
+
+    std::string fname1 = "test1";
+    std::string fname2 = "test2";
+    std::string fname3 = "test3";
+    std::string fname4 = "test4";
+
+    clear_files({fname1, fname2, fname3, fname4});
     DumpFields dump1;
-    setAttributes(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1., "test1");
+    setAttributes(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1., fname1);
     dump1.execute();
     DumpFields dump2;
-    setAttributes(&dump2, 1., 1., 1.,   1., 1., 1.,   1., 1., 1., "test2");
+    setAttributes(&dump2, 1., 1., 1.,   1., 1., 1.,   1., 1., 1., fname2);
     dump2.execute();
     DumpFields dump3;
-    setAttributes(&dump3, 1., 1., 1.,   1., 1., 1.,   1., 1., 1., "test3");
+    setAttributes(&dump3, 1., 1., 1.,   1., 1., 1.,   1., 1., 1., fname3);
     // note we don't execute dump3; so it should not be written
     DumpFields dump4;
-    setAttributes(&dump4, 0.1, 0.1, 3.,   -0.1, 0.2, 2.,   0.2, 0.3, 2., "test4");
+    setAttributes(&dump4, 0.1, 0.1, 3.,   -0.1, 0.2, 2.,   0.2, 0.3, 2., fname4);
     dump4.execute();
     MockComponent comp;
     try {
@@ -165,13 +148,13 @@ TEST(DumpFieldsTest, writeFieldsTest) {
     } catch (OpalException& exc) {
         EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;;
     }
-    std::ifstream fin1(fname1);
+    std::ifstream fin1(Util::combineFilePath({auxDirectory, fname1}));
     EXPECT_TRUE(fin1.good());
-    std::ifstream fin2(fname2);
+    std::ifstream fin2(Util::combineFilePath({auxDirectory, fname2}));
     EXPECT_TRUE(fin2.good());
-    std::ifstream fin3(fname3);
+    std::ifstream fin3(Util::combineFilePath({auxDirectory, fname3}));
     EXPECT_FALSE(fin3.good());  // does not exist
-    std::ifstream fin4(fname4);
+    std::ifstream fin4(Util::combineFilePath({auxDirectory, fname4}));
     EXPECT_TRUE(fin4.good());
     int n_lines;
     fin4 >> n_lines;
@@ -201,7 +184,7 @@ TEST(DumpFieldsTest, writeFieldsTest) {
             ASSERT_EQ(line[5], 0.);
         }
     }
-    clear_files();
+    clear_files({fname1, fname2, fname3, fname4});
 }
 
 }
