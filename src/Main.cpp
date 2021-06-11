@@ -46,6 +46,7 @@
 #include "Utility/IpplException.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
+#include "GSLErrorHandling.h"
 
 #include <gsl/gsl_errno.h>
 
@@ -61,13 +62,6 @@ Ippl *ippl;
 Inform *gmsg;
 
 namespace {
-    void errorHandlerGSL(const char *reason,
-                         const char *file,
-                         int /*line*/,
-                         int /*gsl_errno*/) {
-        throw OpalException(file, reason);
-    }
-
     void printStdoutHeader() {
         OPALTimer::Timer simtimer;
         std::string dateStr(simtimer.date());
@@ -146,7 +140,7 @@ int main(int argc, char *argv[]) {
 
     H5SetVerbosityLevel(1); //65535);
 
-    gsl_set_error_handler(&errorHandlerGSL);
+    gsl_set_error_handler(&handleGSLErrors);
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
