@@ -376,9 +376,8 @@ void OpalSimulation::run() {
         //FIXME: this seems to crash OPAL in some cases
         //redirectOutToFile();
 #ifdef SUPRESS_OUTPUT
-        //XXX: hack to disable output to stdout and stderr
+        //XXX: hack to disable output to stdout
         std::cout.setstate(std::ios::failbit);
-        // std::cerr.setstate(std::ios::failbit);
 #endif
         // now we can run the simulation
         run_opal(arg, inputFileName.str(), restartStep, Options::infoLevel, Options::warnLevel, comm_);
@@ -386,7 +385,6 @@ void OpalSimulation::run() {
         //restoreOut();
 #ifdef SUPRESS_OUTPUT
         std::cout.clear();
-        std::cerr.clear();
 #endif
 
     } catch(OpalException *ex) {
@@ -394,13 +392,12 @@ void OpalSimulation::run() {
         //restoreOut();
 #ifdef SUPRESS_OUTPUT
         std::cout.clear();
-        std::cerr.clear();
 #endif
 
-        std::cout << "Opal exception during simulation run: \n"
+        std::cerr << "Opal exception during simulation run: \n"
                   << ex->where() << "\n"
                   << ex->what() << std::endl;
-        std::cout << "Continuing 2, disregarding this simulation.."
+        std::cerr << "Continuing, disregarding this simulation.."
                   << std::endl;
 
     } catch(ClassicException *ex) {
@@ -408,14 +405,26 @@ void OpalSimulation::run() {
         //restoreOut();
 #ifdef SUPRESS_OUTPUT
         std::cout.clear();
-        std::cerr.clear();
 #endif
 
-        std::cout << "Classic exception during simulation run: \n"
+        std::cerr << "Classic exception during simulation run: \n"
                   << ex->where() << "\n"
                   << ex->what() << std::endl;
-        std::cout << "Continuing 3, disregarding this simulation.."
+        std::cerr << "Continuing, disregarding this simulation.."
                   << std::endl;
+    } catch(std::exception &ex) {
+#ifdef SUPRESS_OUTPUT
+        std::cout.clear();
+#endif
+        std::cerr << "Exception occured during simulation run: \n"
+                  << ex.what() << std::endl
+                  << "Continuing, disregarding this simulation.." << std::endl;
+    } catch(...) {
+#ifdef SUPRESS_OUTPUT
+        std::cout.clear();
+#endif
+        std::cerr << "Unknown exception occured during simulation run.\n"
+                  << "Continuing, disregarding this simulation.." << std::endl;
 
     }
 
@@ -424,7 +433,7 @@ void OpalSimulation::run() {
     delete[] inputfile;
     err = chdir(pwd_.c_str());
     if (err != 0) {
-        std::cout << "Cannot chdir to "
+        std::cerr << "Cannot chdir to "
                   << pwd_ << std::endl;
     }
 }
@@ -640,10 +649,13 @@ void OpalSimulation::cleanUp(const std::vector<std::string>& keep) {
     try {
         int my_rank = 0;
         MPI_Comm_rank(comm_, &my_rank);
-        if (my_rank == 0) {
-            fs::path p(simulationDirName_.c_str());
+        if (my_rank != 0) {
+            return;
+        }
+        fs::path p(simulationDirName_.c_str());
+        {
             fs::directory_iterator it{p};
-            while ( it != fs::directory_iterator{} ) {
+            while (it != fs::directory_iterator{}) {
                 std::string extension = Util::toUpper(fs::extension(it->path().filename()));
 
                 // remove .
@@ -651,7 +663,16 @@ void OpalSimulation::cleanUp(const std::vector<std::string>& keep) {
 
                 auto result = std::find(keep.begin(), keep.end(), extension);
 
-                if ( result == keep.end() ) {
+                if ( result == keep.end() && ! fs::is_directory(it->path())) {
+                    fs::remove(it->path());
+                }
+                ++it;
+            }
+        }
+        {
+            fs::directory_iterator it{p};
+            while (it != fs::directory_iterator{}) {
+                if (fs::is_directory(it->path()) && fs::is_empty(it->path())) {
                     fs::remove(it->path());
                 }
                 ++it;
