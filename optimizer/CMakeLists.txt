@@ -55,19 +55,3 @@ if (BUILD_OPAL_UNIT_TESTS)
     enable_testing()
     add_subdirectory(Tests)
 endif ()
-
-#-----------------------------------------------------------------------------
-# Doxygen
-if (ENABLE_DOXYDOC)
-    find_package(Doxygen)
-    if (DOXYGEN_FOUND)
-        configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
-            ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY
-	    )
-        add_custom_target (optpilot-doc
-            ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generating API documentation with Doxygen" VERBATIM
-            )
-    endif ()
-endif ()
