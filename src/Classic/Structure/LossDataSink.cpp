@@ -17,9 +17,7 @@
 //
 #include "Structure/LossDataSink.h"
 
-#include <boost/filesystem.hpp>
-#include <cmath>
-
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/DistributionMoments.h"
 #include "Message/GlobalComm.h"
 #include "OPALconfig.h"
@@ -27,6 +25,10 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
+
+#include <boost/filesystem.hpp>
+
+#include <cmath>
 
 extern Inform* gmsg;
 
@@ -176,6 +178,15 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
     particles_m.clear();
     turnNumber_m.clear();
     bunchNumber_m.clear();
+
+    if (h5hut_mode_m && !Options::enableHDF5) {
+        throw GeneralClassicException(
+                "LossDataSink::LossDataSink",
+                "You must select an OPTION to save Loss data files\n"
+                "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
+    }
+
+    OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
 }
 
 LossDataSink::LossDataSink(const LossDataSink &rhs):
@@ -309,7 +320,6 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
 
     namespace fs = boost::filesystem;
     if (h5hut_mode_m) {
-        if (!Options::enableHDF5) return;
 
         fn_m = outputName_m + std::string(".h5");
         *gmsg << level2 << "Save " << fn_m << endl;

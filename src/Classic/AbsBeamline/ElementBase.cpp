@@ -136,6 +136,20 @@ void ElementBase::setName(const std::string &name) {
 }
 
 
+void ElementBase::setOutputFN(const std::string fn) {
+    outputfn_m = fn;
+}
+
+
+std::string ElementBase::getOutputFN() const {
+    if (outputfn_m.empty()) {
+        return getName();
+    } else {
+        return outputfn_m.substr(0, outputfn_m.rfind("."));
+    }
+}
+
+
 double ElementBase::getAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
