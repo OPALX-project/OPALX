@@ -1,17 +1,40 @@
-#include "PeakFinder.h"
-
-#include <algorithm>
-#include <cmath>
-#include <iterator>
+//
+// Class PeakFinder
+//   Find peaks of radial profile.
+//   It computes a histogram based on the radial distribution of the particle
+//   bunch. After that all peaks of the histogram are searched.
+//   The radii are written in ASCII format to a file.
+//   This class is used for the cyclotron probe element.
+//
+// Copyright (c) 2017 - 2021, Matthias Frey, Jochem Snuverink, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+#include "Structure/PeakFinder.h"
 
 #include "AbstractObjects/OpalData.h"
 
 #include "Message/GlobalComm.h"
 #include "Utility/IpplInfo.h"
 
-PeakFinder::PeakFinder(std::string elem, double min,
+#include <algorithm>
+#include <cmath>
+#include <iterator>
+
+extern Inform* gmsg;
+
+PeakFinder::PeakFinder(std::string outfn, double min,
                        double max, double binWidth, bool singlemode)
-    : element_m(elem)
+    : outputName_m(outfn)
     , binWidth_m(binWidth)
     , min_m(min)
     , max_m(max)
@@ -82,10 +105,13 @@ void PeakFinder::save() {
     if ( !peaks_m.empty() ) {
         // only rank 0 will go in here
 
-        fn_m   = element_m + std::string(".peaks");
-        hist_m = element_m + std::string(".hist");
+        fn_m   = outputName_m + std::string(".peaks");
+        OpalData::getInstance()->checkAndAddOutputFileName(fn_m);
 
-        INFOMSG("Save " << fn_m << " and " << hist_m << endl);
+        hist_m = outputName_m + std::string(".hist");
+        OpalData::getInstance()->checkAndAddOutputFileName(hist_m);
+
+        *gmsg << level2 << "Save " << fn_m << " and " << hist_m << endl;
 
         if(OpalData::getInstance()->inRestartRun())
             this->append_m();
@@ -93,9 +119,7 @@ void PeakFinder::save() {
             this->open_m();
 
         this->saveASCII_m();
-
         this->close_m();
-
     }
 
     radius_m.clear();

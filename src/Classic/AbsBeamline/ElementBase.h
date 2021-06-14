@@ -621,18 +621,4 @@ int ElementBase::getRequiredNumberOfTimeSteps() const {
     return 10;
 }
 
-inline
-void ElementBase::setOutputFN(const std::string fn) {
-    outputfn_m = fn;
-}
-
-inline
-std::string ElementBase::getOutputFN() const {
-    if (outputfn_m.empty()) {
-        return getName();
-    } else {
-        return outputfn_m.substr(0, outputfn_m.rfind("."));
-    }
-}
-
 #endif // CLASSIC_ElementBase_HH
