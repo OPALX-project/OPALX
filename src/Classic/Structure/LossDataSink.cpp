@@ -187,6 +187,10 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
     }
 
     OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
+
+    if (OpalData::getInstance()->hasBunchAllocated()) {
+        OpalData::getInstance()->setOpenMode(OpalData::OPENMODE::APPEND);
+    }
 }
 
 LossDataSink::LossDataSink(const LossDataSink &rhs):
@@ -336,7 +340,9 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
         }
         CLOSE_FILE ();
         H5file_m = 0;
+
     } else {
+
         fn_m = outputName_m + std::string(".loss");
         *gmsg << level2 << "Save " << fn_m << endl;
         if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
@@ -348,6 +354,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
         saveASCII();
         closeASCII();
     }
+
     Ippl::Comm->barrier();
 
     particles_m.clear();
