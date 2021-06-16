@@ -664,7 +664,7 @@ std::string OpalData::getInputBasename() {
 void OpalData::checkAndAddOutputFileName(const std::string &outfn) {
     if (p->outFiles_m.count(outfn) == 0) {
         p->outFiles_m.insert(outfn);
-    } else {
+    } else if (!hasBunchAllocated()) {
         throw OpalException(
                 "OpalData::checkAndAddOutputFileName",
                 "Duplicate file name for output, '" + outfn + "', detected");
