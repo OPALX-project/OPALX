@@ -44,7 +44,7 @@ namespace Attributes {
     }
 
     void UpperCaseString::parse(Attribute &attr, Statement &stat, bool) const {
-        Attributes::setUpperCaseString(attr, parseString(stat, "String value expected."));
+        Attributes::setUpperCaseString(attr, parseStringValue(stat, "String value expected."));
     }
 
 };

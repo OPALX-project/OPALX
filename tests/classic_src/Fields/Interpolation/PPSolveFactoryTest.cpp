@@ -269,7 +269,7 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
 }
 
 TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic2DSmoothed) {
-    //OpalTestUtilities::SilenceTest silencer;
+    OpalTestUtilities::SilenceTest silencer;
     Mesh* mesh = grid2D->clone();
     //Mesh* dual = grid2D->dual();
     PPSolveFactory* fac = NULL;

@@ -953,9 +953,10 @@ BoundaryGeometry::BoundaryGeometry() :
          "Specifies the geometry file [H5hut]",
          "");
 
-    itsAttr[TOPO] = Attributes::makeString
+    itsAttr[TOPO] = Attributes::makePredefinedString
         ("TOPO",
-         "RECTANGULAR, BOXCORNER, ELLIPTIC if FGEOM is selected topo is over-written ",
+         "If FGEOM is selected topo is over-written. ",
+         {"RECTANGULAR", "BOXCORNER", "ELLIPTIC"},
          "ELLIPTIC");
 
     itsAttr[LENGTH] = Attributes::makeReal
@@ -1263,21 +1264,21 @@ BoundaryGeometry::isInside (
     double x = minExtent_m[0] - 0.01;
     double distance = P[0] - x;
     Vector_t ref_pt {x, P[1], P[2]};
-    
+
     // left boundary of bounding box (x direction)
     x = maxExtent_m[0] + 0.01;
     if (cmp::lt(x - P[0], distance)) {
         distance = x - P[0];
         ref_pt = {x, P[1], P[2]};
     }
-    
+
     // lower boundary of bounding box (y direction)
     double y = minExtent_m[1] - 0.01;
     if (cmp::lt(P[1] - y, distance)) {
         distance = P[1] -y;
         ref_pt = {P[0], y, P[1]};
     }
-    
+
     // upper boundary of bounding box (y direction)
     y = maxExtent_m[1] + 0.01;
     if (cmp::lt(y - P[1], distance)) {
@@ -1316,11 +1317,11 @@ BoundaryGeometry::isInside (
   If the number of intersections is odd, the center point is inside
   the geometry and we are already done.
 
-  If the number of intersections is even, there must be points on 
+  If the number of intersections is even, there must be points on
   this line segment which are inside the geometry. In the next step
   we have to find one if these points.
 
-  
+
   A bit more in detail:
 
   1. Finding a line segment intersecting the geometry
@@ -1345,7 +1346,7 @@ BoundaryGeometry::isInside (
       compute number of intersections of the line segment [P_out, B]
       and the geometry.
 
-      If the number of intersections is odd, then B is inside the geometry 
+      If the number of intersections is odd, then B is inside the geometry
       and we are done. Set P_in = B and exit loop.
 
       Otherwise we have either no or an even number of intersections.
@@ -1599,7 +1600,7 @@ BoundaryGeometry::computeMeshVoxelization (void) {
         int i_max, j_max, k_max;
         mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
-        
+
         for (int i = i_min; i <= i_max; i++) {
             for (int j = j_min; j <= j_max; j++) {
                 for (int k = k_min; k <= k_max; k++) {
@@ -1651,7 +1652,7 @@ void BoundaryGeometry::initialize () {
 
             bg->minExtent_m = get_min_extent (bg->Points_m);
             bg->maxExtent_m = get_max_extent (bg->Points_m);
-            
+
             /*
               Calculate the maximum size of triangles. This value will be used to
               define the voxel size
@@ -1722,13 +1723,13 @@ void BoundaryGeometry::initialize () {
           Since the inside-test is computational expensive we perform this test
           for one reference triangle T (per sub-mesh) only. Knowing the adjacent
           triangles for all three edges of a triangle for all triangles of the
-          mesh facilitates another approach using the orientation of the 
+          mesh facilitates another approach using the orientation of the
           reference triangle T. Assuming that the normal vector of T points to
           the inside of the geometry an adjacent triangle of T has an inward
           pointing normal vector if and only if it has the same orientation as
           T.
 
-          Starting with the reference triangle T we can change the orientation 
+          Starting with the reference triangle T we can change the orientation
           of the adjancent triangle of T and so on.
 
           NOTE: For the time being we do not make use of the inward pointing

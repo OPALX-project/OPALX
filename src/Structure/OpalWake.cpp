@@ -51,8 +51,8 @@ OpalWake::OpalWake():
                "The \"WAKE\" statement defines data for the wakefuction "
                "on an element."),
     wf_m(0) {
-    itsAttr[TYPE] = Attributes::makeUpperCaseString
-        ("TYPE", "Specifies the wake function: 1D-CSR, 1D-CSR-IGF, LONG-SHORT-RANGE, TRANSV-SHORT-RANGE");
+    itsAttr[TYPE] = Attributes::makePredefinedString
+        ("TYPE", "Specifies the wake function.", {"1D-CSR", "1D-CSR-IGF", "LONG-SHORT-RANGE", "TRANSV-SHORT-RANGE"});
 
     itsAttr[NBIN] = Attributes::makeReal
         ("NBIN", "Number of bins for the line density calculation");
@@ -60,8 +60,8 @@ OpalWake::OpalWake():
     itsAttr[CONST_LENGTH] = Attributes::makeBool
         ("CONST_LENGTH", "True if the length of the Bunch is considered as constant");
 
-    itsAttr[CONDUCT] = Attributes::makeUpperCaseString
-        ("CONDUCT", "Conductivity: DC, AC");
+    itsAttr[CONDUCT] = Attributes::makePredefinedString
+        ("CONDUCT", "Conductivity.", {"DC", "AC"});
 
     itsAttr[Z0] = Attributes::makeReal
         ("Z0", "Impedance of the beam pipe ");
@@ -213,16 +213,6 @@ void OpalWake::initWakefunction(const ElementBase &element) {
                                      0,
                                      Attributes::getBool(itsAttr[CONST_LENGTH]),
                                      Attributes::getString(itsAttr[FNAME]));
-
-    } else if (type == "LONG-TRANSV-SHORT-RANGE") {
-        throw OpalException("OpalWake::initWakeFunction",
-                            "LONG-TRANSV-SHORT-RANGE wake is not implemented");
-    } else if (type.empty() == false) {
-        throw OpalException("OpalWake::initWakeFunction",
-                            type + " is not a valid wake type");
-    } else {
-        wf_m = 0;
-        INFOMSG("no wakefunction attached" << endl);
     }
 }
 

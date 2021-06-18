@@ -59,8 +59,9 @@ OpalFilter::OpalFilter():
                "The \"FILTER\" statement defines a 1 dimensional filter to be "
                "applied on histogram."),
     filter_m(0) {
-    itsAttr[TYPE] = Attributes::makeUpperCaseString
-                    ("TYPE", "Specifies the type of filter: SavitzkyGolay, fixedFFTLowPass, relativeFFTLowPass, Stencil");
+    itsAttr[TYPE] = Attributes::makePredefinedString
+                   ("TYPE", "Specifies the type of filter.",
+                    {"SAVITZKY-GOLAY", "FIXEDFFTLOWPASS", "RELATIVEFFTLOWPASS", "STENCIL"});
 
     itsAttr[NFREQ] = Attributes::makeReal
                      ("NFREQ", "Number of frequencies to use in fixedFFTLowPass filter", 9.);
