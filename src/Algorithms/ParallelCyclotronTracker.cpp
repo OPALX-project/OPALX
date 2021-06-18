@@ -161,8 +161,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline &beamline,
         stepper_m = stepper::INTEGRATOR::LF2;
     } else if ( timeIntegrator == 2) {
         stepper_m = stepper::INTEGRATOR::MTS;
-    } else
-        stepper_m = stepper::INTEGRATOR::UNDEFINED;
+    }
 }
 
 /**
@@ -1220,11 +1219,6 @@ void ParallelCyclotronTracker::execute() {
                                 std::placeholders::_4);
 
     switch ( stepper_m ) {
-        case stepper::INTEGRATOR::RK4: {
-            *gmsg << "* 4th order Runge-Kutta integrator" << endl;
-            itsStepper_mp.reset(new RK4<function_t>(func));
-            break;
-        }
         case stepper::INTEGRATOR::LF2: {
             *gmsg << "* 2nd order Leap-Frog integrator" << endl;
             itsStepper_mp.reset(new LF2<function_t>(func));
@@ -1234,11 +1228,11 @@ void ParallelCyclotronTracker::execute() {
             *gmsg << "* Multiple time stepping (MTS) integrator" << endl;
             break;
         }
-        case stepper::INTEGRATOR::UNDEFINED: {
-        default:
-            itsStepper_mp.reset(nullptr);
-            throw OpalException("ParallelCyclotronTracker::execute",
-                                "Invalid name of TIMEINTEGRATOR in Track command");
+        case stepper::INTEGRATOR::RK4:
+        default: {
+            *gmsg << "* 4th order Runge-Kutta integrator" << endl;
+            itsStepper_mp.reset(new RK4<function_t>(func));
+            break;
         }
     }
 

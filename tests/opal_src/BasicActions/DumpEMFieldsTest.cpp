@@ -69,7 +69,7 @@ void setAttributesCart(DumpEMFields* dump,
     setOneAttribute(dump, "T_STEPS", nt);
     Attributes::setString(*dump->findAttribute("FILE_NAME"), filename);
     if (!defaultCoords) {
-        Attributes::setUpperCaseString(*dump->findAttribute("COORDINATE_SYSTEM"), "cARtesiAN");
+        Attributes::setPredefinedString(*dump->findAttribute("COORDINATE_SYSTEM"), "cARtesiAN");
     }
 }
 
@@ -92,7 +92,7 @@ void setAttributesCyl(DumpEMFields* dump,
     setOneAttribute(dump, "DT", dt);
     setOneAttribute(dump, "T_STEPS", nt);
     Attributes::setString(*dump->findAttribute("FILE_NAME"), filename);
-    Attributes::setUpperCaseString(*dump->findAttribute("COORDINATE_SYSTEM"), "cYLindriCAL");
+    Attributes::setPredefinedString(*dump->findAttribute("COORDINATE_SYSTEM"), "cYLindriCAL");
 }
 TEST(DumpEMFieldsTest, ConstructorDestructor) {
     OpalTestUtilities::SilenceTest silencer;
@@ -281,5 +281,4 @@ TEST(DumpEMFieldsTest, writeFieldsCylTest) {
 
     // EXPECT_TRUE(false) << "Do DumpEMFields cylindrical documentation!";
 }
-
 }

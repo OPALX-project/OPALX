@@ -50,12 +50,25 @@ ParticleMatterInteraction::ParticleMatterInteraction():
                "The \"PARTICLEMATTERINTERACTION\" statement defines data for "
                "the particle matter interaction handler on an element."),
     handler_m(0) {
-    itsAttr[TYPE] = Attributes::makeUpperCaseString
-        ("TYPE", "Specifies the particle matter interaction handler: SCATTERING, BEAMSTRIPPING");
+    itsAttr[TYPE] = Attributes::makePredefinedString
+        ("TYPE", "Specifies the particle matter interaction handler.", {"SCATTERING", "BEAMSTRIPPING"});
 
-    itsAttr[MATERIAL] = Attributes::makeUpperCaseString
-        ("MATERIAL", "The material of the surface");
-
+    itsAttr[MATERIAL] = Attributes::makePredefinedString
+        ("MATERIAL", "The material of the surface.",
+         {"AIR",
+          "ALUMINAAL2O3",
+          "ALUMINUM",
+          "BERYLLIUM",
+          "BORONCARBIDE",
+          "COPPER",
+          "GOLD",
+          "GRAPHITE",
+          "GRAPHITER6710",
+          "KAPTON",
+          "MOLYBDENUM",
+          "MYLAR",
+          "TITANIUM",
+          "WATER"});
     itsAttr[ENABLERUTHERFORD] = Attributes::makeBool
         ("ENABLERUTHERFORD", "Enable large angle scattering", true);
 
@@ -129,16 +142,13 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
 
     if (type.empty()) {
         throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
-                            "TYPE is not defined for PARTICLEMATTERINTERACTION");    
+                            "TYPE is not defined for PARTICLEMATTERINTERACTION");
     } else if (type == "SCATTERING") {
          handler_m = new ScatteringPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
          *gmsg << *this << endl;
     } else if (type == "BEAMSTRIPPING") {
          handler_m = new BeamStrippingPhysics(getOpalName(), &element);
          *gmsg << *this << endl;
-    } else {
-        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
-                            getOpalName() + ": TYPE == " + type + " is not defined!");
     }
 }
 
