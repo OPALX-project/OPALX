@@ -52,9 +52,7 @@ std::shared_ptr<Material> Material::addMaterial(const std::string& name,
 
 std::shared_ptr<Material> Material::getMaterial(const std::string& name) {
     std::string nameUp = Util::toUpper(name);
-    if (protoTable_sm.find(nameUp) != protoTable_sm.end()) return protoTable_sm[nameUp];
-
-    throw GeneralClassicException("Material::getMaterial", "Unknown material '" + name + "'");
+    return protoTable_sm[nameUp];
 }
 
 namespace {
@@ -66,8 +64,6 @@ namespace {
                                                std::shared_ptr<Material>(new Aluminum()));
     auto beryllium     = Material::addMaterial("Beryllium",
                                                std::shared_ptr<Material>(new Beryllium()));
-    auto berilium      = Material::addMaterial("Berilium",
-                                               beryllium);
     auto boroncarbide  = Material::addMaterial("BoronCarbide",
                                                std::shared_ptr<Material>(new BoronCarbide()));
     auto copper        = Material::addMaterial("Copper",
@@ -86,8 +82,6 @@ namespace {
                                                std::shared_ptr<Material>(new Mylar()));
     auto titanium      = Material::addMaterial("Titanium",
                                                std::shared_ptr<Material>(new Titanium()));
-    auto titan         = Material::addMaterial("Titan",
-                                               titanium);
     auto water         = Material::addMaterial("Water",
                                                std::shared_ptr<Material>(new Water()));
 }

@@ -39,8 +39,8 @@ OpalVacuum::OpalVacuum():
         ("PMAPFN", "Filename for the Pressure fieldmap");
     itsAttr[PSCALE]   = Attributes::makeReal
         ("PSCALE", "Scale factor for the P-field", 1.0);
-    itsAttr[GAS]          = Attributes::makeString
-        ("GAS", "The composition of residual gas");
+    itsAttr[GAS]          = Attributes::makePredefinedString
+        ("GAS", "The composition of residual gas", {"AIR", "H2"});
     itsAttr[STOP]         = Attributes::makeBool
         ("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
     

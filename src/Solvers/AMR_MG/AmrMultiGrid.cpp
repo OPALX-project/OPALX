@@ -2107,9 +2107,9 @@ AmrMultiGrid::Norm
 AmrMultiGrid::convertToEnumNorm_m(const std::string& norm) {
     std::map<std::string, Norm> map;
 
-    map["L1"]   = Norm::L1;
-    map["L2"]   = Norm::L2;
-    map["LINF"] = Norm::LINF;
+    map["L1_NORM"]   = Norm::L1;
+    map["L2_NORM"]   = Norm::L2;
+    map["LINF_NORM"] = Norm::LINF;
 
     auto n = map.find(norm);
 

@@ -64,7 +64,7 @@ namespace Attributes {
         }
 
         array[index - 1] =
-            Expressions::parseString(statement, "String value expected.");
+            Expressions::parseStringValue(statement, "String value expected.");
         Attributes::setUpperCaseStringArray(attr, array);
     }
 

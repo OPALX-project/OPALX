@@ -57,8 +57,20 @@ Beam::Beam():
                "in a beam."),
     reference(1.0, Physics::m_p *energy_scale, 1.0 * energy_scale) {
 
-    itsAttr[PARTICLE] = Attributes::makeString
-                        ("PARTICLE", "Name of particle to be used");
+    itsAttr[PARTICLE] = Attributes::makePredefinedString
+                        ("PARTICLE", "Name of particle to be used",
+                         {"ELECTRON",
+                          "PROTON",
+                          "POSITRON",
+                          "ANTIPROTON",
+                          "CARBON",
+                          "HMINUS",
+                          "URANIUM",
+                          "MUON",
+                          "DEUTERON",
+                          "XENON",
+                          "H2P",
+                          "ALPHA"});
 
     itsAttr[MASS]     = Attributes::makeReal
                         ("MASS", "Particle rest mass [GeV]");
