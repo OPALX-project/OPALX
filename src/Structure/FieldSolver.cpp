@@ -131,11 +131,8 @@ FieldSolver::FieldSolver():
     Definition(SIZE, "FIELDSOLVER",
                "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
 
-    itsAttr[FSTYPE] = Attributes::makeUpperCaseString("FSTYPE", "Name of the attached field solver: "
-                                                      "FFT, "
-                                                      "FFTPERIODIC, "
-                                                      "SAAMG, "
-                                                      "NONE ");
+    itsAttr[FSTYPE] = Attributes::makePredefinedString("FSTYPE", "Name of the attached field solver.",
+                                                       {"FFT", "FFTPERIODIC", "SAAMG", "NONE"});
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
@@ -154,25 +151,30 @@ FieldSolver::FieldSolver():
                                             true);
 
     //FFT ONLY:
-    itsAttr[BCFFTX] = Attributes::makeUpperCaseString("BCFFTX",
-                                                      "Boundary conditions in x: open, dirichlet (box), periodic",
-                                                      "OPEN");
+    itsAttr[BCFFTX] = Attributes::makePredefinedString("BCFFTX",
+                                                       "Boundary conditions in x.",
+                                                       {"OPEN", "DIRICHLET", "PERIODIC"},
+                                                       "OPEN");
 
-    itsAttr[BCFFTY] = Attributes::makeUpperCaseString("BCFFTY",
-                                                      "Boundary conditions in y: open, dirichlet (box), periodic",
-                                                      "OPEN");
+    itsAttr[BCFFTY] = Attributes::makePredefinedString("BCFFTY",
+                                                       "Boundary conditions in y.",
+                                                       {"OPEN", "DIRICHLET", "PERIODIC"},
+                                                       "OPEN");
 
-    itsAttr[BCFFTZ] = Attributes::makeUpperCaseString("BCFFTZ",
-                                                      "Boundary conditions in z(t): open, periodic",
-                                                      "OPEN");
+    itsAttr[BCFFTZ] = Attributes::makePredefinedString("BCFFTZ",
+                                                       "Boundary conditions in z(t).",
+                                                       {"OPEN", "DIRICHLET", "PERIODIC"},
+                                                       "OPEN");
 
-    itsAttr[deprecated::BCFFTT] = Attributes::makeUpperCaseString("BCFFTT",
-                                                                  "Boundary conditions in z(t): open, periodic",
+    itsAttr[deprecated::BCFFTT] = Attributes::makePredefinedString("BCFFTT",
+                                                                  "Boundary conditions in z(t).",
+                                                                  {"OPEN", "DIRICHLET", "PERIODIC"},
                                                                   "OPEN");
 
-    itsAttr[GREENSF]  = Attributes::makeUpperCaseString("GREENSF",
-                                                        "Which Greensfunction to be used [STANDARD | INTEGRATED]",
-                                                        "INTEGRATED");
+    itsAttr[GREENSF]  = Attributes::makePredefinedString("GREENSF",
+                                                         "Which Greensfunction to be used.",
+                                                         {"STANDARD", "INTEGRATED"},
+                                                         "INTEGRATED");
 
     itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR",
                                              "Increase of bounding box in % ",
@@ -196,13 +198,15 @@ FieldSolver::FieldSolver():
                                                         "GEOMETRY to be used as domain boundary",
                                                         "");
 
-    itsAttr[ITSOLVER] = Attributes::makeUpperCaseString("ITSOLVER",
-                                                        "Type of iterative solver [CG | BiCGSTAB | GMRES]",
+    itsAttr[ITSOLVER] = Attributes::makePredefinedString("ITSOLVER",
+                                                        "Type of iterative solver.",
+                                                        {"CG", "BICGSTAB", "GMRES"},
                                                         "CG");
 
-    itsAttr[INTERPL] = Attributes::makeUpperCaseString("INTERPL",
-                                                        "interpolation used for boundary points [CONSTANT | LINEAR | QUADRATIC]",
-                                                        "LINEAR");
+    itsAttr[INTERPL] = Attributes::makePredefinedString("INTERPL",
+                                                        "interpolation used for boundary points.",
+                                                        {"CONSTANT", "LINEAR", "QUADRATIC"},
+                                                       "LINEAR");
 
     itsAttr[TOL] = Attributes::makeReal("TOL",
                                         "Tolerance for iterative solver",
@@ -212,8 +216,9 @@ FieldSolver::FieldSolver():
                                              "Maximum number of iterations of iterative solver",
                                              100);
 
-    itsAttr[PRECMODE] = Attributes::makeUpperCaseString("PRECMODE",
-                                                        "Preconditioner Mode [STD | HIERARCHY | REUSE]",
+    itsAttr[PRECMODE] = Attributes::makePredefinedString("PRECMODE",
+                                                         "Preconditioner Mode.",
+                                                         {"STD", "HIERARCHY", "REUSE"},
                                                         "HIERARCHY");
 
     // AMR
@@ -287,24 +292,28 @@ FieldSolver::FieldSolver():
 #endif
 
 #ifdef HAVE_AMR_MG_SOLVER
-    itsAttr[AMR_MG_SMOOTHER] = Attributes::makeUpperCaseString("AMR_MG_SMOOTHER",
-                                                               "Smoothing of level solution", "GS");
+    itsAttr[AMR_MG_SMOOTHER] = Attributes::makePredefinedString("AMR_MG_SMOOTHER",
+                                                                "Smoothing of level solution.",
+                                                                {"GS", "SGS", "JACOBI"}, "GS");
 
     itsAttr[AMR_MG_NSWEEPS] = Attributes::makeReal("AMR_MG_NSWEEPS",
                                                    "Number of relaxation steps",
                                                    8);
 
-    itsAttr[AMR_MG_PREC] = Attributes::makeUpperCaseString("AMR_MG_PREC",
-                                                           "Preconditioner of bottom solver",
-                                                           "NONE");
+    itsAttr[AMR_MG_PREC] = Attributes::makePredefinedString("AMR_MG_PREC",
+                                                            "Preconditioner of bottom solver.",
+                                                            {"NONE", "ILUT", "CHEBYSHEV", "RILUK", "JACOBI", "BLOCK_JACOBI", "GS", "BLOCK_GS", "SA"},
+                                                            "NONE");
 
-    itsAttr[AMR_MG_INTERP] = Attributes::makeUpperCaseString("AMR_MG_INTERP",
-                                                             "Interpolater between levels",
-                                                             "PC");
+    itsAttr[AMR_MG_INTERP] = Attributes::makePredefinedString("AMR_MG_INTERP",
+                                                              "Interpolater between levels.",
+                                                              {"TRILINEAR", "LAGRANGE", "PC"},
+                                                              "PC");
 
-    itsAttr[AMR_MG_NORM] = Attributes::makeUpperCaseString("AMR_MG_NORM",
-                                                           "Norm for convergence criteria",
-                                                           "LINF");
+    itsAttr[AMR_MG_NORM] = Attributes::makePredefinedString("AMR_MG_NORM",
+                                                            "Norm for convergence criteria.",
+                                                            {"L1_NORM", "L2_NORM", "LINF_NORM"},
+                                                            "LINF_NORM");
 
     itsAttr[AMR_MG_VERBOSE] = Attributes::makeBool("AMR_MG_VERBOSE",
                                                    "Write solver info in SDDS format (*.solver)",
@@ -315,9 +324,10 @@ FieldSolver::FieldSolver():
                                                      "Preconditioner",
                                                      false);
 
-    itsAttr[AMR_MG_REUSE] = Attributes::makeUpperCaseString("AMR_MG_REUSE",
-                                                            "Reuse type of Smoothed Aggregation",
-                                                            "RAP");
+    itsAttr[AMR_MG_REUSE] = Attributes::makePredefinedString("AMR_MG_REUSE",
+                                                             "Reuse type of Smoothed Aggregation.",
+                                                             {"NONE", "RP", "RAP"},
+                                                             "RAP");
 
     itsAttr[AMR_MG_TOL] = Attributes::makeReal("AMR_MG_TOL",
                                                "AMR MG solver tolerance (default: 1.0e-10)",

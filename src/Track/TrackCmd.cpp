@@ -76,8 +76,8 @@ TrackCmd::TrackCmd():
                       ("ZSTART", "Defines a z-location [m] where the reference particle starts", 0.0);
     itsAttr[ZSTOP] = Attributes::makeRealArray
                      ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
-    itsAttr[TIMEINTEGRATOR] = Attributes::makeString
-                              ("TIMEINTEGRATOR", "Name of time integrator to be used", "RK-4");
+    itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString
+        ("TIMEINTEGRATOR", "Name of time integrator to be used", {"RK-4", "RK_4", "LF-2", "LF_2", "MTS"}, "RK_4");
 
     itsAttr[MAP_ORDER] = Attributes::makeReal
                      ("MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear)", 1);
@@ -166,9 +166,9 @@ int TrackCmd::getSTEPSPERTURN() const {
 int TrackCmd::getTIMEINTEGRATOR() const {
     std::string name = Attributes::getString(itsAttr[TIMEINTEGRATOR]);
     int  nameID;
-    if(name == std::string("RK-4"))
+    if(name == std::string("RK-4") || name == std::string("RK_4"))
         nameID =  0;
-    else if(name == std::string("LF-2"))
+    else if(name == std::string("LF-2") || name == std::string("LF_2"))
         nameID =  1;
     else if(name == std::string("MTS"))
         nameID = 2;

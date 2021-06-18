@@ -877,13 +877,8 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUn
         inputMoUnits_m = InputMomentumUnitsT::EVOVERC;
     else if (inputUnits == "") {
         *gmsg << "No momentum units were specified, using default units (see manual)." << endl;
-        inputMoUnits_m = inputMoUnits;        
-    }   
-    else
-        throw OpalException("Distribution::chooseInputMomentumUnits",
-                            "Unkown momentum units '" + inputUnits +
-                            "' !\nINPUTMOUNITS should be 'NONE' or 'EVOVERC'. " +
-                            "See manual for more information.");
+        inputMoUnits_m = inputMoUnits;
+    }
 }
 
 void Distribution::createDistributionBinomial(size_t numberOfParticles, double massIneV) {
@@ -3266,15 +3261,15 @@ gsl_qrng* Distribution::selectRandomGenerator(std::string,unsigned int dimension
 
 void Distribution::setAttributes() {
     itsAttr[Attrib::Distribution::TYPE]
-        = Attributes::makeUpperCaseString("TYPE","Distribution type: "
-                                          "FROMFILE, "
-                                          "GAUSS, "
-                                          "BINOMIAL, "
-                                          "FLATTOP, "
-                                          "MULTIGAUSS, "
-                                          "GUNGAUSSFLATTOPTH, "
-                                          "ASTRAFLATTOPTH, "
-                                          "GAUSSMATCHED");
+        = Attributes::makePredefinedString("TYPE","Distribution type.",
+                                           {"FROMFILE",
+                                            "GAUSS",
+                                            "BINOMIAL",
+                                            "FLATTOP",
+                                            "MULTIGAUSS",
+                                            "GUNGAUSSFLATTOPTH",
+                                            "ASTRAFLATTOPTH",
+                                            "GAUSSMATCHED"});
     itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
     itsAttr[Attrib::Distribution::LINE]
@@ -3326,8 +3321,7 @@ void Distribution::setAttributes() {
                                "distribution list.", 1.0);
 
     itsAttr[Attrib::Distribution::INPUTMOUNITS]
-        = Attributes::makeUpperCaseString("INPUTMOUNITS", "Tell OPAL what input units are for momentum."
-                                          " Currently \"NONE\" or \"EVOVERC\".", "");
+        = Attributes::makePredefinedString("INPUTMOUNITS", "Tell OPAL what the input units are of the momentum.", {"NONE", "EVOVERC"});
 
     // Attributes for beam emission.
     itsAttr[Attrib::Distribution::EMITTED]
@@ -3337,8 +3331,9 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("EMISSIONSTEPS", "Number of time steps to use during emission.",
                                1);
     itsAttr[Attrib::Distribution::EMISSIONMODEL]
-        = Attributes::makeUpperCaseString("EMISSIONMODEL", "Model used to emit electrons from a "
-                                          "photocathode.", "None");
+        = Attributes::makePredefinedString("EMISSIONMODEL", "Model used to emit electrons from a "
+                                           "photocathode.",
+                                           {"NONE", "ASTRA", "NONEQUIL"}, "NONE");
     itsAttr[Attrib::Distribution::EKIN]
         = Attributes::makeReal("EKIN", "Kinetic energy used in ASTRA thermal emittance "
                                "model (eV). (Thermal energy added in with random "
@@ -3598,19 +3593,6 @@ void Distribution::setDistType() {
         distrTypeT_m = DistrTypeT::ASTRAFLATTOPTH;
     else if (distT_m == "GAUSSMATCHED")
         distrTypeT_m = DistrTypeT::MATCHEDGAUSS;
-    else {
-        throw OpalException("Distribution::setDistType()",
-                            "The distribution \"" + distT_m + "\" isn't known.\n" +
-                            "Known distributions are:\n"
-                            "FROMFILE\n"
-                            "GAUSS\n"
-                            "BINOMIAL\n"
-                            "FLATTOP\n"
-                            "MULTIGAUSS\n"
-                            "GUNGAUSSFLATTOPTH\n"
-                            "ASTRAFLATTTOPTH\n"
-                            "GAUSSMATCHED");
-    }
 }
 
 void Distribution::setSigmaR_m() {

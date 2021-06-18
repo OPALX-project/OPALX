@@ -368,23 +368,18 @@ void MultiBunchHandler::setMode(const std::string& mbmode) {
               << "           the limitation. The control parameter is set to "
               << coeffDBunches_m << endl;
         mode_m = MB_MODE::AUTO;
-    } else
-        throw OpalException("MultiBunchHandler::setMode()",
-                            "MBMODE name \"" + mbmode + "\" unknown.");
+    }
 }
 
 
 void MultiBunchHandler::setBinning(std::string binning) {
 
-    if ( binning.compare("BUNCH") == 0 ) {
-        *gmsg << "Use 'BUNCH' injection for binnning." << endl;
+    if ( binning.compare("BUNCH_BINNING") == 0 ) {
+        *gmsg << "Use 'BUNCH_BINNING' injection for binnning." << endl;
         binning_m = MB_BINNING::BUNCH;
-    } else if ( binning.compare("GAMMA") == 0 ) {
-        *gmsg << "Use 'GAMMA' for binning." << endl;
+    } else if ( binning.compare("GAMMA_BINNING") == 0 ) {
+        *gmsg << "Use 'GAMMA_BINNING' for binning." << endl;
         binning_m = MB_BINNING::GAMMA;
-    } else {
-        throw OpalException("MultiBunchHandler::setBinning()",
-                            "MB_BINNING name \"" + binning + "\" unknown.");
     }
 }
 

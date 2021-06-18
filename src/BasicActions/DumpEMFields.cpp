@@ -47,8 +47,8 @@ DumpEMFields::DumpEMFields() :
     itsAttr[FILE_NAME] = Attributes::makeString
         ("FILE_NAME", "Name of the file to which field data is dumped");
 
-    itsAttr[COORDINATE_SYSTEM] = Attributes::makeUpperCaseString
-        ("COORDINATE_SYSTEM", "Choose to use CARTESIAN (default) or CYLINDRICAL coordinates", "CARTESIAN");
+    itsAttr[COORDINATE_SYSTEM] = Attributes::makePredefinedString
+        ("COORDINATE_SYSTEM", "Choose to use CARTESIAN or CYLINDRICAL coordinates", {"CARTESIAN", "CYLINDRICAL"}, "CARTESIAN");
 
     itsAttr[X_START] = Attributes::makeReal
         ("X_START", "(Cartesian) Start point in the grid in x [m]");
@@ -136,10 +136,6 @@ void DumpEMFields::parseCoordinateSystem() {
         coordinates_m = CoordinateSystem::CYLINDRICAL;
     } else if (coordStr == "CARTESIAN") {
         coordinates_m = CoordinateSystem::CARTESIAN;
-    } else {
-        throw OpalException("DumpEMFields::parseCoordinateSystem",
-                            "Failed to parse '" + coordStr +
-                            "'. OPAL expected either CYLINDRICAL or CARTESIAN.");
     }
 }
 
@@ -153,9 +149,9 @@ void DumpEMFields::execute() {
 }
 
 void DumpEMFields::buildGrid() {
-    std::vector<double> spacing(4); 
-    std::vector<double> origin(4); 
-    std::vector<int> gridSize(4); 
+    std::vector<double> spacing(4);
+    std::vector<double> origin(4);
+    std::vector<int> gridSize(4);
     parseCoordinateSystem();
 
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
@@ -262,7 +258,7 @@ void DumpEMFields::writeFieldLine(Component* field,
     Vector_t B(0., 0., 0.);
     Vector_t point = pointIn;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        // pointIn is r, phi, z 
+        // pointIn is r, phi, z
         point[0] = std::cos(pointIn[1])*pointIn[0];
         point[1] = std::sin(pointIn[1])*pointIn[0];
     }

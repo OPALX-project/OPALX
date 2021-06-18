@@ -149,14 +149,14 @@ Option::Option():
                               "REMOTEPARTDEL times of the beam rms size, "
                               "its default values is 0 (no delete) ",remotePartDel);
 
-    itsAttr[PSDUMPFRAME] = Attributes::makeUpperCaseString
+    itsAttr[PSDUMPFRAME] = Attributes::makePredefinedString
                            ("PSDUMPFRAME", "Controls the frame of phase space dump in "
-                           "stat file and h5 file. If 'GLOBAL' OPAL will dump in the "
-                           "lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will "
-                           "dump in the local Cartesian frame of the beam mean; "
-                           "if 'REFERENCE'  OPAL will dump in the local Cartesian "
-                           "frame of the reference particle 0. Only available for "
-                           "OPAL-cycl, its default value is 'GLOBAL'");
+                            "stat file and h5 file. If 'GLOBAL' OPAL will dump in the "
+                            "lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will "
+                            "dump in the local Cartesian frame of the beam mean; "
+                            "if 'REFERENCE'  OPAL will dump in the local Cartesian "
+                            "frame of the reference particle 0. Only available for "
+                            "OPAL-cycl.", {"BUNCH_MEAN", "REFERENCE", "GLOBAL"}, "GLOBAL");
 
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal
                            ("SPTDUMPFREQ", "The frequency to dump single "
@@ -203,9 +203,10 @@ Option::Option():
                       ("CZERO", "If set to true a symmetric distribution is "
                        "created -> centroid == 0.0", cZero);
 
-    itsAttr[RNGTYPE] =  Attributes::makeUpperCaseString
-                        ("RNGTYPE", "RANDOM (default), Quasi-random number "
-                         "generators: HALTON, SOBOL, NIEDERREITER (Gsl ref manual 18.5)", rngtype);
+    itsAttr[RNGTYPE] =  Attributes::makePredefinedString
+                        ("RNGTYPE", "Type of pseudo- or quasi-random number generator, "
+                         "see also Quasi-Random Sequences, GSL reference manual.",
+                         {"RANDOM", "HALTON", "SOBOL", "NIEDERREITER"}, rngtype);
 
     itsAttr[CLOTUNEONLY] = Attributes::makeBool
                            ("CLOTUNEONLY", "If set to true stop after "
@@ -292,7 +293,7 @@ Option::Option(const std::string& name, Option* parent):
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
-    Attributes::setUpperCaseString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpFrame));
+    Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
@@ -307,7 +308,7 @@ Option::Option(const std::string& name, Option* parent):
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[CZERO], cZero);
     Attributes::setBool(itsAttr[CLOTUNEONLY], cloTuneOnly);
-    Attributes::setUpperCaseString(itsAttr[RNGTYPE], std::string(rngtype));
+    Attributes::setPredefinedString(itsAttr[RNGTYPE], std::string(rngtype));
     Attributes::setReal(itsAttr[NUMBLOCKS], numBlocks);
     Attributes::setReal(itsAttr[RECYCLEBLOCKS], recycleBlocks);
     Attributes::setReal(itsAttr[NLHS], nLHS);
@@ -504,11 +505,6 @@ void Option::handlePsDumpFrame(const std::string& dumpFrame) {
         psDumpFrame = BUNCH_MEAN;
     } else if (dumpFrame == "REFERENCE") {
         psDumpFrame = REFERENCE;
-    } else {
-        std::string msg = std::string("Did not recognise PSDUMPFRAME '")+\
-                    dumpFrame+std::string("'. It should be one of 'GLOBAL',")+\
-                    std::string(" 'BUNCH_MEAN' or 'REFERENCE'");
-        throw OpalException("Option::handlePsDumpFrame", msg);
     }
 }
 

@@ -159,7 +159,7 @@ std::string Vacuum::getResidualGasName() {
         }
         default: {
            throw GeneralClassicException("Vacuum::getResidualGasName",
-                                         "Residual gas not found");
+                                         "Residual gas not set");
         }
     }
 }

@@ -132,9 +132,6 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                 new RectangularDomain(currentGeometry->getA(),
                                       currentGeometry->getB(),
                                       orig_nr_m, hr_m));
-        } else {
-            throw OpalException("MGPoissonSolver::MGPoissonSolver",
-                                "Geometry not known");
         }
     } else {
         NDIndex<3> localId = layout_m->getLocalNDIndex();
@@ -192,8 +189,6 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                                     TpetraMultiVector_t,
                                                     TpetraOperator_t>());
         }
-    } else {
-        throw OpalException("MGPoissonSolver", "No valid iterative solver selected!");
     }
 
     solver_mp->setParameters(rcp(&belosList, false));
