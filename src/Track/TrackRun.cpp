@@ -80,14 +80,15 @@ TrackRun::TrackRun():
     fs(NULL),
     ds(NULL),
     phaseSpaceSink_m(NULL) {
-    itsAttr[METHOD] = Attributes::makeUpperCaseString
-                      ("METHOD", "Name of tracking algorithm to use:\n"
-                       "\t\t\t\"THIN\" (default) or \"THICK, OPAL-T,OPAL-T3D, OPAL-CYCL\".", "THIN");
+    itsAttr[METHOD] = Attributes::makePredefinedString
+                      ("METHOD", "Name of tracking algorithm to use.",
+                       {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T"});
     itsAttr[TURNS] = Attributes::makeReal
                      ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron", 1.0);
 
-    itsAttr[MBMODE] = Attributes::makeUpperCaseString
-                      ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl: FORCE or AUTO ", "FORCE");
+    itsAttr[MBMODE] = Attributes::makePredefinedString
+                     ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl.",
+                      {"FORCE", "AUTO"}, "FORCE");
 
     itsAttr[PARAMB] = Attributes::makeReal
                       ("PARAMB", "Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode ", 5.0);
@@ -96,8 +97,9 @@ TrackRun::TrackRun():
                                            "The scale parameter for binning in multi-bunch mode",
                                            0.01);
 
-    itsAttr[MB_BINNING] = Attributes::makeUpperCaseString
-                          ("MB_BINNING", "Type of energy binning in multi-bunch mode: GAMMA or BUNCH", "GAMMA");
+    itsAttr[MB_BINNING] = Attributes::makePredefinedString
+                          ("MB_BINNING", "Type of energy binning in multi-bunch mode.",
+                           {"GAMMA_BINNING", "BUNCH_BINNING"}, "GAMMA_BINNING");
 
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam ", "BEAM");
@@ -174,12 +176,9 @@ void TrackRun::execute() {
         setupTTracker();
     } else if(method == "CYCLOTRON-T" || method == "OPAL-CYCL") {
         setupCyclotronTracker();
-    } else {
-        throw OpalException("TrackRun::execute()",
-                            "Method name \"" + method + "\" unknown.");
     }
 
-    if(method == "THIN" || method == "THICK") {
+    if (method == "THICK") {
         int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
 
         // Track for the all but last turn.
