@@ -369,9 +369,6 @@ void Cyclotron::setBFieldType() {
         fieldType_m = BFieldType::BANDRF;
     } else if (typeName_m == std::string("SYNCHROCYCLOTRON")) {
         fieldType_m = BFieldType::SYNCHRO;
-    } else {
-        throw GeneralClassicException("Cyclotron::setBFieldType",
-                                      "TYPE " + typeName_m + " field reading function of CYCLOTRON is not defined!");
     }
 }
 
@@ -958,7 +955,7 @@ void Cyclotron::getFieldFromFile_Ring(const double& scaleFactor) {
     BP.Bfact = scaleFactor;
 
     f = std::fopen(fmapfn_m.c_str(), "r");
-    
+
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP.rmin));
     *gmsg << "* Minimal radius of measured field map: " << BP.rmin << " [mm]" << endl;
     BP.rmin *= 0.001;  // mm --> m

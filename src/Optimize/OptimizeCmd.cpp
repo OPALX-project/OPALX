@@ -1,3 +1,21 @@
+//
+// Class OptimizeCmd
+//   The OptimizeCmd definition.
+//   A OptimizeCmd definition is used to parse the parametes for the optimizer.
+//
+// Copyright (c) 2017, Christof Metzger-Kraus
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Optimize/OptimizeCmd.h"
 #include "Optimize/Objective.h"
 #include "Optimize/Constraint.h"
@@ -154,10 +172,10 @@ OptimizeCmd::OptimizeCmd():
         ("FIELDMAPDIR", "Directory where field maps are stored");
     itsAttr[DISTDIR] = Attributes::makeString
         ("DISTDIR", "Directory where distributions are stored", "");
-    itsAttr[CROSSOVER] = Attributes::makeUpperCaseString
-        ("CROSSOVER", "Type of cross over (default: Blend)", "Blend");
-    itsAttr[MUTATION] = Attributes::makeUpperCaseString
-        ("MUTATION", "Type of bit mutation (default: IndependentBit)", "IndependentBit");
+    itsAttr[CROSSOVER] = Attributes::makePredefinedString
+        ("CROSSOVER", "Type of cross over.", {"BLEND", "NAIVEONEPOINT", "NAIVEUNIFORM", "SIMULATEDBINARY"}, "BLEND");
+    itsAttr[MUTATION] = Attributes::makePredefinedString
+        ("MUTATION", "Type of bit mutation.", {"ONEBIT", "INDEPENDENTBIT"}, "INDEPENDENTBIT");
     itsAttr[RESTART_FILE] = Attributes::makeString
         ("RESTART_FILE", "H5 file to restart the OPAL simulations from (optional)", "");
     itsAttr[RESTART_STEP] = Attributes::makeReal

@@ -16,7 +16,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Attributes/opalstr.h"
+#include "Attributes/String.h"
 #include "AbstractObjects/Expressions.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
@@ -46,7 +46,9 @@ namespace Attributes {
 
 
     void String::parse(Attribute &attr, Statement &stat, bool) const {
-        attr.set(new SValue<std::string>(parseString(stat, "String value expected.")));
+
+        std::string result = parseStringValue(stat, "String value expected.");
+        attr.set(new SValue<std::string>(result));
     }
 
 };

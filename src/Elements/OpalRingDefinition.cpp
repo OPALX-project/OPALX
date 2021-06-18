@@ -57,7 +57,7 @@ OpalRingDefinition::OpalRingDefinition() :
     itsAttr[RFFREQ] = Attributes::makeReal("RFFREQ",
                                            "The nominal RF frequency of the ring [MHz].");
     // I see also makeBool, but dont know how it works; no registerBoolAttribute
-    itsAttr[IS_CLOSED] = Attributes::makeString("IS_CLOSED",
+    itsAttr[IS_CLOSED] = Attributes::makeBool("IS_CLOSED",
                                                 "Set to 'false' to disable checking for closure of the ring");
     itsAttr[MIN_R] = Attributes::makeReal("MIN_R",
                                            "Minimum allowed radius during tracking [m]. If not defined, any radius is allowed. If MIN_R is defined, MAX_R must also be defined.");
@@ -100,7 +100,7 @@ void OpalRingDefinition::update() {
 
     ring->setHarmonicNumber(Attributes::getReal(itsAttr[HARMONIC_NUMBER]));
     ring->setRFFreq(Attributes::getReal(itsAttr[RFFREQ]));
-    ring->setIsClosed(!(Attributes::getString(itsAttr[IS_CLOSED])=="FALSE"));
+    ring->setIsClosed(Attributes::getBool(itsAttr[IS_CLOSED]));
     double minR = -1;
     double maxR = -1;
 

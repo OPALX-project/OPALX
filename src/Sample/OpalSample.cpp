@@ -54,8 +54,8 @@ OpalSample::OpalSample():
                "The \"SAMPLING\" statement defines methods used for the optimizer in sample mode.")
     , size_m(1)
 {
-    itsAttr[TYPE]       = Attributes::makeUpperCaseString
-                          ("TYPE", "UNIFORM_INT, UNIFORM, GAUSSIAN, FROMFILE, LATIN_HYPERCUBE");
+    itsAttr[TYPE]       = Attributes::makePredefinedString
+                          ("TYPE", "Distribution type.", {"UNIFORM_INT", "UNIFORM", "GAUSSIAN", "FROMFILE", "LATIN_HYPERCUBE"});
 
     itsAttr[VARIABLE]   = Attributes::makeString
                           ("VARIABLE", "Name of design variable");
@@ -134,9 +134,6 @@ void OpalSample::initialize(const std::string &dvarName,
             std::string fname = Attributes::getString(itsAttr[FNAME]);
             sampleMethod_m.reset( new FromFile(fname, dvarName, modulo) );
             size_m = static_cast<FromFile*>(sampleMethod_m.get())->getSize();
-       } else {
-            throw OpalException("OpalSample::initialize()",
-                                "Unknown sampling method: '" + type + "'.");
         }
     } else {
         if (type == "UNIFORM_INT") {
@@ -187,9 +184,6 @@ void OpalSample::initialize(const std::string &dvarName,
                     new SampleRandomizedSequence<double>(lower, upper, step)
                 );
             }
-        } else {
-            throw OpalException("OpalSample::initialize()",
-                                "Unknown sampling method: '" + type + "'.");
         }
     }
 }
