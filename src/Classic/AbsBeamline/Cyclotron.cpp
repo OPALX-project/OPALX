@@ -1345,7 +1345,6 @@ void Cyclotron::getFieldFromFile_Carbon(const double& scaleFactor) {
 
                 Vector_t tmpR = Vector_t (BP.rmin + (i * BP.delr), 0.0, k * (BP.tetmin + BP.dtet));
                 Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
-                tmpR /= 1000.0; // -> mm to m
                 for (auto& fi: RFfields_m) {
                     Vector_t E(0.0, 0.0, 0.0), B(0.0, 0.0, 0.0);
                     if (!fi->getFieldstrength(tmpR, tmpE, tmpB)) {
