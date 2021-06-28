@@ -116,7 +116,7 @@ unsigned long StepSizeConfig::getNumSteps() const {
 
 unsigned long long StepSizeConfig::getMaxSteps() const {
     unsigned long long maxSteps = 0;
-    for (const auto config: configurations_m) {
+    for (const auto& config: configurations_m) {
         maxSteps += std::get<2>(config);
     }
 
@@ -127,7 +127,7 @@ unsigned long long StepSizeConfig::getNumStepsFinestResolution() const {
     double minTimeStep = std::get<0>(configurations_m.front());
     unsigned long long totalNumSteps = 0;
 
-    for (const auto config: configurations_m) {
+    for (const auto& config: configurations_m) {
         const double &dt = std::get<0>(config);
         const unsigned long &numSteps = std::get<2>(config);
 
@@ -144,7 +144,7 @@ unsigned long long StepSizeConfig::getNumStepsFinestResolution() const {
 
 double StepSizeConfig::getMinTimeStep() const {
     double minTimeStep = std::get<0>(configurations_m.front());
-    for (const auto config: configurations_m) {
+    for (const auto& config: configurations_m) {
         if (minTimeStep > std::get<0>(config)) {
             minTimeStep = std::get<0>(config);
         }
