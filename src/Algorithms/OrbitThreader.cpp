@@ -114,7 +114,7 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component
         return;
     }
     double driftLength = Physics::c * std::abs(stepSizes_m.getdT()) * euclidean_norm(p_m) / Util::getGamma(p_m);
-    for (const std::shared_ptr<Component> field : fields) {
+    for (const std::shared_ptr<Component>& field : fields) {
         double length = field->getElementLength();
         int numSteps = field->getRequiredNumberOfTimeSteps();
 
