@@ -3,7 +3,7 @@
 //   Defines the physical processes of residual gas 
 //   interactions and Lorentz stripping
 //
-// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018 - 2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -65,20 +65,22 @@ public:
 
 private:
 
-    void crossSection(PartBunchBase<double, 3>* bunch, size_t& i, double Eng);
+    void computeCrossSection(PartBunchBase<double, 3>* bunch, size_t& i, double Eng);
 
-    double csAnalyticFunctionNakai(double Eng, double Eth, int& i);
+    double computeCrossSectionNakai(double Eng, double Eth, int& i);
     
-    double csAnalyticFunctionTabata(double Eng, double Eth,
+    double computeCrossSectionTabata(double Eng, double Eth,
                                     double a1, double a2, double a3,
                                     double a4, double a5, double a6);
                               
-    double csChebyshevFitting(double Eng, double Emin, double Emax);
+    double computeCrossSectionChebyshev(double Eng, double Emin, double Emax);
 
-    bool gasStripping(double& deltas);
-    bool lorentzStripping(double& gamma, double& E);
+    double computeCrossSectionBohr(double Eng, int Zt);
 
-    void secondaryParticles(PartBunchBase<double, 3>* bunch, size_t& i, bool pdead_LS);
+    bool evalGasStripping(double& deltas);
+    bool evalLorentzStripping(double& gamma, double& E);
+
+    void getSecondaryParticles(PartBunchBase<double, 3>* bunch, size_t& i, bool pdead_LS);
     void transformToProton(PartBunchBase<double, 3>* bunch, size_t& i);
     void transformToHydrogen(PartBunchBase<double, 3>* bunch, size_t& i);
     void transformToHminus(PartBunchBase<double, 3>* bunch, size_t& i);
@@ -96,8 +98,8 @@ private:
 
     gsl_rng* r_m;
 
-    double T_m;    // s
-    double dT_m;   // s
+    double T_m;  // s
+    double dT_m; // s
     double mass_m;
     double charge_m;
     double pressure_m;
@@ -121,6 +123,7 @@ private:
     static const double csCoefSingleLoss_H[3][9];
     static const double csCoefSingleCapt_H[3][9];
 
+    static const double csCoefSingle_Hplus_Tabata[10];
     static const double csCoefHminusProduction_H_Tabata[13];
     static const double csCoefProtonProduction_H_Tabata[9];
     static const double csCoefProtonProduction_H2plus_Tabata[11];
@@ -131,7 +134,8 @@ private:
     static const double csCoefSingle_Hplus_Chebyshev[11];
     static const double csCoefDouble_Hplus_Chebyshev[11];
     static const double csCoefHydrogenProduction_H2plus_Chebyshev[11];
-
+    static const double csCoefProtonProduction_H2plus_Chebyshev[11];
+    static const double energyRangeH2plusinH2[2];
     static double a_m[9];
     static double b_m[3][9];
 };
