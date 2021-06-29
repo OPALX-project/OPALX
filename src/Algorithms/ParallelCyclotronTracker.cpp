@@ -1057,7 +1057,6 @@ void ParallelCyclotronTracker::visitVacuum(const Vacuum &vac) {
 
     BcParameter[0] = pressure;
     BcParameter[1] = temperature;
-    BcParameter[2] = stop;
 
     buildupFieldList(BcParameter, ElementBase::VACUUM, elptr);
 }

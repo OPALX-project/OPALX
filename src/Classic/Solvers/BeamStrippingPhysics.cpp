@@ -3,7 +3,7 @@
 //   Defines the physical processes of residual gas
 //   interactions and Lorentz stripping
 //
-// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018 - 2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -30,7 +30,6 @@
 #include "Structure/LossDataSink.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Options.h"
-
 #include "Utility/Inform.h"
 
 #include <iostream>
@@ -40,14 +39,13 @@
 #include <sys/time.h>
 #include <boost/math/special_functions/chebyshev.hpp>
 
-
 namespace {
     struct InsideTester {
         virtual ~InsideTester() {}
-
         virtual bool checkHit(const Vector_t& R) = 0;
         virtual double getPressure(const Vector_t& R) = 0;
     };
+
     struct BeamStrippingInsideTester: public InsideTester {
         explicit BeamStrippingInsideTester(ElementBase* el) {
             vac_m = static_cast<Vacuum*>(el);
@@ -102,10 +100,12 @@ BeamStrippingPhysics::~BeamStrippingPhysics() {
 
 
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
-                                 const std::pair<Vector_t, double>& /*boundingSphere*/) {
+                                 const std::pair<Vector_t,
+                                 double>& /*boundingSphere*/) {
 
     ParticleType pType = bunch->getPType();
     if (pType != ParticleType::PROTON   &&
+        pType != ParticleType::DEUTERON &&
         pType != ParticleType::HMINUS   &&
         pType != ParticleType::H2P      &&
         pType != ParticleType::HYDROGEN) {
@@ -131,17 +131,14 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
       -- particle not dead (bunch->Bin[i] != -1)
       Delete particle i: bunch->Bin[i] != -1;
     */
-
+    bool stop = vac_m->getStop();
     Vector_t extE = Vector_t(0.0, 0.0, 0.0);
     Vector_t extB = Vector_t(0.0, 0.0, 0.0); //kGauss
-
-    bool stop = vac_m->getStop();
 
     InsideTester* tester;
     tester = new BeamStrippingInsideTester(element_ref_m);
 
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-
     for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
         if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i]))) {
 
@@ -156,14 +153,14 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
             double beta = std::sqrt(1.0 - 1.0 / (gamma * gamma));
             double deltas = dT_m * beta * Physics::c;
 
-            crossSection(bunch, i, Eng);
-            pdead_GS = gasStripping(deltas);
+            computeCrossSection(bunch, i, Eng);
+            pdead_GS = evalGasStripping(deltas);
 
             if (bunch->PType[i] == ParticleType::HMINUS) {
                 cycl_m->apply(bunch->R[i], bunch->P[i], T_m, extE, extB);
                 double B = 0.1 * std::sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
                 double E = gamma * beta * Physics::c * B;
-                pdead_LS = lorentzStripping(gamma, E);
+                pdead_LS = evalLorentzStripping(gamma, E);
             }
 
             if (pdead_GS == true || pdead_LS == true) {
@@ -177,7 +174,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
                     gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
                             << " is deleted by beam stripping" << endl;
                 } else {
-                    secondaryParticles(bunch, i, pdead_LS);
+                    getSecondaryParticles(bunch, i, pdead_LS);
                     //bunch->updateNumTotal();
                     gmsgALL << level4 << getName()
                             << ": Total number of particles after beam stripping = "
@@ -190,7 +187,8 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
 }
 
 
-void BeamStrippingPhysics::crossSection(PartBunchBase<double, 3>* bunch, size_t& i, double Eng){
+void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
+                                               size_t& i, double Eng) {
 
     const double temperature = vac_m->getTemperature(); // K
     const ParticleType& pType = bunch->PType[i];
@@ -210,264 +208,347 @@ void BeamStrippingPhysics::crossSection(PartBunchBase<double, 3>* bunch, size_t&
     double a10 = 0.0;
     double a11 = 0.0;
     double a12 = 0.0;
+    double molecularDensity[3] = {};
 
-    double molecularDensity[3] ={};
+    switch (gas) {
+        case ResidualGas::H2: {
 
-    if (gas == ResidualGas::H2) {
-
-        molecularDensity[0] = 100 * pressure_m / (Physics::kB * Physics::q_e * temperature);
-
-        double Emin = 0.0;
-        double Emax = 0.0;
-        double CS_a = 0.0;
-        double CS_b = 0.0;
-        double CS_c = 0.0;
-        double CS_total = 0.0;
-
-        if (pType == ParticleType::HMINUS) {
-            // Single-electron detachment - Hydrogen Production
-            Emin = csCoefSingle_Hminus_Chebyshev[0];
-            Emax = csCoefSingle_Hminus_Chebyshev[1];
-            for (int i = 0; i < 9; ++i)
-                a_m[i] = {csCoefSingle_Hminus_Chebyshev[i+2]};
-            CS_a = csChebyshevFitting(Eng*1E3, Emin, Emax);
-
-            // Double-electron detachment - Proton Production
-            Emin = csCoefDouble_Hminus_Chebyshev[0];
-            Emax = csCoefDouble_Hminus_Chebyshev[1];
-            for (int i = 0; i < 9; ++i)
-                a_m[i] = {csCoefDouble_Hminus_Chebyshev[i+2]};
-            CS_b = csChebyshevFitting(Eng*1E3, Emin, Emax);
-
-        } else if (pType == ParticleType::PROTON) {
-            // Single-electron capture - Hydrogen Production
-            Emin = csCoefSingle_Hplus_Chebyshev[0];
-            Emax = csCoefSingle_Hplus_Chebyshev[1];
-            for (int i = 0; i < 9; ++i)
-                a_m[i] = {csCoefSingle_Hplus_Chebyshev[i+2]};
-            CS_a = csChebyshevFitting(Eng*1E3, Emin, Emax);
-
-            // Double-electron capture - Hminus Production
-            Emin = csCoefDouble_Hplus_Chebyshev[0];
-            Emax = csCoefDouble_Hplus_Chebyshev[1];
-            for (int i = 0; i < 9; ++i)
-                a_m[i] = {csCoefDouble_Hplus_Chebyshev[i+2]};
-            CS_b = csChebyshevFitting(Eng*1E3, Emin, Emax);
-
-        } else if (pType == ParticleType::HYDROGEN) {
-            // Single-electron detachment - Proton Production
-            Eth = csCoefProtonProduction_H_Tabata[0];
-            a1 = csCoefProtonProduction_H_Tabata[1];
-            a2 = csCoefProtonProduction_H_Tabata[2];
-            a3 = csCoefProtonProduction_H_Tabata[3];
-            a4 = csCoefProtonProduction_H_Tabata[4];
-            a5 = csCoefProtonProduction_H_Tabata[5];
-            a6 = csCoefProtonProduction_H_Tabata[6];
-            CS_a = csAnalyticFunctionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) +
-                a5 * csAnalyticFunctionTabata(Eng/a6, Eth/a6, a1, a2, 0.0, 0.0, a3, a4);
-
-            // Single-electron capture - Hminus Production
-            Eth = csCoefHminusProduction_H_Tabata[0];
-            a1 = csCoefHminusProduction_H_Tabata[1];
-            a2 = csCoefHminusProduction_H_Tabata[2];
-            a3 = csCoefHminusProduction_H_Tabata[3];
-            a4 = csCoefHminusProduction_H_Tabata[4];
-            a5 = csCoefHminusProduction_H_Tabata[5];
-            a6 = csCoefHminusProduction_H_Tabata[6];
-            a7 = csCoefHminusProduction_H_Tabata[7];
-            a8 = csCoefHminusProduction_H_Tabata[8];
-            a9 = csCoefHminusProduction_H_Tabata[9];
-            a10 = csCoefHminusProduction_H_Tabata[10];
-            a11 = csCoefHminusProduction_H_Tabata[11];
-            a12 = csCoefHminusProduction_H_Tabata[12];
-            CS_b = csAnalyticFunctionTabata(Eng, Eth, a1, a2, a3, a4, a5, a6) +
-                csAnalyticFunctionTabata(Eng, Eth, a7, a8, a9, a10, a11, a12);
-
-        } else if (pType == ParticleType::H2P) {
-            // Proton production
-            Eth = csCoefProtonProduction_H2plus_Tabata[0];
-            a1 = csCoefProtonProduction_H2plus_Tabata[1];
-            a2 = csCoefProtonProduction_H2plus_Tabata[2];
-            a3 = csCoefProtonProduction_H2plus_Tabata[3];
-            a4 = csCoefProtonProduction_H2plus_Tabata[4];
-            a5 = csCoefProtonProduction_H2plus_Tabata[5];
-            a6 = csCoefProtonProduction_H2plus_Tabata[6];
-            a7 = csCoefProtonProduction_H2plus_Tabata[7];
-            a8 = csCoefProtonProduction_H2plus_Tabata[8];
-            a9 = csCoefProtonProduction_H2plus_Tabata[9];
-            a10 = csCoefProtonProduction_H2plus_Tabata[10];
-            CS_a = csAnalyticFunctionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) +
-                csAnalyticFunctionTabata(Eng, Eth, a5, a6, 0.0, 0.0, a7, a8) +
-                a9 * csAnalyticFunctionTabata(Eng/a10, Eth/a10, a5, a6, 0.0, 0.0, a7, a8);
-
-            // Hydrogen production
-            Emin = csCoefHydrogenProduction_H2plus_Chebyshev[0];
-            Emax = csCoefHydrogenProduction_H2plus_Chebyshev[1];
-            for (int i = 0; i < 9; ++i)
-                a_m[i] = {csCoefHydrogenProduction_H2plus_Chebyshev[i+2]};
-            CS_b = csChebyshevFitting(Eng*1E3, Emin, Emax);
-
-            // H3+, H
-            Eth = csCoefH3plusProduction_H2plus_Tabata[0];
-            a1 = csCoefH3plusProduction_H2plus_Tabata[1];
-            a2 = csCoefH3plusProduction_H2plus_Tabata[2];
-            a3 = csCoefH3plusProduction_H2plus_Tabata[3];
-            a4 = csCoefH3plusProduction_H2plus_Tabata[4];
-            a5 = csCoefH3plusProduction_H2plus_Tabata[5];
-            a6 = csCoefH3plusProduction_H2plus_Tabata[6];
-            CS_c = csAnalyticFunctionTabata(Eng, Eth, a1, a2, a3, a4, a5, a6);
-        }
-        CS_total = CS_a + CS_b + CS_c;
-
-        NCS_a = CS_a * 1E-4 * molecularDensity[0];
-        NCS_b = CS_b * 1E-4 * molecularDensity[0];
-        NCS_c = CS_c * 1E-4 * molecularDensity[0];
-        NCS_total = CS_total * 1E-4 * molecularDensity[0];
-
-    } else if (gas == ResidualGas::AIR) {
-
-        static const double fMolarFraction[3] = {
-            // Nitrogen
-            78.084/100,
-            //Oxygen
-            20.947/100,
-            //Argon
-            0.934/100 };
-
-        double CS_single[3];
-        double CS_double[3];
-        double CS_total[3];
-        double NCS_single[3];
-        double NCS_double[3];
-        double NCS_all[3];
-        double NCS_single_all = 0.0;
-        double NCS_double_all = 0.0;
-        double NCS_total_all = 0.0;
-
-        for (int i = 0; i < 3; ++i) {
-
-            molecularDensity[i] = 100 * pressure_m * fMolarFraction[i] / (Physics::kB * Physics::q_e * temperature);
+            molecularDensity[0] = 100 * pressure_m / (Physics::kB * Physics::q_e * temperature);
+            double Emin = 0.0;
+            double Emax = 0.0;
+            double CS_a = 0.0;
+            double CS_b = 0.0;
+            double CS_c = 0.0;
+            double CS_total = 0.0;
 
             if (pType == ParticleType::HMINUS) {
+                double energyChebyshevFit = Eng * 1E3 / (Physics::m_hm / Physics::amu);
+
                 // Single-electron detachment - Hydrogen Production
-                Eth = csCoefSingle_Hminus[i][0];
-                for (int j = 0; j < 8; ++j)
-                    b_m[i][j] = csCoefSingle_Hminus[i][j+1];
-                CS_single[i] = csAnalyticFunctionNakai(Eng, Eth, i);
+                Emin = csCoefSingle_Hminus_Chebyshev[0];
+                Emax = csCoefSingle_Hminus_Chebyshev[1];
+                for (int i = 0; i < 9; ++i)
+                    a_m[i] = {csCoefSingle_Hminus_Chebyshev[i+2]};
+                CS_a = computeCrossSectionChebyshev(energyChebyshevFit, Emin, Emax);
 
                 // Double-electron detachment - Proton Production
-                Eth = csCoefDouble_Hminus[i][0];
-                for (int j = 0; j < 8; ++j)
-                    b_m[i][j] = csCoefDouble_Hminus[i][j+1];
-                CS_double[i] = csAnalyticFunctionNakai(Eng, Eth, i);
+                Emin = csCoefDouble_Hminus_Chebyshev[0];
+                Emax = csCoefDouble_Hminus_Chebyshev[1];
+                for (int i = 0; i < 9; ++i)
+                    a_m[i] = {csCoefDouble_Hminus_Chebyshev[i+2]};
+                CS_b = computeCrossSectionChebyshev(energyChebyshevFit, Emin, Emax);
 
             } else if (pType == ParticleType::PROTON) {
+                double energyChebyshevFit = Eng * 1E3 / (Physics::m_p / Physics::amu);
+
                 // Single-electron capture - Hydrogen Production
-                Eth = csCoefSingle_Hplus[i][0];
-                for (int j = 0; j < 8; ++j)
-                    b_m[i][j] = csCoefSingle_Hplus[i][j+1];
-                CS_single[i] = csAnalyticFunctionNakai(Eng, Eth, i) +
-                    b_m[i][6] * csAnalyticFunctionNakai(Eng/b_m[i][7], Eth/b_m[i][7], i);
+                Emin = csCoefSingle_Hplus_Chebyshev[0];
+                Emax = csCoefSingle_Hplus_Chebyshev[1];
+                for (int i = 0; i < 9; ++i)
+                    a_m[i] = {csCoefSingle_Hplus_Chebyshev[i+2]};
+                CS_a = computeCrossSectionChebyshev(energyChebyshevFit, Emin, Emax);
 
                 // Double-electron capture - Hminus Production
-                Eth = csCoefDouble_Hplus[i][0];
-                for (int j = 0; j < 8; ++j)
-                    b_m[i][j] = csCoefDouble_Hplus[i][j+1];
-                if (b_m[i][7] != 0) {
-                    CS_double[i] = csAnalyticFunctionNakai(Eng, Eth, i) +
-                        b_m[i][6] * csAnalyticFunctionNakai(Eng/b_m[i][7], Eth/b_m[i][7], i);
-                } else {
-                    CS_double[i] = csAnalyticFunctionNakai(Eng, Eth, i);
-                }
+                Emin = csCoefDouble_Hplus_Chebyshev[0];
+                Emax = csCoefDouble_Hplus_Chebyshev[1];
+                for (int i = 0; i < 9; ++i)
+                    a_m[i] = {csCoefDouble_Hplus_Chebyshev[i+2]};
+                CS_b = computeCrossSectionChebyshev(energyChebyshevFit, Emin, Emax);
+
+            } else if (pType == ParticleType::DEUTERON) {
+               // Single-electron capture
+               Eth = csCoefSingle_Hplus_Tabata[0];
+               a1 = csCoefSingle_Hplus_Tabata[1];
+               a2 = csCoefSingle_Hplus_Tabata[2];
+               a3 = csCoefSingle_Hplus_Tabata[3];
+               a4 = csCoefSingle_Hplus_Tabata[4];
+               a5 = csCoefSingle_Hplus_Tabata[5];
+               a6 = csCoefSingle_Hplus_Tabata[6];
+               a7 = csCoefSingle_Hplus_Tabata[7];
+               a8 = csCoefSingle_Hplus_Tabata[8];
+               a9 = csCoefSingle_Hplus_Tabata[9];
+               CS_a = computeCrossSectionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) +
+                   computeCrossSectionTabata(Eng, Eth, a5, a2, a6, a7, a8, a9);
 
             } else if (pType == ParticleType::HYDROGEN) {
                 // Single-electron detachment - Proton Production
-                Eth = csCoefSingleLoss_H[i][0];
-                for (int j = 0; j < 8; ++j)
-                    b_m[i][j] = csCoefSingleLoss_H[i][j+1];
-                CS_single[i] = csAnalyticFunctionNakai(Eng, Eth, i);
+                Eth = csCoefProtonProduction_H_Tabata[0];
+                a1 = csCoefProtonProduction_H_Tabata[1];
+                a2 = csCoefProtonProduction_H_Tabata[2];
+                a3 = csCoefProtonProduction_H_Tabata[3];
+                a4 = csCoefProtonProduction_H_Tabata[4];
+                a5 = csCoefProtonProduction_H_Tabata[5];
+                a6 = csCoefProtonProduction_H_Tabata[6];
+                CS_a = computeCrossSectionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) +
+                    a5 * computeCrossSectionTabata(Eng/a6, Eth/a6, a1, a2, 0.0, 0.0, a3, a4);
 
                 // Single-electron capture - Hminus Production
-                Eth = csCoefSingleCapt_H[i][0];
-                for (int j = 0; j < 8; ++j)
-                    b_m[i][j] = csCoefSingleCapt_H[i][j+1];
-                if (b_m[i][7] != 0) {
-                    CS_double[i] = csAnalyticFunctionNakai(Eng, Eth, i) +
-                        b_m[i][6] * csAnalyticFunctionNakai(Eng/b_m[i][7], Eth/b_m[i][7], i);
-                } else {
-                    CS_double[i] = csAnalyticFunctionNakai(Eng, Eth, i);
+                Eth = csCoefHminusProduction_H_Tabata[0];
+                a1 = csCoefHminusProduction_H_Tabata[1];
+                a2 = csCoefHminusProduction_H_Tabata[2];
+                a3 = csCoefHminusProduction_H_Tabata[3];
+                a4 = csCoefHminusProduction_H_Tabata[4];
+                a5 = csCoefHminusProduction_H_Tabata[5];
+                a6 = csCoefHminusProduction_H_Tabata[6];
+                a7 = csCoefHminusProduction_H_Tabata[7];
+                a8 = csCoefHminusProduction_H_Tabata[8];
+                a9 = csCoefHminusProduction_H_Tabata[9];
+                a10 = csCoefHminusProduction_H_Tabata[10];
+                a11 = csCoefHminusProduction_H_Tabata[11];
+                a12 = csCoefHminusProduction_H_Tabata[12];
+                CS_b = computeCrossSectionTabata(Eng, Eth, a1, a2, a3, a4, a5, a6) +
+                    computeCrossSectionTabata(Eng, Eth, a7, a8, a9, a10, a11, a12);
+
+            } else if (pType == ParticleType::H2P) {
+                double energyChebyshevFit = Eng * 1E3 / (Physics::m_h2p / Physics::amu);
+                // Proton production
+                if (Eng <= energyRangeH2plusinH2[0]) {
+                    Eth = csCoefProtonProduction_H2plus_Tabata[0];
+                    a1 = csCoefProtonProduction_H2plus_Tabata[1];
+                    a2 = csCoefProtonProduction_H2plus_Tabata[2];
+                    a3 = csCoefProtonProduction_H2plus_Tabata[3];
+                    a4 = csCoefProtonProduction_H2plus_Tabata[4];
+                    a5 = csCoefProtonProduction_H2plus_Tabata[5];
+                    a6 = csCoefProtonProduction_H2plus_Tabata[6];
+                    a7 = csCoefProtonProduction_H2plus_Tabata[7];
+                    a8 = csCoefProtonProduction_H2plus_Tabata[8];
+                    a9 = csCoefProtonProduction_H2plus_Tabata[9];
+                    a10 = csCoefProtonProduction_H2plus_Tabata[10];
+                    CS_a = computeCrossSectionTabata(Eng, Eth, a1, a2, 0.0, 0.0, a3, a4) +
+                        computeCrossSectionTabata(Eng, Eth, a5, a6, 0.0, 0.0, a7, a8) +
+                        a9 * computeCrossSectionTabata(Eng/a10, Eth/a10, a5, a6, 0.0, 0.0, a7, a8);
+
+                } else if (Eng > energyRangeH2plusinH2[0] &&
+                           Eng < energyRangeH2plusinH2[1]) {
+                    Emin = csCoefProtonProduction_H2plus_Chebyshev[0];
+                    Emax = csCoefProtonProduction_H2plus_Chebyshev[1];
+                    for (int i = 0; i < 9; ++i)
+                        a_m[i] = {csCoefProtonProduction_H2plus_Chebyshev[i+2]};
+                    CS_a = computeCrossSectionChebyshev(energyChebyshevFit, Emin, Emax);
+
+                } else if (Eng >= energyRangeH2plusinH2[1]) {
+                    int Zt = 1;
+                    CS_a = computeCrossSectionBohr(Eng, Zt);
                 }
-            } else {
-                CS_single[i] = {0.0};
-                CS_double[i] = {0.0};
+
+                // Hydrogen production
+                Emin = csCoefHydrogenProduction_H2plus_Chebyshev[0];
+                Emax = csCoefHydrogenProduction_H2plus_Chebyshev[1];
+                for (int i = 0; i < 9; ++i)
+                    a_m[i] = {csCoefHydrogenProduction_H2plus_Chebyshev[i+2]};
+                CS_b = computeCrossSectionChebyshev(energyChebyshevFit, Emin, Emax);
+
+                // H3+, H
+                Eth = csCoefH3plusProduction_H2plus_Tabata[0];
+                a1 = csCoefH3plusProduction_H2plus_Tabata[1];
+                a2 = csCoefH3plusProduction_H2plus_Tabata[2];
+                a3 = csCoefH3plusProduction_H2plus_Tabata[3];
+                a4 = csCoefH3plusProduction_H2plus_Tabata[4];
+                a5 = csCoefH3plusProduction_H2plus_Tabata[5];
+                a6 = csCoefH3plusProduction_H2plus_Tabata[6];
+                CS_c = computeCrossSectionTabata(Eng, Eth, a1, a2, a3, a4, a5, a6);
             }
-            CS_total[i] = CS_single[i] + CS_double[i];
+            CS_total = CS_a + CS_b + CS_c;
 
-            NCS_single[i] = CS_single[i] * 1E-4 * molecularDensity[i];
-            NCS_double[i] = CS_double[i] * 1E-4 * molecularDensity[i];
-            NCS_all[i] = CS_total[i] * 1E-4 * molecularDensity[i];
-
-            NCS_single_all += NCS_single[i];
-            NCS_double_all += NCS_double[i];
-            NCS_total_all += NCS_all[i];
+            NCS_a = CS_a * 1E-4 * molecularDensity[0];
+            NCS_b = CS_b * 1E-4 * molecularDensity[0];
+            NCS_c = CS_c * 1E-4 * molecularDensity[0];
+            NCS_total = CS_total * 1E-4 * molecularDensity[0];
+            break;
         }
-        NCS_a = NCS_single_all;
-        NCS_b = NCS_double_all;
-        NCS_total = NCS_total_all;
+
+        case ResidualGas::AIR: {
+
+            int Zt[3] = {7, 8, 18};
+            static const double fMolarFraction[3] = {0.78084, 0.20947, 0.00934}; // N2, O2, Ar
+            double CS_single[3], CS_double[3], CS_total[3];
+            double NCS_single[3], NCS_double[3], NCS_all[3];
+            double NCS_single_all = 0.0;
+            double NCS_double_all = 0.0;
+            double NCS_total_all = 0.0;
+
+            for (int i = 0; i < 3; ++i) {
+                molecularDensity[i] = 100 * pressure_m * fMolarFraction[i] / (Physics::kB * Physics::q_e * temperature);
+
+                if (pType == ParticleType::HMINUS) {
+                    // Single-electron detachment - Hydrogen Production
+                    Eth = csCoefSingle_Hminus[i][0];
+                    for (int j = 0; j < 8; ++j)
+                        b_m[i][j] = csCoefSingle_Hminus[i][j+1];
+                    CS_single[i] = computeCrossSectionNakai(Eng, Eth, i);
+
+                    // Double-electron detachment - Proton Production
+                    Eth = csCoefDouble_Hminus[i][0];
+                    for (int j = 0; j < 8; ++j)
+                        b_m[i][j] = csCoefDouble_Hminus[i][j+1];
+                    CS_double[i] = computeCrossSectionNakai(Eng, Eth, i);
+
+                } else if (pType == ParticleType::PROTON || pType == ParticleType::DEUTERON) {
+                    // Single-electron capture
+                    Eth = csCoefSingle_Hplus[i][0];
+                    for (int j = 0; j < 8; ++j)
+                        b_m[i][j] = csCoefSingle_Hplus[i][j+1];
+                    CS_single[i] = computeCrossSectionNakai(Eng, Eth, i) +
+                        b_m[i][6] * computeCrossSectionNakai(Eng/b_m[i][7], Eth/b_m[i][7], i);
+
+                    // Double-electron capture
+                    Eth = csCoefDouble_Hplus[i][0];
+                    for (int j = 0; j < 8; ++j)
+                        b_m[i][j] = csCoefDouble_Hplus[i][j+1];
+                    if (b_m[i][7] != 0) {
+                        CS_double[i] = computeCrossSectionNakai(Eng, Eth, i) +
+                            b_m[i][6] * computeCrossSectionNakai(Eng/b_m[i][7], Eth/b_m[i][7], i);
+                    } else {
+                        CS_double[i] = computeCrossSectionNakai(Eng, Eth, i);
+                    }
+
+                } else if (pType == ParticleType::HYDROGEN) {
+                    // Single-electron detachment - Proton Production
+                    Eth = csCoefSingleLoss_H[i][0];
+                    for (int j = 0; j < 8; ++j)
+                        b_m[i][j] = csCoefSingleLoss_H[i][j+1];
+                    CS_single[i] = computeCrossSectionNakai(Eng, Eth, i);
+
+                    // Single-electron capture - Hminus Production
+                    Eth = csCoefSingleCapt_H[i][0];
+                    for (int j = 0; j < 8; ++j)
+                        b_m[i][j] = csCoefSingleCapt_H[i][j+1];
+                    if (b_m[i][7] != 0) {
+                        CS_double[i] = computeCrossSectionNakai(Eng, Eth, i) +
+                            b_m[i][6] * computeCrossSectionNakai(Eng/b_m[i][7], Eth/b_m[i][7], i);
+                    } else {
+                        CS_double[i] = computeCrossSectionNakai(Eng, Eth, i);
+                    }
+
+                } else if (pType == ParticleType::H2P) {
+                    CS_single[i] = {0.0};
+                    CS_double[i] = computeCrossSectionBohr(Eng, Zt[i]);
+
+                } else {
+                    CS_single[i] = {0.0};
+                    CS_double[i] = {0.0};
+                }
+                CS_total[i] = CS_single[i] + CS_double[i];
+                NCS_single[i] = CS_single[i] * 1E-4 * molecularDensity[i];
+                NCS_double[i] = CS_double[i] * 1E-4 * molecularDensity[i];
+                NCS_all[i] = CS_total[i] * 1E-4 * molecularDensity[i];
+
+                NCS_single_all += NCS_single[i];
+                NCS_double_all += NCS_double[i];
+                NCS_total_all += NCS_all[i];
+            }
+            NCS_a = NCS_single_all;
+            NCS_b = NCS_double_all;
+            NCS_total = NCS_total_all;
+            break;
+        }
+        default: {
+            break;
+        }
     }
 }
 
+/// Analytical expression for charge-transfer cross section between hydrogen
+/// ions and atoms with gaseous atoms and molecules based on semiempirically
+/// functional forms.
+/// Y.Nakai et.al, "Cross sections for charge transfer of hydrogen atoms and
+/// ions colliding with gaseous atoms and molecules", At. Data Nucl. Data
+/// Tables 37, 69 (1987).
+// -------------------------------------------------------------------------
+double BeamStrippingPhysics::computeCrossSectionNakai(double Eng, double Eth, int &i) {
 
-double BeamStrippingPhysics::csAnalyticFunctionNakai(double Eng, double Eth, int &i) {
-
-    const double E_R = Physics::E_ryd*1e6 * Physics::m_h / Physics::m_e; //keV
+    if (Eng <= Eth) {
+        return 0.0;
+    }
+    const double E_R = Physics::E_ryd * 1e6 * Physics::m_h / Physics::m_e; //keV
     const double sigma_0 = 1E-16;
     double sigma = 0.0; //cm2
-    if (Eng > Eth) {
-    	double E1 = (Eng-Eth);
-    	double f1 = sigma_0 * b_m[i][0] * std::pow((E1/E_R),b_m[i][1]);
-        if (b_m[i][2] != 0.0 && b_m[i][3] != 0.0)
-            sigma = f1 / (1 + std::pow((E1/b_m[i][2]),(b_m[i][1]+b_m[i][3])) + std::pow((E1/b_m[i][4]),(b_m[i][1]+b_m[i][5])));
-        else
-            sigma = f1 / (1 + std::pow((E1/b_m[i][4]),(b_m[i][1]+b_m[i][5])));
+    double E1 = Eng - Eth; //keV
+    double f1 = sigma_0 * b_m[i][0] * std::pow((E1/E_R),b_m[i][1]);
+    if (b_m[i][2] != 0.0 && b_m[i][3] != 0.0) {
+        sigma = f1 / (1 + std::pow((E1/b_m[i][2]),(b_m[i][1]+b_m[i][3]))
+                + std::pow((E1/b_m[i][4]),(b_m[i][1]+b_m[i][5])));
+    } else {
+        sigma = f1 / (1 + std::pow((E1/b_m[i][4]),(b_m[i][1]+b_m[i][5])));
     }
+
     return sigma;
 }
 
-double BeamStrippingPhysics::csAnalyticFunctionTabata(double Eng, double Eth,
-                                                      double a1, double a2, double a3,
-                                                      double a4, double a5, double a6) {
+/// Analytical expression for cross section of collision processes between
+/// hydrogen ions, atoms, and molecules with hydrogen molecules based on
+/// semiempirically functional forms.
+/// T.Tabata and T.Shirai, "Analytic cross sections for collisions of H+,
+/// H2+, H3+, H, H2 and H− with hydrogen molecules", At. Data Nucl. Data
+/// Tables 76, 1 (2000).
+// -------------------------------------------------------------------------
+double BeamStrippingPhysics::computeCrossSectionTabata(double Eng, double Eth,
+                                                       double a1, double a2, double a3,
+                                                       double a4, double a5, double a6) {
+    if (Eng <= Eth) {
+        return 0.0;
+    }
     const double sigma_0 = 1E-16;
     double sigma = 0.0; //cm2
-    if (Eng > Eth) {
-    	double E1 = (Eng-Eth);
-    	double f1 = sigma_0 * a1 * std::pow((E1/(Physics::E_ryd*1e6)),a2);
-        if (a3 != 0.0 && a4 != 0.0)
-            sigma = f1 / (1 + std::pow((E1/a3),(a2+a4)) + std::pow((E1/a5),(a2+a6)));
-        else
-            sigma = f1 / (1 + std::pow((E1/a5),(a2+a6)));
+    double E1 = Eng - Eth; //keV
+    double f1 = sigma_0 * a1 * std::pow((E1/(Physics::E_ryd*1e6)),a2);
+    if (a3 != 0.0 && a4 != 0.0) {
+        sigma = f1 / (1 + std::pow((E1/a3),(a2+a4)) + std::pow((E1/a5),(a2+a6)));
+    } else {
+        sigma = f1 / (1 + std::pow((E1/a5),(a2+a6)));
     }
+
     return sigma;
 }
 
-double BeamStrippingPhysics::csChebyshevFitting(double Eng, double Emin, double Emax) {
-
+/// Analytical expression for cross section for inelastic collisions between
+/// hydrogen atoms, molecules and ions from Chebyshev fitting parameters.
+/// C.F.Barnett, "Atomic data for fusion. Volume 1: Collisions of H, H2, He
+/// and Li atoms and ions with atoms and molecules", ORNL-6068/V1 (1990).
+// -------------------------------------------------------------------------
+double BeamStrippingPhysics::computeCrossSectionChebyshev(double Eng, double Emin, double Emax) {
+    // Eng -> eV/amu
+    if (Eng <= Emin || Eng >= Emax) {
+        return 0.0;
+    }
     double sum_aT = 0.0;
-    double sigma = 0.0; //cm2
     double aT[8] = {0.0};
-    if (Eng > Emin && Eng < Emax) {
-        double X = ((std::log(Eng)-std::log(Emin)) - (std::log(Emax)-std::log(Eng))) / (std::log(Emax)- std::log(Emin));
-        for (int i = 0; i < 8; ++i) {
-            aT[i] = (a_m[i+1] * boost::math::chebyshev_t(i+1, X));
-            sum_aT += aT[i];
-        }
-        sigma = std::exp(0.5*a_m[0] + sum_aT);
+    double X = ((std::log(Eng)-std::log(Emin)) - (std::log(Emax)-std::log(Eng))) / (std::log(Emax)-std::log(Emin));
+    for (int i = 0; i < 8; ++i) {
+        aT[i] = (a_m[i+1] * boost::math::chebyshev_t(i+1, X));
+        sum_aT += aT[i];
+    }
+    double sigma = std::exp(0.5*a_m[0] + sum_aT); //cm2
+
+    return sigma;
+}
+
+/// Analytical expressions for electron loss by light and heavy ions passing
+/// through gases based on Bohr theory.
+/// H.-D.Betz, "Charge states and charge-changing cross sections of fast heavy
+/// ions penetrating through gaseous and solid media", Rev. Mod. Phys. 44,
+/// 465 (1972).
+// -------------------------------------------------------------------------
+double BeamStrippingPhysics::computeCrossSectionBohr(double Eng, int Zt) {
+
+    if (Eng <= 1E3 || Eng >= 1E5) {
+        return 0.0;
+    }
+    double sigma = 0.0; //cm2
+    double mass = mass_m * 1e6;
+    const double a0v0 = Physics::h_bar * Physics::c * Physics::c / Physics::m_e;
+    double v = Physics::c * std::sqrt(1 - std::pow(mass/(Eng+mass), 2.0));
+    if (Zt < 15) {
+        double Z = (Zt + Zt*Zt);
+        sigma = 1E4 * 4 * Physics::pi * std::pow(a0v0, 2.0) * Z / std::pow(v, 2.0);
+    } else {
+        sigma = 1E4 * 4 * Physics::pi * Physics::a0 * a0v0 * std::pow(Zt, 2.0/3.0) / v;
     }
     return sigma;
 }
 
 
-bool BeamStrippingPhysics::gasStripping(double& deltas) {
+bool BeamStrippingPhysics::evalGasStripping(double& deltas) {
 
     double xi = gsl_rng_uniform(r_m);
     double fg = 1-std::exp(-NCS_total*deltas);
@@ -475,18 +556,17 @@ bool BeamStrippingPhysics::gasStripping(double& deltas) {
     return (fg >= xi);
 }
 
-bool BeamStrippingPhysics::lorentzStripping(double& gamma, double& E) {
+/// Expression for H- lifetime based on the calculation of the electric
+/// dissociation rate from the formal theory of decay.
+/// L.R.Scherk, "A improved value for the electron affinity of the negative
+/// hydrogen ion", Can. J. Phys. 57, 558 (1979).
+// -------------------------------------------------------------------------
+bool BeamStrippingPhysics::evalLorentzStripping(double& gamma, double& E) {
 
     double xi = gsl_rng_uniform(r_m);
 
-//      //Parametrization
-//      const double A1 = 3.073E-6;
-//      const double A2 = 4.414E9;
-//      tau = (A1/E) * std::exp(A2/E);
-
-    //Theoretical
     const double eps0 = 0.75419 * Physics::q_e;
-    const double hbar = Physics::h_bar * 1E9 * Physics::q_e;
+    const double hbar = Physics::h_bar * 1E9 * Physics::q_e; // Js
     const double me = Physics::m_e * 1E9 * Physics::q_e / (Physics::c*Physics::c);
     const double p = 0.0126;
     const double S0 = 0.783;
@@ -495,18 +575,19 @@ bool BeamStrippingPhysics::lorentzStripping(double& gamma, double& E) {
     const double N = (std::sqrt(2 * k0 * (k0+a) * (2*k0+a)))/a;
     double zT = eps0 / (Physics::q_e * E);
     double tau = (4 * me * zT)/(S0 * N * N * hbar * (1+p)*(1+p) * (1-1/(2*k0*zT))) * std::exp(4*k0*zT/3);
-    double fL = 1 - std::exp( - dT_m / (gamma * tau));
+    double fL = 1 - std::exp( -dT_m / (gamma * tau));
 
     return (fL >= xi);
 }
 
-void BeamStrippingPhysics::secondaryParticles(PartBunchBase<double, 3>* bunch, size_t& i, bool pdead_LS) {
-
+void BeamStrippingPhysics::getSecondaryParticles(PartBunchBase<double, 3>* bunch,
+                                                 size_t& i, bool pdead_LS) {
     double r = gsl_rng_uniform(r_m);
 
     const ParticleType& pType = bunch->PType[i];
+    const ResidualGas& gas = vac_m->getResidualGas();
 
-    // change the mass_m and charge_m
+    // change mass_m and charge_m
     if (pType == ParticleType::HMINUS) {
         if (pdead_LS == true) {
             transformToHydrogen(bunch, i);
@@ -530,54 +611,63 @@ void BeamStrippingPhysics::secondaryParticles(PartBunchBase<double, 3>* bunch, s
             transformToHminus(bunch, i);
 
     } else if (pType == ParticleType::H2P) {
-        if (NCS_c>NCS_b && NCS_b>NCS_a) {
-            if (r > (NCS_a+NCS_b)/NCS_total)
-                transformToH3plus(bunch, i);
-            else if (r > NCS_a/NCS_total)
-                transformToHydrogen(bunch, i);
-            else
-                transformToProton(bunch, i);
+        if (gas == ResidualGas::H2) {
+            if (NCS_c>NCS_b && NCS_b>NCS_a) {
+                if (r > (NCS_a+NCS_b)/NCS_total)
+                    transformToH3plus(bunch, i);
+                else if (r > NCS_a/NCS_total)
+                    transformToHydrogen(bunch, i);
+                else
+                    transformToProton(bunch, i);
 
-        } else if (NCS_a>NCS_b && NCS_b>NCS_c) {
-            if (r > (NCS_c+NCS_b)/NCS_total)
-                transformToProton(bunch, i);
-            else if (r > NCS_c/NCS_total)
-                transformToHydrogen(bunch, i);
-            else
-                transformToH3plus(bunch, i);
+            } else if (NCS_a>NCS_b && NCS_b>NCS_c) {
+                if (r > (NCS_c+NCS_b)/NCS_total)
+                    transformToProton(bunch, i);
+                else if (r > NCS_c/NCS_total)
+                    transformToHydrogen(bunch, i);
+                else
+                    transformToH3plus(bunch, i);
 
-        } else if (NCS_a>NCS_b && NCS_c>NCS_a) {
-            if (r > (NCS_a+NCS_b)/NCS_total)
-                transformToH3plus(bunch, i);
-            else if (r > NCS_b/NCS_total)
-                transformToProton(bunch, i);
-            else
-                transformToHydrogen(bunch, i);
+            } else if (NCS_a>NCS_b && NCS_c>NCS_a) {
+                if (r > (NCS_a+NCS_b)/NCS_total)
+                    transformToH3plus(bunch, i);
+                else if (r > NCS_b/NCS_total)
+                    transformToProton(bunch, i);
+                else
+                    transformToHydrogen(bunch, i);
 
-        } else if (NCS_a>NCS_c && NCS_c>NCS_b) {
-            if (r > (NCS_c+NCS_b)/NCS_total)
-                transformToProton(bunch, i);
-            else if (r > NCS_b/NCS_total)
-                transformToH3plus(bunch, i);
-            else
-                transformToHydrogen(bunch, i);
+            } else if (NCS_a>NCS_c && NCS_c>NCS_b) {
+                if (r > (NCS_c+NCS_b)/NCS_total)
+                    transformToProton(bunch, i);
+                else if (r > NCS_b/NCS_total)
+                    transformToH3plus(bunch, i);
+                else
+                    transformToHydrogen(bunch, i);
 
-        } else if (NCS_b>NCS_c && NCS_b>NCS_a && NCS_a>NCS_c) {
-            if (r > (NCS_c+NCS_a)/NCS_total)
-                transformToHydrogen(bunch, i);
-            else if (r > NCS_c/NCS_total)
-                transformToProton(bunch, i);
-            else
-                transformToH3plus(bunch, i);
+            } else if (NCS_b>NCS_c && NCS_b>NCS_a && NCS_a>NCS_c) {
+                if (r > (NCS_c+NCS_a)/NCS_total)
+                    transformToHydrogen(bunch, i);
+                else if (r > NCS_c/NCS_total)
+                    transformToProton(bunch, i);
+                else
+                    transformToH3plus(bunch, i);
 
-        } else {
-            if (r > (NCS_c+NCS_a)/NCS_total)
-                transformToHydrogen(bunch, i);
-            else if (r > NCS_a/NCS_total)
-                transformToH3plus(bunch, i);
-            else
+            } else {
+                if (r > (NCS_c+NCS_a)/NCS_total)
+                    transformToHydrogen(bunch, i);
+                else if (r > NCS_a/NCS_total)
+                    transformToH3plus(bunch, i);
+                else
+                    transformToProton(bunch, i);
+            }
+        } else if (gas == ResidualGas::AIR) {
+            if (r > NCS_total)
                 transformToProton(bunch, i);
         }
+    } else if (pType == ParticleType::DEUTERON) {
+        GeneralClassicException("BeamStrippingPhysics::getSecondaryParticles",
+                                "Tracking secondary particles from incident "
+                                "ParticleType::DEUTERON is not implemented");
     }
 
     bunch->POrigin[i] = ParticleOrigin::SECONDARY;
@@ -594,6 +684,7 @@ void BeamStrippingPhysics::transformToProton(PartBunchBase<double, 3>* bunch, si
     bunch->Q[i] = Physics::q_e;
     bunch->PType[i] = ParticleType::PROTON;
 }
+
 void BeamStrippingPhysics::transformToHydrogen(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
     gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
@@ -602,6 +693,7 @@ void BeamStrippingPhysics::transformToHydrogen(PartBunchBase<double, 3>* bunch, 
     bunch->Q[i] = 0.0;
     bunch->PType[i] = ParticleType::HYDROGEN;
 }
+
 void BeamStrippingPhysics::transformToHminus(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
     gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
@@ -610,6 +702,7 @@ void BeamStrippingPhysics::transformToHminus(PartBunchBase<double, 3>* bunch, si
     bunch->Q[i] = -Physics::q_e;
     bunch->PType[i] = ParticleType::HMINUS;
 }
+
 void BeamStrippingPhysics::transformToH3plus(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
     gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
@@ -664,6 +757,9 @@ const double BeamStrippingPhysics::csCoefSingleCapt_H[3][9] = {
 };
 
 // Cross sections parameters for interaction with hydrogen gas (H2)
+const double BeamStrippingPhysics::csCoefSingle_Hplus_Tabata[10] = {
+    2.50E-03, 2.12E+02, 1.721E+00, 6.70E-04, 3.239E-01, 4.34E-03, 1.296E+00, 1.42E-01, 9.34E+00, 2.997E+00
+};
 const double BeamStrippingPhysics::csCoefHminusProduction_H_Tabata[13] = {
     2.1E-02, 9.73E-03, 2.38E+00, 1.39E-02, -5.51E-01, 7.7E-02, 2.12E+00, 1.97E-06, 2.051E+00, 5.5E+00, 6.62E-01, 2.02E+01, 3.62E+00
 };
@@ -691,5 +787,9 @@ const double BeamStrippingPhysics::csCoefDouble_Hplus_Chebyshev[11] = {
 const double BeamStrippingPhysics::csCoefHydrogenProduction_H2plus_Chebyshev[11] = {
     2.00E+03, 1.00E+05, -70.670173645, -0.632612288, -0.6065212488, -0.0915143117, -0.0121710282, 0.0168179292, 0.0104796877, 0, 0
 };
+const double BeamStrippingPhysics::csCoefProtonProduction_H2plus_Chebyshev[11] = {
+    1.50E+03, 1.00E+07, -74.9261474609, -2.1944284439, -0.8558337688, 0.0421306863, 0.2162267119, 0.0921146944, -0.0893079266, 0, 0
+};
+const double BeamStrippingPhysics::energyRangeH2plusinH2[2] = {111.4, 7.8462E+04};
 double BeamStrippingPhysics::a_m[9] = {};
 double BeamStrippingPhysics::b_m[3][9] = {};
