@@ -40,11 +40,12 @@
 
 #include <boost/numeric/ublas/matrix.hpp>
 
-#include "AbsBeamline/Cyclotron.h"
 #include "FixedAlgebra/FTps.h"
 #include "Physics/Physics.h"
 
 #include "Distribution/RealDiracMatrix.h"
+
+class Cyclotron;
 
 class SigmaGenerator
 {
