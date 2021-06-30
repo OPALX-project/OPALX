@@ -3,7 +3,7 @@
 //   Defines the abstract interface for a cyclotron.
 //
 // Copyright (c) 2007 - 2012, Jianjun Yang and Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
-// Copyright (c) 2013 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2013 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -37,46 +37,45 @@ class TrimCoil;
 
 
 struct BfieldData {
-    std::string filename;
     // known from file: field and three theta derivatives
-    std::vector<double> bfld;   //Bz
-    std::vector<double> dbt;    //dBz/dtheta
-    std::vector<double> dbtt;   //d2Bz/dtheta2
-    std::vector<double> dbttt;  //d3Bz/dtheta3
+    std::vector<double> bfld_m;   //Bz
+    std::vector<double> dbt_m;    //dBz/dtheta
+    std::vector<double> dbtt_m;   //d2Bz/dtheta2
+    std::vector<double> dbttt_m;  //d3Bz/dtheta3
 
     // to be calculated in getdiffs: all other derivatives:
-    std::vector<double> dbr;    // dBz/dr
-    std::vector<double> dbrr;   // ...
-    std::vector<double> dbrrr;
+    std::vector<double> dbr_m;    // dBz/dr
+    std::vector<double> dbrr_m;   // ...
+    std::vector<double> dbrrr_m;
 
-    std::vector<double> dbrt;
-    std::vector<double> dbrrt;
-    std::vector<double> dbrtt;
+    std::vector<double> dbrt_m;
+    std::vector<double> dbrrt_m;
+    std::vector<double> dbrtt_m;
 
     // used to get (Br,Btheta,Bz) at any off-plane point
-    std::vector<double> f2;  // for Bz
-    std::vector<double> f3;  // for Br
-    std::vector<double> g3;  // for Btheta
+    std::vector<double> f2_m;  // for Bz
+    std::vector<double> f3_m;  // for Br
+    std::vector<double> g3_m;  // for Btheta
 
     // Grid-Size
-    int nrad, ntet; //need to be read from inputfile.
-    int ntetS;      // one more grid line is stored in azimuthal direction
-    int ntot;       // total grid points number.
+    int nrad_m, ntet_m; // need to be read from inputfile.
+    int ntetS_m;        // one more grid line is stored in azimuthal direction
+    int ntot_m;         // total grid points number.
 
     // Mean and Maximas
-    double bacc, dbtmx, dbttmx, dbtttmx;
+    double bacc_m, dbtmx_m, dbttmx_m, dbtttmx_m;
 };
 
 struct BPositions {
     // these 4 parameters are need to be read from field file.
-    double  rmin, delr;
-    double  tetmin, dtet;
+    double rmin_m, delr_m;
+    double tetmin_m, dtet_m;
 
     // Radii and step width of initial Grid
-    std::vector<double> rarr;
+    std::vector<double> rarr_m;
 
-    //  int     ThetaPeriodicity; // Periodicity of Magnetic field
-    double  Bfact;      // MULTIPLICATION FACTOR FOR MAGNETIC FIELD
+    // Multiplication factor for magnetic field
+    double Bfact_m;
 };
 
 
@@ -98,12 +97,12 @@ public:
     explicit Cyclotron(const std::string& name);
 
     Cyclotron();
-    Cyclotron(const Cyclotron &);
+    Cyclotron(const Cyclotron&);
 
     virtual ~Cyclotron();
 
     /// Apply visitor to Cyclotron.
-    virtual void accept(BeamlineVisitor &) const;
+    virtual void accept(BeamlineVisitor&) const;
 
     /// Get number of slices.
     //  Slices and stepsize used to determine integration step.
@@ -119,7 +118,7 @@ public:
     void setRfFieldMapFN(std::vector<std::string> rffmapfn);
     void setRFFCoeffFN(std::vector<std::string> rff_coeff_fn);
     void setRFVCoeffFN(std::vector<std::string> rfv_coeff_fn);
-    
+
     void setCyclotronType(std::string t);
     const std::string &getCyclotronType() const;
     virtual ElementBase::ElementType getType() const;
@@ -140,25 +139,25 @@ public:
     void setSymmetry(double symmetry);
     virtual double getSymmetry() const;
 
-    void   setRinit(double rinit);
+    void setRinit(double rinit);
     virtual double getRinit() const;
 
-    void   setPRinit(double prinit);
+    void setPRinit(double prinit);
     virtual double getPRinit() const;
 
-    void   setPHIinit(double phiinit);
+    void setPHIinit(double phiinit);
     virtual double getPHIinit() const;
 
-    void   setZinit(double zinit);
+    void setZinit(double zinit);
     virtual double getZinit() const;
 
-    void   setPZinit(double zinit);
+    void setPZinit(double zinit);
     virtual double getPZinit() const;
 
-    void   setBScale(double bs);
+    void setBScale(double bs);
     virtual double getBScale() const;
 
-    void   setEScale(std::vector<double> bs);
+    void setEScale(std::vector<double> bs);
     virtual double getEScale(unsigned int i) const;
 
     void setTrimCoils(const std::vector<TrimCoil*>& trimcoils);
@@ -212,10 +211,12 @@ public:
                      double& br,
                      double& bt,
                      double& bz);
-    
+
     void read(const double& scaleFactor);
 
     void setBFieldType();
+
+    void writeOutputFieldFiles();
 
     BFieldType fieldType_m;
 
@@ -227,9 +228,8 @@ private:
 
 
 protected:
-   
-    void   getdiffs();
 
+    void   getdiffs();
     double gutdf5d(double* f, double dx, const int kor, const int krl, const int lpr);
 
     void   initR(double rmin, double dr, int nrad);
@@ -242,7 +242,7 @@ protected:
     void   getFieldFromFile_BandRF(const double& scaleFactor);
     void   getFieldFromFile_Synchrocyclotron(const double& scaleFactor);
 
-    inline int idx(int irad, int ktet) {return (ktet + Bfield.ntetS * irad);}
+    inline int idx(int irad, int ktet) {return (ktet + Bfield_m.ntetS_m * irad);}
 
 
 private:
@@ -264,7 +264,7 @@ private:
     double zinit_m;
     double pzinit_m;
 
-    bool spiral_flag_m;
+    bool spiralFlag_m;
     double trimCoilThreshold_m; /**< B-field threshold for applying trim coil*/
 
     std::string typeName_m; /**< Name of the TYPE parameter in cyclotron*/
@@ -276,7 +276,6 @@ private:
 
     double minr_m;
     double maxr_m;
-
     double minz_m;
     double maxz_m;
 
@@ -288,7 +287,7 @@ private:
 
     // RF field map handler
     //    Fieldmap *RFfield;
-    std::vector<Fieldmap *> RFfields_m;
+    std::vector<Fieldmap*> RFfields_m;
     std::vector<std::string> RFfilename_m;
     std::vector<std::string> RFFCoeff_fn_m;
     std::vector<std::string> RFVCoeff_fn_m;
@@ -296,14 +295,14 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m; /**< Handling for store the particle out of region*/
 
     // Necessary for quick and dirty phase output -DW
-    int waiting_for_gap = 1;
+    int waitingGap_m = 1;
 
 protected:
     // object of Matrices including magnetic field map and its derivates
-    BfieldData Bfield;
+    BfieldData Bfield_m;
 
     // object of parameters about the map grid
-    BPositions BP;
+    BPositions BP_m;
 };
 
 #endif // CLASSIC_Cyclotron_HH
