@@ -31,8 +31,7 @@
 #include "SigmaGenerator.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/Options.h"
-#include "Utilities/Options.h"
+#include "AbsBeamline/Cyclotron.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
@@ -41,25 +40,15 @@
 #include "MapGenerator.h"
 
 #include <cmath>
-#include <fstream>
-#include <functional>
 #include <iomanip>
-#include <iterator>
 #include <limits>
-#include <list>
 #include <numeric>
 #include <sstream>
+#include <utility>
+
+#include <boost/filesystem.hpp>
 
 #include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
-
-#include <boost/numeric/ublas/vector_proxy.hpp>
-#include <boost/numeric/ublas/triangular.hpp>
-#include <boost/numeric/ublas/lu.hpp>
-#include <boost/numeric/ublas/io.hpp>
-
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_eigen.h>
 
 extern Inform *gmsg;
 
