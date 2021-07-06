@@ -143,6 +143,7 @@ void Undulator::apply(
     msg << "Mesh parameters have been transferred to the full-wave solver." << endl;
 
     MITHRA::Seed seed;
+    seed.a0_ = 0.0; // initialise unitialised member (see #658)
     std::vector<MITHRA::ExtField> externalFields;
     std::vector<MITHRA::FreeElectronLaser> FELs;
 
