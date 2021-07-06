@@ -1532,7 +1532,7 @@ bool ParallelCyclotronTracker::RFkick(RFCavity * rfcavity, const double t, const
 }
 
 
-struct adder : public std::unary_function<double, void> {
+struct adder {
     adder() : sum(0) {}
     double sum;
     void operator()(double x) { sum += x; }
