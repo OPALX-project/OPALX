@@ -83,8 +83,6 @@ Beam::Beam():
 
     itsAttr[PC]       = Attributes::makeReal
                         ("PC", "Particle momentum [GeV/c]");
-    PtrToScalar<double> expr = new SRefExpr<double>("P0", "");
-    itsAttr[PC].set(new SAutomatic<double>(expr));
 
     itsAttr[GAMMA]    = Attributes::makeReal
                         ("GAMMA", "ENERGY / MASS");
@@ -268,8 +266,11 @@ void Beam::update() {
             throw OpalException("Beam::update()",
                                 "\"PC\" should be greater than 0.");
         }
+    } else {
+        throw OpalException("Beam::update()",
+                            "The energy hasn't been set. Set either GAMMA, ENERGY or PC.");
     }
-
+    
     // Set default name.
     if (getOpalName().empty()) setOpalName("UNNAMED_BEAM");
 }
