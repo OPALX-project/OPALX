@@ -63,7 +63,7 @@ struct SetStatistics {
 
 namespace std {
     template<>
-    struct less<SetStatistics> : binary_function<SetStatistics, SetStatistics, bool> {
+    struct less<SetStatistics> {
         bool operator() (const SetStatistics& x, const SetStatistics& y) const {
             return x.spos_m < y.spos_m;
         }
