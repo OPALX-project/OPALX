@@ -134,6 +134,11 @@ Beam* Beam::clone(const std::string& name) {
 
 void Beam::execute() {
     update();
+    // Check if energy explicitly has been set with the BEAM command
+    if (!itsAttr[GAMMA] && !(itsAttr[ENERGY]) && !(itsAttr[PC])) {
+        throw OpalException("Beam::execute()",
+                            "The energy hasn't been set. Set either GAMMA, ENERGY or PC.");
+    }
 }
 
 
@@ -266,11 +271,8 @@ void Beam::update() {
             throw OpalException("Beam::update()",
                                 "\"PC\" should be greater than 0.");
         }
-    } else {
-        throw OpalException("Beam::update()",
-                            "The energy hasn't been set. Set either GAMMA, ENERGY or PC.");
     }
-    
+
     // Set default name.
     if (getOpalName().empty()) setOpalName("UNNAMED_BEAM");
 }
