@@ -65,20 +65,20 @@ public:
 
 private:
 
-    void computeCrossSection(PartBunchBase<double, 3>* bunch, size_t& i, double Eng);
+    void computeCrossSection(PartBunchBase<double, 3>* bunch, size_t& i, double energy);
 
-    double computeCrossSectionNakai(double Eng, double Eth, int& i);
+    double computeCrossSectionNakai(double energy, double energyThreshold, int& i);
     
-    double computeCrossSectionTabata(double Eng, double Eth,
+    double computeCrossSectionTabata(double energy, double energyThreshold,
                                     double a1, double a2, double a3,
                                     double a4, double a5, double a6);
                               
-    double computeCrossSectionChebyshev(double Eng, double Emin, double Emax);
+    double computeCrossSectionChebyshev(double energy, double energyMin, double energyMax);
 
-    double computeCrossSectionBohr(double Eng, int Zt);
+    double computeCrossSectionBohr(double energy, int zTarget, double massInAmu);
 
     bool evalGasStripping(double& deltas);
-    bool evalLorentzStripping(double& gamma, double& E);
+    bool evalLorentzStripping(double& gamma, double& eField);
 
     void getSecondaryParticles(PartBunchBase<double, 3>* bunch, size_t& i, bool pdead_LS);
     void transformToProton(PartBunchBase<double, 3>* bunch, size_t& i);
@@ -106,10 +106,11 @@ private:
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    double NCS_a;
-    double NCS_b;
-    double NCS_c;
-    double NCS_total;
+    /// macroscopic cross sections
+    double nCSA;
+    double nCSB;
+    double nCSC;
+    double nCSTotal;
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
