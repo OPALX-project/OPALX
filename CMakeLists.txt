@@ -1,4 +1,6 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.12)
+cmake_policy(VERSION 3.12)
+
 project (OPAL VERSION 2021.1.0)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
