@@ -77,7 +77,6 @@ target_link_libraries (
     ${MPI_CXX_LIBRARIES}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARIES}
-    z
     boost_timer
 )
 
