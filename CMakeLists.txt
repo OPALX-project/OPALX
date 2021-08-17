@@ -141,6 +141,7 @@ find_package (H5Hut REQUIRED)
 if (USE_STATIC_LIBRARIES)
     set (HDF5_USE_STATIC_LIBRARIES ON)
 endif ()
+set (HDF5_PREFER_PARALLEL ON)
 find_package (HDF5 REQUIRED)
 message (STATUS "Found HDF5 libraries: ${HDF5_C_LIBRARIES}")
 
