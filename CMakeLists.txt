@@ -156,9 +156,10 @@ endif ()
 set (Boost_USE_MULTITHREADED OFF)
 set (Boost_USE_STATIC_RUNTIME OFF)
 find_package (Boost 1.66.0
-    REQUIRED COMPONENTS chrono filesystem iostreams regex serialization system timer)
-message (STATUS "Found Boost include dir: ${Boost_INCLUDE_DIR}")
-message (STATUS "Found Boost library dir: ${Boost_LIBRARY_DIR}")
+    REQUIRED COMPONENTS filesystem iostreams regex serialization system timer chrono)
+set (Boost_LIBRARIES ${Boost_LIBRARIES} rt)
+message (STATUS "Found Boost include dirs: ${Boost_INCLUDE_DIRS}")
+message (STATUS "Found Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message (STATUS "Found Boost libraries: ${Boost_LIBRARIES}")
 include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
 
