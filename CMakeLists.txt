@@ -1,4 +1,6 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.12)
+cmake_policy(VERSION 3.12)
+
 project (OPAL VERSION 2.5.0)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
@@ -139,8 +141,10 @@ find_package (H5Hut REQUIRED)
 if (USE_STATIC_LIBRARIES)
     set (HDF5_USE_STATIC_LIBRARIES ON)
 endif ()
+set (HDF5_PREFER_PARALLEL ON)
 find_package (HDF5 REQUIRED)
-message (STATUS "Found HDF5 libraries: ${HDF5_C_LIBRARIES}")
+set (HDF5_LIBRARIES ${HDF5_LIBRARIES} ${CMAKE_DL_LIBS} rt z)
+message (STATUS "Found HDF5 libraries: ${HDF5_LIBRARIES}")
 
 find_package (GSL REQUIRED)
 message (STATUS "Found gsl libraries: ${GSL_LIBRARIES}")
@@ -152,9 +156,10 @@ endif ()
 set (Boost_USE_MULTITHREADED OFF)
 set (Boost_USE_STATIC_RUNTIME OFF)
 find_package (Boost 1.66.0
-    REQUIRED COMPONENTS chrono filesystem iostreams regex serialization system timer)
-message (STATUS "Found Boost include dir: ${Boost_INCLUDE_DIR}")
-message (STATUS "Found Boost library dir: ${Boost_LIBRARY_DIR}")
+    REQUIRED COMPONENTS filesystem iostreams regex serialization system timer chrono)
+set (Boost_LIBRARIES ${Boost_LIBRARIES} rt)
+message (STATUS "Found Boost include dirs: ${Boost_INCLUDE_DIRS}")
+message (STATUS "Found Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message (STATUS "Found Boost libraries: ${Boost_LIBRARIES}")
 include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
 
