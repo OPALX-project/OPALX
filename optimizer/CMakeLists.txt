@@ -1,9 +1,4 @@
 #-----------------------------------------------------------------------------
-# options
-
-option (ARCH_BG "Set architecture to BlueGene" OFF)
-
-#-----------------------------------------------------------------------------
 # Common sources and libs
 
 # add_sources macro implemented by Christof Kraus
