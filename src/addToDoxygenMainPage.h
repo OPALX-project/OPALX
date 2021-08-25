@@ -26,7 +26,8 @@ Chris Rogers (RAL);
 Steve Russell (LANL);
 Suzanne Sheehy (Oxford);
 Jochem Snuverink (PSI);
-Daniel Winklehner (MIT)
+Daniel Winklehner (MIT);
+Arnau Albà (PSI)
 </B>
 <P>
 For further information please contact us on the <a href="mailto:opal@lists.psi.ch">OPAL mailing list</a>
