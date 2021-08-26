@@ -61,11 +61,6 @@ add_compile_options (-Werror)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 
-# An error in Trilinos/12.18.1 causes
-# -Waggressive-loop-optimizations with -O3 optimization.
-# See issue 587 and corresponding merge request 415.
-add_compile_options (-fno-aggressive-loop-optimizations)
-
 option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 if (NOT ${USE_STATIC_LIBRARIES})
     add_compile_options (-fPIE -fPIC)
@@ -98,6 +93,12 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     endif ()
 
 elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+    # An error in Trilinos/12.18.1 causes
+    # -Waggressive-loop-optimizations with -O3 optimization.
+    # See issue 587 and corresponding merge request 415.
+    # Clang does not support this flag!
+    add_compile_options (-fno-aggressive-loop-optimizations)
+
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.3")
         message (FATAL_ERROR "To build OPAL you need GCC version 4.7.3 or greater")
     endif ()
