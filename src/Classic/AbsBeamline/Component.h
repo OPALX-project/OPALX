@@ -109,21 +109,6 @@ public:
                        Vector_t &E,
                        Vector_t &B);
 
-    virtual void apply(PartBunchBase<double, 3>* /*itsBunch*/,
-                       CoordinateSystemTrafo const& /*refToLocalCSTrafo*/) {};
-
-
-    virtual bool apply(const double&,
-                       Vector_t&,
-                       Vector_t&) {return false;};
-
-    virtual void apply(const double& /*rad*/,
-                       const double& /*z*/,
-                       const double& /*tet_rad*/,
-                       double& /*br*/,
-                       double& /*bt*/,
-                       double& /*bz*/) {};
-
     virtual bool applyToReferenceParticle(const Vector_t &R,
                                           const Vector_t &P,
                                           const double &t,
