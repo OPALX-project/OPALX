@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
         }
 
         if(argc <= 1) {
+            ::printStdoutHeader();
             // Run commands from standard input
             parser.run(new TerminalStream("OPAL"));
         } else {
