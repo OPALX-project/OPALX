@@ -139,7 +139,6 @@ public:
     //  Derived classes may use this call to update their internal state.
     //  The beam line elements can update their CLASSIC counterpart.
     virtual void update();
-    virtual void update(const std::vector<Attribute>&) {};
 
     /// True, if [b]this[/b] is a built-in object.
     bool isBuiltin() const;
