@@ -40,7 +40,7 @@ namespace Attributes {
 
 
     const std::string &UpperCaseStringArray::getType() const {
-        static std::string type = "upper case string array";
+        static std::string type = "string array";
         return type;
     }
 
