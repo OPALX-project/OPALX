@@ -61,21 +61,21 @@ TrackCmd::TrackCmd():
     itsAttr[BEAM] = Attributes::makeString
                     ("BEAM", "Name of beam to be used", "UNNAMED_BEAM");
     itsAttr[DT] = Attributes::makeRealArray
-                  ("DT", "THE INTEGRATION TIMESTEP IN SECONDS");
+                  ("DT", "The integration timestep in seconds");
     itsAttr[DTSCINIT] = Attributes::makeReal
                   ("DTSCINIT", "Only for adaptive integrator: Initial time step for space charge integration", 1e-12);
     itsAttr[DTAU] = Attributes::makeReal
                   ("DTAU", "Only for adaptive integrator: Alternative way to set accuracy of space integration.", -1.0);
     itsAttr[T0] = Attributes::makeReal
-                  ("T0", "THE ELAPSED TIME OF THE BUNCH IN SECONDS", 0.0);
+                  ("T0", "The elapsed time of the bunch in seconds", 0.0);
     itsAttr[MAXSTEPS] = Attributes::makeRealArray
-                        ("MAXSTEPS", "THE MAXIMUM NUMBER OF INTEGRATION STEPS DT, should be larger ZSTOP/(beta*c average)");
-    itsAttr[STEPSPERTURN] = Attributes::makeReal
-                            ("STEPSPERTURN", "THE TIME STEPS PER REVOLUTION PERIOD, ONLY FOR OPAL-CYCL", 720);
+                        ("MAXSTEPS", "The maximum number of integration steps dt, should be larger ZSTOP/(beta*c average)");
     itsAttr[ZSTART] = Attributes::makeReal
                       ("ZSTART", "Defines a z-location [m] where the reference particle starts", 0.0);
     itsAttr[ZSTOP] = Attributes::makeRealArray
                      ("ZSTOP", "Defines a z-location [m], after which the simulation stops when the last particles passes");
+    itsAttr[STEPSPERTURN] = Attributes::makeReal
+                            ("STEPSPERTURN", "The time steps per revolution period, only for opal-cycl.", 720);
     itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString
         ("TIMEINTEGRATOR", "Name of time integrator to be used", {"RK-4", "RK_4", "LF-2", "LF_2", "MTS"}, "RK_4");
 

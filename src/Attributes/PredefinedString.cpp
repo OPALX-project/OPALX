@@ -45,7 +45,7 @@ namespace Attributes {
 
 
     const std::string &PredefinedString::getType() const {
-        static const std::string type("predefined string");
+        static const std::string type("string");
         return type;
     }
 
