@@ -742,22 +742,22 @@ void IpplInfo::printVersion(void) {
 
 
 void IpplInfo::printHelp() {
-    INFOMSG("   --summary           : Print IPPL lib summary at start.\n");
-    INFOMSG("   --processes <n>     : Number of parallel nodes to use.\n");
-    INFOMSG("   --commlib <x>       : Selects a parallel comm. library.\n");
-    INFOMSG("                         <x> = ");
+    INFOMSG("   --summary                : Print IPPL lib summary at start.\n");
+    INFOMSG("   --processes <n>          : Number of parallel nodes to use.\n");
+    INFOMSG("   --commlib <x>            : Selects a parallel comm. library.\n");
+    INFOMSG("                              <x> = ");
     INFOMSG(CommCreator::getAllLibraryNames() << "\n");
-    INFOMSG("   --nocomminit        : IPPL does not do communication\n");
-    INFOMSG("                         initialization, assume already done.\n");
-    INFOMSG("   --connect <x>       : Select external connection method.\n");
-    INFOMSG("                         <x> = ");
+    INFOMSG("   --nocomminit             : IPPL does not do communication\n");
+    INFOMSG("                              initialization, assume already done.\n");
+    INFOMSG("   --connect <x>            : Select external connection method.\n");
+    INFOMSG("                              <x> = ");
     INFOMSG(DataConnectCreator::getAllMethodNames() << "\n");
-    INFOMSG("   --time              : Show total time used in execution.\n");
-    INFOMSG("   --notime            : Do not show timing info (default).\n");
-    INFOMSG("   --info <n>          : Set info message level.  0 = off.\n");
-    INFOMSG("   --warn <n>          : Set warning message level.  0 = off.\n");
-    INFOMSG("   --error <n>         : Set error message level.  0 = off.\n");
-    INFOMSG("   --debug <n>         : Set debug message level.  0 = off.\n");
+    INFOMSG("   --time                   : Show total time used in execution.\n");
+    INFOMSG("   --notime                 : Do not show timing info (default).\n");
+    INFOMSG("   --info <n>               : Set info message level.  0 = off.\n");
+    INFOMSG("   --warn <n>               : Set warning message level.  0 = off.\n");
+    INFOMSG("   --error <n>              : Set error message level.  0 = off.\n");
+    INFOMSG("   --debug <n>              : Set debug message level.  0 = off.\n");
     /*#ifdef PROFILING_ON
       INFOMSG("   --profile <gr>  : Enable profiling for groups (e.g., M+P+io) \n");
       INFOMSG("             M - Message, P - Pete, V - Viz, A - Assign, I - IO\n");
@@ -766,16 +766,16 @@ void IpplInfo::printHelp() {
       INFOMSG("             U - User, 1 - User1, 2 - User2, 3 - User3, 4 - User4\n");
 
       #endif*/ //PROFILING_ON
-    INFOMSG("   --defergcfill       : Turn on deferred guard cell fills.\n");
-    INFOMSG("   --nofieldcompression: Turn off compression in the Field classes.\n");
-    INFOMSG("   --offsetstorage     : Turn on random LField storage offsets.\n");
-    INFOMSG("   --extracompcheck    : Turn on extra compression checks in evaluator.\n");
-    INFOMSG("   --checksums         : Turn on CRC checksums for messages.\n");
-    INFOMSG("   --retransmit        : Resent messages if a CRC error occurs.\n");
-    INFOMSG("   --maxfftnodes <n>   : Limit the nodes that work on FFT's.\n");
-    INFOMSG("   --chunksize <n>     : Set I/O chunk size.  Can end w/K,M,G.\n");
-    INFOMSG("   --persmppario       : Enable on-SMP parallel IO option.\n");
-    INFOMSG("   --nopersmppario     : Disable on-SMP parallel IO option (default).\n");
+    INFOMSG("   --defergcfill            : Turn on deferred guard cell fills.\n");
+    INFOMSG("   --nofieldcompression     : Turn off compression in the Field classes.\n");
+    INFOMSG("   --offsetstorage          : Turn on random LField storage offsets.\n");
+    INFOMSG("   --extracompcheck         : Turn on extra compression checks in evaluator.\n");
+    INFOMSG("   --checksums              : Turn on CRC checksums for messages.\n");
+    INFOMSG("   --retransmit             : Resent messages if a CRC error occurs.\n");
+    INFOMSG("   --maxfftnodes <n>        : Limit the nodes that work on FFT's.\n");
+    INFOMSG("   --chunksize <n>          : Set I/O chunk size.  Can end w/K,M,G.\n");
+    INFOMSG("   --persmppario            : Enable on-SMP parallel IO option.\n");
+    INFOMSG("   --nopersmppario          : Disable on-SMP parallel IO option (default).\n");
 }
 
 /////////////////////////////////////////////////////////////////////
