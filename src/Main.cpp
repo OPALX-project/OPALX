@@ -21,7 +21,6 @@
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
-#include "Parser/TerminalStream.h"
 #include "Utilities/Timer.h"
 #include "Fields/Fieldmap.h"
 #include "FixedAlgebra/FTps.h"
@@ -89,22 +88,23 @@ namespace {
     }
 
     void printHelp() {
-        printStdoutHeader();
+        ::printStdoutHeader();
 
         INFOMSG("\n");
         INFOMSG("Usage: opal [<option> <option> ...]\n");
         INFOMSG("   The possible values for <option> are:\n");
-        INFOMSG("   --version           : Print the version of opal.\n");
-        INFOMSG("   --version-full      : Print the version of opal with additional informations.\n");
-        INFOMSG("   --git-revision      : Print the revision hash of the repository.\n");
-        INFOMSG("   --input <fname>     : Specifies the input file <fname>.\n");
-        INFOMSG("   --restart <n>       : Performes a restart from step <n>.\n");
-        INFOMSG("   --restartfn <fname> : Uses the file <fname> to restart from.\n");
+        INFOMSG("   --version                : Print the version of opal.\n");
+        INFOMSG("   --version-full           : Print the version of opal with additional informations.\n");
+        INFOMSG("   --git-revision           : Print the revision hash of the repository.\n");
+        INFOMSG("   --input <fname>          : Specifies the input file <fname>.\n");
+        INFOMSG("   --restart <n>            : Performes a restart from step <n>.\n");
+        INFOMSG("   --restartfn <fname>      : Uses the file <fname> to restart from.\n");
 #ifdef ENABLE_AMR
-        INFOMSG("   --noInitAMR         : Disable initialization of AMR\n");
+        INFOMSG("   --noInitAMR              : Disable initialization of AMR\n");
 #endif
         Ippl::printHelp();
-        INFOMSG("   --help              : Display this command-line summary.\n");
+        INFOMSG("   --help-command <command> : Display the help for the command <command>\n");
+        INFOMSG("   --help                   : Display this command-line summary.\n");
         INFOMSG(endl);
     }
 }
@@ -215,133 +215,147 @@ int main(int argc, char *argv[]) {
         }
 
         if(argc <= 1) {
-            ::printStdoutHeader();
-            // Run commands from standard input
-            parser.run(new TerminalStream("OPAL"));
-        } else {
-            int inputFileArgument = -1;
-            std::string fname;
-            std::string restartFileName;
-            //         // will write dumping date into a new h5 file
-            for(int ii = 1; ii < argc; ++ ii) {
-                std::string argStr = std::string(argv[ii]);
-                // The sequence of the two arguments is free
-                if (argStr == std::string("-h") ||
-                    argStr == std::string("-help") ||
-                    argStr == std::string("--help")) {
+            ::printHelp();
+            exit(1);
+        } 
+        int inputFileArgument = -1;
+        std::string fname;
+        std::string restartFileName;
+        
+        for(int ii = 1; ii < argc; ++ ii) {
+            std::string argStr = std::string(argv[ii]);
+            if (argStr == std::string("-h") ||
+                argStr == std::string("-help") ||
+                argStr == std::string("--help")) {
+                ::printHelp();
+                exit(0);
+            } else if (argStr == std::string("--help-command")) {
+                if (argc < ii + 2) {
                     ::printHelp();
-                    exit(0);
-                } else if (argStr == std::string("--version")) {
-                    if (Ippl::myNode() == 0) {
-                        std::cout << OPAL_PROJECT_VERSION << std::endl;
-                    }
-                    exit(0);
-                } else if (argStr == std::string("--version-full")) {
-                    ::printStdoutHeader();
-                    INFOMSG("OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. " << Util::getGitRevision() << endl);
-                    IpplInfo::printVersion();
-                    std::string options = (IpplInfo::compileOptions() +
-                                           std::string(" ") +
-                                           std::string(OPAL_COMPILE_OPTIONS) +
-                                           std::string(" "));
-                    std::set<std::string> uniqOptions;
-                    while (options.length() > 0) {
-                        size_t n = options.find_first_of(' ');
-                        while (n == 0) {
-                            options = options.substr(n + 1);
-                            n = options.find_first_of(' ');
-                        }
-
-                        uniqOptions.insert(options.substr(0, n));
-                        options = options.substr(n + 1);
-                    }
-                    for (auto it: uniqOptions) {
-                        options += it + " ";
-                    }
-
-                    std::string header("Compile-time options: ");
-                    while (options.length() > 58) {
-                        std::string line = options.substr(0, 58);
-                        size_t n = line.find_last_of(' ');
-                        INFOMSG(header << line.substr(0, n) << "\n");
-
-                        header = std::string(22, ' ');
-                        options = options.substr(n + 1);
-                    }
-                    INFOMSG(header << options << endl);
-                    exit(0);
-                } else if (argStr == std::string("--git-revision")) {
-                    if (Ippl::myNode() == 0) {
-                        std::cout << Util::getGitRevision() << std::endl;
-                    }
-                    exit(0);
-                } else if (argStr == std::string("--input")) {
-                    ++ ii;
-                    inputFileArgument = ii;
-                    continue;
-                } else if (argStr == std::string("-restart") ||
-                           argStr == std::string("--restart")) {
-                    opal->setRestartRun();
-                    opal->setRestartStep(atoi(argv[++ ii]));
-                    continue;
-                } else if (argStr == std::string("-restartfn") ||
-                           argStr == std::string("--restartfn")) {
-                    restartFileName = std::string(argv[++ ii]);
-                    continue;
-                } else if ( argStr.find("noInitAMR") != std::string::npos) {
-                    // do nothing here
-                } else {
-                    if (inputFileArgument == -1 &&
-                        (ii == 1 || ii + 1 == argc) &&
-                        argv[ii][0] != '-') {
-                        inputFileArgument = ii;
-                        continue;
-                    } else {
-                        INFOMSG("Unknown argument \"" << argStr << "\"" << endl);
-                        ::printHelp();
-                        exit(1);
-                    }
-                }
-            }
-
-            ::printStdoutHeader();
-            if (inputFileArgument == -1) {
-                INFOMSG("No input file provided!" << endl);
-                exit(1);
-            }
-
-            fname = std::string(argv[inputFileArgument]);
-            if (!fs::exists(fname)) {
-                INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
-                exit(1);
-            }
-
-            opal->storeInputFn(fname);
-
-            if (opal->inRestartRun()) {
-                if (restartFileName == "")
-                    restartFileName = opal->getInputBasename() + std::string(".h5");
-                if (!fs::exists(restartFileName)) {
-                    INFOMSG("Restart file \"" << restartFileName << "\" doesn't exist!" << endl);
                     exit(1);
                 }
-                opal->setRestartFileName(restartFileName);
-            }
+                ::printStdoutHeader();
+                const std::string cmdName = Util::toUpper(argv[ii + 1]);
+                Object *object = OpalData::getInstance()->find(cmdName);
 
-            FileStream *is;
+                if(object == 0) {
+                    *gmsg << "\nOpalParser::printHelp(): Unknown object \""
+                            << cmdName << "\".\n" << endl;
+                    exit(1);
+                }
 
-            try {
-                is = new FileStream(fname);
-            } catch(...) {
-                is = 0;
-                *gmsg << "Input file \"" << fname << "\" not found." << endl;
-            }
+                object->printHelp(std::cout);
+                exit(0);
+            } else if (argStr == std::string("--version")) {
+                if (Ippl::myNode() == 0) {
+                    std::cout << OPAL_PROJECT_VERSION << std::endl;
+                }
+                exit(0);
+            } else if (argStr == std::string("--version-full")) {
+                ::printStdoutHeader();
+                INFOMSG("OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. " << Util::getGitRevision() << endl);
+                IpplInfo::printVersion();
+                std::string options = (IpplInfo::compileOptions() +
+                                        std::string(" ") +
+                                        std::string(OPAL_COMPILE_OPTIONS) +
+                                        std::string(" "));
+                std::set<std::string> uniqOptions;
+                while (options.length() > 0) {
+                    size_t n = options.find_first_of(' ');
+                    while (n == 0) {
+                        options = options.substr(n + 1);
+                        n = options.find_first_of(' ');
+                    }
 
-            if(is) {
-                *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
-                parser.run(is);
-                *gmsg << "* End of input stream \"" << fname << "\"." << endl;
+                    uniqOptions.insert(options.substr(0, n));
+                    options = options.substr(n + 1);
+                }
+                for (auto it: uniqOptions) {
+                    options += it + " ";
+                }
+
+                std::string header("Compile-time options: ");
+                while (options.length() > 58) {
+                    std::string line = options.substr(0, 58);
+                    size_t n = line.find_last_of(' ');
+                    INFOMSG(header << line.substr(0, n) << "\n");
+
+                    header = std::string(22, ' ');
+                    options = options.substr(n + 1);
+                }
+                INFOMSG(header << options << endl);
+                exit(0);
+            } else if (argStr == std::string("--git-revision")) {
+                if (Ippl::myNode() == 0) {
+                    std::cout << Util::getGitRevision() << std::endl;
+                }
+                exit(0);
+            } else if (argStr == std::string("--input")) {
+                ++ ii;
+                inputFileArgument = ii;
+                continue;
+            } else if (argStr == std::string("-restart") ||
+                        argStr == std::string("--restart")) {
+                opal->setRestartRun();
+                opal->setRestartStep(atoi(argv[++ ii]));
+                continue;
+            } else if (argStr == std::string("-restartfn") ||
+                        argStr == std::string("--restartfn")) {
+                restartFileName = std::string(argv[++ ii]);
+                continue;
+            } else if ( argStr.find("noInitAMR") != std::string::npos) {
+                // do nothing here
+            } else {
+                if (inputFileArgument == -1 &&
+                    (ii == 1 || ii + 1 == argc) &&
+                    argv[ii][0] != '-') {
+                    inputFileArgument = ii;
+                    continue;
+                } else {
+                    INFOMSG("Unknown argument \"" << argStr << "\"" << endl);
+                    ::printHelp();
+                    exit(1);
+                }
             }
+        }
+
+        ::printStdoutHeader();
+        if (inputFileArgument == -1) {
+            INFOMSG("No input file provided!" << endl);
+            exit(1);
+        }
+
+        fname = std::string(argv[inputFileArgument]);
+        if (!fs::exists(fname)) {
+            INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
+            exit(1);
+        }
+
+        opal->storeInputFn(fname);
+
+        if (opal->inRestartRun()) {
+            if (restartFileName == "")
+                restartFileName = opal->getInputBasename() + std::string(".h5");
+            if (!fs::exists(restartFileName)) {
+                INFOMSG("Restart file \"" << restartFileName << "\" doesn't exist!" << endl);
+                exit(1);
+            }
+            opal->setRestartFileName(restartFileName);
+        }
+
+        FileStream *is;
+
+        try {
+            is = new FileStream(fname);
+        } catch(...) {
+            is = 0;
+            *gmsg << "Input file \"" << fname << "\" not found." << endl;
+        }
+
+        if(is) {
+            *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
+            parser.run(is);
+            *gmsg << "* End of input stream \"" << fname << "\"." << endl;
         }
 
         if(Ippl::myNode() == 0) {
