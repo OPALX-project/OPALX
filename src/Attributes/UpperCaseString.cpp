@@ -39,7 +39,7 @@ namespace Attributes {
 
 
     const std::string &UpperCaseString::getType() const {
-        static const std::string type("upper case string");
+        static const std::string type("string");
         return type;
     }
 
