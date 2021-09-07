@@ -46,7 +46,7 @@ VariableRFCavityFringeField::VariableRFCavityFringeField(const VariableRFCavityF
 }
 
 VariableRFCavityFringeField& VariableRFCavityFringeField::operator=(const VariableRFCavityFringeField& rhs) {
-  
+
     if (&rhs == this) {
         return *this;
     }
@@ -120,7 +120,7 @@ bool VariableRFCavityFringeField::apply(const Vector_t &R, const Vector_t &/*P*/
     for (size_t n = 0; n <= maxOrder_m ; n += 2) { // power of y
         double fCoeff = 0.;
         size_t index = n/2;
-        //std::cerr << "Size i: " << index << " f_m[i]: " << f_m[index].size() 
+        //std::cerr << "Size i: " << index << " f_m[i]: " << f_m[index].size()
         //          << " endfield: " << endField.size() << std::endl;
         for (size_t i = 0; i < f_m[index].size() && i < endField.size(); i += 2) { // derivative of f
             fCoeff += f_m[index][i]*endField[i]*omegaPower[n-i];
