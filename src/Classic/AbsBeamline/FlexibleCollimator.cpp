@@ -89,7 +89,7 @@ bool FlexibleCollimator::isStopped(const Vector_t &R) {
         (!isInsideTransverse(R))) return false;
 
     if (!bb_m.isInside(R)) {
-        return true;
+        return getFlagDeleteOnTransverseExit();
     }
 
     if (!tree_m.isInside(R)) {
