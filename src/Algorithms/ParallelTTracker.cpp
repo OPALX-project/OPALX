@@ -621,7 +621,7 @@ void ParallelTTracker::computeUndulator(IndexMap::value_t &elements) {
     // Apply MITHRA full wave solver for undulator.
     CoordinateSystemTrafo refToLocalCSTrafo = (itsOpalBeamline_m.getMisalignment((*it)) *
                                                (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * itsBunch_m->toLabTrafo_m));
-    
+
     und->apply(itsBunch_m, refToLocalCSTrafo);
 
     evenlyDistributeParticles();
