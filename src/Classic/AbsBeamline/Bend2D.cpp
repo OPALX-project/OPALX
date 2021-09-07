@@ -169,7 +169,7 @@ bool Bend2D::apply(const Vector_t &R,
             return false;
         }
 
-        return true;
+        return getFlagDeleteOnTransverseExit();
     }
     return false;
 

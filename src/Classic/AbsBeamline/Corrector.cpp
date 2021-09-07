@@ -78,7 +78,7 @@ bool Corrector::apply(const Vector_t &R,
                       Vector_t &B) {
 
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
-        if (!isInsideTransverse(R)) return true;
+        if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
         double tau = 1.0;
         const double &dt = RefPartBunch_m->getdT();
@@ -151,4 +151,3 @@ void Corrector::getDimensions(double &zBegin, double &zEnd) const
 ElementBase::ElementType Corrector::getType() const {
     return CORRECTOR;
 }
-

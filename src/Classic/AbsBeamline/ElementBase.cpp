@@ -90,7 +90,8 @@ ElementBase::ElementBase(const ElementBase &right):
     positionIsFixed(right.positionIsFixed),
     elementPosition_m(right.elementPosition_m),
     elemedgeSet_m(right.elemedgeSet_m),
-    outputfn_m(right.outputfn_m)
+    outputfn_m(right.outputfn_m),
+    deleteOnTransverseExit_m(right.deleteOnTransverseExit_m)
 {
 
     if (parmatint_m) {
