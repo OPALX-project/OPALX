@@ -91,7 +91,9 @@ bool Solenoid::apply(const Vector_t &R, const Vector_t &/*P*/, const  double &/*
         Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         const bool outOfBounds = myFieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return true;
+        if (outOfBounds) {
+            return getFlagDeleteOnTransverseExit();
+        }
 
         B += (scale_m + scaleError_m) * tmpB;
     }

@@ -376,6 +376,8 @@ public:
     /// Get output filename
     std::string getOutputFN() const;
 
+    void setFlagDeleteOnTransverseExit(bool = true);
+    bool getFlagDeleteOnTransverseExit() const;
 
 protected:
     bool isInsideTransverse(const Vector_t &r) const;
@@ -418,6 +420,8 @@ private:
     std::queue<std::pair<double, double> > actionRange_m;
 
     std::string outputfn_m; /**< The name of the outputfile*/
+
+    bool deleteOnTransverseExit_m = true;
 };
 
 
@@ -619,6 +623,18 @@ bool ElementBase::isElementPositionSet() const {
 inline
 int ElementBase::getRequiredNumberOfTimeSteps() const {
     return 10;
+}
+
+inline
+void ElementBase::setFlagDeleteOnTransverseExit(bool flag)
+{
+    deleteOnTransverseExit_m = flag;
+}
+
+inline
+bool ElementBase::getFlagDeleteOnTransverseExit() const
+{
+    return deleteOnTransverseExit_m;
 }
 
 #endif // CLASSIC_ElementBase_HH
