@@ -94,7 +94,7 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &/*P*/, const double
     Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
     if (tmpR(2) < startCoreField_m) {
-        if (!fieldmap_m->isInside(tmpR)) return true;
+        if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
 
         tmpcos =  (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m);
@@ -105,7 +105,7 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &/*P*/, const double
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - PeriodLength_m * std::floor(tmpR(2) / PeriodLength_m);
         tmpR(2) += startCoreField_m;
-        if (!fieldmap_m->isInside(tmpR)) return true;
+        if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
 
         tmpcos =  (scaleCore_m + scaleCoreError_m) * std::cos(frequency_m * t + phaseCore1_m + phaseError_m);
         tmpsin = -(scaleCore_m + scaleCoreError_m) * std::sin(frequency_m * t + phaseCore1_m + phaseError_m);
@@ -125,7 +125,7 @@ bool TravelingWave::apply(const Vector_t &R, const Vector_t &/*P*/, const double
 
     } else {
         tmpR(2) -= mappedStartExitField_m;
-        if (!fieldmap_m->isInside(tmpR)) return true;
+        if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
         tmpcos =  (scale_m + scaleError_m) * std::cos(frequency_m * t + phaseExit_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * std::sin(frequency_m * t + phaseExit_m + phaseError_m);
     }

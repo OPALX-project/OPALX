@@ -52,6 +52,7 @@ public:
         DPHI,           // The rotation around x axis in rad.
         DPSI,           // The rotation around s axis in rad.
         OUTFN,          // Output filename
+        DELETEONTRANSVERSEEXIT, // Flag whether particles should be deleted if exit transversally
         COMMON
     };
 

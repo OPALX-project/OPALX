@@ -274,7 +274,7 @@ void Multipole::computeField(Vector_t R, Vector_t &/*E*/, Vector_t &B) {
 bool Multipole::apply(const size_t &i, const double &, Vector_t &E, Vector_t &B) {
     const Vector_t &R = RefPartBunch_m->R[i];
     if(R(2) < 0.0 || R(2) > getElementLength()) return false;
-    if (!isInsideTransverse(R)) return true;
+    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     Vector_t Ef(0.0), Bf(0.0);
     computeField(R, Ef, Bf);
@@ -289,7 +289,7 @@ bool Multipole::apply(const size_t &i, const double &, Vector_t &E, Vector_t &B)
 
 bool Multipole::apply(const Vector_t &R, const Vector_t &, const double &, Vector_t &E, Vector_t &B) {
     if(R(2) < 0.0 || R(2) > getElementLength()) return false;
-    if (!isInsideTransverse(R)) return true;
+    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     computeField(R, E, B);
 

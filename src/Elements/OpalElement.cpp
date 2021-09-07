@@ -113,6 +113,10 @@ OpalElement::OpalElement(int size, const char* name, const char* help):
     itsAttr[OUTFN] = Attributes::makeString
         ("OUTFN", "Output filename");
 
+    itsAttr[DELETEONTRANSVERSEEXIT] = Attributes::makeBool
+        ("DELETEONTRANSVERSEEXIT", "Flag controlling if particles should be deleted if they exit "
+                                   "the element transversally", true);
+
     const unsigned int end = COMMON;
     for (unsigned int i = 0; i < end; ++ i) {
         AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
@@ -554,6 +558,8 @@ void OpalElement::update() {
 
     if (itsAttr[ELEMEDGE])
         base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
+
+    base->setFlagDeleteOnTransverseExit(Attributes::getBool(itsAttr[DELETEONTRANSVERSEEXIT]));
 }
 
 void OpalElement::updateUnknown(ElementBase* base) {

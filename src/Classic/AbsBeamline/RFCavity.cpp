@@ -133,7 +133,7 @@ bool RFCavity::apply(const Vector_t &R,
         Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return true;
+        if (outOfBounds) return getFlagDeleteOnTransverseExit();
 
         E += (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
         B -= (scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m) * tmpB;
