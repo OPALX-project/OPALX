@@ -75,7 +75,8 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t 
     if (online_m && type_m == CollectionType::SPATIAL) {
         if (dt * R(2) < 0.0 &&
             dt * (R(2) + singleStep(2)) > 0.0) {
-            double frac = R(2) / singleStep(2);
+            // if R(2) is negative then frac should be positive and vice versa
+            double frac = -R(2) / singleStep(2);
 
             lossDs_m->addParticle(OpalParticle(RefPartBunch_m->ID[i],
                                                R + frac * singleStep,
