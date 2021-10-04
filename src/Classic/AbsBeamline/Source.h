@@ -32,30 +32,30 @@ class Source: public Component {
 public:
 
     /// Constructor with given name.
-    explicit Source(const std::string &name);
+    explicit Source(const std::string& name);
 
     Source();
-    Source(const Source &);
+    Source(const Source&);
     virtual ~Source();
 
     /// Apply visitor to Source.
-    virtual void accept(BeamlineVisitor &) const override;
+    virtual void accept(BeamlineVisitor&) const override;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool apply(const size_t& i, const double& t, Vector_t& E, Vector_t& B) override;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) override;
 
     virtual void finalise() override;
 
     virtual bool bends() const override;
 
-    virtual void goOnline(const double &kineticEnergy) override;
+    virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
 
     virtual ElementBase::ElementType getType() const override;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 
@@ -72,12 +72,11 @@ private:
     std::unique_ptr<LossDataSink> lossDs_m; /**< Handling for store the particle out of region*/
 
     // Not implemented.
-    void operator=(const Source &);
+    void operator=(const Source&);
 };
 
 inline
-int Source::getRequiredNumberOfTimeSteps() const
-{
+int Source::getRequiredNumberOfTimeSteps() const {
     return 0;
 }
 #endif // CLASSIC_SOURCE_HH
