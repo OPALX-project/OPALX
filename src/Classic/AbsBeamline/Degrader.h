@@ -25,8 +25,6 @@
 #include <string>
 #include <vector>
 
-class LossDataSink;
-
 class Degrader: public Component {
 
 public:
@@ -44,47 +42,45 @@ public:
     };
 
     /// Constructor with given name.
-    explicit Degrader(const std::string &name);
+    explicit Degrader(const std::string& name);
 
     Degrader();
-    Degrader(const Degrader &rhs);
+    Degrader(const Degrader& rhs);
     virtual ~Degrader();
 
     /// Apply visitor to Degrader.
-    virtual void accept(BeamlineVisitor &) const;
+    virtual void accept(BeamlineVisitor&) const;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    virtual bool apply(const size_t& i, const double& t, Vector_t& E, Vector_t& B);
 
-    virtual bool applyToReferenceParticle(const Vector_t &R,
-                                          const Vector_t &P,
-                                          const double &t,
-                                          Vector_t &E,
-                                          Vector_t &B);
+    virtual bool applyToReferenceParticle(const Vector_t& R,
+                                          const Vector_t& P,
+                                          const double& t,
+                                          Vector_t& E,
+                                          Vector_t& B);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
+    virtual void initialise(PartBunchBase<double, 3>* bunch);
 
     virtual void finalise();
 
     virtual bool bends() const;
 
-    virtual void goOnline(const double &kineticEnergy);
+    virtual void goOnline(const double& kineticEnergy);
 
     virtual void goOffline();
 
     virtual ElementBase::ElementType getType() const;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const;
-
-    std::string  getDegraderShape(); // AAA
+    virtual void getDimensions(double& zBegin, double& zEnd) const;
 
     virtual bool isInMaterial(double z);
 
 private:
 
     // Not implemented.
-    void operator=(const Degrader &);
+    void operator=(const Degrader&);
 
     std::vector<double> PosX_m;
     std::vector<double> PosY_m;
@@ -94,8 +90,6 @@ private:
     std::vector<double> MomentumZ_m;
     std::vector<double> time_m;
     std::vector<int> id_m;
-
-    std::unique_ptr<LossDataSink> lossDs_m;
 };
 
 #endif // CLASSIC_Degrader_HH
