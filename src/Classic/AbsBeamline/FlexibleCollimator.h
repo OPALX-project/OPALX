@@ -33,55 +33,55 @@ class FlexibleCollimator: public Component {
 public:
 
     /// Constructor with given name.
-    explicit FlexibleCollimator(const std::string &name);
+    explicit FlexibleCollimator(const std::string& name);
 
     FlexibleCollimator();
-    FlexibleCollimator(const FlexibleCollimator &rhs);
+    FlexibleCollimator(const FlexibleCollimator& rhs);
     virtual ~FlexibleCollimator();
 
     /// Apply visitor to FlexibleCollimator.
-    virtual void accept(BeamlineVisitor &) const override;
+    virtual void accept(BeamlineVisitor&) const override;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool apply(const size_t& i, const double& t, Vector_t& E, Vector_t& B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool applyToReferenceParticle(const Vector_t& R, const Vector_t& P, const double& t, Vector_t& E, Vector_t& B) override;
 
-    virtual bool checkCollimator(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
+    virtual bool checkCollimator(PartBunchBase<double, 3>* bunch, const int turnnumber, const double t, const double tstep);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) override;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
+    virtual void initialise(PartBunchBase<double, 3>* bunch);
 
     virtual void finalise() override;
 
     virtual bool bends() const override;
 
-    virtual void goOnline(const double &kineticEnergy) override;
+    virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
 
     virtual ElementBase::ElementType getType() const override;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
     void print();
 
     unsigned int getLosses() const;
 
-    void setDescription(const std::string &desc);
+    void setDescription(const std::string& desc);
     std::string getDescription() const;
 
-    bool isStopped(const Vector_t &R);
+    bool isStopped(const Vector_t& R);
 
-    void writeHolesAndQuadtree(const std::string &baseFilename) const;
+    void writeHolesAndQuadtree(const std::string& baseFilename) const;
 
 private:
 
     // Not implemented.
-    void operator=(const FlexibleCollimator &);
+    void operator=(const FlexibleCollimator&);
 
     std::string description_m;
-    std::vector<std::shared_ptr<mslang::Base> > holes_m;
+    std::vector<std::shared_ptr<mslang::Base>> holes_m;
     mslang::BoundingBox bb_m;
     mslang::QuadTree tree_m;
 
@@ -89,7 +89,7 @@ private:
     unsigned int losses_m;
     std::unique_ptr<LossDataSink> lossDs_m;
 
-    ParticleMatterInteractionHandler *parmatint_m;
+    ParticleMatterInteractionHandler* parmatint_m;
 };
 
 inline
