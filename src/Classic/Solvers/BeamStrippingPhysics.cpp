@@ -24,37 +24,31 @@
 
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Vacuum.h"
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
-#include "Algorithms/PartData.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
+#include "Utilities/Util.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <cmath>
-#include <sys/time.h>
 #include <boost/math/special_functions/chebyshev.hpp>
 
-namespace {
-    struct InsideTester {
-        virtual ~InsideTester() {}
-        virtual bool checkHit(const Vector_t& R) = 0;
-        virtual double getPressure(const Vector_t& R) = 0;
-    };
+#include <sys/time.h>
 
-    struct BeamStrippingInsideTester: public InsideTester {
-        explicit BeamStrippingInsideTester(ElementBase* el) {
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <iostream>
+
+namespace {
+    struct VacuumInsideTester: public InsideTester {
+        explicit VacuumInsideTester(ElementBase* el) {
             vac_m = static_cast<Vacuum*>(el);
         }
-        virtual bool checkHit(const Vector_t& R) {
-            return vac_m->checkPoint(R(0), R(1), R(2));
-        }
-        double getPressure(const Vector_t& R) {
-            return vac_m->checkPressure(R(0), R(1));
+        bool checkHit(const Vector_t& R) override {
+            return vac_m->checkPoint(R);
         }
     private:
         Vacuum* vac_m;
@@ -62,24 +56,24 @@ namespace {
 }
 
 
-BeamStrippingPhysics::BeamStrippingPhysics(const std::string& name, ElementBase* element):
+BeamStrippingPhysics::BeamStrippingPhysics(const std::string& name,
+                                           ElementBase* element):
     ParticleMatterInteractionHandler(name, element),
+    pType_m(ParticleType::UNNAMED),
     T_m(0.0),
     dT_m(0.0),
     mass_m(0.0),
-    charge_m(0.0),
     pressure_m(0.0),
-    nCSA(0.0),
-    nCSB(0.0),
-    nCSC(0.0),
-    nCSTotal(0.0),
+    temperature_m(0.0),
+    nCSA_m(0.0),
+    nCSB_m(0.0),
+    nCSC_m(0.0),
+    nCSTotal_m(0.0),
     bunchToMatStat_m(0),
     stoppedPartStat_m(0),
     rediffusedStat_m(0),
     totalPartsInMat_m(0)
 {
-    vac_m = dynamic_cast<Vacuum*>(getElement());
-
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
 
     const gsl_rng_type* T;
@@ -100,26 +94,41 @@ BeamStrippingPhysics::~BeamStrippingPhysics() {
 
 
 void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
-                                 const std::pair<Vector_t,
-                                 double>& /*boundingSphere*/) {
+                                 const std::pair<Vector_t, double>& /*boundingSphere*/) {
 
-    ParticleType pType = bunch->getPType();
-    if (pType != ParticleType::PROTON   &&
-        pType != ParticleType::DEUTERON &&
-        pType != ParticleType::HMINUS   &&
-        pType != ParticleType::H2P      &&
-        pType != ParticleType::HYDROGEN) {
+    ParticleType particle = bunch->getPType();
+    if (particle != ParticleType::PROTON   &&
+        particle != ParticleType::DEUTERON &&
+        particle != ParticleType::HMINUS   &&
+        particle != ParticleType::H2P      &&
+        particle != ParticleType::HYDROGEN) {
 
         throw GeneralClassicException(
                 "BeamStrippingPhysics::apply",
-                "Particle " + bunch->getPTypeString() +
+                "Particle " + getParticleTypeString(particle) +
                 " is not supported for residual stripping interactions!");
+    }
+
+    if (element_ref_m->getType() == ElementBase::VACUUM) {
+         hitTester_m.reset(new VacuumInsideTester(element_ref_m));
+         vac_m = dynamic_cast<Vacuum*>(element_ref_m);
+    } else {
+        throw GeneralClassicException("BeamStrippingPhysics::apply",
+                                      "Unsupported element type");
     }
 
     dT_m = bunch->getdT();
 
+    rediffusedStat_m  = 0;
+    stoppedPartStat_m = 0;
+    totalPartsInMat_m = 0;
+
     if (bunch->get_sPos() != 0) {
         doPhysics(bunch);
+
+        gatherStatistics();
+
+        bunch->destroyT();
     }
 }
 
@@ -131,33 +140,37 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
       -- particle not dead (bunch->Bin[i] != -1)
       Delete particle i: bunch->Bin[i] != -1;
     */
+    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
+
+    temperature_m = vac_m->getTemperature();
     bool stop = vac_m->getStop();
     Vector_t extE = Vector_t(0.0, 0.0, 0.0);
     Vector_t extB = Vector_t(0.0, 0.0, 0.0); //kGauss
 
-    InsideTester* tester;
-    tester = new BeamStrippingInsideTester(element_ref_m);
-
-    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
     for (size_t i = 0; i < bunch->getLocalNum(); ++i) {
-        if ( (bunch->Bin[i] != -1) && (tester->checkHit(bunch->R[i]))) {
+        Vector_t& R = bunch->R[i];
+        Vector_t& P = bunch->P[i];
+        if ( bunch->Bin[i] != -1 && hitTester_m->checkHit(R) ) {
+
+            ++totalPartsInMat_m;
 
             bool pdead_GS = false;
             bool pdead_LS = false;
-            pressure_m = tester->getPressure(bunch->R[i]);
+            pressure_m = vac_m->checkPressure(R);
             mass_m = bunch->M[i];
-            charge_m = bunch->Q[i];
+            pType_m = bunch->PType[i];
 
-            double energy = (std::sqrt(1.0  + dot(bunch->P[i], bunch->P[i])) - 1) * mass_m; //GeV
-            double gamma = (energy + mass_m) / mass_m;
+            double energy = Util::getKineticEnergy(P, mass_m); //GeV
+            double gamma = Util::getGamma(P);
             double beta = std::sqrt(1.0 - 1.0 / (gamma * gamma));
             double deltas = dT_m * beta * Physics::c;
 
-            computeCrossSection(bunch, i, energy);
+            computeCrossSection(energy);
             pdead_GS = evalGasStripping(deltas);
 
-            if (bunch->PType[i] == ParticleType::HMINUS) {
-                cycl_m->apply(bunch->R[i], bunch->P[i], T_m, extE, extB);
+            if (OpalData::getInstance()->isInOPALCyclMode() &&
+                bunch->PType[i] == ParticleType::HMINUS) {
+                cycl_m->apply(R, P, T_m, extE, extB);
                 double bField = 0.1 * std::sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
                 double eField = gamma * beta * Physics::c * bField;
                 pdead_LS = evalLorentzStripping(gamma, eField);
@@ -165,33 +178,26 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
 
             if (pdead_GS == true || pdead_LS == true) {
                 lossDs_m->addParticle(OpalParticle(bunch->ID[i],
-                                                   bunch->R[i], bunch->P[i],
+                                                   R, P,
                                                    bunch->getT(),
                                                    bunch->Q[i], bunch->M[i]));
                 if (stop) {
                     bunch->Bin[i] = -1;
-                    stoppedPartStat_m++;
+                    ++stoppedPartStat_m;
                     gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-                            << " is deleted by beam stripping" << endl;
+                            << " is deleted by beam stripping interactions" << endl;
                 } else {
+                    ++rediffusedStat_m;
                     getSecondaryParticles(bunch, i, pdead_LS);
-                    //bunch->updateNumTotal();
-                    gmsgALL << level4 << getName()
-                            << ": Total number of particles after beam stripping = "
-                            << bunch->getTotalNum() << endl;
                 }
             }
         }
     }
-    delete tester;
 }
 
 
-void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
-                                               size_t& i, double energy) {
+void BeamStrippingPhysics::computeCrossSection(double energy) {
 
-    const double temperature = vac_m->getTemperature(); // K
-    const ParticleType& pType = bunch->PType[i];
     const ResidualGas& gas = vac_m->getResidualGas();
 
     energy *=1E6; //keV
@@ -213,11 +219,11 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
     switch (gas) {
         case ResidualGas::H2: {
 
-            molecularDensity[0] = 100 * pressure_m / (Physics::kB * Physics::q_e * temperature);
+            molecularDensity[0] = 100 * pressure_m / (Physics::kB * Physics::q_e * temperature_m);
             double energyMin = 0.0, energyMax = 0.0;
             double csA = 0.0, csB = 0.0, csC = 0.0, csTotal = 0.0;
 
-            if (pType == ParticleType::HMINUS) {
+            if (pType_m == ParticleType::HMINUS) {
                 double energyChebyshevFit = energy * 1E3 / (Physics::m_hm / Physics::amu);
 
                 // Single-electron detachment - Hydrogen Production
@@ -234,7 +240,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                     a_m[i] = {csCoefDouble_Hminus_Chebyshev[i+2]};
                 csB = computeCrossSectionChebyshev(energyChebyshevFit, energyMin, energyMax);
 
-            } else if (pType == ParticleType::PROTON) {
+            } else if (pType_m == ParticleType::PROTON) {
                 double energyChebyshevFit = energy * 1E3 / (Physics::m_p / Physics::amu);
 
                 // Single-electron capture - Hydrogen Production
@@ -251,7 +257,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                     a_m[i] = {csCoefDouble_Hplus_Chebyshev[i+2]};
                 csB = computeCrossSectionChebyshev(energyChebyshevFit, energyMin, energyMax);
 
-            } else if (pType == ParticleType::DEUTERON) {
+            } else if (pType_m == ParticleType::DEUTERON) {
                // Single-electron capture
                energyThreshold = csCoefSingle_Hplus_Tabata[0];
                a1 = csCoefSingle_Hplus_Tabata[1];
@@ -266,7 +272,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                csA = computeCrossSectionTabata(energy, energyThreshold, a1, a2, 0.0, 0.0, a3, a4) +
                    computeCrossSectionTabata(energy, energyThreshold, a5, a2, a6, a7, a8, a9);
 
-            } else if (pType == ParticleType::HYDROGEN) {
+            } else if (pType_m == ParticleType::HYDROGEN) {
                 // Single-electron detachment - Proton Production
                 energyThreshold = csCoefProtonProduction_H_Tabata[0];
                 a1 = csCoefProtonProduction_H_Tabata[1];
@@ -295,7 +301,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                 csB = computeCrossSectionTabata(energy, energyThreshold, a1, a2, a3, a4, a5, a6) +
                     computeCrossSectionTabata(energy, energyThreshold, a7, a8, a9, a10, a11, a12);
 
-            } else if (pType == ParticleType::H2P) {
+            } else if (pType_m == ParticleType::H2P) {
                 double energyChebyshevFit = energy * 1E3 / (Physics::m_h2p / Physics::amu);
                 // Proton production
                 if (energy <= energyRangeH2plusinH2[0]) {
@@ -323,7 +329,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                     csA = computeCrossSectionChebyshev(energyChebyshevFit, energyMin, energyMax);
 
                 } else if (energy >= energyRangeH2plusinH2[1]) {
-                    int zTarget = 1; 
+                    int zTarget = 1;
                     double massInAmu = Physics::m_h2p / Physics::amu;
                     csA = computeCrossSectionBohr(energy, zTarget, massInAmu);
                 }
@@ -347,10 +353,10 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
             }
             csTotal = csA + csB + csC;
 
-            nCSA = csA * 1E-4 * molecularDensity[0];
-            nCSB = csB * 1E-4 * molecularDensity[0];
-            nCSC = csC * 1E-4 * molecularDensity[0];
-            nCSTotal = csTotal * 1E-4 * molecularDensity[0];
+            nCSA_m = csA * 1E-4 * molecularDensity[0];
+            nCSB_m = csB * 1E-4 * molecularDensity[0];
+            nCSC_m = csC * 1E-4 * molecularDensity[0];
+            nCSTotal_m = csTotal * 1E-4 * molecularDensity[0];
             break;
         }
 
@@ -365,9 +371,9 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
             double nCSTotalSum = 0.0;
 
             for (int i = 0; i < 3; ++i) {
-                molecularDensity[i] = 100 * pressure_m * fMolarFraction[i] / (Physics::kB * Physics::q_e * temperature);
+                molecularDensity[i] = 100 * pressure_m * fMolarFraction[i] / (Physics::kB * Physics::q_e * temperature_m);
 
-                if (pType == ParticleType::HMINUS) {
+                if (pType_m == ParticleType::HMINUS) {
                     // Single-electron detachment - Hydrogen Production
                     energyThreshold = csCoefSingle_Hminus[i][0];
                     for (int j = 0; j < 8; ++j)
@@ -380,7 +386,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                         b_m[i][j] = csCoefDouble_Hminus[i][j+1];
                     csDouble[i] = computeCrossSectionNakai(energy, energyThreshold, i);
 
-                } else if (pType == ParticleType::PROTON || pType == ParticleType::DEUTERON) {
+                } else if (pType_m == ParticleType::PROTON || pType_m == ParticleType::DEUTERON) {
                     // Single-electron capture
                     energyThreshold = csCoefSingle_Hplus[i][0];
                     for (int j = 0; j < 8; ++j)
@@ -399,7 +405,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                         csDouble[i] = computeCrossSectionNakai(energy, energyThreshold, i);
                     }
 
-                } else if (pType == ParticleType::HYDROGEN) {
+                } else if (pType_m == ParticleType::HYDROGEN) {
                     // Single-electron detachment - Proton Production
                     energyThreshold = csCoefSingleLoss_H[i][0];
                     for (int j = 0; j < 8; ++j)
@@ -417,7 +423,7 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                         csDouble[i] = computeCrossSectionNakai(energy, energyThreshold, i);
                     }
 
-                } else if (pType == ParticleType::H2P) {
+                } else if (pType_m == ParticleType::H2P) {
                     double massInAmu = Physics::m_h2p / Physics::amu;
                     csSingle[i] = {0.0};
                     csDouble[i] = computeCrossSectionBohr(energy, zTarget[i], massInAmu);
@@ -435,9 +441,9 @@ void BeamStrippingPhysics::computeCrossSection(PartBunchBase<double, 3>* bunch,
                 nCSDoubleSum += nCSDouble[i];
                 nCSTotalSum += nCS[i];
             }
-            nCSA = nCSSingleSum;
-            nCSB = nCSDoubleSum;
-            nCSTotal = nCSTotalSum;
+            nCSA_m = nCSSingleSum;
+            nCSB_m = nCSDoubleSum;
+            nCSTotal_m = nCSTotalSum;
             break;
         }
         default: {
@@ -552,7 +558,7 @@ double BeamStrippingPhysics::computeCrossSectionBohr(double energy, int zTarget,
 bool BeamStrippingPhysics::evalGasStripping(double& deltas) {
 
     double xi = gsl_rng_uniform(r_m);
-    double fg = 1-std::exp(-nCSTotal*deltas);
+    double fg = 1-std::exp(-nCSTotal_m*deltas);
 
     return (fg >= xi);
 }
@@ -585,140 +591,159 @@ void BeamStrippingPhysics::getSecondaryParticles(PartBunchBase<double, 3>* bunch
                                                  size_t& i, bool pdead_LS) {
     double r = gsl_rng_uniform(r_m);
 
-    const ParticleType& pType = bunch->PType[i];
     const ResidualGas& gas = vac_m->getResidualGas();
 
-    // change mass_m and charge_m
-    if (pType == ParticleType::HMINUS) {
+    if (pType_m == ParticleType::HMINUS) {
         if (pdead_LS == true) {
             transformToHydrogen(bunch, i);
         } else {
-            if (r > nCSB/nCSTotal)
+            if (r > nCSB_m/nCSTotal_m)
                 transformToHydrogen(bunch, i);
             else
                 transformToProton(bunch, i);
         }
 
-    } else if (pType == ParticleType::PROTON) {
-        if (r > nCSB/nCSTotal)
+    } else if (pType_m == ParticleType::PROTON) {
+        if (r > nCSB_m/nCSTotal_m)
             transformToHydrogen(bunch, i);
         else
             transformToHminus(bunch, i);
 
-    } else if (pType == ParticleType::HYDROGEN) {
-        if (r > nCSB/nCSTotal)
+    } else if (pType_m == ParticleType::HYDROGEN) {
+        if (r > nCSB_m/nCSTotal_m)
             transformToProton(bunch, i);
         else
             transformToHminus(bunch, i);
 
-    } else if (pType == ParticleType::H2P) {
+    } else if (pType_m == ParticleType::H2P) {
         if (gas == ResidualGas::H2) {
-            if (nCSC>nCSB && nCSB>nCSA) {
-                if (r > (nCSA+nCSB)/nCSTotal)
+            if (nCSC_m>nCSB_m && nCSB_m>nCSA_m) {
+                if (r > (nCSA_m+nCSB_m)/nCSTotal_m)
                     transformToH3plus(bunch, i);
-                else if (r > nCSA/nCSTotal)
+                else if (r > nCSA_m/nCSTotal_m)
                     transformToHydrogen(bunch, i);
                 else
                     transformToProton(bunch, i);
 
-            } else if (nCSA>nCSB && nCSB>nCSC) {
-                if (r > (nCSC+nCSB)/nCSTotal)
+            } else if (nCSA_m>nCSB_m && nCSB_m>nCSC_m) {
+                if (r > (nCSC_m+nCSB_m)/nCSTotal_m)
                     transformToProton(bunch, i);
-                else if (r > nCSC/nCSTotal)
+                else if (r > nCSC_m/nCSTotal_m)
                     transformToHydrogen(bunch, i);
                 else
                     transformToH3plus(bunch, i);
 
-            } else if (nCSA>nCSB && nCSC>nCSA) {
-                if (r > (nCSA+nCSB)/nCSTotal)
+            } else if (nCSA_m>nCSB_m && nCSC_m>nCSA_m) {
+                if (r > (nCSA_m+nCSB_m)/nCSTotal_m)
                     transformToH3plus(bunch, i);
-                else if (r > nCSB/nCSTotal)
+                else if (r > nCSB_m/nCSTotal_m)
                     transformToProton(bunch, i);
                 else
                     transformToHydrogen(bunch, i);
 
-            } else if (nCSA>nCSC && nCSC>nCSB) {
-                if (r > (nCSC+nCSB)/nCSTotal)
+            } else if (nCSA_m>nCSC_m && nCSC_m>nCSB_m) {
+                if (r > (nCSC_m+nCSB_m)/nCSTotal_m)
                     transformToProton(bunch, i);
-                else if (r > nCSB/nCSTotal)
+                else if (r > nCSB_m/nCSTotal_m)
                     transformToH3plus(bunch, i);
                 else
                     transformToHydrogen(bunch, i);
 
-            } else if (nCSB>nCSC && nCSB>nCSA && nCSA>nCSC) {
-                if (r > (nCSC+nCSA)/nCSTotal)
+            } else if (nCSB_m>nCSC_m && nCSB_m>nCSA_m && nCSA_m>nCSC_m) {
+                if (r > (nCSC_m+nCSA_m)/nCSTotal_m)
                     transformToHydrogen(bunch, i);
-                else if (r > nCSC/nCSTotal)
+                else if (r > nCSC_m/nCSTotal_m)
                     transformToProton(bunch, i);
                 else
                     transformToH3plus(bunch, i);
 
             } else {
-                if (r > (nCSC+nCSA)/nCSTotal)
+                if (r > (nCSC_m+nCSA_m)/nCSTotal_m)
                     transformToHydrogen(bunch, i);
-                else if (r > nCSA/nCSTotal)
+                else if (r > nCSA_m/nCSTotal_m)
                     transformToH3plus(bunch, i);
                 else
                     transformToProton(bunch, i);
             }
         } else if (gas == ResidualGas::AIR) {
-            if (r > nCSTotal)
+            if (r > nCSTotal_m)
                 transformToProton(bunch, i);
         }
-    } else if (pType == ParticleType::DEUTERON) {
+    } else if (pType_m == ParticleType::DEUTERON) {
         GeneralClassicException("BeamStrippingPhysics::getSecondaryParticles",
                                 "Tracking secondary particles from incident "
                                 "ParticleType::DEUTERON is not implemented");
     }
 
     bunch->POrigin[i] = ParticleOrigin::SECONDARY;
-
-    if (bunch->weHaveBins())
-        bunch->Bin[bunch->getLocalNum()-1] = bunch->Bin[i];
 }
 
 void BeamStrippingPhysics::transformToProton(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to proton" << endl;
     bunch->M[i] = Physics::m_p;
     bunch->Q[i] = Physics::q_e;
     bunch->PType[i] = ParticleType::PROTON;
+    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
+            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
 }
 
 void BeamStrippingPhysics::transformToHydrogen(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to neutral hydrogen" << endl;
     bunch->M[i] = Physics::m_h;
     bunch->Q[i] = 0.0;
     bunch->PType[i] = ParticleType::HYDROGEN;
+    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
+            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
 }
 
 void BeamStrippingPhysics::transformToHminus(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to negative hydrogen ion" << endl;
     bunch->M[i] = Physics::m_hm;
     bunch->Q[i] = -Physics::q_e;
     bunch->PType[i] = ParticleType::HMINUS;
+    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
+            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
 }
 
 void BeamStrippingPhysics::transformToH3plus(PartBunchBase<double, 3>* bunch, size_t& i) {
     Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to H3+" << endl;
     bunch->M[i] = Physics::m_h3p;
     bunch->Q[i] = Physics::q_e;
     bunch->PType[i] = ParticleType::H3P;
+    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
+            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
 }
 
-void BeamStrippingPhysics::print(Inform& /*msg*/) {
+void BeamStrippingPhysics::print(Inform& msg) {
+    Inform::FmtFlags_t ff = msg.flags();
+    if (totalPartsInMat_m > 0) {
+        msg << level2
+            << "\n"<< "--- BeamStrippingPhysics ---\n"
+            << "Name: " << name_m << " - "
+            << "Element: " << element_ref_m->getName() << " - "
+            << "Residual gas: " << vac_m->getResidualGasName() << "\n"
+            << std::setw(31) << "Particles in the material: " << Util::toStringWithThousandSep(totalPartsInMat_m) << "\n"
+            << std::setw(31) << "Rediffused as secondary: " << Util::toStringWithThousandSep(rediffusedStat_m) << "\n"
+            << std::setw(31) << "Stripped by the gas: " << Util::toStringWithThousandSep(stoppedPartStat_m)
+            << endl;
+    }
+    msg.flags(ff);
 }
 
-bool BeamStrippingPhysics::stillActive() {
-    return totalPartsInMat_m != 0;
+void BeamStrippingPhysics::gatherStatistics() {
+
+    constexpr unsigned short numItems = 3;
+    unsigned int partStatistics[numItems] = {totalPartsInMat_m,
+                                             rediffusedStat_m,
+                                             stoppedPartStat_m};
+
+    allreduce(&(partStatistics[0]), numItems, std::plus<unsigned int>());
+
+    totalPartsInMat_m = partStatistics[0];
+    rediffusedStat_m = partStatistics[1];
+    stoppedPartStat_m = partStatistics[2];
 }
+
 
 /*
     Cross sections parameters for interaction with air

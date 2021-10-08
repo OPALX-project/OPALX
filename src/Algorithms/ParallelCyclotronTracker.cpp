@@ -87,6 +87,8 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
+#include <boost/filesystem.hpp>
+
 constexpr double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
@@ -1032,31 +1034,32 @@ void ParallelCyclotronTracker::visitVacuum(const Vacuum &vac) {
 
     double BcParameter[8] = {};
 
-    double pressure = elptr->getPressure();
+    std::string gas = elptr->getResidualGasName();
+    *gmsg << "* Residual gas = " << gas << endl;
 
-    if (elptr->getPressureMapFN() != "") {
+    double pressure = elptr->getPressure();
+    if ( boost::filesystem::exists(elptr->getPressureMapFN()) ) {
         std::string pmfn = elptr->getPressureMapFN();
         *gmsg << "* Pressure field map file = " << pmfn << " " << endl;
         *gmsg << "* Default pressure = " << pressure << " [mbar]" << endl;
     } else  {
         *gmsg << "* Pressure     = " << pressure << " [mbar]" << endl;
     }
+    double pscale = elptr->getPScale();
 
     double temperature = elptr->getTemperature();
     *gmsg << "* Temperature  = " << temperature << " [K]" << endl;
-
-    std::string gas = elptr->getResidualGasName();
-    *gmsg << "* Residual gas = " << gas << endl;
 
     bool stop = elptr->getStop();
     *gmsg << std::boolalpha
           << "* Particles stripped will be deleted after interaction -> "
           << stop << endl;
 
-    elptr->initialise(itsBunch_m, elptr->getPScale());
+    elptr->initialise(itsBunch_m);
 
     BcParameter[0] = pressure;
-    BcParameter[1] = temperature;
+    BcParameter[1] = pscale;
+    BcParameter[2] = temperature;
 
     buildupFieldList(BcParameter, ElementBase::VACUUM, elptr);
 }

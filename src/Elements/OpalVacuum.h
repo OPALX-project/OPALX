@@ -1,8 +1,8 @@
 //
 // Class OpalVacuum
-//   The class of OPAL Vacuum.
+//   Defines the VACUUM element and its attributes.
 //
-// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018 - 2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -32,12 +32,12 @@ public:
 
     /// The attributes of class OpalVacuum.
     enum {
-        PRESSURE = COMMON,   // Pressure in mbar
-        TEMPERATURE,         // Temperature of residual gas
-        PMAPFN,              // The filename of the mid-plane pressure map
-        PSCALE,              // A scalar to scale the P-field
-        GAS,                 // Type of gas for residual vaccum
-        STOP,                // whether the secondary particles are tracked
+        GAS = COMMON, // Type of gas for residual vacuum
+        PRESSURE,     // Pressure in mbar
+        TEMPERATURE,  // Temperature of residual gas
+        PMAPFN,       // The filename of the mid-plane pressure map
+        PSCALE,       // A scalar to scale the P-field
+        STOP,         // whether the secondary particles are tracked
         SIZE
     };
 
@@ -60,6 +60,7 @@ private:
 
     // Clone constructor.
     OpalVacuum(const std::string& name, OpalVacuum* parent);
+
     ParticleMatterInteraction* parmatint_m;
 };
 

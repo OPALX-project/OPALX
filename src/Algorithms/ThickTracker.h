@@ -311,9 +311,7 @@ private:
     void applyExitFringe(double edge, double curve,
                          const BMultipoleField &field, double scale);
 
-
     Hamiltonian hamiltonian_m;
-
 
     Vector_t RefPartR_m;
     Vector_t RefPartP_m;
@@ -328,7 +326,6 @@ private:
     beamline_t elements_m;  ///< elements in beam line
 
     CoordinateSystemTrafo referenceToLabCSTrafo_m;
-
 
     int truncOrder_m; ///< truncation order of map tracking
 
@@ -359,7 +356,6 @@ inline void ThickTracker::visitDegrader(const Degrader &/*deg*/) {
 inline void ThickTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 
-
     double gamma = itsReference.getGamma();
     std::size_t nSlices = drift.getNSlices();
     double length       = drift.getElementLength();
@@ -374,7 +370,6 @@ inline void ThickTracker::visitFlexibleCollimator(const FlexibleCollimator &/*co
 //     itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
     this->throwElementError_m("FlexibleCollimator");
 }
-
 
 
 inline void ThickTracker::visitMarker(const Marker &/*marker*/) {
@@ -407,6 +402,7 @@ inline void ThickTracker::visitMultipole(const Multipole &mult) {
                                          nSlices,
                                          length));
 }
+
 
 inline void ThickTracker::visitProbe(const Probe &/*probe*/) {
 //     itsOpalBeamline_m.visit(prob, *this, itsBunch_m);
@@ -475,7 +471,6 @@ inline void ThickTracker::visitSBend(const SBend &bend) {
         elements_m.push_back(std::make_tuple(hamiltonian_m.fringeField(e2, h),
                                              1, 0.0));
     }
-
 }
 
 
@@ -497,8 +492,9 @@ inline void ThickTracker::visitTravelingWave(const TravelingWave &/*as*/) {
 }
 
 
-inline void ThickTracker::visitVacuum(const Vacuum &vac) {
-    itsOpalBeamline_m.visit(vac, *this, itsBunch_m);
+inline void ThickTracker::visitVacuum(const Vacuum &/*vac*/) {
+    //itsOpalBeamline_m.visit(vac, *this, itsBunch_m);
+    this->throwElementError_m("Vacuum");
 }
 
 #endif // OPAL_ThickTracker_HH

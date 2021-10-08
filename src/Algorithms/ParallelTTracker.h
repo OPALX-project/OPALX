@@ -52,11 +52,10 @@
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/Vacuum.h"
-
 #ifdef ENABLE_OPAL_FEL
 #include "AbsBeamline/Undulator.h"
 #endif
+#include "AbsBeamline/Vacuum.h"
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -170,7 +169,6 @@ public:
 
     /// Apply the algorithm to a vacuum space.
     virtual void visitVacuum(const Vacuum &);
-
 
 private:
 

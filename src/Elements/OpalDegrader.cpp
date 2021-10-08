@@ -63,8 +63,6 @@ void OpalDegrader::update() {
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
 
-    deg->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
-
     if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);

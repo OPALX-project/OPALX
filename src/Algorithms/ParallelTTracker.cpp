@@ -369,6 +369,7 @@ void ParallelTTracker::execute() {
 void ParallelTTracker::prepareSections() {
 
     itsBeamline_m.accept(*this);
+
     itsOpalBeamline_m.prepareSections();
 
     itsOpalBeamline_m.compute3DLattice();
@@ -722,7 +723,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         elements.erase(it);
     }
 
-    if (elementsWithParticleMatterInteraction.size() > 0) {
+    if (!elementsWithParticleMatterInteraction.empty()) {
         std::set<ParticleMatterInteractionHandler*> oldSPHandlers;
         std::vector<ParticleMatterInteractionHandler*> leftBehindSPHandlers, newSPHandlers;
         for (auto it: activeParticleMatterInteractionHandlers_m) {
@@ -756,6 +757,17 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         if(!particleMatterStatus_m) {
             msg << level2 << "============== START PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
             particleMatterStatus_m = true;
+        }
+    } else {
+        for (auto it = activeParticleMatterInteractionHandlers_m.begin();
+             it != activeParticleMatterInteractionHandlers_m.end();) {
+            if (!(*it)->stillActive()) {
+                auto next = std::next(it);
+                activeParticleMatterInteractionHandlers_m.erase(it);
+                it = next;
+            } else {
+                it = std::next(it);
+            }
         }
     }
 
@@ -851,7 +863,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         } while (itsBunch_m->getTotalNum() == 0);
 
 
-        if (activeParticleMatterInteractionHandlers_m.size() == 0) {
+        if (activeParticleMatterInteractionHandlers_m.empty()) {
             msg << level2 << "============== END PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
             particleMatterStatus_m = false;
         }
