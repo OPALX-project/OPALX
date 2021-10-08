@@ -1576,45 +1576,11 @@ ParticleType PartBunchBase<T, Dim>::getPType() const {
 
 template <class T, unsigned Dim>
 std::string PartBunchBase<T, Dim>::getPTypeString() {
-
-    switch (refPType_m) {
-    case ParticleType::ELECTRON:
-        return "ELECTRON";
-    case ParticleType::PROTON:
-        return "PROTON";
-    case ParticleType::POSITRON:
-        return "POSITRON";
-    case ParticleType::ANTIPROTON:
-        return "ANTIPROTON";
-    case ParticleType::CARBON:
-        return "CARBON";
-    case ParticleType::HMINUS:
-        return "HMINUS";
-    case ParticleType::URANIUM:
-        return "URANIUM";
-    case ParticleType::MUON:
-        return "MUON";
-    case ParticleType::DEUTERON:
-        return "DEUTERON";
-    case ParticleType::XENON:
-        return "XENON";
-    case ParticleType::H2P:
-        return "H2P";
-    case ParticleType::ALPHA:
-        return "ALPHA";
-    case ParticleType::HYDROGEN:
-        return "HYDROGEN";
-    case  ParticleType::H3P:
-        return "H3P";
-    default:
-        INFOMSG("Unknown type for OPAL particles" << endl);
-        return "UNNAMED";
-    }
+    return getParticleTypeString(refPType_m);
 }
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setPType(std::string type) {
-
     if (type == "ELECTRON") {
         refPType_m = ParticleType::ELECTRON;
     } else if (type == "PROTON") {
