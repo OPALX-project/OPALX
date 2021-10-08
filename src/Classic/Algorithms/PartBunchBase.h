@@ -33,6 +33,7 @@
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
 
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -44,8 +45,8 @@ class PartBinsCyc;
 class PartData;
 
 enum class ParticleOrigin:short {REGULAR,
-                               SECONDARY,
-                               STRIPPED};
+                                 SECONDARY,
+                                 STRIPPED};
 
 enum class ParticleType:short {ELECTRON,
                                PROTON,
@@ -62,6 +63,27 @@ enum class ParticleType:short {ELECTRON,
                                HYDROGEN,
                                H3P,
                                UNNAMED};
+
+inline
+static std::string getParticleTypeString(ParticleType type) {
+    static const std::map<ParticleType, std::string> PTypeString = {
+        {ParticleType::ELECTRON, "ELECTRON"},
+        {ParticleType::PROTON,"PROTON"},
+        {ParticleType::POSITRON, "POSITRON"},
+        {ParticleType::ANTIPROTON, "ANTIPROTON"},
+        {ParticleType::CARBON, "CARBON"},
+        {ParticleType::HMINUS, "HMINUS"},
+        {ParticleType::URANIUM, "URANIUM"},
+        {ParticleType::MUON, "MUON"},
+        {ParticleType::DEUTERON, "DEUTERON"},
+        {ParticleType::XENON, "XENON"},
+        {ParticleType::H2P, "H2P"},
+        {ParticleType::ALPHA, "ALPHA"},
+        {ParticleType::HYDROGEN, "HYDROGEN"},
+        {ParticleType::H3P, "H3P"},
+        {ParticleType::UNNAMED, "UNNAMED"}};
+    return PTypeString.at(type);
+}
 
 template <class T, unsigned Dim>
 class PartBunchBase : std::enable_shared_from_this<PartBunchBase<T, Dim>>
