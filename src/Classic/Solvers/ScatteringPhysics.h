@@ -54,17 +54,10 @@ typedef struct {             // struct for description of particle in material
     Vector_t Efincol;        // electric field
 } PART;
 
-struct InsideTester {
-    virtual ~InsideTester()
-    { }
-
-    virtual
-    bool checkHit(const Vector_t &R) = 0;
-};
-
 
 class ScatteringPhysics: public ParticleMatterInteractionHandler {
 public:
+
     ScatteringPhysics(const std::string& name,
                       ElementBase* element,
                       std::string& mat,
@@ -73,17 +66,17 @@ public:
     ~ScatteringPhysics();
 
     virtual void apply(PartBunchBase<double, 3>* bunch,
-                       const std::pair<Vector_t, double>& boundingSphere);
+                       const std::pair<Vector_t, double>& boundingSphere) override;
 
-    virtual const std::string getType() const;
-    virtual void print(Inform& os);
-    virtual bool stillActive();
+    virtual const std::string getType() const override;
+    virtual void print(Inform& os) override;
+    virtual bool stillActive() override;
 
-    virtual double getTime();
-    virtual std::string getName();
-    virtual size_t getParticlesInMat();
-    virtual unsigned getRediffused();
-    virtual unsigned int getNumEntered();
+    virtual double getTime() override;
+    virtual std::string getName() override;
+    virtual size_t getParticlesInMat() override;
+    virtual unsigned getRediffused() override;
+    virtual unsigned int getNumEntered() override;
 
     void computeInteraction(PartBunchBase<double, 3>* bunch);
 
@@ -126,7 +119,6 @@ private:
 
     gsl_rng* rGen_m;                           // random number generator
     std::string material_m;                    // type of material e.g. aluminum
-    std::unique_ptr<InsideTester> hitTester_m; // tests whether particles are inside material
     ElementBase::ElementType collshape_m;      // the type of element (DEGRADER, CCOLLIMATOR or FLEXIBLECOLLIMATOR)
     std::string collshapeStr_m;                // the type of element as string
 

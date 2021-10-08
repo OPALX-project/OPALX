@@ -1,8 +1,8 @@
 //
 // Class OpalVacuum
-//   The class of OPAL Vacuum.
+//   Defines the VACUUM element and its attributes.
 //
-// Copyright (c) 2018-2019, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018 - 2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -20,32 +20,36 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalVacuum.h"
-
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/VacuumRep.h"
-#include "Physics/Physics.h"
 #include "Structure/ParticleMatterInteraction.h"
 
 
 OpalVacuum::OpalVacuum():
     OpalElement(SIZE, "VACUUM",
-                "The \"VACUUM\" element defines the vacuum conditions for beam stripping interactions"),
+                "The \"VACUUM\" element defines the vacuum conditions "
+                "for beam stripping interactions."),
     parmatint_m(NULL) {
-    itsAttr[PRESSURE]        = Attributes::makeReal
+    itsAttr[GAS] = Attributes::makePredefinedString
+         ("GAS", "The composition of residual gas", {"AIR", "H2"});
+
+    itsAttr[PRESSURE] = Attributes::makeReal
         ("PRESSURE", " Pressure in the accelerator, [mbar]");
-    itsAttr[TEMPERATURE]  = Attributes::makeReal
-        ("TEMPERATURE", " Temperature of the accelerator, [K]");
-    itsAttr[PMAPFN]   = Attributes::makeString
+
+    itsAttr[PMAPFN] = Attributes::makeString
         ("PMAPFN", "Filename for the Pressure fieldmap");
-    itsAttr[PSCALE]   = Attributes::makeReal
+
+    itsAttr[PSCALE] = Attributes::makeReal
         ("PSCALE", "Scale factor for the P-field", 1.0);
-    itsAttr[GAS]          = Attributes::makePredefinedString
-        ("GAS", "The composition of residual gas", {"AIR", "H2"});
-    itsAttr[STOP]         = Attributes::makeBool
-        ("STOP", "Option Whether stop tracking after beam stripping. Default: true", true);
-    
+
+    itsAttr[TEMPERATURE] = Attributes::makeReal
+        ("TEMPERATURE", " Temperature of the accelerator, [K]");
+
+    itsAttr[STOP] = Attributes::makeBool
+        ("STOP", "Option whether stop tracking after beam stripping. Default: true", true);
+
     registerOwnership();
-    
+
     setElement(new VacuumRep("VACUUM"));
 }
 
@@ -70,24 +74,25 @@ OpalVacuum* OpalVacuum::clone(const std::string& name) {
 void OpalVacuum::update() {
     OpalElement::update();
 
-    VacuumRep* vac =
-        dynamic_cast<VacuumRep*>(getElement());
+    VacuumRep* vac = dynamic_cast<VacuumRep*>(getElement());
 
-    double pressure     = Attributes::getReal(itsAttr[PRESSURE]);
-    double temperature  = Attributes::getReal(itsAttr[TEMPERATURE]);
-    std::string pmap    = Attributes::getString(itsAttr[PMAPFN]);
-    double pscale       = Attributes::getReal(itsAttr[PSCALE]);
-    bool   stop         = Attributes::getBool(itsAttr[STOP]);
-    std::string gas     = Attributes::getString(itsAttr[GAS]);
+    double length      = Attributes::getReal(itsAttr[LENGTH]);
+    std::string gas    = Attributes::getString(itsAttr[GAS]);
+    double pressure    = Attributes::getReal(itsAttr[PRESSURE]);
+    std::string pmap   = Attributes::getString(itsAttr[PMAPFN]);
+    double pscale      = Attributes::getReal(itsAttr[PSCALE]);
+    double temperature = Attributes::getReal(itsAttr[TEMPERATURE]);
+    bool   stop        = Attributes::getBool(itsAttr[STOP]);
 
+    vac->setElementLength(length);
+    vac->setResidualGas(gas);
     vac->setPressure(pressure);
-    vac->setTemperature(temperature);
     vac->setPressureMapFN(pmap);
     vac->setPScale(pscale);
+    vac->setTemperature(temperature);
     vac->setStop(stop);
-    vac->setResidualGas(gas);
 
-    if(itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

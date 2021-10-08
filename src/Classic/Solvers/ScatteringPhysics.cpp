@@ -15,7 +15,7 @@
 // (at your option) any later version.
 //
 // You should have received a copy of the GNU General Public License
-// along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Solvers/ScatteringPhysics.h"
 
@@ -51,7 +51,6 @@ namespace {
         explicit DegraderInsideTester(ElementBase* el) {
             deg_m = static_cast<Degrader*>(el);
         }
-        virtual
         bool checkHit(const Vector_t& R) override {
             return deg_m->isInMaterial(R(2));
         }
@@ -63,8 +62,7 @@ namespace {
         explicit CollimatorInsideTester(ElementBase* el) {
             col_m = static_cast<CCollimator*>(el);
         }
-        virtual
-        bool checkHit(const Vector_t& R)  override {
+        bool checkHit(const Vector_t& R) override {
             return col_m->checkPoint(R(0), R(1));
         }
     private:
@@ -75,8 +73,7 @@ namespace {
         explicit FlexCollimatorInsideTester(ElementBase* el) {
             col_m = static_cast<FlexibleCollimator*>(el);
         }
-        virtual
-        bool checkHit(const Vector_t& R)  override {
+        bool checkHit(const Vector_t& R) override {
             return col_m->isStopped(R);
         }
     private:
@@ -95,7 +92,6 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
     mass_m(0.0),
     charge_m(0.0),
     material_m(material),
-    hitTester_m(nullptr),
     Z_m(0),
     A_m(0.0),
     rho_m(0.0),
@@ -171,7 +167,6 @@ ScatteringPhysics::~ScatteringPhysics() {
 /// The material of the collimator
 //  ------------------------------------------------------------------------
 void  ScatteringPhysics::configureMaterialParameters() {
-
     auto material = Physics::Material::getMaterial(material_m);
     Z_m = material->getAtomicNumber();
     A_m = material->getAtomicMass();
@@ -213,7 +208,7 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
 
         throw GeneralClassicException(
                 "ScatteringPhysics::apply",
-                "Particle " + bunch->getPTypeString() +
+                "Particle " + getParticleTypeString(pType) +
                 " is not supported for scattering interactions!");
     }
 
@@ -222,9 +217,9 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
     Emin_m = 0.0;
 
     bunchToMatStat_m  = 0;
-    rediffusedStat_m   = 0;
+    rediffusedStat_m  = 0;
     stoppedPartStat_m = 0;
-    totalPartsInMat_m   = 0;
+    totalPartsInMat_m = 0;
 
     dT_m = bunch->getdT();
     T_m  = bunch->getT();
@@ -594,7 +589,6 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
 
 void ScatteringPhysics::print(Inform &msg) {
     Inform::FmtFlags_t ff = msg.flags();
-
     if (totalPartsInMat_m > 0 ||
         bunchToMatStat_m  > 0 ||
         rediffusedStat_m  > 0 ||
@@ -602,7 +596,7 @@ void ScatteringPhysics::print(Inform &msg) {
 
         OPALTimer::Timer time;
         msg << level2
-            << "--- ScatteringPhysics\n"
+            << "--- ScatteringPhysics ---\n"
             << "Name: " << name_m << " - "
             << "Material: " << material_m << " - "
             << "Element: " << element_ref_m->getName() << "\n"
@@ -613,7 +607,6 @@ void ScatteringPhysics::print(Inform &msg) {
             << std::setw(21) << "total in material: " << Util::toStringWithThousandSep(totalPartsInMat_m)
             << endl;
     }
-
     msg.flags(ff);
 }
 

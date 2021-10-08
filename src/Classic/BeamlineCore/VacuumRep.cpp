@@ -1,8 +1,8 @@
 //
 // Class VacuumRep
-//   Defines a concrete representation for vacuum conditions.
+//   Representation for the vacuum conditions.
 //
-// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018 - 2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -20,16 +20,15 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/VacuumRep.h"
-
 #include "Channels/IndirectChannel.h"
-
 
 namespace {
     struct Entry {
-        const char *name;
+        const char* name;
         double(VacuumRep::*get)() const;
         void (VacuumRep::*set)(double);
     };
+
     const Entry entries[] = {
         {
             "p",
@@ -41,56 +40,55 @@ namespace {
 }
 
 
-// Class VacuumRep
-// ------------------------------------------------------------------------
-
 VacuumRep::VacuumRep():
     Vacuum(),
-    geometry(0.0, 0.0)
+    geometry(0.0)
 {}
 
-VacuumRep::VacuumRep(const VacuumRep &right):
+
+VacuumRep::VacuumRep(const VacuumRep& right):
     Vacuum(right),
-    geometry(0.0, 0.0)
+    geometry(right.geometry)
 {}
 
-VacuumRep::VacuumRep(const std::string &name):
+
+VacuumRep::VacuumRep(const std::string& name):
     Vacuum(name),
-    geometry(0.0, 0.0)
+    geometry()
 {}
+
 
 VacuumRep::~VacuumRep()
 {}
 
 
-ElementBase *VacuumRep::clone() const {
+ElementBase* VacuumRep::clone() const {
     return new VacuumRep(*this);
 }
 
 
-Channel *VacuumRep::getChannel(const std::string &aKey, bool create) {
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        if(aKey == entry->name) {
+Channel* VacuumRep::getChannel(const std::string& aKey, bool create) {
+    for (const Entry *entry = entries; entry->name != 0; ++entry) {
+        if (aKey == entry->name) {
             return new IndirectChannel<VacuumRep>(*this, entry->get, entry->set);
         }
     }
+
     return ElementBase::getChannel(aKey, create);
 }
 
-
-NullField &VacuumRep::getField() {
+NullField& VacuumRep::getField() {
     return field;
 }
 
-const NullField &VacuumRep::getField() const {
+const NullField& VacuumRep::getField() const {
     return field;
 }
 
-
-PlanarArcGeometry &VacuumRep::getGeometry() {
+StraightGeometry& VacuumRep::getGeometry() {
     return geometry;
 }
 
-const PlanarArcGeometry &VacuumRep::getGeometry() const {
+const StraightGeometry& VacuumRep::getGeometry() const {
     return geometry;
 }
