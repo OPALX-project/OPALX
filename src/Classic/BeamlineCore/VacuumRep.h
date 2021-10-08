@@ -1,8 +1,8 @@
 //
 // Class VacuumRep
-//   Defines a concrete representation for vacuum conditions.
+//   Representation for the vacuum conditions.
 //
-// Copyright (c) 2018-2021, Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2018 - 2021, Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis
@@ -23,60 +23,57 @@
 #define CLASSIC_VacuumRep_HH
 
 #include "AbsBeamline/Vacuum.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
+#include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/NullField.h"
+
 
 class VacuumRep: public Vacuum {
 
 public:
 
     /// Constructor with given name.
-    explicit VacuumRep(const std::string &name);
+    explicit VacuumRep(const std::string& name);
 
     VacuumRep();
-    VacuumRep(const VacuumRep &);
+    VacuumRep(const VacuumRep&);
     virtual ~VacuumRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns NULL.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
-
-//    virtual double getPressure() const;
-//    void setPressure(double);
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
-    virtual NullField &getField();
+    virtual NullField& getField();
 
     /// Get field.
     //  Version for constant object.
-    virtual const NullField &getField() const;
+    virtual const NullField& getField() const;
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual PlanarArcGeometry &getGeometry();
+    virtual StraightGeometry& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const PlanarArcGeometry &getGeometry() const;
+    virtual const StraightGeometry& getGeometry() const;
 
 private:
 
     // Not implemented.
-    void operator=(const VacuumRep &);
+    void operator=(const VacuumRep&);
 
     // The zero magnetic field.
     NullField field;
 
     // The geometry.
-    PlanarArcGeometry geometry;
-
+    StraightGeometry geometry;
 };
 
 #endif // CLASSIC_VacuumRep_HH

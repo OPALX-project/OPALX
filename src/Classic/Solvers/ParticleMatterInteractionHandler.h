@@ -18,14 +18,22 @@
 #ifndef PARTICLEMATTERINTERACTIONHANDLER_HH
 #define PARTICLEMATTERINTERACTIONHANDLER_HH
 
-#include <string>
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Vektor.h"
+
+#include <string>
 
 class ElementBase;
 
 template <class T, unsigned Dim>
 class PartBunchBase;
 class Inform;
+
+struct InsideTester {
+    virtual ~InsideTester() {}
+
+    virtual bool checkHit(const Vector_t& R) = 0;
+};
 
 class ParticleMatterInteractionHandler {
 
@@ -54,8 +62,12 @@ public:
 
 protected:
     ElementBase* element_ref_m;
+
     bool allParticleInMat_m; ///< if all particles are in matter stay inside the particle matter interaction
-    const std::string name_m;
+
+    const std::string name_m; // label of PARTICLEMATTERINTERACTION
+
+    std::unique_ptr<InsideTester> hitTester_m; // tests whether particles are inside material
 };
 
 inline

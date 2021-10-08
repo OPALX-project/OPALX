@@ -2,9 +2,9 @@
 // Class ParticleMatterInteraction
 //   The class for the OPAL PARTICLEMATTERINTERACTION command.
 //
-// Copyright (c) 2012-2021, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
-//                          Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
-//                          Pedro Calvo, CIEMAT, Spain
+// Copyright (c) 2012 - 2021, Andreas Adelmann, Paul Scherrer Institut, Villigen PSI, Switzerland
+//                            Christof Metzger-Kraus, Helmholtz-Zentrum Berlin
+//                            Pedro Calvo, CIEMAT, Spain
 // All rights reserved
 //
 // Implemented as part of the PhD thesis

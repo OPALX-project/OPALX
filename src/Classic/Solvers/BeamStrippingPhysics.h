@@ -24,12 +24,17 @@
 #define BEAMSTRIPPINGPHYSICS_HH
 
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/ElementBase.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Algorithms/Vektor.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
+#include "Solvers/ScatteringPhysics.h"
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
+
+#include <memory>
+#include <string>
+#include <utility>
 
 template <class T, unsigned Dim>
 class PartBunchBase;
@@ -42,36 +47,35 @@ class Vacuum;
 class BeamStrippingPhysics: public ParticleMatterInteractionHandler {
 
 public:
-
     BeamStrippingPhysics(const std::string& name, ElementBase* element);
     ~BeamStrippingPhysics();
 
     void setCyclotron(Cyclotron* cycl) { cycl_m = cycl; };
 
     virtual void apply(PartBunchBase<double, 3>* bunch,
-                       const std::pair<Vector_t, double>& boundingSphere);
+                       const std::pair<Vector_t, double>& boundingSphere) override;
 
-    virtual const std::string getType() const;
-    virtual void print(Inform& msg);
-    virtual bool stillActive();
+    virtual const std::string getType() const override;
+    virtual void print(Inform& msg) override;
+    virtual bool stillActive() override;
 
-    virtual double getTime();
-    virtual std::string getName();
-    virtual size_t getParticlesInMat();
-    virtual unsigned getRediffused();
-    virtual unsigned int getNumEntered();
+    virtual double getTime() override;
+    virtual std::string getName() override;
+    virtual size_t getParticlesInMat() override;
+    virtual unsigned getRediffused() override;
+    virtual unsigned int getNumEntered() override;
 
-    inline void doPhysics(PartBunchBase<double, 3>* bunch);
+    void doPhysics(PartBunchBase<double, 3>* bunch);
 
 private:
 
-    void computeCrossSection(PartBunchBase<double, 3>* bunch, size_t& i, double energy);
+    void computeCrossSection(double energy);
 
     double computeCrossSectionNakai(double energy, double energyThreshold, int& i);
     
     double computeCrossSectionTabata(double energy, double energyThreshold,
-                                    double a1, double a2, double a3,
-                                    double a4, double a5, double a6);
+                                     double a1, double a2, double a3,
+                                     double a4, double a5, double a6);
                               
     double computeCrossSectionChebyshev(double energy, double energyMin, double energyMax);
 
@@ -93,29 +97,33 @@ private:
         return false;
     }
 
-    Cyclotron* cycl_m;
+    void gatherStatistics();
+
+    ParticleType pType_m;
+
     Vacuum* vac_m;
+    Cyclotron* cycl_m;
 
     gsl_rng* r_m;
 
     double T_m;  // s
     double dT_m; // s
-    double mass_m;
-    double charge_m;
-    double pressure_m;
+    double mass_m; // GeV/c2
+    double pressure_m; // mbar
+    double temperature_m; // K
 
     std::unique_ptr<LossDataSink> lossDs_m;
 
     /// macroscopic cross sections
-    double nCSA;
-    double nCSB;
-    double nCSC;
-    double nCSTotal;
+    double nCSA_m;
+    double nCSB_m;
+    double nCSC_m;
+    double nCSTotal_m;
 
     unsigned bunchToMatStat_m;
     unsigned stoppedPartStat_m;
     unsigned rediffusedStat_m;
-    size_t totalPartsInMat_m;
+    unsigned totalPartsInMat_m;
 
     static const double csCoefSingle_Hminus[3][9];
     static const double csCoefDouble_Hminus[3][9];
@@ -141,6 +149,7 @@ private:
     static double b_m[3][9];
 };
 
+
 inline
 double BeamStrippingPhysics::getTime() {
     return T_m;
@@ -164,6 +173,11 @@ unsigned int BeamStrippingPhysics::getRediffused() {
 inline
 unsigned int BeamStrippingPhysics::getNumEntered() {
     return bunchToMatStat_m;
+}
+
+inline
+bool BeamStrippingPhysics::stillActive() {
+    return totalPartsInMat_m != 0;
 }
 
 inline
