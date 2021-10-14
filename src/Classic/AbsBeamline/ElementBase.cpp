@@ -67,6 +67,8 @@
 #include "Solvers/WakeFunction.h"
 #include "Structure/BoundaryGeometry.h"
 
+#include <boost/filesystem.hpp>
+
 #include <string>
 
 ElementBase::ElementBase():
@@ -146,7 +148,8 @@ std::string ElementBase::getOutputFN() const {
     if (outputfn_m.empty()) {
         return getName();
     } else {
-        return outputfn_m.substr(0, outputfn_m.rfind("."));
+        boost::filesystem::path filePath(outputfn_m);
+        return filePath.replace_extension().native();
     }
 }
 
