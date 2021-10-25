@@ -59,9 +59,9 @@ void MonitorStatisticsWriter::fillHeader() {
     columns_m.addColumn("ref_px", "double", "1", "x momentum of reference particle in lab cs");
     columns_m.addColumn("ref_py", "double", "1", "y momentum of reference particle in lab cs");
     columns_m.addColumn("ref_pz", "double", "1", "z momentum of reference particle in lab cs");
-    columns_m.addColumn("min_x", "double", "m", "Max Beamsize in x");
-    columns_m.addColumn("min_y", "double", "m", "Max Beamsize in y");
-    columns_m.addColumn("min_s", "double", "m", "Max Beamsize in s");
+    columns_m.addColumn("min_x", "double", "m", "Min Beamsize in x");
+    columns_m.addColumn("min_y", "double", "m", "Min Beamsize in y");
+    columns_m.addColumn("min_s", "double", "m", "Min Beamsize in s");
     columns_m.addColumn("max_x", "double", "m", "Max Beamsize in x");
     columns_m.addColumn("max_y", "double", "m", "Max Beamsize in y");
     columns_m.addColumn("max_s", "double", "m", "Max Beamsize in s");
