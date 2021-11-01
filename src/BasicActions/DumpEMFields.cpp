@@ -223,21 +223,21 @@ void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
 void DumpEMFields::writeHeader(std::ofstream& fout) const {
     fout << grid_m->end().toInteger() << "\n";
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        fout << 1 << "  r [mm]\n";
-        fout << 2 << "  phi [degree]\n";
+        fout << 1 << "  r [m]\n";
+        fout << 2 << "  phi [deg]\n";
     } else {
-        fout << 1 << "  x [mm]\n";
-        fout << 2 << "  y [mm]\n";
+        fout << 1 << "  x [m]\n";
+        fout << 2 << "  y [m]\n";
     }
-    fout << 3 << "  z [mm]\n";
+    fout << 3 << "  z [m]\n";
     fout << 4 << "  t [ns]\n";
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        fout << 5 << "  Br [kGauss]\n";
+        fout << 5 << "  Br   [kGauss]\n";
         fout << 6 << "  Bphi [kGauss]\n";
-        fout << 7 << "  Bz [kGauss]\n";
-        fout << 8 << "  Er [MV/m]\n";
+        fout << 7 << "  Bz   [kGauss]\n";
+        fout << 8 << "  Er   [MV/m]\n";
         fout << 9 << "  Ephi [MV/m]\n";
-        fout << 10 << " Ez [MV/m]\n";
+        fout << 10 << " Ez   [MV/m]\n";
     } else {
         fout << 5 << "  Bx [kGauss]\n";
         fout << 6 << "  By [kGauss]\n";
