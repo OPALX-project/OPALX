@@ -28,11 +28,9 @@
 
 class Inform;
 
-
 class Beam: public Definition {
 
 public:
-
     /// Exemplar constructor.
     Beam();
 
@@ -50,12 +48,6 @@ public:
 
     /// Find named BEAM.
     static Beam* find(const std::string& name);
-
-    //ff => get gamma value
-    double getGamma() const;
-
-    //ff => get PC value
-    double getPC() const;
 
     /// Return the number of (macro)particles
     size_t getNumberOfParticles() const;
@@ -90,7 +82,6 @@ public:
     void print(std::ostream& os) const;
 
 private:
-
     // Not implemented.
     Beam(const Beam&);
     void operator=(const Beam&);
