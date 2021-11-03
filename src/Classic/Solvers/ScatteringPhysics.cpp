@@ -27,8 +27,9 @@
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Multipole.h"
-#include "Physics/Physics.h"
 #include "Physics/Material.h"
+#include "Physics/ParticleProperties.h"
+#include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
@@ -208,7 +209,7 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
 
         throw GeneralClassicException(
                 "ScatteringPhysics::apply",
-                "Particle " + getParticleTypeString(pType) +
+                "Particle " + ParticleProperties::getParticleTypeString(pType) +
                 " is not supported for scattering interactions!");
     }
 

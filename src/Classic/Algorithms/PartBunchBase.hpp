@@ -18,15 +18,12 @@
 #ifndef PART_BUNCH_BASE_HPP
 #define PART_BUNCH_BASE_HPP
 
-#include <cmath>
-#include <numeric>
-
-#include "Distribution/Distribution.h"
-
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartData.h"
+#include "Distribution/Distribution.h"
+#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"
@@ -34,6 +31,9 @@
 #include "Utilities/Options.h"
 #include "Utilities/SwitcherError.h"
 #include "Utilities/Util.h"
+
+#include <cmath>
+#include <numeric>
 
 extern Inform* gmsg;
 
@@ -1575,44 +1575,8 @@ ParticleType PartBunchBase<T, Dim>::getPType() const {
 }
 
 template <class T, unsigned Dim>
-std::string PartBunchBase<T, Dim>::getPTypeString() {
-    return getParticleTypeString(refPType_m);
-}
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPType(std::string type) {
-    if (type == "ELECTRON") {
-        refPType_m = ParticleType::ELECTRON;
-    } else if (type == "PROTON") {
-        refPType_m = ParticleType::PROTON;
-    } else if (type == "POSITRON") {
-        refPType_m = ParticleType::POSITRON;
-    } else if (type == "ANTIPROTON") {
-        refPType_m = ParticleType::ANTIPROTON;
-    } else if (type == "CARBON") {
-        refPType_m = ParticleType::CARBON;
-    } else if (type == "HMINUS") {
-        refPType_m = ParticleType::HMINUS;
-    } else if (type == "URANIUM") {
-        refPType_m = ParticleType::URANIUM;
-    } else if (type == "MUON") {
-        refPType_m = ParticleType::MUON;
-    } else if (type == "DEUTERON") {
-        refPType_m = ParticleType::DEUTERON;
-    } else if (type == "XENON") {
-        refPType_m = ParticleType::XENON;
-    } else if (type == "H2P") {
-        refPType_m = ParticleType::H2P;
-    } else if (type == "ALPHA") {
-        refPType_m = ParticleType::ALPHA;
-    } else if (type == "HYDROGEN") {
-        refPType_m = ParticleType::HYDROGEN;
-    } else if (type == "H3P") {
-        refPType_m = ParticleType::H3P;
-    } else {
-        INFOMSG("Unknown type for OPAL particles. Default ParticleType::UNNAMED is set" << endl);
-        refPType_m = ParticleType::UNNAMED;
-    }
+void PartBunchBase<T, Dim>::setPType(const std::string& type) {
+    refPType_m =  ParticleProperties::getParticleType(type);
 }
 
 
