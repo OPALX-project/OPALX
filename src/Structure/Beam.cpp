@@ -24,6 +24,7 @@
 #include "Attributes/Attributes.h"
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SRefExpr.h"
+#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
@@ -31,7 +32,6 @@
 #include <iterator>
 
 using namespace Expressions;
-
 
 // The attributes of class Beam.
 namespace {
@@ -55,22 +55,22 @@ Beam::Beam():
     Definition(SIZE, "BEAM",
                "The \"BEAM\" statement defines data for the particles "
                "in a beam."),
-    reference(1.0, Physics::m_p *energy_scale, 1.0 * energy_scale) {
+    reference(1.0, Physics::m_p * energy_scale, 1.0 * energy_scale) {
 
     itsAttr[PARTICLE] = Attributes::makePredefinedString
                         ("PARTICLE", "Name of particle to be used",
                          {"ELECTRON",
-                          "PROTON",
                           "POSITRON",
-                          "ANTIPROTON",
-                          "CARBON",
-                          "HMINUS",
-                          "URANIUM",
                           "MUON",
+                          "PROTON",
+                          "ANTIPROTON",
                           "DEUTERON",
-                          "XENON",
+                          "HMINUS",
                           "H2P",
-                          "ALPHA"});
+                          "ALPHA",
+                          "CARBON",
+                          "XENON",
+                          "URANIUM"});
 
     itsAttr[MASS]     = Attributes::makeReal
                         ("MASS", "Particle rest mass [GeV]");
@@ -137,7 +137,18 @@ void Beam::execute() {
     // Check if energy explicitly has been set with the BEAM command
     if (!itsAttr[GAMMA] && !(itsAttr[ENERGY]) && !(itsAttr[PC])) {
         throw OpalException("Beam::execute()",
-                            "The energy hasn't been set. Set either GAMMA, ENERGY or PC.");
+                            "The energy hasn't been set. "
+                            "Set either \"GAMMA\", \"ENERGY\" or \"PC\".");
+    }
+
+    if ( !(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE])) ) {
+        throw OpalException("Beam::execute()",
+                            "The beam particle hasn't been set. "
+                            "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
+    }
+
+    if (!(itsAttr[NPART])) {
+        throw OpalException("Beam::execute()", "\"NPART\" must be set.");
     }
 }
 
@@ -153,7 +164,12 @@ Beam* Beam::find(const std::string& name) {
 }
 
 size_t Beam::getNumberOfParticles() const {
-    return (size_t)Attributes::getReal(itsAttr[NPART]);
+    if (Attributes::getReal(itsAttr[NPART]) > 0) {
+        return (size_t)Attributes::getReal(itsAttr[NPART]);
+    } else {
+        throw OpalException("Beam::getNumberOfParticles()",
+                            "Wrong number of particles in beam!. \"NPART\" must be positive");
+    }
 }
 
 const PartData& Beam::getReference() const {
@@ -193,60 +209,20 @@ double Beam::getMassPerParticle() const {
 }
 
 void Beam::update() {
-    // Find the particle name.
+
     if (itsAttr[PARTICLE]) {
-        static const char *names[] = {
-            "ELECTRON",
-            "PROTON",
-            "POSITRON",
-            "ANTIPROTON",
-            "CARBON",
-            "HMINUS",
-            "URANIUM",
-            "MUON",
-            "DEUTERON",
-            "XENON",
-            "H2P",
-            "ALPHA"
-        };
-
-        static const double masses[] = {
-            Physics::m_e,
-            Physics::m_p,
-            Physics::m_e,
-            Physics::m_p,
-            Physics::m_c,
-            Physics::m_hm,
-            Physics::m_u,
-            Physics::m_mu,
-            Physics::m_d,
-            Physics::m_xe,
-            Physics::m_h2p,
-            Physics::m_alpha
-        };
-
-        static const double charges[] = {
-            -1.0, 1.0, 1.0, -1.0, 12.0, -1.0, 35.0, -1.0, 1.0, 20.0, 1.0, 2.0
-        };
-        const unsigned int numParticleNames = std::end(names) - std::begin(names);
-
-        std::string pName  = Attributes::getString(itsAttr[PARTICLE]);
-        for (unsigned int i = 0; i < numParticleNames; ++ i) {
-            if (pName == names[i]) {
-                Attributes::setReal(itsAttr[MASS], masses[i]);
-                Attributes::setReal(itsAttr[CHARGE], charges[i]);
-                break;
-            }
-        }
+        std::string pName  = getParticleName();
+        ParticleType pType = ParticleProperties::getParticleType(pName);
+        Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
+        Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
     }
 
     // Set up particle reference; convert all to eV for CLASSIC.
-    double mass =
-        (itsAttr[MASS] ? Attributes::getReal(itsAttr[MASS]) : Physics::m_p) * energy_scale;
-    double charge = itsAttr[CHARGE] ? Attributes::getReal(itsAttr[CHARGE]) : 1.0;
+    double mass = (itsAttr[MASS] ? getMass() : Physics::m_p) * energy_scale;
+    double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
+
     reference = PartData(charge, mass, 1.0);
 
-    // Checks
     if (itsAttr[GAMMA]) {
         double gamma = Attributes::getReal(itsAttr[GAMMA]);
         if (gamma > 1.0) {
@@ -278,27 +254,16 @@ void Beam::update() {
 }
 
 
-//ff
-double Beam::getGamma() const { //obtain value for gamma
-    return Attributes::getReal(itsAttr[GAMMA]);
-}
-
-//ff
-double Beam::getPC() const { //obtain value for PC
-    return Attributes::getReal(itsAttr[PC]);
-}
-
-
 void Beam::print(std::ostream& os) const {
     double charge = Attributes::getReal(itsAttr[CHARGE]);
     os << "* ************* B E A M ************************************************************ " << std::endl;
     os << "* BEAM        " << getOpalName() << '\n'
        << "* PARTICLE    " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
+       << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " GeV\n"
+       << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
+       << "* MOMENTUM    " << reference.getP() << '\n'
        << "* CURRENT     " << Attributes::getReal(itsAttr[BCURRENT]) << " A\n"
        << "* FREQUENCY   " << Attributes::getReal(itsAttr[BFREQ]) << " MHz\n"
-       << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
-       << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " GeV\n"
-       << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC])   << '\n'
-       << "* NPART       " << Attributes::getReal(itsAttr[NPART])   << '\n';
+       << "* NPART       " << Attributes::getReal(itsAttr[NPART]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }

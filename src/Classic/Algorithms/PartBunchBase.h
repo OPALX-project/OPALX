@@ -18,22 +18,20 @@
 #ifndef PART_BUNCH_BASE_H
 #define PART_BUNCH_BASE_H
 
-#include "Particle/AbstractParticle.h"
-#include "Particle/ParticleAttrib.h"
-#include "Utility/IpplTimings.h"
-#include "Utilities/GeneralClassicException.h"
-
-#include "Algorithms/DistributionMoments.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/DistributionMoments.h"
 #include "Algorithms/OpalParticle.h"
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
 #include "Algorithms/Vektor.h"
-
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
+#include "Particle/AbstractParticle.h"
+#include "Particle/ParticleAttrib.h"
+#include "Physics/ParticleProperties.h"
+#include "Utilities/GeneralClassicException.h"
+#include "Utility/IpplTimings.h"
 
-#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -44,46 +42,6 @@ class PartBins;
 class PartBinsCyc;
 class PartData;
 
-enum class ParticleOrigin:short {REGULAR,
-                                 SECONDARY,
-                                 STRIPPED};
-
-enum class ParticleType:short {ELECTRON,
-                               PROTON,
-                               POSITRON,
-                               ANTIPROTON,
-                               CARBON,
-                               HMINUS,
-                               URANIUM,
-                               MUON,
-                               DEUTERON,
-                               XENON,
-                               H2P,
-                               ALPHA,
-                               HYDROGEN,
-                               H3P,
-                               UNNAMED};
-
-inline
-static std::string getParticleTypeString(ParticleType type) {
-    static const std::map<ParticleType, std::string> PTypeString = {
-        {ParticleType::ELECTRON, "ELECTRON"},
-        {ParticleType::PROTON,"PROTON"},
-        {ParticleType::POSITRON, "POSITRON"},
-        {ParticleType::ANTIPROTON, "ANTIPROTON"},
-        {ParticleType::CARBON, "CARBON"},
-        {ParticleType::HMINUS, "HMINUS"},
-        {ParticleType::URANIUM, "URANIUM"},
-        {ParticleType::MUON, "MUON"},
-        {ParticleType::DEUTERON, "DEUTERON"},
-        {ParticleType::XENON, "XENON"},
-        {ParticleType::H2P, "H2P"},
-        {ParticleType::ALPHA, "ALPHA"},
-        {ParticleType::HYDROGEN, "HYDROGEN"},
-        {ParticleType::H3P, "H3P"},
-        {ParticleType::UNNAMED, "UNNAMED"}};
-    return PTypeString.at(type);
-}
 
 template <class T, unsigned Dim>
 class PartBunchBase : std::enable_shared_from_this<PartBunchBase<T, Dim>>
@@ -449,7 +407,6 @@ public:
     double getE() const;
     ParticleOrigin getPOrigin() const;
     ParticleType getPType() const;
-    std::string getPTypeString();
     double getInitialBeta() const;
     double getInitialGamma() const;
     ///@}
@@ -457,7 +414,7 @@ public:
     void resetQ(double q);
     void resetM(double m);
     void setPOrigin(ParticleOrigin);
-    void setPType(std::string type);
+    void setPType(const std::string& type);
     ///@}
     double getdE() const;
     virtual double getGamma(int i);
