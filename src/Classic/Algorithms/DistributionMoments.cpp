@@ -153,7 +153,7 @@ void DistributionMoments::fillMembers(std::vector<double> const& localMoments) {
 
     for (unsigned int i = 0; i < 6; ++ i) {
         for (unsigned int j = 0; j <= i; ++ j, ++ l) {
-            moments_m(i, j) = localMoments[l];
+            moments_m(i, j) = localMoments[l] * perParticle;
             moments_m(j, i) = moments_m(i, j);
         }
     }
@@ -162,7 +162,7 @@ void DistributionMoments::fillMembers(std::vector<double> const& localMoments) {
 
     for (unsigned int i = 0; i < 3; ++ i, l += 2) {
         double w1 = centroid_m[2 * i] * perParticle;
-        double w2 = moments_m(2 * i , 2 * i) * perParticle;
+        double w2 = moments_m(2 * i , 2 * i);
         double w3 = localMoments[l] * perParticle;
         double w4 = localMoments[l + 1] * perParticle;
         double tmp = w2 - std::pow(w1, 2);
@@ -177,7 +177,7 @@ void DistributionMoments::fillMembers(std::vector<double> const& localMoments) {
     totalMass_m = localMoments[l++];
 
     for (unsigned int i = 0; i < 3; ++ i) {
-        sumRP(i) = moments_m(2 * i, 2 * i + 1) * perParticle -  meanR_m(i) * meanP_m(i);
+        sumRP(i) = moments_m(2 * i, 2 * i + 1) -  meanR_m(i) * meanP_m(i);
         stdRP_m(i) = sumRP(i) / (stdR_m(i) * stdP_m(i));
         squaredEps(i) = std::pow(stdR_m(i) * stdP_m(i), 2) - std::pow(sumRP(i), 2);
         normalizedEps_m(i) = std::sqrt(std::max(squaredEps(i), 0.0));
@@ -213,10 +213,6 @@ void DistributionMoments::reset()
 
     meanKineticEnergy_m = 0.0;
     stdKineticEnergy_m = 0.0;
-    Dx_m = 0.0;
-    DDx_m = 0.0;
-    Dy_m = 0.0;
-    DDy_m = 0.0;
     moments_m = FMatrix<double, 6, 6>(0.0);
 
     totalCharge_m = 0.0;
