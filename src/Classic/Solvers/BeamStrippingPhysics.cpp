@@ -26,6 +26,7 @@
 #include "AbsBeamline/Vacuum.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
+#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Util.h"
@@ -105,7 +106,7 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
 
         throw GeneralClassicException(
                 "BeamStrippingPhysics::apply",
-                "Particle " + getParticleTypeString(particle) +
+                "Particle " + ParticleProperties::getParticleTypeString(particle) +
                 " is not supported for residual stripping interactions!");
     }
 
@@ -595,124 +596,100 @@ void BeamStrippingPhysics::getSecondaryParticles(PartBunchBase<double, 3>* bunch
 
     if (pType_m == ParticleType::HMINUS) {
         if (pdead_LS == true) {
-            transformToHydrogen(bunch, i);
+            transformToSecondary(bunch, i, ParticleType::HYDROGEN);
         } else {
             if (r > nCSB_m/nCSTotal_m)
-                transformToHydrogen(bunch, i);
+                transformToSecondary(bunch, i, ParticleType::HYDROGEN);
             else
-                transformToProton(bunch, i);
+                transformToSecondary(bunch, i, ParticleType::PROTON);
         }
 
     } else if (pType_m == ParticleType::PROTON) {
         if (r > nCSB_m/nCSTotal_m)
-            transformToHydrogen(bunch, i);
+            transformToSecondary(bunch, i, ParticleType::HYDROGEN);
         else
-            transformToHminus(bunch, i);
+            transformToSecondary(bunch, i, ParticleType::HMINUS);
 
     } else if (pType_m == ParticleType::HYDROGEN) {
         if (r > nCSB_m/nCSTotal_m)
-            transformToProton(bunch, i);
+            transformToSecondary(bunch, i, ParticleType::PROTON);
         else
-            transformToHminus(bunch, i);
+            transformToSecondary(bunch, i, ParticleType::HMINUS);
 
     } else if (pType_m == ParticleType::H2P) {
         if (gas == ResidualGas::H2) {
             if (nCSC_m>nCSB_m && nCSB_m>nCSA_m) {
                 if (r > (nCSA_m+nCSB_m)/nCSTotal_m)
-                    transformToH3plus(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::H3P);
                 else if (r > nCSA_m/nCSTotal_m)
-                    transformToHydrogen(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::HYDROGEN);
                 else
-                    transformToProton(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::PROTON);
 
             } else if (nCSA_m>nCSB_m && nCSB_m>nCSC_m) {
                 if (r > (nCSC_m+nCSB_m)/nCSTotal_m)
-                    transformToProton(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::PROTON);
                 else if (r > nCSC_m/nCSTotal_m)
-                    transformToHydrogen(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::HYDROGEN);
                 else
-                    transformToH3plus(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::H3P);
 
             } else if (nCSA_m>nCSB_m && nCSC_m>nCSA_m) {
                 if (r > (nCSA_m+nCSB_m)/nCSTotal_m)
-                    transformToH3plus(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::H3P);
                 else if (r > nCSB_m/nCSTotal_m)
-                    transformToProton(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::PROTON);
                 else
-                    transformToHydrogen(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::HYDROGEN);
 
             } else if (nCSA_m>nCSC_m && nCSC_m>nCSB_m) {
                 if (r > (nCSC_m+nCSB_m)/nCSTotal_m)
-                    transformToProton(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::PROTON);
                 else if (r > nCSB_m/nCSTotal_m)
-                    transformToH3plus(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::H3P);
                 else
-                    transformToHydrogen(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::HYDROGEN);
 
             } else if (nCSB_m>nCSC_m && nCSB_m>nCSA_m && nCSA_m>nCSC_m) {
                 if (r > (nCSC_m+nCSA_m)/nCSTotal_m)
-                    transformToHydrogen(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::HYDROGEN);
                 else if (r > nCSC_m/nCSTotal_m)
-                    transformToProton(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::PROTON);
                 else
-                    transformToH3plus(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::H3P);
 
             } else {
                 if (r > (nCSC_m+nCSA_m)/nCSTotal_m)
-                    transformToHydrogen(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::HYDROGEN);
                 else if (r > nCSA_m/nCSTotal_m)
-                    transformToH3plus(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::H3P);
                 else
-                    transformToProton(bunch, i);
+                    transformToSecondary(bunch, i, ParticleType::PROTON);
             }
         } else if (gas == ResidualGas::AIR) {
             if (r > nCSTotal_m)
-                transformToProton(bunch, i);
+                transformToSecondary(bunch, i, ParticleType::PROTON);
         }
     } else if (pType_m == ParticleType::DEUTERON) {
         GeneralClassicException("BeamStrippingPhysics::getSecondaryParticles",
                                 "Tracking secondary particles from incident "
                                 "ParticleType::DEUTERON is not implemented");
     }
+}
 
+void BeamStrippingPhysics::transformToSecondary(PartBunchBase<double, 3>* bunch,
+                                                size_t& i,
+                                                ParticleType type) {
     bunch->POrigin[i] = ParticleOrigin::SECONDARY;
+    bunch->PType[i] = type;
+    bunch->M[i] = ParticleProperties::getParticleMass(type);
+    bunch->Q[i] = ParticleProperties::getParticleChargeInCoulomb(type);
+
+    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
+    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
+            << " is transformed to " << ParticleProperties::getParticleTypeString(type) << endl;
 }
 
-void BeamStrippingPhysics::transformToProton(PartBunchBase<double, 3>* bunch, size_t& i) {
-    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    bunch->M[i] = Physics::m_p;
-    bunch->Q[i] = Physics::q_e;
-    bunch->PType[i] = ParticleType::PROTON;
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
-}
-
-void BeamStrippingPhysics::transformToHydrogen(PartBunchBase<double, 3>* bunch, size_t& i) {
-    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    bunch->M[i] = Physics::m_h;
-    bunch->Q[i] = 0.0;
-    bunch->PType[i] = ParticleType::HYDROGEN;
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
-}
-
-void BeamStrippingPhysics::transformToHminus(PartBunchBase<double, 3>* bunch, size_t& i) {
-    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    bunch->M[i] = Physics::m_hm;
-    bunch->Q[i] = -Physics::q_e;
-    bunch->PType[i] = ParticleType::HMINUS;
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
-}
-
-void BeamStrippingPhysics::transformToH3plus(PartBunchBase<double, 3>* bunch, size_t& i) {
-    Inform gmsgALL("OPAL", INFORM_ALL_NODES);
-    bunch->M[i] = Physics::m_h3p;
-    bunch->Q[i] = Physics::q_e;
-    bunch->PType[i] = ParticleType::H3P;
-    gmsgALL << level4 << getName() << ": Particle " << bunch->ID[i]
-            << " is transformed to " << getParticleTypeString(bunch->PType[i]) << endl;
-}
 
 void BeamStrippingPhysics::print(Inform& msg) {
     Inform::FmtFlags_t ff = msg.flags();

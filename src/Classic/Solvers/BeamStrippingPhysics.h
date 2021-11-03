@@ -20,14 +20,13 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef BEAMSTRIPPINGPHYSICS_HH
-#define BEAMSTRIPPINGPHYSICS_HH
+#ifndef BEAMSTRIPPINGPHYSICS_H
+#define BEAMSTRIPPINGPHYSICS_H
 
 #include "AbsBeamline/Component.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/Vektor.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
-#include "Solvers/ScatteringPhysics.h"
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
@@ -85,10 +84,8 @@ private:
     bool evalLorentzStripping(double& gamma, double& eField);
 
     void getSecondaryParticles(PartBunchBase<double, 3>* bunch, size_t& i, bool pdead_LS);
-    void transformToProton(PartBunchBase<double, 3>* bunch, size_t& i);
-    void transformToHydrogen(PartBunchBase<double, 3>* bunch, size_t& i);
-    void transformToHminus(PartBunchBase<double, 3>* bunch, size_t& i);
-    void transformToH3plus(PartBunchBase<double, 3>* bunch, size_t& i);
+
+    void transformToSecondary(PartBunchBase<double, 3>* bunch, size_t& i, ParticleType type);
 
     bool computeEnergyLoss(PartBunchBase<double, 3>* /*bunch*/,
                            Vector_t& /*P*/,
@@ -185,4 +182,4 @@ const std::string BeamStrippingPhysics::getType() const {
     return "BeamStrippingPhysics";
 }
 
-#endif //BEAMSTRIPPINGPHYSICS_HH
+#endif //BEAMSTRIPPINGPHYSICS_H
