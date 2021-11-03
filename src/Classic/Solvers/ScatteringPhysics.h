@@ -17,8 +17,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef SCATTERINGPHYSICS_HH
-#define SCATTERINGPHYSICS_HH
+#ifndef SCATTERINGPHYSICS_H
+#define SCATTERINGPHYSICS_H
 
 #include "Solvers/ParticleMatterInteractionHandler.h"
 
@@ -210,4 +210,4 @@ const std::string ScatteringPhysics::getType() const {
     return "ScatteringPhysics";
 }
 
-#endif //SCATTERINGPHYSICS_HH
+#endif //SCATTERINGPHYSICS_H
