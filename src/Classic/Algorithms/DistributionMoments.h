@@ -80,10 +80,6 @@ private:
     double meanKineticEnergy_m;
     double stdKineticEnergy_m;
     double meanGamma_m;
-    double Dx_m;
-    double DDx_m;
-    double Dy_m;
-    double DDy_m;
     double centroid_m[6];
     FMatrix<double, 6, 6> moments_m;
 
@@ -173,25 +169,25 @@ double DistributionMoments::getStdKineticEnergy() const
 inline
 double DistributionMoments::getDx() const
 {
-    return Dx_m;
+    return moments_m(0, 5);
 }
 
 inline
 double DistributionMoments::getDDx() const
 {
-    return DDx_m;
+    return moments_m(1, 5);
 }
 
 inline
 double DistributionMoments::getDy() const
 {
-    return Dy_m;
+    return moments_m(2, 5);
 }
 
 inline
 double DistributionMoments::getDDy() const
 {
-    return DDy_m;
+    return moments_m(3, 5);
 }
 
 inline
