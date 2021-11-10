@@ -93,7 +93,7 @@ void MemoryWriter::write(const PartBunchBase<double, 3> *beam)
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * 1e9);             // 1
+    columns_m.addColumnValue("t", beam->getT() * Physics::s2ns);    // 1
     columns_m.addColumnValue("s", pathLength);                     // 2
 
     int nProcs = Ippl::getNodes();

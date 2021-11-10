@@ -218,8 +218,8 @@ void MemoryProfiler::write(const PartBunchBase<double, 3> *beam) {
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * 1e9);             // 1
-    columns_m.addColumnValue("s", pathLength);                     // 2
+    columns_m.addColumnValue("t", beam->getT() * Physics::s2ns); // 1
+    columns_m.addColumnValue("s", pathLength);                   // 2
 
     // boost::variant can't overload double and long double. By using a
     // string this shortcoming can be bypassed.

@@ -75,7 +75,7 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
             throw GeneralClassicException("FM3DDynamic::FM3DDynamic",
                                           "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
-            frequency_m *= Physics::two_pi * 1e6;
+            frequency_m *= Physics::two_pi * Physics::MHz2Hz;
 
             xbegin_m /= 100.0;
             xend_m /= 100.0;

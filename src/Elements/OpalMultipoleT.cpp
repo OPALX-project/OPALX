@@ -104,23 +104,22 @@ void OpalMultipoleT::update() {
     OpalElement::update();
 
     // Magnet length.
-    double mm = 1000.;
     MultipoleT *multT =
     dynamic_cast<MultipoleT*>(getElement());
-    double length = Attributes::getReal(itsAttr[LENGTH])*mm;
+    double length = Attributes::getReal(itsAttr[LENGTH])*Physics::m2mm;
     double angle = Attributes::getReal(itsAttr[ANGLE]);
     multT->setElementLength(length);
     multT->setLength(length);
     multT->setBendAngle(angle);
-    multT->setAperture(Attributes::getReal(itsAttr[VAPERT])*mm, 
-                       Attributes::getReal(itsAttr[HAPERT])*mm);
-    multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])*mm/2,
-                          Attributes::getReal(itsAttr[LFRINGE])*mm,
-                          Attributes::getReal(itsAttr[RFRINGE])*mm); 
+    multT->setAperture(Attributes::getReal(itsAttr[VAPERT])*Physics::m2mm, 
+                       Attributes::getReal(itsAttr[HAPERT])*Physics::m2mm);
+    multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])*Physics::m2mm/2,
+                          Attributes::getReal(itsAttr[LFRINGE])*Physics::m2mm,
+                          Attributes::getReal(itsAttr[RFRINGE])*Physics::m2mm); 
     if (Attributes::getBool(itsAttr[VARRADIUS])) {
         multT->setVarRadius();
     }
-    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH])*mm);
+    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH])*Physics::m2mm);
     const std::vector<double> transProfile = 
                               Attributes::getRealArray(itsAttr[TP]);
     int transSize = transProfile.size();
@@ -136,7 +135,7 @@ void OpalMultipoleT::update() {
     multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
 
     for(int comp = 0; comp < transSize; comp++) {
-        double units = 10.*gsl_sf_pow_int(1e-3, comp); // T m^-comp -> kG mm^-comp
+        double units = Physics::T2kG*gsl_sf_pow_int(Physics::mm2m, comp); // T m^-comp -> kG mm^-comp
         multT->setTransProfile(comp, transProfile[comp]*units);
     }
     // Transmit "unknown" attributes.
