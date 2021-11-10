@@ -233,7 +233,7 @@ void FM1DDynamic::computeFourierCoefficients(double maxEz, double fieldData[]) {
 void FM1DDynamic::convertHeaderData() {
 
     // Convert to angular frequency in Hz.
-    frequency_m *= Physics::two_pi * 1.0e6;
+    frequency_m *= Physics::two_pi * Physics::MHz2Hz;
 
     // Convert to m.
     rBegin_m /= 100.0;

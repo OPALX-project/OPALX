@@ -31,6 +31,7 @@
 #include "BasicActions/Option.h"
 
 #include "Distribution/Distribution.h"
+#include "Physics/Physics.h"
 #include "Track/Track.h"
 #include "Utilities/OpalException.h"
 #include "Structure/Beam.h"
@@ -320,7 +321,7 @@ void TrackRun::setupTTracker(){
     }
 
     Beam *beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-    Track::block->bunch->setBeamFrequency(beam->getFrequency() * 1e6);
+    Track::block->bunch->setBeamFrequency(beam->getFrequency() * Physics::MHz2Hz);
 
     Track::block->bunch->setPType(beam->getParticleName());
 
@@ -514,7 +515,7 @@ void TrackRun::setupCyclotronTracker(){
     *gmsg << "* Mass of simulation particle= " << macromass << " GeV/c^2" << endl;
     *gmsg << "* Charge of simulation particle= " << macrocharge << " [C]" << endl;
 
-    Track::block->bunch->setdT(1.0 / (Track::block->stepsPerTurn * beam->getFrequency() * 1.0e6));
+    Track::block->bunch->setdT(1.0 / (Track::block->stepsPerTurn * beam->getFrequency() * Physics::MHz2Hz));
     Track::block->bunch->setStepsPerTurn(Track::block->stepsPerTurn);
 
     // set coupling constant

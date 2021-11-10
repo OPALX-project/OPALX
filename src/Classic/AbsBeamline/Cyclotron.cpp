@@ -160,7 +160,7 @@ double Cyclotron::getPZinit() const {
 }
 
 void Cyclotron::setTrimCoilThreshold(double trimCoilThreshold) {
-    trimCoilThreshold_m = 10.0 * trimCoilThreshold; // convert from Tesla to kGauss
+    trimCoilThreshold_m = Physics::T2kG * trimCoilThreshold; // convert from Tesla to kGauss
 }
 
 double Cyclotron::getTrimCoilThreshold() const {
@@ -304,13 +304,13 @@ double Cyclotron::getRmax() const {
 void Cyclotron::setMinR(double r) {
     // DW: This is to let the user keep using mm in the input file for now
     // while switching internally to m
-    minr_m = 0.001 * r;
+    minr_m = Physics::mm2m * r;
 }
 
 void Cyclotron::setMaxR(double r) {
     // DW: This is to let the user keep using mm in the input file for now
     // while switching internally to m
-    maxr_m = 0.001 * r;
+    maxr_m = Physics::mm2m * r;
 }
 
 double Cyclotron::getMinR() const {
@@ -324,7 +324,7 @@ double Cyclotron::getMaxR() const {
 void  Cyclotron::setMinZ(double z) {
     // DW: This is to let the user keep using mm in the input file for now
     // while switching internally to m
-    minz_m = 0.001 * z;
+    minz_m = Physics::mm2m * z;
 }
 
 double Cyclotron::getMinZ() const {
@@ -334,7 +334,7 @@ double Cyclotron::getMinZ() const {
 void Cyclotron::setMaxZ(double z) {
     // DW: This is to let the user keep using mm in the input file for now
     // while switching internally to m
-    maxz_m = 0.001 * z;
+    maxz_m = Physics::mm2m * z;
 }
 
 double Cyclotron::getMaxZ() const {
@@ -409,7 +409,7 @@ bool Cyclotron::apply(const size_t& id, const double& t, Vector_t& E, Vector_t& 
 
     if (flagNeedUpdate) {
         lossDs_m->addParticle(OpalParticle(id, RefPartBunch_m->R[id], RefPartBunch_m->P[id],
-                                           t*1.0e-9, RefPartBunch_m->Q[id], RefPartBunch_m->M[id]),
+                                           t*Physics::ns2s, RefPartBunch_m->Q[id], RefPartBunch_m->M[id]),
                               std::make_pair(0, RefPartBunch_m->bunchNum[id]));
         RefPartBunch_m->Bin[id] = -1;
     }
@@ -486,7 +486,7 @@ bool Cyclotron::apply(const Vector_t& R, const Vector_t& /*P*/,
 
         // Ok, this is a total patch job, but now that the internal cyclotron units are in m, we have to
         // change stuff here to match with the input units of mm in the fieldmaps. -DW
-        const Vector_t temp_R = R * Vector_t(1000.0); //Keep this until we have transitioned fully to m -DW
+        const Vector_t temp_R = R * Vector_t(Physics::m2mm); //Keep this until we have transitioned fully to m -DW
 
         if (temp_R(0) < xBegin || temp_R(0) > xEnd ||
             temp_R(1) < yBegin || temp_R(1) > yEnd ||
@@ -504,12 +504,12 @@ bool Cyclotron::apply(const Vector_t& R, const Vector_t& /*P*/,
         if (fieldType_m == BFieldType::SYNCHRO) {
             double powert = 1;
             for (const double fcoef : (*rffci)) {
-                powert *= (t * 1e-9);
+                powert *= (t * Physics::ns2s);
                 frequency += fcoef * powert; // Add frequency ramp [MHz/s^n]
             }
             powert = 1;
             for (const double vcoef : (*rfvci)) {
-                powert *= (t * 1e-9);
+                powert *= (t * Physics::ns2s);
                 ebscale += vcoef * powert; // Add frequency ramp [MHz/s^n]
             }
         }
@@ -961,13 +961,13 @@ void Cyclotron::getFieldFromFile_Ring(const double& scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.rmin_m));
     *gmsg << "* Minimal radius of measured field map: " << BP_m.rmin_m << " [mm]" << endl;
-    BP_m.rmin_m *= 0.001;  // mm --> m
+    BP_m.rmin_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.delr_m));
     //if the value is negative, the actual value is its reciprocal.
     if (BP_m.delr_m < 0.0) BP_m.delr_m = 1.0 / (-BP_m.delr_m);
     *gmsg << "* Stepsize in radial direction: " << BP_m.delr_m << " [mm]" << endl;
-    BP_m.delr_m *= 0.001;  // mm --> m
+    BP_m.delr_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.tetmin_m));
     *gmsg << "* Minimal angle of measured field map: " << BP_m.tetmin_m << " [deg]" << endl;
@@ -1086,7 +1086,7 @@ void Cyclotron::getFieldFromFile_FFA(const double& /*scaleFactor*/) {
     *gmsg << "*             READ IN FFA FIELD MAP             " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
 
-    BP_m.Bfact_m = -10.0; // T->kG and H- for the current FNAL FFA
+    BP_m.Bfact_m = Physics::T2kG * -1; // T->kG and H- for the current FNAL FFA
 
     std::ifstream file_to_read(fmapfn_m.c_str());
     const int max_num_of_char_in_a_line = 128;
@@ -1123,9 +1123,9 @@ void Cyclotron::getFieldFromFile_FFA(const double& /*scaleFactor*/) {
     Bfield_m.ntet_m = (int)((maxtheta - thv[0]) / BP_m.dtet_m);
     Bfield_m.nrad_m = (int)(rmax - BP_m.rmin_m) / BP_m.delr_m + 1;
     Bfield_m.ntetS_m = Bfield_m.ntet_m + 1;
-    *gmsg << "* Minimal radius of measured field map: " << 1000.0 * BP_m.rmin_m << " [mm]" << endl;
-    *gmsg << "* Maximal radius of measured field map: " << 1000.0 * rmax << " [mm]" << endl;
-    *gmsg << "* Stepsize in radial direction: " << 1000.0 * BP_m.delr_m << " [mm]" << endl;
+    *gmsg << "* Minimal radius of measured field map: " << Physics::m2mm * BP_m.rmin_m << " [mm]" << endl;
+    *gmsg << "* Maximal radius of measured field map: " << Physics::m2mm * rmax << " [mm]" << endl;
+    *gmsg << "* Stepsize in radial direction: " << Physics::m2mm * BP_m.delr_m << " [mm]" << endl;
     *gmsg << "* Minimal angle of measured field map: " << BP_m.tetmin_m << " [deg]" << endl;
     *gmsg << "* Maximal angle of measured field map: " << maxtheta << " [deg]" << endl;
 
@@ -1188,16 +1188,16 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double& scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.rmin_m));
     *gmsg << "* Minimal radius of measured field map: " << BP_m.rmin_m << " [mm]" << endl;
-    BP_m.rmin_m *= 0.001;  // mm --> m
+    BP_m.rmin_m *= Physics::mm2m;  
 
     double rmax;
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &rmax));
     *gmsg << "* Maximal radius of measured field map: " << rmax << " [mm]" << endl;
-    rmax *= 0.001;  // mm --> m
+    rmax *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.delr_m));
     *gmsg << "* Stepsize in radial direction: " << BP_m.delr_m << " [mm]" << endl;
-    BP_m.delr_m *= 0.001;  // mm --> m
+    BP_m.delr_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.tetmin_m));
     *gmsg << "* Minimal angle of measured field map: " << BP_m.tetmin_m << " [deg]" << endl;
@@ -1264,13 +1264,13 @@ void Cyclotron::getFieldFromFile_Carbon(const double& scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.rmin_m));
     *gmsg << "* Minimal radius of measured field map: " << BP_m.rmin_m << " [mm]" << endl;
-    BP_m.rmin_m *= 0.001;  // mm --> m
+    BP_m.rmin_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.delr_m));
     //if the value is negative, the actual value is its reciprocal.
     if (BP_m.delr_m < 0.0) BP_m.delr_m = 1.0 / (-BP_m.delr_m);
     *gmsg << "* Stepsize in radial direction: " << BP_m.delr_m << " [mm]" << endl;
-    BP_m.delr_m *= 0.001;  // mm --> m
+    BP_m.delr_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.tetmin_m));
     *gmsg << "* Minimal angle of measured field map: " << BP_m.tetmin_m << " [deg]" << endl;
@@ -1334,11 +1334,11 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double& scaleFactor) {
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.rmin_m));
     *gmsg << "* Minimal radius of measured field map: " << BP_m.rmin_m << " [mm]" << endl;
-    BP_m.rmin_m *= 0.001;  // mm --> m
+    BP_m.rmin_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.delr_m));
     *gmsg << "* Stepsize in radial direction: " << BP_m.delr_m << " [mm]" << endl;
-    BP_m.delr_m *= 0.001;  // mm --> m
+    BP_m.delr_m *= Physics::mm2m;  
 
     CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &BP_m.tetmin_m));
     *gmsg << "* Minimal angle of measured field map: " << BP_m.tetmin_m << " [deg]" << endl;
@@ -1379,7 +1379,7 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double& scaleFactor) {
             CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%d", &dtmp));
             CHECK_CYC_FSCANF_EOF(std::fscanf(f, "%lf", &(Bfield_m.bfld_m[idx(i, k)])));
             //  T --> kGs, minus for minus hydrogen
-            Bfield_m.bfld_m[idx(i, k)] = Bfield_m.bfld_m[idx(i, k)] * (-10.0);
+            Bfield_m.bfld_m[idx(i, k)] = Bfield_m.bfld_m[idx(i, k)] * ( Physics::T2kG * -1);
         }
         for (int k = nHalfPoints; k < Bfield_m.ntet_m; k++) {
             Bfield_m.bfld_m[idx(i, k)] = Bfield_m.bfld_m[idx(i, Bfield_m.ntet_m-k)];

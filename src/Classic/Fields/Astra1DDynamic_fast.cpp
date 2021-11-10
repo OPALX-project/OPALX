@@ -59,7 +59,7 @@ Astra1DDynamic_fast::Astra1DDynamic_fast(std::string aFilename):
     }
 
     // conversion from MHz to Hz and from frequency to angular frequency
-    frequency_m *= Physics::two_pi * 1e6;
+    frequency_m *= Physics::two_pi * Physics::MHz2Hz;
     xlrep_m = frequency_m / Physics::c;
 
     hz_m = (zend_m - zbegin_m) / (num_gridpz_m - 1);
