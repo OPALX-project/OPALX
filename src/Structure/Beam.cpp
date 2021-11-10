@@ -49,13 +49,12 @@ namespace {
     };
 }
 
-const double Beam::energy_scale = 1.0e9;
 
 Beam::Beam():
     Definition(SIZE, "BEAM",
                "The \"BEAM\" statement defines data for the particles "
                "in a beam."),
-    reference(1.0, Physics::m_p * energy_scale, 1.0 * energy_scale) {
+    reference(1.0, Physics::m_p * Physics::GeV2eV, 1.0 * Physics::GeV2eV) {
 
     itsAttr[PARTICLE] = Attributes::makePredefinedString
                         ("PARTICLE", "Name of particle to be used",
@@ -218,7 +217,7 @@ void Beam::update() {
     }
 
     // Set up particle reference; convert all to eV for CLASSIC.
-    double mass = (itsAttr[MASS] ? getMass() : Physics::m_p) * energy_scale;
+    double mass = (itsAttr[MASS] ? getMass() : Physics::m_p) * Physics::GeV2eV;
     double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
 
     reference = PartData(charge, mass, 1.0);
@@ -232,7 +231,7 @@ void Beam::update() {
                                 "\"GAMMA\" should be greater than 1.");
         }
     } else if (itsAttr[ENERGY]) {
-        double energy = Attributes::getReal(itsAttr[ENERGY]) * energy_scale;
+        double energy = Attributes::getReal(itsAttr[ENERGY]) * Physics::GeV2eV;
         if (energy > reference.getM()) {
             reference.setE(energy);
         } else {
@@ -240,7 +239,7 @@ void Beam::update() {
                                 "\"ENERGY\" should be greater than \"MASS\".");
         }
     } else if (itsAttr[PC]) {
-        double pc = Attributes::getReal(itsAttr[PC]) * energy_scale;
+        double pc = Attributes::getReal(itsAttr[PC]) * Physics::GeV2eV;
         if (pc > 0.0) {
             reference.setP(pc);
         } else {

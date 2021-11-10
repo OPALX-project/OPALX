@@ -79,7 +79,7 @@ FM2DDynamic::FM2DDynamic(std::string aFilename)
                                           "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // convert MHz to Hz and frequency to angular frequency
-            frequency_m *= Physics::two_pi * 1e6;
+            frequency_m *= Physics::two_pi * Physics::MHz2Hz;
 
             // convert cm to m
             rbegin_m /= 100.0;

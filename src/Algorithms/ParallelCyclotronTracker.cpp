@@ -89,7 +89,7 @@
 
 #include <boost/filesystem.hpp>
 
-constexpr double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
+constexpr double c_mmtns = Physics::c * Physics::m2mm / Physics::s2ns;
 
 Vector_t const ParallelCyclotronTracker::xaxis = Vector_t(1.0, 0.0, 0.0);
 Vector_t const ParallelCyclotronTracker::yaxis = Vector_t(0.0, 1.0, 0.0);
@@ -244,7 +244,7 @@ void ParallelCyclotronTracker::dumpAngle(const double& theta,
 
 double ParallelCyclotronTracker::computeRadius(const Vector_t& meanR) const {
     // New OPAL 2.0: m --> mm
-    return 1000.0 * std::sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1));
+    return Physics::m2mm * std::sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1));
 }
 
 
@@ -281,7 +281,8 @@ void ParallelCyclotronTracker::computePathLengthUpdate(std::vector<double>& dl,
     for (size_t i = 0; i < dotP.size(); ++i) {
         double const gamma = std::sqrt(1.0 + dotP[i]);
         double const beta  = std::sqrt(dotP[i]) / gamma;
-        dl[i] = c_mmtns * dt * 1.0e-3 * beta; // unit: m
+        dl[i] = c_mmtns * dt * 1.0e-3 * beta; // unit: m/ns
+
     }
 }
 
@@ -438,10 +439,10 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << "* Bunch global starting momenta:" << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Reference total momentum (beta * gamma) = " << referencePtot * 1000.0 << " [MCU]" << endl;
-    *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt * 1000.0 << " [MCU]" << endl;
-    *gmsg << "* Reference radial momentum (Pr) = " << referencePr * 1000.0 << " [MCU]" << endl;
-    *gmsg << "* Reference axial momentum (Pz) = " << referencePz * 1000.0 << " [MCU]" << endl;
+    *gmsg << "* Reference total momentum (beta * gamma) = " << referencePtot * Physics::m2mm << " [MCU]" << endl;
+    *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt * Physics::m2mm << " [MCU]" << endl;
+    *gmsg << "* Reference radial momentum (Pr) = " << referencePr * Physics::m2mm << " [MCU]" << endl;
+    *gmsg << "* Reference axial momentum (Pz) = " << referencePz * Physics::m2mm << " [MCU]" << endl;
     *gmsg << endl;
 
     double sym = cycl_m->getSymmetry();
@@ -483,8 +484,8 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
 
     double BcParameter[8] = {};
 
-    BcParameter[0] = 0.001 * cycl_m->getRmin();
-    BcParameter[1] = 0.001 * cycl_m->getRmax();
+    BcParameter[0] = Physics::mm2m * cycl_m->getRmin();
+    BcParameter[1] = Physics::mm2m * cycl_m->getRmax();
 
     // Store inner radius and outer radius of cyclotron field map in the list
     buildupFieldList(BcParameter, ElementBase::CYCLOTRON, cycl_m);
@@ -821,9 +822,9 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity &as) {
 
     double BcParameter[8] = {};
 
-    BcParameter[0] = 0.001 * rmin;
-    BcParameter[1] = 0.001 * rmax;
-    BcParameter[2] = 0.001 * pdis;
+    BcParameter[0] = Physics::mm2m * rmin;
+    BcParameter[1] = Physics::mm2m * rmax;
+    BcParameter[2] = Physics::mm2m * pdis;
     BcParameter[3] = angle;
 
     buildupFieldList(BcParameter, ElementBase::RFCAVITY, elptr);
@@ -873,11 +874,11 @@ void ParallelCyclotronTracker::visitRing(const Ring &ring) {
     *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Total reference momentum   = " << referencePtot * 1000.0
+    *gmsg << "* Total reference momentum   = " << referencePtot * Physics::m2mm
           << " [MCU]" << endl;
-    *gmsg << "* Reference azimuthal momentum  = " << referencePt * 1000.0
+    *gmsg << "* Reference azimuthal momentum  = " << referencePt * Physics::m2mm
           << " [MCU]" << endl;
-    *gmsg << "* Reference radial momentum     = " << referencePr * 1000.0
+    *gmsg << "* Reference radial momentum     = " << referencePr * Physics::m2mm
           << " [MCU]" << endl;
     *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry "
           << endl;
@@ -1502,18 +1503,18 @@ bool ParallelCyclotronTracker::checkGapCross(Vector_t Rold, Vector_t Rnew,
     double sinx = rfcavity->getSinAzimuth();
     double cosx = rfcavity->getCosAzimuth();
     // TODO: Presumably this is still in mm, so for now, change to m -DW
-    double PerpenDistance = 0.001 * rfcavity->getPerpenDistance();
+    double PerpenDistance = Physics::mm2m * rfcavity->getPerpenDistance();
     double distNew = (Rnew[0] * sinx - Rnew[1] * cosx) - PerpenDistance;
     double distOld = (Rold[0] * sinx - Rold[1] * cosx) - PerpenDistance;
     if(distOld > 0.0 && distNew <= 0.0) flag = true;
     // This parameter is used correct cavity phase
-    Dold = 1.0e3 * distOld; // m --> mm
+    Dold = Physics::m2mm * distOld;
     return flag;
 }
 
 bool ParallelCyclotronTracker::RFkick(RFCavity * rfcavity, const double t, const double dt, const int Pindex){
     // For OPAL 2.0: As long as the RFCavity is in mm, we have to change R to mm here -DW
-    double radius = std::sqrt(std::pow(1000.0 * itsBunch_m->R[Pindex](0), 2.0) + std::pow(1000.0 * itsBunch_m->R[Pindex](1), 2.0)
+    double radius = std::sqrt(std::pow(Physics::m2mm * itsBunch_m->R[Pindex](0), 2.0) + std::pow(Physics::m2mm * itsBunch_m->R[Pindex](1), 2.0)
                          - std::pow(rfcavity->getPerpenDistance() , 2.0));
     double rmin = rfcavity->getRmin();
     double rmax = rfcavity->getRmax();
@@ -1961,8 +1962,7 @@ bool ParallelCyclotronTracker::push(double h) {
      */
     IpplTimings::startTimer(IntegrationTimer_m);
 
-    // h [ns] --> h [s]
-    h *= 1.0e-9;
+    h *= Physics::ns2s;
 
     bool flagNeedUpdate = false;
     for(unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
@@ -1988,7 +1988,7 @@ bool ParallelCyclotronTracker::push(double h) {
 
                 // Momentum kick
                 //itsBunch_m->R[i] *= 1000.0; // RFkick uses [itsBunch_m->R] == mm
-                RFkick(ccd.cavity, itsBunch_m->getT() * 1.0e9, dt1, i);
+                RFkick(ccd.cavity, itsBunch_m->getT() * Physics::s2ns, dt1, i);
                 //itsBunch_m->R[i] *= 0.001;
 
                 itsBunch_m->R[i] += dt2 * itsBunch_m->P[i] * c_gamma;
@@ -2035,7 +2035,7 @@ void ParallelCyclotronTracker::borisExternalFields(double h) {
         itsBunch_m->Ef[i] = Vector_t(0.0, 0.0, 0.0);
         itsBunch_m->Bf[i] = Vector_t(0.0, 0.0, 0.0);
 
-        computeExternalFields_m(i, itsBunch_m->getT() * 1e9 /*ns*/,
+        computeExternalFields_m(i, itsBunch_m->getT() * Physics::s2ns /*ns*/,
                                 itsBunch_m->Ef[i], itsBunch_m->Bf[i]);
     }
     IpplTimings::stopTimer(IntegrationTimer_m);
@@ -2258,9 +2258,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
         // NEW OPAL 2.0: Immediately change to m -DW
-        Vector_t const initMeanR = Vector_t(0.001 * referenceR * cosRefTheta_m, // mm --> m
-                                            0.001 * referenceR * sinRefTheta_m, // mm --> m
-                                            0.001 * referenceZ);                // mm --> m
+        Vector_t const initMeanR = Vector_t(Physics::mm2m * referenceR * cosRefTheta_m,
+                                            Physics::mm2m * referenceR * sinRefTheta_m,
+                                            Physics::mm2m * referenceZ);               
 
         localToGlobal(itsBunch_m->R, initialReferenceTheta, initMeanR);
 
@@ -2300,9 +2300,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
             // referenceR and referenceZ are already in mm
             // New OPAL 2.0: Init in m -DW
-            Vector_t const initMeanR = Vector_t(0.001 * referenceR * cosRefTheta_m,
-                                                0.001 * referenceR * sinRefTheta_m,
-                                                0.001 * referenceZ);
+            Vector_t const initMeanR = Vector_t(Physics::mm2m * referenceR * cosRefTheta_m,
+                                                Physics::mm2m * referenceR * sinRefTheta_m,
+                                                Physics::mm2m * referenceZ);
 
             // Do the tranformations
             localToGlobal(itsBunch_m->R, referencePhi, referencePsi, initMeanR);
@@ -2565,7 +2565,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
     }
 
     // --------------------------------- Get some Values ---------------------------------------- //
-    double const temp_t = itsBunch_m->getT() * 1e9; // s -> ns
+    double const temp_t = itsBunch_m->getT() * Physics::s2ns;
     Vector_t meanR;
     Vector_t meanP;
     if (Options::psDumpFrame == Options::BUNCH_MEAN) {
@@ -2613,7 +2613,7 @@ void ParallelCyclotronTracker::bunchDumpStatData(){
 
     //itsBunch_m->R *= Vector_t(0.001); // mm -> m
 
-    FDext_m[0] = extB_m / 10.0; // kgauss --> T
+    FDext_m[0] = extB_m * Physics::kG2T;
     FDext_m[1] = extE_m;        // kV/mm? -DW
 
     // Save the stat file
@@ -2641,7 +2641,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     IpplTimings::startTimer(DumpTimer_m);
 
     // --------------------------------- Get some Values ---------------------------------------- //
-    double const temp_t = itsBunch_m->getT() * 1.0e9; // s -> ns
+    double const temp_t = itsBunch_m->getT() * Physics::s2ns;
 
     Vector_t meanR;
     Vector_t meanP;
@@ -2673,7 +2673,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     // New OPAL 2.0: Init in m (back to mm just for output) -DW
     referenceR = computeRadius(meanR); // includes m --> mm conversion
     referenceTheta = theta / Physics::deg2rad;
-    referenceZ = 1000.0 * meanR(2);
+    referenceZ = Physics::m2mm * meanR(2);
 
     // Momentum in Theta-hat, R-hat, Z-hat coordinates at position meanR:
     referencePtot = betagamma_temp;
@@ -2689,7 +2689,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
     extB_m = Vector_t(0.0, 0.0, 0.0);
 
     (((*DumpSindex)->second).second)->apply(meanR, meanP, temp_t, extE_m, extB_m);
-    FDext_m[0] = extB_m * 0.1; // kgauss --> T
+    FDext_m[0] = extB_m * Physics::kG2T;
     FDext_m[1] = extE_m;
 
     // -------------- If flag psDumpFrame is global, dump bunch in global frame ------------- //
@@ -2713,7 +2713,7 @@ void ParallelCyclotronTracker::bunchDumpPhaseSpaceData() {
             globalToLocal(extE_m, phi, psi);
         }
 
-        FDext_m[0] = extB_m * 0.1; // kgauss --> T
+        FDext_m[0] = extB_m * Physics::kG2T;
         FDext_m[1] = extE_m;
 
         lastDumpedStep_m = itsDataSink->dumpH5(itsBunch_m, // Local and in m
@@ -2821,8 +2821,8 @@ std::tuple<double, double, double> ParallelCyclotronTracker::initializeTracking_
     azimuth_angle_m[2] = 45.0 * Physics::deg2rad;
 
     double harm       = getHarmonicNumber();
-    double dt         = itsBunch_m->getdT() * 1.0e9 * harm; // time step size (s --> ns)
-    double t          = itsBunch_m->getT()  * 1.0e9;        // current time   (s --> ns)
+    double dt         = itsBunch_m->getdT() * Physics::s2ns * harm;
+    double t          = itsBunch_m->getT()  * Physics::s2ns;
 
     double oldReferenceTheta      = referenceTheta * Physics::deg2rad; // init here, reset each step
     setup_m.deltaTheta            = Physics::pi / (setup_m.stepsPerTurn);    // half of the average angle per step
@@ -3219,7 +3219,7 @@ void ParallelCyclotronTracker::gapCrossKick_m(size_t i, double t,
             double oldBetgam = std::sqrt(oldMomentum2);
             double oldGamma = std::sqrt(1.0 + oldMomentum2);
             double oldBeta = oldBetgam / oldGamma;
-            double dt1 = DistOld / (Physics::c * oldBeta * 1.0e-6); // ns
+            double dt1 = DistOld / (Physics::c * oldBeta * Physics::m2mm / Physics::s2ns); // ns, c in [mm/ns]
             double dt2 = dt - dt1;
 
             // retrack particle from the old postion to cavity gap point
@@ -3390,8 +3390,8 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
     // Flag whether a particle is out of field
     bool outOfBound = (((*sindex)->second).second)->apply(i, t, Efield, Bfield);
 
-    Bfield *= 0.10;  // kGauss --> T
-    Efield *= 1.0e6; // kV/mm  --> V/m
+    Bfield *= Physics::kG2T;
+    Efield *= Physics::kV2V / Physics::mm2m;
 
     return outOfBound;
 }
@@ -3449,7 +3449,7 @@ void ParallelCyclotronTracker::saveInjectValues() {
 
     MultiBunchHandler::injection_t& inj = mbHandler_m->getInjectionValues();
 
-    inj.time       = itsBunch_m->getT() * 1.0e9; /*ns*/
+    inj.time       = itsBunch_m->getT() * Physics::s2ns; /*ns*/
     inj.pathlength = itsBunch_m->get_sPos();
     inj.azimuth    = azimuth_m;
     inj.radius     = radius;
@@ -3481,8 +3481,7 @@ void ParallelCyclotronTracker::updateTime(const double& dt) {
     // t is in seconds
     double t = itsBunch_m->getT();
 
-    // dt: ns --> s
-    itsBunch_m->setT(t + dt * 1.0e-9);
+    itsBunch_m->setT(t + dt * Physics::ns2s);
 
     if ( isMultiBunch() ) {
         mbHandler_m->updateTime(dt);
