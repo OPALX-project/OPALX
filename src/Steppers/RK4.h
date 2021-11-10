@@ -58,9 +58,9 @@ private:
     
     void copyFrom(Vector_t& R, Vector_t& P, double* x) const;
     
-    const double c_mmtns = Physics::c * 1.0e-6; // m/s --> mm/ns
-    const double c_mtns = Physics::c * 1.0e-9;  // m/s --> m/ns
-    const double mass_coeff = 1.0e18 * Physics::q_e / Physics::c / Physics::c; // from GeV/c^2 to basic unit: GV*C*s^2/m^2
+    const double mass_coeff = 1.0e9 * Physics::GeV2kg; // from GeV/c^2 to basic unit: GV*C*s^2/m^2, (1.0e9 converts V*C*s^2/m^2 to GV*C*s^2/m^2)
+    const double c_mmtns = Physics::c * Physics::m2mm / Physics::s2ns;
+    const double c_mtns = Physics::c / Physics::s2ns;
 };
 
 #include "RK4.hpp"

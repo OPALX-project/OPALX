@@ -187,8 +187,8 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
     fieldmap_m->getInfo(&msg);
     if (std::abs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
         errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename_m << "';\n"
-                 << frequency_m / Physics::two_pi * 1e-6 << " MHz <> "
-                 << fieldmap_m->getFrequency() / Physics::two_pi * 1e-6 << " MHz; TAKE ON THE LATTER";
+                 << frequency_m / Physics::two_pi * Physics::Hz2MHz << " MHz <> "
+                 << fieldmap_m->getFrequency() / Physics::two_pi * Physics::Hz2MHz << " MHz; TAKE ON THE LATTER";
         std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
         ERRORMSG(errormsg_str << "\n" << endl);
         if (Ippl::myNode() == 0) {
