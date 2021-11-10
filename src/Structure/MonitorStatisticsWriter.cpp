@@ -16,6 +16,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Structure/MonitorStatisticsWriter.h"
+#include "Physics/Physics.h"
 
 #include "Structure/LossDataSink.h"
 #include "Utility/IpplInfo.h"
@@ -102,7 +103,7 @@ void MonitorStatisticsWriter::addRow(const SetStatistics& set) {
     columns_m.addColumnValue("mean_x", set.rmean_m(0));
     columns_m.addColumnValue("mean_y", set.rmean_m(1));
     columns_m.addColumnValue("mean_s", set.rmean_m(2));
-    columns_m.addColumnValue("mean_t", set.tmean_m * 1e9);
+    columns_m.addColumnValue("mean_t", set.tmean_m * Physics::s2ns);
     columns_m.addColumnValue("ref_x", set.RefPartR_m(0));
     columns_m.addColumnValue("ref_y", set.RefPartR_m(1));
     columns_m.addColumnValue("ref_z", set.RefPartR_m(2));

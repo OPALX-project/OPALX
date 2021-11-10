@@ -172,7 +172,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
             if (OpalData::getInstance()->isInOPALCyclMode() &&
                 bunch->PType[i] == ParticleType::HMINUS) {
                 cycl_m->apply(R, P, T_m, extE, extB);
-                double bField = 0.1 * std::sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
+                double bField = Physics::kG2T * std::sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
                 double eField = gamma * beta * Physics::c * bField;
                 pdead_LS = evalLorentzStripping(gamma, eField);
             }
