@@ -143,7 +143,7 @@ void PluginElement::setGeom(const double dist) {
 
 void PluginElement::changeWidth(PartBunchBase<double, 3> *bunch, int i, const double tstep, const double tangle) {
 
-    constexpr double c_mtns = Physics::c * 1.0e-9; // m/s --> m/ns
+    constexpr double c_mtns = Physics::c / Physics::s2ns; // m/s --> m/ns
     double lstep  = euclidean_norm(bunch->P[i]) / Util::getGamma(bunch->P[i]) * c_mtns * tstep; // [m]
     double sWidth = lstep / std::sqrt( 1 + 1/tangle/tangle );
     setGeom(sWidth);
