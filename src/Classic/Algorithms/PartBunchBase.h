@@ -187,9 +187,9 @@ public:
 
     virtual void setZ(int i, double zcoo);
 
-    void get_bounds(Vector_t& rmin, Vector_t& rmax);
+    void get_bounds(Vector_t& rmin, Vector_t& rmax) const;
 
-    void getLocalBounds(Vector_t& rmin, Vector_t& rmax);
+    void getLocalBounds(Vector_t& rmin, Vector_t& rmax) const;
 
     std::pair<Vector_t, double> getBoundingSphere();
 
@@ -315,6 +315,14 @@ public:
     Vector_t get_emit() const;
     Vector_t get_norm_emit() const;
     Vector_t get_halo() const;
+    Vector_t get_68Percentile() const;
+    Vector_t get_95Percentile() const;
+    Vector_t get_99Percentile() const;
+    Vector_t get_99_99Percentile() const;
+    Vector_t get_normalizedEps_68Percentile() const;
+    Vector_t get_normalizedEps_95Percentile() const;
+    Vector_t get_normalizedEps_99Percentile() const;
+    Vector_t get_normalizedEps_99_99Percentile() const;
     virtual Vector_t get_hr() const;
 
     double get_Dx() const;
