@@ -1,8 +1,9 @@
 #include "Fields/FM3DMagnetoStatic.h"
 #include "Fields/Fieldmap.hpp"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
-#include "Physics/Physics.h"
 
 #include <fstream>
 #include <ios>
@@ -61,12 +62,12 @@ FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
             throw GeneralClassicException("FM3DMagnetoStatic::FM3DMagnetoStatic",
                                           "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
-            xbegin_m /= 100.0;
-            xend_m /= 100.0;
-            ybegin_m /= 100.0;
-            yend_m /= 100.0;
-            zbegin_m /= 100.0;
-            zend_m /= 100.0;
+            xbegin_m *= Units::cm2m;
+            xend_m *= Units::cm2m;
+            ybegin_m *= Units::cm2m;
+            yend_m *= Units::cm2m;
+            zbegin_m *= Units::cm2m;
+            zend_m *= Units::cm2m;
 
             hx_m = (xend_m - xbegin_m) / num_gridpx_m;
             hy_m = (yend_m - ybegin_m) / num_gridpy_m;

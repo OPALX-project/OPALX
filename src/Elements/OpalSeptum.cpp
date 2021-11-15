@@ -21,7 +21,7 @@
 #include "BeamlineCore/SeptumRep.h"
 #include "Structure/OpalWake.h"
 #include "Physics/Physics.h"
-
+#include "Physics/Units.h"
 
 OpalSeptum::OpalSeptum():
     OpalElement(SIZE, "SEPTUM",
@@ -68,11 +68,11 @@ void OpalSeptum::update() {
 
     SeptumRep *sept = dynamic_cast<SeptumRep *>(getElement());
 
-    double xstart = Physics::mm2m * Attributes::getReal(itsAttr[XSTART]);
-    double xend   = Physics::mm2m * Attributes::getReal(itsAttr[XEND]);
-    double ystart = Physics::mm2m * Attributes::getReal(itsAttr[YSTART]);
-    double yend   = Physics::mm2m * Attributes::getReal(itsAttr[YEND]);
-    double width  = Physics::mm2m * Attributes::getReal(itsAttr[WIDTH]);
+    double xstart = Units::mm2m * Attributes::getReal(itsAttr[XSTART]);
+    double xend   = Units::mm2m * Attributes::getReal(itsAttr[XEND]);
+    double ystart = Units::mm2m * Attributes::getReal(itsAttr[YSTART]);
+    double yend   = Units::mm2m * Attributes::getReal(itsAttr[YEND]);
+    double width  = Units::mm2m * Attributes::getReal(itsAttr[WIDTH]);
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
 

@@ -31,7 +31,7 @@
 
 #include "AbsBeamline/Ring.h"
 #include "Attributes/Attributes.h"
-#include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 OpalRingDefinition::OpalRingDefinition() :
     OpalElement(SIZE, "RINGDEFINITION",
@@ -86,15 +86,13 @@ OpalRingDefinition::~OpalRingDefinition() {}
 
 void OpalRingDefinition::update() {
     Ring *ring = dynamic_cast<Ring*>(getElement());
-    double degree = Physics::pi/180.;
-    double metres = 1e3;
     ring->setBeamPhiInit(Attributes::getReal(itsAttr[BEAM_PHIINIT]));
     ring->setBeamPRInit(Attributes::getReal(itsAttr[BEAM_PRINIT]));
-    ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT])*metres);
-    ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT])*metres);
+    ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT])*Units::m2mm);
+    ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT])*Units::m2mm);
 
-    ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT])*degree);
-    ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT])*degree);
+    ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT])*Units::deg2rad);
+    ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT])*Units::deg2rad);
     ring->setSymmetry(Attributes::getReal(itsAttr[SYMMETRY]));
     ring->setScale(Attributes::getReal(itsAttr[SCALE]));
 

@@ -21,6 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "OPALconfig.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/Options.h"
 #include "Utility/IpplInfo.h"
 
@@ -41,8 +42,8 @@ RealConstant::RealConstant():
     OpalData *opal = OpalData::getInstance();
     opal->create(new RealConstant("PI",     this, Physics::pi));
     opal->create(new RealConstant("TWOPI",  this, Physics::two_pi));
-    opal->create(new RealConstant("RADDEG", this, Physics::rad2deg));
-    opal->create(new RealConstant("DEGRAD", this, Physics::deg2rad));
+    opal->create(new RealConstant("RADDEG", this, Units::rad2deg));
+    opal->create(new RealConstant("DEGRAD", this, Units::deg2rad));
     opal->create(new RealConstant("E",      this, Physics::e));
 
     opal->create(new RealConstant("MUMASS",    this, Physics::m_mu));

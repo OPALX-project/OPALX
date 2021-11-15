@@ -33,8 +33,9 @@
 #include "OpalParser/OpalParser.h"
 #include "Parser/FileStream.h"
 #include "Parser/StringStream.h"
-#include "Structure/DataSink.h"
+#include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/RegularExpression.h"
@@ -567,8 +568,7 @@ Object *OpalData::find(const std::string &name) {
 }
 
 double OpalData::getP0() const {
-    static const double energy_scale = 1.0e+9;
-    return p->referenceMomentum->getReal() * energy_scale;
+    return p->referenceMomentum->getReal() * Units::GeV2eV;
 }
 
 void OpalData::makeDirty(Object *obj) {
