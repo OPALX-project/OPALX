@@ -16,8 +16,32 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Distribution/Distribution.h"
-#include "Distribution/ClosedOrbitFinder.h"
+
 #include "AbsBeamline/SpecificElementVisitor.h"
+#include "AbstractObjects/BeamSequence.h"
+#include "AbstractObjects/Expressions.h"
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBins.h"
+#include "Algorithms/PartBinsCyc.h"
+#include "Algorithms/PartBunchBase.h"
+#include "BasicActions/Option.h"
+#include "DataSource/DataConnect.h"
+#include "Distribution/ClosedOrbitFinder.h"
+#include "Distribution/LaserProfile.h"
+#include "Elements/OpalBeamline.h"
+#include "Physics/Units.h"
+#include "Structure/H5PartWrapper.h"
+#include "Structure/H5PartWrapperForPC.h"
+#include "Utilities/EarlyLeaveException.h"
+#include "Utilities/Options.h"
+#include "Utilities/Util.h"
+#include "Utility/IpplTimings.h"
+
+#include <gsl/gsl_histogram.h>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_sf_erf.h>
 
 #include <cmath>
 #include <cfloat>
@@ -26,31 +50,6 @@
 #include <string>
 #include <vector>
 #include <numeric>
-
-// IPPL
-#include "DataSource/DataConnect.h"
-#include "Utility/IpplTimings.h"
-
-#include "AbstractObjects/Expressions.h"
-#include "Utilities/Options.h"
-#include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBins.h"
-#include "Algorithms/PartBunchBase.h"
-#include "Algorithms/PartBinsCyc.h"
-#include "BasicActions/Option.h"
-#include "Distribution/LaserProfile.h"
-#include "Elements/OpalBeamline.h"
-#include "AbstractObjects/BeamSequence.h"
-#include "Structure/H5PartWrapper.h"
-#include "Structure/H5PartWrapperForPC.h"
-#include "Utilities/EarlyLeaveException.h"
-#include "Utilities/Util.h"
-
-#include <gsl/gsl_histogram.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_sf_erf.h>
 
 #include <sys/time.h>
 
@@ -450,7 +449,7 @@ void Distribution::doRestartOpalCycl(PartBunchBase<double, 3> *beam,
     INFOMSG("Tracking Step since last bunch injection is " << beam->getSteptoLastInj() << endl);
     INFOMSG(beam->getNumBunch() << " Bunches(bins) exist in this file" << endl);
 
-    double gamma = 1 + meanE / beam->getM() * 1.0e6;
+    double gamma = 1 + meanE / (beam->getM() * Units::eV2MeV);
     double beta = std::sqrt(1.0 - (1.0 / std::pow(gamma, 2)));
 
     INFOMSG("* Gamma = " << gamma << ", Beta = " << beta << endl);
@@ -722,7 +721,7 @@ void Distribution::applyEmissModelNonEquil(double lowEnergyLimit,
 
     // Compute emission momenta.
     double betaGammaExternal
-        = std::sqrt(std::pow(energyExternal / (Physics::m_e * 1.0e9) + 1.0, 2) - 1.0);
+        = std::sqrt(std::pow(energyExternal / (Physics::m_e * Units::GeV2eV) + 1.0, 2) - 1.0);
 
     bgx = betaGammaExternal * sinThetaOut * std::cos(phi);
     bgy = betaGammaExternal * sinThetaOut * std::sin(phi);
@@ -1195,7 +1194,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
 
     *gmsg << "* ----------------------------------------------------" << endl;
     *gmsg << "* About to find closed orbit and matched distribution " << endl;
-    *gmsg << "* I= " << I_m*1E3 << " (mA)  E= " << E_m*1E-6 << " (MeV)" << endl;
+    *gmsg << "* I= " << I_m*Units::A2mA << " (mA)  E= " << E_m*Units::eV2MeV << " (MeV)" << endl;
     *gmsg << "* EX= " << Attributes::getReal(itsAttr[Attrib::Distribution::EX])
           << "  EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
           << "  ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET]) << endl;
@@ -1226,7 +1225,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
     double rguess =
         Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]);
 
-    double denergy = 1000.0 *
+    double denergy = Units::GeV2MeV *
         Attributes::getReal(itsAttr[Attrib::Distribution::DENERGY]);
 
     if ( denergy < 0.0 )
@@ -1242,8 +1241,8 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
         typedef boost::numeric::odeint::runge_kutta4<container_t> rk4_t;
         typedef ClosedOrbitFinder<double,unsigned int, rk4_t> cof_t;
 
-        cof_t cof(massIneV*1E-6, charge, Nint, CyclotronElement, full, Nsectors);
-        cof.findOrbit(accuracy, maxitCOF, E_m*1E-6, denergy, rguess, true);
+        cof_t cof(massIneV*Units::eV2MeV, charge, Nint, CyclotronElement, full, Nsectors);
+        cof.findOrbit(accuracy, maxitCOF, E_m*Units::eV2MeV, denergy, rguess, true);
 
         throw EarlyLeaveException("Distribution::createMatchedGaussDistribution()",
                                   "Do only tune calculation.");
@@ -1253,11 +1252,11 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
 
     std::unique_ptr<SigmaGenerator> siggen = std::unique_ptr<SigmaGenerator>(
         new SigmaGenerator(I_m,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::EX])*1E6,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::EY])*1E6,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::ET])*1E6,
-                           E_m*1E-6,
-                           massIneV*1E-6,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::EX])*Units::m2mm * Units::rad2mrad,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::EY])*Units::m2mm * Units::rad2mrad,
+                           Attributes::getReal(itsAttr[Attrib::Distribution::ET])*Units::m2mm * Units::rad2mrad,
+                           E_m*Units::eV2MeV,
+                           massIneV*Units::eV2MeV,
                            charge,
                            CyclotronElement,
                            Nint,
@@ -1279,7 +1278,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
             *gmsg << "* RGUESS " << rguess << " (m) " << endl;
 
         *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
-              << Emit[2] << ") pi mm mrad for E= " << E_m*1E-6 << " (MeV)" << endl;
+              << Emit[2] << ") pi mm mrad for E= " << E_m * Units::eV2MeV << " (MeV)" << endl;
         *gmsg << "* Sigma-Matrix " << endl;
 
         for (unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
@@ -1299,11 +1298,11 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
         generateMatchedGauss(siggen->getSigma(), numberOfParticles, massIneV);
 
         // update injection radius and radial momentum
-        CyclotronElement->setRinit(siggen->getInjectionRadius() * 1.0e3);
+        CyclotronElement->setRinit(siggen->getInjectionRadius() * Units::m2mm);
         CyclotronElement->setPRinit(siggen->getInjectionMomentum());
     }
     else {
-        *gmsg << "* Not converged for " << E_m*1E-6 << " MeV" << endl;
+        *gmsg << "* Not converged for " << E_m*Units::eV2MeV << " MeV" << endl;
 
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any matched distribution.");
@@ -3990,7 +3989,7 @@ void Distribution::setupEmissionModelNonEquil() {
         + cathodeTemp_m * std::log(1.0e9 - 1.0);
 
     // TODO: get better estimate of pmean
-    pmean_m = Vector_t(0, 0, std::sqrt(std::pow(0.5 * emitEnergyUpperLimit_m / (Physics::m_e * 1e9) + 1.0, 2) - 1.0));
+    pmean_m = Vector_t(0, 0, std::sqrt(std::pow(0.5 * emitEnergyUpperLimit_m / (Physics::m_e * Units::GeV2eV) + 1.0, 2) - 1.0));
 }
 
 void Distribution::setupEnergyBins(double maxTOrZ, double minTOrZ) {

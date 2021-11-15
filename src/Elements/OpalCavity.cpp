@@ -16,13 +16,15 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalCavity.h"
+
 #include "AbstractObjects/Attribute.h"
+#include "Algorithms/AbstractTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RFCavityRep.h"
-#include "Algorithms/AbstractTimeDependence.h"
-#include "Structure/OpalWake.h"
-#include "Structure/BoundaryGeometry.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
+#include "Structure/BoundaryGeometry.h"
+#include "Structure/OpalWake.h"
 
 
 OpalCavity::OpalCavity():
@@ -105,7 +107,7 @@ void OpalCavity::update() {
     double peakError  = Attributes::getReal(itsAttr[DVOLT]);
     double phase  = Attributes::getReal(itsAttr[LAG]);
     double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq   = 1e6 * Physics::two_pi * Attributes::getReal(itsAttr[FREQ]);
+    double freq   = Units::Hz2MHz * Physics::two_pi * Attributes::getReal(itsAttr[FREQ]);
     std::string fmapfn = Attributes::getString(itsAttr[FMAPFN]);
     std::string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
@@ -134,7 +136,7 @@ void OpalCavity::update() {
 
     rfc->setElementLength(length);
 
-    rfc->setAmplitude(1e6 * peak);
+    rfc->setAmplitude(Units::MVpm2Vpm * peak);
     rfc->setFrequency(freq);
     rfc->setPhase(phase);
 

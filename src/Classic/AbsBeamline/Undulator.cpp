@@ -25,6 +25,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include <sys/time.h>
 #include <cmath>
@@ -189,7 +190,7 @@ void Undulator::apply(
     // Get total computational time of the full wave simulation.
     timeval simulationEnd;
     gettimeofday(&simulationEnd, NULL);
-    double deltaTime = (simulationEnd.tv_usec - simulationStart.tv_usec) / 1.0e6;
+    double deltaTime = (simulationEnd.tv_usec - simulationStart.tv_usec) * Units::us2s;
     deltaTime += (simulationEnd.tv_sec - simulationStart.tv_sec);
     msg << "::: Total full wave simulation time [seconds] = " << deltaTime << endl;
 

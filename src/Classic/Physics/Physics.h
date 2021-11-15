@@ -41,12 +41,6 @@ namespace Physics {
     /// The logarithm of $e$ to the base 10
     constexpr double log10e     = 0.43429448190325182765;
 
-    /// The conversion factor from radians to degrees
-    constexpr double rad2deg    = 180.0 / pi;
-
-    /// The conversion factor from degrees to radians
-    constexpr double deg2rad    = 1.0 / rad2deg;
-
     /// The velocity of light in m/s
     constexpr double c          = 299792458.0;
 
@@ -149,51 +143,6 @@ namespace Physics {
     constexpr double e0m        = 1.75882001076e+11;
     // e/mc
     constexpr double e0mc       = e0m / c;
-
-    //Unit conversions//
-
-    // metre to millimetre
-    constexpr double m2mm = 1e+3;
-
-    // millimetre to metre
-    constexpr double mm2m = 1 / m2mm;
-
-    //seconds to nano seconds
-    constexpr double s2ns = 1e+9;
-
-    //nano seconds to seconds
-    constexpr double ns2s = 1 / s2ns;
-
-    //Tesla to kilo Gauss
-    constexpr double T2kG = 1e+1;
-
-    //kilo Gauss to Tesla
-    constexpr double kG2T = 1 / T2kG;
-
-    //kilo volts to volts
-    constexpr double kV2V = 1e+3;
-
-    //volts to kilo volts
-    constexpr double V2kV = 1 / kV2V;
-
-    //GeV to eV
-    constexpr double GeV2eV = 1e+9;
-
-    //eV to GeV
-    constexpr double eV2GeV = 1 / GeV2eV;
-
-    //GeV/c^2 to V*C*s^2/m^2 (ie GeV/c^2 to kg conversion)
-    constexpr double GeV2kg = 1.0e+9 * Physics::q_e / Physics::c / Physics::c;
-    
-    //V*C*s^2/m^2 to GeV/c^2 (ie GeV/c^2 to kg conversion)
-    constexpr double kg2GeV = 1 / GeV2kg;
-
-    //Mhz to Hz
-    constexpr double MHz2Hz = 1e+6;
-
-    //Hz to Mhz
-    constexpr double Hz2MHz = 1 / MHz2Hz;
-
 };
 
 #endif // CLASSIC_Physics_HH

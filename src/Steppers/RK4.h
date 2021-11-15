@@ -20,6 +20,7 @@
 
 #include "Stepper.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 /// 4-th order Runnge-Kutta stepper
 template <typename FieldFunction, typename ... Arguments>
@@ -58,9 +59,9 @@ private:
     
     void copyFrom(Vector_t& R, Vector_t& P, double* x) const;
     
-    const double mass_coeff = 1.0e9 * Physics::GeV2kg; // from GeV/c^2 to basic unit: GV*C*s^2/m^2, (1.0e9 converts V*C*s^2/m^2 to GV*C*s^2/m^2)
-    const double c_mmtns = Physics::c * Physics::m2mm / Physics::s2ns;
-    const double c_mtns = Physics::c / Physics::s2ns;
+    const double mass_coeff = 1.0e9 * Units::GeV2kg; // from GeV/c^2 to basic unit: GV*C*s^2/m^2, (1.0e9 converts V*C*s^2/m^2 to GV*C*s^2/m^2)
+    const double c_mmtns = Physics::c * Units::m2mm / Units::s2ns;
+    const double c_mtns = Physics::c / Units::s2ns;
 };
 
 #include "RK4.hpp"

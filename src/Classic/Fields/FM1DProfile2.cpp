@@ -1,6 +1,7 @@
 #include "Fields/FM1DProfile2.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include <fstream>
 #include <ios>
@@ -61,13 +62,13 @@ FM1DProfile2::FM1DProfile2(std::string aFilename)
             zbegin_exit_m = zbegin_entry_m - 1e-3;
         } else {
             // conversion cm to m
-            zbegin_entry_m /= 100.;
-            zend_entry_m /= 100.;
-            polynomialOrigin_entry_m /= 100.;
-            zbegin_exit_m /= 100.;
-            zend_exit_m /= 100.;
-            polynomialOrigin_exit_m /= 100.;
-            gapHeight_m /= 100.0;
+            zbegin_entry_m *= Units::cm2m;
+            zend_entry_m *= Units::cm2m;
+            polynomialOrigin_entry_m *= Units::cm2m;
+            zbegin_exit_m *= Units::cm2m;
+            zend_exit_m *= Units::cm2m;
+            polynomialOrigin_exit_m *= Units::cm2m;
+            gapHeight_m *= Units::cm2m;
         }
         length_m = zend_exit_m - zbegin_entry_m;
     } else {

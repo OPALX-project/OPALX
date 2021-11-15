@@ -28,6 +28,7 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/StripperRep.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 
 OpalStripper::OpalStripper():
@@ -79,10 +80,10 @@ void OpalStripper::update() {
 
     StripperRep *strp = dynamic_cast<StripperRep *>(getElement());
 
-    double xstart   = Physics::mm2m * Attributes::getReal(itsAttr[XSTART]);
-    double xend     = Physics::mm2m * Attributes::getReal(itsAttr[XEND]);
-    double ystart   = Physics::mm2m * Attributes::getReal(itsAttr[YSTART]);
-    double yend     = Physics::mm2m * Attributes::getReal(itsAttr[YEND]);
+    double xstart   = Units::mm2m * Attributes::getReal(itsAttr[XSTART]);
+    double xend     = Units::mm2m * Attributes::getReal(itsAttr[XEND]);
+    double ystart   = Units::mm2m * Attributes::getReal(itsAttr[YSTART]);
+    double yend     = Units::mm2m * Attributes::getReal(itsAttr[YEND]);
 
     double length   = Attributes::getReal(itsAttr[LENGTH]);
     double opcharge = Attributes::getReal(itsAttr[OPCHARGE]);

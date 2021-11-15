@@ -1,6 +1,7 @@
 #include "Fields/FM1DMagnetoStatic_fast.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/Util.h"
 #include "Utilities/GeneralClassicException.h"
 
@@ -287,10 +288,10 @@ void FM1DMagnetoStatic_fast::computeInterpolationVectors(double onAxisFieldP[],
 void FM1DMagnetoStatic_fast::convertHeaderData() {
 
     // Convert to m.
-    rBegin_m /= 100.0;
-    rEnd_m /= 100.0;
-    zBegin_m /= 100.0;
-    zEnd_m /= 100.0;
+    rBegin_m *= Units::cm2m;
+    rEnd_m *= Units::cm2m;
+    zBegin_m *= Units::cm2m;
+    zEnd_m *= Units::cm2m;
 }
 
 void FM1DMagnetoStatic_fast::normalizeField(double maxBz, std::vector<double> &fourierCoefs) {

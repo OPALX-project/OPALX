@@ -1447,12 +1447,12 @@ double PartBunchBase<T, Dim>::calcMeanPhi() {
     for (int ii = 0; ii < emittedBins; ii++) {
         phi[ii] = calculateAngle(px[ii], py[ii]);
         meanPhi += phi[ii];
-        INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * 180.0 / Physics::pi - 90.0 << "[degree]" << endl);
+        INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * Units::rad2deg - 90.0 << "[degree]" << endl);
     }
 
     meanPhi /= emittedBins;
 
-    INFOMSG("mean phi of all particles " <<  meanPhi * 180.0 / Physics::pi - 90.0 << "[degree]" << endl);
+    INFOMSG("mean phi of all particles " <<  meanPhi * Units::rad2deg - 90.0 << "[degree]" << endl);
 
     return meanPhi;
 }

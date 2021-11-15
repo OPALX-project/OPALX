@@ -28,6 +28,7 @@
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Util.h"
 #include "Utilities/GeneralClassicException.h"
@@ -172,7 +173,7 @@ void BeamStrippingPhysics::doPhysics(PartBunchBase<double, 3>* bunch) {
             if (OpalData::getInstance()->isInOPALCyclMode() &&
                 bunch->PType[i] == ParticleType::HMINUS) {
                 cycl_m->apply(R, P, T_m, extE, extB);
-                double bField = Physics::kG2T * std::sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
+                double bField = Units::kG2T * std::sqrt(extB[0]*extB[0] + extB[1]*extB[1] + extB[2]*extB[2]); //T
                 double eField = gamma * beta * Physics::c * bField;
                 pdead_LS = evalLorentzStripping(gamma, eField);
             }
@@ -201,7 +202,7 @@ void BeamStrippingPhysics::computeCrossSection(double energy) {
 
     const ResidualGas& gas = vac_m->getResidualGas();
 
-    energy *=1E6; //keV
+    energy *=Units::GeV2keV;
     double energyThreshold = 0.0;
     double a1 = 0.0;
     double a2 = 0.0;
@@ -225,7 +226,7 @@ void BeamStrippingPhysics::computeCrossSection(double energy) {
             double csA = 0.0, csB = 0.0, csC = 0.0, csTotal = 0.0;
 
             if (pType_m == ParticleType::HMINUS) {
-                double energyChebyshevFit = energy * 1E3 / (Physics::m_hm / Physics::amu);
+                double energyChebyshevFit = energy * Units::keV2eV / (Physics::m_hm / Physics::amu);
 
                 // Single-electron detachment - Hydrogen Production
                 energyMin = csCoefSingle_Hminus_Chebyshev[0];
@@ -242,7 +243,7 @@ void BeamStrippingPhysics::computeCrossSection(double energy) {
                 csB = computeCrossSectionChebyshev(energyChebyshevFit, energyMin, energyMax);
 
             } else if (pType_m == ParticleType::PROTON) {
-                double energyChebyshevFit = energy * 1E3 / (Physics::m_p / Physics::amu);
+                double energyChebyshevFit = energy * Units::keV2eV / (Physics::m_p / Physics::amu);
 
                 // Single-electron capture - Hydrogen Production
                 energyMin = csCoefSingle_Hplus_Chebyshev[0];
@@ -303,7 +304,7 @@ void BeamStrippingPhysics::computeCrossSection(double energy) {
                     computeCrossSectionTabata(energy, energyThreshold, a7, a8, a9, a10, a11, a12);
 
             } else if (pType_m == ParticleType::H2P) {
-                double energyChebyshevFit = energy * 1E3 / (Physics::m_h2p / Physics::amu);
+                double energyChebyshevFit = energy * Units::keV2eV / (Physics::m_h2p / Physics::amu);
                 // Proton production
                 if (energy <= energyRangeH2plusinH2[0]) {
                     energyThreshold = csCoefProtonProduction_H2plus_Tabata[0];
@@ -354,10 +355,10 @@ void BeamStrippingPhysics::computeCrossSection(double energy) {
             }
             csTotal = csA + csB + csC;
 
-            nCSA_m = csA * 1E-4 * molecularDensity[0];
-            nCSB_m = csB * 1E-4 * molecularDensity[0];
-            nCSC_m = csC * 1E-4 * molecularDensity[0];
-            nCSTotal_m = csTotal * 1E-4 * molecularDensity[0];
+            nCSA_m = csA * Units::cm2m * Units::cm2m * molecularDensity[0];
+            nCSB_m = csB * Units::cm2m * Units::cm2m * molecularDensity[0];
+            nCSC_m = csC * Units::cm2m * Units::cm2m * molecularDensity[0];
+            nCSTotal_m = csTotal * Units::cm2m * Units::cm2m * molecularDensity[0];
             break;
         }
 
@@ -434,9 +435,9 @@ void BeamStrippingPhysics::computeCrossSection(double energy) {
                     csDouble[i] = {0.0};
                 }
                 csTotal[i] = csSingle[i] + csDouble[i];
-                nCSSingle[i] = csSingle[i] * 1E-4 * molecularDensity[i];
-                nCSDouble[i] = csDouble[i] * 1E-4 * molecularDensity[i];
-                nCS[i] = csTotal[i] * 1E-4 * molecularDensity[i];
+                nCSSingle[i] = csSingle[i] * Units::cm2m * Units::cm2m * molecularDensity[i];
+                nCSDouble[i] = csDouble[i] * Units::cm2m * Units::cm2m * molecularDensity[i];
+                nCS[i] = csTotal[i] * Units::cm2m * Units::cm2m * molecularDensity[i];
 
                 nCSSingleSum += nCSSingle[i];
                 nCSDoubleSum += nCSDouble[i];
@@ -465,16 +466,16 @@ double BeamStrippingPhysics::computeCrossSectionNakai(double energy, double ener
     if (energy <= energyThreshold) {
         return 0.0;
     }
-    const double E_R = Physics::E_ryd * 1e6 * Physics::m_h / Physics::m_e; //keV
+    const double E_R = Physics::E_ryd * Units::GeV2keV * Physics::m_h / Physics::m_e;
     const double sigma_0 = 1E-16;
     double sigma = 0.0; //cm2
     double effectiveEnergy = energy - energyThreshold; //keV
-    double f1 = sigma_0 * b_m[i][0] * std::pow((effectiveEnergy/E_R),b_m[i][1]);
+    double f1 = sigma_0 * b_m[i][0] * std::pow((effectiveEnergy / E_R), b_m[i][1]);
     if (b_m[i][2] != 0.0 && b_m[i][3] != 0.0) {
-        sigma = f1 / (1 + std::pow((effectiveEnergy/b_m[i][2]),(b_m[i][1]+b_m[i][3]))
-                + std::pow((effectiveEnergy/b_m[i][4]),(b_m[i][1]+b_m[i][5])));
+        sigma = f1 / (1 + std::pow((effectiveEnergy / b_m[i][2]), (b_m[i][1] + b_m[i][3]))
+                + std::pow((effectiveEnergy / b_m[i][4]), (b_m[i][1] + b_m[i][5])));
     } else {
-        sigma = f1 / (1 + std::pow((effectiveEnergy/b_m[i][4]),(b_m[i][1]+b_m[i][5])));
+        sigma = f1 / (1 + std::pow((effectiveEnergy / b_m[i][4]), (b_m[i][1] + b_m[i][5])));
     }
 
     return sigma;
@@ -496,11 +497,11 @@ double BeamStrippingPhysics::computeCrossSectionTabata(double energy, double ene
     const double sigma_0 = 1E-16;
     double sigma = 0.0; //cm2
     double effectiveEnergy = energy - energyThreshold; //keV
-    double f1 = sigma_0 * a1 * std::pow((effectiveEnergy/(Physics::E_ryd*1e6)),a2);
+    double f1 = sigma_0 * a1 * std::pow((effectiveEnergy / (Physics::E_ryd * Units::GeV2keV)),a2);
     if (a3 != 0.0 && a4 != 0.0) {
-        sigma = f1 / (1 + std::pow((effectiveEnergy/a3),(a2+a4)) + std::pow((effectiveEnergy/a5),(a2+a6)));
+        sigma = f1 / (1 + std::pow((effectiveEnergy / a3), (a2 + a4)) + std::pow((effectiveEnergy / a5), (a2 + a6)));
     } else {
-        sigma = f1 / (1 + std::pow((effectiveEnergy/a5),(a2+a6)));
+        sigma = f1 / (1 + std::pow((effectiveEnergy / a5), (a2 + a6)));
     }
 
     return sigma;
@@ -543,14 +544,15 @@ double BeamStrippingPhysics::computeCrossSectionBohr(double energy, int zTarget,
         return 0.0;
     }
     double sigma = 0.0; //cm2
-    double mass = mass_m * 1e6;
+    constexpr double GeV2keV = Units::GeV2eV * Units::eV2keV;
+    double mass = mass_m * GeV2keV;
     const double a0v0 = Physics::h_bar * Physics::c * Physics::c / Physics::m_e;
-    double v = Physics::c * std::sqrt(1 - std::pow(mass/(energy+mass), 2.0));
+    double v = Physics::c * std::sqrt(1 - std::pow(mass/(energy+mass), 2));
     if (zTarget < 15) {
         double z = (zTarget + zTarget*zTarget);
-        sigma = 1E4 * 4 * Physics::pi * std::pow(a0v0, 2.0) * z / std::pow(v, 2.0);
+        sigma = Units::m2cm * Units::m2cm * 4 * Physics::pi * std::pow(a0v0, 2) * z / std::pow(v, 2);
     } else {
-        sigma = 1E4 * 4 * Physics::pi * Physics::a0 * a0v0 * std::pow(zTarget, 2.0/3.0) / v;
+        sigma = Units::m2cm * Units::m2cm * 4 * Physics::pi * Physics::a0 * a0v0 * std::pow(zTarget, 2.0/3.0) / v;
     }
     return sigma;
 }
@@ -574,8 +576,8 @@ bool BeamStrippingPhysics::evalLorentzStripping(double& gamma, double& eField) {
     double xi = gsl_rng_uniform(r_m);
 
     const double eps0 = 0.75419 * Physics::q_e; // electron binding energy,
-    const double hbar = Physics::h_bar * 1E9 * Physics::q_e; // Js
-    const double me = Physics::m_e * 1E9 * Physics::q_e / (Physics::c*Physics::c);
+    const double hbar = Physics::h_bar * Units::GeV2eV * Physics::q_e; // Js
+    const double me = Physics::m_e * Units::GeV2kg;
     const double p = 0.0126; // polarization factor
     const double s0 = 0.783; // spectroscopic coefficient
     const double a = 2.01407/Physics::a0;
