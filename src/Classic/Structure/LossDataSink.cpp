@@ -268,6 +268,17 @@ void LossDataSink::writeHeaderH5() {
     WRITE_FILEATTRIB_STRING("meanTimeUnit", "s");
     WRITE_FILEATTRIB_STRING("rmsTimeUnit", "s");
 
+    if (Options::computePercentiles) {
+        WRITE_FILEATTRIB_STRING("68-percentileUnit", "m");
+        WRITE_FILEATTRIB_STRING("95-percentileUnit", "m");
+        WRITE_FILEATTRIB_STRING("99-percentileUnit", "m");
+        WRITE_FILEATTRIB_STRING("99_99-percentileUnit", "m");
+        WRITE_FILEATTRIB_STRING("normalizedEps68PercentileUnit", "m rad");
+        WRITE_FILEATTRIB_STRING("normalizedEps95PercentileUnit", "m rad");
+        WRITE_FILEATTRIB_STRING("normalizedEps99PercentileUnit", "m rad");
+        WRITE_FILEATTRIB_STRING("normalizedEps99_99PercentileUnit", "m rad");
+    }
+
     if (collectionType_m == CollectionType::TEMPORAL) {
         WRITE_FILEATTRIB_STRING("type", "temporal");
     } else {
@@ -439,6 +450,23 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     WRITE_STEPATTRIB_FLOAT64("TotalMass", (tmpDouble = engine.getTotalMass(), &tmpDouble), 1);
     WRITE_STEPATTRIB_FLOAT64("meanTime", (tmpDouble = engine.getMeanTime(), &tmpDouble), 1);
     WRITE_STEPATTRIB_FLOAT64("rmsTime", (tmpDouble = engine.getStdTime(), &tmpDouble), 1);
+    if (Options::computePercentiles) {
+        WRITE_STEPATTRIB_FLOAT64("68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64("95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64("99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64("99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3);
+
+        WRITE_STEPATTRIB_FLOAT64("normalizedEps68Percentile",
+                                 (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64("normalizedEps95Percentile",
+                                 (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64("normalizedEps99Percentile",
+                                 (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64("normalizedEps99_99Percentile",
+                                 (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3);
+    }
+
+    WRITE_STEPATTRIB_FLOAT64("maxR", (tmpVector = engine.getMaxR(), &tmpVector[0]), 3);
 
     // Write all data
     std::vector<char> buffer(nLoc * sizeof(h5_float64_t));
