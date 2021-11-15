@@ -22,6 +22,8 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Fields/Fieldmap.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -263,7 +265,7 @@ ElementBase::ElementType TravelingWave::getType() const {
 double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, const double &q, const double &mass) {
     std::vector<double> t, E, t2, E2;
     std::vector<std::pair<double, double> > F;
-    double phi = 0.0, tmp_phi, dphi = 0.5 * Physics::pi / 180.;
+    double phi = 0.0, tmp_phi, dphi = 0.5 * Units::deg2rad;
     double phaseC1 = phaseCore1_m - phase_m;
     double phaseC2 = phaseCore2_m - phase_m;
     double phaseE = phaseExit_m - phase_m;
@@ -348,7 +350,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
             const int prevPrecision = Ippl::Info->precision(8);
             INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
-                    << tmp_phi * Physics::rad2deg << " deg,\n"
+                    << tmp_phi * Units::rad2deg << " deg,\n"
                     << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
             return tmp_phi;
         }
@@ -388,7 +390,7 @@ double TravelingWave::getAutoPhaseEstimate(const double &E0, const double &t0, c
 
     const int prevPrecision = Ippl::Info->precision(8);
     INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
-            << tmp_phi * Physics::rad2deg << " deg,\n"
+            << tmp_phi * Units::rad2deg << " deg,\n"
             << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
 
     return phi;

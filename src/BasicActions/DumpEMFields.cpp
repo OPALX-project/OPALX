@@ -22,7 +22,7 @@
 #include "AbsBeamline/Component.h"
 #include "Attributes/Attributes.h"
 #include "Fields/Interpolation/NDGrid.h"
-#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
@@ -267,12 +267,12 @@ void DumpEMFields::writeFieldLine(Component* field,
     Vector_t Bout = B;
     Vector_t Eout = E;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        // pointIn is r, phi, z 
+        // pointIn is r, phi, z
         Bout[0] =  B[0]*std::cos(pointIn[1])+B[1]*std::sin(pointIn[1]);
         Bout[1] = -B[0]*std::sin(pointIn[1])+B[1]*std::cos(pointIn[1]);
         Eout[0] =  E[0]*std::cos(pointIn[1])+E[1]*std::sin(pointIn[1]);
         Eout[1] = -E[0]*std::sin(pointIn[1])+E[1]*std::cos(pointIn[1]);
-        fout << pointIn[0] << " " << pointIn[1]*Physics::rad2deg << " " << pointIn[2] << " " << time << " ";
+        fout << pointIn[0] << " " << pointIn[1]*Units::rad2deg << " " << pointIn[2] << " " << time << " ";
     } else {
         fout << pointIn[0] << " " << pointIn[1] << " " << pointIn[2] << " " << time << " ";
     }

@@ -2,6 +2,7 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include <fstream>
 #include <ios>
@@ -52,7 +53,7 @@ void Astra1DElectroStatic_fast::readMap() {
         double maxEz = readFieldData(file);
         file.close();
 
-        normalizeFieldData(maxEz * 1e-6);
+        normalizeFieldData(maxEz * Units::Vpm2MVpm);
 
         std::vector<double> zvals = getEvenlyDistributedSamplingPoints();
         std::vector<double> evenFieldSampling = interpolateFieldData(zvals);

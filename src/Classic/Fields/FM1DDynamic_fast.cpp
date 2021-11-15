@@ -1,6 +1,7 @@
 #include "Fields/FM1DDynamic_fast.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
@@ -309,13 +310,13 @@ void FM1DDynamic_fast::computeInterpolationVectors(double onAxisFieldP[],
 void FM1DDynamic_fast::convertHeaderData() {
 
     // Convert to angular frequency in Hz.
-    frequency_m *= Physics::two_pi * Physics::MHz2Hz;
+    frequency_m *= Physics::two_pi * Units::MHz2Hz;
 
     // Convert to m.
-    rBegin_m /= 100.0;
-    rEnd_m /= 100.0;
-    zBegin_m /= 100.0;
-    zEnd_m /= 100.0;
+    rBegin_m *= Units::cm2m;
+    rEnd_m *= Units::cm2m;
+    zBegin_m *= Units::cm2m;
+    zEnd_m *= Units::cm2m;
 
     twoPiOverLambdaSq_m = pow(frequency_m / Physics::c, 2.0);
 }
@@ -324,11 +325,11 @@ void FM1DDynamic_fast::normalizeField(double maxEz,
                                       std::vector<double> &fourierCoefs) {
 
     for (unsigned int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
-        onAxisField_m[dataIndex] *= 1.0e6 / maxEz;
+        onAxisField_m[dataIndex] /= (maxEz * Units::Vpm2MVpm);
 
     for (std::vector<double>::iterator fourierIterator = fourierCoefs.begin();
         fourierIterator < fourierCoefs.end(); ++ fourierIterator)
-        *fourierIterator *= 1.0e6 / maxEz;
+        *fourierIterator/= (maxEz * Units::Vpm2MVpm);
 
 }
 

@@ -28,6 +28,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
 
 extern Inform *gmsg;
@@ -179,7 +180,7 @@ bool Stripper::doFinaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpd
     if (!stop_m){
         // change charge and mass of PartData when the reference particle hits the stripper.
         if (bunch->getPOrigin() == ParticleOrigin::STRIPPED) {
-            bunch->resetM(opmass_m * Physics::GeV2eV); // GeV -> eV
+            bunch->resetM(opmass_m * Units::GeV2eV);
             bunch->resetQ(opcharge_m);       // elementary charge
         }
     }
