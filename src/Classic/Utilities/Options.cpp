@@ -107,4 +107,6 @@ namespace Options {
     double haloShift = 0.0;
 
     unsigned int delPartFreq = 1;
+
+    bool computePercentiles = false;
 }
