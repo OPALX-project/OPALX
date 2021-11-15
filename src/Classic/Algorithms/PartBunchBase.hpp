@@ -842,7 +842,7 @@ void PartBunchBase<T, Dim>::setZ(int /*i*/, double /*zcoo*/) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::get_bounds(Vector_t& rmin, Vector_t& rmax) {
+void PartBunchBase<T, Dim>::get_bounds(Vector_t& rmin, Vector_t& rmax) const {
 
     this->getLocalBounds(rmin, rmax);
 
@@ -863,7 +863,7 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t& rmin, Vector_t& rmax) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::getLocalBounds(Vector_t& rmin, Vector_t& rmax) {
+void PartBunchBase<T, Dim>::getLocalBounds(Vector_t& rmin, Vector_t& rmax) const {
     const size_t localNum = getLocalNum();
     if (localNum == 0) {
         double maxValue = 1e8;
@@ -1113,6 +1113,45 @@ Vector_t PartBunchBase<T, Dim>::get_halo() const {
     return momentsComputer_m.getHalo();
 }
 
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_68Percentile() const {
+    return momentsComputer_m.get68Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_95Percentile() const {
+    return momentsComputer_m.get95Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_99Percentile() const {
+    return momentsComputer_m.get99Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_99_99Percentile() const {
+    return momentsComputer_m.get99_99Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_normalizedEps_68Percentile() const {
+    return momentsComputer_m.getNormalizedEmittance68Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_normalizedEps_95Percentile() const {
+    return momentsComputer_m.getNormalizedEmittance95Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_normalizedEps_99Percentile() const {
+    return momentsComputer_m.getNormalizedEmittance99Percentile();
+}
+
+template <class T, unsigned Dim>
+Vector_t PartBunchBase<T, Dim>::get_normalizedEps_99_99Percentile() const {
+    return momentsComputer_m.getNormalizedEmittance99_99Percentile();
+}
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_Dx() const {

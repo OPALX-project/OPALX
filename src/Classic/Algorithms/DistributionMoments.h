@@ -45,6 +45,17 @@ public:
     Vector_t getGeometricEmittance() const;
     Vector_t getStandardDeviationRP() const;
     Vector_t getHalo() const;
+    Vector_t getMaxR() const;
+
+    Vector_t get68Percentile() const;
+    Vector_t get95Percentile() const;
+    Vector_t get99Percentile() const;
+    Vector_t get99_99Percentile() const;
+    Vector_t getNormalizedEmittance68Percentile() const;
+    Vector_t getNormalizedEmittance95Percentile() const;
+    Vector_t getNormalizedEmittance99Percentile() const;
+    Vector_t getNormalizedEmittance99_99Percentile() const;
+
     double getMeanTime() const;
     double getStdTime() const;
     double getMeanGamma() const;
@@ -57,12 +68,22 @@ public:
     double getTotalCharge() const;
     double getTotalMass() const;
     double getTotalNumParticles() const;
+
 private:
     bool isParticleExcluded(const OpalParticle &) const;
     template<class InputIt>
     void computeMeans(const InputIt &, const InputIt &);
     template<class InputIt>
     void computeStatistics(const InputIt &, const InputIt &);
+    template<class InputIt>
+    void computePercentiles(const InputIt &, const InputIt &);
+    using iterator_t = std::vector<Vektor<double, 2>>::const_iterator;
+    std::pair<double, iterator_t> determinePercentilesDetail(const iterator_t& begin, const iterator_t& end,
+                                                             const std::vector<int>& globalAccumulatedHistogram,
+                                                             const std::vector<int>& localAccumulatedHistogram,
+                                                             unsigned int dimension,
+                                                             int numRequiredParticles) const;
+    double computeNormalizedEmittance(const iterator_t& begin, const iterator_t& end) const;
     void fillMembers(std::vector<double> const&);
     void reset();
 
@@ -74,6 +95,16 @@ private:
     Vector_t normalizedEps_m;
     Vector_t geometricEps_m;
     Vector_t halo_m;
+    Vector_t maxR_m;
+    Vector_t minR_m;
+    Vector_t sixtyEightPercentile_m;
+    Vector_t normalizedEps68Percentile_m;
+    Vector_t ninetyFivePercentile_m;
+    Vector_t normalizedEps95Percentile_m;
+    Vector_t ninetyNinePercentile_m;
+    Vector_t normalizedEps99Percentile_m;
+    Vector_t ninetyNine_NinetyNinePercentile_m;
+    Vector_t normalizedEps99_99Percentile_m;
 
     double meanTime_m;
     double stdTime_m;
@@ -86,6 +117,11 @@ private:
     double totalCharge_m;
     double totalMass_m;
     unsigned int totalNumParticles_m;
+
+    static const double percentileOneSigmaNormalDist_m;
+    static const double percentileTwoSigmasNormalDist_m;
+    static const double percentileThreeSigmasNormalDist_m;
+    static const double percentileFourSigmasNormalDist_m;
 };
 
 inline
@@ -206,6 +242,64 @@ inline
 double DistributionMoments::getTotalNumParticles() const
 {
     return totalNumParticles_m;
+}
+
+inline
+Vector_t DistributionMoments::get68Percentile() const
+{
+    return sixtyEightPercentile_m;
+}
+
+inline
+Vector_t DistributionMoments::getNormalizedEmittance68Percentile() const
+{
+    return normalizedEps68Percentile_m;
+}
+
+inline
+Vector_t DistributionMoments::get95Percentile() const
+{
+    return ninetyFivePercentile_m;
+}
+
+inline
+Vector_t DistributionMoments::getNormalizedEmittance95Percentile() const
+{
+    return normalizedEps95Percentile_m;
+}
+
+inline
+Vector_t DistributionMoments::get99Percentile() const
+{
+    return ninetyNinePercentile_m;
+}
+
+inline
+Vector_t DistributionMoments::getNormalizedEmittance99Percentile() const
+{
+    return normalizedEps99Percentile_m;
+}
+
+inline
+Vector_t DistributionMoments::get99_99Percentile() const
+{
+    return ninetyNine_NinetyNinePercentile_m;
+}
+
+inline
+Vector_t DistributionMoments::getNormalizedEmittance99_99Percentile() const
+{
+    return normalizedEps99_99Percentile_m;
+}
+
+inline
+Vector_t DistributionMoments::getMaxR() const
+{
+    Vector_t maxDistance;
+    for (unsigned int i = 0; i < 3; ++ i) {
+        maxDistance[i] = std::max(std::abs(maxR_m[i]), std::abs(minR_m[i]));
+    }
+    return maxDistance;
 }
 
 #endif

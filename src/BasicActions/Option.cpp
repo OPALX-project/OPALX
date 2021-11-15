@@ -88,6 +88,7 @@ namespace {
         DELPARTFREQ,
         MINBINEMITTED,
         MINSTEPFORREBIN,
+        COMPUTEPERCENTILES,
         SIZE
     };
 }
@@ -277,6 +278,13 @@ Option::Option():
                            ("DELPARTFREQ", "The frequency to delete particles, "
                             "i.e. delete when step%delPartFreq == 0. Default: 1", delPartFreq);
 
+    itsAttr[COMPUTEPERCENTILES] = Attributes::makeBool
+                                  ("COMPUTEPERCENTILES", "Flag to control whether the 68.27 "
+                                   "(1 sigma for normal distribution), the 95.45 (2 sigmas), "
+                                   "the 99.73 (3 sigmas) and the 99.994 (4 sigmas) percentiles "
+                                   "for the beam size and the normalized emittance should "
+                                   "be computed. Default: false", computePercentiles);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -328,6 +336,7 @@ Option::Option(const std::string& name, Option* parent):
     Attributes::setBool(itsAttr[MEMORYDUMP], memoryDump);
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
+    Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
 }
 
 
@@ -358,7 +367,6 @@ void Option::execute() {
     version        = Attributes::getReal(itsAttr[VERSION]);
     seed           = Attributes::getReal(itsAttr[SEED]);
     writeBendTrajectories = Attributes::getBool(itsAttr[LOGBENDTRAJECTORY]);
-
 #ifdef ENABLE_AMR
     amr = Attributes::getBool(itsAttr[AMR]);
     amrYtDumpFreq = int(Attributes::getReal(itsAttr[AMR_YT_DUMP_FREQ]));
@@ -374,6 +382,7 @@ void Option::execute() {
     memoryDump     = Attributes::getBool(itsAttr[MEMORYDUMP]);
     haloShift      = Attributes::getReal(itsAttr[HALOSHIFT]);
     delPartFreq    = Attributes::getReal(itsAttr[DELPARTFREQ]);
+    computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
 
     if ( memoryDump ) {
         IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
