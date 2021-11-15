@@ -232,7 +232,7 @@ TEST(DumpEMFieldsTest, writeFieldsCylTest) {
 
     clear_files({fnameCyl});
     DumpEMFields dump;
-    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90.*Physics::deg2rad, 45.*Physics::deg2rad, 16,   0.2, 0.3, 2.,   1., 1., 2., fnameCyl);
+    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90.*Units::deg2rad, 45.*Units::deg2rad, 16,   0.2, 0.3, 2.,   1., 1., 2., fnameCyl);
     dump.execute();
     // depending on execution order, this might write cartesian tests as well... never mind
     MockComponent comp;

@@ -17,11 +17,12 @@
 //
 #include "Elements/OpalBeamline.h"
 
+#include "AbsBeamline/Bend2D.h"
+#include "AbstractObjects/OpalData.h"
+#include "Physics/Units.h"
+#include "Structure/MeshGenerator.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-#include "AbstractObjects/OpalData.h"
-#include "AbsBeamline/Bend2D.h"
-#include "Structure/MeshGenerator.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -390,7 +391,7 @@ void OpalBeamline::save3DLattice() {
 
             unsigned int size = designPath.size();
             unsigned int minNumSteps = std::max(20.0,
-                                                std::abs(bendElement->getBendAngle() / Physics::pi * 180));
+                                                std::abs(bendElement->getBendAngle() * Units::rad2deg));
             unsigned int frequency = std::floor((double)size / minNumSteps);
 
             pos << std::setw(30) << std::left << std::string("\"ENTRY EDGE: ") + element->getName() + std::string("\"")
@@ -542,7 +543,7 @@ void OpalBeamline::save3DInput() {
         Vector_t origin = cst.getOrigin();
         Vector_t orient = Util::getTaitBryantAngles(cst.getRotation().conjugate(), elementName);
         for (unsigned int d = 0; d < 3; ++ d)
-            orient(d) *= Physics::rad2deg;
+            orient(d) *= Units::rad2deg;
 
         std::string x = (std::abs(origin(0)) > 1e-10? "X = " + round2string(origin(0), 10) + ", ": "");
         std::string y = (std::abs(origin(1)) > 1e-10? "Y = " + round2string(origin(1), 10) + ", ": "");
@@ -568,11 +569,11 @@ void OpalBeamline::save3DInput() {
             double E2 = dipole->getExitAngle();
 
             const boost::regex angleR("(" + elementName + "\\s*:[^\\n]*ANGLE\\s*=)[^,;]*(.)");
-            const std::string angleF("\\1 " + round2string(angle * 180 / Physics::pi, 6) + " / 180 * PI\\2");
+            const std::string angleF("\\1 " + round2string(angle * Units::rad2deg, 6) + " / 180 * PI\\2");
             const boost::regex E1R("(" + elementName + "\\s*:[^\\n]*E1\\s*=)[^,;]*(.)");
-            const std::string E1F("\\1 " + round2string(E1 * 180 / Physics::pi, 6) + " / 180 * PI\\2");
+            const std::string E1F("\\1 " + round2string(E1 * Units::rad2deg, 6) + " / 180 * PI\\2");
             const boost::regex E2R("(" + elementName + "\\s*:[^\\n]*E2\\s*=)[^,;]*(.)");
-            const std::string E2F("\\1 " + round2string(E2 * 180 / Physics::pi, 6) + " / 180 * PI\\2");
+            const std::string E2F("\\1 " + round2string(E2 * Units::rad2deg, 6) + " / 180 * PI\\2");
             const boost::regex noRotation("(" + elementName + "\\s*:[^\\n]*),\\s*ROTATION\\s*=[^,;]*(.)");
             const std::string noRotationFormat("\\1\\2  ");
 
@@ -600,7 +601,7 @@ void OpalBeamline::activateElements() {
         if (element->getType() == ElementBase::SBEND ||
             element->getType() == ElementBase::RBEND) {
             Bend2D * bendElement = static_cast<Bend2D*>(element.get());
-            designEnergy = bendElement->getDesignEnergy() * 1e-6;
+            designEnergy = bendElement->getDesignEnergy() * Units::eV2MeV;
         }
         (*it).setOn(designEnergy);
         // element->goOnline(designEnergy);

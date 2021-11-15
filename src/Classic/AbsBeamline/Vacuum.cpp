@@ -25,6 +25,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Solvers/BeamStrippingPhysics.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Utilities/GeneralClassicException.h"
@@ -254,7 +255,7 @@ void Vacuum::initialise(PartBunchBase<double, 3>* bunch) {
 
 void Vacuum::updateParticleAttributes() {
     for (size_t i = 0; i < RefPartBunch_m->getLocalNum(); ++i) {
-        RefPartBunch_m->M[i] = RefPartBunch_m->getM() * 1E-9;
+        RefPartBunch_m->M[i] = RefPartBunch_m->getM() * Units::eV2GeV;
         RefPartBunch_m->Q[i] = RefPartBunch_m->getQ() * Physics::q_e;
     }
 }
@@ -319,7 +320,7 @@ double Vacuum::checkPressure(const Vector_t& R) {
         else if ((x == 0) && (y < 0)) tet = 1.5 * Physics::pi;
 
         // the actual angle of particle
-        tet = tet * Physics::rad2deg;
+        tet = tet * Units::rad2deg;
 
         // the corresponding angle on the field map
         // Note: this does not work if the start point of field map does not equal zero.
@@ -409,8 +410,8 @@ void Vacuum::getPressureFromFile() {
     CHECK_VAC_FSCANF_EOF(std::fscanf(f, "%d", &PField_m.nrad_m));
     *gmsg << "* --- Grid points along radius (nrad_m): " << PField_m.nrad_m << endl;
     *gmsg << "* --- Maximum radial position: " << PP_m.rmin_m + (PField_m.nrad_m-1)*PP_m.delr_m << " [mm]" << endl;
-    PP_m.rmin_m *= 0.001;  // mm --> m
-    PP_m.delr_m *= 0.001;  // mm --> m
+    PP_m.rmin_m *= Units::mm2m;
+    PP_m.delr_m *= Units::mm2m;
 
     PField_m.ntetS_m = PField_m.ntet_m + 1;
     *gmsg << "* --- Adding a guard cell along azimuth" << endl;

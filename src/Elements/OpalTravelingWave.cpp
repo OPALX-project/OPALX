@@ -21,6 +21,7 @@
 #include "BeamlineCore/TravelingWaveRep.h"
 #include "Structure/OpalWake.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 OpalTravelingWave::OpalTravelingWave():
     OpalElement(SIZE, "TRAVELINGWAVE",
@@ -83,7 +84,7 @@ void OpalTravelingWave::update() {
     double vPeakError  = Attributes::getReal(itsAttr[DVOLT]);
     double phase  = Attributes::getReal(itsAttr[LAG]);
     double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq   = (1.0e6 * Physics::two_pi) * Attributes::getReal(itsAttr[FREQ]);
+    double freq   = Physics::two_pi * Attributes::getReal(itsAttr[FREQ]) * Units::MHz2Hz;
     std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
     bool apVeto = Attributes::getBool(itsAttr[APVETO]);
@@ -92,7 +93,7 @@ void OpalTravelingWave::update() {
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
     rfc->setElementLength(length);
-    rfc->setAmplitude(1.0e6 * vPeak);
+    rfc->setAmplitude(Units::MVpm2Vpm * vPeak);
     rfc->setFrequency(freq);
     rfc->setPhase(phase);
 

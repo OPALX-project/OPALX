@@ -30,6 +30,7 @@
 #include "Physics/Material.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
 #include "Utilities/Options.h"
 #include "Utilities/GeneralClassicException.h"
@@ -80,6 +81,11 @@ namespace {
     private:
         FlexibleCollimator* col_m;
     };
+
+    constexpr long double operator"" _eV(long double value) { return value * 1e-3; }
+    constexpr long double operator"" _keV(long double value) { return value; }
+    constexpr long double operator"" _MeV(long double value) { return value * 1e3; }
+    constexpr long double operator"" _GeV(long double value) { return value * 1e6; }
 }
 
 ScatteringPhysics::ScatteringPhysics(const std::string& name,
@@ -314,24 +320,23 @@ bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
                                           bool includeFluctuations) const {
 
     ParticleType pType = bunch->getPType();
-    constexpr double m2cm = 1e2;
-    constexpr double eV2keV = 1e-3;
-    constexpr double GeV2keV = 1e6;
-    const double mass_keV = mass_m * eV2keV;
-    constexpr double massElectron_keV = Physics::m_e * GeV2keV;
 
-    constexpr double K = 4.0 * Physics::pi * Physics::Avo * Physics::r_e * m2cm * Physics::r_e * m2cm * massElectron_keV;
+    const double mass_keV = mass_m * Units::eV2keV;
+    constexpr double massElectron_keV = Physics::m_e * Units::GeV2keV;
+
+    constexpr double K = (4.0 * Physics::pi * Physics::Avo * Physics::r_e
+                          * Units::m2cm * Physics::r_e * Units::m2cm * massElectron_keV);
 
     double gamma = Util::getGamma(P);
     const double gammaSqr = std::pow(gamma, 2);
     const double betaSqr = 1.0 - 1.0 / gammaSqr;
     double beta = std::sqrt(betaSqr);
-    double Ekin = (gamma - 1) * mass_keV;
+    double Ekin_keV = (gamma - 1) * mass_keV;
     double dEdx = 0.0;
     double epsilon = 0.0;
 
     const double deltas = deltat * beta * Physics::c;
-    const double deltasrho = deltas * m2cm * rho_m;
+    const double deltasrho = deltas * Units::m2cm * rho_m;
 
     const double massRatio = massElectron_keV / mass_keV;
     double Tmax = (2.0 * massElectron_keV * betaSqr * gammaSqr /
@@ -339,17 +344,17 @@ bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
 
     if (pType != ParticleType::ALPHA) {
 
-        if (Ekin >= 600 && Ekin < 1e7) {
+        if (Ekin_keV >= 0.6_MeV && Ekin_keV < 10.0_GeV) {
             dEdx = (-K * std::pow(charge_m, 2) * Z_m / (A_m * betaSqr) *
-                    (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * eV2keV, 2)) - betaSqr));
-        } else if (pType == ParticleType::PROTON && Ekin < 600) {
+                    (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * Units::eV2keV, 2)) - betaSqr));
+        } else if (pType == ParticleType::PROTON && Ekin_keV < 0.6_MeV) {
             constexpr double massProton_amu = Physics::m_p / Physics::amu;
-            const double Ts = Ekin / massProton_amu;
-            if (Ekin > 10) {
+            const double Ts = Ekin_keV / massProton_amu;
+            if (Ekin_keV > 10.0_keV) {
                 const double epsilon_low = A2_c * std::pow(Ts, 0.45);
                 const double epsilon_high = (A3_c / Ts) * std::log(1 + (A4_c / Ts) + (A5_c * Ts));
                 epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
-            } else if (Ekin > 1) {
+            } else if (Ekin_keV > 1.0_keV) {
                 epsilon = A1_c * std::pow(Ts, 0.5);
             }
             dEdx = -epsilon / (1e18 * (A_m / Physics::Avo));
@@ -358,12 +363,12 @@ bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
                               "for energy loss calculation." << endl);
         }
     } else {
-        if (Ekin > 10000 && Ekin < 1e6) {
+        if (Ekin_keV > 10.0_MeV && Ekin_keV < 1.0_GeV) {
             dEdx = (-K * std::pow(charge_m, 2) * Z_m / (A_m * betaSqr) *
-                    (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * eV2keV, 2)) - betaSqr));
-        } else if (Ekin > 1 && Ekin <= 10000) {
-            const double T = Ekin * 1e-3; //MeV
-            const double epsilon_low = B1_c * std::pow(1000*T, B2_c);
+                    (0.5 * std::log(2 * massElectron_keV * betaSqr * gammaSqr * Tmax / std::pow(I_m * Units::eV2keV, 2)) - betaSqr));
+        } else if (Ekin_keV > 1.0_keV && Ekin_keV <= 10.0_MeV) {
+            const double T = Ekin_keV * Units::keV2MeV;
+            const double epsilon_low = B1_c * std::pow(T * Units::MeV2keV, B2_c);
             const double epsilon_high = (B3_c / T) * std::log(1 + (B4_c / T) + (B5_c * T));
             epsilon = (epsilon_low * epsilon_high) / (epsilon_low + epsilon_high);
             dEdx = -epsilon / (1e18 * (A_m / Physics::Avo));
@@ -373,18 +378,18 @@ bool ScatteringPhysics::computeEnergyLoss(PartBunchBase<double, 3>* bunch,
         }
     }
 
-    Ekin += deltasrho * dEdx;
+    Ekin_keV += deltasrho * dEdx;
 
     if (includeFluctuations) {
-        double sigma_E = std::sqrt(K * massElectron_keV * rho_m * (Z_m / A_m) * deltas * m2cm);
-        Ekin += gsl_ran_gaussian(rGen_m, sigma_E);
+        double sigma_E = std::sqrt(K * massElectron_keV * rho_m * (Z_m / A_m) * deltas * Units::m2cm);
+        Ekin_keV += gsl_ran_gaussian(rGen_m, sigma_E);
     }
 
-    gamma = Ekin / mass_keV + 1.0;
+    gamma = Ekin_keV / mass_keV + 1.0;
     beta = std::sqrt(1.0 - 1.0 / std::pow(gamma, 2));
     P = gamma * beta * P / euclidean_norm(P);
 
-    bool stopped = (Ekin < lowEnergyThr_m * 1e3 || dEdx > 0);
+    bool stopped = (Ekin_keV < lowEnergyThr_m * Units::MeV2keV || dEdx > 0);
     return stopped;
 }
 
@@ -440,8 +445,7 @@ void  ScatteringPhysics::computeCoulombScattering(Vector_t& R,
 
     constexpr double sqrtThreeInv = 0.57735026918962576451; // sqrt(1.0 / 3.0)
     const double normP = euclidean_norm(P);
-    const double gammaSqr = std::pow(normP, 2) + 1.0;
-    const double beta = std::sqrt(1.0 - 1.0 / gammaSqr);
+    const double beta = euclidean_norm(Util::getBeta(P));
     const double deltas = dt * beta * Physics::c;
     const double theta0 = (13.6e6 / (beta * normP * mass_m) *
                            charge_m * std::sqrt(deltas / X0_m) *

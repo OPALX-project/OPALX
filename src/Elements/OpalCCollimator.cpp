@@ -20,7 +20,7 @@
 #include "BeamlineCore/CCollimatorRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 #include "Physics/Physics.h"
-
+#include "Physics/Units.h"
 
 OpalCCollimator::OpalCCollimator():
     OpalElement(SIZE, "CCOLLIMATOR",
@@ -71,13 +71,13 @@ void OpalCCollimator::update() {
     CCollimatorRep* coll =
         dynamic_cast<CCollimatorRep*>(getElement());
 
-    double xstart = Physics::mm2m * Attributes::getReal(itsAttr[XSTART]);
-    double xend   = Physics::mm2m * Attributes::getReal(itsAttr[XEND]);
-    double ystart = Physics::mm2m * Attributes::getReal(itsAttr[YSTART]);
-    double yend   = Physics::mm2m * Attributes::getReal(itsAttr[YEND]);
-    double zstart = Physics::mm2m * Attributes::getReal(itsAttr[ZSTART]);
-    double zend   = Physics::mm2m * Attributes::getReal(itsAttr[ZEND]);
-    double width  = Physics::mm2m * Attributes::getReal(itsAttr[WIDTH]);
+    double xstart = Units::mm2m * Attributes::getReal(itsAttr[XSTART]);
+    double xend   = Units::mm2m * Attributes::getReal(itsAttr[XEND]);
+    double ystart = Units::mm2m * Attributes::getReal(itsAttr[YSTART]);
+    double yend   = Units::mm2m * Attributes::getReal(itsAttr[YEND]);
+    double zstart = Units::mm2m * Attributes::getReal(itsAttr[ZSTART]);
+    double zend   = Units::mm2m * Attributes::getReal(itsAttr[ZEND]);
+    double width  = Units::mm2m * Attributes::getReal(itsAttr[WIDTH]);
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
 
