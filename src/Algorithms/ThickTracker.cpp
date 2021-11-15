@@ -583,7 +583,7 @@ void ThickTracker::dump_m() {
                                      externalE,
                                      externalB);
         FDext[0] = referenceToLabCSTrafo_m.rotateFrom(externalB);
-        FDext[1] = referenceToLabCSTrafo_m.rotateFrom(externalE * 1e-6);
+        FDext[1] = referenceToLabCSTrafo_m.rotateFrom(externalE * Units::Vpm2MVpm);
     }
 
 

@@ -29,6 +29,7 @@
 #include "Particle/AbstractParticle.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
+#include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utility/IpplTimings.h"
 
@@ -242,7 +243,7 @@ public:
                                 bunch_m->P[index_m],
                                 bunch_m->getT(),
                                 bunch_m->Q[index_m],
-                                bunch_m->getM() * 1e-6);
+                                bunch_m->getM() * Units::eV2MeV);
         }
 
         ConstIterator operator++()

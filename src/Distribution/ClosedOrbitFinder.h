@@ -40,6 +40,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include "AbstractObjects/OpalData.h"
 
@@ -268,7 +269,7 @@ ClosedOrbitFinder<Value_type,
     , nzcross_m(0)
     , E0_m(E0)
     , q_m(q)
-    , wo_m(cycl->getRfFrequ(0)*1E6/cycl->getCyclHarm()*2.0*Physics::pi)
+    , wo_m(cycl->getRfFrequ(0)*Units::MHz2Hz/cycl->getCyclHarm()*2.0*Physics::pi)
     , N_m(N)
     , dtheta_m(Physics::two_pi/value_type(N))
     , ravg_m(0)

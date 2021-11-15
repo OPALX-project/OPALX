@@ -4,12 +4,13 @@
 
 #include "Structure/H5PartWrapperForPC.h"
 
-#include "OPALconfig.h"
-#include "Algorithms/PartBunchBase.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
+#include "OPALconfig.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-#include "Physics/Physics.h"
 
 #include <sstream>
 #include <set>
@@ -140,7 +141,7 @@ void H5PartWrapperForPC::readStepHeader(PartBunchBase<double, 3>* bunch) {
         bunch->setLocalTrackStep((long long) 0 );
     }
 
-    double mass = bunch->getM() * 1e-6;
+    double mass = bunch->getM() * Units::eV2MeV;
     meanMomentum_m = sqrt(std::pow(meanE_m,2.0) + 2 * meanE_m * mass) / mass;
 }
 
@@ -353,7 +354,7 @@ void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
     h5_int64_t numBunch = (h5_int64_t)bunch->getNumBunch();
     h5_int64_t SteptoLastInj = (h5_int64_t)bunch->getSteptoLastInj();
 
-    double mass = 1.0e-9 * bunch->getM();
+    double mass = Units::eV2GeV * bunch->getM();
     double charge = bunch->getCharge();
 
     h5_int64_t localFrame = ( Options::psDumpFrame != Options::GLOBAL );

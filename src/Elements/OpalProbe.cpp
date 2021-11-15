@@ -21,7 +21,7 @@
 #include "BeamlineCore/ProbeRep.h"
 #include "Structure/OpalWake.h"
 #include "Physics/Physics.h"
-
+#include "Physics/Units.h"
 
 OpalProbe::OpalProbe():
     OpalElement(SIZE, "PROBE",
@@ -70,11 +70,11 @@ void OpalProbe::update() {
     ProbeRep *prob =
         dynamic_cast<ProbeRep *>(getElement());
 
-    double xstart = Physics::mm2m * Attributes::getReal(itsAttr[XSTART]);
-    double xend   = Physics::mm2m * Attributes::getReal(itsAttr[XEND]);
-    double ystart = Physics::mm2m * Attributes::getReal(itsAttr[YSTART]);
-    double yend   = Physics::mm2m * Attributes::getReal(itsAttr[YEND]);
-    double step   = Physics::mm2m * Attributes::getReal(itsAttr[STEP]);
+    double xstart = Units::mm2m * Attributes::getReal(itsAttr[XSTART]);
+    double xend   = Units::mm2m * Attributes::getReal(itsAttr[XEND]);
+    double ystart = Units::mm2m * Attributes::getReal(itsAttr[YSTART]);
+    double yend   = Units::mm2m * Attributes::getReal(itsAttr[YEND]);
+    double step   = Units::mm2m * Attributes::getReal(itsAttr[STEP]);
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
 

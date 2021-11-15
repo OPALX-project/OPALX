@@ -1,5 +1,6 @@
 #include "Fields/FM2DMagnetoStatic.h"
 #include "Fields/Fieldmap.hpp"
+#include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
@@ -75,10 +76,10 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename):
                                           "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // conversion from cm to m
-            rbegin_m /= 100.;
-            rend_m /= 100.;
-            zbegin_m /= 100.;
-            zend_m /= 100.;
+            rbegin_m *= Units::cm2m;
+            rend_m *= Units::cm2m;
+            zbegin_m *= Units::cm2m;
+            zend_m *= Units::cm2m;
 
             hr_m = (rend_m - rbegin_m) / num_gridpr_m;
             hz_m = (zend_m - zbegin_m) / num_gridpz_m;

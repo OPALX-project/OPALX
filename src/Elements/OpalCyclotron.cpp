@@ -20,7 +20,7 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/CyclotronRep.h"
-#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
 #include "TrimCoils/OpalTrimCoil.h"
 #include "TrimCoils/TrimCoil.h"
@@ -179,8 +179,8 @@ void OpalCyclotron::update() {
     cycl->setMinZ(minz);
     cycl->setMaxZ(maxz);
 
-    cycl->setFMLowE(fmLowE * 1.0e3);   // convert GeV to MeV
-    cycl->setFMHighE(fmHighE * 1.0e3); // convert GeV to MeV
+    cycl->setFMLowE(fmLowE * Units::GeV2MeV);
+    cycl->setFMHighE(fmHighE * Units::GeV2MeV);
 
     cycl->setSpiralFlag(spiral_flag);
     cycl->setTrimCoilThreshold(trimCoilThreshold);

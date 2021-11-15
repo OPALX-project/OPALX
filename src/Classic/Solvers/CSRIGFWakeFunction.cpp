@@ -160,7 +160,7 @@ void CSRIGFWakeFunction::calculateLineDensity(PartBunchBase<double, 3> *bunch, s
 void CSRIGFWakeFunction::calculateGreenFunction(PartBunchBase<double, 3> *bunch, double meshSpacing)
 {
     unsigned int numOfSlices = lineDensity_m.size();
-    double gamma = bunch->get_meanKineticEnergy()/(bunch->getM()*1e-6)+1.0;
+    double gamma = bunch->get_meanKineticEnergy() / (bunch->getM() * Units::eV2MeV)+1.0;
     double xmu_const = 3.0 * gamma * gamma * gamma / (2.0 * bendRadius_m);
     double chi_const = 9.0 / 16.0 * (6.0 - std::log(27.0 / 4.0));
 

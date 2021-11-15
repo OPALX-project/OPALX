@@ -17,13 +17,14 @@
 //
 #include "Structure/H5PartWrapperForPT.h"
 
-#include "OPALconfig.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/Vektor.h"
+#include "OPALconfig.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-#include "Physics/Physics.h"
 
 #include "h5core/h5_types.h"
 
@@ -325,7 +326,7 @@ void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const 
     h5_int64_t localTrackStep = (h5_int64_t)bunch->getLocalTrackStep();
     h5_int64_t globalTrackStep = (h5_int64_t)bunch->getGlobalTrackStep();
 
-    double mass = 1.0e-9 * bunch->getM();
+    double mass = Units::eV2GeV * bunch->getM();
     double charge = bunch->getCharge();
 
     h5_int64_t numBunch = 1;
