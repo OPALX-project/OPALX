@@ -145,7 +145,7 @@ namespace Options {
 
     /// The frequency to dump AMR grid data and particles into file
     extern int amrYtDumpFreq;
-    
+
     /// After how many steps the AMR grid hierarchy is updated
     extern int amrRegridFreq;
 
@@ -156,6 +156,8 @@ namespace Options {
 
     /// The frequency to delete particles (currently: OPAL-cycl only)
     extern unsigned int delPartFreq;
+
+    extern bool computePercentiles;
 }
 
 #endif // OPAL_Options_HH
