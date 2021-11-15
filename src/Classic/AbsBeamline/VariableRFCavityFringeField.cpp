@@ -25,12 +25,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Physics/Physics.h"
-#include "Algorithms/PartBunchBase.h"
-#include "AbsBeamline/BeamlineVisitor.h"
-
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "AbsBeamline/VariableRFCavityFringeField.h"
+
+#include "AbsBeamline/BeamlineVisitor.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 VariableRFCavityFringeField::VariableRFCavityFringeField(const std::string &name) : VariableRFCavity(name) {
     initNull();  // initialise everything to NULL
@@ -90,7 +91,7 @@ bool VariableRFCavityFringeField::apply(const Vector_t &R, const Vector_t &/*P*/
     }
     double z_pos = R[2]-zCentre_m;
     double E0 = amplitudeTD_m->getValue(t);
-    double omega = Physics::two_pi*frequencyTD_m->getValue(t) * 1.0E-3; // need GHz on the element we have MHz
+    double omega = Physics::two_pi*frequencyTD_m->getValue(t) * Units::MHz2Hz * Units::Hz2GHz; // need GHz on the element we have MHz
     double phi = phaseTD_m->getValue(t);
     double E_sin_t = E0*sin(omega * t + phi);
     double B_cos_t = E0*cos(omega * t + phi); // 1/c^2 factor in the h_n coefficients
@@ -149,7 +150,7 @@ bool VariableRFCavityFringeField::apply(const Vector_t &R, const Vector_t &/*P*/
         B[0] += B_cos_t*y_power[n]*hCoeff;
         //std::cerr << "APPLY B " << n << " " << B[0] << " " << hCoeff << std::endl;
     }
-    B *= 1e1; //B converted to kGauss
+    B *= Units::T2kG;
     return false;
 }
 
@@ -188,7 +189,7 @@ void VariableRFCavityFringeField::initialiseCoefficients() {
     g_m = std::vector< std::vector<double> >();
     h_m = std::vector< std::vector<double> >();
     f_m.push_back(std::vector<double>(1, 1.));
-    double c_l = Physics::c*1e-6; // speed of light in mm/ns
+    double c_l = Physics::c * Units::m2mm / Units::s2ns;
     // generate f_{n+2} term
     // note frequency term has to be added at apply(time) as we have
     // time-dependent frequency

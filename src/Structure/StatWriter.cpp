@@ -21,6 +21,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Utilities/Timer.h"
+#include "Physics/Units.h"
 
 #include <sstream>
 
@@ -159,7 +160,7 @@ void StatWriter::write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * Physics::s2ns);   // 1
+    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);   // 1
     columns_m.addColumnValue("s", pathLength);                     // 2
     columns_m.addColumnValue("numParticles", beam->getTotalNum()); // 3
     columns_m.addColumnValue("charge", Q);                         // 4
@@ -214,7 +215,7 @@ void StatWriter::write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
     columns_m.addColumnValue("Ez_ref", FDext[1](2));               // 39 E-ref z
 
     columns_m.addColumnValue("dE", beam->getdE());                 // 40 dE energy spread
-    columns_m.addColumnValue("dt", beam->getdT() * Physics::s2ns); // 41 dt time step size
+    columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns); // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);           // 42 number of particles outside n*sigma
 
     if (OpalData::getInstance()->isInOPALCyclMode()) {

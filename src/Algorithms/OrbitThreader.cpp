@@ -21,18 +21,17 @@
 //
 
 #include "Algorithms/OrbitThreader.h"
-#include "Algorithms/CavityAutophaser.h"
 
-#include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/BendBase.h"
+#include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "BeamlineCore/MarkerRep.h"
-
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/CavityAutophaser.h"
 #include "BasicActions/Option.h"
-#include "Utilities/Options.h"
-
+#include "BeamlineCore/MarkerRep.h"
+#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include <boost/filesystem.hpp>
@@ -243,8 +242,8 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double maxDrif
                      << std::setw(18) << std::setprecision(8) << Bf(0)
                      << std::setw(18) << std::setprecision(8) << Bf(1)
                      << std::setw(18) << std::setprecision(8) << Bf(2)
-                     << std::setw(18) << std::setprecision(8) << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * 1e-6
-                     << std::setw(18) << std::setprecision(8) << (time_m + 0.5 * dt_m) * 1e9
+                     << std::setw(18) << std::setprecision(8) << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
+                     << std::setw(18) << std::setprecision(8) << (time_m + 0.5 * dt_m) * Units::s2ns
                      << names
                      << std::endl;
         }

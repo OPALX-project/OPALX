@@ -42,6 +42,7 @@
 #include "Beamlines/FlaggedBeamline.h"
 #include "Distribution/Distribution.h"
 #include "Elements/OpalBeamline.h"
+#include "Physics/Units.h"
 #include "Solvers/CSRWakeFunction.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Structure/BoundaryGeometry.h"
@@ -1008,7 +1009,7 @@ void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bo
                                      externalE,
                                      externalB);
         FDext[0] = itsBunch_m->toLabTrafo_m.rotateFrom(externalB);
-        FDext[1] = itsBunch_m->toLabTrafo_m.rotateFrom(externalE * 1e-6);
+        FDext[1] = itsBunch_m->toLabTrafo_m.rotateFrom(externalE * Units::Vpm2MVpm);
     }
 
     if (statDump) {

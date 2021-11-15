@@ -27,6 +27,7 @@
 //
 #include "MultiBunchHandler.h"
 
+#include "Physics/Units.h"
 #include "Structure/H5PartWrapperForPC.h"
 
 //FIXME Remove headers and dynamic_cast in
@@ -481,7 +482,7 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
         return false;
 
     // ekin
-    const double m0 = beam->getM() * 1.0e-6;
+    const double m0 = beam->getM() * Units::eV2MeV;
     local[0] -= bunchLocalNum;
     local[0] *= m0;
 
@@ -490,7 +491,7 @@ bool MultiBunchHandler::calcBunchBeamParameters(PartBunchBase<double, 3>* beam,
     double invN = 1.0 / double(bunchTotalNum);
     binfo.ekin = local[0] * invN;
 
-    binfo.time       = beam->getT() * 1e9;  // ns
+    binfo.time       = beam->getT() * Units::s2ns;
     binfo.nParticles = bunchTotalNum;
 
     for (unsigned int i = 0; i < dim; ++i) {

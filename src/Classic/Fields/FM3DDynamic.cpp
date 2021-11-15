@@ -1,11 +1,12 @@
 #include "Fields/FM3DDynamic.h"
-#include "Fields/Fieldmap.hpp"
-#include "Utilities/GeneralClassicException.h"
-#include "Utilities/Util.h"
-#include "Utilities/Options.h"
-#include "AbstractObjects/OpalData.h"
 
+#include "AbstractObjects/OpalData.h"
+#include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
+#include "Utilities/GeneralClassicException.h"
+#include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 #include <fstream>
 #include <ios>
@@ -75,14 +76,14 @@ FM3DDynamic::FM3DDynamic(std::string aFilename):
             throw GeneralClassicException("FM3DDynamic::FM3DDynamic",
                                           "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
-            frequency_m *= Physics::two_pi * Physics::MHz2Hz;
+            frequency_m *= Physics::two_pi * Units::MHz2Hz;
 
-            xbegin_m /= 100.0;
-            xend_m /= 100.0;
-            ybegin_m /= 100.0;
-            yend_m /= 100.0;
-            zbegin_m /= 100.0;
-            zend_m /= 100.0;
+            xbegin_m *= Units::cm2m;
+            xend_m *= Units::cm2m;
+            ybegin_m *= Units::cm2m;
+            yend_m *= Units::cm2m;
+            zbegin_m *= Units::cm2m;
+            zend_m *= Units::cm2m;
 
             hx_m = (xend_m - xbegin_m) / num_gridpx_m;
             hy_m = (yend_m - ybegin_m) / num_gridpy_m;
@@ -173,9 +174,9 @@ void FM3DDynamic::readMap() {
 
         for(unsigned long i = 0; i < totalSize; ++ i) {
 
-            FieldstrengthEx_m[i] *= 1e6 / Ezmax;
-            FieldstrengthEy_m[i] *= 1e6 / Ezmax;
-            FieldstrengthEz_m[i] *= 1e6 / Ezmax;
+            FieldstrengthEx_m[i] *= Units::MVpm2Vpm / Ezmax;
+            FieldstrengthEy_m[i] *= Units::MVpm2Vpm / Ezmax;
+            FieldstrengthEz_m[i] *= Units::MVpm2Vpm / Ezmax;
             FieldstrengthBx_m[i] *= Physics::mu_0 / Ezmax;
             FieldstrengthBy_m[i] *= Physics::mu_0 / Ezmax;
             FieldstrengthBz_m[i] *= Physics::mu_0 / Ezmax;

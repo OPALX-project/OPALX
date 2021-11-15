@@ -19,13 +19,14 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Bend2D.h"
-#include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
+#include "Fields/Fieldmap.h"
+#include "Physics/Units.h"
+#include "Structure/MeshGenerator.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-#include "Fields/Fieldmap.h"
-#include "AbstractObjects/OpalData.h"
-#include "Structure/MeshGenerator.h"
 
 #include "gsl/gsl_poly.h"
 
@@ -688,7 +689,7 @@ void Bend2D::findBendStrength() {
 
     const double tolerance = 1e-7; // [deg]
     double actualBendAngle = calculateBendAngle();
-    double error = std::abs(actualBendAngle - angle_m) * Physics::rad2deg;
+    double error = std::abs(actualBendAngle - angle_m) * Units::rad2deg;
     if (error < tolerance)
         return;
 
@@ -718,7 +719,7 @@ void Bend2D::findBendStrength() {
         fieldAmplitude_m = (amplitude1 + amplitude2) / 2.0;
         double newBendAngle = calculateBendAngle();
 
-        error = std::abs(newBendAngle - angle_m) * Physics::rad2deg;
+        error = std::abs(newBendAngle - angle_m) * Units::rad2deg;
 
         if (error > tolerance) {
 
@@ -865,19 +866,19 @@ void Bend2D::print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "Bend angle magnitude:    "
         << angle_m
         << " rad ("
-        << angle_m * Physics::rad2deg
+        << angle_m * Units::rad2deg
         << " degrees)"
         << "\n";
     msg << "Entrance edge angle:     "
         << entranceAngle_m
         << " rad ("
-        << entranceAngle_m * Physics::rad2deg
+        << entranceAngle_m * Units::rad2deg
         << " degrees)"
         << "\n";
     msg << "Exit edge angle:         "
         << exitAngle_m
         << " rad ("
-        << exitAngle_m * Physics::rad2deg
+        << exitAngle_m * Units::rad2deg
         << " degrees)"
         << "\n";
     msg << "Bend design radius:      "
@@ -903,7 +904,7 @@ void Bend2D::print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "Rotation about z axis:   "
         << rotationZAxis_m
         << " rad ("
-        << rotationZAxis_m * Physics::rad2deg
+        << rotationZAxis_m * Units::rad2deg
         << " degrees)"
         << "\n";
     msg << "\n"
@@ -914,13 +915,13 @@ void Bend2D::print(Inform &msg, double bendAngleX, double bendAngleY) {
     msg << "Reference particle is bent: "
         << bendAngleX
         << " rad ("
-        << bendAngleX * Physics::rad2deg
+        << bendAngleX * Units::rad2deg
         << " degrees) in x plane"
         << "\n";
     msg << "Reference particle is bent: "
         << bendAngleY
         << " rad ("
-        << bendAngleY * Physics::rad2deg
+        << bendAngleY * Units::rad2deg
         << " degrees) in y plane"
         << "\n";
 
@@ -961,7 +962,7 @@ void Bend2D::readFieldMap(Inform &msg) {
     polyOrderEntry_m = engeCoeffsEntry_m.size() - 1;
     polyOrderExit_m = engeCoeffsExit_m.size() - 1;
 
-    double stepSize = Physics::c * 1e-12;
+    double stepSize = Physics::c * Units::ps2s;
     double entryLength = std::abs(entranceParameter3_m - entranceParameter1_m);
     unsigned int numStepsEntry = std::ceil(entryLength / stepSize) + 3;
     double stepSizeEntry = entryLength / (numStepsEntry - 3);
@@ -1311,7 +1312,7 @@ std::vector<Vector_t> Bend2D::getOutline() const {
         Quaternion rotation = getQuaternion(upperCornerAtEntry - rotationCenter, Vector_t(0,0,1));
         Vector_t tmp = CoordinateSystemTrafo(rotationCenter, rotation).transformTo(upperCornerAtExit);
         double totalAngle = -std::fmod(Physics::two_pi - std::atan2(tmp(0), tmp(2)), Physics::two_pi);
-        numSteps = std::max(2.0, std::ceil(-totalAngle / (5.0 * Physics::deg2rad)));
+        numSteps = std::max(2.0, std::ceil(-totalAngle / (5.0 * Units::deg2rad)));
         double dAngle = 0.5 * totalAngle / (1.0 * numSteps - 1.0);
 
         outline.push_back(upperCornerAtEntry);

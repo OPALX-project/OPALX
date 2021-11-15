@@ -26,6 +26,7 @@
 #include "Expressions/SRefExpr.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 
 #include <cmath>
@@ -54,7 +55,7 @@ Beam::Beam():
     Definition(SIZE, "BEAM",
                "The \"BEAM\" statement defines data for the particles "
                "in a beam."),
-    reference(1.0, Physics::m_p * Physics::GeV2eV, 1.0 * Physics::GeV2eV) {
+    reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
 
     itsAttr[PARTICLE] = Attributes::makePredefinedString
                         ("PARTICLE", "Name of particle to be used",
@@ -199,7 +200,7 @@ double Beam::getFrequency() const {
 
 double Beam::getChargePerParticle() const {
     return std::copysign(1.0, getCharge()) * getCurrent()
-        / (getFrequency() * 1.0e6)
+        / (getFrequency() * Units::MHz2Hz)
         / getNumberOfParticles();
 }
 
@@ -217,7 +218,7 @@ void Beam::update() {
     }
 
     // Set up particle reference; convert all to eV for CLASSIC.
-    double mass = (itsAttr[MASS] ? getMass() : Physics::m_p) * Physics::GeV2eV;
+    double mass = (itsAttr[MASS] ? getMass() : Physics::m_p) * Units::GeV2eV;
     double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
 
     reference = PartData(charge, mass, 1.0);
@@ -231,7 +232,7 @@ void Beam::update() {
                                 "\"GAMMA\" should be greater than 1.");
         }
     } else if (itsAttr[ENERGY]) {
-        double energy = Attributes::getReal(itsAttr[ENERGY]) * Physics::GeV2eV;
+        double energy = Attributes::getReal(itsAttr[ENERGY]) * Units::GeV2eV;
         if (energy > reference.getM()) {
             reference.setE(energy);
         } else {
@@ -239,7 +240,7 @@ void Beam::update() {
                                 "\"ENERGY\" should be greater than \"MASS\".");
         }
     } else if (itsAttr[PC]) {
-        double pc = Attributes::getReal(itsAttr[PC]) * Physics::GeV2eV;
+        double pc = Attributes::getReal(itsAttr[PC]) * Units::GeV2eV;
         if (pc > 0.0) {
             reference.setP(pc);
         } else {

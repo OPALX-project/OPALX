@@ -1,6 +1,7 @@
 #include "Fields/FM1DElectroStatic_fast.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
@@ -286,20 +287,20 @@ void FM1DElectroStatic_fast::computeInterpolationVectors(double onAxisFieldP[],
 void FM1DElectroStatic_fast::convertHeaderData() {
 
     // Convert to m.
-    rBegin_m /= 100.0;
-    rEnd_m /= 100.0;
-    zBegin_m /= 100.0;
-    zEnd_m /= 100.0;
+    rBegin_m *= Units::cm2m;
+    rEnd_m *= Units::cm2m;
+    zBegin_m *= Units::cm2m;
+    zEnd_m *= Units::cm2m;
 
 }
 
 void FM1DElectroStatic_fast::normalizeField(double maxEz, std::vector<double> &fourierCoefs) {
 
     for (unsigned int dataIndex = 0; dataIndex < numberOfGridPoints_m; ++ dataIndex)
-        onAxisField_m[dataIndex] *= 1.0e6 / maxEz;
+        onAxisField_m[dataIndex] /= (maxEz * Units::Vpm2MVpm);
 
     for (auto fourierIt = fourierCoefs.begin(); fourierIt < fourierCoefs.end(); ++ fourierIt)
-        *fourierIt *= 1.0e6 / maxEz;
+        *fourierIt /= (maxEz * Units::Vpm2MVpm);
 
 }
 

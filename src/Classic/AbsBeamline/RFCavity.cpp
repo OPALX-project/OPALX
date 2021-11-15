@@ -19,10 +19,13 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/RFCavity.h"
+
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Algorithms/PartBunchBase.h"
-#include "Steppers/BorisPusher.h"
 #include "Fields/Fieldmap.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
+#include "Steppers/BorisPusher.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
@@ -187,8 +190,8 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
     fieldmap_m->getInfo(&msg);
     if (std::abs((frequency_m - fieldmap_m->getFrequency()) / frequency_m) > 0.01) {
         errormsg << "FREQUENCY IN INPUT FILE DIFFERENT THAN IN FIELD MAP '" << filename_m << "';\n"
-                 << frequency_m / Physics::two_pi * Physics::Hz2MHz << " MHz <> "
-                 << fieldmap_m->getFrequency() / Physics::two_pi * Physics::Hz2MHz << " MHz; TAKE ON THE LATTER";
+                 << frequency_m / Physics::two_pi * Units::Hz2MHz << " MHz <> "
+                 << fieldmap_m->getFrequency() / Physics::two_pi * Units::Hz2MHz << " MHz; TAKE ON THE LATTER";
         std::string errormsg_str = Fieldmap::typeset_msg(errormsg.str(), "warning");
         ERRORMSG(errormsg_str << "\n" << endl);
         if (Ippl::myNode() == 0) {
@@ -237,8 +240,8 @@ void RFCavity::initialise(PartBunchBase<double, 3> *bunch,
         VrNormal_m[i] *= RefPartBunch_m->getQ();
         DvDr_m[i]     *= RefPartBunch_m->getQ();
     }
-    sinAngle_m = std::sin(angle_m * Physics::deg2rad);
-    cosAngle_m = std::cos(angle_m * Physics::deg2rad);
+    sinAngle_m = std::sin(angle_m * Units::deg2rad);
+    cosAngle_m = std::cos(angle_m * Units::deg2rad);
 
     if (frequency_name_m != "")
       *gmsg << "* Timedependent frequency model " << frequency_name_m << endl;
@@ -375,20 +378,20 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     double gamma = std::sqrt(1.0 + momentum2);
     double beta = betgam / gamma;
 
-    double Voltage = spline(normalRadius, &derivate) * scale_m * 1.0e6; // V
+    double Voltage = spline(normalRadius, &derivate) * scale_m * Units::MVpm2Vpm;
 
     double Ufactor = 1.0;
 
     double frequency = frequency_m * frequency_td_m->getValue(t);
 
     if (gapwidth_m > 0.0) {
-    	double transit_factor = 0.5 * frequency * gapwidth_m * 1.0e-3 / (Physics::c * beta);
+    	double transit_factor = 0.5 * frequency * gapwidth_m * Units::mm2m / (Physics::c * beta);
         Ufactor = std::sin(transit_factor) / transit_factor;
     }
 
     Voltage *= Ufactor;
     // rad/s, ns --> rad
-    double nphase = (frequency * (t + dtCorrt) * 1.0e-9) - phi0_m / 180.0 * Physics::pi ;
+    double nphase = (frequency * (t + dtCorrt) * Units::ns2s) - phi0_m * Units::deg2rad;
     double dgam = Voltage * std::cos(nphase) / (restMass);
 
     double tempdegree = std::fmod(nphase * 360.0 / Physics::two_pi, 360.0);
@@ -403,7 +406,7 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
     double px = pr * cosAngle_m - ptheta * sinAngle_m ; // x
     double py = pr * sinAngle_m + ptheta * cosAngle_m; // y
 
-    double rotate = -derivate * (scale_m * 1.0e6) / ((rmax_m - rmin_m) / 1000.0) * std::sin(nphase) / (frequency * Physics::two_pi) / (betgam * restMass / Physics::c / chargenumber); // radian
+    double rotate = -derivate * (scale_m * Units::MVpm2Vpm) / ((rmax_m - rmin_m) * Units::mm2m) * std::sin(nphase) / (frequency * Physics::two_pi) / (betgam * restMass / Physics::c / chargenumber); // radian
 
     /// B field effects
     momentum[0] =  std::cos(rotate) * px + std::sin(rotate) * py;
@@ -414,8 +417,8 @@ void RFCavity::getMomentaKick(const double normalRadius, double momentum[], cons
         Inform  m("OPAL", *gmsg, Ippl::myNode());
 
         m << "* Cavity " << getName() << " Phase= " << tempdegree << " [deg] transit time factor=  " << Ufactor
-          << " dE= " << dgam *restMass * 1.0e-6 << " [MeV]"
-          << " E_kin= " << (gamma - 1.0)*restMass * 1.0e-6 << " [MeV] Time dep freq = " << frequency_td_m->getValue(t) << endl;
+          << " dE= " << dgam *restMass * Units::eV2MeV << " [MeV]"
+          << " E_kin= " << (gamma - 1.0)*restMass * Units::eV2MeV << " [MeV] Time dep freq = " << frequency_td_m->getValue(t) << endl;
     }
 
 }
@@ -526,7 +529,7 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
     const int prevPrecision = Ippl::Info->precision(8);
     INFOMSG(level2
             << "estimated phase= " << phimax << " rad = "
-            << phimax * Physics::rad2deg << " deg \n"
+            << phimax * Units::rad2deg << " deg \n"
             << "Ekin= " << Emax << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
 
     setPhasem(origPhase);
@@ -540,7 +543,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     gsl_spline *onAxisInterpolants;
     gsl_interp_accel *onAxisAccel;
 
-    double phi = 0.0, tmp_phi, dphi = 0.5 * Physics::pi / 180.;
+    double phi = 0.0, tmp_phi, dphi = 0.5 * Units::deg2rad;
     double dz = 1.0, length = 0.0;
     fieldmap_m->getOnaxisEz(G);
     if (G.size() == 0) return 0.0;
@@ -610,7 +613,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
             }
             const int prevPrecision = Ippl::Info->precision(8);
             INFOMSG(level2 << "estimated phase= " << tmp_phi << " rad = "
-                    << tmp_phi * Physics::rad2deg << " deg \n"
+                    << tmp_phi * Units::rad2deg << " deg \n"
                     << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
 
             return tmp_phi;
@@ -656,7 +659,7 @@ double RFCavity::getAutoPhaseEstimate(const double &E0, const double &t0, const 
     const int prevPrecision = Ippl::Info->precision(8);
     INFOMSG(level2
             << "estimated phase= " << tmp_phi << " rad = "
-            << tmp_phi * Physics::rad2deg << " deg \n"
+            << tmp_phi * Units::rad2deg << " deg \n"
             << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision) << "\n" << endl);
 
     return phi;
