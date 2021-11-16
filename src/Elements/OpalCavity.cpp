@@ -103,11 +103,11 @@ void OpalCavity::update() {
         dynamic_cast<RFCavityRep *>(getElement());
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
-    double peak  = Attributes::getReal(itsAttr[VOLT]);
-    double peakError  = Attributes::getReal(itsAttr[DVOLT]);
-    double phase  = Attributes::getReal(itsAttr[LAG]);
-    double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq   = Units::Hz2MHz * Physics::two_pi * Attributes::getReal(itsAttr[FREQ]);
+    double peak = Attributes::getReal(itsAttr[VOLT]);
+    double peakError = Attributes::getReal(itsAttr[DVOLT]);
+    double phase = Attributes::getReal(itsAttr[LAG]);
+    double phaseError = Attributes::getReal(itsAttr[DLAG]);
+    double freq = Physics::two_pi * Attributes::getReal(itsAttr[FREQ]) * Units::MHz2Hz;
     std::string fmapfn = Attributes::getString(itsAttr[FMAPFN]);
     std::string type = Attributes::getString(itsAttr[TYPE]);
     bool fast = Attributes::getBool(itsAttr[FAST]);
