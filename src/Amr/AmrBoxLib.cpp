@@ -25,6 +25,8 @@
 #include "AmrBoxLib.h"
 
 #include "Algorithms/AmrPartBunch.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/FieldSolver.h"
 #include "Solvers/PoissonSolver.h"
 #include "Utility/PAssert.h"
@@ -358,7 +360,7 @@ void AmrBoxLib::computeSelfFields_cycl(int bin) {
     amrpbase_p->update();
 
     if ( !(bunch_mp->getLocalTrackStep() % Options::amrRegridFreq) ) {
-        this->regrid(bunch_mp->getT() * Units::s2ns;
+        this->regrid(bunch_mp->getT() * Units::s2ns);
     }
 
     amrpbase_p->setForbidTransform(false);
