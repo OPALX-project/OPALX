@@ -204,8 +204,8 @@ void RBend3D::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-ElementBase::ElementType RBend3D::getType() const {
-    return RBEND3D;
+ElementType RBend3D::getType() const {
+    return ElementType::RBEND3D;
 }
 
 bool RBend3D::isInside(const Vector_t &r) const {

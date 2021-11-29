@@ -61,10 +61,10 @@ public:
     ~OpalData();
 
     /// Enum for writing to files
-    enum class OPENMODE {
+    enum class OpenMode: unsigned short {
+        UNDEFINED,
         WRITE,
-        APPEND,
-        UNDEFINED
+        APPEND
     };
 
     /// reset object for consecutive runs
@@ -208,8 +208,8 @@ public:
     /// get the dump frequency as found in restart file
     int getRestartDumpFreq() const;
 
-    void setOpenMode(OPENMODE openMode);
-    OPENMODE getOpenMode() const;
+    void setOpenMode(OpenMode openMode);
+    OpenMode getOpenMode() const;
 
     /// set the last step in a run for possible follow-up run
     void setLastStep(const int &step);

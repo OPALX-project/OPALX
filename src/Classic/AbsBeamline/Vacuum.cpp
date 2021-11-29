@@ -288,8 +288,8 @@ void Vacuum::getDimensions(double& zBegin, double& zEnd) const {
     zEnd = getElementLength();
 }
 
-ElementBase::ElementType Vacuum::getType() const {
-    return VACUUM;
+ElementType Vacuum::getType() const {
+    return ElementType::VACUUM;
 }
 
 double Vacuum::checkPressure(const Vector_t& R) {

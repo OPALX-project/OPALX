@@ -189,7 +189,7 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
     OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
 
     if (OpalData::getInstance()->hasBunchAllocated()) {
-        OpalData::getInstance()->setOpenMode(OpalData::OPENMODE::APPEND);
+        OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
     }
 }
 
@@ -324,12 +324,12 @@ void LossDataSink::addParticle(const OpalParticle &particle, const boost::option
     particles_m.push_back(particle);
 }
 
-void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
+void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 
     if (outputName_m.empty()) return;
     if (hasNoParticlesToDump()) return;
 
-    if (openMode == OpalData::OPENMODE::UNDEFINED) {
+    if (openMode == OpalData::OpenMode::UNDEFINED) {
         openMode = OpalData::getInstance()->getOpenMode();
     }
 
@@ -338,7 +338,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
 
         fn_m = outputName_m + std::string(".h5");
         *gmsg << level2 << "Save " << fn_m << endl;
-        if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
+        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fn_m)) {
             openH5();
             writeHeaderH5();
         } else {
@@ -356,7 +356,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OPENMODE openMode) {
 
         fn_m = outputName_m + std::string(".loss");
         *gmsg << level2 << "Save " << fn_m << endl;
-        if (openMode == OpalData::OPENMODE::WRITE || !fs::exists(fn_m)) {
+        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fn_m)) {
             openASCII();
             writeHeaderASCII();
         } else {

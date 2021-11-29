@@ -111,7 +111,7 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
                 " is not supported for residual stripping interactions!");
     }
 
-    if (element_ref_m->getType() == ElementBase::VACUUM) {
+    if (element_ref_m->getType() == ElementType::VACUUM) {
          hitTester_m.reset(new VacuumInsideTester(element_ref_m));
          vac_m = dynamic_cast<Vacuum*>(element_ref_m);
     } else {

@@ -11,7 +11,7 @@ class TestElement : public ElementBase {
   public:
 
     TestElement() : ElementBase(), base(NULL), type("") {}
-    ElementBase::ElementType getType() const {return ElementBase::ANY;}
+    ElementType getType() const {return ElementType::ANY;}
     BGeometryBase  &getGeometry() {
         return *base;
     }

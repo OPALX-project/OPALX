@@ -21,14 +21,17 @@
 #define OPAL_Option_HH
 
 #include "AbstractObjects/Action.h"
+#include "Utilities/Options.h"
+
+#include <boost/bimap.hpp>
+
+#include <string>
 
 class Option: public Action {
 
 public:
 
-    /// Exemplar constructor.
     Option();
-
     virtual ~Option();
 
     /// Make clone.
@@ -38,7 +41,11 @@ public:
     virtual void execute();
 
 private:
+
     void handlePsDumpFrame(const std::string& dumpFrame);
+
+    static std::string getDumpFrameString(const DumpFrame& df);
+
     using Object::update;
     void update(const std::vector<Attribute>&);
 
@@ -48,6 +55,8 @@ private:
 
     // Clone constructor.
     Option(const std::string& name, Option* parent);
+
+    static const boost::bimap<DumpFrame, std::string> bmDumpFrameString_s;
 };
 
 #endif // OPAL_Option_HH
