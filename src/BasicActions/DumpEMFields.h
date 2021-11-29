@@ -22,6 +22,7 @@
 #include "AbsBeamline/Component.h"
 #include "AbstractObjects/Action.h"
 
+#include <map>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -125,7 +126,7 @@ public:
 
 private:
 
-    enum class CoordinateSystem {
+    enum class CoordinateSystem: unsigned short {
         CARTESIAN,
         CYLINDRICAL
     };
@@ -142,7 +143,9 @@ private:
 
     interpolation::NDGrid* grid_m;
     std::string filename_m;
+
     CoordinateSystem coordinates_m = CoordinateSystem::CARTESIAN;
+    static const std::map<std::string, CoordinateSystem> stringCoordinateSystem_s;
 
     static std::unordered_set<DumpEMFields*> dumpsSet_m;
 

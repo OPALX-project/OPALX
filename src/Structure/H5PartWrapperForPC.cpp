@@ -357,7 +357,7 @@ void H5PartWrapperForPC::writeStepHeader(PartBunchBase<double, 3>* bunch,
     double mass = Units::eV2GeV * bunch->getM();
     double charge = bunch->getCharge();
 
-    h5_int64_t localFrame = ( Options::psDumpFrame != Options::GLOBAL );
+    h5_int64_t localFrame = ( Options::psDumpFrame != DumpFrame::GLOBAL );
 
     double sposHead = 0.0;
     double sposRef = 0.0;

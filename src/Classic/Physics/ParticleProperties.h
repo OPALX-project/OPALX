@@ -23,7 +23,7 @@
 #include <map>
 #include <string>
 
-enum class ParticleType:short {
+enum class ParticleType: short {
     UNNAMED = -1,
     ELECTRON,
     POSITRON,
@@ -41,7 +41,7 @@ enum class ParticleType:short {
     URANIUM
 };
 
-enum class ParticleOrigin:short {
+enum class ParticleOrigin: unsigned short {
     REGULAR,
     SECONDARY,
     STRIPPED
@@ -52,15 +52,15 @@ class ParticleProperties {
 public:
     static ParticleType getParticleType (const std::string& str);
 
-    static std::string getParticleTypeString(ParticleType type);
+    static std::string getParticleTypeString(const ParticleType& type);
 
-    static double getParticleMass(ParticleType type);
+    static double getParticleMass(const ParticleType& type);
 
-    static double getParticleCharge(ParticleType type);
-    static double getParticleChargeInCoulomb(ParticleType type);
+    static double getParticleCharge(const ParticleType& type);
+    static double getParticleChargeInCoulomb(const ParticleType& type);
 
 private:
-    static const boost::bimap<ParticleType, std::string> bmParticleType_m;
+    static const boost::bimap<ParticleType, std::string> bmParticleType_s;
 
     static const std::map<ParticleType, double> particleMass_m;
     static const std::map<ParticleType, double> particleCharge_m;

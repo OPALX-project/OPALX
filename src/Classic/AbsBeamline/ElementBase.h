@@ -83,6 +83,45 @@ class ConstChannel;
 class ParticleMatterInteractionHandler;
 class WakeFunction;
 
+enum class ElementType: unsigned short {
+    ANY,
+    BEAMLINE,
+    CCOLLIMATOR,
+    CORRECTOR,
+    CYCLOTRON,
+    DEGRADER,
+    DRIFT,
+    FLEXIBLECOLLIMATOR,
+    MARKER,
+    MONITOR,
+    MPSPLITINTEGRATOR,
+    MULTIPOLE,
+    MULTIPOLET,
+    OFFSET,
+    PROBE,
+    RBEND,
+    RBEND3D,
+    RFCAVITY,
+    RING,
+    SBEND,
+    SBEND3D,
+    SEPTUM,
+    SOLENOID,
+    SOURCE,
+    STRIPPER,
+    TRAVELINGWAVE,
+    UNDULATOR,
+    VACUUM,
+    VARIABLERFCAVITY
+};
+
+enum class ApertureType: unsigned short {
+    RECTANGULAR,
+    ELLIPTICAL,
+    CONIC_RECTANGULAR,
+    CONIC_ELLIPTICAL
+};
+
 class ElementBase: public RCObject {
 
 public:
@@ -98,42 +137,6 @@ public:
 
     /// Set element name.
     virtual void setName(const std::string &name);
-
-    enum ApertureType {RECTANGULAR
-                     , ELLIPTICAL
-                     , CONIC_RECTANGULAR
-                     , CONIC_ELLIPTICAL
-    };
-
-    enum ElementType {BEAMLINE
-                    , CCOLLIMATOR
-                    , CORRECTOR
-                    , CYCLOTRON
-                    , DEGRADER
-                    , DRIFT
-                    , FLEXIBLECOLLIMATOR
-                    , MARKER
-                    , MONITOR
-                    , MPSPLITINTEGRATOR
-                    , MULTIPOLE
-                    , MULTIPOLET
-                    , OFFSET
-                    , PROBE
-                    , RBEND
-                    , RBEND3D
-                    , RFCAVITY
-                    , RING
-                    , SBEND3D
-                    , SBEND
-                    , SEPTUM
-                    , SOLENOID
-                    , SOURCE
-                    , STRIPPER
-                    , TRAVELINGWAVE
-                    , UNDULATOR
-                    , VACUUM
-                    , VARIABLERFCAVITY
-                    , ANY};
 
     /// Get element type std::string.
     virtual ElementType getType() const = 0;
@@ -322,7 +325,7 @@ public:
     virtual CoordinateSystemTrafo getEdgeToEnd() const;
 
     void setAperture(const ApertureType& type, const std::vector<double> &args);
-    std::pair<ElementBase::ApertureType, std::vector<double> > getAperture() const;
+    std::pair<ApertureType, std::vector<double> > getAperture() const;
 
     virtual bool isInside(const Vector_t &r) const;
 
@@ -402,6 +405,8 @@ private:
 
     // The element's name
     std::string elementID;
+
+    static const std::map<ElementType, std::string> elementTypeToString_s;
 
     // The user-defined set of attributes.
     AttributeSet userAttribs;
@@ -543,7 +548,7 @@ void ElementBase::setAperture(const ApertureType& type, const std::vector<double
 }
 
 inline
-std::pair<ElementBase::ApertureType, std::vector<double> > ElementBase::getAperture() const {
+std::pair<ApertureType, std::vector<double> > ElementBase::getAperture() const {
     return aperture_m;
 }
 

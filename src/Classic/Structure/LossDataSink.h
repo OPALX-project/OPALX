@@ -90,7 +90,7 @@ class LossDataSink {
 
     bool inH5Mode() { return h5hut_mode_m;}
 
-    void save(unsigned int numSets = 1, OpalData::OPENMODE openMode = OpalData::OPENMODE::UNDEFINED);
+    void save(unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
 
     void addReferenceParticle(const Vector_t &x,
                               const Vector_t &p,

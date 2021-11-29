@@ -84,10 +84,10 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &position,
     const std::set<std::shared_ptr<Component>>::const_iterator end = elements.end();
 
     for (; it != end; ++ it) {
-        ElementBase::ElementType type = (*it)->getType();
-        if (type == ElementBase::MONITOR ||
-            type == ElementBase::MARKER ||
-            type == ElementBase::CCOLLIMATOR) continue;
+        ElementType type = (*it)->getType();
+        if (type == ElementType::MONITOR ||
+            type == ElementType::MARKER ||
+            type == ElementType::CCOLLIMATOR) continue;
 
         Vector_t localR = transformToLocalCS(*it, position);
         Vector_t localP = rotateToLocalCS(*it, momentum);
@@ -115,7 +115,7 @@ void OpalBeamline::switchElements(const double &min, const double &max, const do
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
         // or if explicitly not desired (eg during auto phasing)
-        if(flit->getElement()->getType() == ElementBase::MONITOR) {
+        if(flit->getElement()->getType() == ElementType::MONITOR) {
             double spos = (max + min) / 2.;
             if(!nomonitors && spos < (*flit).getStart()) {
                 if(!(*flit).isOn() && max > (*flit).getStart()) {
@@ -130,9 +130,9 @@ void OpalBeamline::switchElements(const double &min, const double &max, const do
 
             //check if multiple degraders follow one another with no other elements in between
             //if element is off and it is a degrader
-            if (!(*flit).isOn() && flit->getElement()->getType() == ElementBase::DEGRADER) {
+            if (!(*flit).isOn() && flit->getElement()->getType() == ElementType::DEGRADER) {
                 //check if previous element: is on, is a degrader, ends where new element starts
-                if ((*fprev).isOn() && fprev->getElement()->getType() == ElementBase::DEGRADER &&
+                if ((*fprev).isOn() && fprev->getElement()->getType() == ElementType::DEGRADER &&
                     ((*fprev).getEnd() + 0.01 > (*flit).getStart()) ) {
                     (*flit).setOn(kineticEnergy);
                 }
@@ -175,8 +175,8 @@ void OpalBeamline::merge(OpalBeamline &rhs) {
 }
 
 
-FieldList OpalBeamline::getElementByType(ElementBase::ElementType type) {
-    if (type == ElementBase::ANY) {
+FieldList OpalBeamline::getElementByType(ElementType type) {
+    if (type == ElementType::ANY) {
         return elements_m;
     }
 
@@ -219,9 +219,9 @@ void OpalBeamline::compute3DLattice() {
             }
             (*it).order_m = minOrder;
 
-            if (element->getType() != ElementBase::SBEND &&
-                element->getType() != ElementBase::RBEND &&
-                element->getType() != ElementBase::RBEND3D) {
+            if (element->getType() != ElementType::SBEND &&
+                element->getType() != ElementType::RBEND &&
+                element->getType() != ElementType::RBEND3D) {
                 continue;
             }
 
@@ -289,14 +289,14 @@ void OpalBeamline::compute3DLattice() {
         double thisLength = element->getElementLength();
         Vector_t beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
-        if (element->getType() == ElementBase::SOURCE) {
+        if (element->getType() == ElementType::SOURCE) {
             beginThis3D(2) -= thisLength;
         }
 
         Vector_t endThis3D;
-        if (element->getType() == ElementBase::SBEND ||
-            element->getType() == ElementBase::RBEND ||
-            element->getType() == ElementBase::RBEND3D) {
+        if (element->getType() == ElementType::SBEND ||
+            element->getType() == ElementType::RBEND ||
+            element->getType() == ElementType::RBEND3D) {
 
             BendBase * bendElement = static_cast<BendBase*>(element.get());
             thisLength = bendElement->getChordLength();
@@ -364,7 +364,7 @@ void OpalBeamline::save3DLattice() {
         OpalData::getInstance()->getAuxiliaryOutputDirectory(),
         OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt"
     });
-    if (OpalData::getInstance()->getOpenMode() == OpalData::OPENMODE::APPEND &&
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::APPEND &&
         boost::filesystem::exists(fileName)) {
         pos.open(fileName, std::ios_base::app);
     } else {
@@ -381,8 +381,8 @@ void OpalBeamline::save3DLattice() {
 
         mesh.add(*(element.get()));
 
-        if (element->getType() == ElementBase::SBEND ||
-            element->getType() == ElementBase::RBEND) {
+        if (element->getType() == ElementType::SBEND ||
+            element->getType() == ElementType::RBEND) {
 
             Bend2D * bendElement = static_cast<Bend2D*>(element.get());
             std::vector<Vector_t> designPath = bendElement->getDesignPath();
@@ -561,8 +561,8 @@ void OpalBeamline::save3DInput() {
 
         input = boost::regex_replace(input, replaceELEMEDGE, position);
 
-        if (element->getType() == ElementBase::RBEND ||
-            element->getType() == ElementBase::SBEND) {
+        if (element->getType() == ElementType::RBEND ||
+            element->getType() == ElementType::SBEND) {
             const Bend2D* dipole = static_cast<const Bend2D*>(element.get());
             double angle = dipole->getBendAngle();
             double E1 = dipole->getEntranceAngle();
@@ -598,8 +598,8 @@ void OpalBeamline::activateElements() {
     double designEnergy = 0.0;
     for (; it != end; ++ it) {
         std::shared_ptr<Component> element = (*it).getElement();
-        if (element->getType() == ElementBase::SBEND ||
-            element->getType() == ElementBase::RBEND) {
+        if (element->getType() == ElementType::SBEND ||
+            element->getType() == ElementType::RBEND) {
             Bend2D * bendElement = static_cast<Bend2D*>(element.get());
             designEnergy = bendElement->getDesignEnergy() * Units::eV2MeV;
         }

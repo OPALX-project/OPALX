@@ -225,9 +225,9 @@ int PluginElement::checkPoint(const double &x, const double &y) const {
 }
 
 void PluginElement::save() {
-    OpalData::OPENMODE openMode;
+    OpalData::OpenMode openMode;
     if (numPassages_m > 0) {
-        openMode = OpalData::OPENMODE::APPEND;
+        openMode = OpalData::OpenMode::APPEND;
     } else {
         openMode = OpalData::getInstance()->getOpenMode();
     }

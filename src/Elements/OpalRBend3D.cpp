@@ -123,7 +123,7 @@ void OpalRBend3D::update() {
 
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
     }
 
     if (itsAttr[LENGTH]) {

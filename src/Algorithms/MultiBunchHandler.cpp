@@ -93,12 +93,12 @@ MultiBunchHandler::MultiBunchHandler(PartBunchBase<double, 3> *beam,
     } else {
         if(beam->pbin_m->getLastemittedBin() < 2) {
             *gmsg << "In this restart job, the multi-bunches mode is forcely set to AUTO mode." << endl;
-            mode_m = MB_MODE::AUTO;
+            mode_m = MultiBunchMode::AUTO;
         } else {
             *gmsg << "In this restart job, the multi-bunches mode is forcely set to FORCE mode." << endl
                     << "If the existing bunch number is less than the specified number of TURN, "
                     << "readin the phase space of STEP#0 from h5 file consecutively" << endl;
-            mode_m = MB_MODE::FORCE;
+            mode_m = MultiBunchMode::FORCE;
         }
     }
 }
@@ -256,7 +256,7 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
                                      bool& flagTransition)
 {
     short result = 0;
-    if ((bunchCount_m == 1) && (mode_m == MB_MODE::AUTO) && (!flagTransition)) {
+    if ((bunchCount_m == 1) && (mode_m == MultiBunchMode::AUTO) && (!flagTransition)) {
 
         // we have still a single bunch
         beam->setTotalNumPerBunch(beam->getTotalNum(), 0);
@@ -316,8 +316,8 @@ short MultiBunchHandler::injectBunch(PartBunchBase<double, 3> *beam,
 
         // read initial distribution from h5 file
         switch ( mode_m ) {
-            case MB_MODE::FORCE:
-            case MB_MODE::AUTO:
+            case MultiBunchMode::FORCE:
+            case MultiBunchMode::AUTO:
                 readBunch(beam, ref);
                 updateParticleBins(beam);
                 calcBunchBeamParameters(beam, bunchCount_m - 1);
@@ -345,10 +345,10 @@ void MultiBunchHandler::updateParticleBins(PartBunchBase<double, 3> *beam) {
     static IpplTimings::TimerRef binningTimer = IpplTimings::getTimer("Particle Binning");
     IpplTimings::startTimer(binningTimer);
     switch ( binning_m ) {
-        case MB_BINNING::GAMMA:
+        case MultiBunchBinning::GAMMA:
             beam->resetPartBinID2(eta_m);
             break;
-        case MB_BINNING::BUNCH:
+        case MultiBunchBinning::BUNCH:
             beam->resetPartBinBunch();
             break;
         default:
@@ -362,13 +362,13 @@ void MultiBunchHandler::setMode(const std::string& mbmode) {
     if ( mbmode.compare("FORCE") == 0 ) {
         *gmsg << "FORCE mode: The multi bunches will be injected consecutively" << endl
               << "            after each revolution, until get \"TURNS\" bunches." << endl;
-        mode_m = MB_MODE::FORCE;
+        mode_m = MultiBunchMode::FORCE;
     } else if ( mbmode.compare("AUTO") == 0 ) {
         *gmsg << "AUTO mode: The multi bunches will be injected only when the" << endl
               << "           distance between two neighboring bunches is below" << endl
               << "           the limitation. The control parameter is set to "
               << coeffDBunches_m << endl;
-        mode_m = MB_MODE::AUTO;
+        mode_m = MultiBunchMode::AUTO;
     }
 }
 
@@ -377,16 +377,16 @@ void MultiBunchHandler::setBinning(std::string binning) {
 
     if ( binning.compare("BUNCH_BINNING") == 0 ) {
         *gmsg << "Use 'BUNCH_BINNING' injection for binnning." << endl;
-        binning_m = MB_BINNING::BUNCH;
+        binning_m = MultiBunchBinning::BUNCH;
     } else if ( binning.compare("GAMMA_BINNING") == 0 ) {
         *gmsg << "Use 'GAMMA_BINNING' for binning." << endl;
-        binning_m = MB_BINNING::GAMMA;
+        binning_m = MultiBunchBinning::GAMMA;
     }
 }
 
 
 void MultiBunchHandler::setRadiusTurns(const double& radius) {
-    if ( mode_m != MB_MODE::AUTO )
+    if ( mode_m != MultiBunchMode::AUTO )
         return;
 
     radiusLastTurn_m = radius;

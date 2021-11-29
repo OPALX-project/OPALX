@@ -65,7 +65,7 @@ public:
     const std::string getTypeName() const;
 
     //return the element aperture vector
-    std::pair<ElementBase::ApertureType, std::vector<double> > getApert() const;
+    std::pair<ApertureType, std::vector<double> > getApert() const;
 
     /// Return the element's type name.
     const std::string getWakeF() const;

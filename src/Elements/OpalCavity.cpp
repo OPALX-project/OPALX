@@ -152,7 +152,6 @@ void OpalCavity::update() {
     rfc->setFast(fast);
     rfc->setAutophaseVeto(apVeto);
     rfc->setCavityType(type);
-    rfc->setComponentType(type);
     rfc->setRmin(rmin);
     rfc->setRmax(rmax);
     rfc->setAzimuth(angle);

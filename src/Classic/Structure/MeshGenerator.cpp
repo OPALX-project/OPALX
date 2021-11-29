@@ -19,17 +19,17 @@ void MeshGenerator::add(const ElementBase &element) {
     double start = 0.0;
 
     MeshData mesh;
-    if (element.getType() == ElementBase::SBEND ||
-        element.getType() == ElementBase::RBEND) {
+    if (element.getType() == ElementType::SBEND ||
+        element.getType() == ElementType::RBEND) {
 
         const Bend2D* dipole = static_cast<const Bend2D*>(&element);
         mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
-    } else if (element.getType() == ElementBase::RBEND3D) {
+    } else if (element.getType() == ElementType::RBEND3D) {
         const RBend3D* dipole = static_cast<const RBend3D*>(&element);
         mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
-    } else if (element.getType() == ElementBase::DRIFT) {
+    } else if (element.getType() == ElementType::DRIFT) {
         return;
     } else {
         double end, length;
@@ -38,12 +38,12 @@ void MeshGenerator::add(const ElementBase &element) {
         auto apert = element.getAperture();
 
         switch (apert.first) {
-        case ElementBase::RECTANGULAR:
-        case ElementBase::CONIC_RECTANGULAR:
+        case ApertureType::RECTANGULAR:
+        case ApertureType::CONIC_RECTANGULAR:
             mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
             break;
-        case ElementBase::ELLIPTICAL:
-        case ElementBase::CONIC_ELLIPTICAL:
+        case ApertureType::ELLIPTICAL:
+        case ApertureType::CONIC_ELLIPTICAL:
             mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
             break;
         default:
@@ -51,7 +51,7 @@ void MeshGenerator::add(const ElementBase &element) {
         }
 
         switch(element.getType()) {
-        case ElementBase::MULTIPOLE:
+        case ElementType::MULTIPOLE:
             switch(static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex()) {
             case 1:
                 mesh.type_m = DIPOLE;
@@ -69,12 +69,12 @@ void MeshGenerator::add(const ElementBase &element) {
                 break;
             }
             break;
-        case ElementBase::RFCAVITY:
-        case ElementBase::VARIABLERFCAVITY:
-        case ElementBase::TRAVELINGWAVE:
+        case ElementType::RFCAVITY:
+        case ElementType::VARIABLERFCAVITY:
+        case ElementType::TRAVELINGWAVE:
             mesh.type_m = RFCAVITY;
             break;
-        case ElementBase::SOLENOID:
+        case ElementType::SOLENOID:
             mesh.type_m = SOLENOID;
             break;
         default:

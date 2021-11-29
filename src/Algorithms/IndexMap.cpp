@@ -256,8 +256,8 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         auto element = (*it).first;
         auto name = element->getName();
         auto type = element->getType();
-        if (type != ElementBase::RFCAVITY &&
-            type != ElementBase::TRAVELINGWAVE) {
+        if (type != ElementType::RFCAVITY &&
+            type != ElementType::TRAVELINGWAVE) {
             continue;
         }
 
@@ -318,8 +318,8 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 namespace {
     void insertFlags(std::vector<double> &flags, std::shared_ptr<Component> element) {
         switch (element->getType()) {
-        case ElementBase::RBEND:
-        case ElementBase::SBEND:
+        case ElementType::RBEND:
+        case ElementType::SBEND:
             {
                 const Bend2D* bend = static_cast<const Bend2D*>(element.get());
                 if (bend->getRotationAboutZ() > 0.5 * Physics::pi &&
@@ -330,7 +330,7 @@ namespace {
                 }
             }
             break;
-        case ElementBase::MULTIPOLE:
+        case ElementType::MULTIPOLE:
             {
                 const Multipole* mult = static_cast<const Multipole*>(element.get());
                 switch(mult->getMaxNormalComponentIndex()) {
@@ -354,14 +354,14 @@ namespace {
                 }
             }
             break;
-        case ElementBase::SOLENOID:
+        case ElementType::SOLENOID:
             flags[SOLENOID] = 1;
             break;
-        case ElementBase::RFCAVITY:
-        case ElementBase::TRAVELINGWAVE:
+        case ElementType::RFCAVITY:
+        case ElementType::TRAVELINGWAVE:
             flags[RFCAVITY] = 1;
             break;
-        case ElementBase::MONITOR:
+        case ElementType::MONITOR:
             flags[MONITOR] = 1;
             break;
         default:
