@@ -170,8 +170,8 @@ void Solenoid::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-ElementBase::ElementType Solenoid::getType() const {
-    return SOLENOID;
+ElementType Solenoid::getType() const {
+    return ElementType::SOLENOID;
 }
 
 bool Solenoid::isInside(const Vector_t &r) const {

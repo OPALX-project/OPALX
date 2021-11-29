@@ -1178,7 +1178,7 @@ bool Bend2D::setupBendGeometry(double &startField, double &endField) {
     }
 
     reinitialize_m = findIdealBendParameters(chordLength_m);
-    if (getType() == RBEND) {
+    if (getType() == ElementType::RBEND) {
         setEntranceAngle(getEntranceAngle());
     }
 
@@ -1515,7 +1515,7 @@ MeshData Bend2D::getSurfaceMesh() const {
     Vector_t T = cross(P1 - rotationCenter, P2 - rotationCenter);
     if (T[1] > 0) { // fringe fields are overlapping
         Vector_t dir1 = toEntranceRegion_m.rotateFrom(Vector_t(1, 0, 0));
-        if (this->getType() == ElementBase::RBEND ||
+        if (this->getType() == ElementType::RBEND ||
             std::abs(entranceAngle_m + exitAngle_m - angle_m) < 1e-8) {
             mesh.decorations_m.push_back(std::make_pair(0.5 * (P1 + P2) - 0.25 * dir1,
                                                         0.5 * (P1 + P2) + 0.25 * dir1));
