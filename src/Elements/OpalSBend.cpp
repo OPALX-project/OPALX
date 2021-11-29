@@ -165,9 +165,9 @@ void OpalSBend::update() {
 
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({hapert, gap, 1.0}));
+        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, gap, 1.0}));
     } else {
-        bend->setAperture(ElementBase::RECTANGULAR, std::vector<double>({0.5, gap, 1.0}));
+        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({0.5, gap, 1.0}));
     }
 
     if (itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {

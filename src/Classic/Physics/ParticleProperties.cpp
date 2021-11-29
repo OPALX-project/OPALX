@@ -18,37 +18,35 @@
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 
-#include <boost/bimap.hpp>
 #include <boost/assign.hpp>
 
 
 ParticleType ParticleProperties::getParticleType(const std::string& str) {
-    auto it = bmParticleType_m.right.find(str);
-    if (it != bmParticleType_m.right.end()) {
+    auto it = bmParticleType_s.right.find(str);
+    if (it != bmParticleType_s.right.end()) {
         return it->second;
     } else {
         return ParticleType::UNNAMED;
     }
 }
 
-std::string ParticleProperties::getParticleTypeString(ParticleType type) {
-    return bmParticleType_m.left.at(type);
+std::string ParticleProperties::getParticleTypeString(const ParticleType& type) {
+    return bmParticleType_s.left.at(type);
 }
 
-double ParticleProperties::getParticleMass(ParticleType type) {
+double ParticleProperties::getParticleMass(const ParticleType& type) {
     return particleMass_m.at(type);
 }
 
-double ParticleProperties::getParticleCharge(ParticleType type) {
+double ParticleProperties::getParticleCharge(const ParticleType& type) {
     return particleCharge_m.at(type);
 }
 
-double ParticleProperties::getParticleChargeInCoulomb(ParticleType type) {
+double ParticleProperties::getParticleChargeInCoulomb(const ParticleType& type) {
     return getParticleCharge(type) * Physics::q_e;
 }
 
-
-const boost::bimap<ParticleType, std::string> ParticleProperties::bmParticleType_m = {
+const boost::bimap<ParticleType, std::string> ParticleProperties::bmParticleType_s = {
     boost::assign::list_of<const boost::bimap<ParticleType, std::string>::relation>
         (ParticleType::UNNAMED,    "UNNAMED")
         (ParticleType::ELECTRON,   "ELECTRON")

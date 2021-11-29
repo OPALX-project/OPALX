@@ -125,9 +125,9 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
                                                        RefPartBunch_m->Q[i],
                                                        RefPartBunch_m->M[i]));
                 }
-                OpalData::OPENMODE openMode;
+                OpalData::OpenMode openMode;
                 if (numPassages_m > 0) {
-                    openMode = OpalData::OPENMODE::APPEND;
+                    openMode = OpalData::OpenMode::APPEND;
                 } else {
                     openMode = OpalData::getInstance()->getOpenMode();
                 }
@@ -153,7 +153,7 @@ void Monitor::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
 
     filename_m = getOutputFN();
 
-    if (OpalData::getInstance()->getOpenMode() == OpalData::OPENMODE::WRITE ||
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE ||
         currentPosition < startField) {
 
         namespace fs = boost::filesystem;
@@ -200,8 +200,8 @@ void Monitor::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-ElementBase::ElementType Monitor::getType() const {
-    return MONITOR;
+ElementType Monitor::getType() const {
+    return ElementType::MONITOR;
 }
 
 void Monitor::writeStatistics() {

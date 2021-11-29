@@ -199,8 +199,8 @@ void FlexibleCollimator::getDimensions(double& zBegin, double& zEnd) const {
     zEnd = getElementLength();
 }
 
-ElementBase::ElementType FlexibleCollimator::getType() const {
-    return FLEXIBLECOLLIMATOR;
+ElementType FlexibleCollimator::getType() const {
+    return ElementType::FLEXIBLECOLLIMATOR;
 }
 
 void FlexibleCollimator::setDescription(const std::string& desc) {

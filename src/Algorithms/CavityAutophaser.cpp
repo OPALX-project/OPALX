@@ -53,8 +53,8 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
                                              const Vector_t &P,
                                              double t,
                                              double dt) {
-    if(!(itsCavity_m->getType() == ElementBase::TRAVELINGWAVE ||
-         itsCavity_m->getType() == ElementBase::RFCAVITY)) {
+    if(!(itsCavity_m->getType() == ElementType::TRAVELINGWAVE ||
+         itsCavity_m->getType() == ElementType::RFCAVITY)) {
         throw OpalException("CavityAutophaser::getPhaseAtMaxEnergy()",
                             "given element is not a cavity");
     }

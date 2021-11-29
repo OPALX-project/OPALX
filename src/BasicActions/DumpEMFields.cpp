@@ -35,6 +35,11 @@ extern Inform* gmsg;
 
 std::unordered_set<DumpEMFields*> DumpEMFields::dumpsSet_m;
 
+const std::map<std::string, DumpEMFields::CoordinateSystem> DumpEMFields::stringCoordinateSystem_s = {
+    {"CARTESIAN",   CoordinateSystem::CARTESIAN},
+    {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
+};
+
 DumpEMFields::DumpEMFields() :
     Action(SIZE, "DUMPEMFIELDS",
            "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
@@ -130,13 +135,8 @@ DumpEMFields* DumpEMFields::clone(const std::string& name) {
 }
 
 void DumpEMFields::parseCoordinateSystem() {
-
     std::string coordStr = Attributes::getString(itsAttr[COORDINATE_SYSTEM]);
-    if (coordStr == "CYLINDRICAL") {
-        coordinates_m = CoordinateSystem::CYLINDRICAL;
-    } else if (coordStr == "CARTESIAN") {
-        coordinates_m = CoordinateSystem::CARTESIAN;
-    }
+    coordinates_m = stringCoordinateSystem_s.at(coordStr);
 }
 
 void DumpEMFields::execute() {
@@ -154,31 +154,39 @@ void DumpEMFields::buildGrid() {
     std::vector<int> gridSize(4);
     parseCoordinateSystem();
 
-    if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        origin[0] = Attributes::getReal(itsAttr[R_START]);
-        spacing[0] = Attributes::getReal(itsAttr[DR]);
-        double nr = Attributes::getReal(itsAttr[R_STEPS]);
-        checkInt(nr, "R_STEPS");
-        gridSize[0] = nr;
+    switch (coordinates_m) {
+        case CoordinateSystem::CARTESIAN: {
+            origin[0] = Attributes::getReal(itsAttr[X_START]);
+            spacing[0] = Attributes::getReal(itsAttr[DX]);
+            double nx = Attributes::getReal(itsAttr[X_STEPS]);
+            checkInt(nx, "X_STEPS");
+            gridSize[0] = nx;
 
-        origin[1] = Attributes::getReal(itsAttr[PHI_START]);
-        spacing[1] = Attributes::getReal(itsAttr[DPHI]);
-        double nphi = Attributes::getReal(itsAttr[PHI_STEPS]);
-        checkInt(nphi, "PHI_STEPS");
-        gridSize[1] = nphi;
-    } else {
-        origin[0] = Attributes::getReal(itsAttr[X_START]);
-        spacing[0] = Attributes::getReal(itsAttr[DX]);
-        double nx = Attributes::getReal(itsAttr[X_STEPS]);
-        checkInt(nx, "X_STEPS");
-        gridSize[0] = nx;
+            origin[1] = Attributes::getReal(itsAttr[Y_START]);
+            spacing[1] = Attributes::getReal(itsAttr[DY]);
+            double ny = Attributes::getReal(itsAttr[Y_STEPS]);
+            checkInt(ny, "Y_STEPS");
+            gridSize[1] = ny;
 
-        origin[1] = Attributes::getReal(itsAttr[Y_START]);
-        spacing[1] = Attributes::getReal(itsAttr[DY]);
-        double ny = Attributes::getReal(itsAttr[Y_STEPS]);
-        checkInt(ny, "Y_STEPS");
-        gridSize[1] = ny;
+            break;
+        }
+        case CoordinateSystem::CYLINDRICAL: {
+            origin[0] = Attributes::getReal(itsAttr[R_START]);
+            spacing[0] = Attributes::getReal(itsAttr[DR]);
+            double nr = Attributes::getReal(itsAttr[R_STEPS]);
+            checkInt(nr, "R_STEPS");
+            gridSize[0] = nr;
+
+            origin[1] = Attributes::getReal(itsAttr[PHI_START]);
+            spacing[1] = Attributes::getReal(itsAttr[DPHI]);
+            double nphi = Attributes::getReal(itsAttr[PHI_STEPS]);
+            checkInt(nphi, "PHI_STEPS");
+            gridSize[1] = nphi;
+
+            break;
+        }
     }
+
     origin[2] = Attributes::getReal(itsAttr[Z_START]);
     spacing[2] = Attributes::getReal(itsAttr[DZ]);
     double nz = Attributes::getReal(itsAttr[Z_STEPS]);
@@ -222,29 +230,33 @@ void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
 
 void DumpEMFields::writeHeader(std::ofstream& fout) const {
     fout << grid_m->end().toInteger() << "\n";
-    if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        fout << 1 << "  r [m]\n";
-        fout << 2 << "  phi [deg]\n";
-    } else {
-        fout << 1 << "  x [m]\n";
-        fout << 2 << "  y [m]\n";
-    }
-    fout << 3 << "  z [m]\n";
-    fout << 4 << "  t [ns]\n";
-    if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        fout << 5 << "  Br   [kGauss]\n";
-        fout << 6 << "  Bphi [kGauss]\n";
-        fout << 7 << "  Bz   [kGauss]\n";
-        fout << 8 << "  Er   [MV/m]\n";
-        fout << 9 << "  Ephi [MV/m]\n";
-        fout << 10 << " Ez   [MV/m]\n";
-    } else {
-        fout << 5 << "  Bx [kGauss]\n";
-        fout << 6 << "  By [kGauss]\n";
-        fout << 7 << "  Bz [kGauss]\n";
-        fout << 8 << "  Ex [MV/m]\n";
-        fout << 9 << "  Ey [MV/m]\n";
-        fout << 10 << " Ez [MV/m]\n";
+    switch (coordinates_m) {
+        case CoordinateSystem::CARTESIAN: {
+            fout << 1 << "  x [m]\n";
+            fout << 2 << "  y [m]\n";
+            fout << 3 << "  z [m]\n";
+            fout << 4 << "  t [ns]\n";
+            fout << 5 << "  Bx [kGauss]\n";
+            fout << 6 << "  By [kGauss]\n";
+            fout << 7 << "  Bz [kGauss]\n";
+            fout << 8 << "  Ex [MV/m]\n";
+            fout << 9 << "  Ey [MV/m]\n";
+            fout << 10 << " Ez [MV/m]\n";
+            break;
+        }
+        case CoordinateSystem::CYLINDRICAL: {
+            fout << 1 << "  r [m]\n";
+            fout << 2 << "  phi [deg]\n";
+            fout << 3 << "  z [m]\n";
+            fout << 4 << "  t [ns]\n";
+            fout << 5 << "  Br   [kGauss]\n";
+            fout << 6 << "  Bphi [kGauss]\n";
+            fout << 7 << "  Bz   [kGauss]\n";
+            fout << 8 << "  Er   [MV/m]\n";
+            fout << 9 << "  Ephi [MV/m]\n";
+            fout << 10 << " Ez   [MV/m]\n";
+            break;
+        }
     }
     fout << 0 << std::endl;
 }
@@ -339,7 +351,7 @@ void DumpEMFields::print(std::ostream& os) const {
     os << "* ************* D U M P  E M  F I E L D S ****************************************** " << std::endl;
     os << "* File name: " << filename_m << '\n';
     if (coordinates_m == CoordinateSystem::CARTESIAN) {
-        os << "* Coordinate system: " << "Cartesian" << '\n'
+        os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
            << "* X_START   = " << Attributes::getReal(itsAttr[X_START]) << " [m]\n"
            << "* DX        = " << Attributes::getReal(itsAttr[DX])      << " [m]\n"
            << "* X_STEPS   = " << Attributes::getReal(itsAttr[X_STEPS]) << '\n'
@@ -347,7 +359,7 @@ void DumpEMFields::print(std::ostream& os) const {
            << "* DY        = " << Attributes::getReal(itsAttr[DY])      << " [m]\n"
            << "* Y_STEPS   = " << Attributes::getReal(itsAttr[Y_STEPS]) << '\n';
     } else if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
-        os << "* Coordinate system: " << "Cylindrical" << '\n'
+        os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
            << "* R_START   = " << Attributes::getReal(itsAttr[R_START])   << " [m]\n"
            << "* DR        = " << Attributes::getReal(itsAttr[DR])        << " [m]\n"
            << "* R_STEPS   = " << Attributes::getReal(itsAttr[R_STEPS])   << '\n'

@@ -28,13 +28,20 @@
 #include "Algorithms/PartData.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
 
+#include <map>
+#include <string>
+
 class ElementBase;
 class Inform;
+
+enum class InteractionType: unsigned short {
+    SCATTERING,
+    BEAMSTRIPPING
+};
 
 class ParticleMatterInteraction: public Definition {
 
 public:
-
     /// Exemplar constructor.
     ParticleMatterInteraction();
 
@@ -64,13 +71,17 @@ public:
     ParticleMatterInteractionHandler* handler_m;
 
 private:
-
     // Not implemented.
     ParticleMatterInteraction(const ParticleMatterInteraction&);
     void operator=(const ParticleMatterInteraction&);
 
     // Clone constructor.
     ParticleMatterInteraction(const std::string& name, ParticleMatterInteraction* parent);
+
+    void getInteractionType();
+
+    InteractionType type_m;
+    static const std::map<std::string, InteractionType> stringInteractionType_s;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const ParticleMatterInteraction& b) {

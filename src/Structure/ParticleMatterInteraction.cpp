@@ -26,7 +26,6 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "Physics/Physics.h"
 #include "Solvers/BeamStrippingPhysics.h"
 #include "Solvers/ScatteringPhysics.h"
 #include "Utilities/OpalException.h"
@@ -45,13 +44,19 @@ namespace {
     };
 }
 
+const std::map<std::string, InteractionType> ParticleMatterInteraction::stringInteractionType_s = {
+    {"SCATTERING",    InteractionType::SCATTERING},
+    {"BEAMSTRIPPING", InteractionType::BEAMSTRIPPING}
+};
+
 ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATTERINTERACTION",
                "The \"PARTICLEMATTERINTERACTION\" statement defines data for "
                "the particle matter interaction handler on an element."),
     handler_m(0) {
     itsAttr[TYPE] = Attributes::makePredefinedString
-        ("TYPE", "Specifies the particle matter interaction handler.", {"SCATTERING", "BEAMSTRIPPING"});
+        ("TYPE", "Specifies the particle matter interaction handler.",
+         {"SCATTERING", "BEAMSTRIPPING"});
 
     itsAttr[MATERIAL] = Attributes::makePredefinedString
         ("MATERIAL", "The material of the surface.",
@@ -119,10 +124,12 @@ void ParticleMatterInteraction::execute() {
 
 
 ParticleMatterInteraction* ParticleMatterInteraction::find(const std::string& name) {
-    ParticleMatterInteraction* parmatint = dynamic_cast<ParticleMatterInteraction*>(OpalData::getInstance()->find(name));
+    ParticleMatterInteraction* parmatint =
+        dynamic_cast<ParticleMatterInteraction*>(OpalData::getInstance()->find(name));
 
     if (parmatint == 0) {
-        throw OpalException("ParticleMatterInteraction::find()", "ParticleMatterInteraction \"" + name + "\" not found.");
+        throw OpalException("ParticleMatterInteraction::find()",
+                            "ParticleMatterInteraction \"" + name + "\" not found.");
     }
     return parmatint;
 }
@@ -133,24 +140,34 @@ void ParticleMatterInteraction::update() {
     if (getOpalName().empty()) setOpalName("UNNAMED_PARTICLEMATTERINTERACTION");
 }
 
+void ParticleMatterInteraction::getInteractionType() {
+    const std::string type = Attributes::getString(itsAttr[TYPE]);
+    if (type.empty()) {
+        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                            "The attribute \"TYPE\" isn't set for \"PARTICLEMATTERINTERACTION\"!");
+    } else {
+        type_m = stringInteractionType_s.at(type);
+    }
+}
 
 void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase& element) {
 
-    const std::string type = Attributes::getString(itsAttr[TYPE]);
-    std::string material   = Attributes::getString(itsAttr[MATERIAL]);
-    bool enableRutherford  = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-    double lowEnergyThr    = Attributes::getReal(itsAttr[LOWENERGYTHR]);
+    getInteractionType();
 
-    if (type.empty()) {
-        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
-                            "TYPE is not defined for PARTICLEMATTERINTERACTION");
-    } else if (type == "SCATTERING") {
-         handler_m = new ScatteringPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
-         *gmsg << *this << endl;
-    } else if (type == "BEAMSTRIPPING") {
-         handler_m = new BeamStrippingPhysics(getOpalName(), &element);
-         *gmsg << *this << endl;
+    switch (type_m) {
+        case InteractionType::SCATTERING: {
+            std::string material   = Attributes::getString(itsAttr[MATERIAL]);
+            bool enableRutherford  = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
+            double lowEnergyThr    = Attributes::getReal(itsAttr[LOWENERGYTHR]);
+            handler_m = new ScatteringPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
+            break;
+        }
+        case InteractionType::BEAMSTRIPPING: {
+            handler_m = new BeamStrippingPhysics(getOpalName(), &element);
+            break;
+        }
     }
+    *gmsg << *this << endl;
 }
 
 void ParticleMatterInteraction::updateElement(ElementBase* element) {
@@ -162,8 +179,13 @@ void ParticleMatterInteraction::print(std::ostream& os) const {
     os << "* PARTICLEMATTERINTERACTION  " << getOpalName() << '\n'
        << "* TYPE                       " << Attributes::getString(itsAttr[TYPE]) << '\n'
        << "* ELEMENT                    " << handler_m->getElement()->getName() << '\n';
-    if ( Attributes::getString(itsAttr[TYPE]) == "SCATTERING" ) {
+    if (type_m == InteractionType::SCATTERING) {
         os << "* MATERIAL                   " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
+
+        std::ostringstream valueStream;
+        valueStream << std::boolalpha << Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
+        os << "* ENABLERUTHERFORD           " << Util::toUpper(valueStream.str()) << '\n';
+
         os << "* LOWENERGYTHR               " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV\n";
     }
     os << "* ********************************************************************************** " << std::endl;

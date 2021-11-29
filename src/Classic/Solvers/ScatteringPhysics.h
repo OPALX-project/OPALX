@@ -119,7 +119,7 @@ private:
 
     gsl_rng* rGen_m;                           // random number generator
     std::string material_m;                    // type of material e.g. aluminum
-    ElementBase::ElementType collshape_m;      // the type of element (DEGRADER, CCOLLIMATOR or FLEXIBLECOLLIMATOR)
+    ElementType collshape_m;      // the type of element (DEGRADER, CCOLLIMATOR or FLEXIBLECOLLIMATOR)
     std::string collshapeStr_m;                // the type of element as string
 
     // material parameters

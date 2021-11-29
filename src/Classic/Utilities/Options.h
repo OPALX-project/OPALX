@@ -19,10 +19,15 @@
 #ifndef OPTIONS_HH
 #define OPTIONS_HH
 
-#include "OptionTypes.h"
 #include "Utilities/ClassicRandom.h"
 
 #include <string>
+
+enum class DumpFrame: unsigned short {
+    GLOBAL,
+    BUNCH_MEAN,
+    REFERENCE
+};
 
 namespace Options {
     /// Echo flag.

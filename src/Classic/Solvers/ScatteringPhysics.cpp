@@ -142,13 +142,13 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
 
     collshape_m = element_ref_m->getType();
     switch (collshape_m) {
-    case ElementBase::DEGRADER:
+    case ElementType::DEGRADER:
         hitTester_m.reset(new DegraderInsideTester(element_ref_m));
         break;
-    case ElementBase::CCOLLIMATOR:
+    case ElementType::CCOLLIMATOR:
         hitTester_m.reset(new CollimatorInsideTester(element_ref_m));
         break;
-    case ElementBase::FLEXIBLECOLLIMATOR:
+    case ElementType::FLEXIBLECOLLIMATOR:
         hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
         break;
     default:

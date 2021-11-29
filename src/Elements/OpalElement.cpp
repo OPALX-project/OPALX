@@ -133,10 +133,10 @@ OpalElement::~OpalElement()
 {}
 
 
-std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert() const {
+std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
 
-    std::pair<ElementBase::ApertureType, std::vector<double> > retvalue(ElementBase::ELLIPTICAL,
-                                                                        std::vector<double>({0.5, 0.5, 1.0}));
+    std::pair<ApertureType, std::vector<double> > retvalue(ApertureType::ELLIPTICAL,
+                                                           std::vector<double>({0.5, 0.5, 1.0}));
     if (!itsAttr[APERT]) return retvalue;
 
     std::string aperture = Attributes::getString(itsAttr[APERT]);
@@ -156,7 +156,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
     if (boost::regex_search(aperture, match, square)) {
         std::string arguments = match[1];
         if (!boost::regex_search(arguments, match, twoArguments)) {
-            retvalue.first = ElementBase::RECTANGULAR;
+            retvalue.first = ApertureType::RECTANGULAR;
 
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(arguments);
@@ -167,7 +167,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
             }
 
         } else {
-            retvalue.first = ElementBase::CONIC_RECTANGULAR;
+            retvalue.first = ApertureType::CONIC_RECTANGULAR;
 
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
@@ -186,7 +186,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
         std::string arguments = match[1];
 
         if (!boost::regex_search(arguments, match, threeArguments)) {
-            retvalue.first = ElementBase::RECTANGULAR;
+            retvalue.first = ApertureType::RECTANGULAR;
 
             try {
                 size_t sz = 0;
@@ -201,7 +201,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
             }
 
         } else {
-            retvalue.first = ElementBase::CONIC_RECTANGULAR;
+            retvalue.first = ApertureType::CONIC_RECTANGULAR;
 
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
@@ -219,7 +219,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
     if (boost::regex_search(aperture, match, circle)) {
         std::string arguments = match[1];
         if (!boost::regex_search(arguments, match, twoArguments)) {
-            retvalue.first = ElementBase::ELLIPTICAL;
+            retvalue.first = ApertureType::ELLIPTICAL;
 
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(arguments);
@@ -230,7 +230,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
             }
 
         } else {
-            retvalue.first = ElementBase::CONIC_ELLIPTICAL;
+            retvalue.first = ApertureType::CONIC_ELLIPTICAL;
 
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
@@ -249,7 +249,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
         std::string arguments = match[1];
 
         if (!boost::regex_search(arguments, match, threeArguments)) {
-            retvalue.first = ElementBase::ELLIPTICAL;
+            retvalue.first = ApertureType::ELLIPTICAL;
 
             try {
                 size_t sz = 0;
@@ -264,7 +264,7 @@ std::pair<ElementBase::ApertureType, std::vector<double> > OpalElement::getApert
             }
 
         } else {
-            retvalue.first = ElementBase::CONIC_ELLIPTICAL;
+            retvalue.first = ApertureType::CONIC_ELLIPTICAL;
 
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);

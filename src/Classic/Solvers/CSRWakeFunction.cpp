@@ -134,8 +134,8 @@ void CSRWakeFunction::apply(PartBunchBase<double, 3> *bunch) {
 }
 
 void CSRWakeFunction::initialize(const ElementBase *ref) {
-    if (ref->getType() == ElementBase::RBEND ||
-       ref->getType() == ElementBase::SBEND) {
+    if (ref->getType() == ElementType::RBEND ||
+       ref->getType() == ElementType::SBEND) {
 
         const Bend2D *bend = static_cast<const Bend2D *>(ref);
         double End;

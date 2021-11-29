@@ -18,16 +18,11 @@
 #ifndef OPAL_Distribution_HH
 #define OPAL_Distribution_HH
 
-#include <fstream>
-#include <string>
-#include <vector>
-
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Vektor.h"
 #include "AppTypes/SymTenzor.h"
 #include "Attributes/Attributes.h"
-
 #include "Distribution/SigmaGenerator.h"
 
 #include <gsl/gsl_histogram.h>
@@ -37,6 +32,10 @@
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
 #endif
+
+#include <fstream>
+#include <string>
+#include <vector>
 
 class Beam;
 class Beamline;
@@ -48,34 +47,28 @@ class PartBins;
 class LaserProfile;
 class H5PartWrapper;
 
-namespace DistrTypeT
-{
-    enum DistrTypeT {NODIST,
-                     FROMFILE,
-                     GAUSS,
-                     BINOMIAL,
-                     FLATTOP,
-                     MULTIGAUSS,
-                     GUNGAUSSFLATTOPTH,
-                     ASTRAFLATTOPTH,
-                     MATCHEDGAUSS
-                    };
-}
+enum class DistributionType: short {
+    NODIST = -1,
+    FROMFILE,
+    GAUSS,
+    BINOMIAL,
+    FLATTOP,
+    MULTIGAUSS,
+    GUNGAUSSFLATTOPTH,
+    ASTRAFLATTOPTH,
+    MATCHEDGAUSS
+};
 
-namespace EmissionModelT
-{
-    enum EmissionModelT {NONE,
-                         ASTRA,
-                         NONEQUIL
-                        };
-}
+enum class EmissionModel: unsigned short {
+    NONE,
+    ASTRA,
+    NONEQUIL
+};
 
-namespace InputMomentumUnitsT
-{
-    enum InputMomentumUnitsT {NONE,
-                              EVOVERC
-                              };
-}
+enum class InputMomentumUnits: unsigned short {
+    NONE,
+    EVOVERC
+};
 
 namespace Attrib
 {
@@ -257,8 +250,11 @@ public:
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
 
-    DistrTypeT::DistrTypeT getType() const;
+    DistributionType getType() const;
+
+
 private:
+
 #ifdef WITH_UNIT_TESTS
     FRIEND_TEST(GaussTest, FullSigmaTest1);
     FRIEND_TEST(GaussTest, FullSigmaTest2);
@@ -301,7 +297,7 @@ private:
     void checkEmissionParameters();
     void checkIfEmitted();
     void checkParticleNumber(size_t &numberOfParticles);
-    void chooseInputMomentumUnits(InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits);
+    void chooseInputMomentumUnits(InputMomentumUnits inputMoUnits);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
 
     class BinomialBehaviorSplitter {
@@ -389,7 +385,7 @@ private:
     void writeOutFileInjection();
 
     std::string distT_m;                 /// Distribution type. Declared as string
-    DistrTypeT::DistrTypeT distrTypeT_m; /// and list type for switch statements.
+    DistributionType distrTypeT_m; /// and list type for switch statements.
 
     unsigned int numberOfDistributions_m;
 
@@ -404,7 +400,7 @@ private:
     std::vector<size_t> particlesPerDist_m;
 
     /// Emission Model.
-    EmissionModelT::EmissionModelT emissionModel_m;
+    EmissionModel emissionModel_m;
 
     /// Emission parameters.
     double tEmission_m;
@@ -463,7 +459,7 @@ private:
     double avrgpz_m;
 
     //Distribution parameters.
-    InputMomentumUnitsT::InputMomentumUnitsT inputMoUnits_m;
+    InputMomentumUnits inputMoUnits_m;
     double sigmaTRise_m;
     double sigmaTFall_m;
     double tPulseLengthFWHM_m;
@@ -506,7 +502,7 @@ Vector_t Distribution::get_pmean() const {
 }
 
 inline
-DistrTypeT::DistrTypeT Distribution::getType() const {
+DistributionType Distribution::getType() const {
     return distrTypeT_m;
 }
 

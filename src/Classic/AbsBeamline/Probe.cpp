@@ -119,6 +119,6 @@ bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const
     return false;
 }
 
-ElementBase::ElementType Probe::getType() const {
-    return PROBE;
+ElementType Probe::getType() const {
+    return ElementType::PROBE;
 }

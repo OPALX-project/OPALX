@@ -39,10 +39,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include <fstream>
+#include <cmath>
 #include <cstring>
 #include <cstdio>
-#include <cmath>
+#include <fstream>
 
 #define CHECK_CYC_FSCANF_EOF(arg) if (arg == EOF)\
 throw GeneralClassicException("Cyclotron::getFieldFromFile",\
@@ -50,6 +50,16 @@ throw GeneralClassicException("Cyclotron::getFieldFromFile",\
 
 extern Inform* gmsg;
 
+
+const std::map<std::string, BFieldType> Cyclotron::typeStringToBFieldType_s = {
+    {"RING",             BFieldType::PSIBF},
+    {"CARBONCYCL",       BFieldType::CARBONBF},
+    {"CYCIAE",           BFieldType::ANSYSBF},
+    {"AVFEQ",            BFieldType::AVFEQBF},
+    {"FFA",              BFieldType::FFABF},
+    {"BANDRF",           BFieldType::BANDRF},
+    {"SYNCHROCYCLOTRON", BFieldType::SYNCHRO}
+};
 
 Cyclotron::Cyclotron():
     Component() {
@@ -181,7 +191,11 @@ void Cyclotron::setFieldMapFN(std::string f) {
 }
 
 std::string Cyclotron::getFieldMapFN() const {
-    if (boost::filesystem::exists(fmapfn_m)) {
+    if (fmapfn_m.empty()) {
+        throw GeneralClassicException(
+                        "Cyclotron::getFieldMapFN",
+                        "The attribute \"FMAPFN\" isn't set for the \"CYCLOTRON\" element!");
+    } else if (boost::filesystem::exists(fmapfn_m)) {
         return fmapfn_m;
     } else {
         throw GeneralClassicException("Cyclotron::getFieldMapFN",
@@ -257,8 +271,8 @@ const std::string &Cyclotron::getCyclotronType() const {
     return typeName_m;
 }
 
-ElementBase::ElementType Cyclotron::getType() const {
-    return CYCLOTRON;
+ElementType Cyclotron::getType() const {
+    return ElementType::CYCLOTRON;
 }
 
 void Cyclotron::setCyclHarm(double h) {
@@ -364,22 +378,11 @@ double Cyclotron::getFMHighE() const {
 
 void Cyclotron::setBFieldType() {
     if (typeName_m.empty()) {
-        throw GeneralClassicException("Cyclotron::setBFieldType",
-                                      "TYPE is not defined for CYCLOTRON!");
-    } else if (typeName_m == std::string("RING")) {
-        fieldType_m = BFieldType::PSIBF;
-    } else if (typeName_m == std::string("CARBONCYCL")) {
-        fieldType_m = BFieldType::CARBONBF;
-    } else if (typeName_m == std::string("CYCIAE")) {
-        fieldType_m = BFieldType::ANSYSBF;
-    } else if (typeName_m == std::string("AVFEQ")) {
-        fieldType_m = BFieldType::AVFEQBF;
-    } else if (typeName_m == std::string("FFA")) {
-        fieldType_m = BFieldType::FFABF;
-    } else if (typeName_m == std::string("BANDRF")) {
-        fieldType_m = BFieldType::BANDRF;
-    } else if (typeName_m == std::string("SYNCHROCYCLOTRON")) {
-        fieldType_m = BFieldType::SYNCHRO;
+        throw GeneralClassicException(
+                "Cyclotron::setBFieldType",
+                "The attribute \"TYPE\" isn't set for the \"CYCLOTRON\" element!");
+    } else {
+        fieldType_m = typeStringToBFieldType_s.at(typeName_m);
     }
 }
 

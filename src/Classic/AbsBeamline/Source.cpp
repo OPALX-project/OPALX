@@ -110,8 +110,8 @@ void Source::getDimensions(double& zBegin, double& zEnd) const {
     zEnd = endField_m;
 }
 
-ElementBase::ElementType Source::getType() const {
-    return SOURCE;
+ElementType Source::getType() const {
+    return ElementType::SOURCE;
 }
 
 void Source::setTransparent() {

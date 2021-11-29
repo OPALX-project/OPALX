@@ -49,7 +49,7 @@ public:
 
     virtual bool bends() const;
 
-    virtual ElementBase::ElementType getType() const;
+    virtual ElementType getType() const;
 
     virtual void getDimensions(double& zBegin, double& zEnd) const;
 

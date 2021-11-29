@@ -139,8 +139,8 @@ void ParallelTTracker::visitBeamline(const Beamline &bl) {
 }
 
 void ParallelTTracker::updateRFElement(std::string elName, double maxPhase) {
-    FieldList cavities = itsOpalBeamline_m.getElementByType(ElementBase::RFCAVITY);
-    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementBase::TRAVELINGWAVE);
+    FieldList cavities = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
+    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
     cavities.insert(cavities.end(), travelingwaves.begin(), travelingwaves.end());
 
     for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++ fit) {
@@ -189,7 +189,7 @@ void ParallelTTracker::execute() {
     evenlyDistributeParticles();
 
     if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
-        OpalData::getInstance()->setOpenMode(OpalData::OPENMODE::APPEND);
+        OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
     }
 
     prepareSections();
@@ -612,7 +612,7 @@ void ParallelTTracker::computeUndulator(IndexMap::value_t &elements) {
     UndulatorRep* und;
     IndexMap::value_t::const_iterator it = elements.begin();
     for (; it != elements.end(); ++ it)
-        if ((*it)->getType() == ElementBase::UNDULATOR) {
+        if ((*it)->getType() == ElementType::UNDULATOR) {
             und = dynamic_cast<UndulatorRep*>(it->get());
             if (!und->getHasBeenSimulated())
                 break;
@@ -649,8 +649,8 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
             if ((*it)->getWake()->getType() == "CSRWakeFunction" ||
                 (*it)->getWake()->getType() == "CSRIGFWakeFunction") {
-                if ((*it)->getType() == ElementBase::RBEND ||
-                    (*it)->getType() == ElementBase::SBEND) {
+                if ((*it)->getType() == ElementType::RBEND ||
+                    (*it)->getType() == ElementType::SBEND) {
                     wfInstance = (*it)->getWake();
                     wakeFunction_m = wfInstance;
                 } else {
@@ -1014,7 +1014,7 @@ void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bo
 
     if (statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
-        FieldList collimators = itsOpalBeamline_m.getElementByType(ElementBase::CCOLLIMATOR);
+        FieldList collimators = itsOpalBeamline_m.getElementByType(ElementType::CCOLLIMATOR);
         if (collimators.size() != 0) {
             for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
                 FlexibleCollimator* coll = static_cast<FlexibleCollimator*>(it->getElement().get());
@@ -1253,7 +1253,7 @@ void ParallelTTracker::autophaseCavities(const BorisPusher &pusher) {
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     for (auto element: elementSet) {
-        if (element->getType() == ElementBase::TRAVELINGWAVE) {
+        if (element->getType() == ElementType::TRAVELINGWAVE) {
             const TravelingWave *TWelement = static_cast<const TravelingWave *>(element.get());
             if (!TWelement->getAutophaseVeto()) {
                 CavityAutophaser ap(itsReference, element);
@@ -1262,7 +1262,7 @@ void ParallelTTracker::autophaseCavities(const BorisPusher &pusher) {
                                        t, itsBunch_m->getdT());
             }
 
-        } else if (element->getType() == ElementBase::RFCAVITY) {
+        } else if (element->getType() == ElementType::RFCAVITY) {
             const RFCavity *RFelement = static_cast<const RFCavity *>(element.get());
             if (!RFelement->getAutophaseVeto()) {
                 CavityAutophaser ap(itsReference, element);

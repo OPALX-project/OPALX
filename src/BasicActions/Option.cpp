@@ -18,28 +18,35 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/Option.h"
+
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Parser/FileStream.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
-#include "Utilities/OptionTypes.h"
 #include "Utilities/ClassicRandom.h"
 
 #include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplMemoryUsage.h"
 
+#include <boost/assign.hpp>
+
 #include <ctime>
+#include <cstddef>
 #include <iostream>
 #include <limits>
-#include <cstddef>
 
 extern Inform* gmsg;
 
 using namespace Options;
 
-std::string DumpFrameToString(DumpFrame df);
+const boost::bimap<DumpFrame, std::string> Option::bmDumpFrameString_s = {
+    boost::assign::list_of<const boost::bimap<DumpFrame, std::string>::relation>
+        (DumpFrame::GLOBAL,     "GLOBAL")
+        (DumpFrame::BUNCH_MEAN, "BUNCH_MEAN")
+        (DumpFrame::REFERENCE,  "REFERENCE")
+};
 
 namespace {
     // The attributes of class Option.
@@ -301,7 +308,7 @@ Option::Option(const std::string& name, Option* parent):
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
-    Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], DumpFrameToString(psDumpFrame));
+    Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], getDumpFrameString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
     Attributes::setReal(itsAttr[SCSOLVEFREQ], scSolveFreq);
     Attributes::setReal(itsAttr[MTSSUBSTEPS], mtsSubsteps);
@@ -508,25 +515,11 @@ void Option::execute() {
 }
 
 void Option::handlePsDumpFrame(const std::string& dumpFrame) {
-    if (dumpFrame == "GLOBAL") {
-        psDumpFrame = GLOBAL;
-    } else if (dumpFrame == "BUNCH_MEAN") {
-        psDumpFrame = BUNCH_MEAN;
-    } else if (dumpFrame == "REFERENCE") {
-        psDumpFrame = REFERENCE;
-    }
+    psDumpFrame = bmDumpFrameString_s.right.at(dumpFrame);
 }
 
-std::string DumpFrameToString(DumpFrame df) {
-    switch (df) {
-    case BUNCH_MEAN:
-        return std::string("BUNCH_MEAN");
-    case REFERENCE:
-        return std::string("REFERENCE");
-    case GLOBAL:
-    default:
-        return std::string("GLOBAL");
-    }
+std::string Option::getDumpFrameString(const DumpFrame& df) {
+    return bmDumpFrameString_s.left.at(df);
 }
 
 void Option::update(const std::vector<Attribute>& othersAttributes) {

@@ -105,7 +105,7 @@ struct OpalDataImpl {
     std::set<std::string> outFiles_m;
 
     /// Mode for writing files
-    OpalData::OPENMODE openMode_m = OpalData::OPENMODE::WRITE;
+    OpalData::OpenMode openMode_m = OpalData::OpenMode::WRITE;
 
     // last step of a run
     int last_step_m;
@@ -346,11 +346,11 @@ int OpalData::getRestartDumpFreq() const {
     return p->restart_dump_freq_m;
 }
 
-void OpalData::setOpenMode(OPENMODE openMode) {
+void OpalData::setOpenMode(OpenMode openMode) {
     p->openMode_m = openMode;
 }
 
-OpalData::OPENMODE OpalData::getOpenMode() const {
+OpalData::OpenMode OpalData::getOpenMode() const {
     return p->openMode_m;
 }
 

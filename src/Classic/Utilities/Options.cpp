@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include "OptionTypes.h"
+#include "Utilities/Options.h"
 #include "Utilities/ClassicRandom.h"
 
 #include <string>
@@ -42,7 +42,7 @@ namespace Options {
 
     bool psDumpEachTurn = false;
 
-    DumpFrame psDumpFrame = GLOBAL;
+    DumpFrame psDumpFrame = DumpFrame::GLOBAL;
 
     int sptDumpFreq = 1;
 

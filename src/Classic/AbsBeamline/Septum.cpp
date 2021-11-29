@@ -111,6 +111,6 @@ bool Septum::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, cons
     return flag;
 }
 
-ElementBase::ElementType Septum::getType() const {
-    return SEPTUM;
+ElementType Septum::getType() const {
+    return ElementType::SEPTUM;
 }

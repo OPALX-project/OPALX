@@ -341,8 +341,8 @@ void Multipole::getDimensions(double &zBegin, double &zEnd) const {
 }
 
 
-ElementBase::ElementType Multipole::getType() const {
-    return MULTIPOLE;
+ElementType Multipole::getType() const {
+    return ElementType::MULTIPOLE;
 }
 
 
