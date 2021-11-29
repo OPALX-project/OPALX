@@ -55,7 +55,7 @@ class ParallelCyclotronTracker: public Tracker {
 
 public:
 
-    enum class MODE {
+    enum class TrackingMode: short {
         UNDEFINED = -1,
         SINGLE = 0,
         SEO = 1,
@@ -64,7 +64,7 @@ public:
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
     typedef std::pair<double[8], Component *>      element_pair;
-    typedef std::pair<ElementBase::ElementType, element_pair>        type_pair;
+    typedef std::pair<ElementType, element_pair>        type_pair;
     typedef std::list<type_pair *>                 beamline_list;
 
     /// Constructor.
@@ -305,7 +305,7 @@ private:
     /// output file for six dimensional phase space
     std::ofstream outfTrackOrbit_m;
 
-    void buildupFieldList(double BcParameter[], ElementBase::ElementType elementType, Component *elptr);
+    void buildupFieldList(double BcParameter[], ElementType elementType, Component *elptr);
 
     // angle range [0~2PI) degree
     double calculateAngle(double x, double y);
@@ -450,7 +450,7 @@ private:
         int stepsNextCheck;
     } setup_m;
 
-    MODE mode_m;
+    TrackingMode mode_m;
 
     stepper::INTEGRATOR stepper_m;
 

@@ -148,6 +148,6 @@ void Corrector::getDimensions(double &zBegin, double &zEnd) const
   zEnd = getElementLength();
 }
 
-ElementBase::ElementType Corrector::getType() const {
-    return CORRECTOR;
+ElementType Corrector::getType() const {
+    return ElementType::CORRECTOR;
 }

@@ -55,7 +55,7 @@ Component::Component(const std::string &name):
     exit_face_slope_m(0.0),
     RefPartBunch_m(NULL),
     online_m(false) {
-    setAperture(ElementBase::ELLIPTICAL, defaultAperture_m);
+    setAperture(ApertureType::ELLIPTICAL, defaultAperture_m);
 
 }
 
@@ -92,8 +92,8 @@ bool Component::Online() {
     return online_m;
 }
 
-ElementBase::ElementType Component::getType() const {
-    return ElementBase::ANY;
+ElementType Component::getType() const {
+    return ElementType::ANY;
 }
 
 bool Component::apply(const size_t &i,

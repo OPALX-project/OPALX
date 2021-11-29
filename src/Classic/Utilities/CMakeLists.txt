@@ -84,7 +84,6 @@ set (HDRS
     MSLang/Translation.h
     MSLang/Triangle.h
     MSLang/Union.h
-    OptionTypes.h
     Options.h
     OverflowError.h
     ParseError.h

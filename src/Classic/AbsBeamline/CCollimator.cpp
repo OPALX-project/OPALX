@@ -160,8 +160,8 @@ void CCollimator::getDimensions(double &zBegin, double &zEnd) const {
     zEnd = getElementLength();
 }
 
-ElementBase::ElementType CCollimator::getType() const {
-    return CCOLLIMATOR;
+ElementType CCollimator::getType() const {
+    return ElementType::CCOLLIMATOR;
 }
 
 void CCollimator::doSetGeom() {

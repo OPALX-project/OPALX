@@ -69,7 +69,39 @@
 
 #include <boost/filesystem.hpp>
 
+#include <map>
 #include <string>
+
+const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
+    {ElementType::ANY,                "ANY"},
+    {ElementType::BEAMLINE,           "BEAMLINE"},
+    {ElementType::CCOLLIMATOR,        "CCOLLIMATOR"},
+    {ElementType::CORRECTOR,          "CORRECTOR"},
+    {ElementType::CYCLOTRON,          "CYCLOTRON"},
+    {ElementType::DEGRADER,           "DEGRADER"},
+    {ElementType::DRIFT,              "DRIFT"},
+    {ElementType::FLEXIBLECOLLIMATOR, "FLEXIBLECOLLIMATOR"},
+    {ElementType::MARKER,             "MARKER"},
+    {ElementType::MONITOR,            "MONITOR"},
+    {ElementType::MPSPLITINTEGRATOR,  "MPSPLITINTEGRATOR"},
+    {ElementType::MULTIPOLE,          "MULTIPOLE"},
+    {ElementType::MULTIPOLET,         "MULTIPOLET"},
+    {ElementType::OFFSET,             "OFFSET"},
+    {ElementType::PROBE,              "PROBE"},
+    {ElementType::RBEND,              "RBEND"},
+    {ElementType::RBEND3D,            "RBEND3D"},
+    {ElementType::RFCAVITY,           "RFCAVITY"},
+    {ElementType::SBEND,              "SBEND"},
+    {ElementType::SBEND3D,            "SBEND3D"},
+    {ElementType::SEPTUM,             "SEPTUM"},
+    {ElementType::SOLENOID,           "SOLENOID"},
+    {ElementType::SOURCE,             "SOURCE"},
+    {ElementType::STRIPPER,           "STRIPPER"},
+    {ElementType::TRAVELINGWAVE,      "TRAVELINGWAVE"},
+    {ElementType::UNDULATOR,          "UNDULATOR"},
+    {ElementType::VACUUM,             "VACUUM"},
+    {ElementType::VARIABLERFCAVITY,   "VARIABLERFCAVITY"}
+};
 
 ElementBase::ElementBase():
     ElementBase("")
@@ -207,60 +239,8 @@ const ConstChannel *ElementBase::getConstChannel(const std::string &aKey) const 
 }
 
 
-std::string ElementBase::getTypeString(ElementBase::ElementType type) {
-    switch (type) {
-    case BEAMLINE:
-        return "Beamline";
-    case CCOLLIMATOR:
-        return "CCollimator";
-    case CORRECTOR:
-        return "Corrector";
-    case CYCLOTRON:
-        return "Cyclotron";
-    case DEGRADER:
-        return "Degrader";
-    case DRIFT:
-        return "Drift";
-    case MARKER:
-        return "Marker";
-    case MONITOR:
-        return "Monitor";
-    case MULTIPOLE:
-        return "Multipole";
-    case OFFSET:
-        return "Offset";
-    case PROBE:
-        return "Probe";
-    case RBEND:
-        return "RBend";
-    case RFCAVITY:
-        return "RFCavity";
-    case RING:
-        return "Ring";
-    case SBEND3D:
-        return "SBend3D";
-    case SBEND:
-        return "SBend";
-    case SEPTUM:
-        return "Septum";
-    case SOLENOID:
-        return "Solenoid";
-    case STRIPPER:
-        return "Stripper";
-    case TRAVELINGWAVE:
-        return "TravelingWave";
-#ifdef ENABLE_OPAL_FEL
-    case UNDULATOR:
-        return "Undulator";
-#endif
-    case VACUUM:
-        return "Vacuum";
-    case VARIABLERFCAVITY:
-        return "VariableRFCavity";
-    case ANY:
-    default:
-        return "'unknown' type";
-    }
+std::string ElementBase::getTypeString(ElementType type) {
+    return elementTypeToString_s.at(type);
 }
 
 ElementBase *ElementBase::copyStructure() {
@@ -311,21 +291,21 @@ bool ElementBase::isInsideTransverse(const Vector_t &r) const
     const double &xLimit = aperture_m.second[0];
     const double &yLimit = aperture_m.second[1];
     double factor = 1.0;
-    if (aperture_m.first == CONIC_RECTANGULAR ||
-        aperture_m.first == CONIC_ELLIPTICAL) {
+    if (aperture_m.first == ApertureType::CONIC_RECTANGULAR ||
+        aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
         Vector_t rRelativeToBegin = getEdgeToBegin().transformTo(r);
         double fractionLength = rRelativeToBegin(2) / getElementLength();
         factor = fractionLength * aperture_m.second[2];
     }
 
     switch(aperture_m.first) {
-    case RECTANGULAR:
+    case ApertureType::RECTANGULAR:
         return (std::abs(r[0]) < xLimit && std::abs(r[1]) < yLimit);
-    case ELLIPTICAL:
+    case ApertureType::ELLIPTICAL:
         return (std::pow(r[0] / xLimit, 2) + std::pow(r[1] / yLimit, 2) < 1.0);
-    case CONIC_RECTANGULAR:
+    case ApertureType::CONIC_RECTANGULAR:
         return (std::abs(r[0]) < factor * xLimit && std::abs(r[1]) < factor * yLimit);
-    case CONIC_ELLIPTICAL:
+    case ApertureType::CONIC_ELLIPTICAL:
         return (std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2) < 1.0);
     default:
         return false;
