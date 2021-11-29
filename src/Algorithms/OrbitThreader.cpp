@@ -72,7 +72,7 @@ OrbitThreader::OrbitThreader(const PartData &ref,
             opal->getAuxiliaryOutputDirectory(),
             opal->getInputBasename() + "_DesignPath.dat"
         });
-        if (opal->getOpenMode() == OpalData::OPENMODE::WRITE ||
+        if (opal->getOpenMode() == OpalData::OpenMode::WRITE ||
             !boost::filesystem::exists(fileName)) {
             logger_m.open(fileName);
             logger_m << "#"
@@ -131,7 +131,7 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component
 void OrbitThreader::execute() {
     double initialPathLength = pathLength_m;
 
-    auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    auto allElements = itsOpalBeamline_m.getElementByType(ElementType::ANY);
     std::set<std::string> visitedElements;
 
     trackBack();
@@ -276,8 +276,8 @@ bool OrbitThreader::containsCavity(const IndexMap::value_t &activeSet) {
     const IndexMap::value_t::const_iterator end = activeSet.end();
 
     for (; it != end; ++ it) {
-        if ((*it)->getType() == ElementBase::TRAVELINGWAVE ||
-            (*it)->getType() == ElementBase::RFCAVITY) {
+        if ((*it)->getType() == ElementType::TRAVELINGWAVE ||
+            (*it)->getType() == ElementType::RFCAVITY) {
             return true;
         }
     }
@@ -293,8 +293,8 @@ void OrbitThreader::autophaseCavities(const IndexMap::value_t &activeSet,
     const IndexMap::value_t::const_iterator end = activeSet.end();
 
     for (; it != end; ++ it) {
-        if (((*it)->getType() == ElementBase::TRAVELINGWAVE ||
-             (*it)->getType() == ElementBase::RFCAVITY) &&
+        if (((*it)->getType() == ElementType::TRAVELINGWAVE ||
+             (*it)->getType() == ElementType::RFCAVITY) &&
             visitedElements.find((*it)->getName()) == visitedElements.end()) {
 
             Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
@@ -317,8 +317,8 @@ double OrbitThreader::getMaxDesignEnergy(const IndexMap::value_t &elementSet) co
 
     double designEnergy = 0.0;
     for (; it != end; ++ it) {
-        if ((*it)->getType() == ElementBase::TRAVELINGWAVE ||
-            (*it)->getType() == ElementBase::RFCAVITY) {
+        if ((*it)->getType() == ElementType::TRAVELINGWAVE ||
+            (*it)->getType() == ElementType::RFCAVITY) {
             const RFCavity *element = static_cast<const RFCavity *>((*it).get());
             designEnergy = std::max(designEnergy, element->getDesignEnergy());
         }
@@ -401,7 +401,7 @@ void OrbitThreader::processElementRegister() {
         set.insert(ep);
     }
 
-    auto allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    auto allElements = itsOpalBeamline_m.getElementByType(ElementType::ANY);
     FieldList::iterator it = allElements.begin();
     const FieldList::iterator end = allElements.end();
     for (; it != end; ++ it) {
@@ -427,8 +427,8 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
     for (; it != end; ++ it) {
         std::shared_ptr<Component> element = (*it).getElement();
         if (visitedElements.find(element->getName()) == visitedElements.end() &&
-            !(element->getType() == ElementBase::RFCAVITY ||
-              element->getType() == ElementBase::TRAVELINGWAVE)) {
+            !(element->getType() == ElementType::RFCAVITY ||
+              element->getType() == ElementType::TRAVELINGWAVE)) {
 
             element->setDesignEnergy(kineticEnergyeV);
         }
@@ -436,7 +436,7 @@ void OrbitThreader::setDesignEnergy(FieldList &allElements, const std::set<std::
 }
 
 void OrbitThreader::computeBoundingBox() {
-    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementBase::ANY);
+    FieldList allElements = itsOpalBeamline_m.getElementByType(ElementType::ANY);
     FieldList::iterator it = allElements.begin();
     const FieldList::iterator end = allElements.end();
 
@@ -444,7 +444,7 @@ void OrbitThreader::computeBoundingBox() {
     globalBoundingBox_m.upperRightCorner = Vector_t(-std::numeric_limits<double>::max());
 
     for (; it != end; ++ it) {
-        if (it->getElement()->getType() == ElementBase::MARKER) {
+        if (it->getElement()->getType() == ElementType::MARKER) {
             continue;
         }
         ElementBase::BoundingBox other = it->getBoundingBoxInLabCoords();
@@ -465,7 +465,7 @@ double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared
                                                       const Vector_t & position,
                                                       const Vector_t & direction) const {
     if (elements.empty() ||
-        (elements.size() == 1 && (*elements.begin())->getType() == ElementBase::ElementType::DRIFT)) {
+        (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
         boost::optional<Vector_t> intersectionPoint = globalBoundingBox_m.getPointOfIntersection(position, direction);
         return intersectionPoint ? euclidean_norm(intersectionPoint.get() - position): 10.0;
     }

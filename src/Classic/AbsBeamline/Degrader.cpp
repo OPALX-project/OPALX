@@ -153,6 +153,6 @@ void Degrader::getDimensions(double& zBegin, double& zEnd) const {
     zEnd = getElementLength();
 }
 
-ElementBase::ElementType Degrader::getType() const {
-    return DEGRADER;
+ElementType Degrader::getType() const {
+    return ElementType::DEGRADER;
 }

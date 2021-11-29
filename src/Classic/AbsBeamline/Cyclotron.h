@@ -28,6 +28,7 @@
 
 #include "AbsBeamline/Component.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -78,20 +79,19 @@ struct BPositions {
     double Bfact_m;
 };
 
+enum class BFieldType: unsigned short {
+    PSIBF,
+    CARBONBF,
+    ANSYSBF,
+    AVFEQBF,
+    FFABF,
+    BANDRF,
+    SYNCHRO
+};
 
 class Cyclotron: public Component {
 
 public:
-
-    enum class BFieldType {
-        PSIBF,
-        CARBONBF,
-        ANSYSBF,
-        AVFEQBF,
-        FFABF,
-        BANDRF,
-        SYNCHRO
-    };
 
     /// Constructor with given name.
     explicit Cyclotron(const std::string& name);
@@ -121,7 +121,7 @@ public:
 
     void setCyclotronType(std::string t);
     const std::string &getCyclotronType() const;
-    virtual ElementBase::ElementType getType() const;
+    virtual ElementType getType() const;
 
     virtual void getDimensions(double& zBegin, double& zEnd) const;
 
@@ -218,8 +218,6 @@ public:
 
     void writeOutputFieldFiles();
 
-    BFieldType fieldType_m;
-
 private:
     /// Apply trim coils (calculate field contributions) with smooth field transition
     void applyTrimCoil  (const double r, const double z, const double tet_rad, double& br, double& bz);
@@ -247,6 +245,8 @@ protected:
 
 private:
 
+    BFieldType fieldType_m;
+
     std::string fmapfn_m; /**< Stores the filename of the B-fieldmap*/
     std::vector<double> rffrequ_m;
     std::vector< std::vector<double> > rffc_m;
@@ -268,6 +268,9 @@ private:
     double trimCoilThreshold_m; /**< B-field threshold for applying trim coil*/
 
     std::string typeName_m; /**< Name of the TYPE parameter in cyclotron*/
+
+    static const std::map<std::string, BFieldType> typeStringToBFieldType_s;
+
     double harm_m;
 
     double bscale_m; /**< A scale factor for the B-field*/

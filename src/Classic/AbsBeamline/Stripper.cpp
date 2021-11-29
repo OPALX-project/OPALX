@@ -188,6 +188,6 @@ bool Stripper::doFinaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpd
     return flagNeedUpdate;
 }
 
-ElementBase::ElementType Stripper::getType() const {
-    return STRIPPER;
+ElementType Stripper::getType() const {
+    return ElementType::STRIPPER;
 }

@@ -267,8 +267,8 @@ bool Undulator::bends() const {
 void Undulator::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {
 }
 
-ElementBase::ElementType Undulator::getType() const {
-    return UNDULATOR;
+ElementType Undulator::getType() const {
+    return ElementType::UNDULATOR;
 }
 
 void Undulator::setK(double k) {
