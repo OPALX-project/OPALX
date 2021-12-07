@@ -95,6 +95,8 @@ public:
     virtual bool isInside(const Vector_t &r) const override;
 private:
 
+    void driftToCorrectPositionAndSave(const Vector_t& R, const Vector_t& P);
+
     // Not implemented.
     void operator=(const Monitor &);
     std::string filename_m; /**< The name of the outputfile*/
