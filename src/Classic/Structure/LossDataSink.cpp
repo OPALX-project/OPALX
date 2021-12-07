@@ -403,8 +403,8 @@ bool LossDataSink::hasTurnInformations() const {
 }
 
 void LossDataSink::saveH5(unsigned int setIdx) {
-    size_t startIdx = 0, endIdx = 0;
     size_t nLoc = particles_m.size();
+    size_t startIdx = 0, endIdx = nLoc;
     if (setIdx + 1 < startSet_m.size()) {
         startIdx = startSet_m[setIdx];
         endIdx = startSet_m[setIdx + 1];
