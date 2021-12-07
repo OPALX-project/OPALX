@@ -143,7 +143,7 @@ void ParticleMatterInteraction::update() {
 void ParticleMatterInteraction::getInteractionType() {
     const std::string type = Attributes::getString(itsAttr[TYPE]);
     if (type.empty()) {
-        throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+        throw OpalException("ParticleMatterInteraction::getInteractionType",
                             "The attribute \"TYPE\" isn't set for \"PARTICLEMATTERINTERACTION\"!");
     } else {
         type_m = stringInteractionType_s.at(type);

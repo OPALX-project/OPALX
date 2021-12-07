@@ -1189,7 +1189,7 @@ void ParallelCyclotronTracker::execute() {
         *gmsg << "* -> " <<  ElementBase::getTypeString(type) << endl;
         if (type == ElementType::RFCAVITY) {
             RFCavity* cav = static_cast<RFCavity*>((fd->second).second);
-            CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * 0.001};
+            CavityCrossData ccd = {cav, cav->getSinAzimuth(), cav->getCosAzimuth(), cav->getPerpenDistance() * Units::mm2m};
             cavCrossDatas_m.push_back(ccd);
         } else if ( type == ElementType::CCOLLIMATOR ||
                     type == ElementType::PROBE       ||

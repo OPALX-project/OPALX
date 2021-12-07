@@ -85,11 +85,9 @@ public:
     std::string getCavityTypeString() const;
 
     virtual void setFast(bool fast);
-
     virtual bool getFast() const;
 
     virtual void setAutophaseVeto(bool veto = true);
-
     virtual bool getAutophaseVeto() const;
 
     virtual double getAutoPhaseEstimate(const double& E0, const double& t0, const double& q, const double& m);
@@ -138,32 +136,26 @@ public:
     virtual double getDesignEnergy() const override;
 
     void setRmin(double rmin);
-
-    void setRmax(double rmax);
-
-    void setAzimuth(double angle);
-
-    void setPerpenDistance(double pdis);
-
-    void setGapWidth(double gapwidth);
-
-    void setPhi0(double phi0);
-
     virtual double getRmin() const;
 
+    void setRmax(double rmax);
     virtual double getRmax() const;
 
+    void setAzimuth(double angle);
     virtual double getAzimuth() const;
+
+    void setPerpenDistance(double pdis);
+    virtual double getPerpenDistance() const;
+
+    void setGapWidth(double gapwidth);
+    virtual double getGapWidth() const;
+
+    void setPhi0(double phi0);
+    virtual double getPhi0() const;
 
     virtual double getCosAzimuth() const;
 
     virtual double getSinAzimuth() const;
-
-    virtual double getPerpenDistance() const;
-
-    virtual double getGapWidth() const;
-
-    virtual double getPhi0() const;
 
     virtual double getCycFrequency() const;
 
