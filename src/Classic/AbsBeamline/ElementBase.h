@@ -73,8 +73,9 @@
 
 #include <boost/optional.hpp>
 
-#include <string>
+#include <map>
 #include <queue>
+#include <string>
 
 class BeamlineVisitor;
 class BoundaryGeometry;
