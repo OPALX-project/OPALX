@@ -90,6 +90,21 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t 
     return false;
 }
 
+void Monitor::driftToCorrectPositionAndSave(const Vector_t& refR, const Vector_t& refP) {
+    const double cdt = Physics::c * RefPartBunch_m->getdT();
+    const Vector_t driftPerTimeStep = cdt * Util::getBeta(refP);
+    const double tau = -refR(2) / driftPerTimeStep(2);
+    const CoordinateSystemTrafo update(refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t(0, 0, 1)));
+    const CoordinateSystemTrafo refToLocalCSTrafo = update * (getCSTrafoGlobal2Local() * RefPartBunch_m->toLabTrafo_m);
+
+    for (OpalParticle particle : *RefPartBunch_m) {
+        Vector_t beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
+        Vector_t dS = (tau - 0.5) * cdt * beta; // the particles are half a step ahead relative to the reference particle
+        particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
+        lossDs_m->addParticle(particle);
+    }
+}
+
 bool Monitor::applyToReferenceParticle(const Vector_t &R,
                                        const Vector_t &P,
                                        const double &t,
@@ -113,18 +128,9 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
                                            RefPartBunch_m->getGlobalTrackStep());
 
             if (type_m == CollectionType::TEMPORAL) {
-                const unsigned int localNum = RefPartBunch_m->getLocalNum();
-
-                for (unsigned int i = 0; i < localNum; ++ i) {
-                    Vector_t shift = ((frac - 0.5) * cdt * Util::getBeta(RefPartBunch_m->P[i])
-                                      - singleStep);
-                    lossDs_m->addParticle(OpalParticle(RefPartBunch_m->ID[i],
-                                                       RefPartBunch_m->R[i] + shift,
-                                                       RefPartBunch_m->P[i],
-                                                       time,
-                                                       RefPartBunch_m->Q[i],
-                                                       RefPartBunch_m->M[i]));
-                }
+                driftToCorrectPositionAndSave(R, P);
+                auto stats = lossDs_m->computeStatistics(1);
+                statFileEntries_sm.insert(std::make_pair(stats.begin()->spos_m, *stats.begin()));
                 OpalData::OpenMode openMode;
                 if (numPassages_m > 0) {
                     openMode = OpalData::OpenMode::APPEND;
