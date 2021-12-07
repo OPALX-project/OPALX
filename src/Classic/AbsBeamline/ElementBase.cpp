@@ -69,38 +69,37 @@
 
 #include <boost/filesystem.hpp>
 
-#include <map>
-#include <string>
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
-    {ElementType::ANY,                "ANY"},
-    {ElementType::BEAMLINE,           "BEAMLINE"},
-    {ElementType::CCOLLIMATOR,        "CCOLLIMATOR"},
-    {ElementType::CORRECTOR,          "CORRECTOR"},
-    {ElementType::CYCLOTRON,          "CYCLOTRON"},
-    {ElementType::DEGRADER,           "DEGRADER"},
-    {ElementType::DRIFT,              "DRIFT"},
-    {ElementType::FLEXIBLECOLLIMATOR, "FLEXIBLECOLLIMATOR"},
-    {ElementType::MARKER,             "MARKER"},
-    {ElementType::MONITOR,            "MONITOR"},
-    {ElementType::MPSPLITINTEGRATOR,  "MPSPLITINTEGRATOR"},
-    {ElementType::MULTIPOLE,          "MULTIPOLE"},
-    {ElementType::MULTIPOLET,         "MULTIPOLET"},
-    {ElementType::OFFSET,             "OFFSET"},
-    {ElementType::PROBE,              "PROBE"},
-    {ElementType::RBEND,              "RBEND"},
-    {ElementType::RBEND3D,            "RBEND3D"},
-    {ElementType::RFCAVITY,           "RFCAVITY"},
-    {ElementType::SBEND,              "SBEND"},
-    {ElementType::SBEND3D,            "SBEND3D"},
-    {ElementType::SEPTUM,             "SEPTUM"},
-    {ElementType::SOLENOID,           "SOLENOID"},
-    {ElementType::SOURCE,             "SOURCE"},
-    {ElementType::STRIPPER,           "STRIPPER"},
-    {ElementType::TRAVELINGWAVE,      "TRAVELINGWAVE"},
-    {ElementType::UNDULATOR,          "UNDULATOR"},
-    {ElementType::VACUUM,             "VACUUM"},
-    {ElementType::VARIABLERFCAVITY,   "VARIABLERFCAVITY"}
+    {ElementType::ANY,                "Any"},
+    {ElementType::BEAMLINE,           "Beamline"},
+    {ElementType::CCOLLIMATOR,        "CCollimator"},
+    {ElementType::CORRECTOR,          "Corrector"},
+    {ElementType::CYCLOTRON,          "Cyclotron"},
+    {ElementType::DEGRADER,           "Degrader"},
+    {ElementType::DRIFT,              "Drift"},
+    {ElementType::FLEXIBLECOLLIMATOR, "FlexibleCollimator"},
+    {ElementType::MARKER,             "Marker"},
+    {ElementType::MONITOR,            "Monitor"},
+    {ElementType::MPSPLITINTEGRATOR,  "MPSplitIntegrator"},
+    {ElementType::MULTIPOLE,          "Multipole"},
+    {ElementType::MULTIPOLET,         "MultipoleT"},
+    {ElementType::OFFSET,             "Offset"},
+    {ElementType::PROBE,              "Probe"},
+    {ElementType::RBEND,              "RBend"},
+    {ElementType::RBEND3D,            "RBend3D"},
+    {ElementType::RFCAVITY,           "RFCavity"},
+    {ElementType::RING,               "Ring"},
+    {ElementType::SBEND,              "SBend"},
+    {ElementType::SBEND3D,            "SBend3D"},
+    {ElementType::SEPTUM,             "Septum"},
+    {ElementType::SOLENOID,           "Solenoid"},
+    {ElementType::SOURCE,             "Source"},
+    {ElementType::STRIPPER,           "Stripper"},
+    {ElementType::TRAVELINGWAVE,      "TravelingWave"},
+    {ElementType::UNDULATOR,          "Undulator"},
+    {ElementType::VACUUM,             "Vacuum"},
+    {ElementType::VARIABLERFCAVITY,   "VariableRFCavity"}
 };
 
 ElementBase::ElementBase():
