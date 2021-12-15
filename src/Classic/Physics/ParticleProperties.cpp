@@ -46,7 +46,7 @@ double ParticleProperties::getParticleChargeInCoulomb(const ParticleType& type) 
     return getParticleCharge(type) * Physics::q_e;
 }
 
-const boost::bimap<ParticleType, std::string> ParticleProperties::bmParticleType_s = {
+const boost::bimap<ParticleType, std::string> ParticleProperties::bmParticleType_s =
     boost::assign::list_of<const boost::bimap<ParticleType, std::string>::relation>
         (ParticleType::UNNAMED,    "UNNAMED")
         (ParticleType::ELECTRON,   "ELECTRON")
@@ -62,8 +62,7 @@ const boost::bimap<ParticleType, std::string> ParticleProperties::bmParticleType
         (ParticleType::ALPHA,      "ALPHA")
         (ParticleType::CARBON,     "CARBON")
         (ParticleType::XENON,      "XENON")
-        (ParticleType::URANIUM,    "URANIUM")
-};
+        (ParticleType::URANIUM,    "URANIUM");
 
 const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
     {ParticleType::ELECTRON,   Physics::m_e},
