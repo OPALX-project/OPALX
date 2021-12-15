@@ -36,11 +36,10 @@
 
 extern Inform *gmsg;
 
-const boost::bimap<CavityType, std::string> RFCavity::bmCavityTypeString_s = {
+const boost::bimap<CavityType, std::string> RFCavity::bmCavityTypeString_s =
     boost::assign::list_of<const boost::bimap<CavityType, std::string>::relation>
         (CavityType::SW,   "STANDING")
-        (CavityType::SGSW, "SINGLEGAP")
-};
+        (CavityType::SGSW, "SINGLEGAP");
 
 
 RFCavity::RFCavity():

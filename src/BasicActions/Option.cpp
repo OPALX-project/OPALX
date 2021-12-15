@@ -41,12 +41,11 @@ extern Inform* gmsg;
 
 using namespace Options;
 
-const boost::bimap<DumpFrame, std::string> Option::bmDumpFrameString_s = {
+const boost::bimap<DumpFrame, std::string> Option::bmDumpFrameString_s =
     boost::assign::list_of<const boost::bimap<DumpFrame, std::string>::relation>
         (DumpFrame::GLOBAL,     "GLOBAL")
         (DumpFrame::BUNCH_MEAN, "BUNCH_MEAN")
-        (DumpFrame::REFERENCE,  "REFERENCE")
-};
+        (DumpFrame::REFERENCE,  "REFERENCE");
 
 namespace {
     // The attributes of class Option.
