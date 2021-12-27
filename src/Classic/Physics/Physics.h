@@ -101,14 +101,14 @@ namespace Physics {
     /// The charge of proton
     constexpr double z_p        = 1;
 
-    /// The carbon rest mass in GeV
-    constexpr double m_c        = 12 * amu;
+    /// The carbon-12 (fully-stripped) rest mass in GeV
+    constexpr double m_c        = 11.9967074146787 * amu;
 
     /// The H- rest mass in GeV
     constexpr double m_hm       = 1.00837 * amu;
 
-    /// The uranium rest mass in GeV
-    constexpr double m_u        = 238.050787 * amu;
+    /// The uranium-238 (fully-stripped) rest mass in GeV
+    constexpr double m_u        = 237.999501 * amu;
 
     /// The muon rest mass in GeV
     constexpr double m_mu       = 0.1056583755;
@@ -116,8 +116,8 @@ namespace Physics {
     /// The deuteron rest mass in GeV
     constexpr double m_d        = 2.013553212745 * amu;
 
-    /// The xenon rest mass in GeV
-    constexpr double m_xe       = 124 * amu;
+    /// The xenon-129 (fully-stripped) rest mass in GeV
+    constexpr double m_xe       = 128.87494026 * amu;
 
     /// The alpha particle rest mass in GeV
     constexpr double m_alpha    = 4.001506179127 * amu;
