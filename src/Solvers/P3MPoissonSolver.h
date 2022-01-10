@@ -76,10 +76,12 @@ public:
     double getYRangeMax(unsigned short /*level*/) {return 1.0;}
     double getZRangeMin(unsigned short /*level*/) {return 1.0;}
     double getZRangeMax(unsigned short /*level*/) {return 1.0;}
+    double getinteractionRadius() {return interaction_radius_m;}
 
     void computeAvgSpaceChargeForces(PartBunchBase<double, 3> *bunch);
     void compute_temperature(PartBunchBase<double, 3> *bunch);
     Inform &print(Inform &os) const;
+    
 private:
 
     BConds<double, Dim, Mesh_t, Center_t> bc_m;

@@ -64,7 +64,8 @@ void PartBunch::runTests() {
     Vector_t ll(-0.005);
     Vector_t ur(0.005);
 
-    setBCAllPeriodic();
+
+    //setBCAllPeriodic();
 
     NDIndex<3> domain = getFieldLayout().getDomain();
     for (unsigned int i = 0; i < Dimension; i++)
@@ -75,6 +76,11 @@ void PartBunch::runTests() {
 
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(ll);
+    setBCAllPeriodic();
+    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
+    layout->setAllCacheDimensions(fs_m->solver_m->getinteractionRadius());
+    layout->enableCaching();
+   
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
@@ -85,6 +91,7 @@ void PartBunch::runTests() {
                     GuardCellSizes<Dimension>(1),
                     vbc_m);
 
+    //update();
     fs_m->solver_m->test(this);
 }
 

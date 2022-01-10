@@ -132,7 +132,7 @@ FieldSolver::FieldSolver():
                "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
 
     itsAttr[FSTYPE] = Attributes::makePredefinedString("FSTYPE", "Name of the attached field solver.",
-                                                       {"FFT", "FFTPERIODIC", "SAAMG", "NONE"});
+                                                       {"FFT", "FFTPERIODIC", "SAAMG", "NONE", "P3M"});
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
