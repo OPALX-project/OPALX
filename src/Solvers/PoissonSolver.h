@@ -69,6 +69,7 @@ public:
                             const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
                             double /*dh*/)
     { };
+    virtual double getinteractionRadius() { return 0.0; } 
 
 };
 

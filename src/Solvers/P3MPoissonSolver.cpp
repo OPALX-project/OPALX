@@ -225,7 +225,7 @@ void P3MPoissonSolver::initFields() {
     }
 
     for(unsigned int i = 0; i < 3; i++) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
+        //hr_m[i] = mesh_m->get_meshSpacing(i);
         nr_m[i] = domain_m[i].length();
     }
 
@@ -421,6 +421,15 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     const double f = 1.5;
     const double dt = bunch->getdT();
 
+    Vector_t ll(-0.005);
+    Vector_t ur(0.005);
+    
+    for (int i = 0; i < 3; i++)
+        hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
+
+    mesh_m->set_meshSpacing(&(hr_m[0]));
+    mesh_m->set_origin(ll);
+   
     OpalData *opal = OpalData::getInstance();
     DataSink *ds = opal->getDataSink();
 
@@ -431,6 +440,7 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     bunch->M = mi;
 
     bunch->calcBeamParameters();
+    ds->dumpSDDS(bunch, FDext, 0);
 
     initFields();
 
@@ -442,6 +452,7 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     msg << *this << endl;
 
     // calculate initial space charge forces
+    bunch->update();
     calculateGridForces(bunch, interaction_radius_m, alpha_m, eps_m);
     calculatePairForces(bunch, interaction_radius_m, alpha_m, eps_m);
 
@@ -464,11 +475,11 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
 
         assign(bunch->P, bunch->P + dt * qom * bunch->Ef);
 
-        if (it%10 == 0){
+        //if (it%10 == 0){
             bunch->calcBeamParameters();
-            ds->dumpSDDS(bunch, FDext, it);
-        }
-        msg << "Finished iteration " << it << endl;
+            ds->dumpSDDS(bunch, FDext, it+1);
+        //}
+        msg << "Finished iteration " << it+1 << endl;
     }
 }
 
@@ -481,7 +492,6 @@ Inform &P3MPoissonSolver::print(Inform &os) const {
     os << "* EPSILON  " << eps_m << '\n';
     os << "* Extend L " << extend_l << '\n';
     os << "* Extend R " << extend_r << '\n';
-    os << "* hr       " << hr_m << '\n';
     os << "* nr       " << nr_m << '\n';
     os << "* *************************************************************** " << endl;
     return os;

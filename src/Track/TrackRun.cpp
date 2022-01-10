@@ -50,6 +50,7 @@
 #include <fstream>
 #include <iomanip>
 
+
 extern Inform *gmsg;
 
 namespace {
@@ -84,7 +85,7 @@ TrackRun::TrackRun():
     phaseSpaceSink_m(NULL) {
     itsAttr[METHOD] = Attributes::makePredefinedString
                       ("METHOD", "Name of tracking algorithm to use.",
-                       {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T"});
+                       {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T","P3M-TEST"});
     itsAttr[TURNS] = Attributes::makeReal
                      ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron", 1.0);
 
@@ -174,32 +175,34 @@ void TrackRun::execute() {
     std::string method = Attributes::getString(itsAttr[METHOD]);
     if (method == "THICK") {
         setupThickTracker();
-    } else if(method == "PARALLEL-T" || method == "OPAL-T") {
+    } else if(method == "PARALLEL-T" || method == "OPAL-T" || method == "P3M-TEST") {
         setupTTracker();
     } else if(method == "CYCLOTRON-T" || method == "OPAL-CYCL") {
         setupCyclotronTracker();
     }
 
-    if (method == "THICK") {
-        int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
+    if(method != "P3M-TEST") {
+        if (method == "THICK") {
+            int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
 
-        // Track for the all but last turn.
-        for(int turn = 1; turn < turns; ++turn) {
+            // Track for the all but last turn.
+            for(int turn = 1; turn < turns; ++turn) {
+                itsTracker->execute();
+            }
+
+            // Track the last turn.
             itsTracker->execute();
+
+        } else {
+            itsTracker->execute();
+
+            opal->setRestartRun(false);
         }
 
-        // Track the last turn.
-        itsTracker->execute();
+        opal->bunchIsAllocated();
 
-    } else {
-        itsTracker->execute();
-
-        opal->setRestartRun(false);
+        delete itsTracker;
     }
-
-    opal->bunchIsAllocated();
-
-    delete itsTracker;
 }
 
 
@@ -407,22 +410,22 @@ void TrackRun::setupTTracker(){
     *gmsg << level2
           << "Phase space dump frequency " << Options::psDumpFreq << " and "
           << "statistics dump frequency " << Options::statDumpFreq << " w.r.t. the time step." << endl;
-#ifdef P3M_TEST
-
-    Track::block->bunch->runTests();
-
-#else
-    itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                      Track::block->bunch,
-                                      *ds,
-                                      Track::block->reference,
-                                      false,
-                                      Attributes::getBool(itsAttr[TRACKBACK]),
-                                      Track::block->localTimeSteps,
-                                      Track::block->zstart,
-                                      Track::block->zstop,
-                                      Track::block->dT);
-#endif
+    
+    if(Attributes::getString(itsAttr[METHOD]) == "P3M-TEST") {
+        Track::block->bunch->runTests();
+    }
+    else {
+        itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
+                                          Track::block->bunch,
+                                          *ds,
+                                          Track::block->reference,
+                                          false,
+                                          Attributes::getBool(itsAttr[TRACKBACK]),
+                                          Track::block->localTimeSteps,
+                                          Track::block->zstart,
+                                          Track::block->zstop,
+                                          Track::block->dT);
+    }
 }
 
 void TrackRun::setupCyclotronTracker(){
@@ -595,6 +598,7 @@ void TrackRun::setupFieldsolver() {
 
         if (!opal->inRestartRun() && numParticles < numGridPoints
             && fs->getType() != std::string("SAAMG") // in SPIRAL/SAAMG we're meshing the whole domain -DW
+            && fs->getType() != std::string("P3M") //In P3M with one-one mapping grid points can be less than particles
             && !Options::amr)
         {
             throw OpalException("TrackRun::setupFieldsolver()",
