@@ -94,6 +94,6 @@ const std::map<ParticleType, double> ParticleProperties::particleCharge_m = {
     {ParticleType::H3P,         1.0},
     {ParticleType::ALPHA,       2.0},
     {ParticleType::CARBON,      6.0},
-    {ParticleType::XENON,      20.0},
-    {ParticleType::URANIUM,    35.0}
+    {ParticleType::XENON,      54.0},
+    {ParticleType::URANIUM,    92.0}
 };
