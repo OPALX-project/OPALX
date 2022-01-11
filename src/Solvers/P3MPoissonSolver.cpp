@@ -302,17 +302,17 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
 
 }
 
-void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch) {
+void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz) {
     if (interaction_radius_m>0){
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-            HashPairBuilderParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
+            HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m));
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-            HashPairBuilder<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
+            HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m));
         }
     }
 }
@@ -452,6 +452,9 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // back to physical grid
     // reuse the charge density field to store the electrostatic potential
     rho[domain_m] = rho2_m[domain_m];
+
+
+    rho_m *= hr[0] * hr[1] * hr[2];
     IpplTimings::stopTimer(ComputePotential_m);
 }
 
