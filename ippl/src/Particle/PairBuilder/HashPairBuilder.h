@@ -13,7 +13,8 @@ public:
     enum { Dim = PBase::Dim };
     typedef typename PBase::Position_t      Position_t;
 
-    HashPairBuilder(PBase &p) : particles(p) { }
+    HashPairBuilder(PBase &p, double gammaz_) : particles(p), gammaz(gammaz_) 
+    { hr_m = p.get_hr(); }
 
     template<class Pred, class OP>
     void for_each(const Pred& pred, const OP &op)
@@ -35,13 +36,21 @@ public:
          }
          */
 
-        bounds(particles.R, rmin_m, rmax_m);
-        Inform dmsg("debug_msg:");
-        dmsg << "R_min = " << rmin_m << " R_max = " << rmax_m << endl;
+        //bounds(particles.R, rmin_m, rmax_m);
+        //Inform dmsg("debug_msg:");
+        //dmsg << "R_min = " << rmin_m << " R_max = " << rmax_m << endl;
+        rmin_m = particles.get_origin();
+        rmax_m = particles.get_maxExtent();
+        rmin_m[2] *= gammaz;
+        rmax_m[2] *= gammaz;
+        hr_m[2] *= gammaz;
 
-        buckets_per_dim[0]=ceil((rmax_m[0]-rmin_m[0])/pred.getRange(0));
-        buckets_per_dim[1]=ceil((rmax_m[1]-rmin_m[1])/pred.getRange(1));
-        buckets_per_dim[2]=ceil((rmax_m[2]-rmin_m[2])/pred.getRange(2));
+        buckets_per_dim[0]=floor((rmax_m[0]-rmin_m[0])/pred.getRange(0));
+        buckets_per_dim[1]=floor((rmax_m[1]-rmin_m[1])/pred.getRange(1));
+        buckets_per_dim[2]=floor((rmax_m[2]-rmin_m[2])/pred.getRange(2));
+
+        for (unsigned dim = 0; dim<3; ++dim)
+            h_chaining[dim] = (rmax_m[dim]-rmin_m[dim])/buckets_per_dim[dim];
 
         //dmsg << "buckets per dim = " << buckets_per_dim << endl;
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
@@ -199,11 +208,12 @@ private:
 
     //returns the bucket id of particle i
     template<class Pred>
-    int get_bucket_id(int i, const Pred& pred)
+    int get_bucket_id(int i, const Pred& /*pred*/)
     {
         Vektor<int,3> loc;
         for (unsigned d=0; d<3; ++d)
-            loc[d] = (particles.R[i][d]-rmin_m[d])/pred.getRange(d);
+            loc[d] = (particles.R[i][d]-rmin_m[d])/h_chaining[d];
+        
         int bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
         //std::cout << "bucket id of particle " << i << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
         return bucket_id;
@@ -218,9 +228,11 @@ private:
     }
 
     PBase &particles;
+    double gammaz;
     Vektor<int,3> buckets_per_dim;
-
+    Vektor<double,3> h_chaining;
     Vektor<double,3> rmin_m;
     Vektor<double,3> rmax_m;
+    Vektor<double,3> hr_m;
 };
 #endif
