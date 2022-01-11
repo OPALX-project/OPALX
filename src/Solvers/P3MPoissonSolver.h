@@ -47,17 +47,22 @@ class P3MPoissonSolver : public PoissonSolver {
 public:
 
     typedef FFT<CCTransform, 3, double>              FFTC_t;
+    typedef FFT<RCTransform, 3, double>              FFTRC_t;
 
     // constructor and destructor
     P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps);
 
     ~P3MPoissonSolver();
 
-    void initFields();
+    void initFieldsTest();
+    
+    void initializeFields();
 
-    void calculateGridForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps);
+    void calculateGridForces(PartBunchBase<double, 3> *bunch);
 
-    void calculatePairForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps);
+    void calculatePairForcesPeriodic(PartBunchBase<double, 3> *bunch);
+    
+    void calculatePairForces(PartBunchBase<double, 3> *bunch);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
@@ -66,6 +71,8 @@ public:
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential in open space
     void computePotential(Field_t &rho, Vector_t hr);
+
+    void greensFunction();
 
     void applyConstantFocusing(PartBunchBase<double, 3> *bunch, double f, double r);
     void test(PartBunchBase<double, 3> *bunch);
@@ -91,11 +98,21 @@ private:
     // rho_m is the charge-density field with mesh doubled in each dimension
     Field_t rho_m;
     Field_t phi_m;
+    Field_t rho2_m;
 
     VField_t eg_m;
 
     // real field with layout of complex field: domain3_m
     Field_t greentr_m;
+    
+    // rho2tr_m is the Fourier transformed charge-density field
+    // domain3_m and mesh3_ are used
+    CxField_t rho2tr_m;
+    CxField_t imgrho2tr_m;
+    
+    // Fields used to eliminate excess calculation in greensFunction()
+    // mesh2_m and layout2_m are used
+    IField_t grnIField_m[3];
 
     CxField_t rhocmpl_m;
     CxField_t grncmpl_m;
@@ -106,6 +123,7 @@ private:
 
     // the FFT object
     std::unique_ptr<FFTC_t> fft_m;
+    std::unique_ptr<FFTRC_t> fftrc_m;
 
 
     // Fields used to eliminate excess calculation in greensFunction()
@@ -117,6 +135,17 @@ private:
     Mesh_t *mesh_m;
     FieldLayout_t *layout_m;
 
+    // mesh and layout objects for rho2_m
+    std::unique_ptr<Mesh_t> mesh2_m;
+    std::unique_ptr<FieldLayout_t> layout2_m;
+
+    //
+    std::unique_ptr<Mesh_t> mesh3_m;
+    std::unique_ptr<FieldLayout_t> layout3_m;
+
+    // mesh and layout for integrated greens function
+    std::unique_ptr<Mesh_t> mesh4_m;
+    std::unique_ptr<FieldLayout_t> layout4_m;
 
     // tmp
     Field_t tmpgreen;
@@ -124,9 +153,11 @@ private:
     // domains for the various fields
     NDIndex<3> domain_m;             // original domain, gridsize
     // mesh and gridsize defined outside of P3M class, given as
-
-
-    NDIndex<3> domainP3MConstruct_m;
+    NDIndex<3> domain2_m;            // doubled gridsize (2*Nx,2*Ny,2*Nz)
+    NDIndex<3> domain3_m;            // field for the complex values of the RC transformation
+    NDIndex<3> domain4_m;
+    // (2*Nx,Ny,2*Nz)
+    NDIndex<3> domainFFTConstruct_m;
 
 
     double interaction_radius_m;
