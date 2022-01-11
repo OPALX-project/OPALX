@@ -43,10 +43,10 @@
 const double ke=2.532638e8;
 
 template<unsigned int Dim>
-struct SpecializedGreensFunction { };
+struct P3MGreensFunctionPeriodic { };
 
 template<>
-struct SpecializedGreensFunction<3> {
+struct P3MGreensFunctionPeriodic<3> {
     template<class T, class FT, class FT2>
     static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha,double eps) {
         double r;
@@ -69,6 +69,19 @@ struct SpecializedGreensFunction<3> {
                 }
             }
         }
+    }
+};
+
+template<unsigned int Dim>
+struct P3MGreensFunction { };
+
+template<>
+struct P3MGreensFunction<3> {
+    template<class T, class FT, class FT2>
+    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha,double eps) {
+        grn = grnI[0] * hrsq[0] + grnI[1] * hrsq[1] + grnI[2] * hrsq[2];
+        grn = erf(alpha*sqrt(grn))/(sqrt(grn)+eps);
+        grn[0][0][0] = grn[0][0][1];
     }
 };
 
@@ -116,117 +129,53 @@ struct ApplyField {
 // constructor
 
 
-P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps):
+P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps, bool isTest_m):
     mesh_m(mesh),
     layout_m(fl),
     interaction_radius_m(interaction_radius),
     alpha_m(alpha),
-    eps_m(eps)
+    eps_m(eps),
+    isTest_m(isTest)
 {
     Inform msg("P3MPoissonSolver::P3MPoissonSolver ");
+    if(isTest_m)
+        initFieldsTest();
+    else
+        initializeFields();
 
-    domain_m = layout_m->getDomain();
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-
-    // For efficiency in the FFT's, we can use a parallel decomposition
-    // which can be serial in the first dimension.
-    // e_dim_tag decomp[3];
-    // for(int d = 0; d < 3; ++d) {
-    //     decomp[d] = layout_m->getRequestedDistribution(d);
-    // }
-
-    // The FFT's require double-sized field sizes in order to (more closely
-    // do not understand this ...)
-    // simulate an isolated system.  The FFT of the charge density field, rho,
-    // would otherwise mimic periodic boundary conditions, i.e. as if there were
-    // several beams set a periodic distance apart.  The double-sized fields
-    // alleviate this problem.
-    for(unsigned int i = 0; i < 3; i++) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
-        nr_m[i] = domain_m[i].length();
-    }
-
-    rhocmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
-    grncmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
-
-    rho_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1), bc_m);
-    phi_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1), bcp_m);
-    eg_m.initialize (*mesh_m, *layout_m, GuardCellSizes<Dim>(1), vbc_m);
-
-    bool compressTemps = true;
-    // create the FFT object
-    fft_m = std::unique_ptr<FFTC_t>(new FFTC_t(layout_m->getDomain(), compressTemps));
-    fft_m->setDirectionName(+1, "forward");
-    fft_m->setDirectionName(-1, "inverse");
+    GreensFunctionTimer_m = IpplTimings::getTimer("GreensFTotalP3M");
+    ComputePotential_m = IpplTimings::getTimer("ComputePotentialP3M");
 }
 
-void P3MPoissonSolver::initFields() {
+void P3MPoissonSolver::initFieldsTest() {
+    
+    Vector_t ll(-0.005);
+    Vector_t ur(0.005);
 
     domain_m = layout_m->getDomain();
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
     for(unsigned int i = 0; i < 3; i++) {
-        //hr_m[i] = mesh_m->get_meshSpacing(i);
         nr_m[i] = domain_m[i].length();
+    }
+    
+    for (int i = 0; i < 3; i++)
+        hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
+
+    mesh_m->set_meshSpacing(&(hr_m[0]));
+    mesh_m->set_origin(ll);
+
+    for (unsigned int i = 0; i < 2 * Dim; ++i) {
+        if (Ippl::getNodes()>1) {
+            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
+            //std periodic boundary conditions for gradient computations etc.
+            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
+            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
+        }
+        else {
+            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
+            //std periodic boundary conditions for gradient computations etc.
+            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
+            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
+        }
     }
 
     rhocmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
@@ -247,6 +196,89 @@ void P3MPoissonSolver::initFields() {
 
 }
 
+void P3MPoissonSolver::initializeFields() {
+
+    domain_m = layout_m->getDomain();
+
+    // For efficiency in the FFT's, we can use a parallel decomposition
+    // which can be serial in the first dimension.
+    e_dim_tag decomp[3];
+    e_dim_tag decomp2[3];
+    for(int d = 0; d < 3; ++ d) {
+        decomp[d] = layout_m->getRequestedDistribution(d);
+        decomp2[d] = layout_m->getRequestedDistribution(d);
+    }
+
+    // The FFT's require double-sized field sizes in order to
+    // simulate an isolated system.  The FFT of the charge density field, rho,
+    // would otherwise mimic periodic boundary conditions, i.e. as if there were
+    // several beams set a periodic distance apart.  The double-sized fields
+    // alleviate this problem.
+    for (int i = 0; i < 3; ++ i) {
+        hr_m[i] = mesh_m->get_meshSpacing(i);
+        nr_m[i] = domain_m[i].length();
+        domain2_m[i] = Index(2 * nr_m[i] + 1);
+    }
+
+    for (int i = 0; i < 2 * 3; ++ i) {
+        bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
+        vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+    }
+
+    // create double sized mesh and layout objects for the use in the FFT's
+    mesh2_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
+    layout2_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_m, decomp));
+
+    rho2_m.initialize(*mesh2_m, *layout2_m);
+
+    NDIndex<3> tmpdomain;
+    // Create the domain for the transformed (complex) fields.  Do this by
+    // taking the domain from the doubled mesh, permuting it to the right, and
+    // setting the 2nd dimension to have n/2 + 1 elements.
+    domain3_m[0] = Index(2 * nr_m[2] + 1);
+    domain3_m[1] = Index(nr_m[0] + 2);
+    domain3_m[2] = Index(2 * nr_m[1] + 1);
+
+    // create mesh and layout for the new real-to-complex FFT's, for the
+    // complex transformed fields
+    mesh3_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
+    layout3_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_m, decomp2));
+
+    rho2tr_m.initialize(*mesh3_m, *layout3_m);
+    imgrho2tr_m.initialize(*mesh3_m, *layout3_m);
+    grntr_m.initialize(*mesh3_m, *layout3_m);
+
+    // helper field for sin
+    greentr_m.initialize(*mesh3_m, *layout3_m);
+
+    for (int i = 0; i < 3; ++ i) {
+        domain4_m[i] = Index(nr_m[i] + 2);
+    }
+    mesh4_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain4_m));
+    layout4_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh4_m, decomp));
+
+    tmpgreen_m.initialize(*mesh4_m, *layout4_m);
+
+    // create a domain used to indicate to the FFT's how to construct it's
+    // temporary fields.  This is the same as the complex field's domain,
+    // but permuted back to the left.
+    tmpdomain = layout3_m->getDomain();
+    for (int i = 0; i < 3; ++ i)
+        domainFFTConstruct_m[i] = tmpdomain[(i+1) % 3];
+
+    // create the FFT object
+    fftrc_m = std::unique_ptr<FFTRC_t>(new FFTRC_t(layout2_m->getDomain(), domainFFTConstruct_m));
+
+    // these are fields that are used for calculating the Green's function.
+    // they eliminate some calculation at each time-step.
+    for (int i = 0; i < 3; ++ i) {
+        grnIField_m[i].initialize(*mesh2_m, *layout2_m);
+        grnIField_m[i][domain2_m] = where(lt(domain2_m[i], nr_m[i]),
+                                          domain2_m[i] * domain2_m[i],
+                                          (2 * nr_m[i] - domain2_m[i]) *
+                                          (2 * nr_m[i] - domain2_m[i]));
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -254,23 +286,38 @@ void P3MPoissonSolver::initFields() {
 P3MPoissonSolver::~P3MPoissonSolver() {
 }
 
-void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps) {
-    if (interaction_radius>0){
+void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bunch) {
+    if (interaction_radius_m>0){
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
         }
     }
 
 }
 
-void P3MPoissonSolver::calculateGridForces(PartBunchBase<double, 3> *bunch, double /*interaction_radius*/, double alpha, double eps){
+void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch) {
+    if (interaction_radius_m>0){
+        if (Ippl::getNodes() > 1) {
+            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
+            HashPairBuilderParallel<PartBunch> HPB(tmpBunch);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
+        }
+        else {
+            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
+            HashPairBuilder<PartBunch> HPB(tmpBunch);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
+        }
+    }
+}
+
+void P3MPoissonSolver::calculateGridForces(PartBunchBase<double, 3> *bunch){
 
     Inform msg ("calculateGridForces ");
     Vector_t l,h;
@@ -296,7 +343,7 @@ void P3MPoissonSolver::calculateGridForces(PartBunchBase<double, 3> *bunch, doub
                                        (nr_m[i]-domain_m[i]));
     }
     Vector_t hrsq(hr_m * hr_m);
-    SpecializedGreensFunction<3>::calculate(hrsq, grncmpl_m, grnIField, alpha, eps);
+    P3MGreensFunctionPeriodic<3>::calculate(hrsq, grncmpl_m, grnIField, alpha_m, eps_m);
 
     //transform G -> Ghat and store in grncmpl_m
     fft_m->transform("inverse", grncmpl_m);
@@ -369,10 +416,58 @@ void P3MPoissonSolver::applyConstantFocusing(PartBunchBase<double, 3> *bunch, do
 
 // given a charge-density field rho and a set of mesh spacings hr,
 // compute the scalar potential in open space
-void P3MPoissonSolver::computePotential(Field_t &/*rho*/, Vector_t /*hr*/) {
+void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
+    IpplTimings::startTimer(ComputePotential_m);
 
+    // use grid of complex doubled in both dimensions
+    // and store rho in lower left quadrant of doubled grid
+    rho2_m = 0.0;
 
+    rho2_m[domain_m] = rho[domain_m];
+
+    // needed in greens function
+    hr_m = hr;
+
+    // FFT double-sized charge density
+    // we do a backward transformation so that we dont have to account for the normalization factor
+    // that is used in the forward transformation of the IPPL FFT
+    fftrc_m->transform(-1, rho2_m, rho2tr_m);
+
+    // must be called if the mesh size has changed
+    // have to check if we can do G with h = (1,1,1)
+    // and rescale later
+    IpplTimings::startTimer(GreensFunctionTimer_m);
+    greensFunction();
+    IpplTimings::stopTimer(GreensFunctionTimer_m);
+    // multiply transformed charge density
+    // and transformed Green function
+    // Don't divide by (2*nx_m)*(2*ny_m), as Ryne does;
+    // this normalization is done in POOMA's fft routine.
+    rho2tr_m *= grntr_m;
+
+    // inverse FFT, rho2_m equals to the electrostatic potential
+    fftrc_m->transform(+1, rho2tr_m, rho2_m);
+    // end convolution
+
+    // back to physical grid
+    // reuse the charge density field to store the electrostatic potential
+    rho[domain_m] = rho2_m[domain_m];
+    IpplTimings::stopTimer(ComputePotential_m);
 }
+
+void P3MPoissonSolver::greensFunction() {
+
+    Vector_t hrsq(hr_m * hr_m);
+    P3MGreensFunction<3>::calculate(hrsq, rho2_m, grnIField_m);
+    // Green's function calculation complete at this point.
+    // The next step is to FFT it.
+    // FFT of Green's function
+
+    // we do a backward transformation so that we dont have to account for the normalization factor
+    // that is used in the forward transformation of the IPPL FFT
+    fftrc_m->transform(-1, rho2_m, grntr_m);
+}
+
 
 void P3MPoissonSolver::compute_temperature(PartBunchBase<double, 3> *bunch) {
 
@@ -421,19 +516,10 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     const double f = 1.5;
     const double dt = bunch->getdT();
 
-    Vector_t ll(-0.005);
-    Vector_t ur(0.005);
-    
-    for (int i = 0; i < 3; i++)
-        hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
-
-    mesh_m->set_meshSpacing(&(hr_m[0]));
-    mesh_m->set_origin(ll);
    
     OpalData *opal = OpalData::getInstance();
     DataSink *ds = opal->getDataSink();
 
-    //    std::vector<std::pair<std::string, unsigned int> > collimatorLosses; // just empty
     Vector_t FDext[6];
 
     bunch->Q = qi;
@@ -442,7 +528,7 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     bunch->calcBeamParameters();
     ds->dumpSDDS(bunch, FDext, 0);
 
-    initFields();
+    //initFieldsTest();
 
     for (int i=0; i<3; i++) {
         extend_r[i] =  hr_m[i]*nr_m[i]/2;
@@ -453,8 +539,8 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
 
     // calculate initial space charge forces
     bunch->update();
-    calculateGridForces(bunch, interaction_radius_m, alpha_m, eps_m);
-    calculatePairForces(bunch, interaction_radius_m, alpha_m, eps_m);
+    calculateGridForces(bunch);
+    calculatePairForcesPeriodic(bunch);
 
     //avg space charge forces for constant focusing
     computeAvgSpaceChargeForces(bunch);
@@ -469,8 +555,8 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
 
         bunch->update();
 
-        calculateGridForces(bunch, interaction_radius_m, alpha_m, eps_m);
-        calculatePairForces(bunch, interaction_radius_m, alpha_m, eps_m);
+        calculateGridForces(bunch);
+        calculatePairForcesPeriodic(bunch);
         applyConstantFocusing(bunch,f,beam_radius);
 
         assign(bunch->P, bunch->P + dt * qom * bunch->Ef);
