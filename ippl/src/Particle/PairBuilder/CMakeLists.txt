@@ -5,6 +5,7 @@ set (_HDRS
   BasicPairBuilder.h
   HashPairBuilder.h
   HashPairBuilderPeriodic.h
+  HashPairBuilderPeriodicParallel.h
   PairConditions.h
   SortingPairBuilder.h
   )
