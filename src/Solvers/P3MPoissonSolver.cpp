@@ -25,6 +25,8 @@
 #include "Particle/BoxParticleCachingPolicy.h"
 #include "Particle/PairBuilder/HashPairBuilderPeriodic.h"
 #include "Particle/PairBuilder/HashPairBuilderPeriodicParallel.h"
+#include "Particle/PairBuilder/HashPairBuilder.h"
+#include "Particle/PairBuilder/HashPairBuilderParallel.h"
 //#include "Particle/PairBuilder/HashPairBuilderPeriodicParallel_globCHaining.h"
 #include "Particle/PairBuilder/PairConditions.h"
 #include "Structure/DataSink.h"
