@@ -104,18 +104,18 @@ struct ApplyField {
             //for order two transition
             if (P.Q[i]!=0 && P.Q[j]!=0) {
                 //compute potential energy
-                double phi =ke*(1.-std::erf(a*std::sqrt(sqr)))/r;
+                //double phi =ke*(1.-std::erf(a*std::sqrt(sqr)))/r;
 
                 //compute force
-                Vector_t Fij = ke*C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
+                Vector_t Fij = C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
 
                 //Actual Force is F_ij multiplied by Qi*Qj
                 //The electrical field on particle i is E=F/q_i and hence:
                 P.Ef[i] -= P.Q[j]*Fij;
                 P.Ef[j] += P.Q[i]*Fij;
                 //update potential per particle
-                P.Phi[i] += P.Q[j]*phi;
-                P.Phi[j] += P.Q[i]*phi;
+                //P.Phi[i] += P.Q[j]*phi;
+                //P.Phi[j] += P.Q[i]*phi;
             }
         }
     }
@@ -546,6 +546,8 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     bunch->update();
     calculateGridForces(bunch);
     calculatePairForcesPeriodic(bunch);
+    assign(bunch->Ef, bunch->Ef * ke);
+
 
     //avg space charge forces for constant focusing
     computeAvgSpaceChargeForces(bunch);
@@ -562,6 +564,7 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
 
         calculateGridForces(bunch);
         calculatePairForcesPeriodic(bunch);
+        assign(bunch->Ef, bunch->Ef * ke);
         applyConstantFocusing(bunch,f,beam_radius);
 
         assign(bunch->P, bunch->P + dt * qom * bunch->Ef);

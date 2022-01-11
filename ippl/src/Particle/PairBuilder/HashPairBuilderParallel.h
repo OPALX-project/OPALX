@@ -101,6 +101,7 @@ public:
         }
 
         double part_count = 0;
+        Vektor<double,3> shift(0,0,0);
         //loop over all buckets
         for (int bx=0; bx<buckets_per_dim[0]; ++bx) {
             for (int by=0; by<buckets_per_dim[1]; ++by) {
@@ -109,7 +110,6 @@ public:
                     //compute index of neighboring bucket to interact with
                     for (unsigned n=0; n<neigh;++n){
                         int bx_neigh, by_neigh, bz_neigh;
-                        Vektor<double,3> shift(0,0,0);
 
                         bx_neigh = bx+offset[n][0];
                         by_neigh = by+offset[n][1];
@@ -141,7 +141,7 @@ public:
                                 while(j != END) {
                                     if(pred(particles.R[i], particles.R[j])) {
                                         if (i!=j)
-                                            op(i, j, particles);
+                                            op(i, j, particles, shift);
                                     }
                                     j = next[j];
                                 }
