@@ -469,6 +469,10 @@ void PartBunch::computeSelfFields() {
         // scatter operation.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
+        if(fs_m->getFieldSolverType() == "P3M")
+            fs_m->solver_m->calculatePairForces(this,gammaz);
+
+
         /** Magnetic field in x and y direction induced by the eletric field
          *
          *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
