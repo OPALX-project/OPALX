@@ -1292,6 +1292,12 @@ void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
 //         this->setMesh(fs_m->getMesh());
 //         this->setFieldLayout(fs_m->getFieldLayout());
     }
+    
+    if (fs_m->getFieldSolverType() == "P3M") {
+        Layout_t* layoutp = static_cast<Layout_t*>(&getLayout());
+        layoutp->setAllCacheDimensions(fs_m->solver_m->getinteractionRadius());
+        layoutp->enableCaching();
+    }
 }
 
 
