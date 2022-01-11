@@ -95,6 +95,7 @@ public:
         }
 
         //loop over all buckets
+        Vektor<double,3> shift(0,0,0);
         for (int bx=0; bx<buckets_per_dim[0]; ++bx) {
             for (int by=0; by<buckets_per_dim[1]; ++by) {
                 for (int bz=0; bz<buckets_per_dim[2]; ++bz) {
@@ -137,7 +138,7 @@ public:
                                     {
                                         //dmsg << "processing pair (" << i << "," << j << ")"<<endl;
                                         if (i!=j)
-                                            op(i, j, particles);
+                                            op(i, j, particles, shift);
                                     }
                                     j = next[j];
                                 }

@@ -469,8 +469,10 @@ void PartBunch::computeSelfFields() {
         // scatter operation.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
-        if(fs_m->getFieldSolverType() == "P3M")
+        if(fs_m->getFieldSolverType() == "P3M") {
             fs_m->solver_m->calculatePairForces(this,gammaz);
+            Ef *= getCouplingConstant();
+        }
 
 
         /** Magnetic field in x and y direction induced by the eletric field
