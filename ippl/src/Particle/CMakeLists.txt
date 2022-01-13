@@ -15,6 +15,7 @@ set (_HDRS
     NoParticleCachingPolicy.h
     PairBuilder/BasicPairBuilder.h
     PairBuilder/HashPairBuilder.h
+    PairBuilder/HashPairBuilderParallel.h
     PairBuilder/HashPairBuilderPeriodic.h
     PairBuilder/PairConditions.h
     PairBuilder/SortingPairBuilder.h

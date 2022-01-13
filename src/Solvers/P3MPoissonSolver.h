@@ -50,7 +50,9 @@ public:
     typedef FFT<RCTransform, 3, double>              FFTRC_t;
 
     // constructor and destructor
-    P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps);
+    P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, 
+                     double interaction_radius, 
+                     double alpha, double eps, bool isTest);
 
     ~P3MPoissonSolver();
 
@@ -62,7 +64,7 @@ public:
 
     void calculatePairForcesPeriodic(PartBunchBase<double, 3> *bunch);
     
-    void calculatePairForces(PartBunchBase<double, 3> *bunch);
+    void calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
@@ -125,12 +127,6 @@ private:
     std::unique_ptr<FFTC_t> fft_m;
     std::unique_ptr<FFTRC_t> fftrc_m;
 
-
-    // Fields used to eliminate excess calculation in greensFunction()
-    // mesh2_m and layout2_m are used
-    IField_t grnIField_m[3];
-
-
     // mesh and layout objects for rho_m
     Mesh_t *mesh_m;
     FieldLayout_t *layout_m;
@@ -148,7 +144,7 @@ private:
     std::unique_ptr<FieldLayout_t> layout4_m;
 
     // tmp
-    Field_t tmpgreen;
+    Field_t tmpgreen_m;
 
     // domains for the various fields
     NDIndex<3> domain_m;             // original domain, gridsize
@@ -163,6 +159,7 @@ private:
     double interaction_radius_m;
     double alpha_m;
     double eps_m;
+    bool isTest_m;
 
     Vector_t hr_m;
     Vektor<int, 3> nr_m;
@@ -170,6 +167,10 @@ private:
     // for tests
     Vektor<double,Dim> avgEF_m;
     double globSumEf_m[Dim];
+
+
+    IpplTimings::TimerRef GreensFunctionTimer_m;
+    IpplTimings::TimerRef ComputePotential_m;
 
 
 public:

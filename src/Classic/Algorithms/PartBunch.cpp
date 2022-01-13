@@ -77,10 +77,6 @@ void PartBunch::runTests() {
     getMesh().set_meshSpacing(&(hr_m[0]));
     getMesh().set_origin(ll);
     setBCAllPeriodic();
-    Layout_t* layout = static_cast<Layout_t*>(&getLayout());
-    layout->setAllCacheDimensions(fs_m->solver_m->getinteractionRadius());
-    layout->enableCaching();
-   
 
     rho_m.initialize(getMesh(),
                      getFieldLayout(),
@@ -471,7 +467,7 @@ void PartBunch::computeSelfFields() {
 
         if(fs_m->getFieldSolverType() == "P3M") {
             fs_m->solver_m->calculatePairForces(this,gammaz);
-            Ef *= getCouplingConstant();
+            Ef = Ef * getCouplingConstant();
         }
 
 

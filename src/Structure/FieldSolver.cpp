@@ -91,6 +91,7 @@ namespace {
         RC,         // cutoff radius for PP interactions
         ALPHA,      // Green’s function splitting parameter
         EPSILON,    // regularization for PP interaction
+        P3MTEST,    // Boolean to indicate if we want to run P3M test or not
 #ifdef ENABLE_AMR
         AMR_MAXLEVEL,       // AMR, maximum refinement level
         AMR_REFX,           // AMR, refinement ratio in x
@@ -193,6 +194,9 @@ FieldSolver::FieldSolver():
                                             "regularization for PP interaction",
                                             0.0);
 
+    itsAttr[P3MTEST] = Attributes::makeBool("P3MTEST",
+                                            "Is this a test for P3M solver",
+                                            false);
     //SAAMG and in case of FFT with dirichlet BC in x and y
     itsAttr[GEOMETRY] = Attributes::makeUpperCaseString("GEOMETRY",
                                                         "GEOMETRY to be used as domain boundary",
@@ -512,10 +516,11 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
                                         FL_m,
                                         Attributes::getReal(itsAttr[RC]),
                                         Attributes::getReal(itsAttr[ALPHA]),
-                                        Attributes::getReal(itsAttr[EPSILON]));
+                                        Attributes::getReal(itsAttr[EPSILON]),
+                                        Attributes::getBool(itsAttr[P3MTEST]));
 
-        PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
-        PL_m->enableCaching();
+        //PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
+        //PL_m->enableCaching();
 
     } else if(fsType_m == "SAAMG") {
 #ifdef HAVE_SAAMG_SOLVER
@@ -571,7 +576,8 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     if (fsType == "P3M")
         os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
            << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
-           << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << endl;
+           << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << '\n'
+           << "* P3MTEST      " << Attributes::getBool(itsAttr[P3MTEST]) << endl;
 
 
     if (fsType == "FFT") {

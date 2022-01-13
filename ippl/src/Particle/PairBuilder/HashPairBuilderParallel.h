@@ -13,8 +13,8 @@
 
 
 
-#ifndef HASH_PAIR_BUILDER_PERIODIC_PARALLEL_H
-#define HASH_PAIR_BUILDER_PERIODIC_PARALLEL_H
+#ifndef HASH_PAIR_BUILDER_PARALLEL_H
+#define HASH_PAIR_BUILDER_PARALLEL_H
 
 #include <algorithm>
 #include <limits>
