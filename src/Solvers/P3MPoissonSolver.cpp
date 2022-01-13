@@ -41,8 +41,8 @@
 // template parameter is the full type of the Field to compute, and the second
 // is the dimension of the data, which should be specialized.
 
-//const double ke=1./(4.*M_PI*8.8e-14);
-const double ke=2.532638e8;
+//const double ke_m=1./(4.*M_PI*8.8e-14);
+//const double ke_m=2.532638e8;
 
 template<unsigned int Dim>
 struct P3MGreensFunctionPeriodic { };
@@ -67,7 +67,7 @@ struct P3MGreensFunctionPeriodic<3> {
                         grn.localElement(elem) = 0 ;
                     }
                     else
-                        grn.localElement(elem) = ke*std::complex<double>(std::erf(alpha*r)/(r+eps));
+                        grn.localElement(elem) = std::complex<double>(std::erf(alpha*r)/(r+eps));
                 }
             }
         }
@@ -89,7 +89,7 @@ struct P3MGreensFunction<3> {
 
 template<class T>
 struct ApplyField {
-    ApplyField(T c, double r, double epsilon, double alpha) : C(c), R(r), eps(epsilon), a(alpha) {}
+    ApplyField(T c, double r, double epsilon, double alpha, double ke_) : C(c), R(r), eps(epsilon), a(alpha), ke(ke_) {}
     void operator()(std::size_t i, std::size_t j, PartBunch &P,Vektor<double,3> &shift) const
     {
         Vector_t diff = P.R[i] - (P.R[j]+shift);
@@ -123,6 +123,7 @@ struct ApplyField {
     double R;
     double eps;
     double a;
+    double ke;
 };
 
 
@@ -140,10 +141,14 @@ P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double inter
     isTest_m(isTest)
 {
     Inform msg("P3MPoissonSolver::P3MPoissonSolver ");
-    if(isTest_m)
+    if(isTest_m) {
         initFieldsTest();
-    else
+        ke_m=2.532638e8;
+    }
+    else {
         initializeFields();
+        ke_m = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
+    }
 
     GreensFunctionTimer_m = IpplTimings::getTimer("GreensFTotalP3M");
     ComputePotential_m = IpplTimings::getTimer("ComputePotentialP3M");
@@ -293,12 +298,12 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m),extend_l, extend_r);
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m),extend_l, extend_r);
         }
     }
 
@@ -309,12 +314,12 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m));
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m));
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m));
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m));
         }
     }
 }
@@ -358,7 +363,9 @@ void P3MPoissonSolver::calculateGridForces(PartBunchBase<double, 3> *bunch){
 
     //take only the real part and store in phi_m (has periodic bc instead of interpolation bc)
     phi_m = real(rhocmpl_m)*hr_m[0]*hr_m[1]*hr_m[2];
+    phi_m *= ke_m;
     //dumpVTKScalar( phi_m, this,it, "Phi_m") ;
+
 
     //compute Electric field on the grid by -Grad(Phi) store in eg_m
     eg_m = -Grad1Ord(phi_m, eg_m);

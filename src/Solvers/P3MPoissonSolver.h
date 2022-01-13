@@ -163,6 +163,7 @@ private:
 
     Vector_t hr_m;
     Vektor<int, 3> nr_m;
+    double ke_m;
 
     // for tests
     Vektor<double,Dim> avgEF_m;
