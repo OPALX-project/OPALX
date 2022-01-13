@@ -107,7 +107,7 @@ struct ApplyField {
                 //double phi =ke*(1.-std::erf(a*std::sqrt(sqr)))/r;
 
                 //compute force
-                Vector_t Fij = C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
+                Vector_t Fij = ke*C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
 
                 //Actual Force is F_ij multiplied by Qi*Qj
                 //The electrical field on particle i is E=F/q_i and hence:
@@ -131,7 +131,7 @@ struct ApplyField {
 // constructor
 
 
-P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps, bool isTest_m):
+P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps, bool isTest):
     mesh_m(mesh),
     layout_m(fl),
     interaction_radius_m(interaction_radius),
@@ -463,7 +463,7 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 void P3MPoissonSolver::greensFunction() {
 
     Vector_t hrsq(hr_m * hr_m);
-    P3MGreensFunction<3>::calculate(hrsq, rho2_m, grnIField_m);
+    P3MGreensFunction<3>::calculate(hrsq, rho2_m, grnIField_m, alpha_m, eps_m);
     // Green's function calculation complete at this point.
     // The next step is to FFT it.
     // FFT of Green's function
@@ -530,7 +530,6 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     bunch->Q = qi;
     bunch->M = mi;
 
-    bunch->calcBeamParameters();
     ds->dumpSDDS(bunch, FDext, 0);
 
     //initFieldsTest();
@@ -546,7 +545,6 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     bunch->update();
     calculateGridForces(bunch);
     calculatePairForcesPeriodic(bunch);
-    assign(bunch->Ef, bunch->Ef * ke);
 
 
     //avg space charge forces for constant focusing
@@ -564,15 +562,12 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
 
         calculateGridForces(bunch);
         calculatePairForcesPeriodic(bunch);
-        assign(bunch->Ef, bunch->Ef * ke);
         applyConstantFocusing(bunch,f,beam_radius);
 
         assign(bunch->P, bunch->P + dt * qom * bunch->Ef);
 
-        //if (it%10 == 0){
-            bunch->calcBeamParameters();
-            ds->dumpSDDS(bunch, FDext, it+1);
-        //}
+        ds->dumpSDDS(bunch, FDext, it+1);
+        bunch->incrementT();
         msg << "Finished iteration " << it+1 << endl;
     }
 }

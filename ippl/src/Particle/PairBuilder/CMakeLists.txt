@@ -4,6 +4,7 @@ set (_SRCS
 set (_HDRS
   BasicPairBuilder.h
   HashPairBuilder.h
+  HashPairBuilderParallel.h
   HashPairBuilderPeriodic.h
   HashPairBuilderPeriodicParallel.h
   PairConditions.h
