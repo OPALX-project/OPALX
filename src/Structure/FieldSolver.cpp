@@ -519,6 +519,8 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
                                         Attributes::getReal(itsAttr[EPSILON]),
                                         Attributes::getBool(itsAttr[P3MTEST]));
 
+        if(!Attributes::getBool(itsAttr[P3MTEST]))
+            itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
         //PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
         //PL_m->enableCaching();
 

@@ -37,7 +37,7 @@ public:
         const std::size_t END = std::numeric_limits<std::size_t>::max();
         std::size_t size = particles.getLocalNum()+particles.getGhostNum();
 
-        // Inform dmsg("debug_msg:");
+        Inform dmsg("debug_msg:");
         // dmsg << "We use parallel hash pair builder small chaining mesh ****************************" << endl;
 
         NDIndex<3> globDomain = particles.getFieldLayout().getDomain();
@@ -45,8 +45,8 @@ public:
 
         //bounds(particles.R, rmin_m, rmax_m);
         rmin_m = particles.get_origin();
-        rmin_m[2] *= gammaz;
-        hr_m[2] *= gammaz;
+        //rmin_m[2] *= gammaz;
+        //hr_m[2] *= gammaz;
 
         ///////// compute local chaining mesh
         Vektor<double,3> extend_l_local, extend_r_local, domain_width_local;
@@ -72,10 +72,10 @@ public:
         //dmsg << "local domain iwdth = " << domain_width_local << endl;
         //dmsg << "local extends : " << extend_l_local << "\t" << extend_r_local << endl;
         //dmsg << "local extends with chaining: " << rmin_m << "\t" << rmax_m << endl;
-        //dmsg << "buckets per dim = " << buckets_per_dim << endl;
         //dmsg << "h_chaining = " << h_chaining << endl;
 
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
+        //dmsg << "buckets per dim = " << buckets_per_dim << endl;
 
         std::size_t *buckets = new size_t[Nbucket]; //index of first particle in this bucket
         std::size_t *next = new size_t[size]; //index of next particle in this bucket. END indicates last particle of bucket
@@ -168,15 +168,15 @@ private:
     template<class Pred>
     int get_bucket_id(int i, const Pred& /*pred*/)
     {
-        // Inform dmsg("debug_msg:");
+        Inform dmsg("debug_msg:");
 
         Vektor<int,3> loc;
         for (unsigned d=0; d<3; ++d)
             loc[d] = (particles.R[i][d]-rmin_m[d])/h_chaining[d];
         
         int bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
-            // dmsg << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << endl;
-            // dmsg << particles.R[i][0] << "," << particles.R[i][1] << "," << particles.R[i][2] << "," << bucket_id << endl;
+        //dmsg << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << endl;
+        //dmsg << particles.R[i][0] << "," << particles.R[i][1] << "," << particles.R[i][2] << "," << bucket_id << endl;
         return bucket_id;
     }
 
