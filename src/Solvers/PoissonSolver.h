@@ -71,8 +71,7 @@ public:
     { };
     virtual double getinteractionRadius() { return 0.0; }
 
-    virtual void calculatePairForces(PartBunchBase<double, 3>* /*bunch*/, 
-                                     double /*gammaz*/) 
+    virtual void calculatePairForces(PartBunchBase<double, 3>* /*bunch*/) 
     { };
 
 };
