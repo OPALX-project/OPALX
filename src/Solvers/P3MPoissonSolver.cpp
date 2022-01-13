@@ -80,7 +80,7 @@ struct P3MGreensFunction { };
 template<>
 struct P3MGreensFunction<3> {
     template<class T, class FT, class FT2>
-    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha,double eps) {
+    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha, double eps) {
         grn = grnI[0] * hrsq[0] + grnI[1] * hrsq[1] + grnI[2] * hrsq[2];
         grn = erf(alpha*sqrt(grn))/(sqrt(grn)+eps);
         grn[0][0][0] = grn[0][0][1];
@@ -463,7 +463,7 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     rho[domain_m] = rho2_m[domain_m];
 
 
-    rho_m *= hr[0] * hr[1] * hr[2];
+    rho *= hr[0] * hr[1] * hr[2];
     IpplTimings::stopTimer(ComputePotential_m);
 }
 
