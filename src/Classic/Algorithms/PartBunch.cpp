@@ -584,6 +584,10 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         /// interpolate electric field at particle positions.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
+        if(fs_m->getFieldSolverType() == "P3M")
+            fs_m->solver_m->calculatePairForces(this);
+
+        
         /// calculate coefficient
         // Relativistic E&M says gamma*v/c^2 = gamma*beta/c = sqrt(gamma*gamma-1)/c
         // but because we already transformed E_trans into the moving frame we have to
@@ -717,6 +721,10 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         /// Interpolate electric field at particle positions.
         Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
 
+        
+        if(fs_m->getFieldSolverType() == "P3M")
+            fs_m->solver_m->calculatePairForces(this);
+        
         /// Calculate coefficient
         double betaC = std::sqrt(gamma * gamma - 1.0) / gamma / Physics::c;
 
