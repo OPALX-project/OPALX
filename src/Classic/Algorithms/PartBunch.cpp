@@ -466,7 +466,7 @@ void PartBunch::computeSelfFields() {
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
         if(fs_m->getFieldSolverType() == "P3M")
-            fs_m->solver_m->calculatePairForces(this);
+            fs_m->solver_m->calculatePairForces(this,gammaz);
 
 
         /** Magnetic field in x and y direction induced by the eletric field
