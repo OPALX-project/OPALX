@@ -309,16 +309,16 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
 
 }
 
-void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch) {
+void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz) {
     if (interaction_radius_m>0){
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-            HashPairBuilderParallel<PartBunch> HPB(tmpBunch);
+            HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m));
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-            HashPairBuilder<PartBunch> HPB(tmpBunch);
+            HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m));
         }
     }

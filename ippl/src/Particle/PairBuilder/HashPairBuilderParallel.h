@@ -28,7 +28,7 @@ public:
     enum { Dim = PBase::Dim };
     typedef typename PBase::Position_t      Position_t;
 
-    HashPairBuilderParallel(PBase &p) : particles(p)
+    HashPairBuilderParallel(PBase &p, double gammaz_) : particles(p), gammaz(gammaz_) 
     { hr_m = p.get_hr(); }
 
     template<class Pred, class OP>
@@ -181,6 +181,7 @@ private:
     }
 
     PBase &particles;
+    double gammaz;
     Vektor<int,3> buckets_per_dim;
     Vektor<double,3> h_chaining;
     Vektor<double,3> rmin_m;

@@ -64,7 +64,7 @@ public:
 
     void calculatePairForcesPeriodic(PartBunchBase<double, 3> *bunch);
     
-    void calculatePairForces(PartBunchBase<double, 3> *bunch);
+    void calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
