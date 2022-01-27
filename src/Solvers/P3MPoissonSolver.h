@@ -86,6 +86,8 @@ public:
     double getZRangeMin(unsigned short /*level*/) {return 1.0;}
     double getZRangeMax(unsigned short /*level*/) {return 1.0;}
     double getinteractionRadius() {return interaction_radius_m;}
+    void setinteractionRadius(double r) {interaction_radius_m = r;}
+    void setAlpha(double alpha) {alpha_m = alpha;}
 
     void computeAvgSpaceChargeForces(PartBunchBase<double, 3> *bunch);
     void compute_temperature(PartBunchBase<double, 3> *bunch);

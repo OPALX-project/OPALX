@@ -408,8 +408,12 @@ void PartBunch::computeSelfFields() {
         fwriter.dumpField(rho_m, "rho", "C/m^3", localTrackStep_m);
 #endif
 
+        double rho_sum = sum(abs(rho_m));
+        *gmsg << "Density sum: " << rho_sum << endl;
         // charge density is in rho_m
         fs_m->solver_m->computePotential(rho_m, hr_scaled);
+        rho_sum = sum(abs(rho_m));
+        *gmsg << "Potential sum: " << rho_sum << endl;
 
         //do the multiplication of the grid-cube volume coming
         //from the discretization of the convolution integral.
@@ -432,7 +436,7 @@ void PartBunch::computeSelfFields() {
         // [V/m] for the electric field
         eg_m = -Grad(rho_m, eg_m);
 
-        eg_m *= Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
+        //eg_m *= Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
         //write out e field
 #ifdef FIELDSTDOUT
@@ -465,10 +469,22 @@ void PartBunch::computeSelfFields() {
         // scatter operation.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
-        if(fs_m->getFieldSolverType() == "P3M")
+        *gmsg << "gammaz: " << gammaz << endl;
+        Vector_t PM_sum = sum(Ef);
+        *gmsg << "Abs sum of PM part: " << PM_sum << endl;
+        *gmsg << "Rmin: " << this->get_origin() << endl;
+        *gmsg << "Rmax: " << this->get_maxExtent() << endl;
+        if(fs_m->getFieldSolverType() == "P3M") {
             fs_m->solver_m->calculatePairForces(this,gammaz);
+            //Ef = Ef * Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
+        }
+        Vector_t PM_PP_sum = sum(Ef);
+        *gmsg << "Abs sum of PM+PP part: " << PM_PP_sum << endl;
 
-
+        Ef = Ef * Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
+        
+        PM_PP_sum = sum(Ef);
+        *gmsg << "Abs sum of PM+PP part after inverse boost: " << PM_PP_sum << endl;
         /** Magnetic field in x and y direction induced by the eletric field
          *
          *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
@@ -584,8 +600,6 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         /// interpolate electric field at particle positions.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
 
-        if(fs_m->getFieldSolverType() == "P3M")
-            fs_m->solver_m->calculatePairForces(this);
 
         
         /// calculate coefficient
@@ -722,8 +736,6 @@ void PartBunch::computeSelfFields_cycl(int bin) {
         Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
 
         
-        if(fs_m->getFieldSolverType() == "P3M")
-            fs_m->solver_m->calculatePairForces(this);
         
         /// Calculate coefficient
         double betaC = std::sqrt(gamma * gamma - 1.0) / gamma / Physics::c;

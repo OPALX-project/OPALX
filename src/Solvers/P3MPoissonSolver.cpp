@@ -89,7 +89,7 @@ struct P3MGreensFunction<3> {
 
 template<class T>
 struct ApplyField {
-    ApplyField(T c, double r, double epsilon, double alpha, double ke_) : C(c), R(r), eps(epsilon), a(alpha), ke(ke_) {}
+    ApplyField(T c, double epsilon, double alpha, double ke_) : C(c), eps(epsilon), a(alpha), ke(ke_) {}
     void operator()(std::size_t i, std::size_t j, PartBunch &P,Vektor<double,3> &shift) const
     {
         Vector_t diff = P.R[i] - (P.R[j]+shift);
@@ -120,7 +120,6 @@ struct ApplyField {
         }
     }
     T C;
-    double R;
     double eps;
     double a;
     double ke;
@@ -298,12 +297,12 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m),extend_l, extend_r);
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m),extend_l, extend_r);
         }
     }
 
@@ -311,16 +310,27 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
 
 void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz) {
     if (interaction_radius_m>0){
+        PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
+        std::size_t size = tmpBunch.getLocalNum()+tmpBunch.getGhostNum();
+        for(std::size_t i = 0;i<size;++i)
+        {
+            tmpBunch.R[i](2) = tmpBunch.R[i](2) * gammaz;
+        }
+        //tmpBunch.R(2) = tmpBunch.R(2) * gammaz;
         if (Ippl::getNodes() > 1) {
-            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m));
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
         }
         else {
-            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
+            //PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,interaction_radius_m,eps_m,alpha_m,ke_m));
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
         }
+        for(std::size_t i = 0;i<size;++i)
+        {
+            tmpBunch.R[i](2) = tmpBunch.R[i](2) / gammaz;
+        }
+        //tmpBunch.R(2) = tmpBunch.R(2) * (1.0 / gammaz);
     }
 }
 
