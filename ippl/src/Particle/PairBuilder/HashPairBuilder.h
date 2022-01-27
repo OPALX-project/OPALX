@@ -38,23 +38,29 @@ public:
 
         //bounds(particles.R, rmin_m, rmax_m);
         Inform dmsg("debug_msg:");
-        rmin_m = particles.get_origin();
-        rmax_m = particles.get_maxExtent();
-        //rmin_m[2] *= gammaz;
-        //rmax_m[2] *= gammaz;
-        //hr_m[2] *= gammaz;
-        //dmsg << "R_min = " << rmin_m << " R_max = " << rmax_m << endl;
-        //dmsg << "gammaz = " << gammaz << endl;
+        rmin_m = particles.getMesh().get_origin();
+        //rmax_m = particles.get_maxExtent();
+        
+        NDIndex<3> locDomain = particles.getFieldLayout().getLocalNDIndex();
+        for (unsigned i=0; i<3; ++i) {
+            rmax_m[i] = rmin_m[i]+(locDomain[i].last()+1)*hr_m[i];
+        }
+        rmin_m[2] *= gammaz;
+        rmax_m[2] *= gammaz;
+        hr_m[2] *= gammaz;
+        dmsg << "R_min = " << rmin_m << " R_max = " << rmax_m << endl;
+        dmsg << "gammaz = " << gammaz << endl;
 
-        buckets_per_dim[0]=floor((rmax_m[0]-rmin_m[0])/pred.getRange(0));
-        buckets_per_dim[1]=floor((rmax_m[1]-rmin_m[1])/pred.getRange(1));
-        buckets_per_dim[2]=floor((rmax_m[2]-rmin_m[2])/pred.getRange(2));
+        buckets_per_dim[0]=ceil((rmax_m[0]-rmin_m[0])/(10*pred.getRange(0)));
+        buckets_per_dim[1]=ceil((rmax_m[1]-rmin_m[1])/(10*pred.getRange(1)));
+        buckets_per_dim[2]=ceil((rmax_m[2]-rmin_m[2])/(10*pred.getRange(2)));
 
         for (unsigned dim = 0; dim<3; ++dim)
             h_chaining[dim] = (rmax_m[dim]-rmin_m[dim])/buckets_per_dim[dim];
 
-        //dmsg << "buckets per dim = " << buckets_per_dim << endl;
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
+        dmsg << "Nbuckets = " << Nbucket << endl;
+        dmsg << "buckets = " << buckets_per_dim << endl;
 
         std::size_t *buckets = new size_t[Nbucket];
         std::size_t *next = new size_t[size];
@@ -218,7 +224,7 @@ private:
             loc[d] = (particles.R[i][d]-rmin_m[d])/h_chaining[d];
         
         int bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
-        //std::cout << "bucket id of particle " << i << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
+        //std::cout << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
         return bucket_id;
     }
 

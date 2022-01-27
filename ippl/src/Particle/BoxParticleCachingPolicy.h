@@ -130,7 +130,6 @@ template<class C>
 							tmpoffset[d] = onoff[d]*offset[d];
 						}
 
-						regions[node].push_back(std::make_pair(dom,tmpoffset));
 					}
 
 					//generate next combinations. this is basically a binary incrementer
