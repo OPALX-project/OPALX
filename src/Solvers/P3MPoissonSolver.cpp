@@ -316,14 +316,14 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         {
             tmpBunch.R[i](2) = tmpBunch.R[i](2) * gammaz;
         }
-        if (Ippl::getNodes() > 1) {
+        //if (Ippl::getNodes() > 1) {
             HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
-        }
-        else {
-            HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
-        }
+        //}
+        //else {
+        //    HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
+        //    HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
+        //}
         for(std::size_t i = 0;i<size;++i)
         {
             tmpBunch.R[i](2) = tmpBunch.R[i](2) / gammaz;
