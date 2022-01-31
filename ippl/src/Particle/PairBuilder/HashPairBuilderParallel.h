@@ -36,7 +36,6 @@ public:
     {
         const std::size_t END = std::numeric_limits<std::size_t>::max();
         std::size_t size = particles.getLocalNum()+particles.getGhostNum();
-        //std::size_t size = particles.getLocalNum();
 
         Inform dmsg("debug_msg:");
         // dmsg << "We use parallel hash pair builder small chaining mesh ****************************" << endl;
@@ -44,13 +43,9 @@ public:
         NDIndex<3> globDomain = particles.getFieldLayout().getDomain();
         NDIndex<3> locDomain = particles.getFieldLayout().getLocalNDIndex();
 
-        Vektor<double,3> rmin_check, rmax_check;
-        particles.get_bounds(rmin_check, rmax_check);
-        dmsg << "Min and Max inside pair Builder: " << rmin_check << "\t" << rmax_check << endl;
         rmin_m = particles.getMesh().get_origin();
         rmin_m[2] *= gammaz;
         hr_m[2] *= gammaz;
-        dmsg << "rmin_m: " << rmin_m << endl;
 
         ///////// compute local chaining mesh
         Vektor<double,3> extend_l_local, extend_r_local, domain_width_local;
@@ -61,9 +56,9 @@ public:
         }
 
         //make sure that the chaining mesh covers the whole domain and has a gridwidth > r_cut
-        buckets_per_dim[0]=ceil(domain_width_local[0]/(pred.getRange(0)));
-        buckets_per_dim[1]=ceil(domain_width_local[1]/(pred.getRange(1)));
-        buckets_per_dim[2]=ceil(domain_width_local[2]/(pred.getRange(2)));
+        buckets_per_dim[0]=ceil(domain_width_local[0]/(10*pred.getRange(0)));
+        buckets_per_dim[1]=ceil(domain_width_local[1]/(10*pred.getRange(1)));
+        buckets_per_dim[2]=ceil(domain_width_local[2]/(10*pred.getRange(2)));
 
         for (unsigned dim = 0; dim<3; ++dim)
             h_chaining[dim] = domain_width_local[dim]/buckets_per_dim[dim];
@@ -75,12 +70,12 @@ public:
 
         //dmsg << "local domain iwdth = " << domain_width_local << endl;
         //dmsg << "local extends : " << extend_l_local << "\t" << extend_r_local << endl;
-        dmsg << "local extends with chaining: " << rmin_m << "\t" << rmax_m << endl;
-        dmsg << "h_chaining = " << h_chaining << endl;
+        //dmsg << "local extends with chaining: " << rmin_m << "\t" << rmax_m << endl;
+        //dmsg << "h_chaining = " << h_chaining << endl;
 
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
-        dmsg << "Nbuckets = " << Nbucket << endl;
-        dmsg << "buckets = " << buckets_per_dim << endl;
+        //dmsg << "Nbuckets = " << Nbucket << endl;
+        //dmsg << "buckets = " << buckets_per_dim << endl;
 
         std::size_t *buckets = new size_t[Nbucket]; //index of first particle in this bucket
         std::size_t *next = new size_t[size]; //index of next particle in this bucket. END indicates last particle of bucket
@@ -180,7 +175,7 @@ private:
             loc[d] = (particles.R[i][d]-rmin_m[d])/h_chaining[d];
         
         int bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
-        std::cout << "Rank: " << Ippl::myNode() << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
+        //std::cout << "Rank: " << Ippl::myNode() << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
         //dmsg << particles.R[i][0] << "," << particles.R[i][1] << "," << particles.R[i][2] << "," << bucket_id << endl;
         return bucket_id;
     }

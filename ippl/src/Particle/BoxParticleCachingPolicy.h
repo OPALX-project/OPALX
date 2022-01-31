@@ -129,6 +129,8 @@ template<class C>
 												dom[d].last()  - onoff[d]*offset[d]);
 							tmpoffset[d] = onoff[d]*offset[d];
 						}
+                        
+                        regions[node].push_back(std::make_pair(dom,tmpoffset));
 
 					}
 

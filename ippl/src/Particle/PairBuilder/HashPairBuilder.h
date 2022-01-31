@@ -37,7 +37,6 @@ public:
          */
 
         //bounds(particles.R, rmin_m, rmax_m);
-        Inform dmsg("debug_msg:");
         rmin_m = particles.getMesh().get_origin();
         //rmax_m = particles.get_maxExtent();
         
@@ -48,8 +47,6 @@ public:
         rmin_m[2] *= gammaz;
         rmax_m[2] *= gammaz;
         hr_m[2] *= gammaz;
-        dmsg << "R_min = " << rmin_m << " R_max = " << rmax_m << endl;
-        dmsg << "gammaz = " << gammaz << endl;
 
         buckets_per_dim[0]=ceil((rmax_m[0]-rmin_m[0])/(10*pred.getRange(0)));
         buckets_per_dim[1]=ceil((rmax_m[1]-rmin_m[1])/(10*pred.getRange(1)));
@@ -59,8 +56,6 @@ public:
             h_chaining[dim] = (rmax_m[dim]-rmin_m[dim])/buckets_per_dim[dim];
 
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
-        dmsg << "Nbuckets = " << Nbucket << endl;
-        dmsg << "buckets = " << buckets_per_dim << endl;
 
         std::size_t *buckets = new size_t[Nbucket];
         std::size_t *next = new size_t[size];
