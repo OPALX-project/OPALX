@@ -331,7 +331,7 @@ void ParallelTTracker::execute() {
 
             itsBunch_m->incTrackSteps();
 
-            *gmsg << "Step: " << itsBunch_m->getGlobalTrackStep() << endl; 
+            *gmsg << "Step: " << itsBunch_m->getGlobalTrackStep() << "finished" << endl; 
 
             double beta = euclidean_norm(itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m));
             double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;

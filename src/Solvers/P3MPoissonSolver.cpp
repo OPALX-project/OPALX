@@ -316,13 +316,11 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         {
             tmpBunch.R[i](2) = tmpBunch.R[i](2) * gammaz;
         }
-        //tmpBunch.R(2) = tmpBunch.R(2) * gammaz;
         if (Ippl::getNodes() > 1) {
             HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
         }
         else {
-            //PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
         }
@@ -330,7 +328,6 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         {
             tmpBunch.R[i](2) = tmpBunch.R[i](2) / gammaz;
         }
-        //tmpBunch.R(2) = tmpBunch.R(2) * (1.0 / gammaz);
     }
 }
 
@@ -562,7 +559,6 @@ void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
     bunch->update();
     calculateGridForces(bunch);
     calculatePairForcesPeriodic(bunch);
-
 
     //avg space charge forces for constant focusing
     computeAvgSpaceChargeForces(bunch);
