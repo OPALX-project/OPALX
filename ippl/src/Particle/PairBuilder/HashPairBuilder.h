@@ -48,9 +48,9 @@ public:
         rmax_m[2] *= gammaz;
         hr_m[2] *= gammaz;
 
-        buckets_per_dim[0]=ceil((rmax_m[0]-rmin_m[0])/(10*pred.getRange(0)));
-        buckets_per_dim[1]=ceil((rmax_m[1]-rmin_m[1])/(10*pred.getRange(1)));
-        buckets_per_dim[2]=ceil((rmax_m[2]-rmin_m[2])/(10*pred.getRange(2)));
+        buckets_per_dim[0]=floor((rmax_m[0]-rmin_m[0])/pred.getRange(0));
+        buckets_per_dim[1]=floor((rmax_m[1]-rmin_m[1])/pred.getRange(1));
+        buckets_per_dim[2]=floor((rmax_m[2]-rmin_m[2])/pred.getRange(2));
 
         for (unsigned dim = 0; dim<3; ++dim)
             h_chaining[dim] = (rmax_m[dim]-rmin_m[dim])/buckets_per_dim[dim];
