@@ -56,9 +56,9 @@ public:
         }
 
         //make sure that the chaining mesh covers the whole domain and has a gridwidth > r_cut
-        buckets_per_dim[0]=ceil(domain_width_local[0]/(10*pred.getRange(0)));
-        buckets_per_dim[1]=ceil(domain_width_local[1]/(10*pred.getRange(1)));
-        buckets_per_dim[2]=ceil(domain_width_local[2]/(10*pred.getRange(2)));
+        buckets_per_dim[0]=floor(domain_width_local[0]/pred.getRange(0));
+        buckets_per_dim[1]=floor(domain_width_local[1]/pred.getRange(1));
+        buckets_per_dim[2]=floor(domain_width_local[2]/pred.getRange(2));
 
         for (unsigned dim = 0; dim<3; ++dim)
             h_chaining[dim] = domain_width_local[dim]/buckets_per_dim[dim];
