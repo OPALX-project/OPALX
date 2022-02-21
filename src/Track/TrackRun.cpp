@@ -480,26 +480,25 @@ void TrackRun::setupCyclotronTracker(){
     if(beam->getNumberOfParticles() < 3 || beam->getCurrent() == 0.0) {
         macrocharge = beam->getCharge() * Physics::q_e;
         macromass = beam->getMass();
-        dist->createOpalCycl(Track::block->bunch,
-                             beam->getNumberOfParticles(),
-                             beam->getCurrent(),*Track::block->use->fetchLine());
+        Track::block->bunch->setDistribution(dist,
+                                             beam->getNumberOfParticles(),
+                                             beam->getCurrent(),
+                                             *Track::block->use->fetchLine());
 
     } else {
-
         /**
            getFrequency() gets RF frequency [MHz], NOT isochronous revolution frequency of particle!
            getCurrent() gets beamcurrent [A]
-
         */
         macrocharge = beam->getChargePerParticle();
         macromass   = beam->getMassPerParticle();
 
         if(!opal->hasBunchAllocated()) {
             if(!opal->inRestartRun()) {
-                dist->createOpalCycl(Track::block->bunch,
-                                     beam->getNumberOfParticles(),
-                                     beam->getCurrent(),
-                                     *Track::block->use->fetchLine());
+                Track::block->bunch->setDistribution(dist,
+                                                     beam->getNumberOfParticles(),
+                                                     beam->getCurrent(),
+                                                     *Track::block->use->fetchLine());
 
             } else {
                 dist->doRestartOpalCycl(Track::block->bunch,
