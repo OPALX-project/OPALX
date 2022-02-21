@@ -228,6 +228,15 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
 //        dist_m->create(this, addedDistributions, np);
 }
 
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
+                                            size_t numberOfParticles,
+                                            double current,
+                                            const Beamline& bl) {
+    dist_m = d;
+    dist_m->createOpalCycl(this, numberOfParticles, current, bl);
+}
+
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::isGridFixed() const {
@@ -1616,6 +1625,12 @@ ParticleType PartBunchBase<T, Dim>::getPType() const {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setPType(const std::string& type) {
     refPType_m =  ParticleProperties::getParticleType(type);
+}
+
+
+template <class T, unsigned Dim>
+DistributionType PartBunchBase<T, Dim>::getDistType() const {
+    return dist_m->getType();
 }
 
 
