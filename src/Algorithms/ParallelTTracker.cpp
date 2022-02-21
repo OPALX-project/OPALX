@@ -46,6 +46,7 @@
 #include "Solvers/CSRWakeFunction.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/BoundingBox.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
@@ -253,6 +254,7 @@ void ParallelTTracker::execute() {
                       itsOpalBeamline_m);
 
     oth.execute();
+    BoundingBox globalBoundingBox = oth.getBoundingBox();
 
     saveCavityPhases();
 
@@ -323,7 +325,7 @@ void ParallelTTracker::execute() {
             }
             itsBunch_m->set_sPos(pathLength_m);
 
-            if (hasEndOfLineReached()) break;
+            if (hasEndOfLineReached(globalBoundingBox)) break;
 
             bool const psDump = ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
             bool const statDump = ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
@@ -963,8 +965,9 @@ void ParallelTTracker::setOptionalVariables() {
 }
 
 
-bool ParallelTTracker::hasEndOfLineReached() {
+bool ParallelTTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
     reduce(&globalEOL_m, &globalEOL_m + 1, &globalEOL_m, OpBitwiseAndAssign());
+    globalEOL_m = globalEOL_m || globalBoundingBox.isOutside(itsBunch_m->RefPartR_m);
     return globalEOL_m;
 }
 
