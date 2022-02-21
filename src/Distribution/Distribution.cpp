@@ -78,6 +78,17 @@ namespace {
     }
 }
 
+const std::map<std::string, DistributionType> Distribution::typeStringToDistType_s = {
+    {"NODIST",            DistributionType::NODIST},
+    {"FROMFILE",          DistributionType::FROMFILE},
+    {"GAUSS",             DistributionType::GAUSS},
+    {"BINOMIAL",          DistributionType::BINOMIAL},
+    {"FLATTOP",           DistributionType::FLATTOP},
+    {"MULTIGAUSS",        DistributionType::MULTIGAUSS},
+    {"GUNGAUSSFLATTOPTH", DistributionType::GUNGAUSSFLATTOPTH},
+    {"ASTRAFLATTOPTH",    DistributionType::ASTRAFLATTOPTH},
+    {"GAUSSMATCHED",      DistributionType::MATCHEDGAUSS}
+};
 
 Distribution::Distribution():
     Definition( Attrib::Legacy::Distribution::SIZE, "DISTRIBUTION",
@@ -856,7 +867,7 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
                             "distribution " +
                             std::to_string(numberOfDistParticles) + "\n"
                             "is different from the number of particles\n"
-                            "defined by the BEAM command " +
+                            "defined by the BEAM command\n" +
                             std::to_string(numberOfParticles) + ".\n"
                             "This often happens when using a FROMFILE type\n"
                             "distribution and not matching the number of\n"
@@ -865,6 +876,22 @@ void Distribution::checkParticleNumber(size_t &numberOfParticles) {
     }
 }
 
+void Distribution::checkFileMomentum() {
+    // If the distribution was read from a file, the file momentum pmean_m[2]
+    // should coincide with the momentum given in the beam command avrgpz_m.
+
+    if (std::abs(pmean_m[2] - avrgpz_m) / pmean_m[2] > 1e-2) {
+        throw OpalException("Distribution::checkFileMomentum",
+                            "The z-momentum of the particle distribution\n" +
+                            std::to_string(pmean_m[2]) + "\n"
+                            "is different from the momentum given in the \"BEAM\" command\n" +
+                            std::to_string(avrgpz_m) + ".\n"
+                            "When using a \"FROMFILE\" type distribution\n"
+                            "the momentum in the \"BEAM\" command should be\n"
+                            "the same as the momentum of the particles in the file.");
+    }
+}
+    
 void Distribution::chooseInputMomentumUnits(InputMomentumUnits inputMoUnits) {
 
     /*
@@ -1062,7 +1089,6 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
                 P(1) = Util::convertMomentumEVoverCToBetaGamma(P(1), massIneV);
                 P(2) = Util::convertMomentumEVoverCToBetaGamma(P(2), massIneV);
             }
-
             pmean_m += P;
 
             if (saveProcessor > 0u) {
@@ -1329,15 +1355,9 @@ void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
     /*
      *  setup data for matched distribution generation
      */
-
-    E_m = (beam->getInitialGamma()-1.0)*beam->getM();
+    E_m = (beam->getInitialGamma() - 1.0) * beam->getM();
     I_m = current;
 
-    /*
-      Fixme:
-
-      avrgpz_m = beam->getP()/beam->getM();
-    */
     size_t numberOfPartToCreate = numberOfParticles;
     totalNumberParticles_m = numberOfParticles;
     if (beam->getTotalNum() != 0) {
@@ -1466,7 +1486,9 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
     if (emitting_m) {
         checkEmissionParameters();
     } else {
-        if (distrTypeT_m != DistributionType::FROMFILE) {
+        if (distrTypeT_m == DistributionType::FROMFILE) {
+            checkFileMomentum();
+        } else {
             pmean_m = Vector_t(0, 0, avrgpz_m);
         }
     }
@@ -3573,26 +3595,16 @@ void Distribution::setDistToEmitted(bool emitted) {
 void Distribution::setDistType() {
     if (itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]) {
         throw OpalException("Distribution::setDistType()",
-                            "The attribute DISTRIBUTION isn't supported any more, use TYPE instead");
+                            "The attribute \"DISTRIBUTION\" isn't supported any more, use \"TYPE\" instead");
     }
 
     distT_m = Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
-    if (distT_m == "FROMFILE")
-        distrTypeT_m = DistributionType::FROMFILE;
-    else if (distT_m == "GAUSS")
-        distrTypeT_m = DistributionType::GAUSS;
-    else if (distT_m == "BINOMIAL")
-        distrTypeT_m = DistributionType::BINOMIAL;
-    else if (distT_m == "FLATTOP")
-        distrTypeT_m = DistributionType::FLATTOP;
-    else if (distT_m == "MULTIGAUSS")
-        distrTypeT_m = DistributionType::MULTIGAUSS;
-    else if (distT_m == "GUNGAUSSFLATTOPTH")
-        distrTypeT_m = DistributionType::GUNGAUSSFLATTOPTH;
-    else if (distT_m == "ASTRAFLATTOPTH")
-        distrTypeT_m = DistributionType::ASTRAFLATTOPTH;
-    else if (distT_m == "GAUSSMATCHED")
-        distrTypeT_m = DistributionType::MATCHEDGAUSS;
+    if (distT_m.empty()) {
+        throw OpalException("Distribution::setDistType",
+                            "The attribute \"TYPE\" isn't set for the DISTRIBUTION!");
+    } else {
+        distrTypeT_m = typeStringToDistType_s.at(distT_m);
+    }
 }
 
 void Distribution::setSigmaR_m() {

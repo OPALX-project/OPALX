@@ -34,6 +34,7 @@
 #endif
 
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -237,6 +238,7 @@ public:
     Vector_t get_pmean() const;
 
     std::string getTypeofDistribution();
+    DistributionType getType() const;
 
     Inform &printInfo(Inform &os) const;
 
@@ -249,8 +251,6 @@ public:
     double getEmissionTimeShift() const;
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
-
-    DistributionType getType() const;
 
 
 private:
@@ -297,6 +297,7 @@ private:
     void checkEmissionParameters();
     void checkIfEmitted();
     void checkParticleNumber(size_t &numberOfParticles);
+    void checkFileMomentum();
     void chooseInputMomentumUnits(InputMomentumUnits inputMoUnits);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
 
@@ -384,8 +385,9 @@ private:
     void writeOutFileEmission();
     void writeOutFileInjection();
 
-    std::string distT_m;                 /// Distribution type. Declared as string
-    DistributionType distrTypeT_m; /// and list type for switch statements.
+    std::string distT_m;                 /// Distribution type strings.
+    DistributionType distrTypeT_m;       /// List of Distribution types.
+    static const std::map<std::string, DistributionType> typeStringToDistType_s;
 
     unsigned int numberOfDistributions_m;
 
@@ -513,7 +515,7 @@ double Distribution::getPercentageEmitted() const {
 
 inline
 std::string Distribution::getTypeofDistribution() {
-    return (std::string) Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
+    return distT_m;
 }
 
 #endif // OPAL_Distribution_HH
