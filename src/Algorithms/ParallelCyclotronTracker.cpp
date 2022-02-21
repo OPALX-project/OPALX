@@ -76,6 +76,8 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 
+#include "Distribution/Distribution.h"
+
 #include "Elements/OpalBeamline.h"
 
 #include "Physics/Physics.h"
@@ -244,7 +246,6 @@ void ParallelCyclotronTracker::dumpAngle(const double& theta,
 
 
 double ParallelCyclotronTracker::computeRadius(const Vector_t& meanR) const {
-    // New OPAL 2.0: m --> mm
     return Units::m2mm * std::sqrt(meanR(0) * meanR(0) + meanR(1) * meanR(1));
 }
 
@@ -440,10 +441,10 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron &cycl) {
     *gmsg << "* Bunch global starting momenta:" << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Reference total momentum (beta * gamma) = " << referencePtot * Units::m2mm << " [MCU]" << endl;
-    *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt * Units::m2mm << " [MCU]" << endl;
-    *gmsg << "* Reference radial momentum (Pr) = " << referencePr * Units::m2mm << " [MCU]" << endl;
-    *gmsg << "* Reference axial momentum (Pz) = " << referencePz * Units::m2mm << " [MCU]" << endl;
+    *gmsg << "* Reference total momentum = " << referencePtot << " [beta gamma]" << endl;
+    *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt << " [beta gamma]" << endl;
+    *gmsg << "* Reference radial momentum (Pr) = " << referencePr  << " [beta gamma]" << endl;
+    *gmsg << "* Reference axial momentum (Pz) = " << referencePz << " [beta gamma]" << endl;
     *gmsg << endl;
 
     double sym = cycl_m->getSymmetry();
@@ -875,16 +876,11 @@ void ParallelCyclotronTracker::visitRing(const Ring &ring) {
     *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
     *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Total reference momentum   = " << referencePtot * Units::m2mm
-          << " [MCU]" << endl;
-    *gmsg << "* Reference azimuthal momentum  = " << referencePt * Units::m2mm
-          << " [MCU]" << endl;
-    *gmsg << "* Reference radial momentum     = " << referencePr * Units::m2mm
-          << " [MCU]" << endl;
-    *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry "
-          << endl;
-    *gmsg << "* Harmonic number h= " << opalRing_m->getHarmonicNumber() << " "
-          << endl;
+    *gmsg << "* Total reference momentum   = " << referencePtot << " [beta gamma]" << endl;
+    *gmsg << "* Reference azimuthal momentum  = " << referencePt << " [beta gamma]" << endl;
+    *gmsg << "* Reference radial momentum     = " << referencePr << " [beta gamma]" << endl;
+    *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry " << endl;
+    *gmsg << "* Harmonic number h= " << opalRing_m->getHarmonicNumber() << " " << endl;
 }
 
 /**
@@ -2238,7 +2234,8 @@ void ParallelCyclotronTracker::initTrackOrbitFile() {
 }
 
 void ParallelCyclotronTracker::initDistInGlobalFrame() {
-    if(!OpalData::getInstance()->inRestartRun()) {
+
+    if (!OpalData::getInstance()->inRestartRun()) {
         // Start a new run (no restart)
 
         double const initialReferenceTheta = referenceTheta * Units::deg2rad;
@@ -2246,9 +2243,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // TODO: Replace with TracerParticle
         // Force the initial phase space values of the particle with ID = 0 to zero,
         // to set it as a reference particle.
-        if(initialTotalNum_m > 2) {
-            for(size_t i = 0; i < initialLocalNum_m; ++i) {
-                if(itsBunch_m->ID[i] == 0) {
+        if (initialTotalNum_m > 2) {
+            for (size_t i = 0; i < initialLocalNum_m; ++i) {
+                if (itsBunch_m->ID[i] == 0) {
                     itsBunch_m->R[i] = Vector_t(0.0);
                     itsBunch_m->P[i] = Vector_t(0.0);
                 }
@@ -2258,7 +2255,6 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Initialize global R
         //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
-        // NEW OPAL 2.0: Immediately change to m -DW
         Vector_t const initMeanR = Vector_t(Units::mm2m * referenceR * cosRefTheta_m,
                                             Units::mm2m * referenceR * sinRefTheta_m,
                                             Units::mm2m * referenceZ);
@@ -2268,7 +2264,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // Initialize global P (Cartesian, but input P_ref is in Pr, Ptheta, Pz,
         // so translation has to be done before the rotation this once)
         // Cave: In the local frame, the positive y-axis is the direction of movement -DW
-        for(size_t i = 0; i < initialLocalNum_m; ++i) {
+        for (size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch_m->P[i](0) += referencePr;
             itsBunch_m->P[i](1) += referencePt;
             itsBunch_m->P[i](2) += referencePz;
@@ -2278,8 +2274,13 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         // changes the momentum vector...
         localToGlobal(itsBunch_m->P, initialReferenceTheta);
 
+        DistributionType distType = itsBunch_m->getDistType();
+        if (distType == DistributionType::FROMFILE) {
+            checkFileMomentum();
+        }
+
         // Initialize the bin number of the first bunch to 0
-        for(size_t i = 0; i < initialLocalNum_m; ++i) {
+        for (size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch_m->Bin[i] = 0;
         }
 
@@ -2293,30 +2294,26 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
         // Do a local frame restart (we have already checked that the old h5 file was saved in local
         // frame as well).
-        if((Options::psDumpFrame != DumpFrame::GLOBAL)) {
+        if ((Options::psDumpFrame != DumpFrame::GLOBAL)) {
 
             *gmsg << "* Restart in the local frame" << endl;
-
             //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 
-            // referenceR and referenceZ are already in mm
-            // New OPAL 2.0: Init in m -DW
             Vector_t const initMeanR = Vector_t(Units::mm2m * referenceR * cosRefTheta_m,
                                                 Units::mm2m * referenceR * sinRefTheta_m,
                                                 Units::mm2m * referenceZ);
 
-            // Do the tranformations
+            // Do the transformations
             localToGlobal(itsBunch_m->R, referencePhi, referencePsi, initMeanR);
             localToGlobal(itsBunch_m->P, referencePhi, referencePsi);
 
             // Initialize the bin number of the first bunch to 0
-            for(size_t i = 0; i < initialLocalNum_m; ++i) {
+            for (size_t i = 0; i < initialLocalNum_m; ++i) {
                 itsBunch_m->Bin[i] = 0;
             }
 
             // Or do a global frame restart (no transformations necessary)
         } else {
-
             *gmsg << "* Restart in the global frame" << endl;
 
             pathLength_m = itsBunch_m->get_sPos();
@@ -2365,7 +2362,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     localToGlobal(itsBunch_m->P, phi, psi);
 
     // Save initial distribution if not a restart
-    if(!OpalData::getInstance()->inRestartRun()) {
+    if (!OpalData::getInstance()->inRestartRun()) {
 
         step_m -= 1;
 
@@ -2389,6 +2386,34 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 
     //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 }
+
+void ParallelCyclotronTracker::checkFileMomentum() {
+
+    double pTotalMean = 0.0;
+    for (size_t i = 0; i < initialLocalNum_m; ++i) {
+        pTotalMean += euclidean_norm(itsBunch_m->P[i]);
+    }
+
+    allreduce(pTotalMean, 1, std::plus<double>());
+
+    pTotalMean /= initialTotalNum_m;
+
+    if (std::abs(pTotalMean - referencePtot) / pTotalMean > 1e-2) {
+        throw OpalException("ParallelCyclotronTracker::checkFileMomentum",
+                            "The total momentum of the particle distribution\n"
+                            "in the global reference frame: " +
+                            std::to_string(pTotalMean) + ",\n"
+                            "is different from the momentum given\n"
+                            "in the \"BEAM\" command: " +
+                            std::to_string(referencePtot) + ".\n"
+                            "In Opal-cycl the initial distribution\n"
+                            "is specified in the local reference frame.\n"
+                            "When using a \"FROMFILE\" type distribution, the momentum \n"
+                            "must be the same as the specified in the \"BEAM\" command,\n"
+                            "which is in global reference frame.");
+    }
+}
+
 
 //TODO: This can be completely rewritten with TracerParticle -DW
 void ParallelCyclotronTracker::singleParticleDump() {

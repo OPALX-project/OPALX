@@ -424,6 +424,8 @@ private:
 
     void initDistInGlobalFrame();
 
+    void checkFileMomentum();
+
     void checkNumPart(std::string s);
 
     // we store a pointer explicitly to the Ring
