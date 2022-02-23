@@ -22,6 +22,9 @@
 
 #include "Utility/Inform.h"
 
+#include <algorithm>
+#include <limits>
+
 template<class T>
 class ValueRange {
 public:
