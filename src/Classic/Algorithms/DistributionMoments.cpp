@@ -164,7 +164,7 @@ void DistributionMoments::computeStatistics(const InputIt &first, const InputIt 
 
 template<class InputIt>
 void DistributionMoments::computePercentiles(const InputIt & first, const InputIt & last) {
-    if (!Options::computePercentiles) {
+    if (!Options::computePercentiles || totalNumParticles_m < 100) {
         return;
     }
 
@@ -172,7 +172,8 @@ void DistributionMoments::computePercentiles(const InputIt & first, const InputI
     // For a normal distribution the number of exchanged data between the cores is minimized
     // if the number of histogram bins follows the following formula. Since we can't know
     // how many particles are in each bin for the real distribution we use this formula.
-    unsigned int numBins = 3.5 * std::pow(3, log(totalNumParticles_m) / log(10));
+    unsigned int numBins = 3.5 * std::pow(3, std::log10(totalNumParticles_m));
+
     Vector_t maxR;
     for (unsigned int d = 0; d < 3; ++ d) {
         maxR(d) = 1.0000001 * std::max(maxR_m[d] - meanR_m[d], meanR_m[d] - minR_m[d]);
@@ -228,18 +229,21 @@ void DistributionMoments::computePercentiles(const InputIt & first, const InputI
                                        globalHistogramValues,
                                        localHistogramValues,
                                        d, numParticles68);
+
         std::tie(ninetyFivePercentile_m[d], endNinetyFive) =
             determinePercentilesDetail(oneDPhaseSpace.begin(),
                                        oneDPhaseSpace.end(),
                                        globalHistogramValues,
                                        localHistogramValues,
                                        d, numParticles95);
+
         std::tie(ninetyNinePercentile_m[d], endNinetyNine) =
             determinePercentilesDetail(oneDPhaseSpace.begin(),
                                        oneDPhaseSpace.end(),
                                        globalHistogramValues,
                                        localHistogramValues,
                                        d, numParticles99);
+
         std::tie(ninetyNine_NinetyNinePercentile_m[d], endNinetyNine_NinetyNine) =
             determinePercentilesDetail(oneDPhaseSpace.begin(),
                                        oneDPhaseSpace.end(),
@@ -291,7 +295,7 @@ DistributionMoments::determinePercentilesDetail(const DistributionMoments::itera
                                                 unsigned int dimension,
                                                 int numRequiredParticles) const {
     unsigned int numBins = globalAccumulatedHistogram.size() / 3;
-    double percentile = (*(begin + numBins - 1))[0];
+    double percentile = 0.0;
     iterator_t endPercentile = end;
     for (unsigned int i = 1; i < numBins; ++ i) {
         unsigned int idx = dimension * numBins + i;
@@ -329,7 +333,6 @@ DistributionMoments::determinePercentilesDetail(const DistributionMoments::itera
             break;
         }
     }
-
     return std::make_pair(percentile, endPercentile);
 }
 
@@ -446,6 +449,15 @@ void DistributionMoments::reset()
     totalCharge_m = 0.0;
     totalMass_m = 0.0;
     totalNumParticles_m = 0;
+
+    sixtyEightPercentile_m = 0.0;
+    normalizedEps68Percentile_m = 0.0;
+    ninetyFivePercentile_m = 0.0;
+    normalizedEps95Percentile_m = 0.0;
+    ninetyNinePercentile_m = 0.0;
+    normalizedEps99Percentile_m = 0.0;
+    ninetyNine_NinetyNinePercentile_m = 0.0;
+    normalizedEps99_99Percentile_m = 0.0;
 }
 
 bool DistributionMoments::isParticleExcluded(const OpalParticle &particle) const
