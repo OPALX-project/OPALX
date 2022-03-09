@@ -649,8 +649,8 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
             hasWake = true;
 
-            if ((*it)->getWake()->getType() == "CSRWakeFunction" ||
-                (*it)->getWake()->getType() == "CSRIGFWakeFunction") {
+            if ((*it)->getWake()->getType() == WakeType::CSRWakeFunction ||
+                (*it)->getWake()->getType() == WakeType::CSRIGFWakeFunction) {
                 if ((*it)->getType() == ElementType::RBEND ||
                     (*it)->getType() == ElementType::SBEND) {
                     wfInstance = (*it)->getWake();

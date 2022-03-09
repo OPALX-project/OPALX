@@ -2,7 +2,7 @@
 // Class Distribution
 //   This class defines the initial beam that is injected or emitted into the simulation.
 //
-// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2008 - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -29,6 +29,7 @@
 #include "Distribution/ClosedOrbitFinder.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
+#include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPC.h"
@@ -53,10 +54,8 @@
 #include <cfloat>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <numeric>
-#include <string>
-#include <vector>
-
 
 extern Inform *gmsg;
 
@@ -78,17 +77,6 @@ namespace {
     }
 }
 
-const std::map<std::string, DistributionType> Distribution::typeStringToDistType_s = {
-    {"NODIST",            DistributionType::NODIST},
-    {"FROMFILE",          DistributionType::FROMFILE},
-    {"GAUSS",             DistributionType::GAUSS},
-    {"BINOMIAL",          DistributionType::BINOMIAL},
-    {"FLATTOP",           DistributionType::FLATTOP},
-    {"MULTIGAUSS",        DistributionType::MULTIGAUSS},
-    {"GUNGAUSSFLATTOPTH", DistributionType::GUNGAUSSFLATTOPTH},
-    {"ASTRAFLATTOPTH",    DistributionType::ASTRAFLATTOPTH},
-    {"GAUSSMATCHED",      DistributionType::MATCHEDGAUSS}
-};
 
 Distribution::Distribution():
     Definition( Attrib::Legacy::Distribution::SIZE, "DISTRIBUTION",
@@ -321,8 +309,8 @@ void Distribution::create(size_t &numberOfParticles, double massIneV, double cha
         createDistributionMultiGauss(numberOfLocalParticles, massIneV);
         break;
     default:
-        INFOMSG("Distribution unknown." << endl);
-        break;
+        throw OpalException("Distribution::create",
+                            "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
     if (emitting_m) {
@@ -893,18 +881,20 @@ void Distribution::checkFileMomentum() {
 }
     
 void Distribution::chooseInputMomentumUnits(InputMomentumUnits inputMoUnits) {
-
     /*
      * Toggle what units to use for inputing momentum.
      */
-    std::string inputUnits = Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]);
-    if (inputUnits == "NONE")
-        inputMoUnits_m = InputMomentumUnits::NONE;
-    else if (inputUnits == "EVOVERC")
-        inputMoUnits_m = InputMomentumUnits::EVOVERC;
-    else if (inputUnits == "") {
-        *gmsg << "No momentum units were specified, using default units (see manual)." << endl;
+    static const std::map<std::string, InputMomentumUnits> stringInputMomentumUnits_s = {
+        {"NONE",    InputMomentumUnits::NONE},
+        {"EVOVERC", InputMomentumUnits::EVOVERC}
+    };
+
+    const std::string inputUnits = Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]);
+    if (inputUnits.empty()) {
+        *gmsg << "* No momentum units were specified, using default units (see manual)." << endl;
         inputMoUnits_m = inputMoUnits;
+    } else {
+        inputMoUnits_m = stringInputMomentumUnits_s.at(inputUnits);
     }
 }
 
@@ -2916,8 +2906,8 @@ void Distribution::printDist(Inform &os, size_t numberOfParticles) const {
         printDistMatchedGauss(os);
         break;
     default:
-        INFOMSG("Distribution unknown." << endl;);
-        break;
+        throw OpalException("Distribution::printDist",
+                            "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
 }
@@ -3598,10 +3588,22 @@ void Distribution::setDistType() {
                             "The attribute \"DISTRIBUTION\" isn't supported any more, use \"TYPE\" instead");
     }
 
+    static const std::map<std::string, DistributionType> typeStringToDistType_s = {
+        {"NODIST",            DistributionType::NODIST},
+        {"FROMFILE",          DistributionType::FROMFILE},
+        {"GAUSS",             DistributionType::GAUSS},
+        {"BINOMIAL",          DistributionType::BINOMIAL},
+        {"FLATTOP",           DistributionType::FLATTOP},
+        {"MULTIGAUSS",        DistributionType::MULTIGAUSS},
+        {"GUNGAUSSFLATTOPTH", DistributionType::GUNGAUSSFLATTOPTH},
+        {"ASTRAFLATTOPTH",    DistributionType::ASTRAFLATTOPTH},
+        {"GAUSSMATCHED",      DistributionType::MATCHEDGAUSS}
+    };
+
     distT_m = Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
     if (distT_m.empty()) {
         throw OpalException("Distribution::setDistType",
-                            "The attribute \"TYPE\" isn't set for the DISTRIBUTION!");
+                            "The attribute \"TYPE\" isn't set for the \"DISTRIBUTION\"!");
     } else {
         distrTypeT_m = typeStringToDistType_s.at(distT_m);
     }
@@ -3937,34 +3939,41 @@ void Distribution::setDistParametersGauss(double massIneV) {
 
 void Distribution::setupEmissionModel(PartBunchBase<double, 3> *beam) {
 
+    static const std::map<std::string, EmissionModel> stringEmissionModel_s = {
+        {"NONE",     EmissionModel::NONE},
+        {"ASTRA",    EmissionModel::ASTRA},
+        {"NONEQUIL", EmissionModel::NONEQUIL}
+    };
+
     std::string model = Attributes::getString(itsAttr[Attrib::Distribution::EMISSIONMODEL]);
-    if (model == "ASTRA")
-        emissionModel_m = EmissionModel::ASTRA;
-    else if (model == "NONEQUIL")
-        emissionModel_m = EmissionModel::NONEQUIL;
-    else
+    if (model.empty()) {
         emissionModel_m = EmissionModel::NONE;
-
-    /*
-     * The ASTRAFLATTOPTH  of GUNGAUSSFLATTOPTH distributions always uses the
-     * ASTRA emission model.
-     */
-    if (distrTypeT_m == DistributionType::ASTRAFLATTOPTH
-        || distrTypeT_m == DistributionType::GUNGAUSSFLATTOPTH)
-        emissionModel_m = EmissionModel::ASTRA;
-
-    switch (emissionModel_m) {
-
-    case EmissionModel::ASTRA:
-        setupEmissionModelAstra(beam);
-        break;
-    case EmissionModel::NONEQUIL:
-        setupEmissionModelNonEquil();
-        break;
-    default:
-        break;
+    } else {
+        emissionModel_m = stringEmissionModel_s.at(model);
     }
 
+    /*
+     * The ASTRAFLATTOPTH of GUNGAUSSFLATTOPTH distributions always uses the
+     * ASTRA emission model.
+     */
+    if (distrTypeT_m == DistributionType::ASTRAFLATTOPTH ||
+        distrTypeT_m == DistributionType::GUNGAUSSFLATTOPTH) {
+        emissionModel_m = EmissionModel::ASTRA;
+    }
+
+    switch (emissionModel_m) {
+        case EmissionModel::ASTRA: {
+            setupEmissionModelAstra(beam);
+            break;
+        }
+        case EmissionModel::NONEQUIL: {
+            setupEmissionModelNonEquil();
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 void Distribution::setupEmissionModelAstra(PartBunchBase<double, 3> *beam) {

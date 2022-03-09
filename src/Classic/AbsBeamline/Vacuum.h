@@ -25,6 +25,8 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/Cyclotron.h"
 
+#include <boost/bimap.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -50,7 +52,7 @@ struct PPositions {
     double Pfact_m;
 };
 
-enum class ResidualGas:short {
+enum class ResidualGas: short {
     NOGAS = -1,
     AIR   = 0,
     H2    = 1
@@ -59,7 +61,6 @@ enum class ResidualGas:short {
 class Vacuum: public Component {
 
 public:
-
     /// Constructor with given name.
     explicit Vacuum(const std::string& name);
 
@@ -119,7 +120,6 @@ public:
 
 
 protected:
-
     void initR(double rmin, double dr, int nrad);
 
     void getPressureFromFile();
@@ -128,7 +128,6 @@ protected:
 
 
 private:
-
     // Not implemented.
     void operator=(const Vacuum&);
 
@@ -153,6 +152,8 @@ private:
     ///@}
 
     ParticleMatterInteractionHandler* parmatint_m;
+
+    static const boost::bimap<ResidualGas, std::string> bmResidualGasString_s;
 
 
 protected:

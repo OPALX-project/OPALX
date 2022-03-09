@@ -31,6 +31,7 @@
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Units.h"
+#include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utility/IpplTimings.h"
 
@@ -367,7 +368,7 @@ public:
 
     bool hasFieldSolver();
 
-    std::string getFieldSolverType() const;
+    FieldSolverType getFieldSolverType() const;
 
     void setStepsPerTurn(int n);
     int getStepsPerTurn() const;

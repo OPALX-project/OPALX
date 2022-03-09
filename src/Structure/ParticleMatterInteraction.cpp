@@ -31,6 +31,9 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
+#include <map>
+#include <string>
+
 extern Inform* gmsg;
 
 namespace {
@@ -43,11 +46,6 @@ namespace {
         SIZE
     };
 }
-
-const std::map<std::string, InteractionType> ParticleMatterInteraction::stringInteractionType_s = {
-    {"SCATTERING",    InteractionType::SCATTERING},
-    {"BEAMSTRIPPING", InteractionType::BEAMSTRIPPING}
-};
 
 ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATTERINTERACTION",
@@ -141,6 +139,11 @@ void ParticleMatterInteraction::update() {
 }
 
 void ParticleMatterInteraction::getInteractionType() {
+    static const std::map<std::string, ParticleMatterInteraction::InteractionType> stringInteractionType_s = {
+        {"SCATTERING",    InteractionType::SCATTERING},
+        {"BEAMSTRIPPING", InteractionType::BEAMSTRIPPING}
+    };
+
     const std::string type = Attributes::getString(itsAttr[TYPE]);
     if (type.empty()) {
         throw OpalException("ParticleMatterInteraction::getInteractionType",
@@ -165,6 +168,10 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
         case InteractionType::BEAMSTRIPPING: {
             handler_m = new BeamStrippingPhysics(getOpalName(), &element);
             break;
+        }
+        default: {
+            throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                                "Invalid \"TYPE\" of \"PARTICLEMATTERINTERACTION\" command");
         }
     }
     *gmsg << *this << endl;
