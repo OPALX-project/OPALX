@@ -1,38 +1,41 @@
-// ------------------------------------------------------------------------
-// $RCSfile: FieldSolver.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.3.4.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: FieldSolver
+// Class FieldSolver
 //   The class for the OPAL FIELDSOLVER command.
+//   A FieldSolver definition is used by most physics commands to define the
+//   particle charge and the reference momentum, together with some other data.
 //
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
-// $Date: 2003/08/11 22:09:00 $
-// $Author: ADA $
+// All rights reserved
 //
-// ------------------------------------------------------------------------
-
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 #include "Structure/FieldSolver.h"
-#include "Solvers/FFTPoissonSolver.h"
-#include "Solvers/FFTBoxPoissonSolver.h"
-#include "Solvers/P3MPoissonSolver.h"
-#ifdef HAVE_SAAMG_SOLVER
-#include "Solvers/MGPoissonSolver.h"
-#endif
+
+#include "AbstractObjects/Element.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunchBase.h"
 #include "Attributes/Attributes.h"
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
+#include "Solvers/FFTBoxPoissonSolver.h"
+#include "Solvers/FFTPoissonSolver.h"
+#ifdef HAVE_SAAMG_SOLVER
+#include "Solvers/MGPoissonSolver.h"
+#endif
+#include "Solvers/P3MPoissonSolver.h"
+#include "Structure/BoundaryGeometry.h"
 #include "Utilities/OpalException.h"
-#include "BoundaryGeometry.h"
-#include "AbstractObjects/Element.h"
-#include "Algorithms/PartBunchBase.h"
 
 #ifdef ENABLE_AMR
     #include "Amr/AmrBoxLib.h"
@@ -52,13 +55,11 @@
     #include "Solvers/AMR_MG/AmrMultiGrid.h"
 #endif
 
+#include <map>
+
 using namespace Expressions;
-using namespace Physics;
 
 //TODO: o add a FIELD for DISCRETIZATION, MAXITERS, TOL...
-
-// Class FieldSolver
-// ------------------------------------------------------------------------
 
 // The attributes of class FieldSolver.
 namespace {
@@ -374,6 +375,7 @@ FieldSolver *FieldSolver::clone(const std::string &name) {
 }
 
 void FieldSolver::execute() {
+    setFieldSolverType();
     update();
 }
 
@@ -427,14 +429,14 @@ void FieldSolver::initCartesianFields() {
     domain[1] = Index((int)getMY() + 1);
     domain[2] = Index((int)getMT() + 1);
 
-    if(Attributes::getBool(itsAttr[PARFFTX]))
+    if (Attributes::getBool(itsAttr[PARFFTX]))
         decomp[0] = PARALLEL;
-    if(Attributes::getBool(itsAttr[PARFFTY]))
+    if (Attributes::getBool(itsAttr[PARFFTY]))
         decomp[1] = PARALLEL;
-    if(Attributes::getBool(itsAttr[PARFFTT]))
+    if (Attributes::getBool(itsAttr[PARFFTT]))
         decomp[2] = PARALLEL;
 
-    if(Attributes::getString(itsAttr[FSTYPE]) == "FFTPERIODIC") {
+    if (Attributes::getString(itsAttr[FSTYPE]) == "FFTPERIODIC") {
         decomp[0] = decomp[1] = SERIAL;
         decomp[2] = PARALLEL;
     }
@@ -461,9 +463,32 @@ inline bool FieldSolver::isAmrSolverType() const {
     return Options::amr;
 }
 
+void FieldSolver::setFieldSolverType() {
+    static const std::map<std::string, FieldSolverType> stringFSType_s = {
+        {"NONE",   FieldSolverType::NONE},
+        {"FFT",    FieldSolverType::FFT},
+        {"FFTBOX", FieldSolverType::FFTBOX},
+        {"SAAMG",  FieldSolverType::SAAMG},
+        {"P3M",    FieldSolverType::P3M},
+        {"FMG",    FieldSolverType::FMG},
+        {"ML",     FieldSolverType::ML},
+        {"AMR_MG", FieldSolverType::AMRMG},
+        {"HYPRE",  FieldSolverType::HYPRE},
+        {"HPGMG",  FieldSolverType::HPGMG}
+    };
+
+    fsName_m = getType();
+    if (fsName_m.empty()) {
+        throw OpalException("FieldSolver::setFieldSolverType",
+                            "The attribute \"FSTYPE\" isn't set for \"FIELDSOLVER\"!");
+    } else {
+        fsType_m = stringFSType_s.at(fsName_m);
+    }
+}
+
 void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
     itsBunch_m = b;
-    fsType_m = Attributes::getString(itsAttr[FSTYPE]);
+
     std::string greens = Attributes::getString(itsAttr[GREENSF]);
     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
@@ -474,16 +499,16 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
 
     if ( isAmrSolverType() ) {
         Inform m("FieldSolver::initAmrSolver");
-        fsType_m = "AMR";
+        fsName_m = "AMR";
 
 #ifdef ENABLE_AMR
         initAmrObject_m();
 
         initAmrSolver_m();
 #endif
-    } else if(fsType_m == "FFT") {
+    } else if (fsType_m == FieldSolverType::FFT) {
         bool sinTrafo = ((bcx == "DIRICHLET") && (bcy == "DIRICHLET") && (bcz == "DIRICHLET"));
-        if(sinTrafo) {
+        if (sinTrafo) {
             std::cout << "FFTBOX ACTIVE" << std::endl;
             //we go over all geometries and add the Geometry Elements to the geometry list
             std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
@@ -502,12 +527,13 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
             BoundaryGeometry *ttmp = geometries[0];
             solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, greens, ttmp->getA());
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
-            fsType_m = "FFTBOX";
+            fsName_m = "FFTBOX";
+            fsType_m = FieldSolverType::FFTBOX;
         } else {
             solver_m = new FFTPoissonSolver(mesh_m, FL_m, greens, bcz);
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
         }
-    } else if (fsType_m == "P3M") {
+    } else if (fsType_m == FieldSolverType::P3M) {
         solver_m = new P3MPoissonSolver(mesh_m,
                                         FL_m,
                                         Attributes::getReal(itsAttr[RC]),
@@ -517,7 +543,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
         PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
         PL_m->enableCaching();
 
-    } else if(fsType_m == "SAAMG") {
+    } else if(fsType_m == FieldSolverType::SAAMG) {
 #ifdef HAVE_SAAMG_SOLVER
         //we go over all geometries and add the Geometry Elements to the geometry list
         std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
@@ -548,7 +574,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
 #endif
     } else {
         solver_m = 0;
-        INFOMSG("no solver attached" << endl);
+        INFOMSG("No solver attached" << endl);
     }
 }
 
@@ -557,32 +583,27 @@ bool FieldSolver::hasValidSolver() {
 }
 
 Inform &FieldSolver::printInfo(Inform &os) const {
-    std::string fsType = Attributes::getString(itsAttr[FSTYPE]);
-
     os << "* ************* F I E L D S O L V E R ********************************************** " << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
-       << "* TYPE         " << fsType << '\n'
+       << "* TYPE         " << fsName_m << '\n'
        << "* N-PROCESSORS " << Ippl::getNodes() << '\n'
        << "* MX           " << Attributes::getReal(itsAttr[MX])   << '\n'
        << "* MY           " << Attributes::getReal(itsAttr[MY])   << '\n'
        << "* MT           " << Attributes::getReal(itsAttr[MT])   << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << endl;
-
-    if (fsType == "P3M")
-        os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
-           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
+    if (fsType_m == FieldSolverType::P3M) {
+        os << "* RC           " << Attributes::getReal(itsAttr[RC])      << '\n'
+           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA])   << '\n'
            << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << endl;
-
-
-    if (fsType == "FFT") {
+    } else if (fsType_m == FieldSolverType::FFT) {
         os << "* GRRENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
-    } else if (fsType == "SAAMG") {
+    } else if (fsType_m == FieldSolverType::SAAMG) {
         os << "* GEOMETRY     " << Attributes::getString(itsAttr[GEOMETRY]) << '\n'
-           << "* ITSOLVER     " << Attributes::getString(itsAttr[ITSOLVER])   << '\n'
+           << "* ITSOLVER     " << Attributes::getString(itsAttr[ITSOLVER]) << '\n'
            << "* INTERPL      " << Attributes::getString(itsAttr[INTERPL])  << '\n'
            << "* TOL          " << Attributes::getReal(itsAttr[TOL])        << '\n'
-           << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS]) << '\n'
-           << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE])   << endl;
+           << "* MAXITERS     " << Attributes::getReal(itsAttr[MAXITERS])   << '\n'
+           << "* PRECMODE     " << Attributes::getString(itsAttr[PRECMODE]) << endl;
     } else if (Options::amr) {
 #ifdef ENABLE_AMR
         os << "* AMR_MAXLEVEL     " << Attributes::getReal(itsAttr[AMR_MAXLEVEL]) << '\n'
@@ -611,7 +632,7 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     }
 
 #ifdef HAVE_AMR_MG_SOLVER
-    if (fsType == "AMR_MG") {
+    if (fsType_m == FieldSolverType::AMRMG) {
         os << "* ITSOLVER (AMR_MG)    "
            << Attributes::getString(itsAttr[ITSOLVER]) << '\n'
            << "* AMR_MG_PREC          "
@@ -646,27 +667,30 @@ Inform &FieldSolver::printInfo(Inform &os) const {
     }
 #endif
 
-    if(Attributes::getBool(itsAttr[PARFFTX]))
+    if (Attributes::getBool(itsAttr[PARFFTX])) {
         os << "* XDIM         parallel  " << endl;
-    else
+    } else {
         os << "* XDIM         serial  " << endl;
+    }
 
-    if(Attributes::getBool(itsAttr[PARFFTY]))
+    if (Attributes::getBool(itsAttr[PARFFTY])) {
         os << "* YDIM         parallel  " << endl;
-    else
+    } else {
         os << "* YDIM         serial  " << endl;
+    }
 
-    if(Attributes::getBool(itsAttr[PARFFTT]))
+    if (Attributes::getBool(itsAttr[PARFFTT])) {
         os << "* Z(T)DIM      parallel  " << endl;
-    else
+    }else {
         os << "* Z(T)DIM      serial  " << endl;
+    }
 
     if ( !isAmrSolverType() ) {
         INFOMSG(level3 << *mesh_m << endl);
         INFOMSG(level3 << *PL_m << endl);
     }
 
-    if(solver_m)
+    if (solver_m)
         os << *solver_m << endl;
     os << "* ********************************************************************************** " << endl;
     return os;
@@ -732,15 +756,14 @@ void FieldSolver::initAmrObject_m() {
 
 
 void FieldSolver::initAmrSolver_m() {
-    std::string fsType = Attributes::getString(itsAttr[FSTYPE]);
 
-    if ( fsType == "ML" ) {
+    if (fsType_m == FieldSolverType::ML) {
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()",
                                 "ML solver requires AMReX.");
         solver_m = new MLPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
 #ifdef AMREX_ENABLE_FBASELIB
-    } else if (fsType == "FMG") {
+    } else if (fsType_m == FieldSolverType::FMG) {
 
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()",
@@ -748,13 +771,13 @@ void FieldSolver::initAmrSolver_m() {
 
         solver_m = new FMGPoissonSolver(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()));
 #endif
-    } else if (fsType == "HYPRE") {
+    } else if (fsType_m == FieldSolverType::HYPRE) {
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "HYPRE solver not yet implemented.");
-    } else if (fsType == "HPGMG") {
+    } else if (fsType_m == FieldSolverType::HPGMG) {
         throw OpalException("FieldSolver::initAmrSolver_m()",
                             "HPGMG solver not yet implemented.");
-    } else if (fsType == "AMR_MG") {
+    } else if (fsType_m == FieldSolverType::AMRMG) {
 #ifdef HAVE_AMR_MG_SOLVER
         if ( dynamic_cast<AmrBoxLib*>( itsAmrObject_mp.get() ) == 0 )
             throw OpalException("FieldSolver::initAmrSolver_m()",
@@ -789,6 +812,6 @@ void FieldSolver::initAmrSolver_m() {
 #endif
     } else
         throw OpalException("FieldSolver::initAmrSolver_m()",
-                            "Unknown solver " + fsType + ".");
+                            "Unknown solver " + getType() + ".");
 }
 #endif
