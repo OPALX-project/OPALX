@@ -1315,11 +1315,12 @@ bool PartBunchBase<T, Dim>::hasFieldSolver() {
 
 /// \brief Return the fieldsolver type if we have a fieldsolver
 template <class T, unsigned Dim>
-std::string PartBunchBase<T, Dim>::getFieldSolverType() const {
-    if (fs_m)
+FieldSolverType PartBunchBase<T, Dim>::getFieldSolverType() const {
+    if (fs_m) {
         return fs_m->getFieldSolverType();
-    else
-        return "";
+    } else {
+        return FieldSolverType::NONE;
+    }
 }
 
 

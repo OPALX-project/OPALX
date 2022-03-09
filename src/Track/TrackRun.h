@@ -2,7 +2,7 @@
 // Class TrackRun
 //   The RUN command.
 //
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 200x - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -20,6 +20,7 @@
 
 #include "AbstractObjects/Action.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -35,27 +36,32 @@ class H5PartWrapper;
 class TrackRun: public Action {
 
 public:
-
     /// Exemplar constructor.
     TrackRun();
 
     virtual ~TrackRun();
 
     /// Make clone.
-    virtual TrackRun *clone(const std::string &name);
+    virtual TrackRun* clone(const std::string& name);
 
     /// Execute the command.
     virtual void execute();
 
 private:
+    enum class RunMethod: unsigned short {
+        PARALLELT,
+        CYCLOTRONT,
+        THICK
+    };
 
     // Not implemented.
-    TrackRun(const TrackRun &);
-    void operator=(const TrackRun &);
+    TrackRun(const TrackRun&);
+    void operator=(const TrackRun&);
 
     // Clone constructor.
-    TrackRun(const std::string &name, TrackRun *parent);
+    TrackRun(const std::string& name, TrackRun* parent);
 
+    void setRunMethod();
     void setupTTracker();
     void setupCyclotronTracker();
     void setupThickTracker();
@@ -63,24 +69,27 @@ private:
 
     void initDataSink(const int& numBunch = 1);
 
-    double setDistributionParallelT(Beam *beam);
+    double setDistributionParallelT(Beam* beam);
 
     // Pointer to tracking algorithm.
-    Tracker *itsTracker;
+    Tracker* itsTracker;
 
-    Distribution *dist;
+    Distribution* dist;
 
-    std::vector<Distribution *> distrs_m;
+    std::vector<Distribution*> distrs_m;
 
-    FieldSolver  *fs;
+    FieldSolver* fs;
 
-    DataSink *ds;
+    DataSink* ds;
 
-    H5PartWrapper *phaseSpaceSink_m;
+    H5PartWrapper* phaseSpaceSink_m;
 
-    OpalData *opal;
+    OpalData* opal;
 
     static const std::string defaultDistribution;
+
+    RunMethod method_m;
+    static const std::map<std::string, RunMethod> stringMethod_s;
 };
 
 #endif // OPAL_TrackRun_HH
