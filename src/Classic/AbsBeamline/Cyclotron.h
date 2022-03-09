@@ -28,14 +28,12 @@
 
 #include "AbsBeamline/Component.h"
 
-#include <map>
 #include <string>
 #include <vector>
 
 class Fieldmap;
 class LossDataSink;
 class TrimCoil;
-
 
 struct BfieldData {
     // known from file: field and three theta derivatives
@@ -79,19 +77,18 @@ struct BPositions {
     double Bfact_m;
 };
 
-enum class BFieldType: unsigned short {
-    PSIBF,
-    CARBONBF,
-    ANSYSBF,
-    AVFEQBF,
-    FFABF,
-    BANDRF,
-    SYNCHRO
-};
-
 class Cyclotron: public Component {
 
 public:
+    enum class BFieldType: unsigned short {
+        PSIBF,
+        CARBONBF,
+        ANSYSBF,
+        AVFEQBF,
+        FFABF,
+        BANDRF,
+        SYNCHRO
+    };
 
     /// Constructor with given name.
     explicit Cyclotron(const std::string& name);
@@ -112,15 +109,19 @@ public:
     //  Slices and stepsize used to determine integration step.
     virtual double getStepsize() const = 0;
 
-    void setFieldMapFN(std::string fmapfn);
+    void setFieldMapFN(const std::string& fmapfn);
     virtual std::string getFieldMapFN() const;
 
     void setRfFieldMapFN(std::vector<std::string> rffmapfn);
     void setRFFCoeffFN(std::vector<std::string> rff_coeff_fn);
     void setRFVCoeffFN(std::vector<std::string> rfv_coeff_fn);
 
-    void setCyclotronType(std::string t);
-    const std::string &getCyclotronType() const;
+    void setCyclotronType(const std::string& type);
+    const std::string& getCyclotronType() const;
+
+    void setBFieldType();
+    BFieldType getBFieldType() const;
+
     virtual ElementType getType() const;
 
     virtual void getDimensions(double& zBegin, double& zEnd) const;
@@ -203,7 +204,6 @@ public:
     virtual bool bends() const;
 
     virtual double getRmax() const;
-
     virtual double getRmin() const;
 
     bool interpolate(const double& rad,
@@ -213,8 +213,6 @@ public:
                      double& bz);
 
     void read(const double& scaleFactor);
-
-    void setBFieldType();
 
     void writeOutputFieldFiles();
 
@@ -226,7 +224,6 @@ private:
 
 
 protected:
-
     void   getdiffs();
     double gutdf5d(double* f, double dx, const int kor, const int krl, const int lpr);
 
@@ -244,7 +241,6 @@ protected:
 
 
 private:
-
     BFieldType fieldType_m;
 
     std::string fmapfn_m; /**< Stores the filename of the B-fieldmap*/
@@ -268,8 +264,6 @@ private:
     double trimCoilThreshold_m; /**< B-field threshold for applying trim coil*/
 
     std::string typeName_m; /**< Name of the TYPE parameter in cyclotron*/
-
-    static const std::map<std::string, BFieldType> typeStringToBFieldType_s;
 
     double harm_m;
 

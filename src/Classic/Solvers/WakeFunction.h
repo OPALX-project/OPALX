@@ -25,19 +25,28 @@ class ElementBase;
 template <class T, unsigned Dim>
 class PartBunchBase;
 
+enum class WakeType: unsigned short {
+    CSRWakeFunction,
+    CSRIGFWakeFunction,
+    GreenWakeFunction
+};
+
 class WakeFunction {
+
 public:
     WakeFunction(std::string name, unsigned int n):
         nBins_m(n),
         name_m(name) { };
 
     virtual ~WakeFunction(){ };
-    virtual void initialize(const ElementBase */*elref*/){ };
-    virtual void apply(PartBunchBase<double, 3> *bunch) = 0;
-    virtual const std::string getType() const = 0;
-    const std::string & getName() const {
-        return name_m;
-    }
+
+    virtual void initialize(const ElementBase* /*elref*/) { };
+
+    virtual void apply(PartBunchBase<double, 3>* bunch) = 0;
+
+    virtual WakeType getType() const = 0;
+
+    const std::string& getName() const { return name_m; }
 
 protected:
     const unsigned int nBins_m;
@@ -49,10 +58,10 @@ private:
 class LineDensity: public std::vector<double> {
 public:
     LineDensity(int size = 0, double defaultValue = 0.0) : std::vector<double>(size, defaultValue) {}
-    void getFirstDerivative(std::vector<double> &firstDerivative, const double &hz);
+    void getFirstDerivative(std::vector<double>& firstDerivative, const double& hz);
 };
 
-inline void LineDensity::getFirstDerivative(std::vector<double> &firstDerivative, const double &hz) {
+inline void LineDensity::getFirstDerivative(std::vector<double>& firstDerivative, const double& hz) {
     const size_t size = this->size();
     if(firstDerivative.size() != size)
         firstDerivative.resize(size, 0.0);

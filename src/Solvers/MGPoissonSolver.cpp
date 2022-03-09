@@ -114,11 +114,11 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     // Find CURRENT geometry
     currentGeometry = geometries_m[0];
     if (currentGeometry->getFilename() == "") {
-        if (currentGeometry->getTopology() == "ELLIPTIC"){
+        if (currentGeometry->getTopology() == Topology::ELLIPTIC){
             bp_m = std::unique_ptr<IrregularDomain>(
                 new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl));
 
-        } else if (currentGeometry->getTopology() == "BOXCORNER") {
+        } else if (currentGeometry->getTopology() == Topology::BOXCORNER) {
             bp_m = std::unique_ptr<IrregularDomain>(
                 new BoxCornerDomain(currentGeometry->getA(),
                                     currentGeometry->getB(),
@@ -127,7 +127,7 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
                                     currentGeometry->getL2(),
                                     orig_nr_m, hr_m, interpl));
             bp_m->compute(itsBunch_m->get_hr(), layout_m->getLocalNDIndex());
-        } else if (currentGeometry->getTopology() == "RECTANGULAR") {
+        } else if (currentGeometry->getTopology() == Topology::RECTANGULAR) {
             bp_m = std::unique_ptr<IrregularDomain>(
                 new RectangularDomain(currentGeometry->getA(),
                                       currentGeometry->getB(),

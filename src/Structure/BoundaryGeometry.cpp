@@ -2479,7 +2479,7 @@ BoundaryGeometry::printInfo (Inform& os) const {
        << "* S                         " << Attributes::getReal (itsAttr[S]) << '\n'
        << "* A                         " << Attributes::getReal (itsAttr[A]) << '\n'
        << "* B                         " << Attributes::getReal (itsAttr[B]) << '\n';
-    if (getTopology () == std::string ("BOXCORNER")) {
+    if (getTopology () == Topology::BOXCORNER) {
         os << "* C                         " << Attributes::getReal (itsAttr[C]) << '\n'
            << "* L1                        " << Attributes::getReal (itsAttr[L1]) << '\n'
            << "* L2                        " << Attributes::getReal (itsAttr[L2]) << '\n';

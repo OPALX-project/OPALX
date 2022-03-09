@@ -28,17 +28,13 @@
 
 #include <boost/filesystem.hpp>
 
-#include <fstream>
 #include <cmath>
+#include <fstream>
+#include <map>
 
 extern Inform* gmsg;
 
 std::unordered_set<DumpEMFields*> DumpEMFields::dumpsSet_m;
-
-const std::map<std::string, DumpEMFields::CoordinateSystem> DumpEMFields::stringCoordinateSystem_s = {
-    {"CARTESIAN",   CoordinateSystem::CARTESIAN},
-    {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
-};
 
 DumpEMFields::DumpEMFields() :
     Action(SIZE, "DUMPEMFIELDS",
@@ -135,8 +131,11 @@ DumpEMFields* DumpEMFields::clone(const std::string& name) {
 }
 
 void DumpEMFields::parseCoordinateSystem() {
-    std::string coordStr = Attributes::getString(itsAttr[COORDINATE_SYSTEM]);
-    coordinates_m = stringCoordinateSystem_s.at(coordStr);
+    static const std::map<std::string, CoordinateSystem> stringCoordinateSystem_s = {
+        {"CARTESIAN",   CoordinateSystem::CARTESIAN},
+        {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
+    };
+    coordinates_m = stringCoordinateSystem_s.at(Attributes::getString(itsAttr[COORDINATE_SYSTEM]));
 }
 
 void DumpEMFields::execute() {

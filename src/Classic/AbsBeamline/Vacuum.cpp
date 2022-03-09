@@ -31,6 +31,7 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/LogicalError.h"
 
+#include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 
 #include <cmath>
@@ -43,6 +44,13 @@ throw GeneralClassicException("Vacuum::getPressureFromFile",\
                               "fscanf returned EOF at " #arg);
 
 extern Inform *gmsg;
+
+const boost::bimap<ResidualGas, std::string> Vacuum::bmResidualGasString_s =
+    boost::assign::list_of<const boost::bimap<ResidualGas, std::string>::relation>
+        (ResidualGas::NOGAS, "NOGAS")
+        (ResidualGas::AIR,   "AIR")
+        (ResidualGas::H2,    "H2");
+
 
 Vacuum::Vacuum():
     Vacuum("")
@@ -92,10 +100,11 @@ void Vacuum::accept(BeamlineVisitor& visitor) const {
 }
 
 void Vacuum::setResidualGas(std::string gas) {
-    if (gas == "AIR") {
-        gas_m = ResidualGas::AIR;
-    } else if (gas == "H2") {
-        gas_m = ResidualGas::H2;
+    auto it = bmResidualGasString_s.right.find(gas);
+    if (it != bmResidualGasString_s.right.end()) {
+        gas_m = it->second;
+    } else {
+        gas_m = ResidualGas::NOGAS;
     }
 }
 
@@ -104,17 +113,11 @@ ResidualGas Vacuum::getResidualGas() const {
 }
 
 std::string Vacuum::getResidualGasName() {
-    switch (gas_m) {
-        case ResidualGas::AIR: {
-            return "AIR";
-        }
-        case ResidualGas::H2: {
-            return "H2";
-        }
-        default: {
-           throw GeneralClassicException("Vacuum::getResidualGasName",
-                                         "Residual gas not set");
-        }
+    if (gas_m != ResidualGas::NOGAS) {
+        return bmResidualGasString_s.left.at(gas_m);
+    } else {
+        throw GeneralClassicException("Vacuum::getResidualGasName",
+                                      "Residual gas not set");
     }
 }
 
