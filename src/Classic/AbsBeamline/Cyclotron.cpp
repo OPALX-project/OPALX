@@ -43,23 +43,13 @@
 #include <cstring>
 #include <cstdio>
 #include <fstream>
+#include <map>
 
 #define CHECK_CYC_FSCANF_EOF(arg) if (arg == EOF)\
 throw GeneralClassicException("Cyclotron::getFieldFromFile",\
                               "fscanf returned EOF at " #arg);
 
 extern Inform* gmsg;
-
-
-const std::map<std::string, BFieldType> Cyclotron::typeStringToBFieldType_s = {
-    {"RING",             BFieldType::PSIBF},
-    {"CARBONCYCL",       BFieldType::CARBONBF},
-    {"CYCIAE",           BFieldType::ANSYSBF},
-    {"AVFEQ",            BFieldType::AVFEQBF},
-    {"FFA",              BFieldType::FFABF},
-    {"BANDRF",           BFieldType::BANDRF},
-    {"SYNCHROCYCLOTRON", BFieldType::SYNCHRO}
-};
 
 Cyclotron::Cyclotron():
     Component() {
@@ -186,7 +176,7 @@ bool Cyclotron::getSpiralFlag() const {
     return spiralFlag_m;
 }
 
-void Cyclotron::setFieldMapFN(std::string f) {
+void Cyclotron::setFieldMapFN(const std::string& f) {
     fmapfn_m = f;
 }
 
@@ -263,11 +253,11 @@ double Cyclotron::getSymmetry() const {
     return symmetry_m;
 }
 
-void Cyclotron::setCyclotronType(std::string t) {
-    typeName_m = t;
+void Cyclotron::setCyclotronType(const std::string& type) {
+    typeName_m = type;
 }
 
-const std::string &Cyclotron::getCyclotronType() const {
+const std::string& Cyclotron::getCyclotronType() const {
     return typeName_m;
 }
 
@@ -377,6 +367,16 @@ double Cyclotron::getFMHighE() const {
 }
 
 void Cyclotron::setBFieldType() {
+    static const std::map<std::string, BFieldType> typeStringToBFieldType_s = {
+        {"RING",             BFieldType::PSIBF},
+        {"CARBONCYCL",       BFieldType::CARBONBF},
+        {"CYCIAE",           BFieldType::ANSYSBF},
+        {"AVFEQ",            BFieldType::AVFEQBF},
+        {"FFA",              BFieldType::FFABF},
+        {"BANDRF",           BFieldType::BANDRF},
+        {"SYNCHROCYCLOTRON", BFieldType::SYNCHRO}
+    };
+
     if (typeName_m.empty()) {
         throw GeneralClassicException(
                 "Cyclotron::setBFieldType",
@@ -384,6 +384,10 @@ void Cyclotron::setBFieldType() {
     } else {
         fieldType_m = typeStringToBFieldType_s.at(typeName_m);
     }
+}
+
+Cyclotron::BFieldType Cyclotron::getBFieldType() const {
+    return fieldType_m;
 }
 
 bool Cyclotron::apply(const size_t& id, const double& t, Vector_t& E, Vector_t& B) {
@@ -767,9 +771,6 @@ bool Cyclotron::interpolate(const double& rad,
 
 
 void Cyclotron::read(const double& scaleFactor) {
-
-    setBFieldType();
-
     switch (fieldType_m) {
         case BFieldType::PSIBF: {
             *gmsg << "* Read field data from PSI format field map file" << endl;
@@ -805,6 +806,10 @@ void Cyclotron::read(const double& scaleFactor) {
             *gmsg << "* Read midplane B-field, 3D RF fieldmaps, and text files with RF frequency/Voltage coefficients for Synchrocyclotron" << endl;
             getFieldFromFile_Synchrocyclotron(scaleFactor);
             break;
+        }
+        default: {
+            throw GeneralClassicException("Cyclotron::read",
+                                          "Unknown \"TYPE\" for the \"CYCLOTRON\" element!");
         }
     }
 

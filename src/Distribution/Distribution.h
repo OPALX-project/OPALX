@@ -2,7 +2,7 @@
 // Class Distribution
 //   This class defines the initial beam that is injected or emitted into the simulation.
 //
-// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2008 - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -34,7 +34,6 @@
 #endif
 
 #include <fstream>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -58,17 +57,6 @@ enum class DistributionType: short {
     GUNGAUSSFLATTOPTH,
     ASTRAFLATTOPTH,
     MATCHEDGAUSS
-};
-
-enum class EmissionModel: unsigned short {
-    NONE,
-    ASTRA,
-    NONEQUIL
-};
-
-enum class InputMomentumUnits: unsigned short {
-    NONE,
-    EVOVERC
 };
 
 namespace Attrib
@@ -254,6 +242,16 @@ public:
 
 
 private:
+    enum class EmissionModel: unsigned short {
+        NONE,
+        ASTRA,
+        NONEQUIL
+    };
+
+    enum class InputMomentumUnits: unsigned short {
+        NONE,
+        EVOVERC
+    };
 
 #ifdef WITH_UNIT_TESTS
     FRIEND_TEST(GaussTest, FullSigmaTest1);
@@ -387,7 +385,6 @@ private:
 
     std::string distT_m;                 /// Distribution type strings.
     DistributionType distrTypeT_m;       /// List of Distribution types.
-    static const std::map<std::string, DistributionType> typeStringToDistType_s;
 
     unsigned int numberOfDistributions_m;
 
