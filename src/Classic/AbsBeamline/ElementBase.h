@@ -560,7 +560,7 @@ inline
 void ElementBase::setActionRange(const std::queue<std::pair<double, double> > &range) {
     actionRange_m = range;
 
-    if (actionRange_m.size() > 0)
+    if (!actionRange_m.empty())
         elementEdge_m = actionRange_m.front().first;
 }
 
