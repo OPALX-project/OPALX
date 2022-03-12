@@ -238,7 +238,7 @@ namespace Util {
             allLines.pop();
         }
 
-        while (allLines.size() > 0) {
+        while (!allLines.empty()) {
             line = allLines.front();
 
             linestream.str(line);
@@ -265,7 +265,7 @@ namespace Util {
 
         fs.close();
 
-        if (allLines.size() > 0)
+        if (!allLines.empty())
             INFOMSG(level2 << "rewind " + fileName + " to " + std::to_string(maxSPos) << " m" << endl);
 
         return allLines.size();

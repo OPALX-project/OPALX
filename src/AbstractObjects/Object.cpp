@@ -201,7 +201,7 @@ void Object::registerOwnership(const AttributeHandler::OwnerType &itsClass) cons
 void Object::printHelp(std::ostream &/*os*/) const {
     *gmsg << endl << itsHelp << endl;
 
-    if(itsAttr.size() > 0) {
+    if(!itsAttr.empty()) {
         *gmsg << "Attributes:" << endl;
 
         size_t maxNameLength = 16;

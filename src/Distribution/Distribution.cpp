@@ -367,7 +367,7 @@ void Distribution::create(size_t &numberOfParticles, double massIneV, double cha
     if (Options::seed != -1)
         Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 
-    if (particlesPerDist_m.size() == 0) {
+    if (particlesPerDist_m.empty()) {
         particlesPerDist_m.push_back(tOrZDist_m.size());
     } else {
         particlesPerDist_m[0] = tOrZDist_m.size();
@@ -552,14 +552,15 @@ Inform &Distribution::printInfo(Inform &os) const {
     if (OpalData::getInstance()->inRestartRun()) {
         os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
-        if (addedDistributions_m.size() > 0)
+        if (!addedDistributions_m.empty()) {
             os << "* Main Distribution" << endl
                << "-----------------" << endl;
-
-        if (particlesPerDist_m.empty())
+        }
+        if (particlesPerDist_m.empty()) {
             printDist(os, 0);
-        else
+        } else {
             printDist(os, particlesPerDist_m.at(0));
+        }
 
         size_t distCount = 1;
         for (unsigned distIndex = 0; distIndex < addedDistributions_m.size(); distIndex++) {
@@ -879,7 +880,7 @@ void Distribution::checkFileMomentum() {
                             "the same as the momentum of the particles in the file.");
     }
 }
-    
+
 void Distribution::chooseInputMomentumUnits(InputMomentumUnits inputMoUnits) {
     /*
      * Toggle what units to use for inputing momentum.
@@ -2735,8 +2736,8 @@ void Distribution::injectBeam(PartBunchBase<double, 3> *beam) {
     std::vector<double> id1 = Attributes::getRealArray(itsAttr[Attrib::Distribution::ID1]);
     std::vector<double> id2 = Attributes::getRealArray(itsAttr[Attrib::Distribution::ID2]);
 
-    bool hasID1 = (id1.size() != 0);
-    bool hasID2 = (id2.size() != 0);
+    bool hasID1 = !id1.empty();
+    bool hasID2 = !id2.empty();
 
     if (hasID1 || hasID2)
         *gmsg << "* Use special ID1 or ID2 particle in distribution" << endl;
@@ -3645,7 +3646,7 @@ void Distribution::setSigmaP_m(double massIneV) {
 
 void Distribution::setEmissionTime(double &maxT, double &minT) {
 
-    if (addedDistributions_m.size() == 0) {
+    if (addedDistributions_m.empty()) {
 
         switch (distrTypeT_m) {
 
@@ -3699,7 +3700,7 @@ void Distribution::setDistParametersBinomial(double massIneV) {
      */
     std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
 
-    if (cr.size()>0) {
+    if (!cr.empty()) {
         throw OpalException("Distribution::setDistParametersBinomial",
                             "Attribute R is not supported for binomial distribution\n"
                             "use CORR[X|Y|Z] and R51, R52, R61, R62 instead");
@@ -3862,7 +3863,7 @@ void Distribution::setDistParametersGauss(double massIneV) {
 
         std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
 
-        if (cr.size()>0) {
+        if (!cr.empty()) {
             if (cr.size() == 15) {
                 *gmsg << "* Use r to specify correlations" << endl;
                 unsigned int k = 0;
@@ -4054,7 +4055,7 @@ void Distribution::shiftBeam(double &maxTOrZ, double &minTOrZ) {
 
     if (emitting_m) {
 
-        if (addedDistributions_m.size() == 0) {
+        if (addedDistributions_m.empty()) {
 
             if (distrTypeT_m == DistributionType::ASTRAFLATTOPTH) {
                 for (double& tOrZ : tOrZDist_m)
