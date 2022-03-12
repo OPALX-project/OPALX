@@ -149,7 +149,7 @@ void OpalBeamline::switchElementsOff() {
 }
 
 void OpalBeamline::prepareSections() {
-    if (elements_m.size() == 0) {
+    if (elements_m.empty()) {
         prepared_m = true;
         return;
     }
@@ -469,7 +469,7 @@ namespace {
             std::getline(in, str);
             str = boost::regex_replace(str, cppCommentExpr, commentFormat);
             str = boost::regex_replace(str, empty, commentFormat);
-            if (str.size() > 0) {
+            if (!str.empty()) {
                 source += str;// + '\n';
                 priorEmpty = false;
             } else if (!priorEmpty) {

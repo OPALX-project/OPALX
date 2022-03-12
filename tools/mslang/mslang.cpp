@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
         }
         out.close();
 
-        if (baseBlocks.size() > 0) {
+        if (!baseBlocks.empty()) {
             Vector_t llc, urc;
             std::shared_ptr<mslang::Base> & first = baseBlocks.front();
             const mslang::BoundingBox2D &bb = first->bb_m;

@@ -643,7 +643,7 @@ void ScatteringPhysics::deleteParticleFromLocalVector() {
     locParts_m.resize(inv - locParts_m.begin());
 
     // update statistics
-    if (locParts_m.size() > 0) {
+    if (!locParts_m.empty()) {
         Eavg_m /= locParts_m.size();
         Emin_m /= locParts_m.size();
         Emax_m /= locParts_m.size();
