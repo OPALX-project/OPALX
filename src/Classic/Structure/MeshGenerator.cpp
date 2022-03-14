@@ -160,11 +160,11 @@ void MeshGenerator::write(const std::string &fname) {
             out << (decoration.first)(0) << ", " << (decoration.first)(1) << ", " << (decoration.first)(2) << ", "
                 << (decoration.second)(0) << ", " << (decoration.second)(1) << ", " << (decoration.second)(2) << ", ";
         }
-        if (element.decorations_m.size() > 0)
+        if (!element.decorations_m.empty())
             out.seekp(-2, std::ios_base::end);
         out << "], ";
     }
-    if (elements_m.size() > 0)
+    if (!elements_m.empty())
         out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 

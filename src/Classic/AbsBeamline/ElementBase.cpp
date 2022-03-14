@@ -277,9 +277,9 @@ void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler 
 }
 
 void ElementBase::setCurrentSCoordinate(double s) {
-    if (actionRange_m.size() > 0 && actionRange_m.front().second < s) {
+    if (!actionRange_m.empty() && actionRange_m.front().second < s) {
         actionRange_m.pop();
-        if (actionRange_m.size() > 0) {
+        if (!actionRange_m.empty()) {
             elementEdge_m = actionRange_m.front().first;
         }
     }

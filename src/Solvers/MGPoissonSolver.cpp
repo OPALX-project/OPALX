@@ -252,7 +252,7 @@ void MGPoissonSolver::extrapolateLHS() {
 
     //...and all previously saved LHS
     std::deque< TpetraVector_t >::iterator it = OldLHS.begin();
-    if (OldLHS.size() > 0) {
+    if (!OldLHS.empty()) {
         int n = OldLHS.size();
         for (int i = 0; i < n; ++i) {
             TpetraVector_t tmplhs = TpetraVector_t(map_p);

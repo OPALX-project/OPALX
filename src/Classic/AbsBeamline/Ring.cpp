@@ -211,7 +211,7 @@ void Ring::rotateToCyclCoordinates(Euclid3D& delta) const {
 
 
 Vector_t Ring::getNextPosition() const {
-    if (section_list_m.size() > 0) {
+    if (!section_list_m.empty()) {
         return section_list_m.back()->getEndPosition();
     }
     return Vector_t(latticeRInit_m*std::sin(latticePhiInit_m),
@@ -220,7 +220,7 @@ Vector_t Ring::getNextPosition() const {
 }
 
 Vector_t Ring::getNextNormal() const {
-    if (section_list_m.size() > 0) {
+    if (!section_list_m.empty()) {
         return section_list_m.back()->getEndNormal();
     }
     return Vector_t(std::cos(latticePhiInit_m+latticeThetaInit_m),
@@ -364,7 +364,7 @@ void Ring::buildRingSections() {
 }
 
 RingSection* Ring::getLastSectionPlaced() const {
-    if (section_list_m.size() == 0) {
+    if (section_list_m.empty()) {
         return NULL;
     }
     return section_list_m.back();
