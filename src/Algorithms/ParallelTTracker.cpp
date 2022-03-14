@@ -1018,7 +1018,7 @@ void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bo
     if (statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
         FieldList collimators = itsOpalBeamline_m.getElementByType(ElementType::CCOLLIMATOR);
-        if (collimators.size() != 0) {
+        if (!collimators.empty()) {
             for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
                 FlexibleCollimator* coll = static_cast<FlexibleCollimator*>(it->getElement().get());
                 std::string name = coll->getName();
@@ -1334,7 +1334,7 @@ void ParallelTTracker::evenlyDistributeParticles() {
 
     std::vector<char> send_msgbuf;
 
-    if (send.size() > 0) {
+    if (!send.empty()) {
         const char *buffer;
 
         unsigned int totalSend = 0, startIndex = 0;
@@ -1420,7 +1420,7 @@ void ParallelTTracker::evenlyDistributeParticles() {
         delete[] recvbuf;
     }
 
-    if (requests.size() > 0) {
+    if (!requests.empty()) {
         MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
     }
 }

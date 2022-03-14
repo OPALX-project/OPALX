@@ -104,7 +104,7 @@ void SDDSWriter::replaceVersionString() {
 
     if (!fs.is_open()) return;
 
-    while (allLines.size() > 0) {
+    while (!allLines.empty()) {
         line = allLines.front();
 
         if (line != versionFile) {
