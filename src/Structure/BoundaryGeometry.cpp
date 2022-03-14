@@ -2091,7 +2091,7 @@ Change orientation if diff is:
     computeMeshVoxelization ();
     haveInsidePoint_m = false;
     std::vector<double> pt = Attributes::getRealArray (itsAttr[INSIDEPOINT]);
-    if (pt.size() != 0) {
+    if (!pt.empty()) {
         if (pt.size () != 3) {
             throw OpalException (
                 "BoundaryGeometry::initialize()",
