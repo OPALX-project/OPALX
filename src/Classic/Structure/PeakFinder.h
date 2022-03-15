@@ -78,7 +78,7 @@ private:
     container_t globHist_m;
 
     /// filename with extension (.peaks)
-    std::string fn_m;
+    std::string fileName_m;
 
     /// histogram filename with extension (.hist)
     std::string hist_m;

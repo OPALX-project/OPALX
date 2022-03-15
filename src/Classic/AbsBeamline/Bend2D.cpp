@@ -224,9 +224,8 @@ void Bend2D::initialise(PartBunchBase<double, 3> *bunch,
             << "======================================================================\n"
             << endl;
     } else {
-        ERRORMSG("There is something wrong with your field map \""
-                 << fileName_m
-                 << "\"");
+        ERRORMSG("There is something wrong with your field map '"
+                 << fileName_m << "'");
         endField = startField - 1.0e-3;
     }
 }

@@ -264,7 +264,7 @@ void Vacuum::updateParticleAttributes() {
 }
 
 void Vacuum::finalise() {
-    *gmsg << "* Finalize Vacuum " << getName() << endl;
+    *gmsg << "* Finalize vacuum " << getName() << endl;
     if (online_m)
         goOffline();
 }

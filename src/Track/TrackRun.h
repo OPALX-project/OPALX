@@ -20,7 +20,8 @@
 
 #include "AbstractObjects/Action.h"
 
-#include <map>
+#include <boost/bimap.hpp>
+
 #include <string>
 #include <vector>
 
@@ -28,10 +29,11 @@ class Beam;
 class OpalData;
 class DataSink;
 class Distribution;
-class Tracker;
-class ParallelTTracker;
 class FieldSolver;
 class H5PartWrapper;
+class Inform;
+class ParallelTTracker;
+class Tracker;
 
 class TrackRun: public Action {
 
@@ -46,6 +48,8 @@ public:
 
     /// Execute the command.
     virtual void execute();
+
+    Inform& print(Inform& os) const;
 
 private:
     enum class RunMethod: unsigned short {
@@ -62,12 +66,16 @@ private:
     TrackRun(const std::string& name, TrackRun* parent);
 
     void setRunMethod();
+    std::string getRunMethodName() const;
+
     void setupTTracker();
     void setupCyclotronTracker();
     void setupThickTracker();
     void setupFieldsolver();
 
     void initDataSink(const int& numBunch = 1);
+
+    void setBoundaryGeometry();
 
     double setDistributionParallelT(Beam* beam);
 
@@ -89,7 +97,15 @@ private:
     static const std::string defaultDistribution;
 
     RunMethod method_m;
-    static const std::map<std::string, RunMethod> stringMethod_s;
+    static const boost::bimap<RunMethod, std::string> stringMethod_s;
+
+    // macromass and charge for simulation particles
+    double macromass_m;
+    double macrocharge_m;
 };
+
+inline Inform& operator<<(Inform& os, const TrackRun& b) {
+    return b.print(os);
+}
 
 #endif // OPAL_TrackRun_HH

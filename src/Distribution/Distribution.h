@@ -489,6 +489,8 @@ private:
     double sigmaRise_m;
     double sigmaFall_m;
     double cutoff_m;
+
+    std::string outFilename_m;
 };
 
 inline Inform &operator<<(Inform &os, const Distribution &d) {
