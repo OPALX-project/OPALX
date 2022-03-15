@@ -159,9 +159,9 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
 
     switch (type_m) {
         case InteractionType::SCATTERING: {
-            std::string material   = Attributes::getString(itsAttr[MATERIAL]);
-            bool enableRutherford  = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-            double lowEnergyThr    = Attributes::getReal(itsAttr[LOWENERGYTHR]);
+            std::string material  = Attributes::getString(itsAttr[MATERIAL]);
+            bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
+            double lowEnergyThr   = Attributes::getReal(itsAttr[LOWENERGYTHR]);
             handler_m = new ScatteringPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
             break;
         }
@@ -182,18 +182,15 @@ void ParticleMatterInteraction::updateElement(ElementBase* element) {
 }
 
 void ParticleMatterInteraction::print(std::ostream& os) const {
+    os << "\n";
     os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N **************** " << std::endl;
     os << "* PARTICLEMATTERINTERACTION  " << getOpalName() << '\n'
        << "* TYPE                       " << Attributes::getString(itsAttr[TYPE]) << '\n'
        << "* ELEMENT                    " << handler_m->getElement()->getName() << '\n';
     if (type_m == InteractionType::SCATTERING) {
         os << "* MATERIAL                   " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
-
-        std::ostringstream valueStream;
-        valueStream << std::boolalpha << Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-        os << "* ENABLERUTHERFORD           " << Util::toUpper(valueStream.str()) << '\n';
-
-        os << "* LOWENERGYTHR               " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV\n";
+        os << "* ENABLERUTHERFORD           " << Util::boolToUpperString(Attributes::getBool(itsAttr[ENABLERUTHERFORD])) << '\n';
+        os << "* LOWENERGYTHR               " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " [MeV]\n";
     }
     os << "* ********************************************************************************** " << std::endl;
 }

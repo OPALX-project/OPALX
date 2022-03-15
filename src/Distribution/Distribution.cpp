@@ -556,11 +556,10 @@ Inform &Distribution::printInfo(Inform &os) const {
             os << "* Main Distribution" << endl
                << "-----------------" << endl;
         }
-        if (particlesPerDist_m.empty()) {
+        if (particlesPerDist_m.empty())
             printDist(os, 0);
-        } else {
+        else
             printDist(os, particlesPerDist_m.at(0));
-        }
 
         size_t distCount = 1;
         for (unsigned distIndex = 0; distIndex < addedDistributions_m.size(); distIndex++) {
@@ -588,6 +587,10 @@ Inform &Distribution::printInfo(Inform &os) const {
             printEmissionModel(os);
         } else {
             os << "* Distribution is injected." << endl;
+        }
+
+        if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE])) {
+            os << "*\n* Write initial distribution to file '" << outFilename_m << "'" << endl;
         }
     }
     os << "* " << endl;
@@ -892,7 +895,6 @@ void Distribution::chooseInputMomentumUnits(InputMomentumUnits inputMoUnits) {
 
     const std::string inputUnits = Attributes::getString(itsAttr[Attrib::Distribution::INPUTMOUNITS]);
     if (inputUnits.empty()) {
-        *gmsg << "* No momentum units were specified, using default units (see manual)." << endl;
         inputMoUnits_m = inputMoUnits;
     } else {
         inputMoUnits_m = stringInputMomentumUnits_s.at(inputUnits);
@@ -1032,7 +1034,7 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
     if (!boost::filesystem::exists(fileName)) {
         throw OpalException(
             "Distribution::createDistributionFromFile",
-            "Open file operation failed, please check if \"" + fileName + "\" really exists.");
+            "Open file operation failed, please check if '" + fileName + "' really exists.");
     }
     if (Ippl::myNode() == 0) {
         inputFile.open(fileName.c_str());
@@ -2884,31 +2886,45 @@ void Distribution::printDist(Inform &os, size_t numberOfParticles) const {
            << "* " << endl;
     }
 
-    switch (distrTypeT_m) {
+    os << "* Distribution input momentum units: ";
+    switch (inputMoUnits_m) {
+        case InputMomentumUnits::NONE: {
+            os << "[Beta Gamma]" << "\n* " << endl;
+            break;
+        }
+        case InputMomentumUnits::EVOVERC: {
+            os << "[eV/c]" << "\n* " << endl;
+            break;
+        }
+        default:
+            throw OpalException("Distribution::printDist",
+                                "Unknown \"INPUTMOUNITS\" for \"DISTRIBUTION\" command");
+    }
 
-    case DistributionType::FROMFILE:
-        printDistFromFile(os);
-        break;
-    case DistributionType::GAUSS:
-        printDistGauss(os);
-        break;
-    case DistributionType::BINOMIAL:
-        printDistBinomial(os);
-        break;
-    case DistributionType::FLATTOP:
-    case DistributionType::GUNGAUSSFLATTOPTH:
-    case DistributionType::ASTRAFLATTOPTH:
-        printDistFlattop(os);
-        break;
-    case DistributionType::MULTIGAUSS:
-        printDistMultiGauss(os);
-        break;
-    case DistributionType::MATCHEDGAUSS:
-        printDistMatchedGauss(os);
-        break;
-    default:
-        throw OpalException("Distribution::printDist",
-                            "Unknown \"TYPE\" of \"DISTRIBUTION\"");
+    switch (distrTypeT_m) {
+        case DistributionType::FROMFILE:
+            printDistFromFile(os);
+            break;
+        case DistributionType::GAUSS:
+            printDistGauss(os);
+            break;
+        case DistributionType::BINOMIAL:
+            printDistBinomial(os);
+            break;
+        case DistributionType::FLATTOP:
+        case DistributionType::GUNGAUSSFLATTOPTH:
+        case DistributionType::ASTRAFLATTOPTH:
+            printDistFlattop(os);
+            break;
+        case DistributionType::MULTIGAUSS:
+            printDistMultiGauss(os);
+            break;
+        case DistributionType::MATCHEDGAUSS:
+            printDistMatchedGauss(os);
+            break;
+        default:
+            throw OpalException("Distribution::printDist",
+                                "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
 }
@@ -3039,8 +3055,8 @@ void Distribution::printDistMultiGauss(Inform &os) const {
 void Distribution::printDistFromFile(Inform &os) const {
     os << "* Distribution type: FROMFILE" << endl;
     os << "* " << endl;
-    os << "* Input file: "
-       << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << endl;
+    os << "* Input file: '"
+       << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << "'" << endl;
 }
 
 
@@ -4162,28 +4178,23 @@ void Distribution::shiftDistCoordinates(double massIneV) {
 
 void Distribution::writeOutFileHeader() {
 
-    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false)
+    if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false) {
         return;
+    }
 
     unsigned int totalNum = tOrZDist_m.size();
     reduce(totalNum, totalNum, OpAddAssign());
     if (Ippl::myNode() != 0)
         return;
 
-    std::string fname = Util::combineFilePath({
+    outFilename_m = Util::combineFilePath({
         OpalData::getInstance()->getAuxiliaryOutputDirectory(),
         OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat"
     });
 
-    *gmsg << "\n"
-          << std::left << std::setw(84) << std::setfill('*') << "* " << "\n"
-          << "* Write initial distribution to file \"" << fname << "\"\n"
-          << std::left << std::setw(84) << std::setfill('*') << "* "
-          << std::setfill(' ') << endl;
-
-    std::ofstream outputFile(fname);
+    std::ofstream outputFile(outFilename_m);
     if (outputFile.bad()) {
-        *gmsg << "Unable to open output file \"" << fname << "\"" << endl;
+        *gmsg << "Unable to open output file '" << outFilename_m << "'" << endl;
     } else {
         outputFile.setf(std::ios::left);
         outputFile << "# ";
@@ -4274,16 +4285,9 @@ void Distribution::writeOutFileEmission() {
             Ippl::Comm->raw_send(&(msgbuf[0]), totalSendBits, 0, tag);
         }
     } else {
-
-        std::string fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-            OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat"
-        });
-
-
-        std::ofstream outputFile(fname, std::fstream::app);
+        std::ofstream outputFile(outFilename_m, std::fstream::app);
         if (outputFile.bad()) {
-            ERRORMSG(level1 << "Unable to write to file \"" << fname << "\"" << endl);
+            ERRORMSG(level1 << "Unable to write to file '" << outFilename_m << "'" << endl);
             for (int node = 1; node < Ippl::getNodes(); ++ node) {
                 if (numberOfBits[node] == 0) continue;
                 char *recvbuf = new char[numberOfBits[node]];
@@ -4356,20 +4360,16 @@ void Distribution::writeOutFileInjection() {
     if (Attributes::getBool(itsAttr[Attrib::Distribution::WRITETOFILE]) == false)
         return;
 
-    std::string fname = Util::combineFilePath({
-        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-        OpalData::getInstance()->getInputBasename() + "_" + getOpalName() + ".dat"
-    });
     // Nodes take turn writing particles to file.
     for (int nodeIndex = 0; nodeIndex < Ippl::getNodes(); nodeIndex++) {
 
         // Write to file if its our turn.
         size_t numberOfParticles = 0;
         if (Ippl::myNode() == nodeIndex) {
-            std::ofstream outputFile(fname, std::fstream::app);
+            std::ofstream outputFile(outFilename_m, std::fstream::app);
             if (outputFile.bad()) {
                 *gmsg << "Node " << Ippl::myNode() << " unable to write"
-                      << "to file \"" << fname << "\"" << endl;
+                      << "to file '" << outFilename_m << "'" << endl;
             } else {
 
                 outputFile.precision(9);

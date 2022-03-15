@@ -105,15 +105,15 @@ void PeakFinder::save() {
     if ( !peaks_m.empty() ) {
         // only rank 0 will go in here
 
-        fn_m   = outputName_m + std::string(".peaks");
-        OpalData::getInstance()->checkAndAddOutputFileName(fn_m);
+        fileName_m   = outputName_m + std::string(".peaks");
+        OpalData::getInstance()->checkAndAddOutputFileName(fileName_m);
 
         hist_m = outputName_m + std::string(".hist");
         OpalData::getInstance()->checkAndAddOutputFileName(hist_m);
 
-        *gmsg << level2 << "Save " << fn_m << " and " << hist_m << endl;
+        *gmsg << level2 << "Save '" << fileName_m << "' and '" << hist_m << "'" << endl;
 
-        if(OpalData::getInstance()->inRestartRun())
+        if (OpalData::getInstance()->inRestartRun())
             this->append_m();
         else
             this->open_m();
@@ -176,13 +176,13 @@ void PeakFinder::createHistogram_m() {
 
 
 void PeakFinder::open_m() {
-    os_m.open(fn_m.c_str(), std::ios::out);
+    os_m.open(fileName_m.c_str(), std::ios::out);
     hos_m.open(hist_m.c_str(), std::ios::out);
 }
 
 
 void PeakFinder::append_m() {
-    os_m.open(fn_m.c_str(), std::ios::app);
+    os_m.open(fileName_m.c_str(), std::ios::app);
     hos_m.open(hist_m.c_str(), std::ios::app);
 }
 

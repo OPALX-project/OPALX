@@ -296,7 +296,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
 
     if (!fs::exists(Filename))
         throw GeneralClassicException("Fieldmap::readHeader()",
-                                      "File \"" + Filename + "\" doesn't exist");
+                                      "File '" + Filename + "' doesn't exist");
 
     std::ifstream File(Filename.c_str());
     if (!File.good()) {
