@@ -36,7 +36,7 @@ extern Inform* gmsg;
     h5_int64_t h5err = H5WriteFileAttribString (H5file_m, attribute, value); \
     if (h5err <= H5_ERR) {                                              \
         std::stringstream ss;                                               \
-        ss << "failed to write string attribute " << attribute << " to file " << fn_m; \
+        ss << "failed to write string attribute " << attribute << " to file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -44,7 +44,7 @@ extern Inform* gmsg;
         h5_int64_t h5err = H5WriteStepAttribFloat64 (H5file_m, attribute, value, size); \
     if (h5err <= H5_ERR) { \
         std::stringstream ss; \
-        ss << "failed to write float64 attribute " << attribute << " to file " << fn_m; \
+        ss << "failed to write float64 attribute " << attribute << " to file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -52,7 +52,7 @@ extern Inform* gmsg;
         h5_int64_t h5err = H5WriteStepAttribInt64 (H5file_m, attribute, value, size); \
     if (h5err <= H5_ERR) { \
         std::stringstream ss; \
-        ss << "failed to write int64 attribute " << attribute << " to file " << fn_m; \
+        ss << "failed to write int64 attribute " << attribute << " to file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -60,7 +60,7 @@ extern Inform* gmsg;
         h5_int64_t h5err = H5PartWriteDataFloat64 (H5file_m, name, value); \
     if (h5err <= H5_ERR) { \
         std::stringstream ss; \
-        ss << "failed to write float64 data " << name << " to file " << fn_m; \
+        ss << "failed to write float64 data " << name << " to file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -68,7 +68,7 @@ extern Inform* gmsg;
         h5_int64_t h5err = H5PartWriteDataInt64 (H5file_m, name, value); \
     if (h5err <= H5_ERR) { \
         std::stringstream ss; \
-        ss << "failed to write int64 data " << name << " to file " << fn_m; \
+        ss << "failed to write int64 data " << name << " to file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -76,7 +76,7 @@ extern Inform* gmsg;
     h5_int64_t h5err = H5SetStep (H5file_m, H5call_m); \
     if (h5err <= H5_ERR) {                                              \
         std::stringstream ss;                                               \
-        ss << "failed to set step " << H5call_m << " in file " << fn_m; \
+        ss << "failed to set step " << H5call_m << " in file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -84,7 +84,7 @@ extern Inform* gmsg;
     H5call_m = H5GetNumSteps( H5file_m );                        \
     if (H5call_m <= H5_ERR) {                                             \
         std::stringstream ss;                                               \
-        ss << "failed to get number of steps of file " << fn_m; \
+        ss << "failed to get number of steps of file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -92,7 +92,7 @@ extern Inform* gmsg;
     h5_int64_t h5err = H5PartSetNumParticles (H5file_m, num); \
     if (h5err <= H5_ERR) {                                              \
         std::stringstream ss;                                               \
-        ss << "failed to set number of particles to " << num << " in step " << H5call_m << " in file " << fn_m; \
+        ss << "failed to set number of particles to " << num << " in step " << H5call_m << " in file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -101,7 +101,7 @@ extern Inform* gmsg;
     H5file_m = H5OpenFile (fname, mode, props); \
     if (H5file_m == (h5_file_t)H5_ERR) { \
         std::stringstream ss;                                               \
-        ss << "failed to open file " << fn_m; \
+        ss << "failed to open file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -109,7 +109,7 @@ extern Inform* gmsg;
     h5_int64_t h5err = H5CloseFile (H5file_m); \
     if (h5err <= H5_ERR) {                                              \
         std::stringstream ss;                                               \
-        ss << "failed to close file " << fn_m; \
+        ss << "failed to close file " << fileName_m; \
         throw GeneralClassicException(std::string(__func__), ss.str()); \
     }\
 }
@@ -222,7 +222,7 @@ void LossDataSink::openH5(h5_int32_t mode) {
     h5_prop_t props = H5CreateFileProp ();
     MPI_Comm comm = Ippl::getComm();
     H5SetPropFileMPIOCollective (props, &comm);
-    OPEN_FILE (fn_m.c_str(), mode, props);
+    OPEN_FILE (fileName_m.c_str(), mode, props);
     H5CloseProp (props);
 }
 
@@ -335,10 +335,8 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 
     namespace fs = boost::filesystem;
     if (h5hut_mode_m) {
-
-        fn_m = outputName_m + std::string(".h5");
-        *gmsg << level2 << "Save " << fn_m << endl;
-        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fn_m)) {
+        fileName_m = outputName_m + std::string(".h5");
+        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fileName_m)) {
             openH5();
             writeHeaderH5();
         } else {
@@ -353,10 +351,8 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
         H5file_m = 0;
 
     } else {
-
-        fn_m = outputName_m + std::string(".loss");
-        *gmsg << level2 << "Save " << fn_m << endl;
-        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fn_m)) {
+        fileName_m = outputName_m + std::string(".loss");
+        if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fileName_m)) {
             openASCII();
             writeHeaderASCII();
         } else {
@@ -365,6 +361,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
         saveASCII();
         closeASCII();
     }
+    *gmsg << level2 << "Save '" << fileName_m << "'" << endl;
 
     Ippl::Comm->barrier();
 

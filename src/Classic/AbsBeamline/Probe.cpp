@@ -51,7 +51,7 @@ void Probe::doInitialise(PartBunchBase<double, 3> *bunch) {
 }
 
 void Probe::doGoOffline() {
-    *gmsg << "* Probe goes offline " << getName() << endl;
+    *gmsg << "* Probe " << getName() << " goes offline" << endl;
     if (online_m && peakfinder_m)
         peakfinder_m->save();
     peakfinder_m.reset(nullptr);

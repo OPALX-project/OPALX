@@ -259,11 +259,11 @@ void Beam::print(std::ostream& os) const {
     os << "* ************* B E A M ************************************************************ " << std::endl;
     os << "* BEAM        " << getOpalName() << '\n'
        << "* PARTICLE    " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
-       << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " GeV\n"
+       << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " [GeV]\n"
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
-       << "* MOMENTUM    " << reference.getP() << '\n'
-       << "* CURRENT     " << Attributes::getReal(itsAttr[BCURRENT]) << " A\n"
-       << "* FREQUENCY   " << Attributes::getReal(itsAttr[BFREQ]) << " MHz\n"
+       << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
+       << "* CURRENT     " << Attributes::getReal(itsAttr[BCURRENT]) << " [A]\n"
+       << "* FREQUENCY   " << Attributes::getReal(itsAttr[BFREQ]) << " [MHz]\n"
        << "* NPART       " << Attributes::getReal(itsAttr[NPART]) << '\n';
     os << "* ********************************************************************************** " << std::endl;
 }
