@@ -203,7 +203,7 @@ void DumpFields::writeFieldThis(Component* field) {
 
 void DumpFields::print(std::ostream& os) const {
     os << "* ************* D U M P  F I E L D S *********************************************** " << std::endl;
-    os << "* File name: " << filename_m << '\n'
+    os << "* File name: '" << filename_m << "'\n"
        << "* X_START = "  << Attributes::getReal(itsAttr[X_START]) << " [m]\n"
        << "* DX      = "  << Attributes::getReal(itsAttr[DX])      << " [m]\n"
        << "* X_STEPS = "  << Attributes::getReal(itsAttr[X_STEPS]) << '\n'

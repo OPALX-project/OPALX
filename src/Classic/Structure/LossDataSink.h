@@ -107,14 +107,14 @@ class LossDataSink {
 private:
     void openASCII() {
         if(Ippl::myNode() == 0) {
-            os_m.open(fn_m.c_str(), std::ios::out);
+            os_m.open(fileName_m.c_str(), std::ios::out);
         }
     }
     void openH5(h5_int32_t mode = H5_O_WRONLY);
 
     void appendASCII() {
         if (Ippl::myNode() == 0) {
-            os_m.open(fn_m.c_str(), std::ios::app);
+            os_m.open(fileName_m.c_str(), std::ios::app);
         }
     }
 
@@ -139,7 +139,7 @@ private:
     SetStatistics computeSetStatistics(unsigned int setIdx);
 
     // filename without extension
-    std::string fn_m;
+    std::string fileName_m;
 
     // write either in ASCII or H5hut format
     bool h5hut_mode_m;

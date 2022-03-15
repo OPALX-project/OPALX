@@ -119,7 +119,7 @@ void Degrader::initialise(PartBunchBase<double, 3>* bunch) {
 }
 
 void Degrader::finalise() {
-    *gmsg << "* Finalize Degrader" << endl;
+    *gmsg << "* Finalize degrader " << getName() << endl;
 }
 
 void Degrader::goOnline(const double&) {

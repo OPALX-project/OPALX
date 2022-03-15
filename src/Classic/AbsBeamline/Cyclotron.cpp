@@ -210,9 +210,9 @@ void Cyclotron::setRfPhi(std::vector<double> f) {
     rfphi_m = f;
 }
 
-double Cyclotron::getRfPhi(unsigned int i) const {
-    if (i < rfphi_m.size()) {
-        return rfphi_m[i];
+std::vector<double> Cyclotron::getRfPhi() const {
+    if (!rfphi_m.empty()) {
+        return rfphi_m;
     } else {
         throw GeneralClassicException("Cyclotron::getRfPhi",
                                       "RFPHI not defined for CYCLOTRON!");
@@ -223,9 +223,9 @@ void Cyclotron::setRfFrequ(std::vector<double> f) {
     rffrequ_m = f;
 }
 
-double Cyclotron::getRfFrequ(unsigned int i) const {
-    if (i < rffrequ_m.size()) {
-        return rffrequ_m[i];
+std::vector<double> Cyclotron::getRfFrequ() const {
+    if (!rffrequ_m.empty()) {
+        return rffrequ_m;
     } else {
         throw GeneralClassicException("Cyclotron::getRfFrequ",
                                       "RFFREQ not defined for CYCLOTRON!");
@@ -236,9 +236,9 @@ void Cyclotron::setSuperpose(std::vector<bool> flag) {
   superpose_m = flag;
 }
 
-bool Cyclotron::getSuperpose(unsigned int i) const {
-    if (i < superpose_m.size()) {
-        return superpose_m[i];
+std::vector<bool> Cyclotron::getSuperpose() const {
+    if (!superpose_m.empty()) {
+        return superpose_m;
     } else {
         throw GeneralClassicException("Cyclotron::getSuperpose",
                                       "SUPERPOSE not defined for CYCLOTRON!");
@@ -281,9 +281,9 @@ void Cyclotron::setEScale(std::vector<double> s) {
     escale_m = s;
 }
 
-double Cyclotron::getEScale(unsigned int i) const {
-    if (i < escale_m.size()) {
-        return escale_m[i];
+std::vector<double> Cyclotron::getEScale() const {
+    if (!escale_m.empty()) {
+        return escale_m;
     } else {
         throw GeneralClassicException("Cyclotron::getEScale",
                                       "EScale not defined for CYCLOTRON!");
@@ -567,7 +567,7 @@ void Cyclotron::apply(const double& rad, const double& z,
 void Cyclotron::finalise() {
     online_m = false;
     lossDs_m->save();
-    *gmsg << "* Finalize cyclotron" << endl;
+    *gmsg << "* Finalize cyclotron " << getName() << endl;
 }
 
 bool Cyclotron::bends() const {
@@ -1401,12 +1401,11 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double& scaleFactor) {
 
 
 void Cyclotron::getFieldFromFile_BandRF(const double& scaleFactor) {
-
     // read 3D E&B field data file
     // loop over all field maps and superpose fields
     for (auto& fm: RFfilename_m) {
         Fieldmap *f = Fieldmap::getFieldmap(fm, false);
-        *gmsg << "* Reading " << fm << endl;
+        *gmsg << "* Reading '" << fm << "'" << endl;
         f->readMap();
         RFfields_m.push_back(f);
     }

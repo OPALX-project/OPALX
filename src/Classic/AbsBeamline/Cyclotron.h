@@ -132,10 +132,10 @@ public:
     virtual double getCyclHarm() const;
 
     void setRfPhi(std::vector<double> f);
-    double getRfPhi(unsigned int i) const;
+    virtual std::vector<double> getRfPhi() const;
 
     void setRfFrequ(std::vector<double> f);
-    double getRfFrequ(unsigned int i) const;
+    virtual std::vector<double> getRfFrequ() const;
 
     void setSymmetry(double symmetry);
     virtual double getSymmetry() const;
@@ -159,12 +159,12 @@ public:
     virtual double getBScale() const;
 
     void setEScale(std::vector<double> bs);
-    virtual double getEScale(unsigned int i) const;
+    virtual std::vector<double> getEScale() const;
 
     void setTrimCoils(const std::vector<TrimCoil*>& trimcoils);
 
     void setSuperpose(std::vector<bool> flag);
-    virtual bool getSuperpose(unsigned int i) const;
+    virtual std::vector<bool> getSuperpose() const;
 
     void setMinR(double r);
     virtual double getMinR() const;

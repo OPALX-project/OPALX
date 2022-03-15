@@ -226,7 +226,8 @@ void RFCavity::initialise(PartBunchBase<double, 3>* bunch,
     for (int i = 0; i < num_points_m; i++) {
         if (in.eof()) {
             throw GeneralClassicException("RFCavity::initialise",
-                                          "Not enough data in file '" + filename_m + "', please check the data format");
+                                          "Not enough data in file '" + filename_m +
+                                          "', please check the data format");
         }
         in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
 
