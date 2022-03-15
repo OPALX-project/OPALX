@@ -65,7 +65,7 @@ SigmaGenerator::SigmaGenerator(double I,
                                unsigned int truncOrder,
                                bool write)
     : I_m(I)
-    , wo_m(cycl->getRfFrequ(0)*Units::MHz2Hz/cycl->getCyclHarm()*2.0*Physics::pi)
+    , wo_m(cycl->getRfFrequ()[0]*Units::MHz2Hz/cycl->getCyclHarm()*2.0*Physics::pi)
     , E_m(E)
     , gamma_m(E/m+1.0)
     , gamma2_m(gamma_m*gamma_m)
