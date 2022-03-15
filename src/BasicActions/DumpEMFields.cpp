@@ -348,7 +348,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
 
 void DumpEMFields::print(std::ostream& os) const {
     os << "* ************* D U M P  E M  F I E L D S ****************************************** " << std::endl;
-    os << "* File name: " << filename_m << '\n';
+    os << "* File name: '" << filename_m << "'\n";
     if (coordinates_m == CoordinateSystem::CARTESIAN) {
         os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
            << "* X_START   = " << Attributes::getReal(itsAttr[X_START]) << " [m]\n"

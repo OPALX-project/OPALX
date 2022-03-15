@@ -416,17 +416,17 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron& cycl) {
 
     *gmsg << endl;
     *gmsg << "* Bunch global starting position:" << endl;
-    *gmsg << "* RINIT = " << referenceR  << " [mm]" << endl;
+    *gmsg << "* RINIT   = " << referenceR  << " [mm]" << endl;
     *gmsg << "* PHIINIT = " << referenceTheta << " [deg]" << endl;
-    *gmsg << "* ZINIT = " << referenceZ << " [mm]" << endl;
+    *gmsg << "* ZINIT   = " << referenceZ << " [mm]" << endl;
     *gmsg << endl;
     *gmsg << "* Bunch global starting momenta:" << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
-    *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Reference total momentum = " << referencePtot << " [beta gamma]" << endl;
+    *gmsg << "* Initial beta  = " << itsReference.getBeta() << endl;
+    *gmsg << "* Reference total momentum          = " << referencePtot << " [beta gamma]" << endl;
     *gmsg << "* Reference azimuthal momentum (Pt) = " << referencePt << " [beta gamma]" << endl;
-    *gmsg << "* Reference radial momentum (Pr) = " << referencePr  << " [beta gamma]" << endl;
-    *gmsg << "* Reference axial momentum (Pz) = " << referencePz << " [beta gamma]" << endl;
+    *gmsg << "* Reference radial momentum (Pr)    = " << referencePr  << " [beta gamma]" << endl;
+    *gmsg << "* Reference axial momentum (Pz)     = " << referencePz << " [beta gamma]" << endl;
     *gmsg << endl;
 
     double sym = cycl_m->getSymmetry();
@@ -437,38 +437,45 @@ void ParallelCyclotronTracker::visitCyclotron(const Cyclotron& cycl) {
     // *gmsg << "* Rf frequency= " << rff << " [MHz]" << endl;
 
     std::string fmfn = cycl_m->getFieldMapFN();
-    *gmsg << "* Field map file = " << fmfn << " " << endl;
+    *gmsg << "* Field map file       = '" << fmfn << "'" << endl;
 
     std::string type = cycl_m->getCyclotronType();
-    *gmsg << "* Type of cyclotron = " << type << " " << endl;
+    *gmsg << "* Type of cyclotron    = " << type << " " << endl;
 
     double rmin = cycl_m->getMinR();
     double rmax = cycl_m->getMaxR();
-    *gmsg << "* Radial aperture = " << rmin << " ... " << rmax<<" [m] "<< endl;
+    *gmsg << "* Radial aperture      = " << rmin << " ... " << rmax<<" [m] "<< endl;
 
     double zmin = cycl_m->getMinZ();
     double zmax = cycl_m->getMaxZ();
-    *gmsg << "* Vertical aperture = " << zmin << " ... " << zmax<<" [m]"<< endl;
+    *gmsg << "* Vertical aperture    = " << zmin << " ... " << zmax<<" [m]"<< endl;
 
     double h = cycl_m->getCyclHarm();
-    *gmsg << "* Number of trimcoils = " << cycl_m->getNumberOfTrimcoils() << endl;
-    *gmsg << "* Harmonic number h = " << h << " " << endl;
+    *gmsg << "* Number of trimcoils  = " << cycl_m->getNumberOfTrimcoils() << endl;
+    *gmsg << "* Harmonic number h    = " << h << " " << endl;
+
+    std::vector<double> rffrequ = cycl_m->getRfFrequ();
+    *gmsg << "* RF frequency         = " << Util::doubleVectorToString(rffrequ) << " [MHz]" << endl;
 
     cycl_m->setBFieldType();
     if (cycl_m->getBFieldType() == Cyclotron::BFieldType::BANDRF) {
-        double escale = cycl_m->getEScale(0);
-        *gmsg << "* RF field scale factor = " << escale << endl;
-        double rfphi= cycl_m->getRfPhi(0);
-        *gmsg << "* RF inital phase = " << rfphi * Units::rad2deg << " [deg]" << endl;
-        bool superpose = cycl_m->getSuperpose(0);
-        *gmsg << std::boolalpha << "* Superpose electric field maps -> " << superpose << endl;
+        std::vector<double> rfphi = cycl_m->getRfPhi();
+        for (size_t i = 0; i < rfphi.size(); ++i) {
+            rfphi[i] = rfphi[i] * Units::rad2deg;
+        }
+        *gmsg << "* RF inital phase      = " << Util::doubleVectorToString(rfphi) << " [deg]" << endl;
+
+        std::vector<double> escale = cycl_m->getEScale();
+        *gmsg << "* E-field scale factor = " << Util::doubleVectorToString(escale) << endl;
+
+        std::vector<bool> superpose = cycl_m->getSuperpose();
+        *gmsg << "* Superpose electric field maps -> " << Util::boolVectorToUpperString(superpose) << endl;
     }
 
     // Read in cyclotron field maps
     cycl_m->initialise(itsBunch_m, cycl_m->getBScale());
 
     double BcParameter[8] = {};
-
     BcParameter[0] = Units::mm2m * cycl_m->getRmin();
     BcParameter[1] = Units::mm2m * cycl_m->getRmax();
 
@@ -741,31 +748,31 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity& as) {
                             "The ParallelCyclotronTracker can only play with cyclotron type RF system currently...");
     }
 
-    *gmsg << "* Name = " << elptr->getName() << endl;
-
-    double rmin = elptr->getRmin();
-    *gmsg << "* Minimal radius of cavity = " << rmin << " [mm]" << endl;
-
-    double rmax = elptr->getRmax();
-    *gmsg << "* Maximal radius of cavity = " << rmax << " [mm]" << endl;
-
-    double rff = elptr->getCycFrequency();
-    *gmsg << "* RF frequency (2*pi*f) = " << rff << " [rad/s]" << endl;
+    *gmsg << "* Name                      = " << elptr->getName() << endl;
 
     std::string fmfn = elptr->getFieldMapFN();
-    *gmsg << "* RF Field map file = " << fmfn << endl;
+    *gmsg << "* RF Field map file         = '" << fmfn << "'" << endl;
+
+    double rmin = elptr->getRmin();
+    *gmsg << "* Minimal radius of cavity  = " << rmin << " [mm]" << endl;
+
+    double rmax = elptr->getRmax();
+    *gmsg << "* Maximal radius of cavity  = " << rmax << " [mm]" << endl;
+
+    double rff = elptr->getCycFrequency();
+    *gmsg << "* RF frequency (2*pi*f)     = " << rff << " [rad/s]" << endl;
 
     double angle = elptr->getAzimuth();
-    *gmsg << "* Cavity azimuth position = " << angle << " [deg] " << endl;
+    *gmsg << "* Cavity azimuth position   = " << angle << " [deg] " << endl;
 
     double gap = elptr->getGapWidth();
-    *gmsg << "* Cavity gap width = " << gap << " [mm] " << endl;
+    *gmsg << "* Cavity gap width          = " << gap << " [mm] " << endl;
 
     double pdis = elptr->getPerpenDistance();
-    *gmsg << "* Cavity Shift distance = " << pdis << " [mm] " << endl;
+    *gmsg << "* Cavity Shift distance     = " << pdis << " [mm] " << endl;
 
     double phi0 = elptr->getPhi0();
-    *gmsg << "* Initial RF phase (t=0) = " << phi0 << " [deg] " << endl;
+    *gmsg << "* Initial RF phase (t=0)    = " << phi0 << " [deg] " << endl;
 
     /*
       Setup time dependence and in case of no
@@ -858,12 +865,12 @@ void ParallelCyclotronTracker::visitRing(const Ring& ring) {
     // Finally print some diagnostic
     *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
-    *gmsg << "* Initial beta = " << itsReference.getBeta() << endl;
-    *gmsg << "* Total reference momentum   = " << referencePtot << " [beta gamma]" << endl;
+    *gmsg << "* Initial beta  = " << itsReference.getBeta() << endl;
+    *gmsg << "* Total reference momentum      = " << referencePtot << " [beta gamma]" << endl;
     *gmsg << "* Reference azimuthal momentum  = " << referencePt << " [beta gamma]" << endl;
     *gmsg << "* Reference radial momentum     = " << referencePr << " [beta gamma]" << endl;
     *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry " << endl;
-    *gmsg << "* Harmonic number h= " << opalRing_m->getHarmonicNumber() << " " << endl;
+    *gmsg << "* Harmonic number h = " << opalRing_m->getHarmonicNumber() << " " << endl;
 }
 
 /**
@@ -1021,7 +1028,7 @@ void ParallelCyclotronTracker::visitVacuum(const Vacuum& vac) {
     double pressure = elptr->getPressure();
     if ( boost::filesystem::exists(elptr->getPressureMapFN()) ) {
         std::string pmfn = elptr->getPressureMapFN();
-        *gmsg << "* Pressure field map file = " << pmfn << " " << endl;
+        *gmsg << "* Pressure field map file = '" << pmfn << "'" << endl;
         *gmsg << "* Default pressure = " << pressure << " [mbar]" << endl;
     } else  {
         *gmsg << "* Pressure     = " << pressure << " [mbar]" << endl;

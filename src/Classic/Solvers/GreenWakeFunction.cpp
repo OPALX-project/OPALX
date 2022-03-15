@@ -467,16 +467,16 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
 
     if (fs.fail()) {
         throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
-                            "Open file operation failed, please check if \""
-                            + filename_m +  "\" really exists.");
+                            "Open file operation failed, please check if '"
+                            + filename_m +  "' really exists.");
     }
 
     fs >> name;
     msg << " SSDS1 read = " << name << endl;
     if (name.compare("SDDS1") != 0) {
         throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
-                            " No SDDS1 File. A SDDS1 file should start with a SDDS1 String. Check file \""
-                            + filename_m +  "\" ");
+                            " No SDDS1 File. A SDDS1 file should start with a SDDS1 String. Check file '"
+                            + filename_m +  "' ");
     }
 
     for (int i = 0; i < 6; i++) {
@@ -488,8 +488,8 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     msg << " header read" << endl;
     if (Np <= 0) {
         throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
-                            " The particle number should be bigger than zero! Please check the first line of file \""
-                            + filename_m +  "\".");
+                            " The particle number should be bigger than zero! Please check the first line of file '"
+                            + filename_m +  "'.");
     }
 
     msg  << " Np = " << Np << endl;
@@ -503,8 +503,8 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
         }
         if (fs.eof()) {
             throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
-                                " End of file reached before the whole wakefield is imported, please check file \""
-                                + filename_m +  "\".");
+                                " End of file reached before the whole wakefield is imported, please check file '"
+                                + filename_m +  "'.");
         }
     }
     // if needed interpolate the wake in a way that the wake form the file fits to the wake needs in the code (??)
