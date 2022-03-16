@@ -1169,16 +1169,15 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
       - eliminate physics and error
     */
 
-    std::string LineName = Attributes::getString(itsAttr[Attrib::Distribution::LINE]);
-    if (LineName == "") return;
+    std::string lineName = Attributes::getString(itsAttr[Attrib::Distribution::LINE]);
+    if (lineName.empty()) return;
 
-    const BeamSequence* LineSequence = BeamSequence::find(LineName);
-
-    if (LineSequence == NULL)
+    const BeamSequence* lineSequence = BeamSequence::find(lineName);
+    if (lineSequence == NULL)
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any Cyclotron element in line");
 
-    SpecificElementVisitor<Cyclotron> CyclotronVisitor(*LineSequence->fetchLine());
+    SpecificElementVisitor<Cyclotron> CyclotronVisitor(*lineSequence->fetchLine());
     CyclotronVisitor.execute();
     size_t NumberOfCyclotrons = CyclotronVisitor.size();
 

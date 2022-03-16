@@ -493,7 +493,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
     std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
     std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
     std::string bcz = Attributes::getString(itsAttr[deprecated::BCFFTT]);
-    if (bcz == "") {
+    if (bcz.empty()) {
         bcz = Attributes::getString(itsAttr[BCFFTZ]);
     }
 
@@ -512,7 +512,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
             std::cout << "FFTBOX ACTIVE" << std::endl;
             //we go over all geometries and add the Geometry Elements to the geometry list
             std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
-            std::string tmp = "";
+            std::string tmp;
             //split and add all to list
             std::vector<BoundaryGeometry *> geometries;
             for(unsigned int i = 0; i <= geoms.length(); i++) {
@@ -547,7 +547,7 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
 #ifdef HAVE_SAAMG_SOLVER
         //we go over all geometries and add the Geometry Elements to the geometry list
         std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
-        std::string tmp = "";
+        std::string tmp;
         //split and add all to list
         std::vector<BoundaryGeometry *> geometries;
         for(unsigned int i = 0; i <= geoms.length(); i++) {
@@ -784,7 +784,7 @@ void FieldSolver::initAmrSolver_m() {
                                 "FMultiGrid solver requires AMReX.");
 
         std::string bcz = Attributes::getString(itsAttr[deprecated::BCFFTT]);
-        if (bcz == "") {
+        if (bcz.empty()) {
             bcz = Attributes::getString(itsAttr[BCFFTZ]);
         }
         solver_m = new AmrMultiGrid(static_cast<AmrBoxLib*>(itsAmrObject_mp.get()),

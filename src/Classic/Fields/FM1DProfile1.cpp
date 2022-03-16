@@ -54,7 +54,7 @@ FM1DProfile1::FM1DProfile1(std::string aFilename):
         if(inputFile.good()) {
 
             int tempInt = 0;
-            std::string tempString = "";
+            std::string tempString;
             double tempDouble = 0.0;
 
             bool parsingPassed = interpretLine<std::string, int, int, double>
