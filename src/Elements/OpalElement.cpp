@@ -279,9 +279,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
         return retvalue;
     }
 
-    if (aperture != "")
+    if (!aperture.empty()) {
         throw OpalException("OpalElement::getApert()",
                             "Unknown aperture type '" + aperture + "'.");
+    }
 
     return retvalue;
 }

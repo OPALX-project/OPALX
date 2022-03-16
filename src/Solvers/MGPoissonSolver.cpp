@@ -106,14 +106,14 @@ MGPoissonSolver::MGPoissonSolver ( PartBunch *beam,
     else if (precmode == "REUSE") precmode_m = REUSE_PREC;
 
     repartFreq_m = 1000;
-    if (Ippl::Info->getOutputLevel() > 3)
+    if (Ippl::Info->getOutputLevel() > 3) {
         verbose_m = true;
-    else
+    } else {
         verbose_m = false;
-
+    }
     // Find CURRENT geometry
     currentGeometry = geometries_m[0];
-    if (currentGeometry->getFilename() == "") {
+    if ( (currentGeometry->getFilename()).empty() ) {
         if (currentGeometry->getTopology() == Topology::ELLIPTIC){
             bp_m = std::unique_ptr<IrregularDomain>(
                 new EllipticDomain(currentGeometry, orig_nr_m, hr_m, interpl));

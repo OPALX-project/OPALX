@@ -122,10 +122,10 @@ class SBend3D : public Component {
      *
      *  @param name the file name of the field map
      *
-     *  This generates a new field map object with the given name. If name == ""
-     *  then sets the field map to NULL.
+     *  This generates a new field map object with the given name.
+     *  If name.empty() then sets the field map to NULL.
      */
-    void setFieldMapFileName(std::string name);
+    void setFieldMapFileName(const std::string& name);
 
     /** Get the file name of the field map */
     inline std::string getFieldMapFileName() const;
