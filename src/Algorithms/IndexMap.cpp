@@ -305,7 +305,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 
     for (auto sector: sectors) {
         std::string names = std::get<2>(sector);
-        if (names != "") {
+        if (!names.empty()) {
             names = names.substr(0, names.length() - 2);
         }
         names = "\"" + names + "\"";
