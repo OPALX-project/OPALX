@@ -159,7 +159,7 @@ void MemoryProfiler::update() {
                             "Failed to open '" + fname + "'.");
     }
 
-    std::string token = "";
+    std::string token;
     while (ifs >> token) {
         if ( !procinfo_m.count(token) ) {
             continue;

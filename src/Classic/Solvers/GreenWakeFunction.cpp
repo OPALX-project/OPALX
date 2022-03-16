@@ -152,7 +152,7 @@ void GreenWakeFunction::apply(PartBunchBase<double, 3>* bunch) {
     // Calculate the Wakefield if needed
     if (FftWField_m.empty()) {
         FftWField_m.resize(2*NBin_m-1);
-        if (filename_m != "") {
+        if (!filename_m.empty()) {
             setWakeFromFile(NBin_m, spacing);
         } else {
             CalcWakeFFT(spacing);

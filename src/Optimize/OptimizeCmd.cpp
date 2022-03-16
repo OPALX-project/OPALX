@@ -295,7 +295,7 @@ void OptimizeCmd::execute() {
         if ((it = argumentMapper.find(i)) != argumentMapper.end()) {
             std::string type = itsAttr[i].getType();
             if (type == "string") {
-                if (Attributes::getString(itsAttr[i]) != "") {
+                if (!Attributes::getString(itsAttr[i]).empty()) {
                     std::string argument = "--" + (*it).second + "=" + Attributes::getString(itsAttr[i]);
                     arguments.push_back(argument);
                 }
@@ -317,7 +317,7 @@ void OptimizeCmd::execute() {
         }
     }
     // sanity checks
-    if (Attributes::getString(itsAttr[INPUT]) == "") {
+    if (Attributes::getString(itsAttr[INPUT]).empty()) {
         throw OpalException("OptimizeCmd::execute",
                             "The argument INPUT has to be provided");
     }
@@ -334,7 +334,7 @@ void OptimizeCmd::execute() {
         throw OpalException("OptimizeCmd::execute",
                             "The hypervolume reference point should have the same dimension as the objectives");
     }
-    if (Attributes::getString(itsAttr[STARTPOPULATION])     != "" &&
+    if (!Attributes::getString(itsAttr[STARTPOPULATION]).empty() &&
         Attributes::getBool(  itsAttr[INITIALOPTIMIZATION]) == true) {
         throw OpalException("OptimizeCmd::execute",
                             "No INITIAL_OPTIMIZATION possible when reading initial population from file (STARTPOPULATION)");
@@ -345,7 +345,7 @@ void OptimizeCmd::execute() {
                             "No INITIAL_OPTIMIZATION possible with BIRTH_CONTROL");
     }
 
-    if (Attributes::getString(itsAttr[SIMTMPDIR]) != "") {
+    if (!Attributes::getString(itsAttr[SIMTMPDIR]).empty()) {
         fs::path dir(Attributes::getString(itsAttr[SIMTMPDIR]));
         if (dir.is_relative()) {
             fs::path path = fs::path(std::string(getenv("PWD")));
@@ -360,7 +360,7 @@ void OptimizeCmd::execute() {
         arguments.push_back(argument);
     }
 
-    if (Attributes::getString(itsAttr[TEMPLATEDIR]) != "") {
+    if (!Attributes::getString(itsAttr[TEMPLATEDIR]).empty()) {
         fs::path dir(Attributes::getString(itsAttr[TEMPLATEDIR]));
         if (dir.is_relative()) {
             fs::path path = fs::path(std::string(getenv("PWD")));
@@ -372,7 +372,7 @@ void OptimizeCmd::execute() {
         arguments.push_back(argument);
     }
 
-    if (Attributes::getString(itsAttr[FIELDMAPDIR]) != "") {
+    if (!Attributes::getString(itsAttr[FIELDMAPDIR]).empty()) {
         fs::path dir(Attributes::getString(itsAttr[FIELDMAPDIR]));
         if (dir.is_relative()) {
             fs::path path = fs::path(std::string(getenv("PWD")));
@@ -383,7 +383,7 @@ void OptimizeCmd::execute() {
         setenv("FIELDMAPS", dir.c_str(), 1);
     }
 
-    if (Attributes::getString(itsAttr[DISTDIR]) != "") {
+    if (!Attributes::getString(itsAttr[DISTDIR]).empty()) {
         fs::path dir(Attributes::getString(itsAttr[DISTDIR]));
         if (dir.is_relative()) {
             fs::path path = fs::path(std::string(getenv("PWD")));
