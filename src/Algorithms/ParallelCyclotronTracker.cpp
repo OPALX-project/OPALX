@@ -789,23 +789,27 @@ void ParallelCyclotronTracker::visitRFCavity(const RFCavity& as) {
     unityVec.push_back(0.);
     unityVec.push_back(0.);
 
-    if (elptr->getFrequencyModelName() != "") {
-        freq_atd = AbstractTimeDependence::getTimeDependence(elptr->getFrequencyModelName());
-        *gmsg << "* Variable frequency RF Model name " << elptr->getFrequencyModelName() << endl;
+    std::string frequencyModelName = elptr->getFrequencyModelName();
+    std::string amplitudeModelName = elptr->getAmplitudeModelName();
+    std::string phaseModelName = elptr->getPhaseModelName();
+
+    if (!frequencyModelName.empty()) {
+        freq_atd = AbstractTimeDependence::getTimeDependence(frequencyModelName);
+        *gmsg << "* Variable frequency RF Model name " << frequencyModelName << endl;
     } else {
         freq_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
     }
 
-    if (elptr->getAmplitudeModelName() != "") {
-        ampl_atd = AbstractTimeDependence::getTimeDependence(elptr->getAmplitudeModelName());
-        *gmsg << "* Variable amplitude RF Model name " << elptr->getAmplitudeModelName() << endl;
+    if (!amplitudeModelName.empty()) {
+        ampl_atd = AbstractTimeDependence::getTimeDependence(amplitudeModelName);
+        *gmsg << "* Variable amplitude RF Model name " << amplitudeModelName << endl;
     } else {
         ampl_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
     }
 
-    if (elptr->getPhaseModelName() != "") {
-        phase_atd = AbstractTimeDependence::getTimeDependence(elptr->getPhaseModelName());
-        *gmsg << "* Variable phase RF Model name " << elptr->getPhaseModelName() << endl;
+    if (!phaseModelName.empty()) {
+        phase_atd = AbstractTimeDependence::getTimeDependence(phaseModelName);
+        *gmsg << "* Variable phase RF Model name " << phaseModelName << endl;
     } else {
         phase_atd = std::shared_ptr<AbstractTimeDependence>(new PolynomialTimeDependence(unityVec));
     }
