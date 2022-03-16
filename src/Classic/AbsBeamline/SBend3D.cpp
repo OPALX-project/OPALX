@@ -94,11 +94,11 @@ const BGeometryBase& SBend3D::getGeometry() const {
     return planarArcGeometry_m;
 }
 
-void SBend3D::setFieldMapFileName(std::string name) {
+void SBend3D::setFieldMapFileName(const std::string& name) {
     delete map_m;
     map_m = NULL;
     
-    if (name != "") {
+    if (!name.empty()) {
         map_m = new SectorMagneticFieldMap(
                         name,
                         "Dipole",

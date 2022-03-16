@@ -104,7 +104,7 @@ void OpalParser::parse(Statement &stat) const {
                 std::string positionIndicator = std::string(position, ' ') + "^\n";
                 std::ostringstream statStr;
                 stat.print(statStr);
-                if (hint != "") {
+                if (!hint.empty()) {
                     throw ParseError("OpalParser::parse()",
                                      statStr.str() +
                                      positionIndicator +
@@ -178,7 +178,7 @@ void OpalParser::parseAction(Statement &stat) const {
         }
     } else {
         std::string hint = getHint(cmdName, "command");
-        if (hint != "") {
+        if (!hint.empty()) {
             throw ParseError("OpalParser::parseAction()",
                              "Syntax error, " + hint);
         }
@@ -647,7 +647,7 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
 
     std::string hint = "the " + type + " '" + name + "' could belong to\n";
     {
-        std::string elements = "";
+        std::string elements;
         auto its = owner.equal_range(AttributeHandler::ELEMENT);
         if (its.first != its.second) {
             elements = (its.first)->second;
@@ -664,7 +664,7 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         }
     }
     {
-        std::string commands = "";
+        std::string commands;
         auto its = owner.equal_range(AttributeHandler::COMMAND);
         if (its.first != its.second) {
             commands = (its.first)->second;
@@ -675,7 +675,7 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         }
     }
     {
-        std::string sub_commands = "";
+        std::string sub_commands;
         auto its = owner.equal_range(AttributeHandler::SUB_COMMAND);
         if (its.first != its.second) {
             sub_commands = (its.first)->second;
@@ -686,7 +686,7 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         }
     }
     {
-        std::string statements = "";
+        std::string statements;
         auto its = owner.equal_range(AttributeHandler::STATEMENT);
         if (its.first != its.second) {
             statements = (its.first)->second;

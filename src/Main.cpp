@@ -334,8 +334,9 @@ int main(int argc, char *argv[]) {
         opal->storeInputFn(fname);
 
         if (opal->inRestartRun()) {
-            if (restartFileName == "")
+            if (restartFileName.empty()) {
                 restartFileName = opal->getInputBasename() + std::string(".h5");
+            }
             if (!fs::exists(restartFileName)) {
                 INFOMSG("Restart file '" << restartFileName << "' doesn't exist!" << endl);
                 exit(1);

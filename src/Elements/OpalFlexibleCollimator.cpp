@@ -68,7 +68,7 @@ void OpalFlexibleCollimator::update() {
 
     std::string fname = Attributes::getString(itsAttr[FNAME]);
     std::string desc = Attributes::getString(itsAttr[DESC]);
-    if (fname != "") {
+    if (!fname.empty()) {
         std::ifstream it(fname);
         std::string str((std::istreambuf_iterator<char>(it)),
                         std::istreambuf_iterator<char>());
@@ -77,7 +77,7 @@ void OpalFlexibleCollimator::update() {
         str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
 
         coll->setDescription(str);
-    } else if (desc != "") {
+    } else if (!desc.empty()) {
         desc = boost::regex_replace(desc, boost::regex("[\\t ]"), std::string(""), boost::match_default | boost::format_all);
         coll->setDescription(desc);
     } else if (getOpalName() != "FLEXIBLECOLLIMATOR") {

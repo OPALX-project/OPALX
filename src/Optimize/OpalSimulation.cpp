@@ -51,7 +51,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     namespace fs = boost::filesystem;
 
     simTmpDir_ = args->getArg<std::string>("simtmpdir");
-    if (simTmpDir_ == "") {
+    if (simTmpDir_.empty()) {
         if(getenv("SIMTMPDIR") == NULL) {
             std::cout << "Environment variable SIMTMPDIR not defined!"
                       << std::endl;
@@ -111,7 +111,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
     simulationDirName_ = tmp.str();
 
     std::string tmplDir = args->getArg<std::string>("templates");
-    if (tmplDir == "") {
+    if (tmplDir.empty()) {
         if(getenv("TEMPLATES") == NULL) {
             throw OptPilotException("OpalSimulation::OpalSimulation",
                                     "Environment variable TEMPLATES not defined!");
