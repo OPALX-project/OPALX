@@ -92,9 +92,9 @@ Distribution::Distribution():
     currentSampleBin_m(0),
     numberOfEnergyBins_m(0),
     numberOfSampleBins_m(0),
-    energyBins_m(NULL),
-    energyBinHist_m(NULL),
-    randGen_m(NULL),
+    energyBins_m(nullptr),
+    energyBinHist_m(nullptr),
+    randGen_m(nullptr),
     pTotThermal_m(0.0),
     pmean_m(0.0),
     cathodeWorkFunc_m(0.0),
@@ -115,7 +115,7 @@ Distribution::Distribution():
     laserProfileFileName_m(""),
     laserImageName_m(""),
     laserIntensityCut_m(0.0),
-    laserProfile_m(NULL),
+    laserProfile_m(nullptr),
     I_m(0.0),
     E_m(0.0)
 {
@@ -156,9 +156,9 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     currentSampleBin_m(parent->currentSampleBin_m),
     numberOfEnergyBins_m(parent->numberOfEnergyBins_m),
     numberOfSampleBins_m(parent->numberOfSampleBins_m),
-    energyBins_m(NULL),
-    energyBinHist_m(NULL),
-    randGen_m(NULL),
+    energyBins_m(nullptr),
+    energyBinHist_m(nullptr),
+    randGen_m(nullptr),
     pTotThermal_m(parent->pTotThermal_m),
     pmean_m(parent->pmean_m),
     cathodeWorkFunc_m(parent->cathodeWorkFunc_m),
@@ -195,7 +195,7 @@ Distribution::Distribution(const std::string &name, Distribution *parent):
     laserProfileFileName_m(parent->laserProfileFileName_m),
     laserImageName_m(parent->laserImageName_m),
     laserIntensityCut_m(parent->laserIntensityCut_m),
-    laserProfile_m(NULL),
+    laserProfile_m(nullptr),
     I_m(parent->I_m),
     E_m(parent->E_m),
     tRise_m(parent->tRise_m),
@@ -912,7 +912,7 @@ void Distribution::createDistributionFlattop(size_t numberOfParticles, double ma
     setDistParametersFlattop(massIneV);
 
     if (emitting_m) {
-        if (laserProfile_m == NULL)
+        if (laserProfile_m == nullptr)
             generateFlattopT(numberOfParticles);
         else
             generateFlattopLaserProfile(numberOfParticles);
@@ -948,7 +948,7 @@ void Distribution::createDistributionMultiGauss(size_t numberOfParticles, double
         bool allow = false;
         double randNums[2] = {0.0, 0.0};
         while (!allow) {
-            if (quasiRandGen2D != NULL) {
+            if (quasiRandGen2D != nullptr) {
                 gsl_qrng_get(quasiRandGen2D, randNums);
             } else {
                 randNums[0] = gsl_rng_uniform(randGen_m);
@@ -1173,7 +1173,7 @@ void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
     if (lineName.empty()) return;
 
     const BeamSequence* lineSequence = BeamSequence::find(lineName);
-    if (lineSequence == NULL)
+    if (lineSequence == nullptr)
         throw OpalException("Distribution::CreateMatchedGaussDistribution",
                             "didn't find any Cyclotron element in line");
 
@@ -1768,7 +1768,7 @@ void Distribution::sampleUniformDisk(gsl_qrng* quasiRandGen2D, double& x1, doubl
     bool allow = false;
     double randNums[2] = {0.0, 0.0};
     while (!allow) {
-        if (quasiRandGen2D != NULL)
+        if (quasiRandGen2D != nullptr)
             gsl_qrng_get(quasiRandGen2D, randNums);
         else {
             randNums[0] = gsl_rng_uniform(randGen_m);
@@ -2181,7 +2181,7 @@ void Distribution::generateFlattopZ(size_t numberOfParticles) {
         x *= sigmaR_m[0];
         y *= sigmaR_m[1];
 
-        if (quasiRandGen1D != NULL)
+        if (quasiRandGen1D != nullptr)
             gsl_qrng_get(quasiRandGen1D, &z);
         else
             z = gsl_rng_uniform(randGen_m);
@@ -2265,7 +2265,7 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
         else rn *= 10;
     }
     //Sets again the standard GSL error handler on
-    gsl_set_error_handler(NULL);
+    gsl_set_error_handler(nullptr);
 */
     //Just to be sure
     if (errcode == GSL_EDOM) {
@@ -2564,7 +2564,7 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
 
         if (modulationAmp == 0.0 || numModulationPeriods == 0.0) {
 
-            if (quasiRandGen1D != NULL)
+            if (quasiRandGen1D != nullptr)
                 gsl_qrng_get(quasiRandGen1D, &t);
             else
                 t = gsl_rng_uniform(randGen_m);
@@ -2576,7 +2576,7 @@ void Distribution::generateLongFlattopT(size_t numberOfParticles) {
             bool allow = false;
             double randNums[2] = {0.0, 0.0};
             while (!allow) {
-                if (quasiRandGen2D != NULL) {
+                if (quasiRandGen2D != nullptr) {
                     gsl_qrng_get(quasiRandGen2D, randNums);
                 } else {
                     randNums[0]= gsl_rng_uniform(randGen_m);
@@ -2975,7 +2975,7 @@ void Distribution::printDistFlattop(Inform &os) const {
     }
     os << "* " << endl;
 
-    if (laserProfile_m != NULL) {
+    if (laserProfile_m != nullptr) {
 
         os << "* Transverse profile determined by laser image: " << endl
            << endl
@@ -4062,7 +4062,7 @@ void Distribution::setupParticleBins(double /*massIneV*/, PartBunchBase<double, 
         energyBins_m->setGamma(gamma);
 
     } else {
-        energyBins_m = NULL;
+        energyBins_m = nullptr;
     }
 }
 
@@ -4255,7 +4255,7 @@ void Distribution::writeOutFileEmission() {
     if (Ippl::myNode() == 0) {
         MPI_Reduce(MPI_IN_PLACE, &(numberOfBits[0]), Ippl::getNodes(), MPI_UNSIGNED_LONG, MPI_SUM, 0, Ippl::getComm());
     } else {
-        MPI_Reduce(&(numberOfBits[0]), NULL, Ippl::getNodes(), MPI_UNSIGNED_LONG, MPI_SUM, 0, Ippl::getComm());
+        MPI_Reduce(&(numberOfBits[0]), nullptr, Ippl::getNodes(), MPI_UNSIGNED_LONG, MPI_SUM, 0, Ippl::getComm());
     }
 
     Ippl::Comm->barrier();

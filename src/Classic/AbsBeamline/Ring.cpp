@@ -45,8 +45,8 @@ const double Ring::angleTolerance_m = 1e-2;
 
 Ring::Ring(std::string ring)
     : Component(ring), planarArcGeometry_m(1, 1),
-      refPartBunch_m(NULL),
-      lossDS_m(NULL),
+      refPartBunch_m(nullptr),
+      lossDS_m(nullptr),
       beamRInit_m(0.), beamPRInit_m(0.), beamPhiInit_m(0.),
       latticeRInit_m(0.), latticePhiInit_m(0.), latticeThetaInit_m(0.),
       isLocked_m(false), isClosed_m(true),
@@ -54,7 +54,7 @@ Ring::Ring(std::string ring)
       phiStep_m(Physics::pi/100.),
       ringSections_m(),
       section_list_m() {
-    setRefPartBunch(NULL);
+    setRefPartBunch(nullptr);
 }
 
 void Ring::accept(BeamlineVisitor& visitor) const {
@@ -64,7 +64,7 @@ void Ring::accept(BeamlineVisitor& visitor) const {
 Ring::Ring(const Ring& ring)
     : Component(ring.getName()),
       planarArcGeometry_m(ring.planarArcGeometry_m),
-      lossDS_m(NULL),
+      lossDS_m(nullptr),
       beamRInit_m(ring.beamRInit_m),
       beamPRInit_m(ring.beamPRInit_m),
       beamPhiInit_m(ring.beamPhiInit_m),
@@ -82,7 +82,7 @@ Ring::Ring(const Ring& ring)
       ringSections_m(),
       section_list_m(ring.section_list_m.size()) {
     setRefPartBunch(ring.refPartBunch_m);
-    if (ring.lossDS_m != NULL)
+    if (ring.lossDS_m != nullptr)
         throw GeneralClassicException("Ring::Ring(const Ring&)",
                                       "Can't copy construct LossDataSink so copy constructor fails");
     for (size_t i = 0; i < section_list_m.size(); ++i) {
@@ -167,8 +167,8 @@ void Ring::initialise(PartBunchBase<double, 3> * bunch, double &/*startField*/,
 
 void Ring::finalise() {
     online_m = false;
-    setRefPartBunch(NULL);
-    setLossDataSink(NULL);
+    setRefPartBunch(nullptr);
+    setLossDataSink(nullptr);
 }
 
 void Ring::setRefPartBunch(PartBunchBase<double, 3>* bunch) {
@@ -365,7 +365,7 @@ void Ring::buildRingSections() {
 
 RingSection* Ring::getLastSectionPlaced() const {
     if (section_list_m.empty()) {
-        return NULL;
+        return nullptr;
     }
     return section_list_m.back();
 }

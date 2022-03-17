@@ -954,7 +954,7 @@ void Cyclotron::initialise(PartBunchBase<double, 3>* bunch, const double& scaleF
 // Read field map from external file.
 void Cyclotron::getFieldFromFile_Ring(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     int lpar;
     char fout[100];
     double dtmp;
@@ -1172,7 +1172,7 @@ void Cyclotron::getFieldFromFile_FFA(const double& /*scaleFactor*/) {
 
 void Cyclotron::getFieldFromFile_AVFEQ(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*        READ IN AVFEQ CYCLOTRON FIELD MAP      " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
@@ -1262,7 +1262,7 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double& scaleFactor) {
 
 void Cyclotron::getFieldFromFile_Carbon(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*      READ IN CARBON CYCLOTRON FIELD MAP       " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
@@ -1329,7 +1329,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double& scaleFactor) {
 
 void Cyclotron::getFieldFromFile_CYCIAE(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     char fout[100];
     int dtmp;
 
@@ -1422,8 +1422,8 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double& scaleFactor) {
     std::vector<std::string>::const_iterator rfvcfni = RFVCoeff_fn_m.begin();
     // loop over all field maps and superpose fields
     int fcount = 0;
-    FILE *rffcf = NULL;
-    FILE *rfvcf = NULL;
+    FILE *rffcf = nullptr;
+    FILE *rfvcf = nullptr;
 
     *gmsg << endl;
     *gmsg << "* ------------------------------------------------------------" << endl;
@@ -1441,7 +1441,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double& scaleFactor) {
 
         rffcf = std::fopen((*rffcfni).c_str(), "r");
 
-        if (rffcf == NULL) {
+        if (rffcf == nullptr) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *rffcfni + "', please check if it exists");
@@ -1466,7 +1466,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double& scaleFactor) {
         *gmsg << "RF Voltage Coefficient Filename: " << (*rfvcfni) << endl;
 
         rfvcf = std::fopen((*rfvcfni).c_str(), "r");
-        if (rfvcf == NULL) {
+        if (rfvcf == nullptr) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *rfvcfni + "', please check if it exists");

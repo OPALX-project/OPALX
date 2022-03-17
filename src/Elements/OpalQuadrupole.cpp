@@ -32,7 +32,7 @@
 OpalQuadrupole::OpalQuadrupole():
     OpalElement(SIZE, "QUADRUPOLE",
                 "The \"QUADRUPOLE\" element defines a Quadrupole."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[K1]    = Attributes::makeReal
                      ("K1", "Normalised upright quadrupole coefficient in m^(-2)");
     itsAttr[DK1]   = Attributes::makeReal
@@ -52,7 +52,7 @@ OpalQuadrupole::OpalQuadrupole():
 
 OpalQuadrupole::OpalQuadrupole(const std::string& name, OpalQuadrupole* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement((new MultipoleRep(name)));
 }
 
@@ -89,7 +89,7 @@ void OpalQuadrupole::update() {
     quad->setSkewComponent(2, Attributes::getReal(itsAttr[K1S]), Attributes::getReal(itsAttr[DK1S]));
     quad->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

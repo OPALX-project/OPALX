@@ -99,7 +99,7 @@ public:
     /// Invalidate expressions.
     //  Force re-evaluation of all expressions before next command is
     //  executed.
-    //  Also set the [b]modified[/b] flag in [b]object[/b], if not NULL.
+    //  Also set the [b]modified[/b] flag in [b]object[/b], if not nullptr.
     void makeDirty(Object *object);
 
     /// Print all objects.

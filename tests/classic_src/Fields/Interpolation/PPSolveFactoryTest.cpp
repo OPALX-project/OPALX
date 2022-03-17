@@ -224,8 +224,8 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic1DSmoothed) {
     }
     Mesh* mesh = new NDGrid(gridPoints);
 
-    PPSolveFactory* fac = NULL;
-    PolynomialPatch* patch = NULL;
+    PPSolveFactory* fac = nullptr;
+    PolynomialPatch* patch = nullptr;
     try {
         fac = new PPSolveFactory(mesh, values1D, 1, 2);
         patch = fac->solve();
@@ -272,8 +272,8 @@ TEST_F(PPSolveFactoryTestFixture, TestSolvePolynomialQuadratic2DSmoothed) {
     OpalTestUtilities::SilenceTest silencer;
     Mesh* mesh = grid2D->clone();
     //Mesh* dual = grid2D->dual();
-    PPSolveFactory* fac = NULL;
-    PolynomialPatch* patch = NULL;
+    PPSolveFactory* fac = nullptr;
+    PolynomialPatch* patch = nullptr;
     try {
         fac = new PPSolveFactory(mesh, values2D, 1, 2);
         patch = fac->solve();
@@ -388,7 +388,7 @@ void plot(int n_points, std::vector<double> start, std::vector<double> end, Poly
     double delta_sq = 0;
     for (size_t i = 0; i < start.size(); ++i)
         delta_sq += (start[i]-end[i])*(start[i]-end[i]);
-    std::vector<TGraph*> graphs(3*patch->getValueDimension(), NULL);
+    std::vector<TGraph*> graphs(3*patch->getValueDimension(), nullptr);
     for (size_t j = 0; j < graphs.size(); ++j) {
         graphs[j] = new TGraph(n_points);
     }

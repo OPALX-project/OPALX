@@ -25,7 +25,7 @@
 OpalCCollimator::OpalCCollimator():
     OpalElement(SIZE, "CCOLLIMATOR",
                 "The \"CCOLLIMATOR\" element defines a rectangular-shape cyclotron collimator"),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[XSTART] = Attributes::makeReal
                       ("XSTART", " Start of x coordinate [mm]");
     itsAttr[XEND]   = Attributes::makeReal
@@ -49,7 +49,7 @@ OpalCCollimator::OpalCCollimator():
 
 OpalCCollimator::OpalCCollimator(const std::string& name, OpalCCollimator* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new CCollimatorRep(name));
 }
 
@@ -85,7 +85,7 @@ void OpalCCollimator::update() {
     coll->setDimensions(xstart, xend, ystart, yend, zstart, zend, width);
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

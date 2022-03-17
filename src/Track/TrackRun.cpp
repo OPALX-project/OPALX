@@ -91,11 +91,11 @@ TrackRun::TrackRun():
     Action(SIZE, "RUN",
            "The \"RUN\" sub-command tracks the defined particles through "
            "the given lattice."),
-    itsTracker(NULL),
-    dist(NULL),
-    fs(NULL),
-    ds(NULL),
-    phaseSpaceSink_m(NULL),
+    itsTracker(nullptr),
+    dist(nullptr),
+    fs(nullptr),
+    ds(nullptr),
+    phaseSpaceSink_m(nullptr),
     macromass_m(0.0),
     macrocharge_m(0.0) {
     itsAttr[METHOD] = Attributes::makePredefinedString
@@ -141,11 +141,11 @@ TrackRun::TrackRun():
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent):
     Action(name, parent),
-    itsTracker(NULL),
-    dist(NULL),
-    fs(NULL),
-    ds(NULL),
-    phaseSpaceSink_m(NULL),
+    itsTracker(nullptr),
+    dist(nullptr),
+    fs(nullptr),
+    ds(nullptr),
+    phaseSpaceSink_m(nullptr),
     macromass_m(0.0),
     macrocharge_m(0.0) {
     opal = OpalData::getInstance();

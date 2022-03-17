@@ -52,7 +52,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
 
     simTmpDir_ = args->getArg<std::string>("simtmpdir");
     if (simTmpDir_.empty()) {
-        if(getenv("SIMTMPDIR") == NULL) {
+        if(getenv("SIMTMPDIR") == nullptr) {
             std::cout << "Environment variable SIMTMPDIR not defined!"
                       << std::endl;
             simTmpDir_ = getenv("PWD");
@@ -112,7 +112,7 @@ OpalSimulation::OpalSimulation(Expressions::Named_t objectives,
 
     std::string tmplDir = args->getArg<std::string>("templates");
     if (tmplDir.empty()) {
-        if(getenv("TEMPLATES") == NULL) {
+        if(getenv("TEMPLATES") == nullptr) {
             throw OptPilotException("OpalSimulation::OpalSimulation",
                                     "Environment variable TEMPLATES not defined!");
         }
@@ -214,7 +214,7 @@ void OpalSimulation::setupSimulation() {
     opal->setOptimizerFlag();
 
     // linking fieldmaps + distributions
-    if (getenv("FIELDMAPS") == NULL) {
+    if (getenv("FIELDMAPS") == nullptr) {
         throw OptPilotException("OpalSimulation::setupSimulation",
                                 "Environment variable FIELDMAPS not defined!");
     }
@@ -290,7 +290,7 @@ void OpalSimulation::setupFSStructure() {
     std::string fieldmapPath = getenv("FIELDMAPS");
     this->createSymlink_m(fieldmapPath);
 
-    if (getenv("DISTRIBUTIONS") != NULL) {
+    if (getenv("DISTRIBUTIONS") != nullptr) {
         std::string distPath = getenv("DISTRIBUTIONS");
         this->createSymlink_m(distPath);
     }

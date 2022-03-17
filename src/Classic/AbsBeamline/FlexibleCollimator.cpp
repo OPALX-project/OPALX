@@ -44,7 +44,7 @@ FlexibleCollimator::FlexibleCollimator(const FlexibleCollimator& right):
     informed_m(right.informed_m),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatint_m(nullptr)
 {
     for (const std::shared_ptr<mslang::Base>& obj: right.holes_m) {
         holes_m.emplace_back(obj->clone());
@@ -62,7 +62,7 @@ FlexibleCollimator::FlexibleCollimator(const std::string& name):
     informed_m(false),
     losses_m(0),
     lossDs_m(nullptr),
-    parmatint_m(NULL)
+    parmatint_m(nullptr)
 {}
 
 
@@ -170,7 +170,7 @@ void FlexibleCollimator::goOnline(const double&) {
 }
 
 void FlexibleCollimator::print() {
-    if (RefPartBunch_m == NULL) {
+    if (RefPartBunch_m == nullptr) {
         if (!informed_m) {
             std::string errormsg = Fieldmap::typeset_msg("BUNCH SIZE NOT SET", "warning");
             ERRORMSG(errormsg << endl);
