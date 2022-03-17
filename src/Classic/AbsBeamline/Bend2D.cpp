@@ -62,10 +62,10 @@ Bend2D::Bend2D(const Bend2D &right):
     exitParameter3_m(right.exitParameter3_m),
     engeCoeffsEntry_m(right.engeCoeffsEntry_m),
     engeCoeffsExit_m(right.engeCoeffsExit_m),
-    entryFieldValues_m(NULL),
-    exitFieldValues_m(NULL),
-    entryFieldAccel_m(NULL),
-    exitFieldAccel_m(NULL),
+    entryFieldValues_m(nullptr),
+    exitFieldValues_m(nullptr),
+    entryFieldAccel_m(nullptr),
+    exitFieldAccel_m(nullptr),
     deltaBeginEntry_m(right.deltaBeginEntry_m),
     deltaEndEntry_m(right.deltaEndEntry_m),
     polyOrderEntry_m(right.polyOrderEntry_m),
@@ -103,10 +103,10 @@ Bend2D::Bend2D(const std::string &name):
     exitParameter1_m(0.0),
     exitParameter2_m(0.0),
     exitParameter3_m(0.0),
-    entryFieldValues_m(NULL),
-    exitFieldValues_m(NULL),
-    entryFieldAccel_m(NULL),
-    exitFieldAccel_m(NULL),
+    entryFieldValues_m(nullptr),
+    exitFieldValues_m(nullptr),
+    entryFieldAccel_m(nullptr),
+    exitFieldAccel_m(nullptr),
     deltaBeginEntry_m(0.0),
     deltaEndEntry_m(0.0),
     polyOrderEntry_m(0),
@@ -122,12 +122,12 @@ Bend2D::Bend2D(const std::string &name):
 }
 
 Bend2D::~Bend2D() {
-    if (entryFieldAccel_m != NULL) {
+    if (entryFieldAccel_m != nullptr) {
         for (unsigned int i = 0; i < 3u; ++ i) {
             gsl_spline_free(entryFieldValues_m[i]);
             gsl_spline_free(exitFieldValues_m[i]);
-            entryFieldValues_m[i] = NULL;
-            exitFieldValues_m[i] = NULL;
+            entryFieldValues_m[i] = nullptr;
+            exitFieldValues_m[i] = nullptr;
         }
         delete[] entryFieldValues_m;
         delete[] exitFieldValues_m;
@@ -783,7 +783,7 @@ bool Bend2D::initializeFieldMap() {
 
     fieldmap_m = Fieldmap::getFieldmap(fileName_m, fast_m);
 
-    if (fieldmap_m != NULL) {
+    if (fieldmap_m != nullptr) {
         if (fileName_m != "1DPROFILE1-DEFAULT")
             return true;
         else

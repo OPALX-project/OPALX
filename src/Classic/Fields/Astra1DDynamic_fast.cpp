@@ -34,7 +34,7 @@ Astra1DDynamic_fast::Astra1DDynamic_fast(std::string aFilename):
 {
     numHeaderLines_m = 3;
 
-    onAxisField_m = NULL;
+    onAxisField_m = nullptr;
 
     Type = TAstraDynamic;
 
@@ -72,7 +72,7 @@ Astra1DDynamic_fast::~Astra1DDynamic_fast() {
 }
 
 void Astra1DDynamic_fast::readMap() {
-    if(onAxisField_m == NULL) {
+    if(onAxisField_m == nullptr) {
         std::ifstream file(Filename_m.c_str());
 
         onAxisField_m = new double[num_gridpz_m];
@@ -163,7 +163,7 @@ void Astra1DDynamic_fast::setFrequency(double freq) {
 
 void Astra1DDynamic_fast::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
     F.resize(num_gridpz_m);
-    if(onAxisField_m == NULL) {
+    if(onAxisField_m == nullptr) {
         double Ez_max = 0.0;
         double tmpDouble;
         int tmpInt;

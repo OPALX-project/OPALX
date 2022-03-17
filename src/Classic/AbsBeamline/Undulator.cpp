@@ -184,12 +184,12 @@ void Undulator::apply(
 
     // Run the full-wave solver.
     timeval simulationStart;
-    gettimeofday(&simulationStart, NULL);
+    gettimeofday(&simulationStart, nullptr);
     solver.solve();
 
     // Get total computational time of the full wave simulation.
     timeval simulationEnd;
-    gettimeofday(&simulationEnd, NULL);
+    gettimeofday(&simulationEnd, nullptr);
     double deltaTime = (simulationEnd.tv_usec - simulationStart.tv_usec) * Units::us2s;
     deltaTime += (simulationEnd.tv_sec - simulationStart.tv_sec);
     msg << "::: Total full wave simulation time [seconds] = " << deltaTime << endl;

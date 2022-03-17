@@ -11,7 +11,7 @@ Astra1DElectroStatic_fast::Astra1DElectroStatic_fast(std::string aFilename):
     Astra1D_fast(aFilename) {
     numHeaderLines_m = 2;
 
-    onAxisField_m = NULL;
+    onAxisField_m = nullptr;
 
     Type = TAstraElectroStatic;
 
@@ -42,7 +42,7 @@ Astra1DElectroStatic_fast::~Astra1DElectroStatic_fast() {
 }
 
 void Astra1DElectroStatic_fast::readMap() {
-    if(onAxisField_m == NULL) {
+    if(onAxisField_m == nullptr) {
         // declare variables and allocate memory
 
         onAxisField_m = new double[num_gridpz_m];

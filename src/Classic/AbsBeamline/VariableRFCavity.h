@@ -116,7 +116,7 @@ class VariableRFCavity: public Component {
 
     /** Finalise following tracking
      *
-     *  Just sets RefPartBunch_m to NULL
+     *  Just sets RefPartBunch_m to nullptr
      */
     virtual void finalise() override;
 

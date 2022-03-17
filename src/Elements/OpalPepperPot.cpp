@@ -25,7 +25,7 @@
 OpalPepperPot::OpalPepperPot():
     OpalElement(SIZE, "PEPPERPOT",
                 "The \"PEPPERPOT\" element defines an pepperpot collimator."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Size in x of the pepperpot in m");
     itsAttr[YSIZE] = Attributes::makeReal
@@ -45,7 +45,7 @@ OpalPepperPot::OpalPepperPot():
 
 OpalPepperPot::OpalPepperPot(const std::string& name, OpalPepperPot* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new FlexibleCollimatorRep(name));
 }
 
@@ -94,7 +94,7 @@ void OpalPepperPot::update() {
         exit(1);
     }
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

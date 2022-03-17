@@ -9,8 +9,8 @@
 
 FM1DProfile2::FM1DProfile2(std::string aFilename)
     : Fieldmap(aFilename),
-      EngeCoefs_entry_m(NULL),
-      EngeCoefs_exit_m(NULL),
+      EngeCoefs_entry_m(nullptr),
+      EngeCoefs_exit_m(nullptr),
       exit_slope_m(0.0),
       xExit_m(0.0),
       zExit_m(0.0),
@@ -81,14 +81,14 @@ FM1DProfile2::FM1DProfile2(std::string aFilename)
 }
 
 FM1DProfile2::~FM1DProfile2() {
-    if (EngeCoefs_entry_m != NULL) {
+    if (EngeCoefs_entry_m != nullptr) {
         delete[] EngeCoefs_entry_m;
         delete[] EngeCoefs_exit_m;
     }
 }
 
 void FM1DProfile2::readMap() {
-    if (EngeCoefs_entry_m == NULL) {
+    if (EngeCoefs_entry_m == nullptr) {
         double tolerance = 1e-8;
 
         std::ifstream in(Filename_m.c_str());
@@ -193,7 +193,7 @@ void FM1DProfile2::readMap() {
 }
 
 void FM1DProfile2::freeMap() {
-    if (EngeCoefs_entry_m != NULL) {
+    if (EngeCoefs_entry_m != nullptr) {
 
         delete[] EngeCoefs_entry_m;
         delete[] EngeCoefs_exit_m;

@@ -257,10 +257,10 @@ unsigned int SquarePolynomialVector::PolynomialOrder() const {
 }
 
 SquarePolynomialVector SquarePolynomialVector::Deriv(const int* derivPower) const {
-    if (derivPower == NULL) {
+    if (derivPower == nullptr) {
         throw(GeneralClassicException(
             "SquarePolynomialVector::Deriv",
-            "Derivative points to NULL"
+            "Derivative points to nullptr"
         ));
     }
     MMatrix<double> newPolyCoeffs(_polyCoeffs.num_row(),  _polyCoeffs.num_col(), 0.);

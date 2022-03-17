@@ -14,12 +14,12 @@
 
 FM3DDynamic::FM3DDynamic(std::string aFilename):
     Fieldmap(aFilename),
-    FieldstrengthEz_m(NULL),
-    FieldstrengthEx_m(NULL),
-    FieldstrengthEy_m(NULL),
-    FieldstrengthBz_m(NULL),
-    FieldstrengthBx_m(NULL),
-    FieldstrengthBy_m(NULL)
+    FieldstrengthEz_m(nullptr),
+    FieldstrengthEx_m(nullptr),
+    FieldstrengthEy_m(nullptr),
+    FieldstrengthBz_m(nullptr),
+    FieldstrengthBx_m(nullptr),
+    FieldstrengthBy_m(nullptr)
 {
 
     std::string tmpString;
@@ -107,7 +107,7 @@ FM3DDynamic::~FM3DDynamic() {
 }
 
 void FM3DDynamic::readMap() {
-    if(FieldstrengthEz_m == NULL) {
+    if(FieldstrengthEz_m == nullptr) {
 
     	std::ifstream in(Filename_m.c_str());
         std::string tmpString;
@@ -218,7 +218,7 @@ void FM3DDynamic::readMap() {
 }
 
 void FM3DDynamic::freeMap() {
-    if(FieldstrengthEz_m != NULL) {
+    if(FieldstrengthEz_m != nullptr) {
         delete[] FieldstrengthEz_m;
         delete[] FieldstrengthEx_m;
         delete[] FieldstrengthEy_m;
@@ -226,12 +226,12 @@ void FM3DDynamic::freeMap() {
         delete[] FieldstrengthBx_m;
         delete[] FieldstrengthBy_m;
 
-        FieldstrengthEz_m = NULL;
-        FieldstrengthEx_m = NULL;
-        FieldstrengthEy_m = NULL;
-        FieldstrengthBz_m = NULL;
-        FieldstrengthBx_m = NULL;
-        FieldstrengthBy_m = NULL;
+        FieldstrengthEz_m = nullptr;
+        FieldstrengthEx_m = nullptr;
+        FieldstrengthEy_m = nullptr;
+        FieldstrengthBz_m = nullptr;
+        FieldstrengthBx_m = nullptr;
+        FieldstrengthBy_m = nullptr;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);
