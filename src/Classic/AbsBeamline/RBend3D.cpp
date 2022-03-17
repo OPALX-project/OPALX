@@ -96,7 +96,7 @@ void RBend3D::initialise(PartBunchBase<double, 3> *bunch, double &startField, do
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(fileName_m, fast_m);
-    if(fieldmap_m != NULL) {
+    if(fieldmap_m != nullptr) {
         msg << level2 << getName() << " using file ";
         fieldmap_m->getInfo(&msg);
         goOnline(0.0);

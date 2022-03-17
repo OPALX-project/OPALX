@@ -15,7 +15,7 @@
 
 Astra1DDynamic::Astra1DDynamic(std::string aFilename):
     Fieldmap(aFilename),
-    FourCoefs_m(NULL) {
+    FourCoefs_m(nullptr) {
 
     std::ifstream file;
     int skippedValues = 0;
@@ -90,7 +90,7 @@ Astra1DDynamic::~Astra1DDynamic() {
 }
 
 void Astra1DDynamic::readMap() {
-    if (FourCoefs_m == NULL) {
+    if (FourCoefs_m == nullptr) {
         // declare variables and allocate memory
     	std::ifstream in;
 
@@ -174,9 +174,9 @@ void Astra1DDynamic::readMap() {
 }
 
 void Astra1DDynamic::freeMap() {
-    if (FourCoefs_m != NULL) {
+    if (FourCoefs_m != nullptr) {
         delete[] FourCoefs_m;
-        FourCoefs_m = NULL;
+        FourCoefs_m = nullptr;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }

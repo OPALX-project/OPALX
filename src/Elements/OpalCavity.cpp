@@ -30,8 +30,8 @@
 OpalCavity::OpalCavity():
     OpalElement(SIZE, "RFCAVITY",
                 "The \"RFCAVITY\" element defines an RF cavity."),
-    owk_m(NULL),
-    obgeo_m(NULL) {
+    owk_m(nullptr),
+    obgeo_m(nullptr) {
     itsAttr[VOLT] = Attributes::makeReal
                     ("VOLT", "RF voltage in MV");
     itsAttr[DVOLT] = Attributes::makeReal
@@ -80,8 +80,8 @@ OpalCavity::OpalCavity():
 
 OpalCavity::OpalCavity(const std::string &name, OpalCavity *parent):
     OpalElement(name, parent),
-    owk_m(NULL),
-    obgeo_m(NULL) {
+    owk_m(nullptr),
+    obgeo_m(nullptr) {
     setElement(new RFCavityRep(name));
 }
 
@@ -121,13 +121,13 @@ void OpalCavity::update() {
     double phi0 = Attributes::getReal(itsAttr[PHI0]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
-    if(itsAttr[WAKEF] && owk_m == NULL) {
+    if(itsAttr[WAKEF] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*rfc);
         rfc->setWake(owk_m->wf_m);
     }
 
-    if(itsAttr[GEOMETRY] && obgeo_m == NULL) {
+    if(itsAttr[GEOMETRY] && obgeo_m == nullptr) {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
         if(obgeo_m) {
             rfc->setBoundaryGeometry(obgeo_m);

@@ -62,11 +62,11 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    bool revBeam,
                                    bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
-    itsDataSink_m(NULL),
+    itsDataSink_m(nullptr),
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
     globalEOL_m(false),
     wakeStatus_m(false),
-    wakeFunction_m(NULL),
+    wakeFunction_m(nullptr),
     pathLength_m(0.0),
     zstart_m(0.0),
     dtCurrentTrack_m(0.0),
@@ -98,7 +98,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
     globalEOL_m(false),
     wakeStatus_m(false),
-    wakeFunction_m(NULL),
+    wakeFunction_m(nullptr),
     pathLength_m(0.0),
     zstart_m(zstart),
     dtCurrentTrack_m(0.0),
@@ -778,7 +778,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         do {
             ///all particles in material if max per node is 2 and other degraders have 0 particles
             //check if more than one degrader has particles
-            ParticleMatterInteractionHandler* onlyDegraderWithParticles = NULL;
+            ParticleMatterInteractionHandler* onlyDegraderWithParticles = nullptr;
             int degradersWithParticlesCount = 0;
             for (auto it: activeParticleMatterInteractionHandlers_m) {
                 it->setFlagAllParticlesIn(false);
