@@ -69,7 +69,7 @@ Vacuum::Vacuum(const Vacuum& right):
     maxr_m(right.maxr_m),
     minz_m(right.minz_m),
     maxz_m(right.maxz_m),
-    parmatint_m(NULL)
+    parmatint_m(nullptr)
 {}
 
 
@@ -85,7 +85,7 @@ Vacuum::Vacuum(const std::string& name):
     maxr_m(0.0),
     minz_m(0.0),
     maxz_m(0.0),
-    parmatint_m(NULL)
+    parmatint_m(nullptr)
 {}
 
 
@@ -384,8 +384,8 @@ void Vacuum::getPressureFromFile() {
     *gmsg << "* Reading pressure field map " << endl;
 
     PP_m.Pfact_m = pscale_m;
-    FILE* f = NULL;
-    if ((f = std::fopen(pmapfn_m.c_str(), "r")) == NULL) {
+    FILE* f = nullptr;
+    if ((f = std::fopen(pmapfn_m.c_str(), "r")) == nullptr) {
         throw GeneralClassicException("Vacuum::getPressureFromFile",
                                       "failed to open file '" + pmapfn_m +
                                       "', please check if it exists");

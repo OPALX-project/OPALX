@@ -82,7 +82,7 @@ DumpFields::~DumpFields() {
 
 DumpFields* DumpFields::clone(const std::string& name) {
     DumpFields* dumper = new DumpFields(name, this);
-    if (grid_m != NULL) {
+    if (grid_m != nullptr) {
         dumper->grid_m = grid_m->clone();
     }
     dumper->filename_m = filename_m;
@@ -146,13 +146,13 @@ void DumpFields::checkInt(double real, std::string name, double tolerance) {
 }
 
 void DumpFields::writeFieldThis(Component* field) {
-    if (grid_m == NULL) {
+    if (grid_m == nullptr) {
         throw OpalException("DumpFields::writeFieldThis",
-                            "The grid was NULL; there was a problem with the DumpFields initialisation.");
+                            "The grid was nullptr; there was a problem with the DumpFields initialisation.");
     }
-    if (field == NULL) {
+    if (field == nullptr) {
         throw OpalException("DumpFields::writeFieldThis",
-                            "The field to be written was NULL.");
+                            "The field to be written was nullptr.");
     }
 
     *gmsg << *this << endl;

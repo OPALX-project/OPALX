@@ -26,7 +26,7 @@
 OpalSeptum::OpalSeptum():
     OpalElement(SIZE, "SEPTUM",
                 "The \"SEPTUM\" element defines a Septum."),
-    owk_m(NULL) {
+    owk_m(nullptr) {
 
     itsAttr[XSTART] = Attributes::makeReal
                       ("XSTART", " Start of x coordinate");
@@ -47,7 +47,7 @@ OpalSeptum::OpalSeptum():
 
 OpalSeptum::OpalSeptum(const std::string &name, OpalSeptum *parent):
     OpalElement(name, parent),
-    owk_m(NULL) {
+    owk_m(nullptr) {
     setElement(new SeptumRep(name));
 }
 
@@ -76,7 +76,7 @@ void OpalSeptum::update() {
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
 
-    if(itsAttr[WAKEF] && owk_m == NULL) {
+    if(itsAttr[WAKEF] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*sept);
         sept->setWake(owk_m->wf_m);

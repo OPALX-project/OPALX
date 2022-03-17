@@ -10,8 +10,8 @@
 
 FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename):
     Fieldmap(aFilename),
-    FieldstrengthBz_m(NULL),
-    FieldstrengthBr_m(NULL) {
+    FieldstrengthBz_m(nullptr),
+    FieldstrengthBr_m(nullptr) {
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -100,7 +100,7 @@ FM2DMagnetoStatic::~FM2DMagnetoStatic() {
 }
 
 void FM2DMagnetoStatic::readMap() {
-    if(FieldstrengthBz_m == NULL) {
+    if(FieldstrengthBz_m == nullptr) {
         // declare variables and allocate memory
         std::ifstream in;
         std::string tmpString;
@@ -154,12 +154,12 @@ void FM2DMagnetoStatic::readMap() {
 }
 
 void FM2DMagnetoStatic::freeMap() {
-    if(FieldstrengthBz_m != NULL) {
+    if(FieldstrengthBz_m != nullptr) {
         delete[] FieldstrengthBz_m;
         delete[] FieldstrengthBr_m;
 
-        FieldstrengthBz_m = NULL;
-        FieldstrengthBr_m = NULL;
+        FieldstrengthBz_m = nullptr;
+        FieldstrengthBr_m = nullptr;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m  + "'", "info") << endl);
     }

@@ -34,15 +34,15 @@
 #include "Utilities/GeneralClassicException.h"
 
 VariableRFCavity::VariableRFCavity(const std::string &name) : Component(name) {
-    initNull();  // initialise everything to NULL
+    initNull();  // initialise everything to nullptr
 }
 
 VariableRFCavity::VariableRFCavity() : Component() {
-    initNull();  // initialise everything to NULL
+    initNull();  // initialise everything to nullptr
 }
 
 VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : Component() {
-    initNull();  // initialise everything to NULL
+    initNull();  // initialise everything to nullptr
     *this = var;
 }
 
@@ -51,15 +51,15 @@ VariableRFCavity& VariableRFCavity::operator=(const VariableRFCavity& rhs) {
         return *this;
     }
     setName(rhs.getName());
-    setPhaseModel(NULL);
-    setAmplitudeModel(NULL);
-    setFrequencyModel(NULL);
-    if (rhs.phaseTD_m != NULL)
+    setPhaseModel(nullptr);
+    setAmplitudeModel(nullptr);
+    setFrequencyModel(nullptr);
+    if (rhs.phaseTD_m != nullptr)
         setPhaseModel(std::shared_ptr<AbstractTimeDependence>(rhs.phaseTD_m->clone()));
-    if (rhs.amplitudeTD_m != NULL) {
+    if (rhs.amplitudeTD_m != nullptr) {
         setAmplitudeModel(std::shared_ptr<AbstractTimeDependence>(rhs.amplitudeTD_m->clone()));
     }
-    if (rhs.frequencyTD_m != NULL)
+    if (rhs.frequencyTD_m != nullptr)
         setFrequencyModel(std::shared_ptr<AbstractTimeDependence>(rhs.frequencyTD_m->clone()));
     phaseName_m = rhs.phaseName_m;
     amplitudeName_m = rhs.amplitudeName_m;
@@ -81,7 +81,7 @@ void VariableRFCavity::initNull() {
   frequencyName_m = "";
   halfHeight_m = 0.;
   halfWidth_m = 0;
-  RefPartBunch_m = NULL;
+  RefPartBunch_m = nullptr;
 }
 
 std::shared_ptr<AbstractTimeDependence> VariableRFCavity::getAmplitudeModel() const {
@@ -164,7 +164,7 @@ void VariableRFCavity::initialise(PartBunchBase<double, 3> *bunch, double &/*sta
 }
 
 void VariableRFCavity::finalise() {
-    RefPartBunch_m = NULL;
+    RefPartBunch_m = nullptr;
 }
 
 ElementBase* VariableRFCavity::clone() const {

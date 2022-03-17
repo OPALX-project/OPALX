@@ -25,19 +25,20 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #include "Structure/DataSink.h"
 
-#include "Utility/FieldDebugFunctions.h"
-
 #include "OPALconfig.h"
+
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/Options.h"
-#include "Utilities/Util.h"
 #include "Fields/Fieldmap.h"
+#include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/H5PartWrapper.h"
+#include "Structure/LBalWriter.h"
+#include "Utilities/Options.h"
 #include "Utilities/Timer.h"
+#include "Utilities/Util.h"
+#include "Utility/FieldDebugFunctions.h"
 
 #ifdef __linux__
     #include "MemoryProfiler.h"
@@ -45,17 +46,12 @@
     #include "MemoryWriter.h"
 #endif
 
-
 #ifdef ENABLE_AMR
     #include "Algorithms/AmrPartBunch.h"
 #endif
 
-
-
-#include "LBalWriter.h"
-
 #ifdef ENABLE_AMR
-    #include "GridLBalWriter.h"
+    #include "Structure/GridLBalWriter.h"
 #endif
 
 #include <sstream>
@@ -172,7 +168,7 @@ void DataSink::writeImpactStatistics(const PartBunchBase<double, 3> *beam, long 
     if(Ippl::myNode() == 0) {
         std::string ffn = fn + std::string(".dat");
 
-        std::unique_ptr<Inform> ofp(new Inform(NULL, ffn.c_str(), Inform::APPEND, 0));
+        std::unique_ptr<Inform> ofp(new Inform(nullptr, ffn.c_str(), Inform::APPEND, 0));
         Inform &fid = *ofp;
         fid.precision(6);
         fid << std::setiosflags(std::ios::scientific);

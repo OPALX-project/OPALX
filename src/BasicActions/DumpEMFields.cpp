@@ -41,7 +41,7 @@ DumpEMFields::DumpEMFields() :
            "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
            "field file, for checking that fields are generated correctly. "
            "The fields are written out on a grid in space and time."),
-    grid_m(NULL),
+    grid_m(nullptr),
     filename_m("") {
 
     // would be nice if "steps" could be integer
@@ -109,7 +109,7 @@ DumpEMFields::DumpEMFields() :
 }
 
 DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent):
-    Action(name, parent), grid_m(NULL)
+    Action(name, parent), grid_m(nullptr)
 {}
 
 DumpEMFields::~DumpEMFields() {
@@ -119,7 +119,7 @@ DumpEMFields::~DumpEMFields() {
 
 DumpEMFields* DumpEMFields::clone(const std::string& name) {
     DumpEMFields* dumper = new DumpEMFields(name, this);
-    if (grid_m != NULL) {
+    if (grid_m != nullptr) {
         dumper->grid_m = grid_m->clone();
     }
     dumper->filename_m = filename_m;
@@ -198,7 +198,7 @@ void DumpEMFields::buildGrid() {
     checkInt(nt, "T_STEPS");
     gridSize[3] = nt;
 
-    if (grid_m != NULL) {
+    if (grid_m != nullptr) {
         delete grid_m;
     }
 
@@ -293,13 +293,13 @@ void DumpEMFields::writeFieldLine(Component* field,
 }
 
 void DumpEMFields::writeFieldThis(Component* field) {
-    if (grid_m == NULL) {
+    if (grid_m == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "The grid was NULL; there was a problem with the DumpEMFields initialisation.");
+                            "The grid was nullptr; there was a problem with the DumpEMFields initialisation.");
     }
-    if (field == NULL) {
+    if (field == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "The field to be written was NULL.");
+                            "The field to be written was nullptr.");
     }
 
     *gmsg << *this << endl;

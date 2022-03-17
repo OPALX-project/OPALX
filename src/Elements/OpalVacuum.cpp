@@ -29,7 +29,7 @@ OpalVacuum::OpalVacuum():
     OpalElement(SIZE, "VACUUM",
                 "The \"VACUUM\" element defines the vacuum conditions "
                 "for beam stripping interactions."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[GAS] = Attributes::makePredefinedString
          ("GAS", "The composition of residual gas", {"AIR", "H2"});
 
@@ -56,7 +56,7 @@ OpalVacuum::OpalVacuum():
 
 OpalVacuum::OpalVacuum(const std::string& name, OpalVacuum* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new VacuumRep(name));
 }
 
@@ -92,7 +92,7 @@ void OpalVacuum::update() {
     vac->setTemperature(temperature);
     vac->setStop(stop);
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

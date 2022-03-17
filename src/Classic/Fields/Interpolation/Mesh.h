@@ -62,7 +62,7 @@ class Mesh {
     /** Return a copy of child object */
     virtual Mesh* clone() = 0;
 
-    /** Return the "Dual" of the mesh or NULL if not implemented
+    /** Return the "Dual" of the mesh or nullptr if not implemented
      *
      *  Dual is a polyhedron that has centre of each face as a point on the mesh
      */

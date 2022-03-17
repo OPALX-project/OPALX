@@ -121,7 +121,7 @@ TEST(SolveFactoryTest, TestSolveDerivs) {
 
     // now try to solve for the test poly vector; should be that the test and
     // ref are identical
-    SquarePolynomialVector* vec = NULL;
+    SquarePolynomialVector* vec = nullptr;
     try {
         SolveFactory fac(2, 2, 3, positions, deriv_pos, deriv_indices);
         vec = fac.PolynomialSolve(values, deriv_values);
