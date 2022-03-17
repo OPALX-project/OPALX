@@ -194,7 +194,7 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t& R,
 
 void TravelingWave::initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) {
 
-    if (bunch == NULL) {
+    if (bunch == nullptr) {
         startField = - 0.5 * periodLength_m;
         endField = startExitField_m;
         return;

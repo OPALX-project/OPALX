@@ -26,9 +26,9 @@
 OpalDrift::OpalDrift():
     OpalElement(SIZE, "DRIFT",
                 "The \"DRIFT\" element defines a drift space."),
-    owk_m(NULL),
-    parmatint_m(NULL),
-    obgeo_m(NULL) {
+    owk_m(nullptr),
+    parmatint_m(nullptr),
+    obgeo_m(nullptr) {
     // CKR: the following 3 lines are redundant: OpalElement does this already!
     //      they prevent drift from working properly
     //
@@ -49,9 +49,9 @@ OpalDrift::OpalDrift():
 
 OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent):
     OpalElement(name, parent),
-    owk_m(NULL),
-    parmatint_m(NULL),
-    obgeo_m(NULL) {
+    owk_m(nullptr),
+    parmatint_m(nullptr),
+    obgeo_m(nullptr) {
     setElement(new DriftRep(name));
 }
 
@@ -84,13 +84,13 @@ void OpalDrift::update() {
     drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     drf->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
     
-    if (itsAttr[WAKEF] && owk_m == NULL) {
+    if (itsAttr[WAKEF] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*drf);
         drf->setWake(owk_m->wf_m);
     }
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);
@@ -98,7 +98,7 @@ void OpalDrift::update() {
         drf->setParticleMatterInteraction(parmatint_m->handler_m);
     }
 
-    if (itsAttr[GEOMETRY] && obgeo_m == NULL) {
+    if (itsAttr[GEOMETRY] && obgeo_m == nullptr) {
         obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
         if (obgeo_m) {
             drf->setBoundaryGeometry(obgeo_m);

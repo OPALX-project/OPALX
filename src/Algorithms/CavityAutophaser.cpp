@@ -162,7 +162,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
             track(t + tErr, dt, newPhase, &out);
             out.close();
         } else {
-            track(t + tErr, dt, newPhase, NULL);
+            track(t + tErr, dt, newPhase, nullptr);
         }
 
         INFOMSG(level1 << std::fixed << std::setprecision(4)

@@ -576,7 +576,7 @@ void ParallelCyclotronTracker::visitFlexibleCollimator(const FlexibleCollimator&
  * @param off
  */
 void ParallelCyclotronTracker::visitOffset(const Offset& off) {
-    if (opalRing_m == NULL)
+    if (opalRing_m == nullptr)
         throw OpalException(
                             "ParallelCylcotronTracker::visitOffset",
                             "Attempt to place an offset when Ring not defined");
@@ -625,7 +625,7 @@ void ParallelCyclotronTracker::visitMultipole(const Multipole& mult) {
  */
 void ParallelCyclotronTracker::visitMultipoleT(const MultipoleT& multT) {
     *gmsg << "Adding MultipoleT" << endl;
-    if (opalRing_m != NULL) {
+    if (opalRing_m != nullptr) {
         opalRing_m->appendElement(multT);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitMultipoleT",
@@ -641,7 +641,7 @@ void ParallelCyclotronTracker::visitMultipoleT(const MultipoleT& multT) {
  */
 void ParallelCyclotronTracker::visitMultipoleTStraight(const MultipoleTStraight& multTstraight) {
     *gmsg << "Adding MultipoleTStraight" << endl;
-    if (opalRing_m != NULL) {
+    if (opalRing_m != nullptr) {
         opalRing_m->appendElement(multTstraight);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitMultipoleTStraight",
@@ -657,7 +657,7 @@ void ParallelCyclotronTracker::visitMultipoleTStraight(const MultipoleTStraight&
  */
 void ParallelCyclotronTracker::visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius& multTccurv) {
     *gmsg << "Adding MultipoleTCurvedConstRadius" << endl;
-    if (opalRing_m != NULL) {
+    if (opalRing_m != nullptr) {
         opalRing_m->appendElement(multTccurv);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitMultipoleTCurvedConstRadius",
@@ -673,7 +673,7 @@ void ParallelCyclotronTracker::visitMultipoleTCurvedConstRadius(const MultipoleT
  */
 void ParallelCyclotronTracker::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius& multTvcurv) {
     *gmsg << "Adding MultipoleTCurvedVarRadius" << endl;
-    if (opalRing_m != NULL) {
+    if (opalRing_m != nullptr) {
         opalRing_m->appendElement(multTvcurv);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitMultipoleTCurvedVarRadius",
@@ -889,7 +889,7 @@ void ParallelCyclotronTracker::visitSBend(const SBend& bend) {
 
 void ParallelCyclotronTracker::visitSBend3D(const SBend3D& bend) {
     *gmsg << "Adding SBend3D" << endl;
-    if (opalRing_m != NULL)
+    if (opalRing_m != nullptr)
         opalRing_m->appendElement(bend);
     else
         throw OpalException("ParallelCyclotronTracker::visitSBend3D",
@@ -898,7 +898,7 @@ void ParallelCyclotronTracker::visitSBend3D(const SBend3D& bend) {
 
 void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& bend) {
     *gmsg << "Adding ScalingFFAMagnet" << endl;
-    if (opalRing_m != NULL) {
+    if (opalRing_m != nullptr) {
         opalRing_m->appendElement(bend);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
@@ -1063,7 +1063,7 @@ void ParallelCyclotronTracker::visitVacuum(const Vacuum& vac) {
  */
 void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity& cav) {
     *gmsg << "Adding Variable RF Cavity" << endl;
-    if (opalRing_m != NULL)
+    if (opalRing_m != nullptr)
         opalRing_m->appendElement(cav);
     else
         throw OpalException("ParallelCyclotronTracker::visitVariableRFCavity",
@@ -1078,7 +1078,7 @@ void ParallelCyclotronTracker::visitVariableRFCavity(const VariableRFCavity& cav
 void ParallelCyclotronTracker::visitVariableRFCavityFringeField
                                   (const VariableRFCavityFringeField& cav) {
     *gmsg << "Adding Variable RF Cavity with Fringe Field" << endl;
-    if (opalRing_m != NULL)
+    if (opalRing_m != nullptr)
         opalRing_m->appendElement(cav);
     else
         throw OpalException("ParallelCyclotronTracker::visitVariableRFCavityFringeField",
@@ -1092,7 +1092,7 @@ void ParallelCyclotronTracker::visitVariableRFCavityFringeField
  */
 void ParallelCyclotronTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
     *gmsg << "Adding Vertical FFA Magnet" << endl;
-    if (opalRing_m != NULL)
+    if (opalRing_m != nullptr)
         opalRing_m->appendElement(mag);
     else
         throw OpalException("ParallelCyclotronTracker::visitVerticalFFAMagnet",
@@ -1168,7 +1168,7 @@ void ParallelCyclotronTracker::execute() {
         mbHandler_m->setNumBunch(itsBunch_m->getNumBunch());
 
     itsBeamline->accept(*this);
-    if (opalRing_m != NULL)
+    if (opalRing_m != nullptr)
         opalRing_m->lockRing();
 
     // Display the selected elements
@@ -1588,7 +1588,7 @@ bool ParallelCyclotronTracker::getTunes(dvector_t& t, dvector_t& r, dvector_t& z
     *gmsg << "* ************************************************************************************* *" << endl;
 
     delete tune;
-    tune = NULL;
+    tune = nullptr;
     // FIXME: FixMe: need to come from the inputfile
     nhis_lomb = 100;
 
@@ -1606,17 +1606,17 @@ bool ParallelCyclotronTracker::getTunes(dvector_t& t, dvector_t& r, dvector_t& z
         *gmsg << "* ************************************************************************************* *" << endl;
 
         delete tune;
-        tune = NULL;
+        tune = nullptr;
     }
     return true;
 }
 
 
 double ParallelCyclotronTracker::getHarmonicNumber() const {
-    if (opalRing_m != NULL)
+    if (opalRing_m != nullptr)
         return opalRing_m->getHarmonicNumber();
     Cyclotron* elcycl = dynamic_cast<Cyclotron*>(((*FieldDimensions.begin())->second).second);
-    if (elcycl != NULL)
+    if (elcycl != nullptr)
         return elcycl->getCyclHarm();
     throw OpalException("ParallelCyclotronTracker::getHarmonicNumber()",
                         std::string("The first item in the FieldDimensions list does not ")

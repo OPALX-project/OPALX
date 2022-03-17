@@ -34,15 +34,15 @@
 #include "Physics/Units.h"
 
 VariableRFCavityFringeField::VariableRFCavityFringeField(const std::string &name) : VariableRFCavity(name) {
-    initNull();  // initialise everything to NULL
+    initNull();  // initialise everything to nullptr
 }
 
 VariableRFCavityFringeField::VariableRFCavityFringeField() : VariableRFCavity() {
-    initNull();  // initialise everything to NULL
+    initNull();  // initialise everything to nullptr
 }
 
 VariableRFCavityFringeField::VariableRFCavityFringeField(const VariableRFCavityFringeField& var) : VariableRFCavity() {
-    initNull();  // initialise everything to NULL
+    initNull();  // initialise everything to nullptr
     *this = var;
 }
 

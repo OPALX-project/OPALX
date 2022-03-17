@@ -26,7 +26,7 @@
 OpalSlit::OpalSlit():
     OpalElement(SIZE, "SLIT",
                 "The \"SLIT\" element defines a slit."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Horizontal half-aperture in m");
     itsAttr[YSIZE] = Attributes::makeReal
@@ -40,7 +40,7 @@ OpalSlit::OpalSlit():
 
 OpalSlit::OpalSlit(const std::string& name, OpalSlit* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new FlexibleCollimatorRep(name));
 }
 
@@ -75,7 +75,7 @@ void OpalSlit::update() {
 
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

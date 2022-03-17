@@ -167,7 +167,7 @@ bool RFCavity::applyToReferenceParticle(const Vector_t& R,
 void RFCavity::initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) {
 
     startField_m = endField_m = 0.0;
-    if (bunch == NULL) {
+    if (bunch == nullptr) {
         startField = startField_m;
         endField = endField_m;
 
@@ -722,7 +722,7 @@ bool RFCavity::isInside(const Vector_t& r) const {
 
 double RFCavity::getElementLength() const {
     double length = ElementBase::getElementLength();
-    if (length < 1e-10 && fieldmap_m != NULL) {
+    if (length < 1e-10 && fieldmap_m != nullptr) {
         double start, end;
         fieldmap_m->getFieldDimensions(start, end);
         length = end - start;

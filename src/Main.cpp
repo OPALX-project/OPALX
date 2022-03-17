@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 
         char *startup = getenv("HOME");
         boost::filesystem::path p = strncat(startup, "/init.opal", 20);
-        if (startup != NULL && is_regular_file(p)) {
+        if (startup != nullptr && is_regular_file(p)) {
 
             FileStream::setEcho(false);
             FileStream *is;

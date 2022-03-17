@@ -253,13 +253,13 @@ public:
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns NULL.
+    //  If the attribute does not exist, it returns nullptr.
     virtual Channel *getChannel(const std::string &aKey, bool create = false);
 
     /// Construct a read-only channel.
     //  This method constructs a Channel permitting read-only access to
     //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns NULL.
+    //  If the attribute does not exist, it returns nullptr.
     virtual const ConstChannel *getConstChannel(const std::string &aKey) const;
 
     /// Apply visitor.
@@ -468,7 +468,7 @@ WakeFunction *ElementBase::getWake() const
 
 inline
 bool ElementBase::hasWake() const
-{ return wake_m != NULL; }
+{ return wake_m != nullptr; }
 
 inline
 BoundaryGeometry *ElementBase::getBoundaryGeometry() const
@@ -476,7 +476,7 @@ BoundaryGeometry *ElementBase::getBoundaryGeometry() const
 
 inline
 bool ElementBase::hasBoundaryGeometry() const
-{ return bgeometry_m != NULL; }
+{ return bgeometry_m != nullptr; }
 
 inline
 ParticleMatterInteractionHandler *ElementBase::getParticleMatterInteraction() const
@@ -484,7 +484,7 @@ ParticleMatterInteractionHandler *ElementBase::getParticleMatterInteraction() co
 
 inline
 bool ElementBase::hasParticleMatterInteraction() const
-{ return parmatint_m != NULL; }
+{ return parmatint_m != nullptr; }
 
 inline
 void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo &trafo) {

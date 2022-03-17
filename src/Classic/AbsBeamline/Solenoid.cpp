@@ -51,7 +51,7 @@ Solenoid::Solenoid(const Solenoid &right):
 Solenoid::Solenoid(const std::string &name):
     Component(name),
     filename_m(""),
-    myFieldmap_m(NULL),
+    myFieldmap_m(nullptr),
     scale_m(1.0),
     scaleError_m(0.0),
     startField_m(0.0),
@@ -123,7 +123,7 @@ void Solenoid::initialise(PartBunchBase<double, 3> *bunch, double &startField, d
 
     myFieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
 
-    if(myFieldmap_m != NULL) {
+    if(myFieldmap_m != nullptr) {
         msg << level2 << getName() << " using file ";
         myFieldmap_m->getInfo(&msg);
 

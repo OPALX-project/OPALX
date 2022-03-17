@@ -14,7 +14,7 @@ FM1DMagnetoStatic_fast::FM1DMagnetoStatic_fast(std::string aFilename):
     Fieldmap(aFilename) {
 
     Type = T1DMagnetoStatic;
-    onAxisField_m = NULL;
+    onAxisField_m = nullptr;
 
     std::ifstream fieldFile(Filename_m.c_str());
     if(fieldFile.good()) {
@@ -45,7 +45,7 @@ FM1DMagnetoStatic_fast::~FM1DMagnetoStatic_fast() {
 
 void FM1DMagnetoStatic_fast::readMap() {
 
-    if(onAxisField_m == NULL) {
+    if(onAxisField_m == nullptr) {
 
         std::ifstream fieldFile(Filename_m.c_str());
         stripFileHeader(fieldFile);
@@ -78,9 +78,9 @@ void FM1DMagnetoStatic_fast::readMap() {
 }
 
 void FM1DMagnetoStatic_fast::freeMap() {
-    if(onAxisField_m != NULL) {
+    if(onAxisField_m != nullptr) {
         delete [] onAxisField_m;
-        onAxisField_m = NULL;
+        onAxisField_m = nullptr;
 
         gsl_spline_free(onAxisFieldInterpolants_m);
         gsl_spline_free(onAxisFieldPInterpolants_m);

@@ -2050,7 +2050,7 @@ Change orientation if diff is:
     h5_file_t f = H5OpenFile (h5FileName_m.c_str(), H5_O_RDONLY, props);
     H5CloseProp (props);
 
-    h5t_mesh_t* m = NULL;
+    h5t_mesh_t* m = nullptr;
     H5FedOpenTriangleMesh (f, "0", &m);
     H5FedSetLevel (m, 0);
 
