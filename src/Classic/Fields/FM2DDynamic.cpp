@@ -12,9 +12,9 @@
 
 FM2DDynamic::FM2DDynamic(std::string aFilename)
     : Fieldmap(aFilename),
-      FieldstrengthEz_m(NULL),
-      FieldstrengthEr_m(NULL),
-      FieldstrengthBt_m(NULL) {
+      FieldstrengthEz_m(nullptr),
+      FieldstrengthEr_m(nullptr),
+      FieldstrengthBt_m(nullptr) {
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -108,7 +108,7 @@ FM2DDynamic::~FM2DDynamic() {
 }
 
 void FM2DDynamic::readMap() {
-    if(FieldstrengthEz_m == NULL) {
+    if(FieldstrengthEz_m == nullptr) {
         // declare variables and allocate memory
         std::ifstream in;
         std::string tmpString;
@@ -173,13 +173,13 @@ void FM2DDynamic::readMap() {
 }
 
 void FM2DDynamic::freeMap() {
-    if(FieldstrengthEz_m != NULL) {
+    if(FieldstrengthEz_m != nullptr) {
         delete[] FieldstrengthEz_m;
-        FieldstrengthEz_m = NULL;
+        FieldstrengthEz_m = nullptr;
         delete[] FieldstrengthEr_m;
-        FieldstrengthEr_m = NULL;
+        FieldstrengthEr_m = nullptr;
         delete[] FieldstrengthBt_m;
-        FieldstrengthBt_m = NULL;
+        FieldstrengthBt_m = nullptr;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);

@@ -108,7 +108,7 @@ int TUNE_class::lombAnalysis(std::vector<double> &x, std::vector<double> &y, int
         *gmsg << "* " << mess << endl;
 
         delete la;
-        la = NULL;
+        la = nullptr;
         return(-1);
     }
 
@@ -138,7 +138,7 @@ int TUNE_class::lombAnalysis(std::vector<double> &x, std::vector<double> &y, int
     *gmsg << "* " << mess << endl;
 
     delete la;
-    la = NULL;
+    la = nullptr;
     return(0);
 }
 
@@ -208,7 +208,7 @@ int TUNE_class::lombAnalysis(double *x, double *y, int Ndat, int /*nhis*/)
         *gmsg << "* " << mess << endl;
 
         delete la;
-        la = NULL;
+        la = nullptr;
         return(-1);
     }
 
@@ -257,7 +257,7 @@ int TUNE_class::lombAnalysis(double *x, double *y, int Ndat, int /*nhis*/)
     *gmsg << "* " << mess << endl;
 
     delete la;
-    la = NULL;
+    la = nullptr;
 
     return(0);
 

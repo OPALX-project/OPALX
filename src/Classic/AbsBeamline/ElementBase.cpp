@@ -145,9 +145,9 @@ ElementBase::ElementBase(const std::string &name):
     rotationZAxis_m(0.0),
     elementID(name),
     userAttribs(),
-    wake_m(NULL),
-    bgeometry_m(NULL),
-    parmatint_m(NULL),
+    wake_m(nullptr),
+    bgeometry_m(nullptr),
+    parmatint_m(nullptr),
     positionIsFixed(false),
     elementPosition_m(0.0),
     elemedgeSet_m(false),
@@ -188,7 +188,7 @@ std::string ElementBase::getOutputFN() const {
 double ElementBase::getAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
-    if (aChannel != NULL) {
+    if (aChannel != nullptr) {
         double val = *aChannel;
         delete aChannel;
         return val;
@@ -201,7 +201,7 @@ double ElementBase::getAttribute(const std::string &aKey) const {
 bool ElementBase::hasAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
-    if (aChannel != NULL) {
+    if (aChannel != nullptr) {
         delete aChannel;
         return true;
     } else {
@@ -218,11 +218,11 @@ void ElementBase::removeAttribute(const std::string &aKey) {
 void ElementBase::setAttribute(const std::string &aKey, double val) {
     Channel *aChannel = getChannel(aKey, true);
 
-    if (aChannel != NULL  &&  aChannel->isSettable()) {
+    if (aChannel != nullptr  &&  aChannel->isSettable()) {
         *aChannel = val;
         delete aChannel;
     } else
-        std::cout << "Channel NULL or not Settable" << std::endl;
+        std::cout << "Channel nullptr or not Settable" << std::endl;
 }
 
 

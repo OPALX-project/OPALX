@@ -88,7 +88,7 @@ TEST_F(VariableRFCavityFringeFieldTest, TestSetGet) {
     EXPECT_EQ(&(*(cav1.getEndField())), &(*shared));
     long int count = shared.use_count();
     EXPECT_EQ(count, 3);
-    PolynomialTimeDependence* time = NULL;
+    PolynomialTimeDependence* time = nullptr;
     EXPECT_NE(&(*(cav1.getFrequencyModel())), time);
 }
 

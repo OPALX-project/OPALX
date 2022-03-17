@@ -98,7 +98,7 @@ public:
                                                           const double& dt,
                                                           const double& q,
                                                           const double& mass,
-                                                          std::ofstream *out = NULL);
+                                                          std::ofstream *out = nullptr);
 
     virtual bool apply(const size_t& i,
                        const double& t,
@@ -343,7 +343,7 @@ double RFCavity::getDesignEnergy() const {
 
 inline
 void RFCavity::dropFieldmaps() {
-    fieldmap_m = NULL;
+    fieldmap_m = nullptr;
 }
 
 inline

@@ -26,7 +26,7 @@
 OpalFlexibleCollimator::OpalFlexibleCollimator():
     OpalElement(SIZE, "FLEXIBLECOLLIMATOR",
                 "The \"FLEXIBLECOLLIMATOR\" element defines a flexible collimator."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[FNAME] = Attributes::makeString
                      ("FNAME", "File name containing description of holes");
     itsAttr[DESC]  = Attributes::makeString
@@ -41,7 +41,7 @@ OpalFlexibleCollimator::OpalFlexibleCollimator():
 
 OpalFlexibleCollimator::OpalFlexibleCollimator(const std::string& name, OpalFlexibleCollimator* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new FlexibleCollimatorRep(name));
 }
 
@@ -86,7 +86,7 @@ void OpalFlexibleCollimator::update() {
     }
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);
