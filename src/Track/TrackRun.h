@@ -53,6 +53,7 @@ public:
 
 private:
     enum class RunMethod: unsigned short {
+        NONE,
         PARALLELT,
         CYCLOTRONT,
         THICK
@@ -93,6 +94,8 @@ private:
     H5PartWrapper* phaseSpaceSink_m;
 
     OpalData* opal;
+
+    bool isFollowupTrack_m;
 
     static const std::string defaultDistribution;
 
