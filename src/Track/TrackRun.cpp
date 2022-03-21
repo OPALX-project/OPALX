@@ -96,6 +96,8 @@ TrackRun::TrackRun():
     fs(nullptr),
     ds(nullptr),
     phaseSpaceSink_m(nullptr),
+    isFollowupTrack_m(false),
+    method_m(RunMethod::NONE),
     macromass_m(0.0),
     macrocharge_m(0.0) {
     itsAttr[METHOD] = Attributes::makePredefinedString
@@ -120,10 +122,10 @@ TrackRun::TrackRun():
          {"GAMMA_BINNING", "BUNCH_BINNING"}, "GAMMA_BINNING");
 
     itsAttr[BEAM] = Attributes::makeString
-        ("BEAM", "Name of beam.", "BEAM");
+        ("BEAM", "Name of beam.");
 
     itsAttr[FIELDSOLVER] = Attributes::makeString
-        ("FIELDSOLVER", "Field solver to be used.", "FIELDSOLVER");
+        ("FIELDSOLVER", "Field solver to be used.");
 
     itsAttr[BOUNDARYGEOMETRY] = Attributes::makeString
         ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default).", "NONE");
@@ -146,6 +148,8 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent):
     fs(nullptr),
     ds(nullptr),
     phaseSpaceSink_m(nullptr),
+    isFollowupTrack_m(false),
+    method_m(RunMethod::NONE),
     macromass_m(0.0),
     macrocharge_m(0.0) {
     opal = OpalData::getInstance();
@@ -189,6 +193,20 @@ void TrackRun::execute() {
             errorMsg << "\n****************************************************************************\n" << endl;
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
+    }
+
+    isFollowupTrack_m = opal->hasBunchAllocated();
+    if (!itsAttr[DISTRIBUTION] && !isFollowupTrack_m) {
+        throw OpalException("TrackRun::execute",
+                            "\"DISTRIBUTION\" must be set in \"RUN\" command.");
+    }
+    if (!itsAttr[FIELDSOLVER]) {
+        throw OpalException("TrackRun::execute",
+                            "\"FIELDSOLVER\" must be set in \"RUN\" command.");
+    }
+    if (!itsAttr[BEAM]) {
+        throw OpalException("TrackRun::execute",
+                            "\"BEAM\" must be set in \"RUN\" command.");
     }
 
     // Get algorithm to use.
@@ -251,8 +269,7 @@ std::string TrackRun::getRunMethodName() const {
 }
 
 void TrackRun::setupThickTracker() {
-    bool isFollowupTrack = opal->hasBunchAllocated();
-    if (isFollowupTrack) {
+    if (isFollowupTrack_m) {
         Track::block->bunch->setLocalTrackStep(0);
     }
 
@@ -267,7 +284,7 @@ void TrackRun::setupThickTracker() {
                                                   opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
-    } else if (isFollowupTrack) {
+    } else if (isFollowupTrack_m) {
         phaseSpaceSink_m = new H5PartWrapperForPT(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
                                                   opal->getInputBasename() + std::string(".h5"),
@@ -285,14 +302,14 @@ void TrackRun::setupThickTracker() {
     Track::block->bunch->dtScInit_m = Track::block->dtScInit;
     Track::block->bunch->deltaTau_m = Track::block->deltaTau;
 
-    if (!isFollowupTrack && !opal->inRestartRun()) {
+    if (!isFollowupTrack_m && !opal->inRestartRun()) {
         Track::block->bunch->setT(Track::block->t0_m);
     }
 
     if (Track::block->bunch->getIfBeamEmitting()) {
-      Track::block->bunch->setChargeZeroPart(macrocharge_m);
+        Track::block->bunch->setChargeZeroPart(macrocharge_m);
     } else {
-      Track::block->bunch->setCharge(macrocharge_m);
+        Track::block->bunch->setCharge(macrocharge_m);
     }
 
     // set coupling constant
@@ -304,8 +321,8 @@ void TrackRun::setupThickTracker() {
 
     initDataSink();
 
-    if (!opal->hasBunchAllocated()) {
-      *gmsg << *dist << endl;
+    if (!isFollowupTrack_m) {
+        *gmsg << *dist << endl;
     }
 
     if (Track::block->bunch->getTotalNum() > 0) {
@@ -340,12 +357,11 @@ void TrackRun::setupThickTracker() {
 
 
 void TrackRun::setupTTracker(){
-    bool isFollowupTrack = opal->hasBunchAllocated();
-    if (isFollowupTrack) {
+    OpalData::getInstance()->setInOPALTMode();
+
+    if (isFollowupTrack_m) {
         Track::block->bunch->setLocalTrackStep(0);
     }
-
-    OpalData::getInstance()->setInOPALTMode();
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
     Track::block->bunch->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
@@ -360,7 +376,7 @@ void TrackRun::setupTTracker(){
                                                   opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
-    } else if (isFollowupTrack) {
+    } else if (isFollowupTrack_m) {
         phaseSpaceSink_m = new H5PartWrapperForPT(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
                                                   opal->getInputBasename() + std::string(".h5"),
@@ -379,7 +395,7 @@ void TrackRun::setupTTracker(){
     Track::block->bunch->dtScInit_m = Track::block->dtScInit;
     Track::block->bunch->deltaTau_m = Track::block->deltaTau;
 
-    if (!isFollowupTrack && !opal->inRestartRun()) {
+    if (!isFollowupTrack_m && !opal->inRestartRun()) {
         Track::block->bunch->setT(Track::block->t0_m);
     }
 
@@ -399,7 +415,7 @@ void TrackRun::setupTTracker(){
 
     initDataSink();
 
-    if (!opal->hasBunchAllocated()) {
+    if (!isFollowupTrack_m) {
         *gmsg << std::scientific;
         *gmsg << *dist << endl;
     }
@@ -444,6 +460,7 @@ void TrackRun::setupTTracker(){
 }
 
 void TrackRun::setupCyclotronTracker(){
+
     OpalData::getInstance()->setInOPALCyclMode();
     Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
@@ -473,7 +490,7 @@ void TrackRun::setupCyclotronTracker(){
                                                   opal->getRestartStep(),
                                                   OpalData::getInstance()->getRestartFileName(),
                                                   H5_O_WRONLY);
-    } else if (opal->hasBunchAllocated()) {
+    } else if (isFollowupTrack_m) {
         phaseSpaceSink_m = new H5PartWrapperForPC(opal->getInputBasename() + std::string(".h5"),
                                                   -1,
                                                   opal->getInputBasename() + std::string(".h5"),
@@ -499,7 +516,7 @@ void TrackRun::setupCyclotronTracker(){
         macrocharge_m = beam->getChargePerParticle();
         macromass_m   = beam->getMassPerParticle();
 
-        if (!opal->hasBunchAllocated()) {
+        if (!isFollowupTrack_m) {
             if (!opal->inRestartRun()) {
                 Track::block->bunch->setDistribution(dist,
                                                      beam->getNumberOfParticles(),
@@ -672,7 +689,7 @@ double TrackRun::setDistributionParallelT(Beam* beam) {
      * Initialize distributions.
      */
     size_t numberOfParticles = beam->getNumberOfParticles();
-    if (!opal->hasBunchAllocated()) {
+    if (!isFollowupTrack_m) {
         if (!opal->inRestartRun()) {
             /*
              * Here we are not doing a restart run
@@ -703,7 +720,7 @@ double TrackRun::setDistributionParallelT(Beam* beam) {
 Inform& TrackRun::print(Inform& os) const {
     os << endl;
     os << "* ************* T R A C K  R U N *************************************************** " << endl;
-    if (!opal->hasBunchAllocated()) {
+    if (!isFollowupTrack_m) {
         os << "* Selected Tracking Method == " << getRunMethodName() << ", NEW TRACK" << '\n'
            << "* ********************************************************************************** " << '\n';
     } else {
