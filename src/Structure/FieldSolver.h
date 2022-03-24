@@ -52,17 +52,16 @@ enum class FieldSolverType: short {
 class FieldSolver: public Definition {
 
 public:
-
     /// Exemplar constructor.
     FieldSolver();
 
     virtual ~FieldSolver();
 
     /// Make clone.
-    virtual FieldSolver *clone(const std::string &name);
+    virtual FieldSolver* clone(const std::string& name);
 
     /// Find named FieldSolver.
-    static FieldSolver *find(const std::string &name);
+    static FieldSolver* find(const std::string& name);
 
     std::string getType();
 
@@ -92,18 +91,19 @@ public:
 
     void initCartesianFields();
 
-    void initSolver(PartBunchBase<double, 3> *b);
+    void initSolver(PartBunchBase<double, 3>* b);
 
     bool hasValidSolver();
 
     void setFieldSolverType();
     FieldSolverType getFieldSolverType() const;
 
-    inline Layout_t &getParticleLayout() { return *PL_m; }
-    
+    inline Layout_t &getParticleLayout() { return* PL_m; }
+
     FieldLayout_t *getFieldLayout() { return FL_m; }
-    
-    Inform &printInfo(Inform &os) const;
+
+    Inform& printInfo(Inform& os) const;
+
     unsigned int getInteractionRadius() {return (unsigned int) rpp_m; }
 
     bool hasPeriodicZ();
@@ -121,7 +121,7 @@ public:
 #endif
 
     /// the actual solver, should be a base object
-    PoissonSolver *solver_m;
+    PoissonSolver* solver_m;
 
 private:
 #ifdef ENABLE_AMR
@@ -136,29 +136,28 @@ private:
 #endif
 
     // Not implemented.
-    FieldSolver(const FieldSolver &);
-    void operator=(const FieldSolver &);
+    FieldSolver(const FieldSolver&);
+    void operator=(const FieldSolver&);
 
     // Clone constructor.
-    FieldSolver(const std::string &name, FieldSolver *parent);
+    FieldSolver(const std::string& name, FieldSolver* parent);
 
     /// The cartesian mesh
-    Mesh_t *mesh_m;
+    Mesh_t* mesh_m;
 
     /// The field layout f
-    FieldLayout_t *FL_m;
+    FieldLayout_t* FL_m;
 
     /// The particle layout
     std::unique_ptr<Layout_t> PL_m;
 
     /// all the particles are here ...
-    PartBunchBase<double, 3> *itsBunch_m;
+    PartBunchBase<double, 3>* itsBunch_m;
 
     std::string fsName_m;
     FieldSolverType fsType_m;
 
     double rpp_m;
-
 };
 
 inline
@@ -167,7 +166,7 @@ FieldSolverType FieldSolver::getFieldSolverType() const {
 }
 
 inline
-Inform &operator<<(Inform &os, const FieldSolver &fs) {
+Inform& operator<<(Inform& os, const FieldSolver& fs) {
     return fs.printInfo(os);
 }
 
