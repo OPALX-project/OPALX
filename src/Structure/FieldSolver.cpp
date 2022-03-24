@@ -130,10 +130,10 @@ namespace {
 
 FieldSolver::FieldSolver():
     Definition(SIZE, "FIELDSOLVER",
-               "The \"FIELDSOLVER\" statement defines data for a the field solver ") {
+               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
 
     itsAttr[FSTYPE] = Attributes::makePredefinedString("FSTYPE", "Name of the attached field solver.",
-                                                       {"FFT", "FFTPERIODIC", "SAAMG", "NONE"});
+                                                       {"FFT", "FFTPERIODIC", "SAAMG", "FMG", "ML", "AMR_MG", "NONE"});
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
@@ -200,14 +200,14 @@ FieldSolver::FieldSolver():
                                                         "");
 
     itsAttr[ITSOLVER] = Attributes::makePredefinedString("ITSOLVER",
-                                                        "Type of iterative solver.",
-                                                        {"CG", "BICGSTAB", "GMRES"},
-                                                        "CG");
+                                                         "Type of iterative solver.",
+                                                         {"CG", "BICGSTAB", "GMRES"},
+                                                         "CG");
 
     itsAttr[INTERPL] = Attributes::makePredefinedString("INTERPL",
                                                         "interpolation used for boundary points.",
                                                         {"CONSTANT", "LINEAR", "QUADRATIC"},
-                                                       "LINEAR");
+                                                        "LINEAR");
 
     itsAttr[TOL] = Attributes::makeReal("TOL",
                                         "Tolerance for iterative solver",
@@ -220,7 +220,7 @@ FieldSolver::FieldSolver():
     itsAttr[PRECMODE] = Attributes::makePredefinedString("PRECMODE",
                                                          "Preconditioner Mode.",
                                                          {"STD", "HIERARCHY", "REUSE"},
-                                                        "HIERARCHY");
+                                                         "HIERARCHY");
 
     // AMR
 #ifdef ENABLE_AMR
@@ -269,8 +269,8 @@ FieldSolver::FieldSolver():
                                                            "CHARGE_DENSITY");
 
     itsAttr[AMR_DENSITY] = Attributes::makeReal("AMR_DENSITY",
-                                               "Tagging value for charge density refinement [C / cell volume]",
-                                               1.0e-14);
+                                                "Tagging value for charge density refinement [C / cell volume]",
+                                                1.0e-14);
 
     itsAttr[AMR_MAX_NUM_PART] = Attributes::makeReal("AMR_MAX_NUM_PART",
                                                      "Tagging value for max. #particles",
@@ -286,7 +286,7 @@ FieldSolver::FieldSolver():
                                                 "MOMENTA)", 0.75);
 
     itsAttr[AMR_DOMAIN_RATIO] = Attributes::makeRealArray("AMR_DOMAIN_RATIO",
-                                                         "Box ratio of AMR computation domain. Default: [-1, 1]^3");
+                                                          "Box ratio of AMR computation domain. Default: [-1, 1]^3");
 
     // default
     Attributes::setRealArray(itsAttr[AMR_DOMAIN_RATIO], {1.0, 1.0, 1.0});
@@ -338,14 +338,13 @@ FieldSolver::FieldSolver():
     mesh_m = 0;
     FL_m = 0;
     PL_m.reset(nullptr);
-
     solver_m = 0;
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
 
-FieldSolver::FieldSolver(const std::string &name, FieldSolver *parent):
+FieldSolver::FieldSolver(const std::string& name, FieldSolver* parent):
     Definition(name, parent)
 {
     mesh_m = 0;
@@ -370,7 +369,7 @@ FieldSolver::~FieldSolver() {
     }
 }
 
-FieldSolver *FieldSolver::clone(const std::string &name) {
+FieldSolver* FieldSolver::clone(const std::string& name) {
     return new FieldSolver(name, this);
 }
 
@@ -379,10 +378,10 @@ void FieldSolver::execute() {
     update();
 }
 
-FieldSolver *FieldSolver::find(const std::string &name) {
-    FieldSolver *fs = dynamic_cast<FieldSolver *>(OpalData::getInstance()->find(name));
+FieldSolver* FieldSolver::find(const std::string& name) {
+    FieldSolver* fs = dynamic_cast<FieldSolver*>(OpalData::getInstance()->find(name));
 
-    if(fs == 0) {
+    if (fs == 0) {
         throw OpalException("FieldSolver::find()", "FieldSolver \"" + name + "\" not found.");
     }
     return fs;
@@ -459,8 +458,15 @@ bool FieldSolver::hasPeriodicZ() {
     return (Attributes::getString(itsAttr[BCFFTZ]) == "PERIODIC");
 }
 
-inline bool FieldSolver::isAmrSolverType() const {
-    return Options::amr;
+bool FieldSolver::isAmrSolverType() const {
+    if ( (fsType_m != FieldSolverType::FMG &&
+          fsType_m != FieldSolverType::ML  &&
+          fsType_m != FieldSolverType::AMRMG) && Options::amr) {
+        throw OpalException("FieldSolver::isAmrSolverType",
+                            "The attribute \"FSTYPE\" has not correct type for AMR solver");
+    } else {
+        return Options::amr;
+    }
 }
 
 void FieldSolver::setFieldSolverType() {
@@ -486,7 +492,7 @@ void FieldSolver::setFieldSolverType() {
     }
 }
 
-void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
+void FieldSolver::initSolver(PartBunchBase<double, 3>* b) {
     itsBunch_m = b;
 
     std::string greens = Attributes::getString(itsAttr[GREENSF]);
@@ -499,7 +505,6 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
 
     if ( isAmrSolverType() ) {
         Inform m("FieldSolver::initAmrSolver");
-        fsName_m = "AMR";
 
 #ifdef ENABLE_AMR
         initAmrObject_m();
@@ -514,17 +519,18 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
             std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
             std::string tmp;
             //split and add all to list
-            std::vector<BoundaryGeometry *> geometries;
-            for(unsigned int i = 0; i <= geoms.length(); i++) {
-                if(i == geoms.length() || geoms[i] == ',') {
-                    BoundaryGeometry *geom = BoundaryGeometry::find(tmp);
-                    if(geom != 0)
+            std::vector<BoundaryGeometry*> geometries;
+            for (unsigned int i = 0; i <= geoms.length(); i++) {
+                if (i == geoms.length() || geoms[i] == ',') {
+                    BoundaryGeometry* geom = BoundaryGeometry::find(tmp);
+                    if (geom != 0)
                         geometries.push_back(geom);
                     tmp.clear();
-                } else
+                } else {
                     tmp += geoms[i];
+                }
             }
-            BoundaryGeometry *ttmp = geometries[0];
+            BoundaryGeometry* ttmp = geometries[0];
             solver_m = new FFTBoxPoissonSolver(mesh_m, FL_m, greens, ttmp->getA());
             itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
             fsName_m = "FFTBOX";
@@ -543,17 +549,17 @@ void FieldSolver::initSolver(PartBunchBase<double, 3> *b) {
         PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
         PL_m->enableCaching();
 
-    } else if(fsType_m == FieldSolverType::SAAMG) {
+    } else if (fsType_m == FieldSolverType::SAAMG) {
 #ifdef HAVE_SAAMG_SOLVER
         //we go over all geometries and add the Geometry Elements to the geometry list
         std::string geoms = Attributes::getString(itsAttr[GEOMETRY]);
         std::string tmp;
         //split and add all to list
-        std::vector<BoundaryGeometry *> geometries;
-        for(unsigned int i = 0; i <= geoms.length(); i++) {
-            if(i == geoms.length() || geoms[i] == ',') {
-                BoundaryGeometry *geom = OpalData::getInstance()->getGlobalGeometry();
-                if(geom != 0) {
+        std::vector<BoundaryGeometry*> geometries;
+        for (unsigned int i = 0; i <= geoms.length(); i++) {
+            if (i == geoms.length() || geoms[i] == ',') {
+                BoundaryGeometry* geom = OpalData::getInstance()->getGlobalGeometry();
+                if (geom != 0) {
                     geometries.push_back(geom);
                 }
                 tmp.clear();
@@ -582,7 +588,7 @@ bool FieldSolver::hasValidSolver() {
     return (solver_m != 0);
 }
 
-Inform &FieldSolver::printInfo(Inform &os) const {
+Inform& FieldSolver::printInfo(Inform& os) const {
     os << "* ************* F I E L D S O L V E R ********************************************** " << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* TYPE         " << fsName_m << '\n'
