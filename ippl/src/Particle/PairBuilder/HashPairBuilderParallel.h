@@ -59,7 +59,18 @@ public:
         buckets_per_dim[0]=floor(domain_width_local[0]/pred.getRange(0));
         buckets_per_dim[1]=floor(domain_width_local[1]/pred.getRange(1));
         buckets_per_dim[2]=floor(domain_width_local[2]/pred.getRange(2));
+        //buckets_per_dim[0]=1;//floor(domain_width_local[0]/pred.getRange(0));
+        //buckets_per_dim[1]=1;//floor(domain_width_local[1]/pred.getRange(1));
+        //buckets_per_dim[2]=1;//floor(domain_width_local[2]/pred.getRange(2));
 
+        for (unsigned dim = 0; dim<3; ++dim) {
+            if(buckets_per_dim[dim] == 0)
+                buckets_per_dim[dim] = 1;
+        }
+        
+
+        dmsg << "local domain width = " << domain_width_local << endl;
+        //dmsg << "local extends : " << extend_l_local << "\t" << extend_r_local << endl;
         for (unsigned dim = 0; dim<3; ++dim)
             h_chaining[dim] = domain_width_local[dim]/buckets_per_dim[dim];
 
@@ -68,14 +79,14 @@ public:
         rmax_m = extend_r_local+h_chaining;
         buckets_per_dim+=2;
 
-        //dmsg << "local domain iwdth = " << domain_width_local << endl;
-        //dmsg << "local extends : " << extend_l_local << "\t" << extend_r_local << endl;
+        //dmsg << "gammaz = " << gammaz << endl;
+        //dmsg << "local domain width = " << domain_width_local << endl;
         //dmsg << "local extends with chaining: " << rmin_m << "\t" << rmax_m << endl;
         //dmsg << "h_chaining = " << h_chaining << endl;
 
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
-        //dmsg << "Nbuckets = " << Nbucket << endl;
-        //dmsg << "buckets = " << buckets_per_dim << endl;
+        dmsg << "Nbuckets = " << Nbucket << endl;
+        dmsg << "buckets = " << buckets_per_dim << endl;
 
         std::size_t *buckets = new size_t[Nbucket]; //index of first particle in this bucket
         std::size_t *next = new size_t[size]; //index of next particle in this bucket. END indicates last particle of bucket
@@ -94,7 +105,7 @@ public:
         //assign all particles to a bucket
         for(std::size_t i = 0;i<size;++i)
         {
-            unsigned bucket_id = get_bucket_id(i,pred);
+            std::size_t bucket_id = get_bucket_id(i,pred);
             //dmsg << "we got bucket id = " << bucket_id << endl;
             next[i] = buckets[bucket_id];
             buckets[bucket_id] = i;
@@ -166,7 +177,7 @@ private:
 
     //returns the bucket id of particle i
     template<class Pred>
-    int get_bucket_id(int i, const Pred& /*pred*/)
+    std::size_t get_bucket_id(std::size_t i, const Pred& /*pred*/)
     {
         //Inform dmsg("debug_msg:");
 
@@ -174,7 +185,7 @@ private:
         for (unsigned d=0; d<3; ++d)
             loc[d] = (particles.R[i][d]-rmin_m[d])/h_chaining[d];
         
-        int bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
+        std::size_t bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
         //std::cout << "Rank: " << Ippl::myNode() << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
         //dmsg << particles.R[i][0] << "," << particles.R[i][1] << "," << particles.R[i][2] << "," << bucket_id << endl;
         return bucket_id;
