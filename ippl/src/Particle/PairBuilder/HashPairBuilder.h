@@ -44,9 +44,9 @@ public:
         for (unsigned i=0; i<3; ++i) {
             rmax_m[i] = rmin_m[i]+(locDomain[i].last()+1)*hr_m[i];
         }
-        rmin_m[2] *= gammaz;
-        rmax_m[2] *= gammaz;
-        hr_m[2] *= gammaz;
+        //rmin_m[2] *= gammaz;
+        //rmax_m[2] *= gammaz;
+        //hr_m[2] *= gammaz;
 
         buckets_per_dim[0]=floor((rmax_m[0]-rmin_m[0])/pred.getRange(0));
         buckets_per_dim[1]=floor((rmax_m[1]-rmin_m[1])/pred.getRange(1));

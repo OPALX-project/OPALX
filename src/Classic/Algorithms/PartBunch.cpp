@@ -463,15 +463,18 @@ void PartBunch::computeSelfFields() {
         // field, since the particles have not moved since this the most recent
         // scatter operation.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
-
+        //Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
+        *gmsg << "gammaz = " << gammaz << endl;
+        //double normEf_PM = sqrt(sum(dot(Ef,Ef))); 
+        //*gmsg << "Ef L2 norm PM part:= " << normEf_PM << endl;
         if(fs_m->getFieldSolverType() == "P3M") {
             fs_m->solver_m->calculatePairForces(this,gammaz);
         }
+        //double normEf_PP = sqrt(sum(dot(Ef,Ef))); 
+        //*gmsg << "Ef L2 norm PP part:= " << normEf_PP << endl;
 
         Ef = Ef * Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
         
-        //PM_PP_sum = sum(Ef);
-        //*gmsg << "Abs sum of PM+PP part after inverse boost: " << PM_PP_sum << endl;
         /** Magnetic field in x and y direction induced by the eletric field
          *
          *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]

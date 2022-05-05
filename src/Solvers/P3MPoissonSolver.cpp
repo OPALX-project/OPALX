@@ -89,10 +89,16 @@ struct P3MGreensFunction<3> {
 
 template<class T>
 struct ApplyField {
-    ApplyField(T c, double epsilon, double alpha, double ke_) : C(c), eps(epsilon), a(alpha), ke(ke_) {}
+    ApplyField(T c, double epsilon, double alpha, double ke_, double gammaz_) : C(c), eps(epsilon), 
+                                                                                a(alpha), ke(ke_), gammaz(gammaz_) {}
     void operator()(std::size_t i, std::size_t j, PartBunch &P,Vektor<double,3> &shift) const
     {
         Vector_t diff = P.R[i] - (P.R[j]+shift);
+        //Vector_t diff;
+        //for (unsigned d = 0; d<Dim-1; ++d)
+        //    diff[d] = P.R[i](d) - (P.R[j](d)+shift[d]);
+
+        //diff[Dim-1] = (P.R[i](Dim-1) - (P.R[j](Dim-1)+shift[Dim-1])) * gammaz;
         double sqr = 0;
 
         for (unsigned d = 0; d<Dim; ++d)
@@ -123,6 +129,7 @@ struct ApplyField {
     double eps;
     double a;
     double ke;
+    double gammaz;
 };
 
 
@@ -297,12 +304,12 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,1.0),extend_l, extend_r);
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,1.0),extend_l, extend_r);
         }
     }
 
@@ -318,7 +325,7 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         }
         //if (Ippl::getNodes() > 1) {
             HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m));
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,gammaz));
         //}
         //else {
         //    HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
@@ -415,6 +422,7 @@ void P3MPoissonSolver::computeAvgSpaceChargeForces(PartBunchBase<double, 3> *bun
     avgEF_m[0]=globSumEf_m[0]/N;
     avgEF_m[1]=globSumEf_m[1]/N;
     avgEF_m[2]=globSumEf_m[2]/N;
+    //avgEF_m[2]=0.0;
 
 }
 
