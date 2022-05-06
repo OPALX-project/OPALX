@@ -576,7 +576,7 @@ void PartBunchBase<T, Dim>::boundp() {
         Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
         this->updateFields(hr_m, origin);
 
-        if (fs_m->getFieldSolverType() == "P3M") {
+        if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
             //double maxh = 0.0;
             //for (int i = 0; i < 3; ++ i) {
             //    if(maxh < hr_m[i])
