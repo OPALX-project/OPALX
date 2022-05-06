@@ -89,7 +89,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::getIfBeamEmitting() {
-    if (dist_m != NULL) {
+    if (dist_m != nullptr) {
         size_t isBeamEmitted = dist_m->getIfDistEmitting();
         reduce(isBeamEmitted, isBeamEmitted, OpAddAssign());
         if (isBeamEmitted > 0)
@@ -153,7 +153,7 @@ void PartBunchBase<T, Dim>::setEnergyBins(int numberOfEnergyBins) {
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::weHaveEnergyBins() {
 
-    if (dist_m != NULL)
+    if (dist_m != nullptr)
         return dist_m->getNumberOfEnergyBins() > 0;
     else
         return false;
@@ -228,6 +228,15 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
 //        dist_m->create(this, addedDistributions, np);
 }
 
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
+                                            size_t numberOfParticles,
+                                            double current,
+                                            const Beamline& bl) {
+    dist_m = d;
+    dist_m->createOpalCycl(this, numberOfParticles, current, bl);
+}
+
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::isGridFixed() const {
@@ -255,7 +264,7 @@ double PartBunchBase<T, Dim>::getTEmission() {
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::doEmission() {
-    if (dist_m != NULL)
+    if (dist_m != nullptr)
         return dist_m->getIfDistEmitting();
     else
         return false;
@@ -264,7 +273,7 @@ bool PartBunchBase<T, Dim>::doEmission() {
 
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::weHaveBins() const {
-    if (pbin_m != NULL)
+    if (pbin_m != nullptr)
         return pbin_m->weHaveBins();
     else
         return false;
@@ -305,13 +314,13 @@ void PartBunchBase<T, Dim>::rebin() {
     this->Bin = 0;
     pbin_m->resetBins();
     // delete pbin_m; we did not allocate it!
-    pbin_m = NULL;
+    pbin_m = nullptr;
 }
 
 
 template <class T, unsigned Dim>
 int PartBunchBase<T, Dim>::getLastemittedBin() {
-    if (pbin_m != NULL)
+    if (pbin_m != nullptr)
         return pbin_m->getLastemittedBin();
     else
         return 0;
@@ -320,7 +329,7 @@ int PartBunchBase<T, Dim>::getLastemittedBin() {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
-    if (pbin_m != NULL) {
+    if (pbin_m != nullptr) {
         pbin_m->setPartNum(bin, num);
     }
 }
@@ -538,7 +547,7 @@ void PartBunchBase<T, Dim>::boundp() {
             volume *= std::abs(rmax_m[i] - rmin_m[i]);
         }
 
-        if (getIfBeamEmitting() && dist_m != NULL) {
+        if (getIfBeamEmitting() && dist_m != nullptr) {
             // keep particles per cell ratio high, don't spread a hand full particles across the whole grid
             double percent = std::max(1.0 / (nr_m[2] - 1), dist_m->getPercentageEmitted());
             double length  = std::abs(rmax_m[2] - rmin_m[2]) / (1.0 + 2 * dh_m);
@@ -1345,11 +1354,12 @@ bool PartBunchBase<T, Dim>::hasFieldSolver() {
 
 /// \brief Return the fieldsolver type if we have a fieldsolver
 template <class T, unsigned Dim>
-std::string PartBunchBase<T, Dim>::getFieldSolverType() const {
-    if (fs_m)
+FieldSolverType PartBunchBase<T, Dim>::getFieldSolverType() const {
+    if (fs_m) {
         return fs_m->getFieldSolverType();
-    else
-        return "";
+    } else {
+        return FieldSolverType::NONE;
+    }
 }
 
 
@@ -1655,6 +1665,12 @@ ParticleType PartBunchBase<T, Dim>::getPType() const {
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setPType(const std::string& type) {
     refPType_m =  ParticleProperties::getParticleType(type);
+}
+
+
+template <class T, unsigned Dim>
+DistributionType PartBunchBase<T, Dim>::getDistType() const {
+    return dist_m->getType();
 }
 
 

@@ -5,7 +5,7 @@
 // the 3D lattice.
 //
 // Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
-//               2017 - 2020 Christof Metzger-Kraus
+//               2017 - 2022 Christof Metzger-Kraus
 //
 // All rights reserved
 //
@@ -100,7 +100,11 @@ OrbitThreader::OrbitThreader(const PartData &ref,
     } else {
         loggingFrequency_m = std::numeric_limits<size_t>::max();
     }
-
+    pathLengthRange_m = stepSizes_m.getPathLengthRange();
+    pathLengthRange_m.enlargeIfOutside(pathLength_m);
+    pathLengthRange_m.enlargeIfOutside(zstop_m);
+    stepRange_m.enlargeIfOutside(0);
+    stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
     distTrackBack_m = std::min(pathLength_m, std::max(0.0, maxDiffZBunch));
     computeBoundingBox();
 }
@@ -136,6 +140,7 @@ void OrbitThreader::execute() {
 
     trackBack();
     updateBoundingBoxWithCurrentPosition();
+    pathLengthRange_m.enlargeIfOutside(pathLength_m);
 
     Vector_t nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
@@ -144,6 +149,7 @@ void OrbitThreader::execute() {
     setDesignEnergy(allElements, visitedElements);
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
+    std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
     do {
         checkElementLengths(elementSet);
@@ -175,6 +181,7 @@ void OrbitThreader::execute() {
 
         setDesignEnergy(allElements, visitedElements);
 
+        currentSet = elementSet;
         if (errorFlag_m == EVERYTHINGFINE) {
             nextR = r_m / (Physics::c * dt_m);
             integrator_m.push(nextR, p_m, dt_m);
@@ -182,8 +189,15 @@ void OrbitThreader::execute() {
 
             elementSet = itsOpalBeamline_m.getElements(nextR);
         }
+        intersection.clear();
+        std::set_intersection(currentSet.begin(), currentSet.end(),
+                              elementSet.begin(), elementSet.end(),
+                              std::inserter(intersection, intersection.begin()));
     } while (errorFlag_m != HITMATERIAL &&
-             errorFlag_m != EOL);
+             errorFlag_m != EOL &&
+             stepRange_m.isInside(currentStep_m) &&
+             !(pathLengthRange_m.isOutside(pathLength_m) &&
+               intersection.empty() && !(elementSet.empty() || currentSet.empty())));
 
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
@@ -192,10 +206,8 @@ void OrbitThreader::execute() {
     processElementRegister();
 }
 
-void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double maxDrift) {
-    static size_t step = 0;
+void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double /*maxDrift*/) {
     CoordinateSystemTrafo labToBeamline = itsOpalBeamline_m.getCSTrafoLab2Local();
-    const double oldPathLength = pathLength_m;
     Vector_t nextR;
     do {
         errorFlag_m = EVERYTHINGFINE;
@@ -225,9 +237,9 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double maxDrif
             Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
         }
 
-        if (pathLength_m > 0.0 &&
-            pathLength_m < zstop_m &&
-            step % loggingFrequency_m == 0 && Ippl::myNode() == 0 &&
+        if (((pathLength_m > 0.0 &&
+              pathLength_m < zstop_m) || dt_m < 0.0) &&
+            currentStep_m % loggingFrequency_m == 0 && Ippl::myNode() == 0 &&
             !OpalData::getInstance()->isOptimizerRun()) {
             logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + std::copysign(euclidean_norm(r_m - oldR), dt_m)
                      << std::setw(18) << std::setprecision(8) << r_m(0)
@@ -254,17 +266,18 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double maxDrif
         r_m *= Physics::c * dt_m;
 
         pathLength_m += std::copysign(euclidean_norm(r_m - oldR), dt_m);
-        ++ step;
+        ++ currentStep_m;
         time_m += dt_m;
 
         nextR = r_m / (Physics::c * dt_m);
         integrator_m.push(nextR, p_m, dt_m);
         nextR *= Physics::c * dt_m;
 
-        if ((activeSet.size() == 0 && std::abs(pathLength_m - oldPathLength) > maxDrift) ||
-            (activeSet.size() > 0  && dt_m * pathLength_m > dt_m * zstop_m) ||
-            (pathLength_m < 0.0 && dt_m < 0.0)) {
+        if (activeSet.empty() &&
+            (pathLengthRange_m.isOutside(pathLength_m) ||
+             stepRange_m.isOutside(currentStep_m))) {
             errorFlag_m = EOL;
+            globalBoundingBox_m.enlargeToContainPosition(r_m);
             return;
         }
 
@@ -329,6 +342,8 @@ double OrbitThreader::getMaxDesignEnergy(const IndexMap::value_t &elementSet) co
 
 void OrbitThreader::trackBack() {
     dt_m *= -1;
+    ValueRange<double> tmpRange;
+    std::swap(tmpRange, pathLengthRange_m);
     double initialPathLength = pathLength_m;
 
     Vector_t nextR = r_m / (Physics::c * dt_m);
@@ -346,8 +361,11 @@ void OrbitThreader::trackBack() {
         integrator_m.push(nextR, p_m, dt_m);
         nextR *= Physics::c * dt_m;
     }
-
+    std::swap(tmpRange, pathLengthRange_m);
+    currentStep_m *= -1;
     dt_m *= -1;
+
+    stepRange_m.enlargeIfOutside(currentStep_m);
 }
 
 void OrbitThreader::registerElement(const IndexMap::value_t &elementSet,
@@ -440,15 +458,12 @@ void OrbitThreader::computeBoundingBox() {
     FieldList::iterator it = allElements.begin();
     const FieldList::iterator end = allElements.end();
 
-    globalBoundingBox_m.lowerLeftCorner = Vector_t(std::numeric_limits<double>::max());
-    globalBoundingBox_m.upperRightCorner = Vector_t(-std::numeric_limits<double>::max());
-
     for (; it != end; ++ it) {
         if (it->getElement()->getType() == ElementType::MARKER) {
             continue;
         }
-        ElementBase::BoundingBox other = it->getBoundingBoxInLabCoords();
-        globalBoundingBox_m.getCombinedBoundingBox(other);
+        BoundingBox other = it->getBoundingBoxInLabCoords();
+        globalBoundingBox_m.enlargeToContainBoundingBox(other);
     }
 
     updateBoundingBoxWithCurrentPosition();
@@ -457,8 +472,9 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
-    ElementBase::BoundingBox pos = ElementBase::BoundingBox::getBoundingBox({r_m - 10 * dR, r_m + 10 * dR});
-    globalBoundingBox_m.getCombinedBoundingBox(pos);
+    for (const Vector_t& pos : {r_m - 10 * dR, r_m + 10 * dR}) {
+        globalBoundingBox_m.enlargeToContainPosition(pos);
+    }
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
@@ -466,7 +482,8 @@ double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared
                                                       const Vector_t & direction) const {
     if (elements.empty() ||
         (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
-        boost::optional<Vector_t> intersectionPoint = globalBoundingBox_m.getPointOfIntersection(position, direction);
+        boost::optional<Vector_t> intersectionPoint = globalBoundingBox_m.getIntersectionPoint(position, direction);
+
         return intersectionPoint ? euclidean_norm(intersectionPoint.get() - position): 10.0;
     }
 

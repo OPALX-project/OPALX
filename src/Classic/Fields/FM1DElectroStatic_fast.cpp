@@ -16,7 +16,7 @@ FM1DElectroStatic_fast::FM1DElectroStatic_fast(std::string aFilename):
 {
 
     Type = T1DElectroStatic;
-    onAxisField_m = NULL;
+    onAxisField_m = nullptr;
 
     std::ifstream fieldFile(Filename_m.c_str());
     if (fieldFile.good()) {
@@ -46,7 +46,7 @@ FM1DElectroStatic_fast::~FM1DElectroStatic_fast() {
 }
 
 void FM1DElectroStatic_fast::readMap() {
-    if (onAxisField_m == NULL) {
+    if (onAxisField_m == nullptr) {
 
         std::ifstream fieldFile(Filename_m.c_str());
         stripFileHeader(fieldFile);
@@ -79,9 +79,9 @@ void FM1DElectroStatic_fast::readMap() {
 }
 
 void FM1DElectroStatic_fast::freeMap() {
-    if (onAxisField_m != NULL) {
+    if (onAxisField_m != nullptr) {
         delete [] onAxisField_m;
-        onAxisField_m = NULL;
+        onAxisField_m = nullptr;
 
         gsl_spline_free(onAxisFieldInterpolants_m);
         gsl_spline_free(onAxisFieldPInterpolants_m);

@@ -27,7 +27,7 @@
 OpalRCollimator::OpalRCollimator():
     OpalElement(SIZE, "RCOLLIMATOR",
                 "The \"RCOLLIMATOR\" element defines a rectangular collimator."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[XSIZE] = Attributes::makeReal
                      ("XSIZE", "Horizontal half-aperture in m");
     itsAttr[YSIZE] = Attributes::makeReal
@@ -41,7 +41,7 @@ OpalRCollimator::OpalRCollimator():
 
 OpalRCollimator::OpalRCollimator(const std::string& name, OpalRCollimator* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new FlexibleCollimatorRep(name));
 }
 
@@ -74,7 +74,7 @@ void OpalRCollimator::update() {
         coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
     }
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

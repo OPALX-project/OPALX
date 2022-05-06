@@ -48,7 +48,7 @@ IndexMap::IndexMap():
 { }
 
 void IndexMap::print(std::ostream &out) const {
-    if (mapRange2Element_m.size() == 0) return;
+    if (mapRange2Element_m.empty()) return;
 
     out << "* Size of map " << mapRange2Element_m.size() << " sections " << std::endl;
     out << std::fixed << std::setprecision(6);
@@ -149,7 +149,7 @@ void IndexMap::tidyUp(double zstop) {
     map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
 
     if (rit != mapRange2Element_m.rend() &&
-        (*rit).second.size() == 0 &&
+        (*rit).second.empty() &&
         zstop > (*rit).first.begin) {
 
         key_t key{(*rit).first.begin, zstop};
@@ -175,7 +175,7 @@ enum elements {
 };
 
 void IndexMap::saveSDDS(double initialPathLength) const {
-    if (mapRange2Element_m.size() == 0) return;
+    if (mapRange2Element_m.empty()) return;
 
     std::vector<std::tuple<double, std::vector<double>, std::string> > sectors;
 
@@ -191,7 +191,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
     auto mapItf = mapRange2Element_m.end();
     for (; mapIti != mapItf; mapIti++) {
         const auto &sectorElements = (*mapIti).second;
-        if (sectorElements.size() == 0)
+        if (sectorElements.empty())
             continue;
 
         const auto &sectorRange = (*mapIti).first;
@@ -287,7 +287,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
     }
 
     // add row if range of first sector starts after initialPathLength
-    if (sectors.size() > 0 &&
+    if (!sectors.empty() &&
         std::get<0>(sectors[0]) > initialPathLength) {
         auto tmp = sectors;
         sectors = std::vector<std::tuple<double, std::vector<double>, std::string> >(1);
@@ -305,7 +305,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 
     for (auto sector: sectors) {
         std::string names = std::get<2>(sector);
-        if (names != "") {
+        if (!names.empty()) {
             names = names.substr(0, names.length() - 2);
         }
         names = "\"" + names + "\"";

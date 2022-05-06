@@ -58,8 +58,8 @@ void Call::execute() {
     std::string file = Attributes::getString(itsAttr[0]);
 
     if (Options::info && Ippl::myNode() == 0) {
-        *gmsg << "* Reading input stream \"" << file
-              << "\" from CALL command.\n" << endl;
+        *gmsg << "* Reading input stream '" << file
+              << "' from \"CALL\" command.\n" << endl;
     }
 
     OpalParser().run(new FileStream(file));

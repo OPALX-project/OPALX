@@ -68,6 +68,7 @@
 #include "Algorithms/Quaternion.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
+#include "Structure/BoundingBox.h"
 #include "MemoryManagement/RCObject.h"
 #include "Utilities/GeneralClassicException.h"
 
@@ -252,13 +253,13 @@ public:
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns NULL.
+    //  If the attribute does not exist, it returns nullptr.
     virtual Channel *getChannel(const std::string &aKey, bool create = false);
 
     /// Construct a read-only channel.
     //  This method constructs a Channel permitting read-only access to
     //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns NULL.
+    //  If the attribute does not exist, it returns nullptr.
     virtual const ConstChannel *getConstChannel(const std::string &aKey) const;
 
     /// Apply visitor.
@@ -341,35 +342,6 @@ public:
     /// Set rotation about z axis in bend frame.
     void setRotationAboutZ(double rotation);
     double getRotationAboutZ() const;
-
-    struct BoundingBox {
-        Vector_t lowerLeftCorner;
-        Vector_t upperRightCorner;
-
-        static BoundingBox getBoundingBox(const std::vector<Vector_t> & points);
-
-        void getCombinedBoundingBox(const BoundingBox & other) {
-            for (unsigned int d = 0; d < 3; ++ d) {
-                lowerLeftCorner[d] = std::min(lowerLeftCorner[d], other.lowerLeftCorner[d]);
-                upperRightCorner[d] = std::max(upperRightCorner[d], other.upperRightCorner[d]);
-            }
-        }
-
-        bool isInside(const Vector_t &) const;
-
-        void print(std::ostream &) const;
-
-        /*! Computes the intersection point between a bounding box and the ray which
-         *  has the direction 'direction' and starts at the position 'position'. If
-         *  the position is inside the box then the algorithm should find an inter-
-         *  section point.
-         *
-         *  @param position the position where the ray starts
-         *  @param direction the direction of the ray
-         */
-        boost::optional<Vector_t> getPointOfIntersection(const Vector_t & position,
-                                                         const Vector_t & direction) const;
-    };
 
     virtual BoundingBox getBoundingBoxInLabCoords() const;
 
@@ -496,7 +468,7 @@ WakeFunction *ElementBase::getWake() const
 
 inline
 bool ElementBase::hasWake() const
-{ return wake_m != NULL; }
+{ return wake_m != nullptr; }
 
 inline
 BoundaryGeometry *ElementBase::getBoundaryGeometry() const
@@ -504,7 +476,7 @@ BoundaryGeometry *ElementBase::getBoundaryGeometry() const
 
 inline
 bool ElementBase::hasBoundaryGeometry() const
-{ return bgeometry_m != NULL; }
+{ return bgeometry_m != nullptr; }
 
 inline
 ParticleMatterInteractionHandler *ElementBase::getParticleMatterInteraction() const
@@ -512,7 +484,7 @@ ParticleMatterInteractionHandler *ElementBase::getParticleMatterInteraction() co
 
 inline
 bool ElementBase::hasParticleMatterInteraction() const
-{ return parmatint_m != NULL; }
+{ return parmatint_m != nullptr; }
 
 inline
 void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo &trafo) {
@@ -588,7 +560,7 @@ inline
 void ElementBase::setActionRange(const std::queue<std::pair<double, double> > &range) {
     actionRange_m = range;
 
-    if (actionRange_m.size() > 0)
+    if (!actionRange_m.empty())
         elementEdge_m = actionRange_m.front().first;
 }
 

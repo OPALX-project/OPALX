@@ -46,6 +46,7 @@
 #include "Solvers/CSRWakeFunction.h"
 #include "Solvers/ParticleMatterInteractionHandler.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/BoundingBox.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
@@ -61,11 +62,11 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
                                    bool revBeam,
                                    bool revTrack):
     Tracker(beamline, reference, revBeam, revTrack),
-    itsDataSink_m(NULL),
+    itsDataSink_m(nullptr),
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
     globalEOL_m(false),
     wakeStatus_m(false),
-    wakeFunction_m(NULL),
+    wakeFunction_m(nullptr),
     pathLength_m(0.0),
     zstart_m(0.0),
     dtCurrentTrack_m(0.0),
@@ -97,7 +98,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
     globalEOL_m(false),
     wakeStatus_m(false),
-    wakeFunction_m(NULL),
+    wakeFunction_m(nullptr),
     pathLength_m(0.0),
     zstart_m(zstart),
     dtCurrentTrack_m(0.0),
@@ -253,6 +254,7 @@ void ParallelTTracker::execute() {
                       itsOpalBeamline_m);
 
     oth.execute();
+    BoundingBox globalBoundingBox = oth.getBoundingBox();
 
     saveCavityPhases();
 
@@ -323,7 +325,7 @@ void ParallelTTracker::execute() {
             }
             itsBunch_m->set_sPos(pathLength_m);
 
-            if (hasEndOfLineReached()) break;
+            if (hasEndOfLineReached(globalBoundingBox)) break;
 
             bool const psDump = ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
             bool const statDump = ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
@@ -649,8 +651,8 @@ void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
             hasWake = true;
 
-            if ((*it)->getWake()->getType() == "CSRWakeFunction" ||
-                (*it)->getWake()->getType() == "CSRIGFWakeFunction") {
+            if ((*it)->getWake()->getType() == WakeType::CSRWakeFunction ||
+                (*it)->getWake()->getType() == WakeType::CSRIGFWakeFunction) {
                 if ((*it)->getType() == ElementType::RBEND ||
                     (*it)->getType() == ElementType::SBEND) {
                     wfInstance = (*it)->getWake();
@@ -778,7 +780,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
         do {
             ///all particles in material if max per node is 2 and other degraders have 0 particles
             //check if more than one degrader has particles
-            ParticleMatterInteractionHandler* onlyDegraderWithParticles = NULL;
+            ParticleMatterInteractionHandler* onlyDegraderWithParticles = nullptr;
             int degradersWithParticlesCount = 0;
             for (auto it: activeParticleMatterInteractionHandlers_m) {
                 it->setFlagAllParticlesIn(false);
@@ -965,8 +967,9 @@ void ParallelTTracker::setOptionalVariables() {
 }
 
 
-bool ParallelTTracker::hasEndOfLineReached() {
+bool ParallelTTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
     reduce(&globalEOL_m, &globalEOL_m + 1, &globalEOL_m, OpBitwiseAndAssign());
+    globalEOL_m = globalEOL_m || globalBoundingBox.isOutside(itsBunch_m->RefPartR_m);
     return globalEOL_m;
 }
 
@@ -1017,7 +1020,7 @@ void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bo
     if (statDump) {
         std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
         FieldList collimators = itsOpalBeamline_m.getElementByType(ElementType::CCOLLIMATOR);
-        if (collimators.size() != 0) {
+        if (!collimators.empty()) {
             for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
                 FlexibleCollimator* coll = static_cast<FlexibleCollimator*>(it->getElement().get());
                 std::string name = coll->getName();
@@ -1333,7 +1336,7 @@ void ParallelTTracker::evenlyDistributeParticles() {
 
     std::vector<char> send_msgbuf;
 
-    if (send.size() > 0) {
+    if (!send.empty()) {
         const char *buffer;
 
         unsigned int totalSend = 0, startIndex = 0;
@@ -1419,7 +1422,7 @@ void ParallelTTracker::evenlyDistributeParticles() {
         delete[] recvbuf;
     }
 
-    if (requests.size() > 0) {
+    if (!requests.empty()) {
         MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
     }
 }

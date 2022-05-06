@@ -2,7 +2,7 @@
 // Class Distribution
 //   This class defines the initial beam that is injected or emitted into the simulation.
 //
-// Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2008 - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -57,17 +57,6 @@ enum class DistributionType: short {
     GUNGAUSSFLATTOPTH,
     ASTRAFLATTOPTH,
     MATCHEDGAUSS
-};
-
-enum class EmissionModel: unsigned short {
-    NONE,
-    ASTRA,
-    NONEQUIL
-};
-
-enum class InputMomentumUnits: unsigned short {
-    NONE,
-    EVOVERC
 };
 
 namespace Attrib
@@ -237,6 +226,7 @@ public:
     Vector_t get_pmean() const;
 
     std::string getTypeofDistribution();
+    DistributionType getType() const;
 
     Inform &printInfo(Inform &os) const;
 
@@ -250,10 +240,18 @@ public:
 
     void setNumberOfDistributions(unsigned int n) { numberOfDistributions_m = n; }
 
-    DistributionType getType() const;
-
 
 private:
+    enum class EmissionModel: unsigned short {
+        NONE,
+        ASTRA,
+        NONEQUIL
+    };
+
+    enum class InputMomentumUnits: unsigned short {
+        NONE,
+        EVOVERC
+    };
 
 #ifdef WITH_UNIT_TESTS
     FRIEND_TEST(GaussTest, FullSigmaTest1);
@@ -297,6 +295,7 @@ private:
     void checkEmissionParameters();
     void checkIfEmitted();
     void checkParticleNumber(size_t &numberOfParticles);
+    void checkFileMomentum();
     void chooseInputMomentumUnits(InputMomentumUnits inputMoUnits);
     size_t getNumberOfParticlesInFile(std::ifstream &inputFile);
 
@@ -384,8 +383,8 @@ private:
     void writeOutFileEmission();
     void writeOutFileInjection();
 
-    std::string distT_m;                 /// Distribution type. Declared as string
-    DistributionType distrTypeT_m; /// and list type for switch statements.
+    std::string distT_m;                 /// Distribution type strings.
+    DistributionType distrTypeT_m;       /// List of Distribution types.
 
     unsigned int numberOfDistributions_m;
 
@@ -490,6 +489,8 @@ private:
     double sigmaRise_m;
     double sigmaFall_m;
     double cutoff_m;
+
+    std::string outFilename_m;
 };
 
 inline Inform &operator<<(Inform &os, const Distribution &d) {
@@ -513,7 +514,7 @@ double Distribution::getPercentageEmitted() const {
 
 inline
 std::string Distribution::getTypeofDistribution() {
-    return (std::string) Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
+    return distT_m;
 }
 
 #endif // OPAL_Distribution_HH

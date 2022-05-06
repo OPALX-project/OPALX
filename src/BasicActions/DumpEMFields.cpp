@@ -28,24 +28,20 @@
 
 #include <boost/filesystem.hpp>
 
-#include <fstream>
 #include <cmath>
+#include <fstream>
+#include <map>
 
 extern Inform* gmsg;
 
 std::unordered_set<DumpEMFields*> DumpEMFields::dumpsSet_m;
-
-const std::map<std::string, DumpEMFields::CoordinateSystem> DumpEMFields::stringCoordinateSystem_s = {
-    {"CARTESIAN",   CoordinateSystem::CARTESIAN},
-    {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
-};
 
 DumpEMFields::DumpEMFields() :
     Action(SIZE, "DUMPEMFIELDS",
            "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
            "field file, for checking that fields are generated correctly. "
            "The fields are written out on a grid in space and time."),
-    grid_m(NULL),
+    grid_m(nullptr),
     filename_m("") {
 
     // would be nice if "steps" could be integer
@@ -113,7 +109,7 @@ DumpEMFields::DumpEMFields() :
 }
 
 DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent):
-    Action(name, parent), grid_m(NULL)
+    Action(name, parent), grid_m(nullptr)
 {}
 
 DumpEMFields::~DumpEMFields() {
@@ -123,7 +119,7 @@ DumpEMFields::~DumpEMFields() {
 
 DumpEMFields* DumpEMFields::clone(const std::string& name) {
     DumpEMFields* dumper = new DumpEMFields(name, this);
-    if (grid_m != NULL) {
+    if (grid_m != nullptr) {
         dumper->grid_m = grid_m->clone();
     }
     dumper->filename_m = filename_m;
@@ -135,8 +131,11 @@ DumpEMFields* DumpEMFields::clone(const std::string& name) {
 }
 
 void DumpEMFields::parseCoordinateSystem() {
-    std::string coordStr = Attributes::getString(itsAttr[COORDINATE_SYSTEM]);
-    coordinates_m = stringCoordinateSystem_s.at(coordStr);
+    static const std::map<std::string, CoordinateSystem> stringCoordinateSystem_s = {
+        {"CARTESIAN",   CoordinateSystem::CARTESIAN},
+        {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
+    };
+    coordinates_m = stringCoordinateSystem_s.at(Attributes::getString(itsAttr[COORDINATE_SYSTEM]));
 }
 
 void DumpEMFields::execute() {
@@ -199,7 +198,7 @@ void DumpEMFields::buildGrid() {
     checkInt(nt, "T_STEPS");
     gridSize[3] = nt;
 
-    if (grid_m != NULL) {
+    if (grid_m != nullptr) {
         delete grid_m;
     }
 
@@ -294,13 +293,13 @@ void DumpEMFields::writeFieldLine(Component* field,
 }
 
 void DumpEMFields::writeFieldThis(Component* field) {
-    if (grid_m == NULL) {
+    if (grid_m == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "The grid was NULL; there was a problem with the DumpEMFields initialisation.");
+                            "The grid was nullptr; there was a problem with the DumpEMFields initialisation.");
     }
-    if (field == NULL) {
+    if (field == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "The field to be written was NULL.");
+                            "The field to be written was nullptr.");
     }
 
     *gmsg << *this << endl;
@@ -349,7 +348,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
 
 void DumpEMFields::print(std::ostream& os) const {
     os << "* ************* D U M P  E M  F I E L D S ****************************************** " << std::endl;
-    os << "* File name: " << filename_m << '\n';
+    os << "* File name: '" << filename_m << "'\n";
     if (coordinates_m == CoordinateSystem::CARTESIAN) {
         os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
            << "* X_START   = " << Attributes::getReal(itsAttr[X_START]) << " [m]\n"

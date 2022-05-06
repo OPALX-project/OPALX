@@ -219,7 +219,7 @@ std::ostream& operator<<(std::ostream& out, const SquarePolynomialVector& spv)
 
 void SquarePolynomialVector::PrintHeader(std::ostream& out, char int_separator, char str_separator, int length, bool pad_at_start) const
 {
-  if(_polyKeyByPower[_pointDim-1].size() > 0) PrintContainer< std::vector<int> >(out, _polyKeyByPower[_pointDim-1][0], int_separator, str_separator, length-1, pad_at_start);
+    if(!_polyKeyByPower[_pointDim-1].empty()) PrintContainer< std::vector<int> >(out, _polyKeyByPower[_pointDim-1][0], int_separator, str_separator, length-1, pad_at_start);
   for(unsigned int i=1; i<_polyCoeffs.num_col(); ++i)
     PrintContainer<std::vector<int> >(out, _polyKeyByPower[_pointDim-1][i], int_separator, str_separator, length, pad_at_start);
 }
@@ -257,10 +257,10 @@ unsigned int SquarePolynomialVector::PolynomialOrder() const {
 }
 
 SquarePolynomialVector SquarePolynomialVector::Deriv(const int* derivPower) const {
-    if (derivPower == NULL) {
+    if (derivPower == nullptr) {
         throw(GeneralClassicException(
             "SquarePolynomialVector::Deriv",
-            "Derivative points to NULL"
+            "Derivative points to nullptr"
         ));
     }
     MMatrix<double> newPolyCoeffs(_polyCoeffs.num_row(),  _polyCoeffs.num_col(), 0.);

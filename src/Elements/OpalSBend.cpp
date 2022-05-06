@@ -28,8 +28,8 @@
 OpalSBend::OpalSBend():
     OpalBend("SBEND",
              "The \"SBEND\" element defines a sector bending magnet."),
-    owk_m(NULL),
-    parmatint_m(NULL) {
+    owk_m(nullptr),
+    parmatint_m(nullptr) {
 
     registerOwnership();
 
@@ -39,8 +39,8 @@ OpalSBend::OpalSBend():
 
 OpalSBend::OpalSBend(const std::string& name, OpalSBend* parent):
     OpalBend(name, parent),
-    owk_m(NULL),
-    parmatint_m(NULL) {
+    owk_m(nullptr),
+    parmatint_m(nullptr) {
     setElement((new SBendRep(name)));
 }
 
@@ -170,7 +170,7 @@ void OpalSBend::update() {
         bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({0.5, gap, 1.0}));
     }
 
-    if (itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
+    if (itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*bend);
         bend->setWake(owk_m->wf_m);
@@ -182,7 +182,7 @@ void OpalSBend::update() {
         bend->setK1(0.0);
     }
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

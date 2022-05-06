@@ -78,10 +78,10 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
     derivIndices_m(),
     edgePoints_m(),
     smoothingPoints_m() {
-    if (points == NULL) {
+    if (points == nullptr) {
         throw GeneralClassicException(
                           "PPSolveFactory::Solve",
-                          "NULL Mesh input to Solve");
+                          "nullptr Mesh input to Solve");
     }
     if (points->end().toInteger() != int(values.size())) {
         std::stringstream ss;
@@ -98,10 +98,10 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
                 "Polynomial order must be <= smoothing order in Solve");
     }
     polyMesh_m = points->dual();
-    if (polyMesh_m == NULL)
+    if (polyMesh_m == nullptr)
         throw GeneralClassicException(
                           "PPSolveFactory::Solve",
-                          "Dual of Mesh was NULL");
+                          "Dual of Mesh was nullptr");
     polyDim_m = values[0].size();
     int posDim = points->getPositionDimension();
 
@@ -297,7 +297,7 @@ PolynomialPatch* PPSolveFactory::solve() {
     Mesh::Iterator begin = points_m->begin();
     Mesh::Iterator end = points_m->end()-1;
     int meshSize = polyMesh_m->end().toInteger();
-    polynomials_m = std::vector<SquarePolynomialVector*>(meshSize, NULL);
+    polynomials_m = std::vector<SquarePolynomialVector*>(meshSize, nullptr);
     // get the list of points that are needed to make a given poly vector
     getPoints();
     getDerivPoints();

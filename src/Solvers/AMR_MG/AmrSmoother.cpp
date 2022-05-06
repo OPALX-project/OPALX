@@ -84,7 +84,7 @@ void AmrSmoother::initParameter_m(const Smoother& smoother,
         params_mp = Teuchos::rcp( new Teuchos::ParameterList );
 
 
-    std::string type = "";
+    std::string type;
     scalar_t damping = 1.0;
     std::pair<bool, scalar_t> l1 = std::make_pair(true, 1.5);
 

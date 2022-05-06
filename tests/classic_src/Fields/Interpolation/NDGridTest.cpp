@@ -35,7 +35,7 @@ namespace ndgridtest {
 
 class NDGridTest : public ::testing::Test {
 public:
-    NDGridTest() : grid_m(NULL) {
+    NDGridTest() : grid_m(nullptr) {
     }
 
     void SetUp( ) {
@@ -52,9 +52,9 @@ public:
 
     void TearDown( ) {
         delete grid_m;
-        grid_m = NULL;
+        grid_m = nullptr;
         delete grid2_m;
-        grid2_m = NULL;
+        grid2_m = nullptr;
     }
 
     ~NDGridTest() {
@@ -92,7 +92,7 @@ TEST_F(NDGridTest, Constructor2Test) {
     std::vector<int> size(2);
     size[0] = 2;
     size[1] = 3;
-    std::vector<const double*> gridCoordinates(2, NULL);
+    std::vector<const double*> gridCoordinates(2, nullptr);
     const double vec1[] = {0., 2.};
     const double vec2[] = {1., 5., 9.};
     gridCoordinates[0] = vec1;
