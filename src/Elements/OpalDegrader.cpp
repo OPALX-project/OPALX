@@ -24,7 +24,7 @@
 OpalDegrader::OpalDegrader():
     OpalElement(SIZE, "DEGRADER",
                 "The \"DEGRADER\" element defines a degrader."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[XSIZE] = Attributes::makeReal
         ("XSIZE", "not used",0.0);
     itsAttr[YSIZE] = Attributes::makeReal
@@ -38,7 +38,7 @@ OpalDegrader::OpalDegrader():
 
 OpalDegrader::OpalDegrader(const std::string& name, OpalDegrader* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new DegraderRep(name));
 }
 
@@ -63,7 +63,7 @@ void OpalDegrader::update() {
     double length = Attributes::getReal(itsAttr[LENGTH]);
     deg->setElementLength(length);
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

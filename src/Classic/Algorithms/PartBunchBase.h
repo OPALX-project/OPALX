@@ -24,12 +24,14 @@
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
 #include "Algorithms/Vektor.h"
+#include "Distribution/Distribution.h"
 #include "FixedAlgebra/FMatrix.h"
 #include "FixedAlgebra/FVector.h"
 #include "Particle/AbstractParticle.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Units.h"
+#include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utility/IpplTimings.h"
 
@@ -42,7 +44,6 @@ class FieldSolver;
 class PartBins;
 class PartBinsCyc;
 class PartData;
-
 
 template <class T, unsigned Dim>
 class PartBunchBase : std::enable_shared_from_this<PartBunchBase<T, Dim>>
@@ -96,6 +97,9 @@ public:
     void setDistribution(Distribution* d,
                          std::vector<Distribution*> addedDistributions,
                          size_t& np);
+    void setDistribution(Distribution* d,
+                         size_t numberOfParticles,
+                         double current, const Beamline& bl);
 
     bool isGridFixed() const;
 
@@ -364,7 +368,7 @@ public:
 
     bool hasFieldSolver();
 
-    std::string getFieldSolverType() const;
+    FieldSolverType getFieldSolverType() const;
 
     void setStepsPerTurn(int n);
     int getStepsPerTurn() const;
@@ -433,6 +437,8 @@ public:
     const PartData* getReference() const;
 
     double getEmissionDeltaT();
+
+    DistributionType getDistType() const;
 
     Quaternion_t getQKs3D();
     void         setQKs3D(Quaternion_t q);

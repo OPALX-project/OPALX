@@ -38,9 +38,9 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
 
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        INFOMSG("* Appending data to existing data file: " << fname_m << endl);
+        INFOMSG("* Appending data to existing data file: '" << fname_m << "'" << endl);
     } else {
-        INFOMSG("* Creating new file for data: " << fname_m << endl);
+        INFOMSG("* Creating new file for data: '" << fname_m << "'" << endl);
     }
 }
 
@@ -104,7 +104,7 @@ void SDDSWriter::replaceVersionString() {
 
     if (!fs.is_open()) return;
 
-    while (allLines.size() > 0) {
+    while (!allLines.empty()) {
         line = allLines.front();
 
         if (line != versionFile) {

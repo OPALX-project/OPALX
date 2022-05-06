@@ -11,9 +11,9 @@
 
 FM3DMagnetoStatic::FM3DMagnetoStatic(std::string aFilename):
     Fieldmap(aFilename),
-    FieldstrengthBz_m(NULL),
-    FieldstrengthBx_m(NULL),
-    FieldstrengthBy_m(NULL) {
+    FieldstrengthBz_m(nullptr),
+    FieldstrengthBx_m(nullptr),
+    FieldstrengthBy_m(nullptr) {
 
     std::string tmpString;
     double tmpDouble;
@@ -90,7 +90,7 @@ FM3DMagnetoStatic::~FM3DMagnetoStatic() {
 }
 
 void FM3DMagnetoStatic::readMap() {
-    if(FieldstrengthBz_m == NULL) {
+    if(FieldstrengthBz_m == nullptr) {
 
     	std::ifstream in(Filename_m.c_str());
         std::string tmpString;
@@ -145,14 +145,14 @@ void FM3DMagnetoStatic::readMap() {
 }
 
 void FM3DMagnetoStatic::freeMap() {
-    if(FieldstrengthBz_m != NULL) {
+    if(FieldstrengthBz_m != nullptr) {
         delete[] FieldstrengthBz_m;
         delete[] FieldstrengthBx_m;
         delete[] FieldstrengthBy_m;
 
-        FieldstrengthBz_m = NULL;
-        FieldstrengthBx_m = NULL;
-        FieldstrengthBy_m = NULL;
+        FieldstrengthBz_m = nullptr;
+        FieldstrengthBx_m = nullptr;
+        FieldstrengthBy_m = nullptr;
 
         INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << "\n"
                 << endl);

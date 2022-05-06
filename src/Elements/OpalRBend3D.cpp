@@ -28,7 +28,7 @@
 OpalRBend3D::OpalRBend3D():
     OpalElement(SIZE, "RBEND3D", "The \"RBEND3D\" element defines an RBEND with 3D field maps"),
     owk_m(0),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[ANGLE]  = Attributes::makeReal
                       ("ANGLE", "Upright dipole coefficient in m^(-1)");
     itsAttr[K0]     = Attributes::makeReal
@@ -54,7 +54,7 @@ OpalRBend3D::OpalRBend3D():
 OpalRBend3D::OpalRBend3D(const std::string& name, OpalRBend3D* parent):
     OpalElement(name, parent),
     owk_m(0),
-    parmatint_m(NULL)
+    parmatint_m(nullptr)
 {
     setElement(new RBend3D(name));
 }
@@ -131,13 +131,13 @@ void OpalRBend3D::update() {
     } else
         bend->setElementLength(0.0);
 
-    if (itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == NULL) {
+    if (itsAttr[WAKEF] && itsAttr[DESIGNENERGY] && owk_m == nullptr) {
         owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
         owk_m->initWakefunction(*bend);
         bend->setWake(owk_m->wf_m);
     }
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

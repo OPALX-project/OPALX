@@ -118,7 +118,7 @@ private:
     virtual void buildGrid();
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
 
-    interpolation::ThreeDGrid* grid_m = NULL;
+    interpolation::ThreeDGrid* grid_m = nullptr;
 
     std::string filename_m;
 

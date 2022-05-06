@@ -145,9 +145,9 @@ ElementBase::ElementBase(const std::string &name):
     rotationZAxis_m(0.0),
     elementID(name),
     userAttribs(),
-    wake_m(NULL),
-    bgeometry_m(NULL),
-    parmatint_m(NULL),
+    wake_m(nullptr),
+    bgeometry_m(nullptr),
+    parmatint_m(nullptr),
     positionIsFixed(false),
     elementPosition_m(0.0),
     elemedgeSet_m(false),
@@ -188,7 +188,7 @@ std::string ElementBase::getOutputFN() const {
 double ElementBase::getAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
-    if (aChannel != NULL) {
+    if (aChannel != nullptr) {
         double val = *aChannel;
         delete aChannel;
         return val;
@@ -201,7 +201,7 @@ double ElementBase::getAttribute(const std::string &aKey) const {
 bool ElementBase::hasAttribute(const std::string &aKey) const {
     const ConstChannel *aChannel = getConstChannel(aKey);
 
-    if (aChannel != NULL) {
+    if (aChannel != nullptr) {
         delete aChannel;
         return true;
     } else {
@@ -218,11 +218,11 @@ void ElementBase::removeAttribute(const std::string &aKey) {
 void ElementBase::setAttribute(const std::string &aKey, double val) {
     Channel *aChannel = getChannel(aKey, true);
 
-    if (aChannel != NULL  &&  aChannel->isSettable()) {
+    if (aChannel != nullptr  &&  aChannel->isSettable()) {
         *aChannel = val;
         delete aChannel;
     } else
-        std::cout << "Channel NULL or not Settable" << std::endl;
+        std::cout << "Channel nullptr or not Settable" << std::endl;
 }
 
 
@@ -277,9 +277,9 @@ void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler 
 }
 
 void ElementBase::setCurrentSCoordinate(double s) {
-    if (actionRange_m.size() > 0 && actionRange_m.front().second < s) {
+    if (!actionRange_m.empty() && actionRange_m.front().second < s) {
         actionRange_m.pop();
-        if (actionRange_m.size() > 0) {
+        if (!actionRange_m.empty()) {
             elementEdge_m = actionRange_m.front().first;
         }
     }
@@ -311,69 +311,7 @@ bool ElementBase::isInsideTransverse(const Vector_t &r) const
     }
 }
 
-ElementBase::BoundingBox ElementBase::BoundingBox::getBoundingBox(const std::vector<Vector_t> & points) {
-    const Vector_t & point = points.front();
-    BoundingBox result{point, point};
-    for (const Vector_t & point: points) {
-        BoundingBox tmp{point, point};
-        result.getCombinedBoundingBox(tmp);
-    }
-
-    return result;
-}
-
-bool ElementBase::BoundingBox::isInside(const Vector_t & position) const {
-    Vector_t relativePosition = position - lowerLeftCorner;
-    Vector_t diagonal = upperRightCorner - lowerLeftCorner;
-
-    for (unsigned int d = 0; d < 3; ++ d) {
-        if (relativePosition[d] < 0.0 ||
-            relativePosition[d] > diagonal[d]) {
-            return false;
-         }
-    }
-
-    return true;
-}
-
-boost::optional<Vector_t>
-ElementBase::BoundingBox::getPointOfIntersection(const Vector_t & position,
-                                                 const Vector_t & direction) const {
-    Vector_t relativePosition = lowerLeftCorner - position;
-    Vector_t diagonal = upperRightCorner - lowerLeftCorner;
-    Vector_t normalizedDirection = direction / euclidean_norm(direction);
-
-    for (int i : {-1, 1}) {
-        for (unsigned int d = 0; d < 3; ++ d) {
-            double projectedDirection = normalizedDirection[d];
-            if (std::abs(projectedDirection) < 1e-10) {
-                continue;
-            }
-
-            double distanceNearestPoint = relativePosition[d];
-            double tau = distanceNearestPoint / projectedDirection;
-            if (tau < 0) {
-                continue;
-            }
-            Vector_t delta = tau * normalizedDirection;
-            Vector_t relativeIntersectionPoint = i * (relativePosition - delta);
-
-            if (relativeIntersectionPoint[(d + 1) % 3] < 0.0 ||
-                relativeIntersectionPoint[(d + 1) % 3] > diagonal[(d + 1) % 3] ||
-                relativeIntersectionPoint[(d + 2) % 3] < 0.0 ||
-                relativeIntersectionPoint[(d + 2) % 3] > diagonal[(d + 2) % 3]) {
-                continue;
-            }
-
-            return position + delta;
-        }
-        relativePosition = upperRightCorner - position;
-    }
-
-    return boost::none;
-}
-
-ElementBase::BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
+BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
     CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
     CoordinateSystemTrafo toEnd = getEdgeToEnd() * csTrafoGlobal2Local_m;
 
@@ -390,41 +328,5 @@ ElementBase::BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
         }
     }
 
-    BoundingBox bb;
-    bb.lowerLeftCorner = bb.upperRightCorner = corners[0];
-
-    for (unsigned int i = 1; i < 8u; ++ i) {
-        for (unsigned int d = 0; d < 3u; ++ d) {
-            if (bb.lowerLeftCorner(d) > corners[i](d)) {
-                bb.lowerLeftCorner(d) = corners[i](d);
-            }
-            if (bb.upperRightCorner(d) < corners[i](d)) {
-                bb.upperRightCorner(d) = corners[i](d);
-            }
-        }
-    }
-
-    return bb;
-}
-
-void ElementBase::BoundingBox::print(std::ostream & out) const {
-    const Vector_t & ll = lowerLeftCorner;
-    const Vector_t & ur = upperRightCorner;
-    Vector_t diagonal = ur - ll;
-    Vector_t dX(diagonal(0), 0, 0), dY(0, diagonal(1), 0), dZ(0, 0, diagonal(2));
-
-    std::vector<Vector_t> corners{ll, ll + dX, ll + dX + dY, ll + dY, ur, ur - dX, ur - dX - dY, ur - dY};
-    std::vector<std::vector<unsigned int>> paths{{0, 1, 2, 3}, {0, 1, 7, 6}, {1, 2, 4, 7}, {2, 3, 5, 4}, {3, 0, 6, 5}, {4, 5, 6, 7}};
-
-    out << std::setprecision(8);
-    for (const std::vector<unsigned int>& path: paths) {
-        for (unsigned int i : {0, 1, 2, 3, 0}) {
-            const Vector_t & corner = corners[path[i]];
-            out << std::setw(16) << corner(0)
-                << std::setw(16) << corner(1)
-                << std::setw(16) << corner(2)
-                << std::endl;
-        }
-        out << std::endl;
-    }
+    return BoundingBox::getBoundingBox(corners);
 }

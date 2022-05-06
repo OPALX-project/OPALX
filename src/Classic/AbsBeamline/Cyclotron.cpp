@@ -43,23 +43,13 @@
 #include <cstring>
 #include <cstdio>
 #include <fstream>
+#include <map>
 
 #define CHECK_CYC_FSCANF_EOF(arg) if (arg == EOF)\
 throw GeneralClassicException("Cyclotron::getFieldFromFile",\
                               "fscanf returned EOF at " #arg);
 
 extern Inform* gmsg;
-
-
-const std::map<std::string, BFieldType> Cyclotron::typeStringToBFieldType_s = {
-    {"RING",             BFieldType::PSIBF},
-    {"CARBONCYCL",       BFieldType::CARBONBF},
-    {"CYCIAE",           BFieldType::ANSYSBF},
-    {"AVFEQ",            BFieldType::AVFEQBF},
-    {"FFA",              BFieldType::FFABF},
-    {"BANDRF",           BFieldType::BANDRF},
-    {"SYNCHROCYCLOTRON", BFieldType::SYNCHRO}
-};
 
 Cyclotron::Cyclotron():
     Component() {
@@ -186,7 +176,7 @@ bool Cyclotron::getSpiralFlag() const {
     return spiralFlag_m;
 }
 
-void Cyclotron::setFieldMapFN(std::string f) {
+void Cyclotron::setFieldMapFN(const std::string& f) {
     fmapfn_m = f;
 }
 
@@ -220,9 +210,9 @@ void Cyclotron::setRfPhi(std::vector<double> f) {
     rfphi_m = f;
 }
 
-double Cyclotron::getRfPhi(unsigned int i) const {
-    if (i < rfphi_m.size()) {
-        return rfphi_m[i];
+std::vector<double> Cyclotron::getRfPhi() const {
+    if (!rfphi_m.empty()) {
+        return rfphi_m;
     } else {
         throw GeneralClassicException("Cyclotron::getRfPhi",
                                       "RFPHI not defined for CYCLOTRON!");
@@ -233,9 +223,9 @@ void Cyclotron::setRfFrequ(std::vector<double> f) {
     rffrequ_m = f;
 }
 
-double Cyclotron::getRfFrequ(unsigned int i) const {
-    if (i < rffrequ_m.size()) {
-        return rffrequ_m[i];
+std::vector<double> Cyclotron::getRfFrequ() const {
+    if (!rffrequ_m.empty()) {
+        return rffrequ_m;
     } else {
         throw GeneralClassicException("Cyclotron::getRfFrequ",
                                       "RFFREQ not defined for CYCLOTRON!");
@@ -246,9 +236,9 @@ void Cyclotron::setSuperpose(std::vector<bool> flag) {
   superpose_m = flag;
 }
 
-bool Cyclotron::getSuperpose(unsigned int i) const {
-    if (i < superpose_m.size()) {
-        return superpose_m[i];
+std::vector<bool> Cyclotron::getSuperpose() const {
+    if (!superpose_m.empty()) {
+        return superpose_m;
     } else {
         throw GeneralClassicException("Cyclotron::getSuperpose",
                                       "SUPERPOSE not defined for CYCLOTRON!");
@@ -263,11 +253,11 @@ double Cyclotron::getSymmetry() const {
     return symmetry_m;
 }
 
-void Cyclotron::setCyclotronType(std::string t) {
-    typeName_m = t;
+void Cyclotron::setCyclotronType(const std::string& type) {
+    typeName_m = type;
 }
 
-const std::string &Cyclotron::getCyclotronType() const {
+const std::string& Cyclotron::getCyclotronType() const {
     return typeName_m;
 }
 
@@ -291,9 +281,9 @@ void Cyclotron::setEScale(std::vector<double> s) {
     escale_m = s;
 }
 
-double Cyclotron::getEScale(unsigned int i) const {
-    if (i < escale_m.size()) {
-        return escale_m[i];
+std::vector<double> Cyclotron::getEScale() const {
+    if (!escale_m.empty()) {
+        return escale_m;
     } else {
         throw GeneralClassicException("Cyclotron::getEScale",
                                       "EScale not defined for CYCLOTRON!");
@@ -377,6 +367,16 @@ double Cyclotron::getFMHighE() const {
 }
 
 void Cyclotron::setBFieldType() {
+    static const std::map<std::string, BFieldType> typeStringToBFieldType_s = {
+        {"RING",             BFieldType::PSIBF},
+        {"CARBONCYCL",       BFieldType::CARBONBF},
+        {"CYCIAE",           BFieldType::ANSYSBF},
+        {"AVFEQ",            BFieldType::AVFEQBF},
+        {"FFA",              BFieldType::FFABF},
+        {"BANDRF",           BFieldType::BANDRF},
+        {"SYNCHROCYCLOTRON", BFieldType::SYNCHRO}
+    };
+
     if (typeName_m.empty()) {
         throw GeneralClassicException(
                 "Cyclotron::setBFieldType",
@@ -384,6 +384,10 @@ void Cyclotron::setBFieldType() {
     } else {
         fieldType_m = typeStringToBFieldType_s.at(typeName_m);
     }
+}
+
+Cyclotron::BFieldType Cyclotron::getBFieldType() const {
+    return fieldType_m;
 }
 
 bool Cyclotron::apply(const size_t& id, const double& t, Vector_t& E, Vector_t& B) {
@@ -563,7 +567,7 @@ void Cyclotron::apply(const double& rad, const double& z,
 void Cyclotron::finalise() {
     online_m = false;
     lossDs_m->save();
-    *gmsg << "* Finalize cyclotron" << endl;
+    *gmsg << "* Finalize cyclotron " << getName() << endl;
 }
 
 bool Cyclotron::bends() const {
@@ -767,9 +771,6 @@ bool Cyclotron::interpolate(const double& rad,
 
 
 void Cyclotron::read(const double& scaleFactor) {
-
-    setBFieldType();
-
     switch (fieldType_m) {
         case BFieldType::PSIBF: {
             *gmsg << "* Read field data from PSI format field map file" << endl;
@@ -805,6 +806,10 @@ void Cyclotron::read(const double& scaleFactor) {
             *gmsg << "* Read midplane B-field, 3D RF fieldmaps, and text files with RF frequency/Voltage coefficients for Synchrocyclotron" << endl;
             getFieldFromFile_Synchrocyclotron(scaleFactor);
             break;
+        }
+        default: {
+            throw GeneralClassicException("Cyclotron::read",
+                                          "Unknown \"TYPE\" for the \"CYCLOTRON\" element!");
         }
     }
 
@@ -949,7 +954,7 @@ void Cyclotron::initialise(PartBunchBase<double, 3>* bunch, const double& scaleF
 // Read field map from external file.
 void Cyclotron::getFieldFromFile_Ring(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     int lpar;
     char fout[100];
     double dtmp;
@@ -1167,7 +1172,7 @@ void Cyclotron::getFieldFromFile_FFA(const double& /*scaleFactor*/) {
 
 void Cyclotron::getFieldFromFile_AVFEQ(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*        READ IN AVFEQ CYCLOTRON FIELD MAP      " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
@@ -1257,7 +1262,7 @@ void Cyclotron::getFieldFromFile_AVFEQ(const double& scaleFactor) {
 
 void Cyclotron::getFieldFromFile_Carbon(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     *gmsg << "* ----------------------------------------------" << endl;
     *gmsg << "*      READ IN CARBON CYCLOTRON FIELD MAP       " << endl;
     *gmsg << "* ----------------------------------------------" << endl;
@@ -1324,7 +1329,7 @@ void Cyclotron::getFieldFromFile_Carbon(const double& scaleFactor) {
 
 void Cyclotron::getFieldFromFile_CYCIAE(const double& scaleFactor) {
 
-    FILE *f = NULL;
+    FILE *f = nullptr;
     char fout[100];
     int dtmp;
 
@@ -1396,12 +1401,11 @@ void Cyclotron::getFieldFromFile_CYCIAE(const double& scaleFactor) {
 
 
 void Cyclotron::getFieldFromFile_BandRF(const double& scaleFactor) {
-
     // read 3D E&B field data file
     // loop over all field maps and superpose fields
     for (auto& fm: RFfilename_m) {
         Fieldmap *f = Fieldmap::getFieldmap(fm, false);
-        *gmsg << "* Reading " << fm << endl;
+        *gmsg << "* Reading '" << fm << "'" << endl;
         f->readMap();
         RFfields_m.push_back(f);
     }
@@ -1418,8 +1422,8 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double& scaleFactor) {
     std::vector<std::string>::const_iterator rfvcfni = RFVCoeff_fn_m.begin();
     // loop over all field maps and superpose fields
     int fcount = 0;
-    FILE *rffcf = NULL;
-    FILE *rfvcf = NULL;
+    FILE *rffcf = nullptr;
+    FILE *rfvcf = nullptr;
 
     *gmsg << endl;
     *gmsg << "* ------------------------------------------------------------" << endl;
@@ -1437,7 +1441,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double& scaleFactor) {
 
         rffcf = std::fopen((*rffcfni).c_str(), "r");
 
-        if (rffcf == NULL) {
+        if (rffcf == nullptr) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *rffcfni + "', please check if it exists");
@@ -1462,7 +1466,7 @@ void Cyclotron::getFieldFromFile_Synchrocyclotron(const double& scaleFactor) {
         *gmsg << "RF Voltage Coefficient Filename: " << (*rfvcfni) << endl;
 
         rfvcf = std::fopen((*rfvcfni).c_str(), "r");
-        if (rfvcf == NULL) {
+        if (rfvcf == nullptr) {
             throw GeneralClassicException(
                 "Cyclotron::getFieldFromFile_Synchrocyclotron",
                 "failed to open file '" + *rfvcfni + "', please check if it exists");

@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 
         char *startup = getenv("HOME");
         boost::filesystem::path p = strncat(startup, "/init.opal", 20);
-        if (startup != NULL && is_regular_file(p)) {
+        if (startup != nullptr && is_regular_file(p)) {
 
             FileStream::setEcho(false);
             FileStream *is;
@@ -198,19 +198,19 @@ int main(int argc, char *argv[]) {
                 is = new FileStream(startup);
             } catch(...) {
                 is = 0;
-                ERRORMSG("Could not open startup file \"" << startup << "\".\n"
+                ERRORMSG("Could not open startup file '" << startup << "'\n"
                          << "Note: this is not mandatory for an OPAL simulation!\n");
             }
 
             if(is) {
-                *gmsg << "Reading startup file \"" << startup << "\"." << endl;
+                *gmsg << "Reading startup file '" << startup << "'" << endl;
                 parser.run(is);
                 *gmsg << "Finished reading startup file." << endl;
             }
             FileStream::setEcho(Options::echo);
         } else {
             *gmsg << level5
-                  << "Couldn't find startup file \"" << startup << "\".\n"
+                  << "Couldn't find startup file '" << startup << "'\n"
                   << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
         }
 
@@ -327,17 +327,18 @@ int main(int argc, char *argv[]) {
 
         fname = std::string(argv[inputFileArgument]);
         if (!fs::exists(fname)) {
-            INFOMSG("Input file \"" << fname << "\" doesn't exist!" << endl);
+            INFOMSG("Input file '" << fname << "' doesn't exist!" << endl);
             exit(1);
         }
 
         opal->storeInputFn(fname);
 
         if (opal->inRestartRun()) {
-            if (restartFileName == "")
+            if (restartFileName.empty()) {
                 restartFileName = opal->getInputBasename() + std::string(".h5");
+            }
             if (!fs::exists(restartFileName)) {
-                INFOMSG("Restart file \"" << restartFileName << "\" doesn't exist!" << endl);
+                INFOMSG("Restart file '" << restartFileName << "' doesn't exist!" << endl);
                 exit(1);
             }
             opal->setRestartFileName(restartFileName);
@@ -349,13 +350,13 @@ int main(int argc, char *argv[]) {
             is = new FileStream(fname);
         } catch(...) {
             is = 0;
-            *gmsg << "Input file \"" << fname << "\" not found." << endl;
+            *gmsg << "Input file '" << fname << "' not found." << endl;
         }
 
         if(is) {
-            *gmsg << "* Reading input stream \"" << fname << "\"." << endl;
+            *gmsg << "* Reading input stream '" << fname << "'" << endl;
             parser.run(is);
-            *gmsg << "* End of input stream \"" << fname << "\"." << endl;
+            *gmsg << "* End of input stream '" << fname << "'" << endl;
         }
 
         if(Ippl::myNode() == 0) {

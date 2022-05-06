@@ -26,7 +26,7 @@
 OpalFlexibleCollimator::OpalFlexibleCollimator():
     OpalElement(SIZE, "FLEXIBLECOLLIMATOR",
                 "The \"FLEXIBLECOLLIMATOR\" element defines a flexible collimator."),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     itsAttr[FNAME] = Attributes::makeString
                      ("FNAME", "File name containing description of holes");
     itsAttr[DESC]  = Attributes::makeString
@@ -41,7 +41,7 @@ OpalFlexibleCollimator::OpalFlexibleCollimator():
 
 OpalFlexibleCollimator::OpalFlexibleCollimator(const std::string& name, OpalFlexibleCollimator* parent):
     OpalElement(name, parent),
-    parmatint_m(NULL) {
+    parmatint_m(nullptr) {
     setElement(new FlexibleCollimatorRep(name));
 }
 
@@ -68,7 +68,7 @@ void OpalFlexibleCollimator::update() {
 
     std::string fname = Attributes::getString(itsAttr[FNAME]);
     std::string desc = Attributes::getString(itsAttr[DESC]);
-    if (fname != "") {
+    if (!fname.empty()) {
         std::ifstream it(fname);
         std::string str((std::istreambuf_iterator<char>(it)),
                         std::istreambuf_iterator<char>());
@@ -77,7 +77,7 @@ void OpalFlexibleCollimator::update() {
         str = boost::regex_replace(str, boost::regex("\\s"), std::string(""), boost::match_default | boost::format_all);
 
         coll->setDescription(str);
-    } else if (desc != "") {
+    } else if (!desc.empty()) {
         desc = boost::regex_replace(desc, boost::regex("[\\t ]"), std::string(""), boost::match_default | boost::format_all);
         coll->setDescription(desc);
     } else if (getOpalName() != "FLEXIBLECOLLIMATOR") {
@@ -86,7 +86,7 @@ void OpalFlexibleCollimator::update() {
     }
     coll->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == NULL) {
+    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
         const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
         ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
         parmatint_m = orig->clone(matterDescriptor);

@@ -46,7 +46,9 @@ H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::
     numSteps_m(0),
     startedFromExistingFile_m(true)
 {
-    if (sourceFile == "") sourceFile = fileName_m;
+    if (sourceFile.empty()) {
+        sourceFile = fileName_m;
+    }
 
     copyFile(sourceFile, restartStep, flags);
 

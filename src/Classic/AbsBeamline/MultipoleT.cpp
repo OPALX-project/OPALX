@@ -88,7 +88,7 @@ ElementBase* MultipoleT::clone() const {
 }
 
 void MultipoleT::finalise() {
-    RefPartBunch_m = NULL;
+    RefPartBunch_m = nullptr;
 }
 
 bool MultipoleT::apply(const Vector_t &R, const Vector_t &/*P*/,

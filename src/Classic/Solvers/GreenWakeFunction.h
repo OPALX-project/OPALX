@@ -18,21 +18,25 @@
 #define GREENWAKEFUNCTION_HH
 
 #include "Filters/Filter.h"
-#include "Solvers/WakeFunction.h"
 #include "Physics/Physics.h"
+#include "Solvers/WakeFunction.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/PAssert.h"
 
-#include <vector>
+#include <complex>
 #include <map>
 #include <string>
-#include <complex>
+#include <vector>
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
 #endif
 
-enum { TRANSVERSAL, LONGITUDINAL };
+enum class WakeDirection: unsigned short {
+    TRANSVERSAL,
+    LONGITUDINAL
+};
+
 typedef std::map<std::string, int> FilterOptions;
 
 class GreenWakeFunction: public WakeFunction {
@@ -40,23 +44,23 @@ public:
     ~GreenWakeFunction();
     //IFF: changed direction to int (was double)
     //IFF: changed acMode to int (was double)
-    GreenWakeFunction(const std::string &name,
-                      std::vector<Filter *> filters,
+    GreenWakeFunction(const std::string& name,
+                      std::vector<Filter*> filters,
                       int NBIN,
                       double Z0,
                       double radius,
                       double sigma,
                       int acMode,
                       double tau,
-                      int direction,
+                      WakeDirection direction,
                       bool constLength,
                       std::string fname);
 
     std::pair<int, int> distrIndices(int vectLen);
 
-    void apply(PartBunchBase<double, 3> *bunch);
+    void apply(PartBunchBase<double, 3>* bunch) override;
     void setWakeFromFile(int NBin, double spacing);
-    virtual const std::string getType() const;
+    virtual WakeType getType() const override;
 
 private:
 #ifdef WITH_UNIT_TESTS
@@ -66,8 +70,7 @@ private:
     class Wake {
 
     public:
-
-        Wake(double s, double Z0, double a, double sigma, int acMode, double tau, int direction)
+        Wake(double s, double Z0, double a, double sigma, int acMode, double tau, WakeDirection direction)
             : Z0_(Z0), a_(a), sigma_(sigma), s_(s), acMode_(acMode), tau_(tau), direction_(direction)
         {}
 
@@ -88,18 +91,18 @@ private:
             //2 == DC
             switch(acMode_) {
                 case 1:
-                    Z = (Z0_ / (2 * Physics::pi * a_)) * 1.0 / (sqrt(Z0_ * std::abs(k) / 2) * sqrt(sigma_ / (1.0 - i * Physics::c * k * tau_)) * (i + signK) / k - (i * k * a_) / 2.0);
+                    Z = (Z0_ / (2 * Physics::pi * a_)) * 1.0 / (std::sqrt(Z0_ * std::abs(k) / 2) * std::sqrt(sigma_ / (1.0 - i * Physics::c * k * tau_)) * (i + signK) / k - (i * k * a_) / 2.0);
                     break;
                 case 2:
-                    Z = (Z0_ / (2 * Physics::pi * a_)) * 1.0 / (sqrt(sigma_ * Z0_ * std::abs(k) / 2) * (i + signK) / k - (i * k * a_) / 2.0);
+                    Z = (Z0_ / (2 * Physics::pi * a_)) * 1.0 / (std::sqrt(sigma_ * Z0_ * std::abs(k) / 2) * (i + signK) / k - (i * k * a_) / 2.0);
                     break;
             }
             switch(direction_) {
-                case LONGITUDINAL:
-                    return real(Z) * cos(k * s_) * 2.0 * Physics::c / Physics::pi;
+                case WakeDirection::LONGITUDINAL:
+                    return real(Z) * std::cos(k * s_) * 2.0 * Physics::c / Physics::pi;
                     break;
-                case TRANSVERSAL:
-                    return real(Z) * Physics::c / k * cos(k * s_) * 2.0 * Physics::c / Physics::pi;
+                case WakeDirection::TRANSVERSAL:
+                    return real(Z) * Physics::c / k * std::cos(k * s_) * 2.0 * Physics::c / Physics::pi;
                     break;
             }
             ERRORMSG("We should not be here: " << __FILE__ << " L" << __LINE__ << endl);
@@ -108,7 +111,6 @@ private:
         }
 
     private:
-
         /// impedance
         double Z0_;
         /// radius
@@ -122,8 +124,7 @@ private:
         /// material constant
         double tau_;
         /// direction either 1="Longitudinal" 0= "Transversal"
-        int direction_;
-
+        WakeDirection direction_;
     };
 
     /**
@@ -137,7 +138,7 @@ private:
      * @return  function value of the integration
      *
      */
-    template<class F> double simpson(F &f, double a, double b, unsigned int N) {
+    template<class F> double simpson(F& f, double a, double b, unsigned int N) {
         PAssert(b > a);
         PAssert(N > 0);
 
@@ -155,8 +156,8 @@ private:
         result *= h / 3.0;
 
         return result;
-
     }
+
     /// save the line Density of the particle bunch
     std::vector<double> lineDensity_m;
     /// FFT of the zero padded wakefield
@@ -174,17 +175,20 @@ private:
     int acMode_m;
     /// material constant
     double tau_m;
-    /// direction either 1="Longitudinal" 2= "Transversal"
-    int direction_m;
+    /// direction either "Longitudinal" - "Transversal"
+    WakeDirection direction_m;
     /// true if the length of the particle bunch is considered as constant
     bool constLength_m;
     /// filename of the wakefield
     std::string filename_m;
 
-    std::vector<Filter *> filters_m;
+    std::vector<Filter*> filters_m;
 
-    void compEnergy(const double K, const double charge, const double *lambda, double *OutEnergy);
-    void compEnergy(const double K, const double charge, std::vector<double> lambda, double *OutEnergy);
+    static const std::map<WakeDirection, std::string> wakeDirectiontoString_s;
+
+    void compEnergy(const double K, const double charge, const double* lambda, double* OutEnergy);
+    void compEnergy(const double K, const double charge, std::vector<double> lambda, double* OutEnergy);
     void CalcWakeFFT(double spacing);
+    static std::string getWakeDirectionString(const WakeDirection& direction);
 };
 #endif //GREENWAKEFUNCTION_HH

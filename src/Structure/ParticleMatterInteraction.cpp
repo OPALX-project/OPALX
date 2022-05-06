@@ -31,6 +31,9 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
+#include <map>
+#include <string>
+
 extern Inform* gmsg;
 
 namespace {
@@ -43,11 +46,6 @@ namespace {
         SIZE
     };
 }
-
-const std::map<std::string, InteractionType> ParticleMatterInteraction::stringInteractionType_s = {
-    {"SCATTERING",    InteractionType::SCATTERING},
-    {"BEAMSTRIPPING", InteractionType::BEAMSTRIPPING}
-};
 
 ParticleMatterInteraction::ParticleMatterInteraction():
     Definition(SIZE, "PARTICLEMATTERINTERACTION",
@@ -141,6 +139,11 @@ void ParticleMatterInteraction::update() {
 }
 
 void ParticleMatterInteraction::getInteractionType() {
+    static const std::map<std::string, ParticleMatterInteraction::InteractionType> stringInteractionType_s = {
+        {"SCATTERING",    InteractionType::SCATTERING},
+        {"BEAMSTRIPPING", InteractionType::BEAMSTRIPPING}
+    };
+
     const std::string type = Attributes::getString(itsAttr[TYPE]);
     if (type.empty()) {
         throw OpalException("ParticleMatterInteraction::getInteractionType",
@@ -156,15 +159,19 @@ void ParticleMatterInteraction::initParticleMatterInteractionHandler(ElementBase
 
     switch (type_m) {
         case InteractionType::SCATTERING: {
-            std::string material   = Attributes::getString(itsAttr[MATERIAL]);
-            bool enableRutherford  = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-            double lowEnergyThr    = Attributes::getReal(itsAttr[LOWENERGYTHR]);
+            std::string material  = Attributes::getString(itsAttr[MATERIAL]);
+            bool enableRutherford = Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
+            double lowEnergyThr   = Attributes::getReal(itsAttr[LOWENERGYTHR]);
             handler_m = new ScatteringPhysics(getOpalName(), &element, material, enableRutherford, lowEnergyThr);
             break;
         }
         case InteractionType::BEAMSTRIPPING: {
             handler_m = new BeamStrippingPhysics(getOpalName(), &element);
             break;
+        }
+        default: {
+            throw OpalException("ParticleMatterInteraction::initParticleMatterInteractionHandler",
+                                "Invalid \"TYPE\" of \"PARTICLEMATTERINTERACTION\" command");
         }
     }
     *gmsg << *this << endl;
@@ -175,18 +182,15 @@ void ParticleMatterInteraction::updateElement(ElementBase* element) {
 }
 
 void ParticleMatterInteraction::print(std::ostream& os) const {
+    os << "\n";
     os << "* ************* P A R T I C L E  M A T T E R  I N T E R A C T I O N **************** " << std::endl;
     os << "* PARTICLEMATTERINTERACTION  " << getOpalName() << '\n'
        << "* TYPE                       " << Attributes::getString(itsAttr[TYPE]) << '\n'
        << "* ELEMENT                    " << handler_m->getElement()->getName() << '\n';
     if (type_m == InteractionType::SCATTERING) {
         os << "* MATERIAL                   " << Attributes::getString(itsAttr[MATERIAL]) << '\n';
-
-        std::ostringstream valueStream;
-        valueStream << std::boolalpha << Attributes::getBool(itsAttr[ENABLERUTHERFORD]);
-        os << "* ENABLERUTHERFORD           " << Util::toUpper(valueStream.str()) << '\n';
-
-        os << "* LOWENERGYTHR               " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " MeV\n";
+        os << "* ENABLERUTHERFORD           " << Util::boolToUpperString(Attributes::getBool(itsAttr[ENABLERUTHERFORD])) << '\n';
+        os << "* LOWENERGYTHR               " << Attributes::getReal(itsAttr[LOWENERGYTHR]) << " [MeV]\n";
     }
     os << "* ********************************************************************************** " << std::endl;
 }

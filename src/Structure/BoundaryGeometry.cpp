@@ -343,7 +343,7 @@ static void write_voxel_mesh (
     const size_t numpoints = 8 * ids.size ();
     std::ofstream of;
 
-    *gmsg << level2 << "* Writing VTK file of voxel mesh." << endl;
+    *gmsg << level2 << "* Writing VTK file of voxel mesh '" << fname << "'" << endl;
     of.open (fname);
     PAssert (of.is_open ());
     of.precision (6);
@@ -1613,7 +1613,7 @@ BoundaryGeometry::computeMeshVoxelization (void) {
             }
         }
     } // for_each triangle
-    *gmsg << level2 << "* Mesh voxelization done." << endl;
+    *gmsg << level2 << "* Mesh voxelization done" << endl;
 
     // write voxel mesh into VTK file
     if (Ippl::myNode() == 0 && Options::enableVTK) {
@@ -2011,11 +2011,11 @@ Change orientation if diff is:
             } while (queue_end < bg->Triangles_m.size());
 
             if (parts == 1) {
-                *gmsg << level2 << "* " << __func__ << ": mesh is contiguous." << endl;
+                *gmsg << level2 << "* " << __func__ << ": mesh is contiguous" << endl;
             } else {
-                *gmsg << level2 << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts." << endl;
+                *gmsg << level2 << "* " << __func__ << ": mesh is discontiguous (" << parts << ") parts" << endl;
             }
-            *gmsg << level2 <<"* Triangle Normal built done." << endl;
+            *gmsg << level2 <<"* Triangle Normal built done" << endl;
         }
 
     };
@@ -2050,7 +2050,7 @@ Change orientation if diff is:
     h5_file_t f = H5OpenFile (h5FileName_m.c_str(), H5_O_RDONLY, props);
     H5CloseProp (props);
 
-    h5t_mesh_t* m = NULL;
+    h5t_mesh_t* m = nullptr;
     H5FedOpenTriangleMesh (f, "0", &m);
     H5FedSetLevel (m, 0);
 
@@ -2085,13 +2085,13 @@ Change orientation if diff is:
     }
     H5FedCloseMesh (m);
     H5CloseFile (f);
-    *gmsg << level2 << "* Reading mesh done." << endl;
+    *gmsg << level2 << "* Reading mesh done" << endl;
 
     Local::computeGeometryInterval (this);
     computeMeshVoxelization ();
     haveInsidePoint_m = false;
     std::vector<double> pt = Attributes::getRealArray (itsAttr[INSIDEPOINT]);
-    if (pt.size() != 0) {
+    if (!pt.empty()) {
         if (pt.size () != 3) {
             throw OpalException (
                 "BoundaryGeometry::initialize()",
@@ -2132,7 +2132,7 @@ Change orientation if diff is:
         TriNormals_m[i] = normalVector (A, B, C);
 
     }
-    *gmsg << level2 << "* Triangle barycent built done." << endl;
+    *gmsg << level2 << "* Triangle barycent built done" << endl;
 
     *gmsg << *this << endl;
     Ippl::Comm->barrier();
@@ -2468,8 +2468,8 @@ Inform&
 BoundaryGeometry::printInfo (Inform& os) const {
     os << endl;
     os << "* ************* B O U N D A R Y  G E O M E T R Y *********************************** " << endl;
-    os << "* GEOMETRY                  " << getOpalName () << '\n'
-       << "* FGEOM                     " << Attributes::getString (itsAttr[FGEOM])  << '\n'
+    os << "* GEOMETRY                  "  << getOpalName () << '\n'
+       << "* FGEOM                     '" << Attributes::getString (itsAttr[FGEOM])  << "'\n"
        << "* TOPO                      " << Attributes::getString (itsAttr[TOPO])   << '\n'
        << "* XSCALE                    " << Attributes::getReal (itsAttr[XSCALE])   << '\n'
        << "* YSCALE                    " << Attributes::getReal (itsAttr[YSCALE])   << '\n'
@@ -2479,15 +2479,15 @@ BoundaryGeometry::printInfo (Inform& os) const {
        << "* S                         " << Attributes::getReal (itsAttr[S]) << '\n'
        << "* A                         " << Attributes::getReal (itsAttr[A]) << '\n'
        << "* B                         " << Attributes::getReal (itsAttr[B]) << '\n';
-    if (getTopology () == std::string ("BOXCORNER")) {
+    if (getTopology () == Topology::BOXCORNER) {
         os << "* C                         " << Attributes::getReal (itsAttr[C]) << '\n'
            << "* L1                        " << Attributes::getReal (itsAttr[L1]) << '\n'
            << "* L2                        " << Attributes::getReal (itsAttr[L2]) << '\n';
     }
     os << "* Total triangle num        " << Triangles_m.size() << '\n'
        << "* Total points num          " << Points_m.size () << '\n'
-       << "* Geometry bounds(m) Max=   " << maxExtent_m << '\n'
-       << "*                    Min=   " << minExtent_m << '\n'
+       << "* Geometry bounds(m) Max =  " << maxExtent_m << '\n'
+       << "*                    Min =  " << minExtent_m << '\n'
        << "* Geometry length(m)        " << maxExtent_m - minExtent_m << '\n'
        << "* Resolution of voxel mesh  " << voxelMesh_m.nr_m << '\n'
        << "* Size of voxel             " << voxelMesh_m.sizeOfVoxel << '\n'

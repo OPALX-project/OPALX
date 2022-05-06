@@ -20,30 +20,30 @@
 #include "Solvers/WakeFunction.h"
 
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 class Filter;
 class ElementBase;
 
 class CSRWakeFunction: public WakeFunction {
 public:
-    CSRWakeFunction(const std::string &name, std::vector<Filter *> filters, const unsigned int &N);
+    CSRWakeFunction(const std::string& name, std::vector<Filter*> filters, const unsigned int& N);
 
-    void apply(PartBunchBase<double, 3> *bunch);
+    void apply(PartBunchBase<double, 3>* bunch) override;
 
-    void initialize(const ElementBase * ref);
+    void initialize(const ElementBase* ref);
 
-    virtual const std::string getType() const;
+    virtual WakeType getType() const override;
 
 private:
-    void calculateLineDensity(PartBunchBase<double, 3> *bunch, std::pair<double, double> &meshInfo);
+    void calculateLineDensity(PartBunchBase<double, 3>* bunch, std::pair<double, double>& meshInfo);
 
     void calculateContributionInside(size_t sliceNumber, double angleOfSlice, double meshSpacing);
     void calculateContributionAfter(size_t sliceNumber, double angleOfSlice, double meshSpacing);
-    double calcPsi(const double &psiInitial, const double &x, const double &Ds) const;
+    double calcPsi(const double& psiInitial, const double& x, const double& Ds) const;
 
-    std::vector<Filter *> filters_m;
+    std::vector<Filter*> filters_m;
     std::shared_ptr<Filter> defaultFilter_m;
     Filter *diffOp_m;
 
@@ -72,7 +72,6 @@ private:
     std::string bendName_m;
 
     double totalBendAngle_m;
-
 };
 
 #endif //CSRWAKEFUNCTION_HH
