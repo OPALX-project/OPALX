@@ -469,7 +469,7 @@ void PartBunch::computeSelfFields() {
         *gmsg << "gammaz = " << gammaz << endl;
         //double normEf_PM = sqrt(sum(dot(Ef,Ef))); 
         //*gmsg << "Ef L2 norm PM part:= " << normEf_PM << endl;
-        if(fs_m->getFieldSolverType() == "P3M") {
+        if(fs_m->getFieldSolverType() == FieldSolverType::P3M) {
             fs_m->solver_m->calculatePairForces(this,gammaz);
         }
         //double normEf_PP = sqrt(sum(dot(Ef,Ef))); 

@@ -56,6 +56,7 @@ private:
         NONE,
         PARALLELT,
         CYCLOTRONT,
+	P3MTEST,
         THICK
     };
 
