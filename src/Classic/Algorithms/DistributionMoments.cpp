@@ -25,6 +25,7 @@
 
 #include "OpalParticle.h"
 #include "PartBunchBase.h"
+#include "Physics/Physics.h"
 
 #include <gsl/gsl_histogram.h>
 
@@ -429,6 +430,62 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> cons
 
     meanKineticEnergy_m = data[0] / data[1];
 }
+
+void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bunch, double density)
+{
+    
+    double loc_avg_vel[3]={0.0,0.0,0.0};
+    double avg_vel[3]={0.0,0.0,0.0};
+
+    //From P in \beta\gamma to get v in m/s
+    //double convFactor = (Physics::c * Physics::m_e)/(bunch.getMassPerParticle());  
+    //double convFactor = Physics::c;  
+
+    for (OpalParticle const& particle: bunch) {
+        for(unsigned i = 0; i < 3; i++) {
+            loc_avg_vel[i]   += ((particle.getP()[i] * Physics::c)/
+                                (Util::getGamma(particle.getP())));
+        }
+    }
+    reduce(&(loc_avg_vel[0]), &(loc_avg_vel[0]) + 3,
+           &(avg_vel[0]), OpAddAssign());
+
+    const double N =  static_cast<double>(bunch.getTotalNum());
+    avg_vel[0]= avg_vel[0]/N;
+    avg_vel[1]= avg_vel[1]/N;
+    avg_vel[2]= avg_vel[2]/N;
+
+    double loc_temp_avg = 0.0;
+
+    for (OpalParticle const& particle: bunch) {
+        for(unsigned i = 0; i < 3; i++) {
+            loc_temp_avg   +=   1.78266192e-36 * 1e9 * Physics::m_e * std::pow((((particle.getP()[i] * Physics::c)/
+                            (Util::getGamma(particle.getP()))) - avg_vel[i]),2);
+        }
+    }
+    allreduce(loc_temp_avg, 1, std::plus<double>());
+
+    temperature_m = (1.0/3) * (loc_temp_avg/N);
+
+    debyeLength_m = std::sqrt((temperature_m * Physics::epsilon_0) / 
+                                  (density * std::pow(Physics::q_e,2)));
+
+    computePlasmaParameter(density);
+
+    *gmsg <<  std::scientific;
+    *gmsg << "Avg temperature = " << std::setw(17) << temperature_m << " CV\n";
+    *gmsg << "RMS density = " << std::setw(17) << density << " particles/m^3\n";
+    *gmsg << "Debye length = " << std::setw(17) << debyeLength_m << " m" << endl;
+
+}
+
+void DistributionMoments::computePlasmaParameter(double density)
+{
+    plasmaParameter_m = (4.0/3) * Physics::pi * std::pow(debyeLength_m,3) * density; 
+    *gmsg <<  std::scientific;
+    *gmsg << "Plasma parameter = " << std::setw(17) << plasmaParameter_m << endl;
+}
+
 
 void DistributionMoments::reset()
 {

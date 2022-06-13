@@ -24,7 +24,6 @@
 #include "Algorithms/PartData.h"
 #include "Distribution/Distribution.h"
 #include "Physics/ParticleProperties.h"
-#include "Physics/Physics.h"
 #include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/OpalException.h"
@@ -56,6 +55,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
       rmax_m(0.0),
       rmin_m(0.0),
+      rmsDensity_m(0.0),
       hr_m(-1.0),
       nr_m(0),
       fs_m(nullptr),
@@ -406,6 +406,12 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
         INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i)
                        << " gamma = " << bingamma_m[i] << endl);
     }
+
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcDebyeLength() {
+    momentsComputer_m.computeDebyeLength(*this, rmsDensity_m);
 
 }
 
@@ -1076,6 +1082,26 @@ double PartBunchBase<T, Dim>::get_meanKineticEnergy() const {
     return momentsComputer_m.getMeanKineticEnergy();
 }
 
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_temperature() const {
+    return momentsComputer_m.getTemperature();
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_debyeLength() const {
+    return momentsComputer_m.getDebyeLength();
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_plasmaParameter() const {
+    return momentsComputer_m.getPlasmaParameter();
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_rmsDensity() const {
+    return rmsDensity_m;
+}
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_origin() const {

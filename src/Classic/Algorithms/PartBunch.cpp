@@ -403,6 +403,17 @@ void PartBunch::computeSelfFields() {
         //divide charge by a 'grid-cube' volume to get [C/m^3]
         rho_m *= tmp2;
 
+        //double chargeInv = 1.0 / (getCharge() / getTotalNum());
+        double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+        //rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m * chargeInv) * (rho_m * chargeInv)));
+        rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m / Physics::q_e) * (rho_m / Physics::q_e)));
+        //double max_density = max(abs(rho_m * chargeInv));
+
+        //*gmsg << "Max. density = " << std::setw(17) << max_density << " particles/m^3\n";
+        calcDebyeLength(); 
+        //calcDebyeLength(max_density); 
+
+
 #ifdef DBG_SCALARFIELD
         FieldWriter fwriter;
         fwriter.dumpField(rho_m, "rho", "C/m^3", localTrackStep_m);
@@ -488,6 +499,7 @@ void PartBunch::computeSelfFields() {
 
         Bf(0) = Bf(0) - betaC * Ef(1);
         Bf(1) = Bf(1) + betaC * Ef(0);
+        //*gmsg << "Field solver done" << endl;
     }
     IpplTimings::stopTimer(selfFieldTimer_m);
 }

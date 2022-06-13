@@ -111,6 +111,8 @@ public:
             buckets[bucket_id] = i;
         }
 
+        //dmsg << "Bucket id calculations finished " << endl;
+        //std::cout << "Rank: " << Ippl::myNode() << "Bucket id calculations finished " << std::endl;
         double part_count = 0;
         Vektor<double,3> shift(0,0,0);
         //loop over all buckets
@@ -169,6 +171,8 @@ public:
                 }
             }
         }
+        
+        //std::cout << "Rank: " << Ippl::myNode() << "PP calculations finished " << std::endl;
 
         delete[] buckets;
         delete[] next;
