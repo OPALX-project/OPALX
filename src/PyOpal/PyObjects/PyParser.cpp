@@ -1,8 +1,11 @@
-#include <boost/algorithm/string.hpp>
+#include <string>
 #include <boost/python.hpp>
 
 #include "PyOpal/PyCore/ExceptionTranslation.h"
 #include "Main.cpp"
+
+namespace PyOpal {
+namespace PyParser {
 
 std::string initialise_from_opal_file_docstring = 
 std::string("Initialise from opal file\n")+
@@ -23,7 +26,7 @@ void initialise_from_opal_file(std::string file_name) {
 
 std::string module_docstring = "parser module parses the input";
  
-BOOST_PYTHON_MODULE(opal_parser) { // parser is a python internal library
+BOOST_PYTHON_MODULE(parser) { // parser is a python internal library
     PyOpal::ExceptionTranslation::registerExceptions();
     boost::python::scope().attr("__doc__") = module_docstring.c_str();
     boost::python::def("initialise_from_opal_file",
@@ -32,3 +35,6 @@ BOOST_PYTHON_MODULE(opal_parser) { // parser is a python internal library
             initialise_from_opal_file_docstring.c_str()
     );
 }
+
+} // namespace PyParser
+} // namespace PyOpal

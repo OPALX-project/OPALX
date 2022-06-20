@@ -392,7 +392,7 @@ template <class C>
 void PyOpalObject<C>::setAttribute(AttributeType type, std::string opalName, PyObject* pyvalue) {
     if (!object_m) {
         throw OpalException("PyOpalObject<C>::setAttribute",
-                            "Element was not initialised");       
+                            "Element was not initialised");
     }
     Attribute* attribute = object_m->findAttribute(opalName);
     if (attribute == NULL) {

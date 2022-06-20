@@ -1,6 +1,4 @@
-#include <boost/python.hpp>
-
-#include "PyOpal/Globals.h"
+#include <string>
 
 namespace PyOpal {
 namespace Field {

@@ -1,17 +1,6 @@
-#ifndef PYOPAL_GLOBALS_H
-#define PYOPAL_GLOBALS_H
+#ifndef PYOPAL_PYCORE_GLOBALS_H
+#define PYOPAL_PYCORE_GLOBALS_H
 #include "opal.h"
-
-namespace {
-// I get a gcc warning "declared ‘static’ but never defined" if I uncomment this
-// but it is not declared static! confused %)
-/* 
-   void errorHandlerGSL(const char *reason,
-                         const char *file,
-                         int line,
-                         int gsl_errno);
-*/
-}
 
 // Ippl and gmsg should only be built once, in globals.cc.o
 //
@@ -22,7 +11,6 @@ namespace {
 // Maybe this implements one gmsg per python module - which is wrong? So maybe
 // some more linker/cmake dark arts required here? Do they have much global 
 // state?
-
 #ifndef PYOPAL_GLOBALS_C
     extern Ippl *ippl;
     extern Inform *gmsg;
@@ -34,7 +22,10 @@ namespace {
 #endif
 namespace PyOpal {
 namespace Globals {
-
+/** Globals namespace provides routines to initialise global objects:
+ *  - ippl
+ *  - gmsg
+ */
 void Initialise();
 }
 }

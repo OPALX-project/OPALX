@@ -57,3 +57,4 @@ set(OPAL_SRCS "${OPAL_SRCS}" PARENT_SCOPE)
 
 add_subdirectory(PyCore)
 add_subdirectory(PyElements)
+add_subdirectory(PyObjects)
