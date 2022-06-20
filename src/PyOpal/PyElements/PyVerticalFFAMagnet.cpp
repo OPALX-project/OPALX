@@ -3,7 +3,6 @@
 
 #include "Elements/OpalVerticalFFAMagnet.h"
 
-//using namespace boost::python;
 namespace PyOpal {
 namespace PyVerticalFFAMagnet {
 

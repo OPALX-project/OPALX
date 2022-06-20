@@ -1,6 +1,3 @@
-#include <Python.h>
-#include <structmember.h>
-
 #include <boost/python.hpp>
 
 #include "Utilities/OpalException.h"
@@ -8,6 +5,8 @@
 #include "Track/TrackRun.h"
 #include "Algorithms/ParallelTTracker.h"
 #include "Algorithms/ParallelCyclotronTracker.h"
+
+#include "PyOpal/PyCore/Globals.h"
 #include "PyOpal/PyCore/ExceptionTranslation.h"
 #include "PyOpal/PyObjects/PyField.h"
 
@@ -84,6 +83,7 @@ py::object get_field_value(double x, double y, double z, double t) {
     if (ring != NULL) {
         return get_field_value_ring(x, y, z, t, ring);
     }
+    /*
     Tracker* tracker = TrackRun::getTracker();
     ParallelTTracker* trackerT = dynamic_cast<ParallelTTracker*>(tracker);
     if (trackerT != NULL) {
@@ -93,9 +93,9 @@ py::object get_field_value(double x, double y, double z, double t) {
     if (trackerCycl != NULL) {
         return get_field_value_cyclotron(x, y, z, t, trackerCycl);
     }
+    */
     throw(OpalException("PyField::get_field_value",
                         "Could not find a Ring, ParallelTTracker or ParallelCyclotronTracker"));
-
 }
 
 BOOST_PYTHON_MODULE(field) {
