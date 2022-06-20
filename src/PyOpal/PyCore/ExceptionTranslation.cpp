@@ -9,7 +9,6 @@ void registerExceptions() {
     py::register_exception_translator<std::exception>(translateException<std::exception>);
     // handle Opal exceptions (they all inherit from ClassicException)
     py::register_exception_translator<ClassicException>(translateOpalException<ClassicException>);
-    py::register_exception_translator<OpalException>(translateOpalException<OpalException>);
 }
 }
 }

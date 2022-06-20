@@ -10,7 +10,8 @@ namespace PyVerticalFFAMagnet {
 std::string track_run_docstring = std::string();
 
 
-const char* module_docstring = "build a vertical_ffa_magnet";
+const char* module_docstring = 
+    "vertical_ffa_magnet contains the VerticalFFAMagnet class";
 
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet>::attributes = {
@@ -26,7 +27,8 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<OpalVerti
 };
 
 template <>
-std::string PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet>::classDocstring = "";
+std::string PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet>::classDocstring = 
+"VerticalFFAMagnet class is a field element that models a Vertical FFA magnet.";
 
 BOOST_PYTHON_MODULE(vertical_ffa_magnet) {
     ExceptionTranslation::registerExceptions();
