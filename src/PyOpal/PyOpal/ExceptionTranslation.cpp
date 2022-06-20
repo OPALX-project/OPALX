@@ -1,6 +1,6 @@
 #include "Classic/Utilities/ClassicException.h"
 #include "Utilities/OpalException.h"
-#include "PyOpal/PyCore/ExceptionTranslation.h"
+#include "PyOpal/ExceptionTranslation.h"
 
 namespace PyOpal {
 namespace ExceptionTranslation {
