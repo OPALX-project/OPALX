@@ -62,7 +62,7 @@ py::object get_field_value_cyclotron(double x,
     }
     Vector_t R(x, y, z);
     Vector_t P, B, E;
-    int outOfBounds = tracker->computeExternalFields(R, P, t, E, B);
+    int outOfBounds = tracker->computeExternalFields_m(R, P, t, E, B);
     boost::python::tuple value = boost::python::make_tuple(outOfBounds,
                                           B[0], B[1], B[2], E[0], E[1], E[2]);
     return value;

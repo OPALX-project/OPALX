@@ -10,6 +10,5 @@ std::map<AttributeType, std::string> attributeName = std::map<AttributeType, std
     {INT, "int"},
     {FLOATLIST, "list of floats"}
 });
-
 } // PyOpalObjectNS
 } // PyOpal

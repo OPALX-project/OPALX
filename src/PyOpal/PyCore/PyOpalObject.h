@@ -145,15 +145,45 @@ public:
     template <class PYCLASS>
     void addExecute(PYCLASS& pyclass);
 
-    /** Add a "register" method to the python class (to register against opal global data header)
+    /** Add a "register" method to the python class (to register against opal
+     *  global data object)
      */
     template <class PYCLASS>
     void addRegister(PYCLASS& pyclass);
 
-    /** Add a "get_opal_element" method to the python class (to overload as an PyOpalElement)
+    /** Add a "get_opal_element" method to the python class (to overload as a
+     *  PyOpalElement)
+     * 
+     *  This is required for OpalElement objects, in order that they can be used
+     *  in a OPAL line object (for setting up beamlines having multiple
+     *  elements). In general, if C is an OpalElement, developer should call
+     *  addGetOpalElement in the module setup function.
      */
     template <class PYCLASS>
     void addGetOpalElement(PYCLASS& pyclass);
+
+    /** Add a "get_field_value" method to the python class (for elements that
+     *  expose a field)
+     *
+     *  - PYCLASS: instance of the class to which the field is added
+     *  - distanceUnits: set the distance units so that UI is in OPAL units
+     *  - timeUnits: set the time units so that UI is in OPAL units
+     *  - bfieldUnits: set the bfield units so that UI is in OPAL units
+     *  - efieldUnits: set the efield units so that UI is in OPAL units
+     * 
+     *  It is encouraged to expose the field map for field-type objects, for
+     *  user to check that the field is as expected.
+     *
+     *  Note that conversion factors for units in distance, time, bfield and
+     *  efield should be provided - the OPAL unit system should be exposed to
+     *  user (see OPAL docs for current recommendation). Opal will call
+     *  element->apply(R*distanceUnits, P, t*timeUnits, Efield, Bfield) and
+     *  return Efield*efieldUnits, BField*bfield units.
+     */
+    template <class PYCLASS>
+    void addGetFieldValue(PYCLASS& pyclass,
+                          double distanceUnits, double timeUnits,
+                          double bfieldUnits, double efieldUnits);
 
     /** dummyGet sets the object ptr for PyOpalObjectGetProperty but doesn't
      *  actually do the get(...)
@@ -197,9 +227,18 @@ protected:
 
     /** Generates a docstring from the attribute */
     std::string getDocString(AttributeDef& def);
+    static boost::python::object getFieldValue(
+                    PyOpalObjectNS::PyOpalObject<C>& pyobject,
+                    double x, double y, double z, double t);
     static void execute(PyOpalObject<C>& pyobject);
     static void registerObject(PyOpalObject<C>& pyobject);
     static boost::python::object getPyOpalElement(PyOpalObject<C>& pyobject);
+    // unit definitions for getFieldValue method
+    static double distanceUnits_m;
+    static double timeUnits_m;
+    static double bfieldUnits_m;
+    static double efieldUnits_m;
+    static const std::string getFieldValueDocString;
 };
 
 template <class C>
@@ -209,9 +248,10 @@ void PyOpalObject<C>::dummySet(ValueType test) {
     PyOpalObjectSetProperty<C>::setObject(this);
 }
 
-
 template <class C>
-boost::python::object getFieldValue(PyOpalObjectNS::PyOpalObject<C>& pyobject, double x, double y, double z, double t) {
+boost::python::object PyOpalObject<C>::getFieldValue(
+            PyOpalObjectNS::PyOpalObject<C>& pyobject, 
+            double x, double y, double z, double t) {
     std::shared_ptr<C> objectPtr = pyobject.getOpalShared();
     objectPtr->update();
     ElementBase* element = objectPtr->getElement();
@@ -220,20 +260,16 @@ boost::python::object getFieldValue(PyOpalObjectNS::PyOpalObject<C>& pyobject, d
         throw OpalException("PyElement<C>::getFieldValue",
                             "Failed to deduce Component from ElementBase.");
     }
-
-    Vector_t R(x, y, z);
+    Vector_t R(x*distanceUnits_m, y*distanceUnits_m, z*distanceUnits_m);
     Vector_t P(0.0, 0.0, 0.0);
     Vector_t B;
     Vector_t E;
+    t *= timeUnits_m;
     bool outOfBounds = component->apply(R, P, t, E, B);
     return boost::python::make_tuple(outOfBounds,
-                                     B[0], B[1], B[2],
-                                     E[0], E[1], E[2]);
+                    B[0]*bfieldUnits_m, B[1]*bfieldUnits_m, B[2]*bfieldUnits_m,
+                    E[0]*efieldUnits_m, E[1]*efieldUnits_m, E[2]*efieldUnits_m);
 }
-
-
-
-
 
 /** Helper class to handle getting Attributes from python */
 template <class C>
@@ -482,7 +518,20 @@ void PyOpalObject<C>::addGetOpalElement(PYCLASS& pyclass) {
     pyclass.def("get_opal_element", &PyOpalObject<C>::getPyOpalElement);
 }
 
-
+template <class C>
+template <class PYCLASS>
+void PyOpalObject<C>::addGetFieldValue(PYCLASS& pyclass,
+                                      double distanceUnits, double timeUnits,
+                                      double efieldUnits, double bfieldUnits) {
+    distanceUnits_m = distanceUnits;
+    timeUnits_m = timeUnits;
+    bfieldUnits_m = bfieldUnits;
+    efieldUnits_m = efieldUnits;
+    pyclass.def("get_field_value",
+                &PyOpalObject<C>::getFieldValue,
+                boost::python::args("x", "y", "z", "t"),
+                getFieldValueDocString.c_str());
+}
 
 template <class C>
 template <class PYCLASS>
@@ -530,6 +579,47 @@ void PyOpalObject<C>::addAttributes(PYCLASS& pyclass) {
         }
     }
 }
+
+template <class C> double PyOpalObject<C>::distanceUnits_m = 1;
+template <class C> double PyOpalObject<C>::timeUnits_m = 1;
+template <class C> double PyOpalObject<C>::bfieldUnits_m = 1;
+template <class C> double PyOpalObject<C>::efieldUnits_m = 1;
+
+template <class C>  const std::string PyOpalObject<C>::getFieldValueDocString =
+  "Get the field value at a point in the field map.\n"
+  "\n"
+  "The field lookup is performed against the last RINGDEFINITION that was\n"
+  "instantiated. This should be instantiated by calling\n"
+  "pyopal.parser.initialise_from_opal_file\n"
+  "\n"
+  "Parameters\n"
+  "----------\n"
+  "x : float\n"
+  "    x position [m]\n"
+  "y : float\n"
+  "    y position [m]\n"
+  "z : float\n"
+  "    z position [m]\n"
+  "t: float\n"
+  "    time [ns]\n"
+  "\n"
+  "Returns\n"
+  "-------\n"
+  "The function returns a tuple containing 7 values:\n"
+  "out of bounds : int\n"
+  "    1 if the event was out of the field map boundary, else 0.\n"
+  "Bx : float\n"
+  "    x magnetic field [T]\n"
+  "By : float\n"
+  "    y magnetic field [T]\n"
+  "Bz : float\n"
+  "    z magnetic field [T]\n"
+  "Ex : float\n"
+  "    x electric field [MV/m]\n"
+  "Ey : float\n"
+  "    y electric field [MV/m]\n"
+  "Ez : float\n"
+  "    z electric field [MV/m]\n";
 
 
 ///////// templated implementations for PyOpalObjectGetProperty ////////////////
