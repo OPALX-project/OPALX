@@ -1,5 +1,6 @@
 #include "PyOpal/PyCore/ExceptionTranslation.h"
 #include "PyOpal/PyCore/PyOpalObject.h"
+#include "PyOpal/PyCore/Globals.h"
 
 #include "Elements/OpalVerticalFFAMagnet.h"
 
@@ -27,11 +28,12 @@ std::string PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet>::classDocstring 
 "VerticalFFAMagnet class is a field element that models a Vertical FFA magnet.";
 
 BOOST_PYTHON_MODULE(vertical_ffa_magnet) {
+    //PyOpal::Globals::Initialise();
     ExceptionTranslation::registerExceptions();
     PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet> element;
     auto elementClass = element.make_class("VerticalFFAMagnet");
     element.addGetOpalElement(elementClass);
-    elementClass.def("get_field_value", &PyOpalObjectNS::getFieldValue<OpalVerticalFFAMagnet>, "docstring");
+    element.addGetFieldValue(elementClass, 1e+3, 1.0, 1.0, 1e-1);
 }
 
 }

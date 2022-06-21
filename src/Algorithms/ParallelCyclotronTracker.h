@@ -90,7 +90,7 @@ public:
     //  Bfield - filled with values for the magnetic field
     //  Returns a boolean value, true if the particle was out of the nominal
     //  field map boundary, else false.
-    bool computeExternalFields(const Vector_t& R,
+    bool computeExternalFields_m(const Vector_t& R,
                                  const Vector_t& P,
                                  const double& t,
                                  Vector_t& Efield,

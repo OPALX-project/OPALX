@@ -1,5 +1,6 @@
-#include "PyOpal/PyCore/PyOpalObject.h"
+#include "PyOpal/PyOpalObject.h"
 
+//using namespace boost::python;
 namespace PyOpal {
 namespace PyOpalObjectNS {
 
@@ -10,5 +11,6 @@ std::map<AttributeType, std::string> attributeName = std::map<AttributeType, std
     {INT, "int"},
     {FLOATLIST, "list of floats"}
 });
-} // PyOpalObjectNS
+
+} // PyElementNS
 } // PyOpal
