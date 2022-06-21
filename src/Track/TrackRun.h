@@ -51,6 +51,8 @@ public:
 
     Inform& print(Inform& os) const;
 
+    static std::shared_ptr<Tracker> getTracker();
+
 private:
     enum class RunMethod: unsigned short {
         NONE,
@@ -80,8 +82,11 @@ private:
 
     double setDistributionParallelT(Beam* beam);
 
-    // Pointer to tracking algorithm.
-    std::unique_ptr<Tracker> itsTracker;
+    /*  itsTracker is a static object; this enables access to the last executed 
+     *  tracker object without excessive gymnastics, e.g. for access to the 
+     *  field maps in PyField
+     */
+    static std::shared_ptr<Tracker> itsTracker;
 
     Distribution* dist;
 

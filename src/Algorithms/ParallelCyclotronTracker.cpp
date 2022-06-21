@@ -3411,6 +3411,20 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
     return outOfBound;
 }
 
+bool ParallelCyclotronTracker::computeExternalFields_m(const Vector_t& R, const Vector_t& P, const double& t,
+                                                       Vector_t& Efield, Vector_t& Bfield) {
+
+    beamline_list::iterator sindex = FieldDimensions.begin();
+    // Flag whether a particle is out of field
+    bool outOfBound = (((*sindex)->second).second)->apply(R, P, t, Efield, Bfield);
+
+    Bfield *= Units::kG2T;
+    Efield *= Units::kV2V / Units::mm2m;
+
+    return outOfBound;
+}
+
+
 
 void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {
     if (!isMultiBunch() || step_m != setup_m.stepsNextCheck) {

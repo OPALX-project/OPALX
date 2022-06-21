@@ -60,6 +60,8 @@
 
 extern Inform *gmsg;
 
+std::shared_ptr<Tracker> TrackRun::itsTracker = nullptr;
+
 namespace {
     // The attributes of class TrackRun.
     enum {
@@ -91,7 +93,6 @@ TrackRun::TrackRun():
     Action(SIZE, "RUN",
            "The \"RUN\" sub-command tracks the defined particles through "
            "the given lattice."),
-    itsTracker(nullptr),
     dist(nullptr),
     fs(nullptr),
     ds(nullptr),
@@ -143,7 +144,6 @@ TrackRun::TrackRun():
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent):
     Action(name, parent),
-    itsTracker(nullptr),
     dist(nullptr),
     fs(nullptr),
     ds(nullptr),

@@ -5,7 +5,7 @@ import math
 import matplotlib.pyplot
 
 import pyopal.objects.parser
-import PyOpal.elements.vertical_ffa_magnet
+import pyopal.elements.vertical_ffa_magnet
 
 print("Running vertical_ffa_magnet test")
 
@@ -128,7 +128,7 @@ def plot_maxwell(magnet, pos, order_list):
     figure.savefig("maxwell_"+magnet.end_field_model+".png")
 
 def main():
-    magnet = PyOpal.vertical_ffa_magnet.VerticalFFAMagnet()
+    magnet = pyopal.elements.vertical_ffa_magnet.VerticalFFAMagnet()
     magnet.b0 = 1.0
     magnet.field_index = 1.31
     magnet.max_horizontal_power = 4

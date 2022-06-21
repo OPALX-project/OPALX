@@ -8,8 +8,6 @@
 
 #include "PyOpal/PyCore/Globals.h"
 #include "PyOpal/PyCore/ExceptionTranslation.h"
-#include "PyOpal/PyObjects/PyField.h"
-
 
 namespace PyOpal {
 namespace Field {
@@ -37,7 +35,7 @@ std::string get_field_value_docstring =
   "\n"
   "Returns\n"
   "-------\n"
-  "The function returns a tuple containing 6 values:\n"
+  "The function returns a tuple containing 7 values:\n"
   "out of bounds : int\n"
   "    1 if the event was out of the field map boundary, else 0.\n"
   "Bx : float\n"
@@ -53,87 +51,38 @@ std::string get_field_value_docstring =
   "Ez : float\n"
   "    z electric field\n";
 
-py::object get_field_value_parallelt(double x,
-                                     double y,
-                                     double z,
-                                     double t,
-                                     ParallelTTracker* tracker) {
-    throw OpalException("PyField::get_field_value_parallelt",
-                        "Not implemented");
-    if (tracker == NULL) {
-        throw(OpalException("PyField::get_field_value_parallelt",
-                            "ParallelTTracker was NULL"));
-    }
-    int outOfBounds = 0;
-    Vector_t R(x, y, z);
-    Vector_t P(0, 0, 0);
-    Vector_t E, B;
-    // outOfBounds = tracker->getFieldValue(R, t, B, E);
-    boost::python::tuple value = boost::python::make_tuple(outOfBounds,
-                                          B[0], B[1], B[2],
-                                          E[0], E[1], E[2]);
-    return value;
-}
-
 py::object get_field_value_cyclotron(double x,
                                      double y,
                                      double z,
                                      double t,
                                      ParallelCyclotronTracker* tracker) {
-    throw OpalException("PyField::get_field_value_parallelcyclotron",
-                        "Not implemented");
     if (tracker == NULL) {
         throw(OpalException("PyField::get_field_value_cyclotron",
                             "ParallelCyclotronTracker was NULL"));
     }
-    boost::python::tuple value = boost::python::make_tuple(1,
-                                          -1, -1, -1, -1, -1, -1);
-    return value;
-
-}
-
-py::object get_field_value_ring(double x,
-                                     double y,
-                                     double z,
-                                     double t,
-                                     Ring* ring) {
-    if (ring == NULL) {
-        throw(OpalException("PyField::get_field_value_ring",
-                            "Ring was NULL"));
-    }
-    if (ring == NULL) {
-        std::string err = "Could not find a ring object - maybe a "
-           "RingDefinition was not defined or KeepAlive was False";
-        throw(OpalException("PyField::get_field_value", err));
-    }
     Vector_t R(x, y, z);
-    Vector_t P(0, 0, 0);
-    Vector_t E, B;
-    int outOfBounds = ring->apply(R, P, t, E, B);
+    Vector_t P, B, E;
+    int outOfBounds = tracker->computeExternalFields(R, P, t, E, B);
     boost::python::tuple value = boost::python::make_tuple(outOfBounds,
-                                          B[0]/10., B[1]/10., B[2]/10.,
-                                          E[0], E[1], E[2]);
+                                          B[0], B[1], B[2], E[0], E[1], E[2]);
     return value;
+
 }
 
 py::object get_field_value(double x, double y, double z, double t) {
+    /*
     Ring* ring = const_cast<Ring*>(Ring::getLastLockedRing());
     if (ring != NULL) {
         return get_field_value_ring(x, y, z, t, ring);
-    }
-    /*
-    Tracker* tracker = TrackRun::getTracker();
-    ParallelTTracker* trackerT = dynamic_cast<ParallelTTracker*>(tracker);
-    if (trackerT != NULL) {
-        return get_field_value_parallelt(x, y, z, t, trackerT);       
-    }
-    ParallelCyclotronTracker* trackerCycl = dynamic_cast<ParallelCyclotronTracker*>(tracker);
-    if (trackerCycl != NULL) {
+    }*/
+    std::shared_ptr<Tracker> tracker = TrackRun::getTracker();
+    ParallelCyclotronTracker* trackerCycl = 
+                        dynamic_cast<ParallelCyclotronTracker*>(tracker.get());
+    if (trackerCycl != nullptr) {
         return get_field_value_cyclotron(x, y, z, t, trackerCycl);
     }
-    */
     throw(OpalException("PyField::get_field_value",
-                        "Could not find a Ring, ParallelTTracker or ParallelCyclotronTracker"));
+                        "Could not find a ParallelCyclotronTracker"));
 }
 
 BOOST_PYTHON_MODULE(field) {
