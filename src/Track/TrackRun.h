@@ -21,7 +21,7 @@
 #include "AbstractObjects/Action.h"
 
 #include <boost/bimap.hpp>
-
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -81,7 +81,7 @@ private:
     double setDistributionParallelT(Beam* beam);
 
     // Pointer to tracking algorithm.
-    Tracker* itsTracker;
+    std::unique_ptr<Tracker> itsTracker;
 
     Distribution* dist;
 
