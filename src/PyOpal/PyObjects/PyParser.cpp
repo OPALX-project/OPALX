@@ -9,8 +9,9 @@ namespace PyParser {
 
 std::string initialise_from_opal_file_docstring = 
 std::string("Initialise from opal file\n")+
-std::string("If you are getting an error message from openMPI, try\n")+
-std::string("rebuilding the MPI library with --disable-dlopen switch\n");
+std::string("- file_name: string corresponding to the file name of the OPAL\n")+
+std::string("  file.\n")+
+std::string("Returns None.\n");
 
 void initialise_from_opal_file(std::string file_name) {
     std::string exe("parser");
@@ -24,7 +25,8 @@ void initialise_from_opal_file(std::string file_name) {
     opalMain(2, argvr);
 }
 
-std::string module_docstring = "parser module parses the input";
+std::string module_docstring =
+"The parser module is used to load an OPAL input file from within python";
  
 BOOST_PYTHON_MODULE(parser) { // parser is a python internal library
     PyOpal::ExceptionTranslation::registerExceptions();

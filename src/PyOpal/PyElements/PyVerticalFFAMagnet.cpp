@@ -6,9 +6,6 @@
 namespace PyOpal {
 namespace PyVerticalFFAMagnet {
 
-std::string track_run_docstring = std::string();
-
-
 const char* module_docstring = 
     "vertical_ffa_magnet contains the VerticalFFAMagnet class";
 
@@ -34,7 +31,7 @@ BOOST_PYTHON_MODULE(vertical_ffa_magnet) {
     PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet> element;
     auto elementClass = element.make_class("VerticalFFAMagnet");
     element.addGetOpalElement(elementClass);
-    elementClass.def("get_field_value", &PyOpalObjectNS::getFieldValue<OpalVerticalFFAMagnet>);
+    elementClass.def("get_field_value", &PyOpalObjectNS::getFieldValue<OpalVerticalFFAMagnet>, "docstring");
 }
 
 }
