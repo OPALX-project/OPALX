@@ -17,7 +17,7 @@ std::string initialise_from_opal_file_docstring =
 "Returns an integer; 0 for successful execution or non-zero if an error\n"
 "occurred.\n";
 
-void initialise_from_opal_file(std::string file_name) {
+int initialise_from_opal_file(std::string file_name) {
     std::string exe("parser");
     char* argvr[3];
     // argv must be NULL terminated array
