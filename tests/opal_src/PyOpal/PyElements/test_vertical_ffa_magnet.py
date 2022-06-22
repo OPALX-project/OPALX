@@ -53,6 +53,20 @@ class VerticalFFAMagnetTest(unittest.TestCase):
             value = self.magnet.get_field_value(*point)
             self.assertFalse(value[0], msg="{0} {1}".format(point, value))
 
+    def test_get_set_float_attribute(self):
+        self.magnet.b0 = 1.0
+        self.assertEqual(self.magnet.b0, 1.0)
+        try:
+            self.magnet.b0 = "fish"
+            self.assertTrue(False, "should have thrown")
+        except Exception:
+            pass
+        self.assertTrue(False, """
+            Need to put in tests for every attribute type also for addAttributes
+            addExecute etc; also an improvement 
+            may be to catch Boost errors and rethrow as python errors
+            """)
+
 
 if __name__ == "__main__":
     unittest.main()
