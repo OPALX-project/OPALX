@@ -275,6 +275,7 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
 
         Absorbed particle i: locParts_m[i].label = -1.0;
     */
+    unsigned int numLocalParticles = bunch->getLocalNum();
     for (size_t i = 0; i < locParts_m.size(); ++i) {
         if (locParts_m[i].label != -1) {
             Vector_t &R = locParts_m[i].Rincol;
@@ -294,10 +295,27 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
                 } else {
                     // The particle is stopped in the material, set label to -1
                     locParts_m[i].label = -1.0;
-                    ++ stoppedPartStat_m;
+                    ++stoppedPartStat_m;
                     lossDs_m->addParticle(OpalParticle(locParts_m[i].IDincol,
                                                        R, P, T_m,
                                                        locParts_m[i].Qincol, locParts_m[i].Mincol));
+
+                    if (OpalData::getInstance()->isInOPALCyclMode()) {
+                        // OpalCycl performs particle deletion in ParallelCyclotronTracker.
+                        // Particles lost by scattering have to be returned to the bunch
+                        // with a negative Bin attribute to avoid miscounting of particles.
+
+                        bunch->createWithID(locParts_m[i].IDincol);
+                        bunch->Bin[numLocalParticles] = -2;
+                        bunch->R[numLocalParticles]   = R;
+                        bunch->Q[numLocalParticles]   = locParts_m[i].Qincol;
+                        bunch->M[numLocalParticles]   = locParts_m[i].Mincol;
+                        bunch->Bf[numLocalParticles]  = 0.0;
+                        bunch->Ef[numLocalParticles]  = 0.0;
+                        bunch->dt[numLocalParticles]  = dT_m;
+
+                        ++numLocalParticles;
+                    }
                 }
             }
         }
@@ -493,7 +511,8 @@ void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
     for (size_t i = 0; i < nL; ++ i) {
         Vector_t& R = locParts_m[i].Rincol;
 
-        if (R[2] >= elementLength) {
+        if ( (OpalData::getInstance()->isInOPALTMode() && R[2] >= elementLength) ||
+             (OpalData::getInstance()->isInOPALCyclMode() && !(hitTester_m->checkHit(R))) ) {
 
             bunch->createWithID(locParts_m[i].IDincol);
 
@@ -574,8 +593,8 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
             x.label        = 0;            // alive in matter
 
             locParts_m.push_back(x);
-            ne++;
-            bunchToMatStat_m++;
+            ++ne;
+            ++bunchToMatStat_m;
 
             partsToDel.insert(i);
         }
@@ -676,8 +695,10 @@ void ScatteringPhysics::setTimeStepForLeavingParticles() {
         double gamma = Util::getGamma(P);
         Vector_t stepLength = dT_m * Physics::c * P / gamma;
 
-        if (R(2) < elementLength &&
-            R(2) + stepLength(2) > elementLength) {
+        if ( R(2) < elementLength &&
+             R(2) + stepLength(2) > elementLength &&
+             OpalData::getInstance()->isInOPALTMode() ) {
+
             // particle is likely to leave material
             double distance = elementLength - R(2);
             double tau = distance / stepLength(2);
