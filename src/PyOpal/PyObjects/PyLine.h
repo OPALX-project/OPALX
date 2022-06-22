@@ -4,7 +4,7 @@
 #include "Lines/Sequence.h"
 #include "Lines/Line.h"
 #include "Beamlines/TBeamline.h"
-#include "PyOpal/PyOpalObject.h"
+#include "PyOpal/PyCore/PyOpalObject.h"
 
 namespace PyOpal {
 
@@ -47,7 +47,7 @@ public:
      *  i - index of the element in the python object 
      *  element - the element to be stored. element must have a python method
      *            get_opal_element that returns python::object that is 
-     *            convertible to a PyElement<OpalElement> using python::extract.
+     *            convertible to a PyOpalObject<OpalElement> using python::extract.
      *  Note that OpalElement::update is called at this time to update the 
      *  underlying element properties.
      */
@@ -74,7 +74,18 @@ public:
 private:
     /** The python objects stored in the line */
     std::vector<boost::python::object> line;
+    /** Handle negative indices in pythonic way */
+    int wrangleIndex(int index);
 };
+
+template<>
+int PyLine_<TBeamline<FlaggedElmPtr> >::wrangleIndex(int index) {
+    if (index >= 0) {
+        return index;
+    }
+    index = line.size()+index;
+    return index;
+}
 
 template <>
 void PyLine_<TBeamline<FlaggedElmPtr> >::registerObject() {
@@ -100,6 +111,7 @@ boost::python::class_<PyLine> PyLine_<TBeamline<FlaggedElmPtr> >::make_class(con
 
 template<>
 boost::python::object PyLine_<TBeamline<FlaggedElmPtr> >::getElement(int i) {
+    i = wrangleIndex(i);
     try {
         return line.at(i);
     } catch (std::exception& exc) {
@@ -110,8 +122,8 @@ boost::python::object PyLine_<TBeamline<FlaggedElmPtr> >::getElement(int i) {
 template<>
 void PyLine_<TBeamline<FlaggedElmPtr> >::setElement(int i, boost::python::object pyelement) {
     // TBeamline is implemented as a double linked list??
-    std::cerr << "PYLINE setElement " << i << std::endl;
     typedef TBeamline<FlaggedElmPtr> BL;
+    i = wrangleIndex(i);
     try {
         line.at(i) = pyelement;
     } catch (std::exception& exc) {
@@ -130,8 +142,7 @@ void PyLine_<TBeamline<FlaggedElmPtr> >::setElement(int i, boost::python::object
                 throw OpalException("PyLine::setElement", "Failed to extract element");
             } 
             opalElement->update();
-            ElementBase* elmbase = opalElement->getElement()->removeWrappers();
-            std::cerr << "    PYLINE setElement loop " << elmbase << std::endl;
+            ElementBase* elmbase = opalElement->getElement();
             if (!elmbase) {
                 throw OpalException("PyLine::setElement", "Failed to cast element");
             } 
@@ -156,24 +167,20 @@ void PyLine_<TBeamline<FlaggedElmPtr> >::append(boost::python::object pyelement)
     setElement(i, pyelement);
 }
 
+
 }
 #endif // PyOpal_PyLine_h
 
 /*
-OPAL Beamline insanity:
+OPAL Beamline insanity...
 
 There exists:
 1. Beamline is a beamline
-2. TBeamline which is another sort of beamline that inherits from Beamline (but has no reason to exist)
-3. BeamSequence which does nothing
+2. TBeamline which is another sort of beamline that inherits from Beamline
+3. BeamSequence
 4. Line which has some bindings to the UI
-5. FlaggedBeamline which has a flag to indicate the Beamline is reflected (WTF?)
+5. FlaggedBeamline which has a flag to indicate the Beamline is reflected
 6. Sequence which is a list of Sequence elements whatever they are
-
-Probably some other stuff. It's insane! Should be two classes
-1. Classic Beamline
-2. UI bindings
-Done.
-
+I struggle to understand the motivation for so many different classes.
 */
 

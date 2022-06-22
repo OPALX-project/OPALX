@@ -28,7 +28,7 @@ std::string PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet>::classDocstring 
 "VerticalFFAMagnet class is a field element that models a Vertical FFA magnet.";
 
 BOOST_PYTHON_MODULE(vertical_ffa_magnet) {
-    //PyOpal::Globals::Initialise(); commented until I get ippl working
+    PyOpal::Globals::Initialise();
     ExceptionTranslation::registerExceptions();
     PyOpalObjectNS::PyOpalObject<OpalVerticalFFAMagnet> element;
     auto elementClass = element.make_class("VerticalFFAMagnet");
