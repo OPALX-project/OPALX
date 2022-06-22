@@ -1,6 +1,6 @@
-#include "PyOpal/ExceptionTranslation.h"
-#include "PyOpal/PyOpalObject.h"
-#include "PyOpal/Globals.h"
+#include "PyOpal/PyCore/ExceptionTranslation.h"
+#include "PyOpal/PyCore/PyOpalObject.h"
+#include "PyOpal/PyCore/Globals.h"
 
 #include "Elements/OpalRingDefinition.h"
 
@@ -25,7 +25,7 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<OpalRingD
     {"SYMMETRY", "symmetry", "", PyOpalObjectNS::INT},
     {"SCALE", "scale", "", PyOpalObjectNS::DOUBLE},
     {"RFFREQ", "rf_frequency", "", PyOpalObjectNS::DOUBLE},
-    {"IS_CLOSED", "is_closed", "", PyOpalObjectNS::STRING}, // BUG in underlying code
+    {"IS_CLOSED", "is_closed", "", PyOpalObjectNS::BOOL}, // BUG in underlying code
     {"MIN_R", "minimum_r", "", PyOpalObjectNS::DOUBLE},
     {"MAX_R", "maximum_r", "", PyOpalObjectNS::DOUBLE},
 };
@@ -39,7 +39,7 @@ BOOST_PYTHON_MODULE(ring_definition) {
     PyOpalObjectNS::PyOpalObject<OpalRingDefinition> element;
     auto elementClass = element.make_class("RingDefinition");
     element.addGetOpalElement(elementClass);
-    elementClass.def("get_field_value", &PyOpalObjectNS::getFieldValue<OpalRingDefinition>);
+    element.addGetFieldValue(elementClass, 1.0, 1.0, 1.0, 1e-1);
 }
 
 }

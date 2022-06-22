@@ -23,13 +23,6 @@ int initialise_from_opal_file(std::string file_name) {
     // argv must be NULL terminated array
     argvr[0] = exe.data();
     argvr[1] = file_name.data();
-    /*
-    argvr[0] = new char[exe.length()+2]();
-    strcpy(argvr[0], exe.c_str());
-
-    argvr[1] = new char[file_name.length()+2]();
-    strcpy(argvr[0], file_name.c_str());
-    */
     argvr[2] = nullptr;
     int error_code = opalMain(2, argvr);
     return error_code;
@@ -38,7 +31,7 @@ int initialise_from_opal_file(std::string file_name) {
 std::string module_docstring =
 "The parser module is used to load an OPAL input file from within python";
  
-BOOST_PYTHON_MODULE(parser) { // parser is a python internal library
+BOOST_PYTHON_MODULE(parser) {
     PyOpal::ExceptionTranslation::registerExceptions();
     boost::python::scope().attr("__doc__") = module_docstring.c_str();
     boost::python::def("initialise_from_opal_file",
