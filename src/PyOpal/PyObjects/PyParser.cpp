@@ -8,21 +8,31 @@ namespace PyOpal {
 namespace PyParser {
 
 std::string initialise_from_opal_file_docstring = 
-std::string("Initialise from opal file\n")+
-std::string("- file_name: string corresponding to the file name of the OPAL\n")+
-std::string("  file.\n")+
-std::string("Returns None.\n");
+"Initialise from opal file\n"
+"- file_name: string corresponding to the file name of the OPAL\n"
+"  file.\n"
+"Note that if file_name is not valid, OPAL may terminate the python script\n"
+"execution abnormally (without the usual python exit semantics).\n"
+"\n"
+"Returns an integer; 0 for successful execution or non-zero if an error\n"
+"occurred.\n";
 
 void initialise_from_opal_file(std::string file_name) {
     std::string exe("parser");
     char* argvr[3];
-    // argv must be NULL terminated array (a week of my life figuring that one)
-    argvr[0] = new char[exe.length()+1]();
+    // argv must be NULL terminated array
+    argvr[0] = exe.data();
+    argvr[1] = file_name.data();
+    /*
+    argvr[0] = new char[exe.length()+2]();
     strcpy(argvr[0], exe.c_str());
-    argvr[1] = new char[file_name.length()+1]();
+
+    argvr[1] = new char[file_name.length()+2]();
     strcpy(argvr[0], file_name.c_str());
+    */
     argvr[2] = nullptr;
-    opalMain(2, argvr);
+    int error_code = opalMain(2, argvr);
+    return error_code;
 }
 
 std::string module_docstring =
