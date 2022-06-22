@@ -104,12 +104,39 @@ bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber,
 bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpdate) {
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
     if (flagNeedUpdate && parmatint_m) {
-        Vector_t rmin, rmax;
-        bunch->get_bounds(rmin, rmax);
-        std::pair<Vector_t, double> boundingSphere;
-        boundingSphere.first = 0.5 * (rmax + rmin);
-        boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
-        parmatint_m->apply(bunch, boundingSphere);
+        *gmsg << level2 << "============== START PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
+        do {
+            unsigned int collWithParticlesCount = 0;
+            parmatint_m->setFlagAllParticlesIn(false);
+            if (parmatint_m->getParticlesInMat() > 0) {
+                ++collWithParticlesCount;
+            }
+            unsigned int localNum = bunch->getLocalNum();
+            unsigned int totalNum = 0;
+            reduce(localNum, totalNum, OpAddAssign());
+            bool allParticlesInMat = (totalNum == 0 &&
+                                      collWithParticlesCount == 1);
+            if (allParticlesInMat) {
+                parmatint_m->setFlagAllParticlesIn(true);
+            }
+
+            Vector_t rmin, rmax;
+            bunch->get_bounds(rmin, rmax);
+            std::pair<Vector_t, double> boundingSphere;
+            boundingSphere.first = 0.5 * (rmax + rmin);
+            boundingSphere.second = euclidean_norm(rmax - boundingSphere.first);
+
+            parmatint_m->apply(bunch, boundingSphere);
+            parmatint_m->print(*gmsg);
+
+            unsigned int rediffusedParticles = parmatint_m->getRediffused();
+            unsigned int numEnteredParticles = parmatint_m->getNumEntered();
+            if (numEnteredParticles > 0 || rediffusedParticles > 0) {
+                totalNum -= (numEnteredParticles + rediffusedParticles);
+            }
+        } while (parmatint_m->stillActive());
+
+        *gmsg << level2 << "============== END PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
     }
     return flagNeedUpdate;
 }

@@ -2226,6 +2226,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     if (!OpalData::getInstance()->inRestartRun()) {
         // Start a new run (no restart)
 
+        // Set time per particle
+        setTime();
+
         double const initialReferenceTheta = referenceTheta * Units::deg2rad;
 
         // TODO: Replace with TracerParticle
@@ -2373,6 +2376,13 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     *gmsg << *itsBunch_m << endl;
 
     //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+}
+
+void ParallelCyclotronTracker::setTime() {
+    const unsigned int localNum = itsBunch_m->getLocalNum();
+    for (unsigned int i = 0; i < localNum; ++i) {
+        itsBunch_m->dt[i] = itsBunch_m->getdT();
+    }
 }
 
 void ParallelCyclotronTracker::checkFileMomentum() {
