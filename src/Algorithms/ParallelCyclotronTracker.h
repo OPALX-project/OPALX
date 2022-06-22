@@ -422,6 +422,8 @@ private:
 
     void initDistInGlobalFrame();
 
+    void setTime();
+
     void checkFileMomentum();
 
     void checkNumPart(std::string s);
