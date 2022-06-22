@@ -278,9 +278,9 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
     unsigned int numLocalParticles = bunch->getLocalNum();
     for (size_t i = 0; i < locParts_m.size(); ++i) {
         if (locParts_m[i].label != -1) {
-            Vector_t &R = locParts_m[i].Rincol;
-            Vector_t &P = locParts_m[i].Pincol;
-            double &dt  = locParts_m[i].DTincol;
+            Vector_t& R = locParts_m[i].Rincol;
+            Vector_t& P = locParts_m[i].Pincol;
+            double& dt  = locParts_m[i].DTincol;
 
             if (hitTester_m->checkHit(R)) {
                 bool pdead = computeEnergyLoss(bunch, P, dt);
@@ -493,9 +493,7 @@ void  ScatteringPhysics::computeCoulombScattering(Vector_t& R,
         phi += 0.5 * Physics::pi;
     }
 
-    if (enableRutherford_m &&
-        gsl_rng_uniform(rGen_m) < 0.0047) {
-
+    if (enableRutherford_m && gsl_rng_uniform(rGen_m) < 0.0047) {
         applyRandomRotation(P, theta0);
     }
 }
@@ -611,7 +609,7 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
     IpplTimings::stopTimer(DegraderDestroyTimer_m);
 }
 
-void ScatteringPhysics::print(Inform &msg) {
+void ScatteringPhysics::print(Inform& msg) {
     Inform::FmtFlags_t ff = msg.flags();
     if (totalPartsInMat_m > 0 ||
         bunchToMatStat_m  > 0 ||
