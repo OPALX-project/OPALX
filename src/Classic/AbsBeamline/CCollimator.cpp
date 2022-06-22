@@ -31,13 +31,13 @@ extern Inform *gmsg;
 CCollimator::CCollimator():CCollimator("")
 {}
 
-CCollimator::CCollimator(const std::string &name):
+CCollimator::CCollimator(const std::string& name):
     PluginElement(name) {
     setDimensions(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     setGeom(0.0);
 }
 
-CCollimator::CCollimator(const CCollimator &right):
+CCollimator::CCollimator(const CCollimator& right):
     PluginElement(right),
     informed_m(right.informed_m) {
     setDimensions(right.xstart_m, right.xend_m,
@@ -53,7 +53,7 @@ void CCollimator::accept(BeamlineVisitor &visitor) const {
     visitor.visitCCollimator(*this);
 }
 
-bool CCollimator::doPreCheck(PartBunchBase<double, 3> *bunch) {
+bool CCollimator::doPreCheck(PartBunchBase<double, 3>* bunch) {
     Vector_t rmin, rmax;
     bunch->get_bounds(rmin, rmax);
 
@@ -75,7 +75,8 @@ bool CCollimator::doPreCheck(PartBunchBase<double, 3> *bunch) {
 
 // rectangle collimators in cyclotron cylindrical coordinates
 // when there is no particlematterinteraction, the particle hitting collimator is deleted directly
-bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double /*tstep*/) {
+bool CCollimator::doCheck(PartBunchBase<double, 3>* bunch, const int turnnumber,
+                          const double t, const double /*tstep*/) {
 
     bool flagNeedUpdate = false;
     size_t tempnum = bunch->getLocalNum();
@@ -101,8 +102,10 @@ bool CCollimator::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber,
     return flagNeedUpdate;
 }
 
-bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpdate) {
+bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3>* bunch, bool flagNeedUpdate) {
+
     reduce(&flagNeedUpdate, &flagNeedUpdate + 1, &flagNeedUpdate, OpBitwiseOrAssign());
+
     if (flagNeedUpdate && parmatint_m) {
         *gmsg << level2 << "============== START PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
         do {
@@ -141,11 +144,11 @@ bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeed
     return flagNeedUpdate;
 }
 
-void CCollimator::doInitialise(PartBunchBase<double, 3> */*bunch*/) {
+void CCollimator::doInitialise(PartBunchBase<double, 3>* /*bunch*/) {
     parmatint_m = getParticleMatterInteraction();
 }
 
-void CCollimator::goOnline(const double &) {
+void CCollimator::goOnline(const double&) {
     print();
     online_m = true;
 }
@@ -170,7 +173,10 @@ void CCollimator::print() {
     }
 }
 
-void CCollimator::setDimensions(double xstart, double xend, double ystart, double yend, double zstart, double zend, double width) {
+void CCollimator::setDimensions(double xstart, double xend,
+                                double ystart, double yend,
+                                double zstart, double zend,
+                                double width) {
     setDimensions(xstart, xend, ystart, yend);
     zstart_m = zstart;
     zend_m   = zend;
@@ -182,7 +188,7 @@ void CCollimator::setDimensions(double xstart, double xend, double ystart, doubl
     setGeom(width_m);
 }
 
-void CCollimator::getDimensions(double &zBegin, double &zEnd) const {
+void CCollimator::getDimensions(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd = getElementLength();
 }
