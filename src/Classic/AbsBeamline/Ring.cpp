@@ -92,7 +92,6 @@ Ring::Ring(const Ring& ring)
 }
 
 Ring::~Ring() {
-    delete lossDS_m;
     for (size_t i = 0; i < section_list_m.size(); ++i)
         delete section_list_m[i];
 }
@@ -145,7 +144,7 @@ bool Ring::apply(const Vector_t &R, const Vector_t &/*P*/,
 }
 
 void Ring::setLossDataSink(LossDataSink* sink) {
-    delete lossDS_m;
+    // lossDS_m is a borrowed pointer - we never delete it
     lossDS_m = sink;
 }
 
@@ -166,6 +165,7 @@ void Ring::initialise(PartBunchBase<double, 3> * bunch, double &/*startField*/,
 }
 
 void Ring::finalise() {
+    std::cerr << "FINALISING RING" << std::endl;
     online_m = false;
     setRefPartBunch(nullptr);
     setLossDataSink(nullptr);
