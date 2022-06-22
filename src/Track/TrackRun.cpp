@@ -738,3 +738,7 @@ Inform& TrackRun::print(Inform& os) const {
     os << "* ********************************************************************************** ";
     return os;
 }
+
+std::shared_ptr<Tracker> TrackRun::getTracker() {
+    return itsTracker;
+}

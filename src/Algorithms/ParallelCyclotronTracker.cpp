@@ -1238,9 +1238,9 @@ void ParallelCyclotronTracker::execute() {
 
     *gmsg << "* ------------------------------------------------------------------------ *" << endl;
     *gmsg << "* Finalizing i.e. write data and close files :" << endl;
-    for (auto fd : FieldDimensions) {
-        ((fd->second).second)->finalise();
-    }
+    //for (auto fd : FieldDimensions) {
+        //((fd->second).second)->finalise();
+    //}
     *gmsg << "* ------------------------------------------------------------------------ *" << endl;
 }
 
