@@ -130,11 +130,6 @@ bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3>* bunch, bool flagNeed
             parmatint_m->apply(bunch, boundingSphere);
             parmatint_m->print(*gmsg);
 
-            unsigned int rediffusedParticles = parmatint_m->getRediffused();
-            unsigned int numEnteredParticles = parmatint_m->getNumEntered();
-            if (numEnteredParticles > 0 || rediffusedParticles > 0) {
-                totalNum -= (numEnteredParticles + rediffusedParticles);
-            }
         } while (parmatint_m->stillActive());
 
         *gmsg << level2 << "============== END PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
