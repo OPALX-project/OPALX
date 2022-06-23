@@ -2226,9 +2226,6 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     if (!OpalData::getInstance()->inRestartRun()) {
         // Start a new run (no restart)
 
-        // Set time per particle
-        setTime();
-
         double const initialReferenceTheta = referenceTheta * Units::deg2rad;
 
         // TODO: Replace with TracerParticle
@@ -2274,6 +2271,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
         for (size_t i = 0; i < initialLocalNum_m; ++i) {
             itsBunch_m->Bin[i] = 0;
         }
+
+        // Set time step per particle
+        setTimeStep();
 
         // Backup initial distribution if multi bunch mode
         if ((initialTotalNum_m > 2) && isMultiBunch() && mbHandler_m->isForceMode()) {
@@ -2378,7 +2378,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
 }
 
-void ParallelCyclotronTracker::setTime() {
+void ParallelCyclotronTracker::setTimeStep() {
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++i) {
         itsBunch_m->dt[i] = itsBunch_m->getdT();

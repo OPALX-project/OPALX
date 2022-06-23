@@ -422,7 +422,7 @@ private:
 
     void initDistInGlobalFrame();
 
-    void setTime();
+    void setTimeStep();
 
     void checkFileMomentum();
 
