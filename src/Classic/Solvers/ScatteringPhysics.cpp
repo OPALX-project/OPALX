@@ -233,7 +233,7 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
     mass_m   = bunch->getM();
     charge_m = bunch->getQ();
 
-    bool onlyOneLoopOverParticles = ! (allParticleInMat_m);
+    bool onlyOneLoopOverParticles = !(allParticleInMat_m);
 
     do {
         IpplTimings::startTimer(DegraderLoopTimer_m);
@@ -306,8 +306,9 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
                         // with a negative Bin attribute to avoid miscounting of particles.
 
                         bunch->createWithID(locParts_m[i].IDincol);
-                        bunch->Bin[numLocalParticles] = -2;
+                        bunch->Bin[numLocalParticles] = -1;
                         bunch->R[numLocalParticles]   = R;
+                        bunch->P[numLocalParticles]   = P;
                         bunch->Q[numLocalParticles]   = locParts_m[i].Qincol;
                         bunch->M[numLocalParticles]   = locParts_m[i].Mincol;
                         bunch->Bf[numLocalParticles]  = 0.0;
