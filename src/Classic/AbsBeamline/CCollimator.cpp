@@ -108,16 +108,15 @@ bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3>* bunch, bool flagNeed
     if (flagNeedUpdate && parmatint_m) {
         *gmsg << level2 << "============== START PARTICLE MATTER INTERACTION CALCULATION =============" << endl;
         do {
-            unsigned int collWithParticlesCount = 0;
             parmatint_m->setFlagAllParticlesIn(false);
-            if (parmatint_m->getParticlesInMat() > 0) {
-                ++collWithParticlesCount;
-            }
+
+            bool collWithParticles = (parmatint_m->getParticlesInMat() > 0) ? true : false;
+
             unsigned int localNum = bunch->getLocalNum();
             unsigned int totalNum = 0;
             reduce(localNum, totalNum, OpAddAssign());
-            bool allParticlesInMat = (totalNum == 0 &&
-                                      collWithParticlesCount == 1);
+
+            bool allParticlesInMat = (totalNum == 0 && collWithParticles);
             if (allParticlesInMat) {
                 parmatint_m->setFlagAllParticlesIn(true);
             }
