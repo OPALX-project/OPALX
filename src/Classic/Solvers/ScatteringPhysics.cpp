@@ -304,6 +304,8 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
                         // OpalCycl performs particle deletion in ParallelCyclotronTracker.
                         // Particles lost by scattering have to be returned to the bunch
                         // with a negative Bin attribute to avoid miscounting of particles.
+                        // Only the minimal number of attributes are fixed because the
+                        // particle is marked for deletion (Bin<0)
 
                         bunch->createWithID(locParts_m[i].IDincol);
                         bunch->Bin[numLocalParticles] = -1;
@@ -683,7 +685,7 @@ void ScatteringPhysics::push() {
 // end of the material. Only use this time step for the computation
 // of the interaction with the material, not for the integration of
 // the particles. This will ensure that the momenta of all particles
-// are reduced by  approcimately the same amount in computeEnergyLoss.
+// are reduced by approximately the same amount in computeEnergyLoss.
 void ScatteringPhysics::setTimeStepForLeavingParticles() {
     const double elementLength = element_ref_m->getElementLength();
 
@@ -716,7 +718,6 @@ void ScatteringPhysics::resetTimeStep() {
         dt = dT_m;
     }
 }
-
 
 void ScatteringPhysics::gatherStatistics() {
 
