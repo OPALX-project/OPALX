@@ -6,9 +6,11 @@ namespace PyOpalObjectNS {
 std::map<AttributeType, std::string> attributeName = std::map<AttributeType, std::string>({
     {DOUBLE, "float"},
     {STRING, "string"},
+    {PREDEFINED_STRING, "predefined string"},
+    {UPPER_CASE_STRING, "upper case string"},
     {BOOL, "bool"},
     {INT, "int"},
-    {FLOATLIST, "list of floats"}
+    {FLOAT_LIST, "list of floats"}
 });
 } // PyOpalObjectNS
 } // PyOpal

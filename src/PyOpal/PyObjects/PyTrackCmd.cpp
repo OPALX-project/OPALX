@@ -1,10 +1,11 @@
-#include "PyOpal/ExceptionTranslation.h"
-#include "PyOpal/PyTrackRun.h"
+#include "PyOpal/PyCore/ExceptionTranslation.h"
+#include "PyOpal/PyCore/Globals.h"
+#include "PyOpal/PyCore/PyOpalObject.h"
 
 #include "Track/TrackCmd.h"
 
 namespace PyOpal {
-namespace PyTrackRunNS {
+namespace PyTrackCmdNS {
 
 const char* module_docstring = "build a tracking object";
 
@@ -20,7 +21,7 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<TrackCmd>
     {"STEPSPERTURN", "steps_per_turn", "", PyOpalObjectNS::DOUBLE},
     {"ZSTART", "z_start", "", PyOpalObjectNS::DOUBLE},
     {"ZSTOP", "z_stop", "", PyOpalObjectNS::DOUBLE},
-    {"TIMEINTEGRATOR", "time_integrator", "", PyOpalObjectNS::STRING},
+    {"TIMEINTEGRATOR", "time_integrator", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"MAP_ORDER", "map_order", "", PyOpalObjectNS::DOUBLE},
 };
 
@@ -41,6 +42,6 @@ BOOST_PYTHON_MODULE(track) {
     trackClass.def("execute", &executeWrapper);
 }
 
-} // PyTrackRun
+} // PyTrackCmd
 } // PyOpal
 
