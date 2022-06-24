@@ -58,7 +58,8 @@ template <class C> struct PyOpalObjectSetProperty;
  *  - Long will convert to RealAttribute
  *  - VectorDouble will convert list to RealArray
  */
-enum AttributeType {DOUBLE, STRING, BOOL, INT, FLOATLIST};
+enum AttributeType {STRING, PREDEFINED_STRING, UPPER_CASE_STRING, STRING_LIST,
+                    DOUBLE, BOOL, INT, FLOAT_LIST};
 
 /** Maps the AttributeType to a string representation for docstrings/etc */
 extern std::map<AttributeType, std::string> attributeName; // defined in PyOpalObject.cpp
@@ -256,7 +257,7 @@ boost::python::object PyOpalObject<C>::getFieldValue(
     objectPtr->update();
     ElementBase* element = objectPtr->getElement();
     Component* component = dynamic_cast<Component*>(element);
-    if (component == NULL) {
+    if (component == nullptr) {
         throw OpalException("PyElement<C>::getFieldValue",
                             "Failed to deduce Component from ElementBase.");
     }
@@ -346,7 +347,7 @@ template <class C>
 void PyOpalObject<C>::registerObject(PyOpalObjectNS::PyOpalObject<C>& pyobject) {
     C* wrappedC = pyobject.getOpalShared().get();
     Object* objectPtr = dynamic_cast<Object*>(wrappedC);
-    if (objectPtr == NULL) {
+    if (objectPtr == nullptr) {
         throw OpalException("PyOpalObject<C>::registerObject",
                             "Trying to register something that was not a Opal Object");
     }
@@ -359,7 +360,7 @@ template <class C>
 boost::python::object PyOpalObject<C>::getPyOpalElement(PyOpalObjectNS::PyOpalObject<C>& pyobject) {
     std::shared_ptr<OpalElement> elementPtr =
             std::dynamic_pointer_cast<OpalElement, C>(pyobject.getOpalShared());
-    if (elementPtr.get() == NULL) {
+    if (elementPtr.get() == nullptr) {
         throw OpalException("PyOpalObject<C>::getPyOpalElement",
                             "Wrapped object was not an OpalElement");
     }
@@ -383,7 +384,7 @@ PyObject* PyOpalObject<C>::getAttribute(AttributeType type, std::string opalName
                             "Object was not initialised");       
     }
     Attribute* attribute = object_m->findAttribute(opalName);
-    if (attribute == NULL) {
+    if (attribute == nullptr) {
         throw OpalException("PyOpalObject<C>::getRealAttribute",
                             "Failed to parse attribute "+opalName);
     }
@@ -393,31 +394,60 @@ PyObject* PyOpalObject<C>::getAttribute(AttributeType type, std::string opalName
     // fight the template syntax and had to do it at runtime using an enum; it's
     // not so bad - the memory footprint is smaller and, tbh, template syntax is
     // horrible so might be easier to use.
-    if (type == DOUBLE) {
-        double value = Attributes::getReal(*attribute);
-        pyvalue = PyFloat_FromDouble(value);
-    } else if (type == INT) {
-        double value = Attributes::getReal(*attribute);
-        pyvalue = PyLong_FromDouble(value);
-    } else if (type == STRING) {
-        std::string value = Attributes::getString(*attribute);
-        pyvalue = PyUnicode_FromString(value.c_str());
-    } else if (type == BOOL) {
-        bool value = Attributes::getBool(*attribute);
-        if (value) {
-            pyvalue = Py_True;
-        } else {
-            pyvalue = Py_False;        
+    switch (type) {
+        case DOUBLE: 
+        {
+            double value = Attributes::getReal(*attribute);
+            pyvalue = PyFloat_FromDouble(value);
+            break;
         }
-    } else if (type == FLOATLIST) {
-        std::vector<double> value = Attributes::getRealArray(*attribute);
-        pyvalue = PyList_New(value.size());
-        for (size_t i = 0; i < value.size(); ++i) {
-            PyList_SetItem(pyvalue, i, PyFloat_FromDouble(value[i])); // WARNING check memory...
+        case INT:
+        {
+            double value = Attributes::getReal(*attribute);
+            pyvalue = PyLong_FromDouble(value);
+            break;
         }
-    } else {
-        throw OpalException("PyOpalObject<C>::getAttribute",
+        case STRING:
+        case PREDEFINED_STRING:
+        case UPPER_CASE_STRING:
+        {
+            std::string value = Attributes::getString(*attribute);
+            pyvalue = PyUnicode_FromString(value.c_str());
+            break;
+        }
+        case BOOL:
+        {
+            bool value = Attributes::getBool(*attribute);
+            if (value) {
+                pyvalue = Py_True;
+            } else {
+                pyvalue = Py_False;        
+            }
+            break;
+        }
+        case FLOAT_LIST:
+        {
+            std::vector<double> value = Attributes::getRealArray(*attribute);
+            pyvalue = PyList_New(value.size());
+            for (size_t i = 0; i < value.size(); ++i) {
+                PyList_SetItem(pyvalue, i, PyFloat_FromDouble(value[i]));
+            }
+            break;
+        }
+        case STRING_LIST:
+        {
+            std::vector<std::string> value = Attributes::getStringArray(*attribute);
+            pyvalue = PyList_New(value.size());
+            for (size_t i = 0; i < value.size(); ++i) {
+                PyList_SetItem(pyvalue, i, PyUnicode_FromString(value[i].c_str()));
+            }
+            break;
+        }
+        default:
+        {
+            throw OpalException("PyOpalObject<C>::getAttribute",
                             "Attribute type "+attributeName[type]+" not implemented");
+        }
     }
     Py_INCREF(pyvalue);
     return pyvalue;
@@ -430,34 +460,82 @@ void PyOpalObject<C>::setAttribute(AttributeType type, std::string opalName, PyO
         throw OpalException("PyOpalObject<C>::setAttribute",
                             "Element was not initialised");
     }
+    std::cerr << "PyOpalObject::setAttribute Setting attribute " << opalName << " for object " << object_m->getOpalName() << std::endl;
     Attribute* attribute = object_m->findAttribute(opalName);
-    if (attribute == NULL) {
+    if (attribute == nullptr) {
         throw OpalException("PyOpalObject<C>::setAttribute",
                             "Failed to parse attribute "+opalName);
     }
-    if (type == DOUBLE) {
-        double value = PyFloat_AsDouble(pyvalue);
-        Attributes::setReal(*attribute, value);
-    } else if (type == INT) {
-        double value = PyLong_AsDouble(pyvalue);
-        Attributes::setReal(*attribute, value);
-    } else if (type == STRING) {
-        std::string value = PyUnicode_AsUTF8(pyvalue);
-        Attributes::setString(*attribute, value);
-    } else if (type == BOOL) {
-        bool value = PyObject_IsTrue(pyvalue);
-        Attributes::setBool(*attribute, value);
-    } else if (type == FLOATLIST) {
-        Py_ssize_t listSize = PyList_Size(pyvalue);
-        std::vector<double> value(listSize);
-        for (Py_ssize_t i = 0; i < listSize; ++i) {
-            double value_i = PyFloat_AsDouble(PyList_GetItem(pyvalue, i));
-            value[i] = value_i;
+    switch (type) {
+        case DOUBLE:
+        {
+            double value = PyFloat_AsDouble(pyvalue);
+            Attributes::setReal(*attribute, value);
+            break;
         }
-        Attributes::setRealArray(*attribute, value);
-    } else {
-        throw OpalException("PyOpalObject<C>::setAttribute",
-                            "Attribute type "+attributeName[type]+" not implemented");
+        case INT:
+        {
+            double value = PyLong_AsDouble(pyvalue);
+            Attributes::setReal(*attribute, value);
+            break;
+        }
+        case STRING:
+        {
+            std::string value = PyUnicode_AsUTF8(pyvalue);
+            Attributes::setString(*attribute, value);
+            break;
+        }
+        case PREDEFINED_STRING:
+        {
+            // predefined string is a string with a list of options
+            // note that value checking never happens - method exists in 
+            // src/Attributes/PredefinedString.h but requires a Statement object
+            // which seems hard to construct (Classic/Parser/Statement.h)
+            std::string value = PyUnicode_AsUTF8(pyvalue);
+            Attributes::setPredefinedString(*attribute, value);
+            std::cerr << "SETTING PREDEFINED STRING " << opalName << " " << value << " Predef string" << std::endl;
+            break;
+        }
+        case UPPER_CASE_STRING:
+        {
+            std::string value = PyUnicode_AsUTF8(pyvalue);
+            Attributes::setUpperCaseString(*attribute, value);
+            break;
+        }
+        case BOOL:
+        {
+            bool value = PyObject_IsTrue(pyvalue);
+            Attributes::setBool(*attribute, value);
+            break;
+        }
+        case FLOAT_LIST:
+        {
+            Py_ssize_t listSize = PyList_Size(pyvalue);
+            std::vector<double> value(listSize);
+            for (Py_ssize_t i = 0; i < listSize; ++i) {
+                double value_i = PyFloat_AsDouble(PyList_GetItem(pyvalue, i));
+                value[i] = value_i;
+            }
+            Attributes::setRealArray(*attribute, value);
+            break;
+        }
+        case STRING_LIST:
+        {
+            Py_ssize_t listSize = PyList_Size(pyvalue);
+            std::vector<std::string> value(listSize);
+            for (Py_ssize_t i = 0; i < listSize; ++i) {
+                PyObject* pyvalue_i = PyList_GetItem(pyvalue, i);
+                std::string value_i = PyUnicode_AsUTF8(pyvalue_i);
+                value[i] = value_i;
+            }
+            Attributes::setStringArray(*attribute, value);
+            break;
+        }
+        default:
+        {
+            throw OpalException("PyOpalObject<C>::setAttribute",
+                                "Attribute type "+attributeName[type]+" not implemented");
+        }
     }
 }
 
@@ -468,7 +546,7 @@ PyOpalObject<C>::PyOpalObject(const PyOpalObject<C>& rhs) : object_m(rhs.object_
 template <class C>
 std::string PyOpalObject<C>::getDocString(AttributeDef& def) {
     Attribute* attribute = object_m->findAttribute(def.opalName_m);
-    if (attribute == NULL) {
+    if (attribute == nullptr) {
         throw OpalException("PyOpalObject<C>::getRealAttribute",
                             "Failed to parse attribute "+def.opalName_m);
     }
@@ -541,41 +619,62 @@ void PyOpalObject<C>::addAttributes(PYCLASS& pyclass) {
         PyOpalObjectSetProperty<C> setProp(iter->type_m, iter->opalName_m);
         std::string docString = getDocString(*iter);
         std::string pyname = iter->pyName_m.c_str();
-        if (iter->type_m == DOUBLE) {
-            pyclass.add_property(pyname.c_str(),
-                                 boost::python::make_function(&PyC::dummyGet<double>, getProp),
-                                 boost::python::make_function(&PyC::dummySet<double>, setProp),
-                                 docString.c_str()
-            );
-        } else if (iter->type_m == INT) {
-            pyclass.add_property(pyname.c_str(),
-                                 boost::python::make_function(&PyC::dummyGet<int>, getProp),
-                                 boost::python::make_function(&PyC::dummySet<int>, setProp),
-                                 docString.c_str()
-            );
-         }  else if (iter->type_m == STRING) {
-            pyclass.add_property(pyname.c_str(),
-                                 boost::python::make_function(&PyC::dummyGet<std::string>, getProp),
-                                 boost::python::make_function(&PyC::dummySet<std::string>, setProp),
-                                 docString.c_str()
-            );
-        }  else if (iter->type_m == BOOL) {
-            pyclass.add_property(pyname.c_str(),
-                                 boost::python::make_function(&PyC::dummyGet<bool>, getProp),
-                                 boost::python::make_function(&PyC::dummySet<bool>, setProp),
-                                 docString.c_str()
-            );
-        }  else if (iter->type_m == FLOATLIST) {
-            pyclass.add_property(pyname.c_str(),
-                                 boost::python::make_function(&PyC::dummyGet<boost::python::list>, getProp),
-                                 boost::python::make_function(&PyC::dummySet<boost::python::list>, setProp),
-                                 docString.c_str()
-            );
-        } else {
-            // Looks like exception handling doesn't work properly at module
-            // import time so this may not be handled politely - thrown as an 
-            // unrecognised SystemError
-            throw OpalException("PyOpalObject<C>::addAttributes", "Type not implemented");
+        switch (iter->type_m) {
+            case DOUBLE:
+            {
+                pyclass.add_property(pyname.c_str(),
+                                     boost::python::make_function(&PyC::dummyGet<double>, getProp),
+                                     boost::python::make_function(&PyC::dummySet<double>, setProp),
+                                     docString.c_str()
+                );
+                break;
+            }
+            case INT:
+            {
+                pyclass.add_property(pyname.c_str(),
+                                     boost::python::make_function(&PyC::dummyGet<int>, getProp),
+                                     boost::python::make_function(&PyC::dummySet<int>, setProp),
+                                     docString.c_str()
+                );
+                break;
+            }
+            case STRING:
+            case PREDEFINED_STRING:
+            case UPPER_CASE_STRING:
+            {
+                pyclass.add_property(pyname.c_str(),
+                                     boost::python::make_function(&PyC::dummyGet<std::string>, getProp),
+                                     boost::python::make_function(&PyC::dummySet<std::string>, setProp),
+                                     docString.c_str()
+                );
+                break;
+            }
+            case BOOL:
+            {
+                pyclass.add_property(pyname.c_str(),
+                                     boost::python::make_function(&PyC::dummyGet<bool>, getProp),
+                                     boost::python::make_function(&PyC::dummySet<bool>, setProp),
+                                     docString.c_str()
+                );
+                break;
+            }
+            case FLOAT_LIST:
+            case STRING_LIST:
+            {
+                pyclass.add_property(pyname.c_str(),
+                                     boost::python::make_function(&PyC::dummyGet<boost::python::list>, getProp),
+                                     boost::python::make_function(&PyC::dummySet<boost::python::list>, setProp),
+                                     docString.c_str()
+                );
+                break;
+            } 
+            default:
+            {
+                // Looks like exception handling doesn't work properly at module
+                // import time so this may not be handled politely - thrown as an 
+                // unrecognised SystemError
+                throw OpalException("PyOpalObject<C>::addAttributes", "Type not implemented");
+            }
         }
     }
 }
@@ -633,7 +732,7 @@ PyObject* PyOpalObjectGetProperty<C>::postcall(ArgumentPackage const&, PyObject*
 }
 
 template <class C>
-const PyOpalObject<C>* PyOpalObjectGetProperty<C>::object_m = NULL;
+const PyOpalObject<C>* PyOpalObjectGetProperty<C>::object_m = nullptr;
 
 ///////// templated implementations for PyOpalObjectSetProperty ////////////////
 
@@ -643,16 +742,16 @@ PyObject* PyOpalObjectSetProperty<C>::postcall(ArgumentPackage const& args, PyOb
     PyObject* value;
     PyObject* pyObject; // this is a direct pointer to the C but I don't know how to unwrap it...
     if (!PyArg_ParseTuple(args, "OO", &pyObject, &value)) {
-        return NULL; // ParseTuple sets the error message
+        return nullptr; // ParseTuple sets the error message
     }
     Py_DECREF(result);
     object_m->setAttribute(type_m, opalName_m, value);
-    object_m = NULL;
+    object_m = nullptr;
     Py_RETURN_NONE;
 }
 
 template <class C>
-PyOpalObject<C>* PyOpalObjectSetProperty<C>::object_m = NULL;
+PyOpalObject<C>* PyOpalObjectSetProperty<C>::object_m = nullptr;
 
 } // PyOpalObject
 } // PyOpal

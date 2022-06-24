@@ -1,6 +1,6 @@
-#include "PyOpal/ExceptionTranslation.h"
-#include "PyOpal/PyTrackRun.h"
-#include "PyOpal/Globals.h"
+#include "PyOpal/PyCore/ExceptionTranslation.h"
+#include "PyOpal/PyCore/Globals.h"
+#include "PyOpal/PyCore/PyOpalObject.h"
 
 #include "Track/TrackRun.h"
 
@@ -16,33 +16,27 @@ const char* module_docstring = "build a tracking object";
 
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<TrackRun>::attributes = {
-    {"METHOD", "method", "", PyOpalObjectNS::STRING},
+    {"METHOD", "method", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"TURNS", "turns", "", PyOpalObjectNS::DOUBLE},
-    {"MBMODE", "multibunch_mode", "", PyOpalObjectNS::STRING},
+    {"MBMODE", "multibunch_mode", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"PARAMB", "multibunch_control", "", PyOpalObjectNS::DOUBLE},
     {"MB_ETA", "multibunch_scale", "", PyOpalObjectNS::DOUBLE},
-    {"MB_BINNING", "multibunch_binning", "", PyOpalObjectNS::DOUBLE},
+    {"MB_BINNING", "multibunch_binning", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"BEAM", "beam_name", "", PyOpalObjectNS::STRING},
     {"FIELDSOLVER", "field_solver", "", PyOpalObjectNS::STRING},
     {"BOUNDARYGEOMETRY", "boundary_geometry", "", PyOpalObjectNS::STRING},
-    {"DISTRIBUTION", "distribution", "", PyOpalObjectNS::STRING},
-    {"MULTIPACTING", "multipacting", "", PyOpalObjectNS::BOOL},
-    {"KEEPALIVE", "keep_alive", "", PyOpalObjectNS::BOOL},
-    {"OBJECTIVES", "objectives", "", PyOpalObjectNS::STRING},
+    {"DISTRIBUTION", "distribution", "", PyOpalObjectNS::STRING_LIST},
 };
 
 template <>
 std::string PyOpalObjectNS::PyOpalObject<TrackRun>::classDocstring = "";
 
 BOOST_PYTHON_MODULE(track_run) {
-    std::cerr << "TRACK RUN MODULE 1 gmsg " << gmsg << std::endl;
     ExceptionTranslation::registerExceptions();
     PyOpal::Globals::Initialise();
-    std::cerr << "TRACK RUN MODULE 2 gmsg " << gmsg << std::endl;
     PyOpalObjectNS::PyOpalObject<TrackRun> trackRun;
     auto trackClass = trackRun.make_class("TrackRun");
     trackRun.addExecute(trackClass);
-    std::cerr << "TRACK RUN MODULE DONE" << std::endl;
 }
 
 } // PyTrackRun
