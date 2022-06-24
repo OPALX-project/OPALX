@@ -536,15 +536,13 @@ void ScatteringPhysics::addParticleBackToBunch(PartBunchBase<double, 3>* bunch,
         bunch->Bin[numLocalParticles] = -1;
     }
 
-    bunch->R[numLocalParticles]   = particle.Rincol;
-    bunch->P[numLocalParticles]   = particle.Pincol;
-    bunch->Q[numLocalParticles]   = particle.Qincol;
-    bunch->M[numLocalParticles]   = particle.Mincol;
-    bunch->Bf[numLocalParticles]  = 0.0;
-    bunch->Ef[numLocalParticles]  = 0.0;
-    bunch->dt[numLocalParticles]  = dT_m;
-
-    ++numLocalParticles;
+    bunch->R[numLocalParticles]  = particle.Rincol;
+    bunch->P[numLocalParticles]  = particle.Pincol;
+    bunch->Q[numLocalParticles]  = particle.Qincol;
+    bunch->M[numLocalParticles]  = particle.Mincol;
+    bunch->Bf[numLocalParticles] = 0.0;
+    bunch->Ef[numLocalParticles] = 0.0;
+    bunch->dt[numLocalParticles] = dT_m;
 }
 
 
