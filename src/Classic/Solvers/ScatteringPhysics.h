@@ -100,7 +100,11 @@ private:
 
     void copyFromBunch(PartBunchBase<double, 3>* bunch,
                        const std::pair<Vector_t, double>& boundingSphere);
+
     void addBackToBunch(PartBunchBase<double, 3>* bunch);
+
+    void addParticleBackToBunch(PartBunchBase<double, 3>* bunch,
+                                const PART& particle, bool pdead = false);
 
     void deleteParticleFromLocalVector();
 
@@ -118,17 +122,14 @@ private:
     double charge_m;                           // charge from bunch (elementary charges)
 
     gsl_rng* rGen_m;                           // random number generator
-    std::string material_m;                    // type of material e.g. aluminum
-    ElementType collshape_m;      // the type of element (DEGRADER, CCOLLIMATOR or FLEXIBLECOLLIMATOR)
-    std::string collshapeStr_m;                // the type of element as string
 
     // material parameters
+    std::string material_m;                    // type of material e.g. aluminum
     double Z_m;                                // the atomic number [1]
     double A_m;                                // the atomic mass [u]
     double rho_m;                              // the volumetric mass density in [g cm^-3]
     double X0_m;                               // the radiation length in [m]
     double I_m;                                // the mean excitation energy [eV]
-
     /*
        coefficients to fit model to measurement data according to Andersen-Ziegler formulae.
        see ICRU-49, "Stopping Powers and Ranges for Protons  and Alpha Particles",

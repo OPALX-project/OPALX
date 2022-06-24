@@ -279,7 +279,6 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
 
         Absorbed particle i: locParts_m[i].label = -1.0;
     */
-    unsigned int numLocalParticles = bunch->getLocalNum();
     for (size_t i = 0; i < locParts_m.size(); ++i) {
         if (locParts_m[i].label != -1) {
             Vector_t& R = locParts_m[i].Rincol;
@@ -311,17 +310,7 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
                         // Only the minimal number of attributes are fixed because the
                         // particle is marked for deletion (Bin<0)
 
-                        bunch->createWithID(locParts_m[i].IDincol);
-                        bunch->Bin[numLocalParticles] = -1;
-                        bunch->R[numLocalParticles]   = R;
-                        bunch->P[numLocalParticles]   = P;
-                        bunch->Q[numLocalParticles]   = locParts_m[i].Qincol;
-                        bunch->M[numLocalParticles]   = locParts_m[i].Mincol;
-                        bunch->Bf[numLocalParticles]  = 0.0;
-                        bunch->Ef[numLocalParticles]  = 0.0;
-                        bunch->dt[numLocalParticles]  = dT_m;
-
-                        ++numLocalParticles;
+                        addParticleBackToBunch(bunch, locParts_m[i], pdead);
                     }
                 }
             }
@@ -510,7 +499,6 @@ void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
     const size_t nL = locParts_m.size();
     if (nL == 0) return;
 
-    unsigned int numLocalParticles = bunch->getLocalNum();
     const double elementLength = element_ref_m->getElementLength();
 
     for (size_t i = 0; i < nL; ++ i) {
@@ -519,36 +507,46 @@ void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
         if ( (OpalData::getInstance()->isInOPALTMode() && R[2] >= elementLength) ||
              (OpalData::getInstance()->isInOPALCyclMode() && !(hitTester_m->checkHit(R))) ) {
 
-            bunch->createWithID(locParts_m[i].IDincol);
+            addParticleBackToBunch(bunch, locParts_m[i]);
 
             /*
-              Binincol is still <0, but now the particle is rediffused
-              from the material and hence this is not a "lost" particle anymore
-            */
-            bunch->Bin[numLocalParticles] = 1;
-            bunch->R[numLocalParticles]   = R;
-            bunch->P[numLocalParticles]   = locParts_m[i].Pincol;
-            bunch->Q[numLocalParticles]   = locParts_m[i].Qincol;
-            bunch->M[numLocalParticles]   = locParts_m[i].Mincol;
-            bunch->Bf[numLocalParticles]  = 0.0;
-            bunch->Ef[numLocalParticles]  = 0.0;
-            bunch->dt[numLocalParticles]  = dT_m;
-
-            /*
-              This particle is back to the bunch, by set
-              ting the label to -1.0
-              the particle will be deleted.
+              This particle is back to the bunch, by setting the
+              label to -1.0 the particle will be deleted.
             */
             locParts_m[i].label = -1.0;
 
             ++rediffusedStat_m;
-            ++numLocalParticles;
         }
     }
 
     // delete particles that went to the bunch
     deleteParticleFromLocalVector();
 }
+
+void ScatteringPhysics::addParticleBackToBunch(PartBunchBase<double, 3>* bunch,
+                                               const PART& particle, bool pdead) {
+
+    unsigned int numLocalParticles = bunch->getLocalNum();
+
+    bunch->createWithID(particle.IDincol);
+
+    if (!pdead) {
+        bunch->Bin[numLocalParticles] = 1;
+    } else {
+        bunch->Bin[numLocalParticles] = -1;
+    }
+
+    bunch->R[numLocalParticles]   = particle.Rincol;
+    bunch->P[numLocalParticles]   = particle.Pincol;
+    bunch->Q[numLocalParticles]   = particle.Qincol;
+    bunch->M[numLocalParticles]   = particle.Mincol;
+    bunch->Bf[numLocalParticles]  = 0.0;
+    bunch->Ef[numLocalParticles]  = 0.0;
+    bunch->dt[numLocalParticles]  = dT_m;
+
+    ++numLocalParticles;
+}
+
 
 void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
                                       const std::pair<Vector_t, double>& boundingSphere)
