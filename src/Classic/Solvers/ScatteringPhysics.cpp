@@ -140,20 +140,24 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
 
     configureMaterialParameters();
 
-    collshape_m = element_ref_m->getType();
-    switch (collshape_m) {
-    case ElementType::DEGRADER:
-        hitTester_m.reset(new DegraderInsideTester(element_ref_m));
-        break;
-    case ElementType::CCOLLIMATOR:
-        hitTester_m.reset(new CollimatorInsideTester(element_ref_m));
-        break;
-    case ElementType::FLEXIBLECOLLIMATOR:
-        hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
-        break;
-    default:
-        throw GeneralClassicException("ScatteringPhysics::ScatteringPhysics",
-                                      "Unsupported element type");
+    ElementType collshape = element_ref_m->getType();
+    switch (collshape) {
+        case ElementType::DEGRADER: {
+            hitTester_m.reset(new DegraderInsideTester(element_ref_m));
+            break;
+        }
+        case ElementType::CCOLLIMATOR: {
+            hitTester_m.reset(new CollimatorInsideTester(element_ref_m));
+            break;
+        }
+        case ElementType::FLEXIBLECOLLIMATOR: {
+            hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
+            break;
+        }
+        default: {
+            throw GeneralClassicException("ScatteringPhysics::ScatteringPhysics",
+                                          "Unsupported element type");
+        }
     }
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
@@ -537,8 +541,8 @@ void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
             */
             locParts_m[i].label = -1.0;
 
-            ++ rediffusedStat_m;
-            ++ numLocalParticles;
+            ++rediffusedStat_m;
+            ++numLocalParticles;
         }
     }
 
