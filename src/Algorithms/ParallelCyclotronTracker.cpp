@@ -2379,8 +2379,7 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
 }
 
 void ParallelCyclotronTracker::setTimeStep() {
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
+    for (size_t i = 0; i < initialLocalNum_m; ++i) {
         itsBunch_m->dt[i] = itsBunch_m->getdT();
     }
 }
