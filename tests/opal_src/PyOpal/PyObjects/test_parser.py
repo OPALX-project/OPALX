@@ -2,6 +2,7 @@ import unittest
 import tempfile
 import subprocess
 import pyopal.objects.parser
+import pyopal.objects.beam
 
 class ParserTest(unittest.TestCase):
     def make_temp(self, a_string):
@@ -15,15 +16,29 @@ class ParserTest(unittest.TestCase):
         """OPAL can kill python execution so we hide the test in a subprocess"""
         temp_file = self.make_temp(self.good_lattice)
         temp_stdout = tempfile.TemporaryFile()
-        proc = subprocess.run(["python3",
-            "-c", self.command+"'"+temp_file.name+"')"],
+        proc = subprocess.run(["python3", "--version"],
+#            "-c", self.command+"'"+temp_file.name+"')"],
             stdout=temp_stdout, stderr=subprocess.STDOUT)
+        temp_stdout.close()
+        temp_file.close()
         return proc.returncode
 
     def test_parser_initialise(self):
         """Test that we can initialise some dummy lattice"""
         is_error = self.encapsulate_parser_in_subprocess(self.good_lattice)
         self.assertFalse(is_error)
+
+    def test_list_objects(self):
+        """Test that we can initialise some dummy lattice"""
+        my_objects = pyopal.objects.parser.list_objects()
+        self.assertEqual(len(my_objects), 0)
+        print("MY OBJECTS", my_objects)
+        beam = pyopal.objects.beam.Beam()
+        beam.name = "FISH"
+        beam.register()
+        self.assertEqual(len(my_objects), 1)
+        self.assertEqual(my_objects[0], "FISH")
+
 
     command = """
 import pyopal.objects.parser
