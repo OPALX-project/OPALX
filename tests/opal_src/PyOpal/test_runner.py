@@ -15,7 +15,7 @@ def main():
         print("Tests passed")
         sys.exit(0)
     else:
-        print("Tests failed")
+        print("Tests failed (don't forget to make install...)")
         sys.exit(len(result.errors)+len(result.failures))
 
 

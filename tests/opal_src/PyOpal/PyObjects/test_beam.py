@@ -1,0 +1,37 @@
+import unittest
+import pyopal.objects.beam
+
+class TestBeam(unittest.TestCase):
+    def test_init(self):
+        my_beam = pyopal.objects.beam.Beam()
+        my_beam.particle = "proton"
+        self.assertEqual(my_beam.particle, "PROTON")
+        my_beam.mass = 1
+        self.assertAlmostEqual(my_beam.mass, 1)
+        my_beam.charge = 2
+        self.assertAlmostEqual(my_beam.charge, 2)
+        my_beam.energy = 3
+        self.assertAlmostEqual(my_beam.energy, 3)
+        my_beam.momentum = 4
+        self.assertAlmostEqual(my_beam.momentum, 4)
+        my_beam.gamma = 5
+        self.assertAlmostEqual(my_beam.gamma, 5)
+        my_beam.beam_current = 6
+        self.assertAlmostEqual(my_beam.beam_current, 6)
+        my_beam.beam_frequency = 7
+        self.assertAlmostEqual(my_beam.beam_frequency, 7)
+        my_beam.number_of_particles = 8
+        self.assertAlmostEqual(my_beam.number_of_particles, 8)
+
+    def test_bad_particle_type(self):
+        my_beam = pyopal.objects.beam.Beam()
+        my_beam.particle = "bad"
+        self.assertTrue(False, """"Should have thrown.""")
+
+    def test_register(self):
+        my_beam = pyopal.objects.beam.Beam()
+        my_beam.register()
+
+
+if __name__ == "__main__":
+    unittest.main()

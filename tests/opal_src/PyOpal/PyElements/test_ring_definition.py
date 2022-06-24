@@ -42,6 +42,8 @@ class RingDefinitionTest(unittest.TestCase):
 
     def test_get_field_value(self):
         """
+        Check get_field_value on the fields
+
         Field will always return outofbounds and 0 - we can only add elements
         using TrackRun, so we will test get_field_value then.
         """
