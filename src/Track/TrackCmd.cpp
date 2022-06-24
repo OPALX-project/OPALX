@@ -183,6 +183,11 @@ Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
     return stringTimeIntegrator_s.at(name);
 }
 
+void TrackCmd::setIsParseable(bool isParseable) {
+    isParseable_m = isParseable;
+}
+
+
 void TrackCmd::execute() {
     // Find BeamSequence and Beam definitions.
     BeamSequence* use = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
@@ -211,16 +216,20 @@ void TrackCmd::execute() {
         zstop.push_back(zstop.back());
     }
 
-   // Execute track block.
+    // Execute track block.
+    if (Track::block != nullptr) {
+        delete Track::block;
+        Track::block = nullptr;
+    }
     Track::block = new Track(use, beam->getReference(), dt, maxsteps,
                              stepsperturn, zstart, zstop,
                              timeintegrator, t0, dtScInit, deltaTau);
 
     Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
-
-    Track::block->parser.run();
-
-    // Clean up.
-    delete Track::block;
-    Track::block = 0;
+    if (isParseable_m) {
+        Track::block->parser.run();
+        // Clean up.
+        delete Track::block;
+        Track::block = 0;
+    }
 }
