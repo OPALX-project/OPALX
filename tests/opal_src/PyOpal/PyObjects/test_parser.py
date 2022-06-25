@@ -16,9 +16,12 @@ class ParserTest(unittest.TestCase):
         """OPAL can kill python execution so we hide the test in a subprocess"""
         temp_file = self.make_temp(self.good_lattice)
         temp_stdout = tempfile.TemporaryFile()
-        proc = subprocess.run(["python3", "--version"],
-#            "-c", self.command+"'"+temp_file.name+"')"],
+        proc = subprocess.run(["python3",
+            "-c", self.command+"'"+temp_file.name+"')"],
             stdout=temp_stdout, stderr=subprocess.STDOUT)
+        temp_stdout.seek(0)
+        for line in temp_stdout:
+            print(line[:-1])
         temp_stdout.close()
         temp_file.close()
         return proc.returncode

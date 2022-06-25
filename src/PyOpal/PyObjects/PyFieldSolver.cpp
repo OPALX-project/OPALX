@@ -16,7 +16,7 @@ const char* module_docstring = "build a tracking object";
 // DOUBLE, STRING, BOOL, INT
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<FieldSolver>::attributes = {
-    {"FSTYPE", "field_solver_type", "", PyOpalObjectNS::PREDEFINED_STRING},
+    {"FSTYPE", "type", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"MX", "mesh_size_x", "", PyOpalObjectNS::DOUBLE},
     {"MY", "mesh_size_y", "", PyOpalObjectNS::DOUBLE},
     {"MT", "mesh_size_t", "", PyOpalObjectNS::DOUBLE},
@@ -42,8 +42,16 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<FieldSolv
 template <>
 std::string PyOpalObjectNS::PyOpalObject<FieldSolver>::classDocstring = "";
 
-void registerFieldSolver(PyOpalObjectNS::PyOpalObject<FieldSolver>& fs) {
-    Object* obj = &(*fs.getOpalShared());
+void registerFieldSolver(PyOpalObjectNS::PyOpalObject<FieldSolver>& pyfs) {
+    Object* obj = &(*pyfs.getOpalShared());
+    FieldSolver* fs = dynamic_cast<FieldSolver*>(obj);
+    if (fs == nullptr) {
+        throw OpalException(
+            "PyOpal::PyFieldSolverNS::registerFieldSolver",
+            "Internal error - field solver not recognised during register()"
+        );
+    }
+    fs->execute();
     OpalData::getInstance()->define(obj);
 }
 
@@ -52,7 +60,7 @@ BOOST_PYTHON_MODULE(field_solver) {
     ExceptionTranslation::registerExceptions();
     PyOpalObjectNS::PyOpalObject<FieldSolver> fs;
     auto fsClass = fs.make_class("FieldSolver");
-    fs.addRegister(fsClass);
+    fsClass.def("register", &registerFieldSolver);
 }
 
 } // PyFieldSolverNS

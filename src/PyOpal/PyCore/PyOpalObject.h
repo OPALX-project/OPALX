@@ -460,7 +460,6 @@ void PyOpalObject<C>::setAttribute(AttributeType type, std::string opalName, PyO
         throw OpalException("PyOpalObject<C>::setAttribute",
                             "Element was not initialised");
     }
-    std::cerr << "PyOpalObject::setAttribute Setting attribute " << opalName << " for object " << object_m->getOpalName() << std::endl;
     Attribute* attribute = object_m->findAttribute(opalName);
     if (attribute == nullptr) {
         throw OpalException("PyOpalObject<C>::setAttribute",
@@ -493,7 +492,6 @@ void PyOpalObject<C>::setAttribute(AttributeType type, std::string opalName, PyO
             // which seems hard to construct (Classic/Parser/Statement.h)
             std::string value = PyUnicode_AsUTF8(pyvalue);
             Attributes::setPredefinedString(*attribute, value);
-            std::cerr << "SETTING PREDEFINED STRING " << opalName << " " << value << " Predef string" << std::endl;
             break;
         }
         case UPPER_CASE_STRING:
