@@ -12,7 +12,13 @@ import pyopal.objects.field_solver
 import pyopal.objects.track
 import pyopal.objects.parser
 
-DISTRIBUTION = """4
+DISTRIBUTION = """10
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
 3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
 3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
 3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
@@ -22,10 +28,10 @@ DISTRIBUTION = """4
 class TestTrackRun(unittest.TestCase):
     def make_field_solver(self):
         self.field_solver = pyopal.objects.field_solver.FieldSolver()
-        self.field_solver.field_solver_type = "NONE"
-        self.field_solver.mesh_size_x = 1
-        self.field_solver.mesh_size_y = 1
-        self.field_solver.mesh_size_t = 1
+        self.field_solver.type = "NONE"
+        self.field_solver.mesh_size_x = 5
+        self.field_solver.mesh_size_y = 5
+        self.field_solver.mesh_size_t = 5
         self.field_solver.parallelize_x = False
         self.field_solver.parallelize_y = False
         self.field_solver.parallelize_t = False
@@ -33,26 +39,19 @@ class TestTrackRun(unittest.TestCase):
         self.field_solver.boundary_y = "open"
         self.field_solver.boundary_t = "open"
         self.field_solver.bounding_box_increase = 2
-
         self.field_solver.register()
 
     @classmethod
-    def make_magnet(cls):
-        magnet1 = pyopal.elements.vertical_ffa_magnet.VerticalFFAMagnet()
-        magnet1.b0 = 1.0
-        magnet1.field_index = 1.31
-        magnet1.max_horizontal_power = 12
-        magnet1.centre_length = 0.5
-        magnet1.end_length = 0.15
-        magnet1.width = 0.5
-        magnet1.height_neg_extent = 1.0
-        magnet1.height_pos_extent = 1.0
-        magnet1.bb_length = 12.0
-        return magnet1
+    def make_drift(cls):
+        drift = pyopal.elements.local_cartesian_offset.LocalCartesianOffset()
+        drift.end_position_x=0.0
+        drift.end_position_y=0.0
+        drift.end_normal_x=1.0
+        drift.end_normal_y=0.0
+        return drift
 
     def make_line(self):
-        magnet1 = self.make_magnet()
-        magnet2 = self.make_magnet()
+        drift = self.make_drift()
         self.line = pyopal.objects.line.Line()
         self.ring = pyopal.elements.ring_definition.RingDefinition()
         self.ring.lattice_initial_r = 4.0
@@ -66,9 +65,7 @@ class TestTrackRun(unittest.TestCase):
         self.offset.normal_x = 1.0
 
         self.line.append(self.ring)
-        self.line.append(magnet1)
-        self.line.append(self.offset)
-        self.line.append(magnet2)
+        self.line.append(drift)
         self.line.register()
 
     def make_distribution(self):
@@ -91,7 +88,7 @@ class TestTrackRun(unittest.TestCase):
         beam.momentum = 0.1
         beam.beam_frequency = 1.0
         beam.number_of_slices = 10
-        beam.number_of_particles = 4
+        beam.number_of_particles = 10
         beam.register()
 
 
@@ -111,9 +108,6 @@ class TestTrackRun(unittest.TestCase):
         print(pyopal.objects.parser.list_objects())
         track.execute()
         run.execute()
-        field0 = line[0].get_field_value(0.0, 1.0, 0.0, 0.0)
-        field1 = pyopal.objects.field.get_field_value(0.0, 1.0, 0.0, 0.0)
-        field2 = line[1].get_field_value(0.0, 0.0, 0.0, 0.0)
 
     def setUp(self):
         """Define a few default variables"""

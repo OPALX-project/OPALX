@@ -148,7 +148,8 @@ void PyLine_<TBeamline<FlaggedElmPtr> >::setElement(int i, boost::python::object
             } 
             ElmPtr elmptr(elmbase);
             FlaggedElmPtr felmptr(elmptr);
-            object_m->insert(it, felmptr);
+            BL::iterator new_it = object_m->erase(it);
+            object_m->insert(new_it, felmptr);
             return;
         }
         ++index;
