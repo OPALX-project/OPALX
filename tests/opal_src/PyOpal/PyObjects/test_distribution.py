@@ -1,7 +1,9 @@
+"""Test that distribution parses okay"""
 import unittest
 import pyopal.objects.distribution
 
 class TestDistribution(unittest.TestCase):
+    """Test that distribution parses okay"""
     def test_init(self):
         """Check we can initialise variables without a problem"""
         my_distribution = pyopal.objects.distribution.Distribution()

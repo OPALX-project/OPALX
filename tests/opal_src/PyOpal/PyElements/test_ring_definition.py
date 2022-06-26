@@ -1,12 +1,9 @@
-import math
+"""Test RingDefinition python implementation"""
 import unittest
 import pyopal.elements.ring_definition
 
-"""
-Test RingDefinition python implementation
-"""
-
 class RingDefinitionTest(unittest.TestCase):
+    """Test RingDefinition python implementation"""
     def setUp(self):
         """setup the ring"""
         self.ring_definition = pyopal.elements.ring_definition.RingDefinition()

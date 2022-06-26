@@ -1,3 +1,4 @@
+"""Test the field module"""
 import unittest
 import tempfile
 import sys
@@ -6,14 +7,16 @@ import pyopal.objects.parser
 import pyopal.objects.field
 
 def run_encapsulated_test(file_name):
+    """Run the test in a subfile so that we don't get namespace clashes"""
     pyopal.objects.parser.initialise_from_opal_file(file_name)
     print("Testing")
     value = pyopal.objects.field.get_field_value(0, 1, 0, 0)
     print(value)
-    return_code = abs(value[3]-2) > 1e-3
-    return return_code
+    my_return_code = abs(value[3]-2) > 1e-3
+    return my_return_code
 
 class FieldTest(unittest.TestCase):
+    """Test that we can get fields out"""
     def make_temp(self, a_string):
         """Dump string to a temporary file for use in testing"""
         my_temp = tempfile.NamedTemporaryFile(mode='w+')
@@ -31,7 +34,7 @@ class FieldTest(unittest.TestCase):
             temp_stdout = tempfile.TemporaryFile()
             temp_stderr = subprocess.STDOUT
         proc = subprocess.run(["python3", __file__, "run_unit_test_encapsulation", temp_file.name],
-                    stdout=temp_stdout, stderr=temp_stderr)
+                    stdout=temp_stdout, stderr=temp_stderr, check=False)
         if temp_stdout:
             temp_stdout.close() # why does this not use resource allocation?
         self.assertEqual(proc.returncode, 0)

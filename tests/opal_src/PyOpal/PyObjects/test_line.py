@@ -1,8 +1,14 @@
+"""Test Line implementation"""
+
+# we are testing the dunder operator, hence disable pylint warning
+# pylint: disable=unnecessary-dunder-call
+
 import unittest
 import pyopal.elements.vertical_ffa_magnet
 import pyopal.objects.line
 
 class TestLine(unittest.TestCase):
+    """Test Line implementation"""
     def setUp(self):
         """Define a few default variables"""
         self.magnet1 = pyopal.elements.vertical_ffa_magnet.VerticalFFAMagnet()
@@ -40,12 +46,9 @@ class TestLine(unittest.TestCase):
         self.assertEqual(self.line[1], self.magnet2)
         self.line.append(self.magnet1)
         self.assertEqual(self.line[2], self.magnet1)
-        try:
+        with self.assertRaises(AttributeError):
             self.line.append("not an element")
-            self.assertTrue(False, "Should have thrown")
-        except AttributeError:
-            pass
-
+ 
     def test_set(self):
         """Check that we can set elements"""
         self.line.append(self.magnet1)
@@ -60,35 +63,23 @@ class TestLine(unittest.TestCase):
         self.assertEqual(self.line[1], self.magnet1)
         self.line.__setitem__(-2, self.magnet2)
         self.assertEqual(self.line[0], self.magnet2)
-        try:
+        with self.assertRaises(AttributeError):
             self.line[1]  = "not an element"
-            self.assertTrue(False, "Should have thrown")
-        except AttributeError:
-            pass
-        try:
+        with self.assertRaises(RuntimeError):
             self.line.__setitem__(2, self.magnet2)
-            self.assertTrue(False, "Should have thrown")
-        except RuntimeError:
-            pass
 
     def test_get(self):
         """Check that we can get elements"""
-        try:
+        with self.assertRaises(RuntimeError):
             self.line[0]
-            self.assertTrue(False, "Should have thrown")
-        except RuntimeError:
-            pass
         self.line.append(self.magnet1)
         self.line.append(self.magnet2)
         self.assertEqual(self.line.__getitem__(0), self.magnet1)
         self.assertEqual(self.line.__getitem__(1), self.magnet2)
         self.assertEqual(self.line.__getitem__(-1), self.magnet2)
         self.assertEqual(self.line.__getitem__(-2), self.magnet1)
-        try:
+        with self.assertRaises(RuntimeError):
             self.line.__getitem__(3)
-            self.assertTrue(False, "Should have thrown")
-        except RuntimeError:
-            pass
 
     def test_len(self):
         """Check len function"""

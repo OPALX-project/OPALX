@@ -1,6 +1,11 @@
+"""Module to test track run (and by extension the entire PyOpal workflow)"""
+
 import os
-import unittest
+import sys
 import tempfile
+import subprocess
+import unittest
+
 import pyopal.elements.vertical_ffa_magnet
 import pyopal.objects.track_run
 import pyopal.objects.beam
@@ -12,21 +17,24 @@ import pyopal.objects.field_solver
 import pyopal.objects.track
 import pyopal.objects.parser
 
-DISTRIBUTION = """10
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
-"""
+class TrackRunExecute():
+    """Module to test track run (and by extension the entire PyOpal workflow)"""
+    def __init__(self):
+        """Set up the test"""
+        self.here = os.getcwd()
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        os.chdir(self.tmp_dir.name)
+        self.field_solver = None
+        self.line = None
+        self.ring = None
+        self.offset = None
+        self.distribution = None
+        self.distribution_file = tempfile.NamedTemporaryFile("w+")
+        self.track_run = pyopal.objects.track_run.TrackRun()
 
-class TestTrackRun(unittest.TestCase):
+
     def make_field_solver(self):
+        """Make an empty fieldsolver"""
         self.field_solver = pyopal.objects.field_solver.FieldSolver()
         self.field_solver.type = "NONE"
         self.field_solver.mesh_size_x = 5
@@ -43,6 +51,7 @@ class TestTrackRun(unittest.TestCase):
 
     @classmethod
     def make_drift(cls):
+        """Returns a drift of length 0"""
         drift = pyopal.elements.local_cartesian_offset.LocalCartesianOffset()
         drift.end_position_x=0.0
         drift.end_position_y=0.0
@@ -51,6 +60,7 @@ class TestTrackRun(unittest.TestCase):
         return drift
 
     def make_line(self):
+        """Make a beamline, just consisting of a drift section"""
         drift = self.make_drift()
         self.line = pyopal.objects.line.Line()
         self.ring = pyopal.elements.ring_definition.RingDefinition()
@@ -69,12 +79,11 @@ class TestTrackRun(unittest.TestCase):
         self.line.register()
 
     def make_distribution(self):
-        global DISTRIBUTION
-        self.distribution_file = tempfile.NamedTemporaryFile("w+")
-        self.distribution_file.write(DISTRIBUTION)
+        """Make a distribution, from tempfile data"""
+        self.distribution_file.write(self.distribution_str)
         self.distribution_file.flush()
         self.distribution = pyopal.objects.distribution.Distribution()
-        self.distribution.set_name("SuperDist")
+        self.distribution.set_opal_name("SuperDist")
         self.distribution.type = "FROMFILE"
         self.distribution.fname = self.distribution_file.name
         self.distribution.register()
@@ -82,40 +91,70 @@ class TestTrackRun(unittest.TestCase):
         return self.distribution
 
     def run_one(self):
+        """Set up and run a simulation"""
+        self.make_line()
+        self.make_distribution()
+        self.make_field_solver()
+
         beam = pyopal.objects.beam.Beam()
+        beam.set_opal_name("SuperBeam")
         beam.mass = 0.938272
         beam.charge = 1.0
         beam.momentum = 0.1
         beam.beam_frequency = 1.0
         beam.number_of_slices = 10
-        beam.number_of_particles = 10
+        beam.number_of_particles = 1
         beam.register()
-
-
-        line = self.make_line()
-        field_solver = self.make_field_solver()
-        distribution = self.make_distribution()
 
         track = pyopal.objects.track.Track()
         track.line = "LINE"
-        track.beam = "BEAM"
+        track.beam = "SuperBeam"
         run = pyopal.objects.track_run.TrackRun()
         run.method = "CYCLOTRON-T"
         run.keep_alive = True
-        run.beam_name = "BEAM"
+        run.beam_name = "SuperBeam"
         run.distribution = ["SuperDist"]
         run.field_solver = "FIELDSOLVER"
-        print(pyopal.objects.parser.list_objects())
+        track.execute()
+        run.execute()
         track.execute()
         run.execute()
 
-    def setUp(self):
-        """Define a few default variables"""
-        self.track_run = pyopal.objects.track_run.TrackRun()
+    def __del__(self):
+        """move back to the old cwd"""
+        os.chdir(self.here)
+        self.tmp_dir.cleanup()
+        self.distribution_file.close()
 
-    def test_initialisation(self):
-        """Test that we can set member data okay"""
-        self.run_one()
+
+    distribution_str = """1
+3.944586177309523 -0.02776333011661966 0.0 -0.0049890385556281445 0.1584654928597547 -0.0016918209895814252
+"""
+
+
+class TestTrackRun(unittest.TestCase):
+    """Test class for track_run"""
+    def test_run_one(self):
+        """
+        Test that we can run okay without an exception.
+
+        If running from the command line, will spit out the OPAL log to screen
+        """
+        log = tempfile.TemporaryFile("w+")
+        proc = subprocess.run(["python", __file__, "run_test_track_run"],
+            stdout=log, stderr=subprocess.STDOUT, check=False)
+        log.seek(0)
+        error_message=""
+        if self.verbose:
+            error_message = log.read()
+        log.close()
+        self.assertEqual(proc.returncode, 0, msg=error_message)
+
+    verbose = False
 
 if __name__ == "__main__":
-    unittest.main()
+    if "run_test_track_run" in sys.argv:
+        TrackRunExecute().run_one()
+    else:
+        TestTrackRun.verbose = True
+        unittest.main()
