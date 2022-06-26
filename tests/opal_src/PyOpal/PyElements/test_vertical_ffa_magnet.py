@@ -1,13 +1,15 @@
-import math
-import unittest
-import pyopal.elements.vertical_ffa_magnet
-
 """
 Test VerticalFFAMagnet python implementation
 """
 
+import math
+import unittest
+import pyopal.elements.vertical_ffa_magnet
+
 class VerticalFFAMagnetTest(unittest.TestCase):
+    """Test VerticalFFAMagnet"""
     def setUp(self):
+        """Set some default magnet"""
         self.magnet = pyopal.elements.vertical_ffa_magnet.VerticalFFAMagnet()
         self.magnet.b0 = 4.0
         self.magnet.field_index = 2.0
@@ -42,16 +44,16 @@ class VerticalFFAMagnetTest(unittest.TestCase):
 
     def test_bounding_box(self):
         """Check that we can set up the bounding box okay"""
-        for point in [(0.0, 0.0, -0.01, 0.0), (0.0, 0.0, 10.01, 0.0), 
+        for point in [(0.0, 0.0, -0.01, 0.0), (0.0, 0.0, 10.01, 0.0),
                       (0.0, -2.01, 5.0, 0.0), (0.0, 6.01, 5.0, 0.0),
-                      (-0.51, 5.0, 0.0, 0.0), (0.51, 5.0, 0.0, 0.0), ]:
+                      (-0.51, 5.0, 0.0, 0.0), (0.51, 5.0, 0.0, 0.0),]:
             value = self.magnet.get_field_value(*point)
-            self.assertTrue(value[0], msg="{0} {1}".format(point, value))
-        for point in [(0.0, 0.0, 0.01, 0.0), (0.0, 0.0, 9.99, 0.0), 
+            self.assertTrue(value[0], msg=f"{point} {value}")
+        for point in [(0.0, 0.0, 0.01, 0.0), (0.0, 0.0, 9.99, 0.0),
                       (0.0, -1.99, 5.0, 0.0), (0.0, 5.99, 5.0, 0.0),
-                      (-0.49, 5.0, 0.0, 0.0), (0.49, 5.0, 0.0, 0.0), ]:
+                      (-0.49, 5.0, 0.0, 0.0), (0.49, 5.0, 0.0, 0.0),]:
             value = self.magnet.get_field_value(*point)
-            self.assertFalse(value[0], msg="{0} {1}".format(point, value))
+            self.assertFalse(value[0], msg=f"{point} {value}")
 
 if __name__ == "__main__":
     unittest.main()

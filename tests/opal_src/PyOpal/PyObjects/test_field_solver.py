@@ -1,7 +1,10 @@
+"""Test the Field Solver"""
+
 import unittest
 import pyopal.objects.field_solver
 
 class TestFieldSolver(unittest.TestCase):
+    """Test the Field Solver"""
     def setUp(self):
         """Set up some data"""
         self.fs = pyopal.objects.field_solver.FieldSolver()
@@ -65,6 +68,7 @@ class TestFieldSolver(unittest.TestCase):
     def test_register(self):
         """Check we can register the beam"""
         my_beam = pyopal.objects.field_solver.FieldSolver()
+        my_beam.type = "None"
         my_beam.register()
 
 
