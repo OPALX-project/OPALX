@@ -32,8 +32,8 @@ std::string PyOpalObjectNS::PyOpalObject<TBeamline<Element> >::classDocstring = 
 BOOST_PYTHON_MODULE(line) {
     ExceptionTranslation::registerExceptions();
     PyOpal::Globals::Initialise();
-    PyLine element;
-    auto lineClass = element.make_class("Line");
+    PyLine aLine;
+    auto lineClass = aLine.make_class("Line");
     // https://docs.python.org/3/library/collections.abc.html
     lineClass
         .def("__len__", &PyLine::getLength)
@@ -41,8 +41,9 @@ BOOST_PYTHON_MODULE(line) {
         .def("__setitem__", &PyLine::setElement)
         //.def("__delitem__", &PyLine::removeElement)
         .def("append", &PyLine::append);
-    element.addGetOpalElement(lineClass);
     lineClass.def("register", &PyLine::registerObject);
+    aLine.addGetOpalElement(lineClass);
+
     // line is dependent on opal_element; all line elements are stored as 
     // abstract opal_elements and we need boost to know how to do the 
     // translation
