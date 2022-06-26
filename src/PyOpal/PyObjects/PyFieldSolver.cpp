@@ -8,8 +8,6 @@
 namespace PyOpal {
 namespace PyFieldSolverNS {
 
-const char* module_docstring = "build a field solver object";
-
 // DOUBLE, STRING, BOOL, INT
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<FieldSolver>::attributes = {
@@ -35,9 +33,6 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<FieldSolv
     {"ALPHA", "alpha", "", PyOpalObjectNS::DOUBLE},
     {"EPSILON", "epsilon", "", PyOpalObjectNS::DOUBLE},
 };
-
-template <>
-std::string PyOpalObjectNS::PyOpalObject<FieldSolver>::classDocstring = "";
 
 void registerFieldSolver(PyOpalObjectNS::PyOpalObject<FieldSolver>& pyfs) {
     Object* obj = &(*pyfs.getOpalShared());

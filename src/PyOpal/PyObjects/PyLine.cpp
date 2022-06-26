@@ -9,9 +9,6 @@
 namespace PyOpal {
 namespace PyLineNS {
 
-const char* module_docstring =
-"The line module handles building of a line of elements in OPAL";
-
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<TBeamline<Element> >::attributes = {
     {"L", "length", "", PyOpalObjectNS::DOUBLE},
@@ -24,9 +21,6 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<TBeamline
     {"PHI", "phi", "", PyOpalObjectNS::DOUBLE},
     {"PSI", "psi", "", PyOpalObjectNS::DOUBLE}
 };
-
-template <>
-std::string PyOpalObjectNS::PyOpalObject<TBeamline<Element> >::classDocstring = "";
 
 
 BOOST_PYTHON_MODULE(line) {
