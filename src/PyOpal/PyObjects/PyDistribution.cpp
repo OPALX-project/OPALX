@@ -8,7 +8,6 @@ namespace PyDistributionNS {
 
 std::string distribution_docstring = std::string();
 
-
 const char* module_docstring = "build a distribution object";
 
 template <>
@@ -27,19 +26,12 @@ void registerDistribution(PyOpalObjectNS::PyOpalObject<Distribution>& dist) {
     OpalData::getInstance()->define(obj);
 }
 
-void setName(PyOpalObjectNS::PyOpalObject<Distribution>& dist, std::string name) {
-    Object* obj = &(*dist.getOpalShared());
-    obj->setOpalName(name);
-}
-
-
 BOOST_PYTHON_MODULE(distribution) {
     PyOpal::Globals::Initialise();
     ExceptionTranslation::registerExceptions();
     PyOpalObjectNS::PyOpalObject<Distribution> distributionObject;
     auto distributionClass = distributionObject.make_class("Distribution");
     distributionObject.addExecute(distributionClass);
-    distributionClass.def("set_name", &setName);
     distributionClass.def("register", &registerDistribution);
 
 }

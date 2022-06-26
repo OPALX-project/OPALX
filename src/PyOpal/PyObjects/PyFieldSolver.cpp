@@ -8,10 +8,7 @@
 namespace PyOpal {
 namespace PyFieldSolverNS {
 
-std::string track_run_docstring = std::string();
-
-
-const char* module_docstring = "build a tracking object";
+const char* module_docstring = "build a field solver object";
 
 // DOUBLE, STRING, BOOL, INT
 template <>

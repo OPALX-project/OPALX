@@ -152,6 +152,18 @@ public:
     template <class PYCLASS>
     void addRegister(PYCLASS& pyclass);
 
+    /** Add a get_opal_name method to the python class (to get the opal internal
+     *  string that uniquely identifies the object)
+     */
+    template <class PYCLASS>
+    void addGetOpalName(PYCLASS& pyclass);
+
+    /** Add a set_opal_name method to the python class (to set the opal internal
+     *  string that uniquely identifies the object)
+     */
+    template <class PYCLASS>
+    void addSetOpalName(PYCLASS& pyclass);
+
     /** Add a "get_opal_element" method to the python class (to overload as a
      *  PyOpalElement)
      * 
@@ -220,6 +232,10 @@ public:
     /** Returns the Opal Object from the PyOpalObject */
     std::shared_ptr<C> getOpalShared() {return object_m;}
 
+    /** Returns the Opal Object from the PyOpalObject (const version) */
+    std::shared_ptr<C> getOpalShared() const {return object_m;}
+
+
 protected:
     static std::vector<AttributeDef> attributes; /** class data (attributes) */
     static std::string classDocstring; /** class docstring */
@@ -231,6 +247,8 @@ protected:
     static boost::python::object getFieldValue(
                     PyOpalObjectNS::PyOpalObject<C>& pyobject,
                     double x, double y, double z, double t);
+    static std::string getOpalName(const PyOpalObject<C>& pyobject);
+    static void setOpalName(PyOpalObject<C>& pyobject, std::string name);
     static void execute(PyOpalObject<C>& pyobject);
     static void registerObject(PyOpalObject<C>& pyobject);
     static boost::python::object getPyOpalElement(PyOpalObject<C>& pyobject);
@@ -355,6 +373,17 @@ void PyOpalObject<C>::registerObject(PyOpalObjectNS::PyOpalObject<C>& pyobject) 
     OpalData::getInstance()->define(objectPtr);
 }
 
+template <class C>
+std::string PyOpalObject<C>::getOpalName(const PyOpalObject<C>& pyobject) {
+    std::shared_ptr<C> objectPtr = pyobject.getOpalShared();
+    return objectPtr->getOpalName();
+}
+
+template <class C>
+void PyOpalObject<C>::setOpalName(PyOpalObject<C>& pyobject, std::string name) {
+    std::shared_ptr<C> objectPtr = pyobject.getOpalShared();
+    objectPtr->setOpalName(name);
+}
 
 template <class C>
 boost::python::object PyOpalObject<C>::getPyOpalElement(PyOpalObjectNS::PyOpalObject<C>& pyobject) {
@@ -567,6 +596,8 @@ boost::python::class_<PyOpalObject<C> > PyOpalObject<C>::make_class(const char* 
     PyClass pyclass = PyClass(className);
     try {
         addAttributes(pyclass);
+        addGetOpalName(pyclass);
+        addSetOpalName(pyclass);
     } catch (OpalException& exc) {
         std::cerr << "Failed to initialise class because '" << exc.what() 
                   << "'" << std::endl;
@@ -586,6 +617,19 @@ template <class C>
 template <class PYCLASS>
 void PyOpalObject<C>::addRegister(PYCLASS& pyclass) {
     pyclass.def("register", &PyOpalObject<C>::registerObject);
+}
+
+
+template <class C>
+template <class PYCLASS>
+void PyOpalObject<C>::addGetOpalName(PYCLASS& pyclass) {
+    pyclass.def("get_opal_name", &PyOpalObject<C>::getOpalName);
+}
+
+template <class C>
+template <class PYCLASS>
+void PyOpalObject<C>::addSetOpalName(PYCLASS& pyclass) {
+    pyclass.def("set_opal_name", &PyOpalObject<C>::setOpalName);
 }
 
 template <class C>

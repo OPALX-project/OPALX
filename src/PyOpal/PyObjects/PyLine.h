@@ -90,11 +90,9 @@ int PyLine_<TBeamline<FlaggedElmPtr> >::wrangleIndex(int index) {
 template <>
 void PyLine_<TBeamline<FlaggedElmPtr> >::registerObject() {
     TBeamline<FlaggedElmPtr>* wrapped = getOpalShared().get();
-    std::cerr << "RegisterObject Line 1 " << wrapped << std::endl;
     Line* line = new Line();
     line->setElement(wrapped);
     Object* objectPtr = dynamic_cast<Object*>(line);
-    std::cerr << "RegisterObject Line 2 " << objectPtr << std::endl;
     if (objectPtr == NULL) {
         throw OpalException("PyLine_<TBeamline<FlaggedElmPtr> >::register",
                             "Trying to register something that was not a Opal Object");
