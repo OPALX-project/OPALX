@@ -19,6 +19,5 @@ class TestDistribution(unittest.TestCase):
         my_distribution = pyopal.objects.distribution.Distribution()
         my_distribution.register()
 
-
 if __name__ == "__main__":
     unittest.main()
