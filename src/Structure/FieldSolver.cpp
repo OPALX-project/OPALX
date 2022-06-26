@@ -497,7 +497,6 @@ void FieldSolver::setFieldSolverType() {
         {"HPGMG",  FieldSolverType::HPGMG}
     };
     fsName_m = getType();
-    std::cerr << "Structure::FieldSolver::setFieldSolverType " << fsName_m << std::endl;
     if (fsName_m.empty()) {
         throw OpalException("FieldSolver::setFieldSolverType",
                             "The attribute \"FSTYPE\" isn't set for \"FIELDSOLVER\"!");
