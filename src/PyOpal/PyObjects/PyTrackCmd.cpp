@@ -7,8 +7,6 @@
 namespace PyOpal {
 namespace PyTrackCmdNS {
 
-const char* module_docstring = "build a tracking object";
-
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<TrackCmd>::attributes = {
     {"LINE", "line", "", PyOpalObjectNS::STRING},
@@ -24,9 +22,6 @@ std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<TrackCmd>
     {"TIMEINTEGRATOR", "time_integrator", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"MAP_ORDER", "map_order", "", PyOpalObjectNS::DOUBLE},
 };
-
-template <>
-std::string PyOpalObjectNS::PyOpalObject<TrackCmd>::classDocstring = "";
 
 // Can't use the default PyObject execute function because we need to call
 // setIsParseable to false (otherwise OPAL will try to parse it as an OPAL file)

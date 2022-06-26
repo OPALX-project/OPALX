@@ -6,19 +6,12 @@
 namespace PyOpal {
 namespace PyDistributionNS {
 
-std::string distribution_docstring = std::string();
-
-const char* module_docstring = "build a distribution object";
-
 template <>
 std::vector<PyOpalObjectNS::AttributeDef> PyOpalObjectNS::PyOpalObject<Distribution>::attributes = {
     {"TYPE", "type", "", PyOpalObjectNS::PREDEFINED_STRING},
     {"FNAME", "fname", "", PyOpalObjectNS::STRING},
     {"INPUTMOUNITS", "momentum_units", "", PyOpalObjectNS::PREDEFINED_STRING},
 };
-
-template <>
-std::string PyOpalObjectNS::PyOpalObject<Distribution>::classDocstring = "";
 
 void registerDistribution(PyOpalObjectNS::PyOpalObject<Distribution>& dist) {
     Object* obj = &(*dist.getOpalShared());
@@ -36,6 +29,6 @@ BOOST_PYTHON_MODULE(distribution) {
 
 }
 
-} // PyTrackRun
+} // PyDistribution
 } // PyOpal
 
