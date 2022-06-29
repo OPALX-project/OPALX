@@ -553,12 +553,27 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
             // the integration of the particles. This will ensure that the momenta
             // of all particles are reduced by approximately the same amount in
             // computeEnergyLoss.
-            double betaz = bunch->P[i](2) / Util::getGamma(bunch->P[i]);
-            double stepWidth = betaz * Physics::c * bunch->dt[i];
-            double tau = bunch->R[i](2) / stepWidth;
+            double tau = 1.0;
+            if (OpalData::getInstance()->isInOPALTMode()) {
+                // The z-coordinate is only Opal-T mode the longitudinal coordinate and
+                // the case when elements with ScatteringPhysics solver are closer than one
+                // time step needs to be handled, which isn't done yet in Opal-cycl.
 
-            PAssert_LE(tau, 1.0);
-            PAssert_GE(tau, 0.0);
+                // Adjust the time step for those particles that enter the material
+                // such that it corresponds to the time needed to reach the current
+                // location form the edge of the material. Only use this time step
+                // for the computation of the interaction with the material, not for
+                // the integration of the particles. This will ensure that the momenta
+                // of all particles are reduced by approximately the same amount in
+                // computeEnergyLoss.
+
+                double betaz = bunch->P[i](2) / Util::getGamma(bunch->P[i]);
+                double stepWidth = betaz * Physics::c * bunch->dt[i];
+                tau = bunch->R[i](2) / stepWidth;
+
+                PAssert_LE(tau, 1.0);
+                PAssert_GE(tau, 0.0);
+            }
 
             PART x;
             x.localID      = i;
