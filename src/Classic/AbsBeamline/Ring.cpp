@@ -165,7 +165,6 @@ void Ring::initialise(PartBunchBase<double, 3> * bunch, double &/*startField*/,
 }
 
 void Ring::finalise() {
-    std::cerr << "FINALISING RING" << std::endl;
     online_m = false;
     setRefPartBunch(nullptr);
     setLossDataSink(nullptr);
