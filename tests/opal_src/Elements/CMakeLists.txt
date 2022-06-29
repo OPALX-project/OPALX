@@ -1,6 +1,7 @@
 set (_SRCS
     OpalOffsetTest.cpp
     OpalPolynomialTimeDependenceTest.cpp
+    OpalScalingFFAMagnetTest.cpp
     OpalSplineTimeDependenceTest.cpp
     OpalVariableRFCavityTest.cpp
     OpalVariableRFCavityFringeFieldTest.cpp
