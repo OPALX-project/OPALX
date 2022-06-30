@@ -62,7 +62,7 @@ typedef namedVariableCollection_t variableDictionary_t;
  *  - boolean denoting the status of the evaluation and if the returned result
  *    is valid
  */
-typedef struct {
+typedef struct SerialStruct {
     InfoType_t          type;
     std::vector<double> value;
     bool                is_valid;
