@@ -43,6 +43,7 @@ class OpalScalingFFAMagnet : public OpalElement {
         FIELD_INDEX,
         TAN_DELTA,
         MAX_Y_POWER,
+        END_FIELD_MODEL,
         END_LENGTH,
         CENTRE_LENGTH,
         RADIAL_NEG_EXTENT,
@@ -73,6 +74,11 @@ class OpalScalingFFAMagnet : public OpalElement {
 
     // Clone constructor.
     OpalScalingFFAMagnet(const std::string &name, OpalScalingFFAMagnet *parent);
+
+    void setupNamedEndField();
+    void setupDefaultEndField();
+
+
 };
 
 #endif // OPAL_OPALSCALINGFFAMAGNET_H
