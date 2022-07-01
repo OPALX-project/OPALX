@@ -437,7 +437,7 @@ public:
   }
 
   Message& getMessage(Message& m) {
-    T zero;
+      T zero(0) ;
     m.get(zero);
     return m;
   }

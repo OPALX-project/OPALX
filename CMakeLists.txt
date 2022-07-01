@@ -79,7 +79,8 @@ if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
 
 elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     add_compile_options (-Warray-bounds-pointer-arithmetic)
-    # Increase template depth for boost
+    add_compile_options (-Wno-overloaded-virtual)
+# Increase template depth for boost
     add_compile_options (-ftemplate-depth=1024)
     # get rid of linking warning with boost. Looks like that boost
     # is using this visibility setting.
