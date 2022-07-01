@@ -19,7 +19,7 @@ TEST(Meshes, Cartesian)
 
     // Sizes:
     unsigned nverts[D], ncells[D];
-    unsigned totverts = 1, totcells = 1;
+    [[maybe_unused]] unsigned totverts = 1, totcells = 1;
     unsigned int d;
 
     for (d = 0; d < D; d++) {

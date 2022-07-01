@@ -83,7 +83,7 @@ public:
     virtual bool computeEnergyLoss(PartBunchBase<double, 3>* bunch,
                                    Vector_t& P,
                                    const double deltat,
-                                   bool includeFluctuations = true) const;
+                                   bool includeFluctuations = true) const override;
 
 private:
 
