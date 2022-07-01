@@ -107,12 +107,13 @@ void OpalScalingFFAMagnet::update() {
 
     // get centre length and end length in radians
     endfieldmodel::Tanh* endField = dynamic_cast<endfieldmodel::Tanh*>(magnet->getEndField());
-    double end_length = Attributes::getReal(itsAttr[END_LENGTH])/r0;
-    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2./r0;
+    double end_length = Attributes::getReal(itsAttr[END_LENGTH]);
+    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2.;
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(centre_length);
     endField->setTanhDiffIndices(maxOrder+2);
+    endField->rescale(1/r0);
 
     // get rmin and rmax bounding box edge in mm
     double rmin = r0-Attributes::getReal(itsAttr[RADIAL_NEG_EXTENT]);

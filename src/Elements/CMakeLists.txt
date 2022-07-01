@@ -1,4 +1,5 @@
 set (_SRCS
+    OpalAsymmetricEnge.cpp
     OpalBend.cpp
     OpalCavity.cpp
     OpalTravelingWave.cpp
@@ -9,6 +10,7 @@ set (_SRCS
     OpalFlexibleCollimator.cpp
     OpalDegrader.cpp
     OpalElement.cpp
+    OpalEnge.cpp
     OpalHKicker.cpp
     OpalKicker.cpp
     OpalMarker.cpp
@@ -50,6 +52,7 @@ set (_SRCS
     )
 
 set (HDRS
+    OpalAsymmetricEnge.h
     OpalBeamline.h
     OpalBend.h
     OpalCavity.h
@@ -59,6 +62,7 @@ set (HDRS
     OpalDrift.h
     OpalECollimator.h
     OpalElement.h
+    OpalEnge.h
     OpalHKicker.h
     OpalKicker.h
     OpalMarker.h

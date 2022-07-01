@@ -65,7 +65,10 @@ class Tanh : public EndFieldModel {
     ~Tanh();
 
     /** Inherited copy constructor. */
-    EndFieldModel* clone() const;
+    Tanh* clone() const;
+
+    /** Rescale the end field by a factor x0 */
+    void rescale(double scaleFactor);
 
     /** Double Tanh is given by\n
      *  \f$d(x) = \f$
@@ -100,7 +103,10 @@ class Tanh : public EndFieldModel {
     /** Set x0 (flat top length) */
     inline void setX0(double x0)     {_x0 = x0;}
 
-    /** Bug - does nothing */
+    /** Set the maximum derivative prior to tracking */
+    virtual void setMaximumDerivative(size_t n);
+
+    /** Prints a human readable string to out */
     std::ostream& print(std::ostream& out) const;
   private:
     double _x0, _lambda;
