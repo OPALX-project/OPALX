@@ -520,15 +520,3 @@ TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
     }
 }
 
-TEST_F(ScalingFFAMagnetTest, GeometryTest) {
-    Euclid3D delta = sector_m->getGeometry().getTotalTransform();
-    Vector3D vec = delta.getVector();
-    Vector3D rot = delta.getRotation().getAxis();
-    EXPECT_EQ(vec(0), r0_m*(cos(psi0_m*4.)-1));
-    EXPECT_EQ(vec(1), 0.);
-    EXPECT_EQ(vec(2), r0_m*sin(psi0_m*4.));
-
-    EXPECT_EQ(rot(0), 0.);
-    EXPECT_EQ(rot(1), -psi0_m*4);
-    EXPECT_EQ(rot(2), 0.);
-}

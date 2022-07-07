@@ -101,6 +101,7 @@ TEST(OpalScalingFFAMagnetTest, TestFieldCheck) {
     opalMag1.update();
     ElementBase* element = opalMag1.getElement();
     ScalingFFAMagnet* mag1 = dynamic_cast<ScalingFFAMagnet*>(element);
+    mag1->setupEndField();
     ASSERT_NE(mag1, nullptr);
     // I just want to check that the bounding boxes/etc make sense
     double b0kG = b0*Units::T2kG;
@@ -119,4 +120,17 @@ TEST(OpalScalingFFAMagnetTest, TestFieldCheck) {
         EXPECT_NEAR(B[1], field[i], 1e-4) << "failed for phi " 
                                         << position[i] << "*PI/64 " << std::endl;
     }
+
+    Euclid3D delta = mag1->getGeometry().getTotalTransform();
+    Vector3D vec = delta.getVector();
+    Vector3D rot = delta.getRotation().getAxis();
+    EXPECT_EQ(vec(0), r0*Units::m2mm*(cos(mag1->getPhiEnd())-1));
+    EXPECT_EQ(vec(1), 0.);
+    EXPECT_EQ(vec(2), r0*Units::m2mm*sin(mag1->getPhiEnd()));
+
+    EXPECT_EQ(rot(0), 0.);
+    EXPECT_EQ(rot(1), -mag1->getPhiEnd());
+    EXPECT_EQ(rot(2), 0.);
+
 }
+
