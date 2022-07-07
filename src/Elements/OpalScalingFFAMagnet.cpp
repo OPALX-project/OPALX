@@ -122,7 +122,7 @@ void OpalScalingFFAMagnet::update() {
     double r0 = Attributes::getReal(itsAttr[R0]);
     magnet->setR0(r0*Units::m2mm);
     // get B0 in T
-    magnet->setDipoleConstant(Attributes::getReal(itsAttr[B0]));
+    magnet->setDipoleConstant(Attributes::getReal(itsAttr[B0])*Units::T2kG);
 
     // dimensionless quantities
     magnet->setFieldIndex(Attributes::getReal(itsAttr[FIELD_INDEX]));
