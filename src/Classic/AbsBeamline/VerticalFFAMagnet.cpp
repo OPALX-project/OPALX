@@ -143,4 +143,12 @@ void VerticalFFAMagnet::calculateDfCoefficients() {
 
 void VerticalFFAMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
     endField_m.reset(endField);
+    endField_m->setMaximumDerivative(maxOrder_m);
+}
+
+void VerticalFFAMagnet::setMaxOrder(size_t maxOrder) {
+    if (endField_m.get()) {
+        endField_m->setMaximumDerivative(maxOrder);
+    }
+    maxOrder_m = maxOrder;
 }

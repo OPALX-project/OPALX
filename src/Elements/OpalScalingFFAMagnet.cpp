@@ -96,12 +96,16 @@ OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string &name) {
 void OpalScalingFFAMagnet::setupDefaultEndField() {
     ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     // get centre length and end length in metres
-    endfieldmodel::Tanh* endField = dynamic_cast<endfieldmodel::Tanh*>(magnet->getEndField());
+    endfieldmodel::Tanh* endField = new endfieldmodel::Tanh();
     double end_length = Attributes::getReal(itsAttr[END_LENGTH]);
     double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2.;
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(centre_length);
+    std::shared_ptr<endfieldmodel::EndFieldModel> efm(endField);
+    std::string endName = "__opal_internal__"+getOpalName();
+    endfieldmodel::EndFieldModel::setEndFieldModel(endName, efm);
+    magnet->setEndFieldName(endName);
 }
 
 void OpalScalingFFAMagnet::setupNamedEndField() {
@@ -151,38 +155,49 @@ void OpalScalingFFAMagnet::update() {
     // we store maximum vertical displacement (which is half the height)
     double height = Attributes::getReal(itsAttr[HEIGHT])*Units::m2mm;
     magnet->setVerticalExtent(height/2.);
-
-    // get default length of the magnet element in radians
-    // total length is two end field lengths (e-folds) at each end plus a
-    // centre length
-
-    double defaultLength = magnet->getEndField()->getEndLength()*4.+
-                           magnet->getEndField()->getCentreLength();
+    std::cerr << "HASDLKASDA 1" << std::endl;
     // end of the magnet marks the point at which the next element starts
+    std::cerr << "HASDLKASDA 2a" << std::endl;
     if (itsAttr[MAGNET_END]) {
+        std::cerr << "HASDLKASDA 2" << std::endl;
+        if (Attributes::getReal(itsAttr[MAGNET_END]) < 0.0) {
+            throw OpalException("OpalScalingFFAMagnet::update()",
+                                "MAGNET_END must be > 0.0");
+        }
         double phi_end = Attributes::getReal(itsAttr[MAGNET_END])/r0;
         magnet->setPhiEnd(phi_end);
     } else {
-        magnet->setPhiEnd(defaultLength);
+        magnet->setPhiEnd(-1); // flag for setupEndField
     }
 
     // get start of the magnet element in radians
     // setPhiStart sets the position of the 0 point of the endFieldModel, which
     // is typically the magnet centre
+    std::cerr << "HASDLKASDA 3a" << std::endl;
     if (itsAttr[MAGNET_START]) {
+        std::cerr << "HASDLKASDA 3" << std::endl;
+        if (Attributes::getReal(itsAttr[MAGNET_START]) < 0.0) {
+            throw OpalException("OpalScalingFFAMagnet::update()",
+                                "MAGNET_START must be > 0.0");
+        }
         double phi_start = Attributes::getReal(itsAttr[MAGNET_START])/r0;
         magnet->setPhiStart(phi_start);
     } else {
-        magnet->setPhiStart(defaultLength/2.);
+        magnet->setPhiStart(-1); // flag for setupEndField
     }
     // get azimuthal extent in radians; this is just the bounding box
+    std::cerr << "HASDLKASDA 4a" << std::endl;
     if (itsAttr[AZIMUTHAL_EXTENT]) {
+        std::cerr << "HASDLKASDA 4" << std::endl;
+        if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
+            throw OpalException("OpalScalingFFAMagnet::update()",
+                                "AZIMUTHAL_EXTENT must be > 0.0");
+        }
         magnet->setAzimuthalExtent(Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT])/r0);
     } else {
-        double defaultExtent = (magnet->getEndField()->getEndLength()*5.+
-                                magnet->getEndField()->getCentreLength());
-        magnet->setAzimuthalExtent(defaultExtent);
+        magnet->setAzimuthalExtent(-1); // flag for setupEndField
     }
+    std::cerr << "HASDLKASDA 5" << std::endl;
     magnet->initialise();
     setElement(magnet);
 

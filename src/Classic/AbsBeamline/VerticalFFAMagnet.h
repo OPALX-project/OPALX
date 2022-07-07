@@ -134,7 +134,7 @@ class VerticalFFAMagnet : public Component {
 
     /** Set the maximum power of x used in the off-midplane expansion;
      */
-    void setMaxOrder(size_t maxOrder) {maxOrder_m = maxOrder;}
+    void setMaxOrder(size_t maxOrder);
 
     /** Get the centre field at z=0 */
     double getB0() const {return Bz_m/Tesla;}
