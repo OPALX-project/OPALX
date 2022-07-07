@@ -2276,6 +2276,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch_m->Bin[i] = 0;
         }
 
+        // Set time step per particle
+        setTimeStep();
+
         // Backup initial distribution if multi bunch mode
         if ((initialTotalNum_m > 2) && isMultiBunch() && mbHandler_m->isForceMode()) {
             mbHandler_m->saveBunch(itsBunch_m);
@@ -2377,6 +2380,12 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     *gmsg << *itsBunch_m << endl;
 
     //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+}
+
+void ParallelCyclotronTracker::setTimeStep() {
+    for (size_t i = 0; i < initialLocalNum_m; ++i) {
+        itsBunch_m->dt[i] = itsBunch_m->getdT();
+    }
 }
 
 void ParallelCyclotronTracker::checkFileMomentum() {
