@@ -1,7 +1,8 @@
+#include <math.h>
 #include "gtest/gtest.h"
 #include "Classic/AbsBeamline/EndFieldModel/Enge.h"
 
-TEST(EngeTest, FunctionTest) {
+TEST(EngeTest, DerivativeTest) {
     std::vector<double> a = {1.0, 2.0, 3.0, 4.0};
     endfieldmodel::Enge enge = endfieldmodel::Enge(a, 10.0, 0.5);
     enge.setMaximumDerivative(0);
@@ -14,6 +15,28 @@ TEST(EngeTest, FunctionTest) {
         double dfdx = enge.function(10.0, i+1);
         EXPECT_NEAR(dfdx/dfdxNumerical, 1.0, 1e-8   ) << " for " << i << "^th derivative";
     }
+}
+
+double myEnge(double x, std::vector<double> a, double x0, double lambda) {
+    double deltaX = (x-x0)/lambda;
+    double xPow = 1.0;
+    double p = 0.0;
+    for (size_t i = 0; i < a.size(); ++i) {
+        p += a[i]*xPow;
+        xPow *= deltaX;
+    }
+    double enge = 1/(1.0+exp(p));
+    return enge;
+}
+
+TEST(EngeTest, FunctionTest) {
+    std::vector<double> zVector = {0.0, 1.0, 2.0, 3.0};
+    endfieldmodel::Enge enge({0.0, 1.0}, 0.0, 0.5);
+    for (auto z: zVector) {
+        std::cerr << enge.getEnge(z, 0) << " " << myEnge(z, {0.0, 1.0}, 00.0, 0.5) << std::endl;
+    }
+
+
 }
 
 TEST(EngeTest, HNTest) {
@@ -44,11 +67,12 @@ TEST(EngeTest, GNTest) {
     }
 }
 
-TEST(EngeTest, RecaleTest) {
+TEST(EngeTest, RescaleTest) {
     std::vector<double> a = {1.0, 2.0, 3.0, 4.0};
     endfieldmodel::Enge enge1 = endfieldmodel::Enge(a, 10.0, 0.5);
     enge1.setMaximumDerivative(0);
     endfieldmodel::Enge* enge2 = enge1.clone();
+    ASSERT_NE(enge2, nullptr);
     EXPECT_EQ(enge1.function(10.0, 0), enge2->function(10.0, 0));
     enge2->rescale(0.1);
     EXPECT_EQ(enge1.function(10.0, 0), enge2->function(1.0, 0));

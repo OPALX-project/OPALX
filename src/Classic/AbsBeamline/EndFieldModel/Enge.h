@@ -71,8 +71,14 @@ class Enge : public EndFieldModel {
     /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
     inline double function(double x, int n) const;
 
+    /** Nominal end length is lambda */
+    inline double getEndLength() const;
+
+    /** Nominal centre length is x0/2 */
+    inline double getCentreLength() const;
+
     /** Print human-readable version of enge */
-    inline std::ostream& print(std::ostream& out) const;
+    std::ostream& print(std::ostream& out) const;
 
     /** Returns the enge polynomial coefficients (a_i) */
     std::vector<double> getCoefficients() const {return _a;}
@@ -167,9 +173,12 @@ double Enge::getDoubleEnge(double x, int n) const {
   }
 }
 
-std::ostream& Enge::print(std::ostream& out) const {
-   out << "Enge function";
-   return out;
+double Enge::getCentreLength() const {
+  return _x0/2.0;
+}
+
+double Enge::getEndLength() const {
+  return _lambda;
 }
 }
 

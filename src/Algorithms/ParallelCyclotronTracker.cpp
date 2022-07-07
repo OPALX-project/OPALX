@@ -899,7 +899,11 @@ void ParallelCyclotronTracker::visitSBend3D(const SBend3D& bend) {
 void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& bend) {
     *gmsg << "Adding ScalingFFAMagnet" << endl;
     if (opalRing_m != nullptr) {
-        opalRing_m->appendElement(bend);
+        ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required
+        std::cerr << "SETTING UP END FIELD" << std::endl;
+        newBend->setupEndField();
+        std::cerr << "DONE" << std::endl;
+        opalRing_m->appendElement(*newBend);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
                             "Need to define a RINGDEFINITION to use ScalingFFAMagnet element");

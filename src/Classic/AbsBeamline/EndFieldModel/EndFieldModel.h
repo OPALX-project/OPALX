@@ -50,6 +50,14 @@ class EndFieldModel {
    */
   virtual double function(double x, int n) const = 0;
 
+  /** Return the nominal flat top length of the magnet
+   */
+  virtual double getCentreLength() const = 0;
+
+  /** Return the nominal end field length of the magnet
+   */
+  virtual double getEndLength() const = 0;
+
   /** Inheritable copy constructor - returns a deep copy of the EndFieldModel */
   virtual EndFieldModel* clone() const = 0;
 
