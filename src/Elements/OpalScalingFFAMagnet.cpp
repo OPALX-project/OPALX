@@ -102,29 +102,15 @@ void OpalScalingFFAMagnet::setupDefaultEndField() {
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(centre_length);
-
-    double r0 = Attributes::getReal(itsAttr[R0]);
-    double defaultLength = (endField->getLambda()*4.+2.*endField->getX0());
-    magnet->setPhiEnd(defaultLength/r0);
-    magnet->setPhiStart(defaultLength/2./r0);
-
-    double defaultExtent = (endField->getLambda()*5.+endField->getX0());
-    magnet->setAzimuthalExtent(defaultExtent/r0);
 }
 
 void OpalScalingFFAMagnet::setupNamedEndField() {
     if (!itsAttr[END_FIELD_MODEL]) {
         return;
     }
-    if (!itsAttr[MAGNET_START] || !itsAttr[MAGNET_END]) {
-        throw OpalException("OpalScalingMAgnet::setupNamedEndField",
-        "If using a named EndField, MAGNET_START and MAGNET_END must be set");
-    }
     std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
     ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
-    std::shared_ptr<endfieldmodel::EndFieldModel> efm
-                      = endfieldmodel::EndFieldModel::getEndFieldModel(name);
-    magnet->setEndField(efm->clone());
+    magnet->setEndFieldName(name);
 }
 
 void OpalScalingFFAMagnet::update() {
@@ -170,21 +156,32 @@ void OpalScalingFFAMagnet::update() {
     // total length is two end field lengths (e-folds) at each end plus a
     // centre length
 
-    // get end of the magnet element in radians
+    double defaultLength = magnet->getEndField()->getEndLength()*4.+
+                           magnet->getEndField()->getCentreLength();
+    // end of the magnet marks the point at which the next element starts
     if (itsAttr[MAGNET_END]) {
         double phi_end = Attributes::getReal(itsAttr[MAGNET_END])/r0;
         magnet->setPhiEnd(phi_end);
+    } else {
+        magnet->setPhiEnd(defaultLength);
     }
 
     // get start of the magnet element in radians
-    // setPhiStart sets the position of the magnet centre relative to start (!)
+    // setPhiStart sets the position of the 0 point of the endFieldModel, which
+    // is typically the magnet centre
     if (itsAttr[MAGNET_START]) {
         double phi_start = Attributes::getReal(itsAttr[MAGNET_START])/r0;
         magnet->setPhiStart(phi_start);
+    } else {
+        magnet->setPhiStart(defaultLength/2.);
     }
     // get azimuthal extent in radians; this is just the bounding box
     if (itsAttr[AZIMUTHAL_EXTENT]) {
         magnet->setAzimuthalExtent(Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT])/r0);
+    } else {
+        double defaultExtent = (magnet->getEndField()->getEndLength()*5.+
+                                magnet->getEndField()->getCentreLength());
+        magnet->setAzimuthalExtent(defaultExtent);
     }
     magnet->initialise();
     setElement(magnet);

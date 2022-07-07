@@ -20,6 +20,7 @@ TEST(TanhTest, FunctionTest) {
 TEST(TanhTest, RescaleTest) {
     endfieldmodel::Tanh tanh(7.323, 0.32, 20);
     endfieldmodel::Tanh* tanh2 = tanh.clone(); 
+    ASSERT_NE(tanh2, nullptr);
     tanh2->rescale(0.1);
     double derivativeScale = 1;
     for (size_t i = 0; i < 3; ++i) {

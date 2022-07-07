@@ -11,6 +11,8 @@ public:
     std::ostream& print(std::ostream& out) const {return out;}
     void setMaximumDerivative(size_t n) {if(n) {}}
     void rescale(double scaleFactor) { if(scaleFactor) {}}
+    double getEndLength() const {return 0;}
+    double getCentreLength() const {return 0;}
 private:
 
 };

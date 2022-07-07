@@ -48,7 +48,7 @@ class ScalingFFAMagnet : public Component {
     ~ScalingFFAMagnet();
 
     /** Inheritable copy constructor */
-    ElementBase* clone() const override;
+    ScalingFFAMagnet* clone() const override;
 
     /** Calculate the field at the position of the ith particle
      *
@@ -233,6 +233,9 @@ class ScalingFFAMagnet : public Component {
     /** Return the calculated df coefficients */
     std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
 
+    void setupEndField();
+    void setEndFieldName(std::string name) {endFieldName_m = name;}
+    std::string getEndFieldName() const {return endFieldName_m;}
   private:
     /** Calculate the df coefficients, ready for field generation
      *
@@ -261,6 +264,7 @@ class ScalingFFAMagnet : public Component {
     double verticalExtent_m = 0.; // maximum allowed distance from the midplane
     Vector_t centre_m;
     endfieldmodel::EndFieldModel* endField_m = nullptr;
+    std::string endFieldName_m = ""; 
     const double fp_tolerance = 1e-18;
     std::vector<std::vector<double> > dfCoefficients_m;
 };

@@ -65,10 +65,16 @@ class AsymmetricEnge : public EndFieldModel {
         inline AsymmetricEnge* clone() const;
 
         /** Print a human-readable description of the end field model */
-        inline std::ostream& print(std::ostream& out) const;
+        std::ostream& print(std::ostream& out) const;
 
         /** Return the value of enge at some point x */
         inline double function(double x, int n) const;
+
+        /** Centre length is the average of x0End and x0Start */
+        inline double getCentreLength() const;
+
+        /** End length is the average of lambdaEnd and lambdaStart */
+        inline double getEndLength() const;
 
         /** Get the enge function for the magnet entrance */
         inline std::shared_ptr<Enge> getEngeStart() const;
@@ -104,8 +110,6 @@ class AsymmetricEnge : public EndFieldModel {
         AsymmetricEnge(const AsymmetricEnge& rhs);
         std::shared_ptr<Enge> engeStart_m;
         std::shared_ptr<Enge> engeEnd_m;
-        double x0Start_m;
-        double x0End_m;
 };
 
 std::shared_ptr<Enge> AsymmetricEnge::getEngeStart() const {
@@ -122,31 +126,24 @@ void AsymmetricEnge::setEngeEnd(std::shared_ptr<Enge> enge) {
 }
 
 double AsymmetricEnge::getX0Start() const {
-    return x0Start_m;
+    return engeStart_m->getX0();
 }
 
 double AsymmetricEnge::getX0End() const {
-    return x0End_m;
+    return engeEnd_m->getX0();
 }
 
 void AsymmetricEnge::setX0Start(double x0) {
-    x0Start_m = x0;
+    engeStart_m->setX0(x0);
 }
 
 void AsymmetricEnge::setX0End(double x0) {
-    x0End_m = x0;
+    engeEnd_m->setX0(x0);
 }
 
 double AsymmetricEnge::function(double x, int n) const {
-    return engeStart_m->getEnge(x-x0Start_m, n)+engeEnd_m->getEnge(-x-x0End_m, n);
-}
-
-std::ostream& AsymmetricEnge::print(std::ostream& out) const {
-    out << "AsymmetricEnge start ";
-    engeStart_m->print(out);
-    out  << " end ";
-    engeStart_m->print(out);
-    return out;
+    return engeStart_m->getEnge(x-engeStart_m->getX0(), n)+
+           engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n)-1;
 }
 
 AsymmetricEnge* AsymmetricEnge::clone() const {
@@ -155,6 +152,14 @@ AsymmetricEnge* AsymmetricEnge::clone() const {
 
 void AsymmetricEnge::setMaximumDerivative(size_t n) {
     Enge::setEngeDiffIndices(n);
+}
+
+double AsymmetricEnge::getCentreLength() const {
+    return (engeStart_m->getCentreLength()+engeEnd_m->getCentreLength())/2;
+}
+
+double AsymmetricEnge::getEndLength() const {
+    return (engeStart_m->getEndLength()+engeEnd_m->getEndLength())/2;
 }
 
 

@@ -92,7 +92,7 @@ void Enge::setEngeDiffIndices(size_t n) {
   if (_q.size() == 0) {
     _q.push_back(std::vector< std::vector<int> >(1, std::vector<int>(3)) );
     _q[0][0][0] = +1;  // f_0 = 1*g^(-1)
-    _q[0][0][1] = -1;
+    _q[0][0][1] = -1; 
     _q[0][0][2] =  0;
   }
 
@@ -164,5 +164,12 @@ void Enge::rescale(double scaleFactor) {
     _lambda *= scaleFactor;
 }
 
+std::ostream& Enge::print(std::ostream& out) const {
+   out << "Enge function l=" << _lambda << " x0=" << _x0 << " c=";
+   for (auto ai: _a) {
+      out << ai << " ";
+   }
+   return out;
+}
 }
 

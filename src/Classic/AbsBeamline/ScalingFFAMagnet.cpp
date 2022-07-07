@@ -44,8 +44,8 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet &right)
           rMin_m(right.rMin_m), rMax_m(right.rMax_m), phiStart_m(right.phiStart_m),
           phiEnd_m(right.phiEnd_m), azimuthalExtent_m(right.azimuthalExtent_m),
           verticalExtent_m(right.verticalExtent_m), centre_m(right.centre_m),
+          endField_m(nullptr), endFieldName_m(right.endFieldName_m), 
           dfCoefficients_m(right.dfCoefficients_m) {
-    delete endField_m;
     endField_m = right.endField_m->clone();
     RefPartBunch_m = right.RefPartBunch_m;
     Bz_m = right.Bz_m;
@@ -56,7 +56,7 @@ ScalingFFAMagnet::~ScalingFFAMagnet() {
     delete endField_m;
 }
 
-ElementBase* ScalingFFAMagnet::clone() const {
+ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(*this);
     magnet->initialise();
     return magnet;
@@ -110,7 +110,7 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
     Vector_t pos = R - centre_m;
     double r = std::sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
-    double phi = -std::atan2(pos[0], pos[2]); // angle between y-axis and position vector in anticlockwise direction
+    double phi = -std::atan2(pos[0], pos[2])+Physics::pi/2.0; // angle between y-axis and position vector in anticlockwise direction
     Vector_t posCyl(r, pos[1], phi);
     Vector_t bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
@@ -202,3 +202,19 @@ void ScalingFFAMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
     endField_m = endField;
 }
 
+extern Inform* gmsg;
+
+void ScalingFFAMagnet::setupEndField() {
+    if (endFieldName_m == "") { // no end field is defined
+        return;
+    }
+    std::shared_ptr<endfieldmodel::EndFieldModel> efm
+              = endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
+    endfieldmodel::EndFieldModel* newEFM = efm->clone();
+    newEFM->rescale(Units::m2mm*1.0/getR0());
+    setEndField(newEFM);
+    //phiStart_m += efm->getCentreLength()/2.0;
+    std::stringstream ss;
+    getEndField()->print(ss);
+    *gmsg << "Attached end field '" << endFieldName_m << "' with " << ss.str() << endl;
+}

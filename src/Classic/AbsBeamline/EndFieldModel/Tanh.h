@@ -75,6 +75,12 @@ class Tanh : public EndFieldModel {
      */
     double function(double x, int n) const;
 
+    /** Nominal flat top length is twice x0 (one x0 in each direction) */
+    double getCentreLength() const {return getX0()*2.0;}
+
+    /** Return nominal fringe field length */
+    double getEndLength() const {return getLambda();}
+
     /** Returns the value of tanh((x+x0)/lambda) or its \f$n^{th}\f$ derivative. */
     double getTanh(double x, int n) const;
 
