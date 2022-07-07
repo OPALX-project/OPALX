@@ -212,10 +212,6 @@ void ScalingFFAMagnet::setupEndField() {
     endfieldmodel::EndFieldModel* newEFM = efm->clone();
     newEFM->rescale(Units::m2mm*1.0/getR0());
     setEndField(newEFM);
-    //phiStart_m += efm->getCentreLength()/2.0;
-    std::stringstream ss;
-    getEndField()->print(ss);
-    *gmsg << "Attached end field '" << endFieldName_m << "' with " << ss.str() << endl;
 
     double defaultExtent = (newEFM->getEndLength()*4.+
                             newEFM->getCentreLength());

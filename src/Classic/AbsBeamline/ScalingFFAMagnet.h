@@ -233,8 +233,24 @@ class ScalingFFAMagnet : public Component {
     /** Return the calculated df coefficients */
     std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
 
+    /** setupEndField does some end field and geometry set-up
+     * 
+     *  This is normally called just before the magnet is placed; can only set
+     *  up the end field after everything has been parsed from input (otherwise
+     *  OPAL may not know about an end field model).
+     *
+     *  sets PhiStart, PhiEnd, AzimuthalExtent and the end field model itself.
+     */
     void setupEndField();
+
+    /** Set the end field name.
+     * 
+     *  Called during parsing of the input file; OPAL looks for the endFieldName
+     *  when setupEndField() is called.
+     */
     void setEndFieldName(std::string name) {endFieldName_m = name;}
+
+    /** Return the end field name. */
     std::string getEndFieldName() const {return endFieldName_m;}
   private:
     /** Calculate the df coefficients, ready for field generation

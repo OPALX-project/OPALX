@@ -155,11 +155,8 @@ void OpalScalingFFAMagnet::update() {
     // we store maximum vertical displacement (which is half the height)
     double height = Attributes::getReal(itsAttr[HEIGHT])*Units::m2mm;
     magnet->setVerticalExtent(height/2.);
-    std::cerr << "HASDLKASDA 1" << std::endl;
     // end of the magnet marks the point at which the next element starts
-    std::cerr << "HASDLKASDA 2a" << std::endl;
     if (itsAttr[MAGNET_END]) {
-        std::cerr << "HASDLKASDA 2" << std::endl;
         if (Attributes::getReal(itsAttr[MAGNET_END]) < 0.0) {
             throw OpalException("OpalScalingFFAMagnet::update()",
                                 "MAGNET_END must be > 0.0");
@@ -173,9 +170,7 @@ void OpalScalingFFAMagnet::update() {
     // get start of the magnet element in radians
     // setPhiStart sets the position of the 0 point of the endFieldModel, which
     // is typically the magnet centre
-    std::cerr << "HASDLKASDA 3a" << std::endl;
     if (itsAttr[MAGNET_START]) {
-        std::cerr << "HASDLKASDA 3" << std::endl;
         if (Attributes::getReal(itsAttr[MAGNET_START]) < 0.0) {
             throw OpalException("OpalScalingFFAMagnet::update()",
                                 "MAGNET_START must be > 0.0");
@@ -186,9 +181,7 @@ void OpalScalingFFAMagnet::update() {
         magnet->setPhiStart(-1); // flag for setupEndField
     }
     // get azimuthal extent in radians; this is just the bounding box
-    std::cerr << "HASDLKASDA 4a" << std::endl;
     if (itsAttr[AZIMUTHAL_EXTENT]) {
-        std::cerr << "HASDLKASDA 4" << std::endl;
         if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
             throw OpalException("OpalScalingFFAMagnet::update()",
                                 "AZIMUTHAL_EXTENT must be > 0.0");
@@ -197,7 +190,6 @@ void OpalScalingFFAMagnet::update() {
     } else {
         magnet->setAzimuthalExtent(-1); // flag for setupEndField
     }
-    std::cerr << "HASDLKASDA 5" << std::endl;
     magnet->initialise();
     setElement(magnet);
 

@@ -900,9 +900,7 @@ void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& ben
     *gmsg << "Adding ScalingFFAMagnet" << endl;
     if (opalRing_m != nullptr) {
         ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required
-        std::cerr << "SETTING UP END FIELD" << std::endl;
         newBend->setupEndField();
-        std::cerr << "DONE" << std::endl;
         opalRing_m->appendElement(*newBend);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
