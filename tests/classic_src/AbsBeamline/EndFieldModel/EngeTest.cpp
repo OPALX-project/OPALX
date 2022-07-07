@@ -33,10 +33,8 @@ TEST(EngeTest, FunctionTest) {
     std::vector<double> zVector = {0.0, 1.0, 2.0, 3.0};
     endfieldmodel::Enge enge({0.0, 1.0}, 0.0, 0.5);
     for (auto z: zVector) {
-        std::cerr << enge.getEnge(z, 0) << " " << myEnge(z, {0.0, 1.0}, 00.0, 0.5) << std::endl;
+        EXPECT_NEAR(enge.getEnge(z, 0), myEnge(z, {0.0, 1.0}, 00.0, 0.5), 1e-12);
     }
-
-
 }
 
 TEST(EngeTest, HNTest) {

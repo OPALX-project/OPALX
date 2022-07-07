@@ -77,8 +77,6 @@ bool ScalingFFAMagnet::apply(const size_t &i, const double &t,
 
 void ScalingFFAMagnet::initialise() {
     calculateDfCoefficients();
-    planarArcGeometry_m.setElementLength(r0_m*phiEnd_m); // length = phi r
-    planarArcGeometry_m.setCurvature(1./r0_m);
 }
 
 void ScalingFFAMagnet::initialise(PartBunchBase<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
@@ -110,7 +108,8 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
     Vector_t pos = R - centre_m;
     double r = std::sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
-    double phi = -std::atan2(pos[0], pos[2])+Physics::pi/2.0; // angle between y-axis and position vector in anticlockwise direction
+    double phi = -std::atan2(pos[0], pos[2]); // angle between y-axis and position vector in anticlockwise direction
+    //+Physics::pi/2.0
     Vector_t posCyl(r, pos[1], phi);
     Vector_t bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
@@ -217,4 +216,21 @@ void ScalingFFAMagnet::setupEndField() {
     std::stringstream ss;
     getEndField()->print(ss);
     *gmsg << "Attached end field '" << endFieldName_m << "' with " << ss.str() << endl;
+
+    double defaultExtent = (newEFM->getEndLength()*4.+
+                            newEFM->getCentreLength());
+    if (phiStart_m < 0.0) {
+        setPhiStart(defaultExtent/2.0);
+    } else {
+        setPhiStart(getPhiStart()+newEFM->getCentreLength()*0.5);
+    }
+    if (phiEnd_m < 0.0) {
+        setPhiEnd(defaultExtent);
+    }
+    if (azimuthalExtent_m < 0.0) {
+        setAzimuthalExtent(newEFM->getEndLength()*5.+
+                           newEFM->getCentreLength()/2.0);
+    }
+    planarArcGeometry_m.setElementLength(r0_m*phiEnd_m); // length = phi r
+    planarArcGeometry_m.setCurvature(1./r0_m);
 }
