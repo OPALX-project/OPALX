@@ -78,6 +78,7 @@ TEST(OpalScalingFFAMagnetTest, TestUpdate) {
 
 // r in mm, phi in rad; note the weird coordinate system
 Vector_t cartesianCoord(double r, double phi) {
+    phi -= Physics::pi/2.0;
     return Vector_t(-r*sin(phi), 0.0, r*cos(phi))-Vector_t(r, 0, 0);
 }
 
