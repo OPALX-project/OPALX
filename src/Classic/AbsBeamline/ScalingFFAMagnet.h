@@ -34,6 +34,14 @@
 #define ABSBEAMLINE_ScalingFFAMagnet_H
 
 /** Sector bending magnet with an FFA-style field index and spiral end shape
+ * 
+ *  Note about placement and end field; in order to get a user-defined end field
+ *  shape, we do a lookup from user defined end fields, which is pulled from
+ *  the EndFieldModel object and done by setupEndField(). Because end fields tie
+ *  into the geometry, this has to be done before placements; but it also needs
+ *  to be done after parsing has finished. setupEndField() is called by e.g.
+ *  ParallelCyclotronTracker just before the object is handed to OpalRing for
+ *  placement.
  */
 
 class ScalingFFAMagnet : public Component {
