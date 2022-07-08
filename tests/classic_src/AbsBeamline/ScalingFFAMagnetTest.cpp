@@ -210,7 +210,7 @@ public:
     }
 
 private:
-    //OpalTestUtilities::SilenceTest silencer_m;
+    OpalTestUtilities::SilenceTest silencer_m;
 };
 
 TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
@@ -408,7 +408,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
-    double y = 0.001;
+    double y = 0.05;
     bool cylindrical = false;
     int maxOrder = 10;
     // nb: if tan delta is 0., convergence reached at i = 7
@@ -417,7 +417,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
 
         std::vector<double> divBVec(maxOrder);
         std::vector<double> curlBVec(maxOrder);
-        double delta = 1e-4; //y/100.;
+        double delta = y/100.;
         for (size_t i = 0; i < divBVec.size(); ++i) {
             sector_m->setTanDelta(td);
             sector_m->setR0(3.0);
