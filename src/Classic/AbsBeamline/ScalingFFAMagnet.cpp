@@ -108,8 +108,7 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
     Vector_t pos = R - centre_m;
     double r = std::sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
-    double phi = -std::atan2(pos[0], pos[2]); // angle between y-axis and position vector in anticlockwise direction
-    //+Physics::pi/2.0
+    double phi = -std::atan2(pos[0], pos[2])+Physics::pi/2.0; // angle between y-axis and position vector in anticlockwise direction
     Vector_t posCyl(r, pos[1], phi);
     Vector_t bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
@@ -203,6 +202,7 @@ void ScalingFFAMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
 
 extern Inform* gmsg;
 
+// Note this is tested in OpalScalingFFAMagnetTest.*
 void ScalingFFAMagnet::setupEndField() {
     if (endFieldName_m == "") { // no end field is defined
         return;
