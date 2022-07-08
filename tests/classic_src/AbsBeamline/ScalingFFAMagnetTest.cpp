@@ -166,8 +166,8 @@ public:
     bool printLine(Vector_t posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
         double r = posCyl[0];
         double y = posCyl[1];
-        double phi = posCyl[2];
-        double x = r*sin(phi);
+        double phi = posCyl[2]-Physics::pi/2.0;
+        double x = -r*sin(phi);
         double z = r*cos(phi);
         Vector_t posCart(x, y, z);
         Vector_t mom(0., 0., 0.);
@@ -210,7 +210,7 @@ public:
     }
 
 private:
-    OpalTestUtilities::SilenceTest silencer_m;
+    //OpalTestUtilities::SilenceTest silencer_m;
 };
 
 TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
@@ -376,13 +376,16 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
         std::cout << "order y divB |curlB| curlB" << std::endl;
         std::vector<double> divBVec(13);
         std::vector<double> curlBVec(13);
+        std::vector<double> divBCartVec(13);
+        std::vector<double> curlBCartVec(13);
         double delta = y/100.;
         for (size_t i = 0; i < divBVec.size(); ++i) {
             sector_m->setMaxOrder(i);
             sector_m->initialise();
-            Vector_t pos(r0_m, y, psi0_m*2);
-            double divB = getDivBCyl(pos, Vector_t(delta, delta, delta/r0_m));
-            Vector_t curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/r0_m));
+            //Vector_t pos(r0_m, y, psi0_m*2);
+            Vector_t pos(r0_m*cos(psi0_m*2), y, r0_m*sin(psi0_m*2));
+            double divB = getDivBCart(pos, Vector_t(delta, delta, delta/r0_m));
+            Vector_t curlB = getCurlBCart(pos, Vector_t(delta, delta, delta/r0_m));
             double curlBMag =
                 sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
             divB = fabs(divB);
@@ -405,7 +408,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
-    double y = 0.05;
+    double y = 0.001;
     bool cylindrical = false;
     int maxOrder = 10;
     // nb: if tan delta is 0., convergence reached at i = 7
@@ -414,7 +417,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
 
         std::vector<double> divBVec(maxOrder);
         std::vector<double> curlBVec(maxOrder);
-        double delta = y/100.;
+        double delta = 1e-4; //y/100.;
         for (size_t i = 0; i < divBVec.size(); ++i) {
             sector_m->setTanDelta(td);
             sector_m->setR0(3.0);
@@ -429,14 +432,10 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
                 divB = getDivBCyl(pos, Vector_t(delta, delta, delta/3.));
                 curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/3.));
             } else {
-                pos = Vector_t(3.0, y, 0.0);
+                pos = Vector_t(-3.0*sin(psi0_m*2-Physics::pi/2.0), y, 3.0*cos(psi0_m*2-Physics::pi/2.0));
                 sector_m->apply(pos, pos, divBVec[0], B, B);
                 divB = getDivBCart(pos, Vector_t(delta, delta, delta));
                 curlB = getCurlBCart(pos, Vector_t(delta, delta, delta));
-                for (size_t i = 0; i < 3; ++i) {
-                    std::cout << getDBDu(i, i, pos, delta, true) << " ";
-                }
-                std::cout << std::endl;
             }
             double curlBMag =
                 sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);

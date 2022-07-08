@@ -108,14 +108,14 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
     Vector_t pos = R - centre_m;
     double r = std::sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
-    double phi = -std::atan2(pos[0], pos[2])+Physics::pi/2.0; // angle between y-axis and position vector in anticlockwise direction
+    double phi = std::atan2(pos[2], pos[0]); // angle between y-axis and position vector in anticlockwise direction
     Vector_t posCyl(r, pos[1], phi);
     Vector_t bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
     // this is cartesian coordinates
     B[1] += bCyl[1];
-    B[0] += -bCyl[2]*std::cos(phi) -bCyl[0]*std::sin(phi);
-    B[2] += +bCyl[0]*std::cos(phi) -bCyl[2]*std::sin(phi);
+    B[0] += bCyl[0]*std::cos(phi) -bCyl[2]*std::sin(phi);
+    B[2] += bCyl[0]*std::sin(phi) +bCyl[2]*std::cos(phi);
     return outOfBounds;
 
 }
@@ -140,6 +140,9 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &B
     if (z < -verticalExtent_m || z > verticalExtent_m) {
         return true;
     }
+    //std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical " << phiSpiral << " " 
+    //          << endField_m->function(phiSpiral, 0) << " " << endField_m->getEndLength()
+    //          << " " << endField_m->getCentreLength()  << std::endl;
     std::vector<double> fringeDerivatives(maxOrder_m+1, 0.);
     for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
         fringeDerivatives[i] = endField_m->function(phiSpiral, i); // d^i_phi f
