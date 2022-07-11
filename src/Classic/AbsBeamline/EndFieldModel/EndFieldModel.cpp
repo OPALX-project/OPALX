@@ -61,7 +61,12 @@ std::vector< std::vector<int> > CompactVector(
 std::map<std::string, std::shared_ptr<EndFieldModel> > EndFieldModel::efm_map;
 
 std::shared_ptr<EndFieldModel> EndFieldModel::getEndFieldModel(std::string name) {
-    return efm_map.at(name);
+    try {
+        return efm_map.at(name);
+    } catch (std::exception& exc) {
+        throw GeneralClassicException("EndFieldModel::getEndFieldModel",
+              "Could not find EndFieldModel with name '"+name+"'");
+    }
 }
 
 void EndFieldModel::setEndFieldModel(std::string name, 

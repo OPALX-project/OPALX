@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Classic/AbsBeamline/EndFieldModel/EndFieldModel.h"
 
 namespace endfieldmodel {
@@ -18,7 +19,7 @@ private:
 };
 
 TEST(EndFieldModelTest, TestGetSetEndFieldModel) {
-    EXPECT_THROW(EndFieldModel::getEndFieldModel("Cheese"), std::exception);
+    EXPECT_THROW(EndFieldModel::getEndFieldModel("Cheese"), GeneralClassicException);
     EndFieldModel* mockup = dynamic_cast<EndFieldModel*>(new EndFieldMockup());
     std::shared_ptr<endfieldmodel::EndFieldModel> mockupPtr(mockup);
     EndFieldModel::setEndFieldModel("Cheese", mockupPtr);
