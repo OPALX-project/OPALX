@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ENDFIELDMODEL_TANH_H_
-#define ENDFIELDMODEL_TANH_H_
+#ifndef ENDFIELDMODEL_ASYMMETRICENGE_H_
+#define ENDFIELDMODEL_ASYMMETRICENGE_H_
 
 #include <iostream>
 #include <vector>
@@ -161,8 +161,6 @@ double AsymmetricEnge::getCentreLength() const {
 double AsymmetricEnge::getEndLength() const {
     return (engeStart_m->getEndLength()+engeEnd_m->getEndLength())/2;
 }
-
-
 }
 
 #endif
