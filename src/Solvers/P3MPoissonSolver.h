@@ -76,6 +76,10 @@ public:
 
     void greensFunction();
 
+    void integratedGreensFunction();
+
+    void mirrorRhoField();
+
     void applyConstantFocusing(PartBunchBase<double, 3> *bunch, double f, double r);
     void test(PartBunchBase<double, 3> *bunch);
 
