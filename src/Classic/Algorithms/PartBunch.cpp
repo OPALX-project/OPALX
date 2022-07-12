@@ -499,7 +499,7 @@ void PartBunch::computeSelfFields() {
 
         Bf(0) = Bf(0) - betaC * Ef(1);
         Bf(1) = Bf(1) + betaC * Ef(0);
-        //*gmsg << "Field solver done" << endl;
+        *gmsg << "Field solver done" << endl;
     }
     IpplTimings::stopTimer(selfFieldTimer_m);
 }

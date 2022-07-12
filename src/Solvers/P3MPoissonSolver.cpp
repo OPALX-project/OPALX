@@ -89,16 +89,11 @@ struct P3MGreensFunction<3> {
 
 template<class T>
 struct ApplyField {
-    ApplyField(T c, double epsilon, double alpha, double ke_, double gammaz_) : C(c), eps(epsilon), 
-                                                                                a(alpha), ke(ke_), gammaz(gammaz_) {}
+    ApplyField(T c, double epsilon, double alpha, double ke_) : C(c), eps(epsilon), 
+                                                                                a(alpha), ke(ke_) {}
     void operator()(std::size_t i, std::size_t j, PartBunch &P,Vektor<double,3> &shift) const
     {
         Vector_t diff = P.R[i] - (P.R[j]+shift);
-        //Vector_t diff;
-        //for (unsigned d = 0; d<Dim-1; ++d)
-        //    diff[d] = P.R[i](d) - (P.R[j](d)+shift[d]);
-
-        //diff[Dim-1] = (P.R[i](Dim-1) - (P.R[j](Dim-1)+shift[Dim-1])) * gammaz;
         double sqr = 0;
 
         for (unsigned d = 0; d<Dim; ++d)
@@ -113,7 +108,10 @@ struct ApplyField {
                 //double phi =ke*(1.-std::erf(a*std::sqrt(sqr)))/r;
 
                 //compute force
-                Vector_t Fij = ke*C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
+                //Vector_t Fij = ke*C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
+                
+                double xi = r/a; 
+                Vector_t Fij = ke*C*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r + 3*(1 - std::pow(xi,2))/a);
 
                 //Actual Force is F_ij multiplied by Qi*Qj
                 //The electrical field on particle i is E=F/q_i and hence:
@@ -129,7 +127,6 @@ struct ApplyField {
     double eps;
     double a;
     double ke;
-    double gammaz;
 };
 
 
@@ -304,12 +301,12 @@ void P3MPoissonSolver::calculatePairForcesPeriodic(PartBunchBase<double, 3> *bun
         if (Ippl::getNodes() > 1) {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,1.0),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m),extend_l, extend_r);
         }
         else {
             PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
             HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,1.0),extend_l, extend_r);
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m),extend_l, extend_r);
         }
     }
 
@@ -324,8 +321,9 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
             tmpBunch.R[i](2) = tmpBunch.R[i](2) * gammaz;
         }
         //if (Ippl::getNodes() > 1) {
-            HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,gammaz));
+            HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz,tmpBunch.getGlobalTrackStep());
+            //HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,alpha_m,ke_m,gammaz));
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), ApplyField<double>(-1,eps_m,interaction_radius_m,ke_m));
         //}
         //else {
         //    HashPairBuilder<PartBunch> HPB(tmpBunch,gammaz);
@@ -461,7 +459,8 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // have to check if we can do G with h = (1,1,1)
     // and rescale later
     IpplTimings::startTimer(GreensFunctionTimer_m);
-    greensFunction();
+    //greensFunction();
+    integratedGreensFunction();
     IpplTimings::stopTimer(GreensFunctionTimer_m);
     // multiply transformed charge density
     // and transformed Green function
@@ -493,6 +492,89 @@ void P3MPoissonSolver::greensFunction() {
     // we do a backward transformation so that we dont have to account for the normalization factor
     // that is used in the forward transformation of the IPPL FFT
     fftrc_m->transform(-1, rho2_m, grntr_m);
+}
+
+void P3MPoissonSolver::integratedGreensFunction() {
+    /**
+     * This integral can be calculated analytically in a closed from:
+     */
+    NDIndex<3> idx =  layout4_m->getLocalNDIndex();
+    double cellVolume = hr_m[0] * hr_m[1] * hr_m[2];
+    tmpgreen_m = 0.0;
+
+    for(int k = idx[2].first(); k <= idx[2].last() + 1; k++) {
+        for(int j = idx[1].first(); j <=  idx[1].last() + 1; j++) {
+            for(int i = idx[0].first(); i <= idx[0].last() + 1; i++) {
+
+                Vector_t vv = Vector_t(0.0);
+                vv(0) = i * hr_m[0] - hr_m[0] / 2;
+                vv(1) = j * hr_m[1] - hr_m[1] / 2;
+                vv(2) = k * hr_m[2] - hr_m[2] / 2;
+
+                double r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
+                double tmpgrn = 0.0;
+                if(r >= interaction_radius_m) {
+                    tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
+                    tmpgrn += -vv(1) * vv(1) * atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
+                    tmpgrn += -vv(0) * vv(0) * atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
+                    tmpgrn += vv(1) * vv(2) * log(vv(0) + r);
+                    tmpgrn += vv(0) * vv(2) * log(vv(1) + r);
+                    tmpgrn += vv(0) * vv(1) * log(vv(2) + r);
+                }
+                else {
+                    tmpgrn = -(vv(0) * vv(1) * vv(2) * (-9 * std::pow(interaction_radius_m, 2)
+                             + std::pow(r, 2))) / (6 * std::pow(interaction_radius_m, 3));
+                }
+
+                tmpgreen_m[i][j][k] = tmpgrn / cellVolume;
+
+            }
+        }
+    }
+
+    Index I = nr_m[0] + 1;
+    Index J = nr_m[1] + 1;
+    Index K = nr_m[2] + 1;
+
+    // the actual integration
+    rho2_m = 0.0;
+    rho2_m[I][J][K]  = tmpgreen_m[I+1][J+1][K+1];
+    rho2_m[I][J][K] += tmpgreen_m[I+1][J][K];
+    rho2_m[I][J][K] += tmpgreen_m[I][J+1][K];
+    rho2_m[I][J][K] += tmpgreen_m[I][J][K+1];
+    rho2_m[I][J][K] -= tmpgreen_m[I+1][J+1][K];
+    rho2_m[I][J][K] -= tmpgreen_m[I+1][J][K+1];
+    rho2_m[I][J][K] -= tmpgreen_m[I][J+1][K+1];
+    rho2_m[I][J][K] -= tmpgreen_m[I][J][K];
+
+    mirrorRhoField();
+
+    fftrc_m->transform(-1, rho2_m, grntr_m);
+
+}
+
+void P3MPoissonSolver::mirrorRhoField() {
+
+    Index aI(0, 2 * nr_m[0]);
+    Index aJ(0, 2 * nr_m[1]);
+
+    Index J(0, nr_m[1]);
+    Index K(0, nr_m[2]);
+
+    Index IE(nr_m[0] + 1, 2 * nr_m[0]);
+    Index JE(nr_m[1] + 1, 2 * nr_m[1]);
+    Index KE(nr_m[2] + 1, 2 * nr_m[2]);
+
+    Index mirroredIE = 2 * nr_m[0] - IE;
+    Index mirroredJE = 2 * nr_m[1] - JE;
+    Index mirroredKE = 2 * nr_m[2] - KE;
+
+    rho2_m[0][0][0] = rho2_m[0][0][1];
+
+    rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K         ];
+    rho2_m[aI][JE][K ] = rho2_m[aI        ][mirroredJE][K         ];
+    rho2_m[aI][aJ][KE] = rho2_m[aI        ][aJ        ][mirroredKE];
+
 }
 
 

@@ -309,6 +309,7 @@ void ParallelTTracker::execute() {
             selectDT(back_track);
 
             computeExternalFields(oth);
+            *gmsg << "External fields done step: " << itsBunch_m->getGlobalTrackStep() << "finished" << endl; 
             
             timeIntegration2(pusher);
 
