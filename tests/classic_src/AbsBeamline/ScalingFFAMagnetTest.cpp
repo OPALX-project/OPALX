@@ -32,13 +32,15 @@
 #include "gtest/gtest.h"
 #include "opal_test_utilities/SilenceTest.h"
 
+#include "Physics/Physics.h"
+
 #include "Classic/AbsBeamline/EndFieldModel/Tanh.h"
 #include "Classic/AbsBeamline/ScalingFFAMagnet.h"
 #include "Classic/AbsBeamline/Offset.h"
 
 class ScalingFFAMagnetTest : public ::testing::Test {
 public:
-    ScalingFFAMagnetTest() : sector_m(nullptr), fout_m(), silencer_m() {
+    ScalingFFAMagnetTest() : sector_m(nullptr), fout_m() {
     }
 
     void SetUp( ) {
@@ -164,8 +166,8 @@ public:
     bool printLine(Vector_t posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
         double r = posCyl[0];
         double y = posCyl[1];
-        double phi = posCyl[2];
-        double x = r*sin(phi);
+        double phi = posCyl[2]-Physics::pi/2.0;
+        double x = -r*sin(phi);
         double z = r*cos(phi);
         Vector_t posCart(x, y, z);
         Vector_t mom(0., 0., 0.);
@@ -271,15 +273,14 @@ TEST_F(ScalingFFAMagnetTest, PlacementTest) {
     for (double phi_start = 0.; phi_start < psi0_m*3.1; phi_start += psi0_m/2.) {
         sector_m->setPhiStart(phi_start+centre_length);
         for (double i = 0.; i < 1.01; i += 0.5) {
-            double phi = i*centre_length*2+phi_start;
+            double phi = i*centre_length*2+phi_start-Physics::pi/2.0;
             Vector_t mom, E, B;
             double t = 0;
             Vector_t posCart(-r0_m*sin(phi), 0., r0_m*cos(phi));
             sector_m->apply(posCart, mom, t, E, B);
             double byTest = 1-fabs(i-0.5); // 0.5, 1.0, 0.5
-            EXPECT_NEAR(B[1], byTest, 1e-3)
-                                             << " for phi_start " << phi_start
-                                             << " and phi test " << phi;
+            EXPECT_NEAR(B[1], byTest, 1e-3) << " for phi_start " << phi_start
+                                            << " and phi test " << phi;
         }
     }
 }
@@ -375,13 +376,16 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
         std::cout << "order y divB |curlB| curlB" << std::endl;
         std::vector<double> divBVec(13);
         std::vector<double> curlBVec(13);
+        std::vector<double> divBCartVec(13);
+        std::vector<double> curlBCartVec(13);
         double delta = y/100.;
         for (size_t i = 0; i < divBVec.size(); ++i) {
             sector_m->setMaxOrder(i);
             sector_m->initialise();
-            Vector_t pos(r0_m, y, psi0_m*2);
-            double divB = getDivBCyl(pos, Vector_t(delta, delta, delta/r0_m));
-            Vector_t curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/r0_m));
+            //Vector_t pos(r0_m, y, psi0_m*2);
+            Vector_t pos(r0_m*cos(psi0_m*2), y, r0_m*sin(psi0_m*2));
+            double divB = getDivBCart(pos, Vector_t(delta, delta, delta/r0_m));
+            Vector_t curlB = getCurlBCart(pos, Vector_t(delta, delta, delta/r0_m));
             double curlBMag =
                 sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
             divB = fabs(divB);
@@ -428,14 +432,10 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
                 divB = getDivBCyl(pos, Vector_t(delta, delta, delta/3.));
                 curlB = getCurlBCyl(pos, Vector_t(delta, delta, delta/3.));
             } else {
-                pos = Vector_t(0.0, y, 3.0);
+                pos = Vector_t(-3.0*sin(psi0_m*2-Physics::pi/2.0), y, 3.0*cos(psi0_m*2-Physics::pi/2.0));
                 sector_m->apply(pos, pos, divBVec[0], B, B);
                 divB = getDivBCart(pos, Vector_t(delta, delta, delta));
                 curlB = getCurlBCart(pos, Vector_t(delta, delta, delta));
-                for (size_t i = 0; i < 3; ++i) {
-                    std::cout << getDBDu(i, i, pos, delta, true) << " ";
-                }
-                std::cout << std::endl;
             }
             double curlBMag =
                 sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
@@ -515,20 +515,8 @@ TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
     double phi[] = {-2.1*psi0_m, -1.9*psi0_m, 7.9*psi0_m, 8.1*psi0_m};
     bool bb[] = {true, false, false, true};
     for(size_t i = 0; i < 4; ++i) {
-        Vector_t pos(-r0_m*sin(phi[i]), 0.0, r0_m*cos(phi[i]));
+        Vector_t pos(-r0_m*sin(phi[i]-Physics::pi/2.0), 0.0, r0_m*cos(phi[i]-Physics::pi/2.0));
         EXPECT_EQ(sector_m->apply(pos, mom, t, E, B), bb[i]) << i << " " << pos;
     }
 }
 
-TEST_F(ScalingFFAMagnetTest, GeometryTest) {
-    Euclid3D delta = sector_m->getGeometry().getTotalTransform();
-    Vector3D vec = delta.getVector();
-    Vector3D rot = delta.getRotation().getAxis();
-    EXPECT_EQ(vec(0), r0_m*(cos(psi0_m*4.)-1));
-    EXPECT_EQ(vec(1), 0.);
-    EXPECT_EQ(vec(2), r0_m*sin(psi0_m*4.));
-
-    EXPECT_EQ(rot(0), 0.);
-    EXPECT_EQ(rot(1), -psi0_m*4);
-    EXPECT_EQ(rot(2), 0.);
-}

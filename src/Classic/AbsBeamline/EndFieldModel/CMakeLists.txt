@@ -2,6 +2,7 @@ set (_SRCS
     EndFieldModel.cpp
     Enge.cpp
     Tanh.cpp 
+    AsymmetricEnge.cpp
     )
 
 include_directories (
@@ -14,6 +15,7 @@ set (HDRS
     EndFieldModel.h
     Enge.h
     Tanh.h
+    AsymmetricEnge.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline/EndFieldModel/")
