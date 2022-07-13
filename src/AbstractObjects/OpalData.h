@@ -107,6 +107,10 @@ public:
     //  the regular expression [b]pattern[/b].
     void printNames(std::ostream &stream, const std::string &pattern);
 
+    /// Get a list of all objects.
+    //  Loop over the directory and return a list of names of all objects
+    std::vector<std::string> getAllNames() const;
+
     /// Register table.
     //  Register the table [b]t[/b].
     //  Registered tables are invalidated to be refilled when an object

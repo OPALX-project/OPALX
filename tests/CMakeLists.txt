@@ -64,7 +64,7 @@ configure_file(SourcePath.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OpalSourcePath.h)
 add_executable (${TEST_EXE} ${TEST_SRCS})
 target_link_libraries (
     ${TEST_EXE}
-    libOPAL
+    libOPALstatic
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}

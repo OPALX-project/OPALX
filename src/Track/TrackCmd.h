@@ -61,6 +61,8 @@ public:
     /// return the name of time integrator
     Steppers::TimeIntegrator getTimeIntegrator();
 
+    /// set the IsParseable flag
+    void setIsParseable(bool isParseable);
 private:
     // Not implemented.
     TrackCmd(const TrackCmd&);
@@ -69,6 +71,9 @@ private:
     // Clone constructor.
     TrackCmd(const std::string& name, TrackCmd* parent);
 
+    // When called from python, the track command can't be parsed in the normal
+    // way - this is disabled.
+    bool isParseable_m = true;
     static const std::map<std::string, Steppers::TimeIntegrator> stringTimeIntegrator_s;
 };
 

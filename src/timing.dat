@@ -1,0 +1,12 @@
+                  num Nodes   CPU tot  Wall tot
+===============================================
+mainTimer...........      1      0.01     1.397
+
+                  num Nodes   CPU max  Wall max   CPU min  Wall min   CPU avg  Wall avg
+=======================================================================================
+mainTimer...........      1      0.01     1.397      0.01     1.397      0.01     1.397
+Fast inside test....      1         0         0         0         0         0         0
+Initialize geometry.      1         0         0         0         0         0         0
+Inside test.........      1         0         0         0         0         0         0
+Particle Inside.....      1         0         0         0         0         0         0
+Ray tracing.........      1         0         0         0         0         0         0

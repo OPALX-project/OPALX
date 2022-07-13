@@ -88,7 +88,7 @@ void OpalVerticalFFAMagnet::update() {
     // get centre length and end length in radians
     endfieldmodel::Tanh* endField = dynamic_cast<endfieldmodel::Tanh*>(magnet->getEndField());
     double end_length = Attributes::getReal(itsAttr[END_LENGTH]) * Units::m2mm;
-    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH]) * Units::m2mm / 2.;
+    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH]) * Units::m2mm;
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(centre_length/2.);
