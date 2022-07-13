@@ -1,5 +1,5 @@
 /* 
- *  Copyright (c) 2017, Chris Rogers
+ *  Copyright (c) 2014, Chris Rogers
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without 
  *  modification, are permitted provided that the following conditions are met: 
@@ -25,61 +25,45 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OPAL_OPALSCALINGFFAMAGNET_H
-#define OPAL_OPALSCALINGFFAMAGNET_H
+#include "gtest/gtest.h"
 
-#include "Elements/OpalBend.h"
+#include "Attributes/Attributes.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "AbsBeamline/EndFieldModel/Enge.h"
+#include "Elements/OpalEnge.h"
 
-/** OpalScalingFFAMagnet provides user interface information for the SCALINGFFA object
- *
- *  Defines three parameters - field map name, units for field, length for field
- */
-class OpalScalingFFAMagnet : public OpalElement {
-  public:
-    /** enum maps string to integer value for UI definitions */
-    enum {
-        B0 = COMMON,
-        R0,
-        FIELD_INDEX,
-        TAN_DELTA,
-        MAX_Y_POWER,
-        END_FIELD_MODEL,
-        END_LENGTH,
-        CENTRE_LENGTH,
-        RADIAL_NEG_EXTENT,
-        RADIAL_POS_EXTENT,
-        HEIGHT,
-        MAGNET_START,
-        MAGNET_END,
-        AZIMUTHAL_EXTENT,
-        SIZE // size of the enum
-    };
+void setReal(OpalEnge& enge, std::string attName, double value) {
+    Attribute* att = enge.findAttribute(attName);
+    ASSERT_NE(att, nullptr);
+    Attributes::setReal(*att, value);
+}
 
-    /** Default constructor initialises UI parameters. */
-    OpalScalingFFAMagnet();
-
-    /** Destructor does nothing */
-    virtual ~OpalScalingFFAMagnet();
-
-    /** Inherited copy constructor */
-    virtual OpalScalingFFAMagnet *clone(const std::string &name);
-
-    /** Update the ScalingFFA with new parameters from UI parser */
-    virtual void update();
-
-  private:
-    // Not implemented.
-    OpalScalingFFAMagnet(const OpalScalingFFAMagnet &);
-    void operator=(const OpalScalingFFAMagnet &);
-
-    // Clone constructor.
-    OpalScalingFFAMagnet(const std::string &name, OpalScalingFFAMagnet *parent);
-
-    void setupNamedEndField();
-    void setupDefaultEndField();
+void setRealArray(OpalEnge& enge,
+                  std::string attName, 
+                  std::vector<double> value) {
+    Attribute* att = enge.findAttribute(attName);
+    ASSERT_NE(att, nullptr);
+    Attributes::setRealArray(*att, value);
+}
 
 
-};
+TEST(OpalEngeTest, TestUpdate) {
+    using namespace endfieldmodel;
+    OpalEnge enge;
+    enge.setOpalName("TEST_ENGE");
+    setReal(enge, "X0", 1.0);
+    setReal(enge, "LAMBDA", 2.0);
+    setRealArray(enge, "COEFFICIENTS", {3.0, 4.0});
+    enge.update();
+    std::shared_ptr<EndFieldModel> myEFM =
+                                EndFieldModel::getEndFieldModel("TEST_ENGE");
+    Enge* myEnge = dynamic_cast<Enge*>(myEFM.get());
+    EXPECT_EQ(myEnge->getX0(), 1.0);
+    EXPECT_EQ(myEnge->getLambda(), 2.0);
+    ASSERT_EQ(myEnge->getCoefficients().size(), 2);
+    EXPECT_EQ(myEnge->getCoefficients()[0], 3.0);
+    EXPECT_EQ(myEnge->getCoefficients()[1], 4.0);
+}
 
-#endif // OPAL_OPALSCALINGFFAMAGNET_H
+
 

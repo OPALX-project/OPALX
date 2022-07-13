@@ -30,6 +30,7 @@ public:
     void SetUp( ) {
         magnet_m.reset(new VerticalFFAMagnet("test"));
         tanh_m = new endfieldmodel::Tanh(length_m*mm, length_m*mm/4., 20);
+        tanh_m->setMaximumDerivative(2*maxOrder_m);
         magnet_m->setEndField(tanh_m);
         magnet_m->setMaxOrder(maxOrder_m);
         magnet_m->setB0(b0_m);

@@ -28,6 +28,7 @@
 #include "Elements/OpalScalingFFAMagnet.h"
 
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "Utilities/OpalException.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Units.h"
@@ -46,6 +47,11 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
       "Tangent of the spiral angle; set to 0 to make a radial sector magnet.");
     itsAttr[MAX_Y_POWER] = Attributes::makeReal("MAX_Y_POWER",
       "The maximum power in y that will be considered in the field expansion.");
+    itsAttr[END_FIELD_MODEL] = Attributes::makeString("END_FIELD_MODEL",
+      "Names the end field model of the ring, giving dipole field along a line of "
+      "constant radius. If blank, uses the default 'END_LENGTH' and 'CENTRE_LENGTH' "
+      "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, Opal will seek "
+      "an END_FIELD_MODEL corresponding to the name defined in this string.");
     itsAttr[END_LENGTH] = Attributes::makeReal("END_LENGTH",
                                           "The end length of the spiral FFA [m].");
     itsAttr[HEIGHT] = Attributes::makeReal("HEIGHT",
@@ -87,6 +93,29 @@ OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string &name) {
     return new OpalScalingFFAMagnet(name, this);
 }
 
+void OpalScalingFFAMagnet::setupDefaultEndField() {
+    ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    // get centre length and end length in metres
+    endfieldmodel::Tanh* endField = new endfieldmodel::Tanh();
+    double end_length = Attributes::getReal(itsAttr[END_LENGTH]);
+    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2.;
+    endField->setLambda(end_length);
+    // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
+    endField->setX0(centre_length);
+    std::shared_ptr<endfieldmodel::EndFieldModel> efm(endField);
+    std::string endName = "__opal_internal__"+getOpalName();
+    endfieldmodel::EndFieldModel::setEndFieldModel(endName, efm);
+    magnet->setEndFieldName(endName);
+}
+
+void OpalScalingFFAMagnet::setupNamedEndField() {
+    if (!itsAttr[END_FIELD_MODEL]) {
+        return;
+    }
+    std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
+    ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    magnet->setEndFieldName(name);
+}
 
 void OpalScalingFFAMagnet::update() {
     ScalingFFAMagnet *magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
@@ -105,14 +134,15 @@ void OpalScalingFFAMagnet::update() {
     int maxOrder = floor(Attributes::getReal(itsAttr[MAX_Y_POWER]));
     magnet->setMaxOrder(maxOrder);
 
-    // get centre length and end length in radians
-    endfieldmodel::Tanh* endField = dynamic_cast<endfieldmodel::Tanh*>(magnet->getEndField());
-    double end_length = Attributes::getReal(itsAttr[END_LENGTH])/r0;
-    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2./r0;
-    endField->setLambda(end_length);
-    // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
-    endField->setX0(centre_length);
-    endField->setTanhDiffIndices(maxOrder+2);
+    if (itsAttr[END_FIELD_MODEL]) {
+        setupNamedEndField();
+    } else {
+        setupDefaultEndField();    
+    }
+    magnet->getEndField()->setMaximumDerivative(maxOrder+2);
+    // internally OpalScalingFFAMagnet uses radians, so we scale all lengths to
+    // radians.
+    magnet->getEndField()->rescale(1/r0);
 
     // get rmin and rmax bounding box edge in mm
     double rmin = r0-Attributes::getReal(itsAttr[RADIAL_NEG_EXTENT]);
@@ -125,34 +155,40 @@ void OpalScalingFFAMagnet::update() {
     // we store maximum vertical displacement (which is half the height)
     double height = Attributes::getReal(itsAttr[HEIGHT])*Units::m2mm;
     magnet->setVerticalExtent(height/2.);
-
-    // get default length of the magnet element in radians
-    // total length is two end field lengths (e-folds) at each end plus a
-    // centre length
-    double defaultLength = (endField->getLambda()*4.+2.*endField->getX0());
-
-    // get end of the magnet element in radians
+    // end of the magnet marks the point at which the next element starts
     if (itsAttr[MAGNET_END]) {
+        if (Attributes::getReal(itsAttr[MAGNET_END]) < 0.0) {
+            throw OpalException("OpalScalingFFAMagnet::update()",
+                                "MAGNET_END must be > 0.0");
+        }
         double phi_end = Attributes::getReal(itsAttr[MAGNET_END])/r0;
         magnet->setPhiEnd(phi_end);
     } else {
-        magnet->setPhiEnd(defaultLength);
+        magnet->setPhiEnd(-1); // flag for setupEndField
     }
 
     // get start of the magnet element in radians
-    // setPhiStart sets the position of the magnet centre relative to start (!)
+    // setPhiStart sets the position of the 0 point of the endFieldModel, which
+    // is typically the magnet centre
     if (itsAttr[MAGNET_START]) {
+        if (Attributes::getReal(itsAttr[MAGNET_START]) < 0.0) {
+            throw OpalException("OpalScalingFFAMagnet::update()",
+                                "MAGNET_START must be > 0.0");
+        }
         double phi_start = Attributes::getReal(itsAttr[MAGNET_START])/r0;
-        magnet->setPhiStart(phi_start+centre_length);
+        magnet->setPhiStart(phi_start);
     } else {
-        magnet->setPhiStart(defaultLength/2.);
+        magnet->setPhiStart(-1); // flag for setupEndField
     }
     // get azimuthal extent in radians; this is just the bounding box
-    double defaultExtent = (endField->getLambda()*5.+endField->getX0());
     if (itsAttr[AZIMUTHAL_EXTENT]) {
+        if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
+            throw OpalException("OpalScalingFFAMagnet::update()",
+                                "AZIMUTHAL_EXTENT must be > 0.0");
+        }
         magnet->setAzimuthalExtent(Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT])/r0);
     } else {
-        magnet->setAzimuthalExtent(defaultExtent);
+        magnet->setAzimuthalExtent(-1); // flag for setupEndField
     }
     magnet->initialise();
     setElement(magnet);
