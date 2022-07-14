@@ -583,32 +583,18 @@ void PartBunchBase<T, Dim>::boundp() {
         this->updateFields(hr_m, origin);
 
         if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
-            //double maxh = 0.0;
-            //for (int i = 0; i < 3; ++ i) {
-            //    if(maxh < hr_m[i])
-            //        maxh = hr_m[i];
-            //}
-            //double rc = 2.0*maxh;
-            //double alpha = 2.0 / rc;
-            //*gmsg << "gammaz before ghost particles = " << gammaz << endl;
             Layout_t* layoutp = static_cast<Layout_t*>(&getLayout());
             layoutp->setCacheDimension(0,fs_m->solver_m->getinteractionRadius());
             layoutp->setCacheDimension(1,fs_m->solver_m->getinteractionRadius());
-            if(fs_m->solver_m->isTest()) {
-                layoutp->setCacheDimension(2,fs_m->solver_m->getinteractionRadius());
-            }
-            else {
-                double gammaz = sum(this->P)[2] / getTotalNum();
-                gammaz *= gammaz;
-                gammaz = std::sqrt(gammaz + 1.0);
+            
+            double gammaz = sum(this->P)[2] / getTotalNum();
+            gammaz *= gammaz;
+            gammaz = std::sqrt(gammaz + 1.0);
 
-                //Interaction radius is set in the boosted frame but ghost particles 
-                //are identified in the lab frame that's why we divide by gammaz here
-                layoutp->setCacheDimension(2,fs_m->solver_m->getinteractionRadius()/gammaz);
-            }
+            //Interaction radius is set in the boosted frame but ghost particles 
+            //are identified in the lab frame that's why we divide by gammaz here
+            layoutp->setCacheDimension(2,fs_m->solver_m->getinteractionRadius()/gammaz);
             layoutp->enableCaching();
-            //fs_m->solver_m->setinteractionRadius(rc);
-            //fs_m->solver_m->setAlpha(alpha);
         }
 
     }
@@ -1358,14 +1344,6 @@ void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
 //         this->setFieldLayout(fs_m->getFieldLayout());
     }
     
-    //if (fs_m->getFieldSolverType() == "P3M") {
-    //    Layout_t* layoutp = static_cast<Layout_t*>(&getLayout());
-    //    //layoutp->setAllCacheDimensions(fs_m->solver_m->getinteractionRadius());
-    //    layoutp->setCacheDimension(0,fs_m->solver_m->getinteractionRadius());
-    //    layoutp->setCacheDimension(1,fs_m->solver_m->getinteractionRadius());
-    //    layoutp->setCacheDimension(2,fs_m->solver_m->getinteractionRadius()/490.238);
-    //    layoutp->enableCaching();
-    //}
 }
 
 

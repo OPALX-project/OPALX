@@ -71,8 +71,6 @@ public:
     { };
     virtual double getinteractionRadius() { return 0.0; }
     virtual bool isTest() { return false; };
-    virtual void setinteractionRadius(double /*r*/) { };
-    virtual void setAlpha(double /*alpha*/) { };
 
     virtual void calculatePairForces(PartBunchBase<double, 3>* /*bunch*/, 
                                      double /*gammaz*/) 
