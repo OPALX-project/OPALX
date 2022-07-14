@@ -59,38 +59,6 @@ void PartBunch::initialize(FieldLayout_t *fLayout) {
     layout->getLayout().changeDomain(*fLayout);
 }
 
-void PartBunch::runTests() {
-
-    Vector_t ll(-0.005);
-    Vector_t ur(0.005);
-
-
-    //setBCAllPeriodic();
-
-    NDIndex<3> domain = getFieldLayout().getDomain();
-    for (unsigned int i = 0; i < Dimension; i++)
-        nr_m[i] = domain[i].length();
-
-    for (int i = 0; i < 3; i++)
-        hr_m[i] = (ur[i] - ll[i]) / nr_m[i];
-
-    getMesh().set_meshSpacing(&(hr_m[0]));
-    getMesh().set_origin(ll);
-    setBCAllPeriodic();
-
-    rho_m.initialize(getMesh(),
-                     getFieldLayout(),
-                     GuardCellSizes<Dimension>(1),
-                     bc_m);
-    eg_m.initialize(getMesh(),
-                    getFieldLayout(),
-                    GuardCellSizes<Dimension>(1),
-                    vbc_m);
-
-    //update();
-    fs_m->solver_m->test(this);
-}
-
 
 void PartBunch::do_binaryRepart() {
     get_bounds(rmin_m, rmax_m);
@@ -107,6 +75,11 @@ void PartBunch::do_binaryRepart() {
 
 void PartBunch::computeSelfFields(int binNumber) {
     IpplTimings::startTimer(selfFieldTimer_m);
+
+    if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
+        throw OpalException("PartBunch::computeSelfFields(int binNumber)", 
+                            "P3M solver not available during emission");
+    }
 
     /// Set initial charge density to zero. Create image charge
     /// potential field.
@@ -403,15 +376,10 @@ void PartBunch::computeSelfFields() {
         //divide charge by a 'grid-cube' volume to get [C/m^3]
         rho_m *= tmp2;
 
-        //double chargeInv = 1.0 / (getCharge() / getTotalNum());
         double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
-        //rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m * chargeInv) * (rho_m * chargeInv)));
         rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m / Physics::q_e) * (rho_m / Physics::q_e)));
-        //double max_density = max(abs(rho_m * chargeInv));
 
-        //*gmsg << "Max. density = " << std::setw(17) << max_density << " particles/m^3\n";
         calcDebyeLength(); 
-        //calcDebyeLength(max_density); 
 
 
 #ifdef DBG_SCALARFIELD
@@ -476,19 +444,13 @@ void PartBunch::computeSelfFields() {
         // field, since the particles have not moved since this the most recent
         // scatter operation.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
-        //Eftmp.gather(eg_m, this->R,  IntrplCIC_t());
-        *gmsg << "gammaz = " << gammaz << endl;
-        //double normEf_PM = sqrt(sum(dot(Ef,Ef))); 
-        //*gmsg << "Ef L2 norm PM part:= " << normEf_PM << endl;
         if(fs_m->getFieldSolverType() == FieldSolverType::P3M) {
             fs_m->solver_m->calculatePairForces(this,gammaz);
         }
-        //double normEf_PP = sqrt(sum(dot(Ef,Ef))); 
-        //*gmsg << "Ef L2 norm PP part:= " << normEf_PP << endl;
 
         Ef = Ef * Vector_t(gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
         
-        /** Magnetic field in x and y direction induced by the eletric field
+        /** Magnetic field in x and y direction induced by the electric field
          *
          *  \f[ B_x = \gamma(B_x^{'} - \frac{beta}{c}E_y^{'}) = -\gamma \frac{beta}{c}E_y^{'} = -\frac{beta}{c}E_y \f]
          *  \f[ B_y = \gamma(B_y^{'} - \frac{beta}{c}E_x^{'}) = +\gamma \frac{beta}{c}E_x^{'} = +\frac{beta}{c}E_x \f]
@@ -499,7 +461,6 @@ void PartBunch::computeSelfFields() {
 
         Bf(0) = Bf(0) - betaC * Ef(1);
         Bf(1) = Bf(1) + betaC * Ef(0);
-        *gmsg << "Field solver done" << endl;
     }
     IpplTimings::stopTimer(selfFieldTimer_m);
 }
@@ -520,6 +481,11 @@ void PartBunch::computeSelfFields() {
 void PartBunch::computeSelfFields_cycl(double gamma) {
 
     IpplTimings::startTimer(selfFieldTimer_m);
+
+    if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
+        throw OpalException("PartBunch::computeSelfFields_cycl(double gamma)", 
+                            "P3M solver not available yet for cyclotrons");
+    }
 
     /// set initial charge density to zero.
     rho_m = 0.0;
@@ -542,6 +508,11 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
         /// from charge (C) to charge density (C/m^3).
         double tmp2 = 1.0 / (hr_scaled[0] * hr_scaled[1] * hr_scaled[2]);
         rho_m *= tmp2;
+
+        double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+        rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m / Physics::q_e) * (rho_m / Physics::q_e)));
+
+        calcDebyeLength(); 
 
         // If debug flag is set, dump scalar field (charge density 'rho') into file under ./data/
 #ifdef DBG_SCALARFIELD
@@ -649,6 +620,11 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
  */
 void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
+
+    if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
+        throw OpalException("PartBunch::computeSelfFields_cycl(int bin)", 
+                            "P3M solver not available yet for cyclotrons");
+    }
 
     /// set initial charge dentsity to zero.
     rho_m = 0.0;
@@ -802,7 +778,7 @@ void PartBunch::setBCAllPeriodic() {
         getBConds()[i] =  ParticlePeriodicBCond;
     }
     dcBeam_m=true;
-    INFOMSG(level3 << "BC set P3M, all periodic" << endl);
+    INFOMSG(level3 << "BC set all periodic" << endl);
 }
 
 void PartBunch::setBCAllOpen() {

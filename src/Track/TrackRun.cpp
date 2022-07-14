@@ -85,7 +85,6 @@ const boost::bimap<TrackRun::RunMethod, std::string> TrackRun::stringMethod_s =
     boost::assign::list_of<const boost::bimap<TrackRun::RunMethod, std::string>::relation>
     (RunMethod::PARALLELT,  "PARALLEL-T")
     (RunMethod::CYCLOTRONT, "CYCLOTRON-T")
-    (RunMethod::P3MTEST, "P3M-TEST")
     (RunMethod::THICK,      "THICK");
 
 
@@ -104,7 +103,7 @@ TrackRun::TrackRun():
     macrocharge_m(0.0) {
     itsAttr[METHOD] = Attributes::makePredefinedString
                       ("METHOD", "Name of tracking algorithm to use.",
-                       {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T","P3M-TEST"});
+                       {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T"});
     
     itsAttr[TURNS] = Attributes::makeReal
         ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron.", 1.0);
@@ -222,10 +221,6 @@ void TrackRun::execute() {
             setupTTracker();
             break;
         }
-        case RunMethod::P3MTEST: {
-            setupTTracker();
-            break;
-        }
         case RunMethod::CYCLOTRONT: {
             setupCyclotronTracker();
             break;
@@ -236,27 +231,25 @@ void TrackRun::execute() {
         }
     }
 
-    if(method_m != RunMethod::P3MTEST) {
-    	if (method_m == RunMethod::THICK) {
-       	   int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
+    if (method_m == RunMethod::THICK) {
+       	int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
 
-           // Track for the all but last turn.
-          for (int turn = 1; turn < turns; ++turn) {
-              itsTracker->execute();
-          }
-            // Track the last turn.
+        // Track for the all but last turn.
+        for (int turn = 1; turn < turns; ++turn) {
             itsTracker->execute();
-
-        } else {
-            itsTracker->execute();
-
-            opal->setRestartRun(false);
         }
+        // Track the last turn.
+        itsTracker->execute();
 
-        opal->bunchIsAllocated();
+    } else {
+        itsTracker->execute();
 
-        delete itsTracker;
+        opal->setRestartRun(false);
     }
+
+    opal->bunchIsAllocated();
+
+    delete itsTracker;
 }
 
 void TrackRun::setRunMethod() {
@@ -449,21 +442,16 @@ void TrackRun::setupTTracker(){
     // findPhasesForMaxEnergy();
 
     
-    if(method_m == RunMethod::P3MTEST) {
-        Track::block->bunch->runTests();
-    }
-    else {
-        itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                          Track::block->bunch,
-                                          *ds,
-                                          Track::block->reference,
-                                          false,
-                                          Attributes::getBool(itsAttr[TRACKBACK]),
-                                          Track::block->localTimeSteps,
-                                          Track::block->zstart,
-                                          Track::block->zstop,
-                                          Track::block->dT);
-    }
+    itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
+                                       Track::block->bunch,
+                                       *ds,
+                                       Track::block->reference,
+                                       false,
+                                       Attributes::getBool(itsAttr[TRACKBACK]),
+                                       Track::block->localTimeSteps,
+                                       Track::block->zstart,
+                                       Track::block->zstop,
+                                       Track::block->dT);
 }
 
 void TrackRun::setupCyclotronTracker(){
@@ -597,20 +585,20 @@ void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
 
     if (fs->getFieldSolverType() != FieldSolverType::NONE) {
-        //size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
-        //Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-        //size_t numParticles = beam->getNumberOfParticles();
+        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
+        Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+        size_t numParticles = beam->getNumberOfParticles();
 
-        //if (!opal->inRestartRun() && numParticles < numGridPoints
-        //    && fs->getFieldSolverType() != FieldSolverType::SAAMG // in SPIRAL/SAAMG we're meshing the whole domain -DW
-        //    && fs->getFieldSolverType() != FieldSolverType::P3M //In P3M with one-one mapping grid points can be less than particles
-        //    && !Options::amr)
-        //{
-        //    throw OpalException("TrackRun::setupFieldsolver()",
-        //                        "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
-        //                        "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
-        //                        "Please increase the number of particles or reduce the size of the mesh.\n");
-        //}
+        if (!opal->inRestartRun() && numParticles < numGridPoints
+            && fs->getFieldSolverType() != FieldSolverType::SAAMG // in SPIRAL/SAAMG we're meshing the whole domain -DW
+            && fs->getFieldSolverType() != FieldSolverType::P3M //In P3M with one-one mapping grid points can be less than particles
+            && !Options::amr)
+        {
+            throw OpalException("TrackRun::setupFieldsolver()",
+                                "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
+                                "Please increase the number of particles or reduce the size of the mesh.\n");
+        }
 
         OpalData::getInstance()->addProblemCharacteristicValue("MX", fs->getMX());
         OpalData::getInstance()->addProblemCharacteristicValue("MY", fs->getMY());
