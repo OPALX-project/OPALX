@@ -45,9 +45,9 @@ struct P3MGreensFunction { };
 template<>
 struct P3MGreensFunction<3> {
     template<class T, class FT, class FT2>
-    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha, double eps) {
+    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha) {
         grn = grnI[0] * hrsq[0] + grnI[1] * hrsq[1] + grnI[2] * hrsq[2];
-        grn = erf(alpha*sqrt(grn))/(sqrt(grn)+eps);
+        grn = erf(alpha*sqrt(grn))/(sqrt(grn));
         grn[0][0][0] = grn[0][0][1];
     }
 };
@@ -70,11 +70,11 @@ struct ApplyField {
             if (P.Q[i]!=0 && P.Q[j]!=0) {
 
                 //compute force
-                Vector_t Fij
+                Vector_t Fij;
 
                 if(isIntGreen) {
-                    double xi = r/a; 
-                    Fij = -ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r + 3*(1 - std::pow(xi,2))/a);
+                    double xi = r/alpha; 
+                    Fij = -ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r + 3*(1 - std::pow(xi,2))/alpha);
                 }
                 else {
                     Fij = -ke*(diff/r)*((2.*alpha*std::exp(-alpha*alpha*sqr))/
@@ -98,7 +98,9 @@ struct ApplyField {
 
 // constructor
 
-P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha):
+P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, 
+                                   double interaction_radius, 
+                                   double alpha, std::string greensFunction):
     mesh_m(mesh),
     layout_m(fl),
     interaction_radius_m(interaction_radius),
@@ -211,8 +213,15 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         }
         
         HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
-        HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
-                     ApplyField<double>(alpha_m,ke_m,integratedGreens_m));
+        if(integratedGreens_m) {
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
+                         ApplyField<double>(interaction_radius_m,ke_m,integratedGreens_m));
+        }
+        else {
+            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
+                         ApplyField<double>(alpha_m,ke_m,integratedGreens_m));
+        }
+
         
         for(std::size_t i = 0;i<size;++i)
         {

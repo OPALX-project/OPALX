@@ -52,7 +52,8 @@ public:
     // constructor and destructor
     P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, 
                      double interaction_radius, 
-                     double alpha);
+                     double alpha,
+                     std::string greensFunction);
 
     ~P3MPoissonSolver();
 

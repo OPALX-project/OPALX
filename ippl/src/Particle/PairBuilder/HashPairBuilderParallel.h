@@ -94,7 +94,7 @@ public:
         //assign all particles to a bucket
         for(std::size_t i = 0;i<size;++i)
         {
-            std::size_t bucket_id = get_bucket_id(i,pred);
+            std::size_t bucket_id = get_bucket_id(i);
             if(bucket_id >= Nbucket) {
                 std::cout << "Bucket with id: " << bucket_id << " is wrong" << std::endl;
                 std::cout << "Rank: " << Ippl::myNode() << std::endl;
