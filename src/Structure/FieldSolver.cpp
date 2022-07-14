@@ -81,7 +81,7 @@ namespace {
         BCFFTX,     // boundary condition in x [FFT + AMR_MG only]
         BCFFTY,     // boundary condition in y [FFT + AMR_MG only]
         BCFFTZ,     // boundary condition in z [FFT + AMR_MG only]
-        GREENSF,    // holds greensfunction to be used [FFT only]
+        GREENSF,    // holds greensfunction to be used [FFT + P3M only]
         BBOXINCR,   // how much the boundingbox is increased
         GEOMETRY,   // geometry of boundary [SAAMG only]
         ITSOLVER,   // iterative solver [SAAMG + AMR_MG]
@@ -552,7 +552,8 @@ void FieldSolver::initSolver(PartBunchBase<double, 3>* b) {
         solver_m = new P3MPoissonSolver(mesh_m,
                                         FL_m,
                                         Attributes::getReal(itsAttr[RC]),
-                                        Attributes::getReal(itsAttr[ALPHA]));
+                                        Attributes::getReal(itsAttr[ALPHA]),
+                                        greens);
 
         itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
 
@@ -606,7 +607,8 @@ Inform& FieldSolver::printInfo(Inform& os) const {
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << endl;
     if (fsType_m == FieldSolverType::P3M) {
         os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
-           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << endl;
+           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
+           << "* GREENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
     } else if (fsType_m == FieldSolverType::FFT) {
         os << "* GREENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
     } else if (fsType_m == FieldSolverType::SAAMG) {
