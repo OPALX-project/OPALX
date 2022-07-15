@@ -141,6 +141,7 @@ public:
 
     void calcGammas_cycl();
 
+    /** \brief Compute the (global) Debye length for the beam */
     void calcDebyeLength();
 
     /** \brief Get gamma of one bin */

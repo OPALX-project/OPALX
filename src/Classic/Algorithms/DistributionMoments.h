@@ -21,7 +21,7 @@
 #include "FixedAlgebra/FMatrix.h"
 
 #include "Vektor.h"
-#include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include <vector>
 
@@ -205,10 +205,13 @@ double DistributionMoments::getMeanKineticEnergy() const
     return meanKineticEnergy_m;
 }
 
+// Compute and return the value of temperature in K
 inline
 double DistributionMoments::getTemperature() const
 {
-    return (temperature_m / 1.380649e-23);
+    return (temperature_m / 
+           (Physics::kB * Units::eV2kg * 
+            Physics::c * Physics::c));
 }
 inline
 double DistributionMoments::getDebyeLength() const

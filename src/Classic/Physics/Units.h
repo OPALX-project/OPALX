@@ -106,6 +106,9 @@ namespace Units {
     //V*C*s^2/m^2 to GeV/c^2 (ie GeV/c^2 to kg conversion)
     constexpr double kg2GeV = 1 / GeV2kg;
 
+    //eV to kg
+    constexpr double eV2kg = 1.78266192e-36;
+
     //MHz to Hz
     constexpr double MHz2Hz = 1e+6;
 

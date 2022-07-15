@@ -437,10 +437,7 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
     double loc_avg_vel[3]={0.0,0.0,0.0};
     double avg_vel[3]={0.0,0.0,0.0};
 
-    //From P in \beta\gamma to get v in m/s
-    //double convFactor = (Physics::c * Physics::m_e)/(bunch.getMassPerParticle());  
-    //double convFactor = Physics::c;  
-
+    //From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
     for (OpalParticle const& particle: bunch) {
         for(unsigned i = 0; i < 3; i++) {
             loc_avg_vel[i]   += ((particle.getP()[i] * Physics::c)/
@@ -459,16 +456,18 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
 
     for (OpalParticle const& particle: bunch) {
         for(unsigned i = 0; i < 3; i++) {
-            loc_temp_avg   +=   1.78266192e-36 * 1e9 * Physics::m_e * std::pow((((particle.getP()[i] * Physics::c)/
+            loc_temp_avg += std::pow((((particle.getP()[i] * Physics::c)/
                             (Util::getGamma(particle.getP()))) - avg_vel[i]),2);
         }
     }
     allreduce(loc_temp_avg, 1, std::plus<double>());
 
-    temperature_m = (1.0/3) * (loc_temp_avg/N);
+    // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is 
+    // Boltzmann constant
+    temperature_m = (1.0/3) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (loc_temp_avg/N);
 
     debyeLength_m = std::sqrt((temperature_m * Physics::epsilon_0) / 
-                                  (density * std::pow(Physics::q_e,2)));
+                              (density * std::pow(Physics::q_e,2)));
 
     computePlasmaParameter(density);
 
@@ -481,6 +480,7 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
 
 void DistributionMoments::computePlasmaParameter(double density)
 {
+    // Plasma parameter: Average number of particles within the Debye sphere
     plasmaParameter_m = (4.0/3) * Physics::pi * std::pow(debyeLength_m,3) * density; 
     *gmsg <<  std::scientific;
     *gmsg << "Plasma parameter = " << std::setw(17) << plasmaParameter_m << endl;
