@@ -166,7 +166,6 @@ void Ring::initialise(PartBunchBase<double, 3> * bunch, double &/*startField*/,
 
 void Ring::finalise() {
     online_m = false;
-    setRefPartBunch(nullptr);
     setLossDataSink(nullptr);
 }
 
