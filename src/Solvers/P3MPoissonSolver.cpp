@@ -56,9 +56,9 @@ template<class T>
 struct ApplyField {
     ApplyField(double alpha_, double ke_, bool isIntGreen_) : alpha(alpha_), ke(ke_), 
                                                              isIntGreen(isIntGreen_) {}
-    void operator()(std::size_t i, std::size_t j, PartBunch &P, Vektor<double,3> &shift) const
+    void operator()(std::size_t i, std::size_t j, PartBunch &P) const
     {
-        Vector_t diff = P.R[i] - (P.R[j]+shift);
+        Vector_t diff = P.R[i] - P.R[j];
         double sqr = 0;
 
         for (unsigned d = 0; d<Dim; ++d)
@@ -66,27 +66,23 @@ struct ApplyField {
 
         if(sqr!=0) {
             double r = std::sqrt(sqr);
-            //for order two transition
-            if (P.Q[i]!=0 && P.Q[j]!=0) {
 
-                //compute force
-                Vector_t Fij;
+            //compute force
+            Vector_t Fij;
 
-                if(isIntGreen) {
-                    double xi = r/alpha; 
-                    Fij = -ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r + 3*(1 - std::pow(xi,2))/alpha);
-                }
-                else {
-                    Fij = -ke*(diff/r)*((2.*alpha*std::exp(-alpha*alpha*sqr))/
-                            (std::sqrt(M_PI)*r) + (1.-std::erf(alpha*r))/(r*r));
-                }
+            double xi = r/alpha; 
+            Fij = ((double)isIntGreen * (-ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r 
+                                        + 3*(1 - std::pow(xi,2))/alpha)))
+                  + ((double)(1.0 - isIntGreen) 
+                  * (-ke*(diff/r)*((2.*alpha*std::exp(-alpha*alpha*sqr))
+                    /(std::sqrt(M_PI)*r) + (1.-std::erf(alpha*r))/(r*r))));
 
-                //Actual Force is F_ij multiplied by Qi*Qj
-                //The electrical field on particle i is E=F/q_i and hence:
-                P.Ef[i] -= P.Q[j]*Fij;
-                P.Ef[j] += P.Q[i]*Fij;
-            }
+            //Actual Force is F_ij multiplied by Qi*Qj
+            //The electrical field on particle i is E=F/q_i and hence:
+            P.Ef[i] -= P.Q[j]*Fij;
+            P.Ef[j] += P.Q[i]*Fij;
         }
+    
     }
     double alpha;
     double ke;
@@ -114,6 +110,7 @@ P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl,
 
     GreensFunctionTimer_m = IpplTimings::getTimer("GreensFTotalP3M");
     ComputePotential_m = IpplTimings::getTimer("ComputePotentialP3M");
+    CalculatePairForces_m = IpplTimings::getTimer("CalculatePairForcesP3M");
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -203,6 +200,7 @@ void P3MPoissonSolver::initializeFields() {
 
 void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz) {
     
+    IpplTimings::startTimer(CalculatePairForces_m);
     if (interaction_radius_m>0){
         PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
         std::size_t size = tmpBunch.getLocalNum()+tmpBunch.getGhostNum();
@@ -228,6 +226,7 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
             tmpBunch.R[i](2) = tmpBunch.R[i](2) / gammaz;
         }
     }
+    IpplTimings::stopTimer(CalculatePairForces_m);
 }
 
 

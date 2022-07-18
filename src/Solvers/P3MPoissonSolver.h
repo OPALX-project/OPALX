@@ -144,6 +144,7 @@ private:
 
     IpplTimings::TimerRef GreensFunctionTimer_m;
     IpplTimings::TimerRef ComputePotential_m;
+    IpplTimings::TimerRef CalculatePairForces_m;
 
 };
 

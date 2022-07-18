@@ -188,7 +188,7 @@ FieldSolver::FieldSolver():
 
     itsAttr[ALPHA] = Attributes::makeReal("ALPHA",
                                           "Standard Ewald Green’s function splitting parameter",
-                                          0.0);
+                                          1e8);
     //SAAMG and in case of FFT with dirichlet BC in x and y
     itsAttr[GEOMETRY] = Attributes::makeUpperCaseString("GEOMETRY",
                                                         "GEOMETRY to be used as domain boundary",
