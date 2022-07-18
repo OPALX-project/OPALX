@@ -107,7 +107,6 @@ public:
         }
 
         double part_count = 0;
-        Vektor<double,3> shift(0,0,0);
         //loop over all buckets
         for (int bx=0; bx<buckets_per_dim[0]; ++bx) {
             for (int by=0; by<buckets_per_dim[1]; ++by) {
@@ -148,7 +147,7 @@ public:
                                 while(j != END) {
                                     if(pred(particles.R[i], particles.R[j])) {
                                         if (i!=j)
-                                            op(i, j, particles, shift);
+                                            op(i, j, particles);
                                     }
                                     j = next[j];
                                 }
