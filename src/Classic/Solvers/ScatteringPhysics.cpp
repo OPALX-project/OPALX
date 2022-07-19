@@ -3,7 +3,7 @@
 //   Defines the physical processes of beam scattering
 //   and energy loss by heavy charged particles
 //
-// Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
+// Copyright (c) 2009 - 2022, Bi, Yang, Stachel, Adelmann
 //                            Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
@@ -142,22 +142,18 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
 
     ElementType collshape = element_ref_m->getType();
     switch (collshape) {
-        case ElementType::DEGRADER: {
-            hitTester_m.reset(new DegraderInsideTester(element_ref_m));
-            break;
-        }
-        case ElementType::CCOLLIMATOR: {
-            hitTester_m.reset(new CollimatorInsideTester(element_ref_m));
-            break;
-        }
-        case ElementType::FLEXIBLECOLLIMATOR: {
-            hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
-            break;
-        }
-        default: {
-            throw GeneralClassicException("ScatteringPhysics::ScatteringPhysics",
-                                          "Unsupported element type");
-        }
+    case ElementType::DEGRADER:
+        hitTester_m.reset(new DegraderInsideTester(element_ref_m));
+        break;
+    case ElementType::CCOLLIMATOR:
+        hitTester_m.reset(new CollimatorInsideTester(element_ref_m));
+        break;
+    case ElementType::FLEXIBLECOLLIMATOR:
+        hitTester_m.reset(new FlexCollimatorInsideTester(element_ref_m));
+        break;
+    default:
+        throw GeneralClassicException("ScatteringPhysics::ScatteringPhysics",
+                                      "Unsupported element type");
     }
 
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getName(), !Options::asciidump));
@@ -566,13 +562,6 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             hitTester_m->checkHit(bunch->R[i]))
         {
-            // adjust the time step for those particles that enter the material
-            // such that it corresponds to the time needed to reach the current
-            // location form the edge of the material. Only use this time step
-            // for the computation of the interaction with the material, not for
-            // the integration of the particles. This will ensure that the momenta
-            // of all particles are reduced by approximately the same amount in
-            // computeEnergyLoss.
             double tau = 1.0;
             if (OpalData::getInstance()->isInOPALTMode()) {
                 // The z-coordinate is only Opal-T mode the longitudinal coordinate and
