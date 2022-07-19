@@ -2,7 +2,7 @@
 // Class CCollimator
 //   Interface for cyclotron collimator
 //
-// Copyright (c) 2018-2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2018-2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -110,7 +110,7 @@ bool CCollimator::doFinaliseCheck(PartBunchBase<double, 3>* bunch, bool flagNeed
         do {
             parmatint_m->setFlagAllParticlesIn(false);
 
-            bool collWithParticles = (parmatint_m->getParticlesInMat() > 0) ? true : false;
+            bool collWithParticles = (parmatint_m->getParticlesInMat() > 0);
 
             unsigned int localNum = bunch->getLocalNum();
             unsigned int totalNum = 0;

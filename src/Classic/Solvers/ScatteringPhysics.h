@@ -3,7 +3,7 @@
 //   Defines the physical processes of beam scattering
 //   and energy loss by heavy charged particles
 //
-// Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
+// Copyright (c) 2009 - 2022, Bi, Yang, Stachel, Adelmann
 //                            Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //

@@ -2,7 +2,7 @@
 // Class CCollimator
 //   Interface for cyclotron collimator
 //
-// Copyright (c) 2018-2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2018-2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
