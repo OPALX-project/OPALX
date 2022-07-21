@@ -13,8 +13,7 @@ public:
     enum { Dim = PBase::Dim };
     typedef typename PBase::Position_t      Position_t;
 
-    HashPairBuilder(PBase &p, double gammaz_) : particles(p), gammaz(gammaz_) 
-    { hr_m = p.get_hr(); }
+    HashPairBuilder(PBase &p) : particles(p) { }
 
     template<class Pred, class OP>
     void for_each(const Pred& pred, const OP &op)
@@ -36,25 +35,15 @@ public:
          }
          */
 
-        //bounds(particles.R, rmin_m, rmax_m);
-        rmin_m = particles.getMesh().get_origin();
-        //rmax_m = particles.get_maxExtent();
-        
-        NDIndex<3> locDomain = particles.getFieldLayout().getLocalNDIndex();
-        for (unsigned i=0; i<3; ++i) {
-            rmax_m[i] = rmin_m[i]+(locDomain[i].last()+1)*hr_m[i];
-        }
-        //rmin_m[2] *= gammaz;
-        //rmax_m[2] *= gammaz;
-        //hr_m[2] *= gammaz;
+        bounds(particles.R, rmin_m, rmax_m);
+        Inform dmsg("debug_msg:");
+        dmsg << "R_min = " << rmin_m << " R_max = " << rmax_m << endl;
 
-        buckets_per_dim[0]=floor((rmax_m[0]-rmin_m[0])/pred.getRange(0));
-        buckets_per_dim[1]=floor((rmax_m[1]-rmin_m[1])/pred.getRange(1));
-        buckets_per_dim[2]=floor((rmax_m[2]-rmin_m[2])/pred.getRange(2));
+        buckets_per_dim[0]=ceil((rmax_m[0]-rmin_m[0])/pred.getRange(0));
+        buckets_per_dim[1]=ceil((rmax_m[1]-rmin_m[1])/pred.getRange(1));
+        buckets_per_dim[2]=ceil((rmax_m[2]-rmin_m[2])/pred.getRange(2));
 
-        for (unsigned dim = 0; dim<3; ++dim)
-            h_chaining[dim] = (rmax_m[dim]-rmin_m[dim])/buckets_per_dim[dim];
-
+        //dmsg << "buckets per dim = " << buckets_per_dim << endl;
         std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
 
         std::size_t *buckets = new size_t[Nbucket];
@@ -83,7 +72,6 @@ public:
         {
             //std::size_t pos = sum(i, pred, f, offset[13]);
             unsigned bucket_id = get_bucket_id(i,pred);
-            //dmsg << "we got bucket id = " << bucket_id << endl;
             next[i] = buckets[bucket_id];
             buckets[bucket_id] = i;
         }
@@ -98,7 +86,6 @@ public:
         }
 
         //loop over all buckets
-        Vektor<double,3> shift(0,0,0);
         for (int bx=0; bx<buckets_per_dim[0]; ++bx) {
             for (int by=0; by<buckets_per_dim[1]; ++by) {
                 for (int bz=0; bz<buckets_per_dim[2]; ++bz) {
@@ -141,7 +128,7 @@ public:
                                     {
                                         //dmsg << "processing pair (" << i << "," << j << ")"<<endl;
                                         if (i!=j)
-                                            op(i, j, particles, shift);
+                                            op(i, j, particles);
                                     }
                                     j = next[j];
                                 }
@@ -212,14 +199,13 @@ private:
 
     //returns the bucket id of particle i
     template<class Pred>
-    int get_bucket_id(int i, const Pred& /*pred*/)
+    int get_bucket_id(int i, const Pred& pred)
     {
         Vektor<int,3> loc;
         for (unsigned d=0; d<3; ++d)
-            loc[d] = (particles.R[i][d]-rmin_m[d])/h_chaining[d];
-        
+            loc[d] = (particles.R[i][d]-rmin_m[d])/pred.getRange(d);
         int bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
-        //std::cout << "bucket id of particle " << i << "with coords " << particles.R[i] << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
+        //std::cout << "bucket id of particle " << i << " = [" << loc[0] << "," << loc[1] << "," << loc[2] << "] => bucket id = "  << bucket_id << std::endl;
         return bucket_id;
     }
 
@@ -232,11 +218,9 @@ private:
     }
 
     PBase &particles;
-    double gammaz;
     Vektor<int,3> buckets_per_dim;
-    Vektor<double,3> h_chaining;
+
     Vektor<double,3> rmin_m;
     Vektor<double,3> rmax_m;
-    Vektor<double,3> hr_m;
 };
 #endif
