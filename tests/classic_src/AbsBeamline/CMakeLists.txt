@@ -1,3 +1,5 @@
+add_subdirectory (EndFieldModel)
+
 set (_SRCS
     DipoleFieldTest.cpp
     MultipoleTTest.cpp

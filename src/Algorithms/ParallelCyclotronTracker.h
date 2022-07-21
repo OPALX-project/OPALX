@@ -82,6 +82,20 @@ public:
     //  overwrite the execute-methode from DefaultVisitor
     virtual void execute();
 
+    /// Calculate the field map at an arbitrary point
+    //  R - position
+    //  P - momentum; note the field is returned in the lab frame
+    //  t - time
+    //  Efield - filled with values for the electric field
+    //  Bfield - filled with values for the magnetic field
+    //  Returns a boolean value, true if the particle was out of the nominal
+    //  field map boundary, else false.
+    bool computeExternalFields_m(const Vector_t& R,
+                                 const Vector_t& P,
+                                 const double& t,
+                                 Vector_t& Efield,
+                                 Vector_t& Bfield);
+
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline&);
@@ -421,6 +435,8 @@ private:
     void evaluateSpaceChargeField();
 
     void initDistInGlobalFrame();
+
+    void setTimeStep();
 
     void checkFileMomentum();
 

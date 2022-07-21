@@ -2,7 +2,9 @@
 *~
 *.o
 *.a
+*.so
 *.aux
+__pycache__
 optimizer/Tests/*.exe
 build
 CMakeCache.txt

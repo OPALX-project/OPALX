@@ -2,7 +2,7 @@
 // Class CCollimator
 //   Interface for cyclotron collimator
 //
-// Copyright (c) 2018-2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2018-2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -26,19 +26,19 @@ class CCollimator: public PluginElement {
 
 public:
     /// Constructor with given name.
-    explicit CCollimator(const std::string &name);
+    explicit CCollimator(const std::string& name);
 
     CCollimator();
-    CCollimator(const CCollimator &rhs);
-    void operator=(const CCollimator &) = delete;
+    CCollimator(const CCollimator& rhs);
+    void operator=(const CCollimator&) = delete;
     virtual ~CCollimator();
 
     /// Apply visitor to CCollimator.
-    virtual void accept(BeamlineVisitor &) const override;
+    virtual void accept(BeamlineVisitor&) const override;
     ///@{ Override implementation of PluginElement
-    virtual void goOnline(const double &kineticEnergy) override;
+    virtual void goOnline(const double& kineticEnergy) override;
     virtual ElementType getType() const override;
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
     ///@}
 
     /// unused check method
@@ -62,9 +62,9 @@ public:
     ///@}
 private:
     /// Initialise particle matter interaction
-    virtual void doInitialise(PartBunchBase<double, 3> *bunch) override;
+    virtual void doInitialise(PartBunchBase<double, 3>* bunch) override;
     /// Record hits when bunch particles pass
-    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
+    virtual bool doCheck(PartBunchBase<double, 3>* bunch, const int turnnumber, const double t, const double tstep) override;
     /// Calculate extend in r
     virtual void doSetGeom() override;
     /// Virtual hook for finalise
@@ -72,7 +72,7 @@ private:
     /// Virtual hook for preCheck
     virtual bool doPreCheck(PartBunchBase<double, 3>*) override;
     /// Virtual hook for finaliseCheck
-    virtual bool doFinaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpdate) override;
+    virtual bool doFinaliseCheck(PartBunchBase<double, 3>* bunch, bool flagNeedUpdate) override;
 
     bool informed_m = false; ///< Flag if error information already printed
 
@@ -83,7 +83,7 @@ private:
     ///@}
     double rmax_m; ///< maximum extend in r
 
-    ParticleMatterInteractionHandler *parmatint_m = nullptr;
+    ParticleMatterInteractionHandler* parmatint_m = nullptr;
 };
 
 inline

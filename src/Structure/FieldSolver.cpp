@@ -491,7 +491,6 @@ void FieldSolver::setFieldSolverType() {
         {"HYPRE",  FieldSolverType::HYPRE},
         {"HPGMG",  FieldSolverType::HPGMG}
     };
-
     fsName_m = getType();
     if (fsName_m.empty()) {
         throw OpalException("FieldSolver::setFieldSolverType",

@@ -44,8 +44,8 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet &right)
           rMin_m(right.rMin_m), rMax_m(right.rMax_m), phiStart_m(right.phiStart_m),
           phiEnd_m(right.phiEnd_m), azimuthalExtent_m(right.azimuthalExtent_m),
           verticalExtent_m(right.verticalExtent_m), centre_m(right.centre_m),
+          endField_m(nullptr), endFieldName_m(right.endFieldName_m), 
           dfCoefficients_m(right.dfCoefficients_m) {
-    delete endField_m;
     endField_m = right.endField_m->clone();
     RefPartBunch_m = right.RefPartBunch_m;
     Bz_m = right.Bz_m;
@@ -56,7 +56,7 @@ ScalingFFAMagnet::~ScalingFFAMagnet() {
     delete endField_m;
 }
 
-ElementBase* ScalingFFAMagnet::clone() const {
+ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(*this);
     magnet->initialise();
     return magnet;
@@ -77,8 +77,6 @@ bool ScalingFFAMagnet::apply(const size_t &i, const double &t,
 
 void ScalingFFAMagnet::initialise() {
     calculateDfCoefficients();
-    planarArcGeometry_m.setElementLength(r0_m*phiEnd_m); // length = phi r
-    planarArcGeometry_m.setCurvature(1./r0_m);
 }
 
 void ScalingFFAMagnet::initialise(PartBunchBase<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
@@ -110,14 +108,14 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
     Vector_t pos = R - centre_m;
     double r = std::sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
-    double phi = -std::atan2(pos[0], pos[2]); // angle between y-axis and position vector in anticlockwise direction
+    double phi = std::atan2(pos[2], pos[0]); // angle between y-axis and position vector in anticlockwise direction
     Vector_t posCyl(r, pos[1], phi);
     Vector_t bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
     // this is cartesian coordinates
     B[1] += bCyl[1];
-    B[0] += -bCyl[2]*std::cos(phi) -bCyl[0]*std::sin(phi);
-    B[2] += +bCyl[0]*std::cos(phi) -bCyl[2]*std::sin(phi);
+    B[0] += bCyl[0]*std::cos(phi) -bCyl[2]*std::sin(phi);
+    B[2] += bCyl[0]*std::sin(phi) +bCyl[2]*std::cos(phi);
     return outOfBounds;
 
 }
@@ -142,6 +140,9 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &B
     if (z < -verticalExtent_m || z > verticalExtent_m) {
         return true;
     }
+    //std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical " << phiSpiral << " " 
+    //          << endField_m->function(phiSpiral, 0) << " " << endField_m->getEndLength()
+    //          << " " << endField_m->getCentreLength()  << std::endl;
     std::vector<double> fringeDerivatives(maxOrder_m+1, 0.);
     for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
         fringeDerivatives[i] = endField_m->function(phiSpiral, i); // d^i_phi f
@@ -202,3 +203,33 @@ void ScalingFFAMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
     endField_m = endField;
 }
 
+extern Inform* gmsg;
+
+// Note this is tested in OpalScalingFFAMagnetTest.*
+void ScalingFFAMagnet::setupEndField() {
+    if (endFieldName_m == "") { // no end field is defined
+        return;
+    }
+    std::shared_ptr<endfieldmodel::EndFieldModel> efm
+              = endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
+    endfieldmodel::EndFieldModel* newEFM = efm->clone();
+    newEFM->rescale(Units::m2mm*1.0/getR0());
+    setEndField(newEFM);
+
+    double defaultExtent = (newEFM->getEndLength()*4.+
+                            newEFM->getCentreLength());
+    if (phiStart_m < 0.0) {
+        setPhiStart(defaultExtent/2.0);
+    } else {
+        setPhiStart(getPhiStart()+newEFM->getCentreLength()*0.5);
+    }
+    if (phiEnd_m < 0.0) {
+        setPhiEnd(defaultExtent);
+    }
+    if (azimuthalExtent_m < 0.0) {
+        setAzimuthalExtent(newEFM->getEndLength()*5.+
+                           newEFM->getCentreLength()/2.0);
+    }
+    planarArcGeometry_m.setElementLength(r0_m*phiEnd_m); // length = phi r
+    planarArcGeometry_m.setCurvature(1./r0_m);
+}

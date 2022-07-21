@@ -61,6 +61,8 @@
 
 extern Inform *gmsg;
 
+std::shared_ptr<Tracker> TrackRun::itsTracker = nullptr;
+
 namespace {
     // The attributes of class TrackRun.
     enum {
@@ -92,7 +94,6 @@ TrackRun::TrackRun():
     Action(SIZE, "RUN",
            "The \"RUN\" sub-command tracks the defined particles through "
            "the given lattice."),
-    itsTracker(nullptr),
     dist(nullptr),
     fs(nullptr),
     ds(nullptr),
@@ -144,7 +145,6 @@ TrackRun::TrackRun():
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent):
     Action(name, parent),
-    itsTracker(nullptr),
     dist(nullptr),
     fs(nullptr),
     ds(nullptr),
@@ -248,8 +248,6 @@ void TrackRun::execute() {
     }
 
     opal->bunchIsAllocated();
-
-    delete itsTracker;
 }
 
 void TrackRun::setRunMethod() {
@@ -348,11 +346,11 @@ void TrackRun::setupThickTracker() {
     *gmsg << *beam << endl;
     *gmsg << *fs   << endl;
 
-    itsTracker = new ThickTracker(*Track::block->use->fetchLine(),
+    itsTracker.reset(new ThickTracker(*Track::block->use->fetchLine(),
                                   Track::block->bunch, *beam, *ds, Track::block->reference,
                                   false, false, Track::block->localTimeSteps,
                                   Track::block->zstart, Track::block->zstop, Track::block->dT,
-                                  Track::block->truncOrder);
+                                  Track::block->truncOrder));
 }
 
 
@@ -441,7 +439,6 @@ void TrackRun::setupTTracker(){
 
     // findPhasesForMaxEnergy();
 
-    
     itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
                                        Track::block->bunch,
                                        *ds,
@@ -542,13 +539,13 @@ void TrackRun::setupCyclotronTracker(){
 
     initDataSink(specifiedNumBunch);
 
-    itsTracker = new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
+    itsTracker.reset(new ParallelCyclotronTracker(*Track::block->use->fetchLine(),
                                               Track::block->bunch, *ds, Track::block->reference,
                                               false, false, Track::block->localTimeSteps.front(),
                                               Track::block->timeIntegrator,
-                                              specifiedNumBunch, mbEta, mbPara, mbMode, mbBinning);
+                                              specifiedNumBunch, mbEta, mbPara, mbMode, mbBinning));
 
-    ParallelCyclotronTracker* cyclTracker = dynamic_cast<ParallelCyclotronTracker*>(itsTracker);
+    ParallelCyclotronTracker* cyclTracker = dynamic_cast<ParallelCyclotronTracker*>(itsTracker.get());
 
     if (opal->inRestartRun()) {
         H5PartWrapperForPC *h5pw = static_cast<H5PartWrapperForPC*>(phaseSpaceSink_m);
@@ -735,4 +732,8 @@ Inform& TrackRun::print(Inform& os) const {
     }
     os << "* ********************************************************************************** ";
     return os;
+}
+
+std::shared_ptr<Tracker> TrackRun::getTracker() {
+    return itsTracker;
 }
