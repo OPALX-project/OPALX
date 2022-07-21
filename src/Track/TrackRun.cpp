@@ -438,17 +438,17 @@ void TrackRun::setupTTracker(){
     *gmsg << *fs   << endl;
 
     // findPhasesForMaxEnergy();
-
-    itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
-                                       Track::block->bunch,
-                                       *ds,
-                                       Track::block->reference,
-                                       false,
-                                       Attributes::getBool(itsAttr[TRACKBACK]),
-                                       Track::block->localTimeSteps,
-                                       Track::block->zstart,
-                                       Track::block->zstop,
-                                       Track::block->dT);
+    
+    itsTracker.reset(new ParallelTTracker(*Track::block->use->fetchLine(),
+                                      Track::block->bunch,
+                                      *ds,
+                                      Track::block->reference,
+                                      false,
+                                      Attributes::getBool(itsAttr[TRACKBACK]),
+                                      Track::block->localTimeSteps,
+                                      Track::block->zstart,
+                                      Track::block->zstop,
+                                      Track::block->dT));
 }
 
 void TrackRun::setupCyclotronTracker(){
