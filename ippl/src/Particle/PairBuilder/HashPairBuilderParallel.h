@@ -106,12 +106,12 @@ public:
             buckets[bucket_id] = i;
         }
 
-        double part_count = 0;
         //loop over all buckets
         for (int bx=0; bx<buckets_per_dim[0]; ++bx) {
             for (int by=0; by<buckets_per_dim[1]; ++by) {
                 for (int bz=0; bz<buckets_per_dim[2]; ++bz) {
-                    unsigned bucket_id_self = bz*buckets_per_dim[1]*buckets_per_dim[0]+by*buckets_per_dim[0]+bx;
+                    unsigned bucket_id_self = bz*buckets_per_dim[1]*buckets_per_dim[0]
+                                              +by*buckets_per_dim[0]+bx;
                     //compute index of neighboring bucket to interact with
                     for (unsigned n=0; n<neigh;++n){
                         int bx_neigh, by_neigh, bz_neigh;
@@ -127,7 +127,7 @@ public:
                             unsigned bucket_id_neigh =
                             bz_neigh*buckets_per_dim[1]*buckets_per_dim[0]+by_neigh*buckets_per_dim[0]+bx_neigh;
 
-                            //i is index of particle considered in active cahining cell, 
+                            //i is index of particle considered in active chaining cell, 
                             //j is index of neighbor particle considered
                             std::size_t i = buckets[bucket_id_self];
                             std::size_t j;
@@ -135,9 +135,7 @@ public:
                             //loop over all particles in self cell
                             //self offset avoids double counting in self cell
                             int self_offset = 0;
-                            part_count = 0;
                             while (i != END) {
-                                part_count++;
                                 j = buckets[bucket_id_neigh];
                                 //increase offset by number of processed particles in self cell
                                 for (int o=0;o<self_offset;o++){
@@ -164,6 +162,7 @@ public:
                 }
             }
         }
+
         
         delete[] buckets;
         delete[] next;

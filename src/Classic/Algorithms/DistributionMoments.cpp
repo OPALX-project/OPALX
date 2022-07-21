@@ -471,19 +471,12 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
 
     computePlasmaParameter(density);
 
-    *gmsg <<  std::scientific;
-    *gmsg << "Avg temperature = " << std::setw(17) << temperature_m << " CV\n";
-    *gmsg << "RMS density = " << std::setw(17) << density << " particles/m^3\n";
-    *gmsg << "Debye length = " << std::setw(17) << debyeLength_m << " m" << endl;
-
 }
 
 void DistributionMoments::computePlasmaParameter(double density)
 {
     // Plasma parameter: Average number of particles within the Debye sphere
     plasmaParameter_m = (4.0/3) * Physics::pi * std::pow(debyeLength_m,3) * density; 
-    *gmsg <<  std::scientific;
-    *gmsg << "Plasma parameter = " << std::setw(17) << plasmaParameter_m << endl;
 }
 
 

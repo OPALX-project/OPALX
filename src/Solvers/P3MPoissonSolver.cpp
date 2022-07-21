@@ -31,6 +31,9 @@
 #include "Physics/Physics.h"
 #include <fstream>
 #include <cmath>
+
+
+extern Inform *gmsg;
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function
 // calculation.  This should be specialized for each dimension
@@ -72,10 +75,10 @@ struct ApplyField {
 
             double xi = r/alpha; 
             Fij = ((double)isIntGreen * (-ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r 
-                                        + 3*(1 - std::pow(xi,2))/alpha)))
-                  + ((double)(1.0 - isIntGreen) 
-                  * (-ke*(diff/r)*((2.*alpha*std::exp(-alpha*alpha*sqr))
-                    /(std::sqrt(M_PI)*r) + (1.-std::erf(alpha*r))/(r*r))));
+                   + 3*(1 - std::pow(xi,2))/alpha)))
+                   + ((double)(1.0 - isIntGreen) 
+                   * (-ke*(diff/r)*((2.*alpha*std::exp(-alpha*alpha*sqr))
+                   / (std::sqrt(M_PI)*r) + (1.-std::erf(alpha*r))/(r*r))));
 
             //Actual Force is F_ij multiplied by Qi*Qj
             //The electrical field on particle i is E=F/q_i and hence:
@@ -274,6 +277,7 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 
 
     rho *= hr[0] * hr[1] * hr[2];
+
     IpplTimings::stopTimer(ComputePotential_m);
 }
 
@@ -339,6 +343,7 @@ void P3MPoissonSolver::integratedGreensFunction() {
         }
     }
 
+    
     Index I = nr_m[0] + 1;
     Index J = nr_m[1] + 1;
     Index K = nr_m[2] + 1;

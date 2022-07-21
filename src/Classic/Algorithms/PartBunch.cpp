@@ -413,7 +413,6 @@ void PartBunch::computeSelfFields() {
         // [V/m] for the electric field
         eg_m = -Grad(rho_m, eg_m);
 
-
         //write out e field
 #ifdef FIELDSTDOUT
         // Immediate debug output:
@@ -444,6 +443,7 @@ void PartBunch::computeSelfFields() {
         // field, since the particles have not moved since this the most recent
         // scatter operation.
         Ef.gather(eg_m, this->R,  IntrplCIC_t());
+
         if(fs_m->getFieldSolverType() == FieldSolverType::P3M) {
             fs_m->solver_m->calculatePairForces(this,gammaz);
         }
