@@ -3,7 +3,7 @@
 //   Defines the physical processes of beam scattering
 //   and energy loss by heavy charged particles
 //
-// Copyright (c) 2009 - 2021, Bi, Yang, Stachel, Adelmann
+// Copyright (c) 2009 - 2022, Bi, Yang, Stachel, Adelmann
 //                            Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
@@ -140,8 +140,8 @@ ScatteringPhysics::ScatteringPhysics(const std::string& name,
 
     configureMaterialParameters();
 
-    collshape_m = element_ref_m->getType();
-    switch (collshape_m) {
+    ElementType collshape = element_ref_m->getType();
+    switch (collshape) {
     case ElementType::DEGRADER:
         hitTester_m.reset(new DegraderInsideTester(element_ref_m));
         break;
@@ -233,7 +233,7 @@ void ScatteringPhysics::apply(PartBunchBase<double, 3>* bunch,
     mass_m   = bunch->getM();
     charge_m = bunch->getQ();
 
-    bool onlyOneLoopOverParticles = ! (allParticleInMat_m);
+    bool onlyOneLoopOverParticles = !(allParticleInMat_m);
 
     do {
         IpplTimings::startTimer(DegraderLoopTimer_m);
@@ -277,9 +277,9 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
     */
     for (size_t i = 0; i < locParts_m.size(); ++i) {
         if (locParts_m[i].label != -1) {
-            Vector_t &R = locParts_m[i].Rincol;
-            Vector_t &P = locParts_m[i].Pincol;
-            double &dt  = locParts_m[i].DTincol;
+            Vector_t& R = locParts_m[i].Rincol;
+            Vector_t& P = locParts_m[i].Pincol;
+            double& dt  = locParts_m[i].DTincol;
 
             if (hitTester_m->checkHit(R)) {
                 bool pdead = computeEnergyLoss(bunch, P, dt);
@@ -294,10 +294,20 @@ void ScatteringPhysics::computeInteraction(PartBunchBase<double, 3>* bunch) {
                 } else {
                     // The particle is stopped in the material, set label to -1
                     locParts_m[i].label = -1.0;
-                    ++ stoppedPartStat_m;
+                    ++stoppedPartStat_m;
                     lossDs_m->addParticle(OpalParticle(locParts_m[i].IDincol,
                                                        R, P, T_m,
                                                        locParts_m[i].Qincol, locParts_m[i].Mincol));
+
+                    if (OpalData::getInstance()->isInOPALCyclMode()) {
+                        // OpalCycl performs particle deletion in ParallelCyclotronTracker.
+                        // Particles lost by scattering have to be returned to the bunch
+                        // with a negative Bin attribute to avoid miscounting of particles.
+                        // Only the minimal number of attributes are fixed because the
+                        // particle is marked for deletion (Bin<0)
+
+                        addParticleBackToBunch(bunch, locParts_m[i], pdead);
+                    }
                 }
             }
         }
@@ -475,9 +485,7 @@ void  ScatteringPhysics::computeCoulombScattering(Vector_t& R,
         phi += 0.5 * Physics::pi;
     }
 
-    if (enableRutherford_m &&
-        gsl_rng_uniform(rGen_m) < 0.0047) {
-
+    if (enableRutherford_m && gsl_rng_uniform(rGen_m) < 0.0047) {
         applyRandomRotation(P, theta0);
     }
 }
@@ -487,44 +495,52 @@ void ScatteringPhysics::addBackToBunch(PartBunchBase<double, 3>* bunch) {
     const size_t nL = locParts_m.size();
     if (nL == 0) return;
 
-    unsigned int numLocalParticles = bunch->getLocalNum();
     const double elementLength = element_ref_m->getElementLength();
 
     for (size_t i = 0; i < nL; ++ i) {
         Vector_t& R = locParts_m[i].Rincol;
 
-        if (R[2] >= elementLength) {
+        if ( (OpalData::getInstance()->isInOPALTMode() && R[2] >= elementLength) ||
+             (OpalData::getInstance()->isInOPALCyclMode() && !(hitTester_m->checkHit(R))) ) {
 
-            bunch->createWithID(locParts_m[i].IDincol);
-
-            /*
-              Binincol is still <0, but now the particle is rediffused
-              from the material and hence this is not a "lost" particle anymore
-            */
-            bunch->Bin[numLocalParticles] = 1;
-            bunch->R[numLocalParticles]   = R;
-            bunch->P[numLocalParticles]   = locParts_m[i].Pincol;
-            bunch->Q[numLocalParticles]   = locParts_m[i].Qincol;
-            bunch->M[numLocalParticles]   = locParts_m[i].Mincol;
-            bunch->Bf[numLocalParticles]  = 0.0;
-            bunch->Ef[numLocalParticles]  = 0.0;
-            bunch->dt[numLocalParticles]  = dT_m;
+            addParticleBackToBunch(bunch, locParts_m[i]);
 
             /*
-              This particle is back to the bunch, by set
-              ting the label to -1.0
-              the particle will be deleted.
+              This particle is back to the bunch, by setting the
+              label to -1.0 the particle will be deleted.
             */
             locParts_m[i].label = -1.0;
 
-            ++ rediffusedStat_m;
-            ++ numLocalParticles;
+            ++rediffusedStat_m;
         }
     }
 
     // delete particles that went to the bunch
     deleteParticleFromLocalVector();
 }
+
+void ScatteringPhysics::addParticleBackToBunch(PartBunchBase<double, 3>* bunch,
+                                               const PART& particle, bool pdead) {
+
+    unsigned int numLocalParticles = bunch->getLocalNum();
+
+    bunch->createWithID(particle.IDincol);
+
+    if (!pdead) {
+        bunch->Bin[numLocalParticles] = 1;
+    } else {
+        bunch->Bin[numLocalParticles] = -1;
+    }
+
+    bunch->R[numLocalParticles]  = particle.Rincol;
+    bunch->P[numLocalParticles]  = particle.Pincol;
+    bunch->Q[numLocalParticles]  = particle.Qincol;
+    bunch->M[numLocalParticles]  = particle.Mincol;
+    bunch->Bf[numLocalParticles] = 0.0;
+    bunch->Ef[numLocalParticles] = 0.0;
+    bunch->dt[numLocalParticles] = dT_m;
+}
+
 
 void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
                                       const std::pair<Vector_t, double>& boundingSphere)
@@ -546,19 +562,27 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
         if ((bunch->Bin[i] == -1 || bunch->Bin[i] == 1) &&
             hitTester_m->checkHit(bunch->R[i]))
         {
-            // adjust the time step for those particles that enter the material
-            // such that it corresponds to the time needed to reach the current
-            // location form the edge of the material. Only use this time step
-            // for the computation of the interaction with the material, not for
-            // the integration of the particles. This will ensure that the momenta
-            // of all particles are reduced by approximately the same amount in
-            // computeEnergyLoss.
-            double betaz = bunch->P[i](2) / Util::getGamma(bunch->P[i]);
-            double stepWidth = betaz * Physics::c * bunch->dt[i];
-            double tau = bunch->R[i](2) / stepWidth;
+            double tau = 1.0;
+            if (OpalData::getInstance()->isInOPALTMode()) {
+                // The z-coordinate is only Opal-T mode the longitudinal coordinate and
+                // the case when elements with ScatteringPhysics solver are closer than one
+                // time step needs to be handled, which isn't done yet in Opal-cycl.
 
-            PAssert_LE(tau, 1.0);
-            PAssert_GE(tau, 0.0);
+                // Adjust the time step for those particles that enter the material
+                // such that it corresponds to the time needed to reach the current
+                // location form the edge of the material. Only use this time step
+                // for the computation of the interaction with the material, not for
+                // the integration of the particles. This will ensure that the momenta
+                // of all particles are reduced by approximately the same amount in
+                // computeEnergyLoss.
+
+                double betaz = bunch->P[i](2) / Util::getGamma(bunch->P[i]);
+                double stepWidth = betaz * Physics::c * bunch->dt[i];
+                tau = bunch->R[i](2) / stepWidth;
+
+                PAssert_LE(tau, 1.0);
+                PAssert_GE(tau, 0.0);
+            }
 
             PART x;
             x.localID      = i;
@@ -574,8 +598,8 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
             x.label        = 0;            // alive in matter
 
             locParts_m.push_back(x);
-            ne++;
-            bunchToMatStat_m++;
+            ++ne;
+            ++bunchToMatStat_m;
 
             partsToDel.insert(i);
         }
@@ -592,7 +616,7 @@ void ScatteringPhysics::copyFromBunch(PartBunchBase<double, 3>* bunch,
     IpplTimings::stopTimer(DegraderDestroyTimer_m);
 }
 
-void ScatteringPhysics::print(Inform &msg) {
+void ScatteringPhysics::print(Inform& msg) {
     Inform::FmtFlags_t ff = msg.flags();
     if (totalPartsInMat_m > 0 ||
         bunchToMatStat_m  > 0 ||
@@ -665,7 +689,7 @@ void ScatteringPhysics::push() {
 // end of the material. Only use this time step for the computation
 // of the interaction with the material, not for the integration of
 // the particles. This will ensure that the momenta of all particles
-// are reduced by  approcimately the same amount in computeEnergyLoss.
+// are reduced by approximately the same amount in computeEnergyLoss.
 void ScatteringPhysics::setTimeStepForLeavingParticles() {
     const double elementLength = element_ref_m->getElementLength();
 
@@ -676,8 +700,10 @@ void ScatteringPhysics::setTimeStepForLeavingParticles() {
         double gamma = Util::getGamma(P);
         Vector_t stepLength = dT_m * Physics::c * P / gamma;
 
-        if (R(2) < elementLength &&
-            R(2) + stepLength(2) > elementLength) {
+        if ( R(2) < elementLength &&
+             R(2) + stepLength(2) > elementLength &&
+             OpalData::getInstance()->isInOPALTMode() ) {
+
             // particle is likely to leave material
             double distance = elementLength - R(2);
             double tau = distance / stepLength(2);
@@ -696,7 +722,6 @@ void ScatteringPhysics::resetTimeStep() {
         dt = dT_m;
     }
 }
-
 
 void ScatteringPhysics::gatherStatistics() {
 

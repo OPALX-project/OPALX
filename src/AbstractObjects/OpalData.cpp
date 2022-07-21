@@ -607,6 +607,17 @@ void OpalData::printNames(std::ostream &os, const std::string &pattern) {
     os << std::endl;
 }
 
+std::vector<std::string> OpalData::getAllNames() const {
+    std::vector<std::string> name_list;
+    for (ObjectDir::const_iterator index = p->mainDirectory.begin();
+        index != p->mainDirectory.end(); ++index) {
+        const std::string name = (*index).first;
+        name_list.push_back(name);
+    }
+    return name_list;
+}
+
+
 void OpalData::registerTable(Table *table) {
     p->tableDirectory.push_back(table);
 }

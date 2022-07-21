@@ -66,12 +66,14 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
+#include "Elements/OpalAsymmetricEnge.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCCollimator.h"
 #include "Elements/OpalCyclotron.h"
 #include "Elements/OpalDegrader.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalECollimator.h"
+#include "Elements/OpalEnge.h"
 #include "Elements/OpalFlexibleCollimator.h"
 #include "Elements/OpalHKicker.h"
 #include "Elements/OpalKicker.h"
@@ -188,6 +190,7 @@ namespace {
 
     void makeElements() {
         OpalData *opal = OpalData::getInstance();
+        opal->create(new OpalAsymmetricEnge());
         opal->create(new OpalCavity());
         opal->create(new OpalCCollimator());
         opal->create(new OpalCyclotron());

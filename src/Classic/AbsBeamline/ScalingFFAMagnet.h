@@ -34,6 +34,14 @@
 #define ABSBEAMLINE_ScalingFFAMagnet_H
 
 /** Sector bending magnet with an FFA-style field index and spiral end shape
+ * 
+ *  Note about placement and end field; in order to get a user-defined end field
+ *  shape, we do a lookup from user defined end fields, which is pulled from
+ *  the EndFieldModel object and done by setupEndField(). Because end fields tie
+ *  into the geometry, this has to be done before placements; but it also needs
+ *  to be done after parsing has finished. setupEndField() is called by e.g.
+ *  ParallelCyclotronTracker just before the object is handed to OpalRing for
+ *  placement.
  */
 
 class ScalingFFAMagnet : public Component {
@@ -48,7 +56,7 @@ class ScalingFFAMagnet : public Component {
     ~ScalingFFAMagnet();
 
     /** Inheritable copy constructor */
-    ElementBase* clone() const override;
+    ScalingFFAMagnet* clone() const override;
 
     /** Calculate the field at the position of the ith particle
      *
@@ -233,6 +241,25 @@ class ScalingFFAMagnet : public Component {
     /** Return the calculated df coefficients */
     std::vector<std::vector<double> > getDfCoefficients() {return dfCoefficients_m;}
 
+    /** setupEndField does some end field and geometry set-up
+     * 
+     *  This is normally called just before the magnet is placed; can only set
+     *  up the end field after everything has been parsed from input (otherwise
+     *  OPAL may not know about an end field model).
+     *
+     *  sets PhiStart, PhiEnd, AzimuthalExtent and the end field model itself.
+     */
+    void setupEndField();
+
+    /** Set the end field name.
+     * 
+     *  Called during parsing of the input file; OPAL looks for the endFieldName
+     *  when setupEndField() is called.
+     */
+    void setEndFieldName(std::string name) {endFieldName_m = name;}
+
+    /** Return the end field name. */
+    std::string getEndFieldName() const {return endFieldName_m;}
   private:
     /** Calculate the df coefficients, ready for field generation
      *
@@ -261,6 +288,7 @@ class ScalingFFAMagnet : public Component {
     double verticalExtent_m = 0.; // maximum allowed distance from the midplane
     Vector_t centre_m;
     endfieldmodel::EndFieldModel* endField_m = nullptr;
+    std::string endFieldName_m = ""; 
     const double fp_tolerance = 1e-18;
     std::vector<std::vector<double> > dfCoefficients_m;
 };

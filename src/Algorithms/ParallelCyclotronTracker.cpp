@@ -899,7 +899,9 @@ void ParallelCyclotronTracker::visitSBend3D(const SBend3D& bend) {
 void ParallelCyclotronTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& bend) {
     *gmsg << "Adding ScalingFFAMagnet" << endl;
     if (opalRing_m != nullptr) {
-        opalRing_m->appendElement(bend);
+        ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required
+        newBend->setupEndField();
+        opalRing_m->appendElement(*newBend);
     } else {
         throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
                             "Need to define a RINGDEFINITION to use ScalingFFAMagnet element");
@@ -2272,6 +2274,9 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
             itsBunch_m->Bin[i] = 0;
         }
 
+        // Set time step per particle
+        setTimeStep();
+
         // Backup initial distribution if multi bunch mode
         if ((initialTotalNum_m > 2) && isMultiBunch() && mbHandler_m->isForceMode()) {
             mbHandler_m->saveBunch(itsBunch_m);
@@ -2373,6 +2378,12 @@ void ParallelCyclotronTracker::initDistInGlobalFrame() {
     *gmsg << *itsBunch_m << endl;
 
     //itsBunch_m->R *= Vector_t(1000.0); // m --> mm
+}
+
+void ParallelCyclotronTracker::setTimeStep() {
+    for (size_t i = 0; i < initialLocalNum_m; ++i) {
+        itsBunch_m->dt[i] = itsBunch_m->getdT();
+    }
 }
 
 void ParallelCyclotronTracker::checkFileMomentum() {
@@ -3410,6 +3421,20 @@ bool ParallelCyclotronTracker::computeExternalFields_m(const size_t& i, const do
 
     return outOfBound;
 }
+
+bool ParallelCyclotronTracker::computeExternalFields_m(const Vector_t& R, const Vector_t& P, const double& t,
+                                                       Vector_t& Efield, Vector_t& Bfield) {
+
+    beamline_list::iterator sindex = FieldDimensions.begin();
+    // Flag whether a particle is out of field
+    bool outOfBound = (((*sindex)->second).second)->apply(R, P, t, Efield, Bfield);
+
+    Bfield *= Units::kG2T;
+    Efield *= Units::kV2V / Units::mm2m;
+
+    return outOfBound;
+}
+
 
 
 void ParallelCyclotronTracker::injectBunch(bool& flagTransition) {

@@ -130,7 +130,9 @@ void BeamStrippingPhysics::apply(PartBunchBase<double, 3>* bunch,
 
         gatherStatistics();
 
-        bunch->destroyT();
+        if (OpalData::getInstance()->isInOPALTMode()) {
+            bunch->destroyT();
+        }
     }
 }
 
