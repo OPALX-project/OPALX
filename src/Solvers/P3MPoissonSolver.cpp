@@ -73,7 +73,11 @@ struct ApplyField {
             //compute force
             Vector_t Fij;
 
-            double xi = r/alpha; 
+            //Differentiate the PP Green's function 
+            //(1-erf(\alpha r))/r (for standard)
+            //(1/(2r)) * (\xi^3 - 3\xi +2) (for integrated) where 
+            //xi = r/interaction_radius and multiply it with r unit vector
+            double xi = r/alpha;
             Fij = ((double)isIntGreen * (-ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r 
                    + 3*(1 - std::pow(xi,2))/alpha)))
                    + ((double)(1.0 - isIntGreen) 
@@ -207,7 +211,8 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
     if (interaction_radius_m>0){
         PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
         std::size_t size = tmpBunch.getLocalNum()+tmpBunch.getGhostNum();
-        
+       
+        //Take the particles to the boosted frame
         for(std::size_t i = 0;i<size;++i)
         {
             tmpBunch.R[i](2) = tmpBunch.R[i](2) * gammaz;
@@ -215,6 +220,8 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         
         HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
         if(integratedGreens_m) {
+            //Note: alpha_m is not used for the integrated Green's function
+            //approach
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
                          ApplyField<double>(interaction_radius_m,ke_m,integratedGreens_m));
         }
@@ -222,8 +229,8 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
             HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
                          ApplyField<double>(alpha_m,ke_m,integratedGreens_m));
         }
-
         
+        //Bring the particles to the lab frame
         for(std::size_t i = 0;i<size;++i)
         {
             tmpBunch.R[i](2) = tmpBunch.R[i](2) / gammaz;
@@ -248,13 +255,12 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     hr_m = hr;
 
     // FFT double-sized charge density
-    // we do a backward transformation so that we dont have to account for the normalization factor
+    // we do a backward transformation so that we dont have to 
+    // account for the normalization factor
     // that is used in the forward transformation of the IPPL FFT
     fft_m->transform(-1, rho2_m, rho2tr_m);
 
     // must be called if the mesh size has changed
-    // have to check if we can do G with h = (1,1,1)
-    // and rescale later
     IpplTimings::startTimer(GreensFunctionTimer_m);
     if(integratedGreens_m)
         integratedGreensFunction();
@@ -296,15 +302,31 @@ void P3MPoissonSolver::greensFunction() {
 
     Vector_t hrsq(hr_m * hr_m);
     P3MGreensFunction<3>::calculate(hrsq, rho2_m, grnIField_m, alpha_m);
-    // Green's function calculation complete at this point.
-    // The next step is to FFT it.
-    // FFT of Green's function
 
-    // we do a backward transformation so that we dont have to account for the normalization factor
+    // we do a backward transformation so that we dont have to account 
+    // for the normalization factor
     // that is used in the forward transformation of the IPPL FFT
     fft_m->transform(-1, rho2_m, grntr_m);
 }
 
+/** If the beam has a longitudinal size >> transverse size the
+ * direct Green function at each mesh point is not efficient
+ * (needs a lot of mesh points along the transverse size to
+ * get a good resolution)
+ *
+ * If we assume the charge density function is uniform within 
+ * each cell then we can integrate the Green's function within
+ * a cell and use it to improve the accuracy.
+ *
+ * We do not use the standard P3M Green's function
+ * erf(\alpha r)/r and do the integration as no closed form
+ * expression is available. Instead we use the zeroth order
+ * truncated polynomial from "Hünenberger, P. H. (2000). 
+ * The Journal of Chemical Physics, 113(23), 10464-10476" 
+ * Table I in the appendix. The integration of higher-order 
+ * polynomials gives complex Green's functions and hence 
+ * has not been implemented yet.
+ */
 void P3MPoissonSolver::integratedGreensFunction() {
     /**
      * This integral can be calculated analytically in a closed from:
