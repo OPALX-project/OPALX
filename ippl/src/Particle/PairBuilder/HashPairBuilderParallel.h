@@ -39,14 +39,14 @@ public:
         const std::size_t END = std::numeric_limits<std::size_t>::max();
         std::size_t size = particles.getLocalNum()+particles.getGhostNum();
 
-        NDIndex<3> globDomain = particles.getFieldLayout().getDomain();
         NDIndex<3> locDomain = particles.getFieldLayout().getLocalNDIndex();
 
         rmin_m = particles.getMesh().get_origin();
+        //To move to the boosted frame
         rmin_m[2] *= gammaz;
         hr_m[2] *= gammaz;
 
-        ///////// compute local chaining mesh
+        //compute local chaining mesh
         Vektor<double,3> extend_l_local, extend_r_local, domain_width_local;
         for (unsigned i=0; i<3; ++i) {
             extend_l_local[i] = locDomain[i].first()*hr_m[i]+rmin_m[i];
