@@ -25,3 +25,20 @@ TEST(AsymmetricEngeTest, FunctionTest) {
     }
 
 }
+
+TEST(AsymmetricEngeTest, DerivativeTest) {
+    endfieldmodel::AsymmetricEnge enge({0.0, 1.0}, 10.0, 3.0, 
+                                       {0.0, 4.0}, 11.0, 6.0);
+    double ds = 0.01;
+    for (int n = 1; n < 5; ++n) {
+        for (double s = -20.0; s < 20.0; s += 1.0) {
+            double fplus = enge.function(s+ds, n-1);
+            double fminus = enge.function(s-ds, n-1);
+            double test = enge.function(s, n);
+            double ref = (fplus-fminus)/2/ds;
+            double delta = abs(ref*1e-3);
+            EXPECT_NEAR(test, ref, delta) << s << " " << test << " " << ref;
+        }
+    }
+}
+
