@@ -474,7 +474,6 @@ inline std::ostream& operator<<(std::ostream& out, const Tenzor<T,D>& rhs)
 // include header files for SymTenzor and AntiSymTenzor in order
 // to define constructors for Tenzor using these types
 #include "AppTypes/SymTenzor.h"
-#include "AppTypes/AntiSymTenzor.h"
 
 template <class T, unsigned D>
 Tenzor<T,D>::Tenzor(const SymTenzor<T,D>& rhs) {
