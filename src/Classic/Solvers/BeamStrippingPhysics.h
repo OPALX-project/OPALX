@@ -90,7 +90,7 @@ private:
     bool computeEnergyLoss(PartBunchBase<double, 3>* /*bunch*/,
                            Vector_t& /*P*/,
                            const double /*deltat*/,
-                           bool /*includeFluctuations*/) const {
+                           bool /*includeFluctuations*/) const override {
         return false;
     }
 
