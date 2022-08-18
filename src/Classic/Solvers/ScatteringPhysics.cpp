@@ -82,7 +82,6 @@ namespace {
         FlexibleCollimator* col_m;
     };
 
-    constexpr long double operator"" _eV(long double value) { return value * 1e-3; }
     constexpr long double operator"" _keV(long double value) { return value; }
     constexpr long double operator"" _MeV(long double value) { return value * 1e3; }
     constexpr long double operator"" _GeV(long double value) { return value * 1e6; }
