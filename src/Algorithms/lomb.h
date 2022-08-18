@@ -27,8 +27,6 @@ public:
 class LOMB_class {
 private:
 
-    double TWOPID;
-
 public:
 
     explicit LOMB_class(int);  // constructor
