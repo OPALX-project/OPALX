@@ -142,8 +142,19 @@ void AsymmetricEnge::setX0End(double x0) {
 }
 
 double AsymmetricEnge::function(double x, int n) const {
-    return engeStart_m->getEnge(x-engeStart_m->getX0(), n)+
-           engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n)-1;
+    // f(x) = E(x-x0) + E(-x-x0) - 1
+    // f^{(2n)} = E^{(2n)}(x-x0) + E^{(2n)}(-x-x0)
+    // f^{(2n+1)} = E^{(2n)}(x-x0) - E^{(2n)}(-x-x0)
+    if (n == 0) {
+        return engeStart_m->getEnge(x-engeStart_m->getX0(), n)+
+               engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n)-1;
+    } else if (n%2) {
+        return engeStart_m->getEnge(x-engeStart_m->getX0(), n)-
+               engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n);
+    } else {
+        return engeStart_m->getEnge(x-engeStart_m->getX0(), n)+
+               engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n);
+    }
 }
 
 AsymmetricEnge* AsymmetricEnge::clone() const {
