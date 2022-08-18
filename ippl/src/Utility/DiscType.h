@@ -21,7 +21,6 @@
 #include "AppTypes/Vektor.h"
 #include "AppTypes/Tenzor.h"
 #include "AppTypes/SymTenzor.h"
-#include "AppTypes/AntiSymTenzor.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // a base class for all DiscType's, that provides common routines to
