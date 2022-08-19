@@ -80,7 +80,7 @@ OpalWake::OpalWake():
     itsAttr[FILTERS] = Attributes::makeStringArray
         ("FILTERS", "List of filters to apply on line density");
 
-    itsAttr[FNAME] = Attributes::makeStringArray
+    itsAttr[FNAME] = Attributes::makeString
         ("FNAME", "Filename of the wakefield file");
 
     OpalWake* defWake = clone("UNNAMED_WAKE");
