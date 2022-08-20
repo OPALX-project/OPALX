@@ -48,7 +48,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       reference(ref),
       unit_state_(units),
       stateOfLastBoundP_(unitless),
-      moments_m(),
       dt_m(0.0),
       t_m(0.0),
       spos_m(0.0),
@@ -1977,7 +1976,7 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() const 
         rpmean((2*i)+1)= get_pmean()(i);
     }
 
-    FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix;// = moments_m / N;
+    FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix;
     for (unsigned int i = 0; i < 2 * Dim; i++) {
         for (unsigned int j = 0; j <= i; j++) {
             sigmaMatrix[i][j] = momentsComputer_m.getSigma6x6()[i][j] -  rpmean(i) * rpmean(j);

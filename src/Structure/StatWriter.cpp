@@ -150,26 +150,26 @@ void StatWriter::fillHeader(const losses_t &losses) {
     }
     if (Options::dumpBeamMatrix) {
         columns_m.addColumn("S11","double","m**2","element 1,1 of 6D beam matrix");
-        columns_m.addColumn("S12","double","m**2","element 1,2 of 6D beam matrix");
+        columns_m.addColumn("S12","double","m","element 1,2 of 6D beam matrix");
         columns_m.addColumn("S13","double","m**2","element 1,3 of 6D beam matrix");
-        columns_m.addColumn("S14","double","m**2","element 1,4 of 6D beam matrix");
-        columns_m.addColumn("S15","double","m**2","element 1,5 of 6D beam matrix");
-        columns_m.addColumn("S16","double","m**2","element 1,6 of 6D beam matrix");
-        columns_m.addColumn("S22","double","m**2","element 2,2 of 6D beam matrix");
-        columns_m.addColumn("S23","double","m**2","element 2,3 of 6D beam matrix");
-        columns_m.addColumn("S24","double","m**2","element 2,4 of 6D beam matrix");
-        columns_m.addColumn("S25","double","m**2","element 2,5 of 6D beam matrix");
-        columns_m.addColumn("S26","double","m**2","element 2,6 of 6D beam matrix");
+        columns_m.addColumn("S14","double","m","element 1,4 of 6D beam matrix");
+        columns_m.addColumn("S15","double","m*2","element 1,5 of 6D beam matrix");
+        columns_m.addColumn("S16","double","m","element 1,6 of 6D beam matrix");
+        columns_m.addColumn("S22","double","1","element 2,2 of 6D beam matrix");
+        columns_m.addColumn("S23","double","m","element 2,3 of 6D beam matrix");
+        columns_m.addColumn("S24","double","1","element 2,4 of 6D beam matrix");
+        columns_m.addColumn("S25","double","m","element 2,5 of 6D beam matrix");
+        columns_m.addColumn("S26","double","1","element 2,6 of 6D beam matrix");
         columns_m.addColumn("S33","double","m**2","element 3,3 of 6D beam matrix");
-        columns_m.addColumn("S34","double","m**2","element 3,4 of 6D beam matrix");
-        columns_m.addColumn("S35","double","m**2","element 3,5 of 6D beam matrix");
-        columns_m.addColumn("S36","double","m**2","element 3,6 of 6D beam matrix");
-        columns_m.addColumn("S44","double","m**2","element 4,4 of 6D beam matrix");
-        columns_m.addColumn("S45","double","m**2","element 4,5 of 6D beam matrix");
-        columns_m.addColumn("S46","double","m**2","element 4,6 of 6D beam matrix");
+        columns_m.addColumn("S34","double","m","element 3,4 of 6D beam matrix");
+        columns_m.addColumn("S35","double","m*2","element 3,5 of 6D beam matrix");
+        columns_m.addColumn("S36","double","m","element 3,6 of 6D beam matrix");
+        columns_m.addColumn("S44","double","1","element 4,4 of 6D beam matrix");
+        columns_m.addColumn("S45","double","m","element 4,5 of 6D beam matrix");
+        columns_m.addColumn("S46","double","1","element 4,6 of 6D beam matrix");
         columns_m.addColumn("S55","double","m**2","element 5,5 of 6D beam matrix");
-        columns_m.addColumn("S56","double","m**2","element 5,6 of 6D beam matrix");
-        columns_m.addColumn("S66","double","m**2","element 6,6 of 6D beam matrix");
+        columns_m.addColumn("S56","double","m","element 5,6 of 6D beam matrix");
+        columns_m.addColumn("S66","double","1","element 6,6 of 6D beam matrix");
     }
     if (OpalData::getInstance()->isInOPALCyclMode() &&
         Ippl::getNodes() == 1) {
