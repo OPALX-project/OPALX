@@ -631,9 +631,6 @@ protected:
     /// holds the centroid of the beam
     double centroid_m[2 * Dim];
 
-    /// 6x6 matrix of the moments of the beam
-    FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
-
     /// holds the timestep in seconds
     double dt_m;
     /// holds the actual time of the integration
