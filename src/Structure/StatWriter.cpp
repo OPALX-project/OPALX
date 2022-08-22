@@ -153,7 +153,7 @@ void StatWriter::fillHeader(const losses_t &losses) {
         columns_m.addColumn("S12","double","m","element 1,2 of 6D beam matrix");
         columns_m.addColumn("S13","double","m**2","element 1,3 of 6D beam matrix");
         columns_m.addColumn("S14","double","m","element 1,4 of 6D beam matrix");
-        columns_m.addColumn("S15","double","m*2","element 1,5 of 6D beam matrix");
+        columns_m.addColumn("S15","double","m**2","element 1,5 of 6D beam matrix");
         columns_m.addColumn("S16","double","m","element 1,6 of 6D beam matrix");
         columns_m.addColumn("S22","double","1","element 2,2 of 6D beam matrix");
         columns_m.addColumn("S23","double","m","element 2,3 of 6D beam matrix");
@@ -162,7 +162,7 @@ void StatWriter::fillHeader(const losses_t &losses) {
         columns_m.addColumn("S26","double","1","element 2,6 of 6D beam matrix");
         columns_m.addColumn("S33","double","m**2","element 3,3 of 6D beam matrix");
         columns_m.addColumn("S34","double","m","element 3,4 of 6D beam matrix");
-        columns_m.addColumn("S35","double","m*2","element 3,5 of 6D beam matrix");
+        columns_m.addColumn("S35","double","m**2","element 3,5 of 6D beam matrix");
         columns_m.addColumn("S36","double","m","element 3,6 of 6D beam matrix");
         columns_m.addColumn("S44","double","1","element 4,4 of 6D beam matrix");
         columns_m.addColumn("S45","double","m","element 4,5 of 6D beam matrix");
