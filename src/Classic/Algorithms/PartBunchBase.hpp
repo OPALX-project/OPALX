@@ -1979,7 +1979,7 @@ FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() const 
     FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix;
     for (unsigned int i = 0; i < 2 * Dim; i++) {
         for (unsigned int j = 0; j <= i; j++) {
-            sigmaMatrix[i][j] = momentsComputer_m.getSigma6x6()[i][j] -  rpmean(i) * rpmean(j);
+            sigmaMatrix[i][j] = momentsComputer_m.getMoments6x6()[i][j] -  rpmean(i) * rpmean(j);
             sigmaMatrix[j][i] = sigmaMatrix[i][j];
         }
     }
