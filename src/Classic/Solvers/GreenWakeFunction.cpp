@@ -497,7 +497,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     std::vector<double> dist(Np);
 
     // read the wakefunction
-    for (int i = 0; i < Np-1; i ++) {
+    for (int i = 0; i < Np; i ++) {
         if (!fs.eof()) {
             fs >> dist[i] >> wake[i]; // >> dummy;
         }
