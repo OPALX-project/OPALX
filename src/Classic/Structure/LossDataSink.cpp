@@ -215,7 +215,6 @@ LossDataSink::~LossDataSink() noexcept(false) {
         CLOSE_FILE ();
         H5file_m = 0;
     }
-    Ippl::Comm->barrier();
 }
 
 void LossDataSink::openH5(h5_int32_t mode) {
