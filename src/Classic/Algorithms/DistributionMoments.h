@@ -65,6 +65,7 @@ public:
     double getDDx() const;
     double getDy() const;
     double getDDy() const;
+    FMatrix<double, 6, 6> getMoments6x6() const;
     double getTotalCharge() const;
     double getTotalMass() const;
     double getTotalNumParticles() const;
@@ -224,6 +225,12 @@ inline
 double DistributionMoments::getDDy() const
 {
     return moments_m(3, 5);
+}
+
+inline 
+FMatrix<double, 6, 6>  DistributionMoments::getMoments6x6() const
+{
+    return moments_m;
 }
 
 inline
