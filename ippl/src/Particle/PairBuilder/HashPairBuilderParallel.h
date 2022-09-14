@@ -38,7 +38,7 @@ public:
     template<class Pred, class OP>
     void forEach(const Pred& pred_r, const OP& op_r)
     {
-        const size_t END = numeric_limits<size_t>::max();
+        constexpr size_t END = numeric_limits<size_t>::max();
         size_t size = particles_mr.getLocalNum()+particles_mr.getGhostNum();
 
         NDIndex<3> locDomain = particles_mr.getFieldLayout().getLocalNDIndex();
