@@ -21,16 +21,16 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include "Solvers/P3MPoissonSolver.h"
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
+#include <cmath>
+#include <fstream>
 #include "Particle/BoxParticleCachingPolicy.h"
 #include "Particle/PairBuilder/HashPairBuilderParallel.h"
 #include "Particle/PairBuilder/PairConditions.h"
-#include "Structure/DataSink.h"
-#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
-#include <fstream>
-#include <cmath>
+#include "Solvers/P3MPoissonSolver.h"
+#include "Structure/DataSink.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
