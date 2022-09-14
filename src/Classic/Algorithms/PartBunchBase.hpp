@@ -24,6 +24,7 @@
 #include "Algorithms/PartData.h"
 #include "Distribution/Distribution.h"
 #include "Physics/ParticleProperties.h"
+#include "Physics/Physics.h"
 #include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/OpalException.h"
