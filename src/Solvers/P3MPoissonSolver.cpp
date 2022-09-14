@@ -31,7 +31,7 @@
 #include "Physics/Physics.h"
 #include "Solvers/P3MPoissonSolver.h"
 #include "Structure/DataSink.h"
-
+#include "Utilities/OpalException.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function
