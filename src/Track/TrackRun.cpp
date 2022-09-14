@@ -582,20 +582,20 @@ void TrackRun::setupFieldsolver() {
     fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
 
     if (fs->getFieldSolverType() != FieldSolverType::NONE) {
-        //size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
-        //Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
-        //size_t numParticles = beam->getNumberOfParticles();
+        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
+        Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+        size_t numParticles = beam->getNumberOfParticles();
 
-        //if (!opal->inRestartRun() && numParticles < numGridPoints
-        //    && fs->getFieldSolverType() != FieldSolverType::SAAMG // in SPIRAL/SAAMG we're meshing the whole domain -DW
-        //    && fs->getFieldSolverType() != FieldSolverType::P3M //In P3M with one-one mapping grid points can be less than particles
-        //    && !Options::amr)
-        //{
-        //    throw OpalException("TrackRun::setupFieldsolver()",
-        //                        "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
-        //                        "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
-        //                        "Please increase the number of particles or reduce the size of the mesh.\n");
-        //}
+        if (!opal->inRestartRun() && numParticles < numGridPoints
+            && fs->getFieldSolverType() != FieldSolverType::SAAMG // in SPIRAL/SAAMG we're meshing the whole domain -DW
+            && fs->getFieldSolverType() != FieldSolverType::P3M //In P3M with one-one mapping grid points can be less than particles
+            && !Options::amr)
+        {
+            throw OpalException("TrackRun::setupFieldsolver()",
+                                "The number of simulation particles (" + std::to_string(numParticles) + ") \n" +
+                                "is smaller than the number of gridpoints (" + std::to_string(numGridPoints) + ").\n" +
+                                "Please increase the number of particles or reduce the size of the mesh.\n");
+        }
 
         OpalData::getInstance()->addProblemCharacteristicValue("MX", fs->getMX());
         OpalData::getInstance()->addProblemCharacteristicValue("MY", fs->getMY());
