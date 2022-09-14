@@ -54,21 +54,17 @@ public:
             extend_l_local[i] = locDomain[i].first()*hr_m[i]+rmin_m[i];
             extend_r_local[i] = rmin_m[i]+(locDomain[i].last()+1)*hr_m[i];
             domain_width_local[i] = extend_r_local[i]-extend_l_local[i];
-        }
-
-        //make sure that the chaining mesh covers the whole domain and has a gridwidth > r_cut
-        buckets_per_dim[0]=floor(domain_width_local[0]/pred.getRange(0));
-        buckets_per_dim[1]=floor(domain_width_local[1]/pred.getRange(1));
-        buckets_per_dim[2]=floor(domain_width_local[2]/pred.getRange(2));
-
-        for (unsigned dim = 0; dim<3; ++dim) {
-            if(buckets_per_dim[dim] == 0)
-                buckets_per_dim[dim] = 1;
-        }
         
-        for (unsigned dim = 0; dim<3; ++dim) {
-            h_chaining[dim] = domain_width_local[dim]/buckets_per_dim[dim];
+            //make sure that the chaining mesh covers the whole domain 
+            //and has a gridwidth > r_cut
+            buckets_per_dim[i]=floor(domain_width_local[i]/pred.getRange(i));
+        
+            if(buckets_per_dim[i] == 0)
+                buckets_per_dim[i] = 1;
+
+            h_chaining[i] = domain_width_local[i]/buckets_per_dim[i];
         }
+
 
         //extend the chaining mesh by one layer of chaining cells in each dimension
         rmin_m = extend_l_local-h_chaining;
