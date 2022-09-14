@@ -74,12 +74,12 @@ public:
         size_t Nbucket = bucketsPerDim_m[0]*bucketsPerDim_m[1]*bucketsPerDim_m[2];
 
         //index of first particle in this bucket
-        auto buckets = make_unique(size_t[])(Nbucket);
+        vector<size_t> buckets(Nbucket);
         //index of next particle in this bucket. END indicates last particle of bucket
-        auto next = make_unique(size_t[])(size);
+        vector<size_t> next(size);
         
-        fill(buckets, buckets+Nbucket, END);
-        fill(next, next+size, END);
+        fill(buckets.begin(), buckets.end(), END);
+        fill(next.begin(), next.end(), END);
 
         //in 3D we interact with 14 neighboring cells (including self cell interaction)
         unsigned neigh = 14;
