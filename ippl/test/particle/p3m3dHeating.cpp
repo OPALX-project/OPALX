@@ -695,13 +695,13 @@ int main(int argc, char *argv[]){
     msg<<"Total charge Q      = " << P->total_charge << endl;
 
     ////////////////////////////////////////////////////////////////////////////////////////////
-    //std::string fname;
-    //fname = "data/particleData";
-    //fname += ".h5part";
+    std::string fname;
+    fname = "data/particleData";
+    fname += ".h5part";
 
-    //P->openH5(fname);
-    //dumpH5partVelocity(P,0);
-    //unsigned printid=1;
+    P->openH5(fname);
+    dumpH5partVelocity(P,0);
+    unsigned printid=1;
 
     msg << "Starting iterations ..." << endl;
     //P->compute_temperature();
@@ -789,7 +789,7 @@ int main(int argc, char *argv[]){
             P->compute_temperature();
             writeTemperature(P,it+1);
 
-            //dumpH5partVelocity(P,printid++);
+            dumpH5partVelocity(P,printid++);
         }
 
         msg << "Finished iteration " << it << endl;
