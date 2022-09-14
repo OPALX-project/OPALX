@@ -23,6 +23,8 @@
 #include <set>
 #include "Message/Communicate.h"
 
+using namespace std;
+
 template<class PBase>
 class HashPairBuilderParallel
 {
@@ -36,8 +38,8 @@ public:
     template<class Pred, class OP>
     void for_each(const Pred& pred, const OP &op)
     {
-        const std::size_t END = std::numeric_limits<std::size_t>::max();
-        std::size_t size = particles.getLocalNum()+particles.getGhostNum();
+        const size_t END = numeric_limits<size_t>::max();
+        size_t size = particles.getLocalNum()+particles.getGhostNum();
 
         NDIndex<3> locDomain = particles.getFieldLayout().getLocalNDIndex();
 
@@ -73,14 +75,14 @@ public:
         rmax_m = extend_r_local+h_chaining;
         buckets_per_dim+=2;
 
-        std::size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
+        size_t Nbucket = buckets_per_dim[0]*buckets_per_dim[1]*buckets_per_dim[2];
 
         //index of first particle in this bucket
-        std::size_t *buckets = new size_t[Nbucket]; 
+        size_t *buckets = new size_t[Nbucket]; 
         //index of next particle in this bucket. END indicates last particle of bucket
-        std::size_t *next = new size_t[size]; 
-        std::fill(buckets, buckets+Nbucket, END);
-        std::fill(next, next+size, END);
+        size_t *next = new size_t[size]; 
+        fill(buckets, buckets+Nbucket, END);
+        fill(next, next+size, END);
 
         //in 3D we interact with 14 neighboring cells (including self cell interaction)
         unsigned neigh = 14;
@@ -92,15 +94,15 @@ public:
             { 1, 0, 0}, { 0, 0, 0}};
 
         //assign all particles to a bucket
-        for(std::size_t i = 0;i<size;++i)
+        for(size_t i = 0;i<size;++i)
         {
-            std::size_t bucket_id = get_bucket_id(i);
+            size_t bucket_id = get_bucket_id(i);
             if(bucket_id >= Nbucket) {
-                std::cout << "Bucket with id: " << bucket_id << " is wrong" << std::endl;
-                std::cout << "Rank: " << Ippl::myNode() << std::endl;
-                std::cout << "Buckets: " << buckets_per_dim << std::endl;
-                std::cout << "Particle coords: " << particles.R[i] << std::endl; 
-                std::cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << std::endl;
+                cout << "Bucket with id: " << bucket_id << " is wrong" << endl;
+                cout << "Rank: " << Ippl::myNode() << endl;
+                cout << "Buckets: " << buckets_per_dim << endl;
+                cout << "Particle coords: " << particles.R[i] << endl; 
+                cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << endl;
             }
             next[i] = buckets[bucket_id];
             buckets[bucket_id] = i;
@@ -129,8 +131,8 @@ public:
 
                             //i is index of particle considered in active chaining cell, 
                             //j is index of neighbor particle considered
-                            std::size_t i = buckets[bucket_id_self];
-                            std::size_t j;
+                            size_t i = buckets[bucket_id_self];
+                            size_t j;
 
                             //loop over all particles in self cell
                             //self offset avoids double counting in self cell
@@ -170,7 +172,7 @@ public:
 private:
 
     //returns the bucket id of particle i
-    std::size_t get_bucket_id(std::size_t i)
+    size_t get_bucket_id(size_t i)
     {
 
         Vektor<int,3> loc;
@@ -187,7 +189,7 @@ private:
             loc[d] = ((int)isInside * indInside) + ((int)isOutsideMin * 0) + ((int)isOutsideMax * (buckets_per_dim[d]-1));
         }
         
-        std::size_t bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
+        size_t bucket_id = loc[2]*buckets_per_dim[1]*buckets_per_dim[0]+loc[1]*buckets_per_dim[0]+loc[0];
         return bucket_id;
     }
 
