@@ -222,11 +222,11 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         if(integratedGreens_m) {
             //Note: alpha_m is not used for the integrated Green's function
             //approach
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
+            HPB.forEach(RadiusCondition<double, Dim>(interaction_radius_m), 
                          ApplyField<double>(interaction_radius_m,ke_m,integratedGreens_m));
         }
         else {
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius_m), 
+            HPB.forEach(RadiusCondition<double, Dim>(interaction_radius_m), 
                          ApplyField<double>(alpha_m,ke_m,integratedGreens_m));
         }
         
