@@ -33,7 +33,6 @@
 #include <cmath>
 
 
-extern Inform *gmsg;
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function
 // calculation.  This should be specialized for each dimension
