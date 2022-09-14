@@ -49,11 +49,11 @@ public:
         hr_m[2] *= gammaz_m;
 
         //compute local chaining mesh
-        Vektor<double,3> extendLLocal, extendRLocal, domainWidthLocal;
+        Vektor<double,3> extentLLocal, extentRLocal, domainWidthLocal;
         for (unsigned i=0; i<3; ++i) {
-            extendLLocal[i] = locDomain[i].first()*hr_m[i]+rmin_m[i];
-            extendRLocal[i] = rmin_m[i]+(locDomain[i].last()+1)*hr_m[i];
-            domainWidthLocal[i] = extendRLocal[i]-extendLLocal[i];
+            extentLLocal[i] = locDomain[i].first()*hr_m[i]+rmin_m[i];
+            extentRLocal[i] = rmin_m[i]+(locDomain[i].last()+1)*hr_m[i];
+            domainWidthLocal[i] = extentRLocal[i]-extentLLocal[i];
         
             //make sure that the chaining mesh covers the whole domain 
             //and has a gridwidth > r_cut
@@ -68,8 +68,8 @@ public:
 
 
         //extend the chaining mesh by one layer of chaining cells in each dimension
-        rmin_m = extendLLocal-hChaining_m;
-        rmax_m = extendRLocal+hChaining_m;
+        rmin_m = extentLLocal-hChaining_m;
+        rmax_m = extentRLocal+hChaining_m;
         bucketsPerDim_m+=2;
 
         size_t Nbucket = bucketsPerDim_m[0]*bucketsPerDim_m[1]*bucketsPerDim_m[2];
@@ -82,7 +82,9 @@ public:
         fill(buckets.begin(), buckets.end(), END);
         fill(next.begin(), next.end(), END);
 
-        //in 3D we interact with 14 neighboring cells (including self cell interaction)
+        //As per Hockney and Eastwood we use Newton's third law in the force calculation
+        //and hence out of the total 27 interactions in 3D we interact only 
+        //with 13 neighboring cells + 1 self cell interaction
         unsigned neigh = 14;
 
         int offset[14][3] = {{ 1, 1, 1}, { 0, 1, 1}, {-1, 1, 1},
