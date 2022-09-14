@@ -25,7 +25,6 @@
 
 #include "OpalParticle.h"
 #include "PartBunchBase.h"
-#include "Physics/Physics.h"
 
 #include <gsl/gsl_histogram.h>
 
