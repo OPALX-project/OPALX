@@ -36,7 +36,7 @@ public:
 	{
 		std::fill(boxDimension, boxDimension+Dim, length);
 	}
-template<class C>
+    template<class C>
 	void updateCacheInformation(
 		ParticleSpatialLayout<T, Dim, Mesh, C > &PLayout
 		)
@@ -151,7 +151,7 @@ template<class C>
 		}
 	}
 
-template<class C>
+    template<class C>
 	void updateGhostParticles(
 		IpplParticleBase< ParticleSpatialLayout<T,Dim,Mesh,C > > &PData,
 		ParticleSpatialLayout<T, Dim, Mesh, C > &/*PLayout*/
