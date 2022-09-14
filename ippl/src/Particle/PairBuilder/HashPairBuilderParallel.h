@@ -74,9 +74,10 @@ public:
         size_t Nbucket = bucketsPerDim_m[0]*bucketsPerDim_m[1]*bucketsPerDim_m[2];
 
         //index of first particle in this bucket
-        size_t *buckets = new size_t[Nbucket]; 
+        auto buckets = make_unique(size_t[])(Nbucket);
         //index of next particle in this bucket. END indicates last particle of bucket
-        size_t *next = new size_t[size]; 
+        auto next = make_unique(size_t[])(size);
+        
         fill(buckets, buckets+Nbucket, END);
         fill(next, next+size, END);
 
@@ -163,8 +164,6 @@ public:
         }
 
         
-        delete[] buckets;
-        delete[] next;
     }
 private:
 
