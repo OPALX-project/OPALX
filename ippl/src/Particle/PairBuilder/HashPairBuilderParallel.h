@@ -59,8 +59,9 @@ public:
             //and has a gridwidth > r_cut
             bucketsPerDim_m[i]=floor(domainWidthLocal[i]/pred_r.getRange(i));
         
-            if(bucketsPerDim_m[i] == 0)
+            if(bucketsPerDim_m[i] == 0) {
                 bucketsPerDim_m[i] = 1;
+            }
 
             hChaining_m[i] = domainWidthLocal[i]/bucketsPerDim_m[i];
         }
@@ -144,17 +145,20 @@ public:
                                 //loop over all particles in neighbor cell
                                 while(j != END) {
                                     if(pred_r(particles_mr.R[i], particles_mr.R[j])) {
-                                        if (i!=j)
+                                        if (i!=j) {
                                             op_r(i, j, particles_mr);
+                                        }
                                     }
                                     j = next[j];
                                 }
                                 i = next[i];
                                 //adjust selfOffset
-                                if (bucketIdSelf==bucketIdNeigh)
+                                if (bucketIdSelf==bucketIdNeigh) {
                                     selfOffset++;
-                                else
+                                }
+                                else {
                                     selfOffset=0;
+                                }
                             }
                         }
                     }
