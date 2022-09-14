@@ -18,10 +18,11 @@
 
 #include <algorithm>
 #include <array>
-#include <limits>
 #include <cmath>
-#include <set>
+#include <limits>
 #include "Message/Communicate.h"
+#include <set>
+#include "Utility/IpplException.h"
 
 using namespace std;
 
@@ -105,6 +106,8 @@ public:
                 cout << "Buckets: " << bucketsPerDim_m << endl;
                 cout << "Particle coords: " << particles_mr.R[i] << endl; 
                 cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << endl;
+                throw IpplException("HashPairBuilderParallel::forEach", 
+                            "Particle outside the local domain");
             }
             next[i] = buckets[bucketId];
             buckets[bucketId] = i;
