@@ -82,8 +82,9 @@ public:
         fill(buckets.begin(), buckets.end(), END);
         fill(next.begin(), next.end(), END);
 
-        //As per Hockney and Eastwood we use Newton's third law in the force calculation
-        //and hence out of the total 27 interactions in 3D we interact only 
+        //As per Hockney and Eastwood (section 8.4.3) we use Newton's third law 
+        //in the force calculation and hence out of the total 27 
+        //interactions in 3D we interact only 
         //with 13 neighboring cells + 1 self cell interaction
         unsigned neigh = 14;
 
