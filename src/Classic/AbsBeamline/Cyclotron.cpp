@@ -98,7 +98,7 @@ void Cyclotron::applyTrimCoil_m(const double r, const double z,
                                 const double tet_rad,
                                 double* br, double* bz) {
      for (auto trimcoil : trimcoils_m) {
-         trimcoil->applyField(r,tet_rad,z,br,bz);
+         trimcoil->applyField(r, z, tet_rad, br, bz);
      }
 }
 

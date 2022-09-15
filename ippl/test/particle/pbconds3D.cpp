@@ -33,7 +33,6 @@ typedef ParticleSpatialLayout<Real,Dim> playout_t;
 int main(int argc, char *argv[])
 {
 
-  unsigned int i, j;
   Ippl ippl(argc, argv);
   Inform testmsg(argv[0]);
 
@@ -59,6 +58,8 @@ int main(int argc, char *argv[])
 
   testmsg << "Start of initialization ..." << endl;
   if (P.singleInitNode()) {
+    unsigned int j;
+
     P.create(20); // makes new particles at end of current array
     // put ten particles near right edge, and ten near left edge
     for (j=0; j < 10; j++) { // initialize new values
@@ -74,13 +75,12 @@ int main(int argc, char *argv[])
   }
   testmsg << "Performing initial update ..." << endl;
   P.update();         // do update to move particles to proper loc
-  testmsg << "End of initialization" << i << ": localnum=";
   testmsg << P.getLocalNum() << ", totalnum=";
   testmsg << P.getTotalNum() << endl;
 
   // Just print out the contents of node 0's data
   testmsg << "------------------" << endl;
-  for (i=0; i < P.getLocalNum(); i++) {
+  for (unsigned int i=0; i < P.getLocalNum(); i++) {
     testmsg << "LID=" << i << ", GID=" << P.ID[i] << ", data[0]=";
     testmsg << P.data[0][i] << ", data[1]=" << P.data[1][i] << ", R=";
     testmsg << P.R[i] << endl;
@@ -93,14 +93,14 @@ int main(int argc, char *argv[])
   //
 
   testmsg << "Testing open boundary conditions ... moving by (5,-1,10):" << endl;
-  for (i=0; i < 2*Dim; ++i)
+  for (unsigned int i=0; i < 2*Dim; ++i)
     P.getBConds()[i] = ParticleNoBCond;
 
   Vektor<Real,Dim> offset1(5,-1,10);
   assign(P.R, P.R + offset1);
   P.update();
   testmsg << "------------------" << endl;
-  for (i=0; i < P.getLocalNum(); i++) {
+  for (unsigned int i=0; i < P.getLocalNum(); i++) {
     testmsg << "LID=" << i << ", GID=" << P.ID[i] << ", data[0]=";
     testmsg << P.data[0][i] << ", data[1]=" << P.data[1][i] << ", R=";
     testmsg << P.R[i] << endl;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
   assign(P.R, P.R + offset2);
   P.update();
   testmsg << "------------------" << endl;
-  for (i=0; i < P.getLocalNum(); i++) {
+  for (unsigned int i=0; i < P.getLocalNum(); i++) {
     testmsg << "LID=" << i << ", GID=" << P.ID[i] << ", data[0]=";
     testmsg << P.data[0][i] << ", data[1]=" << P.data[1][i] << ", R=";
     testmsg << P.R[i] << endl;

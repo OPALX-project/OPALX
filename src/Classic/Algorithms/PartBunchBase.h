@@ -606,7 +606,7 @@ public:
     double dtScInit_m, deltaTau_m;
 
     // get 2nd order momentum matrix
-    FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix();
+    FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix() const;
 
 private:
     // save particles in case of one core
@@ -637,9 +637,6 @@ protected:
 
     /// holds the centroid of the beam
     double centroid_m[2 * Dim];
-
-    /// 6x6 matrix of the moments of the beam
-    FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
 
     /// holds the timestep in seconds
     double dt_m;

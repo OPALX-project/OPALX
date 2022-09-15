@@ -95,7 +95,8 @@ namespace {
         MINBINEMITTED,
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
-        SIZE
+        DUMPBEAMMATRIX,
+	SIZE
     };
 }
 
@@ -291,6 +292,11 @@ Option::Option():
                                    "for the beam size and the normalized emittance should "
                                    "be computed. Default: false", computePercentiles);
 
+    itsAttr[DUMPBEAMMATRIX] = Attributes::makeBool
+                                  ("DUMPBEAMMATRIX", "Flag to control whether to write  "
+                                   "the 6-dimensional beam matrix (upper triangle only) "
+                                   "to stat file. Default: false", dumpBeamMatrix);
+    
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -343,6 +349,7 @@ Option::Option(const std::string& name, Option* parent):
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
+    Attributes::setBool(itsAttr[DUMPBEAMMATRIX],dumpBeamMatrix);
 }
 
 
@@ -389,7 +396,7 @@ void Option::execute() {
     haloShift      = Attributes::getReal(itsAttr[HALOSHIFT]);
     delPartFreq    = Attributes::getReal(itsAttr[DELPARTFREQ]);
     computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
-
+    dumpBeamMatrix     = Attributes::getBool(itsAttr[DUMPBEAMMATRIX]);
     if ( memoryDump ) {
         IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance(
                 IpplMemoryUsage::Unit::GB, false);

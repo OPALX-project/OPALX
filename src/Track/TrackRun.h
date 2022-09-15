@@ -49,6 +49,7 @@ public:
     /// Execute the command.
     virtual void execute();
 
+    using Action::print;
     Inform& print(Inform& os) const;
 
     static std::shared_ptr<Tracker> getTracker();
