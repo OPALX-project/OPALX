@@ -109,11 +109,11 @@ public:
         {
             std::size_t bucketId = getBucketId(i);
             if(bucketId >= Nbucket) {
-                std::cout << "Bucket with id: " << bucketId << " is wrong" << endl;
-                std::cout << "Rank: " << Ippl::myNode() << endl;
-                std::cout << "Buckets: " << bucketsPerDim_m << endl;
-                std::cout << "Particle coords: " << particles_mr.R[i] << endl; 
-                std::cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << endl;
+                std::cout << "Bucket with id: " << bucketId << " is wrong" << std::endl;
+                std::cout << "Rank: " << Ippl::myNode() << std::endl;
+                std::cout << "Buckets: " << bucketsPerDim_m << std::endl;
+                std::cout << "Particle coords: " << particles_mr.R[i] << std::endl; 
+                std::cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << std::endl;
                 throw IpplException("HashPairBuilderParallel::forEach", 
                             "Particle outside the local domain");
             }
