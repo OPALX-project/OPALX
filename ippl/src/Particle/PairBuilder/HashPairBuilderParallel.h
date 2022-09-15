@@ -33,8 +33,6 @@
 #include <limits>
 #include <set>
 
-using namespace std;
-
 template<class PBase>
 class HashPairBuilderParallel
 {
@@ -49,8 +47,8 @@ public:
     template<class Pred, class OP>
     void forEach(const Pred& pred_r, const OP& op_r)
     {
-        constexpr size_t END = numeric_limits<size_t>::max();
-        size_t size = particles_mr.getLocalNum()+particles_mr.getGhostNum();
+        constexpr std::size_t END = std::numeric_limits<std::size_t>::max();
+        std::size_t size = particles_mr.getLocalNum()+particles_mr.getGhostNum();
 
         NDIndex<3> locDomain = particles_mr.getFieldLayout().getLocalNDIndex();
 
@@ -68,7 +66,7 @@ public:
         
             //make sure that the chaining mesh covers the whole domain 
             //and has a gridwidth > r_cut
-            bucketsPerDim_m[i]=floor(domainWidthLocal[i]/pred_r.getRange(i));
+            bucketsPerDim_m[i] = std::floor(domainWidthLocal[i]/pred_r.getRange(i));
         
             if(bucketsPerDim_m[i] == 0) {
                 bucketsPerDim_m[i] = 1;
@@ -83,15 +81,15 @@ public:
         rmax_m = extentRLocal+hChaining_m;
         bucketsPerDim_m+=2;
 
-        size_t Nbucket = bucketsPerDim_m[0]*bucketsPerDim_m[1]*bucketsPerDim_m[2];
+        std::size_t Nbucket = bucketsPerDim_m[0]*bucketsPerDim_m[1]*bucketsPerDim_m[2];
 
         //index of first particle in this bucket
-        vector<size_t> buckets(Nbucket);
+        std::vector<std::size_t> buckets(Nbucket);
         //index of next particle in this bucket. END indicates last particle of bucket
-        vector<size_t> next(size);
+        std::vector<std::size_t> next(size);
         
-        fill(buckets.begin(), buckets.end(), END);
-        fill(next.begin(), next.end(), END);
+        std::fill(buckets.begin(), buckets.end(), END);
+        std::fill(next.begin(), next.end(), END);
 
         //As per Hockney and Eastwood ``Computer simulation using particles" (section 8.4.3) 
         //we use Newton's third law 
@@ -107,15 +105,15 @@ public:
             { 1, 0, 0}, { 0, 0, 0}};
 
         //assign all particles to a bucket
-        for(size_t i = 0;i<size;++i)
+        for(std::size_t i = 0;i<size;++i)
         {
-            size_t bucketId = getBucketId(i);
+            std::size_t bucketId = getBucketId(i);
             if(bucketId >= Nbucket) {
-                cout << "Bucket with id: " << bucketId << " is wrong" << endl;
-                cout << "Rank: " << Ippl::myNode() << endl;
-                cout << "Buckets: " << bucketsPerDim_m << endl;
-                cout << "Particle coords: " << particles_mr.R[i] << endl; 
-                cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << endl;
+                std::cout << "Bucket with id: " << bucketId << " is wrong" << endl;
+                std::cout << "Rank: " << Ippl::myNode() << endl;
+                std::cout << "Buckets: " << bucketsPerDim_m << endl;
+                std::cout << "Particle coords: " << particles_mr.R[i] << endl; 
+                std::cout << "rmin_m: " << rmin_m << "rmax_m: " << rmax_m << endl;
                 throw IpplException("HashPairBuilderParallel::forEach", 
                             "Particle outside the local domain");
             }
@@ -147,8 +145,8 @@ public:
 
                             //i is index of particle considered in active chaining cell, 
                             //j is index of neighbor particle considered
-                            size_t i = buckets[bucketIdSelf];
-                            size_t j;
+                            std::size_t i = buckets[bucketIdSelf];
+                            std::size_t j;
 
                             //loop over all particles in self cell
                             //self offset avoids double counting in self cell
@@ -189,7 +187,7 @@ public:
 private:
 
     //returns the bucket id of particle i
-    size_t getBucketId(size_t i)
+    std::size_t getBucketId(std::size_t i)
     {
 
         Vektor<int,3> loc;
@@ -206,7 +204,7 @@ private:
             loc[d] = ((int)isInside * indInside) + ((int)isOutsideMin * 0) + ((int)isOutsideMax * (bucketsPerDim_m[d]-1));
         }
         
-        size_t bucketId = loc[2]*bucketsPerDim_m[1]*bucketsPerDim_m[0]+loc[1]*bucketsPerDim_m[0]+loc[0];
+        std::size_t bucketId = loc[2]*bucketsPerDim_m[1]*bucketsPerDim_m[0]+loc[1]*bucketsPerDim_m[0]+loc[0];
         return bucketId;
     }
 
