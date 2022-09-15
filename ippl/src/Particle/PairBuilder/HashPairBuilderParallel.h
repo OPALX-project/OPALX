@@ -3,18 +3,26 @@
  *
  * The IPPL Framework
  *
- * HashPairBuilderParallel follows the Hockney and Eastwood approach to efficiently
- * find particle pairs. In this version of the code a local chaining mesh per processor 
- * is used to avoid looping empty buckets.
  *
  * Visit http://people.web.psi.ch/adelmann/ for more details
  *
  ***************************************************************************/
-
-
-
+ 
 #ifndef HASH_PAIR_BUILDER_PARALLEL_H
 #define HASH_PAIR_BUILDER_PARALLEL_H
+
+/*
+ * HashPairBuilderParallel - class for finding
+ * particle pairs in the P3M solver and 
+ * compute particle-particle interactions 
+ * between them
+ *  
+ * This class follows the Hockney and Eastwood approach 
+ * to efficiently find particle pairs. In this version 
+ * of the code a local chaining mesh per processor 
+ * is used to avoid looping empty buckets.
+ */
+
 
 #include <algorithm>
 #include <array>
@@ -33,7 +41,8 @@ public:
     enum { Dim = PBase::Dim };
     typedef typename PBase::Position_t      Position_t;
 
-    HashPairBuilderParallel(PBase& p_r, double gammaz) : particles_mr(p_r), gammaz_m(gammaz) 
+    HashPairBuilderParallel(PBase& p_r, double gammaz) : particles_mr(p_r), 
+                                                         gammaz_m(gammaz) 
     { hr_m = p_r.get_hr(); }
 
     template<class Pred, class OP>
