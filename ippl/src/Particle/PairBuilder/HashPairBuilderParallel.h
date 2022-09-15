@@ -200,7 +200,8 @@ private:
             isOutsideMax = (particles_mr.R[i][d] >= rmax_m[d]);
         
             //if the particle is inside the bucket take the inside index otherwise assign it to either first or
-            //last bucket in that dimension
+            //last bucket in that dimension. (int)isOutsideMin * 0 is written explicitly for the ease of code
+            //understanding.
             loc[d] = ((int)isInside * indInside) + ((int)isOutsideMin * 0) + ((int)isOutsideMax * (bucketsPerDim_m[d]-1));
         }
         
