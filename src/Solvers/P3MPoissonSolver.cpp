@@ -50,10 +50,10 @@ struct P3MGreensFunction { };
 template<>
 struct P3MGreensFunction<3> {
     template<class T, class FT, class FT2>
-    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha) {
-        grn = grnI[0] * hrsq[0] + grnI[1] * hrsq[1] + grnI[2] * hrsq[2];
-        grn = erf(alpha*sqrt(grn))/(sqrt(grn));
-        grn[0][0][0] = grn[0][0][1];
+    static void calculate(Vektor<T, 3>& hrsq_r, FT& grn_r, FT2* grnI_p, double alpha) {
+        grn_r = grnI_p[0] * hrsq_r[0] + grnI_p[1] * hrsq_r[1] + grnI_p[2] * hrsq_r[2];
+        grn_r = erf(alpha*sqrt(grn_r))/(sqrt(grn_r));
+        grn_r[0][0][0] = grn_r[0][0][1];
     }
 };
 
@@ -61,13 +61,14 @@ template<class T>
 struct ApplyField {
     ApplyField(double alpha_, double ke_, bool isIntGreen_) : alpha(alpha_), ke(ke_), 
                                                              isIntGreen(isIntGreen_) {}
-    void operator()(std::size_t i, std::size_t j, PartBunch &P) const
+    void operator()(std::size_t i, std::size_t j, PartBunch& P_r) const
     {
-        Vector_t diff = P.R[i] - P.R[j];
+        Vector_t diff = P_r.R[i] - P_r.R[j];
         double sqr = 0;
 
-        for (unsigned d = 0; d<Dim; ++d)
+        for (unsigned d = 0; d<Dim; ++d) {
             sqr += diff[d]*diff[d];
+        }
 
         if(sqr!=0) {
             double r = std::sqrt(sqr);
@@ -88,8 +89,8 @@ struct ApplyField {
 
             //Actual Force is F_ij multiplied by Qi*Qj
             //The electrical field on particle i is E=F/q_i and hence:
-            P.Ef[i] -= P.Q[j]*Fij;
-            P.Ef[j] += P.Q[i]*Fij;
+            P_r.Ef[i] -= P_r.Q[j]*Fij;
+            P_r.Ef[j] += P_r.Q[i]*Fij;
         }
     
     }
@@ -103,11 +104,11 @@ struct ApplyField {
 
 // constructor
 
-P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, 
+P3MPoissonSolver::P3MPoissonSolver(Mesh_t* mesh_p, FieldLayout_t* fl_p, 
                                    double interaction_radius, 
                                    double alpha, std::string greensFunction):
-    mesh_m(mesh),
-    layout_m(fl),
+    mesh_mp(mesh_p),
+    layout_mp(fl_p),
     interaction_radius_m(interaction_radius),
     alpha_m(alpha)
 {
@@ -130,15 +131,15 @@ P3MPoissonSolver::~P3MPoissonSolver() {
 
 void P3MPoissonSolver::initializeFields() {
 
-    domain_m = layout_m->getDomain();
+    domain_m = layout_mp->getDomain();
 
     // For efficiency in the FFT's, we can use a parallel decomposition
     // which can be serial in the first dimension.
     e_dim_tag decomp[3];
     e_dim_tag decomp2[3];
     for(int d = 0; d < 3; ++ d) {
-        decomp[d] = layout_m->getRequestedDistribution(d);
-        decomp2[d] = layout_m->getRequestedDistribution(d);
+        decomp[d] = layout_mp->getRequestedDistribution(d);
+        decomp2[d] = layout_mp->getRequestedDistribution(d);
     }
 
     // The FFT's require double-sized field sizes in order to
@@ -147,16 +148,16 @@ void P3MPoissonSolver::initializeFields() {
     // several beams set a periodic distance apart.  The double-sized fields
     // alleviate this problem.
     for (int i = 0; i < 3; ++ i) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
+        hr_m[i] = mesh_mp->get_meshSpacing(i);
         nr_m[i] = domain_m[i].length();
         domain2_m[i] = Index(2 * nr_m[i] + 1);
     }
 
     // create double sized mesh and layout objects for the use in the FFT's
-    mesh2_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
-    layout2_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_m, decomp));
+    mesh2_mp = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
+    layout2_mp = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_mp, decomp));
 
-    rho2_m.initialize(*mesh2_m, *layout2_m);
+    rho2_m.initialize(*mesh2_mp, *layout2_mp);
 
     // Create the domain for the transformed (complex) fields.  Do this by
     // taking the domain from the doubled mesh, permuting it to the right, and
@@ -167,37 +168,37 @@ void P3MPoissonSolver::initializeFields() {
 
     // create mesh and layout for the new real-to-complex FFT's, for the
     // complex transformed fields
-    mesh3_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
-    layout3_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_m, decomp2));
+    mesh3_mp = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
+    layout3_mp = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_mp, decomp2));
 
-    rho2tr_m.initialize(*mesh3_m, *layout3_m);
-    grntr_m.initialize(*mesh3_m, *layout3_m);
+    rho2tr_m.initialize(*mesh3_mp, *layout3_mp);
+    grntr_m.initialize(*mesh3_mp, *layout3_mp);
 
     for (int i = 0; i < 3; ++ i) {
         domain4_m[i] = Index(nr_m[i] + 2);
     }
-    mesh4_m = std::unique_ptr<Mesh_t>(new Mesh_t(domain4_m));
-    layout4_m = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh4_m, decomp));
+    mesh4_mp = std::unique_ptr<Mesh_t>(new Mesh_t(domain4_m));
+    layout4_mp = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh4_mp, decomp));
 
-    tmpgreen_m.initialize(*mesh4_m, *layout4_m);
+    tmpgreen_m.initialize(*mesh4_mp, *layout4_mp);
 
     // create a domain used to indicate to the FFT's how to construct it's
     // temporary fields.  This is the same as the complex field's domain,
     // but permuted back to the left.
     NDIndex<3> tmpdomain;
-    tmpdomain = layout3_m->getDomain();
+    tmpdomain = layout3_mp->getDomain();
     for (int i = 0; i < 3; ++ i)
         domainFFTConstruct_m[i] = tmpdomain[(i+1) % 3];
 
     // create the FFT object
-    fft_m = std::unique_ptr<FFT_t>(new FFT_t(layout2_m->getDomain(), 
+    fft_mp = std::unique_ptr<FFT_t>(new FFT_t(layout2_mp->getDomain(), 
                                              domainFFTConstruct_m));
 
     if(!integratedGreens_m) {
         // these are fields that are used for calculating the Green's function.
         // they eliminate some calculation at each time-step.
         for (int i = 0; i < 3; ++ i) {
-            grnIField_m[i].initialize(*mesh2_m, *layout2_m);
+            grnIField_m[i].initialize(*mesh2_mp, *layout2_mp);
             grnIField_m[i][domain2_m] = where(lt(domain2_m[i], nr_m[i]),
                                               domain2_m[i] * domain2_m[i],
                                               (2 * nr_m[i] - domain2_m[i]) *
@@ -207,20 +208,20 @@ void P3MPoissonSolver::initializeFields() {
 }
 
 
-void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz) {
+void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3>* bunch_p, double gammaz) {
     
     IpplTimings::startTimer(CalculatePairForces_m);
     if (interaction_radius_m>0){
-        PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-        std::size_t size = tmpBunch.getLocalNum()+tmpBunch.getGhostNum();
+        PartBunch& tmpBunch_r = *(dynamic_cast<PartBunch*>(bunch_p));
+        std::size_t size = tmpBunch_r.getLocalNum()+tmpBunch_r.getGhostNum();
        
         //Take the particles to the boosted frame
         for(std::size_t i = 0;i<size;++i)
         {
-            tmpBunch.R[i](2) = tmpBunch.R[i](2) * gammaz;
+            tmpBunch_r.R[i](2) = tmpBunch_r.R[i](2) * gammaz;
         }
         
-        HashPairBuilderParallel<PartBunch> HPB(tmpBunch,gammaz);
+        HashPairBuilderParallel<PartBunch> HPB(tmpBunch_r,gammaz);
         if(integratedGreens_m) {
             //Note: alpha_m is not used for the integrated Green's function
             //approach
@@ -235,7 +236,7 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
         //Bring the particles to the lab frame
         for(std::size_t i = 0;i<size;++i)
         {
-            tmpBunch.R[i](2) = tmpBunch.R[i](2) / gammaz;
+            tmpBunch_r.R[i](2) = tmpBunch_r.R[i](2) / gammaz;
         }
     }
     IpplTimings::stopTimer(CalculatePairForces_m);
@@ -244,14 +245,14 @@ void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, doub
 
 // given a charge-density field rho and a set of mesh spacings hr,
 // compute the scalar potential in open space
-void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
+void P3MPoissonSolver::computePotential(Field_t& rho_r, Vector_t hr) {
     IpplTimings::startTimer(ComputePotential_m);
 
     // use grid of complex doubled in both dimensions
     // and store rho in lower left quadrant of doubled grid
     rho2_m = 0.0;
 
-    rho2_m[domain_m] = rho[domain_m];
+    rho2_m[domain_m] = rho_r[domain_m];
 
     // needed in greens function
     hr_m = hr;
@@ -260,7 +261,7 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     // we do a backward transformation so that we dont have to 
     // account for the normalization factor
     // that is used in the forward transformation of the IPPL FFT
-    fft_m->transform(-1, rho2_m, rho2tr_m);
+    fft_mp->transform(-1, rho2_m, rho2tr_m);
 
     // must be called if the mesh size has changed
     IpplTimings::startTimer(GreensFunctionTimer_m);
@@ -276,15 +277,15 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
     rho2tr_m *= grntr_m;
 
     // inverse FFT, rho2_m equals to the electrostatic potential
-    fft_m->transform(+1, rho2tr_m, rho2_m);
+    fft_mp->transform(+1, rho2tr_m, rho2_m);
     // end convolution
 
     // back to physical grid
     // reuse the charge density field to store the electrostatic potential
-    rho[domain_m] = rho2_m[domain_m];
+    rho_r[domain_m] = rho2_m[domain_m];
 
 
-    rho *= hr[0] * hr[1] * hr[2];
+    rho_r *= hr[0] * hr[1] * hr[2];
 
     IpplTimings::stopTimer(ComputePotential_m);
 }
@@ -294,7 +295,7 @@ void P3MPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
 // compute the electric potential from the image charge by solving
 // the Poisson's equation
 
-void P3MPoissonSolver::computePotential(Field_t &/*rho*/, Vector_t /*hr*/, double /*zshift*/) {
+void P3MPoissonSolver::computePotential(Field_t& /*rho*/, Vector_t /*hr*/, double /*zshift*/) {
 
     throw OpalException("P3MPoissonSolver", "not implemented yet");
 
@@ -308,7 +309,7 @@ void P3MPoissonSolver::greensFunction() {
     // we do a backward transformation so that we dont have to account 
     // for the normalization factor
     // that is used in the forward transformation of the IPPL FFT
-    fft_m->transform(-1, rho2_m, grntr_m);
+    fft_mp->transform(-1, rho2_m, grntr_m);
 }
 
 /** If the beam has a longitudinal size >> transverse size the
@@ -333,7 +334,7 @@ void P3MPoissonSolver::integratedGreensFunction() {
     /**
      * This integral can be calculated analytically in a closed from:
      */
-    NDIndex<3> idx =  layout4_m->getLocalNDIndex();
+    NDIndex<3> idx =  layout4_mp->getLocalNDIndex();
     double cellVolume = hr_m[0] * hr_m[1] * hr_m[2];
     tmpgreen_m = 0.0;
 
@@ -346,15 +347,15 @@ void P3MPoissonSolver::integratedGreensFunction() {
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
                 vv(2) = k * hr_m[2] - hr_m[2] / 2;
 
-                double r = sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
+                double r = std::sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
                 double tmpgrn = 0.0;
                 if(r >= interaction_radius_m) {
-                    tmpgrn  = -vv(2) * vv(2) * atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
-                    tmpgrn += -vv(1) * vv(1) * atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
-                    tmpgrn += -vv(0) * vv(0) * atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
-                    tmpgrn += vv(1) * vv(2) * log(vv(0) + r);
-                    tmpgrn += vv(0) * vv(2) * log(vv(1) + r);
-                    tmpgrn += vv(0) * vv(1) * log(vv(2) + r);
+                    tmpgrn  = -vv(2) * vv(2) * std::atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
+                    tmpgrn += -vv(1) * vv(1) * std::atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
+                    tmpgrn += -vv(0) * vv(0) * std::atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
+                    tmpgrn += vv(1) * vv(2) * std::log(vv(0) + r);
+                    tmpgrn += vv(0) * vv(2) * std::log(vv(1) + r);
+                    tmpgrn += vv(0) * vv(1) * std::log(vv(2) + r);
                 }
                 else {
                     tmpgrn = -(vv(0) * vv(1) * vv(2) * (-9 * std::pow(interaction_radius_m, 2)
@@ -385,7 +386,7 @@ void P3MPoissonSolver::integratedGreensFunction() {
 
     mirrorRhoField();
 
-    fft_m->transform(-1, rho2_m, grntr_m);
+    fft_mp->transform(-1, rho2_m, grntr_m);
 
 }
 
@@ -413,7 +414,7 @@ void P3MPoissonSolver::mirrorRhoField() {
 
 }
 
-Inform &P3MPoissonSolver::print(Inform &os) const {
+Inform &P3MPoissonSolver::print(Inform& os) const {
     os << "* ************* P 3 M - P o i s s o n S o l v e r *************** " << endl;
     os << "* h        " << hr_m << '\n';
     os << "* RC       " << interaction_radius_m << '\n';

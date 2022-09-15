@@ -95,34 +95,34 @@ private:
     Field_t rho2_m;
 
     // rho2tr_m is the Fourier transformed charge-density field
-    // domain3_m and mesh3_m are used
+    // domain3_m and mesh3_mp are used
     CxField_t rho2tr_m;
     
     // Fields used to eliminate excess calculation in greensFunction()
-    // mesh2_m and layout2_m are used
+    // mesh2_mp and layout2_mp are used
     IField_t grnIField_m[3];
 
     // grntr_m is the Fourier transformed Green's function
-    // domain3_m and mesh3_m are used
+    // domain3_m and mesh3_mp are used
     CxField_t grntr_m;
 
     // the FFT object
-    std::unique_ptr<FFT_t> fft_m;
+    std::unique_ptr<FFT_t> fft_mp;
 
     // mesh and layout objects for rho_m
-    Mesh_t *mesh_m;
-    FieldLayout_t *layout_m;
+    Mesh_t *mesh_mp;
+    FieldLayout_t *layout_mp;
 
     // mesh and layout objects for rho2_m
-    std::unique_ptr<Mesh_t> mesh2_m;
-    std::unique_ptr<FieldLayout_t> layout2_m;
+    std::unique_ptr<Mesh_t> mesh2_mp;
+    std::unique_ptr<FieldLayout_t> layout2_mp;
 
-    std::unique_ptr<Mesh_t> mesh3_m;
-    std::unique_ptr<FieldLayout_t> layout3_m;
+    std::unique_ptr<Mesh_t> mesh3_mp;
+    std::unique_ptr<FieldLayout_t> layout3_mp;
 
     // mesh and layout for integrated greens function
-    std::unique_ptr<Mesh_t> mesh4_m;
-    std::unique_ptr<FieldLayout_t> layout4_m;
+    std::unique_ptr<Mesh_t> mesh4_mp;
+    std::unique_ptr<FieldLayout_t> layout4_mp;
 
     // tmp
     Field_t tmpgreen_m;
