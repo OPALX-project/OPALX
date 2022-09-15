@@ -19,14 +19,13 @@ TEST(Meshes, Cartesian)
 
     // Sizes:
     unsigned nverts[D], ncells[D];
-    unsigned totverts = 1, totcells = 1;
+    unsigned totcells = 1;
     unsigned int d;
 
     for (d = 0; d < D; d++) {
         ncells[d] = nv - 1;
         nverts[d] = nv;
         totcells *= ncells[d];
-        totverts *= nverts[d];
     }
     NDIndex<D> verts, cells;
     for (d = 0; d < D; d++) {

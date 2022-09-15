@@ -209,12 +209,13 @@ recurseCoordinateVRB(int dim,
     {
       int d;
 
+#ifndef NOPAssert
       // Calculate the total number of vnodes.
       int totalVnodes = sizes[0];
       for (d=1; d<dim; ++d)
         totalVnodes *= sizes[d];
       PAssert_GE(totalVnodes, nprocs);
-
+#endif
       // Find the number of processors on each side.
       int leftProcs = nprocs/2;
       int rightProcs = nprocs-leftProcs;

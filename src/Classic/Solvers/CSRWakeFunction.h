@@ -32,7 +32,7 @@ public:
 
     void apply(PartBunchBase<double, 3>* bunch) override;
 
-    void initialize(const ElementBase* ref);
+    void initialize(const ElementBase* ref) override;
 
     virtual WakeType getType() const override;
 

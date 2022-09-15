@@ -163,6 +163,9 @@ namespace Options {
     extern unsigned int delPartFreq;
 
     extern bool computePercentiles;
+   
+    extern bool dumpBeamMatrix;
+
 }
 
 #endif // OPAL_Options_HH

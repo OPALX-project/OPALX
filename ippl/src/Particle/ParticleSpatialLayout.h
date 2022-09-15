@@ -631,7 +631,7 @@ protected:
    template < class PB >
     size_t short_swap_particles(size_t LocalNum, PB& PData)
     {
-    	static int sent = 0, old_sent=0;
+    	static int sent = 0;
 
 
         unsigned d, i, j;			// loop variables
@@ -758,8 +758,6 @@ protected:
 
             }  // end for (d=0; d<Dim; ++d)
 
-		//std::cout << "node " << Ippl::myNode() << " sent particles " << sent - old_sent << std::endl;
-		old_sent = sent;
 
         // return how many particles we have now
         return LocalNum;
