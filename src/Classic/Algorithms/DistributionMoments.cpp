@@ -430,40 +430,40 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> cons
     meanKineticEnergy_m = data[0] / data[1];
 }
 
-void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bunch, double density)
+void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bunch_r, double density)
 {
     
-    double loc_avg_vel[3]={0.0,0.0,0.0};
-    double avg_vel[3]={0.0,0.0,0.0};
+    double locAvgVel[3]={0.0,0.0,0.0};
+    double avgVel[3]={0.0,0.0,0.0};
 
     //From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
-    for (OpalParticle const& particle: bunch) {
+    for (OpalParticle const& particle_r: bunch_r) {
         for(unsigned i = 0; i < 3; i++) {
-            loc_avg_vel[i]   += ((particle.getP()[i] * Physics::c)/
-                                (Util::getGamma(particle.getP())));
+            locAvgVel[i]   += ((particle_r.getP()[i] * Physics::c)/
+                                (Util::getGamma(particle_r.getP())));
         }
     }
-    reduce(&(loc_avg_vel[0]), &(loc_avg_vel[0]) + 3,
-           &(avg_vel[0]), OpAddAssign());
+    reduce(&(locAvgVel[0]), &(locAvgVel[0]) + 3,
+           &(avgVel[0]), OpAddAssign());
 
-    const double N =  static_cast<double>(bunch.getTotalNum());
-    avg_vel[0]= avg_vel[0]/N;
-    avg_vel[1]= avg_vel[1]/N;
-    avg_vel[2]= avg_vel[2]/N;
+    const double N =  static_cast<double>(bunch_r.getTotalNum());
+    avgVel[0]= avgVel[0]/N;
+    avgVel[1]= avgVel[1]/N;
+    avgVel[2]= avgVel[2]/N;
 
-    double loc_temp_avg = 0.0;
+    double locTempAvg = 0.0;
 
-    for (OpalParticle const& particle: bunch) {
+    for (OpalParticle const& particle_r: bunch_r) {
         for(unsigned i = 0; i < 3; i++) {
-            loc_temp_avg += std::pow((((particle.getP()[i] * Physics::c)/
-                            (Util::getGamma(particle.getP()))) - avg_vel[i]),2);
+            locTempAvg += std::pow((((particle_r.getP()[i] * Physics::c)/
+                            (Util::getGamma(particle_r.getP()))) - avgVel[i]),2);
         }
     }
-    allreduce(loc_temp_avg, 1, std::plus<double>());
+    allreduce(locTempAvg, 1, std::plus<double>());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is 
     // Boltzmann constant
-    temperature_m = (1.0/3) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (loc_temp_avg/N);
+    temperature_m = (1.0/3) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (locTempAvg/N);
 
     debyeLength_m = std::sqrt((temperature_m * Physics::epsilon_0) / 
                               (density * std::pow(Physics::q_e,2)));
