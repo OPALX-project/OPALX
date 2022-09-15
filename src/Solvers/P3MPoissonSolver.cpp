@@ -21,17 +21,20 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+
+#include "Solvers/P3MPoissonSolver.h"
+
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
-#include <cmath>
-#include <fstream>
 #include "Particle/BoxParticleCachingPolicy.h"
 #include "Particle/PairBuilder/HashPairBuilderParallel.h"
 #include "Particle/PairBuilder/PairConditions.h"
 #include "Physics/Physics.h"
-#include "Solvers/P3MPoissonSolver.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
+
+#include <cmath>
+#include <fstream>
 
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function

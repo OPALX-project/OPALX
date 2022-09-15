@@ -24,13 +24,14 @@
  */
 
 
+#include "Message/Communicate.h"
+#include "Utility/IpplException.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
-#include "Message/Communicate.h"
 #include <set>
-#include "Utility/IpplException.h"
 
 using namespace std;
 

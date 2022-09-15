@@ -31,11 +31,12 @@ const unsigned Dim = 3;
 #define FIELDASSIGNOPTIMIZATION
 #endif
 
-#include <memory>
 //////////////////////////////////////////////////////////////
 #include "PoissonSolver.h"
 
 #include "FFT/FFT.h"
+
+#include <memory>
 
 //#include "Algorithms/PartBunchBase.h"
 
