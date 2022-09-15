@@ -77,7 +77,7 @@ void PartBunch::computeSelfFields(int binNumber) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
     if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
-        throw OpalException("PartBunch::computeSelfFields(int binNumber)", 
+        throw GeneralClassicException("PartBunch::computeSelfFields(int binNumber)", 
                             "P3M solver not available during emission");
     }
 
@@ -483,7 +483,7 @@ void PartBunch::computeSelfFields_cycl(double gamma) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
     if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
-        throw OpalException("PartBunch::computeSelfFields_cycl(double gamma)", 
+        throw GeneralClassicException("PartBunch::computeSelfFields_cycl(double gamma)", 
                             "P3M solver not available yet for cyclotrons");
     }
 
@@ -622,7 +622,7 @@ void PartBunch::computeSelfFields_cycl(int bin) {
     IpplTimings::startTimer(selfFieldTimer_m);
 
     if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
-        throw OpalException("PartBunch::computeSelfFields_cycl(int bin)", 
+        throw GeneralClassicException("PartBunch::computeSelfFields_cycl(int bin)", 
                             "P3M solver not available yet for cyclotrons");
     }
 
