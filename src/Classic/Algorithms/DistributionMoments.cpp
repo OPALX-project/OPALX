@@ -447,16 +447,16 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
            &(avgVel[0]), OpAddAssign());
 
     const double N =  static_cast<double>(bunch_r.getTotalNum());
-    avgVel[0]= avgVel[0]/N;
-    avgVel[1]= avgVel[1]/N;
-    avgVel[2]= avgVel[2]/N;
+    for(unsigned i = 0; i < 3; i++) {
+        avgVel[i]= avgVel[i]/N;
+    }
 
     double locTempAvg = 0.0;
 
     for (OpalParticle const& particle_r: bunch_r) {
         for(unsigned i = 0; i < 3; i++) {
             locTempAvg += std::pow((((particle_r.getP()[i] * Physics::c)/
-                            (Util::getGamma(particle_r.getP()))) - avgVel[i]),2);
+                          (Util::getGamma(particle_r.getP()))) - avgVel[i]),2);
         }
     }
     allreduce(locTempAvg, 1, std::plus<double>());
