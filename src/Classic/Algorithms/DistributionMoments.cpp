@@ -461,7 +461,7 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
     
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is 
     // Boltzmann constant
-    temperature_m *= (1.0/3) * Units::eV2kg * Units::GeV2eV * Physics::m_e;
+    temperature_m *= (1.0/3.0) * Units::eV2kg * Units::GeV2eV * Physics::m_e;
 
     debyeLength_m = std::sqrt((temperature_m * Physics::epsilon_0) / 
                               (density * std::pow(Physics::q_e,2)));
@@ -473,7 +473,7 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
 void DistributionMoments::computePlasmaParameter(double density)
 {
     // Plasma parameter: Average number of particles within the Debye sphere
-    plasmaParameter_m = (4.0/3) * Physics::pi * std::pow(debyeLength_m,3) * density; 
+    plasmaParameter_m = (4.0/3.0) * Physics::pi * std::pow(debyeLength_m,3) * density; 
 }
 
 
