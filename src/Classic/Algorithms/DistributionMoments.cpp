@@ -435,33 +435,35 @@ void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bun
     
     double locAvgVel[3]={0.0,0.0,0.0};
     double avgVel[3]={0.0,0.0,0.0};
-    double avgSqVel = 0.0;
 
     //From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
-    double v;
     for (OpalParticle const& particle_r: bunch_r) {
         for(unsigned i = 0; i < 3; i++) {
-            v =  particle_r.getP()[i] * Physics::c /
-                 Util::getGamma(particle_r.getP());
-            locAvgVel[i]   += v;
-            avgSqVel   += (v * v);
+            locAvgVel[i]   += ((particle_r.getP()[i] * Physics::c)/
+                                (Util::getGamma(particle_r.getP())));
         }
     }
     reduce(&(locAvgVel[0]), &(locAvgVel[0]) + 3,
            &(avgVel[0]), OpAddAssign());
 
-    allreduce(avgSqVel, 1, std::plus<double>());
-
     const double N =  static_cast<double>(bunch_r.getTotalNum());
-    temperature_m = avgSqVel/N;
     for(unsigned i = 0; i < 3; i++) {
-        avgVel[i] = avgVel[i]/N;
-        temperature_m -= (avgVel[i] * avgVel[i]);
+        avgVel[i]= avgVel[i]/N;
     }
-    
+
+    double locTempAvg = 0.0;
+
+    for (OpalParticle const& particle_r: bunch_r) {
+        for(unsigned i = 0; i < 3; i++) {
+            locTempAvg += std::pow((((particle_r.getP()[i] * Physics::c)/
+                          (Util::getGamma(particle_r.getP()))) - avgVel[i]),2);
+        }
+    }
+    allreduce(locTempAvg, 1, std::plus<double>());
+
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is 
     // Boltzmann constant
-    temperature_m *= (1.0/3) * Units::eV2kg * Units::GeV2eV * Physics::m_e;
+    temperature_m = (1.0/3) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (locTempAvg/N);
 
     debyeLength_m = std::sqrt((temperature_m * Physics::epsilon_0) / 
                               (density * std::pow(Physics::q_e,2)));
