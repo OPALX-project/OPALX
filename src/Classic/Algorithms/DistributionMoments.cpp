@@ -40,6 +40,7 @@ const double DistributionMoments::percentileFourSigmasNormalDist_m = std::erf(4 
 DistributionMoments::DistributionMoments()
 {
     reset();
+    resetPlasmaParameters();
 }
 
 void DistributionMoments::compute(PartBunchBase<double, 3> const& bunch)
@@ -433,6 +434,7 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> cons
 void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bunch_r, double density)
 {
     
+    resetPlasmaParameters();
     double avgVel[3]={0.0,0.0,0.0};
 
     //From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
@@ -506,6 +508,14 @@ void DistributionMoments::reset()
     normalizedEps99Percentile_m = 0.0;
     ninetyNine_NinetyNinePercentile_m = 0.0;
     normalizedEps99_99Percentile_m = 0.0;
+}
+
+
+void DistributionMoments::resetPlasmaParameters()
+{
+    temperature_m = 0.0;
+    debyeLength_m = 0.0;
+    plasmaParameter_m = 0.0;
 }
 
 bool DistributionMoments::isParticleExcluded(const OpalParticle &particle) const

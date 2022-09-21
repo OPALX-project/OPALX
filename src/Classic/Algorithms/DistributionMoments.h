@@ -94,6 +94,7 @@ private:
     double computeNormalizedEmittance(const iterator_t& begin, const iterator_t& end) const;
     void fillMembers(std::vector<double> const&);
     void reset();
+    void resetPlasmaParameters();
 
     Vector_t meanR_m;
     Vector_t meanP_m;
