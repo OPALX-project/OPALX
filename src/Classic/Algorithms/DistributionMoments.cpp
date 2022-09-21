@@ -430,6 +430,54 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> cons
     meanKineticEnergy_m = data[0] / data[1];
 }
 
+void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bunch_r, double density)
+{
+    
+    double avgVel[3]={0.0,0.0,0.0};
+
+    //From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
+    for (OpalParticle const& particle_r: bunch_r) {
+        for(unsigned i = 0; i < 3; i++) {
+            avgVel[i]   += ((particle_r.getP()[i] * Physics::c)/
+                            (Util::getGamma(particle_r.getP())));
+        }
+    }
+    
+    allreduce(avgVel, 3, std::plus<double>());
+
+    const double N =  static_cast<double>(bunch_r.getTotalNum());
+    for(unsigned i = 0; i < 3; i++) {
+        avgVel[i]= avgVel[i]/N;
+    }
+
+    double tempAvg = 0.0;
+
+    for (OpalParticle const& particle_r: bunch_r) {
+        for(unsigned i = 0; i < 3; i++) {
+            tempAvg += std::pow((((particle_r.getP()[i] * Physics::c)/
+                          (Util::getGamma(particle_r.getP()))) - avgVel[i]),2);
+        }
+    }
+    allreduce(tempAvg, 1, std::plus<double>());
+
+    // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is 
+    // Boltzmann constant
+    temperature_m = (1.0/3.0) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (tempAvg/N);
+
+    debyeLength_m = std::sqrt((temperature_m * Physics::epsilon_0) / 
+                              (density * std::pow(Physics::q_e,2)));
+
+    computePlasmaParameter(density);
+
+}
+
+void DistributionMoments::computePlasmaParameter(double density)
+{
+    // Plasma parameter: Average number of particles within the Debye sphere
+    plasmaParameter_m = (4.0/3.0) * Physics::pi * std::pow(debyeLength_m,3) * density; 
+}
+
+
 void DistributionMoments::reset()
 {
     std::fill(std::begin(centroid_m), std::end(centroid_m), 0.0);

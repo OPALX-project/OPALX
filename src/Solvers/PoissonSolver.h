@@ -69,6 +69,11 @@ public:
                             const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
                             double /*dh*/)
     { };
+    virtual double getinteractionRadius() const { return 0.0; }
+
+    virtual void calculatePairForces(PartBunchBase<double, 3>* /*bunch*/, 
+                                     double /*gammaz*/) 
+    { };
 
 };
 

@@ -704,7 +704,7 @@ int main(int argc, char *argv[]){
     unsigned printid=1;
 
     msg << "Starting iterations ..." << endl;
-    P->compute_temperature();
+    //P->compute_temperature();
     // calculate initial space charge forces
     P->calculateGridForces(interaction_radius,alpha,0,0,0);
     P->calculatePairForces(interaction_radius,eps,alpha);
@@ -725,6 +725,15 @@ int main(int argc, char *argv[]){
     IpplTimings::TimerRef gridTimer = IpplTimings::getTimer("GridTimer");
     IpplTimings::TimerRef particleTimer = IpplTimings::getTimer("ParticleTimer");
 
+    P->calcMoments();
+    P->computeBeamStatistics();
+    writeBeamStatisticsVelocity(P,0);
+
+    P->calc_field_energy();
+    P->calc_kinetic_energy();
+    P->calc_potential_energy();
+    writeEnergy(P,0);
+    
     for (int it=0; it<iterations; it++) {
       /*
         P->calcMoments();
@@ -768,14 +777,15 @@ int main(int argc, char *argv[]){
         P->compute_temperature();
 
         if (it%print_every==0){
-            //dumpConservedQuantities(P,printid);
-            //compute quantities
-            /*
-             P->calc_field_energy();
-             P->calc_kinetic_energy();
-             P->calc_potential_energy();
-             writeEnergy(P,printid);
-             */
+            P->calcMoments();
+            P->computeBeamStatistics();
+            writeBeamStatisticsVelocity(P,it+1);
+
+            P->calc_field_energy();
+            P->calc_kinetic_energy();
+            P->calc_potential_energy();
+            writeEnergy(P,it+1);
+            
             P->compute_temperature();
             writeTemperature(P,it+1);
 
@@ -786,7 +796,7 @@ int main(int argc, char *argv[]){
     }
     Ippl::Comm->barrier();
 
-    P->closeH5();
+    //P->closeH5();
     Ippl::Comm->barrier();
 
     IpplTimings::stopTimer(allTimer);

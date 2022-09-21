@@ -383,6 +383,7 @@ void FFTPoissonSolver::integratedGreensFunction() {
     Index J = nr_m[1] + 1;
     Index K = nr_m[2] + 1;
 
+
     // the actual integration
     rho2_m = 0.0;
     rho2_m[I][J][K]  = tmpgreen_m[I+1][J+1][K+1];

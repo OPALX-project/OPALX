@@ -136,6 +136,7 @@ StringConstant::StringConstant():
     CREATE_STRINGCONSTANT("FMG");
     CREATE_STRINGCONSTANT("ML");
     CREATE_STRINGCONSTANT("AMR_MG");
+    CREATE_STRINGCONSTANT("P3M");
     // additionally: NONE
 
     // FieldSolver / BCFFT

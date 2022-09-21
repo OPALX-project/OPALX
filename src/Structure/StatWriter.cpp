@@ -90,6 +90,10 @@ void StatWriter::fillHeader(const losses_t &losses) {
     columns_m.addColumn("dE", "double", "MeV", "energy spread of the beam");
     columns_m.addColumn("dt", "double", "ns", "time step size");
     columns_m.addColumn("partsOutside", "double",  "1", "outside n*sigma of the beam");
+    columns_m.addColumn("DebyeLength", "double",  "m", "Debye length in the boosted frame");
+    columns_m.addColumn("plasmaParameter", "double",  "1", "Plasma parameter that gives no. of particles in a Debye sphere");
+    columns_m.addColumn("temperature", "double",  "K", "Temperature of the beam");
+    columns_m.addColumn("rmsDensity", "double",  "1", "RMS number density of the beam");
 
     if (Options::computePercentiles) {
         columns_m.addColumn("68_Percentile_x", "double", "m",
@@ -297,6 +301,11 @@ void StatWriter::write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
     columns_m.addColumnValue("dE", beam->getdE());                 // 40 dE energy spread
     columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns); // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);           // 42 number of particles outside n*sigma
+
+    columns_m.addColumnValue("DebyeLength", beam->get_debyeLength()); // 43 Debye length in the boosted frame
+    columns_m.addColumnValue("plasmaParameter", beam->get_plasmaParameter()); // 43 plasma parameter
+    columns_m.addColumnValue("temperature", beam->get_temperature()); // 44 Temperature 
+    columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity()); // 45 RMS number density
 
     if (Options::computePercentiles) {
         columns_m.addColumnValue("68_Percentile_x", beam->get_68Percentile()[0]);

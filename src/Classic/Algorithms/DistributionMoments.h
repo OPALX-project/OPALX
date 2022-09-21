@@ -21,6 +21,8 @@
 #include "FixedAlgebra/FMatrix.h"
 
 #include "Vektor.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 
 #include <vector>
 
@@ -36,6 +38,8 @@ public:
                  const std::vector<OpalParticle>::const_iterator &);
     void compute(PartBunchBase<double, 3> const&);
     void computeMeanKineticEnergy(PartBunchBase<double, 3> const&);
+    void computeDebyeLength(PartBunchBase<double, 3> const&, double);
+    void computePlasmaParameter(double);
 
     Vector_t getMeanPosition() const;
     Vector_t getStandardDeviationPosition() const;
@@ -60,6 +64,9 @@ public:
     double getStdTime() const;
     double getMeanGamma() const;
     double getMeanKineticEnergy() const;
+    double getTemperature() const;
+    double getDebyeLength() const;
+    double getPlasmaParameter() const;
     double getStdKineticEnergy() const;
     double getDx() const;
     double getDDx() const;
@@ -110,6 +117,9 @@ private:
     double meanTime_m;
     double stdTime_m;
     double meanKineticEnergy_m;
+    double temperature_m;
+    double debyeLength_m;
+    double plasmaParameter_m;
     double stdKineticEnergy_m;
     double meanGamma_m;
     double centroid_m[6];
@@ -195,6 +205,25 @@ inline
 double DistributionMoments::getMeanKineticEnergy() const
 {
     return meanKineticEnergy_m;
+}
+
+// Compute and return the value of temperature in K
+inline
+double DistributionMoments::getTemperature() const
+{
+    return (temperature_m / 
+           (Physics::kB * Units::eV2kg * 
+            Physics::c * Physics::c));
+}
+inline
+double DistributionMoments::getDebyeLength() const
+{
+    return debyeLength_m;
+}
+inline
+double DistributionMoments::getPlasmaParameter() const
+{
+    return plasmaParameter_m;
 }
 
 inline

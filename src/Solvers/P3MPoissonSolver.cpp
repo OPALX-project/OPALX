@@ -1,9 +1,10 @@
 //
 // Class P3MPoissonSolver
 //   This class contains methods for solving Poisson's equation for the
-//   space charge portion of the calculation.
+//   space charge portion of the calculation including collisions.
 //
 // Copyright (c) 2016, Benjamin Ulmer, ETH Zürich
+//               2022, Sriramkrishnan Muralikrishnan, PSI
 // All rights reserved
 //
 // Implemented as part of the Master thesis
@@ -20,18 +21,21 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+
 #include "Solvers/P3MPoissonSolver.h"
+
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
 #include "Particle/BoxParticleCachingPolicy.h"
-#include "Particle/PairBuilder/HashPairBuilderPeriodic.h"
-#include "Particle/PairBuilder/HashPairBuilderPeriodicParallel.h"
-//#include "Particle/PairBuilder/HashPairBuilderPeriodicParallel_globCHaining.h"
+#include "Particle/PairBuilder/HashPairBuilderParallel.h"
 #include "Particle/PairBuilder/PairConditions.h"
-#include "Structure/DataSink.h"
-#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
-#include <fstream>
+#include "Structure/DataSink.h"
+#include "Utilities/OpalException.h"
+
 #include <cmath>
+#include <fstream>
+
 //////////////////////////////////////////////////////////////////////////////
 // a little helper class to specialize the action of the Green's function
 // calculation.  This should be specialized for each dimension
@@ -39,75 +43,60 @@
 // template parameter is the full type of the Field to compute, and the second
 // is the dimension of the data, which should be specialized.
 
-//const double ke=1./(4.*M_PI*8.8e-14);
-const double ke=2.532638e8;
 
 template<unsigned int Dim>
-struct SpecializedGreensFunction { };
+struct P3MGreensFunction { };
 
 template<>
-struct SpecializedGreensFunction<3> {
+struct P3MGreensFunction<3> {
     template<class T, class FT, class FT2>
-    static void calculate(Vektor<T, 3> &hrsq, FT &grn, FT2 *grnI, double alpha,double eps) {
-        double r;
-        NDIndex<3> elem0=NDIndex<3>(Index(0,0), Index(0,0),Index(0,0));
-        grn = grnI[0] * hrsq[0] + grnI[1] * hrsq[1] + grnI[2] * hrsq[2];
-        NDIndex<3> lDomain_m = grn.getLayout().getLocalNDIndex();
-        NDIndex<3> elem;
-        for (int i=lDomain_m[0].min(); i<=lDomain_m[0].max(); ++i) {
-            elem[0]=Index(i,i);
-            for (int j=lDomain_m[1].min(); j<=lDomain_m[1].max(); ++j) {
-                elem[1]=Index(j,j);
-                for (int k=lDomain_m[2].min(); k<=lDomain_m[2].max(); ++k) {
-                    elem[2]=Index(k,k);
-                    r = std::real(std::sqrt(grn.localElement(elem)));
-                    if(elem==elem0) {
-                        grn.localElement(elem) = 0 ;
-                    }
-                    else
-                        grn.localElement(elem) = ke*std::complex<double>(std::erf(alpha*r)/(r+eps));
-                }
-            }
-        }
+    static void calculate(Vektor<T, 3>& hrsq_r, FT& grn_r, FT2* grnI_p, double alpha) {
+        grn_r = grnI_p[0] * hrsq_r[0] + grnI_p[1] * hrsq_r[1] + grnI_p[2] * hrsq_r[2];
+        grn_r = erf(alpha*sqrt(grn_r))/(sqrt(grn_r));
+        grn_r[0][0][0] = grn_r[0][0][1];
     }
 };
 
 template<class T>
 struct ApplyField {
-    ApplyField(T c, double r, double epsilon, double alpha) : C(c), R(r), eps(epsilon), a(alpha) {}
-    void operator()(std::size_t i, std::size_t j, PartBunch &P,Vektor<double,3> &shift) const
+    ApplyField(double alpha_, double ke_, bool isIntGreen_) : alpha(alpha_), ke(ke_), 
+                                                             isIntGreen(isIntGreen_) {}
+    void operator()(std::size_t i, std::size_t j, PartBunch& P_r) const
     {
-        Vector_t diff = P.R[i] - (P.R[j]+shift);
+        Vector_t diff = P_r.R[i] - P_r.R[j];
         double sqr = 0;
 
-        for (unsigned d = 0; d<Dim; ++d)
+        for (unsigned d = 0; d<Dim; ++d) {
             sqr += diff[d]*diff[d];
-
-        //compute r with softening parameter, unsoftened r is obtained by sqrt(sqr)
-        if(sqr!=0) {
-            double r = std::sqrt(sqr+eps*eps);
-            //for order two transition
-            if (P.Q[i]!=0 && P.Q[j]!=0) {
-                //compute potential energy
-                double phi =ke*(1.-std::erf(a*std::sqrt(sqr)))/r;
-
-                //compute force
-                Vector_t Fij = ke*C*(diff/std::sqrt(sqr))*((2.*a*std::exp(-a*a*sqr))/(std::sqrt(M_PI)*r)+(1.-std::erf(a*std::sqrt(sqr)))/(r*r));
-
-                //Actual Force is F_ij multiplied by Qi*Qj
-                //The electrical field on particle i is E=F/q_i and hence:
-                P.Ef[i] -= P.Q[j]*Fij;
-                P.Ef[j] += P.Q[i]*Fij;
-                //update potential per particle
-                P.Phi[i] += P.Q[j]*phi;
-                P.Phi[j] += P.Q[i]*phi;
-            }
         }
+
+        if(sqr!=0) {
+            double r = std::sqrt(sqr);
+
+            //compute force
+            Vector_t Fij;
+
+            //Differentiate the PP Green's function 
+            //(1-erf(\alpha r))/r (for standard)
+            //(1/(2r)) * (\xi^3 - 3\xi +2) (for integrated) where 
+            //xi = r/interaction_radius and multiply it with r unit vector
+            double xi = r/alpha;
+            Fij = ((double)isIntGreen * (-ke*(diff/(2*sqr))*((std::pow(xi,3) - 3*xi + 2)/r 
+                   + 3*(1 - std::pow(xi,2))/alpha)))
+                   + ((double)(1.0 - isIntGreen) 
+                   * (-ke*(diff/r)*((2.*alpha*std::exp(-alpha*alpha*sqr))
+                   / (std::sqrt(M_PI)*r) + (1.-std::erf(alpha*r))/(r*r))));
+
+            //Actual Force is F_ij multiplied by Qi*Qj
+            //The electrical field on particle i is E=F/q_i and hence:
+            P_r.Ef[i] -= P_r.Q[j]*Fij;
+            P_r.Ef[j] += P_r.Q[i]*Fij;
+        }
+    
     }
-    T C;
-    double R;
-    double eps;
-    double a;
+    double alpha;
+    double ke;
+    bool isIntGreen;
 };
 
 
@@ -115,374 +104,321 @@ struct ApplyField {
 
 // constructor
 
-
-P3MPoissonSolver::P3MPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, double interaction_radius, double alpha, double eps):
-    mesh_m(mesh),
-    layout_m(fl),
+P3MPoissonSolver::P3MPoissonSolver(Mesh_t* mesh_p, FieldLayout_t* fl_p, 
+                                   double interaction_radius, 
+                                   double alpha, std::string greensFunction):
+    mesh_mp(mesh_p),
+    layout_mp(fl_p),
     interaction_radius_m(interaction_radius),
-    alpha_m(alpha),
-    eps_m(eps)
+    alpha_m(alpha)
 {
     Inform msg("P3MPoissonSolver::P3MPoissonSolver ");
 
-    domain_m = layout_m->getDomain();
+    integratedGreens_m = (greensFunction == std::string("INTEGRATED"));
+    initializeFields();
+    ke_m = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
 
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-
-    // For efficiency in the FFT's, we can use a parallel decomposition
-    // which can be serial in the first dimension.
-    // e_dim_tag decomp[3];
-    // for(int d = 0; d < 3; ++d) {
-    //     decomp[d] = layout_m->getRequestedDistribution(d);
-    // }
-
-    // The FFT's require double-sized field sizes in order to (more closely
-    // do not understand this ...)
-    // simulate an isolated system.  The FFT of the charge density field, rho,
-    // would otherwise mimic periodic boundary conditions, i.e. as if there were
-    // several beams set a periodic distance apart.  The double-sized fields
-    // alleviate this problem.
-    for(unsigned int i = 0; i < 3; i++) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
-        nr_m[i] = domain_m[i].length();
-    }
-
-    rhocmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
-    grncmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
-
-    rho_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1), bc_m);
-    phi_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1), bcp_m);
-    eg_m.initialize (*mesh_m, *layout_m, GuardCellSizes<Dim>(1), vbc_m);
-
-    bool compressTemps = true;
-    // create the FFT object
-    fft_m = std::unique_ptr<FFTC_t>(new FFTC_t(layout_m->getDomain(), compressTemps));
-    fft_m->setDirectionName(+1, "forward");
-    fft_m->setDirectionName(-1, "inverse");
+    GreensFunctionTimer_m = IpplTimings::getTimer("GreensFTotalP3M");
+    ComputePotential_m = IpplTimings::getTimer("ComputePotentialP3M");
+    CalculatePairForces_m = IpplTimings::getTimer("CalculatePairForcesP3M");
 }
-
-void P3MPoissonSolver::initFields() {
-
-    domain_m = layout_m->getDomain();
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-    for (unsigned int i = 0; i < 2 * Dim; ++i) {
-        if (Ippl::getNodes()>1) {
-            bc_m[i] = new ParallelInterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new ParallelPeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new ParallelPeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-        else {
-            bc_m[i] = new InterpolationFace<double, Dim, Mesh_t, Center_t>(i);
-            //std periodic boundary conditions for gradient computations etc.
-            vbc_m[i] = new PeriodicFace<Vector_t, Dim, Mesh_t, Center_t>(i);
-            bcp_m[i] = new PeriodicFace<double, Dim, Mesh_t, Center_t>(i);
-        }
-    }
-
-    for(unsigned int i = 0; i < 3; i++) {
-        hr_m[i] = mesh_m->get_meshSpacing(i);
-        nr_m[i] = domain_m[i].length();
-    }
-
-    rhocmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
-    grncmpl_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1));
-
-    rho_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1), bc_m);
-    phi_m.initialize(*mesh_m, *layout_m, GuardCellSizes<Dim>(1), bcp_m);
-    eg_m.initialize (*mesh_m, *layout_m, GuardCellSizes<Dim>(1), vbc_m);
-
-    bool compressTemps = true;
-    if (fft_m)
-        fft_m.reset();
-
-    // create the FFT object
-    fft_m = std::unique_ptr<FFTC_t>(new FFTC_t(layout_m->getDomain(), compressTemps));
-    fft_m->setDirectionName(+1, "forward");
-    fft_m->setDirectionName(-1, "inverse");
-
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////
 // destructor
 P3MPoissonSolver::~P3MPoissonSolver() {
 }
 
-void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3> *bunch, double interaction_radius, double alpha, double eps) {
-    if (interaction_radius>0){
-        if (Ippl::getNodes() > 1) {
-            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-            HashPairBuilderPeriodicParallel<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+
+void P3MPoissonSolver::initializeFields() {
+
+    domain_m = layout_mp->getDomain();
+
+    // For efficiency in the FFT's, we can use a parallel decomposition
+    // which can be serial in the first dimension.
+    e_dim_tag decomp[3];
+    e_dim_tag decomp2[3];
+    for(int d = 0; d < 3; ++ d) {
+        decomp[d] = layout_mp->getRequestedDistribution(d);
+        decomp2[d] = layout_mp->getRequestedDistribution(d);
+    }
+
+    // The FFT's require double-sized field sizes in order to
+    // simulate an isolated system.  The FFT of the charge density field, rho,
+    // would otherwise mimic periodic boundary conditions, i.e. as if there were
+    // several beams set a periodic distance apart.  The double-sized fields
+    // alleviate this problem.
+    for (int i = 0; i < 3; ++ i) {
+        hr_m[i] = mesh_mp->get_meshSpacing(i);
+        nr_m[i] = domain_m[i].length();
+        domain2_m[i] = Index(2 * nr_m[i] + 1);
+    }
+
+    // create double sized mesh and layout objects for the use in the FFT's
+    mesh2_mp = std::unique_ptr<Mesh_t>(new Mesh_t(domain2_m));
+    layout2_mp = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh2_mp, decomp));
+
+    rho2_m.initialize(*mesh2_mp, *layout2_mp);
+
+    // Create the domain for the transformed (complex) fields.  Do this by
+    // taking the domain from the doubled mesh, permuting it to the right, and
+    // setting the 2nd dimension to have n/2 + 1 elements.
+    domain3_m[0] = Index(2 * nr_m[2] + 1);
+    domain3_m[1] = Index(nr_m[0] + 2);
+    domain3_m[2] = Index(2 * nr_m[1] + 1);
+
+    // create mesh and layout for the new real-to-complex FFT's, for the
+    // complex transformed fields
+    mesh3_mp = std::unique_ptr<Mesh_t>(new Mesh_t(domain3_m));
+    layout3_mp = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh3_mp, decomp2));
+
+    rho2tr_m.initialize(*mesh3_mp, *layout3_mp);
+    grntr_m.initialize(*mesh3_mp, *layout3_mp);
+
+    for (int i = 0; i < 3; ++ i) {
+        domain4_m[i] = Index(nr_m[i] + 2);
+    }
+    mesh4_mp = std::unique_ptr<Mesh_t>(new Mesh_t(domain4_m));
+    layout4_mp = std::unique_ptr<FieldLayout_t>(new FieldLayout_t(*mesh4_mp, decomp));
+
+    tmpgreen_m.initialize(*mesh4_mp, *layout4_mp);
+
+    // create a domain used to indicate to the FFT's how to construct it's
+    // temporary fields.  This is the same as the complex field's domain,
+    // but permuted back to the left.
+    NDIndex<3> tmpdomain;
+    tmpdomain = layout3_mp->getDomain();
+    for (int i = 0; i < 3; ++ i)
+        domainFFTConstruct_m[i] = tmpdomain[(i+1) % 3];
+
+    // create the FFT object
+    fft_mp = std::unique_ptr<FFT_t>(new FFT_t(layout2_mp->getDomain(), 
+                                             domainFFTConstruct_m));
+
+    if(!integratedGreens_m) {
+        // these are fields that are used for calculating the Green's function.
+        // they eliminate some calculation at each time-step.
+        for (int i = 0; i < 3; ++ i) {
+            grnIField_m[i].initialize(*mesh2_mp, *layout2_mp);
+            grnIField_m[i][domain2_m] = where(lt(domain2_m[i], nr_m[i]),
+                                              domain2_m[i] * domain2_m[i],
+                                              (2 * nr_m[i] - domain2_m[i]) *
+                                              (2 * nr_m[i] - domain2_m[i]));
+        }
+    }
+}
+
+
+void P3MPoissonSolver::calculatePairForces(PartBunchBase<double, 3>* bunch_p, double gammaz) {
+    
+    IpplTimings::startTimer(CalculatePairForces_m);
+    if (interaction_radius_m>0){
+        PartBunch& tmpBunch_r = *(dynamic_cast<PartBunch*>(bunch_p));
+        std::size_t size = tmpBunch_r.getLocalNum()+tmpBunch_r.getGhostNum();
+       
+        //Take the particles to the boosted frame
+        for(std::size_t i = 0;i<size;++i)
+        {
+            tmpBunch_r.R[i](2) = tmpBunch_r.R[i](2) * gammaz;
+        }
+        
+        HashPairBuilderParallel<PartBunch> HPB(tmpBunch_r,gammaz);
+        if(integratedGreens_m) {
+            //Note: alpha_m is not used for the integrated Green's function
+            //approach
+            HPB.forEach(RadiusCondition<double, Dim>(interaction_radius_m), 
+                         ApplyField<double>(interaction_radius_m,ke_m,integratedGreens_m));
         }
         else {
-            PartBunch &tmpBunch = *(dynamic_cast<PartBunch*>(bunch));
-            HashPairBuilderPeriodic<PartBunch> HPB(tmpBunch);
-            HPB.for_each(RadiusCondition<double, Dim>(interaction_radius), ApplyField<double>(-1,interaction_radius,eps,alpha),extend_l, extend_r);
+            HPB.forEach(RadiusCondition<double, Dim>(interaction_radius_m), 
+                         ApplyField<double>(alpha_m,ke_m,integratedGreens_m));
+        }
+        
+        //Bring the particles to the lab frame
+        for(std::size_t i = 0;i<size;++i)
+        {
+            tmpBunch_r.R[i](2) = tmpBunch_r.R[i](2) / gammaz;
         }
     }
-
-}
-
-void P3MPoissonSolver::calculateGridForces(PartBunchBase<double, 3> *bunch, double /*interaction_radius*/, double alpha, double eps){
-
-    Inform msg ("calculateGridForces ");
-    Vector_t l,h;
-
-    // (1) scatter charge to charge density grid and transform to fourier space
-    rho_m[domain_m]=0;
-    bunch->Q.scatter(rho_m, bunch->R, IntrplCIC_t());
-
-    rhocmpl_m[domain_m] = rho_m[domain_m]/(hr_m[0]*hr_m[1]*hr_m[2]);
-
-    fft_m->transform("inverse", rhocmpl_m);
-
-    // (2) compute Greens function in real space and transform to fourier space
-    IField_t grnIField[3];
-
-    // This loop stores in grnIField_m[i] the index of the ith dimension mirrored at the central axis. e.g.
-    // grnIField_m[0]=[(0 1 2 3 ... 3 2 1) ; (0 1 2 3 ... 3 2 1; ...)]
-    for (int i = 0; i < 3; ++i) {
-        grnIField[i].initialize(*mesh_m, *layout_m);
-        grnIField[i][domain_m] = where(lt(domain_m[i], nr_m[i]/2),
-                                       domain_m[i] * domain_m[i],
-                                       (nr_m[i]-domain_m[i]) *
-                                       (nr_m[i]-domain_m[i]));
-    }
-    Vector_t hrsq(hr_m * hr_m);
-    SpecializedGreensFunction<3>::calculate(hrsq, grncmpl_m, grnIField, alpha, eps);
-
-    //transform G -> Ghat and store in grncmpl_m
-    fft_m->transform("inverse", grncmpl_m);
-    //multiply in fourier space and obtain PhiHat in rhocmpl_m
-    rhocmpl_m *= grncmpl_m;
-
-    // (3) Backtransformation: compute potential field in real space and E=-Grad Phi
-    //compute electrostatic potential Phi in real space by FFT PhiHat -> Phi and store it in rhocmpl_m
-    fft_m->transform("forward", rhocmpl_m);
-
-    //take only the real part and store in phi_m (has periodic bc instead of interpolation bc)
-    phi_m = real(rhocmpl_m)*hr_m[0]*hr_m[1]*hr_m[2];
-    //dumpVTKScalar( phi_m, this,it, "Phi_m") ;
-
-    //compute Electric field on the grid by -Grad(Phi) store in eg_m
-    eg_m = -Grad1Ord(phi_m, eg_m);
-
-    //interpolate the electric field to the particle positions
-    bunch->Ef.gather(eg_m, bunch->R,  IntrplCIC_t());
-    //interpolate electrostatic potenital to the particle positions
-    bunch->Phi.gather(phi_m, bunch->R, IntrplCIC_t());
+    IpplTimings::stopTimer(CalculatePairForces_m);
 }
 
 
+// given a charge-density field rho and a set of mesh spacings hr,
+// compute the scalar potential in open space
+void P3MPoissonSolver::computePotential(Field_t& rho_r, Vector_t hr) {
+    IpplTimings::startTimer(ComputePotential_m);
+
+    // use grid of complex doubled in both dimensions
+    // and store rho in lower left quadrant of doubled grid
+    rho2_m = 0.0;
+
+    rho2_m[domain_m] = rho_r[domain_m];
+
+    // needed in greens function
+    hr_m = hr;
+
+    // FFT double-sized charge density
+    // we do a backward transformation so that we dont have to 
+    // account for the normalization factor
+    // that is used in the forward transformation of the IPPL FFT
+    fft_mp->transform(-1, rho2_m, rho2tr_m);
+
+    // must be called if the mesh size has changed
+    IpplTimings::startTimer(GreensFunctionTimer_m);
+    if(integratedGreens_m)
+        integratedGreensFunction();
+    else
+        greensFunction();
+    IpplTimings::stopTimer(GreensFunctionTimer_m);
+    // multiply transformed charge density
+    // and transformed Green function
+    // Don't divide by (2*nx_m)*(2*ny_m), as Ryne does;
+    // this normalization is done in IPPL's fft routine.
+    rho2tr_m *= grntr_m;
+
+    // inverse FFT, rho2_m equals to the electrostatic potential
+    fft_mp->transform(+1, rho2tr_m, rho2_m);
+    // end convolution
+
+    // back to physical grid
+    // reuse the charge density field to store the electrostatic potential
+    rho_r[domain_m] = rho2_m[domain_m];
+
+
+    rho_r *= hr[0] * hr[1] * hr[2];
+
+    IpplTimings::stopTimer(ComputePotential_m);
+}
 
 ////////////////////////////////////////////////////////////////////////////
 // given a charge-density field rho and a set of mesh spacings hr,
 // compute the electric potential from the image charge by solving
 // the Poisson's equation
 
-void P3MPoissonSolver::computePotential(Field_t &/*rho*/, Vector_t /*hr*/, double /*zshift*/) {
+void P3MPoissonSolver::computePotential(Field_t& /*rho*/, Vector_t /*hr*/, double /*zshift*/) {
 
-
-}
-
-void P3MPoissonSolver::computeAvgSpaceChargeForces(PartBunchBase<double, 3> *bunch) {
-
-    Inform m("computeAvgSpaceChargeForces ");
-
-    const double N =  static_cast<double>(bunch->getTotalNum());
-    double locAvgEf[Dim]={};
-    for (unsigned i=0; i<bunch->getLocalNum(); ++i) {
-        locAvgEf[0]+=std::abs(bunch->Ef[i](0));
-        locAvgEf[1]+=std::abs(bunch->Ef[i](1));
-        locAvgEf[2]+=std::abs(bunch->Ef[i](2));
-    }
-
-    reduce(&(locAvgEf[0]), &(locAvgEf[0]) + Dim,
-           &(globSumEf_m[0]), OpAddAssign());
-
-    //    m << "globSumEF = " << globSumEf_m[0] << "\t" << globSumEf_m[1] << "\t" << globSumEf_m[2] << endl;
-
-    avgEF_m[0]=globSumEf_m[0]/N;
-    avgEF_m[1]=globSumEf_m[1]/N;
-    avgEF_m[2]=globSumEf_m[2]/N;
+    throw OpalException("P3MPoissonSolver", "not implemented yet");
 
 }
 
+void P3MPoissonSolver::greensFunction() {
 
-void P3MPoissonSolver::applyConstantFocusing(PartBunchBase<double, 3> *bunch, double f, double r){
-    Vektor<double,Dim> beam_center(0,0,0);
-    Vector_t Rrel;
-    double scFoc = std::sqrt(dot(avgEF_m,avgEF_m));
-    for (unsigned i=0; i<bunch->getLocalNum(); ++i) {
-        Rrel=bunch->R[i] - beam_center;
-        bunch->Ef[i] += Rrel/r*f*scFoc;
-    }
+    Vector_t hrsq(hr_m * hr_m);
+    P3MGreensFunction<3>::calculate(hrsq, rho2_m, grnIField_m, alpha_m);
 
+    // we do a backward transformation so that we dont have to account 
+    // for the normalization factor
+    // that is used in the forward transformation of the IPPL FFT
+    fft_mp->transform(-1, rho2_m, grntr_m);
 }
 
-// given a charge-density field rho and a set of mesh spacings hr,
-// compute the scalar potential in open space
-void P3MPoissonSolver::computePotential(Field_t &/*rho*/, Vector_t /*hr*/) {
+/** If the beam has a longitudinal size >> transverse size the
+ * direct Green function at each mesh point is not efficient
+ * (needs a lot of mesh points along the transverse size to
+ * get a good resolution)
+ *
+ * If we assume the charge density function is uniform within 
+ * each cell then we can integrate the Green's function within
+ * a cell and use it to improve the accuracy.
+ *
+ * We do not use the standard P3M Green's function
+ * erf(\alpha r)/r and do the integration as no closed form
+ * expression is available. Instead we use the zeroth order
+ * truncated polynomial from "Hünenberger, P. H. (2000). 
+ * The Journal of Chemical Physics, 113(23), 10464-10476" 
+ * Table I in the appendix. The integration of higher-order 
+ * polynomials gives complex Green's functions and hence 
+ * has not been implemented yet.
+ */
+void P3MPoissonSolver::integratedGreensFunction() {
+    /**
+     * This integral can be calculated analytically in a closed from:
+     */
+    NDIndex<3> idx =  layout4_mp->getLocalNDIndex();
+    double cellVolume = hr_m[0] * hr_m[1] * hr_m[2];
+    tmpgreen_m = 0.0;
 
+    for(int k = idx[2].first(); k <= idx[2].last() + 1; k++) {
+        for(int j = idx[1].first(); j <=  idx[1].last() + 1; j++) {
+            for(int i = idx[0].first(); i <= idx[0].last() + 1; i++) {
 
-}
+                Vector_t vv = Vector_t(0.0);
+                vv(0) = i * hr_m[0] - hr_m[0] / 2;
+                vv(1) = j * hr_m[1] - hr_m[1] / 2;
+                vv(2) = k * hr_m[2] - hr_m[2] / 2;
 
-void P3MPoissonSolver::compute_temperature(PartBunchBase<double, 3> *bunch) {
+                double r = std::sqrt(vv(0) * vv(0) + vv(1) * vv(1) + vv(2) * vv(2));
+                double tmpgrn = 0.0;
+                if(r >= interaction_radius_m) {
+                    tmpgrn  = -vv(2) * vv(2) * std::atan(vv(0) * vv(1) / (vv(2) * r)) / 2;
+                    tmpgrn += -vv(1) * vv(1) * std::atan(vv(0) * vv(2) / (vv(1) * r)) / 2;
+                    tmpgrn += -vv(0) * vv(0) * std::atan(vv(1) * vv(2) / (vv(0) * r)) / 2;
+                    tmpgrn += vv(1) * vv(2) * std::log(vv(0) + r);
+                    tmpgrn += vv(0) * vv(2) * std::log(vv(1) + r);
+                    tmpgrn += vv(0) * vv(1) * std::log(vv(2) + r);
+                }
+                else {
+                    tmpgrn = -(vv(0) * vv(1) * vv(2) * (-9 * std::pow(interaction_radius_m, 2)
+                             + std::pow(r, 2))) / (6 * std::pow(interaction_radius_m, 3));
+                }
 
-    Inform m("compute_temperature ");
-    // double loc_temp[Dim]={0.0,0.0,0.0};
-    double loc_avg_vel[Dim]={0.0,0.0,0.0};
-    double avg_vel[Dim]={0.0,0.0,0.0};
+                tmpgreen_m[i][j][k] = tmpgrn / cellVolume;
 
-    for(unsigned long k = 0; k < bunch->getLocalNum(); ++k) {
-        for(unsigned i = 0; i < Dim; i++) {
-            loc_avg_vel[i]   += bunch->P[k](i);
+            }
         }
     }
-    reduce(&(loc_avg_vel[0]), &(loc_avg_vel[0]) + Dim,
-           &(avg_vel[0]), OpAddAssign());
 
-    const double N =  static_cast<double>(bunch->getTotalNum());
-    avg_vel[0]=avg_vel[0]/N;
-    avg_vel[1]=avg_vel[1]/N;
-    avg_vel[2]=avg_vel[2]/N;
+    
+    Index I = nr_m[0] + 1;
+    Index J = nr_m[1] + 1;
+    Index K = nr_m[2] + 1;
 
-    m << "avg_vel[0]= " << avg_vel[0] << " avg_vel[1]= " << avg_vel[1]  << " avg_vel[2]= " << avg_vel[2] << endl;
+    // the actual integration
+    rho2_m = 0.0;
+    rho2_m[I][J][K]  = tmpgreen_m[I+1][J+1][K+1];
+    rho2_m[I][J][K] += tmpgreen_m[I+1][J][K];
+    rho2_m[I][J][K] += tmpgreen_m[I][J+1][K];
+    rho2_m[I][J][K] += tmpgreen_m[I][J][K+1];
+    rho2_m[I][J][K] -= tmpgreen_m[I+1][J+1][K];
+    rho2_m[I][J][K] -= tmpgreen_m[I+1][J][K+1];
+    rho2_m[I][J][K] -= tmpgreen_m[I][J+1][K+1];
+    rho2_m[I][J][K] -= tmpgreen_m[I][J][K];
 
-    /*
-      for(unsigned long k = 0; k < bunch.getLocalNum(); ++k) {
-      for(unsigned i = 0; i < Dim; i++) {
-      loc_temp[i]   += (bunch.P[k](i)-avg_vel[i])*(bunch.P[k](i)-avg_vel[i]);
-      }
-      }
-      reduce(&(loc_temp[0]), &(loc_temp[0]) + Dim,
-      &(temperature[0]), OpAddAssign());
-      temperature[0]=temperature[0]/N;
-      temperature[1]=temperature[1]/N;
-      temperature[2]=temperature[2]/N;
-    */
+    mirrorRhoField();
+
+    fft_mp->transform(-1, rho2_m, grntr_m);
+
 }
 
-void P3MPoissonSolver::test(PartBunchBase<double, 3> *bunch) {
-    Inform msg("P3MPoissonSolver::test ");
+void P3MPoissonSolver::mirrorRhoField() {
 
-    // set special conditions for this test
-    const double mi = 1.0;
-    const double qi = -1.0;
-    const double qom = qi/mi;
-    const double beam_radius = 0.001774;
-    const double f = 1.5;
-    const double dt = bunch->getdT();
+    Index aI(0, 2 * nr_m[0]);
+    Index aJ(0, 2 * nr_m[1]);
 
-    OpalData *opal = OpalData::getInstance();
-    DataSink *ds = opal->getDataSink();
+    Index J(0, nr_m[1]);
+    Index K(0, nr_m[2]);
 
-    //    std::vector<std::pair<std::string, unsigned int> > collimatorLosses; // just empty
-    Vector_t FDext[6];
+    Index IE(nr_m[0] + 1, 2 * nr_m[0]);
+    Index JE(nr_m[1] + 1, 2 * nr_m[1]);
+    Index KE(nr_m[2] + 1, 2 * nr_m[2]);
 
-    bunch->Q = qi;
-    bunch->M = mi;
+    Index mirroredIE = 2 * nr_m[0] - IE;
+    Index mirroredJE = 2 * nr_m[1] - JE;
+    Index mirroredKE = 2 * nr_m[2] - KE;
 
-    bunch->calcBeamParameters();
+    rho2_m[0][0][0] = rho2_m[0][0][1];
 
-    initFields();
+    rho2_m[IE][J ][K ] = rho2_m[mirroredIE][J         ][K         ];
+    rho2_m[aI][JE][K ] = rho2_m[aI        ][mirroredJE][K         ];
+    rho2_m[aI][aJ][KE] = rho2_m[aI        ][aJ        ][mirroredKE];
 
-    for (int i=0; i<3; i++) {
-        extend_r[i] =  hr_m[i]*nr_m[i]/2;
-        extend_l[i] = -hr_m[i]*nr_m[i]/2;
-    }
-
-    msg << *this << endl;
-
-    // calculate initial space charge forces
-    calculateGridForces(bunch, interaction_radius_m, alpha_m, eps_m);
-    calculatePairForces(bunch, interaction_radius_m, alpha_m, eps_m);
-
-    //avg space charge forces for constant focusing
-    computeAvgSpaceChargeForces(bunch);
-
-    for (int it=0; it<1000; it++) {
-
-        // advance the particle positions
-        // basic leapfrogging timestep scheme.  velocities are offset
-        // by half a timestep from the positions.
-
-        assign(bunch->R, bunch->R + dt * bunch->P);
-
-        bunch->update();
-
-        calculateGridForces(bunch, interaction_radius_m, alpha_m, eps_m);
-        calculatePairForces(bunch, interaction_radius_m, alpha_m, eps_m);
-        applyConstantFocusing(bunch,f,beam_radius);
-
-        assign(bunch->P, bunch->P + dt * qom * bunch->Ef);
-
-        if (it%10 == 0){
-            bunch->calcBeamParameters();
-            ds->dumpSDDS(bunch, FDext, it);
-        }
-        msg << "Finished iteration " << it << endl;
-    }
 }
 
-
-Inform &P3MPoissonSolver::print(Inform &os) const {
+Inform &P3MPoissonSolver::print(Inform& os) const {
     os << "* ************* P 3 M - P o i s s o n S o l v e r *************** " << endl;
     os << "* h        " << hr_m << '\n';
     os << "* RC       " << interaction_radius_m << '\n';
     os << "* ALPHA    " << alpha_m << '\n';
-    os << "* EPSILON  " << eps_m << '\n';
-    os << "* Extend L " << extend_l << '\n';
-    os << "* Extend R " << extend_r << '\n';
-    os << "* hr       " << hr_m << '\n';
-    os << "* nr       " << nr_m << '\n';
     os << "* *************************************************************** " << endl;
     return os;
 }
