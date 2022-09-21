@@ -36,7 +36,7 @@ public:
 	{
 		std::fill(boxDimension, boxDimension+Dim, length);
 	}
-template<class C>
+    template<class C>
 	void updateCacheInformation(
 		ParticleSpatialLayout<T, Dim, Mesh, C > &PLayout
 		)
@@ -129,8 +129,9 @@ template<class C>
 												dom[d].last()  - onoff[d]*offset[d]);
 							tmpoffset[d] = onoff[d]*offset[d];
 						}
+                        
+                        regions[node].push_back(std::make_pair(dom,tmpoffset));
 
-						regions[node].push_back(std::make_pair(dom,tmpoffset));
 					}
 
 					//generate next combinations. this is basically a binary incrementer
@@ -150,7 +151,7 @@ template<class C>
 		}
 	}
 
-template<class C>
+    template<class C>
 	void updateGhostParticles(
 		IpplParticleBase< ParticleSpatialLayout<T,Dim,Mesh,C > > &PData,
 		ParticleSpatialLayout<T, Dim, Mesh, C > &/*PLayout*/

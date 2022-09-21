@@ -81,7 +81,7 @@ namespace {
         BCFFTX,     // boundary condition in x [FFT + AMR_MG only]
         BCFFTY,     // boundary condition in y [FFT + AMR_MG only]
         BCFFTZ,     // boundary condition in z [FFT + AMR_MG only]
-        GREENSF,    // holds greensfunction to be used [FFT only]
+        GREENSF,    // holds greensfunction to be used [FFT + P3M only]
         BBOXINCR,   // how much the boundingbox is increased
         GEOMETRY,   // geometry of boundary [SAAMG only]
         ITSOLVER,   // iterative solver [SAAMG + AMR_MG]
@@ -91,7 +91,6 @@ namespace {
         PRECMODE,   // preconditioner mode [SAAMG only]
         RC,         // cutoff radius for PP interactions
         ALPHA,      // Green’s function splitting parameter
-        EPSILON,    // regularization for PP interaction
 #ifdef ENABLE_AMR
         AMR_MAXLEVEL,       // AMR, maximum refinement level
         AMR_REFX,           // AMR, refinement ratio in x
@@ -133,7 +132,7 @@ FieldSolver::FieldSolver():
                "The \"FIELDSOLVER\" statement defines data for a the field solver") {
 
     itsAttr[FSTYPE] = Attributes::makePredefinedString("FSTYPE", "Name of the attached field solver.",
-                                                       {"FFT", "FFTPERIODIC", "SAAMG", "FMG", "ML", "AMR_MG", "NONE"});
+                                                       {"FFT", "FFTPERIODIC", "SAAMG", "FMG", "ML", "AMR_MG", "NONE","P3M"});
 
     itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
     itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
@@ -172,6 +171,7 @@ FieldSolver::FieldSolver():
                                                                   {"OPEN", "DIRICHLET", "PERIODIC"},
                                                                   "OPEN");
 
+    //GREENSF is also used in P3M
     itsAttr[GREENSF]  = Attributes::makePredefinedString("GREENSF",
                                                          "Which Greensfunction to be used.",
                                                          {"STANDARD", "INTEGRATED"},
@@ -187,13 +187,8 @@ FieldSolver::FieldSolver():
                                        0.0);
 
     itsAttr[ALPHA] = Attributes::makeReal("ALPHA",
-                                          "Green’s function splitting parameter",
-                                          0.0);
-
-    itsAttr[EPSILON] = Attributes::makeReal("EPSILON",
-                                            "regularization for PP interaction",
-                                            0.0);
-
+                                          "Standard Ewald Green’s function splitting parameter",
+                                          1e8);
     //SAAMG and in case of FFT with dirichlet BC in x and y
     itsAttr[GEOMETRY] = Attributes::makeUpperCaseString("GEOMETRY",
                                                         "GEOMETRY to be used as domain boundary",
@@ -557,10 +552,9 @@ void FieldSolver::initSolver(PartBunchBase<double, 3>* b) {
                                         FL_m,
                                         Attributes::getReal(itsAttr[RC]),
                                         Attributes::getReal(itsAttr[ALPHA]),
-                                        Attributes::getReal(itsAttr[EPSILON]));
+                                        greens);
 
-        PL_m->setAllCacheDimensions(Attributes::getReal(itsAttr[RC]));
-        PL_m->enableCaching();
+        itsBunch_m->set_meshEnlargement(Attributes::getReal(itsAttr[BBOXINCR]) / 100.0);
 
     } else if (fsType_m == FieldSolverType::SAAMG) {
 #ifdef HAVE_SAAMG_SOLVER
@@ -611,11 +605,11 @@ Inform& FieldSolver::printInfo(Inform& os) const {
        << "* MT           " << Attributes::getReal(itsAttr[MT])   << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << endl;
     if (fsType_m == FieldSolverType::P3M) {
-        os << "* RC           " << Attributes::getReal(itsAttr[RC])      << '\n'
-           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA])   << '\n'
-           << "* EPSILON      " << Attributes::getReal(itsAttr[EPSILON]) << endl;
+        os << "* RC           " << Attributes::getReal(itsAttr[RC]) << '\n'
+           << "* ALPHA        " << Attributes::getReal(itsAttr[ALPHA]) << '\n'
+           << "* GREENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
     } else if (fsType_m == FieldSolverType::FFT) {
-        os << "* GRRENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
+        os << "* GREENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
     } else if (fsType_m == FieldSolverType::SAAMG) {
         os << "* GEOMETRY     " << Attributes::getString(itsAttr[GEOMETRY]) << '\n'
            << "* ITSOLVER     " << Attributes::getString(itsAttr[ITSOLVER]) << '\n'

@@ -55,6 +55,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
       rmax_m(0.0),
       rmin_m(0.0),
+      rmsDensity_m(0.0),
       hr_m(-1.0),
       nr_m(0),
       fs_m(nullptr),
@@ -408,6 +409,12 @@ void PartBunchBase<T, Dim>::calcGammas_cycl() {
 
 }
 
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcDebyeLength() {
+    momentsComputer_m.computeDebyeLength(*this, rmsDensity_m);
+
+}
+
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getBinGamma(int bin) {
@@ -574,6 +581,22 @@ void PartBunchBase<T, Dim>::boundp() {
 
         Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
         this->updateFields(hr_m, origin);
+
+        if (fs_m->getFieldSolverType() == FieldSolverType::P3M) {
+            Layout_t* layoutp = static_cast<Layout_t*>(&getLayout());
+            layoutp->setCacheDimension(0,fs_m->solver_m->getinteractionRadius());
+            layoutp->setCacheDimension(1,fs_m->solver_m->getinteractionRadius());
+            
+            double gammaz = sum(this->P)[2] / getTotalNum();
+            gammaz *= gammaz;
+            gammaz = std::sqrt(gammaz + 1.0);
+
+            //Interaction radius is set in the boosted frame but ghost particles 
+            //are identified in the lab frame that's why we divide by gammaz here
+            layoutp->setCacheDimension(2,fs_m->solver_m->getinteractionRadius()/gammaz);
+            layoutp->enableCaching();
+        }
+
     }
     IpplTimings::startTimer(boundpUpdateTimer_m);
     update();
@@ -1047,6 +1070,26 @@ double PartBunchBase<T, Dim>::get_meanKineticEnergy() const {
 
 
 template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_temperature() const {
+    return momentsComputer_m.getTemperature();
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_debyeLength() const {
+    return momentsComputer_m.getDebyeLength();
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_plasmaParameter() const {
+    return momentsComputer_m.getPlasmaParameter();
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::get_rmsDensity() const {
+    return rmsDensity_m;
+}
+
+template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_origin() const {
     return rmin_m;
 }
@@ -1300,6 +1343,7 @@ void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
 //         this->setMesh(fs_m->getMesh());
 //         this->setFieldLayout(fs_m->getFieldLayout());
     }
+    
 }
 
 

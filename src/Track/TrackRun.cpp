@@ -58,6 +58,7 @@
 #include <fstream>
 #include <iomanip>
 
+
 extern Inform *gmsg;
 
 std::shared_ptr<Tracker> TrackRun::itsTracker = nullptr;
@@ -102,9 +103,9 @@ TrackRun::TrackRun():
     macromass_m(0.0),
     macrocharge_m(0.0) {
     itsAttr[METHOD] = Attributes::makePredefinedString
-        ("METHOD", "Name of tracking algorithm to use.",
-         {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T"});
-
+                      ("METHOD", "Name of tracking algorithm to use.",
+                       {"THICK", "OPAL-T", "PARALLEL-T", "OPAL-CYCL", "CYCLOTRON-T"});
+    
     itsAttr[TURNS] = Attributes::makeReal
         ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron.", 1.0);
 
@@ -231,13 +232,12 @@ void TrackRun::execute() {
     }
 
     if (method_m == RunMethod::THICK) {
-        int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
+       	int turns = int(std::round(Attributes::getReal(itsAttr[TURNS])));
 
         // Track for the all but last turn.
         for (int turn = 1; turn < turns; ++turn) {
             itsTracker->execute();
         }
-
         // Track the last turn.
         itsTracker->execute();
 
@@ -438,12 +438,7 @@ void TrackRun::setupTTracker(){
     *gmsg << *fs   << endl;
 
     // findPhasesForMaxEnergy();
-
-#ifdef P3M_TEST
-
-    Track::block->bunch->runTests();
-
-#else
+    
     itsTracker.reset(new ParallelTTracker(*Track::block->use->fetchLine(),
                                       Track::block->bunch,
                                       *ds,
@@ -454,7 +449,6 @@ void TrackRun::setupTTracker(){
                                       Track::block->zstart,
                                       Track::block->zstop,
                                       Track::block->dT));
-#endif
 }
 
 void TrackRun::setupCyclotronTracker(){
@@ -594,6 +588,7 @@ void TrackRun::setupFieldsolver() {
 
         if (!opal->inRestartRun() && numParticles < numGridPoints
             && fs->getFieldSolverType() != FieldSolverType::SAAMG // in SPIRAL/SAAMG we're meshing the whole domain -DW
+            && fs->getFieldSolverType() != FieldSolverType::P3M //In P3M with one-one mapping grid points can be less than particles
             && !Options::amr)
         {
             throw OpalException("TrackRun::setupFieldsolver()",

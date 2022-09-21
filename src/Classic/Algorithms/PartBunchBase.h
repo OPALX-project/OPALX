@@ -141,6 +141,9 @@ public:
 
     void calcGammas_cycl();
 
+    /** \brief Compute the (global) Debye length for the beam */
+    void calcDebyeLength();
+
     /** \brief Get gamma of one bin */
     double getBinGamma(int bin);
 
@@ -307,6 +310,10 @@ public:
 
     double get_gamma() const;
     double get_meanKineticEnergy() const;
+    double get_temperature() const;
+    double get_debyeLength() const;
+    double get_plasmaParameter() const;
+    double get_rmsDensity() const;
     Vector_t get_origin() const;
     Vector_t get_maxExtent() const;
     Vector_t get_centroid() const;
@@ -650,6 +657,9 @@ protected:
     Vector_t rmax_m;
     /// minimal extend of particles
     Vector_t rmin_m;
+
+    //RMS number density of particles from grid
+    double rmsDensity_m;
 
     /// meshspacing of cartesian mesh
     Vector_t hr_m;

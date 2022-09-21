@@ -41,8 +41,6 @@ public:
 
 //     pbase_t* clone();
 
-    void runTests();
-
     void initialize(FieldLayout_t *fLayout);
 
     void do_binaryRepart();
