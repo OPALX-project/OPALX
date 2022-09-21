@@ -433,18 +433,16 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunchBase<double, 3> cons
 void DistributionMoments::computeDebyeLength(PartBunchBase<double, 3> const& bunch_r, double density)
 {
     
-    //double locAvgVel[3]={0.0,0.0,0.0};
     double avgVel[3]={0.0,0.0,0.0};
 
     //From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
     for (OpalParticle const& particle_r: bunch_r) {
         for(unsigned i = 0; i < 3; i++) {
             avgVel[i]   += ((particle_r.getP()[i] * Physics::c)/
-                                (Util::getGamma(particle_r.getP())));
+                            (Util::getGamma(particle_r.getP())));
         }
     }
-    //reduce(&(locAvgVel[0]), &(locAvgVel[0]) + 3,
-    //       &(avgVel[0]), OpAddAssign());
+    
     allreduce(avgVel, 3, std::plus<double>());
 
     const double N =  static_cast<double>(bunch_r.getTotalNum());
