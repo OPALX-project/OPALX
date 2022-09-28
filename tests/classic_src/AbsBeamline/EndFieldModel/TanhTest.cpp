@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include "gtest/gtest.h"
 #include "Classic/AbsBeamline/EndFieldModel/Tanh.h"
 
