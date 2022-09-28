@@ -14,12 +14,12 @@ include_directories (
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
-    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}/src
     ${Boost_LIBRARY_DIRS}
 )
 
 set (MSLANG_LIBS
-    libOPAL
+    OPAL
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
