@@ -19,7 +19,7 @@ link_directories (
 )
 
 set (MSLANG_LIBS
-    OPAL
+    libOPALstatic
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
