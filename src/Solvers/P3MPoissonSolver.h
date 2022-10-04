@@ -60,15 +60,15 @@ public:
 
     void initializeFields();
     
-    void calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz);
+    void calculatePairForces(PartBunchBase<double, 3> *bunch, double gammaz) override;
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential in open space
-    void computePotential(Field_t &rho, Vector_t hr);
+    void computePotential(Field_t &rho, Vector_t hr) override;
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
-    void computePotential(Field_t &rho, Vector_t hr, double zshift);
+    void computePotential(Field_t &rho, Vector_t hr, double zshift) override;
 
     void greensFunction();
 
@@ -76,14 +76,14 @@ public:
 
     void mirrorRhoField();
 
-    void test(PartBunchBase<double, 3> */*bunch*/) { }
+    void test(PartBunchBase<double, 3> */*bunch*/) override {};
 
-    double getXRangeMin(unsigned short /*level*/) {return 1.0;}
-    double getXRangeMax(unsigned short /*level*/) {return 1.0;}
-    double getYRangeMin(unsigned short /*level*/) {return 1.0;}
-    double getYRangeMax(unsigned short /*level*/) {return 1.0;}
-    double getZRangeMin(unsigned short /*level*/) {return 1.0;}
-    double getZRangeMax(unsigned short /*level*/) {return 1.0;}
+    double getXRangeMin(unsigned short /*level*/) override {return 1.0;}
+    double getXRangeMax(unsigned short /*level*/) override {return 1.0;}
+    double getYRangeMin(unsigned short /*level*/) override {return 1.0;}
+    double getYRangeMax(unsigned short /*level*/) override {return 1.0;}
+    double getZRangeMin(unsigned short /*level*/) override {return 1.0;}
+    double getZRangeMax(unsigned short /*level*/) override {return 1.0;}
     double getinteractionRadius() const override {return interaction_radius_m;}
 
     Inform &print(Inform &os) const;
