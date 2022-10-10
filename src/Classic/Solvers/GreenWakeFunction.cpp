@@ -458,7 +458,6 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     std::string name;
     char temp[256];
     int Np;
-    double dummy;
     gsl_fft_real_wavetable *real;
     gsl_fft_real_workspace *work;
     std::ifstream fs;
@@ -499,7 +498,7 @@ void GreenWakeFunction::setWakeFromFile(int NBin_m, double spacing) {
     // read the wakefunction
     for (int i = 0; i < Np; i ++) {
         if (!fs.eof()) {
-            fs >> dist[i] >> wake[i] >> dummy;
+            fs >> dist[i] >> wake[i];
         }
         if (fs.eof()) {
             throw GeneralClassicException("GreenWakeFunction::setWakeFromFile",
