@@ -29,7 +29,7 @@ extern Inform *gmsg;
 #include <limits>
 #include <string>
 
-int run_opal(char */*args*/[], std::string inputfile, int restartStep,
+int run_opal(char */*args*/[], std::string inputfile, //int restartStep,
              int infoLevel, int warnLevel, MPI_Comm comm)
 {
     std::string::size_type startExtension    = inputfile.find_last_of('.');
@@ -66,6 +66,7 @@ int run_opal(char */*args*/[], std::string inputfile, int restartStep,
     }
 
     // run simulation
+    /*
     OpalParser *parser = new OpalParser();
 
     if (restartStep > std::numeric_limits<int>::min()) {
@@ -75,7 +76,7 @@ int run_opal(char */*args*/[], std::string inputfile, int restartStep,
     }
 
     if(is) parser->run(is);
-
+    */
     Ippl::Comm->barrier();
 
     IpplInfo::Info->setDestination(std::cout);
@@ -86,7 +87,7 @@ int run_opal(char */*args*/[], std::string inputfile, int restartStep,
     //OPAL->reset();
     OpalData::deleteInstance();
     Fieldmap::clearDictionary();
-    delete parser;
+    //delete parser;
     delete gmsg;
 
 #ifdef ENABLE_AMR

@@ -43,19 +43,22 @@
 #include "BasicActions/Value.h"
 
 // Macro command.
-#include "OpalParser/MacroCmd.h"
+// #include "OpalParser/MacroCmd.h"
 
 // Commands introducing a special mode.
 #include "Track/TrackCmd.h"
 
 // Table-related commands.
+
 #include "Structure/Beam.h"
 #include "Structure/FieldSolver.h"
+/*
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/OpalWake.h"
 #include "Structure/ParticleMatterInteraction.h"
 #include "Utilities/OpalFilter.h"
 #include "TrimCoils/OpalTrimCoil.h"
+*/
 #include "Tables/List.h"
 
 // Value definitions commands.
@@ -66,16 +69,20 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
+#include "Elements/OpalMarker.h"
+#include "Elements/OpalDrift.h"
+#include "Elements/OpalMonitor.h"
+/*
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCCollimator.h"
 #include "Elements/OpalCyclotron.h"
 #include "Elements/OpalDegrader.h"
-#include "Elements/OpalDrift.h"
+
 #include "Elements/OpalECollimator.h"
 #include "Elements/OpalFlexibleCollimator.h"
 #include "Elements/OpalHKicker.h"
 #include "Elements/OpalKicker.h"
-#include "Elements/OpalMarker.h"
+
 #include "Elements/OpalMonitor.h"
 #include "Elements/OpalMultipole.h"
 #include "Elements/OpalMultipoleT.h"
@@ -110,6 +117,7 @@
 #include "Elements/OpalVariableRFCavityFringeField.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
 #include "Elements/OpalVKicker.h"
+*/
 
 #ifdef ENABLE_OPAL_FEL
 #include "Elements/OpalUndulator.h"
@@ -117,17 +125,20 @@
 
 // Structure-related commands.
 #include "Lines/Line.h"
-#include "Lines/Sequence.h"
+//#include "Lines/Sequence.h"
 
 // Optimize command
+/*
 #include "Optimize/OptimizeCmd.h"
 #include "Optimize/DVar.h"
 #include "Optimize/Objective.h"
 #include "Optimize/Constraint.h"
-
+*/
 // Sample command
+/*
 #include "Sample/SampleCmd.h"
 #include "Sample/OpalSample.h"
+*/
 
 #include "changes.h"
 
@@ -145,8 +156,8 @@ namespace {
         opal->create(new Help());
         opal->create(new List());
         opal->create(new Option());
-        opal->create(new OptimizeCmd());
-        opal->create(new SampleCmd());
+        //        opal->create(new OptimizeCmd());
+        //        opal->create(new SampleCmd());
         opal->create(new Select());
         opal->create(new Stop());
         opal->create(new Quit());
@@ -168,37 +179,46 @@ namespace {
 
         opal->create(new Beam());
         opal->create(new FieldSolver());
-        opal->create(new BoundaryGeometry());
-        opal->create(new OpalWake());
-        opal->create(new ParticleMatterInteraction());
+        // opal->create(new BoundaryGeometry());
+        // opal->create(new OpalWake());
+        // opal->create(new ParticleMatterInteraction());
 
-        opal->create(new OpalFilter());
-        opal->create(new OpalTrimCoil());
+        // opal->create(new OpalFilter());
+        // opal->create(new OpalTrimCoil());
 
         opal->create(new Distribution());
 
-        opal->create(new MacroCmd());
 
+        /*
+        opal->create(new MacroCmd());
         opal->create(new DVar());
         opal->create(new Objective());
         opal->create(new Constraint());
 
         opal->create(new OpalSample());
+        */
+        
     }
 
     void makeElements() {
         OpalData *opal = OpalData::getInstance();
+        /*
         opal->create(new OpalCavity());
         opal->create(new OpalCCollimator());
         opal->create(new OpalCyclotron());
         opal->create(new OpalDegrader());
         opal->create(new OpalDrift());
+        */
+        opal->create(new OpalDrift());
+        opal->create(new OpalMarker());
+        opal->create(new OpalMonitor());
+        /*
         opal->create(new OpalECollimator());
         opal->create(new OpalFlexibleCollimator());
         opal->create(new OpalHKicker());
         opal->create(new OpalKicker());
-        opal->create(new OpalMarker());
-        opal->create(new OpalMonitor());
+
+        
         opal->create(new OpalMultipole());
         opal->create(new OpalMultipoleT());
         opal->create(new OpalMultipoleTStraight());
@@ -206,9 +226,13 @@ namespace {
         opal->create(new OpalMultipoleTCurvedVarRadius());
         opal->create(new OpalOctupole());
         opal->create(new OpalOffset::OpalLocalCartesianOffset());
-//        opal->create(new OpalOffset::OpalLocalCylindricalOffset());
+
+        */        
+        //        opal->create(new OpalOffset::OpalLocalCylindricalOffset());
 //        opal->create(new OpalOffset::OpalGlobalCartesianOffset());
 //        opal->create(new OpalOffset::OpalGlobalCylindricalOffset());
+
+/*
         opal->create(new OpalPepperPot());
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalProbe());
@@ -227,6 +251,7 @@ namespace {
         opal->create(new OpalSource());
         opal->create(new OpalStripper());
         opal->create(new OpalTravelingWave());
+
 #ifdef ENABLE_OPAL_FEL        
         opal->create(new OpalUndulator());
 #endif
@@ -235,9 +260,9 @@ namespace {
         opal->create(new OpalVariableRFCavityFringeField());
         opal->create(new OpalVerticalFFAMagnet());
         opal->create(new OpalVKicker());
-
+        */
         opal->create(new Line());
-        opal->create(new Sequence());
+        //        opal->create(new Sequence());
     }
 };
 

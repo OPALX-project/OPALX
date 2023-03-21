@@ -31,7 +31,7 @@
 #include "Utilities/EarlyLeaveException.h"
 #include "Utilities/Util.h"
 
-#include "Util/SDDSParser/SDDSParserException.h"
+#include "Utilities/SDDSParser/SDDSParserException.h"
 
 #include "OPALconfig.h"
 
