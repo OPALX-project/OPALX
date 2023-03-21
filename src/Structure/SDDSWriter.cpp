@@ -21,7 +21,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunchBase.h"
 #include "OPALconfig.h"
-#include "Util/SDDSParser.h"
+#include "Utilities/SDDSParser.h"
 #include "Utilities/Util.h"
 
 #include "Utility/IpplInfo.h"

@@ -599,7 +599,7 @@ public:
     double dtScInit_m, deltaTau_m;
 
     // get 2nd order momentum matrix
-    FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix();
+    FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix() const ;
 
 private:
     // save particles in case of one core

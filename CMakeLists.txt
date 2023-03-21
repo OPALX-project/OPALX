@@ -279,9 +279,8 @@ add_custom_command(
     )
 
 add_subdirectory (ippl)
-add_subdirectory (optimizer)
 add_subdirectory (src)
-add_subdirectory (tools)
+#add_subdirectory (tools)
 
 if (BUILD_OPAL_UNIT_TESTS)
     add_subdirectory (tests)

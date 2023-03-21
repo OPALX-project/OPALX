@@ -1968,7 +1968,7 @@ void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
 }
 
 template <class T, unsigned Dim>
-FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() {
+FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() const {
     //const double  N =  static_cast<double>(this->getTotalNum());
 
     Vektor<double, 2*Dim> rpmean;

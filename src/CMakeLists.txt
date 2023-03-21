@@ -67,7 +67,6 @@ endmacro ()
 
 add_opal_sources (opal.cpp)
 add_opal_sources (changes.cpp)
-
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algorithms)
 add_subdirectory (Attributes)
@@ -79,8 +78,7 @@ add_subdirectory (Expressions)
 add_subdirectory (Lines)
 add_subdirectory (OpalConfigure)
 add_subdirectory (OpalParser)
-add_subdirectory (Optimize)
-add_subdirectory (Sample)
+#add_subdirectory (Sample)
 add_subdirectory (Solvers)
 add_subdirectory (Steppers)
 add_subdirectory (Structure)
@@ -105,12 +103,10 @@ include_directories (BEFORE
     ${IPPL_SOURCE_DIRS}
     ${AMREX_INCLUDE_DIR}
     ${GTEST_INCLUDE_DIRS}
-    ${OPTP_INCLUDE_DIR}
     )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
-    ${OPTP_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
     ${AMREX_LIBRARY_DIR}
@@ -134,8 +130,6 @@ target_link_libraries (libOPAL
 add_executable (opal Main.cpp)
 target_link_libraries( opal
     libOPAL
-    ${OPTP_LIBS}
-    ${OPTP_LIBRARY}
     ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
