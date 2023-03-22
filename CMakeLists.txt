@@ -278,7 +278,9 @@ add_custom_command(
     always_rebuild
     )
 
-add_subdirectory (ippl)
+find_package (Ippl REQUIRED)
+#add_subdirectory (${IPPL_ROOT}/.. ${IPPL_ROOT}/../build)
+add_subdirectory (../ippl ../ippl/build)
 add_subdirectory (src)
 #add_subdirectory (tools)
 
