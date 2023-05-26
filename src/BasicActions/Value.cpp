@@ -18,7 +18,7 @@
 #include "BasicActions/Value.h"
 
 #include "Attributes/Attributes.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utility/Inform.h"
 
 #include <string>

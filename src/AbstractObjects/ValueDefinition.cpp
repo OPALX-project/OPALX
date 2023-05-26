@@ -18,7 +18,7 @@
 
 #include "AbstractObjects/ValueDefinition.h"
 #include "AbstractObjects/Object.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/OpalException.h"
 
 

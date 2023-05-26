@@ -24,11 +24,6 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Solvers/PoissonSolver.h"
-#ifdef ENABLE_AMR
-    #include "Amr/AmrObject.h"
-    #include "Solvers/AmrPoissonSolver.h"
-    #include <memory>
-#endif
 
 #include <string>
 
@@ -38,14 +33,7 @@ class PartBunchBase;
 enum class FieldSolverType: short {
     NONE = -1,
     FFT,
-    FFTBOX,
-    SAAMG,
-    P3M,
-    FMG,
-    ML,
-    AMRMG,
-    HYPRE,
-    HPGMG
+    FFTBOX
 };
 
 
@@ -108,32 +96,10 @@ public:
 
     bool hasPeriodicZ();
 
-    bool isAmrSolverType() const;
-
-#ifdef ENABLE_AMR
-    AmrObject *getAmrObject() {
-        return itsAmrObject_mp.get();
-    }
-    
-    const AmrObject *getAmrObject() const {
-        return itsAmrObject_mp.get();
-    }
-#endif
-
     /// the actual solver, should be a base object
     PoissonSolver* solver_m;
 
 private:
-#ifdef ENABLE_AMR
-
-    std::string getTagging_m() const;
-
-    void initAmrObject_m();
-    
-    void initAmrSolver_m();
-    
-    std::unique_ptr<AmrObject> itsAmrObject_mp;
-#endif
 
     // Not implemented.
     FieldSolver(const FieldSolver&);

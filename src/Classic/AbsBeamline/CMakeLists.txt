@@ -6,10 +6,8 @@ set (_SRCS
     BeamlineVisitor.cpp
     Bend2D.cpp
     BendBase.cpp
-    CCollimator.cpp
     Component.cpp
     Corrector.cpp
-    Cyclotron.cpp
     Degrader.cpp
     Drift.cpp
     ElementBase.cpp
@@ -24,11 +22,9 @@ set (_SRCS
     MultipoleTCurvedVarRadius.cpp
     Offset.cpp
     PluginElement.cpp
-    Probe.cpp
     RBend.cpp
     RBend3D.cpp
     RFCavity.cpp
-    Ring.cpp
     SBend.cpp
     SBend3D.cpp
     ScalingFFAMagnet.cpp
@@ -38,9 +34,6 @@ set (_SRCS
     Stripper.cpp
     TravelingWave.cpp
     Vacuum.cpp
-    VariableRFCavity.cpp
-    VariableRFCavityFringeField.cpp
-    VerticalFFAMagnet.cpp
     )
 
 set (HDRS
@@ -48,10 +41,8 @@ set (HDRS
     BeamlineVisitor.h
     Bend2D.h
     BendBase.h
-    CCollimator.h
     Component.h
     Corrector.h
-    Cyclotron.h
     Degrader.h
     Drift.h
     ElementBase.h
@@ -66,7 +57,6 @@ set (HDRS
     MultipoleTCurvedVarRadius.h
     Offset.h
     PluginElement.h
-    Probe.h
     RBend.h
     RBend3D.h
     RFCavity.h

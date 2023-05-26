@@ -18,7 +18,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "AbstractObjects/Attribute.h"
 
 class Parser;

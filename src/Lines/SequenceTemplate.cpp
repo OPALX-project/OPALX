@@ -31,7 +31,7 @@
 #include "Lines/SequenceParser.h"
 #include "OpalParser/MacroStream.h"
 #include "OpalParser/OpalParser.h"
-#include "Parser/SimpleStatement.h"
+#include "OpalParser/SimpleStatement.h"
 #include "Utilities/ParseError.h"
 #include <vector>
 

@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Expressions.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <iomanip>
 #include <iostream>
 #include <list>

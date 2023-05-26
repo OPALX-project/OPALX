@@ -139,8 +139,6 @@ public:
     /** \brief Compute the gammas of all bins */
     void calcGammas();
 
-    void calcGammas_cycl();
-
     /** \brief Get gamma of one bin */
     double getBinGamma(int bin);
 
@@ -163,9 +161,6 @@ public:
      */
 
     virtual void boundp();
-
-    /** delete particles which are too far away from the center of beam*/
-    void boundp_destroyCycl();
 
     /** This is only temporary in order to get the collimator and pepperpot working */
     size_t boundp_destroyT();
@@ -385,18 +380,6 @@ public:
     void setNumBunch(short n);
     short getNumBunch() const;
 
-    // used in ParallelCyclotronTracker for multi-bunch mode
-    void setTotalNumPerBunch(size_t numpart, short n);
-    size_t getTotalNumPerBunch(short n) const;
-
-    void setLocalNumPerBunch(size_t numpart, short n);
-    size_t getLocalNumPerBunch(short n) const;
-
-    /* used in initializeTracking_m of ParallelCyclotronTracker
-     * for multi-bunch mode
-     */
-    void countTotalNumPerBunch();
-
     void setGlobalMeanR(Vector_t globalMeanR);
     Vector_t getGlobalMeanR();
     void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion);
@@ -472,9 +455,6 @@ public:
 
     //brief used for self fields with binned distribution
     virtual void computeSelfFields(int bin) = 0;
-
-    virtual void computeSelfFields_cycl(double gamma) = 0;
-    virtual void computeSelfFields_cycl(int bin) = 0;
 
     virtual void swap(unsigned int i, unsigned int j);
 

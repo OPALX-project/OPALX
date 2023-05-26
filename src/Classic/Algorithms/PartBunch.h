@@ -85,9 +85,6 @@ public:
     /** /brief used for self fields with binned distribution */
     void computeSelfFields(int b);
 
-    void computeSelfFields_cycl(double gamma);
-    void computeSelfFields_cycl(int b);
-
     void resetInterpolationCache(bool clearCache = false);
 
     void swap(unsigned int i, unsigned int j);
