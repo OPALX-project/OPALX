@@ -6,7 +6,7 @@ extern Inform *gmsg;
 #include "AbstractObjects/OpalData.h"
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
-#include "Parser/FileStream.h"
+#include "OpalParser/FileStream.h"
 #include "Utilities/OpalException.h"
 #include "Fields/Fieldmap.h"
 #include "Structure/IpplInfoWrapper.h"

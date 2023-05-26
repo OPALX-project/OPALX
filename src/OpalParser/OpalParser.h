@@ -18,7 +18,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Parser/Parser.h"
+#include "OpalParser/Parser.h"
 #include "MemoryManagement/Pointer.h"
 #include <string>
 #include <vector>

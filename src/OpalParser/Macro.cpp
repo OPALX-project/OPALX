@@ -18,7 +18,7 @@
 
 #include "OpalParser/Macro.h"
 #include "AbstractObjects/Expressions.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/ParseError.h"
 
 

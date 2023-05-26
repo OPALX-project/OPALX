@@ -17,7 +17,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/AttributeHandler.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/OpalException.h"
 
 #include <boost/algorithm/string/join.hpp>

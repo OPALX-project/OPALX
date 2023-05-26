@@ -53,10 +53,10 @@ set (CMAKE_CXX_EXTENSIONS OFF)
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
-add_compile_options (-Wall)
-add_compile_options (-Wunused)
+add_compile_options (-Wno-error)
+add_compile_options (-Wno-deprecated-declarations)
+add_compile_options (-Wno-unused)
 add_compile_options (-Wextra)
-add_compile_options (-Werror)
 
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
@@ -278,8 +278,10 @@ add_custom_command(
     always_rebuild
     )
 
-MESSAGE (STATUS "Ippl is at: " ${IPPL_ROOT})
-add_subdirectory (${IPPL_ROOT} ${IPPL_ROOT}/build)
+#MESSAGE (STATUS "Ippl is at: " ${IPPL_ROOT})
+#add_subdirectory (${IPPL_ROOT} ${IPPL_ROOT}/build)
+MESSAGE (STATUS "Ippl is at: /Users/adelmann/OPAL/tmp/src/OPAL/ippl-v1.x" )
+add_subdirectory (/Users/adelmann/OPAL/tmp/src/OPAL/ippl-v1.x /Users/adelmann/OPAL/tmp/src/OPAL/ippl-v1.x/build)
 add_subdirectory (src)
 
 if (BUILD_OPAL_UNIT_TESTS)

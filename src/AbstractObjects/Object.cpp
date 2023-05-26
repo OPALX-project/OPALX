@@ -21,7 +21,7 @@
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Invalidator.h"
 #include "AbstractObjects/Expressions.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 #include "Utilities/Util.h"

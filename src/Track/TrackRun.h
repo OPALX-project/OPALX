@@ -54,9 +54,7 @@ public:
 private:
     enum class RunMethod: unsigned short {
         NONE,
-        PARALLELT,
-        CYCLOTRONT,
-        THICK
+        PARALLELT
     };
 
     // Not implemented.
@@ -70,11 +68,8 @@ private:
     std::string getRunMethodName() const;
 
     void setupTTracker();
-    void setupCyclotronTracker();
-    void setupThickTracker();
     void setupFieldsolver();
-
-    void initDataSink(const int& numBunch = 1);
+    void initDataSink();
 
     void setBoundaryGeometry();
 

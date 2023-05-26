@@ -25,7 +25,7 @@
 #include "Lines/Sequence.h"
 #include "OpalParser/OpalParser.h"
 #include "MemoryManagement/Pointer.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/ClassicException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"

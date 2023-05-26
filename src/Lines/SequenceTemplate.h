@@ -25,7 +25,7 @@
 #define OPAL_SequenceTemplate_HH
 
 #include "OpalParser/Macro.h"
-#include "Parser/SimpleStatement.h"
+#include "OpalParser/SimpleStatement.h"
 #include "OpalParser/MacroStream.h"
 #include <list>
 

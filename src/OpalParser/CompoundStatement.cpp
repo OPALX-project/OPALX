@@ -19,7 +19,7 @@
 
 #include "OpalParser/CompoundStatement.h"
 #include "AbstractObjects/OpalData.h"
-#include "Parser/Parser.h"
+#include "OpalParser/Parser.h"
 
 
 // class CompoundStatement

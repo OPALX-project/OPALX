@@ -1,34 +1,5 @@
 add_definitions (-DPARALLEL_IO)
 
-if (ENABLE_SAAMG_SOLVER)
-    add_definitions (-DHAVE_SAAMG_SOLVER)
-    set (SAAMG_SOLVER_LIBS
-        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES}
-        ${Fortran_LIBS}
-        )
-else ()
-    set (SAAMG_SOLVER_LIBS "")
-endif ()
-
-if (ENABLE_AMR)
-    set(AMR_LIBS
-        ${MPI_Fortran_LIBRARIES}
-        ${Fortran_LIBS}
-        ${AMREX_EXTRA_Fortran_LINK_LINE}
-        ${AMREX_LIBRARIES}
-    )
-else ()
-    set(AMR_LIBS "")
-endif ()
-
-if (ENABLE_AMR AND ENABLE_AMR_MG_SOLVER)
-    add_definitions (-DHAVE_AMR_MG_SOLVER)
-    set (AMR_MG_SOLVER_LIBS
-        ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES})
-else ()
-    set (AMR_MG_SOLVER_LIBS "")
-endif ()
-
 get_directory_property (OPAL_COMPILE_OPTION_LIST COMPILE_OPTIONS)
 string (REGEX REPLACE "([^\\]|^);" "\\1 " OPAL_COMPILE_OPTIONS "${OPAL_COMPILE_OPTION_LIST}")
 configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
@@ -78,7 +49,7 @@ add_subdirectory (Expressions)
 add_subdirectory (Lines)
 add_subdirectory (OpalConfigure)
 add_subdirectory (OpalParser)
-#add_subdirectory (Sample)
+add_subdirectory (Physics)
 add_subdirectory (Solvers)
 add_subdirectory (Steppers)
 add_subdirectory (Structure)
@@ -86,10 +57,6 @@ add_subdirectory (Tables)
 add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
-
-if (ENABLE_AMR)
-    add_subdirectory (Amr)
-endif ()
 
 include_directories (BEFORE
     ${OPAL_SRC_DIR}
@@ -101,7 +68,6 @@ include_directories (BEFORE
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
-    ${AMREX_INCLUDE_DIR}
     ${GTEST_INCLUDE_DIRS}
     )
 
@@ -109,7 +75,6 @@ link_directories (
     ${IPPL_LIBRARY_DIR}
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
-    ${AMREX_LIBRARY_DIR}
     )
 
 #
@@ -121,9 +86,6 @@ add_library (libOPAL ${OPAL_SRCS})
 set_target_properties (libOPAL PROPERTIES OUTPUT_NAME OPAL)
 
 target_link_libraries (libOPAL
-    ${SAAMG_SOLVER_LIBS}
-    ${AMR_MG_SOLVER_LIBS}
-    ${AMR_LIBS}
     ${MPI_CXX_LIBRARIES}
     )
 

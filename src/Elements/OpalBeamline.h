@@ -27,6 +27,7 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Source.h"
+#include "AbsBeamline/Probe.h"
 
 #include "Utilities/ClassicField.h"
 
@@ -139,6 +140,11 @@ void OpalBeamline::visit<Marker>(const Marker &/*element*/, BeamlineVisitor &, P
 
 template<> inline
 void OpalBeamline::visit<Septum>(const Septum &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
+    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
+}
+
+template<> inline
+void OpalBeamline::visit<Probe>(const Probe &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
     WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 

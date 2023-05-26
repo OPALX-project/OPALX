@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/AttributeBase.h"
 #include "Expressions/SConstant.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <iosfwd>
 #include <iostream>
 #include <vector>

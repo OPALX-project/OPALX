@@ -1,4 +1,46 @@
 set (_SRCS
+    ArithmeticError.cpp
+    CLRangeError.cpp
+    ClassicException.cpp
+    ClassicField.cpp
+    ClassicRandom.cpp
+    ComplexErrorFun.cpp
+    ConvergenceError.cpp
+    DivideError.cpp
+    DomainError.cpp
+    EigenvalueError.cpp
+    FormatError.cpp
+    GeneralClassicException.cpp
+    LogicalError.cpp
+    Mesher.cpp
+    MSLang.cpp
+    MSLang/ArgumentExtractor.cpp
+    MSLang/BoundingBox2D.cpp
+    MSLang/Difference.cpp
+    MSLang/Ellipse.cpp
+    MSLang/Intersection.cpp
+    MSLang/Mask.cpp
+    MSLang/matheval.cpp
+    MSLang/Polygon.cpp
+    MSLang/QuadTree.cpp
+    MSLang/Rectangle.cpp
+    MSLang/Repeat.cpp
+    MSLang/Rotation.cpp
+    MSLang/Shear.cpp
+    MSLang/SymmetricDifference.cpp
+    MSLang/Translation.cpp
+    MSLang/Triangle.cpp
+    MSLang/Union.cpp
+    Options.cpp
+    OverflowError.cpp
+    ParseError.cpp
+    PortableBitmapReader.cpp
+    PortableGraymapReader.cpp
+    RingSection.cpp
+    SingularMatrixError.cpp
+    SizeError.cpp
+    SwitcherError.cpp
+    Util.cpp
     SDDSParser.cpp
     SDDSParser/array.cpp
     SDDSParser/associate.cpp
@@ -25,6 +67,50 @@ include_directories (
 add_opal_sources(${_SRCS})
 
 set (HDRS
+    ArithmeticError.h
+    CLRangeError.h
+    ClassicException.h
+    ClassicField.h
+    ClassicRandom.h
+    ComplexErrorFun.h
+    ConvergenceError.h
+    DivideError.h
+    DomainError.h
+    EigenvalueError.h
+    FormatError.h
+    GeneralClassicException.h
+    LogicalError.h
+    Mesher.h
+    MSLang.h
+    MSLang/ArgumentExtractor.h
+    MSLang/AffineTransformation.h
+    MSLang/BoundingBox2D.h
+    MSLang/Difference.h
+    MSLang/Ellipse.h
+    MSLang/Intersection.h
+    MSLang/Mask.h
+    MSLang/matheval.h
+    MSLang/matheval.hpp
+    MSLang/Polygon.h
+    MSLang/QuadTree.h
+    MSLang/Rectangle.h
+    MSLang/Repeat.h
+    MSLang/Rotation.h
+    MSLang/Shear.h
+    MSLang/SymmetricDifference.h
+    MSLang/Translation.h
+    MSLang/Triangle.h
+    MSLang/Union.h
+    Options.h
+    OverflowError.h
+    ParseError.h
+    PortableBitmapReader.h
+    PortableGraymapReader.h
+    RingSection.h
+    SingularMatrixError.h
+    SizeError.h
+    SwitcherError.h
+    Util.h
     EarlyLeaveException.h
     OpalException.h
     OpalFilter.h

@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Object.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <vector>
 
 class Statement;

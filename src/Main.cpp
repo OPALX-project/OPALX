@@ -20,10 +20,9 @@
 #include "AbstractObjects/OpalData.h"
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/OpalParser.h"
-#include "Parser/FileStream.h"
+#include "OpalParser/FileStream.h"
 #include "Utilities/Timer.h"
 #include "Fields/Fieldmap.h"
-#include "FixedAlgebra/FTps.h"
 
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"
@@ -34,10 +33,6 @@
 #include "Utilities/SDDSParser/SDDSParserException.h"
 
 #include "OPALconfig.h"
-
-#ifdef ENABLE_AMR
-#include <AMReX_ParallelDescriptor.H>
-#endif
 
 // IPPL
 #include "Message/Communicate.h"
@@ -99,9 +94,6 @@ namespace {
         INFOMSG("   --input <fname>          : Specifies the input file <fname>.\n");
         INFOMSG("   --restart <n>            : Performes a restart from step <n>.\n");
         INFOMSG("   --restartfn <fname>      : Uses the file <fname> to restart from.\n");
-#ifdef ENABLE_AMR
-        INFOMSG("   --noInitAMR              : Disable initialization of AMR\n");
-#endif
         Ippl::printHelp();
         INFOMSG("   --help-command <command> : Display the help for the command <command>\n");
         INFOMSG("   --help                   : Display this command-line summary.\n");
@@ -110,33 +102,11 @@ namespace {
 }
 
 
-bool checkInitAmrFlag(int argc, char* argv[]) {
-    std::string noamr = "noInitAMR";
-    bool initAMR = true;
-    for (int i = 0; i < argc; ++i) {
-        std::string sargv = std::string(argv[i]);
-        if ( sargv.find(noamr) != std::string::npos ) {
-            initAMR = false;
-            break;
-        }
-    }
-    return initAMR;
-}
-
-
 int main(int argc, char *argv[]) {
     Ippl *ippl = new Ippl(argc, argv);
     gmsg = new  Inform("OPAL");
 
     namespace fs = boost::filesystem;
-
-#ifdef ENABLE_AMR
-    bool initAMR = checkInitAmrFlag(argc, argv);
-    if ( initAMR ) {
-        // false: build no parmparse, we use the OPAL parser instead.
-        amrex::Initialize(argc, argv, false, Ippl::getComm());
-    }
-#endif
 
     H5SetVerbosityLevel(1); //65535);
 
@@ -155,11 +125,6 @@ int main(int argc, char *argv[]) {
     std::cerr.precision(16);
     std::cerr.setf(std::ios::scientific, std::ios::floatfield);
 
-    // Set global truncation orders.
-    FTps<double, 2>::setGlobalTruncOrder(20);
-    FTps<double, 4>::setGlobalTruncOrder(15);
-    FTps<double, 6>::setGlobalTruncOrder(10);
-
     OpalData *opal = OpalData::getInstance();
 
     /*
@@ -170,7 +135,7 @@ int main(int argc, char *argv[]) {
             boost::system::error_code error_code;
             if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
                 std::cerr << error_code.message() << std::endl;
-                // use error code to prevent create_directory from throwing an exception
+                //  use error code to prevent create_directory from throwing an exception
             }
         }
     }
@@ -303,8 +268,6 @@ int main(int argc, char *argv[]) {
                         argStr == std::string("--restartfn")) {
                 restartFileName = std::string(argv[++ ii]);
                 continue;
-            } else if ( argStr.find("noInitAMR") != std::string::npos) {
-                // do nothing here
             } else {
                 if (inputFileArgument == -1 &&
                     (ii == 1 || ii + 1 == argc) &&
@@ -508,12 +471,6 @@ int main(int argc, char *argv[]) {
     Fieldmap::clearDictionary();
     OpalData::deleteInstance();
     delete gmsg;
-
-#ifdef ENABLE_AMR
-    if ( initAMR ) {
-        amrex::Finalize(true);
-    }
-#endif
 
     delete ippl;
     delete Ippl::Info;

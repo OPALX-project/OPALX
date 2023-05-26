@@ -2,8 +2,6 @@ set (_SRCS
     OpalBend.cpp
     OpalCavity.cpp
     OpalTravelingWave.cpp
-    OpalCCollimator.cpp
-    OpalCyclotron.cpp
     OpalDrift.cpp
     OpalECollimator.cpp
     OpalFlexibleCollimator.cpp
@@ -53,8 +51,6 @@ set (HDRS
     OpalBeamline.h
     OpalBend.h
     OpalCavity.h
-    OpalCCollimator.h
-    OpalCyclotron.h
     OpalDegrader.h
     OpalDrift.h
     OpalECollimator.h

@@ -34,7 +34,7 @@
 
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
-#include "AbsBeamline/CCollimator.h"
+
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
@@ -107,9 +107,6 @@ public:
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline &);
-
-    /// Apply the algorithm to a collimator.
-    virtual void visitCCollimator(const CCollimator &);
 
     /// Apply the algorithm to a closed orbit corrector.
     virtual void visitCorrector(const Corrector &);
@@ -278,10 +275,6 @@ private:
     void evenlyDistributeParticles();
 };
 
-
-inline void ParallelTTracker::visitCCollimator(const CCollimator &coll) {
-    itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
-}
 
 inline void ParallelTTracker::visitCorrector(const Corrector &corr) {
     itsOpalBeamline_m.visit(corr, *this, itsBunch_m);

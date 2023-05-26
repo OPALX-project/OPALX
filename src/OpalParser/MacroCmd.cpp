@@ -27,7 +27,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "OpalParser/OpalParser.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/ParseError.h"
 #include <vector>
 

@@ -18,7 +18,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include <iosfwd>
 
 class Parser;

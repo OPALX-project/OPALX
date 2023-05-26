@@ -18,7 +18,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "OpalParser/MacroStream.h"
 #include "MemoryManagement/Pointer.h"
 #include <iosfwd>

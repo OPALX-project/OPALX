@@ -21,7 +21,6 @@
 #include "Elements/OpalElement.h"
 
 class BoundaryGeometry;
-
 class OpalWake;
 class ParticleMatterInteraction;
 

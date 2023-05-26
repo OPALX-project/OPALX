@@ -21,9 +21,9 @@
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SDeferred.h"
 #include "Expressions/SValue.h"
-#include "Parser/SimpleStatement.h"
-#include "Parser/StringStream.h"
-#include "Parser/Token.h"
+#include "OpalParser/SimpleStatement.h"
+#include "OpalParser/StringStream.h"
+#include "OpalParser/Token.h"
 #include "Utilities/ClassicException.h"
 #include "Utilities/ParseError.h"
 

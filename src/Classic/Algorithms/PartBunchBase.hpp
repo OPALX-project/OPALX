@@ -229,16 +229,6 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
-                                            size_t numberOfParticles,
-                                            double current,
-                                            const Beamline& bl) {
-    dist_m = d;
-    dist_m->createOpalCycl(this, numberOfParticles, current, bl);
-}
-
-
-template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::isGridFixed() const {
     return fixed_grid;
 }
@@ -379,34 +369,6 @@ void PartBunchBase<T, Dim>::calcGammas() {
                         << "between bin " << i - 1 << " and " << i << endl);
         }
     }
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcGammas_cycl() {
-
-    const int emittedBins = pbin_m->getLastemittedBin();
-
-    for (int i = 0; i < emittedBins; i++)
-        bingamma_m[i] = 0.0;
-    for (unsigned int n = 0; n < getLocalNum(); n++) {
-        if ( this->Bin[n] > -1 ) {
-            bingamma_m[this->Bin[n]] += std::sqrt(1.0 + dot(this->P[n], this->P[n]));
-        }
-    }
-
-    allreduce(*bingamma_m.get(), emittedBins, std::plus<double>());
-
-    for (int i = 0; i < emittedBins; i++) {
-        if (pbin_m->getTotalNumPerBin(i) > 0) {
-            bingamma_m[i] /= pbin_m->getTotalNumPerBin(i);
-        } else {
-            bingamma_m[i] = 0.0;
-        }
-        INFOMSG("Bin " << i << " : particle number = " << pbin_m->getTotalNumPerBin(i)
-                       << " gamma = " << bingamma_m[i] << endl);
-    }
-
 }
 
 
@@ -580,114 +542,6 @@ void PartBunchBase<T, Dim>::boundp() {
     update();
     IpplTimings::stopTimer(boundpUpdateTimer_m);
     R.resetDirtyFlag();
-
-    IpplTimings::stopTimer(boundpTimer_m);
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::boundp_destroyCycl() {
-
-    Vector_t len;
-    const int dimIdx = 3;
-    IpplTimings::startTimer(boundpTimer_m);
-
-    std::unique_ptr<size_t[]> countLost;
-    if (weHaveBins()) {
-        const int tempN = pbin_m->getLastemittedBin();
-        countLost = std::unique_ptr<size_t[]>(new size_t[tempN]);
-        for (int ii = 0; ii < tempN; ii++) countLost[ii] = 0;
-    }
-
-    this->updateDomainLength(nr_m);
-
-    IpplTimings::startTimer(boundpBoundsTimer_m);
-    get_bounds(rmin_m, rmax_m);
-    IpplTimings::stopTimer(boundpBoundsTimer_m);
-
-    len = rmax_m - rmin_m;
-
-    calcBeamParameters();
-
-    int checkfactor = Options::remotePartDel;
-    if (checkfactor != 0) {
-        //INFOMSG("checkfactor= " << checkfactor << endl);
-        // check the bunch if its full size is larger than checkfactor times of its rms size
-        Vector_t rmean = momentsComputer_m.getMeanPosition();
-        Vector_t rrms = momentsComputer_m.getStandardDeviationPosition();
-        if(checkfactor < 0) {
-            checkfactor *= -1;
-            if (len[0] > checkfactor * rrms[0] ||
-                len[1] > checkfactor * rrms[1] ||
-                len[2] > checkfactor * rrms[2])
-            {
-                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-                    /* delete the particle if the distance to the beam center
-                     * is larger than 8 times of beam's rms size
-                     */
-                    if (std::abs(R[ii](0) - rmean(0)) > checkfactor * rrms[0] ||
-                        std::abs(R[ii](1) - rmean(1)) > checkfactor * rrms[1] ||
-                        std::abs(R[ii](2) - rmean(2)) > checkfactor * rrms[2])
-                    {
-                        // put particle onto deletion list
-                        destroy(1, ii);
-                        //update bin parameter
-                        if (weHaveBins())
-                            countLost[Bin[ii]] += 1 ;
-                        /* INFOMSG("REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii]
-                         * << ", beam rms = " << rrms_m << endl;);
-                         */
-                    }
-                }
-            }
-        }
-        else {
-            if (len[0] > checkfactor * rrms[0] ||
-                len[2] > checkfactor * rrms[2])
-            {
-                for(unsigned int ii = 0; ii < this->getLocalNum(); ii++) {
-                    /* delete the particle if the distance to the beam center
-                     * is larger than 8 times of beam's rms size
-                     */
-                    if (std::abs(R[ii](0) - rmean(0)) > checkfactor * rrms[0] ||
-                        std::abs(R[ii](2) - rmean(2)) > checkfactor * rrms[2])
-                    {
-                        // put particle onto deletion list
-                        destroy(1, ii);
-                        //update bin parameter
-                        if (weHaveBins())
-                            countLost[Bin[ii]] += 1 ;
-                        /* INFOMSG("REMOTE PARTICLE DELETION: ID = " << ID[ii] << ", R = " << R[ii]
-                         * << ", beam rms = " << rrms_m << endl;);
-                         */
-                    }
-                }
-            }
-        }
-    }
-
-    for (int i = 0; i < dimIdx; i++) {
-        double length = std::abs(rmax_m[i] - rmin_m[i]);
-        rmax_m[i] += dh_m * length;
-        rmin_m[i] -= dh_m * length;
-        hr_m[i]    = (rmax_m[i] - rmin_m[i]) / (nr_m[i] - 1);
-    }
-
-    // rescale mesh
-    this->updateFields(hr_m, rmin_m);
-
-    if (weHaveBins()) {
-        pbin_m->updatePartInBin_cyc(countLost.get());
-    }
-
-    /* we also need to update the number of particles per bunch
-     * expensive since does an allreduce!
-     */
-    countTotalNumPerBunch();
-
-    IpplTimings::startTimer(boundpUpdateTimer_m);
-    update();
-    IpplTimings::stopTimer(boundpUpdateTimer_m);
 
     IpplTimings::stopTimer(boundpTimer_m);
 }
@@ -1381,60 +1235,6 @@ short PartBunchBase<T, Dim>::getNumBunch() const {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setTotalNumPerBunch(size_t totalnum, short n) {
-    PAssert_LT(n, (short)bunchTotalNum_m.size());
-    bunchTotalNum_m[n] = totalnum;
-}
-
-
-template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getTotalNumPerBunch(short n) const {
-    PAssert_LT(n, (short)bunchTotalNum_m.size());
-    return bunchTotalNum_m[n];
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setLocalNumPerBunch(size_t localnum, short n) {
-    PAssert_LT(n, (short)bunchLocalNum_m.size());
-    bunchLocalNum_m[n] = localnum;
-}
-
-
-template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getLocalNumPerBunch(short n) const {
-    PAssert_LT(n, (short)bunchLocalNum_m.size());
-    return bunchLocalNum_m[n];
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::countTotalNumPerBunch() {
-    bunchTotalNum_m.clear();
-    bunchTotalNum_m.resize(numBunch_m);
-    bunchLocalNum_m.clear();
-    bunchLocalNum_m.resize(numBunch_m);
-
-    for (size_t i = 0; i < this->getLocalNum(); ++i) {
-        PAssert_LT(this->bunchNum[i], numBunch_m);
-        ++bunchLocalNum_m[this->bunchNum[i]];
-    }
-
-    allreduce(bunchLocalNum_m.data(), bunchTotalNum_m.data(),
-              bunchLocalNum_m.size(), std::plus<size_t>());
-
-    size_t totalnum = std::accumulate(bunchTotalNum_m.begin(),
-                                      bunchTotalNum_m.end(), 0);
-
-    if ( totalnum != this->getTotalNum() )
-        throw OpalException("PartBunchBase::countTotalNumPerBunch()",
-                            "Sum of total number of particles per bunch (" +
-                            std::to_string(totalnum) + ") != total number of particles (" +
-                            std::to_string(this->getTotalNum()) + ")");
-}
-
-
-template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setGlobalMeanR(Vector_t globalMeanR) {
     globalMeanR_m = globalMeanR;
 }
@@ -1505,83 +1305,6 @@ double PartBunchBase<T, Dim>::calcMeanPhi() {
 
     return meanPhi;
 }
-
-// this function reset the BinID for each particles according to its current beta*gamma
-// it is for multi-turn extraction cyclotron with small energy gain
-// the bin number can be different with the bunch number
-
-template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::resetPartBinID2(const double eta) {
-
-
-    INFOMSG("Before reset Bin: " << endl);
-    calcGammas_cycl();
-    int maxbin = pbin_m->getNBins();
-    size_t partInBin[maxbin];
-    for (int ii = 0; ii < maxbin; ii++) partInBin[ii] = 0;
-
-    double pMin0 = 1.0e9;
-    double pMin = 0.0;
-    double maxbinIndex = 0;
-
-    for (unsigned long int n = 0; n < getLocalNum(); n++) {
-        double temp_betagamma = std::sqrt(std::pow(P[n](0), 2) + std::pow(P[n](1), 2));
-        if (pMin0 > temp_betagamma)
-            pMin0 = temp_betagamma;
-    }
-    reduce(pMin0, pMin, OpMinAssign());
-    INFOMSG("minimal beta*gamma = " << pMin << endl);
-
-    double asinh0 = std::asinh(pMin);
-    for (unsigned long int n = 0; n < getLocalNum(); n++) {
-
-        double temp_betagamma = std::sqrt(std::pow(P[n](0), 2) + std::pow(P[n](1), 2));
-        int itsBinID = std::floor((std::asinh(temp_betagamma) - asinh0) / eta + 1.0E-6);
-        Bin[n] = itsBinID;
-        if (maxbinIndex < itsBinID) {
-            maxbinIndex = itsBinID;
-        }
-
-        if (itsBinID >= maxbin) {
-            ERRORMSG("The bin number limit is " << maxbin << ", please increase the energy interval and try again" << endl);
-            return false;
-        } else
-            partInBin[itsBinID]++;
-
-    }
-
-    // partInBin only count particle on the local node.
-    pbin_m->resetPartInBin_cyc(partInBin, maxbinIndex);
-
-    // after reset Particle Bin ID, update mass gamma of each bin again
-    INFOMSG("After reset Bin: " << endl);
-    calcGammas_cycl();
-
-    return true;
-}
-
-
-template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::resetPartBinBunch() {
-    int maxbin = pbin_m->getNBins();
-    std::size_t partInBin[maxbin];
-    for (int i = 0; i < maxbin; ++i) {
-        partInBin[i] = 0;
-    }
-
-    for (std::size_t i = 0; i < getLocalNum(); ++i) {
-        partInBin[Bin[i]]++;
-    }
-
-    // partInBin only count particle on the local node.
-    pbin_m->resetPartInBin_cyc(partInBin, numBunch_m - 1);
-
-    // after reset Particle Bin ID, update mass gamma of each bin again
-    calcGammas_cycl();
-
-    return true;
-}
-
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getQ() const {

@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/AttributeBase.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <iosfwd>
 #include <iostream>
 #include <list>

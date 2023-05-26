@@ -22,9 +22,9 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/CompoundStatement.h"
-#include "Parser/Parser.h"
-#include "Parser/Token.h"
-#include "Parser/TokenStream.h"
+#include "OpalParser/Parser.h"
+#include "OpalParser/Token.h"
+#include "OpalParser/TokenStream.h"
 #include "Utilities/ParseError.h"
 
 #include "Utility/IpplInfo.h"

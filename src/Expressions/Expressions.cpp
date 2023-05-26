@@ -48,7 +48,7 @@
 #include "Expressions/TFunction0.h"
 #include "Expressions/TFunction1.h"
 #include "Expressions/TFunction2.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"

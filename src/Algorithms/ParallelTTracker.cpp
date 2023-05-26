@@ -1016,32 +1016,6 @@ void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bo
     }
 
     if (statDump) {
-        std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
-        FieldList collimators = itsOpalBeamline_m.getElementByType(ElementType::CCOLLIMATOR);
-        if (!collimators.empty()) {
-            for (FieldList::iterator it = collimators.begin(); it != collimators.end(); ++ it) {
-                FlexibleCollimator* coll = static_cast<FlexibleCollimator*>(it->getElement().get());
-                std::string name = coll->getName();
-                unsigned int losses = coll->getLosses();
-                collimatorLosses.push_back(std::make_pair(name, losses));
-            }
-            std::sort(collimatorLosses.begin(), collimatorLosses.end(),
-                      [](const std::pair<std::string, unsigned int>& a, const std::pair<std::string, unsigned int>& b) ->bool {
-                          return a.first < b.first;
-                      });
-            std::vector<unsigned int> bareLosses(collimatorLosses.size(),0);
-            for (size_t i = 0; i < collimatorLosses.size(); ++ i){
-                bareLosses[i] = collimatorLosses[i].second;
-            }
-
-            reduce(&bareLosses[0], &bareLosses[0] + bareLosses.size(), &bareLosses[0], OpAddAssign());
-
-            for (size_t i = 0; i < collimatorLosses.size(); ++ i){
-                collimatorLosses[i].second = bareLosses[i];
-            }
-        }
-        // Write statistical data.
-        itsDataSink_m->dumpSDDS(itsBunch_m, FDext, collimatorLosses);
 
         msg << level3 << "* Wrote beam statistics." << endl;
     }

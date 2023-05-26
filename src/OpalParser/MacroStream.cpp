@@ -18,7 +18,7 @@
 // ------------------------------------------------------------------------
 
 #include "OpalParser/MacroStream.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 
 
 // Class MacroStream

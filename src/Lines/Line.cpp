@@ -32,7 +32,7 @@
 #include "Expressions/TFunction2.h"
 #include "Lines/LineTemplate.h"
 #include "Lines/Replacer.h"
-#include "Parser/Statement.h"
+#include "OpalParser/Statement.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 #include <algorithm>

@@ -20,7 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/OpalParser.h"
-#include "Parser/FileStream.h"
+#include "OpalParser/FileStream.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/IpplInfo.h"

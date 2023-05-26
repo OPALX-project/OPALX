@@ -139,11 +139,6 @@ namespace Attrib
             EX,                         // below is for the matched distribution
             EY,
             ET,
-            SECTOR,                     // Matched-Gauss: single sector or full machine
-            NSECTORS,                   // Matched-Gauss: number of sectors to average field
-            NSTEPS,                     // Matched-Gauss: number of steps for closed orbit finder
-            RGUESS,                     // Matched-Gauss: guess for closed orbit finder
-            DENERGY,                    // Matched-Gauss: energy step for closed orbit finder
             LINE,
             RESIDUUM,
             MAXSTEPSCO,
@@ -331,8 +326,7 @@ private:
     void createDistributionMultiGauss(size_t numberOfParticles, double massIneV);
     void createDistributionFromFile(size_t numberOfParticles, double massIneV);
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
-    void createMatchedGaussDistribution(size_t numberOfParticles,
-                                        double massIneV, double charge);
+
     void sampleUniformDisk(gsl_qrng* quasiRandGen2D, double& x1, double& x2);
     void fillEBinHistogram();
     void fillParticleBins();
@@ -343,8 +337,6 @@ private:
     void generateFlattopT(size_t numberOfParticles);
     void generateFlattopZ(size_t numberOfParticles);
     void generateGaussZ(size_t numberOfParticles);
-    void generateMatchedGauss(const SigmaGenerator::matrix_t&,
-                              size_t numberOfParticles, double massIneV);
     void generateLongFlattopT(size_t numberOfParticles);
     void generateTransverseGauss(size_t numberOfParticles);
     void initializeBeam(PartBunchBase<double, 3> *beam);
@@ -355,7 +347,7 @@ private:
     void printDistMultiGauss(Inform &os) const;
     void printDistFromFile(Inform &os) const;
     void printDistGauss(Inform &os) const;
-    void printDistMatchedGauss(Inform &os) const;
+
     void printEmissionModel(Inform &os) const;
     void printEmissionModelAstra(Inform &os) const;
     void printEmissionModelNone(Inform &os) const;
