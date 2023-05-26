@@ -26,7 +26,6 @@
 #include "Algorithms/PartBunchBase.h"
 #include "BasicActions/Option.h"
 #include "DataSource/DataConnect.h"
-#include "Distribution/ClosedOrbitFinder.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "Physics/Physics.h"
@@ -288,9 +287,6 @@ void Distribution::create(size_t &numberOfParticles, double massIneV, double cha
 
     switch (distrTypeT_m) {
 
-    case DistributionType::MATCHEDGAUSS:
-        createMatchedGaussDistribution(numberOfLocalParticles, massIneV, charge);
-        break;
     case DistributionType::FROMFILE:
         createDistributionFromFile(numberOfParticles, massIneV);
         break;
@@ -1159,175 +1155,6 @@ void Distribution::createDistributionFromFile(size_t /*numberOfParticles*/, doub
         inputFile.close();
 }
 
-void Distribution::createMatchedGaussDistribution(size_t numberOfParticles,
-                                                  double massIneV,
-                                                  double charge)
-{
-
-    /*
-      ToDo:
-      - eliminate physics and error
-    */
-
-    std::string lineName = Attributes::getString(itsAttr[Attrib::Distribution::LINE]);
-    if (lineName.empty()) return;
-
-    const BeamSequence* lineSequence = BeamSequence::find(lineName);
-    if (lineSequence == nullptr)
-        throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                            "didn't find any Cyclotron element in line");
-
-    SpecificElementVisitor<Cyclotron> CyclotronVisitor(*lineSequence->fetchLine());
-    CyclotronVisitor.execute();
-    size_t NumberOfCyclotrons = CyclotronVisitor.size();
-
-    if (NumberOfCyclotrons > 1) {
-        throw OpalException("Distribution::createMatchedGaussDistribution",
-                            "I am confused, found more than one Cyclotron element in line");
-    }
-    if (NumberOfCyclotrons == 0) {
-        throw OpalException("Distribution::createMatchedGaussDistribution",
-                            "didn't find any Cyclotron element in line");
-    }
-
-    /* FIXME we need to remove const-ness otherwise we can't update the injection radius
-     * and injection radial momentum. However, there should be a better solution ..
-     */
-    Cyclotron* CyclotronElement = const_cast<Cyclotron*>(CyclotronVisitor.front());
-
-    bool full    = !Attributes::getBool(itsAttr[Attrib::Distribution::SECTOR]);
-    int Nint     = (int)Attributes::getReal(itsAttr[Attrib::Distribution::NSTEPS]);
-    int Nsectors = (int)Attributes::getReal(itsAttr[Attrib::Distribution::NSECTORS]);
-
-    if ( Nint < 0 )
-        throw OpalException("Distribution::createMatchedGaussDistribution()",
-                            "Negative number of integration steps");
-
-    if ( Nsectors < 0 )
-        throw OpalException("Distribution::createMatchedGaussDistribution()",
-                            "Negative number of sectors");
-
-    if ( Nsectors > 1 && full == false )
-        throw OpalException("Distribution::createMatchedGaussDistribution()",
-                            "Averaging over sectors can only be done with SECTOR=FALSE");
-
-    *gmsg << "* ----------------------------------------------------" << endl;
-    *gmsg << "* About to find closed orbit and matched distribution " << endl;
-    *gmsg << "* I= " << I_m*Units::A2mA << " (mA)  E= " << E_m*Units::eV2MeV << " (MeV)" << endl;
-    *gmsg << "* EX= " << Attributes::getReal(itsAttr[Attrib::Distribution::EX])
-          << "  EY= " << Attributes::getReal(itsAttr[Attrib::Distribution::EY])
-          << "  ET= " << Attributes::getReal(itsAttr[Attrib::Distribution::ET]) << endl;
-    if ( full ) {
-        *gmsg << "* SECTOR: " << "match using all sectors, with" << endl
-              << "* NSECTORS = " << Nsectors << " to average the field over" << endl;
-    }
-    else
-        *gmsg << "* SECTOR: " << "match using single sector" << endl;
-
-    *gmsg << "* NSTEPS = "    << Nint << endl
-          << "* HN = "        << CyclotronElement->getCyclHarm()
-          << "  PHIINIT = "   << CyclotronElement->getPHIinit()    << endl
-          << "* FIELD MAP = " << CyclotronElement->getFieldMapFN() << endl
-          << "* ----------------------------------------------------" << endl;
-
-    if ( CyclotronElement->getFMLowE()  < 0 ||
-         CyclotronElement->getFMHighE() < 0 )
-    {
-        throw OpalException("Distribution::createMatchedGaussDistribution()",
-                            "Missing attributes 'FMLOWE' and/or 'FMHIGHE' in "
-                            "'CYCLOTRON' definition.");
-    }
-
-    std::size_t maxitCOF =
-        Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSCO]);
-
-    double rguess =
-        Attributes::getReal(itsAttr[Attrib::Distribution::RGUESS]);
-
-    double denergy = Units::GeV2MeV *
-        Attributes::getReal(itsAttr[Attrib::Distribution::DENERGY]);
-
-    if ( denergy < 0.0 )
-        throw OpalException("Distribution:createMatchedGaussDistribution()",
-                            "DENERGY < 0");
-
-    double accuracy =
-        Attributes::getReal(itsAttr[Attrib::Distribution::RESIDUUM]);
-
-    if ( Options::cloTuneOnly ) {
-        *gmsg << "* Stopping after closed orbit and tune calculation" << endl;
-        typedef std::vector<double> container_t;
-        typedef boost::numeric::odeint::runge_kutta4<container_t> rk4_t;
-        typedef ClosedOrbitFinder<double,unsigned int, rk4_t> cof_t;
-
-        cof_t cof(massIneV*Units::eV2MeV, charge, Nint, CyclotronElement, full, Nsectors);
-        cof.findOrbit(accuracy, maxitCOF, E_m*Units::eV2MeV, denergy, rguess, true);
-
-        throw EarlyLeaveException("Distribution::createMatchedGaussDistribution()",
-                                  "Do only tune calculation.");
-    }
-
-    bool writeMap = true;
-
-    std::unique_ptr<SigmaGenerator> siggen = std::unique_ptr<SigmaGenerator>(
-        new SigmaGenerator(I_m,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::EX])*Units::m2mm * Units::rad2mrad,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::EY])*Units::m2mm * Units::rad2mrad,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::ET])*Units::m2mm * Units::rad2mrad,
-                           E_m*Units::eV2MeV,
-                           massIneV*Units::eV2MeV,
-                           charge,
-                           CyclotronElement,
-                           Nint,
-                           Nsectors,
-                           Attributes::getReal(itsAttr[Attrib::Distribution::ORDERMAPS]),
-                           writeMap));
-
-    if (siggen->match(accuracy,
-                      Attributes::getReal(itsAttr[Attrib::Distribution::MAXSTEPSSI]),
-                      maxitCOF,
-                      CyclotronElement,
-                      denergy,
-                      rguess,
-                      full))  {
-
-        std::array<double,3> Emit = siggen->getEmittances();
-
-        if (rguess > 0)
-            *gmsg << "* RGUESS " << rguess << " (m) " << endl;
-
-        *gmsg << "* Converged (Ex, Ey, Ez) = (" << Emit[0] << ", " << Emit[1] << ", "
-              << Emit[2] << ") pi mm mrad for E= " << E_m * Units::eV2MeV << " (MeV)" << endl;
-        *gmsg << "* Sigma-Matrix " << endl;
-
-        for (unsigned int i = 0; i < siggen->getSigma().size1(); ++ i) {
-            *gmsg << std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,0);
-            for (unsigned int j = 1; j < siggen->getSigma().size2(); ++ j) {
-                if (std::abs(siggen->getSigma()(i,j)) < 1.0e-15) {
-                    *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << 0.0;
-                }
-                else{
-                    *gmsg << " & " <<  std::setprecision(4)  << std::setw(11) << siggen->getSigma()(i,j);
-                }
-
-            }
-            *gmsg << " \\\\" << endl;
-        }
-
-        generateMatchedGauss(siggen->getSigma(), numberOfParticles, massIneV);
-
-        // update injection radius and radial momentum
-        CyclotronElement->setRinit(siggen->getInjectionRadius() * Units::m2mm);
-        CyclotronElement->setPRinit(siggen->getInjectionMomentum());
-    }
-    else {
-        *gmsg << "* Not converged for " << E_m*Units::eV2MeV << " MeV" << endl;
-
-        throw OpalException("Distribution::CreateMatchedGaussDistribution",
-                            "didn't find any matched distribution.");
-    }
-}
-
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
 
     setDistParametersGauss(massIneV);
@@ -1338,68 +1165,6 @@ void Distribution::createDistributionGauss(size_t numberOfParticles, double mass
     } else {
         generateGaussZ(numberOfParticles);
     }
-}
-
-void Distribution::createOpalCycl(PartBunchBase<double, 3> *beam,
-                                  size_t numberOfParticles,
-                                  double current, const Beamline &/*bl*/) {
-
-    /*
-     *  setup data for matched distribution generation
-     */
-    E_m = (beam->getInitialGamma() - 1.0) * beam->getM();
-    I_m = current;
-
-    size_t numberOfPartToCreate = numberOfParticles;
-    totalNumberParticles_m = numberOfParticles;
-    if (beam->getTotalNum() != 0) {
-        numberOfPartToCreate = beam->getLocalNum();
-    }
-
-    // Setup particle bin structure.
-    setupParticleBins(beam->getM(),beam);
-
-    /*
-     * Set what units to use for input momentum units. Default in OPAL-cycl
-     * is eV/c.
-     */
-    chooseInputMomentumUnits(InputMomentumUnits::EVOVERC);
-
-    /*
-     * Determine the number of particles for each distribution. For OPAL-cycl
-     * there are currently no arrays of distributions supported
-     */
-    calcPartPerDist(numberOfParticles);
-
-    // Set distribution type.
-    setDistType();
-
-    // Emitting particles is not supported in OPAL-cycl.
-    emitting_m = false;
-
-    // Create distribution.
-    create(numberOfPartToCreate, beam->getM(), beam->getQ());
-
-    // this variable is needed to be compatible with OPAL-T
-    particlesPerDist_m.push_back(tOrZDist_m.size());
-
-    shiftDistCoordinates(beam->getM());
-
-    // Setup energy bins.
-    if (numberOfEnergyBins_m > 0) {
-        fillParticleBins();
-        beam->setPBins(energyBins_m);
-    }
-
-    // Check number of particles in distribution.
-    checkParticleNumber(numberOfParticles);
-
-    initializeBeam(beam);
-    writeOutFileHeader();
-
-    injectBeam(beam);
-
-    OpalData::getInstance()->addProblemCharacteristicValue("NP", numberOfParticles);
 }
 
 void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
@@ -2363,136 +2128,6 @@ void Distribution::generateGaussZ(size_t numberOfParticles) {
     gsl_matrix_free(corMat);
 }
 
-void Distribution::generateMatchedGauss(const SigmaGenerator::matrix_t& sigma,
-                                        size_t numberOfParticles, double massIneV)
-{
-    /* This particle distribution generation is based on a
-     * symplectic method described in
-     * https://arxiv.org/abs/1205.3601
-     */
-
-    /* Units of the Sigma Matrix:
-     *  spatial: m
-     *  moment:  rad
-     *
-     * Attention: The vertical and longitudinal direction must be interchanged!
-     */
-    for (unsigned int i = 0; i < 3; ++ i) {
-        if ( sigma(2 * i, 2 * i) < 0 || sigma(2 * i + 1, 2 * i + 1) < 0 )
-            throw OpalException("Distribution::generateMatchedGauss()",
-                                "Negative value on the diagonal of the sigma matrix.");
-    }
-
-    double bgam = Util::getBetaGamma(E_m, massIneV);
-
-    /*
-     * only used for printing
-     */
-
-    // horizontal
-    sigmaR_m[0] = std::sqrt(sigma(0, 0));
-    sigmaP_m[0] = std::sqrt(sigma(1, 1)) * bgam;
-
-    // longitudinal
-    sigmaR_m[1] = std::sqrt(sigma(4, 4));
-    sigmaP_m[1] = std::sqrt(sigma(5, 5)) * bgam;
-
-    // vertical
-    sigmaR_m[2] = std::sqrt(sigma(2, 2));
-    sigmaP_m[2] = std::sqrt(sigma(3, 3)) * bgam;
-
-    correlationMatrix_m(1, 0) = sigma(0, 1) / (std::sqrt(sigma(0, 0) * sigma(1, 1)));
-    correlationMatrix_m(3, 2) = sigma(2, 3) / (std::sqrt(sigma(2, 2) * sigma(3, 3)));
-    correlationMatrix_m(5, 4) = sigma(4, 5) / (std::sqrt(sigma(4, 4) * sigma(5, 5)));
-    correlationMatrix_m(4, 0) = sigma(0, 4) / (std::sqrt(sigma(0, 0) * sigma(4, 4)));
-    correlationMatrix_m(4, 1) = sigma(1, 4) / (std::sqrt(sigma(1, 1) * sigma(4, 4)));
-    correlationMatrix_m(5, 0) = sigma(0, 5) / (std::sqrt(sigma(0, 0) * sigma(5, 5)));
-    correlationMatrix_m(5, 1) = sigma(1, 5) / (std::sqrt(sigma(1, 1) * sigma(5, 5)));
-
-    inputMoUnits_m = InputMomentumUnits::NONE;
-
-    /*
-     * decouple horizontal and longitudinal direction
-     */
-
-    // extract horizontal and longitudinal directions
-    RealDiracMatrix::matrix_t A(4, 4);
-    A(0, 0) = sigma(0, 0);
-    A(1, 1) = sigma(1, 1);
-    A(2, 2) = sigma(4, 4);
-    A(3, 3) = sigma(5, 5);
-
-    A(0, 1) = sigma(0, 1);
-    A(0, 2) = sigma(0, 4);
-    A(0, 3) = sigma(0, 5);
-    A(1, 0) = sigma(1, 0);
-    A(2, 0) = sigma(4, 0);
-    A(3, 0) = sigma(5, 0);
-
-    A(1, 2) = sigma(1, 4);
-    A(2, 1) = sigma(4, 1);
-    A(1, 3) = sigma(1, 5);
-    A(3, 1) = sigma(5, 1);
-    A(2, 3) = sigma(4, 5);
-    A(3, 2) = sigma(5, 4);
-
-
-    RealDiracMatrix rdm;
-    RealDiracMatrix::sparse_matrix_t R1 = rdm.diagonalize(A);
-
-    RealDiracMatrix::vector_t variances(8);
-    for (int i = 0; i < 4; ++i) {
-        variances(i) = std::sqrt(A(i, i));
-    }
-
-    /*
-     * decouple vertical direction
-     */
-    A *= 0.0;
-    A(0, 0) = 1;
-    A(1, 1) = 1;
-    A(2, 2) = sigma(2, 2);
-    A(3, 3) = sigma(3, 3);
-    A(2, 3) = sigma(2, 3);
-    A(3, 2) = sigma(3, 2);
-
-    RealDiracMatrix::sparse_matrix_t R2 = rdm.diagonalize(A);
-
-    for (int i = 0; i < 4; ++i) {
-        variances(4 + i) = std::sqrt(A(i, i));
-    }
-
-    int saveProcessor = -1;
-    const int myNode = Ippl::myNode();
-    const int numNodes = Ippl::getNodes();
-    const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
-
-    RealDiracMatrix::vector_t p1(4), p2(4);
-    for (size_t i = 0; i < numberOfParticles; i++) {
-        for (int j = 0; j < 4; j++) {
-            p1(j) = gsl_ran_gaussian(randGen_m, 1.0) * variances(j);
-            p2(j) = gsl_ran_gaussian(randGen_m, 1.0) * variances(4 + j);
-        }
-
-        p1 = boost::numeric::ublas::prod(R1, p1);
-        p2 = boost::numeric::ublas::prod(R2, p2);
-
-        // Save to each processor in turn.
-        saveProcessor++;
-        if (saveProcessor >= numNodes)
-            saveProcessor = 0;
-
-        if (scalable || myNode == saveProcessor) {
-            xDist_m.push_back(p1(0));
-            pxDist_m.push_back(p1(1) * bgam);
-            yDist_m.push_back(p1(2));
-            pyDist_m.push_back(p1(3) * bgam);
-            tOrZDist_m.push_back(p2(2));
-            pzDist_m.push_back(p2(3) * bgam);
-        }
-    }
-}
-
 void Distribution::generateLongFlattopT(size_t numberOfParticles) {
 
     double flattopTime = tPulseLengthFWHM_m
@@ -2918,9 +2553,6 @@ void Distribution::printDist(Inform &os, size_t numberOfParticles) const {
         case DistributionType::MULTIGAUSS:
             printDistMultiGauss(os);
             break;
-        case DistributionType::MATCHEDGAUSS:
-            printDistMatchedGauss(os);
-            break;
         default:
             throw OpalException("Distribution::printDist",
                                 "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -3058,31 +2690,6 @@ void Distribution::printDistFromFile(Inform &os) const {
        << Attributes::getString(itsAttr[Attrib::Distribution::FNAME]) << "'" << endl;
 }
 
-
-void Distribution::printDistMatchedGauss(Inform &os) const {
-    os << "* Distribution type: MATCHEDGAUSS" << endl;
-    os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
-    os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
-    os << "* SIGMAZ     = " << sigmaR_m[2] << " [m]" << endl;
-    os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
-    os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
-    os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
-//     os << "* AVRGPZ     = " << avrgpz_m <<    " [Beta Gamma]" << endl;
-
-    os << "* CORRX      = " << correlationMatrix_m(1, 0) << endl;
-    os << "* CORRY      = " << correlationMatrix_m(3, 2) << endl;
-    os << "* CORRZ      = " << correlationMatrix_m(5, 4) << endl;
-    os << "* R61        = " << correlationMatrix_m(5, 0) << endl;
-    os << "* R62        = " << correlationMatrix_m(5, 1) << endl;
-    os << "* R51        = " << correlationMatrix_m(4, 0) << endl;
-    os << "* R52        = " << correlationMatrix_m(4, 1) << endl;
-//     os << "* CUTOFFX    = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
-//     os << "* CUTOFFY    = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
-//     os << "* CUTOFFLONG = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
-//     os << "* CUTOFFPX   = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
-//     os << "* CUTOFFPY   = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
-//     os << "* CUTOFFPZ   = " << cutoffP_m[2] << " [units of SIGMAPY]" << endl;
-}
 
 void Distribution::printDistGauss(Inform &os) const {
     os << "* Distribution type: GAUSS" << endl;
@@ -3296,8 +2903,8 @@ void Distribution::setAttributes() {
                                             "FLATTOP",
                                             "MULTIGAUSS",
                                             "GUNGAUSSFLATTOPTH",
-                                            "ASTRAFLATTOPTH",
-                                            "GAUSSMATCHED"});
+                                            "ASTRAFLATTOPTH"
+                                            });
     itsAttr[Attrib::Legacy::Distribution::DISTRIBUTION]
         = Attributes::makeString("DISTRIBUTION","This attribute isn't supported any more. Use TYPE instead");
     itsAttr[Attrib::Distribution::LINE]
@@ -3308,37 +2915,10 @@ void Distribution::setAttributes() {
         = Attributes::makeReal("EY", "Projected normalized emittance EY (m-rad) used to create matched distribution ", 1E-6);
     itsAttr[Attrib::Distribution::ET]
         = Attributes::makeReal("ET", "Projected normalized emittance ET (m-rad) used to create matched distribution ", 1E-6);
-    // itsAttr[Attrib::Distribution::E2]
-    //     = Attributes::makeReal("E2", "If E2<Eb, we compute the tunes from the beams energy Eb to E2 with dE=0.25 MeV ", 0.0);
-    itsAttr[Attrib::Distribution::RESIDUUM]
-        = Attributes::makeReal("RESIDUUM", "Residuum for the closed orbit finder and sigma matrix generator ", 1e-8);
-    itsAttr[Attrib::Distribution::MAXSTEPSCO]
-        = Attributes::makeReal("MAXSTEPSCO", "Maximum steps used to find closed orbit ", 100);
-    itsAttr[Attrib::Distribution::MAXSTEPSSI]
-        = Attributes::makeReal("MAXSTEPSSI", "Maximum steps used to find matched distribution ",500);
-    itsAttr[Attrib::Distribution::ORDERMAPS]
-        = Attributes::makeReal("ORDERMAPS", "Order used in the field expansion ", 7);
-    itsAttr[Attrib::Distribution::SECTOR]
-        = Attributes::makeBool("SECTOR", "Match using single sector (true)"
-                               " (false: using all sectors) (default: true)",
-                               true);
-    itsAttr[Attrib::Distribution::NSTEPS]
-        = Attributes::makeReal("NSTEPS", "Number of integration steps of closed orbit finder (matched gauss)"
-                               " (default: 720)", 720);
-
-    itsAttr[Attrib::Distribution::RGUESS]
-        = Attributes::makeReal("RGUESS", "Guess value of radius (m) for closed orbit finder ", -1);
-
-    itsAttr[Attrib::Distribution::DENERGY]
-        = Attributes::makeReal("DENERGY", "Energy step size for closed orbit finder [GeV]", 0.001);
-
-    itsAttr[Attrib::Distribution::NSECTORS]
-        = Attributes::makeReal("NSECTORS", "Number of sectors to average field, for closed orbit finder ", 1);
 
     itsAttr[Attrib::Distribution::FNAME]
         = Attributes::makeString("FNAME", "File for reading in 6D particle "
                                  "coordinates.", "");
-
 
     itsAttr[Attrib::Distribution::WRITETOFILE]
         = Attributes::makeBool("WRITETOFILE", "Write initial distribution to file.",
@@ -3612,8 +3192,7 @@ void Distribution::setDistType() {
         {"FLATTOP",           DistributionType::FLATTOP},
         {"MULTIGAUSS",        DistributionType::MULTIGAUSS},
         {"GUNGAUSSFLATTOPTH", DistributionType::GUNGAUSSFLATTOPTH},
-        {"ASTRAFLATTOPTH",    DistributionType::ASTRAFLATTOPTH},
-        {"GAUSSMATCHED",      DistributionType::MATCHEDGAUSS}
+        {"ASTRAFLATTOPTH",    DistributionType::ASTRAFLATTOPTH}
     };
 
     distT_m = Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
@@ -3872,45 +3451,6 @@ void Distribution::setDistParametersGauss(double massIneV) {
         cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
         cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
     }
-
-    if  (distrTypeT_m != DistributionType::MATCHEDGAUSS) {
-        setSigmaP_m(massIneV);
-
-        std::vector<double> cr = Attributes::getRealArray(itsAttr[Attrib::Distribution::R]);
-
-        if (!cr.empty()) {
-            if (cr.size() == 15) {
-                *gmsg << "* Use r to specify correlations" << endl;
-                unsigned int k = 0;
-                for (unsigned int i = 0; i < 5; ++ i) {
-                    for (unsigned int j = i + 1; j < 6; ++ j, ++ k) {
-                        correlationMatrix_m(j, i) = cr.at(k);
-                    }
-                }
-
-            }
-            else {
-                throw OpalException("Distribution::SetDistParametersGauss",
-                                    "Inconsistent set of correlations specified, check manual");
-            }
-        }
-        else {
-            correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRX]);
-            correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRY]);
-            correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]);
-            correlationMatrix_m(4, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::R51]);
-            correlationMatrix_m(4, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R52]);
-            correlationMatrix_m(5, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::R61]);
-            correlationMatrix_m(5, 1) = Attributes::getReal(itsAttr[Attrib::Distribution::R62]);
-
-            // CORRZ overrides CORRT.
-            if (Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]) != 0.0)
-                correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
-        }
-    }
-
-    if (distrTypeT_m != DistributionType::MATCHEDGAUSS)
-        setSigmaR_m();
 
     if (emitting_m) {
         sigmaR_m[2] = 0.0;

@@ -7,10 +7,8 @@ set (_SRCS
   ElementPositionWriter.cpp
   FieldSolver.cpp
   H5PartWrapper.cpp
-  H5PartWrapperForPC.cpp
   H5PartWrapperForPT.cpp
   MonitorStatisticsWriter.cpp
-  MultiBunchDump.cpp
   IpplInfoWrapper.cpp
   H5Writer.cpp
   MemoryWriter.cpp
@@ -34,7 +32,6 @@ set (HDRS
     FieldSolver.h
     FieldWriter.h
     FieldWriter.hpp
-    H5PartWrapperForPC.h
     H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h

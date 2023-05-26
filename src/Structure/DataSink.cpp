@@ -46,40 +46,30 @@
     #include "MemoryWriter.h"
 #endif
 
-#ifdef ENABLE_AMR
-    #include "Algorithms/AmrPartBunch.h"
-#endif
-
-#ifdef ENABLE_AMR
-    #include "Structure/GridLBalWriter.h"
-#endif
-
 #include <sstream>
 
 DataSink::DataSink()
-    : isMultiBunch_m(false)
 {
     this->init();
 }
 
 
-DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart, short numBunch)
-    : isMultiBunch_m(numBunch > 1)
+DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
 {
     if (restart && !Options::enableHDF5) {
         throw OpalException("DataSink::DataSink()",
                             "Can not restart when HDF5 is disabled");
     }
 
-    this->init(restart, h5wrapper, numBunch);
+    this->init(restart, h5wrapper);
 
     if ( restart )
         rewindLines();
 }
 
 
-DataSink::DataSink(H5PartWrapper *h5wrapper, short numBunch)
-    : DataSink(h5wrapper, false, numBunch)
+DataSink::DataSink(H5PartWrapper *h5wrapper)
+    : DataSink(h5wrapper, false)
 { }
 
 
@@ -194,62 +184,11 @@ void DataSink::writeImpactStatistics(const PartBunchBase<double, 3> *beam, long 
 }
 
 
-void DataSink::writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
-                                         MultiBunchHandler* mbhandler_p) {
-    /// Start timer.
-    IpplTimings::startTimer(StatMarkerTimer_m);
-
-    for (short b = 0; b < mbhandler_p->getNumBunch(); ++b) {
-        bool isOk = mbhandler_p->calcBunchBeamParameters(beam, b);
-        const MultiBunchHandler::beaminfo_t& binfo = mbhandler_p->getBunchInfo(b);
-        if (isOk) {
-            mbWriter_m[b]->write(beam, binfo);
-        }
-    }
-
-    for (size_t i = 0; i < sddsWriter_m.size(); ++i)
-        sddsWriter_m[i]->write(beam);
-
-    /// %Stop timer.
-    IpplTimings::stopTimer(StatMarkerTimer_m);
-}
-
-
-void DataSink::setMultiBunchInitialPathLengh(MultiBunchHandler* mbhandler_p) {
-    for (short b = 0; b < mbhandler_p->getNumBunch(); ++b) {
-        MultiBunchHandler::beaminfo_t& binfo = mbhandler_p->getBunchInfo(b);
-        if (mbWriter_m[b]->exists()) {
-            binfo.pathlength = mbWriter_m[b]->getLastValue("s");
-        } else if (statWriter_m->exists()) {
-            binfo.pathlength = statWriter_m->getLastValue("s");
-        } else {
-            binfo.pathlength = 0.0;
-        }
-    }
-}
-
-
 void DataSink::rewindLines() {
     unsigned int linesToRewind = 0;
 
     double spos = h5Writer_m->getLastPosition();
-    if (isMultiBunch_m) {
-        /* first check if multi-bunch restart
-         *
-         * first element of vector belongs to first
-         * injected bunch in machine --> rewind lines
-         * according to that file --> thus rewind in
-         * reversed order
-         */
-        for (std::vector<mbWriter_t>::reverse_iterator rit = mbWriter_m.rbegin();
-             rit != mbWriter_m.rend(); ++rit)
-        {
-            if ((*rit)->exists()) {
-                linesToRewind = (*rit)->rewindToSpos(spos);
-                (*rit)->replaceVersionString();
-            }
-        }
-    } else if ( statWriter_m->exists() ) {
+    if ( statWriter_m->exists() ) {
         // use stat file to get position
         linesToRewind = statWriter_m->rewindToSpos(spos);
         statWriter_m->replaceVersionString();
@@ -266,7 +205,7 @@ void DataSink::rewindLines() {
 }
 
 
-void DataSink::init(bool restart, H5PartWrapper* h5wrapper, short numBunch) {
+void DataSink::init(bool restart, H5PartWrapper* h5wrapper) {
     std::string fn = OpalData::getInstance()->getInputBasename();
 
     lossWrCounter_m = 0;
@@ -277,14 +216,6 @@ void DataSink::init(bool restart, H5PartWrapper* h5wrapper, short numBunch) {
     sddsWriter_m.push_back(
         sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart))
     );
-
-#ifdef ENABLE_AMR
-    if ( Options::amr ) {
-        sddsWriter_m.push_back(
-            sddsWriter_t(new GridLBalWriter(fn + std::string(".grid"), restart))
-        );
-    }
-#endif
 
     if ( Options::memoryDump ) {
 #ifdef __linux__
@@ -298,26 +229,9 @@ void DataSink::init(bool restart, H5PartWrapper* h5wrapper, short numBunch) {
 #endif
     }
 
-    if ( isMultiBunch_m ) {
-        initMultiBunchDump(numBunch);
-    }
-
     if ( Options::enableHDF5 ) {
         h5Writer_m = h5Writer_t(new H5Writer(h5wrapper, restart));
     }
 }
 
 
-void DataSink::initMultiBunchDump(short numBunch) {
-    bool restart   = OpalData::getInstance()->inRestartRun();
-    std::string fn = OpalData::getInstance()->getInputBasename();
-    short bunch = mbWriter_m.size();
-    while (bunch < numBunch) {
-        std::string fname = fn + std::string("-bunch-") +
-                            convertToString(bunch, 4) + std::string(".smb");
-        mbWriter_m.push_back(
-            mbWriter_t(new MultiBunchDump(fname, restart))
-        );
-        ++bunch;
-    }
-}

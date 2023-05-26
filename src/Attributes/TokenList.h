@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeHandler.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <list>
 
 template <class T> class TValue;

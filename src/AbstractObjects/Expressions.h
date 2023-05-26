@@ -45,7 +45,7 @@
 #define OPAL_Expressions_HH 1
 
 #include "MemoryManagement/OwnPtr.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <list>
 #include <iosfwd>
 #include <string>

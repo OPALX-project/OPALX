@@ -30,7 +30,6 @@
 
 #include "Algorithms/Vektor.h"
 #include "Structure/H5Writer.h"
-#include "Structure/MultiBunchDump.h"
 #include "Structure/SDDSWriter.h"
 #include "Structure/StatWriter.h"
 
@@ -43,7 +42,6 @@ template <class T, unsigned Dim>
 class PartBunchBase;
 class BoundaryGeometry;
 class H5PartWrapper;
-class MultiBunchHandler;
 
 class DataSink {
 private:
@@ -51,7 +49,6 @@ private:
     typedef std::unique_ptr<StatWriter>     statWriter_t;
     typedef std::unique_ptr<SDDSWriter>     sddsWriter_t;
     typedef std::unique_ptr<H5Writer>       h5Writer_t;
-    typedef std::unique_ptr<MultiBunchDump> mbWriter_t;
     
 public:
     /** \brief Default constructor.
@@ -60,8 +57,8 @@ public:
      * opposed to a calculation restart).
      */
     DataSink();
-    DataSink(H5PartWrapper *h5wrapper, bool restart, short numBunch);
-    DataSink(H5PartWrapper *h5wrapper, short numBunch);
+    DataSink(H5PartWrapper *h5wrapper, bool restart);
+    DataSink(H5PartWrapper *h5wrapper);
 
     void dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const;
     
@@ -106,20 +103,6 @@ public:
                                bool nEmissionMode,
                                std::string fn);
 
-    /** no statWriter_m dump
-     * @param beam
-     * @param mbhandler is the multi-bunch handler
-     */
-    void writeMultiBunchStatistics(PartBunchBase<double, 3> *beam,
-                                   MultiBunchHandler* mbhandler);
-
-    /**
-     * In restart mode we need to set the correct path length
-     * of each bunch
-     * @param mbhandler is the multi-bunch handler
-     */
-    void setMultiBunchInitialPathLengh(MultiBunchHandler* mbhandler_p);
-
 private:
     DataSink(const DataSink& ds) = delete;
     DataSink &operator = (const DataSink &) = delete;
@@ -127,14 +110,12 @@ private:
     void rewindLines();
 
     void init(bool restart = false,
-              H5PartWrapper* h5wrapper = nullptr,
-              short numBunch = 1);
+              H5PartWrapper* h5wrapper = nullptr);
 
 
     h5Writer_t      h5Writer_m;
     statWriter_t    statWriter_m;
     std::vector<sddsWriter_t> sddsWriter_m;
-    std::vector<mbWriter_t> mbWriter_m;
 
     static std::string convertToString(int number, int setw = 5);
 
@@ -144,9 +125,6 @@ private:
     /// Timer to track statistics write time.
     IpplTimings::TimerRef StatMarkerTimer_m;
 
-    const bool isMultiBunch_m;
-
-    void initMultiBunchDump(short numBunch);
 };
 
 

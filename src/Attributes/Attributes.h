@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Attribute.h"
-#include "Parser/Token.h"
+#include "OpalParser/Token.h"
 #include <list>
 #include <string>
 #include <vector>

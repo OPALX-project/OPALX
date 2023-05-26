@@ -18,8 +18,8 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Parser/TokenStream.h"
-#include "Parser/Token.h"
+#include "OpalParser/TokenStream.h"
+#include "OpalParser/Token.h"
 #include <list>
 
 

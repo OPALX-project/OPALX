@@ -25,20 +25,12 @@
 #include "Algorithms/PartBunchBase.h"
 #include "Physics/Units.h"
 
-#ifdef ENABLE_AMR
-#include "Algorithms/AmrPartBunch.h"
-#endif
-
 LBalWriter::LBalWriter(const std::string& fname, bool restart)
     : SDDSWriter(fname, restart)
 { }
 
 
-#ifdef ENABLE_AMR
-void LBalWriter::fillHeader(PartBunchBase<double, 3> * beam) {
-#else
 void LBalWriter::fillHeader() {
-#endif
     if (this->hasColumns()) {
         return;
     }
@@ -54,22 +46,6 @@ void LBalWriter::fillHeader() {
 
         columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
     }
-
-#ifdef ENABLE_AMR
-    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
-
-        int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
-
-        for (int lev = 0; lev < nLevel; ++lev) {
-            std::stringstream tmp1;
-            tmp1 << "\"level-" << lev << "\"";
-
-            std::stringstream tmp2;
-            tmp2 << "Number of particles at level " << lev;
-            columns_m.addColumn(tmp1.str(), "long", "1", tmp2.str());
-        }
-    }
-#endif
 
     if ( mode_m == std::ios::app )
         return;
@@ -93,24 +69,11 @@ void LBalWriter::fillHeader() {
 }
 
 
-#ifdef ENABLE_AMR
-void LBalWriter::write(PartBunchBase<double, 3> *beam) {
-
-    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
-        amrbeam->gatherLevelStatistics();
-    }
-#else
 void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
-#endif
-
     if ( Ippl::myNode() != 0 )
         return;
 
-#ifdef ENABLE_AMR
-    this->fillHeader(beam);
-#else
     this->fillHeader();
-#endif
 
     this->open();
 
@@ -124,17 +87,6 @@ void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
         ss << "\"processor-" << p << "\"";
         columns_m.addColumnValue(ss.str(), beam->getLoadBalance(p));
     }
-
-#ifdef ENABLE_AMR
-    if ( AmrPartBunch* amrbeam = dynamic_cast<AmrPartBunch*>(beam) ) {
-        int nLevel = (amrbeam->getAmrObject())->maxLevel() + 1;
-        for (int lev = 0; lev < nLevel; ++lev) {
-            std::stringstream ss;
-            ss << "\"level-" << lev << "\"";
-            columns_m.addColumnValue(ss.str(), amrbeam->getLevelStatistics(lev));
-        }
-    }
-#endif
 
     this->writeRow();
 
