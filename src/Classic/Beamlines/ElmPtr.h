@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/ElementBase.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 
 
 // Class ElmPtr.
@@ -51,7 +51,7 @@ public:
 protected:
 
     // The pointer to the element.
-    Pointer<ElementBase> itsElement;
+    std::shared_ptr<ElementBase> itsElement;
 };
 
 
@@ -61,7 +61,7 @@ inline ElementBase *ElmPtr::getElement() const {
 
 
 inline void ElmPtr::setElement(ElementBase *elem) {
-    itsElement = elem;
+    itsElement = std::shared_ptr<ElementBase>(elem);
 }
 
 #endif // CLASSIC_ElmPtr_HH
