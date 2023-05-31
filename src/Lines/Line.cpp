@@ -37,6 +37,7 @@
 #include "Utilities/ParseError.h"
 #include <algorithm>
 #include <iostream>
+#include <memory>
 
 using namespace Expressions;
 
@@ -328,9 +329,9 @@ void Line::parseList(Statement &stat) {
         } else {
             // Identifier.
             std::string name = parseString(stat, "Line member expected.");
-            Pointer<Object> obj = OpalData::getInstance()->find(name);
+            auto obj = std::shared_ptr<Object>(OpalData::getInstance()->find(name));
 
-            if(! obj.isValid()) {
+            if(! obj) {
                 throw ParseError("Line::parseList()",
                                  "Element \"" + name + "\" is undefined.");
             }
@@ -338,7 +339,7 @@ void Line::parseList(Statement &stat) {
             if(stat.delimiter('(')) {
                 // Line or sequence macro.
                 // This instance will always be an anonymous object.
-                obj = obj->makeInstance(name, stat, 0);
+                obj = std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
             }
 
             if(Element *elem = dynamic_cast<Element *>(&*obj)) {
