@@ -28,7 +28,6 @@
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
-#include "MemoryManagement/Pointer.h"
 #include "OpalParser/SimpleStatement.h"
 #include "OpalParser/Token.h"
 #include "Utilities/OpalException.h"
@@ -52,7 +51,7 @@ extern Inform *gmsg;
 // Class OpalParser
 // ------------------------------------------------------------------------
 
-std::vector<Pointer<TokenStream> > OpalParser::inputStack;
+std::vector<std::shared_ptr<TokenStream> > OpalParser::inputStack;
 
 
 OpalParser::OpalParser(): stopFlag(false)
@@ -629,7 +628,7 @@ void OpalParser::run() const {
 }
 
 void OpalParser::run(TokenStream *is) const {
-    inputStack.push_back(is);
+    inputStack.push_back(std::shared_ptr<TokenStream>(is));
     run();
     inputStack.pop_back();
 }
