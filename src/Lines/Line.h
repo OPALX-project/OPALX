@@ -24,10 +24,8 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbsBeamline/ElementBase.h"
 #include "Beamlines/FlaggedBeamline.h"
-#include "MemoryManagement/Pointer.h"
 
 class TokenStream;
-
 
 class Line: public BeamSequence {
 
