@@ -73,8 +73,7 @@ Object *Directory::find(const std::string &name) const {
     }
 }
 
-
 void Directory::insert(const std::string &name, Object *newObject) {
-    ObjectDir::value_type p(name, Pointer<Object>(newObject));
+    ObjectDir::value_type p(name, std::shared_ptr<Object>(newObject));
     dir.insert(p);
 }
