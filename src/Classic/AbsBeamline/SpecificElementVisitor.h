@@ -53,10 +53,6 @@
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
-#ifdef ENABLE_OPAL_FEL
-#include "AbsBeamline/Undulator.h"
-#endif
-
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
@@ -174,11 +170,6 @@ public:
 
     /// Apply the algorithm to a traveling wave
     virtual void visitTravelingWave(const TravelingWave &);
-
-#ifdef ENABLE_OPAL_FEL
-    /// Apply the algorithm to an undulator.
-    virtual void visitUndulator(const Undulator &);
-#endif
 
     /// Apply the algorithm to a vacuum space.
     virtual void visitVacuum(const Vacuum &);
@@ -378,13 +369,6 @@ template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave &element) {
     CastsTrait<ELEM, TravelingWave>::apply(allElementsOfTypeE, element);
 }
-
-#ifdef ENABLE_OPAL_FEL
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitUndulator(const Undulator &element) {
-    CastsTrait<ELEM, Undulator>::apply(allElementsOfTypeE, element);
-}
-#endif
 
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitVacuum(const Vacuum &element) {
