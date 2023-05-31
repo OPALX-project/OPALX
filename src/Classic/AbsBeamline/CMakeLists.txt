@@ -76,11 +76,6 @@ set (HDRS
     VerticalFFAMagnet.h
     )
 
-if (ENABLE_OPAL_FEL)
-    list (APPEND _SRCS Undulator.cpp)
-    list (APPEND HDRS Undulator.h)
-endif ()
-
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     )
