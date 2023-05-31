@@ -18,7 +18,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 #include <functional>
 #include <map>
 #include <string>
@@ -29,7 +29,7 @@ class Object;
 // Class Directory
 // ------------------------------------------------------------------------
 
-typedef std::map<std::string, Pointer<Object>, std::less<std::string> >
+typedef std::map<std::string, std::shared_ptr<Object>, std::less<std::string> >
 ObjectDir;
 
 /// A map of string versus pointer to Object.
