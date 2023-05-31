@@ -59,11 +59,6 @@ set (HDRS
     YCorrectorRep.h
     )
 
-if (ENABLE_OPAL_FEL)
-    list (APPEND _SRCS UndulatorRep.cpp)
-    list (APPEND HDRS UndulatorRep.h)
-endif ()
-
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     )

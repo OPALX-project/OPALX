@@ -55,10 +55,6 @@
 #include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
-#ifdef ENABLE_OPAL_FEL
-#include "AbsBeamline/Undulator.h"
-#endif
-
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
@@ -195,12 +191,6 @@ void DefaultVisitor::visitStripper(const Stripper &stripper) {
 void DefaultVisitor::visitTravelingWave(const TravelingWave &trw) {
     applyDefault(trw);
 }
-
-#ifdef ENABLE_OPAL_FEL
-void DefaultVisitor::visitUndulator(const Undulator &u) {
-    applyDefault(u);
-}
-#endif
 
 void DefaultVisitor::visitVacuum(const Vacuum &vac) {
     applyDefault(vac);

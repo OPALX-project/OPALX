@@ -68,9 +68,6 @@ class Solenoid;
 class Source;
 class Stripper;
 class TravelingWave;
-#ifdef ENABLE_OPAL_FEL
-class Undulator;
-#endif
 class Vacuum;
 class VariableRFCavity;
 class VariableRFCavityFringeField;
@@ -175,11 +172,6 @@ public:
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &) = 0;
-
-#ifdef ENABLE_OPAL_FEL
-    /// Apply the algorithm to an undulator.
-    virtual void visitUndulator(const Undulator &) = 0;
-#endif
 
     /// Apply the algorithm to a vacuum space.
     virtual void visitVacuum(const Vacuum &) = 0;

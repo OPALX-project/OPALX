@@ -52,9 +52,6 @@
 #include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
-#ifdef ENABLE_OPAL_FEL
-#include "AbsBeamline/Undulator.h"
-#endif
 #include "AbsBeamline/Vacuum.h"
 
 #include "Beamlines/Beamline.h"
@@ -159,11 +156,6 @@ public:
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &);
 
-#ifdef ENABLE_OPAL_FEL
-    /// Apply the algorithm to an undulator.
-    virtual void visitUndulator(const Undulator &);
-#endif
-
     /// Apply the algorithm to a vacuum space.
     virtual void visitVacuum(const Vacuum &);
 
@@ -251,9 +243,7 @@ private:
     void computeExternalFields(OrbitThreader &oth);
     void computeWakefield(IndexMap::value_t &elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth);
-#ifdef ENABLE_OPAL_FEL
-    void computeUndulator(IndexMap::value_t &elements);
-#endif
+
     void computeSpaceChargeFields(unsigned long long step);
     // void prepareOpalBeamlineSections();
     void dumpStats(long long step, bool psDump, bool statDump);
@@ -343,12 +333,6 @@ inline void ParallelTTracker::visitSource(const Source &source) {
 inline void ParallelTTracker::visitTravelingWave(const TravelingWave &as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
-
-#ifdef ENABLE_OPAL_FEL
-inline void ParallelTTracker::visitUndulator(const Undulator &u) {
-    itsOpalBeamline_m.visit(u, *this, itsBunch_m);
-}
-#endif
 
 inline void ParallelTTracker::visitVacuum(const Vacuum &vac) {
     itsOpalBeamline_m.visit(vac, *this, itsBunch_m);

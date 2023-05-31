@@ -135,11 +135,6 @@ public:
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &);
 
-#ifdef ENABLE_OPAL_FEL
-    /// Apply the algorithm to an undulator.
-    virtual void visitUndulator(const Undulator &);
-#endif
-
     /// Apply the algorithm to a vacuum space.
     virtual void visitVacuum(const Vacuum &);
 
