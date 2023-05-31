@@ -30,10 +30,10 @@
 /// Abstract interface for a stream of input tokens.
 
 
-class TokenStream: public RCObject {
+class TokenStream { //: public RCObject {
 
 public:
-
+    TokenStream();
     /// Constructor.
     //  Store the stream name.
     TokenStream(const std::string &name);
@@ -53,6 +53,10 @@ public:
     /// Return line number.
     int getLine() const;
 
+    // defined in RCObject
+    void addReference () { };
+    int removeReference () { return 0; };
+
 protected:
 
     // Current stream name.
@@ -68,7 +72,6 @@ protected:
 private:
 
     // Not implemented.
-    TokenStream();
     TokenStream(const TokenStream &);
     void operator=(const TokenStream &);
 };

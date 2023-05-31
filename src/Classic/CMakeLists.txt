@@ -12,6 +12,6 @@ add_subdirectory(Filters)
 add_subdirectory(FixedAlgebra)
 add_subdirectory(MemoryManagement)
 add_subdirectory(Solvers)
-add_subdirectory(Structure)
+
 
 set(OPAL_SRCS "${OPAL_SRCS}" PARENT_SCOPE)

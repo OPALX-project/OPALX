@@ -1,7 +1,9 @@
 set (_SRCS
   Beam.cpp
+  LossDataSink.cpp    
   OpalWake.cpp
   ParticleMatterInteraction.cpp
+  BoundingBox.cpp
   BoundaryGeometry.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
@@ -11,6 +13,7 @@ set (_SRCS
   MonitorStatisticsWriter.cpp
   IpplInfoWrapper.cpp
   H5Writer.cpp
+  MeshGenerator.cpp
   MemoryWriter.cpp
   LBalWriter.cpp
   StatBaseWriter.cpp
@@ -26,7 +29,9 @@ include_directories (
 
 set (HDRS
     Beam.h
+    LossDataSink.h
     BoundaryGeometry.h
+    BoundingBox.h
     DataSink.h
     ElementPositionWriter.h
     FieldSolver.h
@@ -35,6 +40,7 @@ set (HDRS
     H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
+    MeshGenerator.h
     MonitorStatisticsWriter.h
     MultiBunchDump.h
     OpalWake.h
