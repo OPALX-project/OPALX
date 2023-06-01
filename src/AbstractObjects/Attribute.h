@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/AttributeBase.h"
 #include "AbstractObjects/AttributeHandler.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 #include <iosfwd>
 #include <string>
 
@@ -154,10 +154,10 @@ public:
 private:
 
     // Pointer to the value.  The value can be shared for several objects.
-    Pointer<AttributeBase> base;
+    std::shared_ptr<AttributeBase> base;
 
     // Pointer to the shared attribute parser.
-    Pointer<AttributeHandler> handler;
+    std::shared_ptr<AttributeHandler> handler;
 
     bool isDefault;
 };

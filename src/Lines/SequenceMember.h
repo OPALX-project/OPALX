@@ -19,7 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "Beamlines/FlaggedElmPtr.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 #include "AbstractObjects/Element.h"
 
 // Class SequenceMember
@@ -72,7 +72,7 @@ public:
 
     // ada 4.5 2000 to speed up matching, add a pointer to
     // opal elements in order to avoid searching the opal elements
-    Pointer<Element> OpalElement;
+    std::shared_ptr<Element> OpalElement;
 
 
 private:

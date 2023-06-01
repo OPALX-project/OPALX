@@ -24,7 +24,7 @@
 #include "Attributes/Attributes.h"
 #include "Lines/Sequence.h"
 #include "OpalParser/OpalParser.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 #include "OpalParser/Statement.h"
 #include "Utilities/ClassicException.h"
 #include "Utilities/OpalException.h"
@@ -257,7 +257,7 @@ void SequenceParser::parseMember(Statement &stat) const {
 
     // Find exemplar object.
     if (Object *obj = OpalData::getInstance()->find(clsName)) {
-        Pointer<Object> copy;
+        std::shared_ptr<Object> copy;
         if (obj) {
             if (member.itsType == SequenceMember::LOCAL) {
                 // We must make a copy or a macro instance.
@@ -276,15 +276,15 @@ void SequenceParser::parseMember(Statement &stat) const {
                 }
 
                 if (stat.delimiter('(')) {
-                    copy = obj->makeInstance(objName, stat, this);
+                    copy = std::shared_ptr<Object>(obj->makeInstance(objName, stat, this));
                 } else if (BeamSequence *line = dynamic_cast<BeamSequence *>(obj)) {
-                    copy = line->copy(objName);
+                    copy = std::shared_ptr<Object>(line->copy(objName));
                 } else {
-                    copy = obj->clone(objName);
+                    copy = std::shared_ptr<Object>(obj->clone(objName));
                 }
             } else {
                 // We can use the global object.
-                copy = obj;
+                copy = std::shared_ptr<Object>(obj);
             }
         }
 
@@ -295,7 +295,7 @@ void SequenceParser::parseMember(Statement &stat) const {
 
             // ada 4.5 2000 to speed up matching, add a pointer to
             // opal elements in order to avoid serching the opal elements
-            member.OpalElement = elem;
+            member.OpalElement = std::shared_ptr<Element>(elem);
 
             itsLine.push_back(member);
 

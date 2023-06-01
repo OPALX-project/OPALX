@@ -9,7 +9,6 @@ add_opal_sources (${_SRCS})
 
 set (HDRS
     OwnPtr.h
-    Pointer.h
     RCObject.h
     )
 

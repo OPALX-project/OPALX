@@ -299,7 +299,7 @@ void Sequence::storeLine(TLine &newLine) {
             Element *elem = Element::find(name);
             // ada 4.5 2000 to speed up matching, add a pointer to
             // opal elements in order to avoid serching the opal elements
-            i->OpalElement = elem;
+            i->OpalElement = std::shared_ptr<Element>(elem);
             i->setCounter(elem->increment());
         }
     }
@@ -331,7 +331,7 @@ double Sequence::findDriftLength(TLine::iterator drift) const {
     // ada 4.5 2000 to speed up matching, add a pointer to
     // opal elements in order to avoid serching the opal elements
     // Element *prev_elem = Element::find(prev_name);
-    Pointer<Element> prev_elem = prev->OpalElement;
+    std::shared_ptr<Element> prev_elem = prev->OpalElement;
     double prev_exit = prev->itsPosition + prev_elem->getExit(itsCode);
 
     TLine::iterator next(drift);
@@ -341,7 +341,7 @@ double Sequence::findDriftLength(TLine::iterator drift) const {
     // ada 4.5 2000 to speed up matching, add a pointer to
     // opal elements in order to avoid serching the opal elements
     // Element *next_elem = Element::find(next_name);
-    Pointer<Element> next_elem = next->OpalElement;
+    std::shared_ptr<Element> next_elem = next->OpalElement;
     double next_entry = next->itsPosition + next_elem->getEntrance(itsCode);
 
     double driftLength = next_entry - prev_exit;
