@@ -14,10 +14,6 @@ extern Inform *gmsg;
 
 #include "OPALconfig.h"
 
-#ifdef ENABLE_AMR
-    #include <AMReX.H>
-#endif
-
 #include "Message/Communicate.h"
 
 #include "GSLErrorHandling.h"
@@ -56,7 +52,6 @@ int run_opal(char */*args*/[], std::string inputfile, //int restartStep,
     Configure::configure();
     opal->storeInputFn(inputfile);
 
-    // FileStream is a RCObject
     FileStream *is = 0;
     try {
         is = new FileStream(inputfile);

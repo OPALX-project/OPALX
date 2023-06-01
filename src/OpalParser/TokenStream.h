@@ -30,8 +30,7 @@
 /// Abstract interface for a stream of input tokens.
 
 
-class TokenStream { //: public RCObject {
-
+class TokenStream { 
 public:
     TokenStream();
     /// Constructor.
