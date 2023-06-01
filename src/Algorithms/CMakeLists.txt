@@ -2,7 +2,7 @@ set (_SRCS
     CavityAutophaser.cpp
 #    Ctunes.cpp
     IndexMap.cpp
-    Hamiltonian.cpp
+#    Hamiltonian.cpp
 #    lomb.cpp
 #    MapAnalyser.cpp
     OrbitThreader.cpp
@@ -19,7 +19,7 @@ add_opal_sources(${_SRCS})
 set (HDRS
     CavityAutophaser.h
 #    Ctunes.h
-    Hamiltonian.h
+#    Hamiltonian.h
     IndexMap.h
 #    lomb.h
 #    MapAnalyser.h

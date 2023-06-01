@@ -35,8 +35,6 @@
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
 
-#include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
@@ -44,13 +42,7 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
-#include "AbsBeamline/Probe.h"
-#include "AbsBeamline/RBend.h"
-#include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/SBend.h"
-#include "AbsBeamline/Septum.h"
-#include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/Vacuum.h"
 
@@ -105,12 +97,6 @@ public:
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline &);
 
-    /// Apply the algorithm to a closed orbit corrector.
-    virtual void visitCorrector(const Corrector &);
-
-    /// Apply the algorithm to a degrader.
-    virtual void visitDegrader(const Degrader &);
-
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &);
 
@@ -129,29 +115,8 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT &);
 
-    /// Apply the algorithm to a probe.
-    virtual void visitProbe(const Probe &);
-
-    /// Apply the algorithm to a rectangular bend.
-    virtual void visitRBend(const RBend &);
-
-    /// Apply the algorithm to a rectangular bend.
-    virtual void visitRBend3D(const RBend3D &);
-
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
-
-    /// Apply the algorithm to a sector bend.
-    virtual void visitSBend(const SBend &);
-
-    /// Apply the algorithm to a septum.
-    virtual void visitSeptum(const Septum &);
-
-    /// Apply the algorithm to a solenoid.
-    virtual void visitSolenoid(const Solenoid &);
-
-    /// Apply the algorithm to a source.
-    virtual void visitSource(const Source &);
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &);
@@ -266,14 +231,6 @@ private:
 };
 
 
-inline void ParallelTTracker::visitCorrector(const Corrector &corr) {
-    itsOpalBeamline_m.visit(corr, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitDegrader(const Degrader &deg) {
-    itsOpalBeamline_m.visit(deg, *this, itsBunch_m);
-}
-
 inline void ParallelTTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
@@ -298,36 +255,9 @@ inline void ParallelTTracker::visitMultipoleT(const MultipoleT &mult) {
     itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::visitProbe(const Probe &prob) {
-    itsOpalBeamline_m.visit(prob, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitRBend(const RBend &bend) {
-    itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitRBend3D(const RBend3D &bend) {
-    itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
-}
 
 inline void ParallelTTracker::visitRFCavity(const RFCavity &as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitSBend(const SBend &bend) {
-    itsOpalBeamline_m.visit(bend, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitSeptum(const Septum &sept) {
-    itsOpalBeamline_m.visit(sept, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitSolenoid(const Solenoid &solenoid) {
-    itsOpalBeamline_m.visit(solenoid, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitSource(const Source &source) {
-    itsOpalBeamline_m.visit(source, *this, itsBunch_m);
 }
 
 inline void ParallelTTracker::visitTravelingWave(const TravelingWave &as) {
