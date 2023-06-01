@@ -32,6 +32,8 @@ class MacroStream: public TokenStream {
 
 public:
 
+    MacroStream();
+    
     /// Constructor.
     //  Assign the macro name as a buffer name.
     MacroStream(const std::string &);
@@ -50,7 +52,6 @@ public:
 private:
 
     // Not implemented.
-    MacroStream();
     MacroStream(const MacroStream &);
     void operator=(const MacroStream &);
 

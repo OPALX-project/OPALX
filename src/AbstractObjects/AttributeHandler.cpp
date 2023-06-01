@@ -48,7 +48,7 @@ AttributeHandler *AttributeHandler::clone() const {
 
 
 AttributeBase *AttributeHandler::getDefault() const {
-    if(itsDefault.isValid()) {
+    if(itsDefault.use_count() > 0) {
         return &*itsDefault;
     } else {
         throw OpalException("AttributeHandler::getDefault()",

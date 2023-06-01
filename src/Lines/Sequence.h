@@ -25,7 +25,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Beamlines/TBeamline.h"
 #include "Lines/SequenceMember.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 #include <list>
 
 class TokenStream;
