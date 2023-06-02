@@ -24,8 +24,8 @@ message (STATUS "Host OS System: ${CMAKE_HOST_SYSTEM}")
 message (STATUS "Hostname: ${HOSTNAME}")
 
 # Select flags.
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
-set (CMAKE_CXX_FLAGS_RELEASE "-O3")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O0 -g ")
+set (CMAKE_CXX_FLAGS_RELEASE "-O0 -g")
 set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
@@ -57,7 +57,7 @@ add_compile_options (-Wno-error)
 add_compile_options (-Wno-deprecated-declarations)
 add_compile_options (-Wno-unused)
 add_compile_options (-Wextra)
-
+add_compile_options (-Wno-unused-parameter)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 

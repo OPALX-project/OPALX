@@ -282,13 +282,9 @@ void TrackRun::setupTTracker(){
         Track::block->bunch->setT(Track::block->t0_m);
     }
 
-    if (Track::block->bunch->getIfBeamEmitting()) {
-        Track::block->bunch->setChargeZeroPart(macrocharge_m);
-        Track::block->bunch->setMassZeroPart(macromass_m);
-    } else {
-        Track::block->bunch->setCharge(macrocharge_m);
-        Track::block->bunch->setMass(macromass_m);
-    }
+    Track::block->bunch->setCharge(macrocharge_m);
+    Track::block->bunch->setMass(macromass_m);
+    
     // set coupling constant
     double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
     Track::block->bunch->setCouplingConstant(coefE);
@@ -405,62 +401,17 @@ double TrackRun::setDistributionParallelT(Beam* beam) {
         = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
     const size_t numberOfDistributions = distributionArray.size();
 
-    if (numberOfDistributions == 0) {
-        dist = Distribution::find(defaultDistribution);
-    } else {
-        dist = Distribution::find(distributionArray.at(0));
-        dist->setNumberOfDistributions(numberOfDistributions);
 
-        if (numberOfDistributions > 1) {
-            *gmsg << endl
-                  << "---------------------------------" << endl
-                  << "Found more than one distribution:" << endl << endl;
-            *gmsg << "Main Distribution" << endl
-                  << "---------------------------------" << endl
-                  << distributionArray.at(0) << endl << endl
-                  << "Secondary Distribution(s)" << endl
-                  << "---------------------------------" << endl;
-
-            for (size_t i = 1; i < numberOfDistributions; ++ i) {
-                Distribution *distribution = Distribution::find(distributionArray.at(i));
-                distribution->setNumberOfDistributions(numberOfDistributions);
-                distrs_m.push_back(distribution);
-
-                *gmsg << distributionArray.at(i) << endl;
-            }
-            *gmsg << endl
-                  << "---------------------------------" << endl << endl;
-        }
-    }
+    dist = Distribution::find(defaultDistribution);
 
     /*
      * Initialize distributions.
      */
     size_t numberOfParticles = beam->getNumberOfParticles();
-    if (!isFollowupTrack_m) {
-        if (!opal->inRestartRun()) {
-            /*
-             * Here we are not doing a restart run
-             * and we do not have a bunch already allocated.
-             */
-            Track::block->bunch->setDistribution(dist,
-                                                 distrs_m,
-                                                 numberOfParticles);
 
-            /*
-             * If this is an injected beam (rather than an emitted beam), we
-             * make sure it doesn't have any particles at z < 0.
-             */
-
-            opal->setGlobalPhaseShift(0.5 * dist->getTEmission() + dist->getEmissionTimeShift());
-        } else {
-            /*
-             * Read in beam from restart file.
-             */
-            dist->doRestartOpalT(Track::block->bunch, numberOfParticles, opal->getRestartStep(), phaseSpaceSink_m);
-        }
-    }
-
+    Track::block->bunch->setDistribution(dist,
+                                         distrs_m,
+                                         numberOfParticles);
     // Return charge per macroparticle.
     return beam->getChargePerParticle();
 }

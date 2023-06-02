@@ -114,8 +114,6 @@ public:
 
     double getTEmission();
 
-    bool doEmission();
-
     bool weHaveBins() const;
 
     void setPBins(PartBins* pbin);

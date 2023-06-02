@@ -69,7 +69,6 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     zstart_m(0.0),
     dtCurrentTrack_m(0.0),
     minStepforReBin_m(-1),
-    minBinEmitted_m(std::numeric_limits<size_t>::max()),
     repartFreq_m(-1),
     emissionSteps_m(std::numeric_limits<unsigned int>::max()),
     numParticlesInSimulation_m(0),
@@ -101,7 +100,6 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     zstart_m(zstart),
     dtCurrentTrack_m(0.0),
     minStepforReBin_m(-1),
-    minBinEmitted_m(std::numeric_limits<size_t>::max()),
     repartFreq_m(-1),
     emissionSteps_m(std::numeric_limits<unsigned int>::max()),
     numParticlesInSimulation_m(0),
@@ -271,8 +269,6 @@ void ParallelTTracker::execute() {
           << "zstart at: " << Util::getLengthString(pathLength_m)
           << endl;
 
-    prepareEmission();
-
     *gmsg << "* Executing ParallelTTracker\n"
           << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << "\n"
           << "* Max integration steps = " << stepSizes_m.getMaxSteps()
@@ -303,7 +299,7 @@ void ParallelTTracker::execute() {
             computeSpaceChargeFields(step);
 
             selectDT(back_track);
-            emitParticles(step);
+
             selectDT(back_track);
 
             computeExternalFields(oth);
@@ -346,9 +342,7 @@ void ParallelTTracker::execute() {
 
     itsBunch_m->set_sPos(pathLength_m);
 
-    if (numParticlesInSimulation_m > minBinEmitted_m) {
-        numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-    }
+    numParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
     bool const psDump = (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1 != Options::psDumpFreq);
     bool const statDump = (((itsBunch_m->getGlobalTrackStep() - 1) % Options::statDumpFreq) + 1 != Options::statDumpFreq);
@@ -420,13 +414,9 @@ void ParallelTTracker::timeIntegration2(BorisPusher & pusher) {
 
 void ParallelTTracker::selectDT(bool backTrack) {
 
-    if (itsBunch_m->getIfBeamEmitting()) {
-        double dt = itsBunch_m->getEmissionDeltaT();
-        itsBunch_m->setdT(dt);
-    } else {
-        double dt = dtCurrentTrack_m;
-        itsBunch_m->setdT(dt);
-    }
+    double dt = dtCurrentTrack_m;
+    itsBunch_m->setdT(dt);
+    
     if (backTrack) {
         itsBunch_m->setdT(-std::abs(itsBunch_m->getdT()));
     }
@@ -441,41 +431,12 @@ void ParallelTTracker::changeDT(bool backTrack) {
 }
 
 void ParallelTTracker::emitParticles(long long step) {
-    if (!itsBunch_m->weHaveEnergyBins()) return;
 
-    if (itsBunch_m->getIfBeamEmitting()) {
-        CoordinateSystemTrafo gunToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
-        CoordinateSystemTrafo refToGun = itsOpalBeamline_m.getCSTrafoLab2Local() * itsBunch_m->toLabTrafo_m;
-
-        transformBunch(refToGun);
-
-        itsBunch_m->switchToUnitlessPositions(true);
-
-        Vector_t externalE = Vector_t(0.0);
-        Vector_t externalB = Vector_t(0.0);
-        itsOpalBeamline_m.getFieldAt(gunToLab.transformTo(Vector_t(0.0)),
-                                     gunToLab.rotateTo(Vector_t(0.0)),
-                                     itsBunch_m->getT() + 0.5 * itsBunch_m->getdT(),
-                                     externalE,
-                                     externalB);
-        itsBunch_m->emitParticles(externalE(2));
-
-        itsBunch_m->updateNumTotal();
-        numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-        itsBunch_m->switchOffUnitlessPositions(true);
-
-        transformBunch(refToGun.inverted());
-    }
-
-    if (step > minStepforReBin_m) {
-        itsBunch_m->Rebin();
-        itsBunch_m->resetInterpolationCache(true);
-    }
 }
 
 
 void ParallelTTracker::computeSpaceChargeFields(unsigned long long step) {
-    if (numParticlesInSimulation_m <= minBinEmitted_m || !itsBunch_m->hasFieldSolver()) {
+    if (!itsBunch_m->hasFieldSolver()) {
         return;
     }
 
@@ -494,25 +455,9 @@ void ParallelTTracker::computeSpaceChargeFields(unsigned long long step) {
         doBinaryRepartition();
     }
 
-    if (itsBunch_m->weHaveEnergyBins()) {
-        itsBunch_m->calcGammas();
-        itsBunch_m->resetInterpolationCache();
-        ParticleAttrib<double> Q_back = itsBunch_m->Q;
-        for (int binNumber = 0; binNumber < itsBunch_m->getLastEmittedEnergyBin() &&
-                 binNumber < itsBunch_m->getNumberOfEnergyBins(); ++binNumber) {
-
-            itsBunch_m->setBinCharge(binNumber);
-            itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
-            itsBunch_m->computeSelfFields(binNumber);
-            itsBunch_m->Q = Q_back;
-
-        }
-
-    } else {
-        itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
-        itsBunch_m->computeSelfFields();
-    }
-
+    itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
+    itsBunch_m->computeSelfFields();
+    
     const unsigned int localNum2 = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum2; ++ i) {
         itsBunch_m->R[i] = beamToReferenceCSTrafo.transformTo(itsBunch_m->R[i]);
@@ -596,39 +541,13 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
     }
 
     size_t totalNum = itsBunch_m->getTotalNum();
-    if (numParticlesInSimulation_m > minBinEmitted_m || totalNum > minBinEmitted_m) {
-        numParticlesInSimulation_m = totalNum;
-    }
+    numParticlesInSimulation_m = totalNum;
 
     if (ne > 0) {
         msg << level1 << "* Deleted " << ne << " particles, "
             << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
 }
-
-#ifdef ENABLE_OPAL_FEL
-void ParallelTTracker::computeUndulator(IndexMap::value_t &elements) {
-    // Check if bunch has entered undulator field.
-    UndulatorRep* und;
-    IndexMap::value_t::const_iterator it = elements.begin();
-    for (; it != elements.end(); ++ it)
-        if ((*it)->getType() == ElementType::UNDULATOR) {
-            und = dynamic_cast<UndulatorRep*>(it->get());
-            if (!und->getHasBeenSimulated())
-                break;
-        }
-    if (it == elements.end())
-        return;
-
-    // Apply MITHRA full wave solver for undulator.
-    CoordinateSystemTrafo refToLocalCSTrafo = (itsOpalBeamline_m.getMisalignment((*it)) *
-                                               (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * itsBunch_m->toLabTrafo_m));
-
-    und->apply(itsBunch_m, refToLocalCSTrafo);
-
-    evenlyDistributeParticles();
-}
-#endif
 
 void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
 
@@ -639,8 +558,7 @@ void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elemen
 }
 
 void ParallelTTracker::doBinaryRepartition() {
-    size_t particles_or_bins = std::max(minBinEmitted_m, size_t(1000));
-    if (itsBunch_m->hasFieldSolver() && numParticlesInSimulation_m > particles_or_bins) {
+    if (itsBunch_m->hasFieldSolver()) {
 
         INFOMSG("*****************************************************************" << endl);
         INFOMSG("do repartition because of repartFreq_m" << endl);
@@ -678,14 +596,7 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
     itsBunch_m->calcEMean();
     size_t totalParticles_f = numParticlesInSimulation_m;
-    if (totalParticles_f <= minBinEmitted_m) {
-        msg << myt2.time() << " "
-            << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
-            << "only " << std::setw(4) << totalParticles_f << " particles emitted; "
-            << "t= "   << Util::getTimeString(itsBunch_m->getT()) << ", "
-            << "E="    << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy()) << ", "
-            << endl;
-    } else if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
+    if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
         throw OpalException("ParallelTTracker::dumpStats()",
                             "there seems to be something wrong with the position of the bunch!");
     } else {
@@ -704,12 +615,6 @@ void ParallelTTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
 void ParallelTTracker::setOptionalVariables() {
     Inform msg("ParallelTTracker ", *gmsg);
-
-    minBinEmitted_m  = Options::minBinEmitted;
-    RealVariable *ar = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINBINEMITTED"));
-    if (ar)
-        minBinEmitted_m = static_cast<size_t>(ar->getReal());
-    msg << level2 << "MINBINEMITTED " << minBinEmitted_m << endl;
 
     minStepforReBin_m  = Options::minStepForRebin;
     RealVariable *br = dynamic_cast<RealVariable *>(OpalData::getInstance()->find("MINSTEPFORREBIN"));
@@ -741,19 +646,6 @@ void ParallelTTracker::setTime() {
     for (unsigned int i = 0; i < localNum; ++i) {
         itsBunch_m->dt[i] = itsBunch_m->getdT();
     }
-}
-
-void ParallelTTracker::prepareEmission() {
-    Inform msg("ParallelTTracker ", *gmsg);
-
-    if (!itsBunch_m->doEmission()) return;
-
-    emissionSteps_m = itsBunch_m->getNumberOfEmissionSteps();
-    msg << level2 << "Do emission for " << itsBunch_m->getTEmission() << " [s] using "
-        << itsBunch_m->getNumberOfEnergyBins() << " energy bins " << endl
-        << "Change dT from " <<  itsBunch_m->getdT() << " [s] to "
-        <<  itsBunch_m->getEmissionDeltaT() << " [s] during emission " << endl;;
-
 }
 
 void ParallelTTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
