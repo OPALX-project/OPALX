@@ -6,6 +6,7 @@ set (_SRCS
     DistributionMoments.cpp
     Flagger.cpp
     PartBunch.cpp
+    PartBunchBase.hpp
     PartBins.cpp
     PartBinsCyc.cpp
     PartData.cpp
@@ -15,10 +16,6 @@ set (_SRCS
     Tracker.cpp
     Quaternion.cpp
     )
-
-if (ENABLE_AMR)
-    list (APPEND _SRCS AmrPartBunch.cpp)
-endif ()
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -47,9 +44,5 @@ set (HDRS
     Tracker.h
     Vektor.h
     )
-
-if (ENABLE_AMR)
-    list(APPEND HDRS AmrPartBunch.h)
-endif ()
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")
