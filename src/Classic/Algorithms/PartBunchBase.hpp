@@ -64,7 +64,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       massPerParticle_m(0.0),
       distDump_m(0),
       dh_m(1e-12),
-      tEmission_m(0.0),
       bingamma_m(nullptr),
       binemitted_m(nullptr),
       stepsPerTurn_m(0),
@@ -86,79 +85,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
 /*
  * Bunch common member functions
  */
-
-template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::getIfBeamEmitting() {
-    if (dist_m != nullptr) {
-        size_t isBeamEmitted = dist_m->getIfDistEmitting();
-        reduce(isBeamEmitted, isBeamEmitted, OpAddAssign());
-        if (isBeamEmitted > 0)
-            return true;
-        else
-            return false;
-    } else
-        return false;
-}
-
-
-template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getLastEmittedEnergyBin() {
-    /*
-     * Get maximum last emitted energy bin.
-     */
-    int lastEmittedBin = dist_m->getLastEmittedEnergyBin();
-    reduce(lastEmittedBin, lastEmittedBin, OpMaxAssign());
-    return lastEmittedBin;
-}
-
-
-template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getNumberOfEmissionSteps() {
-    return dist_m->getNumberOfEmissionSteps();
-}
-
-
-template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getNumberOfEnergyBins() {
-    return dist_m->getNumberOfEnergyBins();
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::Rebin() {
-
-    size_t isBeamEmitting = dist_m->getIfDistEmitting();
-    reduce(isBeamEmitting, isBeamEmitting, OpAddAssign());
-    if (isBeamEmitting > 0) {
-        *gmsg << "*****************************************************" << endl
-              << "Warning: attempted to rebin, but not all distribution" << endl
-              << "particles have been emitted. Rebin failed." << endl
-              << "*****************************************************" << endl;
-    } else {
-        if (dist_m->Rebin())
-            this->Bin = 0;
-    }
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setEnergyBins(int numberOfEnergyBins) {
-    bingamma_m = std::unique_ptr<double[]>(new double[numberOfEnergyBins]);
-    binemitted_m = std::unique_ptr<size_t[]>(new size_t[numberOfEnergyBins]);
-    for (int i = 0; i < numberOfEnergyBins; i++)
-        binemitted_m[i] = 0;
-}
-
-
-template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::weHaveEnergyBins() {
-
-    if (dist_m != nullptr)
-        return dist_m->getNumberOfEnergyBins() > 0;
-    else
-        return false;
-}
-
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
@@ -210,9 +136,8 @@ void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle)
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::do_binaryRepart() {
-    // do nothing here
+ 
 }
-
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
@@ -221,11 +146,6 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
     Inform m("setDistribution " );
     dist_m = d;
     dist_m->createOpalT(this, addedDistributions, np);
-
-//    if (Options::cZero)
-//        dist_m->create(this, addedDistributions, np / 2);
-//    else
-//        dist_m->create(this, addedDistributions, np);
 }
 
 template <class T, unsigned Dim>
@@ -237,57 +157,6 @@ bool PartBunchBase<T, Dim>::isGridFixed() const {
 template <class T, unsigned Dim>
 bool PartBunchBase<T, Dim>::hasBinning() const {
     return (pbin_m != nullptr);
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setTEmission(double t) {
-    tEmission_m = t;
-}
-
-
-template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getTEmission() {
-    return tEmission_m;
-}
-
-
-template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::doEmission() {
-    if (dist_m != nullptr)
-        return dist_m->getIfDistEmitting();
-    else
-        return false;
-}
-
-
-template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::weHaveBins() const {
-    if (pbin_m != nullptr)
-        return pbin_m->weHaveBins();
-    else
-        return false;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPBins(PartBins* pbin) {
-    pbin_m = pbin;
-    *gmsg << *pbin_m << endl;
-    setEnergyBins(pbin_m->getNBins());
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPBins(PartBinsCyc* pbin) {
-    pbin_m = pbin;
-    setEnergyBins(pbin_m->getNBins());
-}
-
-
-template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::emitParticles(double eZ) {
-    return dist_m->emitParticles(this, eZ);
 }
 
 
@@ -316,65 +185,47 @@ int PartBunchBase<T, Dim>::getLastemittedBin() {
         return 0;
 }
 
+template <class T, unsigned Dim>
+int PartBunchBase<T, Dim>::getNumberOfEnergyBins() {
+    return 0;
+}
+
+template <class T, unsigned Dim>
+size_t PartBunchBase<T, Dim>::emitParticles(double eZ) {
+    return 0;
+}
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getEmissionDeltaT() {
+    return 0.;
+}
+
+
+template <class T, unsigned Dim>
+double PartBunchBase<T, Dim>::getBinGamma(int bin) {
+    return 1.0;
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::Rebin() {
+   
+}
+
+template <class T, unsigned Dim>
+void PartBunchBase<T, Dim>::calcGammas() {
+   
+}
+
+template <class T, unsigned Dim>
+bool PartBunchBase<T, Dim>::weHaveEnergyBins() {
+    return false;
+}
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
     if (pbin_m != nullptr) {
         pbin_m->setPartNum(bin, num);
     }
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcGammas() {
-
-    const int emittedBins = dist_m->getNumberOfEnergyBins();
-
-    size_t s = 0;
-
-    for (int i = 0; i < emittedBins; i++)
-        bingamma_m[i] = 0.0;
-
-    for (unsigned int n = 0; n < getLocalNum(); n++)
-        bingamma_m[this->Bin[n]] += std::sqrt(1.0 + dot(this->P[n], this->P[n]));
-
-    std::unique_ptr<size_t[]> particlesInBin(new size_t[emittedBins]);
-    reduce(bingamma_m.get(), bingamma_m.get() + emittedBins, bingamma_m.get(), OpAddAssign());
-    reduce(binemitted_m.get(), binemitted_m.get() + emittedBins, particlesInBin.get(), OpAddAssign());
-    for (int i = 0; i < emittedBins; i++) {
-        size_t &pInBin = particlesInBin[i];
-        if (pInBin != 0) {
-            bingamma_m[i] /= pInBin;
-            INFOMSG(level2 << "Bin " << std::setw(3) << i
-                           << " gamma = " << std::setw(8) << std::scientific
-                           << std::setprecision(5) << bingamma_m[i]
-                           << "; NpInBin= " << std::setw(8)
-                           << std::setfill(' ') << pInBin << endl);
-        } else {
-            bingamma_m[i] = 1.0;
-            INFOMSG(level2 << "Bin " << std::setw(3) << i << " has no particles " << endl);
-        }
-        s += pInBin;
-    }
-    particlesInBin.reset();
-
-
-    if (s != getTotalNum() && !OpalData::getInstance()->hasGlobalGeometry())
-        ERRORMSG("sum(Bins)= " << s << " != sum(R)= " << getTotalNum() << endl;);
-
-    if (emittedBins >= 2) {
-        for (int i = 1; i < emittedBins; i++) {
-            if (binemitted_m[i - 1] != 0 && binemitted_m[i] != 0)
-                INFOMSG(level2 << "d(gamma)= " << 100.0 * std::abs(bingamma_m[i - 1] - bingamma_m[i]) / bingamma_m[i] << " [%] "
-                        << "between bin " << i - 1 << " and " << i << endl);
-        }
-    }
-}
-
-
-template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getBinGamma(int bin) {
-    return bingamma_m[bin];
 }
 
 
@@ -509,23 +360,6 @@ void PartBunchBase<T, Dim>::boundp() {
             volume *= std::abs(rmax_m[i] - rmin_m[i]);
         }
 
-        if (getIfBeamEmitting() && dist_m != nullptr) {
-            // keep particles per cell ratio high, don't spread a hand full particles across the whole grid
-            double percent = std::max(1.0 / (nr_m[2] - 1), dist_m->getPercentageEmitted());
-            double length  = std::abs(rmax_m[2] - rmin_m[2]) / (1.0 + 2 * dh_m);
-            if (percent < 1.0 && percent > 0.0) {
-                rmax_m[2] -= dh_m * length;
-                rmin_m[2] = rmax_m[2] - length / percent;
-
-                length /= percent;
-
-                rmax_m[2] += dh_m * length;
-                rmin_m[2] -= dh_m * length;
-
-                hr_m[2] = (rmax_m[2] - rmin_m[2]) / (nr_m[2] - 1);
-            }
-        }
-
         if (volume < 1e-21 && getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
             WARNMSG(level1 << "!!! Extremely high particle density detected !!!" << endl);
         }
@@ -579,12 +413,6 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
     calcBeamParameters();
     gatherLoadBalanceStatistics();
 
-    if (haveEnergyBins) {
-        const int lastBin = dist_m->getLastEmittedEnergyBin();
-        for (int i = 0; i < lastBin; i++) {
-            binemitted_m[i] = tmpbinemitted[i];
-        }
-    }
     reduce(ne, ne, OpAddAssign());
     return ne;
 }
@@ -628,12 +456,6 @@ size_t PartBunchBase<T, Dim>::destroyT() {
     calcBeamParameters();
     gatherLoadBalanceStatistics();
 
-    if (weHaveEnergyBins()) {
-        const int lastBin = dist_m->getLastEmittedEnergyBin();
-        for (int i = 0; i < lastBin; i++) {
-            binemitted_m[i] = tmpbinemitted[i];
-        }
-    }
     size_t newTotalNum = getLocalNum();
     reduce(newTotalNum, newTotalNum, OpAddAssign());
 
@@ -1270,42 +1092,6 @@ int PartBunchBase<T, Dim>::getSteptoLastInj() const {
     return SteptoLastInj_m;
 }
 
-
-template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::calcMeanPhi() {
-
-    const int emittedBins = pbin_m->getLastemittedBin();
-    double phi[emittedBins];
-    double px[emittedBins];
-    double py[emittedBins];
-    double meanPhi = 0.0;
-
-    for (int ii = 0; ii < emittedBins; ii++) {
-        phi[ii] = 0.0;
-        px[ii] = 0.0;
-        py[ii] = 0.0;
-    }
-
-    for (unsigned int ii = 0; ii < getLocalNum(); ii++) {
-        px[Bin[ii]] += P[ii](0);
-        py[Bin[ii]] += P[ii](1);
-    }
-
-    reduce(px, px + emittedBins, px, OpAddAssign());
-    reduce(py, py + emittedBins, py, OpAddAssign());
-    for (int ii = 0; ii < emittedBins; ii++) {
-        phi[ii] = calculateAngle(px[ii], py[ii]);
-        meanPhi += phi[ii];
-        INFOMSG("Bin " << ii  << "  mean phi = " << phi[ii] * Units::rad2deg - 90.0 << "[degree]" << endl);
-    }
-
-    meanPhi /= emittedBins;
-
-    INFOMSG("mean phi of all particles " <<  meanPhi * Units::rad2deg - 90.0 << "[degree]" << endl);
-
-    return meanPhi;
-}
-
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getQ() const {
     return reference->getQ();
@@ -1411,17 +1197,6 @@ const PartData* PartBunchBase<T, Dim>::getReference() const {
     return reference;
 }
 
-
-template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getEmissionDeltaT() {
-    return dist_m->getEmissionDeltaT();
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::iterateEmittedBin(int binNumber) {
-    binemitted_m[binNumber]++;
-}
 
 
 template <class T, unsigned Dim>

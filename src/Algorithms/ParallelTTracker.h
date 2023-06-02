@@ -162,11 +162,6 @@ private:
     // before we can merge the bins
     int minStepforReBin_m;
 
-    // The space charge solver crashes if we use less than ~10 particles.
-    // This variable controls the number of particles to be emitted before we use
-    // the space charge solver.
-    size_t minBinEmitted_m;
-
     // this variable controls the minimal number of steps until we repartition the particles
     unsigned int repartFreq_m;
 
@@ -215,7 +210,7 @@ private:
     void setOptionalVariables();
     bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
     void handleRestartRun();
-    void prepareEmission();
+
     void setTime();
     void doBinaryRepartition();
 
