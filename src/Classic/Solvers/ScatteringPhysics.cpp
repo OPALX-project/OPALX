@@ -21,7 +21,6 @@
 
 #include "Algorithms/PartBunchBase.h"
 #include "AbsBeamline/CCollimator.h"
-#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/SBend.h"
@@ -69,17 +68,6 @@ namespace {
         }
     private:
         CCollimator* col_m;
-    };
-
-    struct FlexCollimatorInsideTester: public InsideTester {
-        explicit FlexCollimatorInsideTester(ElementBase* el) {
-            col_m = static_cast<FlexibleCollimator*>(el);
-        }
-        bool checkHit(const Vector_t& R) override {
-            return col_m->isStopped(R);
-        }
-    private:
-        FlexibleCollimator* col_m;
     };
 
     //    constexpr long double operator"" _eV(long double value) { return value * 1e-3; }

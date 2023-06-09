@@ -60,7 +60,7 @@ public:
     double getMY() const;
 
     /// Return meshsize
-    double getMT() const;
+    double getMZ() const;
 
     /// Store emittance for mode 1.
     void setMX(double);
@@ -69,7 +69,7 @@ public:
     void setMY(double);
 
     /// Store emittance for mode 3.
-    void setMT(double);
+    void setMZ(double);
 
     /// Update the field solver data.
     virtual void update();

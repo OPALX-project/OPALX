@@ -17,7 +17,6 @@
 //
 #include "Distribution/Distribution.h"
 
-#include "AbsBeamline/SpecificElementVisitor.h"
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
@@ -71,10 +70,24 @@ namespace {
 }
 
 Distribution::Distribution():
-    Definition(Attrib::Distribution::SIZE, "DISTRIBUTION",
+    Definition(DISTRIBUTION::SIZE, "DISTRIBUTION",
                "The DISTRIBUTION statement defines data for the 6D particle distribution."),
     distrTypeT_m(DistributionType::NODIST)
-{ }
+{
+    itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString("TYPE","Distribution type.", {"GAUSS","FROMFILE"});
+   
+    itsAttr[DISTRIBUTION::FNAME] = Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
+
+    // Parameters for defining an initial distribution.
+    itsAttr[DISTRIBUTION::SIGMAX] = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
+    itsAttr[DISTRIBUTION::SIGMAY] = Attributes::makeReal("SIGMAY", "SIGMAy (m)", 0.0);
+    itsAttr[DISTRIBUTION::SIGMAZ] = Attributes::makeReal("SIGMAZ", "SIGMAz (m)", 0.0);
+    itsAttr[DISTRIBUTION::SIGMAPX] = Attributes::makeReal("SIGMAPX", "SIGMApx", 0.0);
+    itsAttr[DISTRIBUTION::SIGMAPY] = Attributes::makeReal("SIGMAPY", "SIGMApy", 0.0);
+    itsAttr[DISTRIBUTION::SIGMAPZ] = Attributes::makeReal("SIGMAPZ", "SIGMApz", 0.0);
+
+    registerOwnership(AttributeHandler::STATEMENT);
+}
 
 
 Distribution::Distribution(const std::string &name, Distribution *parent):
@@ -276,29 +289,6 @@ gsl_qrng* Distribution::selectRandomGenerator(std::string,unsigned int dimension
 }
 
 void Distribution::setAttributes() {
-    itsAttr[Attrib::Distribution::TYPE]
-        = Attributes::makePredefinedString("TYPE","Distribution type.",
-                                           {"FROMFILE",
-                                            "GAUSS",
-                                            "BINOMIAL",
-                                            "FLATTOP",
-                                            "MULTIGAUSS",
-                                            "GUNGAUSSFLATTOPTH",
-                                            "ASTRAFLATTOPTH"
-                                            });
-    itsAttr[Attrib::Distribution::FNAME]
-        = Attributes::makeString("FNAME", "File for reading in 6D particle "
-                                 "coordinates.", "");
-
-    // Parameters for defining an initial distribution.
-    itsAttr[Attrib::Distribution::SIGMAX] = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
-    itsAttr[Attrib::Distribution::SIGMAY] = Attributes::makeReal("SIGMAY", "SIGMAy (m)", 0.0);
-    itsAttr[Attrib::Distribution::SIGMAZ] = Attributes::makeReal("SIGMAZ", "SIGMAz (m)", 0.0);
-    itsAttr[Attrib::Distribution::SIGMAPX] = Attributes::makeReal("SIGMAPX", "SIGMApx", 0.0);
-    itsAttr[Attrib::Distribution::SIGMAPY] = Attributes::makeReal("SIGMAPY", "SIGMApy", 0.0);
-    itsAttr[Attrib::Distribution::SIGMAPZ] = Attributes::makeReal("SIGMAPZ", "SIGMApz", 0.0);
-
-    registerOwnership(AttributeHandler::STATEMENT);
 }
 
 void Distribution::setDistType() {
@@ -308,7 +298,8 @@ void Distribution::setDistType() {
         {"GAUSS",             DistributionType::GAUSS}
     };
 
-    distT_m = Attributes::getString(itsAttr[Attrib::Distribution::TYPE]);
+    distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);
+
     if (distT_m.empty()) {
         throw OpalException("Distribution::setDistType",
                             "The attribute \"TYPE\" isn't set for the \"DISTRIBUTION\"!");
@@ -318,16 +309,13 @@ void Distribution::setDistType() {
 }
 
 void Distribution::setSigmaR_m() {
-    sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAX])),
-                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAY])),
-                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAZ])));
+    sigmaR_m = Vector_t(std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAX])),
+                        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAY])),
+                        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAZ])));
  }
 
 void Distribution::setSigmaP_m() {
-    sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPX])),
-                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPY])),
-                        std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAPZ])));
+    sigmaP_m = Vector_t(std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPX])),
+                        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPY])),
+                        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPZ])));
 }
-
-
-
