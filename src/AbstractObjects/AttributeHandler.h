@@ -20,7 +20,7 @@
 
 #include "MemoryManagement/RCObject.h"
 #include "AbstractObjects/AttributeBase.h"
-#include <memory>
+#include "MemoryManagement/Pointer.h"
 #include <string>
 #include <map>
 #include <set>
@@ -133,7 +133,7 @@ protected:
     const std::string itsHelp;
 
     /// Default value.
-    std::shared_ptr<AttributeBase> itsDefault;
+    Pointer <AttributeBase> itsDefault;
 
     /// Defer flag.
     bool is_deferred;

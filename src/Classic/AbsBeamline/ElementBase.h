@@ -88,33 +88,13 @@ class WakeFunction;
 enum class ElementType: unsigned short {
     ANY,
     BEAMLINE,
-    CCOLLIMATOR,
-    CORRECTOR,
-    CYCLOTRON,
-    DEGRADER,
     DRIFT,
-    FLEXIBLECOLLIMATOR,
     MARKER,
     MONITOR,
-    MPSPLITINTEGRATOR,
     MULTIPOLE,
     MULTIPOLET,
-    OFFSET,
-    PROBE,
-    RBEND,
-    RBEND3D,
     RFCAVITY,
-    RING,
-    SBEND,
-    SBEND3D,
-    SEPTUM,
-    SOLENOID,
-    SOURCE,
-    STRIPPER,
-    TRAVELINGWAVE,
-    UNDULATOR,
-    VACUUM,
-    VARIABLERFCAVITY
+    TRAVELINGWAVE
 };
 
 enum class ApertureType: unsigned short {
@@ -303,20 +283,6 @@ public:
 
     virtual bool hasBoundaryGeometry() const;
 
-    /// attach a wake field to the element
-    virtual void setWake(WakeFunction *wf);
-
-    /// return the attached wake object if there is any
-    virtual WakeFunction *getWake() const;
-
-    virtual bool hasWake() const;
-
-    virtual void setParticleMatterInteraction(ParticleMatterInteractionHandler *spys);
-
-    virtual ParticleMatterInteractionHandler *getParticleMatterInteraction() const;
-
-    virtual bool hasParticleMatterInteraction() const;
-
     void setCSTrafoGlobal2Local(const CoordinateSystemTrafo &ori);
     CoordinateSystemTrafo getCSTrafoGlobal2Local() const;
     void releasePosition();
@@ -384,11 +350,7 @@ private:
     // The user-defined set of attributes.
     AttributeSet userAttribs;
 
-    WakeFunction *wake_m;
-
     BoundaryGeometry *bgeometry_m;
-
-    ParticleMatterInteractionHandler *parmatint_m;
 
     bool positionIsFixed;
     ///@{ ELEMEDGE attribute
@@ -463,28 +425,12 @@ bool ElementBase::isSharable() const
 { return shareFlag; }
 
 inline
-WakeFunction *ElementBase::getWake() const
-{ return wake_m; }
-
-inline
-bool ElementBase::hasWake() const
-{ return wake_m != nullptr; }
-
-inline
 BoundaryGeometry *ElementBase::getBoundaryGeometry() const
 { return bgeometry_m; }
 
 inline
 bool ElementBase::hasBoundaryGeometry() const
 { return bgeometry_m != nullptr; }
-
-inline
-ParticleMatterInteractionHandler *ElementBase::getParticleMatterInteraction() const
-{ return parmatint_m; }
-
-inline
-bool ElementBase::hasParticleMatterInteraction() const
-{ return parmatint_m != nullptr; }
 
 inline
 void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo &trafo) {

@@ -68,6 +68,6 @@ void OpalMarker::print(std::ostream &os) const {
 
 void OpalMarker::update() {
     // Transmit "unknown" attributes.
-    MarkerRep *mark = dynamic_cast<MarkerRep *>(getElement());
+    MarkerRep *mark = static_cast<MarkerRep *>(getElement());
     OpalElement::updateUnknown(mark);
 }

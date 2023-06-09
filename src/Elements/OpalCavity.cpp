@@ -121,19 +121,6 @@ void OpalCavity::update() {
     double phi0 = Attributes::getReal(itsAttr[PHI0]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
-    if(itsAttr[WAKEF] && owk_m == nullptr) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
-        owk_m->initWakefunction(*rfc);
-        rfc->setWake(owk_m->wf_m);
-    }
-
-    if(itsAttr[GEOMETRY] && obgeo_m == nullptr) {
-        obgeo_m = (BoundaryGeometry::find(Attributes::getString(itsAttr[GEOMETRY])))->clone(getOpalName() + std::string("_geometry"));
-        if(obgeo_m) {
-            rfc->setBoundaryGeometry(obgeo_m);
-        }
-    }
-
     rfc->setElementLength(length);
 
     rfc->setAmplitude(Units::MVpm2Vpm * peak);

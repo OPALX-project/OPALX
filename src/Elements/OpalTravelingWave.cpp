@@ -109,12 +109,6 @@ void OpalTravelingWave::update() {
     rfc->setMode(Attributes::getReal(itsAttr[MODE]));
     rfc->setDesignEnergy(kineticEnergy);
 
-    if(itsAttr[WAKEF] && owk_m == nullptr) {
-        owk_m = (OpalWake::find(Attributes::getString(itsAttr[WAKEF])))->clone(getOpalName() + std::string("_wake"));
-        owk_m->initWakefunction(*rfc);
-        rfc->setWake(owk_m->wf_m);
-    }
-
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(rfc);
 }

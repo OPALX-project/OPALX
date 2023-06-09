@@ -37,14 +37,12 @@
 
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/Vacuum.h"
 
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -100,9 +98,6 @@ public:
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &);
 
-    /// Apply the algorithm to a flexible collimator
-    virtual void visitFlexibleCollimator(const FlexibleCollimator &);
-
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
 
@@ -120,9 +115,6 @@ public:
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &);
-
-    /// Apply the algorithm to a vacuum space.
-    virtual void visitVacuum(const Vacuum &);
 
 private:
 
@@ -222,16 +214,11 @@ private:
     void findStartPosition(const BorisPusher &pusher);
     void autophaseCavities(const BorisPusher &pusher);
 
-    void evenlyDistributeParticles();
 };
 
 
 inline void ParallelTTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitFlexibleCollimator(const FlexibleCollimator &coll) {
-    itsOpalBeamline_m.visit(coll, *this, itsBunch_m);
 }
 
 inline void ParallelTTracker::visitMarker(const Marker &marker) {
@@ -257,10 +244,6 @@ inline void ParallelTTracker::visitRFCavity(const RFCavity &as) {
 
 inline void ParallelTTracker::visitTravelingWave(const TravelingWave &as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
-}
-
-inline void ParallelTTracker::visitVacuum(const Vacuum &vac) {
-    itsOpalBeamline_m.visit(vac, *this, itsBunch_m);
 }
 
 inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {

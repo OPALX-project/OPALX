@@ -37,88 +37,71 @@
 
 using namespace Expressions;
 
-//TODO: o add a FIELD for DISCRETIZATION, MAXITERS, TOL...
-
 // The attributes of class FieldSolver.
-namespace {
-    namespace deprecated {
-        enum {
-            BCFFTT,
-            SIZE
-        };
-    }
+namespace FIELDSOLVER {
     enum {
-        FSTYPE = deprecated::SIZE,   // The field solver name
-        // FOR FFT BASED SOLVER
+        TYPE,   // The field solver name
         MX,         // mesh sixe in x
         MY,         // mesh sixe in y
-        MT,         // mesh sixe in z
+        MZ,         // mesh sixe in z
         PARFFTX,    // parallelized grid in x
         PARFFTY,    // parallelized grid in y
-        PARFFTT,    // parallelized grid in z
+        PARFFTZ,    // parallelized grid in z
         BCFFTX,     // boundary condition in x [FFT]
         BCFFTY,     // boundary condition in y [FFT]
         BCFFTZ,     // boundary condition in z [FFT]
         GREENSF,    // holds greensfunction to be used [FFT only]
         BBOXINCR,   // how much the boundingbox is increased
-        RC,         // cutoff radius for PP interactions
-        ALPHA,      // Green’s function splitting parameter
-        EPSILON,    // regularization for PP interaction
         SIZE
     };
 }
 
 
 FieldSolver::FieldSolver():
-    Definition(SIZE, "FIELDSOLVER",
+    Definition(FIELDSOLVER::SIZE, "FIELDSOLVER",
                "The \"FIELDSOLVER\" statement defines data for a the field solver") {
 
-    itsAttr[FSTYPE] = Attributes::makePredefinedString("FSTYPE", "Name of the attached field solver.",
+    itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString("TYPE", "Name of the attached field solver.",
                                                        {"FFT", "FFTPERIODIC", "NONE"});
 
-    itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
-    itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
-    itsAttr[MT] = Attributes::makeReal("MT", "Meshsize in z(t)");
+    itsAttr[FIELDSOLVER::MX] = Attributes::makeReal("MX", "Meshsize in x");
+    itsAttr[FIELDSOLVER::MY] = Attributes::makeReal("MY", "Meshsize in y");
+    itsAttr[FIELDSOLVER::MZ] = Attributes::makeReal("MZ", "Meshsize in z");
 
-    itsAttr[PARFFTX] = Attributes::makeBool("PARFFTX",
+    itsAttr[FIELDSOLVER::PARFFTX] = Attributes::makeBool("PARFFTX",
                                             "True, dimension 0 i.e x is parallelized",
                                             false);
 
-    itsAttr[PARFFTY] = Attributes::makeBool("PARFFTY",
+    itsAttr[FIELDSOLVER::PARFFTY] = Attributes::makeBool("PARFFTY",
                                             "True, dimension 1 i.e y is parallelized",
                                             false);
 
-    itsAttr[PARFFTT] = Attributes::makeBool("PARFFTT",
-                                            "True, dimension 2 i.e z(t) is parallelized",
+    itsAttr[FIELDSOLVER::PARFFTZ] = Attributes::makeBool("PARFFTZ",
+                                            "True, dimension 2 i.e z is parallelized",
                                             true);
 
     //FFT ONLY:
-    itsAttr[BCFFTX] = Attributes::makePredefinedString("BCFFTX",
+    itsAttr[FIELDSOLVER::BCFFTX] = Attributes::makePredefinedString("BCFFTX",
                                                        "Boundary conditions in x.",
                                                        {"OPEN", "DIRICHLET", "PERIODIC"},
                                                        "OPEN");
 
-    itsAttr[BCFFTY] = Attributes::makePredefinedString("BCFFTY",
+    itsAttr[FIELDSOLVER::BCFFTY] = Attributes::makePredefinedString("BCFFTY",
                                                        "Boundary conditions in y.",
                                                        {"OPEN", "DIRICHLET", "PERIODIC"},
                                                        "OPEN");
 
-    itsAttr[BCFFTZ] = Attributes::makePredefinedString("BCFFTZ",
-                                                       "Boundary conditions in z(t).",
+    itsAttr[FIELDSOLVER::BCFFTZ] = Attributes::makePredefinedString("BCFFTZ",
+                                                       "Boundary conditions in z.",
                                                        {"OPEN", "DIRICHLET", "PERIODIC"},
                                                        "OPEN");
 
-    itsAttr[deprecated::BCFFTT] = Attributes::makePredefinedString("BCFFTT",
-                                                                  "Boundary conditions in z(t).",
-                                                                  {"OPEN", "DIRICHLET", "PERIODIC"},
-                                                                  "OPEN");
-
-    itsAttr[GREENSF]  = Attributes::makePredefinedString("GREENSF",
+    itsAttr[FIELDSOLVER::GREENSF]  = Attributes::makePredefinedString("GREENSF",
                                                          "Which Greensfunction to be used.",
                                                          {"STANDARD", "INTEGRATED"},
                                                          "INTEGRATED");
 
-    itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR",
+    itsAttr[FIELDSOLVER::BBOXINCR] = Attributes::makeReal("BBOXINCR",
                                              "Increase of bounding box in % ",
                                              2.0);
 
@@ -175,31 +158,31 @@ FieldSolver* FieldSolver::find(const std::string& name) {
 }
 
 std::string FieldSolver::getType() {
-    return Attributes::getString(itsAttr[FSTYPE]);
+    return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
 }
 
 double FieldSolver::getMX() const {
-    return Attributes::getReal(itsAttr[MX]);
+    return Attributes::getReal(itsAttr[FIELDSOLVER::MX]);
 }
 
 double FieldSolver::getMY() const {
-    return Attributes::getReal(itsAttr[MY]);
+    return Attributes::getReal(itsAttr[FIELDSOLVER::MY]);
 }
 
-double FieldSolver::getMT() const {
-    return Attributes::getReal(itsAttr[MT]);
+double FieldSolver::getMZ() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::MZ]);
 }
 
 void FieldSolver::setMX(double value) {
-    Attributes::setReal(itsAttr[MX], value);
+    Attributes::setReal(itsAttr[FIELDSOLVER::MX], value);
 }
 
 void FieldSolver::setMY(double value) {
-    Attributes::setReal(itsAttr[MY], value);
+    Attributes::setReal(itsAttr[FIELDSOLVER::MY], value);
 }
 
-void FieldSolver::setMT(double value) {
-    Attributes::setReal(itsAttr[MT], value);
+void FieldSolver::setMZ(double value) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::MZ], value);
 }
 
 void FieldSolver::update() {
@@ -213,16 +196,16 @@ void FieldSolver::initCartesianFields() {
     NDIndex<3> domain;
     domain[0] = Index((int)getMX() + 1);
     domain[1] = Index((int)getMY() + 1);
-    domain[2] = Index((int)getMT() + 1);
+    domain[2] = Index((int)getMZ() + 1);
 
-    if (Attributes::getBool(itsAttr[PARFFTX]))
+    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]))
         decomp[0] = PARALLEL;
-    if (Attributes::getBool(itsAttr[PARFFTY]))
+    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]))
         decomp[1] = PARALLEL;
-    if (Attributes::getBool(itsAttr[PARFFTT]))
+    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]))
         decomp[2] = PARALLEL;
 
-    if (Attributes::getString(itsAttr[FSTYPE]) == "FFTPERIODIC") {
+    if (Attributes::getString(itsAttr[FIELDSOLVER::TYPE]) == "FFTPERIODIC") {
         decomp[0] = decomp[1] = SERIAL;
         decomp[2] = PARALLEL;
     }
@@ -234,10 +217,8 @@ void FieldSolver::initCartesianFields() {
 }
 
 bool FieldSolver::hasPeriodicZ() {
-    if (itsAttr[deprecated::BCFFTT])
-        return (Attributes::getString(itsAttr[deprecated::BCFFTT]) == "PERIODIC");
 
-    return (Attributes::getString(itsAttr[BCFFTZ]) == "PERIODIC");
+    return (Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ]) == "PERIODIC");
 }
 
 void FieldSolver::setFieldSolverType() {
@@ -250,7 +231,7 @@ void FieldSolver::setFieldSolverType() {
     fsName_m = getType();
     if (fsName_m.empty()) {
         throw OpalException("FieldSolver::setFieldSolverType",
-                            "The attribute \"FSTYPE\" isn't set for \"FIELDSOLVER\"!");
+                            "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
     } else {
         fsType_m = stringFSType_s.at(fsName_m);
     }
@@ -259,16 +240,10 @@ void FieldSolver::setFieldSolverType() {
 void FieldSolver::initSolver(PartBunchBase<double, 3>* b) {
     itsBunch_m = b;
 
-    std::string greens = Attributes::getString(itsAttr[GREENSF]);
-    std::string bcx = Attributes::getString(itsAttr[BCFFTX]);
-    std::string bcy = Attributes::getString(itsAttr[BCFFTY]);
-    std::string bcz = Attributes::getString(itsAttr[deprecated::BCFFTT]);
-    if (bcz.empty()) {
-        bcz = Attributes::getString(itsAttr[BCFFTZ]);
-    }
-
-    /* Boundary geometry must be set */
-
+    std::string greens = Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
+    std::string bcx = Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX]);
+    std::string bcy = Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY]);
+    std::string bcz = Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ]);
 }
 
 bool FieldSolver::hasValidSolver() {
@@ -280,29 +255,29 @@ Inform& FieldSolver::printInfo(Inform& os) const {
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* TYPE         " << fsName_m << '\n'
        << "* N-PROCESSORS " << Ippl::getNodes() << '\n'
-       << "* MX           " << Attributes::getReal(itsAttr[MX])   << '\n'
-       << "* MY           " << Attributes::getReal(itsAttr[MY])   << '\n'
-       << "* MT           " << Attributes::getReal(itsAttr[MT])   << '\n'
-       << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << '\n'
-       << "* GRRENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
+       << "* MX           " << Attributes::getReal(itsAttr[FIELDSOLVER::MX])   << '\n'
+       << "* MY           " << Attributes::getReal(itsAttr[FIELDSOLVER::MY])   << '\n'
+       << "* MZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::MZ])   << '\n'
+       << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
+       << "* GRRENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
     
 
-    if (Attributes::getBool(itsAttr[PARFFTX])) {
+    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {
         os << "* XDIM         parallel  " << endl;
     } else {
         os << "* XDIM         serial  " << endl;
     }
 
-    if (Attributes::getBool(itsAttr[PARFFTY])) {
+    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY])) {
         os << "* YDIM         parallel  " << endl;
     } else {
         os << "* YDIM         serial  " << endl;
     }
 
-    if (Attributes::getBool(itsAttr[PARFFTT])) {
-        os << "* Z(T)DIM      parallel  " << endl;
+    if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])) {
+        os << "* ZDIM      parallel  " << endl;
     }else {
-        os << "* Z(T)DIM      serial  " << endl;
+        os << "* ZDIM      serial  " << endl;
     }
 
     if (solver_m)

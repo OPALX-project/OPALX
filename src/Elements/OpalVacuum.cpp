@@ -92,14 +92,6 @@ void OpalVacuum::update() {
     vac->setTemperature(temperature);
     vac->setStop(stop);
 
-    if (itsAttr[PARTICLEMATTERINTERACTION] && parmatint_m == nullptr) {
-        const std::string matterDescriptor = Attributes::getString(itsAttr[PARTICLEMATTERINTERACTION]);
-        ParticleMatterInteraction* orig = ParticleMatterInteraction::find(matterDescriptor);
-        parmatint_m = orig->clone(matterDescriptor);
-        parmatint_m->initParticleMatterInteractionHandler(*vac);
-        vac->setParticleMatterInteraction(parmatint_m->handler_m);
-    }
-
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(vac);
 }

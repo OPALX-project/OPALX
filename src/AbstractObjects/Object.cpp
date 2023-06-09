@@ -62,12 +62,10 @@ void Object::execute() {
 
 
 Attribute *Object::findAttribute(const std::string &name) {
-    for(std::vector<Attribute>::iterator i = itsAttr.begin();
-        i != itsAttr.end(); ++i) {
+    for(std::vector<Attribute>::iterator i = itsAttr.begin(); i != itsAttr.end(); ++i) {
         if(i->getName() == name) return &(*i);
     }
-
-    return 0;
+    return nullptr;
 }
 
 

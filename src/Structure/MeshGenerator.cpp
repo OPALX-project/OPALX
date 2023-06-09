@@ -1,8 +1,6 @@
 #include "Structure/MeshGenerator.h"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
-#include "AbsBeamline/Bend2D.h"
-#include "AbsBeamline/RBend3D.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbstractObjects/OpalData.h"
 
@@ -19,17 +17,7 @@ void MeshGenerator::add(const ElementBase &element) {
     double start = 0.0;
 
     MeshData mesh;
-    if (element.getType() == ElementType::SBEND ||
-        element.getType() == ElementType::RBEND) {
-
-        const Bend2D* dipole = static_cast<const Bend2D*>(&element);
-        mesh = dipole->getSurfaceMesh();
-        mesh.type_m = DIPOLE;
-    } else if (element.getType() == ElementType::RBEND3D) {
-        const RBend3D* dipole = static_cast<const RBend3D*>(&element);
-        mesh = dipole->getSurfaceMesh();
-        mesh.type_m = DIPOLE;
-    } else if (element.getType() == ElementType::DRIFT) {
+    if (element.getType() == ElementType::DRIFT) {
         return;
     } else {
         double end, length;
@@ -51,31 +39,9 @@ void MeshGenerator::add(const ElementBase &element) {
         }
 
         switch(element.getType()) {
-        case ElementType::MULTIPOLE:
-            switch(static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex()) {
-            case 1:
-                mesh.type_m = DIPOLE;
-                break;
-            case 2:
-                mesh.type_m = QUADRUPOLE;
-                break;
-            case 3:
-                mesh.type_m = SEXTUPOLE;
-                break;
-            case 4:
-                mesh.type_m = OCTUPOLE;
-                break;
-            default:
-                break;
-            }
-            break;
         case ElementType::RFCAVITY:
-        case ElementType::VARIABLERFCAVITY:
         case ElementType::TRAVELINGWAVE:
             mesh.type_m = RFCAVITY;
-            break;
-        case ElementType::SOLENOID:
-            mesh.type_m = SOLENOID;
             break;
         default:
             mesh.type_m = OTHER;

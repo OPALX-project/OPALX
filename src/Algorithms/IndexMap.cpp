@@ -29,7 +29,6 @@
 #include "Algorithms/IndexMap.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/Bend2D.h"
 #include "Physics/Physics.h"
 #include "Structure/ElementPositionWriter.h"
 #include "Utilities/Util.h"
@@ -318,18 +317,6 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 namespace {
     void insertFlags(std::vector<double> &flags, std::shared_ptr<Component> element) {
         switch (element->getType()) {
-        case ElementType::RBEND:
-        case ElementType::SBEND:
-            {
-                const Bend2D* bend = static_cast<const Bend2D*>(element.get());
-                if (bend->getRotationAboutZ() > 0.5 * Physics::pi &&
-                    bend->getRotationAboutZ() < 1.5 * Physics::pi) {
-                    flags[DIPOLE] = -1;
-                } else {
-                    flags[DIPOLE] = 1;
-                }
-            }
-            break;
         case ElementType::MULTIPOLE:
             {
                 const Multipole* mult = static_cast<const Multipole*>(element.get());
@@ -353,9 +340,6 @@ namespace {
                     flags[MULTIPOLE] = 1;
                 }
             }
-            break;
-        case ElementType::SOLENOID:
-            flags[SOLENOID] = 1;
             break;
         case ElementType::RFCAVITY:
         case ElementType::TRAVELINGWAVE:

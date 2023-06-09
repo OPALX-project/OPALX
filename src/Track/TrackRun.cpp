@@ -1,4 +1,3 @@
-//
 // Class TrackRun
 //   The RUN command.
 //
@@ -57,7 +56,7 @@
 
 extern Inform *gmsg;
 
-namespace {
+namespace TRACKRUN{
     // The attributes of class TrackRun.
     enum {
         METHOD,           // Tracking method to use.
@@ -82,7 +81,7 @@ const boost::bimap<TrackRun::RunMethod, std::string> TrackRun::stringMethod_s =
     (RunMethod::PARALLELT,  "PARALLEL-T");
     
 TrackRun::TrackRun():
-    Action(SIZE, "RUN",
+    Action(TRACKRUN::SIZE, "RUN",
            "The \"RUN\" sub-command tracks the defined particles through "
            "the given lattice."),
     itsTracker(nullptr),
@@ -94,40 +93,40 @@ TrackRun::TrackRun():
     method_m(RunMethod::NONE),
     macromass_m(0.0),
     macrocharge_m(0.0) {
-    itsAttr[METHOD] = Attributes::makePredefinedString
+    itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString
         ("METHOD", "Name of tracking algorithm to use.",
          {"PARALLEL-T"});
 
-    itsAttr[TURNS] = Attributes::makeReal
+    itsAttr[TRACKRUN::TURNS] = Attributes::makeReal
         ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron.", 1.0);
 
-    itsAttr[MBMODE] = Attributes::makePredefinedString
+    itsAttr[TRACKRUN::MBMODE] = Attributes::makePredefinedString
         ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl.",
          {"FORCE", "AUTO"}, "FORCE");
 
-    itsAttr[PARAMB] = Attributes::makeReal
+    itsAttr[TRACKRUN::PARAMB] = Attributes::makeReal
         ("PARAMB", "Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode.", 5.0);
 
-    itsAttr[MB_ETA] = Attributes::makeReal
+    itsAttr[TRACKRUN::MB_ETA] = Attributes::makeReal
         ("MB_ETA", "The scale parameter for binning in multi-bunch mode.", 0.01);
 
-    itsAttr[MB_BINNING] = Attributes::makePredefinedString
+    itsAttr[TRACKRUN::MB_BINNING] = Attributes::makePredefinedString
         ("MB_BINNING", "Type of energy binning in multi-bunch mode.",
          {"GAMMA_BINNING", "BUNCH_BINNING"}, "GAMMA_BINNING");
 
-    itsAttr[BEAM] = Attributes::makeString
+    itsAttr[TRACKRUN::BEAM] = Attributes::makeString
         ("BEAM", "Name of beam.");
 
-    itsAttr[FIELDSOLVER] = Attributes::makeString
+    itsAttr[TRACKRUN::FIELDSOLVER] = Attributes::makeString
         ("FIELDSOLVER", "Field solver to be used.");
 
-    itsAttr[BOUNDARYGEOMETRY] = Attributes::makeString
+    itsAttr[TRACKRUN::BOUNDARYGEOMETRY] = Attributes::makeString
         ("BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default).", "NONE");
 
-    itsAttr[DISTRIBUTION] = Attributes::makeStringArray
+    itsAttr[TRACKRUN::DISTRIBUTION] = Attributes::makeStringArray
         ("DISTRIBUTION", "List of particle distributions to be used.");
 
-    itsAttr[TRACKBACK] = Attributes::makeBool
+    itsAttr[TRACKRUN::TRACKBACK] = Attributes::makeBool
         ("TRACKBACK", "Track in reverse direction, default: false.", false);
 
     registerOwnership(AttributeHandler::SUB_COMMAND);
@@ -190,15 +189,15 @@ void TrackRun::execute() {
     }
 
     isFollowupTrack_m = opal->hasBunchAllocated();
-    if (!itsAttr[DISTRIBUTION] && !isFollowupTrack_m) {
+    if (!itsAttr[TRACKRUN::DISTRIBUTION] && !isFollowupTrack_m) {
         throw OpalException("TrackRun::execute",
                             "\"DISTRIBUTION\" must be set in \"RUN\" command.");
     }
-    if (!itsAttr[FIELDSOLVER]) {
+    if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute",
                             "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    if (!itsAttr[BEAM]) {
+    if (!itsAttr[TRACKRUN::BEAM]) {
         throw OpalException("TrackRun::execute",
                             "\"BEAM\" must be set in \"RUN\" command.");
     }
@@ -223,11 +222,11 @@ void TrackRun::execute() {
 }
 
 void TrackRun::setRunMethod() {
-    if (!itsAttr[METHOD]) {
+    if (!itsAttr[TRACKRUN::METHOD]) {
         throw OpalException("TrackRun::setRunMethod",
                             "The attribute \"METHOD\" isn't set for the \"RUN\" command");
     } else {
-        auto it = stringMethod_s.right.find(Attributes::getString(itsAttr[METHOD]));
+        auto it = stringMethod_s.right.find(Attributes::getString(itsAttr[TRACKRUN::METHOD]));
         if (it != stringMethod_s.right.end()) {
             method_m = it->second;
         }
@@ -246,7 +245,7 @@ void TrackRun::setupTTracker(){
         Track::block->bunch->setLocalTrackStep(0);
     }
 
-    Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+    Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     Track::block->bunch->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
     Track::block->bunch->setPType(beam->getParticleName());
 
@@ -325,7 +324,7 @@ void TrackRun::setupTTracker(){
                                       *ds,
                                       Track::block->reference,
                                       false,
-                                      Attributes::getBool(itsAttr[TRACKBACK]),
+                                      Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]),
                                       Track::block->localTimeSteps,
                                       Track::block->zstart,
                                       Track::block->zstop,
@@ -333,11 +332,11 @@ void TrackRun::setupTTracker(){
 }
 
 void TrackRun::setupFieldsolver() {
-    fs = FieldSolver::find(Attributes::getString(itsAttr[FIELDSOLVER]));
+    fs = FieldSolver::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
 
     if (fs->getFieldSolverType() != FieldSolverType::NONE) {
-        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMT(); // total number of gridpoints
-        Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMZ(); // total number of gridpoints
+        Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
         if (!opal->inRestartRun() && numParticles < numGridPoints) {
@@ -350,7 +349,7 @@ void TrackRun::setupFieldsolver() {
 
         OpalData::getInstance()->addProblemCharacteristicValue("MX", fs->getMX());
         OpalData::getInstance()->addProblemCharacteristicValue("MY", fs->getMY());
-        OpalData::getInstance()->addProblemCharacteristicValue("MT", fs->getMT());
+        OpalData::getInstance()->addProblemCharacteristicValue("MT", fs->getMZ());
     }
 
     fs->initCartesianFields();
@@ -378,11 +377,11 @@ void TrackRun::initDataSink() {
 }
 
 void TrackRun::setBoundaryGeometry() {
-    if (Attributes::getString(itsAttr[BOUNDARYGEOMETRY]) != "NONE") {
+    if (Attributes::getString(itsAttr[TRACKRUN::BOUNDARYGEOMETRY]) != "NONE") {
         // Ask the dictionary if BoundaryGeometry is allocated.
         // If it is allocated use the allocated BoundaryGeometry
         if (!OpalData::getInstance()->hasGlobalGeometry()) {
-            const std::string geomDescriptor = Attributes::getString(itsAttr[BOUNDARYGEOMETRY]);
+            const std::string geomDescriptor = Attributes::getString(itsAttr[TRACKRUN::BOUNDARYGEOMETRY]);
             BoundaryGeometry* bg = BoundaryGeometry::find(geomDescriptor)->clone(geomDescriptor);
             OpalData::getInstance()->setGlobalGeometry(bg);
         }
@@ -398,7 +397,7 @@ double TrackRun::setDistributionParallelT(Beam* beam) {
      * it to create the full distribution.
      */
     std::vector<std::string> distributionArray
-        = Attributes::getStringArray(itsAttr[DISTRIBUTION]);
+        = Attributes::getStringArray(itsAttr[TRACKRUN::DISTRIBUTION]);
     const size_t numberOfDistributions = distributionArray.size();
 
 
