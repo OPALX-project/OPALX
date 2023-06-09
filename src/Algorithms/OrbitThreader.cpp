@@ -22,7 +22,6 @@
 
 #include "Algorithms/OrbitThreader.h"
 
-#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"

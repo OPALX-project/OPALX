@@ -174,9 +174,11 @@ void Line::parse(Statement &stat) {
     // Construct expression for length, and fill in occurrence counters.
     PtrToScalar<double> expr;
     for(FlaggedBeamline::iterator i = line->begin(); i != line->end(); ++i) {
+        auto actname = i->getElement()->getName(); 
+        //        std::cout << actname << std::endl;   without this crash
         // Accumulate length.
         PtrToScalar<double> temp =
-            new SRefExpr<double>(i->getElement()->getName(), "L");
+            new SRefExpr<double>(actname, "L");
         if(expr.isValid() &&  temp.isValid()) {
             expr = SBinary<double, double>::make(plus, expr, temp);
         } else {
@@ -186,8 +188,9 @@ void Line::parse(Statement &stat) {
         // Do the required instantiations.
         ElementBase *base = i->getElement();
         i->setElement(base->copyStructure());
-        Element *elem = Element::find(base->getName());
+        Element *elem = Element::find(actname); 
         i->setCounter(elem->increment());
+        
     }
     if(expr.isValid()) itsAttr[LENGTH].set(new SAutomatic<double>(expr));
 
@@ -329,29 +332,32 @@ void Line::parseList(Statement &stat) {
         } else {
             // Identifier.
             std::string name = parseString(stat, "Line member expected.");
-            auto obj = std::shared_ptr<Object>(OpalData::getInstance()->find(name));
+            auto obj = OpalData::getInstance()->find(name); // std::shared_ptr<Object>(OpalData::getInstance()->find(name));
 
             if(! obj) {
                 throw ParseError("Line::parseList()",
                                  "Element \"" + name + "\" is undefined.");
             }
-
+            else
+            
             if(stat.delimiter('(')) {
                 // Line or sequence macro.
                 // This instance will always be an anonymous object.
-                obj = std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
+                obj = obj->makeInstance(name, stat, 0); //std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
             }
-
-            if(Element *elem = dynamic_cast<Element *>(&*obj)) {
+          
+            if(Element *elem = dynamic_cast<Element *>(obj)) {
                 while(repeat-- > 0) {
                     ElementBase *base = elem->getElement();
                     FlaggedElmPtr member(base, rev);
                     line->push_back(member);
                 }
+
             } else {
                 throw ParseError("Line::parseList()",
                                  "Object \"" + name + "\" cannot be a line member.");
             }
+            
         }
     } while(stat.delimiter(','));
 

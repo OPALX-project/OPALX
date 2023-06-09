@@ -137,13 +137,13 @@ void Attribute::parseComponent(Statement &stat, bool eval, int index) {
 
 
 void Attribute::set(AttributeBase *newBase) {
-    base = std::shared_ptr<AttributeBase>(newBase);
+    base = newBase;
     isDefault = false;
 }
 
 
 void Attribute::setDefault() {
-    base = std::shared_ptr<AttributeBase>(handler->getDefault());
+    base = handler->getDefault();
     isDefault = true;
 }
 

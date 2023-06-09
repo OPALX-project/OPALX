@@ -41,8 +41,7 @@
 #include "Distribution/Distribution.h"
 #include "Elements/OpalBeamline.h"
 #include "Physics/Units.h"
-#include "Solvers/CSRWakeFunction.h"
-#include "Solvers/ParticleMatterInteractionHandler.h"
+
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/OpalException.h"
@@ -75,9 +74,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-    BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-    WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    particleMatterStatus_m(false)
+    BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart"))
 {}
 
 ParallelTTracker::ParallelTTracker(const Beamline &beamline,
@@ -106,9 +103,7 @@ ParallelTTracker::ParallelTTracker(const Beamline &beamline,
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-    BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-    WakeFieldTimer_m(IpplTimings::getTimer("WakeField")),
-    particleMatterStatus_m(false)
+    BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart"))
 {
     for (unsigned int i = 0; i < zstop.size(); ++ i) {
         stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -183,8 +178,6 @@ void ParallelTTracker::execute() {
     itsBunch_m->setdT(std::abs(itsBunch_m->getdT()));
     dtCurrentTrack_m = itsBunch_m->getdT();
 
-    evenlyDistributeParticles();
-
     if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
     }
@@ -212,10 +205,6 @@ void ParallelTTracker::execute() {
         itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t(0, 0, 1));
 
         if (itsBunch_m->getTotalNum() > 0) {
-            if (!itsOpalBeamline_m.containsSource()) {
-                momentum = itsReference.getP() / itsBunch_m->getM();
-                itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t(0, 0, 1));
-            }
 
             if (zstart_m > pathLength_m) {
                 findStartPosition(pusher);
@@ -251,8 +240,6 @@ void ParallelTTracker::execute() {
 
     oth.execute();
     BoundingBox globalBoundingBox = oth.getBoundingBox();
-
-    saveCavityPhases();
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
@@ -314,7 +301,6 @@ void ParallelTTracker::execute() {
             }
 
             if (deletedParticles_m) {
-                evenlyDistributeParticles();
                 deletedParticles_m = false;
             }
             itsBunch_m->set_sPos(pathLength_m);
@@ -364,13 +350,15 @@ void ParallelTTracker::execute() {
 void ParallelTTracker::prepareSections() {
 
     itsBeamline_m.accept(*this);
-
+    
     itsOpalBeamline_m.prepareSections();
 
+    /*
     itsOpalBeamline_m.compute3DLattice();
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
-}
+    */
+    }
 
 void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
 
@@ -521,12 +509,6 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
-    computeWakefield(elements);
-#ifdef ENABLE_OPAL_FEL
-    computeUndulator(elements);
-#endif
-    computeParticleMatterInteraction(elements, oth);
-
     reduce(locPartOutOfBounds, globPartOutOfBounds, OpOrAssign());
 
     size_t ne = 0;
@@ -547,14 +529,6 @@ void ParallelTTracker::computeExternalFields(OrbitThreader &oth) {
         msg << level1 << "* Deleted " << ne << " particles, "
             << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
-}
-
-void ParallelTTracker::computeWakefield(IndexMap::value_t &elements) {
-
-}
-
-void ParallelTTracker::computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth) {
-
 }
 
 void ParallelTTracker::doBinaryRepartition() {
@@ -833,13 +807,6 @@ void ParallelTTracker::findStartPosition(const BorisPusher &pusher) {
     dtCurrentTrack_m = stepSizesCopy.getdT();
     selectDT();
 
-    if ((back_track && itsOpalBeamline_m.containsSource()) ||
-        Util::getKineticEnergy(itsBunch_m->RefPartP_m, itsBunch_m->getM()) < 1e-3) {
-        double gamma = 0.1 / itsBunch_m->getM() + 1.0;
-        double beta = sqrt(1.0 - 1.0 / std::pow(gamma, 2));
-        itsBunch_m->RefPartP_m = itsBunch_m->toLabTrafo_m.rotateTo(beta * gamma * Vector_t(0, 0, 1));
-    }
-
     while (true) {
         autophaseCavities(pusher);
 
@@ -913,145 +880,3 @@ struct DistributionInfo {
     unsigned int whom;
     unsigned int howMany;
 };
-
-void ParallelTTracker::evenlyDistributeParticles() {
-    const int numNodes = Ippl::getNodes();
-    if (itsBunch_m->hasFieldSolver() || numNodes == 1) return;
-
-    long onAverage = itsBunch_m->getTotalNum() / Ippl::getNodes();
-    if (itsBunch_m->getTotalNum() % Ippl::getNodes() > 0.5 * Ippl::getNodes())
-        ++ onAverage;
-
-    std::vector<long> localParticles(numNodes, 0);
-    localParticles[Ippl::myNode()] = itsBunch_m->getLocalNum() - onAverage;
-    allreduce(&(localParticles[0]),
-              numNodes,
-              std::plus<long>());
-
-    std::vector<DistributionInfo> send;
-    std::vector<DistributionInfo> receive;
-
-    for (int i = 0; i < Ippl::getNodes(); ++ i) {
-        if (localParticles[i] <= 0) continue;
-
-        for (int j = 0; j < Ippl::getNodes(); ++ j) {
-            if (j == i || localParticles[j] >= 0) continue;
-
-            long numParts = std::min(localParticles[i], -localParticles[j]);
-            localParticles[i] -= numParts;
-            localParticles[j] += numParts;
-
-            if (i == Ippl::myNode() || j == Ippl::myNode()) {
-                DistributionInfo request;
-                request.who = i;
-                request.whom = j;
-                request.howMany = numParts;
-
-                if (i == Ippl::myNode()) {
-                    send.push_back(request);
-                } else {
-                    receive.push_back(request);
-                }
-            }
-
-            if (localParticles[i] == 0) break;
-        }
-    }
-
-    std::vector<MPI_Request> requests;
-    const long sizeSingleParticle = 9 * sizeof(double) + sizeof(short) + sizeof(int) + sizeof(PID_t::Return_t);
-    long idx = itsBunch_m->getLocalNum() - 1;
-    int tag = Ippl::Comm->next_tag(P_SPATIAL_TRANSFER_TAG, P_LAYOUT_CYCLE);
-
-    std::vector<char> send_msgbuf;
-
-    if (!send.empty()) {
-        const char *buffer;
-
-        unsigned int totalSend = 0, startIndex = 0;
-        for (DistributionInfo &request: send) {
-            totalSend += request.howMany;
-        }
-        send_msgbuf.reserve(totalSend * sizeSingleParticle);
-
-        for (DistributionInfo &request: send) {
-            size_t sizePrior = send_msgbuf.size();
-            for (long i = 0; i < request.howMany; ++ i, -- idx) {
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->R[idx](0)));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + 3 * sizeof(double));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->P[idx](0)));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + 3 * sizeof(double));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->Q[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->M[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->dt[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(double));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->POrigin[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(ParticleOrigin));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->TriID[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(int));
-                buffer = reinterpret_cast<const char*>(&(itsBunch_m->ID[idx]));
-                send_msgbuf.insert(send_msgbuf.end(), buffer, buffer + sizeof(PID_t::Return_t));
-            }
-
-            size_t sendSizeThis = send_msgbuf.size() - sizePrior;
-            MPI_Request req = Ippl::Comm->raw_isend(&(send_msgbuf[startIndex]),
-                                                    sendSizeThis,
-                                                    request.whom,
-                                                    tag);
-
-            requests.push_back(req);
-
-            startIndex += sendSizeThis;
-        }
-
-        itsBunch_m->destroy(totalSend, idx + 1, true);
-    }
-
-    for (unsigned int i = 0; i < receive.size(); ++ i) {
-        int node = Communicate::COMM_ANY_NODE;
-        char *recvbuf;
-        const int bufsize = Ippl::Comm->raw_probe_receive(recvbuf, node, tag);
-
-        int j = 0;
-
-        while (j < bufsize) {
-            ++ idx;
-            itsBunch_m->create(1);
-            {
-                const double *buffer = reinterpret_cast<const double*>(recvbuf + j);
-                itsBunch_m->R[idx] = Vector_t(buffer[0], buffer[1], buffer[2]);
-                itsBunch_m->P[idx] = Vector_t(buffer[3], buffer[4], buffer[5]);
-                itsBunch_m->Q[idx] = buffer[6];
-                itsBunch_m->M[idx] = buffer[7];
-                itsBunch_m->dt[idx] = buffer[8];
-            }
-            j += 9 * sizeof(double);
-
-            {
-                const ParticleOrigin *buffer = reinterpret_cast<const ParticleOrigin*>(recvbuf + j);
-                itsBunch_m->POrigin[idx] = buffer[0];
-            }
-            j += sizeof(ParticleOrigin);
-
-            {
-                const int *buffer = reinterpret_cast<const int*>(recvbuf + j);
-                itsBunch_m->TriID[idx] = buffer[0];
-            }
-            j += sizeof(int);
-
-            {
-                const PID_t::Return_t *buffer = reinterpret_cast<const PID_t::Return_t*>(recvbuf + j);
-                itsBunch_m->ID[idx] = buffer[0];
-            }
-            j += sizeof(PID_t::Return_t);
-        }
-
-        delete[] recvbuf;
-    }
-
-    if (!requests.empty()) {
-        MPI_Waitall(requests.size(), &(requests[0]), MPI_STATUSES_IGNORE);
-    }
-}

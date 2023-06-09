@@ -20,9 +20,9 @@
 
 #include "Elements/OpalElement.h"
 
-class BoundaryGeometry;
-class OpalWake;
-class ParticleMatterInteraction;
+//class BoundaryGeometry;
+//class OpalWake;
+//class ParticleMatterInteraction;
 
 class OpalDrift: public OpalElement {
 
@@ -58,9 +58,11 @@ private:
     // Clone constructor.
     OpalDrift(const std::string& name, OpalDrift* parent);
 
+    /*
     OpalWake* owk_m;
     ParticleMatterInteraction* parmatint_m;
     BoundaryGeometry* obgeo_m;
+    */
 };
 
 #endif // OPAL_OpalDrift_HH

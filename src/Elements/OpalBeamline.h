@@ -22,13 +22,7 @@
 #include <string>
 
 #include "Beamlines/Beamline.h"
-#include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Marker.h"
-#include "AbsBeamline/Septum.h"
-#include "AbsBeamline/Source.h"
-#include "AbsBeamline/Probe.h"
-
 #include "Utilities/ClassicField.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -93,11 +87,9 @@ public:
     void swap(OpalBeamline & rhs);
     void merge(OpalBeamline &rhs);
 
-    bool containsSource();
 private:
     FieldList elements_m;
     bool prepared_m;
-    bool containsSource_m;
 
     CoordinateSystemTrafo coordTransformationTo_m;
 };
@@ -119,33 +111,7 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<doub
 }
 
 template<> inline
-void OpalBeamline::visit<Source>(const Source &element, BeamlineVisitor &, PartBunchBase<double, 3> *bunch) {
-    containsSource_m = true;
-    double startField = 0.0;
-    double endField = 0.0;
-    std::shared_ptr<Source> elptr(dynamic_cast<Source *>(element.clone()));
-
-    positionElementRelative(elptr);
-
-    if (elptr->isElementPositionSet())
-        startField = elptr->getElementPosition();
-
-    elptr->initialise(bunch, startField, endField);
-    elements_m.push_back(ClassicField(elptr, startField, endField));
-}
-
-template<> inline
 void OpalBeamline::visit<Marker>(const Marker &/*element*/, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-}
-
-template<> inline
-void OpalBeamline::visit<Septum>(const Septum &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
-}
-
-template<> inline
-void OpalBeamline::visit<Probe>(const Probe &element, BeamlineVisitor &, PartBunchBase<double, 3> *) {
-    WARNMSG(element.getTypeString() << " not implemented yet!" << endl);
 }
 
 inline
@@ -207,8 +173,4 @@ CoordinateSystemTrafo OpalBeamline::getMisalignment(const std::shared_ptr<Compon
     return comp->getMisalignment();
 }
 
-inline
-bool OpalBeamline::containsSource() {
-    return containsSource_m;
-}
 #endif // OPAL_BEAMLINE_H
