@@ -349,10 +349,11 @@ void ParallelTTracker::execute() {
 
 void ParallelTTracker::prepareSections() {
 
+        /*
     itsBeamline_m.accept(*this);
     
     itsOpalBeamline_m.prepareSections();
-
+        */
     /*
     itsOpalBeamline_m.compute3DLattice();
     itsOpalBeamline_m.save3DLattice();

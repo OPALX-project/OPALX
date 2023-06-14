@@ -119,8 +119,6 @@ public:
     // standing wave structures
     FieldList cavities_m;
 
-    const Beamline &itsBeamline_m;
-
 protected:
 
     /// Apply a drift length.
