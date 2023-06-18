@@ -60,7 +60,6 @@
 // Element commands.
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalDrift.h"
-#include "Elements/OpalMonitor.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -108,7 +107,6 @@ namespace {
         OpalData *opal = OpalData::getInstance();
         opal->create(new OpalDrift());
         opal->create(new OpalMarker());
-        opal->create(new OpalMonitor());
         opal->create(new Line());
     }
 };

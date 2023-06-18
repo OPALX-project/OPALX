@@ -52,7 +52,9 @@ private:
     void operator=(const Parser &);
 };
 
-inline Parser::Parser() { }
+inline
+Parser::Parser()
+{ }
 
 inline
 Parser::~Parser()

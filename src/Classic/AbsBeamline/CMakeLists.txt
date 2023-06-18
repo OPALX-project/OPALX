@@ -8,7 +8,6 @@ set (_SRCS
     Drift.cpp
     ElementBase.cpp
     Marker.cpp
-    Monitor.cpp
     Multipole.cpp
     MultipoleT.cpp
     MultipoleTBase.cpp
@@ -26,7 +25,6 @@ set (HDRS
     Drift.h
     ElementBase.h
     Marker.h
-    Monitor.h
     Multipole.h
     MultipoleT.h
     MultipoleTBase.h

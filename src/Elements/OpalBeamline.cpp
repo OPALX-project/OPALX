@@ -82,8 +82,7 @@ unsigned long OpalBeamline::getFieldAt(const Vector_t &position,
 
     for (; it != end; ++ it) {
         ElementType type = (*it)->getType();
-        if (type == ElementType::MONITOR ||
-            type == ElementType::MARKER) continue;
+        if (type == ElementType::MARKER) continue;
 
         Vector_t localR = transformToLocalCS(*it, position);
         Vector_t localP = rotateToLocalCS(*it, momentum);
@@ -111,18 +110,8 @@ void OpalBeamline::switchElements(const double &min, const double &max, const do
     for(FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++ flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
         // or if explicitly not desired (eg during auto phasing)
-        if(flit->getElement()->getType() == ElementType::MONITOR) {
-            double spos = (max + min) / 2.;
-            if(!nomonitors && spos < (*flit).getStart()) {
-                if(!(*flit).isOn() && max > (*flit).getStart()) {
-                    (*flit).setOn(kineticEnergy);
-                }
-            }
-
-        } else {
-            if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
-                (*flit).setOn(kineticEnergy);
-            }
+        if(!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
+            (*flit).setOn(kineticEnergy);
         }
 
         fprev = flit;

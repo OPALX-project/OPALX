@@ -16,23 +16,19 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalDrift.h"
-//#include "Structure/BoundaryGeometry.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
-//#include "Structure/OpalWake.h"
-//#include "Structure/ParticleMatterInteraction.h"
-
 
 OpalDrift::OpalDrift():
     OpalElement(SIZE, "DRIFT",
-                "The \"DRIFT\" element defines a drift space.") {
-    
+                "The \"DRIFT\" element defines a drift space.")
+{
     itsAttr[GEOMETRY] = Attributes::makeString
-        ("GEOMETRY", "BoundaryGeometry for Drifts");
+                        ("GEOMETRY", "BoundaryGeometry for Drifts");
 
     itsAttr[NSLICES]  = Attributes::makeReal
-        ("NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
-    
+                        ("NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
+
     registerOwnership();
 
     setElement(new DriftRep("DRIFT"));
@@ -40,13 +36,13 @@ OpalDrift::OpalDrift():
 
 
 OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent):
-    OpalElement(name, parent){
+    OpalElement(name, parent)
+{
     setElement(new DriftRep(name));
 }
 
 
 OpalDrift::~OpalDrift() {
-
 }
 
 
@@ -61,18 +57,20 @@ bool OpalDrift::isDrift() const {
 
 
 void OpalDrift::update() {
-
     OpalElement::update();
 
-    //DriftRep* drf = dynamic_cast<DriftRep*>(getElement());
+    //    DriftRep* drf = static_cast<DriftRep*>(getElement());
 
-    auto drf = static_cast<DriftRep*>(getElement());
+    //drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
 
-    if(drf) {
-        std::cout << "L= " << Attributes::getReal(itsAttr[LENGTH]) << std::endl;
-        //drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));           // ADA crash
+    auto drf = getElement();
+    if (drf) {
+        auto  L = Attributes::getReal(itsAttr[LENGTH]);
+        drf->setElementLength(L);
     }
-    else { std::cout << "drf ptr not valid" << std::endl;}
+    else
+        std::cout << "error drf->setElementLength " << std::endl;
     
+    // Transmit "unknown" attributes.
     OpalElement::updateUnknown(drf);
 }

@@ -40,7 +40,17 @@ OpalElement::OpalElement(int size, const char* name, const char* help):
     Element(size, name, help), itsSize(size) {
     itsAttr[TYPE]   = Attributes::makePredefinedString
         ("TYPE", "The element design type.",
-         {"SPATIAL"});
+         {"RING",
+          "CARBONCYCL",
+          "CYCIAE",
+          "AVFEQ",
+          "FFA",
+          "BANDRF",
+          "SYNCHROCYCLOTRON",
+          "SINGLEGAP",
+          "STANDING",
+          "TEMPORAL",
+          "SPATIAL"});
 
     itsAttr[LENGTH] = Attributes::makeReal
         ("L", "The element length in m");
@@ -48,11 +58,6 @@ OpalElement::OpalElement(int size, const char* name, const char* help):
     itsAttr[ELEMEDGE] = Attributes::makeReal
         ("ELEMEDGE", "The position of the element in path length (in m)");
 
-    itsAttr[OUTFN] = Attributes::makeString
-        ("OUTFN", "Output filename");
-
-    
-    /*
     itsAttr[APERT] = Attributes::makeString
         ("APERTURE", "The element aperture");
 
@@ -104,11 +109,13 @@ OpalElement::OpalElement(int size, const char* name, const char* help):
     itsAttr[DPSI] = Attributes::makeReal
         ("DPSI", "Misalignment in theta (Tait-Bryan angles)",0.0);
 
+    itsAttr[OUTFN] = Attributes::makeString
+        ("OUTFN", "Output filename");
 
     itsAttr[DELETEONTRANSVERSEEXIT] = Attributes::makeBool
         ("DELETEONTRANSVERSEEXIT", "Flag controlling if particles should be deleted if they exit "
                                    "the element transversally", true);
-    */
+
     const unsigned int end = COMMON;
     for (unsigned int i = 0; i < end; ++ i) {
         AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
@@ -127,7 +134,6 @@ OpalElement::~OpalElement()
 
 std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
 
-    /*
     std::pair<ApertureType, std::vector<double> > retvalue(ApertureType::ELLIPTICAL,
                                                            std::vector<double>({0.5, 0.5, 1.0}));
     if (!itsAttr[APERT]) return retvalue;
@@ -278,7 +284,6 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
     }
 
     return retvalue;
-    */
 }
 
 double OpalElement::getLength() const {
@@ -294,6 +299,15 @@ const std::string OpalElement::getTypeName() const {
 /**
    Functions to get the wake field parametes
 */
+const std::string OpalElement::getWakeF() const {
+    const Attribute* attr = findAttribute("WAKEF");
+    return attr ? Attributes::getString(*attr) : std::string();
+}
+
+const std::string OpalElement::getParticleMatterInteraction() const {
+    const Attribute* attr = findAttribute("PARTICLEMATTERINTERACTION");
+    return attr ? Attributes::getString(*attr) : std::string();
+}
 
 void OpalElement::parse(Statement& stat) {
     while (stat.delimiter(',')) {
@@ -457,7 +471,6 @@ void OpalElement::printMultipoleStrength(std::ostream& os,
 void OpalElement::update() {
     ElementBase* base = getElement();
 
-    /*
     auto apert = getApert();
     base->setAperture(apert.first, apert.second);
 
@@ -542,11 +555,11 @@ void OpalElement::update() {
                                        misalignmentRotation.conjugate());
 
     base->setMisalignment(misalignment);
-    */
-    
+
     if (itsAttr[ELEMEDGE])
         base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
 
+    base->setFlagDeleteOnTransverseExit(Attributes::getBool(itsAttr[DELETEONTRANSVERSEEXIT]));
 }
 
 void OpalElement::updateUnknown(ElementBase* base) {

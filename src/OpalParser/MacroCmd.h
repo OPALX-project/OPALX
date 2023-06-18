@@ -25,7 +25,7 @@
 
 #include "OpalParser/Macro.h"
 #include "OpalParser/MacroStream.h"
-#include <memory>
+#include "MemoryManagement/Pointer.h"
 #include <iosfwd>
 #include <string>
 
@@ -61,7 +61,7 @@ private:
     void operator=(const MacroCmd &);
 
     // The stream of tokens representing the macro command.
-    std::shared_ptr<MacroStream> body;
+    Pointer<MacroStream> body;
 
     // Pointer to the parser to be used in execution.
     const Parser *itsParser;

@@ -32,11 +32,9 @@ public:
     /// The common attributes for all elements.
     enum {
         TYPE,           // The design type.
-        //        APERT,          // The aperture data.
+        APERT,          // The aperture data.
         LENGTH,         // The element length.
         ELEMEDGE,       // The position of the element (in path length)
-        OUTFN,          // Output filename
-        /*
         WAKEF,          // The wake function to be used
         PARTICLEMATTERINTERACTION, // The particle mater interaction handler to be used
         ORIGIN,         // The location of the element in floor coordinates
@@ -53,9 +51,8 @@ public:
         DTHETA,         // The rotation around y axis in rad.
         DPHI,           // The rotation around x axis in rad.
         DPSI,           // The rotation around s axis in rad.
-        
+        OUTFN,          // Output filename
         DELETEONTRANSVERSEEXIT, // Flag whether particles should be deleted if exit transversally
-        */
         COMMON
     };
 
@@ -71,6 +68,9 @@ public:
     std::pair<ApertureType, std::vector<double> > getApert() const;
 
     /// Return the element's type name.
+    const std::string getWakeF() const;
+
+    const std::string getParticleMatterInteraction() const;
 
     const std::string getWMaterial() const;
 

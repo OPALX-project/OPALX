@@ -20,7 +20,7 @@
 
 #include "OpalParser/Statement.h"
 #include "OpalParser/MacroStream.h"
-#include <memory>
+#include "MemoryManagement/Pointer.h"
 #include <iosfwd>
 
 class TokenStream;
@@ -57,7 +57,7 @@ private:
     void operator=(const CompoundStatement &);
 
     // Token list contained in this compound.
-    std::shared_ptr<MacroStream> tokens;
+    Pointer<MacroStream> tokens;
 };
 
 #endif // CLASSIC_CompoundStatement_HH
