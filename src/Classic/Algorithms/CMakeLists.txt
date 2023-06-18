@@ -8,7 +8,6 @@ set (_SRCS
     PartBunch.cpp
     PartBunchBase.hpp
     PartBins.cpp
-    PartBinsCyc.cpp
     PartData.cpp
     OpalParticle.cpp
     PolynomialTimeDependence.cpp
@@ -31,7 +30,6 @@ set (HDRS
     DistributionMoments.h
     Flagger.h
     ListElem.h
-    PartBinsCyc.h
     PartBins.h
     PartBunch.h
     PartBunchBase.h
