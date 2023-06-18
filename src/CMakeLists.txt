@@ -36,7 +36,7 @@ macro (ADD_OPAL_HEADERS )
     endif ()
 endmacro ()
 
-add_opal_sources (opal.cpp)
+#add_opal_sources (opal.cpp)
 add_opal_sources (changes.cpp)
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algorithms)
