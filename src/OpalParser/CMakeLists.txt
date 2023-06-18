@@ -1,4 +1,5 @@
 set (_SRCS
+    MacroCmd.cpp
     AbsFileStream.cpp
     CompoundStatement.cpp
     FileStream.cpp
@@ -21,6 +22,7 @@ include_directories (
 add_opal_sources (${_SRCS})
 
 set (HDRS
+    MacroCmd.h    
     AbsFileStream.h
     CompoundStatement.h
     FileStream.h

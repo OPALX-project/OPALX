@@ -41,7 +41,7 @@ MacroCmd::MacroCmd():
 
 MacroCmd::MacroCmd(const std::string &name, MacroCmd *parent):
     Macro(name, parent), body() {
-    body = new MacroStream(name);
+    body = std::make_shared<MacroStream>(name);
 }
 
 

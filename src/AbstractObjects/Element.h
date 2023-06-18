@@ -32,7 +32,7 @@
 
 #include "AbstractObjects/Object.h"
 #include "AbsBeamline/ElementBase.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
 
 
 class Element: public Object {
@@ -110,7 +110,7 @@ private:
     void operator=(const Element &);
 
     // The embedded CLASSIC element.
-    Pointer<ElementBase> itsClassicElement;
+    std::shared_ptr<ElementBase> itsClassicElement;
 };
 
 
@@ -123,7 +123,7 @@ inline ElementBase *Element::getElement() const {
 
 
 inline void Element::setElement(ElementBase *base) {
-    itsClassicElement = base;
+    itsClassicElement = std::shared_ptr<ElementBase>(base);
 }
 
 #endif // OPAL_Element_HH

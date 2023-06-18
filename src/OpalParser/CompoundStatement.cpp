@@ -30,7 +30,7 @@ CompoundStatement::CompoundStatement(TokenStream &is):
     Token token = is.readToken();
     buffer_name = token.getFile();
     stat_line = token.getLine();
-    tokens = new MacroStream(token.getFile());
+    tokens = std::make_shared<MacroStream>(token.getFile());
 
     // Skip opening brace.
     int level = 1;

@@ -19,7 +19,6 @@
 // ------------------------------------------------------------------------
 
 #include "OpalParser/Parser.h"
-#include "MemoryManagement/Pointer.h"
 #include <string>
 #include <vector>
 
@@ -116,7 +115,7 @@ private:
     mutable bool stopFlag;
 
     // The stack of input streams ("CALL", "MACRO", etc.).
-    static std::vector<Pointer<TokenStream> > inputStack;
+    static std::vector<std::shared_ptr<TokenStream> > inputStack;
 };
 
 #endif // OPAL_OpalParser_HH
