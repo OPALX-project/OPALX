@@ -19,7 +19,6 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
-#include "Structure/MeshGenerator.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 

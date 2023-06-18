@@ -42,7 +42,6 @@
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolver.h"
 #include "Structure/H5PartWrapper.h"
-#include "Structure/H5PartWrapperForPC.h"
 #include "Structure/H5PartWrapperForPT.h"
 
 #include "OPALconfig.h"

@@ -24,7 +24,6 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
-#include "Structure/OpalWake.h"
 
 
 OpalCavity::OpalCavity():
