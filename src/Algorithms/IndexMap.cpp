@@ -345,9 +345,6 @@ namespace {
         case ElementType::TRAVELINGWAVE:
             flags[RFCAVITY] = 1;
             break;
-        case ElementType::MONITOR:
-            flags[MONITOR] = 1;
-            break;
         default:
             flags[OTHER] = 1;
             break;

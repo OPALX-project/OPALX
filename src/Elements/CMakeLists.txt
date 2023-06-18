@@ -4,7 +4,6 @@ set (_SRCS
     OpalDrift.cpp
     OpalElement.cpp
     OpalMarker.cpp
-    OpalMonitor.cpp
     OpalMultipole.cpp
     OpalMultipoleT.cpp
     OpalBeamline.cpp
@@ -16,7 +15,6 @@ set (HDRS
     OpalDrift.h
     OpalElement.h
     OpalMarker.h
-    OpalMonitor.h
     OpalMultipole.h
     OpalMultipoleT.h
     OpalSource.h

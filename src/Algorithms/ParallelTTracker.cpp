@@ -30,7 +30,6 @@
 #include <sstream>
 #include <string>
 
-#include "AbsBeamline/Monitor.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/CavityAutophaser.h"
@@ -169,7 +168,8 @@ void ParallelTTracker::restoreCavityPhases() {
 void ParallelTTracker::execute() {
     Inform msg("ParallelTTracker ", *gmsg);
     OpalData::getInstance()->setInPrepState(true);
-
+    bool back_track = false;
+    
     BorisPusher pusher(itsReference);
     const double globalTimeShift = itsBunch_m->weHaveEnergyBins()? OpalData::getInstance()->getGlobalPhaseShift(): 0.0;
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
@@ -188,46 +188,35 @@ void ParallelTTracker::execute() {
 
     itsOpalBeamline_m.activateElements();
 
-    if ( OpalData::getInstance()->hasPriorTrack() ||
-         OpalData::getInstance()->inRestartRun()) {
-
-        pathLength_m = itsBunch_m->get_sPos();
-        zstart_m = pathLength_m;
-
-        restoreCavityPhases();
-    } else {
-
-        double momentum = euclidean_norm(itsBunch_m->get_pmean_Distribution());
-        CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
-        itsBunch_m->toLabTrafo_m = beamlineToLab;
-
-        itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t(0.0));
-        itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t(0, 0, 1));
-
-        if (itsBunch_m->getTotalNum() > 0) {
-
-            if (zstart_m > pathLength_m) {
-                findStartPosition(pusher);
-            }
-
-            itsBunch_m->set_sPos(pathLength_m);
+    double momentum = euclidean_norm(itsBunch_m->get_pmean_Distribution());
+    CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
+    itsBunch_m->toLabTrafo_m = beamlineToLab;
+    
+    itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t(0.0));
+    itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t(0, 0, 1));
+    
+    if (itsBunch_m->getTotalNum() > 0) {
+        
+        if (zstart_m > pathLength_m) {
+            findStartPosition(pusher);
         }
+
+        itsBunch_m->set_sPos(pathLength_m);
     }
+    
 
     stepSizes_m.advanceToPos(zstart_m);
-    if (back_track) {
-        itsBunch_m->setdT(-std::abs(itsBunch_m->getdT()));
-        stepSizes_m.reverseDirection();
-        if (pathLength_m < stepSizes_m.getZStop()) {
-            ++ stepSizes_m;
-        }
-    }
 
     Vector_t rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0) {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
+    *gmsg << "itsBunch_m->RefPartR_m " << itsBunch_m->RefPartR_m << endl;
+    *gmsg << "itsBunch_m->RefPartP_m " << itsBunch_m->RefPartP_m << endl;
+    *gmsg << "rmin " << rmin << endl;
+    *gmsg << "rmax " << rmax << endl;
+    
     OrbitThreader oth(itsReference,
                       itsBunch_m->RefPartR_m,
                       itsBunch_m->RefPartP_m,
@@ -240,7 +229,7 @@ void ParallelTTracker::execute() {
 
     oth.execute();
     BoundingBox globalBoundingBox = oth.getBoundingBox();
-
+    
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
     setTime();
@@ -261,12 +250,19 @@ void ParallelTTracker::execute() {
           << "* Max integration steps = " << stepSizes_m.getMaxSteps()
           << ", next step = " << step << endl << endl;
 
+
+
+
     setOptionalVariables();
 
     globalEOL_m = false;
     wakeStatus_m = false;
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
+
+    return;
+
+
     while (!stepSizes_m.reachedEnd()) {
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m = stepSizes_m.getdT();
@@ -289,7 +285,7 @@ void ParallelTTracker::execute() {
 
             selectDT(back_track);
 
-            computeExternalFields(oth);
+            //            computeExternalFields(oth);
 
             timeIntegration2(pusher);
 
@@ -305,7 +301,7 @@ void ParallelTTracker::execute() {
             }
             itsBunch_m->set_sPos(pathLength_m);
 
-            if (hasEndOfLineReached(globalBoundingBox)) break;
+            //            if (hasEndOfLineReached(globalBoundingBox)) break;
 
             bool const psDump = ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1 == Options::psDumpFreq);
             bool const statDump = ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1 == Options::statDumpFreq);
@@ -342,23 +338,17 @@ void ParallelTTracker::execute() {
     *gmsg << endl << "* Done executing ParallelTTracker at "
           << myt3.time() << endl << endl;
 
-    Monitor::writeStatistics();
 
     OpalData::getInstance()->setPriorTrack();
 }
 
 void ParallelTTracker::prepareSections() {
 
-        /*
-    itsBeamline_m.accept(*this);
-    
     itsOpalBeamline_m.prepareSections();
-        */
-    /*
     itsOpalBeamline_m.compute3DLattice();
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
-    */
+
     }
 
 void ParallelTTracker::timeIntegration1(BorisPusher & pusher) {
