@@ -146,7 +146,7 @@ void Distribution::createOpalT(PartBunchBase<double, 3> *beam,
                                std::vector<Distribution *> addedDistributions,
                                size_t &numberOfParticles) {
 
-    createOpalT(beam, numberOfParticles);
+
 }
 
 void Distribution::create(size_t &numberOfParticles, double massIneV, double charge) {
