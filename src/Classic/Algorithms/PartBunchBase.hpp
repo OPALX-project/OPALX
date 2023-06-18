@@ -20,7 +20,6 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
-#include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartData.h"
 #include "Distribution/Distribution.h"
 #include "Physics/ParticleProperties.h"
