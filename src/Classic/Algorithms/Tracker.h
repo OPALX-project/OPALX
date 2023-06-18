@@ -65,7 +65,6 @@
 #include "Algorithms/AbstractTracker.h"
 #include "Algorithms/PartBunchBase.h"
 #include "Algorithms/PartData.h"
-#include "FixedAlgebra/FTps.h"
 
 #include "Utilities/ClassicField.h"
 
@@ -120,30 +119,6 @@ public:
     FieldList cavities_m;
 
 protected:
-
-    /// Apply a drift length.
-    void applyDrift(double length);
-
-    // Apply thin multipole kick.                                         .
-    void applyThinMultipole(const BMultipoleField &field, double factor);
-
-    // Special kick routine for thin SBend.
-    void applyThinSBend(const BMultipoleField &field, double scale, double h);
-
-    /// Apply a geometric transformation.
-    void applyTransform(const Euclid3D &, double refLength = 0.0);
-
-    /// Construct vector potential for a Multipole.
-    FTps<double, 2> buildMultipoleVectorPotential2D(const BMultipoleField &);
-
-    /// Construct vector potential for a Multipole.
-    FTps<double, 6> buildMultipoleVectorPotential(const BMultipoleField &);
-
-    /// Construct vector potential for a SBend.
-    FTps<double, 2> buildSBendVectorPotential2D(const BMultipoleField &, double h);
-
-    /// Construct vector potential for a SBend.
-    FTps<double, 6> buildSBendVectorPotential(const BMultipoleField &, double h);
 
     /// The bunch of particles to be tracked.
     PartBunchBase<double, 3>* itsBunch_m;
