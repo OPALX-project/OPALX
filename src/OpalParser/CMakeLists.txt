@@ -1,28 +1,28 @@
 set (_SRCS
     AbsFileStream.cpp
+    CompoundStatement.cpp
     FileStream.cpp
     SimpleStatement.cpp
     Statement.cpp
     StringStream.cpp
     Token.cpp
     TokenStream.cpp
-    CompoundStatement.cpp
-    IfStatement.cpp
-    Macro.cpp
-    MacroCmd.cpp
-    MacroStream.cpp
     OpalParser.cpp
+    IfStatement.cpp	
     WhileStatement.cpp
-    )
+    Macro.cpp
+    MacroStream.cpp         
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-add_opal_sources(${_SRCS})
+add_opal_sources (${_SRCS})
 
 set (HDRS
     AbsFileStream.h
+    CompoundStatement.h
     FileStream.h
     Parser.h
     SimpleStatement.h
@@ -30,13 +30,11 @@ set (HDRS
     StringStream.h
     Token.h
     TokenStream.h
-    CompoundStatement.h
+    OpalParser.h
     IfStatement.h
-    MacroCmd.h
+    WhileStatement.h
     Macro.h
     MacroStream.h
-    OpalParser.h
-    WhileStatement.h
-    )
+)
 
-install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/OpalParser")
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Parser")

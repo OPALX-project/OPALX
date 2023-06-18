@@ -140,6 +140,8 @@ public:
 
     void setRelativeFlag(bool flag);
     bool getRelativeFlag() const;
+    /// Get the number of elements in the TBeamline
+    size_t size() const;
 protected:
 
     /// The beamline geometry.
@@ -451,4 +453,16 @@ template <class T> inline
 bool TBeamline<T>::getRelativeFlag() const {
     return relativePositions_m;
 }
+
+template <class T>
+size_t TBeamline<T>::size() const {
+    size_t blSize = 0;
+    for(typename std::list<T>::const_iterator iter = this->begin();
+        iter != this->end(); ++iter) {
+        blSize++;
+    }
+
+    return blSize;
+}
+
 #endif // CLASSIC_TBeamline_HH

@@ -24,9 +24,6 @@
 // Class MacroStream
 // ------------------------------------------------------------------------
 
-MacroStream::MacroStream()
-{}
-
 MacroStream::MacroStream(const std::string &macName):
     TokenStream(macName), body(), curr(body.begin())
 {}

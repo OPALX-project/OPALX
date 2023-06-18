@@ -63,6 +63,8 @@
 #include "AbsBeamline/ElementBase.h"
 
 #include "Channels/Channel.h"
+#include "Solvers/ParticleMatterInteractionHandler.h"
+#include "Solvers/WakeFunction.h"
 #include "Structure/BoundaryGeometry.h"
 
 #include <boost/filesystem.hpp>
@@ -72,10 +74,8 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::ANY,                "Any"},
     {ElementType::BEAMLINE,           "Beamline"},
     {ElementType::DRIFT,              "Drift"},
-    {ElementType::MARKER,             "Marker"},
-    {ElementType::MONITOR,            "Monitor"},
+    {ElementType::MARKER,            "Marker"},
     {ElementType::MULTIPOLE,          "Multipole"},
-    {ElementType::MULTIPOLET,         "MultipoleT"},
     {ElementType::RFCAVITY,           "RFCavity"},
     {ElementType::TRAVELINGWAVE,      "TravelingWave"}
 };
@@ -95,7 +95,9 @@ ElementBase::ElementBase(const ElementBase &right):
     rotationZAxis_m(right.rotationZAxis_m),
     elementID(right.elementID),
     userAttribs(right.userAttribs),
+    wake_m(right.wake_m),
     bgeometry_m(right.bgeometry_m),
+    parmatint_m(right.parmatint_m),
     positionIsFixed(right.positionIsFixed),
     elementPosition_m(right.elementPosition_m),
     elemedgeSet_m(right.elemedgeSet_m),
@@ -103,7 +105,10 @@ ElementBase::ElementBase(const ElementBase &right):
     deleteOnTransverseExit_m(right.deleteOnTransverseExit_m)
 {
 
-   if (bgeometry_m) {
+    if (parmatint_m) {
+        parmatint_m->updateElement(this);
+    }
+    if (bgeometry_m) {
         bgeometry_m->updateElement(this);
     }
 }
@@ -118,7 +123,9 @@ ElementBase::ElementBase(const std::string &name):
     rotationZAxis_m(0.0),
     elementID(name),
     userAttribs(),
+    wake_m(nullptr),
     bgeometry_m(nullptr),
+    parmatint_m(nullptr),
     positionIsFixed(false),
     elementPosition_m(0.0),
     elemedgeSet_m(false),
@@ -235,10 +242,17 @@ bool ElementBase::update(const AttributeSet &set) {
     return true;
 }
 
+void ElementBase::setWake(WakeFunction *wk) {
+    wake_m = wk;//->clone(getName() + std::string("_wake")); }
+}
+
 void ElementBase::setBoundaryGeometry(BoundaryGeometry *geo) {
     bgeometry_m = geo;//->clone(getName() + std::string("_wake")); }
 }
 
+void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler *parmatint) {
+    parmatint_m = parmatint;
+}
 
 void ElementBase::setCurrentSCoordinate(double s) {
     if (!actionRange_m.empty() && actionRange_m.front().second < s) {
