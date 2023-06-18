@@ -1,8 +1,6 @@
 set (_SRCS
   Beam.cpp
   LossDataSink.cpp    
-  OpalWake.cpp
-  ParticleMatterInteraction.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
   DataSink.cpp
@@ -13,7 +11,6 @@ set (_SRCS
   MonitorStatisticsWriter.cpp
   IpplInfoWrapper.cpp
   H5Writer.cpp
-  MeshGenerator.cpp
   MemoryWriter.cpp
   LBalWriter.cpp
   StatBaseWriter.cpp
@@ -35,16 +32,10 @@ set (HDRS
     DataSink.h
     ElementPositionWriter.h
     FieldSolver.h
-    FieldWriter.h
-    FieldWriter.hpp
     H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
-    MeshGenerator.h
     MonitorStatisticsWriter.h
-    MultiBunchDump.h
-    OpalWake.h
-    ParticleMatterInteraction.h
     H5Writer.h
     MemoryWriter.h
     LBalWriter.h
@@ -54,11 +45,6 @@ set (HDRS
     SDDSColumnSet.h
     SDDSWriter.h
 )
-
-if (ENABLE_AMR)
-    list(APPEND _SRCS GridLBalWriter.cpp)
-    list(APPEND HDRS GridLBalWriter.h)
-endif()
 
 if (UNIX AND NOT APPLE)
     # for Linux, BSD, Solaris, Minix

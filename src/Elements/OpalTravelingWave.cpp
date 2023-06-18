@@ -19,7 +19,6 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/TravelingWaveRep.h"
-#include "Structure/OpalWake.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
