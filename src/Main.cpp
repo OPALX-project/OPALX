@@ -75,7 +75,7 @@ namespace {
               << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_PROJECT_VERSION << "\n"
               << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n" << endl
               << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n" << endl
-              << "The optimiser (former opt-Pilot) is integrated " << endl
+              << "This is the performance portable version of OPAL" << endl
               << endl;
 
         *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
