@@ -21,7 +21,6 @@
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
-#include "Algorithms/PartBinsCyc.h"
 #include "Algorithms/PartBunchBase.h"
 #include "BasicActions/Option.h"
 #include "DataSource/DataConnect.h"

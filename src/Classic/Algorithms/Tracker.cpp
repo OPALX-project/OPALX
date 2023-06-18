@@ -64,9 +64,6 @@
 
 //FIXME Remove headers and dynamic_cast in readOneBunchFromFile
 #include "Algorithms/PartBunch.h"
-#ifdef ENABLE_AMR
-    #include "Algorithms/AmrPartBunch.h"
-#endif
 
 #include <cfloat>
 #include <cmath>
