@@ -38,27 +38,35 @@ REAL P0      = gamma*beta*EMASS;    //inital z momentum
 //Printing initial energy and momentum to terminal output.
 value, {Edes, P0};
 
-Dr1: DRIFT, L = 1.4, ELEMEDGE = 0.0;
-Dr2: DRIFT, L = 3.0, ELEMEDGE = 1.4;
-
-myLine: Line = (Dr1,Dr1);
-
-DistFT: DISTRIBUTION, TYPE = GAUSS, SIGMAX = 1e-3, SIGMAY = 1e-3;
-
-FS_SC: Fieldsolver, FSTYPE = NONE, MX = MX, MY = MY, MT = MZ, 
-            PARFFTX = true, PARFFTY = true, PARFFTT = true,
-            BCFFTX = open, BCFFTY = open, BCFFTT = open,
-            BBOXINCR = 1, GREENSF = INTEGRATED;
-
-//----------------------------------------------------------------------------
-// Electron Beam Definition
+D1: DRIFT, L = 1.0, ELEMEDGE = 0.0;
+D2: DRIFT, L = 1.0, ELEMEDGE = 1.0;
+D3: DRIFT, L = 1.0, ELEMEDGE = 2.0;
+D4: DRIFT, L = 1.0, ELEMEDGE = 3.0;
 
 BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
         BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq * 1E6, CHARGE = -1;
 
-TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 1000000, DT = {1e-12}, ZSTOP={7.0}; 
 
-RUN, METHOD = "PARALLEL-T", BEAM = BEAM1, FIELDSOLVER = FS_SC, DISTRIBUTION = DistFT;
-	
+FS1: Fieldsolver, TYPE = NONE, MX = MX, MY = MY, MZ = 64, 
+            PARFFTX = true, PARFFTY = true, PARFFTZ = true,
+            BCFFTX = open, BCFFTY = open, BCFFTZ = open,
+            BBOXINCR = 1, GREENSF = INTEGRATED;
+
+Dist1: DISTRIBUTION, TYPE= GAUSS, SIGMAX=1e-3, SIGMAY=1e-3;
+
+myLine: Line = (D1,D2,D3,D4);
+
+TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 1000000, DT = {1e-12}, ZSTOP=7.0; 
+RUN, METHOD = "PARALLEL-T", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;
 ENDTRACK;
 
+
+QUIT;
+
+
+
+
+
+
+
+QUIT;
