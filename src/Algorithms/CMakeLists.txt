@@ -6,7 +6,7 @@ set (_SRCS
     Flagger.cpp
     IndexMap.cpp
     OrbitThreader.cpp
-    ParallelTTracker.cpp
+    ParallelTracker.cpp
     PartBunch.cpp
     PartBunchBase.hpp
     PartBins.cpp
@@ -31,7 +31,7 @@ set (HDRS
     Flagger.h
     IndexMap.h
     OrbitThreader.h
-    ParallelTTracker.h
+    ParallelTracker.h
     PartBins.h
     PartBunch.h
     PartBunchBase.h

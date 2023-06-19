@@ -1,5 +1,5 @@
 //
-// Class ParallelTTracker
+// Class ParallelTracker
 //   OPAL-T tracker.
 //   The visitor class for tracking particles with time as independent
 //   variable.
@@ -19,8 +19,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef OPAL_ParallelTTracker_HH
-#define OPAL_ParallelTTracker_HH
+#ifndef OPAL_ParallelTracker_HH
+#define OPAL_ParallelTracker_HH
 
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
@@ -51,7 +51,7 @@
 
 class ParticleMatterInteractionHandler;
 
-class ParallelTTracker: public Tracker {
+class ParallelTracker: public Tracker {
 
 public:
     /// Constructor.
@@ -60,7 +60,7 @@ public:
     //  The particle bunch tracked is initially empty.
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelTTracker(const Beamline &bl,
+    explicit ParallelTracker(const Beamline &bl,
                               const PartData &data,
                               bool revBeam,
                               bool revTrack);
@@ -71,7 +71,7 @@ public:
     //  The particle bunch tracked is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelTTracker(const Beamline &bl,
+    explicit ParallelTracker(const Beamline &bl,
                               PartBunchBase<double, 3> *bunch,
                               DataSink &ds,
                               const PartData &data,
@@ -83,7 +83,7 @@ public:
                               const std::vector<double> &dt);
 
 
-    virtual ~ParallelTTracker();
+    virtual ~ParallelTracker();
 
     /// Apply the algorithm to the top-level beamline.
     //  overwrite the execute-methode from DefaultVisitor
@@ -114,9 +114,9 @@ public:
 private:
 
     // Not implemented.
-    ParallelTTracker();
-    ParallelTTracker(const ParallelTTracker &);
-    void operator=(const ParallelTTracker &);
+    ParallelTracker();
+    ParallelTracker(const ParallelTracker &);
+    void operator=(const ParallelTracker &);
 
     /******************** STATE VARIABLES ***********************************/
 
@@ -212,38 +212,38 @@ private:
 };
 
 
-inline void ParallelTTracker::visitDrift(const Drift &drift) {
+inline void ParallelTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::visitMarker(const Marker &marker) {
+inline void ParallelTracker::visitMarker(const Marker &marker) {
     itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::visitMultipole(const Multipole &mult) {
+inline void ParallelTracker::visitMultipole(const Multipole &mult) {
     itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::visitMultipoleT(const MultipoleT &mult) {
+inline void ParallelTracker::visitMultipoleT(const MultipoleT &mult) {
     itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
 
 
-inline void ParallelTTracker::visitRFCavity(const RFCavity &as) {
+inline void ParallelTracker::visitRFCavity(const RFCavity &as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::visitTravelingWave(const TravelingWave &as) {
+inline void ParallelTracker::visitTravelingWave(const TravelingWave &as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
-inline void ParallelTTracker::kickParticles(const BorisPusher &pusher) {
+inline void ParallelTracker::kickParticles(const BorisPusher &pusher) {
     int localNum = itsBunch_m->getLocalNum();
     for (int i = 0; i < localNum; ++i)
         pusher.kick(itsBunch_m->R[i], itsBunch_m->P[i], itsBunch_m->Ef[i], itsBunch_m->Bf[i], itsBunch_m->dt[i]);
 }
 
-inline void ParallelTTracker::pushParticles(const BorisPusher &pusher) {
+inline void ParallelTracker::pushParticles(const BorisPusher &pusher) {
     itsBunch_m->switchToUnitlessPositions(true);
 
     for (unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
@@ -252,4 +252,4 @@ inline void ParallelTTracker::pushParticles(const BorisPusher &pusher) {
     itsBunch_m->switchOffUnitlessPositions(true);
 }
 
-#endif // OPAL_ParallelTTracker_HH
+#endif // OPAL_ParallelTracker_HH
