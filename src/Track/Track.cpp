@@ -24,7 +24,6 @@
 #include "Utilities/Options.h"
 
 Track* Track::block = 0;
-std::stack<Track*> Track::stashedTrack;
 
 /**
 Track is asking the dictionary if already a
@@ -65,17 +64,3 @@ Track::Track(BeamSequence* u, const PartData& ref, const std::vector<double>& dt
 Track::~Track()
 {}
 
-void Track::stash() {
-    PAssert_EQ(stashedTrack.size(), 0);
-
-    stashedTrack.push(block);
-    block = 0;
-}
-
-Track* Track::pop() {
-    delete block;
-    block = stashedTrack.top();
-    stashedTrack.pop();
-
-    return block;
-}

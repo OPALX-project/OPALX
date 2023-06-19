@@ -58,9 +58,6 @@ public:
     /// The block of track data.
     static Track* block;
 
-    static void stash();
-    static Track* pop();
-
     /// The initial timestep
     std::vector<double> dT;
 

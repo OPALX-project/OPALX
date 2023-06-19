@@ -59,34 +59,30 @@ namespace TRACKRUN{
     // The attributes of class TrackRun.
     enum {
         METHOD,           // Tracking method to use.
-        TURNS,            // The number of turns to be tracked.
-        MBMODE,           // The working way for multi-bunch mode for OPAL-cycl: "FORCE" or "AUTO"
-        PARAMB,           // The control parameter for "AUTO" mode of multi-bunch,
-        MB_ETA,           // The scale parameter for binning in multi-bunch mode
-        MB_BINNING,       // The binning type in multi-bunch mode
+        TURNS,            // The number of turns to be tracked, we keep that for the moment
         BEAM,             // The beam to track
         FIELDSOLVER,      // The field solver attached
         BOUNDARYGEOMETRY, // The boundary geometry
         DISTRIBUTION,     // The particle distribution
-        TRACKBACK,
+        TRACKBACK,        // In case we run the beam backwards
         SIZE
     };
 }
 
-const std::string TrackRun::defaultDistribution("DISTRIBUTION");
+const std::string TrackRun::defaultDistribution_m("DISTRIBUTION");
 
 const boost::bimap<TrackRun::RunMethod, std::string> TrackRun::stringMethod_s =
     boost::assign::list_of<const boost::bimap<TrackRun::RunMethod, std::string>::relation>
-    (RunMethod::PARALLELT,  "PARALLEL-T");
+    (RunMethod::PARALLEL,  "PARALLEL");
     
 TrackRun::TrackRun():
     Action(TRACKRUN::SIZE, "RUN",
            "The \"RUN\" sub-command tracks the defined particles through "
            "the given lattice."),
-    itsTracker(nullptr),
-    dist(nullptr),
-    fs(nullptr),
-    ds(nullptr),
+    itsTracker_m(nullptr),
+    dist_m(nullptr),
+    fs_m(nullptr),
+    ds_m(nullptr),
     phaseSpaceSink_m(nullptr),
     isFollowupTrack_m(false),
     method_m(RunMethod::NONE),
@@ -94,24 +90,11 @@ TrackRun::TrackRun():
     macrocharge_m(0.0) {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString
         ("METHOD", "Name of tracking algorithm to use.",
-         {"PARALLEL-T"});
+         {"PARALLEL"});
 
     itsAttr[TRACKRUN::TURNS] = Attributes::makeReal
         ("TURNS", "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron.", 1.0);
 
-    itsAttr[TRACKRUN::MBMODE] = Attributes::makePredefinedString
-        ("MBMODE", "The working way for multi-bunch mode for OPAL-cycl.",
-         {"FORCE", "AUTO"}, "FORCE");
-
-    itsAttr[TRACKRUN::PARAMB] = Attributes::makeReal
-        ("PARAMB", "Control parameter to define when to start multi-bunch mode, only available in \"AUTO\" mode.", 5.0);
-
-    itsAttr[TRACKRUN::MB_ETA] = Attributes::makeReal
-        ("MB_ETA", "The scale parameter for binning in multi-bunch mode.", 0.01);
-
-    itsAttr[TRACKRUN::MB_BINNING] = Attributes::makePredefinedString
-        ("MB_BINNING", "Type of energy binning in multi-bunch mode.",
-         {"GAMMA_BINNING", "BUNCH_BINNING"}, "GAMMA_BINNING");
 
     itsAttr[TRACKRUN::BEAM] = Attributes::makeString
         ("BEAM", "Name of beam.");
@@ -135,10 +118,10 @@ TrackRun::TrackRun():
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent):
     Action(name, parent),
-    itsTracker(nullptr),
-    dist(nullptr),
-    fs(nullptr),
-    ds(nullptr),
+    itsTracker_m(nullptr),
+    dist_m(nullptr),
+    fs_m(nullptr),
+    ds_m(nullptr),
     phaseSpaceSink_m(nullptr),
     isFollowupTrack_m(false),
     method_m(RunMethod::NONE),
@@ -204,8 +187,8 @@ void TrackRun::execute() {
     // Get algorithm to use.
     setRunMethod();
     switch (method_m) {
-            case RunMethod::PARALLELT: {
-            setupTTracker();
+            case RunMethod::PARALLEL: {
+            setupTracker();
             break;
         }
         default: {
@@ -213,11 +196,13 @@ void TrackRun::execute() {
                                 "Unknown \"METHOD\" for the \"RUN\" command");
         }
     }
-    itsTracker->execute();
+    
+    itsTracker_m->execute();
+
     opal->setRestartRun(false);
     opal->bunchIsAllocated();
 
-    delete itsTracker;
+    delete itsTracker_m;
 }
 
 void TrackRun::setRunMethod() {
@@ -237,7 +222,7 @@ std::string TrackRun::getRunMethodName() const {
 }
 
 
-void TrackRun::setupTTracker(){
+void TrackRun::setupTracker(){
     OpalData::getInstance()->setInOPALTMode();
 
     if (isFollowupTrack_m) {
@@ -294,7 +279,7 @@ void TrackRun::setupTTracker(){
 
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;
-        *gmsg << *dist << endl;
+        *gmsg << *dist_m << endl;
     }
 
     if (Track::block->bunch->getTotalNum() > 0) {
@@ -314,13 +299,18 @@ void TrackRun::setupTTracker(){
     }
 
     *gmsg << *beam << endl;
-    *gmsg << *fs   << endl;
+    *gmsg << *fs_m   << endl;
 
-    // findPhasesForMaxEnergy();
+    /*
+      This needs to come back as soon as we have RF
+    
+      findPhasesForMaxEnergy();
 
-    itsTracker = new ParallelTracker(*Track::block->use->fetchLine(),
+    */
+
+    itsTracker_m = new ParallelTracker(*Track::block->use->fetchLine(),
                                       Track::block->bunch,
-                                      *ds,
+                                      *ds_m,
                                       Track::block->reference,
                                       false,
                                       Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]),
@@ -331,10 +321,10 @@ void TrackRun::setupTTracker(){
 }
 
 void TrackRun::setupFieldsolver() {
-    fs = FieldSolver::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
+    fs_m = FieldSolver::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
 
-    if (fs->getFieldSolverType() != FieldSolverType::NONE) {
-        size_t numGridPoints = fs->getMX()*fs->getMY()*fs->getMZ(); // total number of gridpoints
+    if (fs_m->getFieldSolverType() != FieldSolverType::NONE) {
+        size_t numGridPoints = fs_m->getMX()*fs_m->getMY()*fs_m->getMZ(); // total number of gridpoints
         Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
         size_t numParticles = beam->getNumberOfParticles();
 
@@ -346,14 +336,14 @@ void TrackRun::setupFieldsolver() {
                                 "Please increase the number of particles or reduce the size of the mesh.\n");
         }
 
-        OpalData::getInstance()->addProblemCharacteristicValue("MX", fs->getMX());
-        OpalData::getInstance()->addProblemCharacteristicValue("MY", fs->getMY());
-        OpalData::getInstance()->addProblemCharacteristicValue("MT", fs->getMZ());
+        OpalData::getInstance()->addProblemCharacteristicValue("MX", fs_m->getMX());
+        OpalData::getInstance()->addProblemCharacteristicValue("MY", fs_m->getMY());
+        OpalData::getInstance()->addProblemCharacteristicValue("MT", fs_m->getMZ());
     }
 
-    fs->initCartesianFields();
-    Track::block->bunch->setSolver(fs);
-    if (fs->hasPeriodicZ()) {
+    fs_m->initCartesianFields();
+    Track::block->bunch->setSolver(fs_m);
+    if (fs_m->hasPeriodicZ()) {
         Track::block->bunch->setBCForDCBeam();
     } else {
         Track::block->bunch->setBCAllOpen();
@@ -366,13 +356,13 @@ void TrackRun::initDataSink() {
         if (!opal->hasDataSinkAllocated()) {
             opal->setDataSink(new DataSink(phaseSpaceSink_m, false));
         } else {
-            ds = opal->getDataSink();
-            ds->changeH5Wrapper(phaseSpaceSink_m);
+            ds_m = opal->getDataSink();
+            ds_m->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
         opal->setDataSink(new DataSink(phaseSpaceSink_m, true));
     }
-    ds = opal->getDataSink();
+    ds_m = opal->getDataSink();
 }
 
 void TrackRun::setBoundaryGeometry() {
@@ -400,14 +390,14 @@ double TrackRun::setDistributionParallelT(Beam* beam) {
     const size_t numberOfDistributions = distributionArray.size();
 
 
-    dist = Distribution::find(defaultDistribution);
+    dist_m = Distribution::find(defaultDistribution_m);
 
     /*
      * Initialize distributions.
      */
     size_t numberOfParticles = beam->getNumberOfParticles();
 
-    Track::block->bunch->setDistribution(dist,
+    Track::block->bunch->setDistribution(dist_m,
                                          distrs_m,
                                          numberOfParticles);
     // Return charge per macroparticle.

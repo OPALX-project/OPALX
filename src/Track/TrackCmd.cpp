@@ -184,10 +184,17 @@ Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
 }
 
 void TrackCmd::execute() {
-    // Find BeamSequence and Beam definitions.
-    BeamSequence* use = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
+
+    // Find BeamSequence 
+    BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
+
+    // Find Beam 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
+    std::cout << "TrackCmd::execute" << std::endl;
+    std::cout << *theLineToTrack << std::endl;
+
+    
     std::vector<double> dt = getDT();
     double t0 = getT0();
     double dtScInit = getDTSCINIT();
@@ -196,6 +203,7 @@ void TrackCmd::execute() {
     int stepsperturn = getStepsPerTurn();
     double zstart = getZStart();
     std::vector<double> zstop = getZStop();
+
     Steppers::TimeIntegrator timeintegrator = getTimeIntegrator();
 
     size_t numTracks = dt.size();
@@ -212,7 +220,7 @@ void TrackCmd::execute() {
     }
 
    // Execute track block.
-    Track::block = new Track(use, beam->getReference(), dt, maxsteps,
+    Track::block = new Track(theLineToTrack, beam->getReference(), dt, maxsteps,
                              stepsperturn, zstart, zstop,
                              timeintegrator, t0, dtScInit, deltaTau);
 
@@ -222,5 +230,5 @@ void TrackCmd::execute() {
 
     // Clean up.
     delete Track::block;
-    Track::block = 0;
+    Track::block = nullptr;
 }
