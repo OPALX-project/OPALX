@@ -8,7 +8,6 @@ set (_SRCS
     ConvergenceError.cpp
     DivideError.cpp
     DomainError.cpp
-    EigenvalueError.cpp
     FormatError.cpp
     GeneralClassicException.cpp
     LogicalError.cpp
@@ -36,10 +35,6 @@ set (_SRCS
     ParseError.cpp
     PortableBitmapReader.cpp
     PortableGraymapReader.cpp
-    RingSection.cpp
-    SingularMatrixError.cpp
-    SizeError.cpp
-    SwitcherError.cpp
     Util.cpp
     SDDSParser.cpp
     SDDSParser/array.cpp
@@ -76,7 +71,6 @@ set (HDRS
     ConvergenceError.h
     DivideError.h
     DomainError.h
-    EigenvalueError.h
     FormatError.h
     GeneralClassicException.h
     LogicalError.h
@@ -106,10 +100,6 @@ set (HDRS
     ParseError.h
     PortableBitmapReader.h
     PortableGraymapReader.h
-    RingSection.h
-    SingularMatrixError.h
-    SizeError.h
-    SwitcherError.h
     Util.h
     EarlyLeaveException.h
     OpalException.h
