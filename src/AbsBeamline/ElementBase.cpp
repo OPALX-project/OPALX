@@ -63,9 +63,6 @@
 #include "AbsBeamline/ElementBase.h"
 
 #include "Channels/Channel.h"
-#include "Solvers/ParticleMatterInteractionHandler.h"
-#include "Solvers/WakeFunction.h"
-#include "Structure/BoundaryGeometry.h"
 
 #include <boost/filesystem.hpp>
 
@@ -105,12 +102,6 @@ ElementBase::ElementBase(const ElementBase &right):
     deleteOnTransverseExit_m(right.deleteOnTransverseExit_m)
 {
 
-    if (parmatint_m) {
-        parmatint_m->updateElement(this);
-    }
-    if (bgeometry_m) {
-        bgeometry_m->updateElement(this);
-    }
 }
 
 
