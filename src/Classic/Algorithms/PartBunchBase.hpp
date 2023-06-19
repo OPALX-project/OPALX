@@ -392,8 +392,8 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
     size_t ne = 0;
     const size_t localNum = getLocalNum();
 
-    double rzmean = momentsComputer_m.getMeanPosition()(2);
-    double rzrms = momentsComputer_m.getStandardDeviationPosition()(2);
+    double rzmean = 0.0; //momentsComputer_m.getMeanPosition()(2);
+    double rzrms = 0.0; //momentsComputer_m.getStandardDeviationPosition()(2);
     const bool haveEnergyBins = weHaveEnergyBins();
     if (haveEnergyBins) {
         tmpbinemitted.resize(getNumberOfEnergyBins(), 0.0);
@@ -712,13 +712,13 @@ void PartBunchBase<T, Dim>::set_sPos(double s) {
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_gamma() const {
-    return momentsComputer_m.getMeanGamma();
+    return 0.0;
 }
 
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_meanKineticEnergy() const {
-    return momentsComputer_m.getMeanKineticEnergy();
+    return 0.0;
 }
 
 
@@ -736,37 +736,37 @@ Vector_t PartBunchBase<T, Dim>::get_maxExtent() const {
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_centroid() const {
-    return momentsComputer_m.getMeanPosition();
+    return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_rrms() const {
-    return momentsComputer_m.getStandardDeviationPosition();
+    return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_rprms() const {
-    return momentsComputer_m.getStandardDeviationRP();
+    return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_rmean() const {
-    return momentsComputer_m.getMeanPosition();
+    return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_prms() const {
-    return momentsComputer_m.getStandardDeviationMomentum();
+    return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_pmean() const {
-    return momentsComputer_m.getMeanMomentum();
+    return 0.0;
 }
 
 
@@ -782,82 +782,82 @@ Vector_t PartBunchBase<T, Dim>::get_pmean_Distribution() const {
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_emit() const {
-    return momentsComputer_m.getGeometricEmittance();
+    return 0.0;
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_norm_emit() const {
-    return momentsComputer_m.getNormalizedEmittance();
+    return 0.0;
 }
 
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_halo() const {
-    return momentsComputer_m.getHalo();
+    return 0.0; 
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_68Percentile() const {
-    return momentsComputer_m.get68Percentile();
+    return 0.0;
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_95Percentile() const {
-    return momentsComputer_m.get95Percentile();
+    return 0.0; 
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_99Percentile() const {
-    return momentsComputer_m.get99Percentile();
+    return 0.0; 
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_99_99Percentile() const {
-    return momentsComputer_m.get99_99Percentile();
+    return 0.0;
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_normalizedEps_68Percentile() const {
-    return momentsComputer_m.getNormalizedEmittance68Percentile();
+    return 0.0;
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_normalizedEps_95Percentile() const {
-    return momentsComputer_m.getNormalizedEmittance95Percentile();
+    return 0.0;
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_normalizedEps_99Percentile() const {
-    return momentsComputer_m.getNormalizedEmittance99Percentile();
+    return 0.0;
 }
 
 template <class T, unsigned Dim>
 Vector_t PartBunchBase<T, Dim>::get_normalizedEps_99_99Percentile() const {
-    return momentsComputer_m.getNormalizedEmittance99_99Percentile();
+    return 0.0;
 }
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_Dx() const {
-    return momentsComputer_m.getDx();
+    return 0.0;
 }
 
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_Dy() const {
-    return momentsComputer_m.getDy();
+    return 0.0;
 }
 
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_DDx() const {
-    return momentsComputer_m.getDDx();
+    return 0.0;
 }
 
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::get_DDy() const {
-    return momentsComputer_m.getDDy();
+    return 0.0;
 }
 
 
@@ -901,7 +901,7 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
 
     IpplTimings::startTimer(statParamTimer_m);
     get_bounds(rmin_m, rmax_m);
-    momentsComputer_m.compute(*this);
+    // momentsComputer_m.compute(*this);
     IpplTimings::stopTimer(statParamTimer_m);
 }
 
@@ -1157,7 +1157,7 @@ void PartBunchBase<T, Dim>::resetM(double m)  {
 
 template <class T, unsigned Dim>
 double PartBunchBase<T, Dim>::getdE() const {
-    return momentsComputer_m.getStdKineticEnergy();
+    return 0.0; 
 }
 
 
@@ -1200,7 +1200,7 @@ const PartData* PartBunchBase<T, Dim>::getReference() const {
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::calcEMean() {
-    momentsComputer_m.computeMeanKineticEnergy(*this);
+    //momentsComputer_m.computeMeanKineticEnergy(*this);
 }
 
 template <class T, unsigned Dim>
