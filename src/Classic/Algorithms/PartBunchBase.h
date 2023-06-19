@@ -24,8 +24,8 @@
 #include "Algorithms/Quaternion.h"
 #include "Algorithms/Vektor.h"
 #include "Distribution/Distribution.h"
-#include "FixedAlgebra/FMatrix.h"
-#include "FixedAlgebra/FVector.h"
+
+
 #include "Particle/AbstractParticle.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
@@ -33,6 +33,7 @@
 #include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utility/IpplTimings.h"
+#include "Algorithms/Matrix.h"
 
 #include <memory>
 #include <utility>
@@ -197,12 +198,6 @@ public:
      */
     void push_back(OpalParticle const& p);
 
-    void setParticle(FVector<double, 6> z, int ii);
-
-    void setParticle(OpalParticle const& p, int ii);
-
-    OpalParticle getParticle(int ii);
-
     class ConstIterator {
         friend class PartBunchBase<T, Dim>;
 
@@ -277,8 +272,6 @@ public:
     //  The matrix [b]D[/b] is used to normalise the first two modes.
     //  The maximum normalised amplitudes for these modes are stored
     //  in [b]axmax[/b] and [b]aymax[/b].
-    void maximumAmplitudes(const FMatrix<double, 6, 6>& D,
-                           double& axmax, double& aymax);
 
     void   setdT(double dt);
     double getdT() const;
@@ -576,7 +569,7 @@ public:
     double dtScInit_m, deltaTau_m;
 
     // get 2nd order momentum matrix
-    FMatrix<double, 2 * Dim, 2 * Dim> getSigmaMatrix() const ;
+    matrix_t getSigmaMatrix() const ;
 
 private:
     // save particles in case of one core
@@ -609,7 +602,7 @@ protected:
     double centroid_m[2 * Dim];
 
     /// 6x6 matrix of the moments of the beam
-    FMatrix<double, 2 * Dim, 2 * Dim> moments_m;
+    matrix_t moments_m;
 
     /// holds the timestep in seconds
     double dt_m;

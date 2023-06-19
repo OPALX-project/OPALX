@@ -608,65 +608,6 @@ void PartBunchBase<T, Dim>::push_back(OpalParticle const& particle) {
 }
 
 
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setParticle(FVector<double, 6> z, int ii) {
-    R[ii](0) = z[0];
-    P[ii](0) = z[1];
-    R[ii](1) = z[2];
-    P[ii](1) = z[3];
-    R[ii](2) = z[4];
-    P[ii](2) = z[5];
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setParticle(OpalParticle const& particle, int ii) {
-    R[ii] = particle.getR();
-    P[ii] = particle.getP();
-}
-
-
-template <class T, unsigned Dim>
-OpalParticle PartBunchBase<T, Dim>::getParticle(int ii) {
-    OpalParticle particle(ID[ii],
-                          Vector_t(R[ii](0), R[ii](1), 0), P[ii],
-                          R[ii](2), Q[ii], M[ii]);
-    return particle;
-}
-
-
-template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::maximumAmplitudes(const FMatrix<double, 6, 6>& D,
-                                              double& axmax, double& aymax) {
-    axmax = aymax = 0.0;
-    OpalParticle particle;
-
-    for (unsigned int ii = 0; ii < getLocalNum(); ii++) {
-
-        particle = getParticle(ii);
-        FVector<double, 6> vec({particle.getX(), particle.getPx(),
-                                particle.getY(), particle.getPy(),
-                                particle.getZ(), particle.getPz()});
-        FVector<double, 6> result;
-        result = D * vec;
-        // double xnor =
-        //     D(0, 0) * part.getX()  + D(0, 1) * part.getPx() + D(0, 2) * part.getY() +
-        //     D(0, 3) * part.getPy() + D(0, 4) * part.getL()  + D(0, 5) * part.getPLon();
-        // double pxnor =
-        //     D(1, 0) * part.getX()  + D(1, 1) * part.getPx() + D(1, 2) * part.getY() +
-        //     D(1, 3) * part.getPy() + D(1, 4) * part.getL()  + D(1, 5) * part.getPLon();
-        // double ynor =
-        //     D(2, 0) * part.getX()  + D(2, 1) * part.getPx() + D(2, 2) * part.getY() +
-        //     D(2, 3) * part.getPy() + D(2, 4) * part.getL()  + D(2, 5) * part.getPLon();
-        // double pynor =
-        //     D(3, 0) * part.getX()  + D(3, 1) * part.getPx() + D(3, 2) * part.getY() +
-        //     D(3, 3) * part.getPy() + D(3, 4) * part.getL()  + D(3, 5) * part.getPLon();
-
-        axmax = std::max(axmax, (std::pow(result[0], 2) + std::pow(result[1], 2)));
-        aymax = std::max(aymax, (std::pow(result[2], 2) + std::pow(result[3], 2)));
-    }
-}
-
 
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::setdT(double dt) {
@@ -1465,23 +1406,8 @@ void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
 }
 
 template <class T, unsigned Dim>
-FMatrix<double, 2 * Dim, 2 * Dim> PartBunchBase<T, Dim>::getSigmaMatrix() const {
-    //const double  N =  static_cast<double>(this->getTotalNum());
+matrix_t PartBunchBase<T, Dim>::getSigmaMatrix() const {
 
-    Vektor<double, 2*Dim> rpmean;
-    for (unsigned int i = 0; i < Dim; i++) {
-        rpmean(2*i)= get_rmean()(i);
-        rpmean((2*i)+1)= get_pmean()(i);
-    }
-
-    FMatrix<double, 2 * Dim, 2 * Dim> sigmaMatrix;// = moments_m / N;
-    for (unsigned int i = 0; i < 2 * Dim; i++) {
-        for (unsigned int j = 0; j <= i; j++) {
-            sigmaMatrix[i][j] = moments_m(i, j) -  rpmean(i) * rpmean(j);
-            sigmaMatrix[j][i] = sigmaMatrix[i][j];
-        }
-    }
-    return sigmaMatrix;
 }
 
 #endif

@@ -22,8 +22,6 @@
 #include <memory>
 #include <utility>
 
-#include "FixedAlgebra/FMatrix.h"
-#include "FixedAlgebra/FVector.h"
 #include "Particle/ParticleBalancer.h"
 
 #include "Algorithms/ListElem.h"
