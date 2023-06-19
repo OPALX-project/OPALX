@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/OpalData.h"
 
-#include "Algorithms/ParallelTTracker.h"
+#include "Algorithms/ParallelTracker.h"
 
 #include "Attributes/Attributes.h"
 
@@ -318,7 +318,7 @@ void TrackRun::setupTTracker(){
 
     // findPhasesForMaxEnergy();
 
-    itsTracker = new ParallelTTracker(*Track::block->use->fetchLine(),
+    itsTracker = new ParallelTracker(*Track::block->use->fetchLine(),
                                       Track::block->bunch,
                                       *ds,
                                       Track::block->reference,
