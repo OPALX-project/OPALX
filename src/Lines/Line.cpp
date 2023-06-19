@@ -175,7 +175,6 @@ void Line::parse(Statement &stat) {
     PtrToScalar<double> expr;
     for(FlaggedBeamline::iterator i = line->begin(); i != line->end(); ++i) {
         auto actname = i->getElement()->getName(); 
-        //        std::cout << actname << std::endl;   without this crash
         // Accumulate length.
         PtrToScalar<double> temp =
             new SRefExpr<double>(actname, "L");
