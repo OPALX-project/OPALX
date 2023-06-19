@@ -28,7 +28,6 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
-#include "Utilities/SwitcherError.h"
 #include "Utilities/Util.h"
 
 #include <cmath>
@@ -88,10 +87,6 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
 
-    if (unit_state_ == unitless)
-        throw SwitcherError("PartBunch::switchToUnitlessPositions",
-                            "Cannot make a unitless PartBunch unitless");
-
     bool hasToReset = false;
     if (!R.isDirty()) hasToReset = true;
 
@@ -111,10 +106,6 @@ void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) 
 //FIXME: unify methods, use convention that all particles have own dt
 template <class T, unsigned Dim>
 void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
-
-    if (unit_state_ == units)
-        throw SwitcherError("PartBunch::switchOffUnitlessPositions",
-                            "Cannot apply units twice to PartBunch");
 
     bool hasToReset = false;
     if (!R.isDirty()) hasToReset = true;
