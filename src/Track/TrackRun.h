@@ -54,7 +54,7 @@ public:
 private:
     enum class RunMethod: unsigned short {
         NONE,
-        PARALLELT
+        PARALLEL
     };
 
     // Not implemented.
@@ -67,7 +67,7 @@ private:
     void setRunMethod();
     std::string getRunMethodName() const;
 
-    void setupTTracker();
+    void setupTracker();
     void setupFieldsolver();
     void initDataSink();
 
@@ -75,16 +75,15 @@ private:
 
     double setDistributionParallelT(Beam* beam);
 
-    // Pointer to tracking algorithm.
-    Tracker* itsTracker;
+    Tracker* itsTracker_m;
 
-    Distribution* dist;
+    Distribution* dist_m;
 
     std::vector<Distribution*> distrs_m;
 
-    FieldSolver* fs;
+    FieldSolver* fs_m;
 
-    DataSink* ds;
+    DataSink* ds_m;
 
     H5PartWrapper* phaseSpaceSink_m;
 
@@ -92,7 +91,7 @@ private:
 
     bool isFollowupTrack_m;
 
-    static const std::string defaultDistribution;
+    static const std::string defaultDistribution_m;
 
     RunMethod method_m;
     static const boost::bimap<RunMethod, std::string> stringMethod_s;
