@@ -3,7 +3,6 @@ set (_SRCS
     AbstractTracker.cpp
     CoordinateSystemTrafo.cpp
     DefaultVisitor.cpp
-    DistributionMoments.cpp
     Flagger.cpp
     PartBunch.cpp
     PartBunchBase.hpp
@@ -27,7 +26,6 @@ set (HDRS
     AbstractTracker.h
     CoordinateSystemTrafo.h
     DefaultVisitor.h
-    DistributionMoments.h
     Flagger.h
     ListElem.h
     PartBins.h
@@ -41,6 +39,7 @@ set (HDRS
     SplineTimeDependence.h
     Tracker.h
     Vektor.h
+    Matrix.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

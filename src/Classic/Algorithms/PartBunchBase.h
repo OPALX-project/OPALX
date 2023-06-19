@@ -19,7 +19,6 @@
 #define PART_BUNCH_BASE_H
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/DistributionMoments.h"
 #include "Algorithms/OpalParticle.h"
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
@@ -690,7 +689,8 @@ protected:
     std::unique_ptr<size_t[]> globalPartPerNode_m;
 
     Distribution *dist_m;
-    DistributionMoments momentsComputer_m;
+
+    // DistributionMoments momentsComputer_m;
 
     // flag to tell if we are a DC-beam
     bool dcBeam_m;

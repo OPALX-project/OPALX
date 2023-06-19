@@ -1,6 +1,5 @@
 set (_SRCS
   Beam.cpp
-  LossDataSink.cpp    
   BoundingBox.cpp
   BoundaryGeometry.cpp
   DataSink.cpp
@@ -26,7 +25,6 @@ include_directories (
 
 set (HDRS
     Beam.h
-    LossDataSink.h
     BoundaryGeometry.h
     BoundingBox.h
     DataSink.h
