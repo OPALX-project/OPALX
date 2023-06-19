@@ -11,7 +11,6 @@ set (_SRCS
     OpalParticle.cpp
     PolynomialTimeDependence.cpp
     SplineTimeDependence.cpp
-    Tracker.cpp
     Quaternion.cpp
     )
 
@@ -37,7 +36,6 @@ set (HDRS
     PolynomialTimeDependence.h
     Quaternion.h
     SplineTimeDependence.h
-    Tracker.h
     Vektor.h
     Matrix.h
     )

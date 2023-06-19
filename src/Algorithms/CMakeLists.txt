@@ -4,7 +4,8 @@ set (_SRCS
     OrbitThreader.cpp
     ParallelTTracker.cpp
     StepSizeConfig.cpp
-    )
+    Tracker.cpp
+)   
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -18,6 +19,7 @@ set (HDRS
     OrbitThreader.h
     ParallelTTracker.h
     StepSizeConfig.h
+    Tracker.h
     )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")
