@@ -212,6 +212,13 @@ void ParallelTracker::execute() {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
+
+    /* ADA
+       Because no real bunch is constracted
+     */
+    
+    itsBunch_m->RefPartP_m[2] = 1.9580e+03;
+
     *gmsg << "itsBunch_m->RefPartR_m " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m " << itsBunch_m->RefPartP_m << endl;
     *gmsg << "rmin " << rmin << endl;
@@ -228,6 +235,7 @@ void ParallelTracker::execute() {
                       itsOpalBeamline_m);
 
     oth.execute();
+    
     BoundingBox globalBoundingBox = oth.getBoundingBox();
     
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
@@ -250,9 +258,6 @@ void ParallelTracker::execute() {
           << "* Max integration steps = " << stepSizes_m.getMaxSteps()
           << ", next step = " << step << endl << endl;
 
-
-
-
     setOptionalVariables();
 
     globalEOL_m = false;
@@ -260,8 +265,10 @@ void ParallelTracker::execute() {
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
 
+    /* ADA
+       
+     */
     return;
-
 
     while (!stepSizes_m.reachedEnd()) {
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
@@ -343,13 +350,13 @@ void ParallelTracker::execute() {
 }
 
 void ParallelTracker::prepareSections() {
-
+    itsBeamline_m.accept(*this);    
     itsOpalBeamline_m.prepareSections();
     itsOpalBeamline_m.compute3DLattice();
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
 
-    }
+}
 
 void ParallelTracker::timeIntegration1(BorisPusher & pusher) {
 

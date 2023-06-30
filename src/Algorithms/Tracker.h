@@ -118,6 +118,8 @@ public:
     // standing wave structures
     FieldList cavities_m;
 
+   const Beamline &itsBeamline_m;
+    
 protected:
 
     /// The bunch of particles to be tracked.

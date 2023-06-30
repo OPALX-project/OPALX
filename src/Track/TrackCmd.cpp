@@ -191,10 +191,9 @@ void TrackCmd::execute() {
     // Find Beam 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
-    std::cout << "TrackCmd::execute" << std::endl;
-    std::cout << *theLineToTrack << std::endl;
+    //std::cout << "TrackCmd::execute" << std::endl;
+    //std::cout << *theLineToTrack << std::endl;
 
-    
     std::vector<double> dt = getDT();
     double t0 = getT0();
     double dtScInit = getDTSCINIT();

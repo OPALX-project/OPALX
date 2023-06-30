@@ -16,11 +16,11 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalBeamline.h"
-
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
+#include "Structure/MeshGenerator.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -176,12 +176,256 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
 }
 
 void OpalBeamline::compute3DLattice() {
+    static unsigned int order = 0;
+    const FieldList::iterator end = elements_m.end();
 
+    unsigned int minOrder = order;
+    {
+        double endPriorPathLength = 0.0;
+        CoordinateSystemTrafo currentCoordTrafo = coordTransformationTo_m;
+
+        FieldList::iterator it = elements_m.begin();
+        for (; it != end; ++ it) {
+            std::shared_ptr<Component> element = (*it).getElement();
+            if (element->isPositioned()) {
+                continue;
+            }
+            (*it).order_m = minOrder;
+
+            if (element->getType() != ElementType::SBEND &&
+                element->getType() != ElementType::RBEND &&
+                element->getType() != ElementType::RBEND3D) {
+                continue;
+            }
+
+            double beginThisPathLength = element->getElementPosition();
+            Vector_t beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
+            //BendBase * bendElement = static_cast<BendBase*>(element.get());
+            double thisLength = 0.; //bendElement->getChordLength();
+            double bendAngle = 0.0; //bendElement->getBendAngle();
+            double entranceAngle = 0.0; // bendElement->getEntranceAngle();
+            double arcLength = 0.0; // (thisLength * std::abs(bendAngle) / (2 * sin(std::abs(bendAngle) / 2)));
+
+            double rotationAngleAboutZ = 0.0; // bendElement->getRotationAboutZ();
+            Quaternion_t rotationAboutZ(cos(0.5 * rotationAngleAboutZ),
+                                        sin(-0.5 * rotationAngleAboutZ) * Vector_t(0, 0, 1));
+
+            Vector_t effectiveRotationAxis = rotationAboutZ.rotate(Vector_t(0, -1, 0));
+            effectiveRotationAxis /= euclidean_norm(effectiveRotationAxis);
+
+            Quaternion_t rotationAboutAxis(cos(0.5 * bendAngle),
+                                           sin(0.5 * bendAngle) * effectiveRotationAxis);
+            Quaternion_t halfRotationAboutAxis(cos(0.25 * bendAngle),
+                                               sin(0.25 * bendAngle) * effectiveRotationAxis);
+            Quaternion_t entryFaceRotation(cos(0.5 * entranceAngle),
+                                           sin(0.5 * entranceAngle) * effectiveRotationAxis);
+
+            if (!Options::idealized) {
+                /*
+                std::vector<Vector_t> truePath = bendElement->getDesignPath();
+                Quaternion_t directionExitHardEdge(cos(0.5 * (0.5 * bendAngle - entranceAngle)),
+                                                   sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
+                Vector_t exitHardEdge = thisLength * directionExitHardEdge.rotate(Vector_t(0, 0, 1));
+                double distanceEntryHETruePath = euclidean_norm(truePath.front());
+                double distanceExitHETruePath = euclidean_norm(rotationAboutZ.rotate(truePath.back()) - exitHardEdge);
+                double pathLengthTruePath = (*it).getEnd() - (*it).getStart();
+                arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
+                */
+            }
+
+            Vector_t chord = thisLength * halfRotationAboutAxis.rotate(Vector_t(0, 0, 1));
+            Vector_t endThis3D = beginThis3D + chord;
+            double endThisPathLength = beginThisPathLength + arcLength;
+
+            CoordinateSystemTrafo fromEndLastToBeginThis(beginThis3D,
+                                                         (entryFaceRotation * rotationAboutZ).conjugate());
+            CoordinateSystemTrafo fromEndLastToEndThis(endThis3D,
+                                                       rotationAboutAxis.conjugate());
+
+            element->setCSTrafoGlobal2Local(fromEndLastToBeginThis * currentCoordTrafo);
+
+            currentCoordTrafo = (fromEndLastToEndThis * currentCoordTrafo);
+
+            endPriorPathLength = endThisPathLength;
+        }
+    }
+
+    double endPriorPathLength = 0.0;
+    CoordinateSystemTrafo currentCoordTrafo = coordTransformationTo_m;
+
+    FieldList::iterator it = elements_m.begin();
+    for (; it != end; ++ it) {
+        std::shared_ptr<Component> element = (*it).getElement();
+        if (element->isPositioned()) continue;
+
+        (*it).order_m = order ++;
+
+        double beginThisPathLength = element->getElementPosition();
+        double thisLength = element->getElementLength();
+        Vector_t beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
+
+        if (element->getType() == ElementType::SOURCE) {
+            beginThis3D(2) -= thisLength;
+        }
+
+        Vector_t endThis3D;
+        if (element->getType() == ElementType::SBEND ||
+            element->getType() == ElementType::RBEND ||
+            element->getType() == ElementType::RBEND3D) {
+
+            //            BendBase * bendElement = static_cast<BendBase*>(element.get());
+            thisLength = 0.0; // bendElement->getChordLength();
+            double bendAngle = 0.0; // bendElement->getBendAngle();
+
+            double rotationAngleAboutZ = 0.0; // bendElement->getRotationAboutZ();
+            Quaternion_t rotationAboutZ(cos(0.5 * rotationAngleAboutZ),
+                                        sin(-0.5 * rotationAngleAboutZ) * Vector_t(0, 0, 1));
+
+            Vector_t effectiveRotationAxis = rotationAboutZ.rotate(Vector_t(0, -1, 0));
+            effectiveRotationAxis /= euclidean_norm(effectiveRotationAxis);
+
+            Quaternion_t rotationAboutAxis(cos(0.5 * bendAngle),
+                                           sin(0.5 * bendAngle) * effectiveRotationAxis);
+            Quaternion halfRotationAboutAxis(cos(0.25 * bendAngle),
+                                             sin(0.25 * bendAngle) * effectiveRotationAxis);
+
+            double arcLength = (thisLength * std::abs(bendAngle) /
+                                (2 * sin(bendAngle / 2)));
+            if (!Options::idealized) {
+                /*
+                std::vector<Vector_t> truePath = bendElement->getDesignPath();
+                double entranceAngle = bendElement->getEntranceAngle();
+                Quaternion_t directionExitHardEdge(cos(0.5 * (0.5 * bendAngle - entranceAngle)),
+                                                   sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
+                Vector_t exitHardEdge = thisLength * directionExitHardEdge.rotate(Vector_t(0, 0, 1));
+                double distanceEntryHETruePath = euclidean_norm(truePath.front());
+                double distanceExitHETruePath = euclidean_norm(rotationAboutZ.rotate(truePath.back()) - exitHardEdge);
+                double pathLengthTruePath = (*it).getEnd() - (*it).getStart();
+                arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
+                */
+            }
+
+            endThis3D = (beginThis3D +
+                         halfRotationAboutAxis.rotate(Vector_t(0, 0, thisLength)));
+            CoordinateSystemTrafo fromEndLastToEndThis(endThis3D,
+                                                       rotationAboutAxis.conjugate());
+            currentCoordTrafo = fromEndLastToEndThis * currentCoordTrafo;
+
+            endPriorPathLength = beginThisPathLength + arcLength;
+        } else {
+            double rotationAngleAboutZ = (*it).getElement()->getRotationAboutZ();
+            Quaternion_t rotationAboutZ(cos(0.5 * rotationAngleAboutZ),
+                                        sin(-0.5 * rotationAngleAboutZ) * Vector_t(0, 0, 1));
+
+            CoordinateSystemTrafo fromLastToThis(beginThis3D, rotationAboutZ);
+
+            element->setCSTrafoGlobal2Local(fromLastToThis * currentCoordTrafo);
+        }
+
+        element->fixPosition();
+    }
 }
 
 void OpalBeamline::save3DLattice() {
+    if (Ippl::myNode() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
+    elements_m.sort([](const ClassicField& a, const ClassicField& b) {
+            return a.order_m < b.order_m;
+        });
+
+    FieldList::iterator it = elements_m.begin();
+    FieldList::iterator end = elements_m.end();
+
+    std::ofstream pos;
+    std::string fileName = Util::combineFilePath({
+        OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+        OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt"
+    });
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::APPEND &&
+        boost::filesystem::exists(fileName)) {
+        pos.open(fileName, std::ios_base::app);
+    } else {
+        pos.open(fileName);
+    }
+
+    MeshGenerator mesh;
+    for (; it != end; ++ it) {
+        std::shared_ptr<Component> element = (*it).getElement();
+        CoordinateSystemTrafo toBegin = element->getEdgeToBegin() * element->getCSTrafoGlobal2Local();
+        CoordinateSystemTrafo toEnd = element->getEdgeToEnd() * element->getCSTrafoGlobal2Local();
+        Vector_t entry3D = toBegin.getOrigin();
+        Vector_t exit3D = toEnd.getOrigin();
+
+        mesh.add(*(element.get()));
+
+        if (element->getType() == ElementType::SBEND ||
+            element->getType() == ElementType::RBEND) {
+
+            //            Bend2D * bendElement = static_cast<Bend2D*>(element.get());
+            std::vector<Vector_t> designPath; //bendElement->getDesignPath();
+            //toEnd = bendElement->getBeginToEnd_local() * element->getCSTrafoGlobal2Local();
+            //            exit3D = toEnd.getOrigin();
+
+            unsigned int size = 0; //designPath.size();
+
+            unsigned int minNumSteps = 0; //std::max(20.0,
+                                          //      std::abs(bendElement->getBendAngle() * Units::rad2deg));
+
+            unsigned int frequency = std::floor((double)size / minNumSteps);
+
+            pos << std::setw(30) << std::left << std::string("\"ENTRY EDGE: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << entry3D(2)
+                << std::setw(18) << std::setprecision(10) << entry3D(0)
+                << std::setw(18) << std::setprecision(10) << entry3D(1)
+                << "\n";
+
+            Vector_t position = element->getCSTrafoGlobal2Local().transformFrom(designPath.front());
+            pos << std::setw(30) << std::left << std::string("\"BEGIN: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << position(2)
+                << std::setw(18) << std::setprecision(10) << position(0)
+                << std::setw(18) << std::setprecision(10) << position(1)
+                << std::endl;
+
+            for (unsigned int i = frequency; i + 1 < size; i += frequency) {
+
+                position = element->getCSTrafoGlobal2Local().transformFrom(designPath[i]);
+                pos << std::setw(30) << std::left << std::string("\"MID: ") + element->getName() + std::string("\"")
+                    << std::setw(18) << std::setprecision(10) << position(2)
+                    << std::setw(18) << std::setprecision(10) << position(0)
+                    << std::setw(18) << std::setprecision(10) << position(1)
+                    << std::endl;
+            }
+
+            position = element->getCSTrafoGlobal2Local().transformFrom(designPath.back());
+            pos << std::setw(30) << std::left << std::string("\"END: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << position(2)
+                << std::setw(18) << std::setprecision(10) << position(0)
+                << std::setw(18) << std::setprecision(10) << position(1)
+                << std::endl;
+
+            pos << std::setw(30) << std::left << std::string("\"EXIT EDGE: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << exit3D(2)
+                << std::setw(18) << std::setprecision(10) << exit3D(0)
+                << std::setw(18) << std::setprecision(10) << exit3D(1)
+                << std::endl;
+        } else {
+            pos << std::setw(30) << std::left << std::string("\"BEGIN: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << entry3D(2)
+                << std::setw(18) << std::setprecision(10) << entry3D(0)
+                << std::setw(18) << std::setprecision(10) << entry3D(1)
+                << "\n";
+
+            pos << std::setw(30) << std::left << std::string("\"END: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << exit3D(2)
+                << std::setw(18) << std::setprecision(10) << exit3D(0)
+                << std::setw(18) << std::setprecision(10) << exit3D(1)
+                << std::endl;
+        }
+    }
+    elements_m.sort(ClassicField::SortAsc);
+    mesh.write(OpalData::getInstance()->getInputBasename());
 }
+
 
 namespace {
     std::string parseInput() {
@@ -308,11 +552,10 @@ void OpalBeamline::save3DInput() {
 void OpalBeamline::activateElements() {
     auto it = elements_m.begin();
     const auto end = elements_m.end();
-
     double designEnergy = 0.0;
     for (; it != end; ++ it) {
         std::shared_ptr<Component> element = (*it).getElement();
         (*it).setOn(designEnergy);
-        // element->goOnline(designEnergy);
+        element->goOnline(designEnergy);
     }
 }

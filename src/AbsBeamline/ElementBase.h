@@ -93,7 +93,11 @@ enum class ElementType: unsigned short {
     MULTIPOLE,
     MULTIPOLET,
     RFCAVITY,
-    TRAVELINGWAVE
+    TRAVELINGWAVE,
+    SBEND,
+    RBEND,
+    RBEND3D,
+    SOURCE
 };
 
 enum class ApertureType: unsigned short {
