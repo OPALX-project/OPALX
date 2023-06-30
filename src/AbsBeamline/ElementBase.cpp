@@ -74,7 +74,11 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::MARKER,            "Marker"},
     {ElementType::MULTIPOLE,          "Multipole"},
     {ElementType::RFCAVITY,           "RFCavity"},
-    {ElementType::TRAVELINGWAVE,      "TravelingWave"}
+    {ElementType::TRAVELINGWAVE,      "TravelingWave"},
+    {ElementType::SBEND,              "SBEND"},
+    {ElementType::RBEND,              "RBEND"},
+    {ElementType::RBEND3D,            "RBEND3D"},
+    {ElementType::SOURCE,            "SOURCE"}
 };
 
 ElementBase::ElementBase():

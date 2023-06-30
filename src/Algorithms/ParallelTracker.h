@@ -211,7 +211,6 @@ private:
 
 };
 
-
 inline void ParallelTracker::visitDrift(const Drift &drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }

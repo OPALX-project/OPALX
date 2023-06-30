@@ -112,7 +112,9 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<doub
 
 template<> inline
 void OpalBeamline::visit<Marker>(const Marker &/*element*/, BeamlineVisitor &, PartBunchBase<double, 3> *) {
+    
 }
+
 
 inline
 Vector_t OpalBeamline::transformTo(const Vector_t &r) const {
