@@ -102,6 +102,7 @@ OrbitThreader::OrbitThreader(const PartData &ref,
     pathLengthRange_m = stepSizes_m.getPathLengthRange();
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
     pathLengthRange_m.enlargeIfOutside(zstop_m);
+
     stepRange_m.enlargeIfOutside(0);
     stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
     distTrackBack_m = std::min(pathLength_m, std::max(0.0, maxDiffZBunch));
@@ -133,7 +134,7 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component
 
 void OrbitThreader::execute() {
     double initialPathLength = pathLength_m;
-
+    
     auto allElements = itsOpalBeamline_m.getElementByType(ElementType::ANY);
     std::set<std::string> visitedElements;
 
@@ -150,16 +151,18 @@ void OrbitThreader::execute() {
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
+    
     do {
         checkElementLengths(elementSet);
         if (containsCavity(elementSet)) {
             autophaseCavities(elementSet, visitedElements);
         }
-
+        
         double initialS = pathLength_m;
         Vector_t initialR = r_m;
         Vector_t initialP = p_m;
         double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
+
         integrate(elementSet, maxDistance);
 
         registerElement(elementSet, initialS,  initialR, initialP);
@@ -192,8 +195,7 @@ void OrbitThreader::execute() {
         std::set_intersection(currentSet.begin(), currentSet.end(),
                               elementSet.begin(), elementSet.end(),
                               std::inserter(intersection, intersection.begin()));
-    } while (errorFlag_m != HITMATERIAL &&
-             errorFlag_m != EOL &&
+    } while (errorFlag_m != EOL &&
              stepRange_m.isInside(currentStep_m) &&
              !(pathLengthRange_m.isOutside(pathLength_m) &&
                intersection.empty() && !(elementSet.empty() || currentSet.empty())));
@@ -201,7 +203,6 @@ void OrbitThreader::execute() {
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
     imap_m.saveSDDS(initialPathLength);
-
     processElementRegister();
 }
 
@@ -423,6 +424,7 @@ void OrbitThreader::processElementRegister() {
     const FieldList::iterator end = allElements.end();
     for (; it != end; ++ it) {
         std::string name = (*it).getElement()->getName();
+
         auto trit = tmpRegistry.find(name);
         if (trit == tmpRegistry.end()) continue;
 
@@ -463,8 +465,7 @@ void OrbitThreader::computeBoundingBox() {
         }
         BoundingBox other = it->getBoundingBoxInLabCoords();
         globalBoundingBox_m.enlargeToContainBoundingBox(other);
-    }
-
+    }    
     updateBoundingBoxWithCurrentPosition();
 }
 

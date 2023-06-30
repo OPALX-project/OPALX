@@ -11,6 +11,7 @@ set (_SRCS
   IpplInfoWrapper.cpp
   H5Writer.cpp
   MemoryWriter.cpp
+  MeshGenerator.cpp       
   LBalWriter.cpp
   StatBaseWriter.cpp
   StatWriter.cpp
@@ -36,6 +37,7 @@ set (HDRS
     MonitorStatisticsWriter.h
     H5Writer.h
     MemoryWriter.h
+    MeshGenerator.h
     LBalWriter.h
     StatBaseWriter.h
     StatWriter.h
