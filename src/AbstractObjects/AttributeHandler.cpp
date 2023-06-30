@@ -31,7 +31,7 @@ std::multimap<std::string,
 
 AttributeHandler::AttributeHandler
 (const std::string &name, const std::string &help, AttributeBase *def):
-    RCObject(), itsName(name), itsHelp(help), itsDefault(def),
+    RCObject(), itsName(name), itsHelp(help), itsDefault(std::shared_ptr<AttributeBase>(def)),
     is_deferred(false), is_readonly(false)
 {}
 
@@ -47,7 +47,7 @@ AttributeHandler *AttributeHandler::clone() const {
 
 
 AttributeBase *AttributeHandler::getDefault() const {
-    if(itsDefault.isValid()) {
+    if(itsDefault) {
         return &*itsDefault;
     } else {
         throw OpalException("AttributeHandler::getDefault()",
