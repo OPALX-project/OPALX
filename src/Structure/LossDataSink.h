@@ -20,7 +20,7 @@
 
 //////////////////////////////////////////////////////////////
 #include "Algorithms/Vektor.h"
-#include "Algorithms/OpalParticle.h"
+#include "AbstractObjects/OpalParticle.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 

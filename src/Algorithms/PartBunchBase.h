@@ -19,7 +19,7 @@
 #define PART_BUNCH_BASE_H
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/OpalParticle.h"
+#include "AbstractObjects/OpalParticle.h"
 #include "Algorithms/PBunchDefs.h"
 #include "Algorithms/Quaternion.h"
 #include "Algorithms/Vektor.h"
