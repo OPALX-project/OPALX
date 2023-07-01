@@ -24,7 +24,6 @@
 
 #include "Particle/ParticleBalancer.h"
 
-#include "Algorithms/ListElem.h"
 #include "Distribution/Distribution.h"
 #include "Structure/FieldSolver.h"
 #include "Utilities/GeneralClassicException.h"

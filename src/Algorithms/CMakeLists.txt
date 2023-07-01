@@ -40,6 +40,8 @@ set (HDRS
     SplineTimeDependence.h
     StepSizeConfig.h
     Tracker.h
-    )
+     Vektor.h       
+    Matrix.h
+)
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

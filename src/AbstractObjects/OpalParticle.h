@@ -18,7 +18,7 @@
 #ifndef CLASSIC_OpalParticle_HH
 #define CLASSIC_OpalParticle_HH
 
-#include "Vektor.h"
+#include "Algorithms/Vektor.h"
 
 class OpalParticle {
 

@@ -1,6 +1,5 @@
 set (_SRCS
     CoordinateSystemTrafo.cpp
-    OpalParticle.cpp
     Quaternion.cpp
     )
 
@@ -12,8 +11,6 @@ add_opal_sources (${_SRCS})
 
 set (HDRS
     CoordinateSystemTrafo.h
-    ListElem.h
-    OpalParticle.h
     Quaternion.h
     Vektor.h
     Matrix.h
