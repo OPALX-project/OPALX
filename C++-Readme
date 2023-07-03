@@ -1,0 +1,13 @@
+Expressions.h
+
+    // Template class Expression::PtrToScalar<T>.                                                                                                                                
+    // ----------------------------------------------------------------------                                                                                                    
+    /// A pointer to a scalar expression.                                                                                                                                        
+
+
+    template <class T> using PtrToScalar = std::shared_ptr<Scalar<T>>;
+    
+    template <class T> using PtrToScalar = std::unique_ptr<Scalar<T>>;
+
+
+Noe: giving up tp replace the Classic/MemoryManagement/OwnPrt.h 
