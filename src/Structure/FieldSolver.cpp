@@ -28,7 +28,6 @@
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
-#include "Solvers/FFTBoxPoissonSolver.h"
 #include "Solvers/FFTPoissonSolver.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Utilities/OpalException.h"

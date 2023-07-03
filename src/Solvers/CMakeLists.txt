@@ -1,10 +1,8 @@
 set (_SRCS
-    FFTBoxPoissonSolver.cpp
     FFTPoissonSolver.cpp
     )
 
 set (HDRS
-    FFTBoxPoissonSolver.h
     FFTPoissonSolver.h
     PoissonSolver.h
     )
