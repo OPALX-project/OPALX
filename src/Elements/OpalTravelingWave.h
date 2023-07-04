@@ -20,8 +20,6 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalWake;
-
 class OpalTravelingWave: public OpalElement {
 
 public:
@@ -62,7 +60,6 @@ private:
     // Clone constructor.
     OpalTravelingWave(const std::string &name, OpalTravelingWave *parent);
 
-    OpalWake *owk_m;
 };
 
 #endif // OPAL_OpalTravelingWave_HH
