@@ -85,7 +85,11 @@ OpalRingDefinition::OpalRingDefinition(const std::string &name, OpalRingDefiniti
 OpalRingDefinition::~OpalRingDefinition() {}
 
 void OpalRingDefinition::update() {
+
+    OpalElement::update();
+
     Ring *ring = dynamic_cast<Ring*>(getElement());
+
     ring->setBeamPhiInit(Attributes::getReal(itsAttr[BEAM_PHIINIT]));
     ring->setBeamPRInit(Attributes::getReal(itsAttr[BEAM_PRINIT]));
     ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT])*Units::m2mm);
@@ -99,6 +103,7 @@ void OpalRingDefinition::update() {
     ring->setHarmonicNumber(Attributes::getReal(itsAttr[HARMONIC_NUMBER]));
     ring->setRFFreq(Attributes::getReal(itsAttr[RFFREQ]));
     ring->setIsClosed(Attributes::getBool(itsAttr[IS_CLOSED]));
+
     double minR = -1;
     double maxR = -1;
 
@@ -115,6 +120,6 @@ void OpalRingDefinition::update() {
         }
         ring->setRingAperture(minR, maxR);
     }
-
-    setElement(ring);
+    //    setElement(ring); //  ADA was used in the old OPAL now core dumps
+    OpalElement::updateUnknown(ring);
 }
