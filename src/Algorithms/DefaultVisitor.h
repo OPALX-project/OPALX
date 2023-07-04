@@ -77,12 +77,18 @@ public:
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
 
+    /// Apply the algorithm to a Ring.
+    virtual void visitRing(const Ring &);
+    
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &);
 
+    /// Apply the algorithm to a scaling FFA magnet. 
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &spiral);
+    
 protected:
 
     // The top level beamline.

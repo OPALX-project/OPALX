@@ -16,9 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Structure/LossDataSink.h"
-
-#include "AbstractObjects/OpalData.h"
 #include "Algorithms/DistributionMoments.h"
+#include "AbstractObjects/OpalData.h"
 #include "Message/GlobalComm.h"
 #include "OPALconfig.h"
 #include "Utilities/GeneralClassicException.h"

@@ -15,6 +15,8 @@ set (_SRCS
     MultipoleTCurvedConstRadius.cpp
     MultipoleTCurvedVarRadius.cpp
     RFCavity.cpp
+    Ring.cpp
+    ScalingFFAMagnet.cpp        
     TravelingWave.cpp
     )
 
@@ -34,6 +36,8 @@ set (HDRS
     RFCavity.h
     TravelingWave.h
     SpecificElementVisitor.h
+    ScalingFFAMagnet.h
+    Ring.h
     )
 
 include_directories (

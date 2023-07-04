@@ -7,6 +7,7 @@ set (_SRCS
     OpalMultipole.cpp
     OpalMultipoleT.cpp
     OpalBeamline.cpp
+    OpalRingDefinition.cpp      
     )
 
 set (HDRS
@@ -19,6 +20,7 @@ set (HDRS
     OpalMultipoleT.h
     OpalSource.h
     OpalTravelingWave.h
+    OpalRingDefinition.h
     )
 
 include_directories (
