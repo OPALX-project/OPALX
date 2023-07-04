@@ -29,7 +29,6 @@
 OpalCavity::OpalCavity():
     OpalElement(SIZE, "RFCAVITY",
                 "The \"RFCAVITY\" element defines an RF cavity."),
-    owk_m(nullptr),
     obgeo_m(nullptr) {
     itsAttr[VOLT] = Attributes::makeReal
                     ("VOLT", "RF voltage in MV");
@@ -79,14 +78,12 @@ OpalCavity::OpalCavity():
 
 OpalCavity::OpalCavity(const std::string &name, OpalCavity *parent):
     OpalElement(name, parent),
-    owk_m(nullptr),
     obgeo_m(nullptr) {
     setElement(new RFCavityRep(name));
 }
 
 
 OpalCavity::~OpalCavity() {
-    delete owk_m;
 }
 
 
