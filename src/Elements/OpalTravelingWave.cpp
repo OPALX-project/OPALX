@@ -24,8 +24,8 @@
 
 OpalTravelingWave::OpalTravelingWave():
     OpalElement(SIZE, "TRAVELINGWAVE",
-                "The \"TRAVELINGWAVE\" element defines a traveling wave structure."),
-    owk_m(nullptr) {
+                "The \"TRAVELINGWAVE\" element defines a traveling wave structure.")
+    {
     itsAttr[VOLT] = Attributes::makeReal
                     ("VOLT", "RF voltage in MV/m");
     itsAttr[DVOLT] = Attributes::makeReal
@@ -56,14 +56,12 @@ OpalTravelingWave::OpalTravelingWave():
 
 
 OpalTravelingWave::OpalTravelingWave(const std::string &name, OpalTravelingWave *parent):
-    OpalElement(name, parent),
-    owk_m(nullptr) {
+    OpalElement(name, parent) {
     setElement(new TravelingWaveRep(name));
 }
 
 
 OpalTravelingWave::~OpalTravelingWave() {
-    delete owk_m;
 }
 
 

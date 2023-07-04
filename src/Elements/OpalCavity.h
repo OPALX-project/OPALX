@@ -71,8 +71,6 @@ private:
     // Clone constructor.
     OpalCavity(const std::string &name, OpalCavity *parent);
 
-    OpalWake *owk_m;
-
     BoundaryGeometry *obgeo_m;
 
 
