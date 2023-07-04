@@ -42,18 +42,30 @@
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
-
+#include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbsBeamline/Ring.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 
 #include <list>
 #include <vector>
+#include <memory>
+#include <tuple>
+#include <vector>
+
 
 class ParticleMatterInteractionHandler;
 
 class ParallelTracker: public Tracker {
 
 public:
+
+    typedef std::vector<double> dvector_t;
+    typedef std::vector<int> ivector_t;
+    typedef std::pair<double[8], Component*>      element_pair;
+    typedef std::pair<ElementType, element_pair>        type_pair;
+    typedef std::list<type_pair*>                 beamline_list;
+
     /// Constructor.
     //  The beam line to be tracked is "bl".
     //  The particle reference data are taken from "data".
@@ -96,6 +108,9 @@ public:
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift &);
 
+    /// Apply the algorithm to a ring                                                                                                                          
+    virtual void visitRing(const Ring& ring);
+    
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
 
@@ -111,6 +126,9 @@ public:
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &);
 
+    /// Apply the algorithm to a scaling FFA.
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet & bend);
+    
 private:
 
     // Not implemented.
@@ -118,6 +136,34 @@ private:
     ParallelTracker(const ParallelTracker &);
     void operator=(const ParallelTracker &);
 
+    /*
+      Ring specifics
+    */
+    // we store a pointer explicitly to the Ring                                                                                                                                                                 
+    Ring* opalRing_m;
+
+    std::list<Component*> myElements;    
+    beamline_list FieldDimensions;
+    /// The reference variables                                                                                                                                                                                  
+    double bega;
+    double referenceR;
+    double referenceTheta;
+    double referenceZ = 0.0;
+
+    double referencePr;
+    double referencePt;
+    double referencePz = 0.0;
+    double referencePtot;
+
+    double referencePsi;
+    double referencePhi;
+
+    double sinRefTheta_m;
+    double cosRefTheta_m;
+
+    void buildupFieldList(double BcParameter[], ElementType elementType, Component* elptr);
+
+    
     /******************** STATE VARIABLES ***********************************/
 
     DataSink *itsDataSink_m;
@@ -226,7 +272,6 @@ inline void ParallelTracker::visitMultipole(const Multipole &mult) {
 inline void ParallelTracker::visitMultipoleT(const MultipoleT &mult) {
     itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
-
 
 inline void ParallelTracker::visitRFCavity(const RFCavity &as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);

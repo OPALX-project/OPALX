@@ -97,6 +97,7 @@ enum class ElementType: unsigned short {
     SBEND,
     RBEND,
     RBEND3D,
+    RING,
     SOURCE
 };
 
