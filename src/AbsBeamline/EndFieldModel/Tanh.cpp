@@ -42,7 +42,7 @@ Tanh::Tanh(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
 
 Tanh::~Tanh() {}
 
-EndFieldModel* Tanh::clone() const {
+Tanh* Tanh::clone() const {
     return new Tanh(*this);
 }
 
@@ -72,6 +72,11 @@ double Tanh::getNegTanh(double x, int n) const {
 double Tanh::function(double x, int n) const {
   return (getTanh(x, n)-getNegTanh(x, n))/2.;
 }
+
+void Tanh::setMaximumDerivative(size_t n) {
+    setTanhDiffIndices(n);
+}
+
 
 void Tanh::setTanhDiffIndices(size_t n) {
   _tdi.reserve(n+1);
@@ -103,6 +108,12 @@ std::vector< std::vector<int> > Tanh::getTanhDiffIndices(size_t n) {
   setTanhDiffIndices(n);
   return _tdi[n];
 }
+
+void Tanh::rescale(double scaleFactor) {
+  _x0 *= scaleFactor;
+  _lambda *= scaleFactor;
+}
+
 
 
 std::ostream& Tanh::print(std::ostream& out) const {

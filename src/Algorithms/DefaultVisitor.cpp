@@ -33,7 +33,9 @@
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -96,12 +98,21 @@ void DefaultVisitor::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRad
     applyDefault(multTvcurv);
 }
 
+void DefaultVisitor::visitRing(const Ring &ring) {
+   applyDefault(ring);
+}
+
 void DefaultVisitor::visitRFCavity(const RFCavity &cav) {
     applyDefault(cav);
 }
 
 void DefaultVisitor::visitTravelingWave(const TravelingWave &trw) {
     applyDefault(trw);
+}
+
+
+void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet &spiral) {
+    applyDefault(spiral);
 }
 
 void DefaultVisitor::visitBeamline(const Beamline &bl) {

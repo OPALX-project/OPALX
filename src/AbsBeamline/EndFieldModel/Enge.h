@@ -35,79 +35,110 @@
 
 namespace endfieldmodel {
 
+/** Enge class is a symmetric Enge function for analytical field models
+ * 
+ *  Enge function is
+ * 
+ *  \f$f(x) = 1/(1+exp(h(x-x0)))+1/(1+exp(h(-x-x0)))-1\f$.
+ * 
+ *  where h is a polynomial in x/lambda with polynomial coefficients a
+ */
+
 class Enge : public EndFieldModel {
   public:
     /** Default constructor */
-    Enge() : _a(), _lambda(0.) {SetEngeDiffIndices(10);}
+    Enge() : _a(), _lambda(0.) {setEngeDiffIndices(10);}
     /** Builds Enge function with parameters a_0, a_1, ..., lambda and x0.
-     *
-     *  max_index is the maximum derivative that will be used in calculation
-     *  if, after setup, you find you need to calculate higher derivatives, you
-     *  can just call SetEngeDiffIndices(n) where n is the highest derivative
-     *  you think you will need.
+     * 
+     *  Note that this class is in the inner loop of tracking, so many function
+     *  calls are _not_ checked for correct indexing. Call setMaximumDerivative
+     *  before use.
      */
-    Enge(const std::vector<double> a, double x0, double lambda, int max_index)
-        : _a(a), _lambda(lambda), _x0(x0) {SetEngeDiffIndices(max_index);}
+    Enge(const std::vector<double> a, double x0, double lambda);
+
     /** Destructor - no mallocs, so does nothing */
     ~Enge() {}
 
     /** Inheritable copy constructor - no mallocs, so does nothing */
-    Enge* Clone() const;
+    Enge* clone() const;
 
-    /** Returns the enge parameters (a_i) */
-    std::vector<double> GetEngeParameters() const {return _a;}
+    /** Rescale so Enge(x) -> Enge(scaleFactor*x)
+     * 
+     *  Sets x0 to scaleFactor*x0 and lambda to scaleFactor*lambda
+     */
+    void rescale(double scaleFactor);
 
-    /** Sets the enge parameters (a_i) */
-    void                SetEngeParameters(std::vector<double> a) {_a = a;}
+    /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
+    inline double function(double x, int n) const;
+
+    /** Nominal end length is lambda */
+    inline double getEndLength() const;
+
+    /** Nominal centre length is x0/2 */
+    inline double getCentreLength() const;
+
+    /** Print human-readable version of enge */
+    std::ostream& print(std::ostream& out) const;
+
+    /** Returns the enge polynomial coefficients (a_i) */
+    std::vector<double> getCoefficients() const {return _a;}
+
+    /** Sets the enge polynomial coefficients (a_i) */
+    void setCoefficients(std::vector<double> a) {_a = a;}
 
     /** Returns the value of lambda */
-    inline double       GetLambda() const {return _lambda;}
+    inline double getLambda() const {return _lambda;}
 
     /** Sets the value of lambda */
-    inline void         SetLambda(double lambda) {_lambda = lambda;}
+    inline void setLambda(double lambda) {_lambda = lambda;}
 
     /** Returns the value of x0 */
-    inline double       GetX0() const {return _x0;}
+    inline double getX0() const {return _x0;}
 
     /** Sets the value of x0 */
-    inline void         SetX0(double x0) {_x0 = x0;}
+    inline void setX0(double x0) {_x0 = x0;}
+
+    /** Calls setEngeDiffIndices to set the maximum derivative */
+    inline void setMaximumDerivative(size_t n);
 
     /** Returns the value of the Enge function or its \f$n^{th}\f$ derivative.
      *
-     *  Please call SetEngeDiffIndices(n) before calling if n > max_index
+     *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
-    double GetEnge(double x, int n) const;
+    double getEnge(double x, int n) const;
 
     /** Returns \f$Enge(x-x0) + Enge(-x-x0)-1\f$ and its derivatives */
-    inline double GetDoubleEnge(double x, int n) const;
+    inline double getDoubleEnge(double x, int n) const;
 
     /** Returns \f$h(x)\f$ or its \f$n^{th}\f$ derivative.
      *
      *  Here \f$h(x) = a_0 + a_1 x/\lambda + a_2 x^2/lambda^2 + \ldots \f$
-     *  Please call SetEngeDiffIndices(n) before calling if n > max_index
+     *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
-    double HN(double x, int n) const;
+    double hN(double x, int n) const;
 
     /** Returns \f$g(x)\f$ or its \f$n^{th}\f$ derivative.
      *
      *  Here \f$g(x) = 1+exp(h(x))\f$.
-     *  Please call SetEngeDiffIndices(n) before calling if n > max_index
+     *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
-    double GN(double x, int n) const;
+    double gN(double x, int n) const;
 
     /** Recursively calculate the indices for Enge and H
      *
      *  This will calculate the indices for Enge and H that are required to
      *  calculate the differential up to order n.
      */
-    static void   SetEngeDiffIndices(size_t n);
+    static void   setEngeDiffIndices(size_t n);
 
     /** Return the indices for calculating the nth derivative of Enge ito g(x) */
-    inline static std::vector< std::vector<int> > GetQIndex(int n);
+    inline static std::vector< std::vector<int> > getQIndex(int n);
 
     /** Return the indices for calculating the nth derivative of g(x) ito h(x) */
-    inline static std::vector< std::vector<int> > GetHIndex(int n);
+    inline static std::vector< std::vector<int> > getHIndex(int n);
   private:
+    Enge(const Enge& enge);
+    Enge& operator=(const Enge& enge);
     std::vector<double> _a;
     double              _lambda, _x0;
 
@@ -117,25 +148,38 @@ class Enge : public EndFieldModel {
     static std::vector< std::vector< std::vector<int> > > _h;
 };
 
-std::vector< std::vector<int> > Enge::GetQIndex(int n) {
-  SetEngeDiffIndices(n);
+void Enge::setMaximumDerivative(size_t n) {
+    Enge::setEngeDiffIndices(n);
+}
+
+double Enge::function(double x, int n) const {
+    return getDoubleEnge(x, n);
+}
+
+std::vector< std::vector<int> > Enge::getQIndex(int n) {
   return _q[n];
 }
 
-std::vector< std::vector<int> > Enge::GetHIndex(int n) {
-  SetEngeDiffIndices(n);
+std::vector< std::vector<int> > Enge::getHIndex(int n) {
   return _h[n];
 }
 
-double Enge::GetDoubleEnge(double x, int n) const {
+double Enge::getDoubleEnge(double x, int n) const {
   if (n == 0) {
-    return (GetEnge(x-_x0, n)+GetEnge(-x-_x0, n))-1.;
+    return (getEnge(x-_x0, n)+getEnge(-x-_x0, n))-1.;
   } else {
-    if (n%2 != 0) return GetEnge(x-_x0, n)-GetEnge(-x-_x0, n);
-    else          return GetEnge(x-_x0, n)+GetEnge(-x-_x0, n);
+    if (n%2 != 0) return getEnge(x-_x0, n)-getEnge(-x-_x0, n);
+    else          return getEnge(x-_x0, n)+getEnge(-x-_x0, n);
   }
 }
 
+double Enge::getCentreLength() const {
+  return _x0/2.0;
+}
+
+double Enge::getEndLength() const {
+  return _lambda;
+}
 }
 
 #endif

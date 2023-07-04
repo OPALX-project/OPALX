@@ -51,6 +51,8 @@ class MultipoleTCurvedConstRadius;
 class MultipoleTCurvedVarRadius;
 class RFCavity;
 class TravelingWave;
+class Ring;
+class ScalingFFAMagnet;
 
 class BeamlineVisitor {
 
@@ -98,6 +100,11 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &) = 0;
 
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &) = 0;
+    
+    /// Apply the algorithm to a Ring element.
+    virtual void visitRing(const Ring &) = 0;
+    
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &) = 0;
 

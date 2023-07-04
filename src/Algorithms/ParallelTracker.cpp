@@ -60,6 +60,7 @@ ParallelTracker::ParallelTracker(const Beamline &beamline,
     Tracker(beamline, reference, revBeam, revTrack),
     itsDataSink_m(nullptr),
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
+    opalRing_m(nullptr),
     globalEOL_m(false),
     wakeStatus_m(false),
     wakeFunction_m(nullptr),
@@ -89,6 +90,7 @@ ParallelTracker::ParallelTracker(const Beamline &beamline,
     Tracker(beamline, bunch, reference, revBeam, revTrack),
     itsDataSink_m(&ds),
     itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
+    opalRing_m(nullptr),
     globalEOL_m(false),
     wakeStatus_m(false),
     wakeFunction_m(nullptr),
@@ -113,6 +115,98 @@ ParallelTracker::ParallelTracker(const Beamline &beamline,
 }
 
 ParallelTracker::~ParallelTracker() {}
+
+void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& bend) {
+    *gmsg << "Adding ScalingFFAMagnet" << endl;
+    /*
+    if (opalRing_m != nullptr) {
+        ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required                                                                          
+        newBend->setupEndField();
+        opalRing_m->appendElement(*newBend);
+    } else {
+        throw OpalException("ParallelCyclotronTracker::visitScalingFFAMagnet",
+                            "Need to define a RINGDEFINITION to use ScalingFFAMagnet element");
+    }
+    */
+}
+
+
+void ParallelTracker::buildupFieldList(double BcParameter[], ElementType elementType, Component* elptr) {
+
+    beamline_list::iterator sindex;
+
+    type_pair *localpair = new type_pair();
+    localpair->first = elementType;
+
+    for (int i = 0; i < 8; i++)
+        *(((localpair->second).first) + i) = *(BcParameter + i);
+
+    (localpair->second).second = elptr;
+
+    // always put cyclotron as the first element in the list.                                                                                                                                                    
+    if (elementType == ElementType::RING ) {
+        sindex = FieldDimensions.begin();
+    } else {
+        sindex = FieldDimensions.end();
+    }
+    FieldDimensions.insert(sindex, localpair);
+
+
+}
+
+
+
+/*
+ * @param ring
+ */
+
+void ParallelTracker::visitRing(const Ring& ring) {
+     *gmsg << "* ----------------------------- Ring ------------------------------------- *" << endl;
+
+     delete opalRing_m;
+
+     opalRing_m = dynamic_cast<Ring*>(ring.clone());
+
+     myElements.push_back(opalRing_m);
+
+     opalRing_m->initialise(itsBunch_m);
+
+     referenceR = opalRing_m->getBeamRInit();
+     referencePr = opalRing_m->getBeamPRInit();
+     referenceTheta = opalRing_m->getBeamPhiInit();
+
+     if (referenceTheta <= -180.0 || referenceTheta > 180.0) {
+         throw OpalException("Error in ParallelTracker::visitRing",
+                             "PHIINIT is out of [-180, 180)!");
+     }
+
+     referenceZ = 0.0;
+     referencePz = 0.0;
+
+     referencePtot = itsReference.getGamma() * itsReference.getBeta();
+     referencePt = std::sqrt(referencePtot * referencePtot - referencePr * referencePr);
+
+     if (referencePtot < 0.0)
+         referencePt *= -1.0;
+
+     sinRefTheta_m = std::sin(referenceTheta * Units::deg2rad);
+     cosRefTheta_m = std::cos(referenceTheta * Units::deg2rad);
+
+     double BcParameter[8] = {}; // zero initialise array
+
+     buildupFieldList(BcParameter, ElementType::RING, opalRing_m);
+
+     // Finally print some diagnostic
+     *gmsg << "* Initial beam radius = " << referenceR << " [mm] " << endl;
+     *gmsg << "* Initial gamma = " << itsReference.getGamma() << endl;
+     *gmsg << "* Initial beta  = " << itsReference.getBeta() << endl;
+     *gmsg << "* Total reference momentum      = " << referencePtot << " [beta gamma]" << endl;
+     *gmsg << "* Reference azimuthal momentum  = " << referencePt << " [beta gamma]" << endl;
+     *gmsg << "* Reference radial momentum     = " << referencePr << " [beta gamma]" << endl;
+     *gmsg << "* " << opalRing_m->getSymmetry() << " fold field symmetry " << endl;
+     *gmsg << "* Harmonic number h = " << opalRing_m->getHarmonicNumber() << " " << endl;
+ }
+
 
 void ParallelTracker::visitBeamline(const Beamline &bl) {
     const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);

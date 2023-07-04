@@ -3,9 +3,11 @@ set (_SRCS
     AbstractTracker.cpp
     CavityAutophaser.cpp
     DefaultVisitor.cpp
+    DistributionMoments.cpp
     Flagger.cpp
     IndexMap.cpp
     OrbitThreader.cpp
+    OpalParticle.cpp
     ParallelTracker.cpp
     PartBunch.cpp
     PartBunchBase.hpp
@@ -28,9 +30,11 @@ set (HDRS
     AbstractTracker.h
     CavityAutophaser.h
     DefaultVisitor.h
+    DistributionMoments.h
     Flagger.h
     IndexMap.h
     OrbitThreader.h
+    OpalParticle.h
     ParallelTracker.h
     PartBins.h
     PartBunch.h
@@ -40,7 +44,7 @@ set (HDRS
     SplineTimeDependence.h
     StepSizeConfig.h
     Tracker.h
-     Vektor.h       
+    Vektor.h       
     Matrix.h
 )
 

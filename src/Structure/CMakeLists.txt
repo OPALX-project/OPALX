@@ -13,6 +13,7 @@ set (_SRCS
   MemoryWriter.cpp
   MeshGenerator.cpp       
   LBalWriter.cpp
+  LossDataSink.cpp        
   StatBaseWriter.cpp
   StatWriter.cpp
   SDDSColumn.cpp
@@ -39,6 +40,7 @@ set (HDRS
     MemoryWriter.h
     MeshGenerator.h
     LBalWriter.h
+    LossDataSink.h
     StatBaseWriter.h
     StatWriter.h
     SDDSColumn.h
