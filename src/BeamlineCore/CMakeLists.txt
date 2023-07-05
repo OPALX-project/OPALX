@@ -5,6 +5,7 @@ set (_SRCS
     MultipoleRep.cpp
     RFCavityRep.cpp
     TravelingWaveRep.cpp
+    ProbeRep.cpp
     )
 
 set (HDRS
@@ -14,7 +15,8 @@ set (HDRS
     MultipoleRep.h
     RFCavityRep.h
     TravelingWaveRep.h
-    )
+    ProbeRep.h
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}

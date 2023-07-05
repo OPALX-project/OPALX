@@ -18,7 +18,11 @@ set (_SRCS
     Ring.cpp
     ScalingFFAMagnet.cpp        
     TravelingWave.cpp
-    )
+    Offset.cpp
+    VerticalFFAMagnet.cpp
+    Probe.cpp
+    PluginElement.cpp
+)
 
 set (HDRS
     AttributeSet.h
@@ -38,7 +42,11 @@ set (HDRS
     SpecificElementVisitor.h
     ScalingFFAMagnet.h
     Ring.h
-    )
+    Offset.h
+    VerticalFFAMagnet.h
+    Probe.h
+    PluginElement.h
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}

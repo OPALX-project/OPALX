@@ -19,6 +19,7 @@ set (_SRCS
   SDDSColumn.cpp
   SDDSColumnSet.cpp
   SDDSWriter.cpp
+  PeakFinder.cpp
 )
 
 include_directories (
@@ -46,6 +47,7 @@ set (HDRS
     SDDSColumn.h
     SDDSColumnSet.h
     SDDSWriter.h
+    PeakFinder.h
 )
 
 if (UNIX AND NOT APPLE)

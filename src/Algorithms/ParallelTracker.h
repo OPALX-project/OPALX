@@ -55,6 +55,7 @@
 
 
 class ParticleMatterInteractionHandler;
+class PluginElement;
 
 class ParallelTracker: public Tracker {
 
@@ -120,6 +121,9 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT &);
 
+    /// Apply the algorithm to a offset (placement).
+    virtual void visitOffset(const Offset&);
+
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &);
 
@@ -128,7 +132,10 @@ public:
 
     /// Apply the algorithm to a scaling FFA.
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet & bend);
-    
+
+    /// Apply the algorithm to a vertical FFA magnet.                                                                                                                                                                                         
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
+
 private:
 
     // Not implemented.
@@ -139,9 +146,12 @@ private:
     /*
       Ring specifics
     */
-    // we store a pointer explicitly to the Ring                                                                                                                                                                 
+
+    // we store a pointer explicitly to the Ring
     Ring* opalRing_m;
 
+    unsigned turnnumber_m;
+    
     std::list<Component*> myElements;    
     beamline_list FieldDimensions;
     /// The reference variables                                                                                                                                                                                  
@@ -163,6 +173,7 @@ private:
 
     void buildupFieldList(double BcParameter[], ElementType elementType, Component* elptr);
 
+    std::vector<PluginElement*> pluginElements_m;
     
     /******************** STATE VARIABLES ***********************************/
 
@@ -207,7 +218,8 @@ private:
     IpplTimings::TimerRef fieldEvaluationTimer_m ;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
-
+    IpplTimings::TimerRef PluginElemTimer_m;
+    
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
 
@@ -254,6 +266,8 @@ private:
     void applyFractionalStep(const BorisPusher &pusher, double tau);
     void findStartPosition(const BorisPusher &pusher);
     void autophaseCavities(const BorisPusher &pusher);
+
+    bool applyPluginElements(const double dt);
 
 };
 

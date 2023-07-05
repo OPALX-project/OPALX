@@ -42,6 +42,10 @@
 #include "BasicActions/Title.h"
 #include "BasicActions/Value.h"
 
+// Macro command.                                                                                                                                                                                                                             
+#include "OpalParser/MacroCmd.h"
+
+
 // Commands introducing a special mode.
 #include "Track/TrackCmd.h"    
 
@@ -61,6 +65,9 @@
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalRingDefinition.h"
+#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
+#include "Elements/OpalVerticalFFAMagnet.h"
+#include "Elements/OpalProbe.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -99,6 +106,8 @@ namespace {
         opal->create(new RealVector());
         opal->create(new StringConstant());
 
+        opal->create(new MacroCmd());
+
         opal->create(new Beam());
         opal->create(new FieldSolver());
         opal->create(new Distribution());        
@@ -108,8 +117,11 @@ namespace {
         OpalData *opal = OpalData::getInstance();
         opal->create(new OpalDrift());
         opal->create(new OpalMarker());
+        opal->create(new OpalProbe());
         opal->create(new OpalRingDefinition());
         opal->create(new Line());
+        opal->create(new OpalOffset::OpalLocalCartesianOffset());
+        opal->create(new OpalVerticalFFAMagnet());
     }
 };
 
