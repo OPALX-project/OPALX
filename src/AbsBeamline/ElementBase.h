@@ -98,6 +98,8 @@ enum class ElementType: unsigned short {
     RBEND,
     RBEND3D,
     RING,
+    PROBE,
+    VACUUM,
     SOURCE
 };
 

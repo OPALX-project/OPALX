@@ -32,10 +32,13 @@
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/MultipoleTStraight.h"
+#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbsBeamline/VerticalFFAMagnet.h"
+#include "AbsBeamline/Probe.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -98,6 +101,10 @@ void DefaultVisitor::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRad
     applyDefault(multTvcurv);
 }
 
+void DefaultVisitor::visitOffset(const Offset& off) {
+    applyDefault(off);
+}
+
 void DefaultVisitor::visitRing(const Ring &ring) {
    applyDefault(ring);
 }
@@ -114,6 +121,15 @@ void DefaultVisitor::visitTravelingWave(const TravelingWave &trw) {
 void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet &spiral) {
     applyDefault(spiral);
 }
+
+void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet &mag) {
+    applyDefault(mag);
+}
+
+void DefaultVisitor::visitProbe(const Probe &probe) {
+    applyDefault(probe);
+}
+
 
 void DefaultVisitor::visitBeamline(const Beamline &bl) {
     // Default behaviour: Apply algorithm to all beamline members.
