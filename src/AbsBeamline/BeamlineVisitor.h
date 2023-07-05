@@ -53,6 +53,9 @@ class RFCavity;
 class TravelingWave;
 class Ring;
 class ScalingFFAMagnet;
+class Offset;
+class VerticalFFAMagnet;
+class Probe;
 
 class BeamlineVisitor {
 
@@ -97,6 +100,9 @@ public:
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &) = 0;
 
+    /// Apply the algorithm to an offset (placement).
+    virtual void visitOffset(const Offset &) = 0;
+    
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity &) = 0;
 
@@ -107,7 +113,14 @@ public:
     
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave &) = 0;
+    
+    /// Apply the algorithm to a vertical FFA magnet.
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &) = 0;
 
+    /// Apply the algorithm to a Probe.
+    virtual void visitProbe(const Probe &) = 0;
+
+    
 private:
 
     // Not implemented.

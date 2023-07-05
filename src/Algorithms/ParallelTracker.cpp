@@ -49,6 +49,10 @@
 #include "Utilities/Util.h"
 #include "ValueDefinitions/RealVariable.h"
 
+#include "AbsBeamline/Offset.h"
+#include "AbsBeamline/VerticalFFAMagnet.h"
+#include "AbsBeamline/PluginElement.h"
+
 extern Inform* gmsg;
 
 class PartData;
@@ -74,6 +78,7 @@ ParallelTracker::ParallelTracker(const Beamline &beamline,
     timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
     timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
     fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
+    PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
     BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart"))
 {}
 
@@ -207,6 +212,22 @@ void ParallelTracker::visitRing(const Ring& ring) {
      *gmsg << "* Harmonic number h = " << opalRing_m->getHarmonicNumber() << " " << endl;
  }
 
+/**                                                                                                                                                                                                                                           
+ *                                                                                                                                                                                                                                            
+ *                                                                                                                                                                                                                                            
+ * @param mag                                                                                                                                                                                                                                 
+ */
+void ParallelTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
+    *gmsg << "Adding Vertical FFA Magnet" << endl;
+    if (opalRing_m != nullptr)
+        opalRing_m->appendElement(mag);
+    else
+        throw OpalException("ParallelCyclotronTracker::visitVerticalFFAMagnet",
+                            "Need to define a RINGDEFINITION to use VerticalFFAMagnet element");
+}
+
+
+
 
 void ParallelTracker::visitBeamline(const Beamline &bl) {
     const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
@@ -222,6 +243,20 @@ void ParallelTracker::visitBeamline(const Beamline &bl) {
         fbl->iterate(*this, false);
     }
 }
+
+/**                                                                                                                                                                                                                                                                     *                                                                                                                                                                                                                                                                      *                                                                                                                                                                                                                                                                      * @param off                                                                                                                                                                                                                                                           */
+void ParallelTracker::visitOffset(const Offset& off) {
+    if (opalRing_m == nullptr)
+        throw OpalException(
+                            "ParallelCylcotronTracker::visitOffset",
+                            "Attempt to place an offset when Ring not defined");
+    Offset* offNonConst = const_cast<Offset*>(&off);
+    offNonConst->updateGeometry(opalRing_m->getNextPosition(),
+                                opalRing_m->getNextNormal());
+    opalRing_m->appendElement(off);
+}
+
+
 
 void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
     FieldList cavities = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
@@ -241,6 +276,35 @@ void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
         }
     }
 }
+
+
+bool ParallelTracker::applyPluginElements(const double dt) {
+    IpplTimings::startTimer(PluginElemTimer_m);
+
+
+    bool flag = false;
+    for (PluginElement* element : pluginElements_m) {
+        bool tmp = element->check(itsBunch_m,
+		                  turnnumber_m,
+                                  itsBunch_m->getT(),
+                                  dt);
+        flag |= tmp;
+
+        if ( tmp ) {
+            itsBunch_m->updateNumTotal();
+            *gmsg << "* Total number of particles after PluginElement= "
+                  << itsBunch_m->getTotalNum() << endl;
+        }
+    }
+
+    IpplTimings::stopTimer(PluginElemTimer_m);
+    return flag;
+}
+
+
+
+
+
 
 void ParallelTracker::saveCavityPhases() {
     itsDataSink_m->storeCavityInformation();

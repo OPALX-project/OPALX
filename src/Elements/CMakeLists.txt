@@ -8,7 +8,13 @@ set (_SRCS
     OpalMultipoleT.cpp
     OpalBeamline.cpp
     OpalRingDefinition.cpp      
-    )
+    OpalOffset/OpalLocalCylindricalOffset.cpp
+    OpalOffset/OpalLocalCartesianOffset.cpp
+    OpalOffset/OpalGlobalCylindricalOffset.cpp
+    OpalOffset/OpalGlobalCartesianOffset.cpp
+    OpalVerticalFFAMagnet.cpp
+    OpalProbe.cpp
+)
 
 set (HDRS
     OpalBeamline.h
@@ -21,7 +27,13 @@ set (HDRS
     OpalSource.h
     OpalTravelingWave.h
     OpalRingDefinition.h
-    )
+    OpalOffset/OpalGlobalCartesianOffset.h
+    OpalOffset/OpalGlobalCylindricalOffset.h
+    OpalOffset/OpalLocalCartesianOffset.h
+    OpalOffset/OpalLocalCylindricalOffset.h
+    OpalVerticalFFAMagnet.h
+    OpalProbe.h
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}

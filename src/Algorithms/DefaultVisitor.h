@@ -77,6 +77,9 @@ public:
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
 
+    /// Apply the algorithm to an offset (placement).
+    virtual void visitOffset(const Offset &);
+
     /// Apply the algorithm to a Ring.
     virtual void visitRing(const Ring &);
     
@@ -88,7 +91,13 @@ public:
 
     /// Apply the algorithm to a scaling FFA magnet. 
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &spiral);
-    
+
+    /// Apply the algorithm to a vertical FFA magnet.
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &);
+
+    /// Apply the algorithm to a Probe
+    virtual void visitProbe(const Probe &prob);
+
 protected:
 
     // The top level beamline.
