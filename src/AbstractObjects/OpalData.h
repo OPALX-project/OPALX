@@ -106,6 +106,7 @@ public:
     //  Loop over the directory and print each object whose name matches
     //  the regular expression [b]pattern[/b].
     void printNames(std::ostream &stream, const std::string &pattern);
+    void printAllNames(std::ostream &stream);
 
     /// Register table.
     //  Register the table [b]t[/b].
