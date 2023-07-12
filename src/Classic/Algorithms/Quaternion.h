@@ -1,7 +1,7 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
 
-#include "AppTypes/Vektor.h"
+#include "Types/Vector.h"
 #include "Algorithms/Vektor.h"
 
 template <class, unsigned>
@@ -74,7 +74,7 @@ Quaternion::Quaternion(const double & realPart, const Vector_t & vec):
 inline
 double Quaternion::Norm() const
 {
-    return dot(*this, *this);
+    return dot(*this, *this).apply();
 }
 
 inline
@@ -118,7 +118,7 @@ double Quaternion::real() const
 inline
 Vector_t Quaternion::imag() const
 {
-    Vector_t vec((*this)(1), (*this)(2), (*this)(3));
+    Vector_t vec{(*this)(1), (*this)(2), (*this)(3)};
 
     return vec;
 }

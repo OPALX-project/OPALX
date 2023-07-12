@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.12)
 cmake_policy(VERSION 3.12)
 
-project (OPAL VERSION 2021.1.99)
+project (OPAL VERSION 2022.9.99)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
 string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PROJECT_VERSION})
@@ -46,9 +46,19 @@ message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
 option (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP" OFF)
 
+find_package(Kokkos REQUIRED)
+message (STATUS "ADA Found Kokkos_DIR: ${Kokkos_DIR}")  
+
+find_package(Heffte 2.2.0 REQUIRED)
+message (STATUS "ADA Found Heffte_DIR: ${Heffte_DIR}")  
+
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
+
+if ("${Kokkos_DEVICES}" MATCHES "CUDA")
+    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
+endif()
 
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
@@ -60,6 +70,10 @@ add_compile_options (-Wextra)
 add_compile_options (-Wno-unused-parameter)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
+add_compile_options (-DKOKKOS_DEPENDENCE)
+
+# Resolve all library dependencies
+set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
 option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 if (NOT ${USE_STATIC_LIBRARIES})
@@ -120,6 +134,7 @@ else ()
 endif ()
 
 enable_language (Fortran OPTIONAL)
+
 message (STATUS "Fortran compilers: ${CMAKE_Fortran_COMPILER_NAMES}")
 if (CMAKE_Fortran_COMPILER)
     message (STATUS "The Fortran compiler identification is: ${CMAKE_Fortran_COMPILER_ID}")
@@ -138,11 +153,17 @@ else ()
     endif ()
 endif ()
 
+
+find_package (Ippl REQUIRED)
+
+#add_compile_options(-I${IPPL_INCLUDE_DIR})
+
 find_package (H5Hut REQUIRED)
 
 if (USE_STATIC_LIBRARIES)
     set (HDF5_USE_STATIC_LIBRARIES ON)
 endif ()
+
 set (HDF5_PREFER_PARALLEL ON)
 find_package (HDF5 REQUIRED)
 if(UNIX AND NOT APPLE)
@@ -176,81 +197,6 @@ if (BUILD_OPAL_UNIT_TESTS)
     add_definitions (-DWITH_UNIT_TESTS)
 endif ()
 
-option (ENABLE_AMR "Enable AMReX based AMR solver" OFF)
-if (ENABLE_AMR)
-    message (STATUS "Enable AMR_SOLVER    " ${ENABLE_AMR})
-    enable_language (Fortran)
-
-    find_package (AMReX CONFIG REQUIRED
-        HINTS $ENV{AMREX_HOME}/cmake $ENV{AMREX_DIR}/cmake $ENV{AMREX_PREFIX}/cmake)
-
-    message (STATUS "Found AMReX include dir: ${AMREX_INCLUDE_DIR}")
-    message (STATUS "Found AMReX library dir: ${AMREX_LIBRARY_DIR}")
-    message (STATUS "Found AMReX libraries: ${AMREX_LIBRARIES}")
-    message (STATUS "Found AMReX Fortran links: ${AMREX_EXTRA_Fortran_LINK_LINE}")
-    echo_amrex_config_options()
-
-    add_definitions(${AMREX_DEFINES})
-    add_definitions(-DENABLE_AMR)
-endif ()
-
-option (ENABLE_AMR_MG_SOLVER "Enable AMR MG solver" OFF)
-option (ENABLE_SAAMG_SOLVER "Enable iterative SA-AMG-PCG self field solver" OFF)
-if (ENABLE_SAAMG_SOLVER OR ENABLE_AMR_MG_SOLVER)
-    #
-    # :FIXME: We have to add checks whether the required Trilinos modules
-    #         are available. If there are problems of any kind with this
-    #         configuration, either fix it in a general way or build your
-    #         Trilinos. Host specific should be avoided in almost any case.
-    message (STATUS "Enable SAAMG_SOLVER: " ${ENABLE_SAAMG_SOLVER})
-    message (STATUS "Enable AMR_MG_SOLVER: " ${ENABLE_AMR_MG_SOLVER})
-
-    find_package (Trilinos REQUIRED HINTS $ENV{TRILINOS_PREFIX} $ENV{TRILINOS_DIR} $ENV{TRILINOS})
-
-    message (STATUS "Found Trilinos: ${Trilinos_DIR}")
-    message (STATUS "      Trilinos version: ${Trilinos_VERSION}")
-    message (STATUS "      Trilinos package list: ${Trilinos_PACKAGE_LIST}")
-    message (STATUS "      Trilinos libraries: ${Trilinos_LIBRARIES}")
-    message (STATUS "      Trilinos TPL libraries: ${Trilinos_TPL_LIBRARIES}")
-
-    if (NOT ${MPI_CXX_COMPILER} STREQUAL ${Trilinos_CXX_COMPILER} )
-        message (WARNING "Compiler mismatch:")
-        message (WARNING "        Trilinos was compiled with:")
-        message (WARNING "            ${Trilinos_C_COMPILER}")
-        message (WARNING "            ${Trilinos_CXX_COMPILER}")
-        message (WARNING "            ${Trilinos_Fortran_COMPILER}")
-        message (WARNING "        You are using:")
-        message (WARNING "            ${CMAKE_C_COMPILER}")
-        message (WARNING "            ${CMAKE_CXX_COMPILER}")
-        message (WARNING "            ${CMAKE_Fortran_COMPILER}")
-        message (FATAL_ERROR  "")
-    endif ()
-endif ()
-
-option (ENABLE_OPAL_FEL "Enable OPAL FEL" OFF)
-if (ENABLE_OPAL_FEL)
-    message (STATUS "Enable OPAL FEL: " ${ENABLE_OPAL_FEL})
-    find_package (MITHRA MODULE REQUIRED)
-    add_definitions (-DENABLE_OPAL_FEL)
-endif()
-
-option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
-if (DBG_SCALARFIELD)
-    message (STATUS "Write scalar rho_m field is enabled ")
-    add_definitions (-DDBG_SCALARFIELD)
-endif ()
-
-option (DBG_STENCIL "Dump stencil of iterative solver in matlab format" OFF)
-if (DBG_STENCIL)
-    message (STATUS "Write stencil is enabled ")
-    add_definitions(-DDBG_STENCIL)
-endif ()
-
-option (NO_FIELD_ASSIGN_OPTIMIZATION "Disable compiler optimization of IPPL field assignment" OFF)
-if (NO_FIELD_ASSIGN_OPTIMIZATION)
-    message (STATUS "Compiler will not try to optimize field assignment")
-    add_definitions(-DdontOPTIMIZE_FIELD_ASSIGNMENT)
-endif ()
 
 option (ENABLE_DOXYDOC "compile Doxygen documentation" OFF)
 if (ENABLE_DOXYDOC)
@@ -265,6 +211,14 @@ if (ENABLE_DOXYDOC)
         )
 endif ()
 
+option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
+if (DBG_SCALARFIELD)
+    message (STATUS "Write scalar rho_m field is enabled ")
+    add_definitions (-DDBG_SCALARFIELD)
+endif ()
+
+
+
 add_custom_target(always_rebuild ALL
     DEPENDS
     src/OPALrevision.h
@@ -278,11 +232,13 @@ add_custom_command(
     always_rebuild
     )
 
-#MESSAGE (STATUS "Ippl is at: " ${IPPL_ROOT})
-#add_subdirectory (${IPPL_ROOT} ${IPPL_ROOT}/build)
-MESSAGE (STATUS "Ippl is at: /Users/adelmann/OPAL/tmp/src/OPAL/ippl-v1.x" )
-add_subdirectory (/Users/adelmann/OPAL/tmp/src/OPAL/ippl-v1.x /Users/adelmann/OPAL/tmp/src/OPAL/ippl-v1.x/build)
 add_subdirectory (src)
+
+include_directories (
+    ${CMAKE_SOURCE_DIR}/src
+    ${IPPL_INCLUDE_DIR}    
+)
+
 
 if (BUILD_OPAL_UNIT_TESTS)
     add_subdirectory (tests)
@@ -292,6 +248,7 @@ endif ()
 set (OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
     CACHE INTERNAL "" FORCE
     )
+
 set (OPAL_LIBS ${OPAL_LIBS}
     CACHE INTERNAL "" FORCE
     )

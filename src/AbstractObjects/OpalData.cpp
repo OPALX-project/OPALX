@@ -576,6 +576,36 @@ void OpalData::makeDirty(Object *obj) {
     if (obj) obj->setDirty(true);
 }
 
+void OpalData::printAllNames(std::ostream &os) {
+    int column = 0;
+    
+    os << std::endl << "All object names "
+       << std::endl;
+
+    for (ObjectDir::const_iterator index = p->mainDirectory.begin();
+        index != p->mainDirectory.end(); ++index) {
+        const std::string name = (*index).first;
+        
+        os << name << " = " << *(*index).second << std::endl;
+        /*
+        if (column < 80) {
+            column += name.length();
+
+            do {
+                os << ' ';
+                column++;
+            } while((column % 20) != 0);
+        } else {
+            os << std::endl;
+            column = 0;
+        }
+        */
+    }
+
+    if (column) os << std::endl;
+    os << std::endl;
+    
+}
 void OpalData::printNames(std::ostream &os, const std::string &pattern) {
     int column = 0;
     RegularExpression regex(pattern);

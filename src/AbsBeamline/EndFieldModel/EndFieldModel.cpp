@@ -27,7 +27,7 @@
 
 #include <algorithm>
 #include <sstream>
-
+#include <map>
 #include "Utilities/GeneralClassicException.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
