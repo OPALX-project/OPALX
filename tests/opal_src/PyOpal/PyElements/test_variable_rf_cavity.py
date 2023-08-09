@@ -79,12 +79,14 @@ class TestVariableRFCavity(unittest.TestCase):
 
     def test_field(self):
         """Check that field value returns okay"""
-        for it in range(10):
-            t = it*1e-3
+        mhz_to_hz = 1e6 # convert MHz -> Hz
+        for it in range(-500, 1501, 100):
+            t = it*1e-9
             e_z = self.rf.get_field_value(0.0, 0.0, 0.0, t)[6]
-            freq = self.frequency.function(t)
-            v_0 = self.voltage.function(t)
-            ez_test = v_0*math.sin(2*math.pi*t*1e-3*freq) # NOTE the 1e-3 factor
+            # BUG - note that polynomial time dependence takes units of ns
+            freq = self.frequency.function(t*1e9)*mhz_to_hz
+            v_0 = self.voltage.function(t*1e9)
+            ez_test = v_0*math.sin(2*math.pi*t*freq)
             self.assertAlmostEqual(e_z, ez_test)
 
 
