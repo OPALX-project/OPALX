@@ -6,16 +6,16 @@
 class FM3DMagnetoStatic: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const;
     virtual void swap();
     virtual void getInfo(Inform *msg);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
 
-    virtual bool isInside(const Vector_t &r) const;
+    virtual bool isInside(const Vector_t<double, 3> &r) const;
 private:
     FM3DMagnetoStatic(std::string aFilename);
     ~FM3DMagnetoStatic();
@@ -27,7 +27,7 @@ private:
         unsigned int i;
         unsigned int j;
         unsigned int k;
-        Vector_t weight;
+        Vector_t<double, 3> weight;
         IndexTriplet():
             i(0),
             j(0),
@@ -36,9 +36,9 @@ private:
         { }
     };
 
-    IndexTriplet getIndex(const Vector_t &X) const;
+    IndexTriplet getIndex(const Vector_t<double, 3> &X) const;
     unsigned long getIndex(unsigned int i, unsigned int j, unsigned int k) const;
-    Vector_t interpolateTrilinearly(const Vector_t &X) const;
+    Vector_t<double, 3> interpolateTrilinearly(const Vector_t<double, 3> &X) const;
     double getWeightedData(double *data, const IndexTriplet &idx, unsigned short corner) const;
 
     enum { LX = 0,  // low X
@@ -72,7 +72,7 @@ private:
 };
 
 inline
-bool FM3DMagnetoStatic::isInside(const Vector_t &r) const
+bool FM3DMagnetoStatic::isInside(const Vector_t<double, 3> &r) const
 {
     return ((r(0) >= xbegin_m && r(0) < xend_m)
             && (r(1) >= ybegin_m && r(1) < yend_m)
@@ -97,7 +97,7 @@ unsigned long FM3DMagnetoStatic::getIndex(unsigned int i, unsigned int j, unsign
 }
 
 inline
-FM3DMagnetoStatic::IndexTriplet FM3DMagnetoStatic::getIndex(const Vector_t &X) const {
+FM3DMagnetoStatic::IndexTriplet FM3DMagnetoStatic::getIndex(const Vector_t<double, 3> &X) const {
     IndexTriplet idx;
     idx.i = std::floor((X(0) - xbegin_m) / hx_m);
     idx.j = std::floor((X(1) - ybegin_m) / hy_m);

@@ -38,7 +38,7 @@ public:
         ) {};
 
     virtual bool getFieldstrength (
-        const Vector_t& /*R*/, Vector_t& /*E*/, Vector_t& /*B*/) const = 0;
+        const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) const = 0;
 
     virtual void getFieldDimensions (
         double &zBegin, double &zEnd
@@ -61,9 +61,9 @@ public:
     }
 
     virtual bool getFieldDerivative (
-        const Vector_t &/*R*/,
-        Vector_t &/*E*/,
-        Vector_t &/*B*/,
+        const Vector_t<double, 3> &/*R*/,
+        Vector_t<double, 3> &/*E*/,
+        Vector_t<double, 3> &/*B*/,
         const DiffDirection &/*dir*/
         ) const {
         return false;
@@ -117,7 +117,7 @@ protected:
         void);
     
     virtual bool isInside (
-        const Vector_t &r
+        const Vector_t<double, 3> &r
         ) const {
         return ((r(0) >= xbegin_m && r(0) < xend_m) &&
                 (r(1) >= ybegin_m && r(1) < yend_m) &&
@@ -128,7 +128,7 @@ protected:
         unsigned int i;
         unsigned int j;
         unsigned int k;
-        Vector_t weight;
+        Vector_t<double, 3> weight;
         IndexTriplet():
             i(0),
             j(0),
@@ -155,7 +155,7 @@ protected:
         return result;
     }
 
-    IndexTriplet getIndex(const Vector_t &X) const {
+    IndexTriplet getIndex(const Vector_t<double, 3> &X) const {
         IndexTriplet idx;
         idx.i = std::floor((X(0) - xbegin_m) / hx_m);
         idx.j = std::floor((X(1) - ybegin_m) / hy_m);
@@ -176,11 +176,11 @@ protected:
         const IndexTriplet& idx,
         unsigned short corner) const;
 
-    Vector_t interpolateTrilinearly (
+    Vector_t<double, 3> interpolateTrilinearly (
         const std::vector<double>&,
         const std::vector<double>&,
         const std::vector<double>&,
-        const Vector_t& X) const;
+        const Vector_t<double, 3>& X) const;
 
     enum : unsigned short {
         LX = 0,  // low X

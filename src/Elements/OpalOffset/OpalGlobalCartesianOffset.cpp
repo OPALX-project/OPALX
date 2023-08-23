@@ -74,9 +74,9 @@ OpalGlobalCartesianOffset::~OpalGlobalCartesianOffset() {}
 void OpalGlobalCartesianOffset::update() {
     // getOpalName() comes from AbstractObjects/Object.h
     std::string name = getOpalName();
-    Vector_t pos(Attributes::getReal(itsAttr[END_POSITION_X]),
+    Vector_t<double, 3> pos(Attributes::getReal(itsAttr[END_POSITION_X]),
                  Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
-    Vector_t norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
+    Vector_t<double, 3> norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
                   Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
     Offset* off = new Offset(Offset::globalCartesianOffset(name, pos, norm));
     // is this a memory leak?

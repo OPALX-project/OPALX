@@ -18,7 +18,7 @@
 #include "AbsBeamline/TravelingWave.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 
@@ -77,20 +77,20 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const {
     visitor.visitTravelingWave(*this);
 }
 
-bool TravelingWave::apply(const size_t& i, const double& t, Vector_t& E, Vector_t& B) {
+bool TravelingWave::apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-bool TravelingWave::apply(const Vector_t& R,
-                          const Vector_t& /*P*/,
+bool TravelingWave::apply(const Vector_t<double, 3>& R,
+                          const Vector_t<double, 3>& /*P*/,
                           const double& t,
-                          Vector_t& E, Vector_t& B) {
+                          Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
 
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength()) return false;
 
-    Vector_t tmpR = Vector_t(R(0), R(1), R(2) + 0.5 * periodLength_m);
+    Vector_t<double, 3> tmpR = Vector_t<double, 3>(R(0), R(1), R(2) + 0.5 * periodLength_m);
     double tmpcos, tmpsin;
-    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
     if (tmpR(2) < startCoreField_m) {
         if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
@@ -99,7 +99,7 @@ bool TravelingWave::apply(const Vector_t& R,
         tmpsin = -(scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m);
 
     } else if (tmpR(2) < startExitField_m) {
-        Vector_t tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
+        Vector_t<double, 3> tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
         tmpR(2) -= startCoreField_m;
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
@@ -137,16 +137,16 @@ bool TravelingWave::apply(const Vector_t& R,
     return false;
 }
 
-bool TravelingWave::applyToReferenceParticle(const Vector_t& R,
-                                             const Vector_t& /*P*/,
-                                             const double& t, Vector_t& E,
-                                             Vector_t& B) {
+bool TravelingWave::applyToReferenceParticle(const Vector_t<double, 3>& R,
+                                             const Vector_t<double, 3>& /*P*/,
+                                             const double& t, Vector_t<double, 3>& E,
+                                             Vector_t<double, 3>& B) {
 
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength()) return false;
 
-    Vector_t tmpR = Vector_t(R(0), R(1), R(2) + 0.5 * periodLength_m);
+    Vector_t<double, 3> tmpR = Vector_t<double, 3>(R(0), R(1), R(2) + 0.5 * periodLength_m);
     double tmpcos, tmpsin;
-    Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+    Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
     if (tmpR(2) < startCoreField_m) {
         if (!fieldmap_m->isInside(tmpR)) return true;
@@ -154,7 +154,7 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t& R,
         tmpsin = -scale_m * std::sin(frequency_m * t + phase_m);
 
     } else if (tmpR(2) < startExitField_m) {
-        Vector_t tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
+        Vector_t<double, 3> tmpE2(0.0, 0.0, 0.0), tmpB2(0.0, 0.0, 0.0);
         tmpR(2) -= startCoreField_m;
         const double z = tmpR(2);
         tmpR(2) = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
@@ -192,7 +192,7 @@ bool TravelingWave::applyToReferenceParticle(const Vector_t& R,
     return false;
 }
 
-void TravelingWave::initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) {
+void TravelingWave::initialise(PartBunch<double, 3>* bunch, double& startField, double& endField) {
 
     if (bunch == nullptr) {
         startField = - 0.5 * periodLength_m;
@@ -397,7 +397,7 @@ double TravelingWave::getAutoPhaseEstimate(const double& E0,
     return phi;
 }
 
-bool TravelingWave::isInside(const Vector_t& r) const {
+bool TravelingWave::isInside(const Vector_t<double, 3>& r) const {
     return (isInsideTransverse(r)
             && r(2) >= -0.5 * periodLength_m
             && r(2) < startExitField_m);

@@ -39,7 +39,7 @@
 
 class LossDataSink;
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 class FieldMap;
 
 /** \class[Ring]
@@ -91,8 +91,8 @@ class Ring : public Component {
      *  true. If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1 and store in LossDataSink
      */
-    virtual bool apply(const size_t &id, const double &t, Vector_t &E,
-                       Vector_t &B) override;
+    virtual bool apply(const size_t &id, const double &t, Vector_t<double, 3> &E,
+                       Vector_t<double, 3> &B) override;
 
     /** Overwrite data in vector E and B with electromagnetic field at point R
      *
@@ -110,8 +110,8 @@ class Ring : public Component {
      *  If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1
      */
-    virtual bool apply(const Vector_t &R, const Vector_t &P,
-                       const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P,
+                       const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
     /** Initialise the Ring
      *
@@ -121,7 +121,7 @@ class Ring : public Component {
      *  @param endField - not used
      *  @param scaleFactor - not used
      */
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField,
+    virtual void initialise(PartBunch<double, 3> *bunch, double &startField,
                             double &endField) override;
 
     /** Initialise the Ring - set the bunch and allocate a new LossDataSink
@@ -129,11 +129,11 @@ class Ring : public Component {
      *  @param bunch the particle bunch. Ring borrows this pointer (caller
      *         owns memory)
      */
-    virtual void initialise(PartBunchBase<double, 3> *bunch);
+    virtual void initialise(PartBunch<double, 3> *bunch);
 
     /** Clean up the Ring
      *
-     *  Ring relinquishes RefPartBunchBase<double, 3> pointer and deletes LossDataSink
+     *  Ring relinquishes RefPartBunch<double, 3> pointer and deletes LossDataSink
      */
     virtual void finalise() override;
 
@@ -198,22 +198,22 @@ class Ring : public Component {
      *
      *  Ring still owns the memory to which lossDataSink points.
      */
-    PartBunchBase<double, 3>* getLossDataSink() const;
+    PartBunch<double, 3>* getLossDataSink() const;
 
-    /** Set RefPartBunchBase<double, 3> to bunch.
+    /** Set RefPartBunch<double, 3> to bunch.
      *
      *  @param sink The Bunch. Ring borrows memory allocated to bunch.
      *
      *  Note for compliance with style guide and compatibility with parent two
-     *  pointer to RefPartBunchBase<double, 3> are stored; this keeps them aligned
+     *  pointer to RefPartBunch<double, 3> are stored; this keeps them aligned
      */
-    void setRefPartBunch(PartBunchBase<double, 3>* bunch);
+    void setRefPartBunch(PartBunch<double, 3>* bunch);
 
-    /** Get pointer to RefPartBunchBase<double, 3> from the bunch.
+    /** Get pointer to RefPartBunch<double, 3> from the bunch.
      *
      *  Ring does not own this memory (so neither does caller).
      */
-    PartBunchBase<double, 3>* getRefPartBunch() const;
+    PartBunch<double, 3>* getRefPartBunch() const;
 
     /** Set the harmonic number for RF (number of bunches in the ring) */
     void setHarmonicNumber(double cyclHarm) {cyclHarm_m = cyclHarm;}
@@ -259,10 +259,10 @@ class Ring : public Component {
     double getLatticePhiInit() const {return latticePhiInit_m;}
 
     /** Get the initial element's start position in cartesian coordinates */
-    Vector_t getNextPosition() const;
+    Vector_t<double, 3> getNextPosition() const;
 
     /** Get the initial element's start normal in cartesian coordinates */
-    Vector_t getNextNormal() const;
+    Vector_t<double, 3> getNextNormal() const;
 
     /** Set the first element's horizontal angle
      *
@@ -318,13 +318,13 @@ class Ring : public Component {
     RingSection* getLastSectionPlaced() const;
 
     /** Get the list of sections at position pos */
-    std::vector<RingSection*> getSectionsAt(const Vector_t& pos);
+    std::vector<RingSection*> getSectionsAt(const Vector_t<double, 3>& pos);
 
-    /** Convert from a Vector3D to a Vector_t */
-    static inline Vector_t convert(const Vector3D& vec);
+    /** Convert from a Vector3D to a Vector_t<double, 3> */
+    static inline Vector_t<double, 3> convert(const Vector3D& vec);
 
-    /** Convert from a Vector_t to a Vector3D */
-    static inline Vector3D convert(const Vector_t& vec);
+    /** Convert from a Vector_t<double, 3> to a Vector3D */
+    static inline Vector3D convert(const Vector_t<double, 3>& vec);
 
   private:
     // Force end to have azimuthal angle > start unless crossing phi = pi/-pi
@@ -358,7 +358,7 @@ class Ring : public Component {
     // rename to keep in line with style guide
     //
     // Ring borrows this memory
-    PartBunchBase<double, 3> *refPartBunch_m;
+    PartBunch<double, 3> *refPartBunch_m;
 
     // store for particles out of the aperture
     //
@@ -409,11 +409,11 @@ class Ring : public Component {
     static const double angleTolerance_m;
 };
 
-Vector_t Ring::convert(const Vector3D& vec_3d) {
-    return Vector_t(vec_3d(0), vec_3d(1), vec_3d(2));
+Vector_t<double, 3> Ring::convert(const Vector3D& vec_3d) {
+    return Vector_t<double, 3>(vec_3d(0), vec_3d(1), vec_3d(2));
 }
 
-Vector3D Ring::convert(const Vector_t& vec_t) {
+Vector3D Ring::convert(const Vector_t<double, 3>& vec_t) {
     return Vector3D(vec_t[0], vec_t[1], vec_t[2]);
 }
 

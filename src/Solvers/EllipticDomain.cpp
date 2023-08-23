@@ -34,12 +34,12 @@
 //FIXME: ORDER HOW TO TRAVERSE NODES IS FIXED, THIS SHOULD BE MORE GENERIC! (PLACES MARKED)
 
 
-EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr, Vector_t hr,
+EllipticDomain::EllipticDomain(BoundaryGeometry *bgeom, IntVector_t<double, 3> nr, Vector_t<double, 3> hr,
                                std::string interpl)
     : RegularDomain(nr, hr, interpl)
 {
-    Vector_t min(-bgeom->getA(), -bgeom->getB(), bgeom->getS());
-    Vector_t max( bgeom->getA(),  bgeom->getB(), bgeom->getS() + bgeom->getLength());
+    Vector_t<double, 3> min(-bgeom->getA(), -bgeom->getB(), bgeom->getS());
+    Vector_t<double, 3> max( bgeom->getA(),  bgeom->getB(), bgeom->getS() + bgeom->getLength());
     setRangeMin(min);
     setRangeMax(max);
     setMinMaxZ(min[2], max[2]);
@@ -52,7 +52,7 @@ EllipticDomain::~EllipticDomain() {
 // for this geometry we only have to calculate the intersection on
 // one x-y-plane
 // for the moment we center the ellipse around the center of the grid
-void EllipticDomain::compute(Vector_t hr, NDIndex<3> localId) {
+void EllipticDomain::compute(Vector_t<double, 3> hr, NDIndex<3> localId) {
     // there is nothing to be done if the mesh spacings in x and y have not changed
     if (hr[0] == getHr()[0] &&
         hr[1] == getHr()[1])

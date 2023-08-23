@@ -39,8 +39,8 @@
 class EllipticDomain : public RegularDomain {
 
 public:
-    EllipticDomain(BoundaryGeometry *bgeom, IntVector_t nr,
-                   Vector_t hr, std::string interpl);
+    EllipticDomain(BoundaryGeometry *bgeom, IntVector_t<double, 3> nr,
+                   Vector_t<double, 3> hr, std::string interpl);
 
     ~EllipticDomain();
 
@@ -56,7 +56,7 @@ public:
     }
 
     /// calculates intersection
-    void compute(Vector_t hr, NDIndex<3> localId) override;
+    void compute(Vector_t<double, 3> hr, NDIndex<3> localId) override;
 
 private:
 

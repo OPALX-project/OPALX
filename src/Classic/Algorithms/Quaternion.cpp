@@ -1,11 +1,11 @@
+#include "Algorithms/BoostMatrix.h"
 #include "Algorithms/Quaternion.h"
-#include "AppTypes/Tenzor.h"
 #include "Physics/Physics.h"
 #include "Utility/RandomNumberGen.h"
 #include "Utilities/GeneralClassicException.h"
 
 namespace {
-    Vector_t normalize(const Vector_t & vec)
+    Vector_t<double, 3> normalize(const Vector_t<double, 3> & vec)
     {
         double length = std::sqrt(dot(vec, vec));
 
@@ -19,7 +19,7 @@ namespace {
     }
 }
 
-Quaternion::Quaternion(const Tenzor<double, 3> &M):
+Quaternion::Quaternion(const matrix_t &M):
     Vektor<double, 4>(0.0)
 {
     (*this)(0) = std::sqrt(std::max(0.0, 1 + M(0, 0) + M(1, 1) + M(2, 2))) / 2;
@@ -31,19 +31,19 @@ Quaternion::Quaternion(const Tenzor<double, 3> &M):
     (*this)(3) = std::abs(M(1, 0) - M(0, 1)) > 0? std::copysign((*this)(3), M(1, 0) - M(0, 1)): 0.0;
 }
 
-Quaternion getQuaternion(Vector_t u, Vector_t ref)
+Quaternion getQuaternion(Vector_t<double, 3> u, Vector_t<double, 3> ref)
 {
     const double tol = 1e-12;
 
     u = normalize(u);
     ref = normalize(ref);
 
-    Vector_t axis = cross(u, ref);
+    Vector_t<double, 3> axis = cross(u, ref);
     double normAxis = std::sqrt(dot(axis,axis));
 
     if (normAxis < tol) {
         if (std::abs(dot(u, ref) - 1.0) < tol) {
-            return Quaternion(1.0, Vector_t(0.0));
+            return Quaternion(1.0, Vector_t<double, 3>(0.0));
         }
         // vectors are parallel or antiparallel
         do { // find any vector in plane with ref as normal
@@ -83,8 +83,8 @@ Quaternion Quaternion::operator*(const Quaternion & other) const
 
 Quaternion & Quaternion::operator*=(const Quaternion & other)
 {
-    Vector_t imagThis = this->imag();
-    Vector_t imagOther = other.imag();
+    Vector_t<double, 3> imagThis = this->imag();
+    Vector_t<double, 3> imagOther = other.imag();
 
     *this = Quaternion((*this)(0) * other(0) - dot(imagThis, imagOther),
                        (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
@@ -119,7 +119,7 @@ Quaternion Quaternion::inverse() const
     return returnValue.normalize();
 }
 
-Vector_t Quaternion::rotate(const Vector_t & vec) const
+Vector_t<double, 3> Quaternion::rotate(const Vector_t<double, 3> & vec) const
 {
 #ifndef NOPAssert
     if (!this->isUnit())
@@ -132,19 +132,21 @@ Vector_t Quaternion::rotate(const Vector_t & vec) const
     return ((*this) * (quat * (*this).conjugate())).imag();
 }
 
-Tenzor<double, 3> Quaternion::getRotationMatrix() const
+matrix_t Quaternion::getRotationMatrix() const
 {
     Quaternion rot(*this);
     rot.normalize();
-    Tenzor<double, 3> mat(1 - 2 * (rot(2) * rot(2) + rot(3) * rot(3)),
-                          2 * (-rot(0) * rot(3) + rot(1) * rot(2)),
-                          2 * (rot(0) * rot(2) + rot(1) * rot(3)),
-                          2 * (rot(0) * rot(3) + rot(1) * rot(2)),
-                          1 - 2 * (rot(1) * rot(1) + rot(3) * rot(3)),
-                          2 * (-rot(0) * rot(1) + rot(2) * rot(3)),
-                          2 * (-rot(0) * rot(2) + rot(1) * rot(3)),
-                          2 * (rot(0) * rot(1) + rot(2) * rot(3)),
-                          1 - 2 * (rot(1) * rot(1) + rot(2) * rot(2)));
+
+    matrix_t mat(3, 3);
+    mat(0, 0) = 1 - 2 * (rot(2) * rot(2) + rot(3) * rot(3));
+    mat(0, 1) = 2 * (-rot(0) * rot(3) + rot(1) * rot(2));
+    mat(0, 2) = 2 * (rot(0) * rot(2) + rot(1) * rot(3));
+    mat(1, 0) = 2 * (rot(0) * rot(3) + rot(1) * rot(2));
+    mat(1, 1) = 1 - 2 * (rot(1) * rot(1) + rot(3) * rot(3));
+    mat(1, 2) = 2 * (-rot(0) * rot(1) + rot(2) * rot(3));
+    mat(2, 0) = 2 * (-rot(0) * rot(2) + rot(1) * rot(3));
+    mat(2, 1) = 2 * (rot(0) * rot(1) + rot(2) * rot(3));
+    mat(2, 2) = 1 - 2 * (rot(1) * rot(1) + rot(2) * rot(2));
 
     return mat;
 }

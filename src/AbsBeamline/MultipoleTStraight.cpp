@@ -52,7 +52,7 @@ ElementBase* MultipoleTStraight::clone() const {
     return new MultipoleTStraight(*this);
 }
 
-void MultipoleTStraight::transformCoords(Vector_t &/*R*/) {
+void MultipoleTStraight::transformCoords(Vector_t<double, 3> &/*R*/) {
     //R[2] += getBoundingBoxLength();
 }
 
@@ -60,7 +60,7 @@ void MultipoleTStraight::setMaxOrder(const std::size_t &maxOrder) {
     MultipoleTBase::setMaxOrder(maxOrder);
 }
 
-double MultipoleTStraight::getBx(const Vector_t &R) {
+double MultipoleTStraight::getBx(const Vector_t<double, 3> &R) {
     double Bx = 0.0;
     for(std::size_t n = 0; n <= getMaxOrder(); n++) {
         double f_n = 0.0;
@@ -74,7 +74,7 @@ double MultipoleTStraight::getBx(const Vector_t &R) {
     return Bx;
 }
 
-double MultipoleTStraight::getBs(const Vector_t &R) {
+double MultipoleTStraight::getBs(const Vector_t<double, 3> &R) {
     double Bs = 0.0;
     for(std::size_t n = 0; n <= getMaxOrder(); n++) {
         double f_n = 0.0;

@@ -37,7 +37,7 @@ namespace mslang {
 
         void writeGnuplot(std::ostream &out) const;
 
-        bool isInside(const Vector_t &R) const;
+        bool isInside(const Vector_t<double, 3> &R) const;
 
         void getDepth(unsigned int &d) const;
     };

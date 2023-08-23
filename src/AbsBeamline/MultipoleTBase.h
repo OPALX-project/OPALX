@@ -108,8 +108,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const Vector_t &R, const Vector_t &P, const double &t,
-               Vector_t &E, Vector_t &B);
+    bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t,
+               Vector_t<double, 3> &E, Vector_t<double, 3> &B);
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
@@ -119,13 +119,13 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B);
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    void initialise(PartBunchBase<double, 3>*,
+    void initialise(PartBunch<double, 3>*,
                     double &startField,
                     double &endField);
     /** Finalise the MultipoleT - sets bunch to nullptr */
@@ -248,15 +248,15 @@ private:
      *  2nd -> azimuthal rotation
      *  \param R -> Vector to be rotated
      */
-    Vector_t rotateFrame(const Vector_t &R);
+    Vector_t<double, 3> rotateFrame(const Vector_t<double, 3> &R);
     /** Inverse of the 1st rotation in rotateFrame() method \n
      *  Used to rotate B field back to global coordinate system
      */
-    Vector_t rotateFrameInverse(Vector_t &B);
+    Vector_t<double, 3> rotateFrameInverse(Vector_t<double, 3> &B);
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    virtual void transformCoords(Vector_t &R) = 0;
+    virtual void transformCoords(Vector_t<double, 3> &R) = 0;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    virtual void transformBField(Vector_t &B, const Vector_t &R) = 0;
+    virtual void transformBField(Vector_t<double, 3> &B, const Vector_t<double, 3> &R) = 0;
     /** Magnet parameters */
     double length_m;
     double entranceAngle_m;
@@ -267,17 +267,17 @@ private:
      *  Returns zero far outside fringe field
      *  @f$ Bx = sum_n z^(2n+1) / (2n+1)! * \partial_x f_n @f$
      */
-    virtual double getBx (const Vector_t &R);
+    virtual double getBx (const Vector_t<double, 3> &R);
     /** Returns the vertical field component \n
      *  Returns zero far outside fringe field
      *  @f$ Bz = sum_n  f_n * z^(2n) / (2n)! @f$
      */
-    double getBz (const Vector_t &R);
+    double getBz (const Vector_t<double, 3> &R);
     /** Returns the component of the field along the central axis \n
      *  Returns zero far outside fringe field
       * @f$ Bs = sum_n z^(2n+1) / (2n+1)! \partial_s f_n / h_s @f$
       */
-    virtual double getBs (const Vector_t &R);
+    virtual double getBs (const Vector_t<double, 3> &R);
     /** Assume rectangular aperture with these dimensions */
     double verticalApert_m;
     double horizontalApert_m;
@@ -286,7 +286,7 @@ private:
     /** Tests if inside the magnet
      *  \param R -> Coordinate vector
      */
-    bool insideAperture(const Vector_t &R);
+    bool insideAperture(const Vector_t<double, 3> &R);
     /** Radius of curvature
      *  \param s -> Coordinate s
      */
@@ -333,7 +333,7 @@ inline
 }
 inline
     bool MultipoleTBase::apply(const size_t &i, const double &t,
-                           Vector_t &E, Vector_t &B) {
+                           Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
         return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 inline
@@ -347,7 +347,7 @@ inline
         entranceAngle_m = entranceAngle;
 }
 inline
-    bool MultipoleTBase::insideAperture(const Vector_t &R) {
+    bool MultipoleTBase::insideAperture(const Vector_t<double, 3> &R) {
         return (std::abs(R[1]) <= (verticalApert_m / 2.0) &&
         		std::abs(R[0]) <= (horizontalApert_m / 2.0));
 }
@@ -445,7 +445,7 @@ inline
         return temp;
 }
 inline
-void MultipoleTBase::initialise(PartBunchBase<double, 3>* /*bunch*/,
+void MultipoleTBase::initialise(PartBunch<double, 3>* /*bunch*/,
                                 double &/*startField*/,
                                 double &/*endField*/) {
 }

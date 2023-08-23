@@ -9,7 +9,7 @@ namespace mslang {
     void Rectangle::print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
-        Vector_t origin = trafo_m.getOrigin();
+        Vector_t<double, 3> origin = trafo_m.getOrigin();
         double angle = trafo_m.getAngle() * Units::rad2deg;
         std::cout << indent << "rectangle, \n"
                   << indent2 << "w: " << width_m << ", \n"
@@ -22,16 +22,16 @@ namespace mslang {
     }
 
     void Rectangle::computeBoundingBox() {
-        std::vector<Vector_t> corners({Vector_t(0.5 * width_m, 0.5 * height_m, 0),
-                    Vector_t(-0.5 * width_m, 0.5 * height_m, 0),
-                    Vector_t(-0.5 * width_m, -0.5 * height_m, 0),
-                    Vector_t(0.5 * width_m, -0.5 * height_m, 0)});
+        std::vector<Vector_t<double, 3>> corners({Vector_t<double, 3>(0.5 * width_m, 0.5 * height_m, 0),
+                    Vector_t<double, 3>(-0.5 * width_m, 0.5 * height_m, 0),
+                    Vector_t<double, 3>(-0.5 * width_m, -0.5 * height_m, 0),
+                    Vector_t<double, 3>(0.5 * width_m, -0.5 * height_m, 0)});
 
-        for (Vector_t &v: corners) {
+        for (Vector_t<double, 3> &v: corners) {
             v = trafo_m.transformFrom(v);
         }
 
-        Vector_t llc = corners[0], urc = corners[0];
+        Vector_t<double, 3> llc = corners[0], urc = corners[0];
         for (unsigned int i = 1; i < 4; ++ i) {
             if (corners[i][0] < llc[0]) llc[0] = corners[i][0];
             else if (corners[i][0] > urc[0]) urc[0] = corners[i][0];
@@ -47,10 +47,10 @@ namespace mslang {
         }
     }
 
-    bool Rectangle::isInside(const Vector_t &R) const {
+    bool Rectangle::isInside(const Vector_t<double, 3> &R) const {
         if (!bb_m.isInside(R)) return false;
 
-        Vector_t X = trafo_m.transformTo(R);
+        Vector_t<double, 3> X = trafo_m.transformTo(R);
         if (2 * std::abs(X[0]) <= width_m &&
             2 * std::abs(X[1]) <= height_m) {
             for (auto item: divisor_m) {
@@ -64,13 +64,13 @@ namespace mslang {
     }
 
     void Rectangle::writeGnuplot(std::ofstream &out) const {
-        std::vector<Vector_t> pts({Vector_t(0.5 * width_m, 0.5 * height_m, 0),
-                    Vector_t(-0.5 * width_m, 0.5 * height_m, 0),
-                    Vector_t(-0.5 * width_m, -0.5 * height_m, 0),
-                    Vector_t(0.5 * width_m, -0.5 * height_m, 0)});
+        std::vector<Vector_t<double, 3>> pts({Vector_t<double, 3>(0.5 * width_m, 0.5 * height_m, 0),
+                    Vector_t<double, 3>(-0.5 * width_m, 0.5 * height_m, 0),
+                    Vector_t<double, 3>(-0.5 * width_m, -0.5 * height_m, 0),
+                    Vector_t<double, 3>(0.5 * width_m, -0.5 * height_m, 0)});
         unsigned int width = out.precision() + 8;
         for (unsigned int i = 0; i < 5; ++ i) {
-            Vector_t pt = pts[i % 4];
+            Vector_t<double, 3> pt = pts[i % 4];
             pt = trafo_m.transformFrom(pt);
 
             out << std::setw(width) << pt[0]

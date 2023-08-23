@@ -24,7 +24,7 @@
 #include <memory>
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 class LossDataSink;
 class PluginElement: public Component {
@@ -39,8 +39,8 @@ public:
     virtual ~PluginElement();
 
     ///@{ Pure virtual implementation of Component
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override; // not used?
-    void initialise(PartBunchBase<double, 3> *bunch); // replacement for virtual initialise
+    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override; // not used?
+    void initialise(PartBunch<double, 3> *bunch); // replacement for virtual initialise
     virtual void finalise()  final; // final since virtual hook doFinalise
     virtual void goOffline() final; // final since virtual hook doGoOffline
     virtual bool bends() const override;
@@ -49,14 +49,14 @@ public:
     ///@{ Virtual implementation of Component
     virtual bool apply(const size_t &i,
                        const double &t,
-                       Vector_t &E,
-                       Vector_t &B) override;
+                       Vector_t<double, 3> &E,
+                       Vector_t<double, 3> &B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t &R,
-                                          const Vector_t &P,
+    virtual bool applyToReferenceParticle(const Vector_t<double, 3> &R,
+                                          const Vector_t<double, 3> &P,
                                           const double &t,
-                                          Vector_t &E,
-                                          Vector_t &B) override;
+                                          Vector_t<double, 3> &E,
+                                          Vector_t<double, 3> &B) override;
     ///@}
 
     /// Set dimensions and consistency checks
@@ -69,7 +69,7 @@ public:
     double getYEnd()   const;
     ///@}
     /// Check if bunch particles are lost
-    bool check(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
+    bool check(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep);
     /// Checks if coordinate is within element
     int  checkPoint(const double & x, const double & y) const;
     /// Save output
@@ -79,25 +79,25 @@ protected:
     /// Sets geometry geom_m with element width dist
     void setGeom(const double dist);
     /// Change probe width depending on step size and angle of particle
-    void changeWidth(PartBunchBase<double, 3> *bunch, int i, const double tstep, const double tangle);
+    void changeWidth(PartBunch<double, 3> *bunch, int i, const double tstep, const double tangle);
     /// Calculate angle of particle/bunch wrt to element
     double calculateIncidentAngle(double xp, double yp) const;
 
 private:
     /// Check if bunch is close to element
-    bool preCheck(PartBunchBase<double, 3> *bunch) {return doPreCheck(bunch);}
+    bool preCheck(PartBunch<double, 3> *bunch) {return doPreCheck(bunch);}
     /// Finalise call after check
-    bool finaliseCheck(PartBunchBase<double, 3> *bunch, bool flagNeedUpdate) {return doFinaliseCheck(bunch, flagNeedUpdate);}
+    bool finaliseCheck(PartBunch<double, 3> *bunch, bool flagNeedUpdate) {return doFinaliseCheck(bunch, flagNeedUpdate);}
     /// Pure virtual hook for initialise
-    virtual void doInitialise(PartBunchBase<double, 3>* /*bunch*/) {}
+    virtual void doInitialise(PartBunch<double, 3>* /*bunch*/) {}
     /// Pure virtual hook for check
-    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) = 0;
+    virtual bool doCheck(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep) = 0;
     /// Virtual hook for setGeom
     virtual void doSetGeom() {};
     /// Virtual hook for preCheck
-    virtual bool doPreCheck(PartBunchBase<double, 3>*) {return true;}
+    virtual bool doPreCheck(PartBunch<double, 3>*) {return true;}
     /// Virtual hook for finaliseCheck
-    virtual bool doFinaliseCheck(PartBunchBase<double, 3> *, bool flagNeedUpdate) {return flagNeedUpdate;}
+    virtual bool doFinaliseCheck(PartBunch<double, 3> *, bool flagNeedUpdate) {return flagNeedUpdate;}
     /// Virtual hook for finalise
     virtual void doFinalise() {};
     /// Virtual hook for goOffline

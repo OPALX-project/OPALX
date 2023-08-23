@@ -115,7 +115,7 @@ class SectorMagneticFieldMap : public SectorField {
      *  \returns false if R_p is inside the bounding box
      */
     /* bool getFieldstrengthPolar */
-    /*               (const Vector_t &R_p, Vector_t &E_p, Vector_t &B_p) const; */
+    /*               (const Vector_t<double, 3> &R_p, Vector_t<double, 3> &E_p, Vector_t<double, 3> &B_p) const; */
 
     /** Get the field value in cartesian coordinates
      *
@@ -129,7 +129,7 @@ class SectorMagneticFieldMap : public SectorField {
      *  \returns false if R_c is inside the bounding box
      */
     bool getFieldstrength
-                  (const Vector_t &R_c, Vector_t &E_c, Vector_t &B_c) const;
+                  (const Vector_t<double, 3> &R_c, Vector_t<double, 3> &E_c, Vector_t<double, 3> &B_c) const;
 
     /** Get a pointer to the interpolator or nullptr if it is not set
      *
@@ -165,8 +165,8 @@ class SectorMagneticFieldMap : public SectorField {
     static void clearFieldCache();
 
     /** Not implemented - throws a LogicalError */
-    bool getFieldDerivative(const Vector_t &R, Vector_t &E,
-                                  Vector_t &B, const DiffDirection &dir) const;
+    bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E,
+                                  Vector_t<double, 3> &B, const DiffDirection &dir) const;
 
     /** Does nothing */
     void swap();

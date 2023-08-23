@@ -133,8 +133,8 @@ public:
     /// Prepend a T object.
     virtual void prepend(const T &);
 
-    void setOrigin3D(const Vector_t& ori);
-    Vector_t getOrigin3D() const;
+    void setOrigin3D(const Vector_t<double, 3>& ori);
+    Vector_t<double, 3> getOrigin3D() const;
     void setInitialDirection(const Quaternion& rot);
     Quaternion getInitialDirection() const;
 
@@ -148,7 +148,7 @@ protected:
     //  Exists to match the interface for ElementBase.
     BeamlineGeometry itsGeometry;
 
-    Vector_t itsOrigin_m;
+    Vector_t<double, 3> itsOrigin_m;
     Quaternion itsCoordTrafoTo_m;
     bool relativePositions_m;
 };
@@ -425,12 +425,12 @@ void TBeamline<T>::prepend(const T &obj) {
 }
 
 template <class T> inline
-void TBeamline<T>::setOrigin3D(const Vector_t& ori) {
+void TBeamline<T>::setOrigin3D(const Vector_t<double, 3>& ori) {
     itsOrigin_m = ori;
 }
 
 template <class T> inline
-Vector_t TBeamline<T>::getOrigin3D() const {
+Vector_t<double, 3> TBeamline<T>::getOrigin3D() const {
     return itsOrigin_m;
 }
 

@@ -53,7 +53,7 @@ PeakFinder::PeakFinder(std::string outfn, double min,
 }
 
 
-void PeakFinder::addParticle(const Vector_t& R) {
+void PeakFinder::addParticle(const Vector_t<double, 3>& R) {
 
     double radius = std::hypot(R(0),R(1));
     radius_m.push_back(radius);

@@ -10,7 +10,7 @@
 */
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 #include "Utility/IpplInfo.h"
 
@@ -39,10 +39,10 @@ public:
 
     double getLastPosition();
     virtual void readHeader() = 0;
-    virtual void readStep(PartBunchBase<double, 3>*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
+    virtual void readStep(PartBunch<double, 3>*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
 
     virtual void writeHeader() = 0;
-    virtual void writeStep(PartBunchBase<double, 3>*, const std::map<std::string, double> &) = 0;
+    virtual void writeStep(PartBunch<double, 3>*, const std::map<std::string, double> &) = 0;
 
     virtual bool predecessorIsSameFlavour() const = 0;
 

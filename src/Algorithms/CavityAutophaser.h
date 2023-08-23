@@ -32,8 +32,8 @@ public:
 
     ~CavityAutophaser();
 
-    double getPhaseAtMaxEnergy(const Vector_t &R,
-                               const Vector_t &P,
+    double getPhaseAtMaxEnergy(const Vector_t<double, 3> &R,
+                               const Vector_t<double, 3> &P,
                                double t,
                                double dt);
 
@@ -51,8 +51,8 @@ private:
     const PartData &itsReference_m;
     std::shared_ptr<Component> itsCavity_m;
 
-    Vector_t initialR_m;
-    Vector_t initialP_m;
+    Vector_t<double, 3> initialR_m;
+    Vector_t<double, 3> initialP_m;
 
 };
 

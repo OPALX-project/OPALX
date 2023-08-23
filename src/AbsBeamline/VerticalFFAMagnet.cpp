@@ -57,7 +57,7 @@ void VerticalFFAMagnet::initialise() {
     straightGeometry_m.setElementLength(bbLength_m); // length = phi r
 }
 
-void VerticalFFAMagnet::initialise(PartBunchBase<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
+void VerticalFFAMagnet::initialise(PartBunch<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
     RefPartBunch_m = bunch;
     initialise();
 }
@@ -79,7 +79,7 @@ void VerticalFFAMagnet::accept(BeamlineVisitor& visitor) const {
 }
 
 
-bool VerticalFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
+bool VerticalFFAMagnet::getFieldValue(const Vector_t<double, 3> &R, Vector_t<double, 3> &B) const {
     if (std::abs(R[0]) > halfWidth_m ||
         R[2] < 0. || R[2] > bbLength_m ||
         R[1] < -zNegExtent_m || R[1] > zPosExtent_m) {

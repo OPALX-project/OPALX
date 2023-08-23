@@ -21,7 +21,6 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Vektor.h"
-#include "AppTypes/SymTenzor.h"
 #include "Attributes/Attributes.h"
 
 #include <gsl/gsl_histogram.h>
@@ -40,7 +39,7 @@ class Beam;
 class Beamline;
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 class H5PartWrapper;
 
@@ -80,10 +79,10 @@ public:
     
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
-    void createOpalT(PartBunchBase<double, 3> *beam,
+    void createOpalT(PartBunch<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles);
-    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles);
+    void createOpalT(PartBunch<double, 3> *beam, size_t &numberOfParticles);
 
     static Distribution *find(const std::string &name);
 
@@ -92,8 +91,8 @@ public:
 
     Inform &printInfo(Inform &os) const;
 
-    Vector_t get_pmean() const ;
-    Vector_t get_xmean() const ;
+    Vector_t<double, 3> get_pmean() const ;
+    Vector_t<double, 3> get_xmean() const ;
 
     void setDistType(); 
 
@@ -167,7 +166,7 @@ private:
 
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
 
-    void initializeBeam(PartBunchBase<double, 3> *beam);
+    void initializeBeam(PartBunch<double, 3> *beam);
     void printDist(Inform &os, size_t numberOfParticles) const;
     void printDistGauss(Inform &os) const;
 
@@ -195,7 +194,7 @@ private:
 
     size_t totalNumberParticles_m;
 
-    Vector_t pmean_m, xmean_m, sigmaR_m, sigmaP_m;
+    Vector_t<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
 
     DistributionType distrTypeT_m;
 };
@@ -205,12 +204,12 @@ inline Inform &operator<<(Inform &os, const Distribution &d) {
 }
 
 inline
-Vector_t Distribution::get_pmean() const {
+Vector_t<double, 3> Distribution::get_pmean() const {
     return pmean_m;
 }
 
 inline
-Vector_t Distribution::get_xmean() const {
+Vector_t<double, 3> Distribution::get_xmean() const {
     return xmean_m;
 }
 
@@ -248,7 +247,6 @@ std::string Distribution::getTypeofDistribution() {
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Vektor.h"
-#include "AppTypes/SymTenzor.h"
 #include "Attributes/Attributes.h"
 
 #include <gsl/gsl_histogram.h>
@@ -267,7 +265,7 @@ class Beam;
 class Beamline;
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 class H5PartWrapper;
 
@@ -307,10 +305,10 @@ public:
     
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
-    void createOpalT(PartBunchBase<double, 3> *beam,
+    void createOpalT(PartBunch<double, 3> *beam,
                      std::vector<Distribution *> addedDistributions,
                      size_t &numberOfParticles);
-    void createOpalT(PartBunchBase<double, 3> *beam, size_t &numberOfParticles);
+    void createOpalT(PartBunch<double, 3> *beam, size_t &numberOfParticles);
 
     static Distribution *find(const std::string &name);
 
@@ -319,8 +317,8 @@ public:
 
     Inform &printInfo(Inform &os) const;
 
-    Vector_t get_pmean() const ;
-    Vector_t get_xmean() const ;
+    Vector_t<double, 3> get_pmean() const ;
+    Vector_t<double, 3> get_xmean() const ;
 
     void setDistType(); 
 
@@ -394,7 +392,7 @@ private:
 
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
 
-    void initializeBeam(PartBunchBase<double, 3> *beam);
+    void initializeBeam(PartBunch<double, 3> *beam);
     void printDist(Inform &os, size_t numberOfParticles) const;
     void printDistGauss(Inform &os) const;
 
@@ -422,7 +420,7 @@ private:
 
     size_t totalNumberParticles_m;
 
-    Vector_t pmean_m, xmean_m, sigmaR_m, sigmaP_m;
+    Vector_t<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
 
     DistributionType distrTypeT_m;
 };
@@ -432,12 +430,12 @@ inline Inform &operator<<(Inform &os, const Distribution &d) {
 }
 
 inline
-Vector_t Distribution::get_pmean() const {
+Vector_t<double, 3> Distribution::get_pmean() const {
     return pmean_m;
 }
 
 inline
-Vector_t Distribution::get_xmean() const {
+Vector_t<double, 3> Distribution::get_xmean() const {
     return xmean_m;
 }
 

@@ -113,11 +113,11 @@ namespace Util {
 #undef erfinv_d1
 #undef erfinv_d0
 
-    Vector_t getTaitBryantAngles(Quaternion rotation, const std::string& /*elementName*/) {
+    Vector_t<double, 3> getTaitBryantAngles(Quaternion rotation, const std::string& /*elementName*/) {
         Quaternion rotationBAK = rotation;
 
         // y axis
-        Vector_t tmp = rotation.rotate(Vector_t(0, 0, 1));
+        Vector_t<double, 3> tmp = rotation.rotate(Vector_t<double, 3>(0, 0, 1));
         tmp(1) = 0.0;
         // tmp /= euclidean_norm(tmp);
         double theta = std::fmod(std::atan2(tmp(0), tmp(2)) + Physics::two_pi, Physics::two_pi);
@@ -126,7 +126,7 @@ namespace Util {
         rotation = rotTheta.conjugate() * rotation;
 
         // x axis
-        tmp = rotation.rotate(Vector_t(0, 0, 1));
+        tmp = rotation.rotate(Vector_t<double, 3>(0, 0, 1));
         tmp(0) = 0.0;
         tmp /= euclidean_norm(tmp);
         double phi = std::fmod(std::atan2(-tmp(1), tmp(2)) + Physics::two_pi, Physics::two_pi);
@@ -135,12 +135,12 @@ namespace Util {
         rotation = rotPhi.conjugate() * rotation;
 
         // z axis
-        tmp = rotation.rotate(Vector_t(1, 0, 0));
+        tmp = rotation.rotate(Vector_t<double, 3>(1, 0, 0));
         tmp(2) = 0.0;
         tmp /= euclidean_norm(tmp);
         double psi = std::fmod(std::atan2(tmp(1), tmp(0)) + Physics::two_pi, Physics::two_pi);
 
-        return Vector_t(theta, phi, psi);
+        return Vector_t<double, 3>(theta, phi, psi);
     }
 
     std::string toUpper(const std::string& str) {

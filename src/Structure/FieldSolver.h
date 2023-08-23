@@ -28,7 +28,7 @@
 #include <string>
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 enum class FieldSolverType: short {
     NONE = -1,
@@ -79,7 +79,7 @@ public:
 
     void initCartesianFields();
 
-    void initSolver(PartBunchBase<double, 3>* b);
+    void initSolver(PartBunch<double, 3>* b);
 
     bool hasValidSolver();
 
@@ -118,7 +118,7 @@ private:
     std::unique_ptr<Layout_t> PL_m;
 
     /// all the particles are here ...
-    PartBunchBase<double, 3>* itsBunch_m;
+    PartBunch<double, 3>* itsBunch_m;
 
     std::string fsName_m;
     FieldSolverType fsType_m;

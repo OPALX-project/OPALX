@@ -120,13 +120,13 @@ void FFTPoissonSolver::initializeFields() {
 
         for (int i = 0; i < 2 * 3; ++ i) {
             bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
-            vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ZeroFace<Vector_t<double, 3>, 3, Mesh_t, Center_t>(i);
         }
         // z-direction
         bc_m[4] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(4);
         bc_m[5] = new ParallelPeriodicFace<double,3,Mesh_t,Center_t>(5);
-        vbc_m[4] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(4);
-        vbc_m[5] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(5);
+        vbc_m[4] = new ZeroFace<Vector_t<double, 3>, 3, Mesh_t, Center_t>(4);
+        vbc_m[5] = new ZeroFace<Vector_t<double, 3>, 3, Mesh_t, Center_t>(5);
     }
     else {
         // The FFT's require double-sized field sizes in order to
@@ -142,7 +142,7 @@ void FFTPoissonSolver::initializeFields() {
 
         for (int i = 0; i < 2 * 3; ++ i) {
             bc_m[i] = new ZeroFace<double, 3, Mesh_t, Center_t>(i);
-            vbc_m[i] = new ZeroFace<Vector_t, 3, Mesh_t, Center_t>(i);
+            vbc_m[i] = new ZeroFace<Vector_t<double, 3>, 3, Mesh_t, Center_t>(i);
         }
     }
 
@@ -209,7 +209,7 @@ void FFTPoissonSolver::initializeFields() {
 // compute the electric potential from the image charge by solving
 // the Poisson's equation
 
-void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift) {
+void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t<double, 3> hr, double zshift) {
 
     // use grid of complex doubled in both dimensions
     // and store rho in lower left quadrant of doubled grid
@@ -257,7 +257,7 @@ void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr, double zshift
 // given a charge-density field rho and a set of mesh spacings hr,
 // compute the electric field and put in eg by solving the Poisson's equation
 
-void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t hr) {
+void FFTPoissonSolver::computePotential(Field_t &rho, Vector_t<double, 3> hr) {
 
     IpplTimings::startTimer(ComputePotential_m);
 
@@ -306,7 +306,7 @@ void FFTPoissonSolver::greensFunction() {
 
     //hr_m[0]=hr_m[1]=hr_m[2]=1;
 
-    Vector_t hrsq(hr_m * hr_m);
+    Vector_t<double, 3> hrsq(hr_m * hr_m);
     SpecializedGreensFunction<3>::calculate(hrsq, rho2_m, grnIField_m);
     // Green's function calculation complete at this point.
     // The next step is to FFT it.
@@ -352,7 +352,7 @@ void FFTPoissonSolver::integratedGreensFunction() {
         for(int j = idx[1].first(); j <=  idx[1].last() + 1; j++) {
             for(int i = idx[0].first(); i <= idx[0].last() + 1; i++) {
 
-                Vector_t vv = Vector_t(0.0);
+                Vector_t<double, 3> vv = Vector_t<double, 3>(0.0);
                 vv(0) = i * hr_m[0] - hr_m[0] / 2;
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
                 vv(2) = k * hr_m[2] - hr_m[2] / 2;
@@ -412,7 +412,7 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
         for(int j = idx[1].first(); j <= idx[1].last(); j++) {
             for(int i = idx[0].first(); i <= idx[0].last(); i++) {
 
-                Vector_t vv = Vector_t(0.0);
+                Vector_t<double, 3> vv = Vector_t<double, 3>(0.0);
                 vv(0) = i * hr_m[0] - hr_m[0] / 2;
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
                 vv(2) = k * hr_m[2] - hr_m[2] / 2 + zshift;
@@ -435,7 +435,7 @@ void FFTPoissonSolver::shiftedIntGreensFunction(double zshift) {
         for(int j = idx[1].first(); j <= idx[1].last(); j++) {
             for(int i = idx[0].first(); i <= idx[0].last(); i++) {
 
-                Vector_t vv = Vector_t(0.0);
+                Vector_t<double, 3> vv = Vector_t<double, 3>(0.0);
                 vv(0) = i * hr_m[0] - hr_m[0] / 2;
                 vv(1) = j * hr_m[1] - hr_m[1] / 2;
                 vv(2) = k * hr_m[2] - hr_m[2] / 2 + zshift - nr_m[2] * hr_m[2];

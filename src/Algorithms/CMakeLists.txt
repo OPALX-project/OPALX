@@ -10,7 +10,7 @@ set (_SRCS
     OpalParticle.cpp
     ParallelTracker.cpp
     PartBunch.cpp
-    PartBunchBase.hpp
+#    PartBunch.hpp
     PartBins.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
@@ -28,6 +28,7 @@ add_opal_sources(${_SRCS})
 set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
+    BoostMatrix.h
     CavityAutophaser.h
     DefaultVisitor.h
     DistributionMoments.h
@@ -38,7 +39,7 @@ set (HDRS
     ParallelTracker.h
     PartBins.h
     PartBunch.h
-    PartBunchBase.h
+ #   PartBunch.h
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h

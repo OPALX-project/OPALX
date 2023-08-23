@@ -51,11 +51,11 @@ public:
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
-    void computePotential(Field_t &rho, Vector_t hr, double zshift);
+    void computePotential(Field_t &rho, Vector_t<double, 3> hr, double zshift);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential in open space
-    void computePotential(Field_t &rho, Vector_t hr);
+    void computePotential(Field_t &rho, Vector_t<double, 3> hr);
 
     // compute the green's function for a Poisson problem and put it in in grntm_m
     // uses grnIField_m to eliminate excess calculation in greenFunction()
@@ -74,7 +74,7 @@ public:
     double getYRangeMax(unsigned short /*level*/) {return 1.0;}
     double getZRangeMin(unsigned short /*level*/) {return 1.0;}
     double getZRangeMax(unsigned short /*level*/) {return 1.0;}
-    void test(PartBunchBase<double, 3> */*bunch*/) { }
+    void test(PartBunch<double, 3> */*bunch*/) { }
 
     Inform &print(Inform &os) const;
 private:
@@ -134,12 +134,12 @@ private:
     NDIndex<3> domainFFTConstruct_m;
 
     // mesh spacing and size values
-    Vector_t hr_m;
+    Vector_t<double, 3> hr_m;
     Vektor<int, 3> nr_m;
 
     /// for defining the boundary conditions
     BConds<double, 3, Mesh_t, Center_t> bc_m;
-    BConds<Vector_t, 3, Mesh_t, Center_t> vbc_m;
+    BConds<Vector_t<double, 3>, 3, Mesh_t, Center_t> vbc_m;
 
     bool bcz_m;
     bool integratedGreens_m;

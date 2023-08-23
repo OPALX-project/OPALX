@@ -72,8 +72,8 @@ public:
     static std::string typeset_msg(const std::string &msg, const std::string &title);
 
     // Note: getFieldstrength() returns true if R is outside of the field!
-    virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const = 0;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const = 0;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const = 0;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const = 0;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const = 0;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const = 0;
     virtual void swap() = 0;
@@ -98,7 +98,7 @@ public:
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & onaxis);
 
-    virtual bool isInside(const Vector_t &/*r*/) const { return true; }
+    virtual bool isInside(const Vector_t<double, 3> &/*r*/) const { return true; }
 
     virtual void readMap() = 0;
     virtual void freeMap() = 0;
@@ -169,8 +169,8 @@ protected:
                       const std::pair<double, double> &xrange,
                       const std::pair<double, double> &yrange,
                       const std::pair<double, double> &zrange,
-                      const std::vector<Vector_t> &ef,
-                      const std::vector<Vector_t> &bf);
+                      const std::vector<Vector_t<double, 3>> &ef,
+                      const std::vector<Vector_t<double, 3>> &bf);
 
 private:
     template<typename T>

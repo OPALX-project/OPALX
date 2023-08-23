@@ -24,7 +24,7 @@
 #include "Fields/BMultipoleField.h"
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 class Fieldmap;
 
 // Class Multipole
@@ -112,13 +112,13 @@ public:
     /// Get geometry.
     virtual const StraightGeometry &getGeometry() const override = 0;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
-    virtual bool apply(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t &R, const Vector_t &P, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool applyToReferenceParticle(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
 
     virtual void finalise() override;
 
@@ -128,9 +128,9 @@ public:
 
     virtual void getDimensions(double &zBegin, double &zEnd) const override;
 
-    virtual bool isInside(const Vector_t &r) const override;
+    virtual bool isInside(const Vector_t<double, 3> &r) const override;
 private:
-    void computeField(Vector_t R, Vector_t &E, Vector_t &B);
+    void computeField(Vector_t<double, 3> R, Vector_t<double, 3> &E, Vector_t<double, 3> &B);
 
     // Not implemented.
     void operator=(const Multipole &);

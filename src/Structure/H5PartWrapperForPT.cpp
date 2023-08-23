@@ -18,7 +18,7 @@
 #include "Structure/H5PartWrapperForPT.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Algorithms/Vektor.h"
 #include "OPALconfig.h"
 #include "Physics/Physics.h"
@@ -102,7 +102,7 @@ void H5PartWrapperForPT::readHeader() {
     }
 }
 
-void H5PartWrapperForPT::readStep(PartBunchBase<double, 3>* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+void H5PartWrapperForPT::readStep(PartBunch<double, 3>* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
     h5_ssize_t readStep = numStepsInSource - 1;
     REPORTONERROR(H5SetStep(file_m, readStep));
@@ -111,7 +111,7 @@ void H5PartWrapperForPT::readStep(PartBunchBase<double, 3>* bunch, h5_ssize_t fi
     readStepData(bunch, firstParticle, lastParticle);
 }
 
-void H5PartWrapperForPT::readStepHeader(PartBunchBase<double, 3>* bunch) {
+void H5PartWrapperForPT::readStepHeader(PartBunch<double, 3>* bunch) {
     double actualT;
     READSTEPATTRIB(Float64, file_m, "TIME", &actualT);
     bunch->setT(actualT);
@@ -128,15 +128,15 @@ void H5PartWrapperForPT::readStepHeader(PartBunchBase<double, 3>* bunch) {
     READSTEPATTRIB(Int64, file_m, "GlobalTrackStep", &gtstep);
     bunch->setGlobalTrackStep((long long)(gtstep + 1));
 
-    Vector_t RefPartR;
+    Vector_t<double, 3> RefPartR;
     READSTEPATTRIB(Float64, file_m, "RefPartR", (h5_float64_t *)&RefPartR);
     bunch->RefPartR_m = RefPartR;
 
-    Vector_t RefPartP;
+    Vector_t<double, 3> RefPartP;
     READSTEPATTRIB(Float64, file_m, "RefPartP", (h5_float64_t *)&RefPartP);
     bunch->RefPartP_m = RefPartP;
 
-    Vector_t TaitBryant;
+    Vector_t<double, 3> TaitBryant;
     READSTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t *)&TaitBryant);
     Quaternion rotTheta(std::cos(0.5 * TaitBryant[0]), 0, std::sin(0.5 * TaitBryant[0]), 0);
     Quaternion rotPhi(std::cos(0.5 * TaitBryant[1]), std::sin(0.5 * TaitBryant[1]), 0, 0);
@@ -145,7 +145,7 @@ void H5PartWrapperForPT::readStepHeader(PartBunchBase<double, 3>* bunch) {
     bunch->toLabTrafo_m = CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR), rotation);
 }
 
-void H5PartWrapperForPT::readStepData(PartBunchBase<double, 3>* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+void H5PartWrapperForPT::readStepData(PartBunch<double, 3>* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numParticles = getNumParticles();
     if (lastParticle >= numParticles || firstParticle > lastParticle) {
         throw OpalException("H5PartWrapperForPT::readStepData",
@@ -288,7 +288,7 @@ void H5PartWrapperForPT::writeHeader() {
     WRITEFILEATTRIB(Float64, file_m, "dPhiGlobal", &dphi, 1);
 }
 
-void H5PartWrapperForPT::writeStep(PartBunchBase<double, 3>* bunch, const std::map<std::string, double>& additionalStepAttributes) {
+void H5PartWrapperForPT::writeStep(PartBunch<double, 3>* bunch, const std::map<std::string, double>& additionalStepAttributes) {
     if (bunch->getTotalNum() == 0) return;
 
     open(H5_O_APPENDONLY);
@@ -298,24 +298,24 @@ void H5PartWrapperForPT::writeStep(PartBunchBase<double, 3>* bunch, const std::m
     close();
 }
 
-void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const std::map<std::string, double>& additionalStepAttributes) {
+void H5PartWrapperForPT::writeStepHeader(PartBunch<double, 3>* bunch, const std::map<std::string, double>& additionalStepAttributes) {
     double   actPos   = bunch->get_sPos();
     double   t        = bunch->getT();
-    Vector_t rmin     = bunch->get_origin();
-    Vector_t rmax     = bunch->get_maxExtent();
-    Vector_t centroid = bunch->get_centroid();
+    Vector_t<double, 3> rmin     = bunch->get_origin();
+    Vector_t<double, 3> rmax     = bunch->get_maxExtent();
+    Vector_t<double, 3> centroid = bunch->get_centroid();
 
-    Vector_t maxP(0.0);
-    Vector_t minP(0.0);
+    Vector_t<double, 3> maxP(0.0);
+    Vector_t<double, 3> minP(0.0);
 
-    Vector_t xsigma = bunch->get_rrms();
-    Vector_t psigma = bunch->get_prms();
-    Vector_t vareps = bunch->get_norm_emit();
-    Vector_t geomvareps = bunch->get_emit();
-    Vector_t RefPartR = bunch->RefPartR_m;
-    Vector_t RefPartP = bunch->RefPartP_m;
-    Vector_t TaitBryant = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
-    Vector_t pmean = bunch->get_pmean();
+    Vector_t<double, 3> xsigma = bunch->get_rrms();
+    Vector_t<double, 3> psigma = bunch->get_prms();
+    Vector_t<double, 3> vareps = bunch->get_norm_emit();
+    Vector_t<double, 3> geomvareps = bunch->get_emit();
+    Vector_t<double, 3> RefPartR = bunch->RefPartR_m;
+    Vector_t<double, 3> RefPartP = bunch->RefPartP_m;
+    Vector_t<double, 3> TaitBryant = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
+    Vector_t<double, 3> pmean = bunch->get_pmean();
 
     double meanEnergy = bunch->get_meanKineticEnergy();
     double energySpread = bunch->getdE();
@@ -380,10 +380,10 @@ void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const 
     WRITESTEPATTRIB(Int64, file_m, "SteptoLastInj", &SteptoLastInj, 1);
 
     try {
-        Vector_t referenceB(additionalStepAttributes.at("B-ref_x"),
+        Vector_t<double, 3> referenceB(additionalStepAttributes.at("B-ref_x"),
                             additionalStepAttributes.at("B-ref_z"),
                             additionalStepAttributes.at("B-ref_y"));
-        Vector_t referenceE(additionalStepAttributes.at("E-ref_x"),
+        Vector_t<double, 3> referenceE(additionalStepAttributes.at("E-ref_x"),
                             additionalStepAttributes.at("E-ref_z"),
                             additionalStepAttributes.at("E-ref_y"));
 
@@ -399,7 +399,7 @@ void H5PartWrapperForPT::writeStepHeader(PartBunchBase<double, 3>* bunch, const 
     ++ numSteps_m;
 }
 
-void H5PartWrapperForPT::writeStepData(PartBunchBase<double, 3>* bunch) {
+void H5PartWrapperForPT::writeStepData(PartBunch<double, 3>* bunch) {
     size_t numLocalParticles = bunch->getLocalNum();
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));

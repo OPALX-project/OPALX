@@ -5,7 +5,7 @@ namespace mslang {
     void Triangle::print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indentbase(4, ' ');
-        Vector_t origin = trafo_m.getOrigin();
+        Vector_t<double, 3> origin = trafo_m.getOrigin();
         double angle = trafo_m.getAngle() * Units::rad2deg;
 
         std::cout << indent << "triangle, \n";
@@ -39,7 +39,7 @@ namespace mslang {
         unsigned int width = out.precision() + 8;
 
         for (unsigned int i = 0; i < 4u; ++ i) {
-            Vector_t corner = trafo_m.transformFrom(nodes_m[i % 3u]);
+            Vector_t<double, 3> corner = trafo_m.transformFrom(nodes_m[i % 3u]);
 
             out << std::setw(width) << corner[0]
                 << std::setw(width) << corner[1]
@@ -55,12 +55,12 @@ namespace mslang {
     }
 
     void Triangle::computeBoundingBox() {
-        std::vector<Vector_t> corners;
+        std::vector<Vector_t<double, 3>> corners;
         for (unsigned int i = 0; i < 3u; ++ i) {
             corners.push_back(trafo_m.transformFrom(nodes_m[i]));
         }
 
-        Vector_t llc = corners[0], urc = corners[0];
+        Vector_t<double, 3> llc = corners[0], urc = corners[0];
         for (unsigned int i = 1u; i < 3u; ++ i) {
             if (corners[i][0] < llc[0]) llc[0] = corners[i][0];
             else if (corners[i][0] > urc[0]) urc[0] = corners[i][0];
@@ -76,18 +76,18 @@ namespace mslang {
         }
     }
 
-    double Triangle::crossProduct(const Vector_t &pt, unsigned int nodeNum) const {
+    double Triangle::crossProduct(const Vector_t<double, 3> &pt, unsigned int nodeNum) const {
         nodeNum = nodeNum % 3u;
         unsigned int nextNode = (nodeNum + 1) % 3u;
-        Vector_t nodeToPt = pt - nodes_m[nodeNum];
-        Vector_t nodeToNext = nodes_m[nextNode] - nodes_m[nodeNum];
+        Vector_t<double, 3> nodeToPt = pt - nodes_m[nodeNum];
+        Vector_t<double, 3> nodeToNext = nodes_m[nextNode] - nodes_m[nodeNum];
 
         return nodeToPt[0] * nodeToNext[1] - nodeToPt[1] * nodeToNext[0];
 
     }
 
-    bool Triangle::isInside(const Vector_t &R) const {
-        Vector_t X = trafo_m.transformTo(R);
+    bool Triangle::isInside(const Vector_t<double, 3> &R) const {
+        Vector_t<double, 3> X = trafo_m.transformTo(R);
 
         bool test0 = (crossProduct(X, 0) <= 0.0);
         bool test1 = (crossProduct(X, 1) <= 0.0);

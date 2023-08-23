@@ -17,7 +17,7 @@
 //
 
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunchBase<double, 3>* bunch,
+bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunch<double, 3>* bunch,
                                                     const size_t& i,
                                                     const double& t,
                                                     const double dt,
@@ -85,7 +85,7 @@ bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunchBase<double, 3>* bu
 
 
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunchBase<double, 3>* bunch,
+bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunch<double, 3>* bunch,
                                                    double* y,
                                                    const double& t,
                                                    double* yp,
@@ -95,10 +95,10 @@ bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunchBase<double, 3>* bun
     // New for OPAL 2.0: Changing variables to m, T, s
     // Currently: m, ns, kG
 
-    Vector_t externalE, externalB, tempR;
+    Vector_t<double, 3> externalE, externalB, tempR;
 
-    externalB = Vector_t(0.0, 0.0, 0.0);
-    externalE = Vector_t(0.0, 0.0, 0.0);
+    externalB = Vector_t<double, 3>(0.0, 0.0, 0.0);
+    externalE = Vector_t<double, 3>(0.0, 0.0, 0.0);
 
     for(int j = 0; j < 3; ++j)
         tempR(j) = y[j];
@@ -130,8 +130,8 @@ bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunchBase<double, 3>* bun
 
 
 template <typename FieldFunction, typename ... Arguments>
-void RK4<FieldFunction, Arguments ...>::copyTo(const Vector_t& R,
-                                               const Vector_t& P,
+void RK4<FieldFunction, Arguments ...>::copyTo(const Vector_t<double, 3>& R,
+                                               const Vector_t<double, 3>& P,
                                                double* x) const
 {
     for (int j = 0; j < 3; j++) {
@@ -142,8 +142,8 @@ void RK4<FieldFunction, Arguments ...>::copyTo(const Vector_t& R,
 
 
 template <typename FieldFunction, typename ... Arguments>
-void RK4<FieldFunction, Arguments ...>::copyFrom(Vector_t& R,
-                                                 Vector_t& P,
+void RK4<FieldFunction, Arguments ...>::copyFrom(Vector_t<double, 3>& R,
+                                                 Vector_t<double, 3>& P,
                                                  double* x) const
 {
     for(int j = 0; j < 3; j++) {
