@@ -71,7 +71,7 @@ const EMField &ScalingFFAMagnet::getField() const {
 }
 
 bool ScalingFFAMagnet::apply(const size_t &i, const double &t,
-                    Vector_t &E, Vector_t &B) {
+                    Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
@@ -79,7 +79,7 @@ void ScalingFFAMagnet::initialise() {
     calculateDfCoefficients();
 }
 
-void ScalingFFAMagnet::initialise(PartBunchBase<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
+void ScalingFFAMagnet::initialise(PartBunch<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
     RefPartBunch_m = bunch;
     initialise();
 }
@@ -105,12 +105,12 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 }
 
 
-bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
-    Vector_t pos = R - centre_m;
+bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3> &R, Vector_t<double, 3> &B) const {
+    Vector_t<double, 3> pos = R - centre_m;
     double r = std::sqrt(pos[0]*pos[0]+pos[2]*pos[2]);
     double phi = std::atan2(pos[2], pos[0]); // angle between y-axis and position vector in anticlockwise direction
-    Vector_t posCyl(r, pos[1], phi);
-    Vector_t bCyl(0., 0., 0.); //br bz bphi
+    Vector_t<double, 3> posCyl(r, pos[1], phi);
+    Vector_t<double, 3> bCyl(0., 0., 0.); //br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
     // this is cartesian coordinates
     B[1] += bCyl[1];
@@ -121,7 +121,7 @@ bool ScalingFFAMagnet::getFieldValue(const Vector_t &R, Vector_t &B) const {
 }
 
 
-bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &B) const {
+bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3> &pos, Vector_t<double, 3> &B) const {
 
     double r = pos[0];
     double z = pos[1];
@@ -149,7 +149,7 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &B
     }
     for (size_t n = 0; n < dfCoefficients_m.size(); n += 2) {
         double f2n = 0;
-        Vector_t deltaB;
+        Vector_t<double, 3> deltaB;
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
             f2n += dfCoefficients_m[n][i]*fringeDerivatives[i];
         }
@@ -168,8 +168,8 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t &pos, Vector_t &B
 }
 
 
-bool ScalingFFAMagnet::apply(const Vector_t &R, const Vector_t &/*P*/,
-                             const double &/*t*/, Vector_t &/*E*/, Vector_t &B) {
+bool ScalingFFAMagnet::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,
+                             const double &/*t*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &B) {
     return getFieldValue(R, B);
 }
 

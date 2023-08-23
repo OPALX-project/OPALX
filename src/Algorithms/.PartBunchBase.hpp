@@ -1,5 +1,5 @@
 //
-// Class PartBunchBase
+// Class PartBunch
 //   Base class for representing particle bunches.
 //
 // Copyright (c) 2008 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -36,7 +36,7 @@
 extern Inform* gmsg;
 
 template <class T, unsigned Dim>
-PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartData* ref)
+PartBunch<T, Dim>::PartBunch(AbstractParticle<T, Dim>* pb, const PartData* ref)
     : R(*(pb->R_p)),
       ID(*(pb->ID_p)),
       pbin_m(nullptr),
@@ -50,7 +50,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
       dt_m(0.0),
       t_m(0.0),
       spos_m(0.0),
-      globalMeanR_m(Vector_t(0.0, 0.0, 0.0)),
+      globalMeanR_m(Vector_t<double, 3>(0.0, 0.0, 0.0)),
       globalToLocalQuaternion_m(Quaternion_t(1.0, 0.0, 0.0, 0.0)),
       rmax_m(0.0),
       rmin_m(0.0),
@@ -85,7 +85,7 @@ PartBunchBase<T, Dim>::PartBunchBase(AbstractParticle<T, Dim>* pb, const PartDat
  */
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
+void PartBunch<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
 
     bool hasToReset = false;
     if (!R.isDirty()) hasToReset = true;
@@ -95,7 +95,7 @@ void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) 
         if (use_dt_per_particle)
             dt = this->dt[i];
 
-        R[i] /= Vector_t(Physics::c * dt);
+        R[i] /= Vector_t<double, 3>(Physics::c * dt);
     }
 
     unit_state_ = unitless;
@@ -105,7 +105,7 @@ void PartBunchBase<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) 
 
 //FIXME: unify methods, use convention that all particles have own dt
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
+void PartBunch<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
 
     bool hasToReset = false;
     if (!R.isDirty()) hasToReset = true;
@@ -115,7 +115,7 @@ void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle)
         if (use_dt_per_particle)
             dt = this->dt[i];
 
-        R[i] *= Vector_t(Physics::c * dt);
+        R[i] *= Vector_t<double, 3>(Physics::c * dt);
     }
 
     unit_state_ = units;
@@ -125,12 +125,12 @@ void PartBunchBase<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle)
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::do_binaryRepart() {
+void PartBunch<T, Dim>::do_binaryRepart() {
  
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
+void PartBunch<T, Dim>::setDistribution(Distribution* d,
                                             std::vector<Distribution*> addedDistributions,
                                             size_t& np) {
     Inform m("setDistribution " );
@@ -139,19 +139,19 @@ void PartBunchBase<T, Dim>::setDistribution(Distribution* d,
 }
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::isGridFixed() const {
+bool PartBunch<T, Dim>::isGridFixed() const {
     return fixed_grid;
 }
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::hasBinning() const {
+bool PartBunch<T, Dim>::hasBinning() const {
     return (pbin_m != nullptr);
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::updateNumTotal() {
+void PartBunch<T, Dim>::updateNumTotal() {
     size_t numParticles = getLocalNum();
     reduce(numParticles, numParticles, OpAddAssign());
     setTotalNum(numParticles);
@@ -159,7 +159,7 @@ void PartBunchBase<T, Dim>::updateNumTotal() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::rebin() {
+void PartBunch<T, Dim>::rebin() {
     this->Bin = 0;
     pbin_m->resetBins();
     // delete pbin_m; we did not allocate it!
@@ -168,7 +168,7 @@ void PartBunchBase<T, Dim>::rebin() {
 
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getLastemittedBin() {
+int PartBunch<T, Dim>::getLastemittedBin() {
     if (pbin_m != nullptr)
         return pbin_m->getLastemittedBin();
     else
@@ -176,43 +176,43 @@ int PartBunchBase<T, Dim>::getLastemittedBin() {
 }
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getNumberOfEnergyBins() {
+int PartBunch<T, Dim>::getNumberOfEnergyBins() {
     return 0;
 }
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::emitParticles(double eZ) {
+size_t PartBunch<T, Dim>::emitParticles(double eZ) {
     return 0;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getEmissionDeltaT() {
+double PartBunch<T, Dim>::getEmissionDeltaT() {
     return 0.;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getBinGamma(int bin) {
+double PartBunch<T, Dim>::getBinGamma(int bin) {
     return 1.0;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::Rebin() {
+void PartBunch<T, Dim>::Rebin() {
    
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcGammas() {
+void PartBunch<T, Dim>::calcGammas() {
    
 }
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::weHaveEnergyBins() {
+bool PartBunch<T, Dim>::weHaveEnergyBins() {
     return false;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
+void PartBunch<T, Dim>::setLocalBinCount(size_t num, int bin) {
     if (pbin_m != nullptr) {
         pbin_m->setPartNum(bin, num);
     }
@@ -220,22 +220,22 @@ void PartBunchBase<T, Dim>::setLocalBinCount(size_t num, int bin) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setBinCharge(int bin, double q) {
+void PartBunch<T, Dim>::setBinCharge(int bin, double q) {
   this->Q = where(eq(this->Bin, bin), q, 0.0);
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setBinCharge(int bin) {
+void PartBunch<T, Dim>::setBinCharge(int bin) {
   this->Q = where(eq(this->Bin, bin), this->qi_m, 0.0);
 }
 
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
+size_t PartBunch<T, Dim>::calcNumPartsOutside(Vector_t<double, 3> x) {
 
     std::size_t localnum = 0;
-    const Vector_t meanR = get_rmean();
+    const Vector_t<double, 3> meanR = get_rmean();
 
     for (unsigned long k = 0; k < getLocalNum(); ++ k)
         if (std::abs(R[k](0) - meanR(0)) > x(0) ||
@@ -265,10 +265,10 @@ size_t PartBunchBase<T, Dim>::calcNumPartsOutside(Vector_t x) {
  *
  */
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
+void PartBunch<T, Dim>::calcLineDensity(unsigned int nBins,
                                             std::vector<double>& lineDensity,
                                             std::pair<double, double>& meshInfo) {
-    Vector_t rmin, rmax;
+    Vector_t<double, 3> rmin, rmax;
     get_bounds(rmin, rmax);
 
     if (nBins < 2) {
@@ -304,7 +304,7 @@ void PartBunchBase<T, Dim>::calcLineDensity(unsigned int nBins,
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::boundp() {
+void PartBunch<T, Dim>::boundp() {
     /*
       Assume rmin_m < 0.0
      */
@@ -328,7 +328,7 @@ void PartBunchBase<T, Dim>::boundp() {
         IpplTimings::startTimer(boundpBoundsTimer_m);
         get_bounds(rmin_m, rmax_m);
         IpplTimings::stopTimer(boundpBoundsTimer_m);
-        Vector_t len = rmax_m - rmin_m;
+        Vector_t<double, 3> len = rmax_m - rmin_m;
 
         double volume = 1.0;
         for (int i = 0; i < dimIdx; i++) {
@@ -359,7 +359,7 @@ void PartBunchBase<T, Dim>::boundp() {
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
         }
 
-        Vector_t origin = rmin_m - Vector_t(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
+        Vector_t<double, 3> origin = rmin_m - Vector_t<double, 3>(hr_m[0] / 2.0, hr_m[1] / 2.0, hr_m[2] / 2.0);
         this->updateFields(hr_m, origin);
     }
     IpplTimings::startTimer(boundpUpdateTimer_m);
@@ -372,7 +372,7 @@ void PartBunchBase<T, Dim>::boundp() {
 
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::boundp_destroyT() {
+size_t PartBunch<T, Dim>::boundp_destroyT() {
 
     this->updateDomainLength(nr_m);
 
@@ -409,7 +409,7 @@ size_t PartBunchBase<T, Dim>::boundp_destroyT() {
 
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::destroyT() {
+size_t PartBunch<T, Dim>::destroyT() {
 
     std::unique_ptr<size_t[]> tmpbinemitted;
 
@@ -456,68 +456,68 @@ size_t PartBunchBase<T, Dim>::destroyT() {
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getPx(int /*i*/) {
+double PartBunch<T, Dim>::getPx(int /*i*/) {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getPy(int) {
+double PartBunch<T, Dim>::getPy(int) {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getPz(int) {
+double PartBunch<T, Dim>::getPz(int) {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getPx0(int) {
+double PartBunch<T, Dim>::getPx0(int) {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getPy0(int) {
+double PartBunch<T, Dim>::getPy0(int) {
     return 0;
 }
 
 //ff
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getX(int i) {
+double PartBunch<T, Dim>::getX(int i) {
     return this->R[i](0);
 }
 
 //ff
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getY(int i) {
+double PartBunch<T, Dim>::getY(int i) {
     return this->R[i](1);
 }
 
 //ff
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getZ(int i) {
+double PartBunch<T, Dim>::getZ(int i) {
     return this->R[i](2);
 }
 
 //ff
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getX0(int /*i*/) {
+double PartBunch<T, Dim>::getX0(int /*i*/) {
     return 0.0;
 }
 
 //ff
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getY0(int /*i*/) {
+double PartBunch<T, Dim>::getY0(int /*i*/) {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setZ(int /*i*/, double /*zcoo*/) {
+void PartBunch<T, Dim>::setZ(int /*i*/, double /*zcoo*/) {
 };
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::get_bounds(Vector_t& rmin, Vector_t& rmax) const {
+void PartBunch<T, Dim>::get_bounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax) const {
 
     this->getLocalBounds(rmin, rmax);
 
@@ -538,12 +538,12 @@ void PartBunchBase<T, Dim>::get_bounds(Vector_t& rmin, Vector_t& rmax) const {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::getLocalBounds(Vector_t& rmin, Vector_t& rmax) const {
+void PartBunch<T, Dim>::getLocalBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax) const {
     const size_t localNum = getLocalNum();
     if (localNum == 0) {
         double maxValue = 1e8;
-        rmin = Vector_t(maxValue, maxValue, maxValue);
-        rmax = Vector_t(-maxValue, -maxValue, -maxValue);
+        rmin = Vector_t<double, 3>(maxValue, maxValue, maxValue);
+        rmax = Vector_t<double, 3>(-maxValue, -maxValue, -maxValue);
         return;
     }
 
@@ -559,11 +559,11 @@ void PartBunchBase<T, Dim>::getLocalBounds(Vector_t& rmin, Vector_t& rmax) const
 
 
 template <class T, unsigned Dim>
-std::pair<Vector_t, double> PartBunchBase<T, Dim>::getBoundingSphere() {
-    Vector_t rmin, rmax;
+std::pair<Vector_t<double, 3>, double> PartBunch<T, Dim>::getBoundingSphere() {
+    Vector_t<double, 3> rmin, rmax;
     get_bounds(rmin, rmax);
 
-    std::pair<Vector_t, double> sphere;
+    std::pair<Vector_t<double, 3>, double> sphere;
     sphere.first = 0.5 * (rmin + rmax);
     sphere.second = std::sqrt(dot(rmax - sphere.first, rmax - sphere.first));
 
@@ -572,11 +572,11 @@ std::pair<Vector_t, double> PartBunchBase<T, Dim>::getBoundingSphere() {
 
 
 template <class T, unsigned Dim>
-std::pair<Vector_t, double> PartBunchBase<T, Dim>::getLocalBoundingSphere() {
-    Vector_t rmin, rmax;
+std::pair<Vector_t<double, 3>, double> PartBunch<T, Dim>::getLocalBoundingSphere() {
+    Vector_t<double, 3> rmin, rmax;
     getLocalBounds(rmin, rmax);
 
-    std::pair<Vector_t, double> sphere;
+    std::pair<Vector_t<double, 3>, double> sphere;
     sphere.first = 0.5 * (rmin + rmax);
     sphere.second = std::sqrt(dot(rmax - sphere.first, rmax - sphere.first));
 
@@ -585,7 +585,7 @@ std::pair<Vector_t, double> PartBunchBase<T, Dim>::getLocalBoundingSphere() {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::push_back(OpalParticle const& particle) {
+void PartBunch<T, Dim>::push_back(OpalParticle const& particle) {
     Inform msg("PartBunch ");
 
     size_t i = getLocalNum();
@@ -601,212 +601,212 @@ void PartBunchBase<T, Dim>::push_back(OpalParticle const& particle) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setdT(double dt) {
+void PartBunch<T, Dim>::setdT(double dt) {
     dt_m = dt;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getdT() const {
+double PartBunch<T, Dim>::getdT() const {
     return dt_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setT(double t) {
+void PartBunch<T, Dim>::setT(double t) {
     t_m = t;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::incrementT() {
+void PartBunch<T, Dim>::incrementT() {
     t_m += dt_m;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getT() const {
+double PartBunch<T, Dim>::getT() const {
     return t_m;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_sPos() const {
+double PartBunch<T, Dim>::get_sPos() const {
     return spos_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::set_sPos(double s) {
+void PartBunch<T, Dim>::set_sPos(double s) {
     spos_m = s;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_gamma() const {
+double PartBunch<T, Dim>::get_gamma() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_meanKineticEnergy() const {
+double PartBunch<T, Dim>::get_meanKineticEnergy() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_origin() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_origin() const {
     return rmin_m;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_maxExtent() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_maxExtent() const {
     return rmax_m;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_centroid() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_centroid() const {
     return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_rrms() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_rrms() const {
     return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_rprms() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_rprms() const {
     return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_rmean() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_rmean() const {
     return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_prms() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_prms() const {
     return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_pmean() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_pmean() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_pmean_Distribution() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_pmean_Distribution() const {
     if (dist_m)// && dist_m->getType() != DistrTypeT::FROMFILE)
         return dist_m->get_pmean();
 
     double gamma = 0.1 / getM() + 1; // set default 0.1 eV
-    return Vector_t(0, 0, std::sqrt(std::pow(gamma, 2) - 1));
+    return Vector_t<double, 3>(0, 0, std::sqrt(std::pow(gamma, 2) - 1));
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_emit() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_emit() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_norm_emit() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_norm_emit() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_halo() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_halo() const {
     return 0.0; 
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_68Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_68Percentile() const {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_95Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_95Percentile() const {
     return 0.0; 
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_99Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_99Percentile() const {
     return 0.0; 
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_99_99Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_99_99Percentile() const {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_normalizedEps_68Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_normalizedEps_68Percentile() const {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_normalizedEps_95Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_normalizedEps_95Percentile() const {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_normalizedEps_99Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_normalizedEps_99Percentile() const {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_normalizedEps_99_99Percentile() const {
+Vector_t<double, 3> PartBunch<T, Dim>::get_normalizedEps_99_99Percentile() const {
     return 0.0;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_Dx() const {
-    return 0.0;
-}
-
-
-template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_Dy() const {
+double PartBunch<T, Dim>::get_Dx() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_DDx() const {
+double PartBunch<T, Dim>::get_Dy() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::get_DDy() const {
+double PartBunch<T, Dim>::get_DDx() const {
     return 0.0;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::get_hr() const {
+double PartBunch<T, Dim>::get_DDy() const {
+    return 0.0;
+}
+
+
+template <class T, unsigned Dim>
+Vector_t<double, 3> PartBunch<T, Dim>::get_hr() const {
     return hr_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::set_meshEnlargement(double dh) {
+void PartBunch<T, Dim>::set_meshEnlargement(double dh) {
     dh_m = dh;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
+void PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
 
     for (int i = 0; i < Ippl::getNodes(); i++)
         globalPartPerNode_m[i] = 0;
@@ -817,19 +817,19 @@ void PartBunchBase<T, Dim>::gatherLoadBalanceStatistics() {
 
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getLoadBalance(int p) const {
+size_t PartBunch<T, Dim>::getLoadBalance(int p) const {
     return globalPartPerNode_m[p];
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::get_PBounds(Vector_t &min, Vector_t &max) const {
+void PartBunch<T, Dim>::get_PBounds(Vector_t<double, 3> &min, Vector_t<double, 3> &max) const {
     bounds(this->P, min, max);
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcBeamParameters() {
+void PartBunch<T, Dim>::calcBeamParameters() {
 
     IpplTimings::startTimer(statParamTimer_m);
     get_bounds(rmin_m, rmax_m);
@@ -838,19 +838,19 @@ void PartBunchBase<T, Dim>::calcBeamParameters() {
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getCouplingConstant() const {
+double PartBunch<T, Dim>::getCouplingConstant() const {
     return couplingConstant_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setCouplingConstant(double c) {
+void PartBunch<T, Dim>::setCouplingConstant(double c) {
     couplingConstant_m = c;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setCharge(double q) {
+void PartBunch<T, Dim>::setCharge(double q) {
     qi_m = q;
     if (getTotalNum() != 0)
         Q = qi_m;
@@ -860,42 +860,42 @@ void PartBunchBase<T, Dim>::setCharge(double q) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setChargeZeroPart(double q) {
+void PartBunch<T, Dim>::setChargeZeroPart(double q) {
     qi_m = q;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setMass(double mass) {
+void PartBunch<T, Dim>::setMass(double mass) {
     massPerParticle_m = mass;
     if (getTotalNum() != 0)
         M = mass;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setMassZeroPart(double mass) {
+void PartBunch<T, Dim>::setMassZeroPart(double mass) {
     massPerParticle_m = mass;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getCharge() const {
+double PartBunch<T, Dim>::getCharge() const {
     return sum(Q);
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getChargePerParticle() const {
+double PartBunch<T, Dim>::getChargePerParticle() const {
     return qi_m;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getMassPerParticle() const {
+double PartBunch<T, Dim>::getMassPerParticle() const {
     return massPerParticle_m;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
+void PartBunch<T, Dim>::setSolver(FieldSolver *fs) {
     fs_m = fs;
     fs_m->initSolver(this);
 
@@ -912,7 +912,7 @@ void PartBunchBase<T, Dim>::setSolver(FieldSolver *fs) {
 
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::hasFieldSolver() {
+bool PartBunch<T, Dim>::hasFieldSolver() {
     if (fs_m)
         return fs_m->hasValidSolver();
     else
@@ -922,7 +922,7 @@ bool PartBunchBase<T, Dim>::hasFieldSolver() {
 
 /// \brief Return the fieldsolver type if we have a fieldsolver
 template <class T, unsigned Dim>
-FieldSolverType PartBunchBase<T, Dim>::getFieldSolverType() const {
+FieldSolverType PartBunch<T, Dim>::getFieldSolverType() const {
     if (fs_m) {
         return fs_m->getFieldSolverType();
     } else {
@@ -932,49 +932,49 @@ FieldSolverType PartBunchBase<T, Dim>::getFieldSolverType() const {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setStepsPerTurn(int n) {
+void PartBunch<T, Dim>::setStepsPerTurn(int n) {
     stepsPerTurn_m = n;
 }
 
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getStepsPerTurn() const {
+int PartBunch<T, Dim>::getStepsPerTurn() const {
     return stepsPerTurn_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setGlobalTrackStep(long long n) {
+void PartBunch<T, Dim>::setGlobalTrackStep(long long n) {
     globalTrackStep_m = n;
 }
 
 
 template <class T, unsigned Dim>
-long long PartBunchBase<T, Dim>::getGlobalTrackStep() const {
+long long PartBunch<T, Dim>::getGlobalTrackStep() const {
     return globalTrackStep_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setLocalTrackStep(long long n) {
+void PartBunch<T, Dim>::setLocalTrackStep(long long n) {
     localTrackStep_m = n;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::incTrackSteps() {
+void PartBunch<T, Dim>::incTrackSteps() {
     globalTrackStep_m++; localTrackStep_m++;
 }
 
 
 template <class T, unsigned Dim>
-long long PartBunchBase<T, Dim>::getLocalTrackStep() const {
+long long PartBunch<T, Dim>::getLocalTrackStep() const {
     return localTrackStep_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setNumBunch(short n) {
+void PartBunch<T, Dim>::setNumBunch(short n) {
     numBunch_m = n;
     bunchTotalNum_m.resize(n);
     bunchLocalNum_m.resize(n);
@@ -982,161 +982,161 @@ void PartBunchBase<T, Dim>::setNumBunch(short n) {
 
 
 template <class T, unsigned Dim>
-short PartBunchBase<T, Dim>::getNumBunch() const {
+short PartBunch<T, Dim>::getNumBunch() const {
     return numBunch_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setGlobalMeanR(Vector_t globalMeanR) {
+void PartBunch<T, Dim>::setGlobalMeanR(Vector_t<double, 3> globalMeanR) {
     globalMeanR_m = globalMeanR;
 }
 
 
 template <class T, unsigned Dim>
-Vector_t PartBunchBase<T, Dim>::getGlobalMeanR() {
+Vector_t<double, 3> PartBunch<T, Dim>::getGlobalMeanR() {
     return globalMeanR_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
+void PartBunch<T, Dim>::setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
 
     globalToLocalQuaternion_m = globalToLocalQuaternion;
 }
 
 
 template <class T, unsigned Dim>
-Quaternion_t PartBunchBase<T, Dim>::getGlobalToLocalQuaternion() {
+Quaternion_t PartBunch<T, Dim>::getGlobalToLocalQuaternion() {
     return globalToLocalQuaternion_m;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setSteptoLastInj(int n) {
+void PartBunch<T, Dim>::setSteptoLastInj(int n) {
     SteptoLastInj_m = n;
 }
 
 
 template <class T, unsigned Dim>
-int PartBunchBase<T, Dim>::getSteptoLastInj() const {
+int PartBunch<T, Dim>::getSteptoLastInj() const {
     return SteptoLastInj_m;
 }
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getQ() const {
+double PartBunch<T, Dim>::getQ() const {
     return reference->getQ();
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getM() const {
+double PartBunch<T, Dim>::getM() const {
     return reference->getM();
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getP() const {
+double PartBunch<T, Dim>::getP() const {
     return reference->getP();
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getE() const {
+double PartBunch<T, Dim>::getE() const {
     return reference->getE();
 }
 
 
 template <class T, unsigned Dim>
-ParticleOrigin PartBunchBase<T, Dim>::getPOrigin() const {
+ParticleOrigin PartBunch<T, Dim>::getPOrigin() const {
     return refPOrigin_m;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPOrigin(ParticleOrigin origin) {
+void PartBunch<T, Dim>::setPOrigin(ParticleOrigin origin) {
     refPOrigin_m = origin;
 }
 
 
 template <class T, unsigned Dim>
-ParticleType PartBunchBase<T, Dim>::getPType() const {
+ParticleType PartBunch<T, Dim>::getPType() const {
     return refPType_m;
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setPType(const std::string& type) {
+void PartBunch<T, Dim>::setPType(const std::string& type) {
     refPType_m =  ParticleProperties::getParticleType(type);
 }
 
 
 template <class T, unsigned Dim>
-DistributionType PartBunchBase<T, Dim>::getDistType() const {
+DistributionType PartBunch<T, Dim>::getDistType() const {
     return dist_m->getType();
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::resetQ(double q)  {
+void PartBunch<T, Dim>::resetQ(double q)  {
     const_cast<PartData *>(reference)->setQ(q);
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::resetM(double m)  {
+void PartBunch<T, Dim>::resetM(double m)  {
     const_cast<PartData *>(reference)->setM(m);
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getdE() const {
+double PartBunch<T, Dim>::getdE() const {
     return 0.0; 
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getInitialBeta() const {
+double PartBunch<T, Dim>::getInitialBeta() const {
     return reference->getBeta();
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getInitialGamma() const {
+double PartBunch<T, Dim>::getInitialGamma() const {
     return reference->getGamma();
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getGamma(int /*i*/) {
+double PartBunch<T, Dim>::getGamma(int /*i*/) {
     return 0;
 }
 
 
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::getBeta(int /*i*/) {
+double PartBunch<T, Dim>::getBeta(int /*i*/) {
     return 0;
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::actT() {
+void PartBunch<T, Dim>::actT() {
     // do nothing here
 };
 
 
 template <class T, unsigned Dim>
-const PartData* PartBunchBase<T, Dim>::getReference() const {
+const PartData* PartBunch<T, Dim>::getReference() const {
     return reference;
 }
 
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::calcEMean() {
+void PartBunch<T, Dim>::calcEMean() {
     //momentsComputer_m.computeMeanKineticEnergy(*this);
 }
 
 template <class T, unsigned Dim>
-Inform& PartBunchBase<T, Dim>::print(Inform& os) {
+Inform& PartBunch<T, Dim>::print(Inform& os) {
 
     if (getTotalNum() != 0) {  // to suppress Nans
         Inform::FmtFlags_t ff = os.flags();
@@ -1174,7 +1174,7 @@ Inform& PartBunchBase<T, Dim>::print(Inform& os) {
 
 // angle range [0~2PI) degree
 template <class T, unsigned Dim>
-double PartBunchBase<T, Dim>::calculateAngle(double x, double y) {
+double PartBunch<T, Dim>::calculateAngle(double x, double y) {
     double thetaXY = atan2(y, x);
 
     return thetaXY >= 0 ? thetaXY : thetaXY + Physics::two_pi;
@@ -1182,7 +1182,7 @@ double PartBunchBase<T, Dim>::calculateAngle(double x, double y) {
 
 
 template <class T, unsigned Dim>
-Inform& operator<<(Inform &os, PartBunchBase<T, Dim>& p) {
+Inform& operator<<(Inform &os, PartBunch<T, Dim>& p) {
     return p.print(os);
 }
 
@@ -1192,18 +1192,18 @@ Inform& operator<<(Inform &os, PartBunchBase<T, Dim>& p) {
  */
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::runTests() {
-    throw OpalException("PartBunchBase<T, Dim>::runTests() ", "No test supported.");
+void PartBunch<T, Dim>::runTests() {
+    throw OpalException("PartBunch<T, Dim>::runTests() ", "No test supported.");
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::resetInterpolationCache(bool /*clearCache*/) {
+void PartBunch<T, Dim>::resetInterpolationCache(bool /*clearCache*/) {
 
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
+void PartBunch<T, Dim>::swap(unsigned int i, unsigned int j) {
     if (i >= getLocalNum() || j >= getLocalNum() || i == j) return;
 
     std::swap(R[i], R[j]);
@@ -1225,30 +1225,30 @@ void PartBunchBase<T, Dim>::swap(unsigned int i, unsigned int j) {
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setBCAllPeriodic() {
-    throw OpalException("PartBunchBase<T, Dim>::setBCAllPeriodic() ", "Not supported BC.");
+void PartBunch<T, Dim>::setBCAllPeriodic() {
+    throw OpalException("PartBunch<T, Dim>::setBCAllPeriodic() ", "Not supported BC.");
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setBCAllOpen() {
-    throw OpalException("PartBunchBase<T, Dim>::setBCAllOpen() ", "Not supported BC.");
+void PartBunch<T, Dim>::setBCAllOpen() {
+    throw OpalException("PartBunch<T, Dim>::setBCAllOpen() ", "Not supported BC.");
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setBCForDCBeam() {
-    throw OpalException("PartBunchBase<T, Dim>::setBCForDCBeam() ", "Not supported BC.");
+void PartBunch<T, Dim>::setBCForDCBeam() {
+    throw OpalException("PartBunch<T, Dim>::setBCForDCBeam() ", "Not supported BC.");
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::updateFields(const Vector_t& /*hr*/, const Vector_t& /*origin*/) {
+void PartBunch<T, Dim>::updateFields(const Vector_t<double, 3>& /*hr*/, const Vector_t<double, 3>& /*origin*/) {
 }
 
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
+void PartBunch<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
 
     pb->addAttribute(P);
     pb->addAttribute(Q);
@@ -1283,68 +1283,68 @@ void PartBunchBase<T, Dim>::setup(AbstractParticle<T, Dim>* pb) {
 
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getTotalNum() const {
+size_t PartBunch<T, Dim>::getTotalNum() const {
     return pbase_m->getTotalNum();
 }
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getLocalNum() const {
+size_t PartBunch<T, Dim>::getLocalNum() const {
     return pbase_m->getLocalNum();
 }
 
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getDestroyNum() const {
+size_t PartBunch<T, Dim>::getDestroyNum() const {
     return pbase_m->getDestroyNum();
 }
 
 template <class T, unsigned Dim>
-size_t PartBunchBase<T, Dim>::getGhostNum() const {
+size_t PartBunch<T, Dim>::getGhostNum() const {
     return pbase_m->getGhostNum();
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setTotalNum(size_t n) {
+void PartBunch<T, Dim>::setTotalNum(size_t n) {
     pbase_m->setTotalNum(n);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setLocalNum(size_t n) {
+void PartBunch<T, Dim>::setLocalNum(size_t n) {
     pbase_m->setLocalNum(n);
 }
 
 template <class T, unsigned Dim>
-ParticleLayout<T, Dim> & PartBunchBase<T, Dim>::getLayout() {
+ParticleLayout<T, Dim> & PartBunch<T, Dim>::getLayout() {
     return pbase_m->getLayout();
 }
 
 template <class T, unsigned Dim>
-const ParticleLayout<T, Dim>& PartBunchBase<T, Dim>::getLayout() const {
+const ParticleLayout<T, Dim>& PartBunch<T, Dim>::getLayout() const {
     return pbase_m->getLayout();
 }
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::getUpdateFlag(UpdateFlags_t f) const {
+bool PartBunch<T, Dim>::getUpdateFlag(UpdateFlags_t f) const {
     return pbase_m->getUpdateFlag(f);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setUpdateFlag(UpdateFlags_t f, bool val) {
+void PartBunch<T, Dim>::setUpdateFlag(UpdateFlags_t f, bool val) {
     pbase_m->setUpdateFlag(f, val);
 }
 
 template <class T, unsigned Dim>
-bool PartBunchBase<T, Dim>::singleInitNode() const {
+bool PartBunch<T, Dim>::singleInitNode() const {
     return pbase_m->singleInitNode();
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::resetID() {
+void PartBunch<T, Dim>::resetID() {
     pbase_m->resetID();
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::update() {
+void PartBunch<T, Dim>::update() {
     try {
         pbase_m->update();
     } catch (const IpplException& ex) {
@@ -1353,7 +1353,7 @@ void PartBunchBase<T, Dim>::update() {
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
+void PartBunch<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
     try {
         pbase_m->update(canSwap);
     } catch (const IpplException& ex) {
@@ -1362,42 +1362,42 @@ void PartBunchBase<T, Dim>::update(const ParticleAttrib<char>& canSwap) {
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::createWithID(unsigned id) {
+void PartBunch<T, Dim>::createWithID(unsigned id) {
     pbase_m->createWithID(id);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::create(size_t M) {
+void PartBunch<T, Dim>::create(size_t M) {
     pbase_m->create(M);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::globalCreate(size_t np) {
+void PartBunch<T, Dim>::globalCreate(size_t np) {
     pbase_m->globalCreate(np);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::destroy(size_t M, size_t I, bool doNow) {
+void PartBunch<T, Dim>::destroy(size_t M, size_t I, bool doNow) {
     pbase_m->destroy(M, I, doNow);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::performDestroy(bool updateLocalNum) {
+void PartBunch<T, Dim>::performDestroy(bool updateLocalNum) {
     pbase_m->performDestroy(updateLocalNum);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::ghostDestroy(size_t M, size_t I) {
+void PartBunch<T, Dim>::ghostDestroy(size_t M, size_t I) {
     pbase_m->ghostDestroy(M, I);
 }
 
 template <class T, unsigned Dim>
-void PartBunchBase<T, Dim>::setBeamFrequency(double f) {
+void PartBunch<T, Dim>::setBeamFrequency(double f) {
     periodLength_m = Physics::c / f;
 }
 
 template <class T, unsigned Dim>
-matrix_t PartBunchBase<T, Dim>::getSigmaMatrix() const {
+matrix_t PartBunch<T, Dim>::getSigmaMatrix() const {
 
 }
 

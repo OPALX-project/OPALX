@@ -18,7 +18,7 @@
 #ifndef STEPPER_H
 #define STEPPER_H
 
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Algorithms/Vektor.h"
 
 #include <functional>
@@ -28,8 +28,8 @@
  * boolean and take at least the following arguments in that order:
  *  - double    specifying the time
  *  - int       specifying the i-th particle
- *  - Vector_t  specifying the electric field
- *  - Vector_t  specifying the magnetic field
+ *  - Vector_t<double, 3>  specifying the electric field
+ *  - Vector_t<double, 3>  specifying the magnetic field
  */
 
 template <typename FieldFunction, typename ... Arguments>
@@ -39,7 +39,7 @@ public:
     
     Stepper(const FieldFunction& fieldfunc) : fieldfunc_m(fieldfunc) { }
     
-    virtual bool advance(PartBunchBase<double, 3>* bunch,
+    virtual bool advance(PartBunch<double, 3>* bunch,
                          const size_t& i,
                          const double& t,
                          const double dt,
@@ -70,7 +70,7 @@ protected:
     const FieldFunction& fieldfunc_m;
 
 private:
-    virtual bool doAdvance_m(PartBunchBase<double, 3>* bunch,
+    virtual bool doAdvance_m(PartBunch<double, 3>* bunch,
                              const size_t& i,
                              const double& t,
                              const double dt,

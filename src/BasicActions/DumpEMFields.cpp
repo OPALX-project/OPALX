@@ -261,13 +261,13 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
 }
 
 void DumpEMFields::writeFieldLine(Component* field,
-                                  const Vector_t& pointIn,
+                                  const Vector_t<double, 3>& pointIn,
                                   const double& time,
                                   std::ofstream& fout) const {
-    Vector_t centroid(0., 0., 0.);
-    Vector_t E(0., 0., 0.);
-    Vector_t B(0., 0., 0.);
-    Vector_t point = pointIn;
+    Vector_t<double, 3> centroid(0., 0., 0.);
+    Vector_t<double, 3> E(0., 0., 0.);
+    Vector_t<double, 3> B(0., 0., 0.);
+    Vector_t<double, 3> point = pointIn;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
         // pointIn is r, phi, z
         point[0] = std::cos(pointIn[1])*pointIn[0];
@@ -275,8 +275,8 @@ void DumpEMFields::writeFieldLine(Component* field,
     }
 
     field->apply(point, centroid, time, E, B);
-    Vector_t Bout = B;
-    Vector_t Eout = E;
+    Vector_t<double, 3> Bout = B;
+    Vector_t<double, 3> Eout = E;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
         // pointIn is r, phi, z
         Bout[0] =  B[0]*std::cos(pointIn[1])+B[1]*std::sin(pointIn[1]);
@@ -315,7 +315,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
     }
 
     std::vector<double> point_std(4);
-    Vector_t point(0., 0., 0.);
+    Vector_t<double, 3> point(0., 0., 0.);
     std::ofstream fout;
     try {
         fout.open(fname.c_str(), std::ofstream::out);

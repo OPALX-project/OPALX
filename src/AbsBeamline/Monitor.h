@@ -26,7 +26,7 @@
 #include <string>
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 class BeamlineVisitor;
 
 class Monitor: public Component {
@@ -64,15 +64,15 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
+    virtual bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t &R,
-                                          const Vector_t &P,
+    virtual bool applyToReferenceParticle(const Vector_t<double, 3> &R,
+                                          const Vector_t<double, 3> &P,
                                           const double &t,
-                                          Vector_t &E,
-                                          Vector_t &B) override;
+                                          Vector_t<double, 3> &E,
+                                          Vector_t<double, 3> &B) override;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
 
     virtual void finalise() override;
 
@@ -92,10 +92,10 @@ public:
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 
-    virtual bool isInside(const Vector_t &r) const override;
+    virtual bool isInside(const Vector_t<double, 3> &r) const override;
 private:
 
-    void driftToCorrectPositionAndSave(const Vector_t& R, const Vector_t& P);
+    void driftToCorrectPositionAndSave(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P);
 
     // Not implemented.
     void operator=(const Monitor &);
@@ -122,7 +122,7 @@ int Monitor::getRequiredNumberOfTimeSteps() const
 }
 
 inline
-bool Monitor::isInside(const Vector_t &r) const
+bool Monitor::isInside(const Vector_t<double, 3> &r) const
 {
     const double length = getElementLength();
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);

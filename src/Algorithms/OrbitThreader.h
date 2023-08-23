@@ -38,8 +38,8 @@ class OrbitThreader
 public:
 
     OrbitThreader(const PartData &ref,
-                  const Vector_t &r,
-                  const Vector_t &p,
+                  const Vector_t<double, 3> &r,
+                  const Vector_t<double, 3> &p,
                   double s,
                   double maxDiffZBunch,
                   double t,
@@ -60,9 +60,9 @@ public:
 
 private:
     /// position of reference particle in lab coordinates
-    Vector_t r_m;
+    Vector_t<double, 3> r_m;
     /// momentum of reference particle
-    Vector_t p_m;
+    Vector_t<double, 3> p_m;
     /// position of reference particle in path length
     double pathLength_m;
     /// distance to track back before tracking forward
@@ -113,14 +113,14 @@ private:
     void autophaseCavities(const IndexMap::value_t &activeSet, const std::set<std::string> &visitedElements);
     double getMaxDesignEnergy(const IndexMap::value_t &elementSet) const;
 
-    void registerElement(const IndexMap::value_t &elementSet, double, const Vector_t &r, const Vector_t &p);
+    void registerElement(const IndexMap::value_t &elementSet, double, const Vector_t<double, 3> &r, const Vector_t<double, 3> &p);
     void processElementRegister();
     void setDesignEnergy(FieldList &allElements, const std::set<std::string> &visitedElements);
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
-                                           const Vector_t & position,
-                                           const Vector_t & direction) const;
+                                           const Vector_t<double, 3> & position,
+                                           const Vector_t<double, 3> & direction) const;
 
     void checkElementLengths(const std::set<std::shared_ptr<Component>>& elements);
 };

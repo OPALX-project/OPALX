@@ -97,8 +97,8 @@ void FM1DDynamic_fast::freeMap() {
     }
 }
 
-bool FM1DDynamic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
-                                        Vector_t &B) const {
+bool FM1DDynamic_fast::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E,
+                                        Vector_t<double, 3> &B) const {
 
     std::vector<double> fieldComponents;
     computeFieldOnAxis(R(2) - zBegin_m, fieldComponents);
@@ -107,9 +107,9 @@ bool FM1DDynamic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
     return false;
 }
 
-bool FM1DDynamic_fast::getFieldDerivative(const Vector_t &R,
-                                          Vector_t &E,
-                                          Vector_t &/*B*/,
+bool FM1DDynamic_fast::getFieldDerivative(const Vector_t<double, 3> &R,
+                                          Vector_t<double, 3> &E,
+                                          Vector_t<double, 3> &/*B*/,
                                           const DiffDirection &/*dir*/) const {
 
     E(2) += gsl_spline_eval(onAxisFieldPInterpolants_m, R(2) - zBegin_m,
@@ -204,9 +204,9 @@ void FM1DDynamic_fast::computeFieldDerivatives(std::vector<double> fourierCoefs,
 
 }
 
-void FM1DDynamic_fast::computeFieldOffAxis(const Vector_t &R,
-                                           Vector_t &E,
-                                           Vector_t &B,
+void FM1DDynamic_fast::computeFieldOffAxis(const Vector_t<double, 3> &R,
+                                           Vector_t<double, 3> &E,
+                                           Vector_t<double, 3> &B,
                                            std::vector<double> fieldComponents) const {
 
     double radiusSq = pow(R(0), 2.0) + pow(R(1), 2.0);

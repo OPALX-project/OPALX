@@ -30,7 +30,7 @@
 #include <cfloat>
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Expressions/SRefExpr.h"
 #include "Elements/OpalBeamline.h"
 #include "Physics/Physics.h"
@@ -285,19 +285,19 @@ namespace cmp = cmp_ulp;
  */
 namespace {
 struct VectorLessX {
-    bool operator() (Vector_t x1, Vector_t x2) {
+    bool operator() (Vector_t<double, 3> x1, Vector_t<double, 3> x2) {
         return cmp::lt (x1(0), x2(0));
     }
 };
 
 struct VectorLessY {
-    bool operator() (Vector_t x1, Vector_t x2) {
+    bool operator() (Vector_t<double, 3> x1, Vector_t<double, 3> x2) {
         return cmp::lt(x1(1), x2 (1));
     }
 };
 
 struct VectorLessZ {
-    bool operator() (Vector_t x1, Vector_t x2) {
+    bool operator() (Vector_t<double, 3> x1, Vector_t<double, 3> x2) {
         return cmp::lt(x1(2), x2(2));
     }
 };
@@ -305,28 +305,28 @@ struct VectorLessZ {
 /**
    Calculate the maximum of coordinates of geometry,i.e the maximum of X,Y,Z
  */
-Vector_t get_max_extent (std::vector<Vector_t>& coords) {
-    const Vector_t x = *max_element (
+Vector_t<double, 3> get_max_extent (std::vector<Vector_t<double, 3>>& coords) {
+    const Vector_t<double, 3> x = *max_element (
         coords.begin (), coords.end (), VectorLessX ());
-    const Vector_t y = *max_element (
+    const Vector_t<double, 3> y = *max_element (
         coords.begin (), coords.end (), VectorLessY ());
-    const Vector_t z = *max_element (
+    const Vector_t<double, 3> z = *max_element (
         coords.begin (), coords.end (), VectorLessZ ());
-    return Vector_t (x(0), y(1), z(2));
+    return Vector_t<double, 3> (x(0), y(1), z(2));
 }
 
 
 /*
    Compute the minimum of coordinates of geometry, i.e the minimum of X,Y,Z
  */
-Vector_t get_min_extent (std::vector<Vector_t>& coords) {
-    const Vector_t x = *min_element (
+Vector_t<double, 3> get_min_extent (std::vector<Vector_t<double, 3>>& coords) {
+    const Vector_t<double, 3> x = *min_element (
         coords.begin (), coords.end (), VectorLessX ());
-    const Vector_t y = *min_element (
+    const Vector_t<double, 3> y = *min_element (
         coords.begin (), coords.end (), VectorLessY ());
-    const Vector_t z = *min_element (
+    const Vector_t<double, 3> z = *min_element (
         coords.begin (), coords.end (), VectorLessZ ());
-    return Vector_t (x(0), y(1), z(2));
+    return Vector_t<double, 3> (x(0), y(1), z(2));
 }
 
 /*
@@ -335,9 +335,9 @@ Vector_t get_min_extent (std::vector<Vector_t>& coords) {
 static void write_voxel_mesh (
     std::string fname,
     const std::unordered_map< int, std::unordered_set<int> >& ids,
-    const Vector_t& hr_m,
+    const Vector_t<double, 3>& hr_m,
     const Vektor<int,3>& nr,
-    const Vector_t& origin
+    const Vector_t<double, 3>& origin
     ) {
     /*----------------------------------------------------------------------*/
     const size_t numpoints = 8 * ids.size ();
@@ -363,7 +363,7 @@ static void write_voxel_mesh (
         int j = rest / nr[0];
         int i = rest % nr[0];
 
-        Vector_t P;
+        Vector_t<double, 3> P;
         P[0] = i * hr_m[0] + origin[0];
         P[1] = j * hr_m[1] + origin[1];
         P[2] = k * hr_m[2] + origin[2];
@@ -417,25 +417,25 @@ static void write_voxel_mesh (
 class Triangle {
 public:
     Triangle () { }
-    Triangle (const Vector_t& v1, const Vector_t& v2, const Vector_t& v3) {
+    Triangle (const Vector_t<double, 3>& v1, const Vector_t<double, 3>& v2, const Vector_t<double, 3>& v3) {
         pts[0] = v1;
         pts[1] = v2;
         pts[2] = v3;
     }
 
-    inline const Vector_t& v1() const {
+    inline const Vector_t<double, 3>& v1() const {
         return pts[0];
     }
     inline double v1(int i) const {
         return pts[0][i];
     }
-    inline const Vector_t& v2() const {
+    inline const Vector_t<double, 3>& v2() const {
         return pts[1];
     }
     inline double v2(int i) const {
         return pts[1][i];
     }
-    inline const Vector_t& v3() const {
+    inline const Vector_t<double, 3>& v3() const {
         return pts[2];
     }
     inline double v3(int i) const {
@@ -444,8 +444,8 @@ public:
 
 
     inline void scale (
-        const Vector_t& scaleby,
-        const Vector_t& shiftby
+        const Vector_t<double, 3>& scaleby,
+        const Vector_t<double, 3>& shiftby
         ) {
         pts[0][0] *= scaleby[0];
         pts[0][1] *= scaleby[1];
@@ -462,7 +462,7 @@ public:
     }
 
 
-    Vector_t pts[3];
+    Vector_t<double, 3> pts[3];
 };
 
 /*___________________________________________________________________________*/
@@ -471,7 +471,7 @@ public:
 
 static inline int
 face_plane (
-    const Vector_t& p
+    const Vector_t<double, 3>& p
     ) {
     int outcode_fcmp = 0;
 
@@ -491,7 +491,7 @@ face_plane (
 
 static inline int
 bevel_2d (
-    const Vector_t& p
+    const Vector_t<double, 3>& p
     ) {
     int outcode_fcmp = 0;
 
@@ -517,7 +517,7 @@ bevel_2d (
 */
 static inline int
 bevel_3d (
-    const Vector_t& p
+    const Vector_t<double, 3>& p
     ) {
     int outcode_fcmp = 0;
 
@@ -542,12 +542,12 @@ bevel_3d (
 
 static inline int
 check_point (
-    const Vector_t& p1,
-    const Vector_t& p2,
+    const Vector_t<double, 3>& p1,
+    const Vector_t<double, 3>& p2,
     const double alpha,
     const int mask
     ) {
-    Vector_t plane_point;
+    Vector_t<double, 3> plane_point;
 
 #define LERP(a, b, t) (a + t * (b - a))
     // with C++20 we can use: std::lerp(a, b, t)
@@ -567,8 +567,8 @@ check_point (
 */
 static inline int
 check_line (
-    const Vector_t& p1,
-    const Vector_t& p2,
+    const Vector_t<double, 3>& p1,
+    const Vector_t<double, 3>& p2,
     const int outcode_diff
     ) {
     if ((0x01 & outcode_diff) != 0)
@@ -593,7 +593,7 @@ check_line (
 constexpr double EPS = 10e-15;
 static inline int
 SIGN3 (
-    Vector_t A
+    Vector_t<double, 3> A
     ) {
     return (((A[0] < EPS) ? 4 : 0) | ((A[0] > -EPS) ? 32 : 0) |
             ((A[1] < EPS) ? 2 : 0) | ((A[1] > -EPS) ? 16 : 0) |
@@ -602,7 +602,7 @@ SIGN3 (
 
 static int
 point_triangle_intersection (
-    const Vector_t& p,
+    const Vector_t<double, 3>& p,
     const Triangle& t
     ) {
     /*
@@ -623,19 +623,19 @@ point_triangle_intersection (
       signs of its X,Y,Z components indicate whether P was to the inside or
       to the outside of this triangle side.
     */
-    const Vector_t vect12 = t.v1() - t.v2();
-    const Vector_t vect1h = t.v1() - p;
-    const Vector_t cross12_1p = cross (vect12, vect1h);
+    const Vector_t<double, 3> vect12 = t.v1() - t.v2();
+    const Vector_t<double, 3> vect1h = t.v1() - p;
+    const Vector_t<double, 3> cross12_1p = cross (vect12, vect1h);
     const int sign12 = SIGN3(cross12_1p);      /* Extract X,Y,Z signs as 0..7 or 0...63 integer */
 
-    const Vector_t vect23 = t.v2() - t.v3();
-    const Vector_t vect2h = t.v2() - p;
-    const Vector_t cross23_2p = cross (vect23, vect2h);
+    const Vector_t<double, 3> vect23 = t.v2() - t.v3();
+    const Vector_t<double, 3> vect2h = t.v2() - p;
+    const Vector_t<double, 3> cross23_2p = cross (vect23, vect2h);
     const int sign23 = SIGN3(cross23_2p);
 
-    const Vector_t vect31 = t.v3() - t.v1();
-    const Vector_t vect3h = t.v3() - p;
-    const Vector_t cross31_3p = cross (vect31, vect3h);
+    const Vector_t<double, 3> vect31 = t.v3() - t.v1();
+    const Vector_t<double, 3> vect3h = t.v3() - p;
+    const Vector_t<double, 3> cross31_3p = cross (vect31, vect3h);
     const int sign31 = SIGN3(cross31_3p);
 
     /*
@@ -721,9 +721,9 @@ triangle_intersects_cube (
      To find plane of the triangle, first perform crossproduct on
      two triangle side vectors to compute the normal vector.
    */
-   Vector_t vect12 = t.v1() - t.v2();
-   Vector_t vect13 = t.v1() - t.v3();
-   Vector_t norm = cross (vect12, vect13);
+   Vector_t<double, 3> vect12 = t.v1() - t.v2();
+   Vector_t<double, 3> vect13 = t.v1() - t.v3();
+   Vector_t<double, 3> norm = cross (vect12, vect13);
 
    /*
      The normal vector "norm" X,Y,Z components are the coefficients
@@ -744,14 +744,14 @@ triangle_intersects_cube (
    double denom = norm[0] + norm[1] + norm[2];
    if (cmp::eq_zero(std::abs(denom)) == false) {
        /* skip parallel diagonals to the plane; division by 0 can occure */
-       Vector_t hitpp = d / denom;
+       Vector_t<double, 3> hitpp = d / denom;
        if (cmp::le(std::abs(hitpp[0]), 0.5))
            if (point_triangle_intersection(hitpp,t) == INSIDE)
                return(INSIDE);
    }
    denom = norm[0] + norm[1] - norm[2];
    if (cmp::eq_zero(std::abs(denom)) == false) {
-       Vector_t hitpn;
+       Vector_t<double, 3> hitpn;
        hitpn[2] = -(hitpn[0] = hitpn[1] = d / denom);
        if (cmp::le(std::abs(hitpn[0]), 0.5))
            if (point_triangle_intersection(hitpn,t) == INSIDE)
@@ -759,7 +759,7 @@ triangle_intersects_cube (
    }
    denom = norm[0] - norm[1] + norm[2];
    if (cmp::eq_zero(std::abs(denom)) == false) {
-       Vector_t hitnp;
+       Vector_t<double, 3> hitnp;
        hitnp[1] = -(hitnp[0] = hitnp[2] = d / denom);
        if (cmp::le(std::abs(hitnp[0]), 0.5))
            if (point_triangle_intersection(hitnp,t) == INSIDE)
@@ -767,7 +767,7 @@ triangle_intersects_cube (
    }
    denom = norm[0] - norm[1] - norm[2];
    if (cmp::eq_zero(std::abs(denom)) == false) {
-       Vector_t hitnn;
+       Vector_t<double, 3> hitnn;
        hitnn[1] = hitnn[2] = -(hitnn[0] = d / denom);
        if (cmp::le(std::abs(hitnn[0]), 0.5))
            if (point_triangle_intersection(hitnn,t) == INSIDE)
@@ -794,10 +794,10 @@ triangle_intersects_cube (
 class Ray {
 public:
     Ray () { }
-    Ray (Vector_t o, Vector_t d) {
+    Ray (Vector_t<double, 3> o, Vector_t<double, 3> d) {
         origin = o;
         direction = d;
-        inv_direction = Vector_t (1/d[0], 1/d[1], 1/d[2]);
+        inv_direction = Vector_t<double, 3> (1/d[0], 1/d[1], 1/d[2]);
         sign[0] = (inv_direction[0] < 0);
         sign[1] = (inv_direction[1] < 0);
         sign[2] = (inv_direction[2] < 0);
@@ -810,9 +810,9 @@ public:
     }
     const Ray &operator=(const Ray& a) = delete;
 
-    Vector_t origin;
-    Vector_t direction;
-    Vector_t inv_direction;
+    Vector_t<double, 3> origin;
+    Vector_t<double, 3> direction;
+    Vector_t<double, 3> inv_direction;
     int sign[3];
 };
 
@@ -830,12 +830,12 @@ public:
 class Voxel {
 public:
     Voxel () { }
-    Voxel (const Vector_t &min, const Vector_t &max) {
+    Voxel (const Vector_t<double, 3> &min, const Vector_t<double, 3> &max) {
         pts[0] = min;
         pts[1] = max;
     }
     inline void scale (
-        const Vector_t& scale
+        const Vector_t<double, 3>& scale
         ) {
         pts[0][0] *= scale[0];
         pts[0][1] *= scale[1];
@@ -887,18 +887,18 @@ public:
         ) const {
         Voxel v_ = *this;
         Triangle t_ = t;
-        const Vector_t scaleby = 1.0 / v_.extent();
+        const Vector_t<double, 3> scaleby = 1.0 / v_.extent();
         v_.scale (scaleby);
         t_.scale (scaleby , v_.pts[0] + 0.5);
         return triangle_intersects_cube (t_);
     }
 
-    inline Vector_t extent () const {
+    inline Vector_t<double, 3> extent () const {
         return (pts[1] - pts[0]);
     }
 
     inline bool isInside  (
-        const Vector_t& P
+        const Vector_t<double, 3>& P
         ) const {
         return (
                 cmp::ge(P[0], pts[0][0])
@@ -909,15 +909,15 @@ public:
                 && cmp::le(P[2], pts[1][2]));
     }
 
-    Vector_t pts[2];
+    Vector_t<double, 3> pts[2];
 };
 
-static inline Vector_t normalVector (
-    const Vector_t& A,
-    const Vector_t& B,
-    const Vector_t& C
+static inline Vector_t<double, 3> normalVector (
+    const Vector_t<double, 3>& A,
+    const Vector_t<double, 3>& B,
+    const Vector_t<double, 3>& C
     ) {
-    const Vector_t N = cross (B - A, C - A);
+    const Vector_t<double, 3> N = cross (B - A, C - A);
     const double magnitude = std::sqrt (SQR (N (0)) + SQR (N (1)) + SQR (N (2)));
     PAssert (cmp::gt_zero(magnitude)); // in case we have degenerated triangles
     return N / magnitude;
@@ -925,12 +925,12 @@ static inline Vector_t normalVector (
 
 // Calculate the area of triangle given by id.
 static inline double computeArea (
-    const Vector_t& A,
-    const Vector_t& B,
-    const Vector_t& C
+    const Vector_t<double, 3>& A,
+    const Vector_t<double, 3>& B,
+    const Vector_t<double, 3>& C
     ) {
-    const Vector_t AB = A - B;
-    const Vector_t AC = C - A;
+    const Vector_t<double, 3> AB = A - B;
+    const Vector_t<double, 3> AC = C - A;
     return(0.5 * std::sqrt (dot (AB, AB) * dot (AC, AC) - dot (AB, AC) * dot (AB, AC)));
 }
 
@@ -1119,7 +1119,7 @@ BoundaryGeometry::intersectTriangleVoxel (
         getPoint (triangle_id, 3)
         );
 
-    const Vector_t P(
+    const Vector_t<double, 3> P(
         i * voxelMesh_m.sizeOfVoxel [0] + voxelMesh_m.minExtent[0],
         j * voxelMesh_m.sizeOfVoxel [1] + voxelMesh_m.minExtent[1],
         k * voxelMesh_m.sizeOfVoxel [2] + voxelMesh_m.minExtent[2]
@@ -1172,24 +1172,24 @@ BoundaryGeometry::intersectTriangleVoxel (
 int
 BoundaryGeometry::intersectLineTriangle (
     const enum INTERSECTION_TESTS kind,
-    const Vector_t& P0,
-    const Vector_t& P1,
+    const Vector_t<double, 3>& P0,
+    const Vector_t<double, 3>& P1,
     const int triangle_id,
-    Vector_t& I
+    Vector_t<double, 3>& I
     ) {
-    const Vector_t V0 = getPoint (triangle_id, 1);
-    const Vector_t V1 = getPoint (triangle_id, 2);
-    const Vector_t V2 = getPoint (triangle_id, 3);
+    const Vector_t<double, 3> V0 = getPoint (triangle_id, 1);
+    const Vector_t<double, 3> V1 = getPoint (triangle_id, 2);
+    const Vector_t<double, 3> V2 = getPoint (triangle_id, 3);
 
     // get triangle edge vectors and plane normal
-    const Vector_t u = V1 - V0;         // triangle vectors
-    const Vector_t v = V2 - V0;
-    const Vector_t n = cross (u, v);
-    if (n == (Vector_t)0)               // triangle is degenerate
+    const Vector_t<double, 3> u = V1 - V0;         // triangle vectors
+    const Vector_t<double, 3> v = V2 - V0;
+    const Vector_t<double, 3> n = cross (u, v);
+    if (n == (Vector_t<double, 3>)0)               // triangle is degenerate
         return -1;                      // do not deal with this case
 
-    const Vector_t dir = P1 - P0;       // ray direction vector
-    const Vector_t w0 = P0 - V0;
+    const Vector_t<double, 3> dir = P1 - P0;       // ray direction vector
+    const Vector_t<double, 3> w0 = P0 - V0;
     const double a = -dot(n,w0);
     const double b = dot(n,dir);
     if (cmp::eq_zero(b)) {              // ray is  parallel to triangle plane
@@ -1222,7 +1222,7 @@ BoundaryGeometry::intersectLineTriangle (
     const double uu = dot(u,u);
     const double uv = dot(u,v);
     const double vv = dot(v,v);
-    const Vector_t w = I - V0;
+    const Vector_t<double, 3> w = I - V0;
     const double wu = dot(w,u);
     const double wv = dot(w,v);
     const double D = uv * uv - uu * vv;
@@ -1247,14 +1247,14 @@ BoundaryGeometry::intersectLineTriangle (
 }
 
 static inline double magnitude (
-    const Vector_t& v
+    const Vector_t<double, 3>& v
     ) {
     return std::sqrt (dot (v,v));
 }
 
 bool
 BoundaryGeometry::isInside (
-    const Vector_t& P                    // [in] pt to test
+    const Vector_t<double, 3>& P                    // [in] pt to test
     ) {
 
     /*
@@ -1263,7 +1263,7 @@ BoundaryGeometry::isInside (
     // right boundary of bounding box (x direction)
     double x = minExtent_m[0] - 0.01;
     double distance = P[0] - x;
-    Vector_t ref_pt {x, P[1], P[2]};
+    Vector_t<double, 3> ref_pt {x, P[1], P[2]};
 
     // left boundary of bounding box (x direction)
     x = maxExtent_m[0] + 0.01;
@@ -1366,8 +1366,8 @@ BoundaryGeometry::findInsidePoint (
     /*
       find line segment
     */
-    Vector_t Q {(maxExtent_m + minExtent_m) / 2};
-    std::vector<Vector_t> P_outs {
+    Vector_t<double, 3> Q {(maxExtent_m + minExtent_m) / 2};
+    std::vector<Vector_t<double, 3>> P_outs {
         {minExtent_m[0]-0.01, Q[1], Q[2]},
         {maxExtent_m[0]+0.01, Q[1], Q[2]},
         {Q[0], minExtent_m[1]-0.01, Q[2]},
@@ -1376,7 +1376,7 @@ BoundaryGeometry::findInsidePoint (
         {Q[0], Q[1], maxExtent_m[2]+0.01}
     };
     int n_i = 0;
-    Vector_t P_out;
+    Vector_t<double, 3> P_out;
     for (const auto& P: P_outs) {
         n_i = fastIsInside (P, Q);
         if (n_i != 0) {
@@ -1397,7 +1397,7 @@ BoundaryGeometry::findInsidePoint (
         return true;
     }
     while (true) {
-        Vector_t B {(P_out + Q) / 2};
+        Vector_t<double, 3> B {(P_out + Q) / 2};
         int n = fastIsInside (P_out, B);
         if (n % 2 == 1) {
             insidePoint_m = B;
@@ -1424,8 +1424,8 @@ BoundaryGeometry::findInsidePoint (
  */
 int
 BoundaryGeometry::fastIsInside (
-    const Vector_t& reference_pt,        // [in] reference pt inside the boundary
-    const Vector_t& P                    // [in] pt to test
+    const Vector_t<double, 3>& reference_pt,        // [in] reference pt inside the boundary
+    const Vector_t<double, 3>& P                    // [in] pt to test
     ) {
     const Voxel c (minExtent_m, maxExtent_m);
     if (!c.isInside (P)) return 1;
@@ -1439,14 +1439,14 @@ BoundaryGeometry::fastIsInside (
         debugFlags_m |= debug_intersectTinyLineSegmentBoundary;
     }
 #endif
-    const Vector_t v = reference_pt - P;
+    const Vector_t<double, 3> v = reference_pt - P;
     const int N = std::ceil (magnitude (v) / std::min ({voxelMesh_m.sizeOfVoxel [0],
                                               voxelMesh_m.sizeOfVoxel [1],
                                               voxelMesh_m.sizeOfVoxel [2]}));
-    const Vector_t v_ = v / N;
-    Vector_t P0 = P;
-    Vector_t P1 = P + v_;
-    Vector_t I;
+    const Vector_t<double, 3> v_ = v / N;
+    Vector_t<double, 3> P0 = P;
+    Vector_t<double, 3> P1 = P + v_;
+    Vector_t<double, 3> I;
     int triangle_id = -1;
     int result = 0;
     for (int i = 0; i < N; i++) {
@@ -1475,9 +1475,9 @@ BoundaryGeometry::fastIsInside (
  */
 int
 BoundaryGeometry::intersectRayBoundary (
-    const Vector_t& P,
-    const Vector_t& v,
-    Vector_t& I
+    const Vector_t<double, 3>& P,
+    const Vector_t<double, 3>& v,
+    Vector_t<double, 3>& I
     ) {
     IpplTimings::startTimer (TRayTrace_m);
 #ifdef ENABLE_DEBUG
@@ -1557,21 +1557,21 @@ BoundaryGeometry::mapVoxelIndices2ID (
         }                                                               \
     }
 
-inline Vector_t
+inline Vector_t<double, 3>
 BoundaryGeometry::mapIndices2Voxel (
     const int i,
     const int j,
     const int k
     ) {
-    return Vector_t (
+    return Vector_t<double, 3> (
         i * voxelMesh_m.sizeOfVoxel [0] + voxelMesh_m.minExtent[0],
         j * voxelMesh_m.sizeOfVoxel [1] + voxelMesh_m.minExtent[1],
         k * voxelMesh_m.sizeOfVoxel [2] + voxelMesh_m.minExtent[2]);
 }
 
-inline Vector_t
+inline Vector_t<double, 3>
 BoundaryGeometry::mapPoint2Voxel (
-    const Vector_t& pt
+    const Vector_t<double, 3>& pt
     ) {
     const int i = std::floor ((pt[0] - voxelMesh_m.minExtent [0]) / voxelMesh_m.sizeOfVoxel [0]);
     const int j = std::floor ((pt[1] - voxelMesh_m.minExtent [1]) / voxelMesh_m.sizeOfVoxel [1]);
@@ -1585,14 +1585,14 @@ inline void
 BoundaryGeometry::computeMeshVoxelization (void) {
 
     for (unsigned int triangle_id = 0; triangle_id < Triangles_m.size(); triangle_id++) {
-        Vector_t v1 = getPoint (triangle_id, 1);
-        Vector_t v2 = getPoint (triangle_id, 2);
-        Vector_t v3 = getPoint (triangle_id, 3);
-        Vector_t bbox_min = {
+        Vector_t<double, 3> v1 = getPoint (triangle_id, 1);
+        Vector_t<double, 3> v2 = getPoint (triangle_id, 2);
+        Vector_t<double, 3> v3 = getPoint (triangle_id, 3);
+        Vector_t<double, 3> bbox_min = {
             std::min({v1[0], v2[0], v3[0]}),
             std::min({v1[1], v2[1], v3[1]}),
             std::min({v1[2], v2[2], v3[2]}) };
-        Vector_t bbox_max = {
+        Vector_t<double, 3> bbox_max = {
             std::max({v1[0], v2[0], v3[0]}),
             std::max({v1[1], v2[1], v3[1]}),
             std::max({v1[2], v2[2], v3[2]}) };
@@ -1660,9 +1660,9 @@ void BoundaryGeometry::initialize () {
             double longest_edge_max_m = 0.0;
             for (unsigned int i = 0; i < bg->Triangles_m.size(); i++) {
                 // compute length of longest edge
-                const Vector_t x1 = bg->getPoint (i, 1);
-                const Vector_t x2 = bg->getPoint (i, 2);
-                const Vector_t x3 = bg->getPoint (i, 3);
+                const Vector_t<double, 3> x1 = bg->getPoint (i, 1);
+                const Vector_t<double, 3> x2 = bg->getPoint (i, 2);
+                const Vector_t<double, 3> x3 = bg->getPoint (i, 3);
                 const double length_edge1 = std::sqrt (
                     SQR (x1[0] - x2[0]) + SQR (x1[1] - x2[1]) + SQR (x1[2] - x2[2]));
                 const double length_edge2 = std::sqrt (
@@ -1695,7 +1695,7 @@ void BoundaryGeometry::initialize () {
               geometry shape maybe need to be summarized and modeled in a more
               flexible manner and could be adjusted in input file.
             */
-            Vector_t extent = bg->maxExtent_m - bg->minExtent_m;
+            Vector_t<double, 3> extent = bg->maxExtent_m - bg->minExtent_m;
             bg->voxelMesh_m.nr_m (0) = 16 * (int)std::floor (extent [0] / longest_edge_max_m);
             bg->voxelMesh_m.nr_m (1) = 16 * (int)std::floor (extent [1] / longest_edge_max_m);
             bg->voxelMesh_m.nr_m (2) = 16 * (int)std::floor (extent [2] / longest_edge_max_m);
@@ -1891,19 +1891,19 @@ Change orientation if diff is:
           A random selection of the reference point outside the boundary avoids
           some specific issues, like line parallel to boundary.
          */
-        static inline bool isInside (BoundaryGeometry* bg, const Vector_t x) {
+        static inline bool isInside (BoundaryGeometry* bg, const Vector_t<double, 3> x) {
             IpplTimings::startTimer (bg->TisInside_m);
 
-            Vector_t y = Vector_t (
+            Vector_t<double, 3> y = Vector_t<double, 3> (
                 bg->maxExtent_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxExtent_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
 
-            std::vector<Vector_t> intersection_points;
+            std::vector<Vector_t<double, 3>> intersection_points;
             //int num_intersections = 0;
 
             for (unsigned int triangle_id = 0; triangle_id < bg->Triangles_m.size(); triangle_id++) {
-                Vector_t result;
+                Vector_t<double, 3> result;
                 if (bg->intersectLineTriangle (SEGMENT, x, y, triangle_id, result)) {
                     intersection_points.push_back (result);
                     //num_intersections++;
@@ -1918,19 +1918,19 @@ Change orientation if diff is:
             BoundaryGeometry* const bg,
             const int triangle_id
             ) {
-            const Vector_t& A = bg->getPoint (triangle_id, 1);
-            const Vector_t& B = bg->getPoint (triangle_id, 2);
-            const Vector_t& C = bg->getPoint (triangle_id, 3);
-            const Vector_t  triNormal = normalVector (A, B, C);
+            const Vector_t<double, 3>& A = bg->getPoint (triangle_id, 1);
+            const Vector_t<double, 3>& B = bg->getPoint (triangle_id, 2);
+            const Vector_t<double, 3>& C = bg->getPoint (triangle_id, 3);
+            const Vector_t<double, 3>  triNormal = normalVector (A, B, C);
 
             // choose a point P close to the center of the triangle
-            //const Vector_t P = (A+B+C)/3 + triNormal * 0.1;
+            //const Vector_t<double, 3> P = (A+B+C)/3 + triNormal * 0.1;
             double minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[0];
             if (minvoxelmesh > bg->voxelMesh_m.sizeOfVoxel[1])
                 minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[1];
             if (minvoxelmesh > bg->voxelMesh_m.sizeOfVoxel[2])
                 minvoxelmesh = bg->voxelMesh_m.sizeOfVoxel[2];
-            const Vector_t P = (A+B+C)/3 + triNormal * minvoxelmesh;
+            const Vector_t<double, 3> P = (A+B+C)/3 + triNormal * minvoxelmesh;
             /*
               The triangle normal points inward, if P is
               - outside the geometry and the dot product is negativ
@@ -2078,7 +2078,7 @@ Change orientation if diff is:
     for (i = 0; i < num_points; i++) {
         h5_float64_t P[3];
         H5FedGetVertexCoordsByIndex (m, i, P);
-        Points_m.push_back (Vector_t (
+        Points_m.push_back (Vector_t<double, 3> (
             P[0] * xyzscale * xscale,
             P[1] * xyzscale * yscale,
             P[2] * xyzscale * zscale + zshift));
@@ -2124,9 +2124,9 @@ Change orientation if diff is:
     TriAreas_m.resize (Triangles_m.size());
 
     for (size_t i = 0; i < Triangles_m.size(); i++) {
-        const Vector_t& A = getPoint (i, 1);
-        const Vector_t& B = getPoint (i, 2);
-        const Vector_t& C = getPoint (i, 3);
+        const Vector_t<double, 3>& A = getPoint (i, 1);
+        const Vector_t<double, 3>& B = getPoint (i, 2);
+        const Vector_t<double, 3>& C = getPoint (i, 3);
 
         TriAreas_m[i] = computeArea (A, B, C);
         TriNormals_m[i] = normalVector (A, B, C);
@@ -2154,9 +2154,9 @@ Change orientation if diff is:
  */
 int
 BoundaryGeometry::intersectTinyLineSegmentBoundary (
-    const Vector_t& P,                  // [i] starting point of ray
-    const Vector_t& Q,                  // [i] end point of ray
-    Vector_t& intersect_pt,             // [o] intersection with boundary
+    const Vector_t<double, 3>& P,                  // [i] starting point of ray
+    const Vector_t<double, 3>& Q,                  // [i] end point of ray
+    Vector_t<double, 3>& intersect_pt,             // [o] intersection with boundary
     int& triangle_id                    // [o] intersected triangle
     ) {
 #ifdef ENABLE_DEBUG
@@ -2167,13 +2167,13 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
               << endl;
     }
 #endif
-    const Vector_t v_ = Q - P;
+    const Vector_t<double, 3> v_ = Q - P;
     const Ray r = Ray (P, v_);
-    const Vector_t bbox_min = {
+    const Vector_t<double, 3> bbox_min = {
         std::min(P[0], Q[0]),
         std::min(P[1], Q[1]),
         std::min(P[2], Q[2]) };
-    const Vector_t bbox_max = {
+    const Vector_t<double, 3> bbox_max = {
         std::max(P[0], Q[0]),
         std::max(P[1], Q[1]),
         std::max(P[2], Q[2]) };
@@ -2183,7 +2183,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
     mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
 
-    Vector_t tmp_intersect_pt = Q;
+    Vector_t<double, 3> tmp_intersect_pt = Q;
     double tmin = 1.1;
 
     /*
@@ -2203,7 +2203,7 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
     for (int i = i_min; i <= i_max; i++) {
         for (int j = j_min; j <= j_max; j++) {
             for (int k = k_min; k <= k_max; k++) {
-                const Vector_t bmin = mapIndices2Voxel(i, j, k);
+                const Vector_t<double, 3> bmin = mapIndices2Voxel(i, j, k);
                 const Voxel v(bmin, bmin + voxelMesh_m.sizeOfVoxel);
 #ifdef ENABLE_DEBUG
                 if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
@@ -2306,9 +2306,9 @@ BoundaryGeometry::intersectTinyLineSegmentBoundary (
  */
 int
 BoundaryGeometry::intersectLineSegmentBoundary (
-    const Vector_t& P0,                 // [in] starting point of ray
-    const Vector_t& P1,                 // [in] end point of ray
-    Vector_t& intersect_pt,             // [out] intersection with boundary
+    const Vector_t<double, 3>& P0,                 // [in] starting point of ray
+    const Vector_t<double, 3>& P1,                 // [in] end point of ray
+    Vector_t<double, 3>& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] triangle the line segment intersects with
     ) {
 #ifdef ENABLE_DEBUG
@@ -2323,28 +2323,28 @@ BoundaryGeometry::intersectLineSegmentBoundary (
 #endif
     triangle_id = -1;
 
-    const Vector_t v = P1 - P0;
+    const Vector_t<double, 3> v = P1 - P0;
     int intersect_result = 0;
     int n = 0;
     int i_min, j_min, k_min;
     int i_max, j_max, k_max;
     do {
         n++;
-        Vector_t Q = P0 + v / n;
-        Vector_t bbox_min = {
+        Vector_t<double, 3> Q = P0 + v / n;
+        Vector_t<double, 3> bbox_min = {
             std::min(P0[0], Q[0]),
             std::min(P0[1], Q[1]),
             std::min(P0[2], Q[2]) };
-        Vector_t bbox_max = {
+        Vector_t<double, 3> bbox_max = {
             std::max(P0[0], Q[0]),
             std::max(P0[1], Q[1]),
             std::max(P0[2], Q[2]) };
         mapPoint2VoxelIndices (bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices (bbox_max, i_max, j_max, k_max);
     } while (( (i_max-i_min+1) * (j_max-j_min+1) * (k_max-k_min+1)) > 27);
-    Vector_t P = P0;
-    Vector_t Q;
-    const Vector_t v_ = v / n;
+    Vector_t<double, 3> P = P0;
+    Vector_t<double, 3> Q;
+    const Vector_t<double, 3> v_ = v / n;
 
     for (int l = 1; l <= n; l++, P = Q) {
         Q = P0 + l*v_;
@@ -2376,10 +2376,10 @@ BoundaryGeometry::intersectLineSegmentBoundary (
  */
 int
 BoundaryGeometry::partInside (
-    const Vector_t& r,                  // [in] particle position
-    const Vector_t& v,                  // [in] momentum
+    const Vector_t<double, 3>& r,                  // [in] particle position
+    const Vector_t<double, 3>& v,                  // [in] momentum
     const double dt,                    // [in]
-    Vector_t& intersect_pt,             // [out] intersection with boundary
+    Vector_t<double, 3>& intersect_pt,             // [out] intersection with boundary
     int& triangle_id                    // [out] intersected triangle
     ) {
 #ifdef ENABLE_DEBUG
@@ -2396,16 +2396,16 @@ BoundaryGeometry::partInside (
     int ret = -1;                       // result defaults to no collision
 
     // nothing to do if momenta == 0
-    if (v == (Vector_t)0)
+    if (v == (Vector_t<double, 3>)0)
         return ret;
 
     IpplTimings::startTimer (TPartInside_m);
 
     // P0, P1: particle position in time steps n and n+1
-    const Vector_t P0 = r;
-    const Vector_t P1 = r + (Physics::c * v * dt / std::sqrt (1.0 + dot(v,v)));
+    const Vector_t<double, 3> P0 = r;
+    const Vector_t<double, 3> P1 = r + (Physics::c * v * dt / std::sqrt (1.0 + dot(v,v)));
 
-    Vector_t tmp_intersect_pt = 0.0;
+    Vector_t<double, 3> tmp_intersect_pt = 0.0;
     int tmp_triangle_id = -1;
     intersectTinyLineSegmentBoundary (P0, P1, tmp_intersect_pt, tmp_triangle_id);
     if (tmp_triangle_id >= 0) {

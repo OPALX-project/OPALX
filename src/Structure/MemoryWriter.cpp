@@ -21,7 +21,7 @@
 #include "MemoryWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Utilities/Timer.h"
 #include "Physics/Units.h"
 #include "Ippl.h"
@@ -77,7 +77,7 @@ void MemoryWriter::fillHeader() {
 }
 
 
-void MemoryWriter::write(const PartBunchBase<double, 3> *beam)
+void MemoryWriter::write(const PartBunch<double, 3> *beam)
 {
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     memory->sample();

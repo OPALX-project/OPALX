@@ -186,8 +186,8 @@ void FM3DDynamic::readMap() {
                 << endl);
 
         if (Options::ebDump) {
-            std::vector<Vector_t> ef(num_gridpz_m * num_gridpy_m * num_gridpx_m, 0.0);
-            std::vector<Vector_t> bf(ef);
+            std::vector<Vector_t<double, 3>> ef(num_gridpz_m * num_gridpy_m * num_gridpx_m, 0.0);
+            std::vector<Vector_t<double, 3>> bf(ef);
             unsigned long l = 0;
             for (unsigned long k = 0; k < num_gridpz_m; ++ k) {
                 const unsigned long index_z = k;
@@ -195,10 +195,10 @@ void FM3DDynamic::readMap() {
                     const unsigned long index_y = j * deltaY;
                     for (unsigned long i = 0; i < num_gridpx_m; ++ i) {
                         const unsigned long index = i * deltaX + index_y + index_z;
-                        ef[l] = Vector_t(FieldstrengthEx_m[index],
+                        ef[l] = Vector_t<double, 3>(FieldstrengthEx_m[index],
                                          FieldstrengthEy_m[index],
                                          FieldstrengthEz_m[index]);
-                        bf[l] = Vector_t(FieldstrengthBx_m[index],
+                        bf[l] = Vector_t<double, 3>(FieldstrengthBx_m[index],
                                          FieldstrengthBy_m[index],
                                          FieldstrengthBz_m[index]);
                         ++ l;
@@ -238,7 +238,7 @@ void FM3DDynamic::freeMap() {
     }
 }
 
-bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
+bool FM3DDynamic::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const {
     const unsigned int index_x = static_cast<int>(std::floor((R(0) - xbegin_m) / hx_m));
     const double lever_x = (R(0) - xbegin_m) / hx_m - index_x;
 
@@ -318,7 +318,7 @@ bool FM3DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     return false;
 }
 
-bool FM3DDynamic::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
+bool FM3DDynamic::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
     return false;
 }
 
@@ -375,7 +375,7 @@ void FM3DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
     });
     std::ofstream out(fname);
     for(unsigned int i = 0; i < num_gridpz_m; ++ i) {
-        Vector_t R(0,0,zbegin_m + F[i].first), B(0.0), E(0.0);
+        Vector_t<double, 3> R(0,0,zbegin_m + F[i].first), B(0.0), E(0.0);
         getFieldstrength(R, E, B);
         out << std::setw(16) << std::setprecision(8) << F[i].first
             << std::setw(16) << std::setprecision(8) << E(0)

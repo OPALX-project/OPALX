@@ -17,7 +17,7 @@
 //
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
@@ -44,7 +44,7 @@ void Probe::accept(BeamlineVisitor &visitor) const {
     visitor.visitProbe(*this);
 }
 
-void Probe::doInitialise(PartBunchBase<double, 3> *bunch) {
+void Probe::doInitialise(PartBunch<double, 3> *bunch) {
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
     peakfinder_m = std::unique_ptr<PeakFinder> (new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
 }
@@ -64,8 +64,8 @@ double Probe::getStep() const {
     return step_m;
 }
 
-bool Probe::doPreCheck(PartBunchBase<double, 3> *bunch) {
-    Vector_t rmin, rmax;
+bool Probe::doPreCheck(PartBunch<double, 3> *bunch) {
+    Vector_t<double, 3> rmin, rmax;
     bunch->get_bounds(rmin, rmax);
     // interested in absolute minimum and maximum
     double xmin = std::min(std::abs(rmin(0)), std::abs(rmax(0)));
@@ -81,8 +81,8 @@ bool Probe::doPreCheck(PartBunchBase<double, 3> *bunch) {
     return false;
 }
 
-bool Probe::doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
-    Vector_t probepoint;
+bool Probe::doCheck(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+    Vector_t<double, 3> probepoint;
     size_t tempnum = bunch->getLocalNum();
 
     for (unsigned int i = 0; i < tempnum; ++i) {

@@ -28,7 +28,7 @@
 #include "Utilities/Timer.h"
 #include "Utilities/OpalException.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Units.h"
 
 #include <boost/filesystem.hpp>
@@ -197,7 +197,7 @@ void MemoryProfiler::compute(vm_t& vmMin,
 }
 
 
-void MemoryProfiler::write(const PartBunchBase<double, 3> *beam) {
+void MemoryProfiler::write(const PartBunch<double, 3> *beam) {
 
     this->update();
 

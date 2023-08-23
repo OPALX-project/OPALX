@@ -63,7 +63,7 @@
 #define CLASSIC_Tracker_HH
 
 #include "Algorithms/AbstractTracker.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
 
 #include "Utilities/ClassicField.h"
@@ -91,13 +91,13 @@ public:
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline &, PartBunchBase<double, 3> *bunch,
+    Tracker(const Beamline &, PartBunch<double, 3> *bunch,
             const PartData &, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
     /// Return the current bunch.
-    const PartBunchBase<double, 3> *getBunch() const;
+    const PartBunch<double, 3> *getBunch() const;
 
     /// Add particle to bunch.
     void addToBunch(const OpalParticle &);
@@ -123,7 +123,7 @@ public:
 protected:
 
     /// The bunch of particles to be tracked.
-    PartBunchBase<double, 3>* itsBunch_m;
+    PartBunch<double, 3>* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:

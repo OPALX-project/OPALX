@@ -71,10 +71,10 @@ MultipoleTBase::MultipoleTBase(const MultipoleTBase &right):
 MultipoleTBase::~MultipoleTBase() {
 }
 
-bool MultipoleTBase::apply(const Vector_t &R, const Vector_t &/*P*/,
-                           const double &/*t*/,Vector_t &/*E*/, Vector_t &B) {
+bool MultipoleTBase::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,
+                           const double &/*t*/,Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &B) {
     /** Rotate coordinates around the central axis of the magnet */
-    Vector_t R_prime = rotateFrame(R);
+    Vector_t<double, 3> R_prime = rotateFrame(R);
     /** Go to local Frenet-Serret coordinates */
     R_prime[2] *= -1; //OPAL uses a different sign convention...
     transformCoords(R_prime);
@@ -95,8 +95,8 @@ bool MultipoleTBase::apply(const Vector_t &R, const Vector_t &/*P*/,
     }
 }
 
-Vector_t MultipoleTBase::rotateFrame(const Vector_t &R) {
-    Vector_t R_prime(3), R_pprime(3);
+Vector_t<double, 3> MultipoleTBase::rotateFrame(const Vector_t<double, 3> &R) {
+    Vector_t<double, 3> R_prime(3), R_pprime(3);
     /** Apply two 2D rotation matrices to coordinate vector
       * Rotate around central axis => skew fields
       * Rotate azymuthaly => entrance angle
@@ -115,12 +115,12 @@ Vector_t MultipoleTBase::rotateFrame(const Vector_t &R) {
 
 }
 
-Vector_t MultipoleTBase::rotateFrameInverse(Vector_t &B) {
+Vector_t<double, 3> MultipoleTBase::rotateFrameInverse(Vector_t<double, 3> &B) {
     /** This function represents the inverse of the rotation
       * around the central axis performed by rotateFrame() method
       * Used to rotate B field back to global coordinate system
       */
-    Vector_t B_prime(3);
+    Vector_t<double, 3> B_prime(3);
     B_prime[0] = B[0] * cos(rotation_m) + B[1] * sin(rotation_m);
     B_prime[1] = - B[0] * sin(rotation_m) + B[1] * cos(rotation_m);
     B_prime[2] = B[2];
@@ -139,7 +139,7 @@ bool MultipoleTBase::setFringeField(const double &s0,
     return true;
 }
 
-double MultipoleTBase::getBz(const Vector_t &R) {
+double MultipoleTBase::getBz(const Vector_t<double, 3> &R) {
     if (std::abs(getFringeDeriv(0, R[2])) < 1.0e-12) {
         return 0.0;
     }
@@ -153,7 +153,7 @@ double MultipoleTBase::getBz(const Vector_t &R) {
     return Bz;
 }
 
-double MultipoleTBase::getBx(const Vector_t &R) {
+double MultipoleTBase::getBx(const Vector_t<double, 3> &R) {
     if (std::abs(getFringeDeriv(0, R[2])) < 1.0e-12) {
         return 0.0;
     }
@@ -168,7 +168,7 @@ double MultipoleTBase::getBx(const Vector_t &R) {
     return Bx;
 }
 
-double MultipoleTBase::getBs(const Vector_t &R) {
+double MultipoleTBase::getBs(const Vector_t<double, 3> &R) {
     if (std::abs(getFringeDeriv(0, R[2])) < 1.0e-12) {
         return 0.0;
     }

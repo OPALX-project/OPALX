@@ -168,8 +168,8 @@ void DumpFields::writeFieldThis(Component* field) {
     }
 
     double time = 0.;
-    Vector_t point(0., 0., 0.);
-    Vector_t centroid(0., 0., 0.);
+    Vector_t<double, 3> point(0., 0., 0.);
+    Vector_t<double, 3> centroid(0., 0., 0.);
     std::ofstream fout(fname.c_str(), std::ofstream::out);
     if (!fout.good()) {
         throw OpalException("DumpFields::writeFieldThis",
@@ -187,8 +187,8 @@ void DumpFields::writeFieldThis(Component* field) {
     for (interpolation::Mesh::Iterator it = grid_m->begin();
          it < grid_m->end();
          ++it) {
-        Vector_t E(0., 0., 0.);
-        Vector_t B(0., 0., 0.);
+        Vector_t<double, 3> E(0., 0., 0.);
+        Vector_t<double, 3> B(0., 0., 0.);
         it.getPosition(&point[0]);
         field->apply(point, centroid, time, E, B);
         fout << point[0] << " " << point[1] << " " << point[2] << " ";

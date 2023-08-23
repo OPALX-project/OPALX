@@ -45,8 +45,8 @@
 extern Inform *gmsg;
 
 OrbitThreader::OrbitThreader(const PartData &ref,
-                             const Vector_t &r,
-                             const Vector_t &p,
+                             const Vector_t<double, 3> &r,
+                             const Vector_t<double, 3> &p,
                              double s,
                              double maxDiffZBunch,
                              double t,
@@ -142,7 +142,7 @@ void OrbitThreader::execute() {
     updateBoundingBoxWithCurrentPosition();
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
 
-    Vector_t nextR = r_m / (Physics::c * dt_m);
+    Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
     nextR *= Physics::c * dt_m;
 
@@ -159,8 +159,8 @@ void OrbitThreader::execute() {
         }
         
         double initialS = pathLength_m;
-        Vector_t initialR = r_m;
-        Vector_t initialP = p_m;
+        Vector_t<double, 3> initialR = r_m;
+        Vector_t<double, 3> initialP = p_m;
         double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
 
         integrate(elementSet, maxDistance);
@@ -208,24 +208,24 @@ void OrbitThreader::execute() {
 
 void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double /*maxDrift*/) {
     CoordinateSystemTrafo labToBeamline = itsOpalBeamline_m.getCSTrafoLab2Local();
-    Vector_t nextR;
+    Vector_t<double, 3> nextR;
     do {
         errorFlag_m = EVERYTHINGFINE;
 
         IndexMap::value_t::const_iterator it = activeSet.begin();
         const IndexMap::value_t::const_iterator end = activeSet.end();
-        Vector_t oldR = r_m;
+        Vector_t<double, 3> oldR = r_m;
 
         r_m /= Physics::c * dt_m;
         integrator_m.push(r_m, p_m, dt_m);
         r_m *= Physics::c * dt_m;
 
-        Vector_t Ef(0.0), Bf(0.0);
+        Vector_t<double, 3> Ef(0.0), Bf(0.0);
         std::string names("\t");
         for (; it != end; ++ it) {
-            Vector_t localR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-            Vector_t localP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
-            Vector_t localE(0.0), localB(0.0);
+            Vector_t<double, 3> localR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
+            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
+            Vector_t<double, 3> localE(0.0), localB(0.0);
 
             if ((*it)->applyToReferenceParticle(localR, localP, time_m + 0.5 * dt_m, localE, localB)) {
                 errorFlag_m = HITMATERIAL;
@@ -310,8 +310,8 @@ void OrbitThreader::autophaseCavities(const IndexMap::value_t &activeSet,
              (*it)->getType() == ElementType::RFCAVITY) &&
             visitedElements.find((*it)->getName()) == visitedElements.end()) {
 
-            Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-            Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
+            Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
+            Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
 
             CavityAutophaser ap(reference_m, *it);
             ap.getPhaseAtMaxEnergy(initialR,
@@ -346,7 +346,7 @@ void OrbitThreader::trackBack() {
     std::swap(tmpRange, pathLengthRange_m);
     double initialPathLength = pathLength_m;
 
-    Vector_t nextR = r_m / (Physics::c * dt_m);
+    Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
     nextR *= Physics::c * dt_m;
 
@@ -370,8 +370,8 @@ void OrbitThreader::trackBack() {
 
 void OrbitThreader::registerElement(const IndexMap::value_t &elementSet,
                                     double start,
-                                    const Vector_t &R,
-                                    const Vector_t &P) {
+                                    const Vector_t<double, 3> &R,
+                                    const Vector_t<double, 3> &P) {
 
     IndexMap::value_t::const_iterator it = elementSet.begin();
     const IndexMap::value_t::const_iterator end = elementSet.end();
@@ -391,8 +391,8 @@ void OrbitThreader::registerElement(const IndexMap::value_t &elementSet,
 
         if (found) continue;
 
-        Vector_t initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
-        Vector_t initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
+        Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
+        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
         double elementEdge = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
 
         elementPosition ep = {start, pathLength_m, elementEdge};
@@ -471,18 +471,18 @@ void OrbitThreader::computeBoundingBox() {
 
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
-    Vector_t dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
-    for (const Vector_t& pos : {r_m - 10 * dR, r_m + 10 * dR}) {
+    Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
+    for (const Vector_t<double, 3>& pos : {r_m - 10 * dR, r_m + 10 * dR}) {
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(const std::set<std::shared_ptr<Component>> & elements,
-                                                      const Vector_t & position,
-                                                      const Vector_t & direction) const {
+                                                      const Vector_t<double, 3> & position,
+                                                      const Vector_t<double, 3> & direction) const {
     if (elements.empty() ||
         (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
-        boost::optional<Vector_t> intersectionPoint = globalBoundingBox_m.getIntersectionPoint(position, direction);
+        boost::optional<Vector_t<double, 3>> intersectionPoint = globalBoundingBox_m.getIntersectionPoint(position, direction);
 
         return intersectionPoint ? euclidean_norm(intersectionPoint.get() - position): 10.0;
     }

@@ -15,9 +15,9 @@ class FM1DProfile1: public Fieldmap {
 
 public:
 
-    virtual bool getFieldDerivative(const Vector_t &X,
-                                    Vector_t &E,
-                                    Vector_t &B,
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &X,
+                                    Vector_t<double, 3> &E,
+                                    Vector_t<double, 3> &B,
                                     const DiffDirection &dir) const;
     virtual void get1DProfile1EntranceParam(double &entranceParameter1,
                                            double &entranceParameter2,
@@ -34,9 +34,9 @@ public:
                                     double &yFinal,
                                     double &zIni,
                                     double &zFinal) const;
-    virtual bool getFieldstrength(const Vector_t &X,
-                                  Vector_t &strength,
-                                  Vector_t &info) const;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &X,
+                                  Vector_t<double, 3> &strength,
+                                  Vector_t<double, 3> &info) const;
     virtual double getFrequency() const;
     virtual void getInfo(Inform *);
     virtual void setFrequency(double freq);

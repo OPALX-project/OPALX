@@ -83,10 +83,10 @@ public:
     void initialize ();
 
     int partInside (
-        const Vector_t& r,
-        const Vector_t& v,
+        const Vector_t<double, 3>& r,
+        const Vector_t<double, 3>& v,
         const double dt,
-        Vector_t& intecoords,
+        Vector_t<double, 3>& intecoords,
         int& triId);
 
     Inform& printInfo (
@@ -146,7 +146,7 @@ public:
     /**
        Return the hr_m.
     */
-    inline Vector_t gethr () {
+    inline Vector_t<double, 3> gethr () {
         return voxelMesh_m.sizeOfVoxel;
     }
     /**
@@ -159,17 +159,17 @@ public:
     /**
        Return the mincoords_m.
      */
-    inline Vector_t getmincoords () {
+    inline Vector_t<double, 3> getmincoords () {
         return minExtent_m;
     }
     /**
        Return the maxcoords_m.
     */
-    inline Vector_t getmaxcoords () {
+    inline Vector_t<double, 3> getmaxcoords () {
         return maxExtent_m;
     }
 
-    inline bool getInsidePoint (Vector_t& pt) {
+    inline bool getInsidePoint (Vector_t<double, 3>& pt) {
         if (haveInsidePoint_m == false) {
             return false;
         }
@@ -180,13 +180,13 @@ public:
     bool findInsidePoint (void);
 
     int intersectRayBoundary (
-        const Vector_t& P,
-        const Vector_t& v,
-        Vector_t& I);
+        const Vector_t<double, 3>& P,
+        const Vector_t<double, 3>& v,
+        Vector_t<double, 3>& I);
 
     int fastIsInside (
-        const Vector_t& reference_pt,        // [in] a reference point
-        const Vector_t& P                    // [in] point to test
+        const Vector_t<double, 3>& reference_pt,        // [in] a reference point
+        const Vector_t<double, 3>& P                    // [in] point to test
         );
 
     enum DebugFlags {
@@ -208,7 +208,7 @@ public:
 
 private:
     bool isInside (
-        const Vector_t& P                    // [in] point to test
+        const Vector_t<double, 3>& P                    // [in] point to test
         );
 
     int intersectTriangleVoxel (
@@ -218,35 +218,35 @@ private:
         const int k);
 
     int intersectTinyLineSegmentBoundary (
-        const Vector_t&,
-        const Vector_t&,
-        Vector_t&,
+        const Vector_t<double, 3>&,
+        const Vector_t<double, 3>&,
+        Vector_t<double, 3>&,
         int&
         );
 
     int intersectLineSegmentBoundary (
-        const Vector_t& P0,
-        const Vector_t& P1,
-        Vector_t& intersection_pt,
+        const Vector_t<double, 3>& P0,
+        const Vector_t<double, 3>& P1,
+        Vector_t<double, 3>& intersection_pt,
         int& triangle_id
         );
 
     std::string h5FileName_m;           // H5hut filename
 
-    std::vector<Vector_t> Points_m;     // geometry point coordinates
+    std::vector<Vector_t<double, 3>> Points_m;     // geometry point coordinates
     std::vector<std::array<unsigned int,4>> Triangles_m;   // boundary faces defined via point IDs
                                         // please note: 4 is correct, historical reasons!
 
-    std::vector<Vector_t> TriNormals_m; // oriented normal vector of triangles
+    std::vector<Vector_t<double, 3>> TriNormals_m; // oriented normal vector of triangles
     std::vector<double> TriAreas_m;     // area of triangles
 
-    Vector_t minExtent_m;               // minimum of geometry coordinate.
-    Vector_t maxExtent_m;               // maximum of geometry coordinate.
+    Vector_t<double, 3> minExtent_m;               // minimum of geometry coordinate.
+    Vector_t<double, 3> maxExtent_m;               // maximum of geometry coordinate.
 
     struct {
-        Vector_t minExtent;
-        Vector_t maxExtent;
-        Vector_t sizeOfVoxel;
+        Vector_t<double, 3> minExtent;
+        Vector_t<double, 3> maxExtent;
+        Vector_t<double, 3> sizeOfVoxel;
         Vektor<int, 3> nr_m;            // number of intervals of geometry in X,Y,Z direction
         std::unordered_map<int,         // map voxel IDs ->
             std::unordered_set<int>> ids; // intersecting triangles
@@ -256,7 +256,7 @@ private:
     int debugFlags_m;
 
     bool haveInsidePoint_m;
-    Vector_t insidePoint_m;             // attribute INSIDEPOINT
+    Vector_t<double, 3> insidePoint_m;             // attribute INSIDEPOINT
 
     gsl_rng *randGen_m;         //
 
@@ -272,7 +272,7 @@ private:
     // Clone constructor.
     BoundaryGeometry(const std::string& name, BoundaryGeometry* parent);
 
-    inline const Vector_t& getPoint (const int triangle_id, const int vertex_id) {
+    inline const Vector_t<double, 3>& getPoint (const int triangle_id, const int vertex_id) {
         PAssert (1 <= vertex_id && vertex_id <=3);
         return Points_m[Triangles_m[triangle_id][vertex_id]];
     }
@@ -285,14 +285,14 @@ private:
 
     int intersectLineTriangle (
         const enum INTERSECTION_TESTS kind,
-        const Vector_t& P0,
-        const Vector_t& P1,
+        const Vector_t<double, 3>& P0,
+        const Vector_t<double, 3>& P1,
         const int triangle_id,
-        Vector_t& I);
+        Vector_t<double, 3>& I);
 
     inline int mapVoxelIndices2ID (const int i, const int j, const int k);
-    inline Vector_t mapIndices2Voxel (const int, const int, const int);
-    inline Vector_t mapPoint2Voxel (const Vector_t&);
+    inline Vector_t<double, 3> mapIndices2Voxel (const int, const int, const int);
+    inline Vector_t<double, 3> mapPoint2Voxel (const Vector_t<double, 3>&);
     inline void computeMeshVoxelization (void);
 
     enum {

@@ -19,7 +19,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
@@ -67,11 +67,11 @@ void Monitor::accept(BeamlineVisitor &visitor) const {
     visitor.visitMonitor(*this);
 }
 
-bool Monitor::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t &/*B*/) {
-    const Vector_t &R = RefPartBunch_m->R[i];
-    const Vector_t &P = RefPartBunch_m->P[i];
+bool Monitor::apply(const size_t &i, const double &t, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/) {
+    const Vector_t<double, 3> &R = RefPartBunch_m->R[i];
+    const Vector_t<double, 3> &P = RefPartBunch_m->P[i];
     const double &dt = RefPartBunch_m->dt[i];
-    const Vector_t singleStep  = Physics::c * dt * Util::getBeta(P);
+    const Vector_t<double, 3> singleStep  = Physics::c * dt * Util::getBeta(P);
     if (online_m && type_m == CollectionType::SPATIAL) {
         if (dt * R(2) < 0.0 &&
             dt * (R(2) + singleStep(2)) > 0.0) {
@@ -90,36 +90,36 @@ bool Monitor::apply(const size_t &i, const double &t, Vector_t &/*E*/, Vector_t 
     return false;
 }
 
-void Monitor::driftToCorrectPositionAndSave(const Vector_t& refR, const Vector_t& refP) {
+void Monitor::driftToCorrectPositionAndSave(const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
     const double cdt = Physics::c * RefPartBunch_m->getdT();
-    const Vector_t driftPerTimeStep = cdt * Util::getBeta(refP);
+    const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
     const double tau = -refR(2) / driftPerTimeStep(2);
-    const CoordinateSystemTrafo update(refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t(0, 0, 1)));
+    const CoordinateSystemTrafo update(refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0, 0, 1)));
     const CoordinateSystemTrafo refToLocalCSTrafo = update * (getCSTrafoGlobal2Local() * RefPartBunch_m->toLabTrafo_m);
 
     for (OpalParticle particle : *RefPartBunch_m) {
-        Vector_t beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
-        Vector_t dS = (tau - 0.5) * cdt * beta; // the particles are half a step ahead relative to the reference particle
+        Vector_t<double, 3> beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
+        Vector_t<double, 3> dS = (tau - 0.5) * cdt * beta; // the particles are half a step ahead relative to the reference particle
         particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
         lossDs_m->addParticle(particle);
     }
 }
 
-bool Monitor::applyToReferenceParticle(const Vector_t &R,
-                                       const Vector_t &P,
+bool Monitor::applyToReferenceParticle(const Vector_t<double, 3> &R,
+                                       const Vector_t<double, 3> &P,
                                        const double &t,
-                                       Vector_t &,
-                                       Vector_t &) {
+                                       Vector_t<double, 3> &,
+                                       Vector_t<double, 3> &) {
     if (!OpalData::getInstance()->isInPrepState()) {
         const double dt = RefPartBunch_m->getdT();
         const double cdt = Physics::c * dt;
-        const Vector_t singleStep = cdt * Util::getBeta(P);
+        const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
 
         if (dt * R(2) < 0.0 &&
             dt * (R(2) + singleStep(2)) > 0.0) {
             double frac = -R(2) / singleStep(2);
             double time = t + frac * dt;
-            Vector_t dR = frac * singleStep;
+            Vector_t<double, 3> dR = frac * singleStep;
             double ds = euclidean_norm(dR + 0.5 * singleStep);
             lossDs_m->addReferenceParticle(csTrafoGlobal2Local_m.transformFrom(R + dR),
                                            csTrafoGlobal2Local_m.rotateFrom(P),
@@ -148,7 +148,7 @@ bool Monitor::applyToReferenceParticle(const Vector_t &R,
     return false;
 }
 
-void Monitor::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
+void Monitor::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + halfLength_s;
     startField -= halfLength_s;

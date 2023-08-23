@@ -96,8 +96,8 @@ void FM1DMagnetoStatic_fast::freeMap() {
     }
 }
 
-bool FM1DMagnetoStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
-                                              Vector_t &B) const {
+bool FM1DMagnetoStatic_fast::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E,
+                                              Vector_t<double, 3> &B) const {
 
     std::vector<double> fieldComponents;
     computeFieldOnAxis(R(2) - zBegin_m, fieldComponents);
@@ -107,9 +107,9 @@ bool FM1DMagnetoStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
 
 }
 
-bool FM1DMagnetoStatic_fast::getFieldDerivative(const Vector_t &R,
-                                                Vector_t &/*E*/,
-                                                Vector_t &B,
+bool FM1DMagnetoStatic_fast::getFieldDerivative(const Vector_t<double, 3> &R,
+                                                Vector_t<double, 3> &/*E*/,
+                                                Vector_t<double, 3> &B,
                                                 const DiffDirection &/*dir*/) const {
 
     B(2) += gsl_spline_eval(onAxisFieldPInterpolants_m, R(2) - zBegin_m,
@@ -192,9 +192,9 @@ void FM1DMagnetoStatic_fast::computeFieldDerivatives(std::vector<double> fourier
     }
 }
 
-void FM1DMagnetoStatic_fast::computeFieldOffAxis(const Vector_t &R,
-                                                 Vector_t &/*E*/,
-                                                 Vector_t &B,
+void FM1DMagnetoStatic_fast::computeFieldOffAxis(const Vector_t<double, 3> &R,
+                                                 Vector_t<double, 3> &/*E*/,
+                                                 Vector_t<double, 3> &B,
                                                  std::vector<double> fieldComponents) const {
 
     double radiusSq = pow(R(0), 2.0) + pow(R(1), 2.0);

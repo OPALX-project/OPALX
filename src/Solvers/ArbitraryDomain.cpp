@@ -38,8 +38,8 @@
 #include "Index/NDIndex.h"
 
 ArbitraryDomain::ArbitraryDomain( BoundaryGeometry * bgeom,
-                                  IntVector_t nr,
-                                  Vector_t hr,
+                                  IntVector_t<double, 3> nr,
+                                  Vector_t<double, 3> hr,
                                   std::string interpl)
     : IrregularDomain(nr, hr, interpl)
 {
@@ -63,7 +63,7 @@ ArbitraryDomain::~ArbitraryDomain() {
     //nothing so far
 }
 
-void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
+void ArbitraryDomain::compute(Vector_t<double, 3> hr, NDIndex<3> localId){
 
     INFOMSG(level2 << "* Starting the Boundary Intersection Tests..." << endl);
 
@@ -86,8 +86,8 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
     intersectHiZ_m.clear();
 
     // Calculate intersection
-    Vector_t P, dir, I;
-    Vector_t P0 = globalInsideP0_m;
+    Vector_t<double, 3> P, dir, I;
+    Vector_t<double, 3> P0 = globalInsideP0_m;
 
     // We cannot assume that the geometry is symmetric about the xy, xz, and yz planes!
     // In my spiral inflector simulation, this is not the case for z direction for
@@ -119,7 +119,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 
                     std::tuple<int, int, int> pos(idx, idy, idz);
 
-                    dir = Vector_t(0, 0, 1);
+                    dir = Vector_t<double, 3>(0, 0, 1);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
                         intersectHiZ_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[2]));
@@ -139,7 +139,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 #endif
                     }
 
-                    dir = Vector_t(0, 1, 0);
+                    dir = Vector_t<double, 3>(0, 1, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
                         intersectHiY_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[1]));
@@ -159,7 +159,7 @@ void ArbitraryDomain::compute(Vector_t hr, NDIndex<3> localId){
 #endif
                     }
 
-                    dir = Vector_t(1, 0, 0);
+                    dir = Vector_t<double, 3>(1, 0, 0);
 
                     if (bgeom_m->intersectRayBoundary(P, dir, I)) {
                         intersectHiX_m.insert(std::pair< std::tuple<int, int, int>, double >(pos, I[0]));

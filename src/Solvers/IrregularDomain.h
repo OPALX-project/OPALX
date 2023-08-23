@@ -57,10 +57,10 @@ public:
 
     typedef Stencil<int>    StencilIndex_t;
     typedef Stencil<double> StencilValue_t;
-    typedef Vektor<int, 3>  IntVector_t;
+    typedef Vektor<int, 3>  IntVector_t<double, 3>;
 
-    IrregularDomain(const IntVector_t& nr,
-                    const Vector_t& hr,
+    IrregularDomain(const IntVector_t<double, 3>& nr,
+                    const Vector_t<double, 3>& hr,
                     const std::string& interpl);
 
 
@@ -68,7 +68,7 @@ public:
      * (stored in some appropriate data structure)
      * \param hr updated mesh spacings
      */
-    virtual void compute(Vector_t hr, NDIndex<3> localId) = 0;
+    virtual void compute(Vector_t<double, 3> hr, NDIndex<3> localId) = 0;
 
     /// method to calculate the stencil at a boundary points
     /// \param x index of the current element in the matrix
@@ -111,11 +111,11 @@ public:
     /// \return boolean indicating if the point lies inside the boundary
     virtual bool isInside(int x, int y, int z)  const = 0;
 
-    IntVector_t getNr() const { return nr_m; }
-    Vector_t    getHr() const { return hr_m; }
+    IntVector_t<double, 3> getNr() const { return nr_m; }
+    Vector_t<double, 3>    getHr() const { return hr_m; }
 
-    void setNr(IntVector_t nr) { nr_m = nr; }
-    void setHr(Vector_t hr)    { hr_m = hr; }
+    void setNr(IntVector_t<double, 3> nr) { nr_m = nr; }
+    void setHr(Vector_t<double, 3> hr)    { hr_m = hr; }
 
     void setMinMaxZ(double minz, double maxz) {
         zMin_m = minz;
@@ -132,15 +132,15 @@ public:
     double getZRangeMin() const { return min_m(2); }
     double getZRangeMax() const { return max_m(2); }
 
-    void setRangeMin(const Vector_t& min) { min_m = min; }
-    void setRangeMax(const Vector_t& max) { max_m = max; }
+    void setRangeMin(const Vector_t<double, 3>& min) { min_m = min; }
+    void setRangeMax(const Vector_t<double, 3>& max) { max_m = max; }
 
     bool hasGeometryChanged() const { return hasGeometryChanged_m; }
 
     virtual ~IrregularDomain() {};
 
-    virtual void resizeMesh(Vector_t& origin, Vector_t& hr,
-                            const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
+    virtual void resizeMesh(Vector_t<double, 3>& origin, Vector_t<double, 3>& hr,
+                            const Vector_t<double, 3>& /*rmin*/, const Vector_t<double, 3>& /*rmax*/,
                             double /*dh*/);
 
 protected:
@@ -162,16 +162,16 @@ protected:
 
     // a irregular domain is always defined on a grid
     /// number of mesh points in each direction
-    IntVector_t nr_m;
+    IntVector_t<double, 3> nr_m;
     /// mesh-spacings in each direction
-    Vector_t hr_m;
+    Vector_t<double, 3> hr_m;
 
     /// min/max of bunch in floor coordinates
     double zMin_m;
     double zMax_m;
 
-    Vector_t min_m;
-    Vector_t max_m;
+    Vector_t<double, 3> min_m;
+    Vector_t<double, 3> max_m;
 
     /// flag indicating if geometry has changed for the current time-step
     bool hasGeometryChanged_m;

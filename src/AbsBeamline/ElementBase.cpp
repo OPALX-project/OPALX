@@ -66,90 +66,79 @@
 
 #include <boost/filesystem.hpp>
 
-
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
-    {ElementType::ANY,                "Any"},
-    {ElementType::BEAMLINE,           "Beamline"},
-    {ElementType::DRIFT,              "Drift"},
-    {ElementType::MARKER,            "Marker"},
-    {ElementType::MULTIPOLE,          "Multipole"},
-    {ElementType::RFCAVITY,           "RFCavity"},
-    {ElementType::TRAVELINGWAVE,      "TravelingWave"},
-    {ElementType::SBEND,              "SBEND"},
-    {ElementType::RBEND,              "RBEND"},
-    {ElementType::RBEND3D,            "RBEND3D"},
-    {ElementType::RING,              "Ring"},
-    {ElementType::SOURCE,            "SOURCE"},
-    {ElementType::PROBE,            "Probe"},
-    {ElementType::VACUUM,            "Vacuum"}
-};
+    {ElementType::ANY, "Any"},
+    {ElementType::BEAMLINE, "Beamline"},
+    {ElementType::DRIFT, "Drift"},
+    {ElementType::MARKER, "Marker"},
+    {ElementType::MULTIPOLE, "Multipole"},
+    {ElementType::RFCAVITY, "RFCavity"},
+    {ElementType::TRAVELINGWAVE, "TravelingWave"},
+    {ElementType::SBEND, "SBEND"},
+    {ElementType::RBEND, "RBEND"},
+    {ElementType::RBEND3D, "RBEND3D"},
+    {ElementType::RING, "Ring"},
+    {ElementType::SOURCE, "SOURCE"},
+    {ElementType::PROBE, "Probe"},
+    {ElementType::VACUUM, "Vacuum"}};
 
-ElementBase::ElementBase():
-    ElementBase("")
-{}
-
-
-ElementBase::ElementBase(const ElementBase &right):
-    RCObject(),
-    shareFlag(true),
-    csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
-    misalignment_m(right.misalignment_m),
-    aperture_m(right.aperture_m),
-    elementEdge_m(right.elementEdge_m),
-    rotationZAxis_m(right.rotationZAxis_m),
-    elementID(right.elementID),
-    userAttribs(right.userAttribs),
-    wake_m(right.wake_m),
-    bgeometry_m(right.bgeometry_m),
-    parmatint_m(right.parmatint_m),
-    positionIsFixed(right.positionIsFixed),
-    elementPosition_m(right.elementPosition_m),
-    elemedgeSet_m(right.elemedgeSet_m),
-    outputfn_m(right.outputfn_m),
-    deleteOnTransverseExit_m(right.deleteOnTransverseExit_m)
-{
-
+ElementBase::ElementBase() : ElementBase("") {
 }
 
+ElementBase::ElementBase(const ElementBase& right)
+    : RCObject(),
+      shareFlag(true),
+      csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
+      misalignment_m(right.misalignment_m),
+      aperture_m(right.aperture_m),
+      elementEdge_m(right.elementEdge_m),
+      rotationZAxis_m(right.rotationZAxis_m),
+      elementID(right.elementID),
+      userAttribs(right.userAttribs),
+      wake_m(right.wake_m),
+      bgeometry_m(right.bgeometry_m),
+      parmatint_m(right.parmatint_m),
+      positionIsFixed(right.positionIsFixed),
+      elementPosition_m(right.elementPosition_m),
+      elemedgeSet_m(right.elemedgeSet_m),
+      outputfn_m(right.outputfn_m),
+      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m) {
+}
 
-ElementBase::ElementBase(const std::string &name):
-    RCObject(),
-    shareFlag(true),
-    csTrafoGlobal2Local_m(),
-    misalignment_m(),
-    elementEdge_m(0),
-    rotationZAxis_m(0.0),
-    elementID(name),
-    userAttribs(),
-    wake_m(nullptr),
-    bgeometry_m(nullptr),
-    parmatint_m(nullptr),
-    positionIsFixed(false),
-    elementPosition_m(0.0),
-    elemedgeSet_m(false),
-    outputfn_m("")
-{}
-
+ElementBase::ElementBase(const std::string& name)
+    : RCObject(),
+      shareFlag(true),
+      csTrafoGlobal2Local_m(),
+      misalignment_m(),
+      elementEdge_m(0),
+      rotationZAxis_m(0.0),
+      elementID(name),
+      userAttribs(),
+      wake_m(nullptr),
+      bgeometry_m(nullptr),
+      parmatint_m(nullptr),
+      positionIsFixed(false),
+      elementPosition_m(0.0),
+      elemedgeSet_m(false),
+      outputfn_m("") {
+}
 
 ElementBase::~ElementBase()
 
-{}
+{
+}
 
-
-const std::string &ElementBase::getName() const {
+const std::string& ElementBase::getName() const {
     return elementID;
 }
 
-
-void ElementBase::setName(const std::string &name) {
+void ElementBase::setName(const std::string& name) {
     elementID = name;
 }
-
 
 void ElementBase::setOutputFN(const std::string fn) {
     outputfn_m = fn;
 }
-
 
 std::string ElementBase::getOutputFN() const {
     if (outputfn_m.empty()) {
@@ -160,9 +149,8 @@ std::string ElementBase::getOutputFN() const {
     }
 }
 
-
-double ElementBase::getAttribute(const std::string &aKey) const {
-    const ConstChannel *aChannel = getConstChannel(aKey);
+double ElementBase::getAttribute(const std::string& aKey) const {
+    const ConstChannel* aChannel = getConstChannel(aKey);
 
     if (aChannel != nullptr) {
         double val = *aChannel;
@@ -173,9 +161,8 @@ double ElementBase::getAttribute(const std::string &aKey) const {
     }
 }
 
-
-bool ElementBase::hasAttribute(const std::string &aKey) const {
-    const ConstChannel *aChannel = getConstChannel(aKey);
+bool ElementBase::hasAttribute(const std::string& aKey) const {
+    const ConstChannel* aChannel = getConstChannel(aKey);
 
     if (aChannel != nullptr) {
         delete aChannel;
@@ -185,40 +172,35 @@ bool ElementBase::hasAttribute(const std::string &aKey) const {
     }
 }
 
-
-void ElementBase::removeAttribute(const std::string &aKey) {
+void ElementBase::removeAttribute(const std::string& aKey) {
     userAttribs.removeAttribute(aKey);
 }
 
+void ElementBase::setAttribute(const std::string& aKey, double val) {
+    Channel* aChannel = getChannel(aKey, true);
 
-void ElementBase::setAttribute(const std::string &aKey, double val) {
-    Channel *aChannel = getChannel(aKey, true);
-
-    if (aChannel != nullptr  &&  aChannel->isSettable()) {
+    if (aChannel != nullptr && aChannel->isSettable()) {
         *aChannel = val;
         delete aChannel;
     } else
         std::cout << "Channel nullptr or not Settable" << std::endl;
 }
 
-
-Channel *ElementBase::getChannel(const std::string &aKey, bool create) {
+Channel* ElementBase::getChannel(const std::string& aKey, bool create) {
     return userAttribs.getChannel(aKey, create);
 }
 
-
-const ConstChannel *ElementBase::getConstChannel(const std::string &aKey) const {
+const ConstChannel* ElementBase::getConstChannel(const std::string& aKey) const {
     // Use const_cast to allow calling the non-const method GetChannel().
     // The const return value of this method will nevertheless inhibit set().
-    return const_cast<ElementBase *>(this)->getChannel(aKey);
+    return const_cast<ElementBase*>(this)->getChannel(aKey);
 }
-
 
 std::string ElementBase::getTypeString(ElementType type) {
     return elementTypeToString_s.at(type);
 }
 
-ElementBase *ElementBase::copyStructure() {
+ElementBase* ElementBase::copyStructure() {
     if (isSharable()) {
         return this;
     } else {
@@ -226,13 +208,11 @@ ElementBase *ElementBase::copyStructure() {
     }
 }
 
-
 void ElementBase::makeSharable() {
     shareFlag = true;
 }
 
-
-bool ElementBase::update(const AttributeSet &set) {
+bool ElementBase::update(const AttributeSet& set) {
     for (AttributeSet::const_iterator i = set.begin(); i != set.end(); ++i) {
         setAttribute(i->first, i->second);
     }
@@ -240,15 +220,15 @@ bool ElementBase::update(const AttributeSet &set) {
     return true;
 }
 
-void ElementBase::setWake(WakeFunction *wk) {
-    wake_m = wk;//->clone(getName() + std::string("_wake")); }
+void ElementBase::setWake(WakeFunction* wk) {
+    wake_m = wk;  //->clone(getName() + std::string("_wake")); }
 }
 
-void ElementBase::setBoundaryGeometry(BoundaryGeometry *geo) {
-    bgeometry_m = geo;//->clone(getName() + std::string("_wake")); }
+void ElementBase::setBoundaryGeometry(BoundaryGeometry* geo) {
+    bgeometry_m = geo;  //->clone(getName() + std::string("_wake")); }
 }
 
-void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler *parmatint) {
+void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler* parmatint) {
     parmatint_m = parmatint;
 }
 
@@ -261,46 +241,47 @@ void ElementBase::setCurrentSCoordinate(double s) {
     }
 }
 
-bool ElementBase::isInsideTransverse(const Vector_t &r) const
-{
-    const double &xLimit = aperture_m.second[0];
-    const double &yLimit = aperture_m.second[1];
-    double factor = 1.0;
-    if (aperture_m.first == ApertureType::CONIC_RECTANGULAR ||
-        aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
-        Vector_t rRelativeToBegin = getEdgeToBegin().transformTo(r);
-        double fractionLength = rRelativeToBegin(2) / getElementLength();
-        factor = fractionLength * aperture_m.second[2];
+bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
+    const double& xLimit = aperture_m.second[0];
+    const double& yLimit = aperture_m.second[1];
+    double factor        = 1.0;
+    if (aperture_m.first == ApertureType::CONIC_RECTANGULAR
+        || aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
+        Vector_t<double, 3> rRelativeToBegin = getEdgeToBegin().transformTo(r);
+        double fractionLength     = rRelativeToBegin(2) / getElementLength();
+        factor                    = fractionLength * aperture_m.second[2];
     }
 
-    switch(aperture_m.first) {
-    case ApertureType::RECTANGULAR:
-        return (std::abs(r[0]) < xLimit && std::abs(r[1]) < yLimit);
-    case ApertureType::ELLIPTICAL:
-        return (std::pow(r[0] / xLimit, 2) + std::pow(r[1] / yLimit, 2) < 1.0);
-    case ApertureType::CONIC_RECTANGULAR:
-        return (std::abs(r[0]) < factor * xLimit && std::abs(r[1]) < factor * yLimit);
-    case ApertureType::CONIC_ELLIPTICAL:
-        return (std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2) < 1.0);
-    default:
-        return false;
+    switch (aperture_m.first) {
+        case ApertureType::RECTANGULAR:
+            return (std::abs(r[0]) < xLimit && std::abs(r[1]) < yLimit);
+        case ApertureType::ELLIPTICAL:
+            return (std::pow(r[0] / xLimit, 2) + std::pow(r[1] / yLimit, 2) < 1.0);
+        case ApertureType::CONIC_RECTANGULAR:
+            return (std::abs(r[0]) < factor * xLimit && std::abs(r[1]) < factor * yLimit);
+        case ApertureType::CONIC_ELLIPTICAL:
+            return (
+                std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2)
+                < 1.0);
+        default:
+            return false;
     }
 }
 
 BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
     CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
-    CoordinateSystemTrafo toEnd = getEdgeToEnd() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toEnd   = getEdgeToEnd() * csTrafoGlobal2Local_m;
 
-    const double &x = aperture_m.second[0];
-    const double &y = aperture_m.second[1];
-    const double &f = aperture_m.second[2];
+    const double& x = aperture_m.second[0];
+    const double& y = aperture_m.second[1];
+    const double& f = aperture_m.second[2];
 
-    std::vector<Vector_t> corners(8);
+    std::vector<Vector_t<double, 3>> corners(8);
     for (int i = -1; i < 2; i += 2) {
         for (int j = -1; j < 2; j += 2) {
-            unsigned int idx = (i + 1)/2 + (j + 1);
-            corners[idx] = toBegin.transformFrom(Vector_t(i * x, j * y, 0.0));
-            corners[idx + 4] = toEnd.transformFrom(Vector_t(i * f * x, j * f * y, 0.0));
+            unsigned int idx = (i + 1) / 2 + (j + 1);
+            corners[idx]     = toBegin.transformFrom(Vector_t<double, 3>({i * x, j * y, 0.0}));
+            corners[idx + 4] = toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
         }
     }
 

@@ -25,8 +25,8 @@ class RegularDomain : public IrregularDomain {
 
 public:
 
-    RegularDomain(const IntVector_t& nr,
-                  const Vector_t& hr,
+    RegularDomain(const IntVector_t<double, 3>& nr,
+                  const Vector_t<double, 3>& hr,
                   const std::string& interpl);
 
     int getNumXY() const override {
@@ -35,8 +35,8 @@ public:
 
     void setNumXY(int nxy) { nxy_m = nxy; }
 
-    void resizeMesh(Vector_t& origin, Vector_t& hr, const Vector_t& rmin,
-                    const Vector_t& rmax, double dh) override;
+    void resizeMesh(Vector_t<double, 3>& origin, Vector_t<double, 3>& hr, const Vector_t<double, 3>& rmin,
+                    const Vector_t<double, 3>& rmax, double dh) override;
 
 protected:
     /// function to handle the open boundary condition in longitudinal direction

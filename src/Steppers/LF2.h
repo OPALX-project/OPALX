@@ -30,16 +30,16 @@ public:
     LF2(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments ...>(fieldfunc) { }
     
 private:
-    bool doAdvance_m(PartBunchBase<double, 3>* bunch,
+    bool doAdvance_m(PartBunch<double, 3>* bunch,
                      const size_t& i,
                      const double& t,
                      const double dt,
                      Arguments& ... args) const;
     
     
-    void push_m(Vector_t& R, const Vector_t& P, const double& h) const;
+    void push_m(Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& h) const;
     
-    bool kick_m(PartBunchBase<double, 3>* bunch, const size_t& i,
+    bool kick_m(PartBunch<double, 3>* bunch, const size_t& i,
                 const double& t, const double& h,
                 Arguments& ... args) const;
 };

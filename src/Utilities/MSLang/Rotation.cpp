@@ -16,8 +16,8 @@ namespace mslang {
 
     void Rotation::applyRotation(std::vector<std::shared_ptr<Base> > &bfuncs) {
 
-        AffineTransformation rotation(Vector_t(cos(angle_m), sin(angle_m), 0.0),
-                                      Vector_t(-sin(angle_m), cos(angle_m), 0.0));
+        AffineTransformation rotation(Vector_t<double, 3>(cos(angle_m), sin(angle_m), 0.0),
+                                      Vector_t<double, 3>(-sin(angle_m), cos(angle_m), 0.0));
 
         const unsigned int size = bfuncs.size();
 

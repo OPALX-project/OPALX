@@ -80,7 +80,7 @@ class SectorField {
      *  \returns true if any field value is non-zero
      */
     /* virtual bool getFieldstrengthPolar */
-    /*               (const Vector_t &R_p, Vector_t &E_p, Vector_t &B_p) const = 0; */
+    /*               (const Vector_t<double, 3> &R_p, Vector_t<double, 3> &E_p, Vector_t<double, 3> &B_p) const = 0; */
 
     /** Return the field value in cartesian coordinates
      *
@@ -100,7 +100,7 @@ class SectorField {
      *  \returns true if any field value is non-zero
      */
     virtual bool getFieldstrength
-                  (const Vector_t &R_c, Vector_t &E_c, Vector_t &B_c) const = 0;
+                  (const Vector_t<double, 3> &R_c, Vector_t<double, 3> &E_c, Vector_t<double, 3> &B_c) const = 0;
 
     /** Convert a position from cartesian to polar coordinates
      *

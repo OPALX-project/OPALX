@@ -69,8 +69,8 @@ void FM1DElectroStatic::freeMap() {
     }
 }
 
-bool FM1DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E,
-                                         Vector_t &B) const {
+bool FM1DElectroStatic::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E,
+                                         Vector_t<double, 3> &B) const {
 
     std::vector<double> fieldComponents;
     computeFieldOnAxis(R(2) - zBegin_m, fieldComponents);
@@ -79,9 +79,9 @@ bool FM1DElectroStatic::getFieldstrength(const Vector_t &R, Vector_t &E,
     return false;
 }
 
-bool FM1DElectroStatic::getFieldDerivative(const Vector_t &R,
-                                           Vector_t &E,
-                                           Vector_t &/*B*/,
+bool FM1DElectroStatic::getFieldDerivative(const Vector_t<double, 3> &R,
+                                           Vector_t<double, 3> &E,
+                                           Vector_t<double, 3> &/*B*/,
                                            const DiffDirection &/*dir*/) const {
 
     double kz = Physics::two_pi * (R(2) - zBegin_m) / length_m + Physics::pi;
@@ -139,9 +139,9 @@ bool FM1DElectroStatic::checkFileData(std::ifstream &fieldFile,
 
 }
 
-void FM1DElectroStatic::computeFieldOffAxis(const Vector_t &R,
-                                            Vector_t &E,
-                                            Vector_t &/*B*/,
+void FM1DElectroStatic::computeFieldOffAxis(const Vector_t<double, 3> &R,
+                                            Vector_t<double, 3> &E,
+                                            Vector_t<double, 3> &/*B*/,
                                             std::vector<double> fieldComponents) const {
 
     double radiusSq = pow(R(0), 2.0) + pow(R(1), 2.0);

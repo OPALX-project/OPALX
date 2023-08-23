@@ -28,7 +28,7 @@
 #include "AbstractObjects/ObjectFunction.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/ValueDefinition.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/FileStream.h"
@@ -112,7 +112,7 @@ struct OpalDataImpl {
 
     bool hasBunchAllocated_m;
     // The particle bunch to be tracked.
-    PartBunchBase<double, 3> *bunch_m;
+    PartBunch<double, 3> *bunch_m;
 
     bool hasDataSinkAllocated_m;
 
@@ -370,11 +370,11 @@ void OpalData::bunchIsAllocated() {
     p->hasBunchAllocated_m = true;
 }
 
-void OpalData::setPartBunch(PartBunchBase<double, 3> *b) {
+void OpalData::setPartBunch(PartBunch<double, 3> *b) {
     p->bunch_m = b;
 }
 
-PartBunchBase<double, 3> *OpalData::getPartBunch() {
+PartBunch<double, 3> *OpalData::getPartBunch() {
     return p->bunch_m;
 }
 

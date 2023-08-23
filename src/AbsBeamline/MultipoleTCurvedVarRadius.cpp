@@ -58,7 +58,7 @@ ElementBase* MultipoleTCurvedVarRadius::clone() const {
     return new MultipoleTCurvedVarRadius(*this);
 }
 
-void MultipoleTCurvedVarRadius::transformCoords(Vector_t &R) {
+void MultipoleTCurvedVarRadius::transformCoords(Vector_t<double, 3> &R) {
     std::vector<double> fringeLength = getFringeLength();
     coordinatetransform::CoordinateTransform t(R[0], R[1], R[2],
                                                getLength() / 2,
@@ -71,8 +71,8 @@ void MultipoleTCurvedVarRadius::transformCoords(Vector_t &R) {
     R[2] = r[2];
 }
 
-void MultipoleTCurvedVarRadius::transformBField(Vector_t &B,
-                                                const Vector_t &R) {
+void MultipoleTCurvedVarRadius::transformBField(Vector_t<double, 3> &B,
+                                                const Vector_t<double, 3> &R) {
     double length = getLength();
     std::vector<double> fringeLength = getFringeLength();
     double prefactor = (length / angle_m) *

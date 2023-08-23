@@ -25,16 +25,16 @@ namespace Options {
     // The global program options.
     bool echo = false;
 
-    bool info = true;
+    bool info     = true;
     int infoLevel = 1;
 
     bool mtrace = false;
 
-    bool warn = true;
+    bool warn     = true;
     int warnLevel = 1;
 
     Random rangen;
-    int seed  = 123456789;
+    int seed = 123456789;
 
     int psDumpFreq = 10;
 
@@ -96,12 +96,6 @@ namespace Options {
 
     int version = 10000;
 
-    bool amr = false;
-
-    int amrYtDumpFreq = 10;
-
-    int amrRegridFreq = 10;
-
     bool memoryDump = false;
 
     double haloShift = 0.0;
@@ -109,4 +103,4 @@ namespace Options {
     unsigned int delPartFreq = 1;
 
     bool computePercentiles = false;
-}
+}  // namespace Options

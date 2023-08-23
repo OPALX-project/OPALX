@@ -31,7 +31,7 @@
 #include <stack>
 
 template <class T = double, unsigned Dim = 3>
-class PartBunchBase;
+class PartBunch;
 
 class AttributeBase;
 class Object;
@@ -223,9 +223,9 @@ public:
 
     void bunchIsAllocated();
 
-    PartBunchBase<double, 3> *getPartBunch();
+    PartBunch<double, 3> *getPartBunch();
 
-    void setPartBunch(PartBunchBase<double, 3> *p);
+    void setPartBunch(PartBunch<double, 3> *p);
 
     /// true if we already allocated a DataSink object
     bool hasDataSinkAllocated();

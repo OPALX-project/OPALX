@@ -113,8 +113,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const Vector_t &R, const Vector_t &P, const double &t,
-               Vector_t &E, Vector_t &B) override;
+    bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t,
+               Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event override; field is calculated at this
      *  position
@@ -124,13 +124,13 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
+    bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    void initialise(PartBunchBase<double, 3>*,
+    void initialise(PartBunch<double, 3>*,
                     double &startField,
                     double &endField) override;
     /** Initialises the geometry */
@@ -271,13 +271,13 @@ private:
      *  2nd -> azimuthal rotation
      *  \param R -> Vector to be rotated
      */
-    Vector_t rotateFrame(const Vector_t &R);
+    Vector_t<double, 3> rotateFrame(const Vector_t<double, 3> &R);
     /** Inverse of the 1st rotation in rotateFrame() method \n
      *  Used to rotate B field back to global coordinate system
      */
-    Vector_t rotateFrameInverse(Vector_t &B);
+    Vector_t<double, 3> rotateFrameInverse(Vector_t<double, 3> &B);
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    Vector_t transformCoords(const Vector_t &R);
+    Vector_t<double, 3> transformCoords(const Vector_t<double, 3> &R);
     /** Magnet parameters */
     double length_m;
     double angle_m;
@@ -289,9 +289,9 @@ private:
     double boundingBoxLength_m;
     /** Get field component methods
      */
-    double getBx (const Vector_t &R);
-    double getBz (const Vector_t &R);
-    double getBs (const Vector_t &R);
+    double getBx (const Vector_t<double, 3> &R);
+    double getBz (const Vector_t<double, 3> &R);
+    double getBs (const Vector_t<double, 3> &R);
     /** Assume rectangular aperture with these dimensions */
     double verticalApert_m;
     double horizApert_m;
@@ -310,7 +310,7 @@ private:
     /** Tests if inside the magnet
      *  \param R -> Coordinate vector
      */
-    bool insideAperture(const Vector_t &R);
+    bool insideAperture(const Vector_t<double, 3> &R);
     /** Radius of curvature \n
      *  If radius of curvature is infinite, -1 is returned \n
      *  If radius is constant, then \n

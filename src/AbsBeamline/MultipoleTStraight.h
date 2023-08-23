@@ -107,7 +107,7 @@ public:
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    virtual void initialise(PartBunchBase<double, 3>* bunch,
+    virtual void initialise(PartBunch<double, 3>* bunch,
                             double &startField,
                             double &endField) override;
 private:
@@ -115,9 +115,9 @@ private:
     /** Geometry */
     StraightGeometry straightGeometry_m;
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    virtual void transformCoords(Vector_t &R) override;
+    virtual void transformCoords(Vector_t<double, 3> &R) override;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    virtual void transformBField(Vector_t &B, const Vector_t &R) override;
+    virtual void transformBField(Vector_t<double, 3> &B, const Vector_t<double, 3> &R) override;
     /** Radius of curvature \n
      *  Straight magnet, infinite radius, infinity (1.0e300) is returned
      *  \param s -> Coordinate s
@@ -132,12 +132,12 @@ private:
      *  This function has been overloaded because calculating \n
      *  the B-field directly is quicker and more accurate
      */
-    virtual double getBx (const Vector_t &R) override;
+    virtual double getBx (const Vector_t<double, 3> &R) override;
     /** Get s-component of the B-field \n
      *  This function has been overloaded because calculating \n
      *  the B-field directly is quicker and more accurate
      */
-    virtual double getBs (const Vector_t &R) override;
+    virtual double getBs (const Vector_t<double, 3> &R) override;
     /** Calculate fn(x, s) by expanding the differential operator
      *  (from Laplacian and scalar potential) in terms of polynomials
      *  \param n -> nth derivative
@@ -154,7 +154,7 @@ inline
         visitor.visitMultipoleTStraight(*this);
 }
 inline
-    void MultipoleTStraight::transformBField(Vector_t &/*B*/, const Vector_t &/*R*/) {
+    void MultipoleTStraight::transformBField(Vector_t<double, 3> &/*B*/, const Vector_t<double, 3> &/*R*/) {
 }
 inline
     double MultipoleTStraight::getRadius(const double &/*s*/) {
@@ -174,7 +174,7 @@ inline
         return straightGeometry_m;
 }
 inline
-    void MultipoleTStraight::initialise(PartBunchBase<double, 3>* bunch,
+    void MultipoleTStraight::initialise(PartBunch<double, 3>* bunch,
                                         double &/*startField*/,
                                         double &/*endField*/) {
         RefPartBunch_m = bunch;

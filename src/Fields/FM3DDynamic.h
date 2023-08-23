@@ -6,17 +6,17 @@
 class FM3DDynamic: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const;
     virtual void swap();
     virtual void getInfo(Inform *msg);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
-    virtual bool isInside(const Vector_t &r) const;
+    virtual bool isInside(const Vector_t<double, 3> &r) const;
 private:
     FM3DDynamic(std::string aFilename);
     ~FM3DDynamic();
@@ -53,7 +53,7 @@ private:
     friend class Fieldmap;
 };
 
-inline bool FM3DDynamic::isInside(const Vector_t &r) const
+inline bool FM3DDynamic::isInside(const Vector_t<double, 3> &r) const
 {
     return ((r(0) >= xbegin_m && r(0) < xend_m) &&
             (r(1) >= ybegin_m && r(1) < yend_m) &&

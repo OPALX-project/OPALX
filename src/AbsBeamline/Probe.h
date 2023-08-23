@@ -48,13 +48,13 @@ public:
 
 private:
     /// Initialise peakfinder file
-    virtual void doInitialise(PartBunchBase<double, 3> *bunch) override;
+    virtual void doInitialise(PartBunch<double, 3> *bunch) override;
     /// Record probe hits when bunch particles pass
-    virtual bool doCheck(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
+    virtual bool doCheck(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep) override;
     /// Hook for goOffline
     virtual void doGoOffline() override;
     /// Virtual hook for preCheck
-    virtual bool doPreCheck(PartBunchBase<double, 3>*) override;
+    virtual bool doPreCheck(PartBunch<double, 3>*) override;
 
     double step_m; ///< Step size of the probe (bin width in histogram file)
     std::unique_ptr<PeakFinder> peakfinder_m; ///< Pointer to Peakfinder instance

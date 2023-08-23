@@ -46,8 +46,8 @@ Beamline::Beamline(const std::string &name):
 Beamline::~Beamline()
 {}
 
-Vector_t Beamline::getOrigin3D() const {
-    return Vector_t(0);
+Vector_t<double, 3> Beamline::getOrigin3D() const {
+    return Vector_t<double, 3>(0);
 }
 
 Quaternion Beamline::getInitialDirection() const {

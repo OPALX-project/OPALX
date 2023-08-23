@@ -31,7 +31,7 @@ public:
     RK4(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments ...>(fieldfunc) { }
 
 private:
-    bool doAdvance_m(PartBunchBase<double, 3>* bunch,
+    bool doAdvance_m(PartBunch<double, 3>* bunch,
                      const size_t& i,
                      const double& t,
                      const double dt,
@@ -47,7 +47,7 @@ private:
      *
      * @return
      */
-    bool derivate_m(PartBunchBase<double, 3>* bunch,
+    bool derivate_m(PartBunch<double, 3>* bunch,
                     double *y,
                     const double& t,
                     double* yp,
@@ -55,9 +55,9 @@ private:
                     Arguments& ... args) const;
     
     
-    void copyTo(const Vector_t& R, const Vector_t& P, double* x) const;
+    void copyTo(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double* x) const;
     
-    void copyFrom(Vector_t& R, Vector_t& P, double* x) const;
+    void copyFrom(Vector_t<double, 3>& R, Vector_t<double, 3>& P, double* x) const;
     
     const double mass_coeff = 1.0e9 * Units::GeV2kg; // from GeV/c^2 to basic unit: GV*C*s^2/m^2, (1.0e9 converts V*C*s^2/m^2 to GV*C*s^2/m^2)
     const double c_mmtns = Physics::c * Units::m2mm / Units::s2ns;

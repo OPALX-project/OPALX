@@ -43,22 +43,22 @@ struct SetStatistics {
     double tmean_m; // ns
     double trms_m; // ns
     unsigned long nTotal_m;
-    Vector_t RefPartR_m;
-    Vector_t RefPartP_m;
-    Vector_t rmin_m;
-    Vector_t rmax_m;
-    Vector_t rmean_m;
-    Vector_t pmean_m;
-    Vector_t rrms_m;
-    Vector_t prms_m;
-    Vector_t rprms_m;
-    Vector_t normEmit_m;
-    Vector_t rsqsum_m;
-    Vector_t psqsum_m;
-    Vector_t rpsum_m;
-    Vector_t eps2_m;
-    Vector_t eps_norm_m;
-    Vector_t fac_m;
+    Vector_t<double, 3> RefPartR_m;
+    Vector_t<double, 3> RefPartP_m;
+    Vector_t<double, 3> rmin_m;
+    Vector_t<double, 3> rmax_m;
+    Vector_t<double, 3> rmean_m;
+    Vector_t<double, 3> pmean_m;
+    Vector_t<double, 3> rrms_m;
+    Vector_t<double, 3> prms_m;
+    Vector_t<double, 3> rprms_m;
+    Vector_t<double, 3> normEmit_m;
+    Vector_t<double, 3> rsqsum_m;
+    Vector_t<double, 3> psqsum_m;
+    Vector_t<double, 3> rpsum_m;
+    Vector_t<double, 3> eps2_m;
+    Vector_t<double, 3> eps_norm_m;
+    Vector_t<double, 3> fac_m;
 };
 
 namespace std {
@@ -92,8 +92,8 @@ class LossDataSink {
 
     void save(unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
 
-    void addReferenceParticle(const Vector_t &x,
-                              const Vector_t &p,
+    void addReferenceParticle(const Vector_t<double, 3> &x,
+                              const Vector_t<double, 3> &p,
                               double time,
                               double spos,
                               long long globalTrackStep);
@@ -159,8 +159,8 @@ private:
     std::vector<size_t> bunchNumber_m;
     std::vector<size_t> turnNumber_m;
 
-    std::vector<Vector_t> RefPartR_m;
-    std::vector<Vector_t> RefPartP_m;
+    std::vector<Vector_t<double, 3>> RefPartR_m;
+    std::vector<Vector_t<double, 3>> RefPartP_m;
     std::vector<h5_int64_t> globalTrackStep_m;
     std::vector<double> refTime_m;
     std::vector<double> spos_m;

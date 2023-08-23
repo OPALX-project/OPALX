@@ -73,7 +73,7 @@ void Astra1DElectroStatic_fast::readMap() {
     }
 }
 
-bool Astra1DElectroStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &/*B*/) const {
+bool Astra1DElectroStatic_fast::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &/*B*/) const {
     // do fourier interpolation in z-direction
     const double RR2 = R(0) * R(0) + R(1) * R(1);
 
@@ -91,7 +91,7 @@ bool Astra1DElectroStatic_fast::getFieldstrength(const Vector_t &R, Vector_t &E,
     return false;
 }
 
-bool Astra1DElectroStatic_fast::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
+bool Astra1DElectroStatic_fast::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
     return false;
 }
 

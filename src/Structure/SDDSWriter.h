@@ -36,7 +36,7 @@
 #include "Structure/SDDSColumnSet.h"
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 class SDDSWriter {
 
@@ -63,7 +63,7 @@ public:
 
     virtual ~SDDSWriter() { };
 
-    virtual void write(const PartBunchBase<double, 3>* /*beam*/) { };
+    virtual void write(const PartBunch<double, 3>* /*beam*/) { };
 
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'

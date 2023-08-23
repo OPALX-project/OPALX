@@ -191,7 +191,7 @@ std::string SectorMagneticFieldMap::SymmetryToString
 
 /*
 bool SectorMagneticFieldMap::getFieldstrengthPolar
-                    (const Vector_t &R_p, Vector_t &, Vector_t &B_p) const {
+                    (const Vector_t<double, 3> &R_p, Vector_t<double, 3> &, Vector_t<double, 3> &B_p) const {
     // vector_t::operator[i] const returns by value, not by const reference
     // so we need to make an array here
     double R_temp[3] = {R_p[0], R_p[1], R_p[2]};
@@ -206,7 +206,7 @@ bool SectorMagneticFieldMap::getFieldstrengthPolar
 */
 
 bool SectorMagneticFieldMap::getFieldstrength (
-        const Vector_t &R_c, Vector_t &/*E_c*/, Vector_t &B_c) const {
+        const Vector_t<double, 3> &R_c, Vector_t<double, 3> &/*E_c*/, Vector_t<double, 3> &B_c) const {
     // coordinate transform; field is in the x-z plane but OPAL-CYCL assumes
     // x-y plane; rotate to the start of the bend and into polar coordinates;
     // apply mirror symmetry about the midplane
@@ -275,8 +275,8 @@ void SectorMagneticFieldMap::print(std::ostream& out) {
        << std::endl;
 }
 
-bool SectorMagneticFieldMap::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/,
-                                                Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
+bool SectorMagneticFieldMap::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/,
+                                                Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
     throw(LogicalError("SectorMagneticFieldMap::getFieldDerivative",
                        "Field map derivatives not implemented"));
 }

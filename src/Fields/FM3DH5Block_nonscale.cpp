@@ -101,9 +101,9 @@ void FM3DH5Block_nonscale::freeMap (
 }
 
 bool FM3DH5Block_nonscale::getFieldstrength (
-    const Vector_t& R,
-    Vector_t& E,
-    Vector_t& B
+    const Vector_t<double, 3>& R,
+    Vector_t<double, 3>& E,
+    Vector_t<double, 3>& B
     ) const {
     if (!isInside(R)) {
         return true;

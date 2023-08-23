@@ -10,7 +10,7 @@ namespace mslang {
     void Ellipse::print(int indentwidth) {
         std::string indent(indentwidth, ' ');
         std::string indent2(indentwidth + 8, ' ');
-        Vector_t origin = trafo_m.getOrigin();
+        Vector_t<double, 3> origin = trafo_m.getOrigin();
         double angle = trafo_m.getAngle() * Units::rad2deg;
         std::cout << indent << "ellipse, \n"
                   << indent2 << "w: " << width_m << ", \n"
@@ -30,7 +30,7 @@ namespace mslang {
 
         double phi = 0;
         for (unsigned int i = 0; i < N; ++ i, phi += dp) {
-            Vector_t pt(0.0);
+            Vector_t<double, 3> pt(0.0);
             pt[0] = std::copysign(sqrt(std::pow(height_m * width_m * 0.25, 2) /
                                        (std::pow(height_m * 0.5, 2) +
                                         std::pow(width_m * 0.5 * tan(phi), 2))),
@@ -70,11 +70,11 @@ namespace mslang {
     }
 
     void Ellipse::computeBoundingBox() {
-        Vector_t llc(0.0), urc(0.0);
-        const Vector_t e_x(1.0, 0.0, 0.0), e_y(0.0, 1.0, 0.0);
-        const Vector_t center = trafo_m.transformFrom(Vector_t(0.0));
-        const Vector_t e_xp = trafo_m.transformFrom(e_x) - center;
-        const Vector_t e_yp = trafo_m.transformFrom(e_y) - center;
+        Vector_t<double, 3> llc(0.0), urc(0.0);
+        const Vector_t<double, 3> e_x(1.0, 0.0, 0.0), e_y(0.0, 1.0, 0.0);
+        const Vector_t<double, 3> center = trafo_m.transformFrom(Vector_t<double, 3>(0.0));
+        const Vector_t<double, 3> e_xp = trafo_m.transformFrom(e_x) - center;
+        const Vector_t<double, 3> e_yp = trafo_m.transformFrom(e_y) - center;
         const double &M11 = e_xp[0];
         const double &M12 = e_yp[0];
         const double &M21 = e_xp[1];
@@ -101,10 +101,10 @@ namespace mslang {
         }
     }
 
-    bool Ellipse::isInside(const Vector_t &R) const {
+    bool Ellipse::isInside(const Vector_t<double, 3> &R) const {
         if (!bb_m.isInside(R)) return false;
 
-        Vector_t X = trafo_m.transformTo(R);
+        Vector_t<double, 3> X = trafo_m.transformTo(R);
         if (4 * (std::pow(X[0] / width_m, 2) + std::pow(X[1] / height_m, 2)) <= 1) {
 
             for (auto item: divisor_m) {

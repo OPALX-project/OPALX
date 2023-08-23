@@ -19,7 +19,7 @@
 #include "StatWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Utilities/Timer.h"
 #include "Physics/Units.h"
 
@@ -194,7 +194,7 @@ void StatWriter::fillHeader(const losses_t &losses) {
 }
 
 
-void StatWriter::write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
+void StatWriter::write(const PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[],
                        const losses_t &losses, const double& azimuth,
                        const size_t npOutside)
 {
@@ -326,7 +326,7 @@ void StatWriter::write(const PartBunchBase<double, 3> *beam, Vector_t FDext[],
                 columns_m.addColumnValue("P0_s", 0.0);
             }
         }
-        Vector_t halo = beam->get_halo();
+        Vector_t<double, 3> halo = beam->get_halo();
         columns_m.addColumnValue("halo_x", halo(0));
         columns_m.addColumnValue("halo_y", halo(1));
         columns_m.addColumnValue("halo_z", halo(2));

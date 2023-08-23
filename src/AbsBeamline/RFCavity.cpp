@@ -18,7 +18,7 @@
 #include "AbsBeamline/RFCavity.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
@@ -120,19 +120,19 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitRFCavity(*this);
 }
 
-bool RFCavity::apply(const size_t& i, const double& t, Vector_t& E, Vector_t& B) {
+bool RFCavity::apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-bool RFCavity::apply(const Vector_t& R,
-                     const Vector_t& /*P*/,
+bool RFCavity::apply(const Vector_t<double, 3>& R,
+                     const Vector_t<double, 3>& /*P*/,
                      const double& t,
-                     Vector_t& E,
-                     Vector_t& B) {
+                     Vector_t<double, 3>& E,
+                     Vector_t<double, 3>& B) {
 
     if (R(2) >= startField_m &&
         R(2) < startField_m + getElementLength()) {
-        Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+        Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
         if (outOfBounds) return getFlagDeleteOnTransverseExit();
@@ -144,15 +144,15 @@ bool RFCavity::apply(const Vector_t& R,
     return false;
 }
 
-bool RFCavity::applyToReferenceParticle(const Vector_t& R,
-                                        const Vector_t& /*P*/,
+bool RFCavity::applyToReferenceParticle(const Vector_t<double, 3>& R,
+                                        const Vector_t<double, 3>& /*P*/,
                                         const double& t,
-                                        Vector_t& E,
-                                        Vector_t& B) {
+                                        Vector_t<double, 3>& E,
+                                        Vector_t<double, 3>& B) {
 
     if (R(2) >= startField_m &&
         R(2) < startField_m + getElementLength()) {
-        Vector_t tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
+        Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
         if (outOfBounds) return true;
@@ -164,7 +164,7 @@ bool RFCavity::applyToReferenceParticle(const Vector_t& R,
     return false;
 }
 
-void RFCavity::initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) {
+void RFCavity::initialise(PartBunch<double, 3>* bunch, double& startField, double& endField) {
 
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
@@ -204,7 +204,7 @@ void RFCavity::initialise(PartBunchBase<double, 3>* bunch, double& startField, d
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
-void RFCavity::initialise(PartBunchBase<double, 3>* bunch,
+void RFCavity::initialise(PartBunch<double, 3>* bunch,
                           std::shared_ptr<AbstractTimeDependence> freq_atd,
                           std::shared_ptr<AbstractTimeDependence> ampl_atd,
                           std::shared_ptr<AbstractTimeDependence> phase_atd) {
@@ -502,14 +502,14 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
     setPhasem(phi);
     std::pair<double, double> ret = trackOnAxisParticle(p0, t0, dt, q, mass);
     double phimax = 0.0;
-    double Emax = Util::getKineticEnergy(Vector_t(0.0, 0.0, ret.first), mass);
+    double Emax = Util::getKineticEnergy(Vector_t<double, 3>(0.0, 0.0, ret.first), mass);
     phi += dphi;
 
     for (unsigned int j = 0; j < 2; ++ j) {
         for (unsigned int i = 0; i < 36; ++ i, phi += dphi) {
             setPhasem(phi);
             ret = trackOnAxisParticle(p0, t0, dt, q, mass);
-            double Ekin = Util::getKineticEnergy(Vector_t(0.0, 0.0, ret.first), mass);
+            double Ekin = Util::getKineticEnergy(Vector_t<double, 3>(0.0, 0.0, ret.first), mass);
             if (Ekin > Emax) {
                 Emax = Ekin;
                 phimax = phi;
@@ -669,16 +669,16 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(const double& p0,
                                                         const double& /*q*/,
                                                         const double& mass,
                                                         std::ofstream *out) {
-    Vector_t p(0, 0, p0);
+    Vector_t<double, 3> p(0, 0, p0);
     double t = t0;
     BorisPusher integrator(*RefPartBunch_m->getReference());
     const double cdt = Physics::c * dt;
     const double zbegin = startField_m;
     const double zend = getElementLength() + startField_m;
 
-    Vector_t z(0.0, 0.0, zbegin);
+    Vector_t<double, 3> z(0.0, 0.0, zbegin);
     double dz = 0.5 * p(2) / Util::getGamma(p) * cdt;
-    Vector_t Ef(0.0), Bf(0.0);
+    Vector_t<double, 3> Ef(0.0), Bf(0.0);
 
     if (out) *out << std::setw(18) << z[2]
                   << std::setw(18) << Util::getKineticEnergy(p, mass)
@@ -712,7 +712,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(const double& p0,
     return std::pair<double, double>(p(2), t - tErr);
 }
 
-bool RFCavity::isInside(const Vector_t& r) const {
+bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
     if (isInsideTransverse(r)) {
         return fieldmap_m->isInside(r);
     }

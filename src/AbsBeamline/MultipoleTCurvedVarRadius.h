@@ -120,7 +120,7 @@ public:
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    virtual void initialise(PartBunchBase<double, 3>* bunch,
+    virtual void initialise(PartBunch<double, 3>* bunch,
                             double &startField,
                             double &endField) override;
 private:
@@ -132,9 +132,9 @@ private:
     /** Geometry */
     VarRadiusGeometry varRadiusGeometry_m;
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    virtual void transformCoords(Vector_t &R) override;
+    virtual void transformCoords(Vector_t<double, 3> &R) override;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    virtual void transformBField(Vector_t &B, const Vector_t &R) override;
+    virtual void transformBField(Vector_t<double, 3> &B, const Vector_t<double, 3> &R) override;
     double angle_m;
     /** Radius of curvature \n
      *  If radius of curvature is infinite, -1 is returned \n
@@ -189,7 +189,7 @@ inline
         return angle_m;
 }
 inline
-    void MultipoleTCurvedVarRadius::initialise(PartBunchBase<double, 3>* bunch,
+    void MultipoleTCurvedVarRadius::initialise(PartBunch<double, 3>* bunch,
                                                double &/*startField*/,
                                                double &/*endField*/) {
         RefPartBunch_m = bunch;

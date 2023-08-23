@@ -4,7 +4,6 @@
 #include "Utilities/MSLang/BoundingBox2D.h"
 #include "Utilities/MSLang/AffineTransformation.h"
 #include "Algorithms/Vektor.h"
-#include "AppTypes/Tenzor.h"
 
 #include <string>
 #include <iostream>
@@ -16,7 +15,7 @@ namespace mslang {
     typedef std::string::iterator iterator;
 
     inline
-    double euclidean_norm2D(Vector_t v) {
+    double euclidean_norm2D(Vector_t<double, 3> v) {
         v[2] = 0.0;
         return euclidean_norm(v);
     }
@@ -61,7 +60,7 @@ namespace mslang {
         virtual std::shared_ptr<Base> clone() const = 0;
         virtual void writeGnuplot(std::ofstream &out) const = 0;
         virtual void computeBoundingBox() = 0;
-        virtual bool isInside(const Vector_t &R) const = 0;
+        virtual bool isInside(const Vector_t<double, 3> &R) const = 0;
         virtual void divideBy(std::vector<std::shared_ptr<Base> > &divisors) {
             for (auto item: divisors) {
                 if (bb_m.doesIntersect(item->bb_m)) {

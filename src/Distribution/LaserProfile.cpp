@@ -257,8 +257,8 @@ void LaserProfile::normalizeProfileData(double intensityCut, unsigned short *ima
 
 void LaserProfile::computeProfileStatistics(unsigned short *image) {
     double totalMass = 0.0;
-    centerMass_m = Vector_t(0.0);
-    standardDeviation_m = Vector_t(0.0);
+    centerMass_m = Vector_t<double, 3>(0.0);
+    standardDeviation_m = Vector_t<double, 3>(0.0);
 
     unsigned int pixel = 0;
     for(unsigned int col = 0; col < sizeX_m; ++ col) {

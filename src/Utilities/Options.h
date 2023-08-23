@@ -23,11 +23,7 @@
 
 #include <string>
 
-enum class DumpFrame: unsigned short {
-    GLOBAL,
-    BUNCH_MEAN,
-    REFERENCE
-};
+enum class DumpFrame : unsigned short { GLOBAL, BUNCH_MEAN, REFERENCE };
 
 namespace Options {
     /// Echo flag.
@@ -88,11 +84,13 @@ namespace Options {
     /// The frequency to solve space charge fields.
     extern int scSolveFreq;
 
-    // How many small timesteps are inside the large timestep used in multiple time stepping (MTS) integrator
+    // How many small timesteps are inside the large timestep used in multiple time stepping (MTS)
+    // integrator
     extern int mtsSubsteps;
 
-    // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size of the bunch in any dimension,
-    // the particle will be deleted artifically to hold the accuracy of space charge calculation. The default setting of -1 stands for no deletion.
+    // If the distance of a particle to bunch mass larger than remotePartDel times of the rms size
+    // of the bunch in any dimension, the particle will be deleted artifically to hold the accuracy
+    // of space charge calculation. The default setting of -1 stands for no deletion.
     extern double remotePartDel;
 
     extern bool rhoDump;
@@ -145,15 +143,6 @@ namespace Options {
     /// opal version of input file
     extern int version;
 
-    /// Enable AMR if true
-    extern bool amr;
-
-    /// The frequency to dump AMR grid data and particles into file
-    extern int amrYtDumpFreq;
-
-    /// After how many steps the AMR grid hierarchy is updated
-    extern int amrRegridFreq;
-
     extern bool memoryDump;
 
     /// The constant parameter C to shift halo, by < w^4 > / < w^2 > ^2 - C (w=x,y,z)
@@ -163,6 +152,6 @@ namespace Options {
     extern unsigned int delPartFreq;
 
     extern bool computePercentiles;
-}
+}  // namespace Options
 
-#endif // OPAL_Options_HH
+#endif  // OPAL_Options_HH

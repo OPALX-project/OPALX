@@ -57,7 +57,7 @@ ElementBase* MultipoleTCurvedConstRadius::clone() const {
     return new MultipoleTCurvedConstRadius(*this);
 }
 
-void MultipoleTCurvedConstRadius::transformCoords(Vector_t &R) {
+void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double, 3> &R) {
     double radius = getLength() / angle_m;
     double alpha = atan(R[2] / (R[0] + radius ));
     if (alpha != 0.0 && angle_m != 0.0) {
@@ -68,8 +68,8 @@ void MultipoleTCurvedConstRadius::transformCoords(Vector_t &R) {
     }
 }
 
-void MultipoleTCurvedConstRadius::transformBField(Vector_t &B,
-                                                  const Vector_t &R) {
+void MultipoleTCurvedConstRadius::transformBField(Vector_t<double, 3> &B,
+                                                  const Vector_t<double, 3> &R) {
     double theta = R[2] * angle_m / getLength();
     double Bx = B[0];
     double Bs = B[2];

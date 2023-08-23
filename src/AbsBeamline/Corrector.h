@@ -78,16 +78,16 @@ public:
 
     virtual bool apply(const size_t &i,
                        const double &t,
-                       Vector_t &E,
-                       Vector_t &B);
+                       Vector_t<double, 3> &E,
+                       Vector_t<double, 3> &B);
 
-    virtual bool apply(const Vector_t &R,
-                       const Vector_t &P,
+    virtual bool apply(const Vector_t<double, 3> &R,
+                       const Vector_t<double, 3> &P,
                        const double &t,
-                       Vector_t &E,
-                       Vector_t &B);
+                       Vector_t<double, 3> &E,
+                       Vector_t<double, 3> &B);
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField);
 
     virtual void goOnline(const double &kineticEnergy);
 
@@ -109,7 +109,7 @@ public:
 
     double getKickY() const;
 
-    void setKickField(const Vector_t &k0);
+    void setKickField(const Vector_t<double, 3> &k0);
 
 private:
     double kickX_m;
@@ -118,7 +118,7 @@ private:
     bool designEnergyChangeable_m;
     bool kickFieldSet_m;
 
-    Vector_t kickField_m;
+    Vector_t<double, 3> kickField_m;
 
 protected:
 
@@ -149,7 +149,7 @@ double Corrector::getKickY() const {
 }
 
 inline
-void Corrector::setKickField(const Vector_t &k0) {
+void Corrector::setKickField(const Vector_t<double, 3> &k0) {
     kickField_m = k0;
     kickFieldSet_m = true;
 }

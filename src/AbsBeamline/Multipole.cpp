@@ -17,7 +17,7 @@
 //
 #include "AbsBeamline/Multipole.h"
 
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
@@ -148,11 +148,11 @@ std::size_t Multipole::getNSlices() const {
     return nSlices_m;
 }
 
-void Multipole::computeField(Vector_t R, Vector_t &/*E*/, Vector_t &B) {
+void Multipole::computeField(Vector_t<double, 3> R, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &B) {
     {
-        std::vector<Vector_t> Rn(max_NormalComponent_m + 1);
+        std::vector<Vector_t<double, 3>> Rn(max_NormalComponent_m + 1);
         std::vector<double> fact(max_NormalComponent_m + 1);
-        Rn[0] = Vector_t(1.0);
+        Rn[0] = Vector_t<double, 3>(1.0);
         fact[0] = 1;
         for (int i = 0; i < max_NormalComponent_m; ++ i) {
             switch(i) {
@@ -210,9 +210,9 @@ void Multipole::computeField(Vector_t R, Vector_t &/*E*/, Vector_t &B) {
 
     {
 
-        std::vector<Vector_t> Rn(max_SkewComponent_m + 1);
+        std::vector<Vector_t<double, 3>> Rn(max_SkewComponent_m + 1);
         std::vector<double> fact(max_SkewComponent_m + 1);
-        Rn[0] = Vector_t(1.0);
+        Rn[0] = Vector_t<double, 3>(1.0);
         fact[0] = 1;
         for (int i = 0; i < max_SkewComponent_m; ++ i) {
             switch(i) {
@@ -271,12 +271,12 @@ void Multipole::computeField(Vector_t R, Vector_t &/*E*/, Vector_t &B) {
 }
 
 
-bool Multipole::apply(const size_t &i, const double &, Vector_t &E, Vector_t &B) {
-    const Vector_t &R = RefPartBunch_m->R[i];
+bool Multipole::apply(const size_t &i, const double &, Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
+    const Vector_t<double, 3> &R = RefPartBunch_m->R[i];
     if(R(2) < 0.0 || R(2) > getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
-    Vector_t Ef(0.0), Bf(0.0);
+    Vector_t<double, 3> Ef(0.0), Bf(0.0);
     computeField(R, Ef, Bf);
 
     for (unsigned int d = 0; d < 3; ++ d) {
@@ -287,7 +287,7 @@ bool Multipole::apply(const size_t &i, const double &, Vector_t &E, Vector_t &B)
     return false;
 }
 
-bool Multipole::apply(const Vector_t &R, const Vector_t &, const double &, Vector_t &E, Vector_t &B) {
+bool Multipole::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &, const double &, Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
     if(R(2) < 0.0 || R(2) > getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
@@ -296,7 +296,7 @@ bool Multipole::apply(const Vector_t &R, const Vector_t &, const double &, Vecto
     return false;
 }
 
-bool Multipole::applyToReferenceParticle(const Vector_t &R, const Vector_t &, const double &, Vector_t &E, Vector_t &B) {
+bool Multipole::applyToReferenceParticle(const Vector_t<double, 3> &R, const Vector_t<double, 3> &, const double &, Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
     if(R(2) < 0.0 || R(2) > getElementLength()) return false;
     if (!isInsideTransverse(R)) return true;
 
@@ -319,7 +319,7 @@ bool Multipole::applyToReferenceParticle(const Vector_t &R, const Vector_t &, co
     return false;
 }
 
-void Multipole::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
+void Multipole::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + getElementLength();
     online_m = true;
@@ -346,7 +346,7 @@ ElementType Multipole::getType() const {
 }
 
 
-bool Multipole::isInside(const Vector_t &r) const {
+bool Multipole::isInside(const Vector_t<double, 3> &r) const {
     if (r(2) >= 0.0 && r(2) < getElementLength()) {
         return isInsideTransverse(r);
     }

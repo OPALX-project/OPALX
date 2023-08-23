@@ -28,7 +28,7 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
@@ -36,31 +36,31 @@ class OpalBeamline {
 
 public:
     OpalBeamline();
-    OpalBeamline(const Vector_t& origin,
+    OpalBeamline(const Vector_t<double, 3>& origin,
                  const Quaternion& rotation);
     ~OpalBeamline();
 
     void activateElements();
-    std::set<std::shared_ptr<Component>> getElements(const Vector_t &x);
-    Vector_t transformTo(const Vector_t &r) const;
-    Vector_t transformFrom(const Vector_t &r) const;
-    Vector_t rotateTo(const Vector_t &r) const;
-    Vector_t rotateFrom(const Vector_t &r) const;
+    std::set<std::shared_ptr<Component>> getElements(const Vector_t<double, 3> &x);
+    Vector_t<double, 3> transformTo(const Vector_t<double, 3> &r) const;
+    Vector_t<double, 3> transformFrom(const Vector_t<double, 3> &r) const;
+    Vector_t<double, 3> rotateTo(const Vector_t<double, 3> &r) const;
+    Vector_t<double, 3> rotateFrom(const Vector_t<double, 3> &r) const;
 
-    Vector_t transformToLocalCS(const std::shared_ptr<Component> &comp,
-                                const Vector_t &r) const;
-    Vector_t transformFromLocalCS(const std::shared_ptr<Component> &comp,
-                                  const Vector_t &r) const;
-    Vector_t rotateToLocalCS(const std::shared_ptr<Component> &comp,
-                             const Vector_t &r) const;
-    Vector_t rotateFromLocalCS(const std::shared_ptr<Component> &comp,
-                               const Vector_t &r) const;
+    Vector_t<double, 3> transformToLocalCS(const std::shared_ptr<Component> &comp,
+                                const Vector_t<double, 3> &r) const;
+    Vector_t<double, 3> transformFromLocalCS(const std::shared_ptr<Component> &comp,
+                                  const Vector_t<double, 3> &r) const;
+    Vector_t<double, 3> rotateToLocalCS(const std::shared_ptr<Component> &comp,
+                             const Vector_t<double, 3> &r) const;
+    Vector_t<double, 3> rotateFromLocalCS(const std::shared_ptr<Component> &comp,
+                               const Vector_t<double, 3> &r) const;
     CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<Component> &comp) const;
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
     CoordinateSystemTrafo getMisalignment(const std::shared_ptr<Component> &comp) const;
 
-    double getStart(const Vector_t &) const;
-    double getEnd(const Vector_t &) const;
+    double getStart(const Vector_t<double, 3> &) const;
+    double getEnd(const Vector_t<double, 3> &) const;
 
     void switchElements(const double &, const double &, const double &kineticEnergy, const bool &nomonitors = false);
     void switchElementsOff();
@@ -69,11 +69,11 @@ public:
 
     BoundaryGeometry *getBoundaryGeometry(const unsigned int &);
 
-    unsigned long getFieldAt(const unsigned int &, const Vector_t &, const long &, const double &, Vector_t &, Vector_t &);
-    unsigned long getFieldAt(const Vector_t &, const Vector_t &, const double &, Vector_t &, Vector_t &);
+    unsigned long getFieldAt(const unsigned int &, const Vector_t<double, 3> &, const long &, const double &, Vector_t<double, 3> &, Vector_t<double, 3> &);
+    unsigned long getFieldAt(const Vector_t<double, 3> &, const Vector_t<double, 3> &, const double &, Vector_t<double, 3> &, Vector_t<double, 3> &);
 
     template<class T>
-    void visit(const T &, BeamlineVisitor &, PartBunchBase<double, 3> *);
+    void visit(const T &, BeamlineVisitor &, PartBunch<double, 3> *);
 
     void prepareSections();
     void positionElementRelative(std::shared_ptr<ElementBase>);
@@ -95,7 +95,7 @@ private:
 };
 
 template<class T> inline
-void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<double, 3> *bunch) {
+void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunch<double, 3> *bunch) {
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField = 0.0;
@@ -111,52 +111,52 @@ void OpalBeamline::visit(const T &element, BeamlineVisitor &, PartBunchBase<doub
 }
 
 template<> inline
-void OpalBeamline::visit<Marker>(const Marker &/*element*/, BeamlineVisitor &, PartBunchBase<double, 3> *) {
+void OpalBeamline::visit<Marker>(const Marker &/*element*/, BeamlineVisitor &, PartBunch<double, 3> *) {
     
 }
 
 
 inline
-Vector_t OpalBeamline::transformTo(const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::transformTo(const Vector_t<double, 3> &r) const {
     return coordTransformationTo_m.transformTo(r);
 }
 
 inline
-Vector_t OpalBeamline::transformFrom(const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::transformFrom(const Vector_t<double, 3> &r) const {
     return coordTransformationTo_m.transformFrom(r);
 }
 
 inline
-Vector_t OpalBeamline::rotateTo(const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::rotateTo(const Vector_t<double, 3> &r) const {
     return coordTransformationTo_m.rotateTo(r);
 }
 
 inline
-Vector_t OpalBeamline::rotateFrom(const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3> &r) const {
     return coordTransformationTo_m.rotateFrom(r);
 }
 
 inline
-Vector_t OpalBeamline::transformToLocalCS(const std::shared_ptr<Component> &comp,
-                                          const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::transformToLocalCS(const std::shared_ptr<Component> &comp,
+                                          const Vector_t<double, 3> &r) const {
     return comp->getCSTrafoGlobal2Local().transformTo(r);
 }
 
 inline
-Vector_t OpalBeamline::transformFromLocalCS(const std::shared_ptr<Component> &comp,
-                                            const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::transformFromLocalCS(const std::shared_ptr<Component> &comp,
+                                            const Vector_t<double, 3> &r) const {
     return comp->getCSTrafoGlobal2Local().transformFrom(r);
 }
 
 inline
-Vector_t OpalBeamline::rotateToLocalCS(const std::shared_ptr<Component> &comp,
-                                       const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::rotateToLocalCS(const std::shared_ptr<Component> &comp,
+                                       const Vector_t<double, 3> &r) const {
     return comp->getCSTrafoGlobal2Local().rotateTo(r);
 }
 
 inline
-Vector_t OpalBeamline::rotateFromLocalCS(const std::shared_ptr<Component> &comp,
-                                         const Vector_t &r) const {
+Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(const std::shared_ptr<Component> &comp,
+                                         const Vector_t<double, 3> &r) const {
     return comp->getCSTrafoGlobal2Local().rotateFrom(r);
 }
 

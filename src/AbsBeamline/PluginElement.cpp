@@ -19,7 +19,7 @@
 #include "AbsBeamline/PluginElement.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
@@ -45,11 +45,11 @@ PluginElement::~PluginElement() {
         goOffline();
 }
 
-void PluginElement::initialise(PartBunchBase<double, 3> *bunch, double &, double &) {
+void PluginElement::initialise(PartBunch<double, 3> *bunch, double &, double &) {
     initialise(bunch);
 }
 
-void PluginElement::initialise(PartBunchBase<double, 3> *bunch) {
+void PluginElement::initialise(PartBunch<double, 3> *bunch) {
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));
     // virtual hook
@@ -75,11 +75,11 @@ bool PluginElement::bends() const {
     return false;
 }
 
-bool PluginElement::apply(const size_t &/*i*/, const double &, Vector_t &, Vector_t &) {
+bool PluginElement::apply(const size_t &/*i*/, const double &, Vector_t<double, 3> &, Vector_t<double, 3> &) {
     return false;
 }
 
-bool PluginElement::applyToReferenceParticle(const Vector_t &, const Vector_t &, const double &, Vector_t &, Vector_t &) {
+bool PluginElement::applyToReferenceParticle(const Vector_t<double, 3> &, const Vector_t<double, 3> &, const double &, Vector_t<double, 3> &, Vector_t<double, 3> &) {
     return false;
 }
 
@@ -142,7 +142,7 @@ void PluginElement::setGeom(const double dist) {
     doSetGeom();
 }
 
-void PluginElement::changeWidth(PartBunchBase<double, 3> *bunch, int i, const double tstep, const double tangle) {
+void PluginElement::changeWidth(PartBunch<double, 3> *bunch, int i, const double tstep, const double tangle) {
 
     constexpr double c_mtns = Physics::c / Units::s2ns; // m/s --> m/ns
     double lstep  = euclidean_norm(bunch->P[i]) / Util::getGamma(bunch->P[i]) * c_mtns * tstep; // [m]
@@ -191,7 +191,7 @@ double PluginElement::getYEnd() const {
     return yend_m;
 }
 
-bool PluginElement::check(PartBunchBase<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool PluginElement::check(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
     bool flag = false;
     // check if bunch close
     bool bunchClose = preCheck(bunch);

@@ -91,13 +91,13 @@ void MultipoleT::finalise() {
     RefPartBunch_m = nullptr;
 }
 
-bool MultipoleT::apply(const Vector_t &R, const Vector_t &/*P*/,
-                       const double &/*t*/,Vector_t &/*E*/, Vector_t &B) {
+bool MultipoleT::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,
+                       const double &/*t*/,Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &B) {
     /** Rotate coordinates around the central axis of the magnet */
-    Vector_t R_prime = rotateFrame(R);
+    Vector_t<double, 3> R_prime = rotateFrame(R);
     /** If magnet is not straight go to local Frenet-Serret coordinates */
     //R_prime[2] *= -1; //OPAL uses different sign convention...
-    Vector_t X = R_prime;
+    Vector_t<double, 3> X = R_prime;
     R_prime = transformCoords(X);
     if (insideAperture(R_prime)) {
         /** Transform B-field from local to lab coordinates */
@@ -133,12 +133,12 @@ bool MultipoleT::apply(const Vector_t &R, const Vector_t &/*P*/,
 }
 
 bool MultipoleT::apply(const size_t &i, const double &t,
-               Vector_t &E, Vector_t &B) {
+               Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-Vector_t MultipoleT::rotateFrame(const Vector_t &R) {
-  Vector_t R_prime(3), R_pprime(3);
+Vector_t<double, 3> MultipoleT::rotateFrame(const Vector_t<double, 3> &R) {
+  Vector_t<double, 3> R_prime(3), R_pprime(3);
     /** Apply two 2D rotation matrices to coordinate vector
       * Rotate around central axis => skew fields
       * Rotate azymuthaly => entrance angle
@@ -157,19 +157,19 @@ Vector_t MultipoleT::rotateFrame(const Vector_t &R) {
 
 }
 
-Vector_t MultipoleT::rotateFrameInverse(Vector_t &B) {
+Vector_t<double, 3> MultipoleT::rotateFrameInverse(Vector_t<double, 3> &B) {
     /** This function represents the inverse of the rotation
       * around the central axis performed by rotateFrame() method
       * Used to rotate B field back to global coordinate system
       */
-    Vector_t B_prime(3);
+    Vector_t<double, 3> B_prime(3);
     B_prime[0] = B[0] * cos(rotation_m) + B[1] * sin(rotation_m);
     B_prime[1] = - B[0] * sin(rotation_m) + B[1] * cos(rotation_m);
     B_prime[2] = B[2];
     return B_prime;
 }
 
-bool MultipoleT::insideAperture(const Vector_t &R) {
+bool MultipoleT::insideAperture(const Vector_t<double, 3> &R) {
     if (std::abs(R[1]) <= verticalApert_m / 2. && std::abs(R[0]) <= horizApert_m / 2.) {
         return true;
     }
@@ -178,8 +178,8 @@ bool MultipoleT::insideAperture(const Vector_t &R) {
     }
 }
 
-Vector_t MultipoleT::transformCoords(const Vector_t &R) {
-    Vector_t X(3);
+Vector_t<double, 3> MultipoleT::transformCoords(const Vector_t<double, 3> &R) {
+    Vector_t<double, 3> X(3);
     // If radius is constant
     if (!variableRadius_m) {
         double radius = length_m / angle_m;
@@ -252,7 +252,7 @@ bool MultipoleT::setFringeField(double s0, double lambda_l, double lambda_r) {
     return true;
 }
 
-double MultipoleT::getBz(const Vector_t &R) {
+double MultipoleT::getBz(const Vector_t<double, 3> &R) {
     /** Returns the vertical field component
       * sum_n  f_n * z^(2n) / (2n)!
       */
@@ -283,7 +283,7 @@ double MultipoleT::getBz(const Vector_t &R) {
     return Bz;
 }
 
-double MultipoleT::getBx(const Vector_t &R) {
+double MultipoleT::getBx(const Vector_t<double, 3> &R) {
     /** Returns the radial component of the field
       * sum_n z^(2n+1) / (2n+1)! * \partial_x f_n
       */
@@ -316,7 +316,7 @@ double MultipoleT::getBx(const Vector_t &R) {
     return Bx;
 }
 
-double MultipoleT::getBs(const Vector_t &R) {
+double MultipoleT::getBs(const Vector_t<double, 3> &R) {
     /** Returns the component of the field along the central axis
       * 1/h_s * sum_n z^(2n+1) / (2n+1)! \partial_s f_n
       */
@@ -534,7 +534,7 @@ void MultipoleT::initialise() {
     planarArcGeometry_m.setCurvature(angle_m / length_m);
 }
 
-void MultipoleT::initialise(PartBunchBase<double, 3>* bunch,
+void MultipoleT::initialise(PartBunch<double, 3>* bunch,
                             double &/*startField*/,
                             double &/*endField*/) {
     RefPartBunch_m = bunch;

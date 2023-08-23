@@ -175,14 +175,14 @@ double FM3DH5BlockBase::getWeightedData (
     return factorX * factorY * factorZ * data[getIndex(i, j, k)];
 }
 
-Vector_t FM3DH5BlockBase::interpolateTrilinearly (
+Vector_t<double, 3> FM3DH5BlockBase::interpolateTrilinearly (
     const std::vector<double>& field_strength_x,
     const std::vector<double>& field_strength_y,
     const std::vector<double>& field_strength_z,
-    const Vector_t& X
+    const Vector_t<double, 3>& X
     ) const {
     IndexTriplet idx = getIndex (X);
-    Vector_t result{0.0};
+    Vector_t<double, 3> result{0.0};
 
     result[0] = (getWeightedData(field_strength_x, idx, LX|LY|LZ) +
                  getWeightedData(field_strength_x, idx, LX|LY|HZ) +

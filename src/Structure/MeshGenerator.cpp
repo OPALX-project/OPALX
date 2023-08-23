@@ -77,7 +77,7 @@ void MeshGenerator::add(const ElementBase &element) {
     }
 
     CoordinateSystemTrafo trafo = element.getCSTrafoGlobal2Local().inverted();
-    Vector_t z = trafo.rotateTo(Vector_t(0, 0, 1));
+    Vector_t<double, 3> z = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
     for (unsigned int i = 0; i < mesh.vertices_m.size(); ++ i) {
         mesh.vertices_m[i] = trafo.transformTo(mesh.vertices_m[i]) + start * z;
     }
@@ -886,9 +886,9 @@ MeshData MeshGenerator::getCylinder(double length,
     double dAngle = Physics::two_pi / numSegments;
 
     MeshData mesh;
-    mesh.vertices_m.push_back(Vector_t(0.0));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(0.0));
     for (unsigned int i = 0; i < numSegments; ++ i, angle += dAngle) {
-        Vector_t node(major * cos(angle), minor * sin(angle), 0);
+        Vector_t<double, 3> node(major * cos(angle), minor * sin(angle), 0);
         mesh.vertices_m.push_back(node);
 
         unsigned int next = (i + 1) % numSegments;
@@ -902,9 +902,9 @@ MeshData MeshGenerator::getCylinder(double length,
         mesh.triangles_m.push_back(sideTriangle2);
     }
 
-    mesh.vertices_m.push_back(Vector_t(0.0, 0.0, length));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(0.0, 0.0, length));
     for (unsigned int i = 0; i < numSegments; ++ i, angle += dAngle) {
-        Vector_t node(formFactor * major * cos(angle), formFactor * minor * sin(angle), length);
+        Vector_t<double, 3> node(formFactor * major * cos(angle), formFactor * minor * sin(angle), length);
         mesh.vertices_m.push_back(node);
 
         unsigned int next = (i + 1) % numSegments;
@@ -912,7 +912,7 @@ MeshData MeshGenerator::getCylinder(double length,
         mesh.triangles_m.push_back(topTriangle);
     }
 
-    mesh.decorations_m.push_back(std::make_pair(Vector_t(0.0), Vector_t(0, 0, length)));
+    mesh.decorations_m.push_back(std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
 
     return mesh;
 }
@@ -923,15 +923,15 @@ MeshData MeshGenerator::getBox(double length,
                                double formFactor) {
 
     MeshData mesh;
-    mesh.vertices_m.push_back(Vector_t(width, height, 0.0));
-    mesh.vertices_m.push_back(Vector_t(-width, height, 0.0));
-    mesh.vertices_m.push_back(Vector_t(-width, -height, 0.0));
-    mesh.vertices_m.push_back(Vector_t(width, -height, 0.0));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(width, height, 0.0));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(-width, height, 0.0));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(-width, -height, 0.0));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(width, -height, 0.0));
 
-    mesh.vertices_m.push_back(Vector_t(formFactor * width, formFactor * height, length));
-    mesh.vertices_m.push_back(Vector_t(-formFactor * width, formFactor * height, length));
-    mesh.vertices_m.push_back(Vector_t(-formFactor * width, -formFactor * height, length));
-    mesh.vertices_m.push_back(Vector_t(formFactor * width, -formFactor * height, length));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(formFactor * width, formFactor * height, length));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(-formFactor * width, formFactor * height, length));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(-formFactor * width, -formFactor * height, length));
+    mesh.vertices_m.push_back(Vector_t<double, 3>(formFactor * width, -formFactor * height, length));
 
     mesh.triangles_m.push_back(Vektor<unsigned int, 3>(0, 2, 1));
     mesh.triangles_m.push_back(Vektor<unsigned int, 3>(0, 3, 2));
@@ -948,7 +948,7 @@ MeshData MeshGenerator::getBox(double length,
     mesh.triangles_m.push_back(Vektor<unsigned int, 3>(4, 5, 6));
     mesh.triangles_m.push_back(Vektor<unsigned int, 3>(4, 6, 7));
 
-    mesh.decorations_m.push_back(std::make_pair(Vector_t(0.0), Vector_t(0, 0, length)));
+    mesh.decorations_m.push_back(std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
 
     return mesh;
 }

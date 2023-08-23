@@ -21,9 +21,9 @@ class ElementBase;
 
 class MeshData {
 public:
-    std::vector<Vector_t> vertices_m;
+    std::vector<Vector_t<double, 3>> vertices_m;
     std::vector<Vektor<unsigned int, 3> > triangles_m;
-    std::vector<std::pair<Vector_t, Vector_t> > decorations_m;
+    std::vector<std::pair<Vector_t<double, 3>, Vector_t<double, 3>> > decorations_m;
     int type_m;
 };
 

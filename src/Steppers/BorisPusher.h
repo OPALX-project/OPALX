@@ -34,16 +34,16 @@ public:
     BorisPusher();
     void initialise(const PartData *ref);
     
-    void kick(const Vector_t &R, Vector_t &P,
-              const Vector_t &Ef, const Vector_t &Bf,
+    void kick(const Vector_t<double, 3> &R, Vector_t<double, 3> &P,
+              const Vector_t<double, 3> &Ef, const Vector_t<double, 3> &Bf,
               const double &dt) const;
     
-    void kick(const Vector_t &R, Vector_t &P,
-              const Vector_t &Ef, const Vector_t &Bf,
+    void kick(const Vector_t<double, 3> &R, Vector_t<double, 3> &P,
+              const Vector_t<double, 3> &Ef, const Vector_t<double, 3> &Bf,
               const double &dt, const double &mass,
               const double &charge) const;
     
-    void push(Vector_t &R, const Vector_t &P, const double &dt) const;
+    void push(Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &dt) const;
 
 private:
     const PartData *itsReference;
@@ -62,16 +62,16 @@ inline void BorisPusher::initialise(const PartData *ref)
     itsReference = ref;
 }
 
-inline void BorisPusher::kick(const Vector_t &R, Vector_t &P,
-                              const Vector_t &Ef, const Vector_t &Bf,
+inline void BorisPusher::kick(const Vector_t<double, 3> &R, Vector_t<double, 3> &P,
+                              const Vector_t<double, 3> &Ef, const Vector_t<double, 3> &Bf,
                               const double &dt) const
 {
     kick(R, P, Ef, Bf, dt, itsReference->getM(), itsReference->getQ());
 }
 
 
-inline void BorisPusher::kick(const Vector_t &/*R*/, Vector_t &P,
-                              const Vector_t &Ef, const Vector_t &Bf,
+inline void BorisPusher::kick(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &P,
+                              const Vector_t<double, 3> &Ef, const Vector_t<double, 3> &Bf,
                               const double &dt, const double &mass,
                               const double &charge) const
 {
@@ -109,14 +109,14 @@ inline void BorisPusher::kick(const Vector_t &/*R*/, Vector_t &P,
     /*
         LF
     double const gamma = sqrt(1.0 + dot(P, P));
-    Vector_t const t = dt * charge * c * c / (gamma * mass) * Bf;
+    Vector_t<double, 3> const t = dt * charge * c * c / (gamma * mass) * Bf;
     P +=  cross(P, t);
     */
 
     double const gamma = sqrt(1.0 + dot(P, P));
-    Vector_t const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * Bf;
-    Vector_t const w = P + cross(P, t);
-    Vector_t const s = 2.0 / (1.0 + dot(t, t)) * t;
+    Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * Bf;
+    Vector_t<double, 3> const w = P + cross(P, t);
+    Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
     P += cross(w, s);
 
     /* a poor Leap-Frog
@@ -128,7 +128,7 @@ inline void BorisPusher::kick(const Vector_t &/*R*/, Vector_t &P,
 }
 
 
-inline void BorisPusher::push(Vector_t &R, const Vector_t &P, const double &/* dt */) const {
+inline void BorisPusher::push(Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &/* dt */) const {
     /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} + \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
      *
      * \code

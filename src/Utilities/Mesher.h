@@ -6,21 +6,21 @@
 
 class Mesher {
 public:
-    Mesher(std::vector<Vector_t> &vertices);
+    Mesher(std::vector<Vector_t<double, 3>> &vertices);
 
     std::vector<mslang::Triangle> getTriangles() const;
 
 private:
     void orientVerticesCCW();
     bool isConvex(unsigned int i) const;
-    double crossProduct(const Vector_t &a,
-                        const Vector_t &b) const;
+    double crossProduct(const Vector_t<double, 3> &a,
+                        const Vector_t<double, 3> &b) const;
     bool isPointOnLine(unsigned int i,
                        unsigned int j,
-                       const Vector_t &pt) const;
+                       const Vector_t<double, 3> &pt) const;
     bool isPointRightOfLine(unsigned int i,
                             unsigned int j,
-                            const Vector_t &pt) const;
+                            const Vector_t<double, 3> &pt) const;
     bool lineSegmentTouchesOrCrossesLine(unsigned int i,
                                          unsigned int j,
                                          unsigned int k,
@@ -28,7 +28,7 @@ private:
     bool isPotentialEdgeIntersected(unsigned int i) const;
     double dotProduct(unsigned int i,
                       unsigned int j,
-                      const Vector_t &pt) const;
+                      const Vector_t<double, 3> &pt) const;
     bool isPointInsideCone(unsigned int i,
                            unsigned int j,
                            unsigned int jPlusOne,
@@ -40,7 +40,7 @@ private:
     void apply();
 
     std::vector<mslang::Triangle> triangles_m;
-    std::vector<Vector_t> vertices_m;
+    std::vector<Vector_t<double, 3>> vertices_m;
 };
 
 #endif

@@ -297,8 +297,8 @@ void LossDataSink::writeHeaderASCII() {
     }
 }
 
-void LossDataSink::addReferenceParticle(const Vector_t &x,
-                                        const  Vector_t &p,
+void LossDataSink::addReferenceParticle(const Vector_t<double, 3> &x,
+                                        const  Vector_t<double, 3> &p,
                                         double time,
                                         double spos,
                                         long long globalTrackStep
@@ -432,7 +432,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
     }
 
-    Vector_t tmpVector;
+    Vector_t<double, 3> tmpVector;
     double tmpDouble;
     WRITE_STEPATTRIB_FLOAT64("centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64("RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);

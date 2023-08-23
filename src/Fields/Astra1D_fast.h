@@ -6,8 +6,8 @@
 class Astra1D_fast: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const = 0;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const = 0;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const = 0;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const = 0;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const = 0;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const = 0;
     virtual void swap() = 0;
@@ -16,7 +16,7 @@ public:
     virtual void setFrequency(double freq) = 0;
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F);
 
-    virtual bool isInside(const Vector_t &r) const;
+    virtual bool isInside(const Vector_t<double, 3> &r) const;
 protected:
     Astra1D_fast(std::string aFilename);
     virtual ~Astra1D_fast();
@@ -50,7 +50,7 @@ protected:
     friend class Fieldmap;
 };
 
-inline bool Astra1D_fast::isInside(const Vector_t &r) const
+inline bool Astra1D_fast::isInside(const Vector_t<double, 3> &r) const
 {
     return r(2) >= zbegin_m && r(2) < zend_m;
 }

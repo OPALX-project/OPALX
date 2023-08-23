@@ -186,7 +186,7 @@ void FM2DDynamic::freeMap() {
     }
 }
 
-bool FM2DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
+bool FM2DDynamic::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const {
     // do bi-linear interpolation
     const double RR = std::sqrt(R(0) * R(0) + R(1) * R(1));
 
@@ -230,7 +230,7 @@ bool FM2DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) 
     return false;
 }
 
-bool FM2DDynamic::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
+bool FM2DDynamic::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
     return false;
 }
 

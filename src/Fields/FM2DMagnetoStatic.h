@@ -6,8 +6,8 @@
 class FM2DMagnetoStatic: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
     virtual void swap();
@@ -15,7 +15,7 @@ public:
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
 
-    virtual bool isInside(const Vector_t &r) const;
+    virtual bool isInside(const Vector_t<double, 3> &r) const;
 private:
     FM2DMagnetoStatic(std::string aFilename);
     ~FM2DMagnetoStatic();
@@ -39,7 +39,7 @@ private:
     friend class Fieldmap;
 };
 
-inline bool FM2DMagnetoStatic::isInside(const Vector_t &r) const
+inline bool FM2DMagnetoStatic::isInside(const Vector_t<double, 3> &r) const
 {
     return r(2) >= zbegin_m && r(2) < zend_m && std::sqrt(r(0)*r(0) + r(1)*r(1)) < rend_m;
 }

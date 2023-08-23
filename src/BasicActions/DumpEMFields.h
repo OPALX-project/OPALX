@@ -136,7 +136,7 @@ private:
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
     void writeFieldLine(Component* field,
-                        const Vector_t& point,
+                        const Vector_t<double, 3>& point,
                         const double& time,
                         std::ofstream& fout) const;
 

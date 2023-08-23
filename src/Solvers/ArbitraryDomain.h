@@ -43,7 +43,7 @@ class BoundaryGeometry;
 class ArbitraryDomain : public IrregularDomain {
 
 public:
-    ArbitraryDomain(BoundaryGeometry *bgeom, IntVector_t nr, Vector_t hr,
+    ArbitraryDomain(BoundaryGeometry *bgeom, IntVector_t<double, 3> nr, Vector_t<double, 3> hr,
                     std::string interpl);
 
     ~ArbitraryDomain();
@@ -54,7 +54,7 @@ public:
     }
 
     // calculates intersection with rotated and shifted geometry
-    void compute(Vector_t hr, NDIndex<3> localId) override;
+    void compute(Vector_t<double, 3> hr, NDIndex<3> localId) override;
 
 private:
     BoundaryGeometry *bgeom_m;
@@ -79,7 +79,7 @@ private:
     // Mapping all cells that are inside the geometry
     std::map<int, bool> isInsideMap_m;
 
-    Vector_t globalInsideP0_m;
+    Vector_t<double, 3> globalInsideP0_m;
 
     // Conversion from (x,y,z) to index in xyz plane
     int toCoordIdx(int idx, int idy, int idz) const {

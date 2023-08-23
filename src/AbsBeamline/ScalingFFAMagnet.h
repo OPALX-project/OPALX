@@ -67,7 +67,7 @@ class ScalingFFAMagnet : public Component {
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map
      */
-    bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) override;
+    bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
     /** Calculate the field at some arbitrary position
      *
@@ -78,8 +78,8 @@ class ScalingFFAMagnet : public Component {
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map, else false
      */
-    bool apply(const Vector_t &R, const Vector_t &P, const double &t,
-               Vector_t &E, Vector_t &B) override;
+    bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t,
+               Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -88,7 +88,7 @@ class ScalingFFAMagnet : public Component {
      *  \param B calculated magnetic field defined like (Bx, By, Bz)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValue(const Vector_t &R, Vector_t &B) const;
+    bool getFieldValue(const Vector_t<double, 3> &R, Vector_t<double, 3> &B) const;
 
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
@@ -97,7 +97,7 @@ class ScalingFFAMagnet : public Component {
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValueCylindrical(const Vector_t &R, Vector_t &B) const;
+    bool getFieldValueCylindrical(const Vector_t<double, 3> &R, Vector_t<double, 3> &B) const;
 
      /** Initialise the ScalingFFAMagnet
       *
@@ -105,7 +105,7 @@ class ScalingFFAMagnet : public Component {
       *  \param startField not used
       *  \param endField not used
       */
-      void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+      void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
 
      /** Initialise the ScalingFFAMagnet
       *
@@ -163,10 +163,10 @@ class ScalingFFAMagnet : public Component {
     void setR0(double r0) {r0_m = r0;}
 
     /** Get the centre of the sector */
-    Vector_t getCentre() const {return centre_m;}
+    Vector_t<double, 3> getCentre() const {return centre_m;}
 
     /** Set the centre of the sector */
-    void setCentre(Vector_t centre) {centre_m = centre;}
+    void setCentre(Vector_t<double, 3> centre) {centre_m = centre;}
 
     /** Get the fringe field
      *
@@ -286,7 +286,7 @@ class ScalingFFAMagnet : public Component {
     double phiEnd_m = 0.; // used for placement of next element
     double azimuthalExtent_m = 0.; // maximum distance used for field calculation
     double verticalExtent_m = 0.; // maximum allowed distance from the midplane
-    Vector_t centre_m;
+    Vector_t<double, 3> centre_m;
     endfieldmodel::EndFieldModel* endField_m = nullptr;
     std::string endFieldName_m = ""; 
     const double fp_tolerance = 1e-18;

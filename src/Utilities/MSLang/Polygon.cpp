@@ -7,7 +7,7 @@
 #include <boost/regex.hpp>
 
 namespace mslang {
-    void Polygon::triangulize(std::vector<Vector_t> &nodes) {
+    void Polygon::triangulize(std::vector<Vector_t<double, 3>> &nodes) {
         Mesher mesher(nodes);
         triangles_m = mesher.getTriangles();
     }
@@ -16,13 +16,13 @@ namespace mslang {
         Polygon *poly = static_cast<Polygon*>(fun);
 
         ArgumentExtractor arguments(std::string(it, end));
-        std::vector<Vector_t> nodes;
+        std::vector<Vector_t<double, 3>> nodes;
 
         for (unsigned int i = 0; i + 1 < arguments.getNumArguments(); i += 2) {
             try {
                 double x = parseMathExpression(arguments.get(i));
                 double y = parseMathExpression(arguments.get(i + 1));
-                nodes.push_back(Vector_t(x, y, 1.0));
+                nodes.push_back(Vector_t<double, 3>(x, y, 1.0));
             } catch (std::runtime_error &e) {
                 std::cout << e.what() << std::endl;
                 return false;
