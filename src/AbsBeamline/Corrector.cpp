@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
@@ -64,18 +64,18 @@ void Corrector::accept(BeamlineVisitor &visitor) const {
     visitor.visitCorrector(*this);
 }
 
-bool Corrector::apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B) {
-    Vector_t &R = RefPartBunch_m->R[i];
-    Vector_t &P = RefPartBunch_m->P[i];
+bool Corrector::apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
+    Vector_t<double, 3> &R = RefPartBunch_m->R[i];
+    Vector_t<double, 3> &P = RefPartBunch_m->P[i];
 
     return apply(R, P, t, E, B);
 }
 
-bool Corrector::apply(const Vector_t &R,
-                      const Vector_t &P,
+bool Corrector::apply(const Vector_t<double, 3> &R,
+                      const Vector_t<double, 3> &P,
                       const double &/*t*/,
-                      Vector_t &/*E*/,
-                      Vector_t &B) {
+                      Vector_t<double, 3> &/*E*/,
+                      Vector_t<double, 3> &B) {
 
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
@@ -97,7 +97,7 @@ bool Corrector::apply(const Vector_t &R,
     return false;
 }
 
-void Corrector::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
+void Corrector::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
     RefPartBunch_m = bunch;
 }
@@ -117,7 +117,7 @@ void Corrector::goOnline(const double &) {
     if (!kickFieldSet_m) {
         const double momentum = std::sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
         const double magnitude = momentum / (Physics::c * pathLength);
-        kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
+        kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
     }
 
     online_m = true;
@@ -133,7 +133,7 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
             const double pathLength = getGeometry().getElementLength();
             const double momentum = std::sqrt(std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
             const double magnitude = momentum / (Physics::c * pathLength);
-            kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t(kickY_m, -kickX_m, 0.0);
+            kickField_m = magnitude * RefPartBunch_m->getQ() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
         }
     }
 }

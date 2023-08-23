@@ -22,23 +22,13 @@
 #include "SDDSWriter.h"
 
 class LBalWriter : public SDDSWriter {
-
 public:
     LBalWriter(const std::string& fname, bool restart);
 
-#ifdef ENABLE_AMR
-    void write(PartBunchBase<double, 3> *beam);
-#else
-    void write(const PartBunchBase<double, 3> *beam) override;
-#endif
+    void write(const PartBunch<double, 3>* beam) override;
 
 private:
-#ifdef ENABLE_AMR
-    void fillHeader(PartBunchBase<double, 3> *beam);
-#else
     void fillHeader();
-#endif
 };
-
 
 #endif

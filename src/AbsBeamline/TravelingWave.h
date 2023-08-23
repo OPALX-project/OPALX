@@ -56,13 +56,13 @@ public:
 
     virtual double getAutoPhaseEstimate(const double& E0, const double& t0, const double& q, const double& m) override;
 
-    virtual bool apply(const size_t& i, const double& t, Vector_t& E, Vector_t& B) override;
+    virtual bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual bool apply(const Vector_t& R, const Vector_t& P, const double& t, Vector_t& E, Vector_t& B) override;
+    virtual bool apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t& R, const Vector_t& P, const double& t, Vector_t& E, Vector_t& B) override;
+    virtual bool applyToReferenceParticle(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch<double, 3>* bunch, double& startField, double& endField) override;
 
     virtual void finalise() override;
 
@@ -76,7 +76,7 @@ public:
 
     virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
-    virtual bool isInside(const Vector_t& r) const override;
+    virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
     virtual void getElementDimensions(double& begin,
                                       double& end) const override;
@@ -208,14 +208,14 @@ void TravelingWave::setMode(double mode) {
 
 inline
 CoordinateSystemTrafo TravelingWave::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t(0, 0, -0.5 * periodLength_m),
+    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, -0.5 * periodLength_m),
                               Quaternion(1, 0, 0, 0));
     return ret;
 }
 
 inline
 CoordinateSystemTrafo TravelingWave::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(Vector_t(0, 0, -0.5 * periodLength_m + getElementLength()),
+    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, -0.5 * periodLength_m + getElementLength()),
                               Quaternion(1, 0, 0, 0));
     return ret;
 }

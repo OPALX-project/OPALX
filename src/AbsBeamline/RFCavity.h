@@ -102,24 +102,24 @@ public:
 
     virtual bool apply(const size_t& i,
                        const double& t,
-                       Vector_t& E,
-                       Vector_t& B) override;
+                       Vector_t<double, 3>& E,
+                       Vector_t<double, 3>& B) override;
 
-    virtual bool apply(const Vector_t& R,
-                       const Vector_t& P,
+    virtual bool apply(const Vector_t<double, 3>& R,
+                       const Vector_t<double, 3>& P,
                        const double& t,
-                       Vector_t& E,
-                       Vector_t& B) override;
+                       Vector_t<double, 3>& E,
+                       Vector_t<double, 3>& B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t& R,
-                                          const Vector_t& P,
+    virtual bool applyToReferenceParticle(const Vector_t<double, 3>& R,
+                                          const Vector_t<double, 3>& P,
                                           const double& t,
-                                          Vector_t& E,
-                                          Vector_t& B) override;
+                                          Vector_t<double, 3>& E,
+                                          Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunchBase<double, 3>* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch<double, 3>* bunch, double& startField, double& endField) override;
 
-    virtual void initialise(PartBunchBase<double, 3>* bunch,
+    virtual void initialise(PartBunch<double, 3>* bunch,
                             std::shared_ptr<AbstractTimeDependence> freq_atd,
                             std::shared_ptr<AbstractTimeDependence> ampl_atd,
                             std::shared_ptr<AbstractTimeDependence> phase_atd);
@@ -173,7 +173,7 @@ public:
 
     virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
-    virtual bool isInside(const Vector_t& r) const override;
+    virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
     void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setAmplitudeModelName(std::string name);
@@ -483,14 +483,14 @@ std::string RFCavity::getFrequencyModelName() {
 
 inline
 CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t(0, 0, startField_m),
+    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, startField_m),
                               Quaternion(1, 0, 0, 0));
     return ret;
 }
 
 inline
 CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(Vector_t(0, 0, startField_m + getElementLength()),
+    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, startField_m + getElementLength()),
                               Quaternion(1, 0, 0, 0));
     return ret;
 }

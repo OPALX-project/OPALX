@@ -42,17 +42,17 @@ namespace Util {
     double erfinv(double x);
 
     inline
-    double getGamma(Vector_t p) {
+    double getGamma(Vector_t<double, 3> p) {
         return std::sqrt(dot(p, p) + 1.0);
     }
 
     inline
-    Vector_t getBeta(Vector_t p) {
+    Vector_t<double, 3> getBeta(Vector_t<double, 3> p) {
         return p / getGamma(p);
     }
 
     inline
-    double getKineticEnergy(Vector_t p, double mass) {
+    double getKineticEnergy(Vector_t<double, 3> p, double mass) {
         return (getGamma(p) - 1.0) * mass;
     }
 
@@ -112,7 +112,7 @@ namespace Util {
     }
 
     inline
-    std::string getLengthString(Vector_t spos, unsigned int precision = 3) {
+    std::string getLengthString(Vector_t<double, 3> spos, unsigned int precision = 3) {
         std::string sposUnit(" [m]");
         double maxPos = std::abs(spos(0));
         for (unsigned int i = 1; i < 3u; ++ i) {
@@ -192,7 +192,7 @@ namespace Util {
         return chargeOutput.str();
     }
 
-    Vector_t getTaitBryantAngles(Quaternion rotation, const std::string& elementName = "");
+    Vector_t<double, 3> getTaitBryantAngles(Quaternion rotation, const std::string& elementName = "");
 
     std::string toUpper(const std::string& str);
 

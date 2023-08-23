@@ -48,7 +48,7 @@ class VerticalFFAMagnet : public Component {
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map
      */
-    inline bool apply(const size_t &i, const double &t, Vector_t &E, Vector_t &B);
+    inline bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B);
 
     /** Calculate the field at some arbitrary position
      *
@@ -59,8 +59,8 @@ class VerticalFFAMagnet : public Component {
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map, else false
      */
-    inline bool apply(const Vector_t &R, const Vector_t &P, const double &t,
-               Vector_t &E, Vector_t &B);
+    inline bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t,
+               Vector_t<double, 3> &E, Vector_t<double, 3> &B);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -69,7 +69,7 @@ class VerticalFFAMagnet : public Component {
      *  \param B calculated magnetic field defined like (Bx, By, Bz)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValue(const Vector_t &R, Vector_t &B) const;
+    bool getFieldValue(const Vector_t<double, 3> &R, Vector_t<double, 3> &B) const;
 
      /** Initialise the VerticalFFAMagnet
       *
@@ -77,7 +77,7 @@ class VerticalFFAMagnet : public Component {
       *  \param startField not used
       *  \param endField not used
       */
-     void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField);
+     void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField);
 
      /** Initialise the VerticalFFAMagnet
       *
@@ -216,12 +216,12 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
 }
 
 bool VerticalFFAMagnet::apply(const size_t &i, const double &t,
-                              Vector_t &E, Vector_t &B) {
+                              Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
     return apply(RefPartBunch_m->R[i], RefPartBunch_m->P[i], t, E, B);
 }
 
-bool VerticalFFAMagnet::apply(const Vector_t &R, const Vector_t &/*P*/,
-                              const double &, Vector_t &/*E*/, Vector_t &B) {
+bool VerticalFFAMagnet::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,
+                              const double &, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &B) {
     return getFieldValue(R, B);
 }
 

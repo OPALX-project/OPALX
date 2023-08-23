@@ -23,7 +23,7 @@
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Attributes/Attributes.h"
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SRefExpr.h"
@@ -236,7 +236,7 @@ void FieldSolver::setFieldSolverType() {
     }
 }
 
-void FieldSolver::initSolver(PartBunchBase<double, 3>* b) {
+void FieldSolver::initSolver(PartBunch<double, 3>* b) {
     itsBunch_m = b;
 
     std::string greens = Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);

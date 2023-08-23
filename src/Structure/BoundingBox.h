@@ -35,31 +35,31 @@ class BoundingBox
 public:
     BoundingBox();
 
-    static BoundingBox getBoundingBox(const std::vector<Vector_t>& positions);
+    static BoundingBox getBoundingBox(const std::vector<Vector_t<double, 3>>& positions);
 
-    void enlargeToContainPosition(const Vector_t& position);
+    void enlargeToContainPosition(const Vector_t<double, 3>& position);
     void enlargeToContainBoundingBox(const BoundingBox& boundingBox);
 
-    boost::optional<Vector_t> getIntersectionPoint(const Vector_t& position,
-                                                   const Vector_t& direction) const;
+    boost::optional<Vector_t<double, 3>> getIntersectionPoint(const Vector_t<double, 3>& position,
+                                                   const Vector_t<double, 3>& direction) const;
 
-    bool isInside(const Vector_t& position) const;
-    bool isOutside(const Vector_t& position) const;
+    bool isInside(const Vector_t<double, 3>& position) const;
+    bool isOutside(const Vector_t<double, 3>& position) const;
     void print(std::ostream& output) const;
 
-    std::pair<Vector_t, Vector_t> getCorners() const;
+    std::pair<Vector_t<double, 3>, Vector_t<double, 3>> getCorners() const;
 private:
-    Vector_t lowerLeftCorner_m;
-    Vector_t upperRightCorner_m;
+    Vector_t<double, 3> lowerLeftCorner_m;
+    Vector_t<double, 3> upperRightCorner_m;
 };
 
 inline
-std::pair<Vector_t, Vector_t> BoundingBox::getCorners() const {
+std::pair<Vector_t<double, 3>, Vector_t<double, 3>> BoundingBox::getCorners() const {
     return std::make_pair(lowerLeftCorner_m, upperRightCorner_m);
 }
 
 inline
-bool BoundingBox::isOutside(const Vector_t& position) const {
+bool BoundingBox::isOutside(const Vector_t<double, 3>& position) const {
     return !isInside(position);
 }
 #endif

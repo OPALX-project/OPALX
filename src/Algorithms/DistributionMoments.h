@@ -29,7 +29,7 @@
 
 class OpalParticle;
 template<class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 
 class DistributionMoments {
 public:
@@ -37,29 +37,29 @@ public:
 
     void compute(const std::vector<OpalParticle>::const_iterator &,
                  const std::vector<OpalParticle>::const_iterator &);
-    void compute(PartBunchBase<double, 3> const&);
-    void computeMeanKineticEnergy(PartBunchBase<double, 3> const&);
-    void computeDebyeLength(PartBunchBase<double, 3> const&, double);
+    void compute(PartBunch<double, 3> const&);
+    void computeMeanKineticEnergy(PartBunch<double, 3> const&);
+    void computeDebyeLength(PartBunch<double, 3> const&, double);
     void computePlasmaParameter(double);
 
-    Vector_t getMeanPosition() const;
-    Vector_t getStandardDeviationPosition() const;
-    Vector_t getMeanMomentum() const;
-    Vector_t getStandardDeviationMomentum() const;
-    Vector_t getNormalizedEmittance() const;
-    Vector_t getGeometricEmittance() const;
-    Vector_t getStandardDeviationRP() const;
-    Vector_t getHalo() const;
-    Vector_t getMaxR() const;
+    Vector_t<double, 3> getMeanPosition() const;
+    Vector_t<double, 3> getStandardDeviationPosition() const;
+    Vector_t<double, 3> getMeanMomentum() const;
+    Vector_t<double, 3> getStandardDeviationMomentum() const;
+    Vector_t<double, 3> getNormalizedEmittance() const;
+    Vector_t<double, 3> getGeometricEmittance() const;
+    Vector_t<double, 3> getStandardDeviationRP() const;
+    Vector_t<double, 3> getHalo() const;
+    Vector_t<double, 3> getMaxR() const;
 
-    Vector_t get68Percentile() const;
-    Vector_t get95Percentile() const;
-    Vector_t get99Percentile() const;
-    Vector_t get99_99Percentile() const;
-    Vector_t getNormalizedEmittance68Percentile() const;
-    Vector_t getNormalizedEmittance95Percentile() const;
-    Vector_t getNormalizedEmittance99Percentile() const;
-    Vector_t getNormalizedEmittance99_99Percentile() const;
+    Vector_t<double, 3> get68Percentile() const;
+    Vector_t<double, 3> get95Percentile() const;
+    Vector_t<double, 3> get99Percentile() const;
+    Vector_t<double, 3> get99_99Percentile() const;
+    Vector_t<double, 3> getNormalizedEmittance68Percentile() const;
+    Vector_t<double, 3> getNormalizedEmittance95Percentile() const;
+    Vector_t<double, 3> getNormalizedEmittance99Percentile() const;
+    Vector_t<double, 3> getNormalizedEmittance99_99Percentile() const;
 
     double getMeanTime() const;
     double getStdTime() const;
@@ -100,24 +100,24 @@ private:
 
     void resetPlasmaParameters();
 
-    Vector_t meanR_m;
-    Vector_t meanP_m;
-    Vector_t stdR_m;
-    Vector_t stdP_m;
-    Vector_t stdRP_m;
-    Vector_t normalizedEps_m;
-    Vector_t geometricEps_m;
-    Vector_t halo_m;
-    Vector_t maxR_m;
-    Vector_t minR_m;
-    Vector_t sixtyEightPercentile_m;
-    Vector_t normalizedEps68Percentile_m;
-    Vector_t ninetyFivePercentile_m;
-    Vector_t normalizedEps95Percentile_m;
-    Vector_t ninetyNinePercentile_m;
-    Vector_t normalizedEps99Percentile_m;
-    Vector_t ninetyNine_NinetyNinePercentile_m;
-    Vector_t normalizedEps99_99Percentile_m;
+    Vector_t<double, 3> meanR_m;
+    Vector_t<double, 3> meanP_m;
+    Vector_t<double, 3> stdR_m;
+    Vector_t<double, 3> stdP_m;
+    Vector_t<double, 3> stdRP_m;
+    Vector_t<double, 3> normalizedEps_m;
+    Vector_t<double, 3> geometricEps_m;
+    Vector_t<double, 3> halo_m;
+    Vector_t<double, 3> maxR_m;
+    Vector_t<double, 3> minR_m;
+    Vector_t<double, 3> sixtyEightPercentile_m;
+    Vector_t<double, 3> normalizedEps68Percentile_m;
+    Vector_t<double, 3> ninetyFivePercentile_m;
+    Vector_t<double, 3> normalizedEps95Percentile_m;
+    Vector_t<double, 3> ninetyNinePercentile_m;
+    Vector_t<double, 3> normalizedEps99Percentile_m;
+    Vector_t<double, 3> ninetyNine_NinetyNinePercentile_m;
+    Vector_t<double, 3> normalizedEps99_99Percentile_m;
 
     double meanTime_m;
     double stdTime_m;
@@ -142,49 +142,49 @@ private:
 };
 
 inline
-Vector_t DistributionMoments::getMeanPosition() const
+Vector_t<double, 3> DistributionMoments::getMeanPosition() const
 {
     return meanR_m;
 }
 
 inline
-Vector_t DistributionMoments::getStandardDeviationPosition() const
+Vector_t<double, 3> DistributionMoments::getStandardDeviationPosition() const
 {
     return stdR_m;
 }
 
 inline
-Vector_t DistributionMoments::getMeanMomentum() const
+Vector_t<double, 3> DistributionMoments::getMeanMomentum() const
 {
     return meanP_m;
 }
 
 inline
-Vector_t DistributionMoments::getStandardDeviationMomentum() const
+Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const
 {
     return stdP_m;
 }
 
 inline
-Vector_t DistributionMoments::getNormalizedEmittance() const
+Vector_t<double, 3> DistributionMoments::getNormalizedEmittance() const
 {
     return normalizedEps_m;
 }
 
 inline
-Vector_t DistributionMoments::getGeometricEmittance() const
+Vector_t<double, 3> DistributionMoments::getGeometricEmittance() const
 {
     return geometricEps_m;
 }
 
 inline
-Vector_t DistributionMoments::getStandardDeviationRP() const
+Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const
 {
     return stdRP_m;
 }
 
 inline
-Vector_t DistributionMoments::getHalo() const
+Vector_t<double, 3> DistributionMoments::getHalo() const
 {
     return halo_m;
 }
@@ -287,57 +287,57 @@ double DistributionMoments::getTotalNumParticles() const
 }
 
 inline
-Vector_t DistributionMoments::get68Percentile() const
+Vector_t<double, 3> DistributionMoments::get68Percentile() const
 {
     return sixtyEightPercentile_m;
 }
 
 inline
-Vector_t DistributionMoments::getNormalizedEmittance68Percentile() const
+Vector_t<double, 3> DistributionMoments::getNormalizedEmittance68Percentile() const
 {
     return normalizedEps68Percentile_m;
 }
 
 inline
-Vector_t DistributionMoments::get95Percentile() const
+Vector_t<double, 3> DistributionMoments::get95Percentile() const
 {
     return ninetyFivePercentile_m;
 }
 
 inline
-Vector_t DistributionMoments::getNormalizedEmittance95Percentile() const
+Vector_t<double, 3> DistributionMoments::getNormalizedEmittance95Percentile() const
 {
     return normalizedEps95Percentile_m;
 }
 
 inline
-Vector_t DistributionMoments::get99Percentile() const
+Vector_t<double, 3> DistributionMoments::get99Percentile() const
 {
     return ninetyNinePercentile_m;
 }
 
 inline
-Vector_t DistributionMoments::getNormalizedEmittance99Percentile() const
+Vector_t<double, 3> DistributionMoments::getNormalizedEmittance99Percentile() const
 {
     return normalizedEps99Percentile_m;
 }
 
 inline
-Vector_t DistributionMoments::get99_99Percentile() const
+Vector_t<double, 3> DistributionMoments::get99_99Percentile() const
 {
     return ninetyNine_NinetyNinePercentile_m;
 }
 
 inline
-Vector_t DistributionMoments::getNormalizedEmittance99_99Percentile() const
+Vector_t<double, 3> DistributionMoments::getNormalizedEmittance99_99Percentile() const
 {
     return normalizedEps99_99Percentile_m;
 }
 
 inline
-Vector_t DistributionMoments::getMaxR() const
+Vector_t<double, 3> DistributionMoments::getMaxR() const
 {
-    Vector_t maxDistance;
+    Vector_t<double, 3> maxDistance;
     for (unsigned int i = 0; i < 3; ++ i) {
         maxDistance[i] = std::max(std::abs(maxR_m[i]), std::abs(minR_m[i]));
     }

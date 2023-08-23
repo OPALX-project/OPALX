@@ -44,7 +44,7 @@ public:
     /// Apply visitor to Drift.
     virtual void accept(BeamlineVisitor &) const override;
 
-    virtual void initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
 
     virtual void finalise() override;
 

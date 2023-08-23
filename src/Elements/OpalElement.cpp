@@ -477,7 +477,7 @@ void OpalElement::update() {
     if (itsAttr[ORIGIN] || itsAttr[ORIENTATION]) {
         std::vector<double> ori = Attributes::getRealArray(itsAttr[ORIGIN]);
         std::vector<double> dir = Attributes::getRealArray(itsAttr[ORIENTATION]);
-        Vector_t origin(0.0);
+        Vector_t<double, 3> origin(0.0);
         Quaternion rotation;
 
         if (dir.size() == 3) {
@@ -494,7 +494,7 @@ void OpalElement::update() {
         }
 
         if (ori.size() == 3) {
-            origin = Vector_t(ori[0], ori[1], ori[2]);
+            origin = Vector_t<double, 3>(ori[0], ori[1], ori[2]);
         } else {
             if (itsAttr[ORIGIN]) {
                 throw OpalException("OpalElement::update",
@@ -521,7 +521,7 @@ void OpalElement::update() {
                !itsAttr[THETA].defaultUsed() ||
                !itsAttr[PHI].defaultUsed() ||
                !itsAttr[PSI].defaultUsed()) {
-        const Vector_t origin(Attributes::getReal(itsAttr[X]),
+        const Vector_t<double, 3> origin(Attributes::getReal(itsAttr[X]),
                               Attributes::getReal(itsAttr[Y]),
                               Attributes::getReal(itsAttr[Z]));
 
@@ -541,7 +541,7 @@ void OpalElement::update() {
         base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
     }
 
-    Vector_t misalignmentShift(Attributes::getReal(itsAttr[DX]),
+    Vector_t<double, 3> misalignmentShift(Attributes::getReal(itsAttr[DX]),
                                Attributes::getReal(itsAttr[DY]),
                                Attributes::getReal(itsAttr[DZ]));
     double dtheta = Attributes::getReal(itsAttr[DTHETA]);

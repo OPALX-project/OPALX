@@ -48,7 +48,7 @@ public:
     //  exception.
     virtual void iterate(BeamlineVisitor &, bool reverse) const = 0;
 
-    virtual Vector_t getOrigin3D() const;
+    virtual Vector_t<double, 3> getOrigin3D() const;
     virtual Quaternion getInitialDirection() const;
     virtual bool getRelativeFlag() const;
 private:

@@ -6,19 +6,19 @@
 class FM1DMagnetoStatic: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal,
                                     double &yIni, double &yFinal,
                                     double &zIni, double &zFinal) const;
-    virtual bool getFieldDerivative(const Vector_t &R, Vector_t &E,
-                                    Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E,
+                                    Vector_t<double, 3> &B, const DiffDirection &dir) const;
     virtual void swap();
     virtual void getInfo(Inform *);
     virtual double getFrequency() const;
     virtual void setFrequency(double freq);
 
-    virtual bool isInside(const Vector_t &r) const;
+    virtual bool isInside(const Vector_t<double, 3> &r) const;
 private:
     FM1DMagnetoStatic(std::string aFilename);
     ~FM1DMagnetoStatic();
@@ -27,7 +27,7 @@ private:
     virtual void freeMap();
 
     bool checkFileData(std::ifstream &fieldFile, bool parsingPassed);
-    void computeFieldOffAxis(const Vector_t &R, Vector_t &E, Vector_t &B,
+    void computeFieldOffAxis(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B,
                              std::vector<double> fieldComponents) const;
     void computeFieldOnAxis(double z,
                             std::vector<double> &fieldComponents) const;
@@ -50,7 +50,7 @@ private:
     friend class Fieldmap;
 };
 
-inline bool FM1DMagnetoStatic::isInside(const Vector_t &r) const
+inline bool FM1DMagnetoStatic::isInside(const Vector_t<double, 3> &r) const
 {
     return r(2) >= zBegin_m && r(2) < zEnd_m;
 }

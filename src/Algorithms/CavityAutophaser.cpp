@@ -42,15 +42,15 @@ CavityAutophaser::CavityAutophaser(const PartData &ref,
 {
     double zbegin = 0.0, zend = 0.0;
     cavity->getDimensions(zbegin, zend);
-    initialR_m = Vector_t(0, 0, zbegin);
+    initialR_m = Vector_t<double, 3>(0, 0, zbegin);
 }
 
 CavityAutophaser::~CavityAutophaser() {
 
 }
 
-double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
-                                             const Vector_t &P,
+double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t<double, 3> &R,
+                                             const Vector_t<double, 3> &P,
                                              double t,
                                              double dt) {
     if(!(itsCavity_m->getType() == ElementType::TRAVELINGWAVE ||
@@ -59,7 +59,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
                             "given element is not a cavity");
     }
 
-    initialP_m = Vector_t(0, 0, euclidean_norm(P));
+    initialP_m = Vector_t<double, 3>(0, 0, euclidean_norm(P));
 
     RFCavity *element     = static_cast<RFCavity *>(itsCavity_m.get());
     bool apVeto           = element->getAutophaseVeto();
@@ -202,7 +202,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(const Vector_t &R,
 }
 
 double CavityAutophaser::guessCavityPhase(double t) {
-    const Vector_t &refP = initialP_m;
+    const Vector_t<double, 3> &refP = initialP_m;
     double Phimax = 0.0;
     bool apVeto;
     RFCavity *element = static_cast<RFCavity *>(itsCavity_m.get());
@@ -293,7 +293,7 @@ double CavityAutophaser::track(double t,
                                const double dt,
                                const double phase,
                                std::ofstream *out) const {
-    const Vector_t &refP = initialP_m;
+    const Vector_t<double, 3> &refP = initialP_m;
 
     RFCavity *rfc = static_cast<RFCavity *>(itsCavity_m.get());
     double initialPhase = rfc->getPhasem();
@@ -307,7 +307,7 @@ double CavityAutophaser::track(double t,
                                                             out);
     rfc->setPhasem(initialPhase);
 
-    double finalKineticEnergy = Util::getKineticEnergy(Vector_t(0.0, 0.0, pe.first), itsReference_m.getM() * Units::eV2MeV);
+    double finalKineticEnergy = Util::getKineticEnergy(Vector_t<double, 3>(0.0, 0.0, pe.first), itsReference_m.getM() * Units::eV2MeV);
 
     return finalKineticEnergy;
 }

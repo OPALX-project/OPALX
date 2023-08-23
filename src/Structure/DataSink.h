@@ -39,7 +39,7 @@
 #include <vector>
 
 template <class T, unsigned Dim>
-class PartBunchBase;
+class PartBunch;
 class BoundaryGeometry;
 class H5PartWrapper;
 
@@ -60,17 +60,17 @@ public:
     DataSink(H5PartWrapper *h5wrapper, bool restart);
     DataSink(H5PartWrapper *h5wrapper);
 
-    void dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[]) const;
+    void dumpH5(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[]) const;
     
-    int dumpH5(PartBunchBase<double, 3> *beam, Vector_t FDext[], double meanEnergy,
+    int dumpH5(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[], double meanEnergy,
                double refPr, double refPt, double refPz,
                double refR, double refTheta, double refZ,
                double azimuth, double elevation, bool local) const;
     
-    void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+    void dumpSDDS(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[],
                   const double& azimuth = -1) const;
     
-    void dumpSDDS(PartBunchBase<double, 3> *beam, Vector_t FDext[],
+    void dumpSDDS(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[],
                   const losses_t &losses = losses_t(), const double& azimuth = -1) const;
     
     /** \brief Write cavity information from  H5 file
@@ -95,7 +95,7 @@ public:
      * @param fn specifies the name of vtk file contains the geometry
      *
      */
-    void writeImpactStatistics(const PartBunchBase<double, 3> *beam,
+    void writeImpactStatistics(const PartBunch<double, 3> *beam,
                                long long int &step,
                                size_t &impact,
                                double &sey_num,

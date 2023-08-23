@@ -19,7 +19,7 @@
 #include "Physics/Units.h"
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunchBase<double, 3>* bunch,
+bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunch<double, 3>* bunch,
                                                     const size_t& i,
                                                     const double& t,
                                                     const double dt,
@@ -40,23 +40,23 @@ bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunchBase<double, 3>* bu
 
 
 template <typename FieldFunction, typename ... Arguments>
-void LF2<FieldFunction, Arguments ...>::push_m(Vector_t& R, const Vector_t& P,
+void LF2<FieldFunction, Arguments ...>::push_m(Vector_t<double, 3>& R, const Vector_t<double, 3>& P,
                                                const double& h) const
 {
     double const gamma = sqrt(1.0 + dot(P, P));
     double const c_gamma = Physics::c / gamma;
-    Vector_t const v = P * c_gamma;
+    Vector_t<double, 3> const v = P * c_gamma;
     R += h * v;
 }
 
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunchBase<double, 3>* bunch, const size_t& i,
+bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunch<double, 3>* bunch, const size_t& i,
                                                const double& t, const double& h,
                                                Arguments& ... args) const
 {
-    Vector_t externalE = Vector_t(0.0, 0.0, 0.0);
-    Vector_t externalB = Vector_t(0.0, 0.0, 0.0);
+    Vector_t<double, 3> externalE = Vector_t<double, 3>(0.0, 0.0, 0.0);
+    Vector_t<double, 3> externalB = Vector_t<double, 3>(0.0, 0.0, 0.0);
 
     bool outOfBound = this->fieldfunc_m(t, i, externalE, externalB, args ...);
 

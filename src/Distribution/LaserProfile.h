@@ -64,7 +64,7 @@ private:
     gsl_rng *rng_m;
     gsl_histogram2d_pdf *pdf_m;
 
-    Vector_t centerMass_m;
-    Vector_t standardDeviation_m;
+    Vector_t<double, 3> centerMass_m;
+    Vector_t<double, 3> standardDeviation_m;
 };
 #endif

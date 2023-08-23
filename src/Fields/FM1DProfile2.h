@@ -6,8 +6,8 @@
 class FM1DProfile2: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t &X, Vector_t &strength, Vector_t &info) const;
-    virtual bool getFieldDerivative(const Vector_t &X, Vector_t &E, Vector_t &B, const DiffDirection &dir) const;
+    virtual bool getFieldstrength(const Vector_t<double, 3> &X, Vector_t<double, 3> &strength, Vector_t<double, 3> &info) const;
+    virtual bool getFieldDerivative(const Vector_t<double, 3> &X, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const;
     virtual void getFieldDimensions(double &zBegin, double &zEnd) const;
     virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
     virtual void swap();

@@ -209,7 +209,7 @@ void FM1DProfile1::readMap() {
 void FM1DProfile1::freeMap() {
 }
 
-bool FM1DProfile1::getFieldstrength(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/) const {
+bool FM1DProfile1::getFieldstrength(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/) const {
 
     /*
      * For this type of field map, the elements who use it calculate the field
@@ -219,9 +219,9 @@ bool FM1DProfile1::getFieldstrength(const Vector_t &/*R*/, Vector_t &/*E*/, Vect
 
 }
 
-bool FM1DProfile1::getFieldDerivative(const Vector_t &/*R*/,
-                                      Vector_t &/*E*/,
-                                      Vector_t &/*B*/,
+bool FM1DProfile1::getFieldDerivative(const Vector_t<double, 3> &/*R*/,
+                                      Vector_t<double, 3> &/*E*/,
+                                      Vector_t<double, 3> &/*B*/,
                                       const DiffDirection &/*dir*/) const {
     return false;
 }

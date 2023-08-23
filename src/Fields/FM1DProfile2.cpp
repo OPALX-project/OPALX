@@ -204,22 +204,22 @@ void FM1DProfile2::freeMap() {
     }
 }
 
-bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vector_t &info) const {
+bool FM1DProfile2::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &strength, Vector_t<double, 3> &info) const {
 
-    info = Vector_t(0.0);
+    info = Vector_t<double, 3>(0.0);
 
     // Find coordinates in the entrance frame.
-    Vector_t REntrance(R(0), 0.0, R(2) + zbegin_entry_m);
+    Vector_t<double, 3> REntrance(R(0), 0.0, R(2) + zbegin_entry_m);
 
     // Find coordinates in the exit frame.
-    Vector_t RExit(0.0, R(1), 0.0);
+    Vector_t<double, 3> RExit(0.0, R(1), 0.0);
 
     RExit(0) = (R(0) - xExit_m) * cosExitRotation_m - (R(2) + zbegin_entry_m - zExit_m) * sinExitRotation_m;
     RExit(2) = (R(0) - xExit_m) * sinExitRotation_m + (R(2) + zbegin_entry_m - zExit_m) * cosExitRotation_m + polynomialOrigin_exit_m;
 
 
     if (REntrance(2) >= zend_entry_m && RExit(2) <= zbegin_exit_m) {
-        strength = Vector_t(1.0, 0.0, 0.0);
+        strength = Vector_t<double, 3>(1.0, 0.0, 0.0);
     } else {
         double d2Sdz2 = 0.0;
         double z;
@@ -261,7 +261,7 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
             strength(1) = dfdz / gapHeight_m;
             strength(2) = d2fdz2;
         } else {
-            strength = Vector_t(0.0);
+            strength = Vector_t<double, 3>(0.0);
         }
 
     }
@@ -269,11 +269,11 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
 
     return true;
 
-    //    info = Vector_t(0.0);
-    //    const Vector_t tmpR(R(0), R(1), R(2) + zbegin_entry_m);
+    //    info = Vector_t<double, 3>(0.0);
+    //    const Vector_t<double, 3> tmpR(R(0), R(1), R(2) + zbegin_entry_m);
     //
     //    if (tmpR(2) >= zend_entry_m && tmpR(2) <= exit_slope_m * tmpR(0) + zbegin_exit_m) {
-    //        strength = Vector_t(1.0, 0.0, 0.0);
+    //        strength = Vector_t<double, 3>(1.0, 0.0, 0.0);
     //        info(0) = 3.0;
     //    } else {
     //        double S, dSdz, d2Sdz2 = 0.0;
@@ -314,7 +314,7 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
     //            strength(1) = dfdz / gapHeight_m;
     //            strength(2) = d2fdz2;
     //        } else {
-    //            strength = Vector_t(0.0);
+    //            strength = Vector_t<double, 3>(0.0);
     //        }
     //
     //    }
@@ -323,7 +323,7 @@ bool FM1DProfile2::getFieldstrength(const Vector_t &R, Vector_t &strength, Vecto
 
 }
 
-bool FM1DProfile2::getFieldDerivative(const Vector_t &/*R*/, Vector_t &/*E*/, Vector_t &/*B*/, const DiffDirection &/*dir*/) const {
+bool FM1DProfile2::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
     return false;
 }
 

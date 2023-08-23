@@ -740,8 +740,8 @@ void Fieldmap::write3DField(unsigned int nx,
                             const std::pair<double, double> &xrange,
                             const std::pair<double, double> &yrange,
                             const std::pair<double, double> &zrange,
-                            const std::vector<Vector_t> &ef,
-                            const std::vector<Vector_t> &bf) {
+                            const std::vector<Vector_t<double, 3>> &ef,
+                            const std::vector<Vector_t<double, 3>> &bf) {
     const size_t numpoints = nx * ny * nz;
     if (Ippl::myNode() != 0 ||
         (ef.size() != numpoints && bf.size() != numpoints)) return;

@@ -67,8 +67,8 @@ RingSection& RingSection::operator=(const RingSection& rhs) {
     return *this;
 }
 
-bool RingSection::isOnOrPastStartPlane(const Vector_t& pos) const {
-    Vector_t posTransformed = pos-startPosition_m;
+bool RingSection::isOnOrPastStartPlane(const Vector_t<double, 3>& pos) const {
+    Vector_t<double, 3> posTransformed = pos-startPosition_m;
     // check that pos-startPosition_m is in front of startOrientation_m
     double normProd = posTransformed(0)*startOrientation_m(0)+
                       posTransformed(1)*startOrientation_m(1)+
@@ -80,8 +80,8 @@ bool RingSection::isOnOrPastStartPlane(const Vector_t& pos) const {
     return normProd >= 0. && posProd >= 0.;
 }
 
-bool RingSection::isPastEndPlane(const Vector_t& pos) const {
-    Vector_t posTransformed = pos-endPosition_m;
+bool RingSection::isPastEndPlane(const Vector_t<double, 3>& pos) const {
+    Vector_t<double, 3> posTransformed = pos-endPosition_m;
     double normProd = posTransformed(0)*endOrientation_m(0)+
                       posTransformed(1)*endOrientation_m(1)+
                       posTransformed(2)*endOrientation_m(2);
@@ -92,14 +92,14 @@ bool RingSection::isPastEndPlane(const Vector_t& pos) const {
     return normProd > 0. && posProd > 0.;
 }
 
-bool RingSection::getFieldValue(const Vector_t& pos,
-                                const Vector_t& /*centroid*/, const double& t,
-                                Vector_t& E, Vector_t& B) const {
+bool RingSection::getFieldValue(const Vector_t<double, 3>& pos,
+                                const Vector_t<double, 3>& /*centroid*/, const double& t,
+                                Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     // transform position into local coordinate system
-    Vector_t pos_local = pos-componentPosition_m;
+    Vector_t<double, 3> pos_local = pos-componentPosition_m;
     rotate(pos_local);
     rotateToTCoordinates(pos_local);
-    bool outOfBounds = component_m->apply(pos_local, Vector_t(0.0), t, E, B);
+    bool outOfBounds = component_m->apply(pos_local, Vector_t<double, 3>(0.0), t, E, B);
     if (outOfBounds) {
         return true;
     }
@@ -116,16 +116,16 @@ void RingSection::updateComponentOrientation() {
     cos2_m = cos(componentOrientation_m(2));
 }
 
-std::vector<Vector_t> RingSection::getVirtualBoundingBox() const {
-    Vector_t startParallel(getStartNormal()(1), -getStartNormal()(0), 0);
-    Vector_t endParallel(getEndNormal()(1), -getEndNormal()(0), 0);
+std::vector<Vector_t<double, 3>> RingSection::getVirtualBoundingBox() const {
+    Vector_t<double, 3> startParallel(getStartNormal()(1), -getStartNormal()(0), 0);
+    Vector_t<double, 3> endParallel(getEndNormal()(1), -getEndNormal()(0), 0);
     normalise(startParallel);
     normalise(endParallel);
     double startRadius = 0.99*sqrt(getStartPosition()(0)*getStartPosition()(0)+
                                    getStartPosition()(1)*getStartPosition()(1));
     double endRadius = 0.99*sqrt(getEndPosition()(0)*getEndPosition()(0)+
                                  getEndPosition()(1)*getEndPosition()(1));
-    std::vector<Vector_t> bb;
+    std::vector<Vector_t<double, 3>> bb;
     bb.push_back(getStartPosition()-startParallel*startRadius);
     bb.push_back(getStartPosition()+startParallel*startRadius);
     bb.push_back(getEndPosition()-endParallel*endRadius);
@@ -138,19 +138,19 @@ bool RingSection::doesOverlap(double phiStart, double phiEnd) const {
     RingSection phiVirtualORS;
     // phiStart -= Physics::pi;
     // phiEnd -= Physics::pi;
-    phiVirtualORS.setStartPosition(Vector_t(sin(phiStart),
+    phiVirtualORS.setStartPosition(Vector_t<double, 3>(sin(phiStart),
                                             cos(phiStart),
                                             0.));
-    phiVirtualORS.setStartNormal(Vector_t(cos(phiStart),
+    phiVirtualORS.setStartNormal(Vector_t<double, 3>(cos(phiStart),
                                           -sin(phiStart),
                                           0.));
-    phiVirtualORS.setEndPosition(Vector_t(sin(phiEnd),
+    phiVirtualORS.setEndPosition(Vector_t<double, 3>(sin(phiEnd),
                                           cos(phiEnd),
                                           0.));
-    phiVirtualORS.setEndNormal(Vector_t(cos(phiEnd),
+    phiVirtualORS.setEndNormal(Vector_t<double, 3>(cos(phiEnd),
                                         -sin(phiEnd),
                                         0.));
-    std::vector<Vector_t> virtualBB = getVirtualBoundingBox();
+    std::vector<Vector_t<double, 3>> virtualBB = getVirtualBoundingBox();
     // at least one of the bounding box coordinates is in the defined sector
     // std::cerr << "RingSection::doesOverlap " << phiStart << " " << phiEnd << " "
     //          << phiVirtualORS.getStartPosition() << " " << phiVirtualORS.getStartNormal() << " "
@@ -181,14 +181,14 @@ bool RingSection::doesOverlap(double phiStart, double phiEnd) const {
 }
 
 
-void RingSection::rotate(Vector_t& vector) const {
-    const Vector_t temp(vector);
+void RingSection::rotate(Vector_t<double, 3>& vector) const {
+    const Vector_t<double, 3> temp(vector);
     vector(0) = +cos2_m * temp(0) + sin2_m * temp(1);
     vector(1) = -sin2_m * temp(0) + cos2_m * temp(1);
 }
 
-void RingSection::rotate_back(Vector_t& vector) const {
-    const Vector_t temp(vector);
+void RingSection::rotate_back(Vector_t<double, 3>& vector) const {
+    const Vector_t<double, 3> temp(vector);
     vector(0) = +cos2_m * temp(0) - sin2_m * temp(1);
     vector(1) = +sin2_m * temp(0) + cos2_m * temp(1);
 }

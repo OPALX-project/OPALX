@@ -36,7 +36,7 @@
 #include "Fields/EMField.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Structure/LossDataSink.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 
 // fairly generous tolerance here... maybe too generous? Maybe should be
 // user parameter?
@@ -96,8 +96,8 @@ Ring::~Ring() {
         delete section_list_m[i];
 }
 
-bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
-                 Vector_t &B) {
+bool Ring::apply(const size_t &id, const double &t, Vector_t<double, 3> &E,
+                 Vector_t<double, 3> &B) {
     bool flagNeedUpdate =
         apply(refPartBunch_m->R[id], refPartBunch_m->P[id], t, E, B);
     if(flagNeedUpdate) {
@@ -106,7 +106,7 @@ bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
                 << " at " << refPartBunch_m->R[id]
                 << " m out of the field map boundary" << endl;
         lossDS_m->addParticle(OpalParticle(id,
-                                           refPartBunch_m->R[id] * Vector_t(1000.0), refPartBunch_m->P[id],
+                                           refPartBunch_m->R[id] * Vector_t<double, 3>(1000.0), refPartBunch_m->P[id],
                                            t,
                                            refPartBunch_m->Q[id], refPartBunch_m->M[id]));
 
@@ -116,10 +116,10 @@ bool Ring::apply(const size_t &id, const double &t, Vector_t &E,
     return flagNeedUpdate;
 }
 
-bool Ring::apply(const Vector_t &R, const Vector_t &/*P*/,
-                 const double &t, Vector_t &E, Vector_t &B) {
-    B = Vector_t(0.0, 0.0, 0.0);
-    E = Vector_t(0.0, 0.0, 0.0);
+bool Ring::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,
+                 const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) {
+    B = Vector_t<double, 3>(0.0, 0.0, 0.0);
+    E = Vector_t<double, 3>(0.0, 0.0, 0.0);
 
     std::vector<RingSection*> sections = getSectionsAt(R); // I think this doesn't actually use R -DW
     bool outOfBounds = true;
@@ -132,10 +132,10 @@ bool Ring::apply(const Vector_t &R, const Vector_t &/*P*/,
     }
 
     for (size_t i = 0; i < sections.size(); ++i) {
-        Vector_t B_temp(0.0, 0.0, 0.0);
-        Vector_t E_temp(0.0, 0.0, 0.0);
+        Vector_t<double, 3> B_temp(0.0, 0.0, 0.0);
+        Vector_t<double, 3> E_temp(0.0, 0.0, 0.0);
         // Super-TEMP! cyclotron tracker now uses m internally, have to change to mm here to match old field limits -DW
-        outOfBounds &= sections[i]->getFieldValue(R * Vector_t(1000.0), refPartBunch_m->get_centroid() * Vector_t(1000.0), t, E_temp, B_temp);
+        outOfBounds &= sections[i]->getFieldValue(R * Vector_t<double, 3>(1000.0), refPartBunch_m->get_centroid() * Vector_t<double, 3>(1000.0), t, E_temp, B_temp);
         B += (scale_m * B_temp);
         E += (scale_m * E_temp);
     }
@@ -152,13 +152,13 @@ void Ring::getDimensions(double &/*zBegin*/, double &/*zEnd*/) const {
                                   "Cannot get s-dimension of a ring");
 }
 
-void Ring::initialise(PartBunchBase<double, 3> *bunch) {
+void Ring::initialise(PartBunch<double, 3> *bunch) {
     online_m = true;
     setRefPartBunch(bunch);
     setLossDataSink(new LossDataSink(getName(), false));
 }
 
-void Ring::initialise(PartBunchBase<double, 3> * bunch, double &/*startField*/,
+void Ring::initialise(PartBunch<double, 3> * bunch, double &/*startField*/,
                       double &/*endField*/) {
     initialise(bunch);
 }
@@ -169,12 +169,12 @@ void Ring::finalise() {
     setLossDataSink(nullptr);
 }
 
-void Ring::setRefPartBunch(PartBunchBase<double, 3>* bunch) {
+void Ring::setRefPartBunch(PartBunch<double, 3>* bunch) {
     RefPartBunch_m = bunch; // inherited from Component
     refPartBunch_m = bunch; // private data (obeys style guide)
 }
 
-std::vector<RingSection*> Ring::getSectionsAt(const Vector_t& /*r*/) {
+std::vector<RingSection*> Ring::getSectionsAt(const Vector_t<double, 3>& /*r*/) {
     return section_list_m;
 }
 
@@ -208,20 +208,20 @@ void Ring::rotateToCyclCoordinates(Euclid3D& delta) const {
 }
 
 
-Vector_t Ring::getNextPosition() const {
+Vector_t<double, 3> Ring::getNextPosition() const {
     if (!section_list_m.empty()) {
         return section_list_m.back()->getEndPosition();
     }
-    return Vector_t(latticeRInit_m*std::sin(latticePhiInit_m),
+    return Vector_t<double, 3>(latticeRInit_m*std::sin(latticePhiInit_m),
                     latticeRInit_m*std::cos(latticePhiInit_m),
                     0.);
 }
 
-Vector_t Ring::getNextNormal() const {
+Vector_t<double, 3> Ring::getNextNormal() const {
     if (!section_list_m.empty()) {
         return section_list_m.back()->getEndNormal();
     }
-    return Vector_t(std::cos(latticePhiInit_m+latticeThetaInit_m),
+    return Vector_t<double, 3>(std::cos(latticePhiInit_m+latticeThetaInit_m),
                     -std::sin(latticePhiInit_m+latticeThetaInit_m),
                     0.);
 }
@@ -240,15 +240,15 @@ void Ring::appendElement(const Component &element) {
     checkMidplane(delta);
 
     RingSection* section = new RingSection();
-    Vector_t startPos = getNextPosition();
-    Vector_t startNorm = getNextNormal();
+    Vector_t<double, 3> startPos = getNextPosition();
+    Vector_t<double, 3> startNorm = getNextNormal();
 
     section->setComponent(dynamic_cast<Component*>(element.clone()));
     section->setStartPosition(startPos);
     section->setStartNormal(startNorm);
 
     double startF = std::atan2(startNorm(1), startNorm(0));
-    Vector_t endPos = Vector_t(
+    Vector_t<double, 3> endPos = Vector_t<double, 3>(
                                +delta.getVector()(0)*std::cos(startF)-delta.getVector()(1)*std::sin(startF),
                                +delta.getVector()(0)*std::sin(startF)+delta.getVector()(1)*std::cos(startF),
                                0)+startPos;
@@ -256,14 +256,14 @@ void Ring::appendElement(const Component &element) {
 
     double endF = delta.getRotation().getAxis()(2);//+
     //atan2(delta.getVector()(1), delta.getVector()(0));
-    Vector_t endNorm = Vector_t(
+    Vector_t<double, 3> endNorm = Vector_t<double, 3>(
                                 +startNorm(0)*std::cos(endF) + startNorm(1)*std::sin(endF),
                                 -startNorm(0)*std::sin(endF) + startNorm(1)*std::cos(endF),
                                 0);
     section->setEndNormal(endNorm);
 
     section->setComponentPosition(startPos);
-    section->setComponentOrientation(Vector_t(0, 0, startF));
+    section->setComponentOrientation(Vector_t<double, 3>(0, 0, startF));
 
     section_list_m.push_back(section);
 
@@ -319,10 +319,10 @@ void Ring::lockRing() {
 
 void Ring::resetAzimuths() {
     for (size_t i = 0; i < section_list_m.size(); ++i) {
-        Vector_t startPos = section_list_m[i]->getEndPosition();
-        Vector_t startDir = section_list_m[i]->getEndNormal();
-        Vector_t endPos = section_list_m[i]->getEndPosition();
-        Vector_t endDir = section_list_m[i]->getEndNormal();
+        Vector_t<double, 3> startPos = section_list_m[i]->getEndPosition();
+        Vector_t<double, 3> startDir = section_list_m[i]->getEndNormal();
+        Vector_t<double, 3> endPos = section_list_m[i]->getEndPosition();
+        Vector_t<double, 3> endDir = section_list_m[i]->getEndNormal();
         if (!section_list_m[i]->isOnOrPastStartPlane(endPos)) {
             section_list_m[i]->setEndPosition(startPos);
             section_list_m[i]->setEndNormal(startDir);
@@ -333,10 +333,10 @@ void Ring::resetAzimuths() {
 }
 
 void Ring::checkAndClose() {
-    Vector_t first_pos = section_list_m[0]->getStartPosition();
-    Vector_t first_norm = section_list_m[0]->getStartNormal();
-    Vector_t last_pos = section_list_m.back()->getEndPosition();
-    Vector_t last_norm = section_list_m.back()->getEndNormal();
+    Vector_t<double, 3> first_pos = section_list_m[0]->getStartPosition();
+    Vector_t<double, 3> first_norm = section_list_m[0]->getStartNormal();
+    Vector_t<double, 3> last_pos = section_list_m.back()->getEndPosition();
+    Vector_t<double, 3> last_norm = section_list_m.back()->getEndNormal();
     for (int i = 0; i < 3; ++i) {
         if (std::abs(first_pos(i) - last_pos(i)) > lengthTolerance_m ||
             std::abs(first_norm(i) - last_norm(i)) > angleTolerance_m)

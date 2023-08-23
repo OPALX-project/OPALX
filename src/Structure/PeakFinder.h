@@ -44,7 +44,7 @@ public:
      * Append the particle coordinates to the container
      * @param R is a particle position (x, y, z)
      */
-    void addParticle(const Vector_t& R);
+    void addParticle(const Vector_t<double, 3>& R);
 
     /*!
      * Evaluate the centroid of a turn.

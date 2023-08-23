@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 
 extern Inform *gmsg;
 
@@ -52,7 +52,7 @@ void Drift::accept(BeamlineVisitor &visitor) const {
     visitor.visitDrift(*this);
 }
 
-void Drift::initialise(PartBunchBase<double, 3> *bunch, double &startField, double &endField) {
+void Drift::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
     RefPartBunch_m = bunch;
     startField_m = startField;

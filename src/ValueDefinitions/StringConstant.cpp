@@ -23,20 +23,19 @@
 
 #include <iostream>
 
-#define CREATE_STRINGCONSTANT(x) \
-    opal->create(new StringConstant(x, this, x));
+#define CREATE_STRINGCONSTANT(x) opal->create(new StringConstant(x, this, x));
 
-
-StringConstant::StringConstant():
-    ValueDefinition(1, "STRING_CONSTANT",
-                    "The \"STRING CONSTANT\" statement defines a global "
-                    "string constant:\n"
-                    "\tSTRING CONSTANT <name> = <String-expression>;\n") {
+StringConstant::StringConstant()
+    : ValueDefinition(
+        1, "STRING_CONSTANT",
+        "The \"STRING CONSTANT\" statement defines a global "
+        "string constant:\n"
+        "\tSTRING CONSTANT <name> = <String-expression>;\n") {
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
     registerOwnership(AttributeHandler::STATEMENT);
 
-    OpalData *opal = OpalData::getInstance();
+    OpalData* opal = OpalData::getInstance();
     opal->create(new StringConstant("GITREVISION", this, Util::getGitRevision()));
 
     // NOTE: Strings that contain a hyphen can't be written without quotes and
@@ -153,36 +152,6 @@ StringConstant::StringConstant():
     CREATE_STRINGCONSTANT("HIERARCHY");
     CREATE_STRINGCONSTANT("REUSE");
 
-    // FieldSolver / AMR_MG_SMOOTHER
-    CREATE_STRINGCONSTANT("GS");
-    CREATE_STRINGCONSTANT("SGS");
-    CREATE_STRINGCONSTANT("JACOBI");
-
-    // FieldSolver / AMR_MG_PREC
-    CREATE_STRINGCONSTANT("ILUT");
-    CREATE_STRINGCONSTANT("CHEBYSHEV");
-    CREATE_STRINGCONSTANT("RILUK");
-    CREATE_STRINGCONSTANT("BLOCK_JACOBI");
-    CREATE_STRINGCONSTANT("BLOCK_GS");
-    // additionally: NONE, JACOBI, GS, SA
-
-    // FieldSolver / AMR_MG_INTERP
-    CREATE_STRINGCONSTANT("TRILINEAR");
-    CREATE_STRINGCONSTANT("LAGRANGE");
-    CREATE_STRINGCONSTANT("PC");
-
-    // FieldSolver / AMR_MG_NORM
-    CREATE_STRINGCONSTANT("L1_NORM");
-    CREATE_STRINGCONSTANT("L2_NORM");
-    CREATE_STRINGCONSTANT("LINF_NORM");
-
-    // FieldSolver / AMR_MG_REUSE
-    CREATE_STRINGCONSTANT("RP");
-    CREATE_STRINGCONSTANT("RAP");
-    CREATE_STRINGCONSTANT("SYMBOLIC");
-    CREATE_STRINGCONSTANT("FULL");
-    // additionally: NONE
-
     // Option / PSDUMPFRAME
     CREATE_STRINGCONSTANT("GLOBAL");
     CREATE_STRINGCONSTANT("BUNCH_MEAN");
@@ -240,44 +209,38 @@ StringConstant::StringConstant():
     CREATE_STRINGCONSTANT("CYLINDRICAL");
 }
 
-StringConstant::StringConstant(const std::string &name, StringConstant *parent):
-    ValueDefinition(name, parent)
-{}
+StringConstant::StringConstant(const std::string& name, StringConstant* parent)
+    : ValueDefinition(name, parent) {
+}
 
-
-StringConstant::StringConstant(const std::string &name, StringConstant *parent, const std::string &value):
-    ValueDefinition(name, parent)
-{
+StringConstant::StringConstant(
+    const std::string& name, StringConstant* parent, const std::string& value)
+    : ValueDefinition(name, parent) {
     Attributes::setString(itsAttr[0], value);
     itsAttr[0].setReadOnly(true);
     builtin = true;
 }
 
+StringConstant::~StringConstant() {
+}
 
-StringConstant::~StringConstant()
-{}
-
-
-bool StringConstant::canReplaceBy(Object *) {
+bool StringConstant::canReplaceBy(Object*) {
     return false;
 }
 
-
-StringConstant *StringConstant::clone(const std::string &name) {
+StringConstant* StringConstant::clone(const std::string& name) {
     return new StringConstant(name, this);
 }
-
 
 std::string StringConstant::getString() const {
     return Attributes::getString(itsAttr[0]);
 }
 
-
-void StringConstant::print(std::ostream &os) const {
+void StringConstant::print(std::ostream& os) const {
     os << "STRING " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
 }
 
-void StringConstant::printValue(std::ostream &os) const {
+void StringConstant::printValue(std::ostream& os) const {
     os << itsAttr[0];
 }

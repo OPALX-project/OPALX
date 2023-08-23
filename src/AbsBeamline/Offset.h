@@ -109,7 +109,7 @@ class Offset : public Component {
      *   - radius_out radius of the end of the offset
      *   - phi_out azimuthal angle of the end of the offset
      *   - theta_out angle relative to the tangent of the end of the offset
-     *  Call updateGeometry(Vector_t, Vector_t) using the end of the previous
+     *  Call updateGeometry(Vector_t<double, 3>, Vector_t<double, 3>) using the end of the previous
      *  element before placement; Offset will convert to the local coordinate
      *  system.
      */
@@ -125,20 +125,20 @@ class Offset : public Component {
      *   - end_direction direction of the end of the offset
      */
     static Offset localCartesianOffset(std::string name,
-                                       Vector_t end_position,
-                                       Vector_t end_direction);
+                                       Vector_t<double, 3> end_position,
+                                       Vector_t<double, 3> end_direction);
 
     /** Factory method to make an offset in global cartesian coordinates
      *   - name name of the offset
      *   - end_position position of the end of the offset
      *   - end_direction direction of the end of the offset
-     *  Call updateGeometry(Vector_t, Vector_t) using the end of the previous
+     *  Call updateGeometry(Vector_t<double, 3>, Vector_t<double, 3>) using the end of the previous
      *  element before placement; Offset will convert to the local coordinate
      *  system.
      */
     static Offset globalCartesianOffset(std::string name,
-                                        Vector_t end_position,
-                                        Vector_t end_direction);
+                                        Vector_t<double, 3> end_position,
+                                        Vector_t<double, 3> end_direction);
 
     /** deletes geometry and wrappedGeometry */
     ~Offset();
@@ -157,16 +157,16 @@ class Offset : public Component {
      */
     bool bends() const override;
 
-    void initialise(PartBunchBase<double, 3> *bunch, double &startField,
+    void initialise(PartBunch<double, 3> *bunch, double &startField,
                             double &endField) override;
     void finalise() override;
     void getDimensions(double &/*zBegin*/, double &/*zEnd*/) const override {}
 
-    void setEndPosition(Vector_t position);
-    Vector_t getEndPosition() const;
+    void setEndPosition(Vector_t<double, 3> position);
+    Vector_t<double, 3> getEndPosition() const;
 
-    void setEndDirection(Vector_t direction);
-    Vector_t getEndDirection() const;
+    void setEndDirection(Vector_t<double, 3> direction);
+    Vector_t<double, 3> getEndDirection() const;
 
     /** Set to true if stored coordinates are in the local coordinate system of
      *  the last placed object
@@ -180,7 +180,7 @@ class Offset : public Component {
 
     Euclid3DGeometry& getGeometry() override;
     const Euclid3DGeometry& getGeometry() const override;
-    void updateGeometry(Vector_t startPosition, Vector_t startDirection);
+    void updateGeometry(Vector_t<double, 3> startPosition, Vector_t<double, 3> startDirection);
     void updateGeometry();
     bool isGeometryAllocated() const;
 
@@ -196,17 +196,17 @@ class Offset : public Component {
      *  Throws an GeneralClassicException if vec1, vec2 are not in the midplane i.e.
      *  non-zero z.
      */
-    static double getTheta(Vector_t vec1, Vector_t vec2);
+    static double getTheta(Vector_t<double, 3> vec1, Vector_t<double, 3> vec2);
 
     /** Rotate vec anticlockwise by angle theta about z axis; return the rotated
      *  vector
      */
-    static Vector_t rotate(Vector_t vec, double theta);
+    static Vector_t<double, 3> rotate(Vector_t<double, 3> vec, double theta);
 
     static double float_tolerance;
   private:
-    Vector_t _end_position;
-    Vector_t _end_direction;
+    Vector_t<double, 3> _end_position;
+    Vector_t<double, 3> _end_direction;
     bool     _is_local;
     // The offset's geometry.
     Euclid3DGeometry* geometry_m = nullptr;

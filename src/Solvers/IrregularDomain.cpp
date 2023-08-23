@@ -29,7 +29,7 @@
 #include "Utility/PAssert.h"
 #include "Utilities/OpalException.h"
 
-IrregularDomain::IrregularDomain(const IntVector_t& nr, const Vector_t& hr,
+IrregularDomain::IrregularDomain(const IntVector_t<double, 3>& nr, const Vector_t<double, 3>& hr,
                                  const std::string& interpl)
     : nr_m(nr)
     , hr_m(hr)
@@ -124,8 +124,8 @@ void IrregularDomain::getBoundaryStencil(int id, StencilValue_t& value,
 }
 
 
-void IrregularDomain::resizeMesh(Vector_t& origin, Vector_t& hr,
-                                 const Vector_t& /*rmin*/, const Vector_t& /*rmax*/,
+void IrregularDomain::resizeMesh(Vector_t<double, 3>& origin, Vector_t<double, 3>& hr,
+                                 const Vector_t<double, 3>& /*rmin*/, const Vector_t<double, 3>& /*rmax*/,
                                  double /*dh*/)
 {
     origin = min_m;

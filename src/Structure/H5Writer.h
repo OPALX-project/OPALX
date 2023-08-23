@@ -19,7 +19,7 @@
 #define OPAL_H5_WRITER_H
 
 #include "Structure/H5PartWrapper.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "H5hut.h"
 
 class H5Writer {
@@ -49,7 +49,7 @@ public:
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
-    void writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[]);
+    void writePhaseSpace(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[]);
 
     /** \brief Dumps phase space to H5 file in OPAL cyclotron calculation.
      *
@@ -65,7 +65,7 @@ public:
      *  \param E average energy (MeB)
      *  \return Returns the number of the time step just written.
      */
-    int writePhaseSpace(PartBunchBase<double, 3> *beam, Vector_t FDext[], double E,
+    int writePhaseSpace(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[], double E,
                         double refPr, double refPt, double refPz,
                         double refR, double refTheta, double refZ,
                         double azimuth, double elevation, bool local);

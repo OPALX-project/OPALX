@@ -22,7 +22,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Util.h"
 #include "Utilities/Timer.h"
-#include "Algorithms/PartBunchBase.h"
+#include "Algorithms/PartBunch.h"
 #include "Physics/Units.h"
 
 LBalWriter::LBalWriter(const std::string& fname, bool restart)
@@ -69,7 +69,7 @@ void LBalWriter::fillHeader() {
 }
 
 
-void LBalWriter::write(const PartBunchBase<double, 3> *beam) {
+void LBalWriter::write(const PartBunch<double, 3> *beam) {
     if ( Ippl::myNode() != 0 )
         return;
 

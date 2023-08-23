@@ -28,7 +28,7 @@
 
 namespace mslang {
     struct BoundingBox2D {
-        Vector_t center_m;
+        Vector_t<double, 3> center_m;
         double width_m;
         double height_m;
 
@@ -44,8 +44,8 @@ namespace mslang {
             height_m(right.height_m)
         { }
 
-        BoundingBox2D(const Vector_t &llc,
-                    const Vector_t &urc):
+        BoundingBox2D(const Vector_t<double, 3> &llc,
+                    const Vector_t<double, 3> &urc):
             center_m(0.5 * (llc + urc)),
             width_m(urc[0] - llc[0]),
             height_m(urc[1] - llc[1])
@@ -53,7 +53,7 @@ namespace mslang {
 
         BoundingBox2D& operator=(const BoundingBox2D&) = default;
         bool doesIntersect(const BoundingBox2D &bb) const;
-        bool isInside(const Vector_t &X) const;
+        bool isInside(const Vector_t<double, 3> &X) const;
         bool isInside(const BoundingBox2D &b) const;
         virtual void writeGnuplot(std::ostream &out) const;
         void print(std::ostream &out) const;

@@ -84,9 +84,9 @@ void OpalLocalCartesianOffset::update() {
     // getOpalName() comes from AbstractObjects/Object.h
     Offset *offset = dynamic_cast<Offset*>(getElement());
     std::string name = getOpalName();
-    Vector_t pos(Attributes::getReal(itsAttr[END_POSITION_X]),
+    Vector_t<double, 3> pos(Attributes::getReal(itsAttr[END_POSITION_X]),
                  Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
-    Vector_t norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
+    Vector_t<double, 3> norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
                   Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
     *offset = Offset(Offset::localCartesianOffset(name, pos, norm));
     //    setElement(offset);

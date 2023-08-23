@@ -39,10 +39,10 @@ public:
      * \param b is the shorter side b of the rectangle
      *
      */
-    RectangularDomain(double a, double b, IntVector_t nr, Vector_t hr);
+    RectangularDomain(double a, double b, IntVector_t<double, 3> nr, Vector_t<double, 3> hr);
 
     /// calculates intersection with the beam pipe
-    void compute(Vector_t hr, NDIndex<3> /*localId*/);
+    void compute(Vector_t<double, 3> hr, NDIndex<3> /*localId*/);
 
     /// queries if a given (x,y,z) coordinate lies inside the domain
     inline bool isInside(int x, int y, int /*z*/) const {

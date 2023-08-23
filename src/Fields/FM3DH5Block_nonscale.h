@@ -27,7 +27,7 @@ class FM3DH5Block_nonscale: public FM3DH5BlockBase {
 
 public:
     virtual bool getFieldstrength (
-        const Vector_t &R, Vector_t &E, Vector_t &B) const;
+        const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const;
     
 private:
     FM3DH5Block_nonscale (

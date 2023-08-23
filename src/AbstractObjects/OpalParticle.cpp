@@ -37,7 +37,7 @@ OpalParticle::OpalParticle(int64_t id,
 {}
 
 OpalParticle::OpalParticle(int64_t id,
-                           Vector_t const& R, Vector_t const& P,
+                           Vector_t<double, 3> const& R, Vector_t<double, 3> const& P,
                            double t, double q, double m):
     id_m(id),
     R_m(R),

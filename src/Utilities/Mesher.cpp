@@ -1,6 +1,6 @@
 #include "Utilities/Mesher.h"
 
-Mesher::Mesher(std::vector<Vector_t> &vertices):
+Mesher::Mesher(std::vector<Vector_t<double, 3>> &vertices):
     vertices_m(vertices)
 {
     apply();
@@ -15,14 +15,14 @@ void Mesher::orientVerticesCCW() {
     double sum = 0.0;
     for (unsigned int i = 0; i < size; ++ i) {
         unsigned int iPlusOne = (i + 1) % size;
-        Vector_t edge(vertices_m[iPlusOne][0] - vertices_m[i][0],
+        Vector_t<double, 3> edge(vertices_m[iPlusOne][0] - vertices_m[i][0],
                       vertices_m[iPlusOne][1] + vertices_m[i][1],
                       0.0);
         sum += edge[0] * edge[1];
     }
     if (sum <= 0.0) return;
 
-    std::vector<Vector_t> reoriented(vertices_m.rbegin(), vertices_m.rend());
+    std::vector<Vector_t<double, 3>> reoriented(vertices_m.rbegin(), vertices_m.rend());
 
     vertices_m.swap(reoriented);
 }
@@ -33,24 +33,24 @@ bool Mesher::isConvex(unsigned int i) const {
     unsigned int iPlusOne = (i + 1) % numVertices;
     unsigned int iMinusOne = (i + numVertices - 1) % numVertices;
 
-    Vector_t edge0 = vertices_m[iMinusOne] - vertices_m[i];
-    Vector_t edge1 = vertices_m[iPlusOne] - vertices_m[i];
+    Vector_t<double, 3> edge0 = vertices_m[iMinusOne] - vertices_m[i];
+    Vector_t<double, 3> edge1 = vertices_m[iPlusOne] - vertices_m[i];
 
     double vectorProduct = edge0[0] * edge1[1] - edge0[1] * edge1[0];
 
     return (vectorProduct < 0.0);
 }
 
-double Mesher::crossProduct(const Vector_t &a,
-                                 const Vector_t &b) const {
+double Mesher::crossProduct(const Vector_t<double, 3> &a,
+                                 const Vector_t<double, 3> &b) const {
     return a[0] * b[1] - a[1] * b[0];
 }
 
 bool Mesher::isPointOnLine(unsigned int i,
                                 unsigned int j,
-                                const Vector_t &pt) const {
-    Vector_t aTmp = vertices_m[j] - vertices_m[i];
-    Vector_t bTmp = pt - vertices_m[i];
+                                const Vector_t<double, 3> &pt) const {
+    Vector_t<double, 3> aTmp = vertices_m[j] - vertices_m[i];
+    Vector_t<double, 3> bTmp = pt - vertices_m[i];
 
     double r = crossProduct(aTmp, bTmp);
 
@@ -59,9 +59,9 @@ bool Mesher::isPointOnLine(unsigned int i,
 
 bool Mesher::isPointRightOfLine(unsigned int i,
                                 unsigned int j,
-                                const Vector_t &pt) const {
-    Vector_t aTmp = vertices_m[j] - vertices_m[i];
-    Vector_t bTmp = pt - vertices_m[i];
+                                const Vector_t<double, 3> &pt) const {
+    Vector_t<double, 3> aTmp = vertices_m[j] - vertices_m[i];
+    Vector_t<double, 3> bTmp = pt - vertices_m[i];
 
     return crossProduct(aTmp, bTmp) < 0.0;
 }
@@ -109,8 +109,8 @@ bool Mesher::isPotentialEdgeIntersected(unsigned int i) const {
     return false;
 }
 
-double getAngleBetweenEdges(const Vector_t &a,
-                            const Vector_t &b) {
+double getAngleBetweenEdges(const Vector_t<double, 3> &a,
+                            const Vector_t<double, 3> &b) {
     double lengthA = mslang::euclidean_norm2D(a);
     double lengthB = mslang::euclidean_norm2D(b);
 
@@ -123,15 +123,15 @@ double getAngleBetweenEdges(const Vector_t &a,
 
 double Mesher::dotProduct(unsigned int i,
                           unsigned int j,
-                          const Vector_t &pt) const {
-    Vector_t edge0 = vertices_m[j] - vertices_m[i];
-    Vector_t edge1 = vertices_m[j] - pt;
+                          const Vector_t<double, 3> &pt) const {
+    Vector_t<double, 3> edge0 = vertices_m[j] - vertices_m[i];
+    Vector_t<double, 3> edge1 = vertices_m[j] - pt;
 
     return edge0[0] * edge1[0] + edge0[1] * edge1[1];
 }
 
-double dotProduct(const Vector_t &a,
-                  const Vector_t &b) {
+double dotProduct(const Vector_t<double, 3> &a,
+                  const Vector_t<double, 3> &b) {
     return a[0] * b[0] + a[1] * b[1];
 }
 
@@ -139,7 +139,7 @@ bool Mesher::isPointInsideCone(unsigned int i,
                                unsigned int j,
                                unsigned int jPlusOne,
                                unsigned int jMinusOne) const {
-    const Vector_t &pt = vertices_m[i];
+    const Vector_t<double, 3> &pt = vertices_m[i];
 
     return !((isPointRightOfLine(jMinusOne, j, pt) &&
               dotProduct(jMinusOne, j, pt) > 0.0) ||
@@ -184,9 +184,9 @@ double Mesher::computeMinimumAngle(unsigned int i) const {
     unsigned int previous = (i + numVertices - 1) % numVertices;
     unsigned int next = (i + 1) % numVertices;
 
-    Vector_t edge0 = vertices_m[i] - vertices_m[previous];
-    Vector_t edge1 = vertices_m[next] - vertices_m[i];
-    Vector_t edge2 = vertices_m[previous] - vertices_m[next];
+    Vector_t<double, 3> edge0 = vertices_m[i] - vertices_m[previous];
+    Vector_t<double, 3> edge1 = vertices_m[next] - vertices_m[i];
+    Vector_t<double, 3> edge2 = vertices_m[previous] - vertices_m[next];
     double length0 = mslang::euclidean_norm2D(edge0);
     double length1 = mslang::euclidean_norm2D(edge1);
     double length2 = mslang::euclidean_norm2D(edge2);

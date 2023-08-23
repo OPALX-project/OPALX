@@ -37,7 +37,7 @@ public:
                  double q, double m);
 
     OpalParticle(int64_t id,
-                 Vector_t const& R, Vector_t const& P,
+                 Vector_t<double, 3> const& R, Vector_t<double, 3> const& P,
                  double time, double q, double m);
 
     OpalParticle();
@@ -61,10 +61,10 @@ public:
     void setPz(double);
 
     /// Set position in m
-    void setR(Vector_t const&);
+    void setR(Vector_t<double, 3> const&);
 
     /// Set momentum
-    void setP(Vector_t const&);
+    void setP(Vector_t<double, 3> const&);
 
     /// Set the time
     void setTime(double t);
@@ -95,10 +95,10 @@ public:
     double getPz() const;
 
     /// Get position in m
-    const Vector_t& getR() const;
+    const Vector_t<double, 3>& getR() const;
 
     /// Get momentum
-    const Vector_t& getP() const;
+    const Vector_t<double, 3>& getP() const;
 
     /// Get time
     double getTime() const;
@@ -111,8 +111,8 @@ public:
 
 private:
     int64_t id_m;
-    Vector_t R_m;
-    Vector_t P_m;
+    Vector_t<double, 3> R_m;
+    Vector_t<double, 3> P_m;
     double time_m;
     double charge_m;
     double mass_m;
@@ -155,13 +155,13 @@ void OpalParticle::setPz(double val)
 }
 
 inline
-void OpalParticle::setR(Vector_t const& R)
+void OpalParticle::setR(Vector_t<double, 3> const& R)
 {
     R_m = R;
 }
 
 inline
-void OpalParticle::setP(Vector_t const& P)
+void OpalParticle::setP(Vector_t<double, 3> const& P)
 {
     P_m = P;
 }
@@ -222,13 +222,13 @@ double OpalParticle::getPz() const
 }
 
 inline
-const Vector_t& OpalParticle::getR() const
+const Vector_t<double, 3>& OpalParticle::getR() const
 {
     return R_m;
 }
 
 inline
-const Vector_t& OpalParticle::getP() const
+const Vector_t<double, 3>& OpalParticle::getP() const
 {
     return P_m;
 }
