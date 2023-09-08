@@ -52,7 +52,7 @@ message (STATUS "ADA Found Kokkos_DIR: ${Kokkos_DIR}")
 find_package(Heffte 2.2.0 REQUIRED)
 message (STATUS "ADA Found Heffte_DIR: ${Heffte_DIR}")  
 
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 
@@ -63,6 +63,7 @@ endif()
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
+add_compile_options (-ferror-limit=1)
 add_compile_options (-Wno-error)
 add_compile_options (-Wno-deprecated-declarations)
 add_compile_options (-Wno-unused)
@@ -155,8 +156,8 @@ endif ()
 
 
 find_package (Ippl REQUIRED)
-
-#add_compile_options(-I${IPPL_INCLUDE_DIR})
+message (STATUS "IPPL include dir ${IPPL_INCLUDE_DIR}")
+add_compile_options("-I/Users/adelmann/git/ippl/src")
 
 find_package (H5Hut REQUIRED)
 
