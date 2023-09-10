@@ -22,14 +22,11 @@
 // $Author: fci $
 //
 // ------------------------------------------------------------------------
-
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/EMField.h"
+#include "OPALTypes.h"
 
 class PartData;
-
-template <class PLayout, typename T, unsigned Dim>
-class PartBunch;
 
 template <class T, int N>
 class FVps;
@@ -128,7 +125,7 @@ public:
     virtual double getDesignEnergy() const;
     virtual void setDesignEnergy(const double& energy, bool changeable = true);
 
-    virtual void initialise(PartBunch<double, 3>* bunch, double& startField, double& endField) = 0;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) = 0;
 
     virtual void finalise() = 0;
 
@@ -167,8 +164,7 @@ public:
     //  This catch-all method implements a hook for tracking a particle
     //  bunch through a non-standard component.
     //  The default version throws a LogicalError.
-    virtual void trackBunch(
-        PartBunch<double, 3>* bunch, const PartData&, bool revBeam, bool revTrack) const;
+    virtual void trackBunch(PartBunch_t* bunch, const PartData&, bool revBeam, bool revTrack) const;
 
     /// Track a map.
     //  This catch-all method implements a hook for tracking a transfer
@@ -183,7 +179,7 @@ protected:
     // Vector_t<double, 3> Orientation_m;
     double exit_face_slope_m;
 
-    PartBunch<double, 3>* RefPartBunch_m;
+    PartBunch_t* RefPartBunch_m;
     bool online_m;
 };
 

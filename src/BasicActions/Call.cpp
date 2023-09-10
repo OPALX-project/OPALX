@@ -57,7 +57,7 @@ Call* Call::clone(const std::string& name) {
 void Call::execute() {
     std::string file = Attributes::getString(itsAttr[0]);
 
-    if (Options::info && Ippl::myNode() == 0) {
+    if (Options::info && ippl::Comm->rank() == 0) {
         *gmsg << "* Reading input stream '" << file
               << "' from \"CALL\" command.\n" << endl;
     }

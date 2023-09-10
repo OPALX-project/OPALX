@@ -26,17 +26,14 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
+PluginElement::PluginElement() : PluginElement("") {
+}
 
-PluginElement::PluginElement():PluginElement("")
-{}
-
-PluginElement::PluginElement(const std::string &name):
-    Component(name) {
+PluginElement::PluginElement(const std::string& name) : Component(name) {
     setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
-PluginElement::PluginElement(const PluginElement &right):
-    Component(right) {
+PluginElement::PluginElement(const PluginElement& right) : Component(right) {
     setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
 }
 
@@ -45,11 +42,11 @@ PluginElement::~PluginElement() {
         goOffline();
 }
 
-void PluginElement::initialise(PartBunch<double, 3> *bunch, double &, double &) {
+void PluginElement::initialise(PartBunch_t* bunch, double&, double&) {
     initialise(bunch);
 }
 
-void PluginElement::initialise(PartBunch<double, 3> *bunch) {
+void PluginElement::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));
     // virtual hook
@@ -75,11 +72,14 @@ bool PluginElement::bends() const {
     return false;
 }
 
-bool PluginElement::apply(const size_t &/*i*/, const double &, Vector_t<double, 3> &, Vector_t<double, 3> &) {
+bool PluginElement::apply(
+    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     return false;
 }
 
-bool PluginElement::applyToReferenceParticle(const Vector_t<double, 3> &, const Vector_t<double, 3> &, const double &, Vector_t<double, 3> &, Vector_t<double, 3> &) {
+bool PluginElement::applyToReferenceParticle(
+    const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
+    Vector_t<double, 3>&) {
     return false;
 }
 
@@ -89,7 +89,7 @@ void PluginElement::setDimensions(double xstart, double xend, double ystart, dou
     xend_m   = xend;
     yend_m   = yend;
     rstart_m = std::hypot(xstart, ystart);
-    rend_m   = std::hypot(xend,   yend);
+    rend_m   = std::hypot(xend, yend);
     // start position is the one with lowest radius
     if (rstart_m > rend_m) {
         std::swap(xstart_m, xend_m);
@@ -98,40 +98,39 @@ void PluginElement::setDimensions(double xstart, double xend, double ystart, dou
     }
     A_m = yend_m - ystart_m;
     B_m = xstart_m - xend_m;
-    R_m = std::sqrt(A_m*A_m+B_m*B_m);
-    C_m = ystart_m*xend_m - xstart_m*yend_m;
+    R_m = std::sqrt(A_m * A_m + B_m * B_m);
+    C_m = ystart_m * xend_m - xstart_m * yend_m;
 
     // element equation: A*X + B*Y + C = 0
     // point closest to origin https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
     double x_close = 0.0;
     if (R_m > 0.0)
-        x_close = - A_m * C_m / (R_m * R_m);
+        x_close = -A_m * C_m / (R_m * R_m);
 
-    if (x_close > std::min(xstart_m, xend_m) && x_close < std::max(xstart_m, xend_m) )
-        rmin_m  = std::abs(C_m) / std::hypot(A_m,B_m);
+    if (x_close > std::min(xstart_m, xend_m) && x_close < std::max(xstart_m, xend_m))
+        rmin_m = std::abs(C_m) / std::hypot(A_m, B_m);
     else
         rmin_m = rstart_m;
 }
 
 void PluginElement::setGeom(const double dist) {
-
-   double slope;
+    double slope;
     if (xend_m == xstart_m)
-      slope = 1.0e12;
+        slope = 1.0e12;
     else
-      slope = (yend_m - ystart_m) / (xend_m - xstart_m);
+        slope = (yend_m - ystart_m) / (xend_m - xstart_m);
 
-    double coeff2 = std::sqrt(1 + slope * slope);
-    double coeff1 = slope / coeff2;
+    double coeff2   = std::sqrt(1 + slope * slope);
+    double coeff1   = slope / coeff2;
     double halfdist = dist / 2.0;
-    geom_m[0].x = xstart_m - halfdist * coeff1;
-    geom_m[0].y = ystart_m + halfdist / coeff2;
+    geom_m[0].x     = xstart_m - halfdist * coeff1;
+    geom_m[0].y     = ystart_m + halfdist / coeff2;
 
     geom_m[1].x = xstart_m + halfdist * coeff1;
     geom_m[1].y = ystart_m - halfdist / coeff2;
 
     geom_m[2].x = xend_m + halfdist * coeff1;
-    geom_m[2].y = yend_m - halfdist  / coeff2;
+    geom_m[2].y = yend_m - halfdist / coeff2;
 
     geom_m[3].x = xend_m - halfdist * coeff1;
     geom_m[3].y = yend_m + halfdist / coeff2;
@@ -142,35 +141,37 @@ void PluginElement::setGeom(const double dist) {
     doSetGeom();
 }
 
-void PluginElement::changeWidth(PartBunch<double, 3> *bunch, int i, const double tstep, const double tangle) {
+void PluginElement::changeWidth(
+    PartBunch_t* bunch, int i, const double tstep, const double tangle) {
+    constexpr double c_mtns = Physics::c / Units::s2ns;  // m/s --> m/ns
 
-    constexpr double c_mtns = Physics::c / Units::s2ns; // m/s --> m/ns
-    double lstep  = euclidean_norm(bunch->P[i]) / Util::getGamma(bunch->P[i]) * c_mtns * tstep; // [m]
-    double sWidth = lstep / std::sqrt( 1 + 1/tangle/tangle );
+    const double tmp = std::sqrt(dot(bunch->P(i), bunch->P(i)).apply());
+    double lstep     = tmp / Util::getGamma(bunch->P(i)) * c_mtns * tstep;  // [m]
+    double sWidth    = lstep / std::sqrt(1 + 1 / tangle / tangle);
     setGeom(sWidth);
 }
 
 double PluginElement::calculateIncidentAngle(double xp, double yp) const {
     double k1, k2, tangle = 0.0;
-    if ( B_m == 0.0 && xp == 0.0) {
+    if (B_m == 0.0 && xp == 0.0) {
         // width is 0.0, keep non-zero
         tangle = 0.1;
-    } else if ( B_m == 0.0 ){
+    } else if (B_m == 0.0) {
         k1 = yp / xp;
         if (k1 == 0.0)
             tangle = 1.0e12;
         else
             tangle = std::abs(1 / k1);
-    } else if ( xp == 0.0 ) {
-        k2 = - A_m / B_m;
-        if ( k2 == 0.0 )
+    } else if (xp == 0.0) {
+        k2 = -A_m / B_m;
+        if (k2 == 0.0)
             tangle = 1.0e12;
         else
             tangle = std::abs(1 / k2);
     } else {
-        k1 = yp / xp;
-        k2 = - A_m / B_m;
-        tangle = std::abs(( k1-k2 ) / (1 + k1*k2));
+        k1     = yp / xp;
+        k2     = -A_m / B_m;
+        tangle = std::abs((k1 - k2) / (1 + k1 * k2));
     }
     return tangle;
 }
@@ -191,13 +192,14 @@ double PluginElement::getYEnd() const {
     return yend_m;
 }
 
-bool PluginElement::check(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool PluginElement::check(
+    PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {
     bool flag = false;
     // check if bunch close
     bool bunchClose = preCheck(bunch);
 
     if (bunchClose == true) {
-        flag = doCheck(bunch, turnnumber, t, tstep); // virtual hook
+        flag = doCheck(bunch, turnnumber, t, tstep);  // virtual hook
     }
     // finalise, can have reduce
     flag = finaliseCheck(bunch, flag);
@@ -205,19 +207,18 @@ bool PluginElement::check(PartBunch<double, 3> *bunch, const int turnnumber, con
     return flag;
 }
 
-void PluginElement::getDimensions(double &zBegin, double &zEnd) const {
+void PluginElement::getDimensions(double& zBegin, double& zEnd) const {
     zBegin = -0.005;
-    zEnd   =  0.005;
+    zEnd   = 0.005;
 }
 
-int PluginElement::checkPoint(const double &x, const double &y) const {
-    int    cn = 0;
+int PluginElement::checkPoint(const double& x, const double& y) const {
+    int cn = 0;
     for (int i = 0; i < 4; i++) {
-        if ((   (geom_m[i].y <= y) && (geom_m[i+1].y >  y))
-            || ((geom_m[i].y >  y) && (geom_m[i+1].y <= y))) {
-
-            float vt = (float)(y - geom_m[i].y) / (geom_m[i+1].y - geom_m[i].y);
-            if(x < geom_m[i].x + vt * (geom_m[i+1].x - geom_m[i].x))
+        if (((geom_m[i].y <= y) && (geom_m[i + 1].y > y))
+            || ((geom_m[i].y > y) && (geom_m[i + 1].y <= y))) {
+            float vt = (float)(y - geom_m[i].y) / (geom_m[i + 1].y - geom_m[i].y);
+            if (x < geom_m[i].x + vt * (geom_m[i + 1].x - geom_m[i].x))
                 ++cn;
         }
     }

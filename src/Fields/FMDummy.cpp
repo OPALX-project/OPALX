@@ -14,7 +14,7 @@ FMDummy::FMDummy(std::string aFilename):
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
     WARNMSG(errormsg_str << "\n" << endl);
 
-    if(Ippl::myNode() == 0) {
+    if(ippl::Comm->rank() == 0) {
     	std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg_str << std::endl;
         omsg.close();

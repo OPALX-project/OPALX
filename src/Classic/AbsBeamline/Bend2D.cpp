@@ -510,7 +510,7 @@ bool Bend2D::calculateMapField(const Vector_t<double, 3> &R, Vector_t<double, 3>
 void Bend2D::calculateRefTrajectory(double &angleX, double &/*angleY*/) {
 
     std::ofstream trajectoryOutput;
-    if (Options::writeBendTrajectories && Ippl::myNode() == 0) {
+    if (Options::writeBendTrajectories && ippl::Comm->rank() == 0) {
         std::string fname = Util::combineFilePath({
             OpalData::getInstance()->getAuxiliaryOutputDirectory(),
             OpalData::getInstance()->getInputBasename() + "_" + getName() + "_traj.dat"
@@ -552,7 +552,7 @@ void Bend2D::calculateRefTrajectory(double &angleX, double &/*angleY*/) {
         calculateMapField(XInBendFrame, bField);
         bField = fieldAmplitude_m * bField;
 
-        if (Options::writeBendTrajectories && Ippl::myNode() == 0) {
+        if (Options::writeBendTrajectories && ippl::Comm->rank() == 0) {
             trajectoryOutput << std::setw(20) << deltaS + 0.5 * stepSize
                              << std::setw(20) << X(0)
                              << std::setw(20) << X(2)
@@ -1365,7 +1365,7 @@ std::vector<Vector_t<double, 3>> Bend2D::getOutline() const {
     }
 
     std::ofstream outlineOutput;
-    if (Options::writeBendTrajectories && Ippl::myNode() == 0) {
+    if (Options::writeBendTrajectories && ippl::Comm->rank() == 0) {
         std::string fname = Util::combineFilePath({
             OpalData::getInstance()->getAuxiliaryOutputDirectory(),
             OpalData::getInstance()->getInputBasename() + "_" + getName() + "_outline.dat"

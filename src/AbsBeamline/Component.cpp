@@ -21,7 +21,6 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Component.h"
-// #include "Algorithms/PartBunch.h"
 #include "Utilities/LogicalError.h"
 
 // Class Component
@@ -41,12 +40,12 @@ Component::Component() : Component("") {
 Component::Component(const Component& right)
     : ElementBase(right), exit_face_slope_m(right.exit_face_slope_m), online_m(right.online_m) {
 }
-/*
+
 Component::Component(const std::string& name)
     : ElementBase(name), exit_face_slope_m(0.0), RefPartBunch_m(nullptr), online_m(false) {
     setAperture(ApertureType::ELLIPTICAL, defaultAperture_m);
 }
-*/
+
 Component::~Component() {
 }
 
@@ -54,7 +53,7 @@ const ElementBase& Component::getDesign() const {
     return *this;
 }
 
-void Component::trackBunch(PartBunch<double, 3>*, const PartData&, bool, bool) const {
+void Component::trackBunch(PartBunch_t*, const PartData&, bool, bool) const {
     throw LogicalError("Component::trackBunch()", "Called for component \"" + getName() + "\".");
 }
 
@@ -78,23 +77,19 @@ ElementType Component::getType() const {
     return ElementType::ANY;
 }
 
-/* ADA
-bool Component::apply(const size_t &i,
-                      const double &,
-                      Vector_t<double, 3> &,
-                      Vector_t<double, 3> &) {
-    const Vector_t<double, 3>& R = RefPartBunch_m->R[i];
+bool Component::apply(const size_t& i, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
+    /* const Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return true;
     }
+    */
     return false;
 }
-*/
 
 bool Component::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
-    Vector_t<double, 3>& /*B*/) {
+    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return true;
@@ -103,8 +98,8 @@ bool Component::apply(
 }
 
 bool Component::applyToReferenceParticle(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
-    Vector_t<double, 3>& /*B*/) {
+    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return true;

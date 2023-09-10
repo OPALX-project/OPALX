@@ -34,12 +34,10 @@
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
-#include "Utilities/RingSection.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/RingSection.h"
 
 class LossDataSink;
-template <class T, unsigned Dim>
-class PartBunch;
 class FieldMap;
 
 /** \class[Ring]
@@ -62,7 +60,7 @@ class FieldMap;
  *  ParallelCyclotronTracker)
  */
 class Ring : public Component {
-  public:
+public:
     /** Constructor
      *
      *  \param ring Name of the ring as defined in the input file
@@ -91,8 +89,8 @@ class Ring : public Component {
      *  true. If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1 and store in LossDataSink
      */
-    virtual bool apply(const size_t &id, const double &t, Vector_t<double, 3> &E,
-                       Vector_t<double, 3> &B) override;
+    virtual bool apply(
+        const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /** Overwrite data in vector E and B with electromagnetic field at point R
      *
@@ -110,8 +108,9 @@ class Ring : public Component {
      *  If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1
      */
-    virtual bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P,
-                       const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    virtual bool apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /** Initialise the Ring
      *
@@ -121,24 +120,25 @@ class Ring : public Component {
      *  @param endField - not used
      *  @param scaleFactor - not used
      */
-    virtual void initialise(PartBunch<double, 3> *bunch, double &startField,
-                            double &endField) override;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     /** Initialise the Ring - set the bunch and allocate a new LossDataSink
      *
      *  @param bunch the particle bunch. Ring borrows this pointer (caller
      *         owns memory)
      */
-    virtual void initialise(PartBunch<double, 3> *bunch);
+    virtual void initialise(PartBunch_t* bunch);
 
     /** Clean up the Ring
      *
-     *  Ring relinquishes RefPartBunch<double, 3> pointer and deletes LossDataSink
+     *  Ring relinquishes RefPartBunch_t pointer and deletes LossDataSink
      */
     virtual void finalise() override;
 
     /** Returns true - Ring is assumed to bend particles, being a ring */
-    virtual bool bends() const override {return true;}
+    virtual bool bends() const override {
+        return true;
+    }
 
     /** Accept the BeamlineVisitor
      *
@@ -149,10 +149,12 @@ class Ring : public Component {
     virtual void accept(BeamlineVisitor& visitor) const override;
 
     /** Not implemented - always throws an exception */
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
     /** Inherited copy constructor */
-    virtual ElementBase* clone() const override {return new Ring(*this);}
+    virtual ElementBase* clone() const override {
+        return new Ring(*this);
+    }
 
     /** Add element to the ring
      *
@@ -173,19 +175,27 @@ class Ring : public Component {
      *  Ring applies a bounding box based on the element geometry, if there
      *  are field maps expanding outside this region they may get cut.
      */
-    void appendElement(const Component &element);
+    void appendElement(const Component& element);
 
     /** Not implemented, throws an exception */
-    virtual EMField &getField() override {throw GeneralClassicException("Ring::getField", "Not implemented");}
+    virtual EMField& getField() override {
+        throw GeneralClassicException("Ring::getField", "Not implemented");
+    }
 
     /** Not implemented, throws an exception */
-    virtual const EMField &getField() const override {throw GeneralClassicException("Ring::getField", "Not implemented");}
+    virtual const EMField& getField() const override {
+        throw GeneralClassicException("Ring::getField", "Not implemented");
+    }
 
     /** Not implemented */
-    virtual PlanarArcGeometry &getGeometry() override {return planarArcGeometry_m;}
+    virtual PlanarArcGeometry& getGeometry() override {
+        return planarArcGeometry_m;
+    }
 
     /** Not implemented */
-    virtual const PlanarArcGeometry &getGeometry() const override {return planarArcGeometry_m;}
+    virtual const PlanarArcGeometry& getGeometry() const override {
+        return planarArcGeometry_m;
+    }
 
     /** Set LossDataSink to sink.
      *
@@ -198,65 +208,93 @@ class Ring : public Component {
      *
      *  Ring still owns the memory to which lossDataSink points.
      */
-    PartBunch<double, 3>* getLossDataSink() const;
+    PartBunch_t* getLossDataSink() const;
 
-    /** Set RefPartBunch<double, 3> to bunch.
+    /** Set RefPartBunch_t to bunch.
      *
      *  @param sink The Bunch. Ring borrows memory allocated to bunch.
      *
      *  Note for compliance with style guide and compatibility with parent two
-     *  pointer to RefPartBunch<double, 3> are stored; this keeps them aligned
+     *  pointer to RefPartBunch_t are stored; this keeps them aligned
      */
-    void setRefPartBunch(PartBunch<double, 3>* bunch);
+    void setRefPartBunch(PartBunch_t* bunch);
 
-    /** Get pointer to RefPartBunch<double, 3> from the bunch.
+    /** Get pointer to RefPartBunch_t from the bunch.
      *
      *  Ring does not own this memory (so neither does caller).
      */
-    PartBunch<double, 3>* getRefPartBunch() const;
+    PartBunch_t* getRefPartBunch() const;
 
     /** Set the harmonic number for RF (number of bunches in the ring) */
-    void setHarmonicNumber(double cyclHarm) {cyclHarm_m = cyclHarm;}
+    void setHarmonicNumber(double cyclHarm) {
+        cyclHarm_m = cyclHarm;
+    }
 
     /** Get the harmonic number for RF (number of bunches in the ring) */
-    double getHarmonicNumber() {return cyclHarm_m;}
+    double getHarmonicNumber() {
+        return cyclHarm_m;
+    }
     // note this is not a const method to follow parent
 
     /** Set the nominal RF frequency */
-    void setRFFreq(double rfFreq) {rfFreq_m = rfFreq;}
+    void setRFFreq(double rfFreq) {
+        rfFreq_m = rfFreq;
+    }
 
     /** Get the nominal RF frequency */
-    double getRFFreq() const {return rfFreq_m;}
+    double getRFFreq() const {
+        return rfFreq_m;
+    }
 
     /** Set the initial beam radius */
-    void setBeamRInit(double rInit) {beamRInit_m = rInit;}
+    void setBeamRInit(double rInit) {
+        beamRInit_m = rInit;
+    }
 
     /** Get the initial beam radius */
-    double getBeamRInit() const {return beamRInit_m;}
+    double getBeamRInit() const {
+        return beamRInit_m;
+    }
 
     /** Set the initial beam azimuthal angle */
-    void setBeamPhiInit(double phiInit) {beamPhiInit_m = phiInit;}
+    void setBeamPhiInit(double phiInit) {
+        beamPhiInit_m = phiInit;
+    }
 
     /** Get the initial beam azimuthal angle */
-    double getBeamPhiInit() const {return beamPhiInit_m;}
+    double getBeamPhiInit() const {
+        return beamPhiInit_m;
+    }
 
     /** Set the initial beam radial momentum */
-    void setBeamPRInit(double pRInit) {beamPRInit_m = pRInit;}
+    void setBeamPRInit(double pRInit) {
+        beamPRInit_m = pRInit;
+    }
 
     /** Get the initial beam radial momentum */
-    double getBeamPRInit() const {return beamPRInit_m;}
+    double getBeamPRInit() const {
+        return beamPRInit_m;
+    }
 
     /** Set the initial element's radius */
-    void setLatticeRInit(double rInit) {latticeRInit_m = rInit;}
+    void setLatticeRInit(double rInit) {
+        latticeRInit_m = rInit;
+    }
 
     /** Get the initial element's radius */
-    double getLatticeRInit() const {return latticeRInit_m;}
+    double getLatticeRInit() const {
+        return latticeRInit_m;
+    }
 
     /** Set the initial element's azimuthal angle */
-    void setLatticePhiInit(double phiInit) {latticePhiInit_m = phiInit;}
+    void setLatticePhiInit(double phiInit) {
+        latticePhiInit_m = phiInit;
+    }
 
     /** Get the initial  element's azimuthal angle */
-    double getLatticePhiInit() const {return latticePhiInit_m;}
+    double getLatticePhiInit() const {
+        return latticePhiInit_m;
+    }
 
     /** Get the initial element's start position in cartesian coordinates */
     Vector_t<double, 3> getNextPosition() const;
@@ -268,28 +306,42 @@ class Ring : public Component {
      *
      *  Set the angle in the ring plane with respect to the tangent vector
      */
-    void setLatticeThetaInit(double thetaInit) {latticeThetaInit_m = thetaInit;}
+    void setLatticeThetaInit(double thetaInit) {
+        latticeThetaInit_m = thetaInit;
+    }
 
     /** Get the first element's horizontal angle
      *
      *  Get the angle in the ring plane with respect to the tangent vector
      */
-    double getLatticeThetaInit() const {return latticeThetaInit_m;}
+    double getLatticeThetaInit() const {
+        return latticeThetaInit_m;
+    }
 
     /** Set the rotational symmetry of the ring (number of cells) */
-    void setSymmetry(double symmetry) {symmetry_m = symmetry;}
+    void setSymmetry(double symmetry) {
+        symmetry_m = symmetry;
+    }
 
     /** Set the scaling factor for the fields */
-    void setScale(double scale) {scale_m = scale;}
+    void setScale(double scale) {
+        scale_m = scale;
+    }
 
     /** Get the rotational symmetry of the ring (number of cells) */
-    double getSymmetry() const {return symmetry_m;}
+    double getSymmetry() const {
+        return symmetry_m;
+    }
 
     /** Set flag for closure checking */
-    void setIsClosed(bool isClosed) {isClosed_m = isClosed;}
+    void setIsClosed(bool isClosed) {
+        isClosed_m = isClosed;
+    }
 
     /** Get flag for closure checking */
-    double getIsClosed() const {return isClosed_m;}
+    double getIsClosed() const {
+        return isClosed_m;
+    }
 
     /** Set the ring aperture limits
      *  - minR; the minimum radius allowed during tracking. Throws if minR < 0
@@ -298,10 +350,14 @@ class Ring : public Component {
     void setRingAperture(double minR, double maxR);
 
     /** Get the ring minimum */
-    double getRingMinR() const {return std::sqrt(minR2_m);}
+    double getRingMinR() const {
+        return std::sqrt(minR2_m);
+    }
 
     /** Get the ring maximum */
-    double getRingMaxR() const {return std::sqrt(maxR2_m);}
+    double getRingMaxR() const {
+        return std::sqrt(maxR2_m);
+    }
 
     /** Lock the ring
      *
@@ -326,7 +382,7 @@ class Ring : public Component {
     /** Convert from a Vector_t<double, 3> to a Vector3D */
     static inline Vector3D convert(const Vector_t<double, 3>& vec);
 
-  private:
+private:
     // Force end to have azimuthal angle > start unless crossing phi = pi/-pi
     void resetAzimuths();
 
@@ -340,8 +396,7 @@ class Ring : public Component {
     void rotateToCyclCoordinates(Euclid3D& euclid3d) const;
 
     // predicate for sorting
-    static bool sectionCompare(RingSection const* const sec1,
-                               RingSection const* const sec2);
+    static bool sectionCompare(RingSection const* const sec1, RingSection const* const sec2);
 
     /** Disabled */
     Ring();
@@ -358,12 +413,12 @@ class Ring : public Component {
     // rename to keep in line with style guide
     //
     // Ring borrows this memory
-    PartBunch<double, 3> *refPartBunch_m;
+    PartBunch_t* refPartBunch_m;
 
     // store for particles out of the aperture
     //
     // Ring owns this memory
-    LossDataSink *lossDS_m;
+    LossDataSink* lossDS_m;
 
     // initial position of the beam
     double beamRInit_m;
@@ -410,11 +465,11 @@ class Ring : public Component {
 };
 
 Vector_t<double, 3> Ring::convert(const Vector3D& vec_3d) {
-    return Vector_t<double, 3>(vec_3d(0), vec_3d(1), vec_3d(2));
+    return Vector_t<double, 3>({vec_3d(0), vec_3d(1), vec_3d(2)});
 }
 
 Vector3D Ring::convert(const Vector_t<double, 3>& vec_t) {
-    return Vector3D(vec_t[0], vec_t[1], vec_t[2]);
+    return Vector3D({vec_t[0], vec_t[1], vec_t[2]});
 }
 
-#endif //#ifndef RING_H
+#endif  // #ifndef RING_H

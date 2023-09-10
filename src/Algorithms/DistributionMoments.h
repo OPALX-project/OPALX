@@ -18,9 +18,11 @@
 #ifndef DISTRIBUTIONMOMENTS_H
 #define DISTRIBUTIONMOMENTS_H
 
+#include "AbsBeamline/Component.h"
+#include "Algorithms/PartBunch.h"
 
-#include "Vektor.h"
-#include "Matrix.h"
+// #include "Matrix.h"
+//  #include "Vektor.h"
 
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -28,18 +30,17 @@
 #include <vector>
 
 class OpalParticle;
-template<class T, unsigned Dim>
-class PartBunch;
 
 class DistributionMoments {
 public:
     DistributionMoments();
 
-    void compute(const std::vector<OpalParticle>::const_iterator &,
-                 const std::vector<OpalParticle>::const_iterator &);
-    void compute(PartBunch<double, 3> const&);
-    void computeMeanKineticEnergy(PartBunch<double, 3> const&);
-    void computeDebyeLength(PartBunch<double, 3> const&, double);
+    void compute(
+        const std::vector<OpalParticle>::const_iterator&,
+        const std::vector<OpalParticle>::const_iterator&);
+    void compute(PartBunch_t const&);
+    void computeMeanKineticEnergy(PartBunch_t const&);
+    void computeDebyeLength(PartBunch_t&, double);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;
@@ -79,22 +80,22 @@ public:
     double getTotalNumParticles() const;
 
 private:
-    bool isParticleExcluded(const OpalParticle &) const;
-    template<class InputIt>
-    void computeMeans(const InputIt &, const InputIt &);
-    template<class InputIt>
-    void computeStatistics(const InputIt &, const InputIt &);
-    template<class InputIt>
-    void computePercentiles(const InputIt &, const InputIt &);
-    using iterator_t = std::vector<Vektor<double, 2>>::const_iterator;
-    std::pair<double, iterator_t> determinePercentilesDetail(const iterator_t& begin, const iterator_t& end,
-                                                             const std::vector<int>& globalAccumulatedHistogram,
-                                                             const std::vector<int>& localAccumulatedHistogram,
-                                                             unsigned int dimension,
-                                                             int numRequiredParticles) const;
+    bool isParticleExcluded(const OpalParticle&) const;
+    template <class InputIt>
+    void computeMeans(const InputIt&, const InputIt&);
+    // template <class InputIt>
+    // void computeStatistics(const InputIt&, const InputIt&);
+    template <class InputIt>
+    void computePercentiles(const InputIt&, const InputIt&);
+    using iterator_t = std::vector<Vector_t<double, 2>>::const_iterator;
+    std::pair<double, iterator_t> determinePercentilesDetail(
+        const iterator_t& begin, const iterator_t& end,
+        const std::vector<int>& globalAccumulatedHistogram,
+        const std::vector<int>& localAccumulatedHistogram, unsigned int dimension,
+        int numRequiredParticles) const;
     double computeNormalizedEmittance(const iterator_t& begin, const iterator_t& end) const;
 
-    void fillMembers(std::vector<double> &);
+    void fillMembers(std::vector<double>&);
 
     void reset();
 
@@ -141,204 +142,136 @@ private:
     static const double percentileFourSigmasNormalDist_m;
 };
 
-inline
-Vector_t<double, 3> DistributionMoments::getMeanPosition() const
-{
+inline Vector_t<double, 3> DistributionMoments::getMeanPosition() const {
     return meanR_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getStandardDeviationPosition() const
-{
+inline Vector_t<double, 3> DistributionMoments::getStandardDeviationPosition() const {
     return stdR_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getMeanMomentum() const
-{
+inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const {
     return meanP_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const
-{
+inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const {
     return stdP_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getNormalizedEmittance() const
-{
+inline Vector_t<double, 3> DistributionMoments::getNormalizedEmittance() const {
     return normalizedEps_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getGeometricEmittance() const
-{
+inline Vector_t<double, 3> DistributionMoments::getGeometricEmittance() const {
     return geometricEps_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const
-{
+inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const {
     return stdRP_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getHalo() const
-{
+inline Vector_t<double, 3> DistributionMoments::getHalo() const {
     return halo_m;
 }
 
-inline
-double DistributionMoments::getMeanTime() const
-{
+inline double DistributionMoments::getMeanTime() const {
     return meanTime_m;
 }
 
-inline
-double DistributionMoments::getStdTime() const
-{
+inline double DistributionMoments::getStdTime() const {
     return stdTime_m;
 }
 
-inline
-double DistributionMoments::getMeanGamma() const
-{
+inline double DistributionMoments::getMeanGamma() const {
     return meanGamma_m;
 }
 
-inline
-double DistributionMoments::getMeanKineticEnergy() const
-{
+inline double DistributionMoments::getMeanKineticEnergy() const {
     return meanKineticEnergy_m;
 }
 
 // Compute and return the value of temperature in K
-inline
-double DistributionMoments::getTemperature() const
-{
-    return (temperature_m / 
-           (Physics::kB * Units::eV2kg * 
-            Physics::c * Physics::c));
+inline double DistributionMoments::getTemperature() const {
+    return (temperature_m / (Physics::kB * Units::eV2kg * Physics::c * Physics::c));
 }
-inline
-double DistributionMoments::getDebyeLength() const
-{
+inline double DistributionMoments::getDebyeLength() const {
     return debyeLength_m;
 }
-inline
-double DistributionMoments::getPlasmaParameter() const
-{
+inline double DistributionMoments::getPlasmaParameter() const {
     return plasmaParameter_m;
 }
 
-inline
-double DistributionMoments::getStdKineticEnergy() const
-{
+inline double DistributionMoments::getStdKineticEnergy() const {
     return stdKineticEnergy_m;
 }
 
-inline
-double DistributionMoments::getDx() const
-{
+inline double DistributionMoments::getDx() const {
     return moments_m(0, 5);
 }
 
-inline
-double DistributionMoments::getDDx() const
-{
+inline double DistributionMoments::getDDx() const {
     return moments_m(1, 5);
 }
 
-inline
-double DistributionMoments::getDy() const
-{
+inline double DistributionMoments::getDy() const {
     return moments_m(2, 5);
 }
 
-inline
-double DistributionMoments::getDDy() const
-{
+inline double DistributionMoments::getDDy() const {
     return moments_m(3, 5);
 }
 
-inline 
-matrix_t DistributionMoments::getMoments6x6() const
-{
+inline matrix_t DistributionMoments::getMoments6x6() const {
     return moments_m;
 }
 
-inline
-double DistributionMoments::getTotalCharge() const
-{
+inline double DistributionMoments::getTotalCharge() const {
     return totalCharge_m;
 }
 
-inline
-double DistributionMoments::getTotalMass() const
-{
+inline double DistributionMoments::getTotalMass() const {
     return totalMass_m;
 }
 
-inline
-double DistributionMoments::getTotalNumParticles() const
-{
+inline double DistributionMoments::getTotalNumParticles() const {
     return totalNumParticles_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::get68Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::get68Percentile() const {
     return sixtyEightPercentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getNormalizedEmittance68Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::getNormalizedEmittance68Percentile() const {
     return normalizedEps68Percentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::get95Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::get95Percentile() const {
     return ninetyFivePercentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getNormalizedEmittance95Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::getNormalizedEmittance95Percentile() const {
     return normalizedEps95Percentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::get99Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::get99Percentile() const {
     return ninetyNinePercentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getNormalizedEmittance99Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::getNormalizedEmittance99Percentile() const {
     return normalizedEps99Percentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::get99_99Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::get99_99Percentile() const {
     return ninetyNine_NinetyNinePercentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getNormalizedEmittance99_99Percentile() const
-{
+inline Vector_t<double, 3> DistributionMoments::getNormalizedEmittance99_99Percentile() const {
     return normalizedEps99_99Percentile_m;
 }
 
-inline
-Vector_t<double, 3> DistributionMoments::getMaxR() const
-{
+inline Vector_t<double, 3> DistributionMoments::getMaxR() const {
     Vector_t<double, 3> maxDistance;
-    for (unsigned int i = 0; i < 3; ++ i) {
+    for (unsigned int i = 0; i < 3; ++i) {
         maxDistance[i] = std::max(std::abs(maxR_m[i]), std::abs(minR_m[i]));
     }
     return maxDistance;

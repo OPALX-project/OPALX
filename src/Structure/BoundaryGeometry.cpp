@@ -1616,7 +1616,7 @@ BoundaryGeometry::computeMeshVoxelization (void) {
     *gmsg << level2 << "* Mesh voxelization done" << endl;
 
     // write voxel mesh into VTK file
-    if (Ippl::myNode() == 0 && Options::enableVTK) {
+    if (ippl::Comm->rank() == 0 && Options::enableVTK) {
         std::string vtkFileName = Util::combineFilePath({
             OpalData::getInstance()->getAuxiliaryOutputDirectory(),
             "testBBox.vtk"

@@ -49,50 +49,37 @@ class ElementBase;
 #include <unordered_set>
 #include <vector>
 
-enum class Topology: unsigned short {
-    RECTANGULAR,
-    BOXCORNER,
-    ELLIPTIC
-};
+enum class Topology : unsigned short { RECTANGULAR, BOXCORNER, ELLIPTIC };
 
 class BoundaryGeometry : public Definition {
-
 public:
     BoundaryGeometry();
     virtual ~BoundaryGeometry();
 
-    virtual bool canReplaceBy (
-        Object* object);
+    virtual bool canReplaceBy(Object* object);
 
-    virtual BoundaryGeometry* clone (
-        const std::string& name);
+    virtual BoundaryGeometry* clone(const std::string& name);
 
     // Check the GEOMETRY data.
-    virtual void execute ();
+    virtual void execute();
 
     // Find named GEOMETRY.
-    static BoundaryGeometry* find (
-        const std::string& name);
+    static BoundaryGeometry* find(const std::string& name);
 
     // Update the GEOMETRY data.
-    virtual void update ();
+    virtual void update();
 
-    void updateElement (
-        ElementBase* element);
+    void updateElement(ElementBase* element);
 
-    void initialize ();
+    void initialize();
 
-    int partInside (
-        const Vector_t<double, 3>& r,
-        const Vector_t<double, 3>& v,
-        const double dt,
-        Vector_t<double, 3>& intecoords,
-        int& triId);
+    int partInside(
+        const Vector_t<double, 3>& r, const Vector_t<double, 3>& v, const double dt,
+        Vector_t<double, 3>& intecoords, int& triId);
 
-    Inform& printInfo (
-        Inform& os) const;
+    Inform& printInfo(Inform& os) const;
 
-    void writeGeomToVtk (std::string fn);
+    void writeGeomToVtk(std::string fn);
 
     inline std::string getFilename() const {
         return Attributes::getString(itsAttr[FGEOM]);
@@ -101,9 +88,8 @@ public:
     inline Topology getTopology() const {
         static const std::unordered_map<std::string, Topology> stringTopology_s = {
             {"RECTANGULAR", Topology::RECTANGULAR},
-            {"BOXCORNER",   Topology::BOXCORNER},
-            {"ELLIPTIC",    Topology::ELLIPTIC}
-        };
+            {"BOXCORNER", Topology::BOXCORNER},
+            {"ELLIPTIC", Topology::ELLIPTIC}};
         Topology topo = stringTopology_s.at(Attributes::getString(itsAttr[TOPO]));
         return topo;
     }
@@ -139,37 +125,37 @@ public:
     /**
        Return number of boundary faces.
     */
-    inline size_t getNumBFaces () {
+    inline size_t getNumBFaces() {
         return Triangles_m.size();
     }
 
     /**
        Return the hr_m.
     */
-    inline Vector_t<double, 3> gethr () {
+    inline Vector_t<double, 3> gethr() {
         return voxelMesh_m.sizeOfVoxel;
     }
     /**
        Return the nr_m.
      */
-    inline Vektor<int, 3> getnr () {
+    inline Vector_t<int, 3> getnr() {
         return voxelMesh_m.nr_m;
     }
 
     /**
        Return the mincoords_m.
      */
-    inline Vector_t<double, 3> getmincoords () {
+    inline Vector_t<double, 3> getmincoords() {
         return minExtent_m;
     }
     /**
        Return the maxcoords_m.
     */
-    inline Vector_t<double, 3> getmaxcoords () {
+    inline Vector_t<double, 3> getmaxcoords() {
         return maxExtent_m;
     }
 
-    inline bool getInsidePoint (Vector_t<double, 3>& pt) {
+    inline bool getInsidePoint(Vector_t<double, 3>& pt) {
         if (haveInsidePoint_m == false) {
             return false;
         }
@@ -177,17 +163,15 @@ public:
         return true;
     }
 
-    bool findInsidePoint (void);
+    bool findInsidePoint(void);
 
-    int intersectRayBoundary (
-        const Vector_t<double, 3>& P,
-        const Vector_t<double, 3>& v,
-        Vector_t<double, 3>& I);
+    int intersectRayBoundary(
+        const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I);
 
-    int fastIsInside (
-        const Vector_t<double, 3>& reference_pt,        // [in] a reference point
-        const Vector_t<double, 3>& P                    // [in] point to test
-        );
+    int fastIsInside(
+        const Vector_t<double, 3>& reference_pt,  // [in] a reference point
+        const Vector_t<double, 3>& P              // [in] point to test
+    );
 
     enum DebugFlags {
         debug_isInside                         = 0x0001,
@@ -207,115 +191,99 @@ public:
     }
 
 private:
-    bool isInside (
-        const Vector_t<double, 3>& P                    // [in] point to test
-        );
+    bool isInside(const Vector_t<double, 3>& P  // [in] point to test
+    );
 
-    int intersectTriangleVoxel (
-        const int triangle_id,
-        const int i,
-        const int j,
-        const int k);
+    int intersectTriangleVoxel(const int triangle_id, const int i, const int j, const int k);
 
-    int intersectTinyLineSegmentBoundary (
-        const Vector_t<double, 3>&,
-        const Vector_t<double, 3>&,
-        Vector_t<double, 3>&,
-        int&
-        );
+    int intersectTinyLineSegmentBoundary(
+        const Vector_t<double, 3>&, const Vector_t<double, 3>&, Vector_t<double, 3>&, int&);
 
-    int intersectLineSegmentBoundary (
-        const Vector_t<double, 3>& P0,
-        const Vector_t<double, 3>& P1,
-        Vector_t<double, 3>& intersection_pt,
-        int& triangle_id
-        );
+    int intersectLineSegmentBoundary(
+        const Vector_t<double, 3>& P0, const Vector_t<double, 3>& P1,
+        Vector_t<double, 3>& intersection_pt, int& triangle_id);
 
-    std::string h5FileName_m;           // H5hut filename
+    std::string h5FileName_m;  // H5hut filename
 
-    std::vector<Vector_t<double, 3>> Points_m;     // geometry point coordinates
-    std::vector<std::array<unsigned int,4>> Triangles_m;   // boundary faces defined via point IDs
-                                        // please note: 4 is correct, historical reasons!
+    std::vector<Vector_t<double, 3>> Points_m;  // geometry point coordinates
+    std::vector<std::array<unsigned int, 4>>
+        Triangles_m;  // boundary faces defined via point IDs
+                      // please note: 4 is correct, historical reasons!
 
-    std::vector<Vector_t<double, 3>> TriNormals_m; // oriented normal vector of triangles
-    std::vector<double> TriAreas_m;     // area of triangles
+    std::vector<Vector_t<double, 3>> TriNormals_m;  // oriented normal vector of triangles
+    std::vector<double> TriAreas_m;                 // area of triangles
 
-    Vector_t<double, 3> minExtent_m;               // minimum of geometry coordinate.
-    Vector_t<double, 3> maxExtent_m;               // maximum of geometry coordinate.
+    Vector_t<double, 3> minExtent_m;  // minimum of geometry coordinate.
+    Vector_t<double, 3> maxExtent_m;  // maximum of geometry coordinate.
 
     struct {
         Vector_t<double, 3> minExtent;
         Vector_t<double, 3> maxExtent;
         Vector_t<double, 3> sizeOfVoxel;
-        Vektor<int, 3> nr_m;            // number of intervals of geometry in X,Y,Z direction
-        std::unordered_map<int,         // map voxel IDs ->
-            std::unordered_set<int>> ids; // intersecting triangles
+        Vector_t<int, 3> nr_m;  // number of intervals of geometry in X,Y,Z direction
+        std::unordered_map<
+            int,  // map voxel IDs ->
+            std::unordered_set<int>>
+            ids;  // intersecting triangles
 
     } voxelMesh_m;
 
     int debugFlags_m;
 
     bool haveInsidePoint_m;
-    Vector_t<double, 3> insidePoint_m;             // attribute INSIDEPOINT
+    Vector_t<double, 3> insidePoint_m;  // attribute INSIDEPOINT
 
-    gsl_rng *randGen_m;         //
+    gsl_rng* randGen_m;  //
 
-    IpplTimings::TimerRef Tinitialize_m; // initialize geometry
+    IpplTimings::TimerRef Tinitialize_m;  // initialize geometry
     IpplTimings::TimerRef TisInside_m;
     IpplTimings::TimerRef TfastIsInside_m;
-    IpplTimings::TimerRef TRayTrace_m;   // ray tracing
-    IpplTimings::TimerRef TPartInside_m; // particle inside
+    IpplTimings::TimerRef TRayTrace_m;    // ray tracing
+    IpplTimings::TimerRef TPartInside_m;  // particle inside
 
     BoundaryGeometry(const BoundaryGeometry&);
-    void operator= (const BoundaryGeometry&);
+    void operator=(const BoundaryGeometry&);
 
     // Clone constructor.
     BoundaryGeometry(const std::string& name, BoundaryGeometry* parent);
 
-    inline const Vector_t<double, 3>& getPoint (const int triangle_id, const int vertex_id) {
-        PAssert (1 <= vertex_id && vertex_id <=3);
+    inline const Vector_t<double, 3>& getPoint(const int triangle_id, const int vertex_id) {
+        PAssert(1 <= vertex_id && vertex_id <= 3);
         return Points_m[Triangles_m[triangle_id][vertex_id]];
     }
 
-    enum INTERSECTION_TESTS {
-        SEGMENT,
-        RAY,
-        LINE
-    };
+    enum INTERSECTION_TESTS { SEGMENT, RAY, LINE };
 
-    int intersectLineTriangle (
-        const enum INTERSECTION_TESTS kind,
-        const Vector_t<double, 3>& P0,
-        const Vector_t<double, 3>& P1,
-        const int triangle_id,
-        Vector_t<double, 3>& I);
+    int intersectLineTriangle(
+        const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
+        const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I);
 
-    inline int mapVoxelIndices2ID (const int i, const int j, const int k);
-    inline Vector_t<double, 3> mapIndices2Voxel (const int, const int, const int);
-    inline Vector_t<double, 3> mapPoint2Voxel (const Vector_t<double, 3>&);
-    inline void computeMeshVoxelization (void);
+    inline int mapVoxelIndices2ID(const int i, const int j, const int k);
+    inline Vector_t<double, 3> mapIndices2Voxel(const int, const int, const int);
+    inline Vector_t<double, 3> mapPoint2Voxel(const Vector_t<double, 3>&);
+    inline void computeMeshVoxelization(void);
 
     enum {
-        FGEOM,    // file holding the geometry
-        LENGTH,   // length of elliptic tube or boxcorner
-        S,        // start of the geometry
-        L1,       // in case of BOXCORNER first part of geometry with height B
-        L2,       // in case of BOXCORNER second part of geometry with height B-C
-        A,        // major semi-axis of elliptic tube
-        B,        // minor semi-axis of ellitpic tube
-        C,        // in case of BOXCORNER height of corner
-        TOPO,     // RECTANGULAR, BOXCORNER, ELLIPTIC if FGEOM is selected TOPO is over-written
-        ZSHIFT,   // Shift in z direction
-        XYZSCALE, // Multiplicative scaling factor for coordinates
-        XSCALE,   // Multiplicative scaling factor for x-coordinates
-        YSCALE,   // Multiplicative scaling factor for y-coordinates
-        ZSCALE,   // Multiplicative scaling factor for z-coordinates
+        FGEOM,     // file holding the geometry
+        LENGTH,    // length of elliptic tube or boxcorner
+        S,         // start of the geometry
+        L1,        // in case of BOXCORNER first part of geometry with height B
+        L2,        // in case of BOXCORNER second part of geometry with height B-C
+        A,         // major semi-axis of elliptic tube
+        B,         // minor semi-axis of ellitpic tube
+        C,         // in case of BOXCORNER height of corner
+        TOPO,      // RECTANGULAR, BOXCORNER, ELLIPTIC if FGEOM is selected TOPO is over-written
+        ZSHIFT,    // Shift in z direction
+        XYZSCALE,  // Multiplicative scaling factor for coordinates
+        XSCALE,    // Multiplicative scaling factor for x-coordinates
+        YSCALE,    // Multiplicative scaling factor for y-coordinates
+        ZSCALE,    // Multiplicative scaling factor for z-coordinates
         INSIDEPOINT,
         SIZE
     };
 };
 
-inline Inform &operator<< (Inform& os, const BoundaryGeometry& b) {
-    return b.printInfo (os);
+inline Inform& operator<<(Inform& os, const BoundaryGeometry& b) {
+    return b.printInfo(os);
 }
 #endif

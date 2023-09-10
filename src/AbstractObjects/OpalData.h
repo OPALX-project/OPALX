@@ -22,16 +22,13 @@
 #ifndef OPAL_OpalData_HH
 #define OPAL_OpalData_HH
 
-#include "AbstractObjects/ObjectFunction.h"
-
 #include <iosfwd>
-#include <string>
-#include <vector>
 #include <map>
 #include <stack>
-
-template <class T = double, unsigned Dim = 3>
-class PartBunch;
+#include <string>
+#include <vector>
+#include "AbstractObjects/ObjectFunction.h"
+#include "OPALTypes.h"
 
 class AttributeBase;
 class Object;
@@ -41,31 +38,24 @@ class DataSink;
 class BoundaryGeometry;
 
 // store element name, max phase
-typedef std::pair<std::string, double > MaxPhasesT;
+typedef std::pair<std::string, double> MaxPhasesT;
 typedef std::map<double, double> energyEvolution_t;
-
 
 /// The global OPAL structure.
 class OpalData {
-
 public:
-
-    static OpalData *getInstance();
+    static OpalData* getInstance();
 
     static void deleteInstance();
 
     static void stashInstance();
 
-    static OpalData *popInstance();
+    static OpalData* popInstance();
 
     ~OpalData();
 
     /// Enum for writing to files
-    enum class OpenMode: unsigned short {
-        UNDEFINED,
-        WRITE,
-        APPEND
-    };
+    enum class OpenMode : unsigned short { UNDEFINED, WRITE, APPEND };
 
     /// reset object for consecutive runs
     void reset();
@@ -73,25 +63,25 @@ public:
     /// Apply a function to all objects.
     //  Loop over the directory and apply the given functor object to each
     //  object in turn.
-    void apply(const ObjectFunction &);
+    void apply(const ObjectFunction&);
 
     /// Create new object.
     //  No replacement is allowed; if an object with the same name exists,
     //  throw [b]OpalException[/b].
-    void create(Object *newObject);
+    void create(Object* newObject);
 
     /// Define a new object.
     //  Replacement is allowed; however [b]OpalException[/b] is thrown,
     //  if the replacement cannot be done.
-    void define(Object *newObject);
+    void define(Object* newObject);
 
     /// Delete existing entry.
     //  Identified by [b]name[/b].
-    void erase(const std::string &name);
+    void erase(const std::string& name);
 
     /// Find entry.
     //  Identified by [b]name[/b].
-    Object *find(const std::string &name);
+    Object* find(const std::string& name);
 
     /// Return value of global reference momentum.
     double getP0() const;
@@ -100,39 +90,39 @@ public:
     //  Force re-evaluation of all expressions before next command is
     //  executed.
     //  Also set the [b]modified[/b] flag in [b]object[/b], if not nullptr.
-    void makeDirty(Object *object);
+    void makeDirty(Object* object);
 
     /// Print all objects.
     //  Loop over the directory and print each object whose name matches
     //  the regular expression [b]pattern[/b].
-    void printNames(std::ostream &stream, const std::string &pattern);
-    void printAllNames(std::ostream &stream);
+    void printNames(std::ostream& stream, const std::string& pattern);
+    void printAllNames(std::ostream& stream);
 
     /// Register table.
     //  Register the table [b]t[/b].
     //  Registered tables are invalidated to be refilled when an object
     //  on which they depend is changed or replaced.
-    void registerTable(Table *t);
+    void registerTable(Table* t);
 
     /// Unregister table.
-    void unregisterTable(Table *t);
+    void unregisterTable(Table* t);
 
     /// Register expression.
     //  Registered expressions are invalidated to be recomputed when
     //  any object in the directory is changed or replaced.
-    void registerExpression(AttributeBase *);
+    void registerExpression(AttributeBase*);
 
     /// Unregister expression.
-    void unregisterExpression(AttributeBase *);
+    void unregisterExpression(AttributeBase*);
 
     /// Set the global momentum.
-    void setP0(ValueDefinition *p0);
+    void setP0(ValueDefinition* p0);
 
     /// Store the page title.
-    void storeTitle(const std::string &);
+    void storeTitle(const std::string&);
 
     /// Print the page title.
-    void printTitle(std::ostream &);
+    void printTitle(std::ostream&);
 
     /// Get the title string
     std::string getTitle();
@@ -143,8 +133,8 @@ public:
 
     /// Clear Reference.
     //  This functor is used to clear the reference count stored in an object.
-    struct ClearReference: public ObjectFunction {
-        virtual void operator()(Object *) const;
+    struct ClearReference : public ObjectFunction {
+        virtual void operator()(Object*) const;
     };
 
     std::map<std::string, std::string> getVariableData();
@@ -165,13 +155,13 @@ public:
     bool hasPriorTrack();
 
     /// true if in follow-up track
-    void setPriorTrack(const bool &value = true);
+    void setPriorTrack(const bool& value = true);
 
     /// true if we do a restart run
     bool inRestartRun();
 
     /// set OPAL in restart mode
-    void setRestartRun(const bool &value = true);
+    void setRestartRun(const bool& value = true);
 
     /// store the location where to restart
     void setRestartStep(int s);
@@ -189,10 +179,10 @@ public:
     std::string getInputBasename();
 
     /// store opals input filename
-    void storeInputFn(const std::string &fn);
+    void storeInputFn(const std::string& fn);
 
     /// checks the output file names of all items to avoid duplicates
-    void checkAndAddOutputFileName(const std::string &outfn);
+    void checkAndAddOutputFileName(const std::string& outfn);
 
     /// get opals restart h5 format filename
     std::string getRestartFileName();
@@ -204,7 +194,7 @@ public:
     bool hasRestartFile();
 
     /// set the dump frequency as found in restart file
-    void setRestartDumpFreq(const int &N);
+    void setRestartDumpFreq(const int& N);
 
     /// get the dump frequency as found in restart file
     int getRestartDumpFreq() const;
@@ -213,7 +203,7 @@ public:
     OpenMode getOpenMode() const;
 
     /// set the last step in a run for possible follow-up run
-    void setLastStep(const int &step);
+    void setLastStep(const int& step);
 
     /// get the last step from a possible previous run
     int getLastStep() const;
@@ -223,26 +213,26 @@ public:
 
     void bunchIsAllocated();
 
-    PartBunch<double, 3> *getPartBunch();
+    PartBunch_t* getPartBunch();
 
-    void setPartBunch(PartBunch<double, 3> *p);
+    void setPartBunch(PartBunch_t* p);
 
     /// true if we already allocated a DataSink object
     bool hasDataSinkAllocated();
 
-    DataSink *getDataSink();
+    DataSink* getDataSink();
 
-    void setDataSink(DataSink *s);
+    void setDataSink(DataSink* s);
 
     /// units: (sec)
-    void   setGlobalPhaseShift(double shift);
+    void setGlobalPhaseShift(double shift);
     /// units: (sec)
     double getGlobalPhaseShift();
 
     ///
-    void setGlobalGeometry(BoundaryGeometry *bg);
+    void setGlobalGeometry(BoundaryGeometry* bg);
     ///
-    BoundaryGeometry *getGlobalGeometry();
+    BoundaryGeometry* getGlobalGeometry();
 
     bool hasGlobalGeometry();
 
@@ -260,28 +250,27 @@ public:
     void setMaxTrackSteps(unsigned long long s);
     void incMaxTrackSteps(unsigned long long s);
 
-    void addProblemCharacteristicValue(const std::string &name, unsigned int value);
-    const std::map<std::string, unsigned int> &getProblemCharacteristicValues() const;
+    void addProblemCharacteristicValue(const std::string& name, unsigned int value);
+    const std::map<std::string, unsigned int>& getProblemCharacteristicValues() const;
 
-    void storeArguments(int argc, char *argv[]);
+    void storeArguments(int argc, char* argv[]);
     std::vector<std::string> getArguments();
 
 private:
-
     static bool isInstantiated;
-    static OpalData *instance;
+    static OpalData* instance;
     static std::stack<OpalData*> stashedInstances;
 
     OpalData();
 
     // Not implemented.
-    OpalData(const OpalData &);
-    void operator=(const OpalData &);
+    OpalData(const OpalData&);
+    void operator=(const OpalData&);
 
     // The private implementation details.
-    struct OpalDataImpl *p;
+    struct OpalDataImpl* p;
 };
 
-//extern OpalData OPAL;
+// extern OpalData OPAL;
 
-#endif // OPAL_OpalData_HH
+#endif  // OPAL_OpalData_HH

@@ -17,16 +17,16 @@
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "OpalConfigure/Configure.h"
-#include "OpalParser/OpalParser.h"
-#include "OpalParser/FileStream.h"
-#include "Utilities/Timer.h"
 #include "Fields/Fieldmap.h"
+#include "OpalConfigure/Configure.h"
+#include "OpalParser/FileStream.h"
+#include "OpalParser/OpalParser.h"
+#include "Utilities/Timer.h"
 
 #include "BasicActions/Option.h"
-#include "Utilities/Options.h"
-#include "Utilities/OpalException.h"
 #include "Utilities/EarlyLeaveException.h"
+#include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include "Utilities/SDDSParser/SDDSParserException.h"
@@ -34,12 +34,12 @@
 #include "OPALconfig.h"
 
 // IPPL
+#include "GSLErrorHandling.h"
 #include "Message/Communicate.h"
 #include "Utility/Inform.h"
 #include "Utility/IpplException.h"
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
-#include "GSLErrorHandling.h"
 
 #include <gsl/gsl_errno.h>
 
@@ -51,8 +51,8 @@
 #include <iostream>
 #include <set>
 
-Ippl *ippl;
-Inform *gmsg;
+Ippl* ippl;
+Inform* gmsg;
 
 namespace {
     void printStdoutHeader() {
@@ -61,23 +61,29 @@ namespace {
         std::string timeStr(simtimer.time());
         std::string mySpace("            ");
 
-        *gmsg << mySpace <<  "   ____  _____       ___ " << endl;
-        *gmsg << mySpace <<  "  / __ \\|  __ \\ /\\   | | " << endl;
-        *gmsg << mySpace <<  " | |  | | |__) /  \\  | |" << endl;
-        *gmsg << mySpace <<  " | |  | |  ___/ /\\ \\ | |" << endl ;
-        *gmsg << mySpace <<  " | |__| | |  / ____ \\| |____" << endl;
-        *gmsg << mySpace <<  "  \\____/|_| /_/    \\_\\______|" << endl;
+        *gmsg << mySpace << "   ____  _____       ___ " << endl;
+        *gmsg << mySpace << "  / __ \\|  __ \\ /\\   | | " << endl;
+        *gmsg << mySpace << " | |  | | |__) /  \\  | |" << endl;
+        *gmsg << mySpace << " | |  | |  ___/ /\\ \\ | |" << endl;
+        *gmsg << mySpace << " | |__| | |  / ____ \\| |____" << endl;
+        *gmsg << mySpace << "  \\____/|_| /_/    \\_\\______|" << endl;
 
         std::string gitRevision = "git rev. " + Util::getGitRevision();
-        std::string copyRight = "(c) PSI, http://amas.web.psi.ch";
+        std::string copyRight   = "(c) PSI, http://amas.web.psi.ch";
         *gmsg << endl
-              << "This is OPAL (Object Oriented Parallel Accelerator Library) Version " << OPAL_PROJECT_VERSION << "\n"
-              << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n" << endl
-              << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n" << endl
+              << "This is OPAL (Object Oriented Parallel Accelerator Library) Version "
+              << OPAL_PROJECT_VERSION << "\n"
+              << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n"
+              << endl
+              << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n"
+              << endl
               << "This is the performance portable version of OPAL" << endl
               << endl;
 
-        *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the OPAL developers " << PACKAGE_BUGREPORT << "\n" << endl;
+        *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the "
+                 "OPAL developers "
+              << PACKAGE_BUGREPORT << "\n"
+              << endl;
         *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
     }
 
@@ -88,7 +94,9 @@ namespace {
         INFOMSG("Usage: opal [<option> <option> ...]\n");
         INFOMSG("   The possible values for <option> are:\n");
         INFOMSG("   --version                : Print the version of opal.\n");
-        INFOMSG("   --version-full           : Print the version of opal with additional informations.\n");
+        INFOMSG(
+            "   --version-full           : Print the version of opal with additional "
+            "informations.\n");
         INFOMSG("   --git-revision           : Print the revision hash of the repository.\n");
         INFOMSG("   --input <fname>          : Specifies the input file <fname>.\n");
         INFOMSG("   --restart <n>            : Performes a restart from step <n>.\n");
@@ -98,24 +106,23 @@ namespace {
         INFOMSG("   --help                   : Display this command-line summary.\n");
         INFOMSG(endl);
     }
-}
+}  // namespace
 
-
-int main(int argc, char *argv[]) {
-    Ippl *ippl = new Ippl(argc, argv);
-    gmsg = new  Inform("OPAL");
+int main(int argc, char* argv[]) {
+    Ippl* ippl = new Ippl(argc, argv);
+    gmsg       = new Inform("OPAL");
 
     namespace fs = boost::filesystem;
 
-    H5SetVerbosityLevel(1); //65535);
+    H5SetVerbosityLevel(1);  // 65535);
 
     gsl_set_error_handler(&handleGSLErrors);
 
     static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
     IpplTimings::startTimer(mainTimer);
 
-
-    if(Ippl::myNode() == 0) remove("errormsg.txt");
+    if (ippl::Comm->rank() == 0)
+        remove("errormsg.txt");
 
     const OpalParser parser;
 
@@ -124,12 +131,12 @@ int main(int argc, char *argv[]) {
     std::cerr.precision(16);
     std::cerr.setf(std::ios::scientific, std::ios::floatfield);
 
-    OpalData *opal = OpalData::getInstance();
+    OpalData* opal = OpalData::getInstance();
 
     /*
       Make a directory data for some of the output
     */
-    if(Ippl::myNode() == 0) {
+    if (ippl::Comm->rank() == 0) {
         if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
             boost::system::error_code error_code;
             if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
@@ -151,46 +158,46 @@ int main(int argc, char *argv[]) {
         // Read startup file.
         FileStream::setEcho(Options::echo);
 
-        char *startup = getenv("HOME");
+        char* startup             = getenv("HOME");
         boost::filesystem::path p = strncat(startup, "/init.opal", 20);
         if (startup != nullptr && is_regular_file(p)) {
-
             FileStream::setEcho(false);
-            FileStream *is;
+            FileStream* is;
 
             try {
                 is = new FileStream(startup);
-            } catch(...) {
+            } catch (...) {
                 is = 0;
-                ERRORMSG("Could not open startup file '" << startup << "'\n"
-                         << "Note: this is not mandatory for an OPAL simulation!\n");
+                ERRORMSG(
+                    "Could not open startup file '"
+                    << startup << "'\n"
+                    << "Note: this is not mandatory for an OPAL simulation!\n");
             }
 
-            if(is) {
+            if (is) {
                 *gmsg << "Reading startup file '" << startup << "'" << endl;
                 parser.run(is);
                 *gmsg << "Finished reading startup file." << endl;
             }
             FileStream::setEcho(Options::echo);
         } else {
-            *gmsg << level5
-                  << "Couldn't find startup file '" << startup << "'\n"
-                  << "Note: this is not mandatory for an OPAL simulation!\n" << endl;
+            *gmsg << level5 << "Couldn't find startup file '" << startup << "'\n"
+                  << "Note: this is not mandatory for an OPAL simulation!\n"
+                  << endl;
         }
 
-        if(argc <= 1) {
+        if (argc <= 1) {
             ::printHelp();
             exit(1);
-        } 
+        }
         int inputFileArgument = -1;
         std::string fname;
         std::string restartFileName;
-        
-        for(int ii = 1; ii < argc; ++ ii) {
+
+        for (int ii = 1; ii < argc; ++ii) {
             std::string argStr = std::string(argv[ii]);
-            if (argStr == std::string("-h") ||
-                argStr == std::string("-help") ||
-                argStr == std::string("--help")) {
+            if (argStr == std::string("-h") || argStr == std::string("-help")
+                || argStr == std::string("--help")) {
                 ::printHelp();
                 exit(0);
             } else if (argStr == std::string("--help-command")) {
@@ -200,77 +207,75 @@ int main(int argc, char *argv[]) {
                 }
                 ::printStdoutHeader();
                 const std::string cmdName = Util::toUpper(argv[ii + 1]);
-                Object *object = OpalData::getInstance()->find(cmdName);
+                Object* object            = OpalData::getInstance()->find(cmdName);
 
-                if(object == 0) {
-                    *gmsg << "\nOpalParser::printHelp(): Unknown object \""
-                            << cmdName << "\".\n" << endl;
+                if (object == 0) {
+                    *gmsg << "\nOpalParser::printHelp(): Unknown object \"" << cmdName << "\".\n"
+                          << endl;
                     exit(1);
                 }
 
                 object->printHelp(std::cout);
                 exit(0);
             } else if (argStr == std::string("--version")) {
-                if (Ippl::myNode() == 0) {
+                if (ippl::Comm->rank() == 0) {
                     std::cout << OPAL_PROJECT_VERSION << std::endl;
                 }
                 exit(0);
             } else if (argStr == std::string("--version-full")) {
                 ::printStdoutHeader();
-                INFOMSG("OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. " << Util::getGitRevision() << endl);
+                INFOMSG(
+                    "OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. "
+                                    << Util::getGitRevision() << endl);
                 IpplInfo::printVersion();
-                std::string options = (IpplInfo::compileOptions() +
-                                        std::string(" ") +
-                                        std::string(OPAL_COMPILE_OPTIONS) +
-                                        std::string(" "));
+                std::string options =
+                    (IpplInfo::compileOptions() + std::string(" ")
+                     + std::string(OPAL_COMPILE_OPTIONS) + std::string(" "));
                 std::set<std::string> uniqOptions;
                 while (options.length() > 0) {
                     size_t n = options.find_first_of(' ');
                     while (n == 0) {
                         options = options.substr(n + 1);
-                        n = options.find_first_of(' ');
+                        n       = options.find_first_of(' ');
                     }
 
                     uniqOptions.insert(options.substr(0, n));
                     options = options.substr(n + 1);
                 }
-                for (auto it: uniqOptions) {
+                for (auto it : uniqOptions) {
                     options += it + " ";
                 }
 
                 std::string header("Compile-time options: ");
                 while (options.length() > 58) {
                     std::string line = options.substr(0, 58);
-                    size_t n = line.find_last_of(' ');
+                    size_t n         = line.find_last_of(' ');
                     INFOMSG(header << line.substr(0, n) << "\n");
 
-                    header = std::string(22, ' ');
+                    header  = std::string(22, ' ');
                     options = options.substr(n + 1);
                 }
                 INFOMSG(header << options << endl);
                 exit(0);
             } else if (argStr == std::string("--git-revision")) {
-                if (Ippl::myNode() == 0) {
+                if (ippl::Comm->rank() == 0) {
                     std::cout << Util::getGitRevision() << std::endl;
                 }
                 exit(0);
             } else if (argStr == std::string("--input")) {
-                ++ ii;
+                ++ii;
                 inputFileArgument = ii;
                 continue;
-            } else if (argStr == std::string("-restart") ||
-                        argStr == std::string("--restart")) {
+            } else if (argStr == std::string("-restart") || argStr == std::string("--restart")) {
                 opal->setRestartRun();
-                opal->setRestartStep(atoi(argv[++ ii]));
+                opal->setRestartStep(atoi(argv[++ii]));
                 continue;
-            } else if (argStr == std::string("-restartfn") ||
-                        argStr == std::string("--restartfn")) {
-                restartFileName = std::string(argv[++ ii]);
+            } else if (
+                argStr == std::string("-restartfn") || argStr == std::string("--restartfn")) {
+                restartFileName = std::string(argv[++ii]);
                 continue;
             } else {
-                if (inputFileArgument == -1 &&
-                    (ii == 1 || ii + 1 == argc) &&
-                    argv[ii][0] != '-') {
+                if (inputFileArgument == -1 && (ii == 1 || ii + 1 == argc) && argv[ii][0] != '-') {
                     inputFileArgument = ii;
                     continue;
                 } else {
@@ -306,35 +311,43 @@ int main(int argc, char *argv[]) {
             opal->setRestartFileName(restartFileName);
         }
 
-        FileStream *is;
+        FileStream* is;
 
         try {
             is = new FileStream(fname);
-        } catch(...) {
+        } catch (...) {
             is = 0;
             *gmsg << "Input file '" << fname << "' not found." << endl;
         }
 
-        if(is) {
+        if (is) {
             *gmsg << "* Reading input stream '" << fname << "'" << endl;
             parser.run(is);
             *gmsg << "* End of input stream '" << fname << "'" << endl;
         }
 
-        if(Ippl::myNode() == 0) {
+        if (ippl::Comm->rank() == 0) {
             std::ifstream errormsg("errormsg.txt");
-            if(errormsg.good()) {
+            if (errormsg.good()) {
                 char buffer[256];
-                std::string closure("                                                                                 *\n");
-                ERRORMSG("\n"
-                         << "* **********************************************************************************\n"
-                         << "* ************** W A R N I N G / E R R O R * * M E S S A G E S *********************\n"
-                         << "* **********************************************************************************"
-                         << endl);
+                std::string closure(
+                    "                                                                              "
+                    "   *\n");
+                ERRORMSG(
+                    "\n"
+                    << "* "
+                       "***************************************************************************"
+                       "*******\n"
+                    << "* ************** W A R N I N G / E R R O R * * M E S S A G E S "
+                       "*********************\n"
+                    << "* "
+                       "***************************************************************************"
+                       "*******"
+                    << endl);
                 errormsg.getline(buffer, 256);
-                while(errormsg.good()) {
+                while (errormsg.good()) {
                     ERRORMSG("* ");
-                    if(errormsg.gcount() == 1) {
+                    if (errormsg.gcount() == 1) {
                         ERRORMSG(closure);
                     } else if ((size_t)errormsg.gcount() <= closure.size()) {
                         ERRORMSG(buffer << closure.substr(errormsg.gcount() - 1));
@@ -343,129 +356,129 @@ int main(int argc, char *argv[]) {
                     }
                     errormsg.getline(buffer, 256);
                 }
-                ERRORMSG("* " << closure
-                         << "* **********************************************************************************\n"
-                         << "* **********************************************************************************"
+                ERRORMSG(
+                    "* " << closure
+                         << "* "
+                            "**********************************************************************"
+                            "************\n"
+                         << "* "
+                            "**********************************************************************"
+                            "************"
                          << endl);
             }
             errormsg.close();
         }
 
-    } catch(EarlyLeaveException& ex) {
+    } catch (EarlyLeaveException& ex) {
         // do nothing here
-    } catch(OpalException &ex) {
+    } catch (OpalException& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
-        errorMsg << "\n*** User error detected by function \""
-                 << ex.where() << "\"\n";
+        errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
         // stat->printWhere(errorMsg, true);
         std::string what = ex.what();
-        size_t pos = what.find_first_of('\n');
+        size_t pos       = what.find_first_of('\n');
         do {
             errorMsg << "    " << what.substr(0, pos) << endl;
             what = what.substr(pos + 1, std::string::npos);
-            pos = what.find_first_of('\n');
+            pos  = what.find_first_of('\n');
         } while (pos != std::string::npos);
         errorMsg << "    " << what << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
-    } catch(ClassicException &ex) {
+    } catch (ClassicException& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
-        errorMsg << "\n*** User error detected by function \""
-                 << ex.where() << "\"\n";
+        errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
         // stat->printWhere(errorMsg, true);
         std::string what = ex.what();
-        size_t pos = what.find_first_of('\n');
+        size_t pos       = what.find_first_of('\n');
         do {
             errorMsg << "    " << what.substr(0, pos) << endl;
             what = what.substr(pos + 1, std::string::npos);
-            pos = what.find_first_of('\n');
+            pos  = what.find_first_of('\n');
         } while (pos != std::string::npos);
         errorMsg << "    " << what << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
-    } catch(SDDSParserException &ex) {
+    } catch (SDDSParserException& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
-        errorMsg << "\n*** Error detected by function \""
-                 << ex.where() << "\"\n";
+        errorMsg << "\n*** Error detected by function \"" << ex.where() << "\"\n";
         std::string what = ex.what();
-        size_t pos = what.find_first_of('\n');
+        size_t pos       = what.find_first_of('\n');
         do {
             errorMsg << "    " << what.substr(0, pos) << endl;
             what = what.substr(pos + 1, std::string::npos);
-            pos = what.find_first_of('\n');
+            pos  = what.find_first_of('\n');
         } while (pos != std::string::npos);
         errorMsg << "    " << what << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
-    } catch(IpplException &ex) {
+    } catch (IpplException& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
 
-        errorMsg << "\n*** Error detected by function \""
-                 << ex.where() << "\"\n";
+        errorMsg << "\n*** Error detected by function \"" << ex.where() << "\"\n";
         std::string what = ex.what();
-        size_t pos = what.find_first_of('\n');
+        size_t pos       = what.find_first_of('\n');
         do {
             errorMsg << "    " << what.substr(0, pos) << endl;
             what = what.substr(pos + 1, std::string::npos);
-            pos = what.find_first_of('\n');
+            pos  = what.find_first_of('\n');
         } while (pos != std::string::npos);
         errorMsg << "    " << what << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
-    } catch(std::bad_alloc &ex) {
+    } catch (std::bad_alloc& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
         errorMsg << "\n*** Error:\n";
-        errorMsg << "    Sorry, virtual memory exhausted.\n"
-                 << ex.what()
-                 << endl;
+        errorMsg << "    Sorry, virtual memory exhausted.\n" << ex.what() << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
-    } catch(assertion &ex) {
+    } catch (assertion& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
         errorMsg << "\n*** Runtime-error ******************\n";
         std::string what = ex.what();
-        size_t pos = what.find_first_of('\n');
+        size_t pos       = what.find_first_of('\n');
         do {
             errorMsg << "    " << what.substr(0, pos) << endl;
             what = what.substr(pos + 1, std::string::npos);
-            pos = what.find_first_of('\n');
+            pos  = what.find_first_of('\n');
         } while (pos != std::string::npos);
         errorMsg << "    " << what << endl;
 
         errorMsg << "\n************************************\n" << endl;
         throw std::runtime_error("in Parser");
-    } catch(std::exception &ex) {
+    } catch (std::exception& ex) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
         errorMsg << "\n"
                  << "*** Error:\n"
                  << "    Internal OPAL error: \n";
         std::string what = ex.what();
-        size_t pos = what.find_first_of('\n');
+        size_t pos       = what.find_first_of('\n');
         do {
             errorMsg << "    " << what.substr(0, pos) << endl;
             what = what.substr(pos + 1, std::string::npos);
-            pos = what.find_first_of('\n');
+            pos  = what.find_first_of('\n');
         } while (pos != std::string::npos);
         errorMsg << "    " << what << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
-    } catch(...) {
+    } catch (...) {
         Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
         errorMsg << "\n*** Error:\n"
-                 << "    Unexpected exception caught.\n" << endl;
+                 << "    Unexpected exception caught.\n"
+                 << endl;
 
         MPI_Abort(MPI_COMM_WORLD, -100);
     }
 
     opal->printAllNames(std::cout);
- 
+
     IpplTimings::stopTimer(mainTimer);
 
     IpplTimings::print();
 
-    IpplTimings::print(std::string("timing.dat"),
-                       OpalData::getInstance()->getProblemCharacteristicValues());
+    IpplTimings::print(
+        std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues());
 
     Ippl::Comm->barrier();
     Fieldmap::clearDictionary();

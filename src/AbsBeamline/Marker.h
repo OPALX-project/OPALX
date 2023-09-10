@@ -43,7 +43,7 @@ public:
     /// Apply visitor to Marker.
     virtual void accept(BeamlineVisitor &) const override;
 
-    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch_t *bunch, double &startField, double &endField) override;
 
     virtual void finalise() override;
 

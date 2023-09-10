@@ -19,20 +19,17 @@
 #define CLASSIC_Monitor_HH
 
 #include "AbsBeamline/Component.h"
+#include "Algorithms/PartBunch.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Structure/LossDataSink.h"
 
 #include <map>
 #include <string>
 
-template <class T, unsigned Dim>
-class PartBunch;
 class BeamlineVisitor;
 
-class Monitor: public Component {
-
+class Monitor : public Component {
 public:
-
     /// Plane selection.
     enum Plane {
         /// Monitor is off (inactive).
@@ -46,45 +43,44 @@ public:
     };
 
     /// Constructor with given name.
-    explicit Monitor(const std::string &name);
+    explicit Monitor(const std::string& name);
 
     Monitor();
-    Monitor(const Monitor &);
+    Monitor(const Monitor&);
     virtual ~Monitor();
 
     /// Apply visitor to Monitor.
-    virtual void accept(BeamlineVisitor &) const override;
+    virtual void accept(BeamlineVisitor&) const override;
 
     /// Get geometry.
-    virtual StraightGeometry &getGeometry() override = 0;
+    virtual StraightGeometry& getGeometry() override = 0;
 
     /// Get geometry. Version for const object.
-    virtual const StraightGeometry &getGeometry() const override = 0;
+    virtual const StraightGeometry& getGeometry() const override = 0;
 
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    virtual bool apply(
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t<double, 3> &R,
-                                          const Vector_t<double, 3> &P,
-                                          const double &t,
-                                          Vector_t<double, 3> &E,
-                                          Vector_t<double, 3> &B) override;
+    virtual bool applyToReferenceParticle(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     virtual void finalise() override;
 
     virtual bool bends() const override;
 
-    virtual void goOnline(const double &kineticEnergy) override;
+    virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
 
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
     void setCollectionType(CollectionType type);
 
@@ -92,13 +88,13 @@ public:
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 
-    virtual bool isInside(const Vector_t<double, 3> &r) const override;
-private:
+    virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
+private:
     void driftToCorrectPositionAndSave(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P);
 
     // Not implemented.
-    void operator=(const Monitor &);
+    void operator=(const Monitor&);
     std::string filename_m; /**< The name of the outputfile*/
     Plane plane_m;
     CollectionType type_m;
@@ -110,23 +106,17 @@ private:
     static const double halfLength_s;
 };
 
-inline
-void Monitor::setCollectionType(CollectionType type) {
+inline void Monitor::setCollectionType(CollectionType type) {
     type_m = type;
 }
 
-inline
-int Monitor::getRequiredNumberOfTimeSteps() const
-{
+inline int Monitor::getRequiredNumberOfTimeSteps() const {
     return 1;
 }
 
-inline
-bool Monitor::isInside(const Vector_t<double, 3> &r) const
-{
+inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     const double length = getElementLength();
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
 }
 
-
-#endif // CLASSIC_Monitor_HH
+#endif  // CLASSIC_Monitor_HH

@@ -24,47 +24,39 @@
 
 #include <iostream>
 
-
-Help::Help():
-    Action(1, "HELP",
-           "The \"HELP\" statement displays the purpose and attribute "
-           "types of an object.") {
-    itsAttr[0] = Attributes::makeString
-                 ("NAME", "Name of object for which help is wanted");
+Help::Help()
+    : Action(
+        1, "HELP",
+        "The \"HELP\" statement displays the purpose and attribute "
+        "types of an object.") {
+    itsAttr[0] = Attributes::makeString("NAME", "Name of object for which help is wanted");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
+Help::Help(const std::string& name, Help* parent) : Action(name, parent) {
+}
 
-Help::Help(const std::string& name, Help* parent):
-    Action(name, parent)
-{}
-
-
-Help::~Help()
-{}
-
+Help::~Help() {
+}
 
 Help* Help::clone(const std::string& name) {
     return new Help(name, this);
 }
 
-
 void Help::execute() {
     if (itsAttr[0]) {
         std::string name = Attributes::getString(itsAttr[0]);
 
-        if (Object *object = OpalData::getInstance()->find(name)) {
+        if (Object* object = OpalData::getInstance()->find(name)) {
             object->printHelp(std::cerr);
         } else {
-            ERRORMSG("\n" << *this << "Unknown object \"" << name << "\".\n"
-                     << endl) ;
+            *ippl::Error << "\n" << *this << "Unknown object \"" << name << "\".\n" << endl;
         }
     } else {
         printHelp(std::cerr);
     }
 }
-
 
 void Help::parse(Statement& statement) {
     parseShortcut(statement);

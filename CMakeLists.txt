@@ -63,6 +63,7 @@ endif()
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
+add_compile_options (-Wno-nonportable-include-path)
 add_compile_options (-ferror-limit=1)
 add_compile_options (-Wno-error)
 add_compile_options (-Wno-deprecated-declarations)

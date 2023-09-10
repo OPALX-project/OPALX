@@ -118,7 +118,7 @@ public:
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    virtual void initialise(PartBunch<double, 3>* bunch,
+    virtual void initialise(PartBunch_t* bunch,
                             double &startField,
                             double &endField) override;
 private:
@@ -187,7 +187,7 @@ inline
         return angle_m;
 }
 inline
-    void MultipoleTCurvedConstRadius::initialise(PartBunch<double, 3>* bunch,
+    void MultipoleTCurvedConstRadius::initialise(PartBunch_t* bunch,
                                                  double &/*startField*/,
                                                  double &/*endField*/) {
         RefPartBunch_m = bunch;

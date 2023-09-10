@@ -97,7 +97,7 @@ void ElementPositionWriter::addRow(double spos,
                                    const std::vector<double> &row,
                                    const std::string &elements) {
 
-    if ( Ippl::myNode() != 0 )
+    if ( ippl::Comm->rank() != 0 )
         return;
 
 

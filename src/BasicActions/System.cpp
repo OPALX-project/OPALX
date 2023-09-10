@@ -48,7 +48,7 @@ System* System::clone(const std::string& name) {
 
 
 void System::execute() {
-    if (Ippl::myNode() == 0) {
+    if (ippl::Comm->rank() == 0) {
         std::string command = Attributes::getString(itsAttr[0]);
 
         int res = system(command.c_str());

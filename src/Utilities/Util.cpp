@@ -218,7 +218,7 @@ namespace Util {
      *  rewind the SDDS file such that the spos of the last step is less or equal to maxSPos
      */
     unsigned int rewindLinesSDDS(const std::string& fileName, double maxSPos, bool checkForTime) {
-        if (Ippl::myNode() > 0) return 0;
+        if (ippl::Comm->rank() > 0) return 0;
 
         std::fstream fs(fileName.c_str(), std::fstream::in);
         if (!fs.is_open()) return 0;

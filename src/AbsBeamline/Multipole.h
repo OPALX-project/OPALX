@@ -23,8 +23,6 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 
-template <class T, unsigned Dim>
-class PartBunch;
 class Fieldmap;
 
 // Class Multipole
@@ -44,26 +42,23 @@ class Fieldmap;
 //  [/TAB]
 //  Units for multipole strengths are Teslas / m**(n-1).
 
-class Multipole: public Component {
-
+class Multipole : public Component {
 public:
-
     /// Constructor with given name.
-    explicit Multipole(const std::string &name);
+    explicit Multipole(const std::string& name);
 
     Multipole();
-    Multipole(const Multipole &);
+    Multipole(const Multipole&);
     virtual ~Multipole();
 
     /// Apply visitor to Multipole.
-    virtual void accept(BeamlineVisitor &) const override;
-
+    virtual void accept(BeamlineVisitor&) const override;
 
     /// Get multipole field.
-    virtual BMultipoleField &getField() override = 0;
+    virtual BMultipoleField& getField() override = 0;
 
     /// Get multipole field. Version for const object.
-    virtual const BMultipoleField &getField() const override = 0;
+    virtual const BMultipoleField& getField() const override = 0;
 
     /// Get normal component.
     //  Return the normal component of order [b]n[/b] in T/m**(n-1).
@@ -98,27 +93,32 @@ public:
     size_t getMaxNormalComponentIndex() const;
     size_t getMaxSkewComponentIndex() const;
 
-    //set number of slices for map tracking
+    // set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);
 
-    //set number of slices for map tracking
+    // set number of slices for map tracking
     std::size_t getNSlices() const;
 
     bool isFocusing(unsigned int component) const;
 
     /// Get geometry.
-    virtual StraightGeometry &getGeometry() override = 0;
+    virtual StraightGeometry& getGeometry() override = 0;
 
     /// Get geometry.
-    virtual const StraightGeometry &getGeometry() const override = 0;
+    virtual const StraightGeometry& getGeometry() const override = 0;
 
-    virtual bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    virtual bool apply(
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    virtual bool apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual bool applyToReferenceParticle(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    virtual bool applyToReferenceParticle(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     virtual void finalise() override;
 
@@ -126,14 +126,15 @@ public:
 
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
-    virtual bool isInside(const Vector_t<double, 3> &r) const override;
+    virtual bool isInside(const Vector_t<double, 3>& r) const override;
+
 private:
-    void computeField(Vector_t<double, 3> R, Vector_t<double, 3> &E, Vector_t<double, 3> &B);
+    void computeField(Vector_t<double, 3> R, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     // Not implemented.
-    void operator=(const Multipole &);
+    void operator=(const Multipole&);
     std::vector<double> NormalComponents;
     std::vector<double> NormalComponentErrors;
     std::vector<double> SkewComponents;
@@ -143,24 +144,20 @@ private:
     std::size_t nSlices_m;
 };
 
-inline
-void Multipole::setNormalComponent(int n, double v) {
+inline void Multipole::setNormalComponent(int n, double v) {
     setNormalComponent(n, v, 0.0);
 }
 
-inline
-void Multipole::setSkewComponent(int n, double v) {
+inline void Multipole::setSkewComponent(int n, double v) {
     setSkewComponent(n, v, 0.0);
 }
 
-inline
-size_t Multipole::getMaxNormalComponentIndex() const {
+inline size_t Multipole::getMaxNormalComponentIndex() const {
     return NormalComponents.size();
 }
 
-inline
-size_t Multipole::getMaxSkewComponentIndex() const {
+inline size_t Multipole::getMaxSkewComponentIndex() const {
     return SkewComponents.size();
 }
 
-#endif // CLASSIC_Multipole_HH
+#endif  // CLASSIC_Multipole_HH

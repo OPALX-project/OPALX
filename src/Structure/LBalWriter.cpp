@@ -70,7 +70,7 @@ void LBalWriter::fillHeader() {
 
 
 void LBalWriter::write(const PartBunch<double, 3> *beam) {
-    if ( Ippl::myNode() != 0 )
+    if ( ippl::Comm->rank() != 0 )
         return;
 
     this->fillHeader();

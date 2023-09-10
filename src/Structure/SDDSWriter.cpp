@@ -46,7 +46,7 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
 
 
 void SDDSWriter::rewindLines(size_t numberOfLines) {
-    if (numberOfLines == 0 || Ippl::myNode() != 0) {
+    if (numberOfLines == 0 || ippl::Comm->rank() != 0) {
         return;
     }
 
@@ -78,7 +78,7 @@ void SDDSWriter::rewindLines(size_t numberOfLines) {
 
 void SDDSWriter::replaceVersionString() {
 
-    if (Ippl::myNode() != 0)
+    if (ippl::Comm->rank() != 0)
         return;
 
     std::string versionFile;
@@ -132,7 +132,7 @@ double SDDSWriter::getLastValue(const std::string& column) {
 
 
 void SDDSWriter::open() {
-    if ( Ippl::myNode() != 0 || os_m.is_open() )
+    if ( ippl::Comm->rank() != 0 || os_m.is_open() )
         return;
 
     os_m.open(fname_m.c_str(), mode_m);
@@ -142,14 +142,14 @@ void SDDSWriter::open() {
 
 
 void SDDSWriter::close() {
-    if ( Ippl::myNode() == 0 && os_m.is_open() ) {
+    if ( ippl::Comm->rank() == 0 && os_m.is_open() ) {
         os_m.close();
     }
 }
 
 
 void SDDSWriter::writeHeader() {
-    if ( Ippl::myNode() != 0 || mode_m == std::ios::app )
+    if ( ippl::Comm->rank() != 0 || mode_m == std::ios::app )
         return;
 
     this->writeDescription();

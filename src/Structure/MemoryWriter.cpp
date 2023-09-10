@@ -82,7 +82,7 @@ void MemoryWriter::write(const PartBunch<double, 3> *beam)
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     memory->sample();
 
-    if (Ippl::myNode() != 0) {
+    if (ippl::Comm->rank() != 0) {
         return;
     }
 

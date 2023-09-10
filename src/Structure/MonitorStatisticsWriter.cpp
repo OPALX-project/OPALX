@@ -76,7 +76,7 @@ void MonitorStatisticsWriter::fillHeader() {
 
 void MonitorStatisticsWriter::addRow(const SetStatistics& set) {
 
-    if ( Ippl::myNode() != 0 ) {
+    if ( ippl::Comm->rank() != 0 ) {
         return;
     }
 

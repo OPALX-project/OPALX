@@ -87,7 +87,7 @@ public:
                        Vector_t<double, 3> &E,
                        Vector_t<double, 3> &B);
 
-    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField);
+    virtual void initialise(PartBunch_t *bunch, double &startField, double &endField);
 
     virtual void goOnline(const double &kineticEnergy);
 

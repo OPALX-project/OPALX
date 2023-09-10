@@ -97,7 +97,7 @@ bool Corrector::apply(const Vector_t<double, 3> &R,
     return false;
 }
 
-void Corrector::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
+void Corrector::initialise(PartBunch_t *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
     RefPartBunch_m = bunch;
 }

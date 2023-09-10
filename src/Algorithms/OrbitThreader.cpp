@@ -66,7 +66,7 @@ OrbitThreader::OrbitThreader(const PartData &ref,
     reference_m(ref)
 {
     auto opal = OpalData::getInstance();
-    if (Ippl::myNode() == 0 && !opal->isOptimizerRun()) {
+    if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
         std::string fileName = Util::combineFilePath({
             opal->getAuxiliaryOutputDirectory(),
             opal->getInputBasename() + "_DesignPath.dat"
@@ -239,7 +239,7 @@ void OrbitThreader::integrate(const IndexMap::value_t &activeSet, double /*maxDr
 
         if (((pathLength_m > 0.0 &&
               pathLength_m < zstop_m) || dt_m < 0.0) &&
-            currentStep_m % loggingFrequency_m == 0 && Ippl::myNode() == 0 &&
+            currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0 &&
             !OpalData::getInstance()->isOptimizerRun()) {
             logger_m << std::setw(18) << std::setprecision(8) << pathLength_m + std::copysign(euclidean_norm(r_m - oldR), dt_m)
                      << std::setw(18) << std::setprecision(8) << r_m(0)
