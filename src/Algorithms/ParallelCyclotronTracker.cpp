@@ -128,7 +128,7 @@ ParallelCyclotronTracker::ParallelCyclotronTracker(const Beamline& beamline,
     , bgf_m(nullptr)
     , maxSteps_m(maxSTEPS)
     , lastDumpedStep_m(0)
-    , myNode_m(Ippl::myNode())
+    , myNode_m(ippl::Comm->rank())
     , initialLocalNum_m(bunch->getLocalNum())
     , initialTotalNum_m(bunch->getTotalNum())
     , opalRing_m(nullptr)

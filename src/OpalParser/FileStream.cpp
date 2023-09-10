@@ -68,7 +68,7 @@ bool FileStream::fillLine() {
         std::getline(is, line, '\n');
         line += "\n";
         curr_line++;
-        if(echoFlag && Ippl::myNode() == 0) {
+        if(echoFlag && ippl::Comm->rank() == 0) {
             std::cerr.width(5);
             std::cerr << curr_line << " " << line;
         }

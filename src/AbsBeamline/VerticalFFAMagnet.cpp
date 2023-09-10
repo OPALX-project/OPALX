@@ -57,7 +57,7 @@ void VerticalFFAMagnet::initialise() {
     straightGeometry_m.setElementLength(bbLength_m); // length = phi r
 }
 
-void VerticalFFAMagnet::initialise(PartBunch<double, 3> *bunch, double &/*startField*/, double &/*endField*/) {
+void VerticalFFAMagnet::initialise(PartBunch_t *bunch, double &/*startField*/, double &/*endField*/) {
     RefPartBunch_m = bunch;
     initialise();
 }

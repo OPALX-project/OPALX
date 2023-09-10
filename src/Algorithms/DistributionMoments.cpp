@@ -20,15 +20,15 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-#include "Message/GlobalComm.h"
 #include "Utility/Inform.h"
 
 #include "OpalParticle.h"
-#include "PartBunch.h"
 
 #include <gsl/gsl_histogram.h>
 
 #include <boost/numeric/conversion/cast.hpp>
+
+#include <mpi.h>
 
 extern Inform* gmsg;
 
@@ -37,6 +37,34 @@ const double DistributionMoments::percentileTwoSigmasNormalDist_m   = std::erf(2
 const double DistributionMoments::percentileThreeSigmasNormalDist_m = std::erf(3 / sqrt(2));
 const double DistributionMoments::percentileFourSigmasNormalDist_m  = std::erf(4 / sqrt(2));
 
+template <typename T, class Op>
+void allreduce(const T* input, T* output, int count, Op op) {
+    MPI_Datatype type = get_mpi_datatype<T>(*input);
+
+    MPI_Op mpiOp = get_mpi_op<Op>(op);
+
+    MPI_Allreduce(const_cast<T*>(input), output, count, type, mpiOp, ippl::Comm->getCommunicator());
+}
+
+template <typename T, class Op>
+void allreduce(const T& input, T& output, int count, Op op) {
+    allreduce(&input, &output, count, op);
+}
+
+template <typename T, class Op>
+void allreduce(T* inout, int count, Op op) {
+    MPI_Datatype type = get_mpi_datatype<T>(*inout);
+
+    MPI_Op mpiOp = get_mpi_op<Op>(op);
+
+    MPI_Allreduce(MPI_IN_PLACE, inout, count, type, mpiOp, ippl::Comm->getCommunicator());
+}
+
+template <typename T, class Op>
+void allreduce(T& inout, int count, Op op) {
+    allreduce(&inout, count, op);
+}
+
 DistributionMoments::DistributionMoments() {
     reset();
     resetPlasmaParameters();
@@ -44,14 +72,14 @@ DistributionMoments::DistributionMoments() {
     moments_m.resize(6, 6, false);
 }
 
-void DistributionMoments::compute(PartBunch<double, 3> const& bunch) {
-    computeStatistics(bunch.begin(), bunch.end());
+void DistributionMoments::compute(PartBunch_t const& bunch) {
+    // computeStatistics(bunch.begin(), bunch.end());
 }
 
 void DistributionMoments::compute(
     const std::vector<OpalParticle>::const_iterator& first,
     const std::vector<OpalParticle>::const_iterator& last) {
-    computeStatistics(first, last);
+    // computeStatistics(first, last);
 }
 
 template <class InputIt>
@@ -118,7 +146,7 @@ void DistributionMoments::computeMeans(const InputIt& first, const InputIt& last
  *
  * For a 6x6 matrix we have each 2nd order moment (except diagonal
  * entries) twice. We only store the upper half of the matrix.
- */
+
 template <class InputIt>
 void DistributionMoments::computeStatistics(const InputIt& first, const InputIt& last) {
     reset();
@@ -160,7 +188,7 @@ void DistributionMoments::computeStatistics(const InputIt& first, const InputIt&
 
     computePercentiles(first, last);
 }
-
+*/
 template <class InputIt>
 void DistributionMoments::computePercentiles(const InputIt& first, const InputIt& last) {
     if (!Options::computePercentiles || totalNumParticles_m < 100) {
@@ -217,7 +245,7 @@ void DistributionMoments::computePercentiles(const InputIt& first, const InputIt
 
     for (int d = 0; d < 3; ++d) {
         unsigned int localNum = last - first, current = 0;
-        std::vector<Vektor<double, 2>> oneDPhaseSpace(localNum);
+        std::vector<Vector_t<double, 2>> oneDPhaseSpace(localNum);
         for (InputIt it = first; it != last; ++it, ++current) {
             OpalParticle const& particle = *it;
             oneDPhaseSpace[current](0)   = particle[2 * d];
@@ -225,7 +253,7 @@ void DistributionMoments::computePercentiles(const InputIt& first, const InputIt
         }
         std::sort(
             oneDPhaseSpace.begin(), oneDPhaseSpace.end(),
-            [d, this](Vektor<double, 2>& left, Vektor<double, 2>& right) {
+            [d, this](Vector_t<double, 2>& left, Vector_t<double, 2>& right) {
                 return std::abs(left[0] - meanR_m[d]) < std::abs(right[0] - meanR_m[d]);
             });
 
@@ -314,16 +342,16 @@ std::pair<double, DistributionMoments::iterator_t> DistributionMoments::determin
                 ++shift;
             }
 
-            std::vector<unsigned int> numParticlesInBin(Ippl::getNodes() + 1);
-            numParticlesInBin[Ippl::myNode() + 1] = endBin - beginBin;
+            std::vector<unsigned int> numParticlesInBin(ppl::getNodes() + 1);
+            numParticlesInBin[ippl::Comm->rank() + 1] = endBin - beginBin;
             allreduce(&(numParticlesInBin[1]), Ippl::getNodes(), std::plus<unsigned int>());
             std::partial_sum(
                 numParticlesInBin.begin(), numParticlesInBin.end(), numParticlesInBin.begin());
 
             std::vector<double> positions(numParticlesInBin.back());
             std::transform(
-                beginBin, endBin, positions.begin() + numParticlesInBin[Ippl::myNode()],
-                [&dimension, this](Vektor<double, 2> const& particle) {
+                beginBin, endBin, positions.begin() + numParticlesInBin[ippl::Comm->rank()],
+                [&dimension, this](Vector_t<double, 2> const& particle) {
                     return std::abs(particle[0] - meanR_m[dimension]);
                 });
             allreduce(&(positions[0]), positions.size(), std::plus<double>());
@@ -350,7 +378,7 @@ double DistributionMoments::computeNormalizedEmittance(
     double localStatistics[] = {0.0, 0.0, 0.0, 0.0};
     localStatistics[0]       = end - begin;
     for (iterator_t it = begin; it < end; ++it) {
-        const Vektor<double, 2>& rp = *it;
+        const Vector_t<double, 2>& rp = *it;
         localStatistics[1] += rp(0);
         localStatistics[2] += rp(1);
         localStatistics[3] += rp(0) * rp(1);
@@ -366,7 +394,7 @@ double DistributionMoments::computeNormalizedEmittance(
     localStatistics[0] = 0.0;
     localStatistics[1] = 0.0;
     for (iterator_t it = begin; it < end; ++it) {
-        const Vektor<double, 2>& rp = *it;
+        const Vector_t<double, 2>& rp = *it;
         localStatistics[0] += std::pow(rp(0) - meanR, 2);
         localStatistics[1] += std::pow(rp(1) - meanP, 2);
     }
@@ -427,7 +455,7 @@ void DistributionMoments::fillMembers(std::vector<double>& localMoments) {
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
 }
 
-void DistributionMoments::computeMeanKineticEnergy(PartBunch<double, 3> const& bunch) {
+void DistributionMoments::computeMeanKineticEnergy(PartBunch_t const& bunch) {
     double data[] = {0.0, 0.0};
     for (OpalParticle const& particle : bunch) {
         data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
@@ -438,8 +466,7 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunch<double, 3> const& b
     meanKineticEnergy_m = data[0] / data[1];
 }
 
-void DistributionMoments::computeDebyeLength(
-    PartBunch<double, 3> const& bunch_r, double density) {
+void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double density) {
     resetPlasmaParameters();
     double avgVel[3] = {0.0, 0.0, 0.0};
 

@@ -23,30 +23,28 @@
 #include "Structure/LossDataSink.h"
 #include "Structure/PeakFinder.h"
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
-Probe::Probe():Probe("")
-{}
+Probe::Probe() : Probe("") {
+}
 
-Probe::Probe(const std::string &name):
-    PluginElement(name),
-    step_m(0.0)
-{}
+Probe::Probe(const std::string& name) : PluginElement(name), step_m(0.0) {
+}
 
-Probe::Probe(const Probe &right):
-    PluginElement(right),
-    step_m(right.step_m)
-{}
+Probe::Probe(const Probe& right) : PluginElement(right), step_m(right.step_m) {
+}
 
-Probe::~Probe() {}
+Probe::~Probe() {
+}
 
-void Probe::accept(BeamlineVisitor &visitor) const {
+void Probe::accept(BeamlineVisitor& visitor) const {
     visitor.visitProbe(*this);
 }
 
-void Probe::doInitialise(PartBunch<double, 3> *bunch) {
+void Probe::doInitialise(PartBunch_t* bunch) {
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
-    peakfinder_m = std::unique_ptr<PeakFinder> (new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
+    peakfinder_m    = std::unique_ptr<PeakFinder>(
+        new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
 }
 
 void Probe::doGoOffline() {
@@ -64,52 +62,59 @@ double Probe::getStep() const {
     return step_m;
 }
 
-bool Probe::doPreCheck(PartBunch<double, 3> *bunch) {
+bool Probe::doPreCheck(PartBunch_t* bunch) {
     Vector_t<double, 3> rmin, rmax;
     bunch->get_bounds(rmin, rmax);
     // interested in absolute minimum and maximum
-    double xmin = std::min(std::abs(rmin(0)), std::abs(rmax(0)));
-    double xmax = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
-    double ymin = std::min(std::abs(rmin(1)), std::abs(rmax(1)));
-    double ymax = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
+    double xmin       = std::min(std::abs(rmin(0)), std::abs(rmax(0)));
+    double xmax       = std::max(std::abs(rmin(0)), std::abs(rmax(0)));
+    double ymin       = std::min(std::abs(rmin(1)), std::abs(rmax(1)));
+    double ymax       = std::max(std::abs(rmin(1)), std::abs(rmax(1)));
     double rbunch_min = std::hypot(xmin, ymin);
     double rbunch_max = std::hypot(xmax, ymax);
 
-    if (rbunch_max > rmin_m - 0.01 && rbunch_min < rend_m + 0.01 ) {
+    if (rbunch_max > rmin_m - 0.01 && rbunch_min < rend_m + 0.01) {
         return true;
     }
     return false;
 }
 
-bool Probe::doCheck(PartBunch<double, 3> *bunch, const int turnnumber, const double t, const double tstep) {
+bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {
     Vector_t<double, 3> probepoint;
     size_t tempnum = bunch->getLocalNum();
 
     for (unsigned int i = 0; i < tempnum; ++i) {
-        double tangle = calculateIncidentAngle(bunch->P[i](0), bunch->P[i](1));
+        double tangle = calculateIncidentAngle(bunch->P(i)(0), bunch->P(i)(1));
         changeWidth(bunch, i, tstep, tangle);
-        int pflag = checkPoint(bunch->R[i](0), bunch->R[i](1));
-        if (pflag == 0) continue;
+        int pflag = checkPoint(bunch->R(i)(0), bunch->R(i)(1));
+        if (pflag == 0)
+            continue;
         // calculate closest point at probe -> better to use momentum direction
         // probe: y = -A/B * x - C/B or A*X + B*Y + C = 0
         // perpendicular line through R: y = B/A * x + R(1) - B/A * R(0)
-        // probepoint(0) = (B_m*B_m*bunch->R[i](0) - A_m*B_m*bunch->R[i](1) - A_m*C_m) / (R_m*R_m);
-        // probepoint(1) = (A_m*A_m*bunch->R[i](1) - A_m*B_m*bunch->R[i](0) - B_m*C_m) / (R_m*R_m);
-        // probepoint(2) = bunch->R[i](2);
+        // probepoint(0) = (B_m*B_m*bunch->R(i)(0) - A_m*B_m*bunch->R(i)(1) - A_m*C_m) / (R_m*R_m);
+        // probepoint(1) = (A_m*A_m*bunch->R(i)(1) - A_m*B_m*bunch->R(i)(0) - B_m*C_m) / (R_m*R_m);
+        // probepoint(2) = bunch->R(i)(2);
         // calculate time correction for probepoint
         // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
-        double dist1 = (A_m * bunch->R[i](0) + B_m * bunch->R[i](1) + C_m) / R_m; // [m]
+        double dist1 = (A_m * bunch->R(i)(0) + B_m * bunch->R(i)(1) + C_m) / R_m;  // [m]
         double dist2 = dist1 * std::sqrt(1.0 + 1.0 / tangle / tangle);
-        double dt = dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P[i], bunch->P[i]))) * Physics::c);
+        double dt =
+            dist2
+            / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P(i), bunch->P(i)).apply())) * Physics::c);
 
-        probepoint = bunch->R[i] + dist2 * bunch->P[i] / euclidean_norm(bunch->P[i]);
+        // ADA probepoint = bunch->R(i) + dist2 * bunch->P(i) / euclidean_norm(bunch->P(i));
+        probepoint =
+            bunch->R(i) + dist2 * bunch->P(i) / std::sqrt(dot(bunch->P(i), bunch->P(i)).apply());
 
         // peak finder uses millimetre not metre
         peakfinder_m->addParticle(probepoint * Units::m2mm);
 
-        lossDs_m->addParticle(OpalParticle(bunch->ID[i], probepoint, bunch->P[i],
-                                           t+dt, bunch->Q[i], bunch->M[i]),
-                              std::make_pair(turnnumber, bunch->bunchNum[i]));
+        // ADA lossDs_m->addParticle(
+        //    OpalParticle(bunch->ID(i), probepoint, bunch->P(i), t + dt, bunch->Q(i), bunch->M(i)),
+        //    std::make_pair(turnnumber, (int)
+        //
+        // 3bunch->bunchNum(i)));
     }
 
     peakfinder_m->evaluate(turnnumber);

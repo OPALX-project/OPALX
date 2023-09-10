@@ -327,7 +327,7 @@ void OpalBeamline::compute3DLattice() {
 }
 
 void OpalBeamline::save3DLattice() {
-    if (Ippl::myNode() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
     elements_m.sort([](const ClassicField& a, const ClassicField& b) {
             return a.order_m < b.order_m;
@@ -499,7 +499,7 @@ namespace {
 }
 
 void OpalBeamline::save3DInput() {
-    if (Ippl::myNode() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
+    if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
     FieldList::iterator it = elements_m.begin();
     FieldList::iterator end = elements_m.end();

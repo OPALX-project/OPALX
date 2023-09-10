@@ -65,7 +65,7 @@
  */
 
 class RingSection {
-  public:
+public:
     /** Construct a ring section - positions, orientations etc default to 0.
      */
     RingSection();
@@ -107,8 +107,9 @@ class RingSection {
      *  Note; does not check for component == nullptr; caller must assign
      *  component_m (using setComponent) before calling this function.
      */
-    bool getFieldValue(const Vector_t<double, 3>& pos, const Vector_t<double, 3>& centroid,
-                       const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const;
+    bool getFieldValue(
+        const Vector_t<double, 3>& pos, const Vector_t<double, 3>& centroid, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) const;
 
     /** Get the "Virtual" bounding box for the RingSection
      *
@@ -130,50 +131,73 @@ class RingSection {
      *
      *  This borrows the Component* pointer (caller is responsible for cleanup)
      */
-    inline void setComponent(Component* component) {component_m = component;}
+    inline void setComponent(Component* component) {
+        component_m = component;
+    }
 
     /** Get the component wrapped by RingSection
      *
      *  Component* is not owned by caller or RingSection
      */
-    inline Component* getComponent() const {return component_m;}
+    inline Component* getComponent() const {
+        return component_m;
+    }
 
     /** Set a position on the plane of the section start */
-    inline void setStartPosition(Vector_t<double, 3> pos) {startPosition_m = pos;}
+    inline void setStartPosition(Vector_t<double, 3> pos) {
+        startPosition_m = pos;
+    }
 
     /** Get a position on the plane of the section start */
-    inline Vector_t<double, 3> getStartPosition() const {return startPosition_m;}
+    inline Vector_t<double, 3> getStartPosition() const {
+        return startPosition_m;
+    }
 
     /** Set the normal vector to the section start plane */
     inline void setStartNormal(Vector_t<double, 3> orientation);
 
     /** Get the normal vector to the section start plane */
-    inline Vector_t<double, 3> getStartNormal() const {return startOrientation_m;}
+    inline Vector_t<double, 3> getStartNormal() const {
+        return startOrientation_m;
+    }
 
     /** Set a position on the section end plane */
-    inline void setEndPosition(Vector_t<double, 3> pos) {endPosition_m = pos;}
+    inline void setEndPosition(Vector_t<double, 3> pos) {
+        endPosition_m = pos;
+    }
 
     /** Get a position on the section end plane */
-    inline Vector_t<double, 3> getEndPosition() const {return endPosition_m;}
+    inline Vector_t<double, 3> getEndPosition() const {
+        return endPosition_m;
+    }
 
     /** Set the normal vector to the section end plane  */
     inline void setEndNormal(Vector_t<double, 3> orientation);
 
     /** Get the normal vector to the section end plane */
-    inline Vector_t<double, 3> getEndNormal() const {return endOrientation_m;}
+    inline Vector_t<double, 3> getEndNormal() const {
+        return endOrientation_m;
+    }
 
     /** Set the displacement for the component relative to the section start */
-    inline void setComponentPosition(Vector_t<double, 3> position) {componentPosition_m = position;}
+    inline void setComponentPosition(Vector_t<double, 3> position) {
+        componentPosition_m = position;
+    }
 
     /** Get the displacement for the component relative to the section start */
-    inline Vector_t<double, 3> getComponentPosition() const {return componentPosition_m;}
+    inline Vector_t<double, 3> getComponentPosition() const {
+        return componentPosition_m;
+    }
 
     /** Set the rotation for the component relative to the section start */
     inline void setComponentOrientation(Vector_t<double, 3> orientation);
 
     /** Get the rotation for the component relative to the section start */
-    inline Vector_t<double, 3> getComponentOrientation() const {return componentOrientation_m;}
-  private:
+    inline Vector_t<double, 3> getComponentOrientation() const {
+        return componentOrientation_m;
+    }
+
+private:
     void rotate(Vector_t<double, 3>& vector) const;
     void rotate_back(Vector_t<double, 3>& vector) const;
     inline Vector_t<double, 3>& normalise(Vector_t<double, 3>& vector) const;
@@ -212,21 +236,20 @@ inline void RingSection::setEndNormal(Vector_t<double, 3> orientation) {
 }
 
 inline Vector_t<double, 3>& RingSection::normalise(Vector_t<double, 3>& orientation) const {
-    double magnitude = sqrt(orientation(0)*orientation(0)+
-                            orientation(1)*orientation(1)+
-                            orientation(2)*orientation(2));
+    double magnitude = sqrt(
+        orientation(0) * orientation(0) + orientation(1) * orientation(1)
+        + orientation(2) * orientation(2));
     if (magnitude > 0.)
-        orientation /= magnitude;
+        orientation = orientation / magnitude;
     return orientation;
 }
 
-
 void RingSection::rotateToTCoordinates(Vector_t<double, 3>& vec) const {
-  vec = Vector_t<double, 3>(vec(1), vec(2), vec(0));
+    vec = Vector_t<double, 3>({vec(1), vec(2), vec(0)});
 }
 
 void RingSection::rotateToCyclCoordinates(Vector_t<double, 3>& vec) const {
-  vec = Vector_t<double, 3>(vec(2), vec(0), vec(1));
+    vec = Vector_t<double, 3>({vec(2), vec(0), vec(1)});
 }
 
-#endif //RING_SECTION_H
+#endif  // RING_SECTION_H

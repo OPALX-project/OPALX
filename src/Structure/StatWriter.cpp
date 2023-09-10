@@ -207,7 +207,7 @@ void StatWriter::write(const PartBunch<double, 3> *beam, Vector_t<double, 3> FDe
 
     double Q = beam->getCharge();
 
-    if (Ippl::myNode() != 0) {
+    if (ippl::Comm->rank() != 0) {
         return;
     }
 

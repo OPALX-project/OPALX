@@ -165,7 +165,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         Ippl::Comm->barrier();
 
         std::string sourceFileName = copyFilePrefix_m + fileName_m;
-        if (Ippl::myNode() == 0) {
+        if (ippl::Comm->rank() == 0) {
             fs::rename(fileName_m, sourceFileName);
         }
 
@@ -195,7 +195,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 
         REPORTONERROR(H5CloseFile(source));
 
-        if (Ippl::myNode() == 0) {
+        if (ippl::Comm->rank() == 0) {
             fs::remove(sourceFileName);
         }
 
@@ -257,7 +257,7 @@ void H5PartWrapper::copyFileSystem(const std::string &sourceFile) {
     if (sourceFile == fileName_m) return;
 
     int sourceNode = 0;
-    if (Ippl::myNode() == sourceNode) {
+    if (ippl::Comm->rank() == sourceNode) {
 
         // copy_file not working due to bug in boost, see
         // https://svn.boost.org/trac/boost/ticket/10038
@@ -454,9 +454,9 @@ void H5PartWrapper::copyStepData(
     h5_ssize_t numParticles = H5PartGetNumParticles(source);
     h5_ssize_t numParticlesPerNode = numParticles / Ippl::getNodes();
 
-    h5_ssize_t firstParticle = numParticlesPerNode * Ippl::myNode();
+    h5_ssize_t firstParticle = numParticlesPerNode * ippl::Comm->rank();
     h5_ssize_t lastParticle = firstParticle + numParticlesPerNode - 1;
-    if (Ippl::myNode() == Ippl::getNodes() - 1)
+    if (ippl::Comm->rank() == Ippl::getNodes() - 1)
         lastParticle = numParticles - 1;
 
     REPORTONERROR(H5PartSetView(source, firstParticle, lastParticle));

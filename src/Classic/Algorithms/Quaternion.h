@@ -63,7 +63,7 @@ inline Quaternion::Quaternion(const double& realPart, const Vector_t<double, 3>&
 }
 
 inline double Quaternion::Norm() const {
-    return dot(*this, *this).apply();
+    return dot(*this);
 }
 
 inline double Quaternion::length() const {
