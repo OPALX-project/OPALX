@@ -20,50 +20,40 @@
 #define OPAL_SDDS_WRITER_H
 
 #include <fstream>
-#include <string>
-#include <queue>
+#include <iomanip>
 #include <map>
-#include <vector>
+#include <ostream>
+#include <queue>
+#include <sstream>
+#include <string>
 #include <tuple>
 #include <utility>
-#include <ostream>
-#include <iomanip>
-#include <sstream>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 
 #include "Structure/SDDSColumn.h"
 #include "Structure/SDDSColumnSet.h"
 
-template <class T, unsigned Dim>
-class PartBunch;
-
 class SDDSWriter {
-
 public:
     // order: text, content
     typedef std::pair<std::string, std::string> desc_t;
 
     // order: name, type, description
-    typedef std::tuple<std::string,
-                       std::string,
-                       std::string> param_t;
+    typedef std::tuple<std::string, std::string, std::string> param_t;
 
     // order: mode, no row counts
     typedef std::pair<std::string, size_t> data_t;
 
     // order: name, type, unit, description
-    typedef std::tuple<std::string,
-                       std::string,
-                       std::string,
-                       std::string> cols_t;
-
+    typedef std::tuple<std::string, std::string, std::string, std::string> cols_t;
 
     SDDSWriter(const std::string& fname, bool restart);
 
-    virtual ~SDDSWriter() { };
+    virtual ~SDDSWriter(){};
 
-    virtual void write(const PartBunch<double, 3>* /*beam*/) { };
+    virtual void write(const PartBunch_t* /*beam*/){};
 
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'
@@ -77,25 +67,19 @@ public:
     bool exists() const;
 
 protected:
+    void addDescription(const std::string& text, const std::string& content);
 
-    void addDescription(const std::string& text,
-                        const std::string& content);
-
-    template<typename T>
-    void addParameter(const std::string& name,
-                      const std::string& type,
-                      const std::string& desc,
-                      const T& value);
+    template <typename T>
+    void addParameter(
+        const std::string& name, const std::string& type, const std::string& desc, const T& value);
 
     void addDefaultParameters();
 
-    void addColumn(const std::string& name,
-                   const std::string& type,
-                   const std::string& unit,
-                   const std::string& desc);
+    void addColumn(
+        const std::string& name, const std::string& type, const std::string& unit,
+        const std::string& desc);
 
-    void addInfo(const std::string& mode,
-                 const size_t& no_row_counts);
+    void addInfo(const std::string& mode, const size_t& no_row_counts);
 
     void writeRow();
 
@@ -110,7 +94,7 @@ protected:
      */
     void writeHeader();
 
-    template<typename T>
+    template <typename T>
     std::string toString(const T& val);
 
     std::string fname_m;
@@ -131,7 +115,6 @@ protected:
     bool hasColumns() const;
 
 private:
-
     void writeDescription();
 
     void writeParameters();
@@ -149,52 +132,35 @@ private:
     std::queue<std::string> paramValues_m;
     data_t info_m;
 
-    static constexpr
-    unsigned int precision_m = 15;
+    static constexpr unsigned int precision_m = 15;
 };
 
-
-inline
-bool SDDSWriter::exists() const {
+inline bool SDDSWriter::exists() const {
     return boost::filesystem::exists(fname_m);
 }
 
-
-inline
-void SDDSWriter::addDescription(const std::string& text,
-                                const std::string& content)
-{
+inline void SDDSWriter::addDescription(const std::string& text, const std::string& content) {
     desc_m = std::make_pair(text, content);
 }
 
-
-template<typename T>
-void SDDSWriter::addParameter(const std::string& name,
-                              const std::string& type,
-                              const std::string& desc,
-                              const T& value)
-{
+template <typename T>
+void SDDSWriter::addParameter(
+    const std::string& name, const std::string& type, const std::string& desc, const T& value) {
     params_m.push(std::make_tuple(name, type, desc));
     std::stringstream ss;
     ss << value;
     paramValues_m.push(ss.str());
 }
 
-
-inline
-void SDDSWriter::addInfo(const std::string& mode,
-                         const size_t& no_row_counts) {
+inline void SDDSWriter::addInfo(const std::string& mode, const size_t& no_row_counts) {
     info_m = std::make_pair(mode, no_row_counts);
 }
 
-
-inline
-void SDDSWriter::writeRow() {
+inline void SDDSWriter::writeRow() {
     columns_m.writeRow(os_m);
 }
 
-
-template<typename T>
+template <typename T>
 std::string SDDSWriter::toString(const T& val) {
     std::ostringstream ss;
     ss.precision(precision_m);
@@ -202,9 +168,7 @@ std::string SDDSWriter::toString(const T& val) {
     return ss.str();
 }
 
-
-inline
-bool SDDSWriter::hasColumns() const {
+inline bool SDDSWriter::hasColumns() const {
     return columns_m.hasColumns();
 }
 

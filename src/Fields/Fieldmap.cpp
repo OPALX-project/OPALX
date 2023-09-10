@@ -480,7 +480,7 @@ void Fieldmap::checkMap(unsigned int accuracy,
 
     auto opal = OpalData::getInstance();
     std::ofstream out;
-    if (Ippl::myNode() == 0 && !opal->isOptimizerRun()) {
+    if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
         std::string fname = Util::combineFilePath({
             opal->getAuxiliaryOutputDirectory(),
             Filename_m.substr(lastSlash, lastDot) + ".check"
@@ -507,7 +507,7 @@ void Fieldmap::checkMap(unsigned int accuracy,
         error += std::pow(difference, 2.0);
         ezSquare += std::pow(ez, 2.0);
 
-        if (Ippl::myNode() == 0 && !opal->isOptimizerRun()) {
+        if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
             out << std::setw(16) << std::setprecision(8) << *it
                 << std::setw(16) << std::setprecision(8) << ez
                 << std::setw(16) << std::setprecision(8) << onAxisFieldCheck
@@ -642,7 +642,7 @@ void Fieldmap::lowResolutionWarning(double squareError, double maxError) {
 
     ERRORMSG(errormsg_str << "\n" << endl);
 
-    if (Ippl::myNode() == 0) {
+    if (ippl::Comm->rank() == 0) {
         std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg.str() << std::endl;
         omsg.close();
@@ -743,7 +743,7 @@ void Fieldmap::write3DField(unsigned int nx,
                             const std::vector<Vector_t<double, 3>> &ef,
                             const std::vector<Vector_t<double, 3>> &bf) {
     const size_t numpoints = nx * ny * nz;
-    if (Ippl::myNode() != 0 ||
+    if (ippl::Comm->rank() != 0 ||
         (ef.size() != numpoints && bf.size() != numpoints)) return;
 
     boost::filesystem::path p(Filename_m);

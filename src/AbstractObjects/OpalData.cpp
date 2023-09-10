@@ -30,8 +30,8 @@
 #include "AbstractObjects/ValueDefinition.h"
 #include "Algorithms/PartBunch.h"
 #include "Attributes/Attributes.h"
-#include "OpalParser/OpalParser.h"
 #include "OpalParser/FileStream.h"
+#include "OpalParser/OpalParser.h"
 #include "OpalParser/StringStream.h"
 #include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
@@ -42,19 +42,16 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "ValueDefinitions/StringConstant.h"
 
+#include <algorithm>
 #include <iostream>
 #include <list>
 #include <set>
-#include <algorithm>
-
 
 #define MAX_NUM_INSTANCES 10
 
-
-void OpalData::ClearReference::operator()(Object *object) const {
+void OpalData::ClearReference::operator()(Object* object) const {
     object->clear();
 }
-
 
 // Struct OpalDataImpl.
 // ------------------------------------------------------------------------
@@ -66,18 +63,18 @@ struct OpalDataImpl {
     Directory mainDirectory;
 
     // The value of the global momentum.
-    ValueDefinition *referenceMomentum;
+    ValueDefinition* referenceMomentum;
 
     // The flag telling that something has changed.
     bool modified;
 
     // Directory of tables, for recalculation when something changes.
-    std::list<Table *> tableDirectory;
-    typedef std::list<Table *>::iterator tableIterator;
+    std::list<Table*> tableDirectory;
+    typedef std::list<Table*>::iterator tableIterator;
 
     // The set of expressions to be invalidated when something changes.
-    std::set <AttributeBase *> exprDirectory;
-    typedef std::set<AttributeBase *>::iterator exprIterator;
+    std::set<AttributeBase*> exprDirectory;
+    typedef std::set<AttributeBase*>::iterator exprIterator;
 
     // The page title from the latest TITLE command.
     std::string itsTitle_m;
@@ -112,28 +109,28 @@ struct OpalDataImpl {
 
     bool hasBunchAllocated_m;
     // The particle bunch to be tracked.
-    PartBunch<double, 3> *bunch_m;
+    PartBunch_t* bunch_m;
 
     bool hasDataSinkAllocated_m;
 
-    DataSink *dataSink_m;
+    DataSink* dataSink_m;
 
     // In units of seconds. This is half of tEmission
     double gPhaseShift_m;
 
-    BoundaryGeometry *bg_m;
+    BoundaryGeometry* bg_m;
 
     std::vector<MaxPhasesT> maxPhases_m;
     energyEvolution_t energyEvolution_m;
 
     // The cartesian mesh
-    Mesh_t *mesh_m;
+    Mesh_t<3>* mesh_m;
 
     // The field layout f
-    FieldLayout_t *FL_m;
+    FieldLayout_t<3>* FL_m;
 
     // The particle layout
-    Layout_t *PL_m;
+    PLayout_t<double, 3>* PL_m;
 
     // the accumulated (over all TRACKs) number of steps
     unsigned long long maxTrackSteps_m;
@@ -148,23 +145,25 @@ struct OpalDataImpl {
     std::vector<std::string> arguments_m;
 };
 
-
-OpalDataImpl::OpalDataImpl():
-    mainDirectory(), referenceMomentum(0), modified(false), itsTitle_m(),
-    hasPriorRun_m(false),
-    isRestart_m(false),
-    restartStep_m(0),
-    hasRestartFile_m(false),
-    restart_dump_freq_m(1), last_step_m(0),
-    hasBunchAllocated_m(false),
-    hasDataSinkAllocated_m(false),
-    gPhaseShift_m(0.0),
-    maxTrackSteps_m(0),
-    isInOPALCyclMode_m(false),
-    isInOPALTMode_m(false),
-    isOptimizerFlag_m(false),
-    isInPrepState_m(false)
-{
+OpalDataImpl::OpalDataImpl()
+    : mainDirectory(),
+      referenceMomentum(0),
+      modified(false),
+      itsTitle_m(),
+      hasPriorRun_m(false),
+      isRestart_m(false),
+      restartStep_m(0),
+      hasRestartFile_m(false),
+      restart_dump_freq_m(1),
+      last_step_m(0),
+      hasBunchAllocated_m(false),
+      hasDataSinkAllocated_m(false),
+      gPhaseShift_m(0.0),
+      maxTrackSteps_m(0),
+      isInOPALCyclMode_m(false),
+      isInOPALTMode_m(false),
+      isOptimizerFlag_m(false),
+      isInPrepState_m(false) {
     bunch_m    = nullptr;
     dataSink_m = nullptr;
     bg_m       = nullptr;
@@ -176,9 +175,9 @@ OpalDataImpl::OpalDataImpl():
 OpalDataImpl::~OpalDataImpl() {
     // Make sure the main directory is cleared before the directories
     // for tables and expressions are deleted.
-    delete mesh_m;// somehow this needs to be deleted first
+    delete mesh_m;  // somehow this needs to be deleted first
     delete FL_m;
-    //delete PL_m; //this gets deleted by FL_m
+    // delete PL_m; //this gets deleted by FL_m
 
     delete bunch_m;
     delete bg_m;
@@ -190,12 +189,12 @@ OpalDataImpl::~OpalDataImpl() {
 }
 
 bool OpalData::isInstantiated = false;
-OpalData *OpalData::instance = nullptr;
+OpalData* OpalData::instance  = nullptr;
 std::stack<OpalData*> OpalData::stashedInstances;
 
-OpalData *OpalData::getInstance() {
+OpalData* OpalData::getInstance() {
     if (!isInstantiated) {
-        instance = new OpalData();
+        instance       = new OpalData();
         isInstantiated = true;
         return instance;
     } else {
@@ -205,28 +204,28 @@ OpalData *OpalData::getInstance() {
 
 void OpalData::deleteInstance() {
     delete instance;
-    instance = nullptr;
+    instance       = nullptr;
     isInstantiated = false;
 }
 
 void OpalData::stashInstance() {
-    if (!isInstantiated) return;
+    if (!isInstantiated)
+        return;
     if (stashedInstances.size() + 1 > MAX_NUM_INSTANCES) {
-        throw OpalException("OpalData::stashInstance()",
-                            "too many OpalData instances stashed");
+        throw OpalException("OpalData::stashInstance()", "too many OpalData instances stashed");
     }
     stashedInstances.push(instance);
-    instance = nullptr;
+    instance       = nullptr;
     isInstantiated = false;
 }
 
-OpalData *OpalData::popInstance() {
+OpalData* OpalData::popInstance() {
     if (stashedInstances.size() == 0) {
-        throw OpalException("OpalData::popInstance()",
-                            "no OpalData instances stashed");
+        throw OpalException("OpalData::popInstance()", "no OpalData instances stashed");
     }
-    if (isInstantiated) deleteInstance();
-    instance = stashedInstances.top();
+    if (isInstantiated)
+        deleteInstance();
+    instance       = stashedInstances.top();
     isInstantiated = true;
     stashedInstances.pop();
 
@@ -255,18 +254,18 @@ OpalData::~OpalData() {
 
 void OpalData::reset() {
     delete p;
-    p = new OpalDataImpl();
-    p->hasPriorRun_m = false;
-    p->isRestart_m = false;
-    p->hasRestartFile_m = false;
-    p->hasBunchAllocated_m = false;
+    p                         = new OpalDataImpl();
+    p->hasPriorRun_m          = false;
+    p->isRestart_m            = false;
+    p->hasRestartFile_m       = false;
+    p->hasBunchAllocated_m    = false;
     p->hasDataSinkAllocated_m = false;
-    p->gPhaseShift_m = 0.0;
+    p->gPhaseShift_m          = 0.0;
     p->maxPhases_m.clear();
     p->isInOPALCyclMode_m = false;
-    p->isInOPALTMode_m = false;
-    p->isInPrepState_m = false;
-    p->isOptimizerFlag_m = false;
+    p->isInOPALTMode_m    = false;
+    p->isInPrepState_m    = false;
+    p->isOptimizerFlag_m  = false;
 }
 
 bool OpalData::isInOPALCyclMode() {
@@ -274,7 +273,7 @@ bool OpalData::isInOPALCyclMode() {
 }
 
 bool OpalData::isInOPALTMode() {
-    return  p->isInOPALTMode_m;
+    return p->isInOPALTMode_m;
 }
 
 bool OpalData::isOptimizerRun() {
@@ -305,7 +304,7 @@ bool OpalData::hasPriorTrack() {
     return p->hasPriorRun_m;
 }
 
-void OpalData::setPriorTrack(const bool &value) {
+void OpalData::setPriorTrack(const bool& value) {
     p->hasPriorRun_m = value;
 }
 
@@ -313,7 +312,7 @@ bool OpalData::inRestartRun() {
     return p->isRestart_m;
 }
 
-void OpalData::setRestartRun(const bool &value) {
+void OpalData::setRestartRun(const bool& value) {
     p->isRestart_m = value;
 }
 
@@ -330,7 +329,7 @@ std::string OpalData::getRestartFileName() {
 }
 
 void OpalData::setRestartFileName(std::string s) {
-    p->restartFn_m = s;
+    p->restartFn_m      = s;
     p->hasRestartFile_m = true;
 }
 
@@ -338,7 +337,7 @@ bool OpalData::hasRestartFile() {
     return p->hasRestartFile_m;
 }
 
-void OpalData::setRestartDumpFreq(const int &N) {
+void OpalData::setRestartDumpFreq(const int& N) {
     p->restart_dump_freq_m = N;
 }
 
@@ -354,7 +353,7 @@ OpalData::OpenMode OpalData::getOpenMode() const {
     return p->openMode_m;
 }
 
-void OpalData::setLastStep(const int &step) {
+void OpalData::setLastStep(const int& step) {
     p->last_step_m = step;
 }
 
@@ -370,11 +369,11 @@ void OpalData::bunchIsAllocated() {
     p->hasBunchAllocated_m = true;
 }
 
-void OpalData::setPartBunch(PartBunch<double, 3> *b) {
+void OpalData::setPartBunch(PartBunch_t* b) {
     p->bunch_m = b;
 }
 
-PartBunch<double, 3> *OpalData::getPartBunch() {
+PartBunch_t* OpalData::getPartBunch() {
     return p->bunch_m;
 }
 
@@ -382,12 +381,12 @@ bool OpalData::hasDataSinkAllocated() {
     return p->hasDataSinkAllocated_m;
 }
 
-void OpalData::setDataSink(DataSink *s) {
-    p->dataSink_m = s;
+void OpalData::setDataSink(DataSink* s) {
+    p->dataSink_m             = s;
     p->hasDataSinkAllocated_m = true;
 }
 
-DataSink *OpalData::getDataSink() {
+DataSink* OpalData::getDataSink() {
     return p->dataSink_m;
 }
 
@@ -418,7 +417,6 @@ energyEvolution_t::iterator OpalData::getFirstEnergyData() {
 energyEvolution_t::iterator OpalData::getLastEnergyData() {
     return p->energyEvolution_m.end();
 }
-
 
 // Mesh_t* OpalData::getMesh() {
 //  return p->mesh_m;
@@ -454,11 +452,11 @@ double OpalData::getGlobalPhaseShift() {
     return p->gPhaseShift_m;
 }
 
-void OpalData::setGlobalGeometry(BoundaryGeometry *bg) {
+void OpalData::setGlobalGeometry(BoundaryGeometry* bg) {
     p->bg_m = bg;
 }
 
-BoundaryGeometry *OpalData::getGlobalGeometry() {
+BoundaryGeometry* OpalData::getGlobalGeometry() {
     return p->bg_m;
 }
 
@@ -466,53 +464,53 @@ bool OpalData::hasGlobalGeometry() {
     return p->bg_m != nullptr;
 }
 
-void OpalData::apply(const ObjectFunction &fun) {
-    for (ObjectDir::iterator i = p->mainDirectory.begin();
-        i != p->mainDirectory.end(); ++i) {
+void OpalData::apply(const ObjectFunction& fun) {
+    for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {
         fun(&*i->second);
     }
 }
 
-void OpalData::create(Object *newObject) {
+void OpalData::create(Object* newObject) {
     // Test for existing node with same name.
     const std::string name = newObject->getOpalName();
-    Object *oldObject = p->mainDirectory.find(name);
+    Object* oldObject      = p->mainDirectory.find(name);
 
     if (oldObject != nullptr) {
-        throw OpalException("OpalData::create()",
-                            "You cannot replace the object \"" + name + "\".");
+        throw OpalException(
+            "OpalData::create()", "You cannot replace the object \"" + name + "\".");
     } else {
         p->mainDirectory.insert(name, newObject);
     }
 }
 
-void OpalData::define(Object *newObject) {
+void OpalData::define(Object* newObject) {
     // Test for existing node with same name.
     const std::string name = newObject->getOpalName();
-    Object *oldObject = p->mainDirectory.find(name);
+    Object* oldObject      = p->mainDirectory.find(name);
 
-    if (oldObject != nullptr  &&  oldObject != newObject) {
+    if (oldObject != nullptr && oldObject != newObject) {
         // Attempt to replace an object.
-        if (oldObject->isBuiltin()  ||  ! oldObject->canReplaceBy(newObject)) {
-            throw OpalException("OpalData::define()",
-                                "You cannot replace the object \"" + name + "\".");
+        if (oldObject->isBuiltin() || !oldObject->canReplaceBy(newObject)) {
+            throw OpalException(
+                "OpalData::define()", "You cannot replace the object \"" + name + "\".");
         } else {
             if (Options::info) {
-                INFOMSG("Replacing the object \"" << name << "\"." << endl);
+                *ippl::Info << "Replacing the object \"" << name << "\"." << endl;
             }
 
             // Erase all tables which depend on the new object.
             OpalDataImpl::tableIterator i = p->tableDirectory.begin();
-            while(i != p->tableDirectory.end()) {
+            while (i != p->tableDirectory.end()) {
                 // We must increment i before calling erase(name),
                 // since erase(name) removes "this" from "tables".
-                Table *table = *i++;
-                const std::string &tableName = table->getOpalName();
+                Table* table                 = *i++;
+                const std::string& tableName = table->getOpalName();
 
                 if (table->isDependent(name)) {
                     if (Options::info) {
-                    	std::cerr << std::endl << "Erasing dependent table \""
-                                  << tableName << "\"." << std::endl;
+                        std::cerr << std::endl
+                                  << "Erasing dependent table \"" << tableName << "\"."
+                                  << std::endl;
                     }
 
                     // Remove table from directory.
@@ -523,8 +521,8 @@ void OpalData::define(Object *newObject) {
             }
 
             // Replace all references to this object.
-            for (ObjectDir::iterator i = p->mainDirectory.begin();
-                i != p->mainDirectory.end(); ++i) {
+            for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end();
+                 ++i) {
                 (*i).second->replace(oldObject, newObject);
             }
 
@@ -540,20 +538,19 @@ void OpalData::define(Object *newObject) {
 
     // If this is a new definition of "P0", insert its definition.
     if (name == "P0") {
-        if (ValueDefinition *p0 = dynamic_cast<ValueDefinition *>(newObject)) {
+        if (ValueDefinition* p0 = dynamic_cast<ValueDefinition*>(newObject)) {
             setP0(p0);
         }
     }
 }
 
-void OpalData::erase(const std::string &name) {
-    Object *oldObject = p->mainDirectory.find(name);
+void OpalData::erase(const std::string& name) {
+    Object* oldObject = p->mainDirectory.find(name);
 
     if (oldObject != nullptr) {
         // Relink all children of "this" to "this->getParent()".
-        for (ObjectDir::iterator i = p->mainDirectory.begin();
-            i != p->mainDirectory.end(); ++i) {
-            Object *child = &*i->second;
+        for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {
+            Object* child = &*i->second;
             if (child->getParent() == oldObject) {
                 child->setParent(oldObject->getParent());
             }
@@ -563,7 +560,7 @@ void OpalData::erase(const std::string &name) {
     }
 }
 
-Object *OpalData::find(const std::string &name) {
+Object* OpalData::find(const std::string& name) {
     return p->mainDirectory.find(name);
 }
 
@@ -571,21 +568,21 @@ double OpalData::getP0() const {
     return p->referenceMomentum->getReal() * Units::GeV2eV;
 }
 
-void OpalData::makeDirty(Object *obj) {
+void OpalData::makeDirty(Object* obj) {
     p->modified = true;
-    if (obj) obj->setDirty(true);
+    if (obj)
+        obj->setDirty(true);
 }
 
-void OpalData::printAllNames(std::ostream &os) {
+void OpalData::printAllNames(std::ostream& os) {
     int column = 0;
-    
-    os << std::endl << "All object names "
-       << std::endl;
+
+    os << std::endl << "All object names " << std::endl;
 
     for (ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); ++index) {
+         index != p->mainDirectory.end(); ++index) {
         const std::string name = (*index).first;
-        
+
         os << name << " = " << *(*index).second << std::endl;
         /*
         if (column < 80) {
@@ -602,21 +599,20 @@ void OpalData::printAllNames(std::ostream &os) {
         */
     }
 
-    if (column) os << std::endl;
+    if (column)
+        os << std::endl;
     os << std::endl;
-    
 }
-void OpalData::printNames(std::ostream &os, const std::string &pattern) {
+void OpalData::printNames(std::ostream& os, const std::string& pattern) {
     int column = 0;
     RegularExpression regex(pattern);
-    os << std::endl << "Object names matching the pattern \""
-       << pattern << "\":" << std::endl;
+    os << std::endl << "Object names matching the pattern \"" << pattern << "\":" << std::endl;
 
     for (ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); ++index) {
+         index != p->mainDirectory.end(); ++index) {
         const std::string name = (*index).first;
 
-        if (! name.empty()  &&  regex.match(name)) {
+        if (!name.empty() && regex.match(name)) {
             os << name;
 
             if (column < 80) {
@@ -625,7 +621,7 @@ void OpalData::printNames(std::ostream &os, const std::string &pattern) {
                 do {
                     os << ' ';
                     column++;
-                } while((column % 20) != 0);
+                } while ((column % 20) != 0);
             } else {
                 os << std::endl;
                 column = 0;
@@ -633,43 +629,44 @@ void OpalData::printNames(std::ostream &os, const std::string &pattern) {
         }
     }
 
-    if (column) os << std::endl;
+    if (column)
+        os << std::endl;
     os << std::endl;
 }
 
-void OpalData::registerTable(Table *table) {
+void OpalData::registerTable(Table* table) {
     p->tableDirectory.push_back(table);
 }
 
-void OpalData::unregisterTable(Table *table) {
-    for (OpalDataImpl::tableIterator i = p->tableDirectory.begin();
-        i != p->tableDirectory.end();) {
+void OpalData::unregisterTable(Table* table) {
+    for (OpalDataImpl::tableIterator i = p->tableDirectory.begin(); i != p->tableDirectory.end();) {
         OpalDataImpl::tableIterator j = i++;
-        if (*j == table) p->tableDirectory.erase(j);
+        if (*j == table)
+            p->tableDirectory.erase(j);
     }
 }
 
-void OpalData::registerExpression(AttributeBase *expr) {
+void OpalData::registerExpression(AttributeBase* expr) {
     p->exprDirectory.insert(expr);
 }
 
-void OpalData::unregisterExpression(AttributeBase *expr) {
+void OpalData::unregisterExpression(AttributeBase* expr) {
     p->exprDirectory.erase(expr);
 }
 
-void OpalData::setP0(ValueDefinition *p0) {
+void OpalData::setP0(ValueDefinition* p0) {
     p->referenceMomentum = p0;
 }
 
-void OpalData::storeTitle(const std::string &title) {
+void OpalData::storeTitle(const std::string& title) {
     p->itsTitle_m = title;
 }
 
-void OpalData::storeInputFn(const std::string &fn) {
+void OpalData::storeInputFn(const std::string& fn) {
     p->inputFn_m = fn;
 }
 
-void OpalData::printTitle(std::ostream &os) {
+void OpalData::printTitle(std::ostream& os) {
     os << p->itsTitle_m;
 }
 
@@ -686,18 +683,18 @@ std::string OpalData::getInputFn() {
 }
 
 std::string OpalData::getInputBasename() {
-    std::string & fn = p->inputFn_m;
-    int const pdot = fn.rfind(".");
+    std::string& fn = p->inputFn_m;
+    int const pdot  = fn.rfind(".");
     return fn.substr(0, pdot);
 }
 
-void OpalData::checkAndAddOutputFileName(const std::string &outfn) {
+void OpalData::checkAndAddOutputFileName(const std::string& outfn) {
     if (p->outFiles_m.count(outfn) == 0) {
         p->outFiles_m.insert(outfn);
     } else if (!hasBunchAllocated()) {
         throw OpalException(
-                "OpalData::checkAndAddOutputFileName",
-                "Duplicate file name for output, '" + outfn + "', detected");
+            "OpalData::checkAndAddOutputFileName",
+            "Duplicate file name for output, '" + outfn + "', detected");
     }
 }
 
@@ -705,20 +702,19 @@ void OpalData::update() {
     Inform msg("OpalData ");
     if (p->modified) {
         // Force re-evaluation of expressions.
-        for (OpalDataImpl::exprIterator i = p->exprDirectory.begin();
-            i != p->exprDirectory.end(); ++i) {
+        for (OpalDataImpl::exprIterator i = p->exprDirectory.begin(); i != p->exprDirectory.end();
+             ++i) {
             (*i)->invalidate();
         }
 
         // Force refilling of dynamic tables.
         for (OpalDataImpl::tableIterator i = p->tableDirectory.begin();
-            i != p->tableDirectory.end(); ++i) {
+             i != p->tableDirectory.end(); ++i) {
             (*i)->invalidate();
         }
 
         // Update all definitions.
-        for (ObjectDir::iterator i = p->mainDirectory.begin();
-            i != p->mainDirectory.end(); ++i) {
+        for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {
             (*i).second->update();
         }
 
@@ -731,12 +727,14 @@ std::map<std::string, std::string> OpalData::getVariableData() {
     std::map<std::string, std::string> udata;
     std::vector<std::string> uvars = this->getVariableNames();
     for (auto& uvar : uvars) {
-        Object *tmpObject = OpalData::getInstance()->find(uvar);
+        Object* tmpObject = OpalData::getInstance()->find(uvar);
         if (dynamic_cast<RealVariable*>(tmpObject)) {
-            RealVariable* variable = dynamic_cast<RealVariable*>(OpalData::getInstance()->find(uvar));
+            RealVariable* variable =
+                dynamic_cast<RealVariable*>(OpalData::getInstance()->find(uvar));
             udata[uvar] = std::to_string(variable->getReal());
         } else if (dynamic_cast<StringConstant*>(tmpObject)) {
-            StringConstant* variable = dynamic_cast<StringConstant*>(OpalData::getInstance()->find(uvar));
+            StringConstant* variable =
+                dynamic_cast<StringConstant*>(OpalData::getInstance()->find(uvar));
             udata[uvar] = variable->getString();
         } else {
             throw OpalException("OpalData::getVariableData()",
@@ -751,10 +749,10 @@ std::vector<std::string> OpalData::getVariableNames() {
     std::vector<std::string> result;
 
     for (ObjectDir::const_iterator index = p->mainDirectory.begin();
-        index != p->mainDirectory.end(); ++index) {
+         index != p->mainDirectory.end(); ++index) {
         std::string tmpName = (*index).first;
         if (!tmpName.empty()) {
-            Object *tmpObject = OpalData::getInstance()->find(tmpName);
+            Object* tmpObject = OpalData::getInstance()->find(tmpName);
             if (tmpObject) {
                 if (!tmpObject || tmpObject->isBuiltin())
                     continue;
@@ -767,7 +765,7 @@ std::vector<std::string> OpalData::getVariableNames() {
     return result;
 }
 
-void OpalData::addProblemCharacteristicValue(const std::string &name, unsigned int value) {
+void OpalData::addProblemCharacteristicValue(const std::string& name, unsigned int value) {
     if (p->problemSize_m.find(name) != p->problemSize_m.end()) {
         p->problemSize_m.insert(std::make_pair(name, value));
     } else {
@@ -775,13 +773,13 @@ void OpalData::addProblemCharacteristicValue(const std::string &name, unsigned i
     }
 }
 
-const std::map<std::string, unsigned int> &OpalData::getProblemCharacteristicValues() const {
+const std::map<std::string, unsigned int>& OpalData::getProblemCharacteristicValues() const {
     return p->problemSize_m;
 }
 
-void OpalData::storeArguments(int argc, char *argv[]) {
+void OpalData::storeArguments(int argc, char* argv[]) {
     p->arguments_m.clear();
-    for (int i = 0; i < argc; ++ i) {
+    for (int i = 0; i < argc; ++i) {
         p->arguments_m.push_back(argv[i]);
     }
 }

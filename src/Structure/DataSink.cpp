@@ -136,7 +136,7 @@ void DataSink::changeH5Wrapper(H5PartWrapper *h5wrapper) {
 
 
 void DataSink::writeGeomToVtk(BoundaryGeometry &bg, std::string fn) {
-    if (Ippl::myNode() == 0 && Options::enableVTK) {
+    if (ippl::Comm->rank() == 0 && Options::enableVTK) {
         bg.writeGeomToVtk (fn);
     }
 }
@@ -155,7 +155,7 @@ void DataSink::writeImpactStatistics(const PartBunch<double, 3> *beam, long long
     } else {
         Npart = beam->getTotalNum();
     }
-    if(Ippl::myNode() == 0) {
+    if(ippl::Comm->rank() == 0) {
         std::string ffn = fn + std::string(".dat");
 
         std::unique_ptr<Inform> ofp(new Inform(nullptr, ffn.c_str(), Inform::APPEND, 0));

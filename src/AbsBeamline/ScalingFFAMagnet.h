@@ -105,7 +105,7 @@ class ScalingFFAMagnet : public Component {
       *  \param startField not used
       *  \param endField not used
       */
-      void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
+      void initialise(PartBunch_t *bunch, double &startField, double &endField) override;
 
      /** Initialise the ScalingFFAMagnet
       *

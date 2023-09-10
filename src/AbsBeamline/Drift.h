@@ -23,28 +23,24 @@
 
 #include "AbsBeamline/Component.h"
 
-
-
 // Class Drift
 // ------------------------------------------------------------------------
 /// Interface for drift space.
 //  Class Drift defines the abstract interface for a drift space.
 
-class Drift: public Component {
-
+class Drift : public Component {
 public:
-
     /// Constructor with given name.
-    explicit Drift(const std::string &name);
+    explicit Drift(const std::string& name);
 
     Drift();
-    Drift(const Drift &right);
+    Drift(const Drift& right);
     virtual ~Drift();
 
     /// Apply visitor to Drift.
-    virtual void accept(BeamlineVisitor &) const override;
+    virtual void accept(BeamlineVisitor&) const override;
 
-    virtual void initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) override;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     virtual void finalise() override;
 
@@ -52,28 +48,26 @@ public:
 
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
-    //set number of slices for map tracking
-    void setNSlices(const std::size_t& nSlices); // Philippe was here
+    // set number of slices for map tracking
+    void setNSlices(const std::size_t& nSlices);  // Philippe was here
 
-    //set number of slices for map tracking
-    std::size_t getNSlices() const; // Philippe was here
+    // set number of slices for map tracking
+    std::size_t getNSlices() const;  // Philippe was here
 
     virtual int getRequiredNumberOfTimeSteps() const override;
-private:
 
+private:
     double startField_m;
     std::size_t nSlices_m;
 
     // Not implemented.
-    void operator=(const Drift &);
+    void operator=(const Drift&);
 };
 
-inline
-int Drift::getRequiredNumberOfTimeSteps() const
-{
+inline int Drift::getRequiredNumberOfTimeSteps() const {
     return 1;
 }
 
-#endif // CLASSIC_Drift_HH
+#endif  // CLASSIC_Drift_HH

@@ -140,7 +140,7 @@ void PeakFinder::computeCentroid_m() {
         globRegister = registered_m;
     }
 
-    if ( Ippl::myNode() == 0 ) {
+    if ( ippl::Comm->rank() == 0 ) {
         if ( globRegister > 0 )
             peaks_m.push_back(globPeakRadius / double(globRegister));
     }

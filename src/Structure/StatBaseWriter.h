@@ -25,7 +25,6 @@
 #include "Utilities/Util.h"
 
 class StatBaseWriter : public SDDSWriter {
-
 public:
     StatBaseWriter(const std::string& fname, bool restart);
 
@@ -35,10 +34,8 @@ public:
     unsigned int rewindToSpos(double maxSpos);
 };
 
-
-inline
-unsigned int StatBaseWriter::rewindToSpos(double maxSPos) {
-    if (Ippl::myNode() == 0) {
+inline unsigned int StatBaseWriter::rewindToSpos(double maxSPos) {
+    if (ippl::Comm->rank() == 0) {
         return Util::rewindLinesSDDS(this->fname_m, maxSPos);
     }
     return 0;

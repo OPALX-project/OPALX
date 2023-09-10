@@ -52,7 +52,7 @@ void Drift::accept(BeamlineVisitor &visitor) const {
     visitor.visitDrift(*this);
 }
 
-void Drift::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
+void Drift::initialise(PartBunch_t *bunch, double &startField, double &endField) {
     endField = startField + getElementLength();
     RefPartBunch_m = bunch;
     startField_m = startField;

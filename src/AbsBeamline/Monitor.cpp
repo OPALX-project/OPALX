@@ -148,7 +148,7 @@ bool Monitor::applyToReferenceParticle(const Vector_t<double, 3> &R,
     return false;
 }
 
-void Monitor::initialise(PartBunch<double, 3> *bunch, double &startField, double &endField) {
+void Monitor::initialise(PartBunch_t *bunch, double &startField, double &endField) {
     RefPartBunch_m = bunch;
     endField = startField + halfLength_s;
     startField -= halfLength_s;
@@ -169,7 +169,7 @@ void Monitor::initialise(PartBunch<double, 3> *bunch, double &startField, double
         fs::path lossFileName = fs::path(filename_m + ".h5");
         if (fs::exists(lossFileName)) {
             Ippl::Comm->barrier();
-            if (Ippl::myNode() == 0) {
+            if (ippl::Comm->rank() == 0) {
                 fs::remove(lossFileName);
             }
             Ippl::Comm->barrier();

@@ -47,7 +47,7 @@ Echo* Echo::clone(const std::string& name) {
 
 
 void Echo::execute() {
-    if (Ippl::myNode() == 0)
+    if (ippl::Comm->rank() == 0)
         std::cerr << Attributes::getString(itsAttr[0]) << std::endl;
 }
 
