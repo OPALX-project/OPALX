@@ -22,52 +22,34 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
-OpalProbe::OpalProbe():
-    OpalElement(SIZE, "PROBE",
-                "The \"PROBE\" element defines a Probe."),
-    owk_m(nullptr) {
-
-    itsAttr[XSTART] = Attributes::makeReal
-                      ("XSTART", " Start of x coordinate [mm]");
-    itsAttr[XEND] = Attributes::makeReal
-                    ("XEND", " End of x coordinate [mm]");
-    itsAttr[YSTART] = Attributes::makeReal
-                      ("YSTART", "Start of y coordinate [mm]");
-    itsAttr[YEND] = Attributes::makeReal
-                    ("YEND", "End of y coordinate [mm]");
-    itsAttr[WIDTH] = Attributes::makeReal
-                     ("WIDTH", "Width of the probe, not used.");
-    itsAttr[STEP] = Attributes::makeReal
-                     ("STEP", "Step size of the probe [mm]", 1.0);
+OpalProbe::OpalProbe() : OpalElement(SIZE, "PROBE", "The \"PROBE\" element defines a Probe.") {
+    itsAttr[XSTART] = Attributes::makeReal("XSTART", " Start of x coordinate [mm]");
+    itsAttr[XEND]   = Attributes::makeReal("XEND", " End of x coordinate [mm]");
+    itsAttr[YSTART] = Attributes::makeReal("YSTART", "Start of y coordinate [mm]");
+    itsAttr[YEND]   = Attributes::makeReal("YEND", "End of y coordinate [mm]");
+    itsAttr[WIDTH]  = Attributes::makeReal("WIDTH", "Width of the probe, not used.");
+    itsAttr[STEP]   = Attributes::makeReal("STEP", "Step size of the probe [mm]", 1.0);
 
     registerOwnership();
 
     setElement(new ProbeRep("PROBE"));
 }
 
-
-OpalProbe::OpalProbe(const std::string &name, OpalProbe *parent):
-    OpalElement(name, parent),
-    owk_m(nullptr) {
+OpalProbe::OpalProbe(const std::string& name, OpalProbe* parent) : OpalElement(name, parent) {
     setElement(new ProbeRep(name));
 }
 
-
 OpalProbe::~OpalProbe() {
-    delete owk_m;
 }
 
-
-OpalProbe *OpalProbe::clone(const std::string &name) {
+OpalProbe* OpalProbe::clone(const std::string& name) {
     return new OpalProbe(name, this);
 }
-
 
 void OpalProbe::update() {
     OpalElement::update();
 
-    ProbeRep *prob =
-        dynamic_cast<ProbeRep *>(getElement());
+    ProbeRep* prob = dynamic_cast<ProbeRep*>(getElement());
 
     double xstart = Units::mm2m * Attributes::getReal(itsAttr[XSTART]);
     double xend   = Units::mm2m * Attributes::getReal(itsAttr[XEND]);
@@ -77,7 +59,7 @@ void OpalProbe::update() {
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
 
-    prob->setElementLength(length); // is this needed here?
+    prob->setElementLength(length);  // is this needed here?
     prob->setDimensions(xstart, xend, ystart, yend);
     prob->setStep(step);
     prob->setOutputFN(Attributes::getString(itsAttr[OUTFN]));

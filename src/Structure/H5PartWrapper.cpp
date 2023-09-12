@@ -11,8 +11,6 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-#include "Message/Communicate.h"
-#include "Message/Message.h"
 #include "Utility/PAssert.h"
 
 #include <boost/filesystem.hpp>
@@ -60,7 +58,7 @@ H5PartWrapper::~H5PartWrapper() {
 
 void H5PartWrapper::close() {
     if (file_m) {
-        Ippl::Comm->barrier();
+        ippl::Comm->barrier();
 
         REPORTONERROR(H5CloseFile(file_m));
 
@@ -165,14 +163,14 @@ void H5PartWrapper::copyFile(const std::string& sourceFile, int lastStep, h5_int
 
         REPORTONERROR(H5CloseFile(source));
 
-        Ippl::Comm->barrier();
+        ippl::Comm->barrier();
 
         std::string sourceFileName = copyFilePrefix_m + fileName_m;
         if (ippl::Comm->rank() == 0) {
             fs::rename(fileName_m, sourceFileName);
         }
 
-        Ippl::Comm->barrier();
+        ippl::Comm->barrier();
 
         open(flags);
         props = H5CreateFileProp();
@@ -486,12 +484,12 @@ void H5PartWrapper::copyStepData(h5_file_t source) {
 
 void H5PartWrapper::sendFailureMessage(
     bool failed, const std::string& where, const std::string& what) {
-    int tag       = 101;
-    Message* mess = new Message();
+    int tag = 101;
+    /* ADA Message* mess = new Message();
     putMessage(*mess, failed);
     Ippl::Comm->broadcast_all(mess, tag);
     delete mess;
-
+    */
     if (failed)
         throw OpalException(where, what);
 }
@@ -500,10 +498,11 @@ void H5PartWrapper::receiveFailureMessage(
     int sourceNode, const std::string& where, const std::string& what) {
     int tag = 101;
     bool failed;
+    /* ADA
     Message* mess = Ippl::Comm->receive_block(sourceNode, tag);
     getMessage(*mess, failed);
     delete mess;
-
+    */
     if (failed)
         throw OpalException(where, what);
 }

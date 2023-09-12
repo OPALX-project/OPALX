@@ -32,11 +32,9 @@ class Distribution;
 class FieldSolver;
 class H5PartWrapper;
 class Inform;
-class ParallelTTracker;
 class Tracker;
 
-class TrackRun: public Action {
-
+class TrackRun : public Action {
 public:
     /// Exemplar constructor.
     TrackRun();
@@ -52,10 +50,7 @@ public:
     Inform& print(Inform& os) const;
 
 private:
-    enum class RunMethod: unsigned short {
-        NONE,
-        PARALLEL
-    };
+    enum class RunMethod : unsigned short { NONE, PARALLEL };
 
     // Not implemented.
     TrackRun(const TrackRun&);
@@ -105,4 +100,4 @@ inline Inform& operator<<(Inform& os, const TrackRun& b) {
     return b.print(os);
 }
 
-#endif // OPAL_TrackRun_HH
+#endif  // OPAL_TrackRun_HH

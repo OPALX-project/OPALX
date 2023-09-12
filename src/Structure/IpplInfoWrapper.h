@@ -1,5 +1,8 @@
 #ifndef IPPLINFOWRAPPER_H
 #define IPPLINFOWRAPPER_H
+#include <iostream>
+#include <string>
+#include "Ippl.h"
 
 //
 //  Copyright & License: See Copyright.readme in src directory
@@ -13,7 +16,7 @@
 
 class IpplInfoWrapper {
 public:
-    IpplInfoWrapper(const std::string &inputFileName, int infoLevel, int warnLevel, MPI_Comm comm);
+    IpplInfoWrapper(const std::string& inputFileName, int infoLevel, int warnLevel, MPI_Comm comm);
     ~IpplInfoWrapper();
 
 private:
@@ -25,10 +28,10 @@ private:
     unsigned int warn_m;
     unsigned int warnLevel_m;
 
-    char *buffer_m;
-    char **arg_m;
+    char* buffer_m;
+    char** arg_m;
 
-    Ippl *instance_m;
+    // ada ippl* instance_m;
 };
 
 #endif

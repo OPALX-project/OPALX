@@ -18,60 +18,51 @@
 #include "BorisPusher.h"
 #include "Physics/Units.h"
 
-template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunch_t* bunch,
-                                                    const size_t& i,
-                                                    const double& t,
-                                                    const double dt,
-                                                    Arguments& ... args) const
-{
+template <typename FieldFunction, typename... Arguments>
+bool LF2<FieldFunction, Arguments...>::doAdvance_m(
+    PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+    Arguments&... args) const {
     bool flagNoDeletion = true;
 
     // push for first LF2 half step
-    push_m(bunch->R[i], bunch->P[i], 0.5 * dt * Units::ns2s);
+    push_m(bunch->R(i), bunch->P(i), 0.5 * dt * Units::ns2s);
 
-    flagNoDeletion = kick_m(bunch, i, t, dt * Units::ns2s, args ...);
+    flagNoDeletion = kick_m(bunch, i, t, dt * Units::ns2s, args...);
 
     // push for second LF2 half step
-    push_m(bunch->R[i], bunch->P[i], 0.5 * dt * Units::ns2s);
+    push_m(bunch->R(i), bunch->P(i), 0.5 * dt * Units::ns2s);
 
     return flagNoDeletion;
 }
 
-
-template <typename FieldFunction, typename ... Arguments>
-void LF2<FieldFunction, Arguments ...>::push_m(Vector_t<double, 3>& R, const Vector_t<double, 3>& P,
-                                               const double& h) const
-{
-    double const gamma = sqrt(1.0 + dot(P, P));
-    double const c_gamma = Physics::c / gamma;
+template <typename FieldFunction, typename... Arguments>
+void LF2<FieldFunction, Arguments...>::push_m(
+    Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& h) const {
+    double const gamma          = sqrt(1.0 + dot(P, P));
+    double const c_gamma        = Physics::c / gamma;
     Vector_t<double, 3> const v = P * c_gamma;
     R += h * v;
 }
 
-
-template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunch_t* bunch, const size_t& i,
-                                               const double& t, const double& h,
-                                               Arguments& ... args) const
-{
+template <typename FieldFunction, typename... Arguments>
+bool LF2<FieldFunction, Arguments...>::kick_m(
+    PartBunch_t* bunch, const size_t& i, const double& t, const double& h,
+    Arguments&... args) const {
     Vector_t<double, 3> externalE = Vector_t<double, 3>(0.0, 0.0, 0.0);
     Vector_t<double, 3> externalB = Vector_t<double, 3>(0.0, 0.0, 0.0);
 
-    bool outOfBound = this->fieldfunc_m(t, i, externalE, externalB, args ...);
+    bool outOfBound = this->fieldfunc_m(t, i, externalE, externalB, args...);
 
-    if ( outOfBound )
+    if (outOfBound)
         return false;
 
-
-    double const q = bunch->Q[0] / Physics::q_e; // For now all particles have the same charge
-    double const M = bunch->M[0] * Units::GeV2eV; // For now all particles have the same rest energy
+    double const q = bunch->Q(0) / Physics::q_e;  // For now all particles have the same charge
+    double const M =
+        bunch->M(0) * Units::GeV2eV;  // For now all particles have the same rest energy
 
     BorisPusher pusher;
 
-    pusher.kick(bunch->R[i], bunch->P[i],
-                externalE, externalB,
-                h, M, q);
+    pusher.kick(bunch->R(i), bunch->P(i), externalE, externalB, h, M, q);
 
     return true;
 }

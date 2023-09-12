@@ -145,7 +145,7 @@ void PluginElement::changeWidth(
     PartBunch_t* bunch, int i, const double tstep, const double tangle) {
     constexpr double c_mtns = Physics::c / Units::s2ns;  // m/s --> m/ns
 
-    const double tmp = std::sqrt(dot(bunch->P(i), bunch->P(i)).apply());
+    const double tmp = std::sqrt(dot(bunch->P(i), bunch->P(i)));
     double lstep     = tmp / Util::getGamma(bunch->P(i)) * c_mtns * tstep;  // [m]
     double sWidth    = lstep / std::sqrt(1 + 1 / tangle / tangle);
     setGeom(sWidth);

@@ -22,23 +22,17 @@
 #define OPAL_FieldSolver_HH
 
 #include "AbstractObjects/Definition.h"
+#include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
-#include "Solvers/PoissonSolver.h"
 
 #include <string>
 
-template <class T, unsigned Dim>
-class PartBunch;
+// template <class T, unsigned Dim>
+//  class PartBunch;
 
-enum class FieldSolverType: short {
-    NONE = -1,
-    FFT,
-    FFTBOX
-};
+enum class FieldSolverType : short { NONE = -1, FFT, FFTBOX };
 
-
-class FieldSolver: public Definition {
-
+class FieldSolver : public Definition {
 public:
     /// Exemplar constructor.
     FieldSolver();
@@ -77,30 +71,22 @@ public:
     /// Execute (init) the field solver data.
     virtual void execute();
 
-    void initCartesianFields();
-
-    void initSolver(PartBunch_t* b);
-
     bool hasValidSolver();
 
     void setFieldSolverType();
     FieldSolverType getFieldSolverType() const;
 
-    inline Layout_t &getParticleLayout() { return* PL_m; }
-
-    FieldLayout_t *getFieldLayout() { return FL_m; }
-
     Inform& printInfo(Inform& os) const;
 
-    unsigned int getInteractionRadius() {return (unsigned int) rpp_m; }
+    unsigned int getInteractionRadius() {
+        return (unsigned int)rpp_m;
+    }
 
     bool hasPeriodicZ();
 
     /// the actual solver, should be a base object
-    PoissonSolver* solver_m;
 
 private:
-
     // Not implemented.
     FieldSolver(const FieldSolver&);
     void operator=(const FieldSolver&);
@@ -108,32 +94,18 @@ private:
     // Clone constructor.
     FieldSolver(const std::string& name, FieldSolver* parent);
 
-    /// The cartesian mesh
-    Mesh_t* mesh_m;
-
-    /// The field layout f
-    FieldLayout_t* FL_m;
-
-    /// The particle layout
-    std::unique_ptr<Layout_t> PL_m;
-
-    /// all the particles are here ...
-    PartBunch_t* itsBunch_m;
-
     std::string fsName_m;
     FieldSolverType fsType_m;
 
     double rpp_m;
 };
 
-inline
-FieldSolverType FieldSolver::getFieldSolverType() const {
+inline FieldSolverType FieldSolver::getFieldSolverType() const {
     return fsType_m;
 }
 
-inline
-Inform& operator<<(Inform& os, const FieldSolver& fs) {
+inline Inform& operator<<(Inform& os, const FieldSolver& fs) {
     return fs.printInfo(os);
 }
 
-#endif // OPAL_FieldSolver_HH
+#endif  // OPAL_FieldSolver_HH

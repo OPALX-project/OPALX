@@ -19,7 +19,7 @@
 #define CLASSIC_PartPusher_H
 
 #include "Algorithms/PartData.h"
- 
+
 #include "Physics/Physics.h"
 
 /*
@@ -101,15 +101,15 @@ inline void BorisPusher::kick(
 
     /*
         LF
-    double const gamma = sqrt(1.0 + dot(P, P));
+    double const gamma = sqrt(1.0 + dot(P, P).apply());
     Vector_t<double, 3> const t = dt * charge * c * c / (gamma * mass) * Bf;
     P +=  cross(P, t);
     */
 
-    double gamma                = sqrt(1.0 + dot(P, P).apply());
+    double gamma                = sqrt(1.0 + dot(P, P));
     Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * Bf;
     Vector_t<double, 3> const w = P + cross(P, t);
-    Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t).apply()) * t;
+    Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
     P += cross(w, s);
 
     /* a poor Leap-Frog
@@ -129,7 +129,7 @@ inline void BorisPusher::push(
      * R[i] += 0.5 * P[i] * recpgamma;
      * \endcode
      */
-    R += 0.5 * P / sqrt(1.0 + dot(P, P).apply());
+    R += 0.5 * P / sqrt(1.0 + dot(P, P));
 }
 
 #endif

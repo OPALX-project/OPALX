@@ -42,7 +42,6 @@
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 
-#include "Message/GlobalComm.h"
 #include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
 
@@ -565,7 +564,7 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
         *ippl::Error << "\n*** Parse error detected by function \""
                      << "OpalParser::readStatement()"
                      << "\"\n";
-        stat->printWhere(*IpplInfo::Error, true);
+        // ADA /stat->printWhere(*IpplInfo::Error, true);
 
         std::string what = ex.what();
         boost::replace_all(what, "\n", "\n    ");

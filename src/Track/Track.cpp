@@ -19,8 +19,8 @@
 
 #include "Track/Track.h"
 
-#include "Algorithms/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartBunch.h"
 #include "Utilities/Options.h"
 
 Track* Track::block = 0;
@@ -32,35 +32,31 @@ case Track is using the already allocated bunch,
 otherwise a new bunch is allocated in the dictionary.
 */
 
-
-Track::Track(BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
-             const std::vector<unsigned long long>& maxtsteps, int stepsperturn,
-             double zStart, const std::vector<double>& zStop,
-             Steppers::TimeIntegrator timeintegrator,
-             double t0, double dtScInit, double deltaTau):
-    bunch(nullptr),
-    reference(ref),
-    use(u),
-    parser(),
-    dT(dt),
-    dtScInit(dtScInit),
-    deltaTau(deltaTau),
-    t0_m(t0),
-    localTimeSteps(maxtsteps),
-    stepsPerTurn(stepsperturn),
-    zstart(zStart),
-    zstop(zStop),
-    timeIntegrator(timeintegrator),
-    truncOrder(1)
-{
-    if(!OpalData::getInstance()->hasBunchAllocated()) {
-            OpalData::getInstance()->setPartBunch(new PartBunch(&ref));
+Track::Track(
+    BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
+    const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
+    const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
+    double dtScInit, double deltaTau)
+    : bunch(nullptr),
+      reference(ref),
+      use(u),
+      parser(),
+      dT(dt),
+      dtScInit(dtScInit),
+      deltaTau(deltaTau),
+      t0_m(t0),
+      localTimeSteps(maxtsteps),
+      stepsPerTurn(stepsperturn),
+      zstart(zStart),
+      zstop(zStop),
+      timeIntegrator(timeintegrator),
+      truncOrder(1) {
+    if (!OpalData::getInstance()->hasBunchAllocated()) {
+        // ADA OpalData::getInstance()->setPartBunch(new PartBunch(&ref));
     }
 
     bunch = OpalData::getInstance()->getPartBunch();
 }
 
-
-Track::~Track()
-{}
-
+Track::~Track() {
+}

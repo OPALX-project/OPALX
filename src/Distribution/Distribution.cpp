@@ -30,11 +30,11 @@
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
 #include "Utilities/EarlyLeaveException.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplTimings.h"
 
-#include <gsl/gsl_histogram.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>

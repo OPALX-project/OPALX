@@ -30,6 +30,34 @@ class PartData;
 #include "Particle/ParticleAttrib.h"
 #include "Particle/ParticleLayout.h"
 
+/*
+
+  Will change
+
+*/
+
+#include "Solver/ElectrostaticsCG.h"
+#include "Solver/FFTPeriodicPoissonSolver.h"
+#include "Solver/FFTPoissonSolver.h"
+#include "Solver/P3MSolver.h"
+
+using ippl::detail::ConditionalType, ippl::detail::VariantFromConditionalTypes;
+
+template <typename T = double, unsigned Dim = 3>
+using FFTSolver_t = ConditionalType<
+    Dim == 2 || Dim == 3, ippl::FFTPeriodicPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
+
+template <typename T = double, unsigned Dim = 3>
+using P3MSolver_t = ConditionalType<Dim == 3, ippl::P3MSolver<VField_t<T, Dim>, Field_t<Dim>>>;
+
+template <typename T = double, unsigned Dim = 3>
+using OpenSolver_t =
+    ConditionalType<Dim == 3, ippl::FFTPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
+
+template <typename T = double, unsigned Dim = 3>
+using Solver_t =
+    VariantFromConditionalTypes<FFTSolver_t<T, Dim>, P3MSolver_t<T, Dim>, OpenSolver_t<T, Dim>>;
+
 template <class PLayout, typename T, unsigned Dim = 3>
 class PartBunch : public ippl::ParticleBase<PLayout> {
     using Base = ippl::ParticleBase<PLayout>;
@@ -896,6 +924,6 @@ inline Inform& operator<<(Inform& os, PartBunch<PLayout, T, dim>& p) {
 
 */
 
-#include "PartBunch.cpp"
+typedef PartBunch<PLayout_t<double, 3>, double, 3> PartBunch_t;
 
 #endif

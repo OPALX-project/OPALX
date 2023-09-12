@@ -22,17 +22,15 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
-#include "Utilities/Timer.h"
-#include "Physics/Units.h"
 #include "Ippl.h"
+#include "Physics/Units.h"
+#include "Utilities/Timer.h"
+#include "Utility/IpplMemoryUsage.h"
 
-MemoryWriter::MemoryWriter(const std::string& fname, bool restart)
-    : SDDSWriter(fname, restart)
-{ }
-
+MemoryWriter::MemoryWriter(const std::string& fname, bool restart) : SDDSWriter(fname, restart) {
+}
 
 void MemoryWriter::fillHeader() {
-
     if (this->hasColumns()) {
         return;
     }
@@ -53,7 +51,7 @@ void MemoryWriter::fillHeader() {
         columns_m.addColumn(tmp1.str(), "double", memory->getUnit(), tmp2.str());
     }
 
-    if ( mode_m == std::ios::app )
+    if (mode_m == std::ios::app)
         return;
 
     OPALTimer::Timer simtimer;
@@ -61,24 +59,19 @@ void MemoryWriter::fillHeader() {
     std::string dateStr(simtimer.date());
     std::string timeStr(simtimer.time());
 
-
     std::stringstream ss;
 
-    ss << "Memory statistics '"
-       << OpalData::getInstance()->getInputFn() << "' "
-       << dateStr << "" << timeStr;
+    ss << "Memory statistics '" << OpalData::getInstance()->getInputFn() << "' " << dateStr << ""
+       << timeStr;
 
     this->addDescription(ss.str(), "memory parameters");
 
     this->addDefaultParameters();
 
-
     this->addInfo("ascii", 1);
 }
 
-
-void MemoryWriter::write(const PartBunch_t *beam)
-{
+void MemoryWriter::write(const PartBunch_t* beam) {
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     memory->sample();
 
@@ -86,7 +79,7 @@ void MemoryWriter::write(const PartBunch_t *beam)
         return;
     }
 
-    double  pathLength = beam->get_sPos();
+    double pathLength = beam->get_sPos();
 
     fillHeader();
 
@@ -94,10 +87,10 @@ void MemoryWriter::write(const PartBunch_t *beam)
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);    // 1
-    columns_m.addColumnValue("s", pathLength);                     // 2
+    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);  // 1
+    columns_m.addColumnValue("s", pathLength);                  // 2
 
-    int nProcs = ippl::Comm->size();
+    int nProcs   = ippl::Comm->size();
     double total = 0.0;
     for (int p = 0; p < nProcs; ++p) {
         total += memory->getMemoryUsage(p);
@@ -108,7 +101,7 @@ void MemoryWriter::write(const PartBunch_t *beam)
     for (int p = 0; p < nProcs; p++) {
         std::stringstream ss;
         ss << "\"processor-" << p << "\"";
-        columns_m.addColumnValue(ss.str(),  memory->getMemoryUsage(p));
+        columns_m.addColumnValue(ss.str(), memory->getMemoryUsage(p));
     }
 
     this->writeRow();

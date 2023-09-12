@@ -1,11 +1,12 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
-
+#include <Kokkos_MathematicalConstants.hpp>
+#include <Kokkos_MathematicalFunctions.hpp>
 #include "Algorithms/BoostMatrix.h"
-//  
+#include "Ippl.h"
 #include "OPALtypes.h"
 
-class Quaternion : public ippl::Vector<double, 4> {
+class Quaternion : public Vector_t<double, 4> {  // ippl::Vector<double, 4> {
 public:
     Quaternion();
     Quaternion(const Quaternion&);
@@ -22,6 +23,7 @@ public:
 
     double Norm() const;
     double length() const;
+
     Quaternion& normalize();
 
     bool isUnit() const;
@@ -43,15 +45,15 @@ typedef Quaternion Quaternion_t;
 
 Quaternion getQuaternion(Vector_t<double, 3> vec, Vector_t<double, 3> reference);
 
-inline Quaternion::Quaternion() : ippl::Vector<double, 4>({1.0, 0.0, 0.0, 0.0}) {
+inline Quaternion::Quaternion() : Vector_t<double, 4>({1.0, 0.0, 0.0, 0.0}) {
 }
 
-inline Quaternion::Quaternion(const Quaternion& quat) : ippl::Vector<double, 4>(quat) {
+inline Quaternion::Quaternion(const Quaternion& quat) : Vector_t<double, 4>(quat) {
 }
 
 inline Quaternion::Quaternion(
     const double& x0, const double& x1, const double& x2, const double& x3)
-    : ippl::Vector<double, 4>({x0, x1, x2, x3}) {
+    : Vector_t<double, 4>({x0, x1, x2, x3}) {
 }
 
 inline Quaternion::Quaternion(const Vector_t<double, 3>& vec)

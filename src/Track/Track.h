@@ -19,7 +19,7 @@
 
 #ifndef OPAL_Track_HH
 #define OPAL_Track_HH
-
+#include "Algorithms/PartBunch.h"
 #include "Algorithms/PartData.h"
 #include "Steppers/Steppers.h"
 #include "Track/TrackCmd.h"
@@ -30,17 +30,13 @@
 
 class BeamSequence;
 
-template <class T, unsigned Dim>
-class PartBunch;
-
 class Track {
-
 public:
-    Track(BeamSequence*, const PartData&, const std::vector<double>& dt,
-          const std::vector<unsigned long long>& maxtsteps, int stepsperturn,
-          double zStart, const std::vector<double>& zStop,
-          Steppers::TimeIntegrator timeintegrator,
-          double t0, double dtScInit, double deltaTau);
+    Track(
+        BeamSequence*, const PartData&, const std::vector<double>& dt,
+        const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
+        const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
+        double dtScInit, double deltaTau);
     ~Track();
 
     /// The particle bunch to be tracked.
@@ -95,4 +91,4 @@ private:
     static std::stack<Track*> stashedTrack;
 };
 
-#endif // OPAL_Track_HH
+#endif  // OPAL_Track_HH
