@@ -4,7 +4,6 @@ set (_SRCS
   BoundaryGeometry.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
-  FieldSolver.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
   MonitorStatisticsWriter.cpp
@@ -32,8 +31,7 @@ set (HDRS
     BoundingBox.h
     DataSink.h
     ElementPositionWriter.h
-    FieldSolver.h
-    H5PartWrapperForPT.h
+        H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
     MonitorStatisticsWriter.h

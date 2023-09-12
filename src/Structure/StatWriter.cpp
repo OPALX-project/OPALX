@@ -20,18 +20,15 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBunch.h"
-#include "Utilities/Timer.h"
 #include "Physics/Units.h"
+#include "Utilities/Timer.h"
 
 #include <sstream>
 
-StatWriter::StatWriter(const std::string& fname, bool restart)
-    : StatBaseWriter(fname, restart)
-{ }
+StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {
+}
 
-
-void StatWriter::fillHeader(const losses_t &losses) {
-
+void StatWriter::fillHeader(const losses_t& losses) {
     if (this->hasColumns()) {
         return;
     }
@@ -89,67 +86,67 @@ void StatWriter::fillHeader(const losses_t &losses) {
 
     columns_m.addColumn("dE", "double", "MeV", "energy spread of the beam");
     columns_m.addColumn("dt", "double", "ns", "time step size");
-    columns_m.addColumn("partsOutside", "double",  "1", "outside n*sigma of the beam");
-
+    columns_m.addColumn("partsOutside", "double", "1", "outside n*sigma of the beam");
+    /* ADA
     if (Options::computePercentiles) {
         columns_m.addColumn("68_Percentile_x", "double", "m",
-                            "68.27 percentile (1 sigma of normal distribution) of x-component of position");
-        columns_m.addColumn("68_Percentile_y", "double", "m",
-                            "68.27 percentile (1 sigma of normal distribution) of y-component of position");
-        columns_m.addColumn("68_Percentile_z", "double", "m",
-                            "68.27 percentile (1 sigma of normal distribution) of z-component of position");
+                            "68.27 percentile (1 sigma of normal distribution) of x-component of
+    position"); columns_m.addColumn("68_Percentile_y", "double", "m", "68.27 percentile (1 sigma of
+    normal distribution) of y-component of position"); columns_m.addColumn("68_Percentile_z",
+    "double", "m", "68.27 percentile (1 sigma of normal distribution) of z-component of position");
 
         columns_m.addColumn("95_Percentile_x", "double", "m",
-                            "95.45 percentile (2 sigma of normal distribution) of x-component of position");
-        columns_m.addColumn("95_Percentile_y", "double", "m",
-                            "95.45 percentile (2 sigma of normal distribution) of y-component of position");
-        columns_m.addColumn("95_Percentile_z", "double", "m",
-                            "95.45 percentile (2 sigma of normal distribution) of z-component of position");
+                            "95.45 percentile (2 sigma of normal distribution) of x-component of
+    position"); columns_m.addColumn("95_Percentile_y", "double", "m", "95.45 percentile (2 sigma of
+    normal distribution) of y-component of position"); columns_m.addColumn("95_Percentile_z",
+    "double", "m", "95.45 percentile (2 sigma of normal distribution) of z-component of position");
 
         columns_m.addColumn("99_Percentile_x", "double", "m",
-                            "99.73 percentile (3 sigma of normal distribution) of x-component of position");
-        columns_m.addColumn("99_Percentile_y", "double", "m",
-                            "99.73 percentile (3 sigma of normal distribution) of y-component of position");
-        columns_m.addColumn("99_Percentile_z", "double", "m",
-                            "99.73 percentile (3 sigma of normal distribution) of z-component of position");
+                            "99.73 percentile (3 sigma of normal distribution) of x-component of
+    position"); columns_m.addColumn("99_Percentile_y", "double", "m", "99.73 percentile (3 sigma of
+    normal distribution) of y-component of position"); columns_m.addColumn("99_Percentile_z",
+    "double", "m", "99.73 percentile (3 sigma of normal distribution) of z-component of position");
 
         columns_m.addColumn("99_99_Percentile_x", "double", "m",
-                            "99.994 percentile (4 sigma of normal distribution) of x-component of position");
-        columns_m.addColumn("99_99_Percentile_y", "double", "m",
-                            "99.994 percentile (4 sigma of normal distribution) of y-component of position");
-        columns_m.addColumn("99_99_Percentile_z", "double", "m",
-                            "99.994 percentile (4 sigma of normal distribution) of z-component of position");
+                            "99.994 percentile (4 sigma of normal distribution) of x-component of
+    position"); columns_m.addColumn("99_99_Percentile_y", "double", "m", "99.994 percentile (4 sigma
+    of normal distribution) of y-component of position"); columns_m.addColumn("99_99_Percentile_z",
+    "double", "m", "99.994 percentile (4 sigma of normal distribution) of z-component of position");
 
         columns_m.addColumn("normalizedEps68Percentile_x", "double", "m",
-                            "x-component of normalized emittance at 68 percentile (1 sigma of normal distribution)");
-        columns_m.addColumn("normalizedEps68Percentile_y", "double", "m",
-                            "y-component of normalized emittance at 68 percentile (1 sigma of normal distribution)");
+                            "x-component of normalized emittance at 68 percentile (1 sigma of normal
+    distribution)"); columns_m.addColumn("normalizedEps68Percentile_y", "double", "m", "y-component
+    of normalized emittance at 68 percentile (1 sigma of normal distribution)");
         columns_m.addColumn("normalizedEps68Percentile_z", "double", "m",
-                            "z-component of normalized emittance at 68 percentile (1 sigma of normal distribution)");
+                            "z-component of normalized emittance at 68 percentile (1 sigma of normal
+    distribution)");
 
         columns_m.addColumn("normalizedEps95Percentile_x", "double", "m",
-                            "x-component of normalized emittance at 95 percentile (2 sigma of normal distribution)");
-        columns_m.addColumn("normalizedEps95Percentile_y", "double", "m",
-                            "y-component of normalized emittance at 95 percentile (2 sigma of normal distribution)");
+                            "x-component of normalized emittance at 95 percentile (2 sigma of normal
+    distribution)"); columns_m.addColumn("normalizedEps95Percentile_y", "double", "m", "y-component
+    of normalized emittance at 95 percentile (2 sigma of normal distribution)");
         columns_m.addColumn("normalizedEps95Percentile_z", "double", "m",
-                            "z-component of normalized emittance at 95 percentile (2 sigma of normal distribution)");
+                            "z-component of normalized emittance at 95 percentile (2 sigma of normal
+    distribution)");
 
         columns_m.addColumn("normalizedEps99Percentile_x", "double", "m",
-                            "x-component of normalized emittance at 99 percentile (3 sigma of normal distribution)");
-        columns_m.addColumn("normalizedEps99Percentile_y", "double", "m",
-                            "y-component of normalized emittance at 99 percentile (3 sigma of normal distribution)");
+                            "x-component of normalized emittance at 99 percentile (3 sigma of normal
+    distribution)"); columns_m.addColumn("normalizedEps99Percentile_y", "double", "m", "y-component
+    of normalized emittance at 99 percentile (3 sigma of normal distribution)");
         columns_m.addColumn("normalizedEps99Percentile_z", "double", "m",
-                            "z-component of normalized emittance at 99 percentile (3 sigma of normal distribution)");
+                            "z-component of normalized emittance at 99 percentile (3 sigma of normal
+    distribution)");
 
         columns_m.addColumn("normalizedEps99_99Percentile_x", "double", "m",
-                            "x-component of normalized emittance at 99.99 percentile (4 sigma of normal distribution)");
-        columns_m.addColumn("normalizedEps99_99Percentile_y", "double", "m",
-                            "y-component of normalized emittance at 99.99 percentile (4 sigma of normal distribution)");
-        columns_m.addColumn("normalizedEps99_99Percentile_z", "double", "m",
-                            "z-component of normalized emittance at 99.99 percentile (4 sigma of normal distribution)");
+                            "x-component of normalized emittance at 99.99 percentile (4 sigma of
+    normal distribution)"); columns_m.addColumn("normalizedEps99_99Percentile_y", "double", "m",
+                            "y-component of normalized emittance at 99.99 percentile (4 sigma of
+    normal distribution)"); columns_m.addColumn("normalizedEps99_99Percentile_z", "double", "m",
+                            "z-component of normalized emittance at 99.99 percentile (4 sigma of
+    normal distribution)");
     }
-    if (OpalData::getInstance()->isInOPALCyclMode() &&
-        ippl::Comm->size() == 1) {
+    */
+    if (OpalData::getInstance()->isInOPALCyclMode() && ippl::Comm->size() == 1) {
         columns_m.addColumn("R0_x", "double", "m", "R0 Particle position in x");
         columns_m.addColumn("R0_y", "double", "m", "R0 Particle position in y");
         columns_m.addColumn("R0_s", "double", "m", "R0 Particle position in z");
@@ -164,16 +161,14 @@ void StatWriter::fillHeader(const losses_t &losses) {
         columns_m.addColumn("halo_y", "double", "1", "Halo in y");
         columns_m.addColumn("halo_z", "double", "1", "Halo in z");
 
-        columns_m.addColumn("azimuth", "double", "deg",
-                            "Azimuth in global coordinates");
+        columns_m.addColumn("azimuth", "double", "deg", "Azimuth in global coordinates");
     }
 
-    for (size_t i = 0; i < losses.size(); ++ i) {
-        columns_m.addColumn(losses[i].first, "long", "1",
-                            "Number of lost particles in element");
+    for (size_t i = 0; i < losses.size(); ++i) {
+        columns_m.addColumn(losses[i].first, "long", "1", "Number of lost particles in element");
     }
 
-    if ( mode_m == std::ios::app )
+    if (mode_m == std::ios::app)
         return;
 
     OPALTimer::Timer simtimer;
@@ -181,26 +176,22 @@ void StatWriter::fillHeader(const losses_t &losses) {
     std::string timeStr(simtimer.time());
 
     std::stringstream ss;
-    ss << "Statistics data '"
-       << OpalData::getInstance()->getInputFn()
-       << "' " << dateStr << " " << timeStr;
+    ss << "Statistics data '" << OpalData::getInstance()->getInputFn() << "' " << dateStr << " "
+       << timeStr;
 
     this->addDescription(ss.str(), "stat parameters");
 
     this->addDefaultParameters();
 
-
     this->addInfo("ascii", 1);
 }
 
-
-void StatWriter::write(const PartBunch_t *beam, Vector_t<double, 3> FDext[],
-                       const losses_t &losses, const double& azimuth,
-                       const size_t npOutside)
-{
+void StatWriter::write(
+    const PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses,
+    const double& azimuth, const size_t npOutside) {
     double Ekin = beam->get_meanKineticEnergy();
 
-    double  pathLength = beam->get_sPos();
+    double pathLength = beam->get_sPos();
 
     /// Write data to files. If this is the first write to the beam statistics file, write SDDS
     /// header information.
@@ -217,64 +208,64 @@ void StatWriter::write(const PartBunch_t *beam, Vector_t<double, 3> FDext[],
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);   // 1
-    columns_m.addColumnValue("s", pathLength);                     // 2
-    columns_m.addColumnValue("numParticles", beam->getTotalNum()); // 3
-    columns_m.addColumnValue("charge", Q);                         // 4
-    columns_m.addColumnValue("energy", Ekin);                      // 5
+    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);      // 1
+    columns_m.addColumnValue("s", pathLength);                      // 2
+    columns_m.addColumnValue("numParticles", beam->getTotalNum());  // 3
+    columns_m.addColumnValue("charge", Q);                          // 4
+    columns_m.addColumnValue("energy", Ekin);                       // 5
 
-    columns_m.addColumnValue("rms_x", beam->get_rrms()(0));        // 6
-    columns_m.addColumnValue("rms_y", beam->get_rrms()(1));        // 7
-    columns_m.addColumnValue("rms_s", beam->get_rrms()(2));        // 8
+    columns_m.addColumnValue("rms_x", beam->get_rrms()(0));  // 6
+    columns_m.addColumnValue("rms_y", beam->get_rrms()(1));  // 7
+    columns_m.addColumnValue("rms_s", beam->get_rrms()(2));  // 8
 
-    columns_m.addColumnValue("rms_px", beam->get_prms()(0));       // 9
-    columns_m.addColumnValue("rms_py", beam->get_prms()(1));       // 10
-    columns_m.addColumnValue("rms_ps", beam->get_prms()(2));       // 11
+    columns_m.addColumnValue("rms_px", beam->get_prms()(0));  // 9
+    columns_m.addColumnValue("rms_py", beam->get_prms()(1));  // 10
+    columns_m.addColumnValue("rms_ps", beam->get_prms()(2));  // 11
 
     columns_m.addColumnValue("emit_x", beam->get_norm_emit()(0));  // 12
     columns_m.addColumnValue("emit_y", beam->get_norm_emit()(1));  // 13
     columns_m.addColumnValue("emit_s", beam->get_norm_emit()(2));  // 14
 
-    columns_m.addColumnValue("mean_x", beam->get_rmean()(0) );     // 15
-    columns_m.addColumnValue("mean_y", beam->get_rmean()(1) );     // 16
-    columns_m.addColumnValue("mean_s", beam->get_rmean()(2) );     // 17
+    columns_m.addColumnValue("mean_x", beam->get_rmean()(0));  // 15
+    columns_m.addColumnValue("mean_y", beam->get_rmean()(1));  // 16
+    columns_m.addColumnValue("mean_s", beam->get_rmean()(2));  // 17
 
-    columns_m.addColumnValue("ref_x", beam->RefPartR_m(0));        // 18
-    columns_m.addColumnValue("ref_y", beam->RefPartR_m(1));        // 19
-    columns_m.addColumnValue("ref_z", beam->RefPartR_m(2));        // 20
+    columns_m.addColumnValue("ref_x", beam->RefPartR_m(0));  // 18
+    columns_m.addColumnValue("ref_y", beam->RefPartR_m(1));  // 19
+    columns_m.addColumnValue("ref_z", beam->RefPartR_m(2));  // 20
 
-    columns_m.addColumnValue("ref_px", beam->RefPartP_m(0));       // 21
-    columns_m.addColumnValue("ref_py", beam->RefPartP_m(1));       // 22
-    columns_m.addColumnValue("ref_pz", beam->RefPartP_m(2));       // 23
+    columns_m.addColumnValue("ref_px", beam->RefPartP_m(0));  // 21
+    columns_m.addColumnValue("ref_py", beam->RefPartP_m(1));  // 22
+    columns_m.addColumnValue("ref_pz", beam->RefPartP_m(2));  // 23
 
-    columns_m.addColumnValue("max_x", beam->get_maxExtent()(0));   // 24
-    columns_m.addColumnValue("max_y", beam->get_maxExtent()(1));   // 25
-    columns_m.addColumnValue("max_s", beam->get_maxExtent()(2));   // 26
+    columns_m.addColumnValue("max_x", beam->get_maxExtent()(0));  // 24
+    columns_m.addColumnValue("max_y", beam->get_maxExtent()(1));  // 25
+    columns_m.addColumnValue("max_s", beam->get_maxExtent()(2));  // 26
 
     // Write out Courant Snyder parameters.
-    columns_m.addColumnValue("xpx", beam->get_rprms()(0));         // 27
-    columns_m.addColumnValue("ypy", beam->get_rprms()(1));         // 28
-    columns_m.addColumnValue("zpz", beam->get_rprms()(2));         // 29
+    columns_m.addColumnValue("xpx", beam->get_rprms()(0));  // 27
+    columns_m.addColumnValue("ypy", beam->get_rprms()(1));  // 28
+    columns_m.addColumnValue("zpz", beam->get_rprms()(2));  // 29
 
     // Write out dispersion.
-    columns_m.addColumnValue("Dx",  beam->get_Dx());               // 30
-    columns_m.addColumnValue("DDx", beam->get_DDx());              // 31
-    columns_m.addColumnValue("Dy",  beam->get_Dy());               // 32
-    columns_m.addColumnValue("DDy", beam->get_DDy());              // 33
+    columns_m.addColumnValue("Dx", beam->get_Dx());    // 30
+    columns_m.addColumnValue("DDx", beam->get_DDx());  // 31
+    columns_m.addColumnValue("Dy", beam->get_Dy());    // 32
+    columns_m.addColumnValue("DDy", beam->get_DDy());  // 33
 
     // Write head/reference particle/tail field information.
-    columns_m.addColumnValue("Bx_ref", FDext[0](0));               // 34 B-ref x
-    columns_m.addColumnValue("By_ref", FDext[0](1));               // 35 B-ref y
-    columns_m.addColumnValue("Bz_ref", FDext[0](2));               // 36 B-ref z
+    columns_m.addColumnValue("Bx_ref", FDext[0](0));  // 34 B-ref x
+    columns_m.addColumnValue("By_ref", FDext[0](1));  // 35 B-ref y
+    columns_m.addColumnValue("Bz_ref", FDext[0](2));  // 36 B-ref z
 
-    columns_m.addColumnValue("Ex_ref", FDext[1](0));               // 37 E-ref x
-    columns_m.addColumnValue("Ey_ref", FDext[1](1));               // 38 E-ref y
-    columns_m.addColumnValue("Ez_ref", FDext[1](2));               // 39 E-ref z
+    columns_m.addColumnValue("Ex_ref", FDext[1](0));  // 37 E-ref x
+    columns_m.addColumnValue("Ey_ref", FDext[1](1));  // 38 E-ref y
+    columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
 
-    columns_m.addColumnValue("dE", beam->getdE());                 // 40 dE energy spread
-    columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns); // 41 dt time step size
-    columns_m.addColumnValue("partsOutside", npOutside);           // 42 number of particles outside n*sigma
-
+    columns_m.addColumnValue("dE", beam->getdE());                // 40 dE energy spread
+    columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns);  // 41 dt time step size
+    columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
+    /*
     if (Options::computePercentiles) {
         columns_m.addColumnValue("68_Percentile_x", beam->get_68Percentile()[0]);
         columns_m.addColumnValue("68_Percentile_y", beam->get_68Percentile()[1]);
@@ -292,31 +283,44 @@ void StatWriter::write(const PartBunch_t *beam, Vector_t<double, 3> FDext[],
         columns_m.addColumnValue("99_99_Percentile_y", beam->get_99_99Percentile()[1]);
         columns_m.addColumnValue("99_99_Percentile_z", beam->get_99_99Percentile()[2]);
 
-        columns_m.addColumnValue("normalizedEps68Percentile_x", beam->get_normalizedEps_68Percentile()[0]);
-        columns_m.addColumnValue("normalizedEps68Percentile_y", beam->get_normalizedEps_68Percentile()[1]);
-        columns_m.addColumnValue("normalizedEps68Percentile_z", beam->get_normalizedEps_68Percentile()[2]);
+        columns_m.addColumnValue(
+            "normalizedEps68Percentile_x", beam->get_normalizedEps_68Percentile()[0]);
+        columns_m.addColumnValue(
+            "normalizedEps68Percentile_y", beam->get_normalizedEps_68Percentile()[1]);
+        columns_m.addColumnValue(
+            "normalizedEps68Percentile_z", beam->get_normalizedEps_68Percentile()[2]);
 
-        columns_m.addColumnValue("normalizedEps95Percentile_x", beam->get_normalizedEps_95Percentile()[0]);
-        columns_m.addColumnValue("normalizedEps95Percentile_y", beam->get_normalizedEps_95Percentile()[1]);
-        columns_m.addColumnValue("normalizedEps95Percentile_z", beam->get_normalizedEps_95Percentile()[2]);
+        columns_m.addColumnValue(
+            "normalizedEps95Percentile_x", beam->get_normalizedEps_95Percentile()[0]);
+        columns_m.addColumnValue(
+            "normalizedEps95Percentile_y", beam->get_normalizedEps_95Percentile()[1]);
+        columns_m.addColumnValue(
+            "normalizedEps95Percentile_z", beam->get_normalizedEps_95Percentile()[2]);
 
-        columns_m.addColumnValue("normalizedEps99Percentile_x", beam->get_normalizedEps_99Percentile()[0]);
-        columns_m.addColumnValue("normalizedEps99Percentile_y", beam->get_normalizedEps_99Percentile()[1]);
-        columns_m.addColumnValue("normalizedEps99Percentile_z", beam->get_normalizedEps_99Percentile()[2]);
+        columns_m.addColumnValue(
+            "normalizedEps99Percentile_x", beam->get_normalizedEps_99Percentile()[0]);
+        columns_m.addColumnValue(
+            "normalizedEps99Percentile_y", beam->get_normalizedEps_99Percentile()[1]);
+        columns_m.addColumnValue(
+            "normalizedEps99Percentile_z", beam->get_normalizedEps_99Percentile()[2]);
 
-        columns_m.addColumnValue("normalizedEps99_99Percentile_x", beam->get_normalizedEps_99_99Percentile()[0]);
-        columns_m.addColumnValue("normalizedEps99_99Percentile_y", beam->get_normalizedEps_99_99Percentile()[1]);
-        columns_m.addColumnValue("normalizedEps99_99Percentile_z", beam->get_normalizedEps_99_99Percentile()[2]);
+        columns_m.addColumnValue(
+            "normalizedEps99_99Percentile_x", beam->get_normalizedEps_99_99Percentile()[0]);
+        columns_m.addColumnValue(
+            "normalizedEps99_99Percentile_y", beam->get_normalizedEps_99_99Percentile()[1]);
+        columns_m.addColumnValue(
+            "normalizedEps99_99Percentile_z", beam->get_normalizedEps_99_99Percentile()[2]);
     }
+    */
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         if (ippl::Comm->size() == 1) {
             if (beam->getLocalNum() > 0) {
-                columns_m.addColumnValue("R0_x", beam->R[0](0));
-                columns_m.addColumnValue("R0_y", beam->R[0](1));
-                columns_m.addColumnValue("R0_s", beam->R[0](2));
-                columns_m.addColumnValue("P0_x", beam->P[0](0));
-                columns_m.addColumnValue("P0_y", beam->P[0](1));
-                columns_m.addColumnValue("P0_s", beam->P[0](2));
+                columns_m.addColumnValue("R0_x", beam->R(0)[0]);
+                columns_m.addColumnValue("R0_y", beam->R(0)[1]);
+                columns_m.addColumnValue("R0_s", beam->R(0)[2]);
+                columns_m.addColumnValue("P0_x", beam->P(0)[0]);
+                columns_m.addColumnValue("P0_y", beam->P(0)[1]);
+                columns_m.addColumnValue("P0_s", beam->P(0)[2]);
             } else {
                 columns_m.addColumnValue("R0_x", 0.0);
                 columns_m.addColumnValue("R0_y", 0.0);
@@ -334,7 +338,7 @@ void StatWriter::write(const PartBunch_t *beam, Vector_t<double, 3> FDext[],
         columns_m.addColumnValue("azimuth", azimuth);
     }
 
-    for(size_t i = 0; i < losses.size(); ++ i) {
+    for (size_t i = 0; i < losses.size(); ++i) {
         long unsigned int loss = losses[i].second;
         columns_m.addColumnValue(losses[i].first, loss);
     }

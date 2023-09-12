@@ -23,9 +23,9 @@
 #include "OPALconfig.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-
 #include "h5core/h5_types.h"
 
 #include <cmath>
@@ -140,7 +140,8 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
     Quaternion rotPhi(std::cos(0.5 * TaitBryant[1]), std::sin(0.5 * TaitBryant[1]), 0, 0);
     Quaternion rotPsi(std::cos(0.5 * TaitBryant[2]), 0, 0, std::sin(0.5 * TaitBryant[2]));
     Quaternion rotation = rotTheta * (rotPhi * rotPsi);
-    bunch->toLabTrafo_m = CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR), rotation);
+    // ADA bunch->toLabTrafo_m = CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR),
+    // rotation);
 }
 
 void H5PartWrapperForPT::readStepData(
@@ -163,43 +164,43 @@ void H5PartWrapperForPT::readStepData(
 
     READDATA(Float64, file_m, "x", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->R[n](0) = f64buffer[n];
-        bunch->Bin[n]  = 0;
+        bunch->R(n)(0) = f64buffer[n];
+        bunch->Bin(n)  = 0;
     }
 
     READDATA(Float64, file_m, "y", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->R[n](1) = f64buffer[n];
+        bunch->R(n)(1) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "z", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->R[n](2) = f64buffer[n];
+        bunch->R(n)(2) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "px", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->P[n](0) = f64buffer[n];
+        bunch->P(n)(0) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "py", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->P[n](1) = f64buffer[n];
+        bunch->P(n)(1) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "pz", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->P[n](2) = f64buffer[n];
+        bunch->P(n)(2) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "q", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->Q[n] = f64buffer[n];
+        bunch->Q(n) = f64buffer[n];
     }
 
     READDATA(Int32, file_m, "id", i32buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->ID[n] = i32buffer[n];
+        bunch->ID(n) = i32buffer[n];
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
@@ -317,8 +318,9 @@ void H5PartWrapperForPT::writeStepHeader(
     Vector_t<double, 3> geomvareps = bunch->get_emit();
     Vector_t<double, 3> RefPartR   = bunch->RefPartR_m;
     Vector_t<double, 3> RefPartP   = bunch->RefPartP_m;
-    Vector_t<double, 3> TaitBryant = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
-    Vector_t<double, 3> pmean      = bunch->get_pmean();
+    Vector_t<double, 3>
+        TaitBryant;  // ADA = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
+    Vector_t<double, 3> pmean = bunch->get_pmean();
 
     double meanEnergy   = bunch->get_meanKineticEnergy();
     double energySpread = bunch->getdE();
@@ -408,7 +410,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     size_t numLocalParticles = bunch->getLocalNum();
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
-
+    /* ADA
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     char* buffer_ptr        = Util::c_data(buffer);
     h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
@@ -416,68 +418,68 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(buffer_ptr);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->R[i](0);
+        f64buffer[i] = bunch->R(i)(0);
     WRITEDATA(Float64, file_m, "x", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->R[i](1);
+        f64buffer[i] = bunch->R(i)(1);
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->R[i](2);
+        f64buffer[i] = bunch->R(i)(2);
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->P[i](0);
+        f64buffer[i] = bunch->P(i)(0);
     WRITEDATA(Float64, file_m, "px", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->P[i](1);
+        f64buffer[i] = bunch->P(i)(1);
     WRITEDATA(Float64, file_m, "py", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->P[i](2);
+        f64buffer[i] = bunch->P(i)(2);
     WRITEDATA(Float64, file_m, "pz", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->Q[i];
+        f64buffer[i] = bunch->Q(i);
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        i64buffer[i] = bunch->ID[i];
+        i64buffer[i] = bunch->ID(i);
     WRITEDATA(Int64, file_m, "id", i64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        i32buffer[i] = (h5_int32_t)bunch->PType[i];
+        i32buffer[i] = (h5_int32_t)bunch->PType(i);
     WRITEDATA(Int32, file_m, "ptype", i32buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        i32buffer[i] = (h5_int32_t)bunch->POrigin[i];
+        i32buffer[i] = (h5_int32_t)bunch->POrigin(i);
     WRITEDATA(Int32, file_m, "porigin", i32buffer);
 
     if (Options::ebDump) {
         for (size_t i = 0; i < numLocalParticles; ++i)
-            f64buffer[i] = bunch->Ef[i](0);
+            f64buffer[i] = bunch->Ef(i)(0);
         WRITEDATA(Float64, file_m, "Ex", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
-            f64buffer[i] = bunch->Ef[i](1);
+            f64buffer[i] = bunch->Ef(i)(1);
         WRITEDATA(Float64, file_m, "Ey", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
-            f64buffer[i] = bunch->Ef[i](2);
+            f64buffer[i] = bunch->Ef(i)(2);
         WRITEDATA(Float64, file_m, "Ez", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
-            f64buffer[i] = bunch->Bf[i](0);
+            f64buffer[i] = bunch->Bf(i)(0);
         WRITEDATA(Float64, file_m, "Bx", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
-            f64buffer[i] = bunch->Bf[i](1);
+            f64buffer[i] = bunch->Bf(i)(1);
         WRITEDATA(Float64, file_m, "By", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
-            f64buffer[i] = bunch->Bf[i](2);
+            f64buffer[i] = bunch->Bf(i)(2);
         WRITEDATA(Float64, file_m, "Bz", f64buffer);
     }
 
@@ -519,4 +521,5 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
             (h5_float64_t)bunch->get_hr()(2));
         reportOnError(herr, __FILE__, __LINE__);
     }
+    */
 }

@@ -8,7 +8,7 @@ set (_SRCS
     IndexMap.cpp
     OrbitThreader.cpp
     OpalParticle.cpp
-    ParallelTracker.cpp
+#    ParallelTracker.cpp
     PartBunch.cpp
 #    PartBunch.hpp
     PartBins.cpp
@@ -36,7 +36,7 @@ set (HDRS
     IndexMap.h
     OrbitThreader.h
     OpalParticle.h
-    ParallelTracker.h
+#    ParallelTracker.h
     PartBins.h
     PartBunch.h
  #   PartBunch.h

@@ -20,20 +20,16 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalWake;
-
-class OpalProbe: public OpalElement {
-
+class OpalProbe : public OpalElement {
 public:
-
     /// The attributes of class OpalProbe.
     enum {
-        XSTART = COMMON, // Start of x coordinate
-        XEND,            // End of x coordinate
-        YSTART,          // Start of y coordinate
-        YEND,            // End of y coordinate
-        WIDTH,           // Width of the probe
-        STEP,            // Step size of the probe
+        XSTART = COMMON,  // Start of x coordinate
+        XEND,             // End of x coordinate
+        YSTART,           // Start of y coordinate
+        YEND,             // End of y coordinate
+        WIDTH,            // Width of the probe
+        STEP,             // Step size of the probe
         SIZE
     };
     /// Exemplar constructor.
@@ -42,21 +38,18 @@ public:
     virtual ~OpalProbe();
 
     /// Make clone.
-    virtual OpalProbe *clone(const std::string &name);
+    virtual OpalProbe* clone(const std::string& name);
 
     /// Update the embedded CLASSIC probe.
     virtual void update();
 
 private:
-
     // Not implemented.
-    OpalProbe(const OpalProbe &);
-    void operator=(const OpalProbe &);
+    OpalProbe(const OpalProbe&);
+    void operator=(const OpalProbe&);
 
     // Clone constructor.
-    OpalProbe(const std::string &name, OpalProbe *parent);
-
-    OpalWake *owk_m;
+    OpalProbe(const std::string& name, OpalProbe* parent);
 };
 
-#endif // OPAL_OpalProbe_HH
+#endif  // OPAL_OpalProbe_HH

@@ -18,7 +18,6 @@
 #include "Structure/LossDataSink.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DistributionMoments.h"
-#include "Message/GlobalComm.h"
 #include "OPALconfig.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Options.h"
@@ -221,7 +220,7 @@ LossDataSink::~LossDataSink() noexcept(false) {
         CLOSE_FILE();
         H5file_m = 0;
     }
-    Ippl::Comm->barrier();
+    ippl::Comm->barrier();
 }
 
 void LossDataSink::openH5(h5_int32_t mode) {
@@ -367,7 +366,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     }
     *gmsg << level2 << "Save '" << fileName_m << "'" << endl;
 
-    Ippl::Comm->barrier();
+    ippl::Comm->barrier();
 
     particles_m.clear();
     turnNumber_m.clear();
@@ -388,7 +387,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 bool LossDataSink::hasNoParticlesToDump() const {
     size_t nLoc = particles_m.size();
 
-    reduce(nLoc, nLoc, OpAddAssign());
+    // ADA reduce(nLoc, nLoc, OpAddAssign());
 
     return nLoc == 0;
 }
@@ -396,7 +395,7 @@ bool LossDataSink::hasNoParticlesToDump() const {
 bool LossDataSink::hasTurnInformations() const {
     bool hasTurnInformation = !turnNumber_m.empty();
 
-    allreduce(hasTurnInformation, 1, std::logical_or<bool>());
+    // ADA allreduce(hasTurnInformation, 1, std::logical_or<bool>());
 
     return hasTurnInformation > 0;
 }
@@ -418,7 +417,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     }
 
     locN[ippl::Comm->rank()] = nLoc;
-    reduce(locN.get(), locN.get() + ippl::Comm->size(), globN.get(), OpAddAssign());
+    // ADA reduce(locN.get(), locN.get() + ippl::Comm->size(), globN.get(), OpAddAssign());
 
     DistributionMoments engine;
     engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
@@ -542,7 +541,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 void LossDataSink::saveASCII() {
     /*
       ASCII output
-    */
+
     int tag      = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
     bool hasTurn = hasTurnInformations();
     if (ippl::Comm->rank == 0) {
@@ -620,6 +619,7 @@ void LossDataSink::saveASCII() {
             *ippl::Error << "LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;
         }
     }
+    */
 }
 
 /**
@@ -670,7 +670,7 @@ void LossDataSink::splitSets(unsigned int numSets) {
             numParticles[j] = numThisSet;
         }
 
-        allreduce(&(data[0]), 2 * numSets, std::plus<double>());
+        // ADA allreduce(&(data[0]), 2 * numSets, std::plus<double>());
 
         for (unsigned int j = 0; j < numSets; ++j) {
             meanT[j] /= numParticles[j];
@@ -757,8 +757,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         plainData[i] = data[i].sum;
     }
 
-    allreduce(plainData, totalSize, std::plus<double>());
-    allreduce(rminmax, 6, std::greater<double>());
+    // ADA allreduce(plainData, totalSize, std::plus<double>());
+    // ADA allreduce(rminmax, 6, std::greater<double>());
 
     if (plainData[0] == 0.0)
         return stat;

@@ -15,7 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+
 #include "DistributionMoments.h"
+#include "OPALtypes.h"
 
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -28,42 +30,12 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
-#include <mpi.h>
-
 extern Inform* gmsg;
 
 const double DistributionMoments::percentileOneSigmaNormalDist_m    = std::erf(1 / sqrt(2));
 const double DistributionMoments::percentileTwoSigmasNormalDist_m   = std::erf(2 / sqrt(2));
 const double DistributionMoments::percentileThreeSigmasNormalDist_m = std::erf(3 / sqrt(2));
 const double DistributionMoments::percentileFourSigmasNormalDist_m  = std::erf(4 / sqrt(2));
-
-template <typename T, class Op>
-void allreduce(const T* input, T* output, int count, Op op) {
-    MPI_Datatype type = get_mpi_datatype<T>(*input);
-
-    MPI_Op mpiOp = get_mpi_op<Op>(op);
-
-    MPI_Allreduce(const_cast<T*>(input), output, count, type, mpiOp, ippl::Comm->getCommunicator());
-}
-
-template <typename T, class Op>
-void allreduce(const T& input, T& output, int count, Op op) {
-    allreduce(&input, &output, count, op);
-}
-
-template <typename T, class Op>
-void allreduce(T* inout, int count, Op op) {
-    MPI_Datatype type = get_mpi_datatype<T>(*inout);
-
-    MPI_Op mpiOp = get_mpi_op<Op>(op);
-
-    MPI_Allreduce(MPI_IN_PLACE, inout, count, type, mpiOp, ippl::Comm->getCommunicator());
-}
-
-template <typename T, class Op>
-void allreduce(T& inout, int count, Op op) {
-    allreduce(&inout, count, op);
-}
 
 DistributionMoments::DistributionMoments() {
     reset();
@@ -182,7 +154,7 @@ void DistributionMoments::computeStatistics(const InputIt& first, const InputIt&
         localStatistics[l++] += particle.getMass();
     }
 
-    allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
+    // ADA allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
 
     fillMembers(localStatistics);
 
@@ -344,7 +316,8 @@ std::pair<double, DistributionMoments::iterator_t> DistributionMoments::determin
 
             std::vector<unsigned int> numParticlesInBin(ippl::Comm->size() + 1);
             numParticlesInBin[ippl::Comm->rank() + 1] = endBin - beginBin;
-            allreduce(&(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned int>());
+            // ADA allreduce(&(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned
+            // int>());
             std::partial_sum(
                 numParticlesInBin.begin(), numParticlesInBin.end(), numParticlesInBin.begin());
 
@@ -479,7 +452,7 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
         }
     }
 
-    allreduce(avgVel, 3, std::plus<double>());
+    // ADA allreduce(avgVel, 3, std::plus<double>());
 
     const double N = static_cast<double>(bunch_r.getTotalNum());
     for (unsigned i = 0; i < 3; i++) {
@@ -496,7 +469,7 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
                 2);
         }
     }
-    allreduce(tempAvg, 1, std::plus<double>());
+    // ADA allreduce(tempAvg, 1, std::plus<double>());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is
     // Boltzmann constant

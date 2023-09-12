@@ -26,7 +26,7 @@
 #include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
-//  
+//
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -56,13 +56,13 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
             "CavityAutophaser::getPhaseAtMaxEnergy()", "given element is not a cavity");
     }
 
-    initialP_m = Vector_t<double, 3>(0, 0, std::sqrt(dot(P, P).apply()));
+    initialP_m = Vector_t<double, 3>(0, 0, std::sqrt(dot(P, P)));
 
     RFCavity* element    = static_cast<RFCavity*>(itsCavity_m.get());
     bool apVeto          = element->getAutophaseVeto();
     bool isDCGun         = false;
     double originalPhase = element->getPhasem();
-    double tErr = (initialR_m(2) - R(2)) * std::sqrt(dot(P, P).apply() + 1.0) / (P(2) * Physics::c);
+    double tErr = (initialR_m(2) - R(2)) * std::sqrt(dot(P, P) + 1.0) / (P(2) * Physics::c);
     double optimizedPhase = 0.0;
     double finalEnergy    = 0.0;
     double newPhase       = 0.0;

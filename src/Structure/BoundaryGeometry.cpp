@@ -1136,9 +1136,10 @@ int BoundaryGeometry::intersectLineTriangle(
     const Vector_t<double, 3> u = V1 - V0;  // triangle vectors
     const Vector_t<double, 3> v = V2 - V0;
     const Vector_t<double, 3> n = cross(u, v);
-    if (n == (Vector_t<double, 3>)0)  // triangle is degenerate
-        return -1;                    // do not deal with this case
-
+    /* ADA
+    if (n == (Vector_t<double, 3>(0)))  // triangle is degenerate
+        return -1;                      // do not deal with this case
+    */
     const Vector_t<double, 3> dir = P1 - P0;  // ray direction vector
     const Vector_t<double, 3> w0  = P0 - V0;
     const double a                = -dot(n, w0);
@@ -1837,8 +1838,9 @@ Change orientation if diff is:
                 The dot product is positiv only if both vectors are
                 pointing in the same direction.
             */
-            const bool is_inside = isInside(bg, P);
-            const double dotPA_N = dot(P - A, triNormal);
+            const bool is_inside        = isInside(bg, P);
+            const Vector_t<double, 3> d = P - A;
+            const double dotPA_N        = dot(d, triNormal);
             return (is_inside && dotPA_N >= 0) || (!is_inside && dotPA_N < 0);
         }
 
@@ -2027,7 +2029,7 @@ edge_found:
     *gmsg << level2 << "* Triangle barycent built done" << endl;
 
     *gmsg << *this << endl;
-    Ippl::Comm->barrier();
+    ippl::Comm->barrier();
     IpplTimings::stopTimer(Tinitialize_m);
 }
 
@@ -2253,8 +2255,10 @@ int BoundaryGeometry::partInside(
     int ret = -1;  // result defaults to no collision
 
     // nothing to do if momenta == 0
+    /* ADA
     if (v == (Vector_t<double, 3>)0)
         return ret;
+    */
 
     IpplTimings::startTimer(TPartInside_m);
 
@@ -2337,7 +2341,7 @@ Inform& BoundaryGeometry::printInfo(Inform& os) const {
            << "* L1                        " << Attributes::getReal(itsAttr[L1]) << '\n'
            << "* L2                        " << Attributes::getReal(itsAttr[L2]) << '\n';
     }
-    os << "* Total triangle num        " << Triangles_m.size() << '\n'
+    /* ADA os << "* Total triangle num        " << Triangles_m.size() << '\n'
        << "* Total points num          " << Points_m.size() << '\n'
        << "* Geometry bounds(m) Max =  " << maxExtent_m << '\n'
        << "*                    Min =  " << minExtent_m << '\n'
@@ -2345,6 +2349,7 @@ Inform& BoundaryGeometry::printInfo(Inform& os) const {
        << "* Resolution of voxel mesh  " << voxelMesh_m.nr_m << '\n'
        << "* Size of voxel             " << voxelMesh_m.sizeOfVoxel << '\n'
        << "* Number of voxels in mesh  " << voxelMesh_m.ids.size() << endl;
+    */
     os << "* ********************************************************************************** "
        << endl;
     return os;

@@ -223,17 +223,19 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         if (((pathLength_m > 0.0 && pathLength_m < zstop_m) || dt_m < 0.0)
             && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
             && !OpalData::getInstance()->isOptimizerRun()) {
+            const Vector<double, 3> d = r_m - oldR;
+
             logger_m << std::setw(18) << std::setprecision(8)
-                     << pathLength_m + std::copysign(euclidean_norm(r_m - oldR), dt_m)
-                     << std::setw(18) << std::setprecision(8) << r_m(0) << std::setw(18)
-                     << std::setprecision(8) << r_m(1) << std::setw(18) << std::setprecision(8)
-                     << r_m(2) << std::setw(18) << std::setprecision(8) << p_m(0) << std::setw(18)
-                     << std::setprecision(8) << p_m(1) << std::setw(18) << std::setprecision(8)
-                     << p_m(2) << std::setw(18) << std::setprecision(8) << Ef(0) << std::setw(18)
-                     << std::setprecision(8) << Ef(1) << std::setw(18) << std::setprecision(8)
-                     << Ef(2) << std::setw(18) << std::setprecision(8) << Bf(0) << std::setw(18)
-                     << std::setprecision(8) << Bf(1) << std::setw(18) << std::setprecision(8)
-                     << Bf(2) << std::setw(18) << std::setprecision(8)
+                     << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
+                     << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
+                     << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2) << std::setw(18)
+                     << std::setprecision(8) << p_m(0) << std::setw(18) << std::setprecision(8)
+                     << p_m(1) << std::setw(18) << std::setprecision(8) << p_m(2) << std::setw(18)
+                     << std::setprecision(8) << Ef(0) << std::setw(18) << std::setprecision(8)
+                     << Ef(1) << std::setw(18) << std::setprecision(8) << Ef(2) << std::setw(18)
+                     << std::setprecision(8) << Bf(0) << std::setw(18) << std::setprecision(8)
+                     << Bf(1) << std::setw(18) << std::setprecision(8) << Bf(2) << std::setw(18)
+                     << std::setprecision(8)
                      << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
                      << std::setw(18) << std::setprecision(8) << (time_m + 0.5 * dt_m) * Units::s2ns
                      << names << std::endl;
@@ -244,7 +246,9 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         integrator_m.push(r_m, p_m, dt_m);
         r_m = r_m * Physics::c * dt_m;
 
-        pathLength_m += std::copysign(euclidean_norm(r_m - oldR), dt_m);
+        const Vector<double, 3> d = r_m - oldR;
+
+        pathLength_m += std::copysign(euclidean_norm(d), dt_m);
         ++currentStep_m;
         time_m += dt_m;
 
@@ -446,14 +450,17 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
+    /* ADA
     for (const Vector_t<double, 3>& pos : {r_m - 10 * dR, r_m + 10 * dR}) {
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
+    */
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
     const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
     const Vector_t<double, 3>& direction) const {
+    /*
     if (elements.empty()
         || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
         boost::optional<Vector_t<double, 3>> intersectionPoint =
@@ -461,6 +468,6 @@ double OrbitThreader::computeDriftLengthToBoundingBox(
 
         return intersectionPoint ? euclidean_norm(intersectionPoint.get() - position) : 10.0;
     }
-
+    */
     return std::numeric_limits<double>::max();
 }

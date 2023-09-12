@@ -19,7 +19,6 @@
 #define USEFULFUNCTIONS
 
 #include "Algorithms/Quaternion.h"
- 
 
 #include <algorithm>
 #include <cmath>
@@ -42,7 +41,7 @@ namespace Util {
     double erfinv(double x);
 
     inline double getGamma(Vector_t<double, 3> p) {
-        return std::sqrt(dot(p, p).apply() + 1.0);
+        return std::sqrt(dot(p, p) + 1.0);
     }
 
     inline Vector_t<double, 3> getBeta(Vector_t<double, 3> p) {

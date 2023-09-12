@@ -46,8 +46,8 @@ public:
 
         bool isNaN = false;
         for (int j = 0; j < 3; ++j) {
-            if (std::isnan(bunch->R[i](j)) || std::isnan(bunch->P[i](j))
-                || std::abs(bunch->R[i](j)) > 1.0e10 || std::abs(bunch->P[i](j)) > 1.0e10) {
+            if (std::isnan(bunch->R(i)[j]) || std::isnan(bunch->P(i)[j])
+                || std::abs(bunch->R(i)[j]) > 1.0e10 || std::abs(bunch->P(i)[j]) > 1.0e10) {
                 isNaN = true;
                 break;
             }
@@ -55,7 +55,7 @@ public:
 
         bool isBad = (!isGood || isNaN);
         if (isBad) {
-            bunch->Bin[i] = -1;
+            bunch->Bin(i) = -1;
         }
         return isBad;
     };

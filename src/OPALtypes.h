@@ -1,8 +1,7 @@
 #ifndef OPAL_TYPES_HH
 #define OPAL_TYPES_HH
 
-#include "Ippl.h"
-
+#include <mpi.h>
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 #include <csignal>
@@ -11,11 +10,8 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "Algorithms/PartBunch.h"
-#include "Solver/ElectrostaticsCG.h"
-#include "Solver/FFTPeriodicPoissonSolver.h"
-#include "Solver/FFTPoissonSolver.h"
-#include "Solver/P3MSolver.h"
+#include "Communicate/Operations.h"
+#include "Ippl.h"
 
 // some typedefs
 template <unsigned Dim = 3>
@@ -38,6 +34,9 @@ using Vector = ippl::Vector<T, Dim>;
 template <typename T, unsigned Dim = 3, class... ViewArgs>
 using Field = ippl::Field<T, Dim, Mesh_t<Dim>, Centering_t<Dim>, ViewArgs...>;
 
+template <unsigned Dim, class... ViewArgs>
+using Field_t = Field<double, Dim, ViewArgs...>;
+
 template <typename T = double, unsigned Dim = 3>
 using ORB = ippl::OrthogonalRecursiveBisection<Field<double, Dim>, T>;
 
@@ -53,39 +52,55 @@ using Field_t = Field<double, Dim, ViewArgs...>;
 template <typename T = double, unsigned Dim = 3, class... ViewArgs>
 using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
 
-// heFFTe does not support 1D FFTs, so we switch to CG in the 1D case
-template <typename T = double, unsigned Dim = 3>
-using CGSolver_t = ippl::ElectrostaticsCG<Field<T, Dim>, Field_t<Dim>>;
-
-using ippl::detail::ConditionalType, ippl::detail::VariantFromConditionalTypes;
-
-template <typename T = double, unsigned Dim = 3>
-using FFTSolver_t = ConditionalType<
-    Dim == 2 || Dim == 3, ippl::FFTPeriodicPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
-template <typename T = double, unsigned Dim = 3>
-using P3MSolver_t = ConditionalType<Dim == 3, ippl::P3MSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
-template <typename T = double, unsigned Dim = 3>
-using OpenSolver_t =
-    ConditionalType<Dim == 3, ippl::FFTPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
-template <typename T = double, unsigned Dim = 3>
-using Solver_t = VariantFromConditionalTypes<
-    CGSolver_t<T, Dim>, FFTSolver_t<T, Dim>, P3MSolver_t<T, Dim>, OpenSolver_t<T, Dim>>;
-
 typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
 
 enum UnitState_t { units = 0, unitless = 1 };
 
 #include "Algorithms/PartBunch.h"
 
-typedef PartBunch<PLayout_t<double, 3>, double, 3> PartBunch_t;
+// typedef PartBunch<PLayout_t<double, 3>, double, 3> PartBunch_t;
 
 // euclidean norm
 template <class T, unsigned D>
 inline double euclidean_norm(const Vector_t<T, D>& v) {
     return std::sqrt(dot(v, v).apply());
+}
+
+// dot product
+template <class T, unsigned D>
+inline double dot(const Vector_t<T, D>& v, const Vector_t<T, D>& w) {
+    T res = 0.0;
+    for (unsigned i = 0; i < D; i++)
+        res += v(i) * w(i);
+    return std::sqrt(res);
+}
+
+template <typename T, class Op>
+void allreduce(const T* input, T* output, int count, Op op) {
+    MPI_Datatype type = get_mpi_datatype<T>(*input);
+
+    MPI_Op mpiOp = get_mpi_op<Op>(op);
+
+    MPI_Allreduce(const_cast<T*>(input), output, count, type, mpiOp, ippl::Comm->getCommunicator());
+}
+
+template <typename T, class Op>
+void allreduce(const T& input, T& output, int count, Op op) {
+    allreduce(&input, &output, count, op);
+}
+
+template <typename T, class Op>
+void allreduce(T* inout, int count, Op op) {
+    MPI_Datatype type = get_mpi_datatype<T>(*inout);
+
+    MPI_Op mpiOp = get_mpi_op<Op>(op);
+
+    MPI_Allreduce(MPI_IN_PLACE, inout, count, type, mpiOp, ippl::Comm->getCommunicator());
+}
+
+template <typename T, class Op>
+void allreduce(T& inout, int count, Op op) {
+    allreduce(&inout, count, op);
 }
 
 #endif

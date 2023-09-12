@@ -229,7 +229,7 @@ void ParallelCyclotronTracker::computePathLengthUpdate(std::vector<double>& dl, 
             dotP[itsBunch_m->bunchNum[i]] += dot(itsBunch_m->P[i], itsBunch_m->P[i]);
         }
 
-        allreduce(dotP.data(), dotP.size(), std::plus<double>());
+        // ADA allreduce(dotP.data(), dotP.size(), std::plus<double>());
 
         // dot-product over all particles
         double sum  = std::accumulate(dotP.begin(), dotP.end() - 1, 0);
@@ -2122,7 +2122,7 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate) {
         return false;
     }
 
-    allreduce(flagNeedUpdate, 1, std::logical_or<bool>());
+    // ADA allreduce(flagNeedUpdate, 1, std::logical_or<bool>());
 
     if (flagNeedUpdate) {
         short bunchCount = itsBunch_m->getNumBunch();
@@ -2176,7 +2176,7 @@ bool ParallelCyclotronTracker::deleteParticle(bool flagNeedUpdate) {
         std::vector<size_t> totalnum(bunchCount + 1);
         localnum[bunchCount] = itsBunch_m->getLocalNum();
 
-        allreduce(localnum.data(), totalnum.data(), localnum.size(), std::plus<size_t>());
+        // ADA allreduce(localnum.data(), totalnum.data(), localnum.size(), std::plus<size_t>());
         itsBunch_m->setTotalNum(totalnum[bunchCount]);
 
         for (short i = 0; i < bunchCount; ++i) {
@@ -2439,7 +2439,7 @@ void ParallelCyclotronTracker::checkFileMomentum() {
         pTotalMean += euclidean_norm(itsBunch_m->P[i]);
     }
 
-    allreduce(pTotalMean, 1, std::plus<double>());
+    // ADA allreduce(pTotalMean, 1, std::plus<double>());
 
     pTotalMean /= initialTotalNum_m;
     double tolerance = itsReference.getMomentumTolerance();
