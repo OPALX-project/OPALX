@@ -35,7 +35,7 @@
 //#define FIELDSTDOUT
 
 PartBunch::PartBunch(const PartData *ref): // Layout is set using setSolver()
-    PartBunch<double, 3>(new PartBunch::pbase_t(new Layout_t()), ref),
+    PartBunch_t(new PartBunch::pbase_t(new Layout_t()), ref),
     interpolationCacheSet_m(false)
 {
 
@@ -451,7 +451,7 @@ void PartBunch::setBCAllPeriodic() {
         getBConds()[i] =  ParticlePeriodicBCond;
     }
     dcBeam_m=true;
-    INFOMSG(level3 << "BC set P3M, all periodic" << endl);
+    *ippl::Info << level3 << "BC set P3M, all periodic" << endl);
 }
 
 void PartBunch::setBCAllOpen() {
@@ -461,7 +461,7 @@ void PartBunch::setBCAllOpen() {
         getBConds()[i] = ParticleNoBCond;
     }
     dcBeam_m=false;
-    INFOMSG(level3 << "BC set for normal Beam" << endl);
+    *ippl::Info << level3 << "BC set for normal Beam" << endl);
 }
 
 void PartBunch::setBCForDCBeam() {
@@ -483,7 +483,7 @@ void PartBunch::setBCForDCBeam() {
         }
     }
     dcBeam_m=true;
-    INFOMSG(level3 << "BC set for DC-Beam, longitudinal periodic" << endl);
+    *ippl::Info << level3 << "BC set for DC-Beam, longitudinal periodic" << endl);
 }
 
 
@@ -512,7 +512,7 @@ PartBunch::VectorPair_t PartBunch::getEExtrema() {
     const Vector_t<double, 3> maxE = max(eg_m);
     //      const double maxL = max(dot(eg_m,eg_m));
     const Vector_t<double, 3> minE = min(eg_m);
-    // INFOMSG("MaxE= " << maxE << " MinE= " << minE << endl);
+    // *ippl::Info << "MaxE= " << maxE << " MinE= " << minE << endl);
     return VectorPair_t(maxE, minE);
 }
 
@@ -528,7 +528,7 @@ void PartBunch::resetInterpolationCache(bool clearCache) {
 void PartBunch::swap(unsigned int i, unsigned int j) {
 
     // FIXME
-    PartBunch<double, 3>::swap(i, j);
+    PartBunch_t::swap(i, j);
 
     if (interpolationCacheSet_m)
         std::swap(interpolationCache_m[i], interpolationCache_m[j]);
@@ -536,5 +536,5 @@ void PartBunch::swap(unsigned int i, unsigned int j) {
 
 
 Inform &PartBunch::print(Inform &os) {
-    return PartBunch<double, 3>::print(os);
+    return PartBunch_t::print(os);
 }

@@ -16,44 +16,40 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/System.h"
+#include "Ippl.h"
 
 #include "Attributes/Attributes.h"
 #include "Utility/IpplInfo.h"
 
 #include <cstdlib>
 
-System::System():
-    Action(1, "SYSTEM",
-           "The \"SYSTEM\" statement sends a command string to the "
-           "operating system.") {
-    itsAttr[0] = Attributes::makeString
-                 ("CMD", "A system command to be executed");
+System::System()
+    : Action(
+        1, "SYSTEM",
+        "The \"SYSTEM\" statement sends a command string to the "
+        "operating system.") {
+    itsAttr[0] = Attributes::makeString("CMD", "A system command to be executed");
 
     registerOwnership(AttributeHandler::COMMAND);
 }
 
+System::System(const std::string& name, System* parent) : Action(name, parent) {
+}
 
-System::System(const std::string& name, System* parent):
-    Action(name, parent)
-{}
-
-
-System::~System()
-{}
-
+System::~System() {
+}
 
 System* System::clone(const std::string& name) {
     return new System(name, this);
 }
-
 
 void System::execute() {
     if (ippl::Comm->rank() == 0) {
         std::string command = Attributes::getString(itsAttr[0]);
 
         int res = system(command.c_str());
-        if (res!=0)
-            ERRORMSG("SYSTEM call failed" << endl);
+        if (res != 0)
+            *ippl::Error << "SYSTEM call failed" << endl;
     }
 }
 

@@ -353,7 +353,7 @@ void PartBunch<T, Dim>::boundp() {
         if (volume < 1e-21 && getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
             WARNMSG(level1 << "!!! Extremely high particle density detected !!!" << endl);
         }
-        //INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
+        //*ippl::Info << "It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m << endl);
 
         if (hr_m[0] * hr_m[1] * hr_m[2] <= 0) {
             throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");

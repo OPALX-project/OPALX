@@ -6,8 +6,8 @@
 //   The radii are written in ASCII format to a file.
 //   This class is used for the cyclotron probe element.
 //
-// Copyright (c) 2017 - 2021, Matthias Frey, Jochem Snuverink, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
+// Copyright (c) 2017 - 2021, Matthias Frey, Jochem Snuverink, Paul Scherrer Institut, Villigen PSI,
+// Switzerland All rights reserved
 //
 // This file is part of OPAL.
 //
@@ -22,20 +22,18 @@
 #ifndef PEAKFINDER_H
 #define PEAKFINDER_H
 
-#include "Algorithms/Vektor.h"
+#include "OPALtypes.h"
 
 #include <fstream>
+#include <list>
 #include <string>
 #include <vector>
-#include <list>
 
 class PeakFinder {
-
 public:
     using container_t = std::vector<double>;
 
 public:
-
     PeakFinder() = delete;
 
     PeakFinder(std::string elem, double min, double max, double binwidth, bool singlemode);
@@ -54,7 +52,6 @@ public:
     void save();
 
 private:
-
     // compute global histogram, involves some inter-node communication
     void createHistogram_m();
 

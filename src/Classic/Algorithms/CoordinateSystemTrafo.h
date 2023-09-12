@@ -3,7 +3,7 @@
 
 #include "Algorithms/BoostMatrix.h"
 #include "Algorithms/Quaternion.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Ippl.h"
 
 class CoordinateSystemTrafo {

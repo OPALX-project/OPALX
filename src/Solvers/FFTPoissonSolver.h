@@ -21,7 +21,6 @@
 #ifndef FFT_POISSON_SOLVER_H_
 #define FFT_POISSON_SOLVER_H_
 
-
 #ifdef dontOPTIMIZE_FIELD_ASSIGNMENT
 #define FIELDASSIGNOPTIMIZATION __attribute__((optimize(0)))
 #else
@@ -40,47 +39,65 @@ class PartBunch;
 
 class FFTPoissonSolver : public PoissonSolver {
 public:
-    typedef FFT<RCTransform, 3, double>              FFT_t;
+    typedef FFT<RCTransform, 3, double> FFT_t;
 
     // constructor and destructor
-    FFTPoissonSolver(PartBunch &bunch, std::string greensFuntion);
+    FFTPoissonSolver(PartBunch& bunch, std::string greensFuntion);
 
-    FFTPoissonSolver(Mesh_t *mesh, FieldLayout_t *fl, std::string greensFunction, std::string bcz);
+    FFTPoissonSolver(Mesh_t* mesh, FieldLayout_t* fl, std::string greensFunction, std::string bcz);
 
     ~FFTPoissonSolver();
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential with image charges at  -z
-    void computePotential(Field_t &rho, Vector_t<double, 3> hr, double zshift);
+    void computePotential(Field_t& rho, Vector_t<double, 3> hr, double zshift);
 
     // given a charge-density field rho and a set of mesh spacings hr,
     // compute the scalar potential in open space
-    void computePotential(Field_t &rho, Vector_t<double, 3> hr);
+    void computePotential(Field_t& rho, Vector_t<double, 3> hr);
 
     // compute the green's function for a Poisson problem and put it in in grntm_m
     // uses grnIField_m to eliminate excess calculation in greenFunction()
     // given mesh information in nr and hr
     void greensFunction();
 
-    /// compute the integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
+    /// compute the integrated Green function as described in <A
+    /// HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic
+    /// model for high brightness beam dynamics simulation</A> by Qiang et al.
     void integratedGreensFunction();
 
-    /// compute the shifted integrated Green function as described in <A HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic model for high brightness beam dynamics simulation</A> by Qiang et al.
+    /// compute the shifted integrated Green function as described in <A
+    /// HREF="http://prst-ab.aps.org/abstract/PRSTAB/v9/i4/e044204">Three-dimensional quasistatic
+    /// model for high brightness beam dynamics simulation</A> by Qiang et al.
     void shiftedIntGreensFunction(double zshift);
 
-    double getXRangeMin(unsigned short /*level*/) {return 1.0;}
-    double getXRangeMax(unsigned short /*level*/) {return 1.0;}
-    double getYRangeMin(unsigned short /*level*/) {return 1.0;}
-    double getYRangeMax(unsigned short /*level*/) {return 1.0;}
-    double getZRangeMin(unsigned short /*level*/) {return 1.0;}
-    double getZRangeMax(unsigned short /*level*/) {return 1.0;}
-    void test(PartBunch<double, 3> */*bunch*/) { }
+    double getXRangeMin(unsigned short /*level*/) {
+        return 1.0;
+    }
+    double getXRangeMax(unsigned short /*level*/) {
+        return 1.0;
+    }
+    double getYRangeMin(unsigned short /*level*/) {
+        return 1.0;
+    }
+    double getYRangeMax(unsigned short /*level*/) {
+        return 1.0;
+    }
+    double getZRangeMin(unsigned short /*level*/) {
+        return 1.0;
+    }
+    double getZRangeMax(unsigned short /*level*/) {
+        return 1.0;
+    }
+    void test(PartBunch_t* /*bunch*/) {
+    }
 
-    Inform &print(Inform &os) const;
+    Inform& print(Inform& os) const;
+
 private:
     void initializeFields();
     void mirrorRhoField() FIELDASSIGNOPTIMIZATION;
-    void mirrorRhoField(Field_t & ggrn2);// FIELDASSIGNOPTIMIZATION;
+    void mirrorRhoField(Field_t& ggrn2);  // FIELDASSIGNOPTIMIZATION;
 
     // rho2_m is the charge-density field with mesh doubled in each dimension
     Field_t rho2_m;
@@ -105,8 +122,8 @@ private:
     std::unique_ptr<FFT_t> fft_m;
 
     // mesh and layout objects for rho_m
-    Mesh_t *mesh_m;
-    FieldLayout_t *layout_m;
+    Mesh_t* mesh_m;
+    FieldLayout_t* layout_m;
 
     // mesh and layout objects for rho2_m
     std::unique_ptr<Mesh_t> mesh2_m;
@@ -124,18 +141,18 @@ private:
     Field_t tmpgreen_m;
 
     // domains for the various fields
-    NDIndex<3> domain_m;             // original domain, gridsize
+    NDIndex<3> domain_m;  // original domain, gridsize
     // mesh and gridsize defined outside of FFT class, given as
     // parameter to the constructor (mesh and layout object).
-    NDIndex<3> domain2_m;            // doubled gridsize (2*Nx,2*Ny,2*Nz)
-    NDIndex<3> domain3_m;            // field for the complex values of the RC transformation
+    NDIndex<3> domain2_m;  // doubled gridsize (2*Nx,2*Ny,2*Nz)
+    NDIndex<3> domain3_m;  // field for the complex values of the RC transformation
     NDIndex<3> domain4_m;
     // (2*Nx,Ny,2*Nz)
     NDIndex<3> domainFFTConstruct_m;
 
     // mesh spacing and size values
     Vector_t<double, 3> hr_m;
-    Vektor<int, 3> nr_m;
+    Vector_t<int, 3> nr_m;
 
     /// for defining the boundary conditions
     BConds<double, 3, Mesh_t, Center_t> bc_m;
@@ -144,28 +161,26 @@ private:
     bool bcz_m;
     bool integratedGreens_m;
     IpplTimings::TimerRef GreensFunctionTimer_m;
-  /*
-    IpplTimings::TimerRef IntGreensFunctionTimer1_m;
-    IpplTimings::TimerRef IntGreensFunctionTimer2_m;
-    IpplTimings::TimerRef IntGreensFunctionTimer3_m;
-    IpplTimings::TimerRef IntGreensMirrorTimer1_m;
+    /*
+      IpplTimings::TimerRef IntGreensFunctionTimer1_m;
+      IpplTimings::TimerRef IntGreensFunctionTimer2_m;
+      IpplTimings::TimerRef IntGreensFunctionTimer3_m;
+      IpplTimings::TimerRef IntGreensMirrorTimer1_m;
 
-    IpplTimings::TimerRef ShIntGreensFunctionTimer1_m;
-    IpplTimings::TimerRef ShIntGreensFunctionTimer2_m;
-    IpplTimings::TimerRef ShIntGreensFunctionTimer3_m;
-    IpplTimings::TimerRef ShIntGreensFunctionTimer4_m;
-    IpplTimings::TimerRef IntGreensMirrorTimer2_m;
+      IpplTimings::TimerRef ShIntGreensFunctionTimer1_m;
+      IpplTimings::TimerRef ShIntGreensFunctionTimer2_m;
+      IpplTimings::TimerRef ShIntGreensFunctionTimer3_m;
+      IpplTimings::TimerRef ShIntGreensFunctionTimer4_m;
+      IpplTimings::TimerRef IntGreensMirrorTimer2_m;
 
-    IpplTimings::TimerRef GreensFunctionTimer1_m;
-    IpplTimings::TimerRef GreensFunctionTimer4_m;
-  */
+      IpplTimings::TimerRef GreensFunctionTimer1_m;
+      IpplTimings::TimerRef GreensFunctionTimer4_m;
+    */
     IpplTimings::TimerRef ComputePotential_m;
 };
 
-inline Inform &operator<<(Inform &os, const FFTPoissonSolver &fs) {
+inline Inform& operator<<(Inform& os, const FFTPoissonSolver& fs) {
     return fs.print(os);
 }
-
-
 
 #endif

@@ -127,7 +127,7 @@ namespace mslang {
         }
 
         if (!boost::filesystem::exists(filename)) {
-            ERRORMSG("file '" << filename << "' doesn't exists" << endl);
+            *ippl::Error << "file '" << filename << "' doesn't exists" << endl;
             return false;
         }
 

@@ -19,62 +19,48 @@
 #include "Fields/FM3DMagnetoStaticH5Block.h"
 #include "Utilities/GeneralClassicException.h"
 
-FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block (
-    std::string aFilename
-    ) : Fieldmap (
-        aFilename),
-    FM3DH5BlockBase (
-        ) {
-        Type = T3DMagnetoStaticH5Block;
+FM3DMagnetoStaticH5Block::FM3DMagnetoStaticH5Block(std::string aFilename)
+    : Fieldmap(aFilename), FM3DH5BlockBase() {
+    Type = T3DMagnetoStaticH5Block;
 
-        openFileMPIOCollective (aFilename);
-        getFieldInfo ("Efield");
-        getResonanceFrequency ();
-        closeFile ();
+    openFileMPIOCollective(aFilename);
+    getFieldInfo("Efield");
+    getResonanceFrequency();
+    closeFile();
 }
 
-FM3DMagnetoStaticH5Block::~FM3DMagnetoStaticH5Block (
-    ) {
-    freeMap ();
+FM3DMagnetoStaticH5Block::~FM3DMagnetoStaticH5Block() {
+    freeMap();
 }
 
-void FM3DMagnetoStaticH5Block::readMap (
-    ) {
+void FM3DMagnetoStaticH5Block::readMap() {
     if (!FieldstrengthEz_m.empty()) {
         return;
     }
-    openFileMPIOCollective (Filename_m);
-    long long last_step = getNumSteps () - 1;
-    setStep (last_step);
+    openFileMPIOCollective(Filename_m);
+    long long last_step = getNumSteps() - 1;
+    setStep(last_step);
 
     size_t field_size = num_gridpx_m * num_gridpy_m * num_gridpz_m;
-    FieldstrengthEx_m.resize (field_size);
-    FieldstrengthEy_m.resize (field_size);
-    FieldstrengthEz_m.resize (field_size);
-    FieldstrengthBx_m.resize (field_size);
-    FieldstrengthBy_m.resize (field_size);
-    FieldstrengthBz_m.resize (field_size);
+    FieldstrengthEx_m.resize(field_size);
+    FieldstrengthEy_m.resize(field_size);
+    FieldstrengthEz_m.resize(field_size);
+    FieldstrengthBx_m.resize(field_size);
+    FieldstrengthBy_m.resize(field_size);
+    FieldstrengthBz_m.resize(field_size);
 
-    readField (
-        "Efield",
-        &(FieldstrengthEx_m[0]),
-        &(FieldstrengthEy_m[0]),
-        &(FieldstrengthEz_m[0]));
-    readField (
-        "Bfield",
-        &(FieldstrengthBx_m[0]),
-        &(FieldstrengthBy_m[0]),
-        &(FieldstrengthBz_m[0]));
+    readField("Efield", &(FieldstrengthEx_m[0]), &(FieldstrengthEy_m[0]), &(FieldstrengthEz_m[0]));
+    readField("Bfield", &(FieldstrengthBx_m[0]), &(FieldstrengthBy_m[0]), &(FieldstrengthBz_m[0]));
 
-    closeFile ();
-    INFOMSG (level3
-             << typeset_msg("3d magneto static fieldmap '"
-                            + Filename_m  + "' (H5hut format) read", "info")
-             << endl);
+    closeFile();
+    *ippl::Info << level3
+                << typeset_msg(
+                       "3d magneto static fieldmap '" + Filename_m + "' (H5hut format) read",
+                       "info")
+                << endl;
 }
-void FM3DMagnetoStaticH5Block::freeMap (
-    ) {
-    if(FieldstrengthEz_m.empty()) {
+void FM3DMagnetoStaticH5Block::freeMap() {
+    if (FieldstrengthEz_m.empty()) {
         return;
     }
     FieldstrengthEx_m.clear();
@@ -83,27 +69,20 @@ void FM3DMagnetoStaticH5Block::freeMap (
     FieldstrengthBx_m.clear();
     FieldstrengthBy_m.clear();
     FieldstrengthBz_m.clear();
-    INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info")
-            << endl);
+    *ippl::Info << level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << endl;
 }
 
-bool FM3DMagnetoStaticH5Block::getFieldstrength (
-    const Vector_t<double, 3>& R,
-    Vector_t<double, 3>& E,
-    Vector_t<double, 3>& B
-    ) const {
+bool FM3DMagnetoStaticH5Block::getFieldstrength(
+    const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (!isInside(R)) {
         return true;
     }
-    E += interpolateTrilinearly (
-        FieldstrengthEx_m, FieldstrengthEy_m, FieldstrengthEz_m, R);
-    B += interpolateTrilinearly (
-        FieldstrengthBx_m, FieldstrengthBy_m, FieldstrengthBz_m, R);
+    E += interpolateTrilinearly(FieldstrengthEx_m, FieldstrengthEy_m, FieldstrengthEz_m, R);
+    B += interpolateTrilinearly(FieldstrengthBx_m, FieldstrengthBy_m, FieldstrengthBz_m, R);
 
     return false;
 }
 
-double FM3DMagnetoStaticH5Block::getFrequency (
-    ) const {
+double FM3DMagnetoStaticH5Block::getFrequency() const {
     return 0.0;
 }

@@ -24,7 +24,7 @@
 
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/StepSizeConfig.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Elements/OpalBeamline.h"
 #include "Steppers/BorisPusher.h"
 #include "Structure/BoundingBox.h"

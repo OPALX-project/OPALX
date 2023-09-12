@@ -19,7 +19,7 @@
 #define USEFULFUNCTIONS
 
 #include "Algorithms/Quaternion.h"
-#include "Algorithms/Vektor.h"
+ 
 
 #include <algorithm>
 #include <cmath>

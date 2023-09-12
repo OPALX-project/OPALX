@@ -28,22 +28,17 @@
 
 #include <queue>
 
-
 SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
-    : fname_m(fname)
-    , mode_m(std::ios::out)
-    , indent_m("        ")
-{
+    : fname_m(fname), mode_m(std::ios::out), indent_m("        ") {
     namespace fs = boost::filesystem;
 
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        INFOMSG("* Appending data to existing data file: '" << fname_m << "'" << endl);
+        *ippl::Info << "* Appending data to existing data file: '" << fname_m << "'" << endl;
     } else {
-        INFOMSG("* Creating new file for data: '" << fname_m << "'" << endl);
+        *ippl::Info << "* Creating new file for data: '" << fname_m << "'" << endl;
     }
 }
-
 
 void SDDSWriter::rewindLines(size_t numberOfLines) {
     if (numberOfLines == 0 || ippl::Comm->rank() != 0) {
@@ -54,19 +49,20 @@ void SDDSWriter::rewindLines(size_t numberOfLines) {
     std::queue<std::string> allLines;
     std::fstream fs;
 
-    fs.open (fname_m.c_str(), std::fstream::in);
+    fs.open(fname_m.c_str(), std::fstream::in);
 
-    if (!fs.is_open()) return;
+    if (!fs.is_open())
+        return;
 
     while (getline(fs, line)) {
         allLines.push(line);
     }
     fs.close();
 
+    fs.open(fname_m.c_str(), std::fstream::out);
 
-    fs.open (fname_m.c_str(), std::fstream::out);
-
-    if (!fs.is_open()) return;
+    if (!fs.is_open())
+        return;
 
     while (allLines.size() > numberOfLines) {
         fs << allLines.front() << "\n";
@@ -75,9 +71,7 @@ void SDDSWriter::rewindLines(size_t numberOfLines) {
     fs.close();
 }
 
-
 void SDDSWriter::replaceVersionString() {
-
     if (ippl::Comm->rank() != 0)
         return;
 
@@ -90,19 +84,20 @@ void SDDSWriter::replaceVersionString() {
     std::queue<std::string> allLines;
     std::fstream fs;
 
-    fs.open (fname_m.c_str(), std::fstream::in);
+    fs.open(fname_m.c_str(), std::fstream::in);
 
-    if (!fs.is_open()) return;
+    if (!fs.is_open())
+        return;
 
     while (getline(fs, line)) {
         allLines.push(line);
     }
     fs.close();
 
+    fs.open(fname_m.c_str(), std::fstream::out);
 
-    fs.open (fname_m.c_str(), std::fstream::out);
-
-    if (!fs.is_open()) return;
+    if (!fs.is_open())
+        return;
 
     while (!allLines.empty()) {
         line = allLines.front();
@@ -110,8 +105,7 @@ void SDDSWriter::replaceVersionString() {
         if (line != versionFile) {
             fs << line << "\n";
         } else {
-            fs << OPAL_PROJECT_NAME << " "
-               << OPAL_PROJECT_VERSION << " git rev. #"
+            fs << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #"
                << Util::getGitRevision() << "\n";
         }
 
@@ -121,7 +115,6 @@ void SDDSWriter::replaceVersionString() {
     fs.close();
 }
 
-
 double SDDSWriter::getLastValue(const std::string& column) {
     SDDS::SDDSParser parser(fname_m);
     parser.run();
@@ -130,9 +123,8 @@ double SDDSWriter::getLastValue(const std::string& column) {
     return val;
 }
 
-
 void SDDSWriter::open() {
-    if ( ippl::Comm->rank() != 0 || os_m.is_open() )
+    if (ippl::Comm->rank() != 0 || os_m.is_open())
         return;
 
     os_m.open(fname_m.c_str(), mode_m);
@@ -140,16 +132,14 @@ void SDDSWriter::open() {
     os_m.setf(std::ios::scientific, std::ios::floatfield);
 }
 
-
 void SDDSWriter::close() {
-    if ( ippl::Comm->rank() == 0 && os_m.is_open() ) {
+    if (ippl::Comm->rank() == 0 && os_m.is_open()) {
         os_m.close();
     }
 }
 
-
 void SDDSWriter::writeHeader() {
-    if ( ippl::Comm->rank() != 0 || mode_m == std::ios::app )
+    if (ippl::Comm->rank() != 0 || mode_m == std::ios::app)
         return;
 
     this->writeDescription();
@@ -163,7 +153,6 @@ void SDDSWriter::writeHeader() {
     mode_m = std::ios::app;
 }
 
-
 void SDDSWriter::writeDescription() {
     os_m << "SDDS1" << std::endl;
     os_m << "&description\n"
@@ -172,9 +161,8 @@ void SDDSWriter::writeDescription() {
          << "&end\n";
 }
 
-
 void SDDSWriter::writeParameters() {
-    while ( !params_m.empty() ) {
+    while (!params_m.empty()) {
         param_t param = params_m.front();
 
         os_m << "&parameter\n"
@@ -187,11 +175,9 @@ void SDDSWriter::writeParameters() {
     }
 }
 
-
 void SDDSWriter::writeColumns() {
     columns_m.writeHeader(os_m, indent_m);
 }
-
 
 void SDDSWriter::writeInfo() {
     os_m << "&data\n"
@@ -210,8 +196,7 @@ void SDDSWriter::writeInfo() {
 
 void SDDSWriter::addDefaultParameters() {
     std::stringstream revision;
-    revision << OPAL_PROJECT_NAME << " "
-             << OPAL_PROJECT_VERSION << " "
+    revision << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " "
              << "git rev. #" << Util::getGitRevision();
 
     std::string flavor;
@@ -223,7 +208,7 @@ void SDDSWriter::addDefaultParameters() {
         flavor = "opal-map";
     }
 
-    addParameter("processors", "long", "Number of Cores used", Ippl::getNodes());
+    addParameter("processors", "long", "Number of Cores used", ippl::Comm->size());
 
     addParameter("revision", "string", "git revision of opal", revision.str());
 

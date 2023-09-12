@@ -21,26 +21,26 @@
 #include "AbstractObjects/Action.h"
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/Object.h"
+#include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ValueDefinition.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
 
-#include "OpalParser/SimpleStatement.h"
-#include "OpalParser/Token.h"
-#include "Utilities/OpalException.h"
-#include "Utilities/ParseError.h"
-#include "Utilities/Options.h"
-#include <memory>
+#include <boost/algorithm/string.hpp>
 #include <cmath>
 #include <ctime>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <new>
-#include <boost/algorithm/string.hpp>
+#include "OpalParser/SimpleStatement.h"
+#include "OpalParser/Token.h"
+#include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
+#include "Utilities/ParseError.h"
 
 #include "Message/GlobalComm.h"
 #include "Utility/Inform.h"
@@ -48,46 +48,42 @@
 
 using namespace Expressions;
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
 // Class OpalParser
 // ------------------------------------------------------------------------
 
 std::vector<std::shared_ptr<TokenStream> > OpalParser::inputStack;
 
+OpalParser::OpalParser() : stopFlag(false) {
+}
 
-OpalParser::OpalParser(): stopFlag(false)
-{}
+OpalParser::~OpalParser() {
+}
 
-
-OpalParser::~OpalParser()
-{}
-
-
-void OpalParser::parse(Statement &stat) const {
-    if(stat.keyword("SHARED")) {
+void OpalParser::parse(Statement& stat) const {
+    if (stat.keyword("SHARED")) {
         // "SHARED ...": Shared object definition.
         parseDefine(stat);
-    } else if(stat.keyword("CONSTANT") || stat.keyword("CONST") ||
-              stat.keyword("BOOL") || stat.keyword("REAL") ||
-              stat.keyword("STRING") || stat.keyword("VECTOR")) {
+    } else if (
+        stat.keyword("CONSTANT") || stat.keyword("CONST") || stat.keyword("BOOL")
+        || stat.keyword("REAL") || stat.keyword("STRING") || stat.keyword("VECTOR")) {
         // Keywords introducing variable definitions.
         parseAssign(stat);
     } else {
         std::string name = parseString(stat, "Identifier or keyword expected.");
 
-        if(stat.delimiter('?')) {
+        if (stat.delimiter('?')) {
             // "<class>?": give help for class.
             printHelp(name);
-        } else if(stat.delimiter(':')) {
+        } else if (stat.delimiter(':')) {
             // "<object>:<class>...": labeled command.
             parseDefine(stat);
-        } else if(stat.delimiter('(')) {
+        } else if (stat.delimiter('(')) {
             // "<macro>(...)...": macro definition or call.
             // We are positioned just after the '(' of the argument list.
             parseMacro(name, stat);
-        } else if(stat.delimiter(',') || stat.delimiter(';') ||
-                  stat.atEnd()) {
+        } else if (stat.delimiter(',') || stat.delimiter(';') || stat.atEnd()) {
             // "<class>" or "<class>,<attributes>": Executable command.
             parseAction(stat);
         } else {
@@ -99,23 +95,21 @@ void OpalParser::parse(Statement &stat) const {
                 Token tok = stat.getCurrent();
                 stat.restore();
 
-                std::string name = tok.getLex();
-                std::string hint = getHint(name);
-                unsigned int position = stat.position();
+                std::string name              = tok.getLex();
+                std::string hint              = getHint(name);
+                unsigned int position         = stat.position();
                 std::string positionIndicator = std::string(position, ' ') + "^\n";
                 std::ostringstream statStr;
                 stat.print(statStr);
                 if (!hint.empty()) {
-                    throw ParseError("OpalParser::parse()",
-                                     statStr.str() +
-                                     positionIndicator +
-                                     "Syntax error, either the keyword REAL is missing or\n" +
-                                     hint);
+                    throw ParseError(
+                        "OpalParser::parse()",
+                        statStr.str() + positionIndicator
+                            + "Syntax error, either the keyword REAL is missing or\n" + hint);
                 } else {
-                    throw ParseError("OpalParser::parse()",
-                                     statStr.str() +
-                                     positionIndicator +
-                                     "Syntax error, the keyword REAL is missing\n");
+                    throw ParseError(
+                        "OpalParser::parse()", statStr.str() + positionIndicator
+                                                   + "Syntax error, the keyword REAL is missing\n");
                 }
             }
             parseAssign(stat);
@@ -123,17 +117,16 @@ void OpalParser::parse(Statement &stat) const {
     }
 }
 
-
-void OpalParser::execute(Object *object, const std::string &name) const {
+void OpalParser::execute(Object* object, const std::string& name) const {
     // Trace execution.
-    if(Options::mtrace && object->shouldTrace()) {
+    if (Options::mtrace && object->shouldTrace()) {
         double time = double(clock()) / double(CLOCKS_PER_SEC);
-        *gmsg << "\nBegin execution: \"" << name
-              << "\", CPU time = " << time << " seconds.\n" << endl;
+        *gmsg << "\nBegin execution: \"" << name << "\", CPU time = " << time << " seconds.\n"
+              << endl;
     }
 
     // Force updating of all attributes which might have been changed.
-    if(object->shouldUpdate()) {
+    if (object->shouldUpdate()) {
         OpalData::getInstance()->update();
     }
 
@@ -141,32 +134,30 @@ void OpalParser::execute(Object *object, const std::string &name) const {
     object->execute();
 
     // Trace execution.
-    if(Options::mtrace && object->shouldTrace()) {
+    if (Options::mtrace && object->shouldTrace()) {
         double time = double(clock()) / double(CLOCKS_PER_SEC);
-        *gmsg << "\nEnd execution:   \"" << name
-              << "\", CPU time = " << time << " seconds.\n" << endl;
+        *gmsg << "\nEnd execution:   \"" << name << "\", CPU time = " << time << " seconds.\n"
+              << endl;
     }
 }
 
-
-Object *OpalParser::find(const std::string &name) const {
+Object* OpalParser::find(const std::string& name) const {
     return OpalData::getInstance()->find(name);
 }
 
-
-void OpalParser::parseAction(Statement &stat) const {
+void OpalParser::parseAction(Statement& stat) const {
     stat.start();
     std::string cmdName = parseString(stat, "Command name expected");
 
-    if(cmdName == "STOP") {
+    if (cmdName == "STOP") {
         stopFlag = true;
-    } else if(cmdName == "QUIT") {
+    } else if (cmdName == "QUIT") {
         stopFlag = true;
-    } else if(cmdName == "HELP"  &&  stat.delimiter(',')) {
+    } else if (cmdName == "HELP" && stat.delimiter(',')) {
         cmdName = parseString(stat, "Object name expected");
         printHelp(cmdName);
-    } else if(Object *object = find(cmdName)) {
-        Object *copy = 0;
+    } else if (Object* object = find(cmdName)) {
+        Object* copy = 0;
         try {
             copy = object->clone("");
             copy->parse(stat);
@@ -180,43 +171,40 @@ void OpalParser::parseAction(Statement &stat) const {
     } else {
         std::string hint = getHint(cmdName, "command");
         if (!hint.empty()) {
-            throw ParseError("OpalParser::parseAction()",
-                             "Syntax error, " + hint);
+            throw ParseError("OpalParser::parseAction()", "Syntax error, " + hint);
         }
 
-        throw ParseError("OpalParser::parseAction()",
-                         "Command \"" + cmdName + "\" is unknown.");
+        throw ParseError("OpalParser::parseAction()", "Command \"" + cmdName + "\" is unknown.");
     }
 }
 
-
-void OpalParser::parseAssign(Statement &stat) const {
+void OpalParser::parseAssign(Statement& stat) const {
     stat.start();
 
     // Find various model objects.
     /*static*/
-    Object *boolConstant   = OpalData::getInstance()->find("BOOL_CONSTANT");
+    Object* boolConstant = OpalData::getInstance()->find("BOOL_CONSTANT");
     /*static*/
-    Object *realConstant   = OpalData::getInstance()->find("REAL_CONSTANT");
+    Object* realConstant = OpalData::getInstance()->find("REAL_CONSTANT");
     /*static*/
-    Object *realVariable   = OpalData::getInstance()->find("REAL_VARIABLE");
+    Object* realVariable = OpalData::getInstance()->find("REAL_VARIABLE");
     /*static*/
-    Object *realVector     = OpalData::getInstance()->find("REAL_VECTOR");
+    Object* realVector = OpalData::getInstance()->find("REAL_VECTOR");
     /*static*/
-    Object *stringConstant = OpalData::getInstance()->find("STRING_CONSTANT");
+    Object* stringConstant = OpalData::getInstance()->find("STRING_CONSTANT");
 
     // Gobble up any prefix.
     int code = 0x00;
-    while(true) {
-        if(stat.keyword("CONSTANT") || stat.keyword("CONST")) {
+    while (true) {
+        if (stat.keyword("CONSTANT") || stat.keyword("CONST")) {
             code |= 0x01;
-        } else if(stat.keyword("BOOL")) {
+        } else if (stat.keyword("BOOL")) {
             code |= 0x02;
-        } else if(stat.keyword("REAL")) {
+        } else if (stat.keyword("REAL")) {
             code |= 0x04;
-        } else if(stat.keyword("STRING")) {
+        } else if (stat.keyword("STRING")) {
             code |= 0x08;
-        } else if(stat.keyword("VECTOR")) {
+        } else if (stat.keyword("VECTOR")) {
             code |= 0x10;
         } else {
             break;
@@ -225,25 +213,25 @@ void OpalParser::parseAssign(Statement &stat) const {
 
     std::string objName = parseString(stat, "Object name expected.");
     // Test for attribute name.
-    Object *object = 0;
+    Object* object = 0;
     std::string attrName;
 
-    if(stat.delimiter("->")) {
+    if (stat.delimiter("->")) {
         // Assignment to object attribute.
         attrName = parseString(stat, "Attribute name expected.");
 
-        if(code != 0) {
-            throw ParseError("OpalParser::parseAssign()",
-                             "Invalid type specification for this value.");
-        } else if((object = OpalData::getInstance()->find(objName)) == 0) {
-            throw ParseError("OpalParser::parseAssign()",
-                             "The object \"" + objName + "\" is unknown.");
+        if (code != 0) {
+            throw ParseError(
+                "OpalParser::parseAssign()", "Invalid type specification for this value.");
+        } else if ((object = OpalData::getInstance()->find(objName)) == 0) {
+            throw ParseError(
+                "OpalParser::parseAssign()", "The object \"" + objName + "\" is unknown.");
         }
     } else {
         // Assignment to variable-like object.
-        if((object = OpalData::getInstance()->find(objName)) == 0) {
-            Object *model = 0;
-            switch(code) {
+        if ((object = OpalData::getInstance()->find(objName)) == 0) {
+            Object* model = 0;
+            switch (code) {
                 case 0x01:  // CONSTANT
                 case 0x05:  // CONSTANT REAL
                     model = realConstant;
@@ -270,15 +258,16 @@ void OpalParser::parseAssign(Statement &stat) const {
                     break;
             }
 
-            if(model != 0) {
+            if (model != 0) {
                 object = model->clone(objName);
                 OpalData::getInstance()->define(object);
             } else {
                 throw ParseError("OpalParser::parseAssign()", "Invalid <type> field.");
             }
-        } else if(object->isTreeMember(realConstant)) {
-            throw ParseError("OpalParser::parseAssign()",
-                             "You cannot redefine the constant \"" + objName + "\".");
+        } else if (object->isTreeMember(realConstant)) {
+            throw ParseError(
+                "OpalParser::parseAssign()",
+                "You cannot redefine the constant \"" + objName + "\".");
         }
 
         attrName = "VALUE";
@@ -287,35 +276,34 @@ void OpalParser::parseAssign(Statement &stat) const {
     // Test for index; it is evaluated immediately.
     int index = 0;
 
-    if(stat.delimiter('[')) {
+    if (stat.delimiter('[')) {
         index = int(std::round(parseRealConst(stat)));
         parseDelimiter(stat, ']');
 
-        if(index <= 0) {
-            throw ParseError("Expressions::parseReference()",
-                             "Index must be positive.");
+        if (index <= 0) {
+            throw ParseError("Expressions::parseReference()", "Index must be positive.");
         }
     }
 
-    if(object != 0) {
-        if(Attribute *attr = object->findAttribute(attrName)) {
-            if(stat.delimiter('=') || object->isTreeMember(realConstant)) {
-                if(index > 0) {
+    if (object != 0) {
+        if (Attribute* attr = object->findAttribute(attrName)) {
+            if (stat.delimiter('=') || object->isTreeMember(realConstant)) {
+                if (index > 0) {
                     attr->parseComponent(stat, true, index);
                 } else {
                     attr->parse(stat, true);
                 }
-            } else if(stat.delimiter(":=")) {
-                if(index > 0) {
+            } else if (stat.delimiter(":=")) {
+                if (index > 0) {
                     attr->parseComponent(stat, false, index);
                 } else {
                     attr->parse(stat, false);
                 }
             }
         } else {
-            throw ParseError("OpalParser::parseAssign()",
-                             "Object \"" + objName + "\" has no attribute \"" +
-                             attrName + "\".");
+            throw ParseError(
+                "OpalParser::parseAssign()",
+                "Object \"" + objName + "\" has no attribute \"" + attrName + "\".");
         }
 
         parseEnd(stat);
@@ -323,28 +311,28 @@ void OpalParser::parseAssign(Statement &stat) const {
     }
 }
 
-
-void OpalParser::parseDefine(Statement &stat) const {
+void OpalParser::parseDefine(Statement& stat) const {
     stat.start();
-    bool isShared = stat.keyword("SHARED");
+    bool isShared       = stat.keyword("SHARED");
     std::string objName = parseString(stat, "Object name expected.");
 
-    if(stat.delimiter(':')) {
+    if (stat.delimiter(':')) {
         std::string clsName = parseString(stat, "Class name expected.");
-        Object *classObject = find(clsName);
+        Object* classObject = find(clsName);
 
-        if(classObject == 0) {
+        if (classObject == 0) {
             if (clsName == "SURFACEPHYSICS")
-              throw ParseError("OpalParser::parseDefine()",
-                               "The object \"" + clsName + "\" is changed to \"PARTICLEMATTERINTERACTION\".");
+                throw ParseError(
+                    "OpalParser::parseDefine()",
+                    "The object \"" + clsName + "\" is changed to \"PARTICLEMATTERINTERACTION\".");
             else
-                throw ParseError("OpalParser::parseDefine()",
-                                 "The object \"" + clsName + "\" is unknown.");
+                throw ParseError(
+                    "OpalParser::parseDefine()", "The object \"" + clsName + "\" is unknown.");
         }
 
-        Object *copy = 0;
+        Object* copy = 0;
         try {
-            if(stat.delimiter('(')) {
+            if (stat.delimiter('(')) {
                 // Macro-like objects are always classes, instances never.
                 // There is no further check required.
                 copy = classObject->makeInstance(objName, stat, this);
@@ -357,117 +345,110 @@ void OpalParser::parseDefine(Statement &stat) const {
             parseEnd(stat);
             execute(copy, clsName);
             OpalData::getInstance()->define(copy);
-        } catch(...) {
+        } catch (...) {
             delete copy;
             throw;
         }
     } else {
         // Redefine an object to be a class.
-        Object *classObject = find(objName);
-        Object *copy = classObject->clone(objName);
+        Object* classObject = find(objName);
+        Object* copy        = classObject->clone(objName);
         copy->parse(stat);
         copy->setShared(isShared);
     }
 }
 
-
-void OpalParser::parseEnd(Statement &stat) const {
-    if(! stat.atEnd()  &&  ! stat.delimiter(';')) {
-
-        unsigned int position = stat.position();
+void OpalParser::parseEnd(Statement& stat) const {
+    if (!stat.atEnd() && !stat.delimiter(';')) {
+        unsigned int position         = stat.position();
         std::string positionIndicator = std::string(position + 1, ' ') + "^\n";
         std::ostringstream statStr;
         stat.print(statStr);
 
-        throw ParseError("OpalParser::parseEnd()",
-                         statStr.str() +
-                         positionIndicator +
-                         "Syntax error (maybe missing comma or semicolon ? )");
+        throw ParseError(
+            "OpalParser::parseEnd()", statStr.str() + positionIndicator
+                                          + "Syntax error (maybe missing comma or semicolon ? )");
     }
 }
 
-
-void OpalParser::parseMacro(const std::string &macName, Statement &stat) const {
+void OpalParser::parseMacro(const std::string& macName, Statement& stat) const {
     // Record the position just after the '(' of the argument list.
     stat.mark();
 
     // Skip argument list.
     int par_level = 1;
-    while(true) {
-        if(stat.delimiter('(')) {
+    while (true) {
+        if (stat.delimiter('(')) {
             ++par_level;
-        } else if(stat.delimiter(')')) {
-            if(--par_level == 0) break;
+        } else if (stat.delimiter(')')) {
+            if (--par_level == 0)
+                break;
         } else {
             stat.getCurrent();
         }
     }
 
-    if(stat.delimiter(':')) {
+    if (stat.delimiter(':')) {
         // Macro definition.
         std::string className = parseString(stat, "Class name expected.");
 
-        if(Object *macro = OpalData::getInstance()->find(className)) {
+        if (Object* macro = OpalData::getInstance()->find(className)) {
             // Backtrack to first argument.
             stat.restore();
 
-            if(Object *copy =
-                   macro->makeTemplate(macName, *inputStack.back(), stat)) {
+            if (Object* copy = macro->makeTemplate(macName, *inputStack.back(), stat)) {
                 OpalData::getInstance()->define(copy);
             } else {
-                throw ParseError("OpalParser::parseMacro()", "Command \"" +
-                                 macName + "\" cannot be defined with arguments.");
+                throw ParseError(
+                    "OpalParser::parseMacro()",
+                    "Command \"" + macName + "\" cannot be defined with arguments.");
             }
         } else {
-            throw ParseError("OpalParser::parseMacro()",
-                             "Object \"" + className + "\" is unknown.");
+            throw ParseError(
+                "OpalParser::parseMacro()", "Object \"" + className + "\" is unknown.");
         }
     } else {
         // Macro call.
-        if(Object *macro = OpalData::getInstance()->find(macName)) {
+        if (Object* macro = OpalData::getInstance()->find(macName)) {
             // Backtrack to first argument.
             stat.restore();
-            Object *instance = 0;
+            Object* instance = 0;
             try {
                 instance = macro->makeInstance(macName, stat, this);
                 execute(instance, macName);
-            } catch(...) {
+            } catch (...) {
                 delete instance;
                 throw;
             }
         } else {
-            throw ParseError("OpalParser::parseMacro()",
-                             "Macro \"" + macName + "\" is unknown.");
+            throw ParseError("OpalParser::parseMacro()", "Macro \"" + macName + "\" is unknown.");
         }
     }
 }
 
+void OpalParser::printHelp(const std::string& cmdName) const {
+    Object* object = find(cmdName);
 
-void OpalParser::printHelp(const std::string &cmdName) const {
-    Object *object = find(cmdName);
-
-    if(object == 0) {
-        *gmsg << "\nOpalParser::printHelp(): Unknown object \""
-              << cmdName << "\".\n" << endl;
+    if (object == 0) {
+        *gmsg << "\nOpalParser::printHelp(): Unknown object \"" << cmdName << "\".\n" << endl;
     } else {
         object->printHelp(std::cerr);
     }
 }
 
-
-void OpalParser::parseBracketList(char close, Statement &stat) {
+void OpalParser::parseBracketList(char close, Statement& stat) {
     Token token = readToken();
 
-    while(! token.isEOF()) {
+    while (!token.isEOF()) {
         stat.append(token);
 
-        if(token.isDel('(')) {
+        if (token.isDel('(')) {
             parseBracketList(')', stat);
-        } else if(token.isDel('[')) {
+        } else if (token.isDel('[')) {
             parseBracketList(']', stat);
-        } else if(token.isDel('{')) {
+        } else if (token.isDel('{')) {
             parseBracketList('}', stat);
-        } else if(token.isDel(close)) {
+        } else if (token.isDel(close)) {
             return;
         }
 
@@ -475,20 +456,20 @@ void OpalParser::parseBracketList(char close, Statement &stat) {
     }
 }
 
-
-void OpalParser::parseTokenList(Statement &stat) {
+void OpalParser::parseTokenList(Statement& stat) {
     Token token = readToken();
 
-    while(! token.isEOF()) {
+    while (!token.isEOF()) {
         // End of list if semicolon occurs outside of brackets.
-        if(token.isDel(';')) break;
+        if (token.isDel(';'))
+            break;
         stat.append(token);
 
-        if(token.isDel('(')) {
+        if (token.isDel('(')) {
             parseBracketList(')', stat);
-        } else if(token.isDel('[')) {
+        } else if (token.isDel('[')) {
             parseBracketList(']', stat);
-        } else if(token.isDel('{')) {
+        } else if (token.isDel('{')) {
             parseBracketList('}', stat);
         }
 
@@ -496,101 +477,100 @@ void OpalParser::parseTokenList(Statement &stat) {
     }
 }
 
-
 Token OpalParser::readToken() {
-    if(inputStack.empty()) {
+    if (inputStack.empty()) {
         return Token("", 0, Token::IS_EOF, "End of input");
     } else {
         return inputStack.back()->readToken();
     }
 }
 
-
-Statement *OpalParser::readStatement(TokenStream *is) const {
-    Statement *stat = 0;
-    Token token = is->readToken();
+Statement* OpalParser::readStatement(TokenStream* is) const {
+    Statement* stat = 0;
+    Token token     = is->readToken();
 
     try {
-        if(token.isDel('{')) {
+        if (token.isDel('{')) {
             // Compound statement.
             inputStack.back()->putBack(token);
             stat = new CompoundStatement(*inputStack.back());
-        } else if(token.isKey("IF")) {
+        } else if (token.isKey("IF")) {
             // IF statement.
             inputStack.back()->putBack(token);
             stat = new IfStatement(*this, *inputStack.back());
-        } else if(token.isKey("WHILE")) {
+        } else if (token.isKey("WHILE")) {
             // WHILE statement.
             inputStack.back()->putBack(token);
             stat = new WhileStatement(*this, *inputStack.back());
-        } else if(token.isWord() || token.isString()) {
+        } else if (token.isWord() || token.isString()) {
             // Simple statement or MACRO statement.
             stat = new SimpleStatement(token.getFile(), token.getLine());
             stat->append(token);
             token = is->readToken();
 
-            if(! token.isEOF()) {
-                if(token.isDel('(')) {
+            if (!token.isEOF()) {
+                if (token.isDel('(')) {
                     // Macro statement; statement already contains initial word.
                     stat->append(token);
                     parseBracketList(')', *stat);
                     token = is->readToken();
 
-                    if(! token.isEOF() && token.isDel(':')) {
+                    if (!token.isEOF() && token.isDel(':')) {
                         // Macro definition.
                         stat->append(token);
                         token = is->readToken();
 
-                        if(! token.isEOF()) {
+                        if (!token.isEOF()) {
                             stat->append(token);
-                            if(token.isKey("MACRO")) {
+                            if (token.isKey("MACRO")) {
                                 token = is->readToken();
 
-                                if(! token.isEOF() && token.isDel('{')) {
+                                if (!token.isEOF() && token.isDel('{')) {
                                     stat->append(token);
                                     parseBracketList('}', *stat);
                                 } else {
-                                    throw ParseError("OpalParser::readStatement()",
-                                                     "MACRO definition lacks \"{...}\".");
+                                    throw ParseError(
+                                        "OpalParser::readStatement()",
+                                        "MACRO definition lacks \"{...}\".");
                                 }
                             } else {
                                 parseTokenList(*stat);
                             }
                         }
-                    } else if(! token.isDel(';')) {
-                        throw ParseError("OpalParser::readStatement()",
-                                         "MACRO call is not terminated by ';'.");
+                    } else if (!token.isDel(';')) {
+                        throw ParseError(
+                            "OpalParser::readStatement()", "MACRO call is not terminated by ';'.");
                     }
-                } else if(! token.isDel(';')) {
+                } else if (!token.isDel(';')) {
                     stat->append(token);
                     parseTokenList(*stat);
                 }
             }
             stat->start();
-        } else if(token.isDel(';')) {
+        } else if (token.isDel(';')) {
             // Skip empty statement.
             stat = readStatement(is);
-        } else if(token.isDel('?')) {
+        } else if (token.isDel('?')) {
             // Give help.
             *gmsg << "\ntry typing \"HELP\" for help.\n" << endl;
             stat = readStatement(is);
-        } else if(! token.isEOF()) {
+        } else if (!token.isEOF()) {
             stat = new SimpleStatement(token.getFile(), token.getLine());
             stat->append(token);
             parseTokenList(*stat);
             stat->start();
-            throw ParseError("OpalParser::readStatement()",
-                             "Command should begin with a <name>.");
+            throw ParseError("OpalParser::readStatement()", "Command should begin with a <name>.");
         }
-    } catch(ParseError &ex) {
-        ERRORMSG("\n*** Parse error detected by function \""
-                 << "OpalParser::readStatement()" << "\"\n");
+    } catch (ParseError& ex) {
+        *ippl::Error << "\n*** Parse error detected by function \""
+                     << "OpalParser::readStatement()"
+                     << "\"\n";
         stat->printWhere(*IpplInfo::Error, true);
 
         std::string what = ex.what();
         boost::replace_all(what, "\n", "\n    ");
 
-        ERRORMSG("     " << *stat <<"    a" << what << '\n' << endl);
+        *ippl::Error << "     " << *stat << "    a" << what << '\n' << endl;
 
         stat = readStatement(is);
         exit(1);
@@ -599,25 +579,23 @@ Statement *OpalParser::readStatement(TokenStream *is) const {
     return stat;
 }
 
-
 void OpalParser::run() const {
     stopFlag = false;
-    while(Statement *stat = readStatement(&*inputStack.back())) {
+    while (Statement* stat = readStatement(&*inputStack.back())) {
         try {
             // The dispatch via Statement::execute() allows a special
             // treatment of structured statements.
             stat->execute(*this);
-        } catch(ParseError &ex) {
+        } catch (ParseError& ex) {
             Inform errorMsg("Error", std::cerr);
-            errorMsg << "\n*** Parse error detected by function \""
-                     << ex.where() << "\"\n";
+            errorMsg << "\n*** Parse error detected by function \"" << ex.where() << "\"\n";
             stat->printWhere(errorMsg, true);
             std::string what = ex.what();
-            size_t pos = what.find_first_of('\n');
+            size_t pos       = what.find_first_of('\n');
             do {
                 errorMsg << "    " << what.substr(0, pos) << endl;
                 what = what.substr(pos + 1, std::string::npos);
-                pos = what.find_first_of('\n');
+                pos  = what.find_first_of('\n');
             } while (pos != std::string::npos);
             errorMsg << "    " << what << endl;
 
@@ -625,22 +603,22 @@ void OpalParser::run() const {
         }
 
         delete stat;
-        if(stopFlag) break;
+        if (stopFlag)
+            break;
     }
 }
 
-void OpalParser::run(TokenStream *is) const {
+void OpalParser::run(TokenStream* is) const {
     inputStack.push_back(std::shared_ptr<TokenStream>(is));
     run();
     inputStack.pop_back();
 }
 
-
 void OpalParser::stop() const {
     stopFlag = true;
 }
 
-std::string OpalParser::getHint(const std::string &name, const std::string &type) {
+std::string OpalParser::getHint(const std::string& name, const std::string& type) {
     auto owner = AttributeHandler::getOwner(name);
     if (owner.empty()) {
         return std::string();
@@ -653,14 +631,15 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         if (its.first != its.second) {
             elements = (its.first)->second;
             bool any = (its.first)->second == "Any";
-            for (auto it = std::next(its.first); it != its.second && !any; ++ it) {
+            for (auto it = std::next(its.first); it != its.second && !any; ++it) {
                 elements += ", " + it->second;
                 any = it->second == "Any";
             }
             if (any) {
                 hint += std::string("  - any element\n");
             } else {
-                hint += std::string("  - the element") + (std::distance(its.first, its.second) > 1? "s ": " ") + elements + "\n";
+                hint += std::string("  - the element")
+                        + (std::distance(its.first, its.second) > 1 ? "s " : " ") + elements + "\n";
             }
         }
     }
@@ -669,10 +648,11 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         auto its = owner.equal_range(AttributeHandler::COMMAND);
         if (its.first != its.second) {
             commands = (its.first)->second;
-            for (auto it = std::next(its.first); it != its.second; ++ it) {
+            for (auto it = std::next(its.first); it != its.second; ++it) {
                 commands += ", " + it->second;
             }
-            hint += std::string("  - the command") + (std::distance(its.first, its.second) > 1? "s ": " ") + commands + "\n";
+            hint += std::string("  - the command")
+                    + (std::distance(its.first, its.second) > 1 ? "s " : " ") + commands + "\n";
         }
     }
     {
@@ -680,10 +660,11 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         auto its = owner.equal_range(AttributeHandler::SUB_COMMAND);
         if (its.first != its.second) {
             sub_commands = (its.first)->second;
-            for (auto it = std::next(its.first); it != its.second; ++ it) {
+            for (auto it = std::next(its.first); it != its.second; ++it) {
                 sub_commands += ", " + it->second;
             }
-            hint += std::string("  - the sub-command") + (std::distance(its.first, its.second) > 1? "s ": " ") + sub_commands + "\n";
+            hint += std::string("  - the sub-command")
+                    + (std::distance(its.first, its.second) > 1 ? "s " : " ") + sub_commands + "\n";
         }
     }
     {
@@ -691,10 +672,11 @@ std::string OpalParser::getHint(const std::string &name, const std::string &type
         auto its = owner.equal_range(AttributeHandler::STATEMENT);
         if (its.first != its.second) {
             statements = (its.first)->second;
-            for (auto it = std::next(its.first); it != its.second; ++ it) {
+            for (auto it = std::next(its.first); it != its.second; ++it) {
                 statements += ", " + it->second;
             }
-            hint += std::string("  - the statement") + (std::distance(its.first, its.second) > 1? "s ": " ") + statements + "\n";
+            hint += std::string("  - the statement")
+                    + (std::distance(its.first, its.second) > 1 ? "s " : " ") + statements + "\n";
         }
     }
 

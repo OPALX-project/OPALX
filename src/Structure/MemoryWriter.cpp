@@ -44,7 +44,7 @@ void MemoryWriter::fillHeader() {
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     columns_m.addColumn("memory", "double", memory->getUnit(), "Total Memory");
 
-    for (int p = 0; p < Ippl::getNodes(); ++p) {
+    for (int p = 0; p < ippl::Comm->size(); ++p) {
         std::stringstream tmp1;
         tmp1 << "\"processor-" << p << "\"";
 
@@ -77,7 +77,7 @@ void MemoryWriter::fillHeader() {
 }
 
 
-void MemoryWriter::write(const PartBunch<double, 3> *beam)
+void MemoryWriter::write(const PartBunch_t *beam)
 {
     IpplMemoryUsage::IpplMemory_p memory = IpplMemoryUsage::getInstance();
     memory->sample();
@@ -97,7 +97,7 @@ void MemoryWriter::write(const PartBunch<double, 3> *beam)
     columns_m.addColumnValue("t", beam->getT() * Units::s2ns);    // 1
     columns_m.addColumnValue("s", pathLength);                     // 2
 
-    int nProcs = Ippl::getNodes();
+    int nProcs = ippl::Comm->size();
     double total = 0.0;
     for (int p = 0; p < nProcs; ++p) {
         total += memory->getMemoryUsage(p);

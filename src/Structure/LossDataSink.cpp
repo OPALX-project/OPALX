@@ -226,7 +226,7 @@ LossDataSink::~LossDataSink() noexcept(false) {
 
 void LossDataSink::openH5(h5_int32_t mode) {
     h5_prop_t props = H5CreateFileProp();
-    MPI_Comm comm   = Ippl::getComm();
+    MPI_Comm comm   = ippl::Comm->getCommunicator();
     H5SetPropFileMPIOCollective(props, &comm);
     OPEN_FILE(fileName_m.c_str(), mode, props);
     H5CloseProp(props);
@@ -410,15 +410,15 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         nLoc     = endIdx - startIdx;
     }
 
-    std::unique_ptr<size_t[]> locN(new size_t[Ippl::getNodes()]);
-    std::unique_ptr<size_t[]> globN(new size_t[Ippl::getNodes()]);
+    std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
+    std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
 
-    for (int i = 0; i < Ippl::getNodes(); i++) {
+    for (int i = 0; i < ippl::Comm->size(); i++) {
         globN[i] = locN[i] = 0;
     }
 
     locN[ippl::Comm->rank()] = nLoc;
-    reduce(locN.get(), locN.get() + Ippl::getNodes(), globN.get(), OpAddAssign());
+    reduce(locN.get(), locN.get() + ippl::Comm->size(), globN.get(), OpAddAssign());
 
     DistributionMoments engine;
     engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
@@ -564,13 +564,13 @@ void LossDataSink::saveASCII() {
             os_m << particle.getTime() << std::endl;
         }
 
-        int notReceived = Ippl::getNodes() - 1;
+        int notReceived = ippl::Comm->size() - 1;
         while (notReceived > 0) {
             unsigned dataBlocks = 0;
             int node            = COMM_ANY_NODE;
             Message* rmsg       = Ippl::Comm->receive_block(node, tag);
             if (rmsg == 0) {
-                ERRORMSG("LossDataSink: Could not receive from client nodes output." << endl);
+                *ippl::Error << "LossDataSink: Could not receive from client nodes output." << endl;
             }
             notReceived--;
             rmsg->get(&dataBlocks);
@@ -617,7 +617,7 @@ void LossDataSink::saveASCII() {
         }
         bool res = Ippl::Comm->send(smsg, 0, tag);
         if (!res) {
-            ERRORMSG("LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl);
+            *ippl::Error << "LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;
         }
     }
 }

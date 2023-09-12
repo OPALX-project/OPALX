@@ -25,7 +25,7 @@ class LBalWriter : public SDDSWriter {
 public:
     LBalWriter(const std::string& fname, bool restart);
 
-    void write(const PartBunch<double, 3>* beam) override;
+    void write(const PartBunch_t* beam) override;
 
 private:
     void fillHeader();

@@ -16,8 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Util.h"
-#include "Physics/Physics.h"
 #include "OPALrevision.h"
+#include "Physics/Physics.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -53,10 +53,10 @@ namespace Util {
 #define erfinv_d1 3.543889200
 #define erfinv_d0 1
 
-    double erfinv (double x) // inverse error function
+    double erfinv(double x)  // inverse error function
     {
         double r;
-        int  sign_x;
+        int sign_x;
 
         if (x < -1 || x > 1)
             return NAN;
@@ -68,27 +68,25 @@ namespace Util {
             sign_x = 1;
         else {
             sign_x = -1;
-            x = -x;
+            x      = -x;
         }
 
         if (x <= 0.7) {
             double x2 = x * x;
-            r =
-                x * (((erfinv_a3 * x2 + erfinv_a2) * x2 + erfinv_a1) * x2 + erfinv_a0);
-            r /= (((erfinv_b4 * x2 + erfinv_b3) * x2 + erfinv_b2) * x2 +
-                  erfinv_b1) * x2 + erfinv_b0;
-        }
-        else {
-            double y = std::sqrt (-std::log ((1 - x) / 2));
-            r = (((erfinv_c3 * y + erfinv_c2) * y + erfinv_c1) * y + erfinv_c0);
+            r         = x * (((erfinv_a3 * x2 + erfinv_a2) * x2 + erfinv_a1) * x2 + erfinv_a0);
+            r /=
+                (((erfinv_b4 * x2 + erfinv_b3) * x2 + erfinv_b2) * x2 + erfinv_b1) * x2 + erfinv_b0;
+        } else {
+            double y = std::sqrt(-std::log((1 - x) / 2));
+            r        = (((erfinv_c3 * y + erfinv_c2) * y + erfinv_c1) * y + erfinv_c0);
             r /= ((erfinv_d2 * y + erfinv_d1) * y + erfinv_d0);
         }
 
         r = r * sign_x;
         x = x * sign_x;
 
-        r -= (std::erf (r) - x) / (2 / std::sqrt (M_PI) * std::exp (-r * r));
-        r -= (std::erf (r) - x) / (2 / std::sqrt (M_PI) * std::exp (-r * r));
+        r -= (std::erf(r) - x) / (2 / std::sqrt(M_PI) * std::exp(-r * r));
+        r -= (std::erf(r) - x) / (2 / std::sqrt(M_PI) * std::exp(-r * r));
 
         return r;
     }
@@ -113,12 +111,13 @@ namespace Util {
 #undef erfinv_d1
 #undef erfinv_d0
 
-    Vector_t<double, 3> getTaitBryantAngles(Quaternion rotation, const std::string& /*elementName*/) {
+    Vector_t<double, 3> getTaitBryantAngles(
+        Quaternion rotation, const std::string& /*elementName*/) {
         Quaternion rotationBAK = rotation;
 
         // y axis
         Vector_t<double, 3> tmp = rotation.rotate(Vector_t<double, 3>(0, 0, 1));
-        tmp(1) = 0.0;
+        tmp(1)                  = 0.0;
         // tmp /= euclidean_norm(tmp);
         double theta = std::fmod(std::atan2(tmp(0), tmp(2)) + Physics::two_pi, Physics::two_pi);
 
@@ -126,7 +125,7 @@ namespace Util {
         rotation = rotTheta.conjugate() * rotation;
 
         // x axis
-        tmp = rotation.rotate(Vector_t<double, 3>(0, 0, 1));
+        tmp    = rotation.rotate(Vector_t<double, 3>(0, 0, 1));
         tmp(0) = 0.0;
         tmp /= euclidean_norm(tmp);
         double phi = std::fmod(std::atan2(-tmp(1), tmp(2)) + Physics::two_pi, Physics::two_pi);
@@ -135,7 +134,7 @@ namespace Util {
         rotation = rotPhi.conjugate() * rotation;
 
         // z axis
-        tmp = rotation.rotate(Vector_t<double, 3>(1, 0, 0));
+        tmp    = rotation.rotate(Vector_t<double, 3>(1, 0, 0));
         tmp(2) = 0.0;
         tmp /= euclidean_norm(tmp);
         double psi = std::fmod(std::atan2(tmp(1), tmp(0)) + Physics::two_pi, Physics::two_pi);
@@ -145,7 +144,9 @@ namespace Util {
 
     std::string toUpper(const std::string& str) {
         std::string output = str;
-        std::transform(output.begin(), output.end(), output.begin(), [](const char c) { return std::toupper(c);});
+        std::transform(output.begin(), output.end(), output.begin(), [](const char c) {
+            return std::toupper(c);
+        });
 
         return output;
     }
@@ -165,7 +166,7 @@ namespace Util {
         for (size_t i = 0; i < b.size(); ++i) {
             output << std::boolalpha << boolToUpperString(b[i]);
             if (b.size() > 1) {
-                (i < (b.size()-1)) ? (output << ", ") : (output << ")");
+                (i < (b.size() - 1)) ? (output << ", ") : (output << ")");
             }
         }
 
@@ -182,7 +183,7 @@ namespace Util {
             output << "(";
         }
         unsigned int i = 0;
-        for (auto& s: stringVec) {
+        for (auto& s : stringVec) {
             ++i;
             output << s;
             if (v.size() > 1) {
@@ -201,16 +202,14 @@ namespace Util {
         return path.string();
     }
 
-    KahanAccumulation::KahanAccumulation():
-        sum(0.0),
-        correction(0.0)
-    { }
+    KahanAccumulation::KahanAccumulation() : sum(0.0), correction(0.0) {
+    }
 
     KahanAccumulation& KahanAccumulation::operator+=(double value) {
-        long double y = value - this->correction;
-        long double t = this->sum + y;
+        long double y    = value - this->correction;
+        long double t    = this->sum + y;
         this->correction = (t - this->sum) - y;
-        this->sum = t;
+        this->sum        = t;
         return *this;
     }
 
@@ -218,17 +217,19 @@ namespace Util {
      *  rewind the SDDS file such that the spos of the last step is less or equal to maxSPos
      */
     unsigned int rewindLinesSDDS(const std::string& fileName, double maxSPos, bool checkForTime) {
-        if (ippl::Comm->rank() > 0) return 0;
+        if (ippl::Comm->rank() > 0)
+            return 0;
 
         std::fstream fs(fileName.c_str(), std::fstream::in);
-        if (!fs.is_open()) return 0;
+        if (!fs.is_open())
+            return 0;
 
         std::string line;
         std::queue<std::string> allLines;
         unsigned int numParameters = 0;
-        unsigned int numColumns = 0;
-        unsigned int sposColumnNr = 0;
-        unsigned int timeColumnNr = 0;
+        unsigned int numColumns    = 0;
+        unsigned int sposColumnNr  = 0;
+        unsigned int timeColumnNr  = 0;
         double spos, time = 0.0;
         double lastTime = -1.0;
 
@@ -246,9 +247,10 @@ namespace Util {
         }
         fs.close();
 
-        fs.open (fileName.c_str(), std::fstream::out);
+        fs.open(fileName.c_str(), std::fstream::out);
 
-        if (!fs.is_open()) return 0;
+        if (!fs.is_open())
+            return 0;
 
         do {
             line = allLines.front();
@@ -288,7 +290,7 @@ namespace Util {
             fs << line << "\n";
         }
 
-        for (unsigned int i = 0; i < numParameters; ++ i) {
+        for (unsigned int i = 0; i < numParameters; ++i) {
             fs << allLines.front() << "\n";
             allLines.pop();
         }
@@ -298,17 +300,18 @@ namespace Util {
 
             linestream.str(line);
             if (checkForTime) {
-                for (unsigned int i = 0; i < timeColumnNr; ++ i) {
+                for (unsigned int i = 0; i < timeColumnNr; ++i) {
                     linestream >> time;
                 }
             }
 
             linestream.str(line);
-            for (unsigned int i = 0; i < sposColumnNr; ++ i) {
+            for (unsigned int i = 0; i < sposColumnNr; ++i) {
                 linestream >> spos;
             }
 
-            if ((spos - maxSPos) > 1e-20 * Physics::c) break;
+            if ((spos - maxSPos) > 1e-20 * Physics::c)
+                break;
 
             allLines.pop();
 
@@ -321,7 +324,8 @@ namespace Util {
         fs.close();
 
         if (!allLines.empty())
-            INFOMSG(level2 << "rewind " + fileName + " to " + std::to_string(maxSPos) << " m" << endl);
+            *ippl::Info << level2 << "rewind " + fileName + " to " + std::to_string(maxSPos) << " m"
+                        << endl;
 
         return allLines.size();
     }
@@ -353,9 +357,10 @@ namespace Util {
 
     */
 
-    static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                            "abcdefghijklmnopqrstuvwxyz"
-                                            "0123456789+/";
+    static const std::string base64_chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
 
     static inline bool is_base64(unsigned char c) {
         return (std::isalnum(c) || (c == '+') || (c == '/'));
@@ -363,7 +368,7 @@ namespace Util {
 
     std::string base64_encode(const std::string& string_to_encode) {
         const char* bytes_to_encode = string_to_encode.c_str();
-        unsigned int in_len = string_to_encode.size();
+        unsigned int in_len         = string_to_encode.size();
         std::string ret;
         int i = 0;
         int j = 0;
@@ -378,45 +383,44 @@ namespace Util {
                 char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
                 char_array_4[3] = char_array_3[2] & 0x3f;
 
-                for (i = 0; (i <4) ; i++)
+                for (i = 0; (i < 4); i++)
                     ret += base64_chars[char_array_4[i]];
                 i = 0;
             }
         }
 
-        if (i)
-            {
-                for (j = i; j < 3; j++)
-                    char_array_3[j] = '\0';
+        if (i) {
+            for (j = i; j < 3; j++)
+                char_array_3[j] = '\0';
 
-                char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-                char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-                char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-                char_array_4[3] = char_array_3[2] & 0x3f;
+            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
+            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
+            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
+            char_array_4[3] = char_array_3[2] & 0x3f;
 
-                for (j = 0; (j < i + 1); j++)
-                    ret += base64_chars[char_array_4[j]];
+            for (j = 0; (j < i + 1); j++)
+                ret += base64_chars[char_array_4[j]];
 
-                while((i++ < 3))
-                    ret += '=';
-
-            }
+            while ((i++ < 3))
+                ret += '=';
+        }
 
         return ret;
     }
 
     std::string base64_decode(std::string const& encoded_string) {
         int in_len = encoded_string.size();
-        int i = 0;
-        int j = 0;
-        int in_ = 0;
+        int i      = 0;
+        int j      = 0;
+        int in_    = 0;
         unsigned char char_array_4[4], char_array_3[3];
         std::string ret;
 
-        while (in_len-- && ( encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
-            char_array_4[i++] = encoded_string[in_]; in_++;
-            if (i ==4) {
-                for (i = 0; i <4; i++)
+        while (in_len-- && (encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
+            char_array_4[i++] = encoded_string[in_];
+            in_++;
+            if (i == 4) {
+                for (i = 0; i < 4; i++)
                     char_array_4[i] = base64_chars.find(char_array_4[i]);
 
                 char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
@@ -430,19 +434,20 @@ namespace Util {
         }
 
         if (i) {
-            for (j = i; j <4; j++)
+            for (j = i; j < 4; j++)
                 char_array_4[j] = 0;
 
-            for (j = 0; j <4; j++)
+            for (j = 0; j < 4; j++)
                 char_array_4[j] = base64_chars.find(char_array_4[j]);
 
             char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
             char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
             char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
 
-            for (j = 0; (j < i - 1); j++) ret += char_array_3[j];
+            for (j = 0; (j < i - 1); j++)
+                ret += char_array_3[j];
         }
 
         return ret;
     }
-}
+}  // namespace Util
