@@ -18,8 +18,8 @@
 
 #include "OpalParser/WhileStatement.h"
 
-#include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/Attribute.h"
+#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/Parser.h"
@@ -33,24 +33,25 @@
 //   Statement of the form "WHILE ( <condition> ) <statement>".
 // ------------------------------------------------------------------------
 
-WhileStatement::WhileStatement(const Parser &parser, TokenStream &is):
-    Statement("", 0), while_block(0) {
-    Token key = is.readToken();
+WhileStatement::WhileStatement(const Parser& parser, TokenStream& is)
+    : Statement("", 0), while_block(0) {
+    Token key   = is.readToken();
     Token token = is.readToken();
 
-    if(key.isKey("WHILE") && token.isDel('(')) {
+    if (key.isKey("WHILE") && token.isDel('(')) {
         int level = 1;
         append(token);
         token = is.readToken();
 
-        while(! token.isEOF()) {
+        while (!token.isEOF()) {
             append(token);
 
-            if(token.isDel('(')) {
+            if (token.isDel('(')) {
                 level++;
-            } else if(token.isDel(')')) {
+            } else if (token.isDel(')')) {
                 level--;
-                if(level == 0) break;
+                if (level == 0)
+                    break;
             }
 
             token = is.readToken();
@@ -58,34 +59,32 @@ WhileStatement::WhileStatement(const Parser &parser, TokenStream &is):
 
         while_block = parser.readStatement(&is);
     } else {
-        throw ParseError("WhileStatement::WhileStatement()",
-                         "Invalid \"WHILE\" statement.");
+        throw ParseError("WhileStatement::WhileStatement()", "Invalid \"WHILE\" statement.");
     }
 }
-
 
 WhileStatement::~WhileStatement() {
     delete while_block;
 }
 
 #include "Utilities/OpalException.h"
-void WhileStatement::execute(const Parser &parser) {
-    curr = tokens.begin();
-    keep = ++curr;
+void WhileStatement::execute(const Parser& parser) {
+    curr                = tokens.begin();
+    keep                = ++curr;
     Attribute condition = Attributes::makeBool("WHILE()", "while condition");
 
     try {
         condition.parse(*this, false);
         OpalData::getInstance()->update();
 
-        while(Attributes::getBool(condition)) {
+        while (Attributes::getBool(condition)) {
             while_block->execute(parser);
             OpalData::getInstance()->update();
         }
-    } catch(...) {
+    } catch (...) {
         std::ostringstream oss;
         this->print(oss);
-        ERRORMSG("Invalid WHILE condition '" + oss.str() + "'");
+        *ippl::Error << "Invalid WHILE condition '" + oss.str() + "'";
         throw;
     }
 }

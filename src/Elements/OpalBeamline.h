@@ -30,6 +30,8 @@
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
+#include "OPALtypes.h"
+
 class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
@@ -77,7 +79,7 @@ public:
         Vector_t<double, 3>&);
 
     template <class T>
-    void visit(const T&, BeamlineVisitor&, PartBunch<double, 3>*);
+    void visit(const T&, BeamlineVisitor&, PartBunch_t*);
 
     void prepareSections();
     void positionElementRelative(std::shared_ptr<ElementBase>);
@@ -99,7 +101,7 @@ private:
 };
 
 template <class T>
-inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch<double, 3>* bunch) {
+inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t* bunch) {
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField   = 0.0;
@@ -115,8 +117,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch<do
 }
 
 template <>
-inline void OpalBeamline::visit<Marker>(
-    const Marker& /*element*/, BeamlineVisitor&, PartBunch<double, 3>*) {
+inline void OpalBeamline::visit<Marker>(const Marker& /*element*/, BeamlineVisitor&, PartBunch_t*) {
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformTo(const Vector_t<double, 3>& r) const {

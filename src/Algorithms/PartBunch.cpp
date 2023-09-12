@@ -17,9 +17,12 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
+#include "Algorithms/PartBunch.h"
+
 #include <cfloat>
 #include <memory>
 #include <utility>
+#include "Ippl.h"
 
 #ifndef ADATEST
 // #include "Distribution/Distribution.h"
@@ -63,7 +66,8 @@ void PartBunch<PLayout, T, Dim>::runTests() {
 }
 
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::do_binaryRepart() {}
+void PartBunch<PLayout, T, Dim>::do_binaryRepart() {
+}
 
 template <class PLayout, typename T, unsigned Dim>
 void PartBunch<PLayout, T, Dim>::computeSelfFields(int binNumber) {
@@ -136,8 +140,8 @@ void PartBunch<PLayout, T, Dim>::computeSelfFields(int binNumber) {
 
         /// Scale field. Combine Lorentz transform with conversion to proper field
         /// units.
-        eg_m *= Vector_t<T, Dim>(gammaz / (scaleFactor), gammaz / (scaleFactor),
-                                 1.0 / (scaleFactor * gammaz));
+        eg_m *= Vector_t<T, Dim>(
+            gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
         // If desired write E-field and potential to terminal
 #ifdef FIELDSTDOUT
@@ -225,8 +229,8 @@ void PartBunch<PLayout, T, Dim>::computeSelfFields(int binNumber) {
 
         /// Scale field. Combine Lorentz transform with conversion to proper field
         /// units.
-        eg_m *= Vector_t<T, Dim>(gammaz / (scaleFactor), gammaz / (scaleFactor),
-                                 1.0 / (scaleFactor * gammaz));
+        eg_m *= Vector_t<T, Dim>(
+            gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
         // If desired write E-field and potential to terminal
 #ifdef FIELDSTDOUT
@@ -354,8 +358,8 @@ void PartBunch<PLayout, T, Dim>::computeSelfFields() {
         // [V/m] for the electric field
         eg_m = -Grad(rho_m, eg_m);
 
-        eg_m *= Vector_t<T, Dim>(gammaz / (scaleFactor), gammaz / (scaleFactor),
-                                 1.0 / (scaleFactor * gammaz));
+        eg_m *= Vector_t<T, Dim>(
+            gammaz / (scaleFactor), gammaz / (scaleFactor), 1.0 / (scaleFactor * gammaz));
 
         // write out e field
 #ifdef FIELDSTDOUT
@@ -426,13 +430,15 @@ Center_t>(i); } else { bc_m[i] = new InterpolationFace<double, Dim, Mesh_t<Dim>,
         getBConds()[i] = ParticlePeriodicBCond;
     }
     dcBeam_m = true;
-    INFOMSG(level3 << "BC set P3M, all periodic" << endl);
+    *ippl::Info << level3 << "BC set P3M, all periodic" << endl;
 }
 */
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::setBCAllOpen() {}
+void PartBunch<PLayout, T, Dim>::setBCAllOpen() {
+}
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::setBCForDCBeam() {}
+void PartBunch<PLayout, T, Dim>::setBCForDCBeam() {
+}
 
 template <class PLayout, typename T, unsigned Dim>
 void PartBunch<PLayout, T, Dim>::updateDomainLength(Vector_t<int, 3>& grid) {
@@ -441,8 +447,8 @@ void PartBunch<PLayout, T, Dim>::updateDomainLength(Vector_t<int, 3>& grid) {
         grid[i] = domain[i].length();
 }
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::updateFields(const Vector_t<T, Dim>& /*hr*/,
-                                              const Vector_t<T, Dim>& origin) {
+void PartBunch<PLayout, T, Dim>::updateFields(
+    const Vector_t<T, Dim>& /*hr*/, const Vector_t<T, Dim>& origin) {
     this->getMesh().set_meshSpacing(&(hr_m[0]));
     this->getMesh().set_origin(origin);
     rho_m.initialize(this->getMesh(), getFieldLayout(), 1);
@@ -516,8 +522,9 @@ void PartBunch<PLayout, T, Dim>::updateNumTotal() {
     size_type total_particles = 0;
     size_type local_particles = this->getLocalNum();
 
-    MPI_Reduce(&local_particles, &total_particles, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0,
-               ippl::Comm->getCommunicator());
+    MPI_Reduce(
+        &local_particles, &total_particles, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0,
+        ippl::Comm->getCommunicator());
     // need to be stored
 }
 
@@ -558,10 +565,12 @@ double PartBunch<PLayout, T, Dim>::getBinGamma(int bin) {
 }
 
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::Rebin() {}
+void PartBunch<PLayout, T, Dim>::Rebin() {
+}
 
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::calcGammas() {}
+void PartBunch<PLayout, T, Dim>::calcGammas() {
+}
 
 template <class PLayout, typename T, unsigned Dim>
 bool PartBunch<PLayout, T, Dim>::weHaveEnergyBins() {
@@ -598,9 +607,9 @@ size_t PartBunch<PLayout, T, Dim>::calcNumPartsOutside(Vector_t<T, Dim> x) {
 
     // ADA gather(&localnum, &globalPartPerNode_m[0], 1);
 
-    size_t npOutside = std::accumulate(globalPartPerNode_m.get(),
-                                       globalPartPerNode_m.get() + ippl::Communicate::getNodes(), 0,
-                                       std::plus<size_t>());
+    size_t npOutside = std::accumulate(
+        globalPartPerNode_m.get(), globalPartPerNode_m.get() + ippl::Communicate::getNodes(), 0,
+        std::plus<size_t>());
 
     return npOutside;
 }
@@ -615,9 +624,8 @@ size_t PartBunch<PLayout, T, Dim>::calcNumPartsOutside(Vector_t<T, Dim> x) {
  *
  */
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::calcLineDensity(unsigned int nBins,
-                                                 std::vector<double>& lineDensity,
-                                                 std::pair<double, double>& meshInfo) {
+void PartBunch<PLayout, T, Dim>::calcLineDensity(
+    unsigned int nBins, std::vector<double>& lineDensity, std::pair<double, double>& meshInfo) {
     Vector_t<T, Dim> rmin, rmax;
     get_bounds(rmin, rmax);
 
@@ -700,8 +708,9 @@ void PartBunch<PLayout, T, Dim>::boundp() {
         // ada if (volume < 1e-21 && this->this->getTotalNum() > 1 && std::abs(sum(Q)) > 0.0) {
         //    WARNMSG(level1 << "!!! Extremely high particle density detected !!!" << endl);
         // }
-        // INFOMSG("It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " << rmin_m
-        // << endl);
+        // *ippl::Info << "It is a full boundp hz= " << hr_m << " rmax= " << rmax_m << " rmin= " <<
+        // rmin_m
+        // << endl;
 
         // ADA if (hr_m[0] * hr_m[1] * hr_m[2] <= 0) {
         // throw GeneralClassicException("boundp() ", "h<0, can not build a mesh");
@@ -876,8 +885,8 @@ void PartBunch<PLayout, T, Dim>::get_bounds(Vector_t<T, Dim>& rmin, Vector_t<T, 
 }
 
 template <class PLayout, typename T, unsigned Dim>
-void PartBunch<PLayout, T, Dim>::getLocalBounds(Vector_t<T, Dim>& rmin,
-                                                Vector_t<T, Dim>& rmax) const {
+void PartBunch<PLayout, T, Dim>::getLocalBounds(
+    Vector_t<T, Dim>& rmin, Vector_t<T, Dim>& rmax) const {
     const size_t localNum = this->getLocalNum();
     if (localNum == 0) {
         double maxValue = 1e8;

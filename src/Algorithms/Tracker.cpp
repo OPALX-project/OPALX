@@ -81,7 +81,7 @@ Tracker::Tracker(const Beamline &beamline, const PartData &reference,
 
 
 Tracker::Tracker(const Beamline &beamline,
-                 PartBunch<double, 3> *bunch,
+                 PartBunch_t *bunch,
                  const PartData &reference,
                  bool backBeam, bool backTrack):
     AbstractTracker(beamline, reference, backBeam, backTrack),
@@ -94,7 +94,7 @@ Tracker::~Tracker()
 {}
 
 
-const PartBunch<double, 3> *Tracker::getBunch() const {
+const PartBunch_t *Tracker::getBunch() const {
     return itsBunch_m;
 }
 

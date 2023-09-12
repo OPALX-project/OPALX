@@ -21,7 +21,7 @@
 
 #include "Algorithms/PartBunch.h"
 
-class PartBunch : public PartBunch<double, 3> {
+class PartBunch : public PartBunch_t {
 public:
     typedef IpplParticleBase<Layout_t> pbase_t;
     enum { Dim = Dimension };

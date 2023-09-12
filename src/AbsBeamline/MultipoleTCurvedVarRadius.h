@@ -77,7 +77,7 @@
   */
 
 #include "BeamlineGeometry/VarRadiusGeometry.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "AbsBeamline/MultipoleTBase.h"
 #include "AbsBeamline/MultipoleTFunctions/RecursionRelationTwo.h"
 #include <vector>

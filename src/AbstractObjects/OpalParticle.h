@@ -21,7 +21,7 @@
 #include "Ippl.h"
 #include "OPALtypes.h"
 
-// #include "Algorithms/Vektor.h"
+//  
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 

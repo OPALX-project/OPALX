@@ -19,7 +19,7 @@
 #include "Physics/Units.h"
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunch<double, 3>* bunch,
+bool LF2<FieldFunction, Arguments ...>::doAdvance_m(PartBunch_t* bunch,
                                                     const size_t& i,
                                                     const double& t,
                                                     const double dt,
@@ -51,7 +51,7 @@ void LF2<FieldFunction, Arguments ...>::push_m(Vector_t<double, 3>& R, const Vec
 
 
 template <typename FieldFunction, typename ... Arguments>
-bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunch<double, 3>* bunch, const size_t& i,
+bool LF2<FieldFunction, Arguments ...>::kick_m(PartBunch_t* bunch, const size_t& i,
                                                const double& t, const double& h,
                                                Arguments& ... args) const
 {

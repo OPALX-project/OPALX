@@ -1,60 +1,62 @@
 #include "Fields/FMDummy.h"
 #include "Fields/Fieldmap.hpp"
 
-
-FMDummy::FMDummy(std::string aFilename):
-    Fieldmap(aFilename),
-    zbegin_m(0.0),
-    zend_m(-1e-3) {
-
+FMDummy::FMDummy(std::string aFilename) : Fieldmap(aFilename), zbegin_m(0.0), zend_m(-1e-3) {
     std::stringstream errormsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n"
              << "Could not determine the file type.\n"
              << "Please check the section about field maps in the user manual.\n";
     std::string errormsg_str = typeset_msg(errormsg.str(), "error");
-    WARNMSG(errormsg_str << "\n" << endl);
+    *ippl::Warn << errormsg_str << "\n" << endl;
 
-    if(ippl::Comm->rank() == 0) {
-    	std::ofstream omsg("errormsg.txt", std::ios_base::app);
+    if (ippl::Comm->rank() == 0) {
+        std::ofstream omsg("errormsg.txt", std::ios_base::app);
         omsg << errormsg_str << std::endl;
         omsg.close();
     }
     disableFieldmapWarning();
 }
 
-FMDummy::~FMDummy()
-{ }
+FMDummy::~FMDummy() {
+}
 
-void FMDummy::readMap()
-{ }
+void FMDummy::readMap() {
+}
 
-void FMDummy::freeMap()
-{ }
+void FMDummy::freeMap() {
+}
 
-bool FMDummy::getFieldstrength(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/) const {
+bool FMDummy::getFieldstrength(
+    const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/,
+    Vector_t<double, 3>& /*B*/) const {
     return false;
 }
 
-bool FMDummy::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
+bool FMDummy::getFieldDerivative(
+    const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
+    const DiffDirection& /*dir*/) const {
     return false;
 }
 
-void FMDummy::getFieldDimensions(double &zBegin, double &zEnd) const {
+void FMDummy::getFieldDimensions(double& zBegin, double& zEnd) const {
     zBegin = zbegin_m;
-    zEnd = zend_m;
+    zEnd   = zend_m;
 }
-void FMDummy::getFieldDimensions(double &/*xIni*/, double &/*xFinal*/, double &/*yIni*/, double &/*yFinal*/, double &/*zIni*/, double &/*zFinal*/) const {}
+void FMDummy::getFieldDimensions(
+    double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
+    double& /*zFinal*/) const {
+}
 
-void FMDummy::swap()
-{ }
+void FMDummy::swap() {
+}
 
-void FMDummy::getInfo(Inform */*msg*/)
-{ }
+void FMDummy::getInfo(Inform* /*msg*/) {
+}
 
 double FMDummy::getFrequency() const {
     static double dummy = 0.0;
     return dummy;
 }
 
-void FMDummy::setFrequency(double /*freq*/)
-{ }
+void FMDummy::setFrequency(double /*freq*/) {
+}

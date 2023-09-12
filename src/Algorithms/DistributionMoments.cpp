@@ -342,9 +342,9 @@ std::pair<double, DistributionMoments::iterator_t> DistributionMoments::determin
                 ++shift;
             }
 
-            std::vector<unsigned int> numParticlesInBin(ppl::getNodes() + 1);
+            std::vector<unsigned int> numParticlesInBin(ippl::Comm->size() + 1);
             numParticlesInBin[ippl::Comm->rank() + 1] = endBin - beginBin;
-            allreduce(&(numParticlesInBin[1]), Ippl::getNodes(), std::plus<unsigned int>());
+            allreduce(&(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned int>());
             std::partial_sum(
                 numParticlesInBin.begin(), numParticlesInBin.end(), numParticlesInBin.begin());
 
@@ -457,15 +457,16 @@ void DistributionMoments::fillMembers(std::vector<double>& localMoments) {
 
 void DistributionMoments::computeMeanKineticEnergy(PartBunch_t const& bunch) {
     double data[] = {0.0, 0.0};
-    for (OpalParticle const& particle : bunch) {
-        data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
-    }
+    // ada    for (OpalParticle const& particle : bunch) {
+    //    data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
+    // }
     data[1] = bunch.getLocalNum();
     allreduce(data, 2, std::plus<double>());
 
     meanKineticEnergy_m = data[0] / data[1];
 }
 
+/* ADA
 void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double density) {
     resetPlasmaParameters();
     double avgVel[3] = {0.0, 0.0, 0.0};
@@ -506,6 +507,7 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
 
     computePlasmaParameter(density);
 }
+*/
 
 void DistributionMoments::computePlasmaParameter(double density) {
     // Plasma parameter: Average number of particles within the Debye sphere
@@ -548,5 +550,6 @@ void DistributionMoments::resetPlasmaParameters() {
 
 bool DistributionMoments::isParticleExcluded(const OpalParticle& particle) const {
     // FIXME After issue 287 is resolved this shouldn't be necessary anymore
-    return OpalData::getInstance()->isInOPALCyclMode() && particle.getId() == 0;
+    // ADA return OpalData::getInstance()->isInOPALCyclMode() && particle.getId() == 0;
+    return true;
 }

@@ -21,97 +21,77 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 
-FM3DH5Block_nonscale::FM3DH5Block_nonscale (
-    std::string aFilename
-    ) : Fieldmap (
-        aFilename),
-    FM3DH5BlockBase (
-        ) {
-        Type = T3DDynamicH5Block;
+FM3DH5Block_nonscale::FM3DH5Block_nonscale(std::string aFilename)
+    : Fieldmap(aFilename), FM3DH5BlockBase() {
+    Type = T3DDynamicH5Block;
 
-        openFileMPIOCollective (aFilename);
-        getFieldInfo ("Efield");
-        getResonanceFrequency ();
-        closeFile ();
+    openFileMPIOCollective(aFilename);
+    getFieldInfo("Efield");
+    getResonanceFrequency();
+    closeFile();
 }
 
-FM3DH5Block_nonscale::~FM3DH5Block_nonscale (
-    ) {
+FM3DH5Block_nonscale::~FM3DH5Block_nonscale() {
     freeMap();
 }
 
-void FM3DH5Block_nonscale::readMap (
-    ) {
+void FM3DH5Block_nonscale::readMap() {
     if (!FieldstrengthEz_m.empty()) {
         return;
     }
-    openFileMPIOCollective (Filename_m);
-    long long last_step = getNumSteps () - 1;
-    setStep (last_step);
+    openFileMPIOCollective(Filename_m);
+    long long last_step = getNumSteps() - 1;
+    setStep(last_step);
 
     size_t field_size = num_gridpx_m * num_gridpy_m * num_gridpz_m;
-    FieldstrengthEx_m.resize (field_size);
-    FieldstrengthEy_m.resize (field_size);
-    FieldstrengthEz_m.resize (field_size);
-    FieldstrengthHx_m.resize (field_size);
-    FieldstrengthHy_m.resize (field_size);
-    FieldstrengthHz_m.resize (field_size);
+    FieldstrengthEx_m.resize(field_size);
+    FieldstrengthEy_m.resize(field_size);
+    FieldstrengthEz_m.resize(field_size);
+    FieldstrengthHx_m.resize(field_size);
+    FieldstrengthHy_m.resize(field_size);
+    FieldstrengthHz_m.resize(field_size);
 
-    readField (
-        "Efield",
-        &(FieldstrengthEx_m[0]),
-        &(FieldstrengthEy_m[0]),
-        &(FieldstrengthEz_m[0]));
-    readField (
-        "Hfield",
-        &(FieldstrengthHx_m[0]),
-        &(FieldstrengthHy_m[0]),
-        &(FieldstrengthHz_m[0]));
+    readField("Efield", &(FieldstrengthEx_m[0]), &(FieldstrengthEy_m[0]), &(FieldstrengthEz_m[0]));
+    readField("Hfield", &(FieldstrengthHx_m[0]), &(FieldstrengthHy_m[0]), &(FieldstrengthHz_m[0]));
 
-    closeFile ();
+    closeFile();
 
     for (long long i = 0; i < num_gridpx_m * num_gridpy_m * num_gridpz_m; i++) {
-        FieldstrengthEz_m[i] *= Units::MVpm2Vpm ;
-        FieldstrengthEx_m[i] *= Units::MVpm2Vpm ;
-        FieldstrengthEy_m[i] *= Units::MVpm2Vpm ;
-        FieldstrengthHx_m[i] *= 1.0e6 * Physics::mu_0 ;
-        FieldstrengthHy_m[i] *= 1.0e6 * Physics::mu_0 ;
-        FieldstrengthHz_m[i] *= 1.0e6 * Physics::mu_0 ;
+        FieldstrengthEz_m[i] *= Units::MVpm2Vpm;
+        FieldstrengthEx_m[i] *= Units::MVpm2Vpm;
+        FieldstrengthEy_m[i] *= Units::MVpm2Vpm;
+        FieldstrengthHx_m[i] *= 1.0e6 * Physics::mu_0;
+        FieldstrengthHy_m[i] *= 1.0e6 * Physics::mu_0;
+        FieldstrengthHz_m[i] *= 1.0e6 * Physics::mu_0;
     }
-    INFOMSG (level3
-             << typeset_msg("3d dynamic (non-scaled) fieldmap '"
-                            + Filename_m  + "' (H5hut format) read", "info")
-             << endl);
+    *ippl::Info << level3
+                << typeset_msg(
+                       "3d dynamic (non-scaled) fieldmap '" + Filename_m + "' (H5hut format) read",
+                       "info")
+                << endl;
 }
 
-void FM3DH5Block_nonscale::freeMap (
-    ) {
-    if(FieldstrengthEz_m.empty ()) {
+void FM3DH5Block_nonscale::freeMap() {
+    if (FieldstrengthEz_m.empty()) {
         return;
     }
-    FieldstrengthEx_m.clear ();
-    FieldstrengthEy_m.clear ();
-    FieldstrengthEz_m.clear ();
-    FieldstrengthHx_m.clear ();
-    FieldstrengthHy_m.clear ();
-    FieldstrengthHz_m.clear ();
+    FieldstrengthEx_m.clear();
+    FieldstrengthEy_m.clear();
+    FieldstrengthEz_m.clear();
+    FieldstrengthHx_m.clear();
+    FieldstrengthHy_m.clear();
+    FieldstrengthHz_m.clear();
 
-    INFOMSG(level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info")
-            << endl);
+    *ippl::Info << level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << endl;
 }
 
-bool FM3DH5Block_nonscale::getFieldstrength (
-    const Vector_t<double, 3>& R,
-    Vector_t<double, 3>& E,
-    Vector_t<double, 3>& B
-    ) const {
+bool FM3DH5Block_nonscale::getFieldstrength(
+    const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (!isInside(R)) {
         return true;
     }
-    E += interpolateTrilinearly (
-        FieldstrengthEx_m, FieldstrengthEy_m, FieldstrengthEz_m, R);
-    B += interpolateTrilinearly (
-        FieldstrengthHx_m, FieldstrengthHy_m, FieldstrengthHz_m, R);
+    E += interpolateTrilinearly(FieldstrengthEx_m, FieldstrengthEy_m, FieldstrengthEz_m, R);
+    B += interpolateTrilinearly(FieldstrengthHx_m, FieldstrengthHy_m, FieldstrengthHz_m, R);
 
     return false;
 }

@@ -78,7 +78,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Fields/BMultipoleField.h"
 
 class MultipoleTBase : public Component {

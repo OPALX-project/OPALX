@@ -37,7 +37,7 @@ void LBalWriter::fillHeader() {
 
     columns_m.addColumn("t", "double", "ns", "Time");
 
-    for (int p = 0; p < Ippl::getNodes(); ++p) {
+    for (int p = 0; p < ippl::Comm->size(); ++p) {
         std::stringstream tmp1;
         tmp1 << "\"processor-" << p << "\"";
 
@@ -69,7 +69,7 @@ void LBalWriter::fillHeader() {
 }
 
 
-void LBalWriter::write(const PartBunch<double, 3> *beam) {
+void LBalWriter::write(const PartBunch_t *beam) {
     if ( ippl::Comm->rank() != 0 )
         return;
 
@@ -81,7 +81,7 @@ void LBalWriter::write(const PartBunch<double, 3> *beam) {
 
     columns_m.addColumnValue("t", beam->getT() * Units::s2ns); // 1
 
-    size_t nProcs = Ippl::getNodes();
+    size_t nProcs = ippl::Comm->size();
     for (size_t p = 0; p < nProcs; ++ p) {
         std::stringstream ss;
         ss << "\"processor-" << p << "\"";

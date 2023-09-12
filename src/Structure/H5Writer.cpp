@@ -29,7 +29,7 @@ H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart)
 }
 
 
-void H5Writer::writePhaseSpace(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[]) {
+void H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[]) {
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("B-ref_x", FDext[0](0)),
@@ -44,7 +44,7 @@ void H5Writer::writePhaseSpace(PartBunch<double, 3> *beam, Vector_t<double, 3> F
 }
 
 
-int H5Writer::writePhaseSpace(PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[], double /*meanEnergy*/,
+int H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[], double /*meanEnergy*/,
                               double refPr, double refPt, double refPz,
                               double refR, double refTheta, double refZ,
                               double azimuth, double elevation, bool /*local*/) {
