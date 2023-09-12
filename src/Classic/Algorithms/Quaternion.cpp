@@ -1,13 +1,11 @@
 #include "Algorithms/Quaternion.h"
-#include "Algorithms/BoostMatrix.h"
-#include "Physics/Physics.h"
-// ADA #include "Utility/RandomNumberGen.h"
 #include <random>
+#include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 
 namespace {
     Vector_t<double, 3> normalize(const Vector_t<double, 3>& vec) {
-        double length = std::sqrt(dot(vec, vec).apply());
+        double length = std::sqrt(dot(vec, vec));
 
 #ifndef NOPAssert
         if (length < 1e-12)
@@ -42,10 +40,10 @@ Quaternion getQuaternion(Vector_t<double, 3> u, Vector_t<double, 3> ref) {
     std::uniform_real_distribution<double> uDist(0.0, 1.0);
 
     Vector_t<double, 3> axis = cross(u, ref);
-    double normAxis          = std::sqrt(dot(axis, axis).apply());
+    double normAxis          = std::sqrt(dot(axis, axis));
 
     if (normAxis < tol) {
-        if (std::abs(dot(u, ref).apply() - 1.0) < tol) {
+        if (std::abs(dot(u, ref) - 1.0) < tol) {
             return Quaternion(1.0, Vector_t<double, 3>(0.0));
         }
         // vectors are parallel or antiparallel
@@ -55,9 +53,9 @@ Quaternion getQuaternion(Vector_t<double, 3> u, Vector_t<double, 3> ref) {
             axis(0)  = std::sqrt(1 - u * u) * std::cos(v);
             axis(1)  = std::sqrt(1 - u * u) * std::sin(v);
             axis(2)  = u;
-        } while (std::abs(dot(axis, ref).apply()) > 0.9);
+        } while (std::abs(dot(axis, ref)) > 0.9);
 
-        axis -= dot(axis, ref).apply() * ref;
+        axis -= dot(axis, ref) * ref;
         axis = normalize(axis);
 
         return Quaternion(0, axis);
@@ -65,7 +63,7 @@ Quaternion getQuaternion(Vector_t<double, 3> u, Vector_t<double, 3> ref) {
 
     axis = axis / normAxis;
 
-    double cosAngle = sqrt(0.5 * (1 + dot(u, ref).apply()));
+    double cosAngle = sqrt(0.5 * (1 + dot(u, ref)));
     double sinAngle = sqrt(1 - cosAngle * cosAngle);
 
     return Quaternion(cosAngle, sinAngle * axis);
@@ -83,13 +81,16 @@ Quaternion Quaternion::operator*(const Quaternion& other) const {
 }
 
 Quaternion& Quaternion::operator*=(const Quaternion& other) {
-    Vector_t<double, 3> imagThis  = this->imag();
-    Vector_t<double, 3> imagOther = other.imag();
+    const Vector_t<double, 3> imagThis  = this->imag();
+    const Vector_t<double, 3> imagOther = other.imag();
 
+    // auto a = dot(imagThis, imagOther);
+
+    /*
     *this = Quaternion(
-        (*this)(0) * other(0) - dot(imagThis, imagOther).apply(),
+    (*this)(0) * other(0) - dot(imagThis, imagOther),
         (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
-
+    */
     return *this;
 }
 

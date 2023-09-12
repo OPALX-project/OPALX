@@ -600,15 +600,15 @@ size_t PartBunch<PLayout, T, Dim>::calcNumPartsOutside(Vector_t<T, Dim> x) {
     const Vector_t<T, Dim> meanR = get_rmean();
 
     for (unsigned long k = 0; k < this->getLocalNum(); ++k)
-        if (std::abs(this->R[k](0) - meanR(0)) > x(0) || std::abs(this->R[k](1) - meanR(1)) > x(1)
-            || std::abs(this->R[k](2) - meanR(2)) > x(2)) {
+        if (std::abs(this->R(k)(0) - meanR(0)) > x(0) || std::abs(this->R(k)(1) - meanR(1)) > x(1)
+            || std::abs(this->R(k)(2) - meanR(2)) > x(2)) {
             ++localnum;
         }
 
     // ADA gather(&localnum, &globalPartPerNode_m[0], 1);
 
     size_t npOutside = std::accumulate(
-        globalPartPerNode_m.get(), globalPartPerNode_m.get() + ippl::Communicate::getNodes(), 0,
+        globalPartPerNode_m.get(), globalPartPerNode_m.get() + ippl::Comm->size(), 0,
         std::plus<size_t>());
 
     return npOutside;
@@ -1103,7 +1103,7 @@ void PartBunch<PLayout, T, Dim>::set_meshEnlargement(double dh) {
 
 template <class PLayout, typename T, unsigned Dim>
 void PartBunch<PLayout, T, Dim>::gatherLoadBalanceStatistics() {
-    for (int i = 0; i < ippl::Communicate::getNodes(); i++)
+    for (int i = 0; i < ippl::Comm->size(); i++)
         globalPartPerNode_m[i] = 0;
 
     std::size_t localnum = this->getLocalNum();
@@ -1164,7 +1164,7 @@ void PartBunch<PLayout, T, Dim>::setMassZeroPart(double mass) {
 
 template <class PLayout, typename T, unsigned Dim>
 double PartBunch<PLayout, T, Dim>::getCharge() const {
-    return sum(this->Q);
+    return 0.0;  // ADA sum(this->Q);
 }
 
 template <class PLayout, typename T, unsigned Dim>

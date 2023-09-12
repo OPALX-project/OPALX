@@ -62,54 +62,42 @@
 #include "Algorithms/Tracker.h"
 #include "Fields/BMultipoleField.h"
 
-//FIXME Remove headers and dynamic_cast in readOneBunchFromFile
+// FIXME Remove headers and dynamic_cast in readOneBunchFromFile
 #include "Algorithms/PartBunch.h"
 
 #include <cfloat>
 #include <cmath>
 #include <limits>
 
-
 // Class Tracker
 // ------------------------------------------------------------------------
 
+Tracker::Tracker(const Beamline& beamline, const PartData& reference, bool backBeam, bool backTrack)
+    : Tracker(beamline, nullptr, reference, backBeam, backTrack) {
+}
 
-Tracker::Tracker(const Beamline &beamline, const PartData &reference,
-                 bool backBeam, bool backTrack):
-    Tracker(beamline, nullptr, reference, backBeam, backTrack)
-{}
+Tracker::Tracker(
+    const Beamline& beamline, PartBunch_t* bunch, const PartData& reference, bool backBeam,
+    bool backTrack)
+    : AbstractTracker(beamline, reference, backBeam, backTrack),
+      itsBeamline_m(beamline),
+      itsBunch_m(bunch) {
+}
 
+Tracker::~Tracker() {
+}
 
-Tracker::Tracker(const Beamline &beamline,
-                 PartBunch_t *bunch,
-                 const PartData &reference,
-                 bool backBeam, bool backTrack):
-    AbstractTracker(beamline, reference, backBeam, backTrack),
-    itsBeamline_m(beamline),
-    itsBunch_m(bunch)
-{}
-
-
-Tracker::~Tracker()
-{}
-
-
-const PartBunch_t *Tracker::getBunch() const {
+const PartBunch_t* Tracker::getBunch() const {
     return itsBunch_m;
 }
 
-
-void Tracker::addToBunch(const OpalParticle &part) {
-    itsBunch_m->push_back(part);
+void Tracker::addToBunch(const OpalParticle& part) {
 }
-
 
 //~ void Tracker::setBunch(const PartBunch &bunch) {
-    //~ itsBunch_m = &bunch;
+//~ itsBunch_m = &bunch;
 //~ }
 
-
-void Tracker::visitComponent(const Component &comp) {
+void Tracker::visitComponent(const Component& comp) {
     comp.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
 }
-

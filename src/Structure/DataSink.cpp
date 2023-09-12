@@ -38,75 +38,65 @@
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
-#include "Utility/FieldDebugFunctions.h"
 
 #ifdef __linux__
-    #include "MemoryProfiler.h"
+#include "MemoryProfiler.h"
 #else
-    #include "MemoryWriter.h"
+#include "MemoryWriter.h"
 #endif
 
 #include <sstream>
 
-DataSink::DataSink()
-{
+DataSink::DataSink() {
     this->init();
 }
 
-
-DataSink::DataSink(H5PartWrapper *h5wrapper, bool restart)
-{
+DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart) {
     if (restart && !Options::enableHDF5) {
-        throw OpalException("DataSink::DataSink()",
-                            "Can not restart when HDF5 is disabled");
+        throw OpalException("DataSink::DataSink()", "Can not restart when HDF5 is disabled");
     }
 
     this->init(restart, h5wrapper);
 
-    if ( restart )
+    if (restart)
         rewindLines();
 }
 
+DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {
+}
 
-DataSink::DataSink(H5PartWrapper *h5wrapper)
-    : DataSink(h5wrapper, false)
-{ }
-
-
-void DataSink::dumpH5(PartBunch_t *beam, Vector_t<double, 3> FDext[]) const {
-    if (!Options::enableHDF5) return;
+void DataSink::dumpH5(PartBunch_t* beam, Vector_t<double, 3> FDext[]) const {
+    if (!Options::enableHDF5)
+        return;
 
     h5Writer_m->writePhaseSpace(beam, FDext);
 }
 
+int DataSink::dumpH5(
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr, double refPt,
+    double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
+    bool local) const {
+    if (!Options::enableHDF5)
+        return -1;
 
-int DataSink::dumpH5(PartBunch_t *beam, Vector_t<double, 3> FDext[], double meanEnergy,
-                     double refPr, double refPt, double refPz,
-                     double refR, double refTheta, double refZ,
-                     double azimuth, double elevation, bool local) const
-{
-    if (!Options::enableHDF5) return -1;
-
-    return h5Writer_m->writePhaseSpace(beam, FDext, meanEnergy, refPr, refPt, refPz,
-                                       refR, refTheta, refZ, azimuth, elevation, local);
+    return h5Writer_m->writePhaseSpace(
+        beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
+        local);
 }
 
-
-void DataSink::dumpSDDS(PartBunch_t *beam, Vector_t<double, 3> FDext[],
-                        const double& azimuth) const
-{
+void DataSink::dumpSDDS(
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth) const {
     this->dumpSDDS(beam, FDext, losses_t(), azimuth);
 }
 
-
-void DataSink::dumpSDDS(PartBunch_t *beam, Vector_t<double, 3> FDext[],
-                        const losses_t &losses, const double& azimuth) const
-{
+void DataSink::dumpSDDS(
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses,
+    const double& azimuth) const {
     beam->calcBeamParameters();
 
     size_t npOutside = 0;
     if (Options::beamHaloBoundary > 0)
-        npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary*beam->get_rrms());
+        npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary * beam->get_rrms());
 
     IpplTimings::startTimer(StatMarkerTimer_m);
 
@@ -120,75 +110,73 @@ void DataSink::dumpSDDS(PartBunch_t *beam, Vector_t<double, 3> FDext[],
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
 
-
 void DataSink::storeCavityInformation() {
-    if (!Options::enableHDF5) return;
+    if (!Options::enableHDF5)
+        return;
 
     h5Writer_m->storeCavityInformation();
 }
 
-
-void DataSink::changeH5Wrapper(H5PartWrapper *h5wrapper) {
-    if (!Options::enableHDF5) return;
+void DataSink::changeH5Wrapper(H5PartWrapper* h5wrapper) {
+    if (!Options::enableHDF5)
+        return;
 
     h5Writer_m->changeH5Wrapper(h5wrapper);
 }
 
-
-void DataSink::writeGeomToVtk(BoundaryGeometry &bg, std::string fn) {
+void DataSink::writeGeomToVtk(BoundaryGeometry& bg, std::string fn) {
     if (ippl::Comm->rank() == 0 && Options::enableVTK) {
-        bg.writeGeomToVtk (fn);
+        bg.writeGeomToVtk(fn);
     }
 }
 
-
-void DataSink::writeImpactStatistics(const PartBunch_t *beam, long long &step, size_t &impact, double &sey_num,
-                                     size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
-
-    double charge = 0.0;
-    size_t Npart = 0;
+void DataSink::writeImpactStatistics(
+    const PartBunch_t* beam, long long& step, size_t& impact, double& sey_num,
+    size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
+    double charge  = 0.0;
+    size_t Npart   = 0;
     double Npart_d = 0.0;
-    if(!nEmissionMode) {
+    if (!nEmissionMode) {
         charge = -1.0 * beam->getCharge();
-        //reduce(charge, charge, OpAddAssign());
+        // reduce(charge, charge, OpAddAssign());
         Npart_d = -1.0 * charge / beam->getChargePerParticle();
     } else {
         Npart = beam->getTotalNum();
     }
-    if(ippl::Comm->rank() == 0) {
+    if (ippl::Comm->rank() == 0) {
         std::string ffn = fn + std::string(".dat");
 
         std::unique_ptr<Inform> ofp(new Inform(nullptr, ffn.c_str(), Inform::APPEND, 0));
-        Inform &fid = *ofp;
+        Inform& fid = *ofp;
         fid.precision(6);
         fid << std::setiosflags(std::ios::scientific);
         double t = beam->getT() * Units::s2ns;
-        if(!nEmissionMode) {
-
-            if(step == 0) {
-                fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
-                    << "TotalCharge" << std::setw(18) << "PartNum" << " numberOfFieldEmittedParticles " << endl;
+        if (!nEmissionMode) {
+            if (step == 0) {
+                fid << "#Time/ns" << std::setw(18) << "#Geometry impacts" << std::setw(18)
+                    << "tot_sey" << std::setw(18) << "TotalCharge" << std::setw(18) << "PartNum"
+                    << " numberOfFieldEmittedParticles " << endl;
             }
-            fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18) << charge
-                << std::setw(18) << Npart_d << std::setw(18) << numberOfFieldEmittedParticles << endl;
+            fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18)
+                << charge << std::setw(18) << Npart_d << std::setw(18)
+                << numberOfFieldEmittedParticles << endl;
         } else {
-
-            if(step == 0) {
-                fid << "#Time/ns"  << std::setw(18) << "#Geometry impacts" << std::setw(18) << "tot_sey" << std::setw(18)
-                    << "ParticleNumber" << " numberOfFieldEmittedParticles " << endl;
+            if (step == 0) {
+                fid << "#Time/ns" << std::setw(18) << "#Geometry impacts" << std::setw(18)
+                    << "tot_sey" << std::setw(18) << "ParticleNumber"
+                    << " numberOfFieldEmittedParticles " << endl;
             }
-            fid << t << std::setw(18) << impact << std::setw(18) << sey_num
-                << std::setw(18) << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl;
+            fid << t << std::setw(18) << impact << std::setw(18) << sey_num << std::setw(18)
+                << double(Npart) << std::setw(18) << numberOfFieldEmittedParticles << endl;
         }
     }
 }
-
 
 void DataSink::rewindLines() {
     unsigned int linesToRewind = 0;
 
     double spos = h5Writer_m->getLastPosition();
-    if ( statWriter_m->exists() ) {
+    if (statWriter_m->exists()) {
         // use stat file to get position
         linesToRewind = statWriter_m->rewindToSpos(spos);
         statWriter_m->replaceVersionString();
@@ -196,7 +184,7 @@ void DataSink::rewindLines() {
     h5Writer_m->close();
 
     // rewind all others
-    if ( linesToRewind > 0 ) {
+    if (linesToRewind > 0) {
         for (size_t i = 0; i < sddsWriter_m.size(); ++i) {
             sddsWriter_m[i]->rewindLines(linesToRewind);
             sddsWriter_m[i]->replaceVersionString();
@@ -204,34 +192,25 @@ void DataSink::rewindLines() {
     }
 }
 
-
 void DataSink::init(bool restart, H5PartWrapper* h5wrapper) {
     std::string fn = OpalData::getInstance()->getInputBasename();
 
-    lossWrCounter_m = 0;
+    lossWrCounter_m   = 0;
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
 
     statWriter_m = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
 
-    sddsWriter_m.push_back(
-        sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart))
-    );
+    sddsWriter_m.push_back(sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart)));
 
-    if ( Options::memoryDump ) {
+    if (Options::memoryDump) {
 #ifdef __linux__
-        sddsWriter_m.push_back(
-            sddsWriter_t(new MemoryProfiler(fn + std::string(".mem"), restart))
-        );
+        sddsWriter_m.push_back(sddsWriter_t(new MemoryProfiler(fn + std::string(".mem"), restart)));
 #else
-        sddsWriter_m.push_back(
-            sddsWriter_t(new MemoryWriter(fn + std::string(".mem"), restart))
-        );
+        sddsWriter_m.push_back(sddsWriter_t(new MemoryWriter(fn + std::string(".mem"), restart)));
 #endif
     }
 
-    if ( Options::enableHDF5 ) {
+    if (Options::enableHDF5) {
         h5Writer_m = h5Writer_t(new H5Writer(h5wrapper, restart));
     }
 }
-
-

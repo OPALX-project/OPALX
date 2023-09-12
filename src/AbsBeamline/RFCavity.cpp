@@ -685,7 +685,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
         }
         integrator.kick(z, p, Ef, Bf, dt);
 
-        dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p).apply()) * cdt;
+        dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p)) * cdt;
         z  = z / cdt;
         integrator.push(z, p, dt);
         z = z * cdt;
@@ -696,7 +696,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
                  << std::endl;
     }
 
-    const double beta = std::sqrt(1. - 1 / (dot(p, p).apply() + 1.));
+    const double beta = std::sqrt(1. - 1 / (dot(p, p) + 1.));
     const double tErr = (z(2) - zend) / (Physics::c * beta);
 
     return std::pair<double, double>(p(2), t - tErr);
