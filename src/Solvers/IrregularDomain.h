@@ -28,41 +28,32 @@
 
 #include <map>
 #include <string>
-#include "Algorithms/Vektor.h"
 #include "Algorithms/Quaternion.h"
 #include "Index/NDIndex.h"
 
 /// enumeration corresponding to different interpolation methods at the boundary
-enum {
-    CONSTANT,
-    LINEAR,
-    QUADRATIC
-};
-
+enum { CONSTANT, LINEAR, QUADRATIC };
 
 class IrregularDomain {
-
 public:
-
-    template<typename T>
+    template <typename T>
     struct Stencil {
-        T center;   // x,   y,   z
-        T west;     // x-1, y,   z
-        T east;     // x+1, y,   z
-        T north;    // x,   y+1, z
-        T south;    // x,   y-1, z
-        T front;    // x,   y,   z-1
-        T back;     // x,   y,   z+1
+        T center;  // x,   y,   z
+        T west;    // x-1, y,   z
+        T east;    // x+1, y,   z
+        T north;   // x,   y+1, z
+        T south;   // x,   y-1, z
+        T front;   // x,   y,   z-1
+        T back;    // x,   y,   z+1
     };
 
-    typedef Stencil<int>    StencilIndex_t;
+    typedef Stencil<int> StencilIndex_t;
     typedef Stencil<double> StencilValue_t;
-    typedef Vektor<int, 3>  IntVector_t<double, 3>;
+    typedef Vector_t<int, 3> IntVector_t<double, 3>;
 
-    IrregularDomain(const IntVector_t<double, 3>& nr,
-                    const Vector_t<double, 3>& hr,
-                    const std::string& interpl);
-
+    IrregularDomain(
+        const IntVector_t<double, 3>& nr, const Vector_t<double, 3>& hr,
+        const std::string& interpl);
 
     /** method to compute the intersection points with the boundary geometry
      * (stored in some appropriate data structure)
@@ -76,16 +67,13 @@ public:
     /// \param z index of the current element in the matrix
     /// \param values of stencil element
     /// \param scaleFactor of stencil values
-    void getBoundaryStencil(int x, int y, int z,
-                            StencilValue_t& value,
-                            double &scaleFactor) const;
+    void getBoundaryStencil(int x, int y, int z, StencilValue_t& value, double& scaleFactor) const;
 
     /// method to calculate the stencil at a boundary points
     /// \param id index of the current element in the matrix
     // \param values of stencil element
     /// \param scaleFactor of stencil values
-    void getBoundaryStencil(int id, StencilValue_t& value,
-                            double &scaleFactor) const;
+    void getBoundaryStencil(int id, StencilValue_t& value, double& scaleFactor) const;
 
     /// method to calculate the neighbours in the matrix of the current index (x,y,z)
     /// \param x index of the current element in the matrix
@@ -97,68 +85,98 @@ public:
     void getNeighbours(int idx, StencilIndex_t& index) const;
 
     /// Conversion from a 3D index to (x,y,z)
-    virtual void getCoord(int idx, int &x, int &y, int &z) const;
+    virtual void getCoord(int idx, int& x, int& y, int& z) const;
 
     /// Conversion from (x,y,z) to index on the 3D grid
     int getIdx(int x, int y, int z) const;
 
-    virtual int getNumXY() const { return nr_m[0] * nr_m[1]; }
+    virtual int getNumXY() const {
+        return nr_m[0] * nr_m[1];
+    }
 
     /// method that checks if a given point lies inside the boundary
     /// \param x index of the current element in the matrix
     /// \param y index of the current element in the matrix
     /// \param z index of the current element in the matrix
     /// \return boolean indicating if the point lies inside the boundary
-    virtual bool isInside(int x, int y, int z)  const = 0;
+    virtual bool isInside(int x, int y, int z) const = 0;
 
-    IntVector_t<double, 3> getNr() const { return nr_m; }
-    Vector_t<double, 3>    getHr() const { return hr_m; }
+    IntVector_t<double, 3> getNr() const {
+        return nr_m;
+    }
+    Vector_t<double, 3> getHr() const {
+        return hr_m;
+    }
 
-    void setNr(IntVector_t<double, 3> nr) { nr_m = nr; }
-    void setHr(Vector_t<double, 3> hr)    { hr_m = hr; }
+    void setNr(IntVector_t<double, 3> nr) {
+        nr_m = nr;
+    }
+    void setHr(Vector_t<double, 3> hr) {
+        hr_m = hr;
+    }
 
     void setMinMaxZ(double minz, double maxz) {
         zMin_m = minz;
         zMax_m = maxz;
     }
 
-    double getMinZ() const { return zMin_m; }
-    double getMaxZ() const { return zMax_m; }
+    double getMinZ() const {
+        return zMin_m;
+    }
+    double getMaxZ() const {
+        return zMax_m;
+    }
 
-    double getXRangeMin() const { return min_m(0); }
-    double getXRangeMax() const { return max_m(0); }
-    double getYRangeMin() const { return min_m(1); }
-    double getYRangeMax() const { return max_m(1); }
-    double getZRangeMin() const { return min_m(2); }
-    double getZRangeMax() const { return max_m(2); }
+    double getXRangeMin() const {
+        return min_m(0);
+    }
+    double getXRangeMax() const {
+        return max_m(0);
+    }
+    double getYRangeMin() const {
+        return min_m(1);
+    }
+    double getYRangeMax() const {
+        return max_m(1);
+    }
+    double getZRangeMin() const {
+        return min_m(2);
+    }
+    double getZRangeMax() const {
+        return max_m(2);
+    }
 
-    void setRangeMin(const Vector_t<double, 3>& min) { min_m = min; }
-    void setRangeMax(const Vector_t<double, 3>& max) { max_m = max; }
+    void setRangeMin(const Vector_t<double, 3>& min) {
+        min_m = min;
+    }
+    void setRangeMax(const Vector_t<double, 3>& max) {
+        max_m = max;
+    }
 
-    bool hasGeometryChanged() const { return hasGeometryChanged_m; }
+    bool hasGeometryChanged() const {
+        return hasGeometryChanged_m;
+    }
 
-    virtual ~IrregularDomain() {};
+    virtual ~IrregularDomain(){};
 
-    virtual void resizeMesh(Vector_t<double, 3>& origin, Vector_t<double, 3>& hr,
-                            const Vector_t<double, 3>& /*rmin*/, const Vector_t<double, 3>& /*rmax*/,
-                            double /*dh*/);
+    virtual void resizeMesh(
+        Vector_t<double, 3>& origin, Vector_t<double, 3>& hr, const Vector_t<double, 3>& /*rmin*/,
+        const Vector_t<double, 3>& /*rmax*/, double /*dh*/);
 
 protected:
-
     virtual int indexAccess(int x, int y, int z) const = 0;
 
     virtual int coordAccess(int idx) const = 0;
 
     /// different interpolation methods for boundary points
-    virtual void constantInterpolation(int x, int y, int z, StencilValue_t& value,
-                               double &scaleFactor) const;
+    virtual void constantInterpolation(
+        int x, int y, int z, StencilValue_t& value, double& scaleFactor) const;
 
-    virtual void linearInterpolation(int x, int y, int z, StencilValue_t& value,
-                             double &scaleFactor) const;
+    virtual void linearInterpolation(
+        int x, int y, int z, StencilValue_t& value, double& scaleFactor) const;
 
-    virtual void quadraticInterpolation(int x, int y, int z, StencilValue_t& value,
-                                double &scaleFactor) const;
-
+    virtual void quadraticInterpolation(
+        int x, int y, int z, StencilValue_t& value, double& scaleFactor) const;
 
     // a irregular domain is always defined on a grid
     /// number of mesh points in each direction
@@ -184,7 +202,6 @@ protected:
 
     /// mapping idx -> (x,y,z)
     std::map<int, int> coordMap_m;
-
 };
 
 #endif

@@ -22,18 +22,18 @@
 #ifndef OPAL_ParallelTracker_HH
 #define OPAL_ParallelTracker_HH
 
+#include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
 #include "Structure/DataSink.h"
-#include "Algorithms/StepSizeConfig.h"
 
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 
-#include "Algorithms/OrbitThreader.h"
 #include "Algorithms/IndexMap.h"
+#include "Algorithms/OrbitThreader.h"
 
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -41,31 +41,27 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Ring.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbsBeamline/TravelingWave.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 
 #include <list>
-#include <vector>
 #include <memory>
 #include <tuple>
 #include <vector>
 
-
 class ParticleMatterInteractionHandler;
 class PluginElement;
 
-class ParallelTracker: public Tracker {
-
+class ParallelTracker : public Tracker {
 public:
-
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
-    typedef std::pair<double[8], Component*>      element_pair;
-    typedef std::pair<ElementType, element_pair>        type_pair;
-    typedef std::list<type_pair*>                 beamline_list;
+    typedef std::pair<double[8], Component*> element_pair;
+    typedef std::pair<ElementType, element_pair> type_pair;
+    typedef std::list<type_pair*> beamline_list;
 
     /// Constructor.
     //  The beam line to be tracked is "bl".
@@ -73,10 +69,7 @@ public:
     //  The particle bunch tracked is initially empty.
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelTracker(const Beamline &bl,
-                              const PartData &data,
-                              bool revBeam,
-                              bool revTrack);
+    explicit ParallelTracker(const Beamline& bl, const PartData& data, bool revBeam, bool revTrack);
 
     /// Constructor.
     //  The beam line to be tracked is "bl".
@@ -84,17 +77,10 @@ public:
     //  The particle bunch tracked is taken from [b]bunch[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelTracker(const Beamline &bl,
-                              PartBunch<double, 3> *bunch,
-                              DataSink &ds,
-                              const PartData &data,
-                              bool revBeam,
-                              bool revTrack,
-                              const std::vector<unsigned long long> &maxSTEPS,
-                              double zstart,
-                              const std::vector<double> &zstop,
-                              const std::vector<double> &dt);
-
+    explicit ParallelTracker(
+        const Beamline& bl, PartBunch_t* bunch, DataSink& ds, const PartData& data, bool revBeam,
+        bool revTrack, const std::vector<unsigned long long>& maxSTEPS, double zstart,
+        const std::vector<double>& zstop, const std::vector<double>& dt);
 
     virtual ~ParallelTracker();
 
@@ -104,44 +90,43 @@ public:
 
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
-    virtual void visitBeamline(const Beamline &);
+    virtual void visitBeamline(const Beamline&);
 
     /// Apply the algorithm to a drift space.
-    virtual void visitDrift(const Drift &);
+    virtual void visitDrift(const Drift&);
 
-    /// Apply the algorithm to a ring                                                                                                                          
+    /// Apply the algorithm to a ring
     virtual void visitRing(const Ring& ring);
-    
+
     /// Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker &);
+    virtual void visitMarker(const Marker&);
 
     /// Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole &);
+    virtual void visitMultipole(const Multipole&);
 
     /// Apply the algorithm to an arbitrary multipole.
-    virtual void visitMultipoleT(const MultipoleT &);
+    virtual void visitMultipoleT(const MultipoleT&);
 
     /// Apply the algorithm to a offset (placement).
     virtual void visitOffset(const Offset&);
 
     /// Apply the algorithm to a RF cavity.
-    virtual void visitRFCavity(const RFCavity &);
+    virtual void visitRFCavity(const RFCavity&);
 
     /// Apply the algorithm to a traveling wave.
-    virtual void visitTravelingWave(const TravelingWave &);
+    virtual void visitTravelingWave(const TravelingWave&);
 
     /// Apply the algorithm to a scaling FFA.
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet & bend);
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet& bend);
 
-    /// Apply the algorithm to a vertical FFA magnet.                                                                                                                                                                                         
+    /// Apply the algorithm to a vertical FFA magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
 
 private:
-
     // Not implemented.
     ParallelTracker();
-    ParallelTracker(const ParallelTracker &);
-    void operator=(const ParallelTracker &);
+    ParallelTracker(const ParallelTracker&);
+    void operator=(const ParallelTracker&);
 
     /*
       Ring specifics
@@ -151,10 +136,10 @@ private:
     Ring* opalRing_m;
 
     unsigned turnnumber_m;
-    
-    std::list<Component*> myElements;    
+
+    std::list<Component*> myElements;
     beamline_list FieldDimensions;
-    /// The reference variables                                                                                                                                                                                  
+    /// The reference variables
     double bega;
     double referenceR;
     double referenceTheta;
@@ -174,10 +159,10 @@ private:
     void buildupFieldList(double BcParameter[], ElementType elementType, Component* elptr);
 
     std::vector<PluginElement*> pluginElements_m;
-    
+
     /******************** STATE VARIABLES ***********************************/
 
-    DataSink *itsDataSink_m;
+    DataSink* itsDataSink_m;
 
     OpalBeamline itsOpalBeamline_m;
 
@@ -215,19 +200,19 @@ private:
 
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
-    IpplTimings::TimerRef fieldEvaluationTimer_m ;
+    IpplTimings::TimerRef fieldEvaluationTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef PluginElemTimer_m;
-    
+
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
 
     /********************** END VARIABLES ***********************************/
 
-    void kickParticles(const BorisPusher &pusher);
-    void pushParticles(const BorisPusher &pusher);
-    void updateReferenceParticle(const BorisPusher &pusher);
+    void kickParticles(const BorisPusher& pusher);
+    void pushParticles(const BorisPusher& pusher);
+    void updateReferenceParticle(const BorisPusher& pusher);
 
     void writePhaseSpace(const long long step, bool psDump, bool statDump);
 
@@ -240,14 +225,14 @@ private:
 
     void prepareSections();
 
-    void timeIntegration1(BorisPusher & pusher);
-    void timeIntegration2(BorisPusher & pusher);
+    void timeIntegration1(BorisPusher& pusher);
+    void timeIntegration2(BorisPusher& pusher);
     void selectDT(bool backTrack = false);
     void changeDT(bool backTrack = false);
     void emitParticles(long long step);
-    void computeExternalFields(OrbitThreader &oth);
-    void computeWakefield(IndexMap::value_t &elements);
-    void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader &oth);
+    void computeExternalFields(OrbitThreader& oth);
+    void computeWakefield(IndexMap::value_t& elements);
+    void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
 
     void computeSpaceChargeFields(unsigned long long step);
     // void prepareOpalBeamlineSections();
@@ -259,55 +244,56 @@ private:
     void setTime();
     void doBinaryRepartition();
 
-    void transformBunch(const CoordinateSystemTrafo &trafo);
+    void transformBunch(const CoordinateSystemTrafo& trafo);
 
-    void updateReference(const BorisPusher &pusher);
+    void updateReference(const BorisPusher& pusher);
     void updateRefToLabCSTrafo();
-    void applyFractionalStep(const BorisPusher &pusher, double tau);
-    void findStartPosition(const BorisPusher &pusher);
-    void autophaseCavities(const BorisPusher &pusher);
+    void applyFractionalStep(const BorisPusher& pusher, double tau);
+    void findStartPosition(const BorisPusher& pusher);
+    void autophaseCavities(const BorisPusher& pusher);
 
     bool applyPluginElements(const double dt);
-
 };
 
-inline void ParallelTracker::visitDrift(const Drift &drift) {
+inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitMarker(const Marker &marker) {
+inline void ParallelTracker::visitMarker(const Marker& marker) {
     itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitMultipole(const Multipole &mult) {
+inline void ParallelTracker::visitMultipole(const Multipole& mult) {
     itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitMultipoleT(const MultipoleT &mult) {
+inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
     itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitRFCavity(const RFCavity &as) {
+inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitTravelingWave(const TravelingWave &as) {
+inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::kickParticles(const BorisPusher &pusher) {
+inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     int localNum = itsBunch_m->getLocalNum();
     for (int i = 0; i < localNum; ++i)
-        pusher.kick(itsBunch_m->R[i], itsBunch_m->P[i], itsBunch_m->Ef[i], itsBunch_m->Bf[i], itsBunch_m->dt[i]);
+        pusher.kick(
+            itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->Ef(i), itsBunch_m->Bf(i),
+            itsBunch_m->dt(i));
 }
 
-inline void ParallelTracker::pushParticles(const BorisPusher &pusher) {
+inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     itsBunch_m->switchToUnitlessPositions(true);
 
     for (unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
-        pusher.push(itsBunch_m->R[i], itsBunch_m->P[i], itsBunch_m->dt[i]);
+        pusher.push(itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->dt(i));
     }
     itsBunch_m->switchOffUnitlessPositions(true);
 }
 
-#endif // OPAL_ParallelTracker_HH
+#endif  // OPAL_ParallelTracker_HH

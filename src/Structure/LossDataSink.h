@@ -22,7 +22,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/OpalParticle.h"
-#include "Algorithms/Vektor.h"
+ 
 
 #include <boost/optional.hpp>
 

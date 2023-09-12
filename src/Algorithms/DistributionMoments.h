@@ -22,7 +22,6 @@
 #include "Algorithms/PartBunch.h"
 
 // #include "Matrix.h"
-//  #include "Vektor.h"
 
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -40,7 +39,7 @@ public:
         const std::vector<OpalParticle>::const_iterator&);
     void compute(PartBunch_t const&);
     void computeMeanKineticEnergy(PartBunch_t const&);
-    void computeDebyeLength(PartBunch_t&, double);
+    // void computeDebyeLength(PartBunch_t&, double);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;

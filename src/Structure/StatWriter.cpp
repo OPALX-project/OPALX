@@ -149,7 +149,7 @@ void StatWriter::fillHeader(const losses_t &losses) {
                             "z-component of normalized emittance at 99.99 percentile (4 sigma of normal distribution)");
     }
     if (OpalData::getInstance()->isInOPALCyclMode() &&
-        Ippl::getNodes() == 1) {
+        ippl::Comm->size() == 1) {
         columns_m.addColumn("R0_x", "double", "m", "R0 Particle position in x");
         columns_m.addColumn("R0_y", "double", "m", "R0 Particle position in y");
         columns_m.addColumn("R0_s", "double", "m", "R0 Particle position in z");
@@ -194,7 +194,7 @@ void StatWriter::fillHeader(const losses_t &losses) {
 }
 
 
-void StatWriter::write(const PartBunch<double, 3> *beam, Vector_t<double, 3> FDext[],
+void StatWriter::write(const PartBunch_t *beam, Vector_t<double, 3> FDext[],
                        const losses_t &losses, const double& azimuth,
                        const size_t npOutside)
 {
@@ -309,7 +309,7 @@ void StatWriter::write(const PartBunch<double, 3> *beam, Vector_t<double, 3> FDe
         columns_m.addColumnValue("normalizedEps99_99Percentile_z", beam->get_normalizedEps_99_99Percentile()[2]);
     }
     if (OpalData::getInstance()->isInOPALCyclMode()) {
-        if (Ippl::getNodes() == 1) {
+        if (ippl::Comm->size() == 1) {
             if (beam->getLocalNum() > 0) {
                 columns_m.addColumnValue("R0_x", beam->R[0](0));
                 columns_m.addColumnValue("R0_y", beam->R[0](1));

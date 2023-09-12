@@ -415,7 +415,7 @@ public:
         const Vector_t<T, Dim> maxE = max(eg_m);
         //      const double maxL = max(dot(eg_m,eg_m));
         const Vector_t<T, Dim> minE = min(eg_m);
-        // INFOMSG("MaxE= " << maxE << " MinE= " << minE << endl);
+        // *ippl::Info << "MaxE= " << maxE << " MinE= " << minE << endl;
         return VectorPair_t(maxE, minE);
     }
 

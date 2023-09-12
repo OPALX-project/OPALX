@@ -3,7 +3,7 @@
 
 #include "Ippl.h"
 
-#include "Algorithms/Vektor.h"
+ 
 #include "Interpolation/CIC.h"
 #include "FieldLayout/FieldLayout.h"
 

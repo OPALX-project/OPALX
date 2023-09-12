@@ -58,7 +58,7 @@ public:
                     // included (since Linux 2.6.34).
     };
     
-    void write(const PartBunch<double, 3> *beam) override;
+    void write(const PartBunch_t *beam) override;
     
 private:
     void header();

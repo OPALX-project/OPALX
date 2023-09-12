@@ -17,7 +17,7 @@
 //
 
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunch<double, 3>* bunch,
+bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunch_t* bunch,
                                                     const size_t& i,
                                                     const double& t,
                                                     const double dt,
@@ -85,7 +85,7 @@ bool RK4<FieldFunction, Arguments ...>::doAdvance_m(PartBunch<double, 3>* bunch,
 
 
 template <typename FieldFunction, typename ... Arguments>
-bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunch<double, 3>* bunch,
+bool RK4<FieldFunction, Arguments ...>::derivate_m(PartBunch_t* bunch,
                                                    double* y,
                                                    const double& t,
                                                    double* yp,

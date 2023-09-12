@@ -1,3 +1,4 @@
+
 //
 // Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
@@ -90,21 +91,20 @@ namespace {
     void printHelp() {
         ::printStdoutHeader();
 
-        INFOMSG("\n");
-        INFOMSG("Usage: opal [<option> <option> ...]\n");
-        INFOMSG("   The possible values for <option> are:\n");
-        INFOMSG("   --version                : Print the version of opal.\n");
-        INFOMSG(
-            "   --version-full           : Print the version of opal with additional "
-            "informations.\n");
-        INFOMSG("   --git-revision           : Print the revision hash of the repository.\n");
-        INFOMSG("   --input <fname>          : Specifies the input file <fname>.\n");
-        INFOMSG("   --restart <n>            : Performes a restart from step <n>.\n");
-        INFOMSG("   --restartfn <fname>      : Uses the file <fname> to restart from.\n");
+        *ippl::Info << "\n";
+        *ippl::Info << "Usage: opal [<option> <option> ...]\n";
+        *ippl::Info << "   The possible values for <option> are:\n";
+        *ippl::Info << "   --version                : Print the version of opal.\n";
+        *ippl::Info << "   --version-full           : Print the version of opal with additional "
+                       "informations.\n";
+        *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
+        *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
+        *ippl::Info << "   --restart <n>            : Performes a restart from step <n>.\n";
+        *ippl::Info << "   --restartfn <fname>      : Uses the file <fname> to restart from.\n";
         Ippl::printHelp();
-        INFOMSG("   --help-command <command> : Display the help for the command <command>\n");
-        INFOMSG("   --help                   : Display this command-line summary.\n");
-        INFOMSG(endl);
+        *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
+        *ippl::Info << "   --help                   : Display this command-line summary.\n";
+        *ippl::Info << endl;
     }
 }  // namespace
 
@@ -168,10 +168,8 @@ int main(int argc, char* argv[]) {
                 is = new FileStream(startup);
             } catch (...) {
                 is = 0;
-                ERRORMSG(
-                    "Could not open startup file '"
-                    << startup << "'\n"
-                    << "Note: this is not mandatory for an OPAL simulation!\n");
+                *ippl::Error << "Could not open startup file '" << startup << "'\n"
+                             << "Note: this is not mandatory for an OPAL simulation!\n";
             }
 
             if (is) {
@@ -224,9 +222,8 @@ int main(int argc, char* argv[]) {
                 exit(0);
             } else if (argStr == std::string("--version-full")) {
                 ::printStdoutHeader();
-                INFOMSG(
-                    "OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. "
-                                    << Util::getGitRevision() << endl);
+                *ippl::Info << "OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. "
+                            << Util::getGitRevision() << endl;
                 IpplInfo::printVersion();
                 std::string options =
                     (IpplInfo::compileOptions() + std::string(" ")
@@ -250,12 +247,12 @@ int main(int argc, char* argv[]) {
                 while (options.length() > 58) {
                     std::string line = options.substr(0, 58);
                     size_t n         = line.find_last_of(' ');
-                    INFOMSG(header << line.substr(0, n) << "\n");
+                    *ippl::Info << header << line.substr(0, n) << "\n";
 
                     header  = std::string(22, ' ');
                     options = options.substr(n + 1);
                 }
-                INFOMSG(header << options << endl);
+                *ippl::Info << header << options << endl;
                 exit(0);
             } else if (argStr == std::string("--git-revision")) {
                 if (ippl::Comm->rank() == 0) {
@@ -279,7 +276,7 @@ int main(int argc, char* argv[]) {
                     inputFileArgument = ii;
                     continue;
                 } else {
-                    INFOMSG("Unknown argument \"" << argStr << "\"" << endl);
+                    *ippl::Info << "Unknown argument \"" << argStr << "\"" << endl;
                     ::printHelp();
                     exit(1);
                 }
@@ -288,13 +285,13 @@ int main(int argc, char* argv[]) {
 
         ::printStdoutHeader();
         if (inputFileArgument == -1) {
-            INFOMSG("No input file provided!" << endl);
+            *ippl::Info << "No input file provided!" << endl;
             exit(1);
         }
 
         fname = std::string(argv[inputFileArgument]);
         if (!fs::exists(fname)) {
-            INFOMSG("Input file '" << fname << "' doesn't exist!" << endl);
+            *ippl::Info << "Input file '" << fname << "' doesn't exist!" << endl;
             exit(1);
         }
 
@@ -305,7 +302,7 @@ int main(int argc, char* argv[]) {
                 restartFileName = opal->getInputBasename() + std::string(".h5");
             }
             if (!fs::exists(restartFileName)) {
-                INFOMSG("Restart file '" << restartFileName << "' doesn't exist!" << endl);
+                *ippl::Info << "Restart file '" << restartFileName << "' doesn't exist!" << endl;
                 exit(1);
             }
             opal->setRestartFileName(restartFileName);
@@ -333,8 +330,8 @@ int main(int argc, char* argv[]) {
                 std::string closure(
                     "                                                                              "
                     "   *\n");
-                ERRORMSG(
-                    "\n"
+                *ippl::Error
+                    << "\n"
                     << "* "
                        "***************************************************************************"
                        "*******\n"
@@ -343,28 +340,28 @@ int main(int argc, char* argv[]) {
                     << "* "
                        "***************************************************************************"
                        "*******"
-                    << endl);
+                    << endl;
                 errormsg.getline(buffer, 256);
                 while (errormsg.good()) {
-                    ERRORMSG("* ");
+                    *ippl::Error << "* ";
                     if (errormsg.gcount() == 1) {
-                        ERRORMSG(closure);
+                        *ippl::Error << closure;
                     } else if ((size_t)errormsg.gcount() <= closure.size()) {
-                        ERRORMSG(buffer << closure.substr(errormsg.gcount() - 1));
+                        *ippl::Error << buffer << closure.substr(errormsg.gcount() - 1);
                     } else {
-                        ERRORMSG(buffer << endl);
+                        *ippl::Error << buffer << endl;
                     }
                     errormsg.getline(buffer, 256);
                 }
-                ERRORMSG(
-                    "* " << closure
-                         << "* "
-                            "**********************************************************************"
-                            "************\n"
-                         << "* "
-                            "**********************************************************************"
-                            "************"
-                         << endl);
+                *ippl::Error
+                    << "* " << closure
+                    << "* "
+                       "**********************************************************************"
+                       "************\n"
+                    << "* "
+                       "**********************************************************************"
+                       "************"
+                    << endl;
             }
             errormsg.close();
         }

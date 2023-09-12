@@ -23,15 +23,14 @@
 #ifndef BOUNDINGBOX_H
 #define BOUNDINGBOX_H
 
-#include "Algorithms/Vektor.h"
+#include "OPALtypes.h"
 
 #include "boost/optional.hpp"
 
-#include <vector>
 #include <utility>
+#include <vector>
 
-class BoundingBox
-{
+class BoundingBox {
 public:
     BoundingBox();
 
@@ -40,26 +39,25 @@ public:
     void enlargeToContainPosition(const Vector_t<double, 3>& position);
     void enlargeToContainBoundingBox(const BoundingBox& boundingBox);
 
-    boost::optional<Vector_t<double, 3>> getIntersectionPoint(const Vector_t<double, 3>& position,
-                                                   const Vector_t<double, 3>& direction) const;
+    boost::optional<Vector_t<double, 3>> getIntersectionPoint(
+        const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
     bool isInside(const Vector_t<double, 3>& position) const;
     bool isOutside(const Vector_t<double, 3>& position) const;
     void print(std::ostream& output) const;
 
     std::pair<Vector_t<double, 3>, Vector_t<double, 3>> getCorners() const;
+
 private:
     Vector_t<double, 3> lowerLeftCorner_m;
     Vector_t<double, 3> upperRightCorner_m;
 };
 
-inline
-std::pair<Vector_t<double, 3>, Vector_t<double, 3>> BoundingBox::getCorners() const {
+inline std::pair<Vector_t<double, 3>, Vector_t<double, 3>> BoundingBox::getCorners() const {
     return std::make_pair(lowerLeftCorner_m, upperRightCorner_m);
 }
 
-inline
-bool BoundingBox::isOutside(const Vector_t<double, 3>& position) const {
+inline bool BoundingBox::isOutside(const Vector_t<double, 3>& position) const {
     return !isInside(position);
 }
 #endif

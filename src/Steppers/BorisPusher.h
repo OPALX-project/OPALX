@@ -19,7 +19,7 @@
 #define CLASSIC_PartPusher_H
 
 #include "Algorithms/PartData.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Physics/Physics.h"
 
 /*

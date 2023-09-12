@@ -4,11 +4,11 @@
 
 #include "Structure/H5PartWrapper.h"
 
-#include "OPALconfig.h"
 #include "AbstractObjects/OpalData.h"
+#include "OPALconfig.h"
 #include "Physics/Physics.h"
-#include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include "Message/Communicate.h"
@@ -20,32 +20,31 @@
 #include <fstream>
 
 namespace {
-    const h5_int64_t H5TypesCHAR = H5_STRING_T;
-    const h5_int64_t H5TypesFLOAT = H5_FLOAT32_T;
+    const h5_int64_t H5TypesCHAR   = H5_STRING_T;
+    const h5_int64_t H5TypesFLOAT  = H5_FLOAT32_T;
     const h5_int64_t H5TypesDOUBLE = H5_FLOAT64_T;
-    const h5_int64_t H5TypesINT32 = H5_INT32_T;
-    const h5_int64_t H5TypesINT64 = H5_INT64_T;
-}
+    const h5_int64_t H5TypesINT32  = H5_INT32_T;
+    const h5_int64_t H5TypesINT64  = H5_INT64_T;
+}  // namespace
 
 std::string H5PartWrapper::copyFilePrefix_m = ".copy";
 
-H5PartWrapper::H5PartWrapper(const std::string &fileName, h5_int32_t flags):
-    file_m(0),
-    fileName_m(fileName),
-    predecessorOPALFlavour_m("NOT SET"),
-    numSteps_m(0),
-    startedFromExistingFile_m(false)
-{
+H5PartWrapper::H5PartWrapper(const std::string& fileName, h5_int32_t flags)
+    : file_m(0),
+      fileName_m(fileName),
+      predecessorOPALFlavour_m("NOT SET"),
+      numSteps_m(0),
+      startedFromExistingFile_m(false) {
     open(flags);
 }
 
-H5PartWrapper::H5PartWrapper(const std::string &fileName, int restartStep, std::string sourceFile, h5_int32_t flags):
-    file_m(0),
-    fileName_m(fileName),
-    predecessorOPALFlavour_m("NOT SET"),
-    numSteps_m(0),
-    startedFromExistingFile_m(true)
-{
+H5PartWrapper::H5PartWrapper(
+    const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
+    : file_m(0),
+      fileName_m(fileName),
+      predecessorOPALFlavour_m("NOT SET"),
+      numSteps_m(0),
+      startedFromExistingFile_m(true) {
     if (sourceFile.empty()) {
         sourceFile = fileName_m;
     }
@@ -72,45 +71,50 @@ void H5PartWrapper::close() {
 void H5PartWrapper::open(h5_int32_t flags) {
     close();
 
-    h5_prop_t props = H5CreateFileProp ();
-    MPI_Comm comm = Ippl::getComm();
-    h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
-#if defined (NDEBUG)
+    h5_prop_t props = H5CreateFileProp();
+    MPI_Comm comm   = ippl::Comm->getCommunicator();
+    h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
+#if defined(NDEBUG)
     (void)h5err;
 #endif
-    PAssert (h5err != H5_ERR);
-    file_m = H5OpenFile (fileName_m.c_str(), flags, props);
-    PAssert (file_m != (h5_file_t)H5_ERR);
-    H5CloseProp (props);
+    PAssert(h5err != H5_ERR);
+    file_m = H5OpenFile(fileName_m.c_str(), flags, props);
+    PAssert(file_m != (h5_file_t)H5_ERR);
+    H5CloseProp(props);
 }
 
 void H5PartWrapper::storeCavityInformation() {
     /// Write number of Cavities with autophase information
-    h5_int64_t nAutoPhaseCavities = OpalData::getInstance()->getNumberOfMaxPhases();
+    h5_int64_t nAutoPhaseCavities              = OpalData::getInstance()->getNumberOfMaxPhases();
     h5_int64_t nFormerlySavedAutoPhaseCavities = 0;
-    bool fileWasClosed = (file_m == 0);
+    bool fileWasClosed                         = (file_m == 0);
 
-    if (nAutoPhaseCavities == 0) return;
-    if (fileWasClosed) open(H5_O_APPENDONLY);
-    if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities") ||
-        H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities) != H5_SUCCESS) {
+    if (nAutoPhaseCavities == 0)
+        return;
+    if (fileWasClosed)
+        open(H5_O_APPENDONLY);
+    if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities")
+        || H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &nFormerlySavedAutoPhaseCavities)
+               != H5_SUCCESS) {
         nFormerlySavedAutoPhaseCavities = 0;
     }
     if (nFormerlySavedAutoPhaseCavities == nAutoPhaseCavities) {
-        if (fileWasClosed) close();
+        if (fileWasClosed)
+            close();
         return;
     }
 
     WRITEFILEATTRIB(Int64, file_m, "nAutoPhaseCavities", &nAutoPhaseCavities, 1);
 
-    unsigned int elementNumber = 1;
-    std::vector<MaxPhasesT>::iterator it = OpalData::getInstance()->getFirstMaxPhases();
+    unsigned int elementNumber            = 1;
+    std::vector<MaxPhasesT>::iterator it  = OpalData::getInstance()->getFirstMaxPhases();
     std::vector<MaxPhasesT>::iterator end = OpalData::getInstance()->getLastMaxPhases();
-    for(; it < end; ++ it, ++ elementNumber) {
-        if (elementNumber <= nFormerlySavedAutoPhaseCavities) continue;
+    for (; it < end; ++it, ++elementNumber) {
+        if (elementNumber <= nFormerlySavedAutoPhaseCavities)
+            continue;
 
-        std::string nameAttributeName = "Cav-" + std::to_string(elementNumber) + "-name";
-        std::string valueAttributeName  = "Cav-" + std::to_string(elementNumber) + "-value";
+        std::string nameAttributeName  = "Cav-" + std::to_string(elementNumber) + "-name";
+        std::string valueAttributeName = "Cav-" + std::to_string(elementNumber) + "-value";
 
         std::string elementName   = (*it).first;
         h5_float64_t elementPhase = (*it).second;
@@ -118,33 +122,32 @@ void H5PartWrapper::storeCavityInformation() {
         WRITESTRINGFILEATTRIB(file_m, nameAttributeName.c_str(), elementName.c_str());
         WRITEFILEATTRIB(Float64, file_m, valueAttributeName.c_str(), &elementPhase, 1);
 
-        INFOMSG("Saved phases in the h5 file: "
-                << nameAttributeName << " -> " << elementName << " --- "
-                << valueAttributeName << " -> " << elementPhase << endl);
+        *ippl::Info << "Saved phases in the h5 file: " << nameAttributeName << " -> " << elementName
+                    << " --- " << valueAttributeName << " -> " << elementPhase << endl;
     }
 
-    if (fileWasClosed) close();
+    if (fileWasClosed)
+        close();
 }
 
-void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int32_t flags) {
-
+void H5PartWrapper::copyFile(const std::string& sourceFile, int lastStep, h5_int32_t flags) {
     namespace fs = boost::filesystem;
     if (!fs::exists(sourceFile)) {
-        throw OpalException("H5PartWrapper::copyFile",
-                            "source file '" + sourceFile + "' does not exist");
+        throw OpalException(
+            "H5PartWrapper::copyFile", "source file '" + sourceFile + "' does not exist");
     }
 
     if (sourceFile == fileName_m) {
-        h5_prop_t props = H5CreateFileProp ();
-        MPI_Comm comm = Ippl::getComm();
-        h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
-#if defined (NDEBUG)
+        h5_prop_t props = H5CreateFileProp();
+        MPI_Comm comm   = ippl::Comm->getCommunicator();
+        h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
+#if defined(NDEBUG)
         (void)h5err;
 #endif
-        PAssert (h5err != H5_ERR);
-        h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
-        PAssert (source != (h5_file_t)H5_ERR);
-        H5CloseProp (props);
+        PAssert(h5err != H5_ERR);
+        h5_file_t source = H5OpenFile(sourceFile.c_str(), H5_O_RDONLY, props);
+        PAssert(source != (h5_file_t)H5_ERR);
+        H5CloseProp(props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -172,13 +175,13 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
         Ippl::Comm->barrier();
 
         open(flags);
-        props = H5CreateFileProp ();
-        comm = Ippl::getComm();
-        h5err = H5SetPropFileMPIOCollective (props, &comm);
-        PAssert (h5err != H5_ERR);
-        source = H5OpenFile (sourceFileName.c_str(), H5_O_RDONLY, props);
-        PAssert (source != (h5_file_t)H5_ERR);
-        H5CloseProp (props);
+        props = H5CreateFileProp();
+        comm  = ippl::Comm->getCommunicator();
+        h5err = H5SetPropFileMPIOCollective(props, &comm);
+        PAssert(h5err != H5_ERR);
+        source = H5OpenFile(sourceFileName.c_str(), H5_O_RDONLY, props);
+        PAssert(source != (h5_file_t)H5_ERR);
+        H5CloseProp(props);
         copyHeader(source);
 
         if (lastStep < 0) {
@@ -191,7 +194,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 
         // don't copy the whole file, it takes very long
         copyStep(source, lastStep);
-        ++ numSteps_m;
+        ++numSteps_m;
 
         REPORTONERROR(H5CloseFile(source));
 
@@ -201,19 +204,18 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
 
         close();
     } else {
-
         open(flags);
 
-        h5_prop_t props = H5CreateFileProp ();
-        MPI_Comm comm = Ippl::getComm();
-        h5_err_t h5err = H5SetPropFileMPIOCollective (props, &comm);
-#if defined (NDEBUG)
+        h5_prop_t props = H5CreateFileProp();
+        MPI_Comm comm   = ippl::Comm->getCommunicator();
+        h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
+#if defined(NDEBUG)
         (void)h5err;
 #endif
-        PAssert (h5err != H5_ERR);
-        h5_file_t source = H5OpenFile (sourceFile.c_str(), H5_O_RDONLY, props);
-        PAssert (source != (h5_file_t)H5_ERR);
-        H5CloseProp (props);
+        PAssert(h5err != H5_ERR);
+        h5_file_t source = H5OpenFile(sourceFile.c_str(), H5_O_RDONLY, props);
+        PAssert(source != (h5_file_t)H5_ERR);
+        H5CloseProp(props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
@@ -242,7 +244,7 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
             }
             // don't copy the whole file, it takes very long
             copyStep(source, lastStep);
-            ++ numSteps_m;
+            ++numSteps_m;
 
             REPORTONERROR(H5CloseFile(source));
         }
@@ -251,21 +253,21 @@ void H5PartWrapper::copyFile(const std::string &sourceFile, int lastStep, h5_int
     }
 }
 
-void H5PartWrapper::copyFileSystem(const std::string &sourceFile) {
+void H5PartWrapper::copyFileSystem(const std::string& sourceFile) {
     // namespace fs = boost::filesystem;
 
-    if (sourceFile == fileName_m) return;
+    if (sourceFile == fileName_m)
+        return;
 
     int sourceNode = 0;
     if (ippl::Comm->rank() == sourceNode) {
-
         // copy_file not working due to bug in boost, see
         // https://svn.boost.org/trac/boost/ticket/10038
         // try {
-            // fs::copy_file(sourceFile, fileName_m, fs::copy_option::none);
+        // fs::copy_file(sourceFile, fileName_m, fs::copy_option::none);
         // } catch (fs::filesystem_error &m) {
 
-            // ERRORMSG(m.what() << endl);
+        // *ippl::Error << m.what() << endl;
 
         std::ifstream source(sourceFile, std::ios::binary);
         std::ofstream dest(fileName_m, std::ios::binary);
@@ -277,20 +279,17 @@ void H5PartWrapper::copyFileSystem(const std::string &sourceFile) {
 
         source.close();
 
-        sendFailureMessage(dest.bad(),
-                           "H5PartWrapper::copyFile",
-                           "could not copy file " + sourceFile);
+        sendFailureMessage(
+            dest.bad(), "H5PartWrapper::copyFile", "could not copy file " + sourceFile);
         dest.close();
     } else {
-        receiveFailureMessage(sourceNode,
-                              "H5PartWrapper::copyFile",
-                              "received message to throw exception from node 0");
+        receiveFailureMessage(
+            sourceNode, "H5PartWrapper::copyFile",
+            "received message to throw exception from node 0");
     }
 }
 
-void H5PartWrapper::copyHeader(
-    h5_file_t source
-    ) {
+void H5PartWrapper::copyHeader(h5_file_t source) {
     h5_int64_t numFileAttributes = H5GetNumFileAttribs(source);
 
     const h5_size_t lengthAttributeName = 256;
@@ -298,18 +297,14 @@ void H5PartWrapper::copyHeader(
     h5_int64_t attributeType;
     h5_size_t numAttributeElements;
     std::vector<char> buffer(256);
-    h5_float32_t *f32buffer = reinterpret_cast<h5_float32_t*>(&buffer[0]);
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    h5_float32_t* f32buffer = reinterpret_cast<h5_float32_t*>(&buffer[0]);
+    h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
+    h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(&buffer[0]);
+    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
-    for (h5_int64_t i = 0; i < numFileAttributes; ++ i) {
-        REPORTONERROR(H5GetFileAttribInfo(source,
-                                          i,
-                                          attributeName,
-                                          lengthAttributeName,
-                                          &attributeType,
-                                          &numAttributeElements));
+    for (h5_int64_t i = 0; i < numFileAttributes; ++i) {
+        REPORTONERROR(H5GetFileAttribInfo(
+            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
 
         if (attributeType == H5_STRING_T) {
             if (buffer.size() < numAttributeElements) {
@@ -352,16 +347,13 @@ void H5PartWrapper::copyHeader(
             WRITEFILEATTRIB(Int64, file_m, attributeName, i64buffer, numAttributeElements);
 
         } else {
-            throw OpalException("H5PartWrapper::copyHeader",
-                                "unknown data type: " + std::to_string(attributeType));
+            throw OpalException(
+                "H5PartWrapper::copyHeader", "unknown data type: " + std::to_string(attributeType));
         }
     }
 }
 
-void H5PartWrapper::copyStep(
-    h5_file_t source,
-    int step
-    ) {
+void H5PartWrapper::copyStep(h5_file_t source, int step) {
     REPORTONERROR(H5SetStep(file_m, numSteps_m));
     REPORTONERROR(H5SetStep(source, step));
 
@@ -369,9 +361,7 @@ void H5PartWrapper::copyStep(
     copyStepData(source);
 }
 
-void H5PartWrapper::copyStepHeader(
-    h5_file_t source
-    ) {
+void H5PartWrapper::copyStepHeader(h5_file_t source) {
     h5_int64_t numStepAttributes = H5GetNumStepAttribs(source);
 
     h5_size_t lengthAttributeName = 256;
@@ -380,21 +370,17 @@ void H5PartWrapper::copyStepHeader(
     h5_size_t numAttributeElements;
 
     std::vector<char> buffer(256);
-    h5_float32_t *f32buffer = reinterpret_cast<h5_float32_t*>(&buffer[0]);
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(&buffer[0]);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(&buffer[0]);
+    h5_float32_t* f32buffer = reinterpret_cast<h5_float32_t*>(&buffer[0]);
+    h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
+    h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(&buffer[0]);
+    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
     READSTEPATTRIB(String, source, "OPAL_flavour", &buffer[0]);
     predecessorOPALFlavour_m = std::string(&buffer[0]);
 
-    for (h5_int64_t i = 0; i < numStepAttributes; ++ i) {
-        REPORTONERROR(H5GetStepAttribInfo(source,
-                                          i,
-                                          attributeName,
-                                          lengthAttributeName,
-                                          &attributeType,
-                                          &numAttributeElements));
+    for (h5_int64_t i = 0; i < numStepAttributes; ++i) {
+        REPORTONERROR(H5GetStepAttribInfo(
+            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
 
         if (attributeType == H5TypesCHAR) {
             if (buffer.size() < numAttributeElements) {
@@ -437,26 +423,25 @@ void H5PartWrapper::copyStepHeader(
             WRITESTEPATTRIB(Int64, file_m, attributeName, i64buffer, numAttributeElements);
 
         } else {
-            throw OpalException("H5PartWrapper::copyStepHeader",
-                                "unknown data type: " + std::to_string(attributeType));
+            throw OpalException(
+                "H5PartWrapper::copyStepHeader",
+                "unknown data type: " + std::to_string(attributeType));
         }
     }
 }
 
-void H5PartWrapper::copyStepData(
-    h5_file_t source
-    ) {
+void H5PartWrapper::copyStepData(h5_file_t source) {
     h5_size_t lengthSetName = 256;
     char setName[lengthSetName];
     h5_int64_t setType;
     h5_size_t numSetElements;
 
-    h5_ssize_t numParticles = H5PartGetNumParticles(source);
-    h5_ssize_t numParticlesPerNode = numParticles / Ippl::getNodes();
+    h5_ssize_t numParticles        = H5PartGetNumParticles(source);
+    h5_ssize_t numParticlesPerNode = numParticles / ippl::Comm->size();
 
     h5_ssize_t firstParticle = numParticlesPerNode * ippl::Comm->rank();
-    h5_ssize_t lastParticle = firstParticle + numParticlesPerNode - 1;
-    if (ippl::Comm->rank() == Ippl::getNodes() - 1)
+    h5_ssize_t lastParticle  = firstParticle + numParticlesPerNode - 1;
+    if (ippl::Comm->rank() == ippl::Comm->size() - 1)
         lastParticle = numParticles - 1;
 
     REPORTONERROR(H5PartSetView(source, firstParticle, lastParticle));
@@ -465,16 +450,17 @@ void H5PartWrapper::copyStepData(
     REPORTONERROR(H5PartSetNumParticles(file_m, numParticles));
 
     std::vector<char> buffer(numParticles * sizeof(h5_float64_t));
-    char* buffer_ptr = Util::c_data(buffer);
-    h5_float32_t *f32buffer = reinterpret_cast<h5_float32_t*>(buffer_ptr);
-    h5_float64_t *f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
-    h5_int32_t *i32buffer = reinterpret_cast<h5_int32_t*>(buffer_ptr);
-    h5_int64_t *i64buffer = reinterpret_cast<h5_int64_t*>(buffer_ptr);
+    char* buffer_ptr        = Util::c_data(buffer);
+    h5_float32_t* f32buffer = reinterpret_cast<h5_float32_t*>(buffer_ptr);
+    h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
+    h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(buffer_ptr);
+    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(buffer_ptr);
 
-   h5_ssize_t numDatasets = H5PartGetNumDatasets(source);
+    h5_ssize_t numDatasets = H5PartGetNumDatasets(source);
 
-    for (h5_ssize_t i = 0; i < numDatasets; ++ i) {
-        REPORTONERROR(H5PartGetDatasetInfo(source, i, setName, lengthSetName, &setType, &numSetElements));
+    for (h5_ssize_t i = 0; i < numDatasets; ++i) {
+        REPORTONERROR(
+            H5PartGetDatasetInfo(source, i, setName, lengthSetName, &setType, &numSetElements));
 
         if (setType == H5TypesFLOAT) {
             READDATA(Float32, source, setName, f32buffer);
@@ -489,8 +475,8 @@ void H5PartWrapper::copyStepData(
             READDATA(Int64, source, setName, i64buffer);
             WRITEDATA(Int64, file_m, setName, i64buffer);
         } else {
-            throw OpalException("H5PartWrapper::copyStepData",
-                                "unknown data type: " + std::to_string(setType));
+            throw OpalException(
+                "H5PartWrapper::copyStepData", "unknown data type: " + std::to_string(setType));
         }
     }
 
@@ -498,34 +484,33 @@ void H5PartWrapper::copyStepData(
     REPORTONERROR(H5PartSetView(source, -1, -1));
 }
 
-void H5PartWrapper::sendFailureMessage(bool failed,
-                                       const std::string &where,
-                                       const std::string &what) {
-    int tag = 101;
-    Message *mess = new Message();
+void H5PartWrapper::sendFailureMessage(
+    bool failed, const std::string& where, const std::string& what) {
+    int tag       = 101;
+    Message* mess = new Message();
     putMessage(*mess, failed);
     Ippl::Comm->broadcast_all(mess, tag);
     delete mess;
 
-    if (failed) throw OpalException(where, what);
+    if (failed)
+        throw OpalException(where, what);
 }
 
-void H5PartWrapper::receiveFailureMessage(int sourceNode,
-                                          const std::string &where,
-                                          const std::string &what) {
+void H5PartWrapper::receiveFailureMessage(
+    int sourceNode, const std::string& where, const std::string& what) {
     int tag = 101;
     bool failed;
-    Message *mess = Ippl::Comm->receive_block(sourceNode, tag);
+    Message* mess = Ippl::Comm->receive_block(sourceNode, tag);
     getMessage(*mess, failed);
     delete mess;
 
-    if (failed) throw OpalException(where, what);
+    if (failed)
+        throw OpalException(where, what);
 }
 
 size_t H5PartWrapper::getNumParticles() const {
     if (!file_m) {
-        throw OpalException("H5PartWrapper::getNumParticles",
-                            "no file opened");
+        throw OpalException("H5PartWrapper::getNumParticles", "no file opened");
     }
 
     REPORTONERROR(H5SetStep(file_m, numSteps_m - 1));

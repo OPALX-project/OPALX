@@ -23,7 +23,7 @@
 #include "Beamlines/Beamline.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Beamlines/BeamlineGeometry.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Algorithms/Quaternion.h"
 #include <algorithm>
 #include <string>

@@ -21,10 +21,10 @@
 #ifndef MSLANG_BOUNDINGBOX_H
 #define MSLANG_BOUNDINGBOX_H
 
-#include "Algorithms/Vektor.h"
+#include "OPALtypes.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 namespace mslang {
     struct BoundingBox2D {
@@ -32,34 +32,26 @@ namespace mslang {
         double width_m;
         double height_m;
 
-        BoundingBox2D():
-            center_m(0.0),
-            width_m(0.0),
-            height_m(0.0)
-        { }
+        BoundingBox2D() : center_m(0.0), width_m(0.0), height_m(0.0) {
+        }
 
-        BoundingBox2D(const BoundingBox2D &right):
-            center_m(right.center_m),
-            width_m(right.width_m),
-            height_m(right.height_m)
-        { }
+        BoundingBox2D(const BoundingBox2D& right)
+            : center_m(right.center_m), width_m(right.width_m), height_m(right.height_m) {
+        }
 
-        BoundingBox2D(const Vector_t<double, 3> &llc,
-                    const Vector_t<double, 3> &urc):
-            center_m(0.5 * (llc + urc)),
-            width_m(urc[0] - llc[0]),
-            height_m(urc[1] - llc[1])
-        { }
+        BoundingBox2D(const Vector_t<double, 3>& llc, const Vector_t<double, 3>& urc)
+            : center_m(0.5 * (llc + urc)), width_m(urc[0] - llc[0]), height_m(urc[1] - llc[1]) {
+        }
 
         BoundingBox2D& operator=(const BoundingBox2D&) = default;
-        bool doesIntersect(const BoundingBox2D &bb) const;
-        bool isInside(const Vector_t<double, 3> &X) const;
-        bool isInside(const BoundingBox2D &b) const;
-        virtual void writeGnuplot(std::ostream &out) const;
-        void print(std::ostream &out) const;
+        bool doesIntersect(const BoundingBox2D& bb) const;
+        bool isInside(const Vector_t<double, 3>& X) const;
+        bool isInside(const BoundingBox2D& b) const;
+        virtual void writeGnuplot(std::ostream& out) const;
+        void print(std::ostream& out) const;
     };
 
-    std::ostream & operator<< (std::ostream &out, const BoundingBox2D &bb);
-}
+    std::ostream& operator<<(std::ostream& out, const BoundingBox2D& bb);
+}  // namespace mslang
 
 #endif

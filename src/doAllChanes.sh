@@ -1,13 +1,16 @@
 #!/bin/bash
 
-excludeList='Classic/Algorithms/CoordinateSystemTrafo.h Classic/Algorithms/CoordinateSystemTrafo.cpp Structure/BoundingBox.h Structure/BoundingBox.cpp AbsBeamline/ElementBase.h AbsBeamline/ElementBase.cpp AbsBeamline/Component.h AbsBeamline/Component.cpp'
+excludeList=''
 
-for f in `grep -l -R "PartBunch<double, 3>" AbsBeamline`
+for f in `grep -l -R "PartBunch_t" `
  do
      if [[ " $excludeList " =~ .*\ ${f:2}\ .* ]]; then
          echo "skipp $f"
      else
-         change -f "PartBunch<double, 3>" "PartBunch_t" $f
+         change -f  "PartBunch_t" "PartBunch_t"  $f
+         #change -f "endl\)\;" "endl\;" $f
+#         emacs $f
+
      fi
 
  done

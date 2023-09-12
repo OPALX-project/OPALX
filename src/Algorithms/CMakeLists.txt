@@ -45,7 +45,6 @@ set (HDRS
     SplineTimeDependence.h
     StepSizeConfig.h
     Tracker.h
-    Vektor.h       
     Matrix.h
 )
 

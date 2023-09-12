@@ -44,7 +44,7 @@ public:
     ~Track();
 
     /// The particle bunch to be tracked.
-    PartBunch<double, 3>* bunch;
+    PartBunch_t* bunch;
 
     /// The reference data.
     PartData reference;

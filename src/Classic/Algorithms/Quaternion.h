@@ -2,7 +2,7 @@
 #define OPAL_QUATERNION_H
 
 #include "Algorithms/BoostMatrix.h"
-// #include "Algorithms/Vektor.h"
+//  
 #include "OPALtypes.h"
 
 class Quaternion : public ippl::Vector<double, 4> {

@@ -18,8 +18,9 @@
 #ifndef STEPPER_H
 #define STEPPER_H
 
+#include "OPALtypes.h"
+
 #include "Algorithms/PartBunch.h"
-#include "Algorithms/Vektor.h"
 
 #include <functional>
 
@@ -32,49 +33,41 @@
  *  - Vector_t<double, 3>  specifying the magnetic field
  */
 
-template <typename FieldFunction, typename ... Arguments>
+template <typename FieldFunction, typename... Arguments>
 class Stepper {
-    
 public:
-    
-    Stepper(const FieldFunction& fieldfunc) : fieldfunc_m(fieldfunc) { }
-    
-    virtual bool advance(PartBunch<double, 3>* bunch,
-                         const size_t& i,
-                         const double& t,
-                         const double dt,
-                         Arguments& ... args) const
-    {
+    Stepper(const FieldFunction& fieldfunc) : fieldfunc_m(fieldfunc) {
+    }
+
+    virtual bool advance(
+        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+        Arguments&... args) const {
         bool isGood = doAdvance_m(bunch, i, t, dt, args...);
 
         bool isNaN = false;
         for (int j = 0; j < 3; ++j) {
-            if (std::isnan(bunch->R[i](j)) ||
-                std::isnan(bunch->P[i](j)) ||
-                std::abs(bunch->R[i](j)) > 1.0e10 ||
-                std::abs(bunch->P[i](j)) > 1.0e10) {
+            if (std::isnan(bunch->R[i](j)) || std::isnan(bunch->P[i](j))
+                || std::abs(bunch->R[i](j)) > 1.0e10 || std::abs(bunch->P[i](j)) > 1.0e10) {
                 isNaN = true;
                 break;
             }
         }
 
         bool isBad = (!isGood || isNaN);
-        if ( isBad ) {
+        if (isBad) {
             bunch->Bin[i] = -1;
         }
         return isBad;
     };
-    virtual ~Stepper() {};
+    virtual ~Stepper(){};
 
 protected:
     const FieldFunction& fieldfunc_m;
 
 private:
-    virtual bool doAdvance_m(PartBunch<double, 3>* bunch,
-                             const size_t& i,
-                             const double& t,
-                             const double dt,
-                             Arguments& ... args) const = 0;
+    virtual bool doAdvance_m(
+        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+        Arguments&... args) const = 0;
 };
 
 #endif

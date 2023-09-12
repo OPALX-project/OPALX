@@ -31,7 +31,7 @@ public:
     RK4(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments ...>(fieldfunc) { }
 
 private:
-    bool doAdvance_m(PartBunch<double, 3>* bunch,
+    bool doAdvance_m(PartBunch_t* bunch,
                      const size_t& i,
                      const double& t,
                      const double dt,
@@ -47,7 +47,7 @@ private:
      *
      * @return
      */
-    bool derivate_m(PartBunch<double, 3>* bunch,
+    bool derivate_m(PartBunch_t* bunch,
                     double *y,
                     const double& t,
                     double* yp,

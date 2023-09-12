@@ -22,7 +22,7 @@
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartBunch.h"
 #include "BasicActions/Option.h"
-#include "DataSource/DataConnect.h"
+// #include "DataSource/DataConnect.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "OPALtypes.h"
@@ -108,10 +108,10 @@ Distribution::~Distribution() {
  */
 
 size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
-    size_t locNumber = n / Ippl::getNodes();
+    size_t locNumber = n / ippl::Comm->size();
 
     // make sure the total number is exact
-    size_t remainder = n % Ippl::getNodes();
+    size_t remainder = n % ippl::Comm->size();
     size_t myNode    = ippl::Comm->rank();
     if (myNode < remainder)
         ++locNumber;
@@ -249,7 +249,7 @@ void Distribution::printDistGauss(Inform& os) const {
 gsl_qrng* Distribution::selectRandomGenerator(std::string, unsigned int dimension) {
     gsl_qrng* quasiRandGen = nullptr;
     if (Options::rngtype != std::string("RANDOM")) {
-        INFOMSG("RNGTYPE= " << Options::rngtype << endl);
+        *ippl::Info << "RNGTYPE= " << Options::rngtype << endl;
         if (Options::rngtype == std::string("HALTON")) {
             quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, dimension);
         } else if (Options::rngtype == std::string("SOBOL")) {
@@ -257,7 +257,7 @@ gsl_qrng* Distribution::selectRandomGenerator(std::string, unsigned int dimensio
         } else if (Options::rngtype == std::string("NIEDERREITER")) {
             quasiRandGen = gsl_qrng_alloc(gsl_qrng_niederreiter_2, dimension);
         } else {
-            INFOMSG("RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl);
+            *ippl::Info << "RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl;
             quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, dimension);
         }
     }

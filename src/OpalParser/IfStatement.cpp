@@ -18,9 +18,9 @@
 
 #include "OpalParser/IfStatement.h"
 
-#include "OpalParser/CompoundStatement.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
+#include "OpalParser/CompoundStatement.h"
 #include "OpalParser/Parser.h"
 #include "OpalParser/Token.h"
 #include "OpalParser/TokenStream.h"
@@ -32,51 +32,49 @@
 //   Statement of the form "IF ( <condition> ) <statement>".
 // ------------------------------------------------------------------------
 
-IfStatement::IfStatement(const Parser &parser, TokenStream &is):
-    Statement("", 0), then_block(0), else_block(0) {
-    Token key = is.readToken();
+IfStatement::IfStatement(const Parser& parser, TokenStream& is)
+    : Statement("", 0), then_block(0), else_block(0) {
+    Token key   = is.readToken();
     Token token = is.readToken();
 
-    if(key.isKey("IF") && token.isDel('(')) {
+    if (key.isKey("IF") && token.isDel('(')) {
         append(token);
-        token = is.readToken();
+        token     = is.readToken();
         int level = 1;
 
-        while(! token.isEOF()) {
+        while (!token.isEOF()) {
             append(token);
 
-            if(token.isDel('(')) {
+            if (token.isDel('(')) {
                 level++;
-            } else if(token.isDel(')')) {
+            } else if (token.isDel(')')) {
                 level--;
-                if(level == 0) break;
+                if (level == 0)
+                    break;
             }
 
             token = is.readToken();
         }
 
         then_block = parser.readStatement(&is);
-        token = is.readToken();
+        token      = is.readToken();
 
-        if(! token.isEOF() && token.isKey("ELSE")) {
+        if (!token.isEOF() && token.isKey("ELSE")) {
             else_block = parser.readStatement(&is);
         } else {
             is.putBack(token);
         }
     } else {
-        throw ParseError("IfStatement::IfStatement()",
-                         "Invalid \"IF\" statement.");
+        throw ParseError("IfStatement::IfStatement()", "Invalid \"IF\" statement.");
     }
 }
-
 
 IfStatement::~IfStatement() {
     delete then_block;
     delete else_block;
 }
 
-
-void IfStatement::execute(const Parser &parser) {
+void IfStatement::execute(const Parser& parser) {
     start();
     Attribute condition = Attributes::makeBool("IF()", "");
 
@@ -84,15 +82,15 @@ void IfStatement::execute(const Parser &parser) {
         condition.parse(*this, false);
         OpalData::getInstance()->update();
 
-        if(Attributes::getBool(condition)) {
+        if (Attributes::getBool(condition)) {
             then_block->execute(parser);
-        } else if(else_block) {
+        } else if (else_block) {
             else_block->execute(parser);
         }
-    } catch(...) {
+    } catch (...) {
         std::ostringstream oss;
         this->print(oss);
-        ERRORMSG("Invalid IF condition '" + oss.str() + "'");
+        *ippl::Error << "Invalid IF condition '" + oss.str() + "'";
         throw;
     }
 }

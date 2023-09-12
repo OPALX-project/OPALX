@@ -3,10 +3,11 @@
 
 #define READ_BUFFER_LENGTH 256
 
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
-#include "Algorithms/Vektor.h"
+
+#include "OPALtypes.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
@@ -51,17 +52,11 @@ enum SwapType {
     MZYX
 };
 
-enum DiffDirection {
-    DX = 0,
-    DY,
-    DZ
-};
+enum DiffDirection { DX = 0, DY, DZ };
 
 class Fieldmap {
-
 public:
-
-    static Fieldmap *getFieldmap(std::string Filename, bool fast = false);
+    static Fieldmap* getFieldmap(std::string Filename, bool fast = false);
     static std::vector<std::string> getListFieldmapNames();
     static void deleteFieldmap(std::string Filename);
     static void clearDictionary();
@@ -69,78 +64,91 @@ public:
     static void readMap(std::string Filename);
     static void freeMap(std::string Filename);
 
-    static std::string typeset_msg(const std::string &msg, const std::string &title);
+    static std::string typeset_msg(const std::string& msg, const std::string& title);
 
     // Note: getFieldstrength() returns true if R is outside of the field!
-    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const = 0;
-    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const = 0;
-    virtual void getFieldDimensions(double &zBegin, double &zEnd) const = 0;
-    virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const = 0;
-    virtual void swap() = 0;
-    virtual void getInfo(Inform *msg) = 0;
-    virtual double getFrequency() const = 0;
+    virtual bool getFieldstrength(
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const = 0;
+    virtual bool getFieldDerivative(
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+        const DiffDirection& dir) const                                 = 0;
+    virtual void getFieldDimensions(double& zBegin, double& zEnd) const = 0;
+    virtual void getFieldDimensions(
+        double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
+        double& zFinal) const              = 0;
+    virtual void swap()                    = 0;
+    virtual void getInfo(Inform* msg)      = 0;
+    virtual double getFrequency() const    = 0;
     virtual void setFrequency(double freq) = 0;
-    virtual void setEdgeConstants(const double &bendAngle, const double &entranceAngle, const double &exitAngle);
-    virtual void setFieldLength(const double &);
+    virtual void setEdgeConstants(
+        const double& bendAngle, const double& entranceAngle, const double& exitAngle);
+    virtual void setFieldLength(const double&);
 
-    virtual void get1DProfile1EngeCoeffs(std::vector<double> &engeCoeffsEntry,
-                                         std::vector<double> &engeCoeffsExit);
-    virtual void get1DProfile1EntranceParam(double &entranceParameter1,
-                                           double &entranceParameter2,
-                                           double &entranceParameter3);
-    virtual void get1DProfile1ExitParam(double &exitParameter1,
-                                       double &exitParameter2,
-                                       double &exitParameter3);
+    virtual void get1DProfile1EngeCoeffs(
+        std::vector<double>& engeCoeffsEntry, std::vector<double>& engeCoeffsExit);
+    virtual void get1DProfile1EntranceParam(
+        double& entranceParameter1, double& entranceParameter2, double& entranceParameter3);
+    virtual void get1DProfile1ExitParam(
+        double& exitParameter1, double& exitParameter2, double& exitParameter3);
     virtual double getFieldGap();
     virtual void setFieldGap(double gap);
 
-    MapType getType() { return Type;}
+    MapType getType() {
+        return Type;
+    }
 
-    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & onaxis);
+    virtual void getOnaxisEz(std::vector<std::pair<double, double>>& onaxis);
 
-    virtual bool isInside(const Vector_t<double, 3> &/*r*/) const { return true; }
+    virtual bool isInside(const Vector_t<double, 3>& /*r*/) const {
+        return true;
+    }
 
     virtual void readMap() = 0;
     virtual void freeMap() = 0;
 
 protected:
-    Fieldmap () = delete;
+    Fieldmap() = delete;
 
     Fieldmap(const std::string& aFilename)
-        : Filename_m(aFilename),
-        lines_read_m(0),
-        normalize_m(true) { };
+        : Filename_m(aFilename), lines_read_m(0), normalize_m(true){};
 
-    virtual ~Fieldmap() { ;};
+    virtual ~Fieldmap() {
+        ;
+    };
     MapType Type;
 
     std::string Filename_m;
     int lines_read_m;
 
     bool normalize_m;
-    void getLine(std::ifstream & in, std::string & buffer) {
+    void getLine(std::ifstream& in, std::string& buffer) {
         getLine(in, lines_read_m, buffer);
     }
 
-    static void getLine(std::ifstream &in, int &lines_read, std::string &buffer);
+    static void getLine(std::ifstream& in, int& lines_read, std::string& buffer);
 
-    template<class S>
-    bool interpretLine(std::ifstream &in, S &value, const bool &file_length_known = true);
-    template<class S, class T>
-    bool interpretLine(std::ifstream &in, S &value1, T &value2, const bool &file_length_known = true);
-    template<class S, class T, class U>
-    bool interpretLine(std::ifstream &in, S &value1, T &value2, U &value3, const bool &file_length_known = true);
-    template<class S, class T, class U, class V>
-    bool interpretLine(std::ifstream &in, S &value1, T &value2, U &value3, V &value4, const bool &file_length_known = true);
-    template<class S>
-    bool interpretLine(std::ifstream &in, S &value1, S &value2, S &value3, S &value4, S &value5, S &value6, const bool &file_length_known = true);
+    template <class S>
+    bool interpretLine(std::ifstream& in, S& value, const bool& file_length_known = true);
+    template <class S, class T>
+    bool interpretLine(
+        std::ifstream& in, S& value1, T& value2, const bool& file_length_known = true);
+    template <class S, class T, class U>
+    bool interpretLine(
+        std::ifstream& in, S& value1, T& value2, U& value3, const bool& file_length_known = true);
+    template <class S, class T, class U, class V>
+    bool interpretLine(
+        std::ifstream& in, S& value1, T& value2, U& value3, V& value4,
+        const bool& file_length_known = true);
+    template <class S>
+    bool interpretLine(
+        std::ifstream& in, S& value1, S& value2, S& value3, S& value4, S& value5, S& value6,
+        const bool& file_length_known = true);
 
-    bool interpreteEOF(std::ifstream &in);
+    bool interpreteEOF(std::ifstream& in);
 
-    void interpretWarning(const std::ios_base::iostate &state,
-                          const bool &read_all,
-                          const std::string &error_msg,
-                          const std::string &found);
+    void interpretWarning(
+        const std::ios_base::iostate& state, const bool& read_all, const std::string& error_msg,
+        const std::string& found);
     void missingValuesWarning();
     void exceedingValuesWarning();
 
@@ -149,33 +157,25 @@ protected:
 
     void lowResolutionWarning(double squareError, double maxError);
 
-    void checkMap(unsigned int accuracy,
-                  std::pair<double, double> fieldDimensions,
-                  double deltaZ,
-                  const std::vector<double> &fourierCoefficients,
-                  gsl_spline *splineCoefficients,
-                  gsl_interp_accel *splineAccelerator);
+    void checkMap(
+        unsigned int accuracy, std::pair<double, double> fieldDimensions, double deltaZ,
+        const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
+        gsl_interp_accel* splineAccelerator);
 
-    void checkMap(unsigned int accuracy,
-                  double length,
-                  const std::vector<double> &zSampling,
-                  const std::vector<double> &fourierCoefficients,
-                  gsl_spline *splineCoefficients,
-                  gsl_interp_accel *splineAccelerator);
+    void checkMap(
+        unsigned int accuracy, double length, const std::vector<double>& zSampling,
+        const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
+        gsl_interp_accel* splineAccelerator);
 
-    void write3DField(unsigned int nx,
-                      unsigned int ny,
-                      unsigned int nz,
-                      const std::pair<double, double> &xrange,
-                      const std::pair<double, double> &yrange,
-                      const std::pair<double, double> &zrange,
-                      const std::vector<Vector_t<double, 3>> &ef,
-                      const std::vector<Vector_t<double, 3>> &bf);
+    void write3DField(
+        unsigned int nx, unsigned int ny, unsigned int nz, const std::pair<double, double>& xrange,
+        const std::pair<double, double>& yrange, const std::pair<double, double>& zrange,
+        const std::vector<Vector_t<double, 3>>& ef, const std::vector<Vector_t<double, 3>>& bf);
 
 private:
-    template<typename T>
+    template <typename T>
     struct TypeParseTraits {
-        static const char *name;
+        static const char* name;
     };
 
     static char buffer_m[READ_BUFFER_LENGTH];
@@ -183,19 +183,15 @@ private:
 
     struct FieldmapDescription {
         MapType Type;
-        Fieldmap *Map;
+        Fieldmap* Map;
         unsigned int RefCounter;
         bool read;
-        FieldmapDescription(MapType aType, Fieldmap *aMap):
-            Type(aType),
-            Map(aMap),
-            RefCounter(1),
-            read(false)
-        { }
+        FieldmapDescription(MapType aType, Fieldmap* aMap)
+            : Type(aType), Map(aMap), RefCounter(1), read(false) {
+        }
     };
 
     static std::map<std::string, FieldmapDescription> FieldmapDictionary;
-
 };
 
 #endif

@@ -28,7 +28,7 @@
 #ifndef _OPAL_DATA_SINK_H
 #define _OPAL_DATA_SINK_H
 
-#include "Algorithms/Vektor.h"
+ 
 #include "Structure/H5Writer.h"
 #include "Structure/SDDSWriter.h"
 #include "Structure/StatWriter.h"

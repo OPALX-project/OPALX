@@ -236,7 +236,7 @@ void FieldSolver::setFieldSolverType() {
     }
 }
 
-void FieldSolver::initSolver(PartBunch<double, 3>* b) {
+void FieldSolver::initSolver(PartBunch_t* b) {
     itsBunch_m = b;
 
     std::string greens = Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
@@ -253,7 +253,7 @@ Inform& FieldSolver::printInfo(Inform& os) const {
     os << "* ************* F I E L D S O L V E R ********************************************** " << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* TYPE         " << fsName_m << '\n'
-       << "* N-PROCESSORS " << Ippl::getNodes() << '\n'
+       << "* N-PROCESSORS " << ippl::Comm->size() << '\n'
        << "* MX           " << Attributes::getReal(itsAttr[FIELDSOLVER::MX])   << '\n'
        << "* MY           " << Attributes::getReal(itsAttr[FIELDSOLVER::MY])   << '\n'
        << "* MZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::MZ])   << '\n'

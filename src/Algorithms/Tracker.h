@@ -91,13 +91,13 @@ public:
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline &, PartBunch<double, 3> *bunch,
+    Tracker(const Beamline &, PartBunch_t *bunch,
             const PartData &, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
     /// Return the current bunch.
-    const PartBunch<double, 3> *getBunch() const;
+    const PartBunch_t *getBunch() const;
 
     /// Add particle to bunch.
     void addToBunch(const OpalParticle &);
@@ -123,7 +123,7 @@ public:
 protected:
 
     /// The bunch of particles to be tracked.
-    PartBunch<double, 3>* itsBunch_m;
+    PartBunch_t* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:

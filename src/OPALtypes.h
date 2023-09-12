@@ -11,7 +11,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-
+#include "Algorithms/PartBunch.h"
 #include "Solver/ElectrostaticsCG.h"
 #include "Solver/FFTPeriodicPoissonSolver.h"
 #include "Solver/FFTPoissonSolver.h"

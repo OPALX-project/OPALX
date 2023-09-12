@@ -79,7 +79,7 @@ public:
 
     void initCartesianFields();
 
-    void initSolver(PartBunch<double, 3>* b);
+    void initSolver(PartBunch_t* b);
 
     bool hasValidSolver();
 
@@ -118,7 +118,7 @@ private:
     std::unique_ptr<Layout_t> PL_m;
 
     /// all the particles are here ...
-    PartBunch<double, 3>* itsBunch_m;
+    PartBunch_t* itsBunch_m;
 
     std::string fsName_m;
     FieldSolverType fsType_m;

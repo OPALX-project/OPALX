@@ -18,6 +18,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/Option.h"
+#include "Ippl.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -409,9 +410,10 @@ void Option::execute() {
     else
         rangen.init55(seed);
 
+    /* ADA
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
-
+    */
     handlePsDumpFrame(Attributes::getString(itsAttr[PSDUMPFRAME]));
 
     /// note: rangen is used only for the random number generator in the OPAL language

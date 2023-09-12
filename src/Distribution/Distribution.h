@@ -23,7 +23,7 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Attributes/Attributes.h"
 
 #include <gsl/gsl_histogram.h>
@@ -222,7 +222,7 @@ inline std::string Distribution::getTypeofDistribution() {
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/Vektor.h"
+ 
 #include "Attributes/Attributes.h"
 
 #include <gsl/gsl_histogram.h>

@@ -9,6 +9,7 @@
   H5PartWrapper: a class that manages calls to H5Part
 */
 
+#include "OPALtypes.h"
 #include "Utility/IpplInfo.h"
 
 #include "H5hut.h"

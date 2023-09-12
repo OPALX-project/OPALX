@@ -2,7 +2,7 @@
 #define MSLANG_AFFINETRANSFORMATION_H
 
 #include "Algorithms/BoostMatrix.h"
-#include "Algorithms/Vektor.h"
+ 
 
 #include <iostream>
 #include <fstream>

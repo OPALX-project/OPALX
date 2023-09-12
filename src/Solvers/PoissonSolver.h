@@ -28,7 +28,7 @@ public:
     virtual double getYRangeMax(unsigned short level = 0) = 0;
     virtual double getZRangeMin(unsigned short level = 0) = 0;
     virtual double getZRangeMax(unsigned short level = 0) = 0;
-    virtual void test(PartBunch<double, 3>* bunch)    = 0;
+    virtual void test(PartBunch_t* bunch)    = 0;
     virtual ~PoissonSolver(){};
 
     virtual void resizeMesh(

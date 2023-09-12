@@ -4,19 +4,17 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
+#include <cmath>
 #include <fstream>
 #include <ios>
-#include <cmath>
 
 FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
-    : Fieldmap(aFilename),
-      FieldstrengthEz_m(nullptr),
-      FieldstrengthEr_m(nullptr) {
+    : Fieldmap(aFilename), FieldstrengthEz_m(nullptr), FieldstrengthEr_m(nullptr) {
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
 
-    Type =  T2DElectroStatic;
+    Type = T2DElectroStatic;
 
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
@@ -24,45 +22,47 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
         bool parsing_passed = true;
         try {
             parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
-        } catch (GeneralClassicException &e) {
-            parsing_passed = interpretLine<std::string, std::string, std::string>(file,
-                                                                                   tmpString,
-                                                                                   tmpString,
-                                                                                   tmpString);
+        } catch (GeneralClassicException& e) {
+            parsing_passed = interpretLine<std::string, std::string, std::string>(
+                file, tmpString, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
-            if (tmpString != "TRUE" &&
-                tmpString != "FALSE")
-                throw GeneralClassicException("FM2DElectroStatic::FM2DElectroStatic",
-                                              "The third string on the first line of 2D field "
-                                              "maps has to be either TRUE or FALSE");
+            if (tmpString != "TRUE" && tmpString != "FALSE")
+                throw GeneralClassicException(
+                    "FM2DElectroStatic::FM2DElectroStatic",
+                    "The third string on the first line of 2D field "
+                    "maps has to be either TRUE or FALSE");
 
             normalize_m = (tmpString == "TRUE");
         }
 
         if (tmpString == "ZX") {
             swap_m = true;
-            parsing_passed = parsing_passed &&
-                             interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
-            parsing_passed = parsing_passed &&
-                             interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+            parsing_passed =
+                parsing_passed
+                && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+            parsing_passed =
+                parsing_passed
+                && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
         } else if (tmpString == "XZ") {
             swap_m = false;
-            parsing_passed = parsing_passed &&
-                             interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
-            parsing_passed = parsing_passed &&
-                             interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+            parsing_passed =
+                parsing_passed
+                && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+            parsing_passed =
+                parsing_passed
+                && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
         } else {
             std::cerr << "unknown orientation of 2D electrostatic fieldmap" << std::endl;
             parsing_passed = false;
         }
 
-        for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++ i) {
-            parsing_passed = parsing_passed && interpretLine<double, double>(file, tmpDouble, tmpDouble);
+        for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++i) {
+            parsing_passed =
+                parsing_passed && interpretLine<double, double>(file, tmpDouble, tmpDouble);
         }
 
-        parsing_passed = parsing_passed &&
-                         interpreteEOF(file);
+        parsing_passed = parsing_passed && interpreteEOF(file);
 
         file.close();
         lines_read_m = 0;
@@ -70,8 +70,9 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
         if (!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
-            throw GeneralClassicException("FM2DElectroStatic::FM2DElectroStatic",
-                                          "An error occured when reading the fieldmap '" + Filename_m + "'");
+            throw GeneralClassicException(
+                "FM2DElectroStatic::FM2DElectroStatic",
+                "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // conversion from cm to m
             rbegin_m *= Units::cm2m;
@@ -83,13 +84,13 @@ FM2DElectroStatic::FM2DElectroStatic(std::string aFilename)
             hz_m = (zend_m - zbegin_m) / num_gridpz_m;
 
             // num spacings -> num grid points
-            ++ num_gridpr_m;
-            ++ num_gridpz_m;
+            ++num_gridpr_m;
+            ++num_gridpz_m;
         }
     } else {
         noFieldmapWarning();
         zbegin_m = 0.0;
-        zend_m = -1e-3;
+        zend_m   = -1e-3;
     }
 }
 
@@ -100,7 +101,7 @@ FM2DElectroStatic::~FM2DElectroStatic() {
 void FM2DElectroStatic::readMap() {
     if (FieldstrengthEz_m == nullptr) {
         // declare variables and allocate memory
-    	std::ifstream in;
+        std::ifstream in;
         std::string tmpString;
         double Ezmax = 0.0;
 
@@ -113,26 +114,26 @@ void FM2DElectroStatic::readMap() {
         getLine(in, tmpString);
         getLine(in, tmpString);
 
-
         if (swap_m) {
-            for (int i = 0; i < num_gridpz_m; ++ i) {
-                for (int j = 0; j < num_gridpr_m; ++ j) {
-                    interpretLine<double, double>(in,
-                                                   FieldstrengthEr_m[i + j * num_gridpz_m],
-                                                   FieldstrengthEz_m[i + j * num_gridpz_m]);
+            for (int i = 0; i < num_gridpz_m; ++i) {
+                for (int j = 0; j < num_gridpr_m; ++j) {
+                    interpretLine<double, double>(
+                        in, FieldstrengthEr_m[i + j * num_gridpz_m],
+                        FieldstrengthEz_m[i + j * num_gridpz_m]);
                 }
-                if (std::abs(FieldstrengthEz_m[i]) > Ezmax) Ezmax = std::abs(FieldstrengthEz_m[i]);
+                if (std::abs(FieldstrengthEz_m[i]) > Ezmax)
+                    Ezmax = std::abs(FieldstrengthEz_m[i]);
             }
         } else {
-            for (int j = 0; j < num_gridpr_m; ++ j) {
-                for (int i = 0; i < num_gridpz_m; ++ i) {
-                    interpretLine<double, double>(in,
-                                                   FieldstrengthEz_m[i + j * num_gridpz_m],
-                                                   FieldstrengthEr_m[i + j * num_gridpz_m]);
+            for (int j = 0; j < num_gridpr_m; ++j) {
+                for (int i = 0; i < num_gridpz_m; ++i) {
+                    interpretLine<double, double>(
+                        in, FieldstrengthEz_m[i + j * num_gridpz_m],
+                        FieldstrengthEr_m[i + j * num_gridpz_m]);
                 }
             }
 
-            for (int i = 0; i < num_gridpz_m; ++ i) {
+            for (int i = 0; i < num_gridpz_m; ++i) {
                 if (std::abs(FieldstrengthEz_m[i]) > Ezmax) {
                     Ezmax = std::abs(FieldstrengthEz_m[i]);
                 }
@@ -144,12 +145,12 @@ void FM2DElectroStatic::readMap() {
             Ezmax = 1.0;
 
         // conversion MV/m to V/m and normalization to Ez_max = 1 MV/m
-        for (int i = 0; i < num_gridpr_m * num_gridpz_m; ++ i) {
+        for (int i = 0; i < num_gridpr_m * num_gridpz_m; ++i) {
             FieldstrengthEz_m[i] *= Units::MVpm2Vpm / Ezmax;
             FieldstrengthEr_m[i] *= Units::MVpm2Vpm / Ezmax;
         }
-        INFOMSG(typeset_msg("read in field map '" + Filename_m + "'", "info") << "\n"
-                << endl);
+        *ippl::Info << typeset_msg("read in field map '" + Filename_m + "'", "info") << "\n"
+                    << endl;
     }
 }
 
@@ -160,19 +161,19 @@ void FM2DElectroStatic::freeMap() {
         delete[] FieldstrengthEr_m;
         FieldstrengthEr_m = nullptr;
 
-        INFOMSG(typeset_msg("freed field map '" + Filename_m + "'", "info") << "\n"
-                << endl)
+        *ippl::Info << typeset_msg("freed field map '" + Filename_m + "'", "info") << "\n" << endl;
     }
 }
 
-bool FM2DElectroStatic::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &/*B*/) const {
+bool FM2DElectroStatic::getFieldstrength(
+    const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) const {
     // do bi-linear interpolation
     const double RR = std::sqrt(R(0) * R(0) + R(1) * R(1));
 
-    const int indexr = (int)std::floor(RR / hr_m);
+    const int indexr    = (int)std::floor(RR / hr_m);
     const double leverr = (RR / hr_m) - indexr;
 
-    const int indexz = (int)std::floor((R(2) - zbegin_m) / hz_m);
+    const int indexz    = (int)std::floor((R(2) - zbegin_m) / hz_m);
     const double leverz = (R(2) - zbegin_m) / hz_m - indexz;
 
     if ((indexz < 0) || (indexz + 2 > num_gridpz_m))
@@ -180,17 +181,17 @@ bool FM2DElectroStatic::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<
     if (indexr + 2 > num_gridpr_m)
         return true;
 
-    const int index1 = indexz + indexr * num_gridpz_m;
-    const int index2 = index1 + num_gridpz_m;
+    const int index1     = indexz + indexr * num_gridpz_m;
+    const int index2     = index1 + num_gridpz_m;
     const double EfieldR = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthEr_m[index1]
-                           + leverz         * (1.0 - leverr) * FieldstrengthEr_m[index1 + 1]
-                           + (1.0 - leverz) * leverr         * FieldstrengthEr_m[index2]
-                           + leverz         * leverr         * FieldstrengthEr_m[index2 + 1];
+                           + leverz * (1.0 - leverr) * FieldstrengthEr_m[index1 + 1]
+                           + (1.0 - leverz) * leverr * FieldstrengthEr_m[index2]
+                           + leverz * leverr * FieldstrengthEr_m[index2 + 1];
 
     const double EfieldZ = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthEz_m[index1]
-                           + leverz         * (1.0 - leverr) * FieldstrengthEz_m[index1 + 1]
-                           + (1.0 - leverz) * leverr         * FieldstrengthEz_m[index2]
-                           + leverz         * leverr         * FieldstrengthEz_m[index2 + 1];
+                           + leverz * (1.0 - leverr) * FieldstrengthEz_m[index1 + 1]
+                           + (1.0 - leverz) * leverr * FieldstrengthEz_m[index2]
+                           + leverz * leverr * FieldstrengthEz_m[index2 + 1];
 
     if (RR > 1e-10) {
         E(0) += EfieldR * R(0) / RR;
@@ -200,28 +201,37 @@ bool FM2DElectroStatic::getFieldstrength(const Vector_t<double, 3> &R, Vector_t<
     return false;
 }
 
-bool FM2DElectroStatic::getFieldDerivative(const Vector_t<double, 3> &/*R*/, Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &/*B*/, const DiffDirection &/*dir*/) const {
+bool FM2DElectroStatic::getFieldDerivative(
+    const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
+    const DiffDirection& /*dir*/) const {
     return false;
 }
 
-void FM2DElectroStatic::getFieldDimensions(double &zBegin, double &zEnd) const {
+void FM2DElectroStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
     zBegin = zbegin_m;
-    zEnd = zend_m;
+    zEnd   = zend_m;
 }
-void FM2DElectroStatic::getFieldDimensions(double &/*xIni*/, double &/*xFinal*/, double &/*yIni*/, double &/*yFinal*/, double &/*zIni*/, double &/*zFinal*/) const {}
+void FM2DElectroStatic::getFieldDimensions(
+    double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
+    double& /*zFinal*/) const {
+}
 
 void FM2DElectroStatic::swap() {
-    if (swap_m) swap_m = false;
-    else swap_m = true;
+    if (swap_m)
+        swap_m = false;
+    else
+        swap_m = true;
 }
 
-void FM2DElectroStatic::getInfo(Inform *msg) {
-    (*msg) << Filename_m << " (2D electrostatic); zini= " << zbegin_m << " m; zfinal= " << zend_m << " m;" << endl;
+void FM2DElectroStatic::getInfo(Inform* msg) {
+    (*msg) << Filename_m << " (2D electrostatic); zini= " << zbegin_m << " m; zfinal= " << zend_m
+           << " m;" << endl;
 }
 
 double FM2DElectroStatic::getFrequency() const {
     return 0.0;
 }
 
-void FM2DElectroStatic::setFrequency(double /*freq*/)
-{ ;}
+void FM2DElectroStatic::setFrequency(double /*freq*/) {
+    ;
+}
