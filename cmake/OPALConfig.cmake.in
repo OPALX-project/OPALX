@@ -4,15 +4,17 @@ set (${PROJECT_NAME}_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 set (${PROJECT_NAME}_LIBRARY "${CMAKE_INSTALL_PREFIX}/lib/libOPAL.a")
 
 set (${PROJECT_NAME}_LIBRARIES
+    /Users/adelmann/OPAL/lib/libkokkoscore.a
+    ${Kokkos_LIBRARY}    
+    ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARIES}
-    ${IPPL_LIBRARY_DIR}/lib${IPPL_LIBRARY}.a
     ${Boost_LIBRARIES}
     ${OTHER_CMAKE_EXE_LINKER_FLAGS}
     ${CMAKE_DL_LIBS}
-    ${Kokkos_LIBRARY}        
+    libOPAL.a
 )
 
 set (${PROJECT_NAME}_INCLUDE_DIRS
@@ -26,3 +28,5 @@ set (${PROJECT_NAME}_INCLUDE_DIRS
     ${GTEST_INCLUDE_DIR}
     ${Kokkos_INCLUDE_DIR}
 )
+
+message (STATUS "OPALConfig.cmake.in: ${PROJECT_NAME}_LIBRARIES")

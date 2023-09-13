@@ -24,9 +24,25 @@ message (STATUS "Host OS System: ${CMAKE_HOST_SYSTEM}")
 message (STATUS "Hostname: ${HOSTNAME}")
 
 # Select flags.
+set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O0 -g ")
 set (CMAKE_CXX_FLAGS_RELEASE "-O0 -g")
 set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+
+# Disable compile time assert (used by IPPL)
+add_definitions (-DNOCTAssert)
+add_compile_options (-Wno-nonportable-include-path)
+add_compile_options (-ferror-limit=1)
+add_compile_options (-Wno-error)
+add_compile_options (-Wno-deprecated-declarations)
+add_compile_options (-Wno-unused)
+add_compile_options (-Wextra)
+add_compile_options (-Wno-unused-parameter)
+add_compile_options (-funroll-loops)
+add_compile_options (-fstrict-aliasing)
+add_compile_options (-DKOKKOS_DEPENDENCE)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 if (uppercase_CMAKE_BUILD_TYPE MATCHES "^(DEBUG|RELWITHDEBINFO)$")
@@ -44,37 +60,66 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-option (ENABLE_OpenMP "Use hybrid parallelism MPI-OpenMP" OFF)
+option (ENABLE_OpWenMP "Use hybrid parallelism MPI-OpenMP" OFF)
 
 find_package(Kokkos REQUIRED)
-message (STATUS "ADA Found Kokkos_DIR: ${Kokkos_DIR}")  
-
-find_package(Heffte 2.2.0 REQUIRED)
-message (STATUS "ADA Found Heffte_DIR: ${Heffte_DIR}")  
-
-set (CMAKE_CXX_STANDARD 20)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
+message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
 
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
 endif()
+find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS /Users/adelmann/OPAL/lib)
+find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS /Users/adelmann/OPAL/lib)
+find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS /Users/adelmann/OPAL/lib)
+message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
 
-# Disable compile time assert (used by IPPL)
-add_definitions (-DNOCTAssert)
+find_package(Heffte 2.2.0 REQUIRED)
+message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")  
+find_library(HEFFTE_LIBRARY heffte HINTS /Users/adelmann/OPAL/lib)
+message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 
-add_compile_options (-Wno-nonportable-include-path)
-add_compile_options (-ferror-limit=1)
-add_compile_options (-Wno-error)
-add_compile_options (-Wno-deprecated-declarations)
-add_compile_options (-Wno-unused)
-add_compile_options (-Wextra)
-add_compile_options (-Wno-unused-parameter)
-add_compile_options (-funroll-loops)
-add_compile_options (-fstrict-aliasing)
-add_compile_options (-DKOKKOS_DEPENDENCE)
+find_package (Ippl REQUIRED)
+add_compile_options("-I/Users/adelmann/git/ippl/src")
+find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR})
+message (STATUS "Found IPPL lib: ${IPPL_LIBRARY}")
 
+find_package (H5Hut REQUIRED)
+
+if (USE_STATIC_LIBRARIES)
+    set (HDF5_USE_STATIC_LIBRARIES ON)
+endif ()
+
+set (HDF5_PREFER_PARALLEL ON)
+find_package (HDF5 REQUIRED)
+if(UNIX AND NOT APPLE)
+    set (HDF5_LIBRARIES ${HDF5_LIBRARIES} ${CMAKE_DL_LIBS} rt z)
+endif ()
+message (STATUS "Found HDF5 libraries: ${HDF5_LIBRARIES}")
+
+find_package (GSL REQUIRED)
+message (STATUS "Found gsl libraries: ${GSL_LIBRARIES}")
+
+set (BOOSTROOT $ENV{BOOST_DIR})
+if (USE_STATIC_LIBRARIES)
+    set (Boost_USE_STATIC_LIBS ON)
+endif ()
+set (Boost_USE_MULTITHREADED OFF)
+set (Boost_USE_STATIC_RUNTIME OFF)
+
+find_package (Boost 1.66.0
+    REQUIRED COMPONENTS filesystem iostreams regex serialization system timer chrono)
+if(UNIX AND NOT APPLE)
+    set (Boost_LIBRARIES ${Boost_LIBRARIES} rt)
+endif ()
+message (STATUS "Found Boost include dirs: ${Boost_INCLUDE_DIRS}")
+message (STATUS "Found Boost library dirs: ${Boost_LIBRARY_DIRS}")
+message (STATUS "Found Boost libraries: ${Boost_LIBRARIES}")
+include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
+
+#
 # Resolve all library dependencies
+#
+
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
 option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
@@ -83,7 +128,10 @@ if (NOT ${USE_STATIC_LIBRARIES})
     add_link_options (-pie)
 endif ()
 
+#
 # compiler dependent flags
+#
+
 message (STATUS "The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     add_compile_options ("-diag-disable 383")
@@ -155,50 +203,14 @@ else ()
     endif ()
 endif ()
 
-
-find_package (Ippl REQUIRED)
-message (STATUS "IPPL include dir ${IPPL_INCLUDE_DIR}")
-add_compile_options("-I/Users/adelmann/git/ippl/src")
-
-find_package (H5Hut REQUIRED)
-
-if (USE_STATIC_LIBRARIES)
-    set (HDF5_USE_STATIC_LIBRARIES ON)
-endif ()
-
-set (HDF5_PREFER_PARALLEL ON)
-find_package (HDF5 REQUIRED)
-if(UNIX AND NOT APPLE)
-    set (HDF5_LIBRARIES ${HDF5_LIBRARIES} ${CMAKE_DL_LIBS} rt z)
-endif ()
-message (STATUS "Found HDF5 libraries: ${HDF5_LIBRARIES}")
-
-find_package (GSL REQUIRED)
-message (STATUS "Found gsl libraries: ${GSL_LIBRARIES}")
-
-set (BOOSTROOT $ENV{BOOST_DIR})
-if (USE_STATIC_LIBRARIES)
-    set (Boost_USE_STATIC_LIBS ON)
-endif ()
-set (Boost_USE_MULTITHREADED OFF)
-set (Boost_USE_STATIC_RUNTIME OFF)
-find_package (Boost 1.66.0
-    REQUIRED COMPONENTS filesystem iostreams regex serialization system timer chrono)
-if(UNIX AND NOT APPLE)
-    set (Boost_LIBRARIES ${Boost_LIBRARIES} rt)
-endif ()
-message (STATUS "Found Boost include dirs: ${Boost_INCLUDE_DIRS}")
-message (STATUS "Found Boost library dirs: ${Boost_LIBRARY_DIRS}")
-message (STATUS "Found Boost libraries: ${Boost_LIBRARIES}")
-include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
-
+#
 # Handle options
+#
 option (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 if (BUILD_OPAL_UNIT_TESTS)
     find_package (GTest REQUIRED HINT $ENV{GTEST_PREFIX})
     add_definitions (-DWITH_UNIT_TESTS)
 endif ()
-
 
 option (ENABLE_DOXYDOC "compile Doxygen documentation" OFF)
 if (ENABLE_DOXYDOC)
@@ -219,7 +231,9 @@ if (DBG_SCALARFIELD)
     add_definitions (-DDBG_SCALARFIELD)
 endif ()
 
-
+#
+#
+#
 
 add_custom_target(always_rebuild ALL
     DEPENDS
@@ -241,7 +255,6 @@ include_directories (
     ${IPPL_INCLUDE_DIR}    
 )
 
-
 if (BUILD_OPAL_UNIT_TESTS)
     add_subdirectory (tests)
 endif ()
@@ -250,6 +263,7 @@ endif ()
 set (OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
     CACHE INTERNAL "" FORCE
     )
+
 
 set (OPAL_LIBS ${OPAL_LIBS}
     CACHE INTERNAL "" FORCE

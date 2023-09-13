@@ -99,6 +99,10 @@ add_executable (opal Main.cpp)
 target_link_libraries( opal
     libOPAL
     ${IPPL_LIBRARY}
+    ${Kokkos_LIBRARY1}
+    ${Kokkos_LIBRARY2}
+    ${Kokkos_LIBRARY3}
+    ${HEFFTE_LIBRARY}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
