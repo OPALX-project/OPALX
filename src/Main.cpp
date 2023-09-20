@@ -113,7 +113,6 @@ namespace {
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
-        // Ippl* ippl   = new Ippl(argc, argv);
         gmsg         = new Inform("OPAL");
         namespace fs = boost::filesystem;
 
@@ -170,6 +169,8 @@ int main(int argc, char* argv[]) {
         }
 
         // create mesh and layout objects for this problem domain
+
+        /*
         Vector_t<double, 3> kw = 0.5;
         double alpha           = 0.05;
         Vector_t<double, 3> rmin(0.0);
@@ -189,9 +190,11 @@ int main(int argc, char* argv[]) {
         P = std::make_unique<bunch_type>(PL, hr, rmin, rmax, decomp, Q);
 
         std::cout << P->get_sPos() << std::endl;
+        */
 
         try {
             Configure::configure();
+            *gmsg << "configure done argc= " << argc << endl;
 
             // Read startup file.
             FileStream::setEcho(Options::echo);
@@ -229,7 +232,6 @@ int main(int argc, char* argv[]) {
             int inputFileArgument = -1;
             std::string fname;
             std::string restartFileName;
-
             for (int ii = 1; ii < argc; ++ii) {
                 std::string argStr = std::string(argv[ii]);
                 if (argStr == std::string("-h") || argStr == std::string("-help")
@@ -311,13 +313,16 @@ int main(int argc, char* argv[]) {
                     argStr == std::string("-restartfn") || argStr == std::string("--restartfn")) {
                     restartFileName = std::string(argv[++ii]);
                     continue;
+                } else if (argStr == std::string("--info")) {
+                    ++ii;
+                    continue;
                 } else {
                     if (inputFileArgument == -1 && (ii == 1 || ii + 1 == argc)
                         && argv[ii][0] != '-') {
                         inputFileArgument = ii;
                         continue;
                     } else {
-                        *ippl::Info << "Unknown argument \"" << argStr << "\"" << endl;
+                        *gmsg << "Unknown argument \"" << argStr << "\"" << endl;
                         ::printHelp();
                         exit(1);
                     }
@@ -526,12 +531,6 @@ int main(int argc, char* argv[]) {
         Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
-        /*
-        delete ippl::Info;
-        delete ippl::Warn;
-        delete ippl::Error;
-        delete ippl::Debug;
-        */
         return 0;
     }
 }
