@@ -97,21 +97,28 @@ target_link_libraries (libOPAL
 
 add_executable (opal Main.cpp)
 target_link_libraries( opal
-    libOPAL
-    ${IPPL_LIBRARY}
-    ${Kokkos_LIBRARY1}
-    ${Kokkos_LIBRARY2}
-    ${Kokkos_LIBRARY3}
+    /Users/adelmann/OPAL/tmp/src/OPAL/opal-x-src/build/src/libOPAL.a
+    ${KOKKOS_LIBRARY1}
+    ${KOKKOS_LIBRARY2}
+    ${KOKKOS_LIBRARY3}
     ${HEFFTE_LIBRARY}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
+    ${IPPL_LIBRARY}
+    /Users/adelmann/OPAL/lib/libmpicxx.dylib
     m
     z
     ${CMAKE_DL_LIBS}
     )
+
+message (STATUS "src/CmakeLists IPPL_LIBRARY : ${IPPL_LIBRARY}")
+message (STATUS "src/CmakeLists GSL_LIBRARY : ${GSL_LIBRARY}")
+message (STATUS "src/CmakeLists Kokkos_LIBRARY : ${KOKKOS_LIBRARY1}")
+message (STATUS "src/CmakeLists HEFFTE_LIBRARY : ${HEFFTE_LIBRARY}")
+
 
 if (ENABLE_OPAL_FEL)
     include_directories (${MITHRA_INCLUDE_DIR})

@@ -20,7 +20,7 @@
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "BasicActions/Option.h"
 // #include "DataSource/DataConnect.h"
 #include "Distribution/LaserProfile.h"

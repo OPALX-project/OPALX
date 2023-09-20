@@ -63,7 +63,7 @@
 #define CLASSIC_Tracker_HH
 
 #include "Algorithms/AbstractTracker.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "Algorithms/PartData.h"
 
 #include "Utilities/ClassicField.h"

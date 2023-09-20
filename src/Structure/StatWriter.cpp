@@ -19,7 +19,7 @@
 #include "StatWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
 
@@ -187,8 +187,8 @@ void StatWriter::fillHeader(const losses_t& losses) {
 }
 
 void StatWriter::write(
-    const PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses,
-    const double& azimuth, const size_t npOutside) {
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
+    const size_t npOutside) {
     double Ekin = beam->get_meanKineticEnergy();
 
     double pathLength = beam->get_sPos();
