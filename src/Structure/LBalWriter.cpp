@@ -22,7 +22,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Utilities/Util.h"
 #include "Utilities/Timer.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "Physics/Units.h"
 
 LBalWriter::LBalWriter(const std::string& fname, bool restart)

@@ -20,7 +20,7 @@
 #include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"

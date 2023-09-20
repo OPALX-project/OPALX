@@ -45,7 +45,7 @@ public:
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
     void write(
-        const PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses = losses_t(),
+        PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses = losses_t(),
         const double& azimuth = -1, const size_t npOutside = 0);
 
 private:

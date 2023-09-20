@@ -63,7 +63,7 @@
 #include "Fields/BMultipoleField.h"
 
 // FIXME Remove headers and dynamic_cast in readOneBunchFromFile
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 
 #include <cfloat>
 #include <cmath>

@@ -29,7 +29,6 @@
 
 #include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
-#include "Utility/IpplMemoryUsage.h"
 
 #include <boost/assign.hpp>
 
@@ -391,16 +390,9 @@ void Option::execute() {
     seed                  = Attributes::getReal(itsAttr[SEED]);
     writeBendTrajectories = Attributes::getBool(itsAttr[LOGBENDTRAJECTORY]);
 
-    memoryDump         = Attributes::getBool(itsAttr[MEMORYDUMP]);
     haloShift          = Attributes::getReal(itsAttr[HALOSHIFT]);
     delPartFreq        = Attributes::getReal(itsAttr[DELPARTFREQ]);
     computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
-
-    if (memoryDump) {
-        IpplMemoryUsage::IpplMemory_p memory =
-            IpplMemoryUsage::getInstance(IpplMemoryUsage::Unit::GB, false);
-        memory->sample();
-    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions

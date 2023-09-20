@@ -18,12 +18,12 @@
 #ifndef OPAL_Distribution_HH
 #define OPAL_Distribution_HH
 
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "OPALtypes.h"
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
- 
+
 #include "Attributes/Attributes.h"
 
 #include <gsl/gsl_histogram.h>
@@ -222,7 +222,7 @@ inline std::string Distribution::getTypeofDistribution() {
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
- 
+
 #include "Attributes/Attributes.h"
 
 #include <gsl/gsl_histogram.h>

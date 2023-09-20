@@ -9,7 +9,6 @@ set (_SRCS
   MonitorStatisticsWriter.cpp
   IpplInfoWrapper.cpp
   H5Writer.cpp
-  MemoryWriter.cpp
   MeshGenerator.cpp       
   LBalWriter.cpp
   LossDataSink.cpp        
@@ -31,12 +30,11 @@ set (HDRS
     BoundingBox.h
     DataSink.h
     ElementPositionWriter.h
-        H5PartWrapperForPT.h
+    H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
     MonitorStatisticsWriter.h
     H5Writer.h
-    MemoryWriter.h
     MeshGenerator.h
     LBalWriter.h
     LossDataSink.h

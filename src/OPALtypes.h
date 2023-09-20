@@ -56,7 +56,7 @@ typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_
 
 enum UnitState_t { units = 0, unitless = 1 };
 
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 
 // typedef PartBunch<PLayout_t<double, 3>, double, 3> PartBunch_t;
 

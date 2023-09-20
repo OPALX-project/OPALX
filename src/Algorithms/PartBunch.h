@@ -200,10 +200,7 @@ public:
     PartBunch(
         PLayout& pl, Vector_t<double, Dim> hr, Vector_t<double, Dim> rmin,
         Vector_t<double, Dim> rmax, ippl::e_dim_tag decomp[Dim], double Qtot)
-        /*
-            : ippl::ParticleBase<PLayout>(pl)
-        */
-        : hr_m(hr), rmin_m(rmin), rmax_m(rmax), Q_m(Qtot) {
+        : ippl::ParticleBase<PLayout>(pl), hr_m(hr), rmin_m(rmin), rmax_m(rmax), Q_m(Qtot) {
         // register the particle attributes
         this->addAttribute(Q);
         this->addAttribute(M);
@@ -462,8 +459,6 @@ public:
 
     bool hasFieldSolver();
 
-    // FieldSolverType getFieldSolverType() const;
-
     /*
       I / O
 
@@ -669,12 +664,12 @@ public:
      * @param none
      *
      */
-    double get_sPos() const;
 
     void set_sPos(double s);
 
     double get_gamma() const;
-    double get_meanKineticEnergy() const;
+    double get_meanKineticEnergy();
+
     Vector_t<T, Dim> get_origin() const;
     Vector_t<T, Dim> get_maxExtent() const;
     Vector_t<T, Dim> get_centroid() const;
@@ -903,6 +898,10 @@ public:
           Kokkos::deep_copy(this->R.getView(), R_host);
       }
       */
+
+    double get_sPos() const {
+        return spos_m;
+    }
 };
 
 template <class PLayout, typename T, unsigned dim>

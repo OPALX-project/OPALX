@@ -51,7 +51,10 @@
 #include <iostream>
 #include <set>
 
-// Ippl* ippl;
+#include "OPALtypes.h"
+
+#include "Algorithms/PartBunch.hpp"
+
 Inform* gmsg;
 
 namespace {
@@ -110,9 +113,8 @@ namespace {
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
-        //  Ippl* ippl = new Ippl(argc, argv);
-        gmsg = new Inform("OPAL");
-
+        // Ippl* ippl   = new Ippl(argc, argv);
+        gmsg         = new Inform("OPAL");
         namespace fs = boost::filesystem;
 
         H5SetVerbosityLevel(1);  // 65535);
@@ -134,9 +136,6 @@ int main(int argc, char* argv[]) {
 
         OpalData* opal = OpalData::getInstance();
 
-        /*
-          Make a directory data for some of the output
-        */
         if (ippl::Comm->rank() == 0) {
             if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
                 boost::system::error_code error_code;
@@ -153,6 +152,44 @@ int main(int argc, char* argv[]) {
         }
 
         opal->storeArguments(argc, argv);
+
+        const Vector_t<int, 3> nr(8);
+
+        using bunch_type = PartBunch_t;
+
+        std::unique_ptr<bunch_type> P;
+
+        ippl::NDIndex<3> domain;
+        for (unsigned i = 0; i < 3; i++) {
+            domain[i] = ippl::Index(nr[i]);
+        }
+
+        ippl::e_dim_tag decomp[3];
+        for (unsigned d = 0; d < 3; ++d) {
+            decomp[d] = ippl::PARALLEL;
+        }
+
+        // create mesh and layout objects for this problem domain
+        Vector_t<double, 3> kw = 0.5;
+        double alpha           = 0.05;
+        Vector_t<double, 3> rmin(0.0);
+        Vector_t<double, 3> rmax = 2 * Kokkos::numbers::pi / kw;
+
+        Vector_t<double, 3> hr = rmax / nr;
+        double Q = std::reduce(rmax.begin(), rmax.end(), -1., std::multiplies<double>());
+        Vector_t<double, 3> origin = rmin;
+        const double dt            = std::min(.05, 0.5 * *std::min_element(hr.begin(), hr.end()));
+
+        const bool isAllPeriodic = true;
+        Mesh_t<3> mesh(domain, hr, origin);
+        FieldLayout_t<3> FL(domain, decomp, isAllPeriodic);
+        PLayout_t<double, 3> PL(FL, mesh);
+        std::string solver = "OPEN";
+
+        P = std::make_unique<bunch_type>(PL, hr, rmin, rmax, decomp, Q);
+
+        std::cout << P->get_sPos() << std::endl;
+
         try {
             Configure::configure();
 
@@ -489,7 +526,6 @@ int main(int argc, char* argv[]) {
         Fieldmap::clearDictionary();
         OpalData::deleteInstance();
         delete gmsg;
-
         /*
         delete ippl::Info;
         delete ippl::Warn;

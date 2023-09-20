@@ -29,30 +29,29 @@
 
 // Basic action commands.
 #include "BasicActions/Call.h"
-#include "BasicActions/DumpFields.h"
 #include "BasicActions/DumpEMFields.h"
+#include "BasicActions/DumpFields.h"
 #include "BasicActions/Echo.h"
 #include "BasicActions/Help.h"
 #include "BasicActions/Option.h"
+#include "BasicActions/PSystem.h"
+#include "BasicActions/Quit.h"
 #include "BasicActions/Select.h"
 #include "BasicActions/Stop.h"
-#include "BasicActions/Quit.h"
 #include "BasicActions/System.h"
-#include "BasicActions/PSystem.h"
 #include "BasicActions/Title.h"
 #include "BasicActions/Value.h"
 
-// Macro command.                                                                                                                                                                                                                             
+// Macro command.
 #include "OpalParser/MacroCmd.h"
 
-
 // Commands introducing a special mode.
-#include "Track/TrackCmd.h"    
+#include "Track/TrackCmd.h"
 
 // Table-related commands.
-#include "Structure/FieldSolver.h"
+// #include "Structure/FieldSolver.h"
 #include "Structure/Beam.h"
-//#include "Tables/List.h"
+// #include "Tables/List.h"
 
 // Value definitions commands.
 #include "ValueDefinitions/BoolConstant.h"
@@ -62,12 +61,12 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
-#include "Elements/OpalMarker.h"
 #include "Elements/OpalDrift.h"
-#include "Elements/OpalRingDefinition.h"
+#include "Elements/OpalMarker.h"
 #include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
-#include "Elements/OpalVerticalFFAMagnet.h"
 #include "Elements/OpalProbe.h"
+#include "Elements/OpalRingDefinition.h"
+#include "Elements/OpalVerticalFFAMagnet.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -80,7 +79,7 @@
 namespace {
 
     void makeActions() {
-        OpalData *opal = OpalData::getInstance();
+        OpalData* opal = OpalData::getInstance();
         opal->create(new Call());
         opal->create(new DumpFields());
         opal->create(new DumpEMFields());
@@ -98,7 +97,7 @@ namespace {
     }
 
     void makeDefinitions() {
-        OpalData *opal = OpalData::getInstance();
+        OpalData* opal = OpalData::getInstance();
         // Must create the value definitions first.
         opal->create(new BoolConstant());
         opal->create(new RealConstant());
@@ -109,12 +108,12 @@ namespace {
         opal->create(new MacroCmd());
 
         opal->create(new Beam());
-        opal->create(new FieldSolver());
-        opal->create(new Distribution());        
+        // opal->create(new FieldSolver());
+        opal->create(new Distribution());
     }
 
     void makeElements() {
-        OpalData *opal = OpalData::getInstance();
+        OpalData* opal = OpalData::getInstance();
         opal->create(new OpalDrift());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());
@@ -123,7 +122,7 @@ namespace {
         opal->create(new OpalOffset::OpalLocalCartesianOffset());
         opal->create(new OpalVerticalFFAMagnet());
     }
-};
+};  // namespace
 
 namespace Configure {
     void configure() {
@@ -132,4 +131,4 @@ namespace Configure {
         makeActions();
         Versions::fillChanges();
     }
-};
+};  // namespace Configure

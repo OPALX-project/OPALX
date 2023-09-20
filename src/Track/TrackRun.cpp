@@ -40,7 +40,6 @@
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/DataSink.h"
-#include "Structure/FieldSolver.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 
@@ -292,8 +291,8 @@ void TrackRun::setupTracker() {
         Track::block->zstart = 0.0;
     }
 
-    *gmsg << *beam << endl;
-    *gmsg << *fs_m << endl;
+    //*gmsg << *beam << endl;
+    //*gmsg << *fs_m << endl;
 
     /*
       This needs to come back as soon as we have RF
@@ -311,6 +310,7 @@ void TrackRun::setupTracker() {
 }
 
 void TrackRun::setupFieldsolver() {
+    /*
     fs_m = FieldSolver::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
 
     if (fs_m->getFieldSolverType() != FieldSolverType::NONE) {
@@ -332,14 +332,16 @@ void TrackRun::setupFieldsolver() {
         OpalData::getInstance()->addProblemCharacteristicValue("MY", fs_m->getMY());
         OpalData::getInstance()->addProblemCharacteristicValue("MT", fs_m->getMZ());
     }
-
+    */
     // fs_m->initCartesianFields();
     // Track::block->bunch->setSolver(fs_m);
+    /*
     if (fs_m->hasPeriodicZ()) {
         Track::block->bunch->setBCForDCBeam();
     } else {
         Track::block->bunch->setBCAllOpen();
     }
+    */
 }
 
 void TrackRun::initDataSink() {

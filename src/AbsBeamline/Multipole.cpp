@@ -18,7 +18,7 @@
 #include "AbsBeamline/Multipole.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"

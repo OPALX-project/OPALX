@@ -39,12 +39,6 @@
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
-#ifdef __linux__
-#include "MemoryProfiler.h"
-#else
-#include "MemoryWriter.h"
-#endif
-
 #include <sstream>
 
 DataSink::DataSink() {
@@ -201,14 +195,6 @@ void DataSink::init(bool restart, H5PartWrapper* h5wrapper) {
     statWriter_m = statWriter_t(new StatWriter(fn + std::string(".stat"), restart));
 
     sddsWriter_m.push_back(sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart)));
-
-    if (Options::memoryDump) {
-#ifdef __linux__
-        sddsWriter_m.push_back(sddsWriter_t(new MemoryProfiler(fn + std::string(".mem"), restart)));
-#else
-        sddsWriter_m.push_back(sddsWriter_t(new MemoryWriter(fn + std::string(".mem"), restart)));
-#endif
-    }
 
     if (Options::enableHDF5) {
         h5Writer_m = h5Writer_t(new H5Writer(h5wrapper, restart));

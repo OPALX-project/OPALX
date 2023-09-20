@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 
 extern Inform *gmsg;
 

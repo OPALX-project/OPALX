@@ -18,7 +18,7 @@
 #include "Structure/H5PartWrapperForPT.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 
 #include "OPALconfig.h"
 #include "Physics/Physics.h"
@@ -339,7 +339,7 @@ void H5PartWrapperForPT::writeStepHeader(
     h5_int64_t numBunch      = 1;
     h5_int64_t SteptoLastInj = 0;
 
-    bunch->get_PBounds(minP, maxP);
+    // ADA    bunch->get_PBounds(minP, maxP);
 
     /* ------------------------------------------------------------------------ */
 
