@@ -791,9 +791,9 @@ size_t PartBunch<PLayout, T, Dim>::destroyT() {
         }
     }
     /* ADA
-    if (ne > 0) {
-        performDestroy(true);
-    }
+       if (ne > 0) {
+       performDestroy(true);
+       }
     */
 
     calcBeamParameters();
@@ -957,11 +957,6 @@ double PartBunch<PLayout, T, Dim>::getT() const {
 }
 
 template <class PLayout, typename T, unsigned Dim>
-double PartBunch<PLayout, T, Dim>::get_sPos() const {
-    return spos_m;
-}
-
-template <class PLayout, typename T, unsigned Dim>
 void PartBunch<PLayout, T, Dim>::set_sPos(double s) {
     spos_m = s;
 }
@@ -972,7 +967,7 @@ double PartBunch<PLayout, T, Dim>::get_gamma() const {
 }
 
 template <class PLayout, typename T, unsigned Dim>
-double PartBunch<PLayout, T, Dim>::get_meanKineticEnergy() const {
+double PartBunch<PLayout, T, Dim>::get_meanKineticEnergy() {
     return 0.0;
 }
 
@@ -1203,11 +1198,11 @@ bool PartBunch<PLayout, T, Dim>::hasFieldSolver() {
 /*
 template <class PLayout, typename T, unsigned Dim>
 FieldSolverType PartBunch<PLayout, T, Dim>::getFieldSolverType() const {
-    if (fs_m) {
-        return fs_m->getFieldSolverType();
-    } else {
-        return FieldSolverType::NONE;
-    }
+if (fs_m) {
+return fs_m->getFieldSolverType();
+} else {
+return FieldSolverType::NONE;
+}
 }
 */
 
@@ -1345,7 +1340,7 @@ void PartBunch<PLayout, T, Dim>::resetM(double m) {
 
 template <class PLayout, typename T, unsigned Dim>
 double PartBunch<PLayout, T, Dim>::getdE() const {
-    return 0.0;
+return 0.0;
 }
 
 template <class PLayout, typename T, unsigned Dim>
@@ -1411,7 +1406,7 @@ Inform& PartBunch<PLayout, T, Dim>::print(Inform& os) {
     os << "* NP              = " << this->getLocalNum() << "\n";
     /*
     os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q)))
-       << "         "
+       << "         "s
        << "Qi    = " << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
     os << "* Ekin            = " << std::setw(17)
        << Util::getEnergyString(get_meanKineticEnergy()) << "         "
@@ -1468,16 +1463,16 @@ void PartBunch<PLayout, T, Dim>::swap(unsigned int i, unsigned int j) {
     std::swap(this->M(i), this->M(j));
     std::swap(this->Phi(i), this->Phi(j));
     /*
-    std::swap(Ef(i), Ef[j]);
-    std::swap(Eftmp(i), Eftmp[j]);
-    std::swap(Bf(i), Bf[j]);
-    std::swap(Bin(i), Bin[j]);
-    std::swap(dt(i), dt[j]);
-    std::swap(PType(i), PType[j]);
-    std::swap(POrigin(i), POrigin[j]);
-    std::swap(TriID(i), TriID[j]);
-    std::swap(cavityGapCrossed(i), cavityGapCrossed[j]);
-    std::swap(bunchNum(i), bunchNum[j]);
+      std::swap(Ef(i), Ef[j]);
+      std::swap(Eftmp(i), Eftmp[j]);
+      std::swap(Bf(i), Bf[j]);
+      std::swap(Bin(i), Bin[j]);
+      std::swap(dt(i), dt[j]);
+      std::swap(PType(i), PType[j]);
+      std::swap(POrigin(i), POrigin[j]);
+      std::swap(TriID(i), TriID[j]);
+      std::swap(cavityGapCrossed(i), cavityGapCrossed[j]);
+      std::swap(bunchNum(i), bunchNum[j]);
     */
 }
 

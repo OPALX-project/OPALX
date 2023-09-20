@@ -22,7 +22,7 @@
 #include <string>
 
 #include "AbsBeamline/Component.h"
-#include "Algorithms/PartBunch.h"
+#include "Algorithms/PartBunch.hpp"
 
 #include "AbsBeamline/Marker.h"
 #include "Beamlines/Beamline.h"

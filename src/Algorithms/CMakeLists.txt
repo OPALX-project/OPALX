@@ -8,9 +8,6 @@ set (_SRCS
     IndexMap.cpp
     OrbitThreader.cpp
     OpalParticle.cpp
-#    ParallelTracker.cpp
-    PartBunch.cpp
-#    PartBunch.hpp
     PartBins.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
@@ -36,10 +33,8 @@ set (HDRS
     IndexMap.h
     OrbitThreader.h
     OpalParticle.h
-#    ParallelTracker.h
     PartBins.h
-    PartBunch.h
- #   PartBunch.h
+    PartBunch.hpp
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h
