@@ -78,6 +78,9 @@ message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")
 find_library(HEFFTE_LIBRARY heffte HINTS /Users/adelmann/OPAL/lib)
 message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 
+# find_library(FFTW_LIB1 NAMES fftw3f HINTS /Users/adelmann/OPAL/lib)
+message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")  
+
 find_package (Ippl REQUIRED)
 add_compile_options("-I/Users/adelmann/git/ippl/src")
 find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR})
@@ -261,6 +264,10 @@ endif ()
 
 # make variables visible in other CMakeLists files
 set (OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
+    CACHE INTERNAL "" FORCE
+    )
+
+set (FFTW_LIBS ${FFTW_LIBS}
     CACHE INTERNAL "" FORCE
     )
 

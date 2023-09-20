@@ -102,13 +102,14 @@ target_link_libraries( opal
     ${KOKKOS_LIBRARY2}
     ${KOKKOS_LIBRARY3}
     ${HEFFTE_LIBRARY}
+    ${OPAL_FFTW_LIBS}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     ${IPPL_LIBRARY}
-    /Users/adelmann/OPAL/lib/libmpicxx.dylib
+    /Users/adelmann/OPAL/lib/libmpi.dylib
     m
     z
     ${CMAKE_DL_LIBS}
