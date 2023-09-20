@@ -109,7 +109,7 @@ target_link_libraries( opal
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     ${IPPL_LIBRARY}
-    /Users/adelmann/OPAL/lib/libmpi.dylib
+    ${OPAL_MPI_LIBS}
     m
     z
     ${CMAKE_DL_LIBS}
