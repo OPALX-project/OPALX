@@ -4,8 +4,10 @@ set (${PROJECT_NAME}_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 set (${PROJECT_NAME}_LIBRARY "${CMAKE_INSTALL_PREFIX}/lib/libOPAL.a")
 
 set (${PROJECT_NAME}_LIBRARIES
-    /Users/adelmann/OPAL/lib/libkokkoscore.a
-    ${Kokkos_LIBRARY}    
+    ${KOKKOS_LIBRARY1}
+    ${KOKKOS_LIBRARY2}
+    ${KOKKOS_LIBRARY3}
+    ${HEFFTE_LIBRARY}
     ${IPPL_LIBRARY}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}

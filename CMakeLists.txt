@@ -81,7 +81,7 @@ message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 find_package (Ippl REQUIRED)
 add_compile_options("-I/Users/adelmann/git/ippl/src")
 find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR})
-message (STATUS "Found IPPL lib: ${IPPL_LIBRARY}")
+message (STATUS "Found IPPL lib: ${IPPL_LIBRAR}")
 
 find_package (H5Hut REQUIRED)
 
