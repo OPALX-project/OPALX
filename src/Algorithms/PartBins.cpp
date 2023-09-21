@@ -64,14 +64,14 @@ size_t PartBins::getTotalNum() {
         sd += nDelBin_m[i];
     }
     gs = s - sd;
-    // ADA reduce(gs, gs, OpAddAssign());
+    ippl::Comm->reduce(gs, gs, 1, std::plus<size_t>());
     return gs;
 }
 
 size_t PartBins::getTotalNumPerBin(int b) {
     size_t s = 0;
     s        = nBin_m[b];
-    // ADA reduce(s, s, OpAddAssign());
+    ippl::Comm->reduce(s, s, 1, std::plus<size_t>());
     return s;
 }
 
@@ -83,7 +83,8 @@ void PartBins::updatePartInBin_cyc(size_t countLost[]) {
 }
 
 void PartBins::resetPartInBin_cyc(size_t newPartNum[], int maxbinIndex) {
-    // ADA reduce(maxbinIndex, maxbinIndex, OpMaxAssign());
+    /// \todo check if greater is the same than max in old IPPL
+    ippl::Comm->reduce(maxbinIndex, maxbinIndex, 1, std::greater<size_t>());
     nemittedBins_m = maxbinIndex + 1;
 
     for (int ii = 0; ii < nemittedBins_m; ii++) {
@@ -123,8 +124,12 @@ void PartBins::sortArray() {
     xmin_m -= xmax_m + 0.0001 * (xmax_m - xmin_m) + sshift; /* lower the limits */
     xmax_m = -sshift;
 
-    // ADA reduce(xmin_m, xmin_m, OpMinAssign());
-    // ADA reduce(xmax_m, xmax_m, OpMaxAssign());
+    ippl::Comm->reduce(xmax_m, xmax_m, 1, std::greater<double>());
+    ippl::Comm->reduce(xmin_m, xmin_m, 1, std::less<double>());
+
+    /// \toto check if the above is the same
+    // reduce(xmin_m, xmin_m, OpMinAssign());
+    // reduce(xmax_m, xmax_m, OpMaxAssign());
 
     hBin_m = (std::abs(xmax_m - xmin_m)) / (bins_m);
     calcHBins();

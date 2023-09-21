@@ -450,7 +450,8 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
-    /* ADA
+    /// \todo needs to be fixed
+    /*
     for (const Vector_t<double, 3>& pos : {r_m - 10 * dR, r_m + 10 * dR}) {
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
