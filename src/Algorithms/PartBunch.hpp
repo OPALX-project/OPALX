@@ -183,7 +183,7 @@ public:
 
     Vector_t<T, Dim> nr_m;
 
-    ippl::e_dim_tag decomp_m[Dim];
+    std::array<bool, Dim> isParallel_m;
 
     Vector_t<double, Dim> hr_m;
     Vector_t<double, Dim> rmin_m;
@@ -198,7 +198,7 @@ public:
 public:
     PartBunch(
         PLayout& pl, Vector_t<double, Dim> hr, Vector_t<double, Dim> rmin,
-        Vector_t<double, Dim> rmax, ippl::e_dim_tag decomp[Dim], double Qtot)
+        Vector_t<double, Dim> rmax, std::array<bool, Dim> decomp, double Qtot)
         : ippl::ParticleBase<PLayout>(pl), hr_m(hr), rmin_m(rmin), rmax_m(rmax), Q_m(Qtot) {
         // register the particle attributes
         this->addAttribute(Q);
@@ -216,7 +216,7 @@ public:
 
         // ADA setupBCs(a);
         for (unsigned int i = 0; i < Dim; i++) {
-            decomp_m[i] = decomp[i];
+            isParallel_m[i] = decomp[i];
         }
     }
 
@@ -1159,7 +1159,7 @@ public:
             min[2 * i + 1] = -rmax[i];
         }
 
-        // ADA allreduce(min, 2 * Dim, std::less<double>());
+        ippl::Comm->allreduce(min, 2 * Dim, std::less<double>());
 
         for (unsigned int i = 0; i < Dim; ++i) {
             rmin[i] = min[2 * i];

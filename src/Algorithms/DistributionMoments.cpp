@@ -86,8 +86,8 @@ void DistributionMoments::computeMeans(const InputIt& first, const InputIt& last
     }
     localStatistics.back() = localNum;
 
-    allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
-    allreduce(maxima.data(), 6, std::greater<double>());
+    ippl::Comm->allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
+    ippl::Comm->allreduce(maxima.data(), 6, std::greater<double>());
     totalNumParticles_m = localStatistics.back();
 
     double perParticle = 1.0 / totalNumParticles_m;
@@ -154,7 +154,7 @@ void DistributionMoments::computeStatistics(const InputIt& first, const InputIt&
         localStatistics[l++] += particle.getMass();
     }
 
-    // ADA allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
+    ippl::Comm->allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
 
     fillMembers(localStatistics);
 
@@ -202,7 +202,7 @@ void DistributionMoments::computePercentiles(const InputIt& first, const InputIt
         gsl_histogram_free(histograms[d]);
     }
 
-    allreduce(
+    ippl::Comm->allreduce(
         localHistogramValues.data(), globalHistogramValues.data(), 3 * (numBins + 1),
         std::plus<int>());
 
@@ -316,8 +316,8 @@ std::pair<double, DistributionMoments::iterator_t> DistributionMoments::determin
 
             std::vector<unsigned int> numParticlesInBin(ippl::Comm->size() + 1);
             numParticlesInBin[ippl::Comm->rank() + 1] = endBin - beginBin;
-            // ADA allreduce(&(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned
-            // int>());
+            ippl::Comm->allreduce(
+                &(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned int>());
             std::partial_sum(
                 numParticlesInBin.begin(), numParticlesInBin.end(), numParticlesInBin.begin());
 
@@ -327,7 +327,7 @@ std::pair<double, DistributionMoments::iterator_t> DistributionMoments::determin
                 [&dimension, this](Vector_t<double, 2> const& particle) {
                     return std::abs(particle[0] - meanR_m[dimension]);
                 });
-            allreduce(&(positions[0]), positions.size(), std::plus<double>());
+            ippl::Comm->allreduce(&(positions[0]), positions.size(), std::plus<double>());
             std::sort(positions.begin(), positions.end());
 
             percentile = (*(positions.begin() + numMissingParticles - 1)
@@ -356,7 +356,7 @@ double DistributionMoments::computeNormalizedEmittance(
         localStatistics[2] += rp(1);
         localStatistics[3] += rp(0) * rp(1);
     }
-    allreduce(&(localStatistics[0]), 4, std::plus<double>());
+    ippl::Comm->allreduce(&(localStatistics[0]), 4, std::plus<double>());
 
     double numParticles = localStatistics[0];
     double perParticle  = 1 / localStatistics[0];
@@ -371,7 +371,7 @@ double DistributionMoments::computeNormalizedEmittance(
         localStatistics[0] += std::pow(rp(0) - meanR, 2);
         localStatistics[1] += std::pow(rp(1) - meanP, 2);
     }
-    allreduce(&(localStatistics[0]), 2, std::plus<double>());
+    ippl::Comm->allreduce(&(localStatistics[0]), 2, std::plus<double>());
 
     double stdR          = std::sqrt(localStatistics[0] / numParticles);
     double stdP          = std::sqrt(localStatistics[1] / numParticles);
@@ -434,7 +434,7 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunch_t const& bunch) {
     //    data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
     // }
     data[1] = bunch.getLocalNum();
-    allreduce(data, 2, std::plus<double>());
+    ippl::Comm->allreduce(data, 2, std::plus<double>());
 
     meanKineticEnergy_m = data[0] / data[1];
 }
@@ -452,7 +452,7 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
         }
     }
 
-    // ADA allreduce(avgVel, 3, std::plus<double>());
+    ippl::Comm->allreduce(avgVel, 3, std::plus<double>());
 
     const double N = static_cast<double>(bunch_r.getTotalNum());
     for (unsigned i = 0; i < 3; i++) {
@@ -469,7 +469,7 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
                 2);
         }
     }
-    // ADA allreduce(tempAvg, 1, std::plus<double>());
+    ippl::Comm->allreduce(tempAvg, 1, std::plus<double>());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is
     // Boltzmann constant
