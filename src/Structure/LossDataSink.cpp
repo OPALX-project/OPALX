@@ -386,9 +386,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
     size_t nLoc = particles_m.size();
-
-    // ADA reduce(nLoc, nLoc, OpAddAssign());
-
+    ippl::Comm->reduce(nLoc, nLoc, 1, std::plus<size_t>());
     return nLoc == 0;
 }
 
@@ -417,7 +415,10 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     }
 
     locN[ippl::Comm->rank()] = nLoc;
-    // ADA reduce(locN.get(), locN.get() + ippl::Comm->size(), globN.get(), OpAddAssign());
+
+    /// \todo fix this
+    ///  ippl::Comm->reduce(
+    ///  locN.get(), locN.get() + ippl::Comm->size(), globN.get(), std::plus<size_t>());
 
     DistributionMoments engine;
     engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
