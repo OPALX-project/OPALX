@@ -214,7 +214,7 @@ public:
         // this->addAttribute(PType);
         this->addAttribute(bunchNum);
 
-        // ADA setupBCs(a);
+        /// \todo setupBCs(a);
         for (unsigned int i = 0; i < Dim; i++) {
             isParallel_m[i] = decomp[i];
         }
@@ -257,9 +257,10 @@ public:
         qi_m = q;
         if (this->getTotalNum() != 0)
             Q = qi_m;
-        // ADA else
-        //    WARNMSG("Could not set total charge in PartBunch::setCharge based on
-        //    this->getTotalNum");
+        else
+            *ippl::Warn
+                << "Could not set total charge in PartBunch::setCharge based on this->getTotalNum"
+                << endl;
     }
 
     // set the charge per simulation particle when total particle number equals 0
@@ -563,7 +564,7 @@ public:
         calcBeamParameters();
         gatherLoadBalanceStatistics();
 
-        // ADA reduce(ne, ne, OpAddAssign());
+        ippl::Comm->reduce(ne, ne, 1, std::plus<size_t>());
         return ne;
     }
 
@@ -605,9 +606,11 @@ public:
         gatherLoadBalanceStatistics();
 
         size_t newTotalNum = this->getLocalNum();
-        // ADA reduce(newTotalNum, newTotalNum, OpAddAssign());
 
-        // ADA setTotalNum(newTotalNum);
+        ippl::Comm->reduce(newTotalNum, newTotalNum, 1, std::plus<size_t>());
+        /// \todo check: reduce(newTotalNum, newTotalNum, OpAddAssign());
+
+        /// \todo setTotalNum(newTotalNum);
 
         return totalNum - newTotalNum;
     }
