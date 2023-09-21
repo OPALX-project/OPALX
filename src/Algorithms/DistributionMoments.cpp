@@ -439,19 +439,20 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunch_t const& bunch) {
     meanKineticEnergy_m = data[0] / data[1];
 }
 
-/* ADA
 void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double density) {
     resetPlasmaParameters();
     double avgVel[3] = {0.0, 0.0, 0.0};
 
     // From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
+    /// \todo check with opal
+    /*
     for (OpalParticle const& particle_r : bunch_r) {
         for (unsigned i = 0; i < 3; i++) {
             avgVel[i] +=
                 ((particle_r.getP()[i] * Physics::c) / (Util::getGamma(particle_r.getP())));
         }
     }
-
+    */
     ippl::Comm->allreduce(avgVel, 3, std::plus<double>());
 
     const double N = static_cast<double>(bunch_r.getTotalNum());
@@ -460,7 +461,8 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
     }
 
     double tempAvg = 0.0;
-
+    /// \todo check with opal
+    /*
     for (OpalParticle const& particle_r : bunch_r) {
         for (unsigned i = 0; i < 3; i++) {
             tempAvg += std::pow(
@@ -468,7 +470,8 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
                  - avgVel[i]),
                 2);
         }
-    }
+    }*/
+
     ippl::Comm->allreduce(tempAvg, 1, std::plus<double>());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is
@@ -480,7 +483,6 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
 
     computePlasmaParameter(density);
 }
-*/
 
 void DistributionMoments::computePlasmaParameter(double density) {
     // Plasma parameter: Average number of particles within the Debye sphere
@@ -521,8 +523,8 @@ void DistributionMoments::resetPlasmaParameters() {
     plasmaParameter_m = 0.0;
 }
 
+/// \todo this needs to go
 bool DistributionMoments::isParticleExcluded(const OpalParticle& particle) const {
     // FIXME After issue 287 is resolved this shouldn't be necessary anymore
-    // ADA return OpalData::getInstance()->isInOPALCyclMode() && particle.getId() == 0;
     return true;
 }
