@@ -87,7 +87,9 @@ void StatWriter::fillHeader(const losses_t& losses) {
     columns_m.addColumn("dE", "double", "MeV", "energy spread of the beam");
     columns_m.addColumn("dt", "double", "ns", "time step size");
     columns_m.addColumn("partsOutside", "double", "1", "outside n*sigma of the beam");
-    /* ADA
+
+    /// \todo Options::computePercentiles needs to be brought back
+    /*
     if (Options::computePercentiles) {
         columns_m.addColumn("68_Percentile_x", "double", "m",
                             "68.27 percentile (1 sigma of normal distribution) of x-component of
