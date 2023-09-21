@@ -28,83 +28,75 @@
 #include <cmath>
 #include <iostream>
 
-
-RealConstant::RealConstant():
-    ValueDefinition(1, "REAL_CONSTANT",
-                    "The \"REAL CONSTANT\" statement defines a global "
-                    "real constant:\n"
-                    "\tREAL CONSTANT <name> = <real-expression>;\n") {
+RealConstant::RealConstant()
+    : ValueDefinition(
+        1, "REAL_CONSTANT",
+        "The \"REAL CONSTANT\" statement defines a global "
+        "real constant:\n"
+        "\tREAL CONSTANT <name> = <real-expression>;\n") {
     itsAttr[0] = Attributes::makeReal("VALUE", "The constant value", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
     // Define the standard constants.
-    OpalData *opal = OpalData::getInstance();
-    opal->create(new RealConstant("PI",     this, Physics::pi));
-    opal->create(new RealConstant("TWOPI",  this, Physics::two_pi));
+    OpalData* opal = OpalData::getInstance();
+    opal->create(new RealConstant("PI", this, Physics::pi));
+    opal->create(new RealConstant("TWOPI", this, Physics::two_pi));
     opal->create(new RealConstant("RADDEG", this, Units::rad2deg));
     opal->create(new RealConstant("DEGRAD", this, Units::deg2rad));
-    opal->create(new RealConstant("E",      this, Physics::e));
+    opal->create(new RealConstant("E", this, Physics::e));
 
-    opal->create(new RealConstant("MUMASS",    this, Physics::m_mu));
-    opal->create(new RealConstant("EMASS",     this, Physics::m_e));
-    opal->create(new RealConstant("PMASS",     this, Physics::m_p));
-    opal->create(new RealConstant("HMMASS",    this, Physics::m_hm));
-    opal->create(new RealConstant("H2PMASS",   this, Physics::m_h2p));
-    opal->create(new RealConstant("DMASS",     this, Physics::m_d));
+    opal->create(new RealConstant("MUMASS", this, Physics::m_mu));
+    opal->create(new RealConstant("EMASS", this, Physics::m_e));
+    opal->create(new RealConstant("PMASS", this, Physics::m_p));
+    opal->create(new RealConstant("HMMASS", this, Physics::m_hm));
+    opal->create(new RealConstant("H2PMASS", this, Physics::m_h2p));
+    opal->create(new RealConstant("DMASS", this, Physics::m_d));
     opal->create(new RealConstant("ALPHAMASS", this, Physics::m_alpha));
-    opal->create(new RealConstant("CMASS",     this, Physics::m_c));
-    opal->create(new RealConstant("XEMASS",    this, Physics::m_xe));
-    opal->create(new RealConstant("UMASS",     this, Physics::m_u));
+    opal->create(new RealConstant("CMASS", this, Physics::m_c));
+    opal->create(new RealConstant("XEMASS", this, Physics::m_xe));
+    opal->create(new RealConstant("UMASS", this, Physics::m_u));
 
     opal->create(new RealConstant("CLIGHT", this, Physics::c));
-    opal->create(new RealConstant("AMU",    this, Physics::amu));
+    opal->create(new RealConstant("AMU", this, Physics::amu));
 
-    opal->create(new RealConstant("OPALVERSION", this, OPAL_VERSION_MAJOR * 10000
-                                  + OPAL_VERSION_MINOR * 100
-                                  + OPAL_VERSION_PATCH));
+    opal->create(new RealConstant(
+        "OPALVERSION", this,
+        OPAL_VERSION_MAJOR * 10000 + OPAL_VERSION_MINOR * 100 + OPAL_VERSION_PATCH));
     opal->create(new RealConstant("RANK", this, ippl::Comm->rank()));
 }
 
+RealConstant::RealConstant(const std::string& name, RealConstant* parent)
+    : ValueDefinition(name, parent) {
+}
 
-RealConstant::RealConstant(const std::string &name, RealConstant *parent):
-    ValueDefinition(name, parent)
-{}
-
-
-RealConstant::RealConstant(const std::string &name, RealConstant *parent,
-                           double value):
-    ValueDefinition(name, parent) {
+RealConstant::RealConstant(const std::string& name, RealConstant* parent, double value)
+    : ValueDefinition(name, parent) {
     Attributes::setReal(itsAttr[0], value);
     itsAttr[0].setReadOnly(true);
     builtin = true;
 }
 
+RealConstant::~RealConstant() {
+}
 
-RealConstant::~RealConstant()
-{}
-
-
-bool RealConstant::canReplaceBy(Object *) {
+bool RealConstant::canReplaceBy(Object*) {
     return false;
 }
 
-
-RealConstant *RealConstant::clone(const std::string &name) {
+RealConstant* RealConstant::clone(const std::string& name) {
     return new RealConstant(name, this);
 }
-
 
 double RealConstant::getReal() const {
     return Attributes::getReal(itsAttr[0]);
 }
 
-
-void RealConstant::print(std::ostream &os) const {
+void RealConstant::print(std::ostream& os) const {
     os << "REAL CONST " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
 }
 
-void RealConstant::printValue(std::ostream &os) const {
+void RealConstant::printValue(std::ostream& os) const {
     os << itsAttr[0];
 }

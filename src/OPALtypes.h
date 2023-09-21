@@ -56,9 +56,8 @@ typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_
 
 enum UnitState_t { units = 0, unitless = 1 };
 
+// ADA includes needs to reorganized
 #include "Algorithms/PartBunch.hpp"
-
-// typedef PartBunch<PLayout_t<double, 3>, double, 3> PartBunch_t;
 
 // euclidean norm
 template <class T, unsigned D>
@@ -73,34 +72,6 @@ inline double dot(const Vector_t<T, D>& v, const Vector_t<T, D>& w) {
     for (unsigned i = 0; i < D; i++)
         res += v(i) * w(i);
     return std::sqrt(res);
-}
-
-template <typename T, class Op>
-void allreduce(const T* input, T* output, int count, Op op) {
-    MPI_Datatype type = get_mpi_datatype<T>(*input);
-
-    MPI_Op mpiOp = get_mpi_op<Op>(op);
-
-    MPI_Allreduce(const_cast<T*>(input), output, count, type, mpiOp, ippl::Comm->getCommunicator());
-}
-
-template <typename T, class Op>
-void allreduce(const T& input, T& output, int count, Op op) {
-    allreduce(&input, &output, count, op);
-}
-
-template <typename T, class Op>
-void allreduce(T* inout, int count, Op op) {
-    MPI_Datatype type = get_mpi_datatype<T>(*inout);
-
-    MPI_Op mpiOp = get_mpi_op<Op>(op);
-
-    MPI_Allreduce(MPI_IN_PLACE, inout, count, type, mpiOp, ippl::Comm->getCommunicator());
-}
-
-template <typename T, class Op>
-void allreduce(T& inout, int count, Op op) {
-    allreduce(&inout, count, op);
 }
 
 #endif

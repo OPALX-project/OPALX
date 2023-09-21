@@ -71,7 +71,7 @@ void PeakFinder::evaluate(const int& turn) {
 
     /* ADA
     if (!singlemode_m)
-        // ADA allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
+    ippl::Comm->allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
     else
         globFinished = finished_m;
 

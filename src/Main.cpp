@@ -163,9 +163,10 @@ int main(int argc, char* argv[]) {
             domain[i] = ippl::Index(nr[i]);
         }
 
-        ippl::e_dim_tag decomp[3];
+        std::array<bool, 3> isParallel;
+
         for (unsigned d = 0; d < 3; ++d) {
-            decomp[d] = ippl::PARALLEL;
+            isParallel[d] = true;
         }
 
         // create mesh and layout objects for this problem domain
@@ -183,11 +184,11 @@ int main(int argc, char* argv[]) {
 
         const bool isAllPeriodic = true;
         Mesh_t<3> mesh(domain, hr, origin);
-        FieldLayout_t<3> FL(domain, decomp, isAllPeriodic);
+        FieldLayout_t<3> FL(domain, isParallel, isAllPeriodic);
         PLayout_t<double, 3> PL(FL, mesh);
         std::string solver = "OPEN";
 
-        P = std::make_unique<bunch_type>(PL, hr, rmin, rmax, decomp, Q);
+        P = std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParalle, Q);
 
         std::cout << P->get_sPos() << std::endl;
         */

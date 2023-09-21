@@ -395,7 +395,7 @@ bool LossDataSink::hasNoParticlesToDump() const {
 bool LossDataSink::hasTurnInformations() const {
     bool hasTurnInformation = !turnNumber_m.empty();
 
-    // ADA allreduce(hasTurnInformation, 1, std::logical_or<bool>());
+    ippl::Comm->allreduce(hasTurnInformation, 1, std::logical_or<bool>());
 
     return hasTurnInformation > 0;
 }
@@ -670,7 +670,7 @@ void LossDataSink::splitSets(unsigned int numSets) {
             numParticles[j] = numThisSet;
         }
 
-        // ADA allreduce(&(data[0]), 2 * numSets, std::plus<double>());
+        ippl::Comm->allreduce(&(data[0]), 2 * numSets, std::plus<double>());
 
         for (unsigned int j = 0; j < numSets; ++j) {
             meanT[j] /= numParticles[j];
@@ -757,8 +757,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         plainData[i] = data[i].sum;
     }
 
-    // ADA allreduce(plainData, totalSize, std::plus<double>());
-    // ADA allreduce(rminmax, 6, std::greater<double>());
+    ippl::Comm->allreduce(plainData, totalSize, std::plus<double>());
+    ippl::Comm->allreduce(rminmax, 6, std::greater<double>());
 
     if (plainData[0] == 0.0)
         return stat;
