@@ -56,7 +56,7 @@ typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_
 
 enum UnitState_t { units = 0, unitless = 1 };
 
-// ADA includes needs to reorganized
+/// \todo includes needs to reorganized
 #include "Algorithms/PartBunch.hpp"
 
 // euclidean norm

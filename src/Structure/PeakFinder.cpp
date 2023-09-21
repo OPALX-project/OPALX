@@ -69,9 +69,8 @@ void PeakFinder::evaluate(const int& turn) {
 
     bool globFinished = false;
 
-    /* ADA
     if (!singlemode_m)
-    ippl::Comm->allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
+        ippl::Comm->allreduce(finished_m, globFinished, 1, std::logical_and<bool>());
     else
         globFinished = finished_m;
 
@@ -85,7 +84,6 @@ void PeakFinder::evaluate(const int& turn) {
         registered_m = 0;
         finished_m   = false;
     }
-    */
 }
 
 void PeakFinder::save() {
@@ -122,10 +120,9 @@ void PeakFinder::computeCentroid_m() {
     double globPeakRadius = 0.0;
     int globRegister      = 0;
 
-    // FIXME inefficient
     if (!singlemode_m) {
-        // ADA reduce(peakRadius_m, globPeakRadius, 1, std::plus<double>());
-        // ADA reduce(registered_m, globRegister, 1, std::plus<int>());
+        ippl::Comm->reduce(peakRadius_m, globPeakRadius, 1, std::plus<double>());
+        ippl::Comm->reduce(registered_m, globRegister, 1, std::plus<int>());
     } else {
         globPeakRadius = peakRadius_m;
         globRegister   = registered_m;
@@ -157,13 +154,13 @@ void PeakFinder::createHistogram_m() {
      * create global histograms
      */
     if (!singlemode_m) {
-        // ADA reduce(&(locHist[0]), &(locHist[0]) + locHist.size(), &(globHist_m[0]),
-        // OpAddAssign());
+        /// \todo reduce(&(locHist[0]), &(locHist[0]) + locHist.size(), &(globHist_m[0]),
+        /// OpAddAssign());
     } else {
         globHist_m.swap(locHist);
     }
 
-    //     reduce(locHist.data(), globHist_m.data(), locHist.size(), std::plus<double>());
+    /// \todo reduce(locHist.data(), globHist_m.data(), locHist.size(), std::plus<double>());
 }
 
 void PeakFinder::open_m() {
