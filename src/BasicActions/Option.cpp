@@ -402,7 +402,8 @@ void Option::execute() {
     else
         rangen.init55(seed);
 
-    /* ADA
+    /// \todo check if we need to do this anymore
+    /*
     IpplInfo::Info->on(info);
     IpplInfo::Warn->on(warn);
     */

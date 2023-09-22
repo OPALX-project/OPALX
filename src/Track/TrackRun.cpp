@@ -20,8 +20,6 @@
 
 #include "AbstractObjects/OpalData.h"
 
-// ADA #include "Algorithms/ParallelTracker.h"
-
 #include "Attributes/Attributes.h"
 
 #include "Beamlines/TBeamline.h"
@@ -193,12 +191,12 @@ void TrackRun::execute() {
         }
     }
 
-    // itsTracker_m->execute();
+    /// \todo itsTracker_m->execute();
 
     opal->setRestartRun(false);
     opal->bunchIsAllocated();
 
-    // ADA delete itsTracker_m;
+    /// \todo do we delete here itsTracker_m;
 }
 
 void TrackRun::setRunMethod() {

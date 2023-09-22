@@ -340,9 +340,7 @@ void ParallelTracker::execute() {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
-    /* ADA
-       Because no real bunch is constracted
-     */
+    /// \todo check this statement:  Because no real bunch is constracted
 
     itsBunch_m->RefPartP_m[2] = 1.9580e+03;
 
@@ -387,9 +385,7 @@ void ParallelTracker::execute() {
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
 
-    /* ADA
-
-     */
+    /// \todo why do I put a return here ?
     return;
 
     while (!stepSizes_m.reachedEnd()) {
