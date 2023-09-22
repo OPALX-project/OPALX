@@ -33,43 +33,50 @@
 #include "Attributes/Attributes.h"
 #include "Physics/Units.h"
 
-OpalRingDefinition::OpalRingDefinition() :
-    OpalElement(SIZE, "RINGDEFINITION",
-                "The \"RINGDEFINITION\" element defines basic ring parameters.") {
-
-    itsAttr[HARMONIC_NUMBER] = Attributes::makeReal("HARMONIC_NUMBER",
-                                                    "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given turn).");
-    itsAttr[LAT_RINIT] = Attributes::makeReal("LAT_RINIT",
-                                                  "The initial radius of the first element to be placed in the ring [m].");
-    itsAttr[LAT_PHIINIT] = Attributes::makeReal("LAT_PHIINIT", "The initial angle around the ring of the first element to be placed. [deg]");
-    itsAttr[LAT_THETAINIT] = Attributes::makeReal("LAT_THETAINIT", "The angle relative to the tangent of the ring for the first element to be placed [deg].");
-    itsAttr[BEAM_PHIINIT] = Attributes::makeReal("BEAM_PHIINIT",
-                                                 "The initial angle around the ring of the beam [deg].");
-    itsAttr[BEAM_PRINIT] = Attributes::makeReal("BEAM_PRINIT",
-                                                "An initial pr momentum offset of the beam.");
-    itsAttr[BEAM_RINIT] = Attributes::makeReal("BEAM_RINIT",
-                                               "The initial radius of the beam [m].");
-    itsAttr[SYMMETRY] = Attributes::makeReal("SYMMETRY",
-                                             "The rotational symmetry of the lattice.");
-    itsAttr[SCALE] = Attributes::makeReal("SCALE", "Scale the fields by a multiplicative factor",1.0);
+OpalRingDefinition::OpalRingDefinition()
+    : OpalElement(
+        SIZE, "RINGDEFINITION", "The \"RINGDEFINITION\" element defines basic ring parameters.") {
+    itsAttr[HARMONIC_NUMBER] = Attributes::makeReal(
+        "HARMONIC_NUMBER",
+        "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given "
+        "turn).");
+    itsAttr[LAT_RINIT] = Attributes::makeReal(
+        "LAT_RINIT", "The initial radius of the first element to be placed in the ring [m].");
+    itsAttr[LAT_PHIINIT] = Attributes::makeReal(
+        "LAT_PHIINIT",
+        "The initial angle around the ring of the first element to be placed. [deg]");
+    itsAttr[LAT_THETAINIT] = Attributes::makeReal(
+        "LAT_THETAINIT",
+        "The angle relative to the tangent of the ring for the first element to be placed [deg].");
+    itsAttr[BEAM_PHIINIT] = Attributes::makeReal(
+        "BEAM_PHIINIT", "The initial angle around the ring of the beam [deg].");
+    itsAttr[BEAM_PRINIT] =
+        Attributes::makeReal("BEAM_PRINIT", "An initial pr momentum offset of the beam.");
+    itsAttr[BEAM_RINIT] = Attributes::makeReal("BEAM_RINIT", "The initial radius of the beam [m].");
+    itsAttr[SYMMETRY] = Attributes::makeReal("SYMMETRY", "The rotational symmetry of the lattice.");
+    itsAttr[SCALE] =
+        Attributes::makeReal("SCALE", "Scale the fields by a multiplicative factor", 1.0);
     // should be in RF cavity definition; this comes from cyclotron definition,
     // but not right
-    itsAttr[RFFREQ] = Attributes::makeReal("RFFREQ",
-                                           "The nominal RF frequency of the ring [MHz].");
+    itsAttr[RFFREQ] = Attributes::makeReal("RFFREQ", "The nominal RF frequency of the ring [MHz].");
     // I see also makeBool, but dont know how it works; no registerBoolAttribute
-    itsAttr[IS_CLOSED] = Attributes::makeBool("IS_CLOSED",
-                                                "Set to 'false' to disable checking for closure of the ring");
-    itsAttr[MIN_R] = Attributes::makeReal("MIN_R",
-                                           "Minimum allowed radius during tracking [m]. If not defined, any radius is allowed. If MIN_R is defined, MAX_R must also be defined.");
-    itsAttr[MAX_R] = Attributes::makeReal("MAX_R",
-                                           "Maximum allowed radius during tracking [m]. If not defined, any radius is allowed. If MAX_R is defined, MIN_R must also be defined.");
+    itsAttr[IS_CLOSED] = Attributes::makeBool(
+        "IS_CLOSED", "Set to 'false' to disable checking for closure of the ring");
+    itsAttr[MIN_R] = Attributes::makeReal(
+        "MIN_R",
+        "Minimum allowed radius during tracking [m]. If not defined, any radius is allowed. If "
+        "MIN_R is defined, MAX_R must also be defined.");
+    itsAttr[MAX_R] = Attributes::makeReal(
+        "MAX_R",
+        "Maximum allowed radius during tracking [m]. If not defined, any radius is allowed. If "
+        "MAX_R is defined, MIN_R must also be defined.");
 
     registerOwnership();
 
     setElement(new Ring("RING"));
 }
 
-OpalRingDefinition* OpalRingDefinition::clone(const std::string &name) {
+OpalRingDefinition* OpalRingDefinition::clone(const std::string& name) {
     return new OpalRingDefinition(name, this);
 }
 
@@ -77,26 +84,26 @@ void OpalRingDefinition::print(std::ostream& out) const {
     OpalElement::print(out);
 }
 
-OpalRingDefinition::OpalRingDefinition(const std::string &name, OpalRingDefinition *parent):
-    OpalElement(name, parent) {
+OpalRingDefinition::OpalRingDefinition(const std::string& name, OpalRingDefinition* parent)
+    : OpalElement(name, parent) {
     setElement(new Ring(name));
 }
 
-OpalRingDefinition::~OpalRingDefinition() {}
+OpalRingDefinition::~OpalRingDefinition() {
+}
 
 void OpalRingDefinition::update() {
-
     OpalElement::update();
 
-    Ring *ring = dynamic_cast<Ring*>(getElement());
+    Ring* ring = dynamic_cast<Ring*>(getElement());
 
     ring->setBeamPhiInit(Attributes::getReal(itsAttr[BEAM_PHIINIT]));
     ring->setBeamPRInit(Attributes::getReal(itsAttr[BEAM_PRINIT]));
-    ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT])*Units::m2mm);
-    ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT])*Units::m2mm);
+    ring->setBeamRInit(Attributes::getReal(itsAttr[BEAM_RINIT]) * Units::m2mm);
+    ring->setLatticeRInit(Attributes::getReal(itsAttr[LAT_RINIT]) * Units::m2mm);
 
-    ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT])*Units::deg2rad);
-    ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT])*Units::deg2rad);
+    ring->setLatticePhiInit(Attributes::getReal(itsAttr[LAT_PHIINIT]) * Units::deg2rad);
+    ring->setLatticeThetaInit(Attributes::getReal(itsAttr[LAT_THETAINIT]) * Units::deg2rad);
     ring->setSymmetry(Attributes::getReal(itsAttr[SYMMETRY]));
     ring->setScale(Attributes::getReal(itsAttr[SCALE]));
 
@@ -110,16 +117,17 @@ void OpalRingDefinition::update() {
     if (itsAttr[MIN_R]) {
         minR = Attributes::getReal(itsAttr[MIN_R]);
         if (!itsAttr[MAX_R]) {
-            throw (""); // EXCEPTION
+            throw("");  // EXCEPTION
         }
     }
     if (itsAttr[MAX_R]) {
         maxR = Attributes::getReal(itsAttr[MAX_R]);
         if (!itsAttr[MIN_R]) {
-            throw (""); // EXCEPTION
+            throw("");  // EXCEPTION
         }
         ring->setRingAperture(minR, maxR);
     }
-    //    setElement(ring); //  ADA was used in the old OPAL now core dumps
+
+    /// \todo setElement(ring); was used in the old OPAL now core dumps
     OpalElement::updateUnknown(ring);
 }

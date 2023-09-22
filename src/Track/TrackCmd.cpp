@@ -213,9 +213,9 @@ void TrackCmd::execute() {
         zstop.push_back(zstop.back());
     }
 
-    // Execute track block.
-
-    /* ADA
+    /// \todo track block needs to be removed
+    /// \todo here the tracker is constructed
+    /*
     Track::block = new Track(theLineToTrack, beam->getReference(), dt, maxsteps,
                              stepsperturn, zstart, zstop,
                              timeintegrator, t0, dtScInit, deltaTau);
