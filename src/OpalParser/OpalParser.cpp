@@ -564,7 +564,7 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
         *ippl::Error << "\n*** Parse error detected by function \""
                      << "OpalParser::readStatement()"
                      << "\"\n";
-        // ADA /stat->printWhere(*IpplInfo::Error, true);
+        /// \todo check this /stat->printWhere(*IpplInfo::Error, true);
 
         std::string what = ex.what();
         boost::replace_all(what, "\n", "\n    ");
