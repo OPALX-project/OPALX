@@ -154,13 +154,10 @@ void PeakFinder::createHistogram_m() {
      * create global histograms
      */
     if (!singlemode_m) {
-        /// \todo reduce(&(locHist[0]), &(locHist[0]) + locHist.size(), &(globHist_m[0]),
-        /// OpAddAssign());
+        reduce(locHist.data(), globHist_m.data(), locHist.size(), std::plus<double>());
     } else {
         globHist_m.swap(locHist);
     }
-
-    /// \todo reduce(locHist.data(), globHist_m.data(), locHist.size(), std::plus<double>());
 }
 
 void PeakFinder::open_m() {
