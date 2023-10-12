@@ -34,11 +34,10 @@ class Distribution;
   Will change
 
 */
-
-#include "Solver/ElectrostaticsCG.h"
-#include "Solver/FFTPeriodicPoissonSolver.h"
-#include "Solver/FFTPoissonSolver.h"
-#include "Solver/P3MSolver.h"
+#include "PoissonSolvers/FFTOpenPoissonSolver.h"
+#include "PoissonSolvers/FFTPeriodicPoissonSolver.h"
+#include "PoissonSolvers/P3MSolver.h"
+#include "PoissonSolvers/PoissonCG.h"
 
 using ippl::detail::ConditionalType, ippl::detail::VariantFromConditionalTypes;
 
@@ -51,7 +50,7 @@ using P3MSolver_t = ConditionalType<Dim == 3, ippl::P3MSolver<VField_t<T, Dim>, 
 
 template <typename T = double, unsigned Dim = 3>
 using OpenSolver_t =
-    ConditionalType<Dim == 3, ippl::FFTPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
+    ConditionalType<Dim == 3, ippl::FFTOpenPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
 
 template <typename T = double, unsigned Dim = 3>
 using Solver_t =
@@ -564,7 +563,7 @@ public:
         calcBeamParameters();
         gatherLoadBalanceStatistics();
 
-        ippl::Comm->reduce(ne, ne, 1, std::plus<size_t>());
+        //        ippl::Comm->reduce(ne, ne, 1, std::plus<size_t>());
         return ne;
     }
 
@@ -607,9 +606,10 @@ public:
 
         size_t newTotalNum = this->getLocalNum();
 
+        //
         ippl::Comm->reduce(newTotalNum, newTotalNum, 1, std::plus<size_t>());
-        /// \todo check: reduce(newTotalNum, newTotalNum, OpAddAssign());
 
+        /// \todo ippl::Comm->reduce(newTotalNum, newTotalNum, OpAddAssign());
         /// \todo setTotalNum(newTotalNum);
 
         return totalNum - newTotalNum;
@@ -1162,7 +1162,7 @@ public:
             min[2 * i + 1] = -rmax[i];
         }
 
-        ippl::Comm->allreduce(min, 2 * Dim, std::less<double>());
+        // ippl::Comm->allreduce(min, 2 * Dim, std::less<double>());
 
         for (unsigned int i = 0; i < Dim; ++i) {
             rmin[i] = min[2 * i];
