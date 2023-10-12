@@ -416,9 +416,7 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 
     locN[ippl::Comm->rank()] = nLoc;
 
-    /// \todo fix this
-    ///  ippl::Comm->reduce(
-    ///  locN.get(), locN.get() + ippl::Comm->size(), globN.get(), std::plus<size_t>());
+    reduce(locN.get(), globN.get(), ippl::Comm->size(), std::plus<size_t>());
 
     DistributionMoments engine;
     engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
