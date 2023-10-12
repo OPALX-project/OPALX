@@ -88,6 +88,7 @@ void DistributionMoments::computeMeans(const InputIt& first, const InputIt& last
 
     ippl::Comm->allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
     ippl::Comm->allreduce(maxima.data(), 6, std::greater<double>());
+
     totalNumParticles_m = localStatistics.back();
 
     double perParticle = 1.0 / totalNumParticles_m;
@@ -316,8 +317,10 @@ std::pair<double, DistributionMoments::iterator_t> DistributionMoments::determin
 
             std::vector<unsigned int> numParticlesInBin(ippl::Comm->size() + 1);
             numParticlesInBin[ippl::Comm->rank() + 1] = endBin - beginBin;
+
             ippl::Comm->allreduce(
                 &(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned int>());
+
             std::partial_sum(
                 numParticlesInBin.begin(), numParticlesInBin.end(), numParticlesInBin.begin());
 
