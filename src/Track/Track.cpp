@@ -55,8 +55,8 @@ Track::Track(
         /// \todo can we do this anymore  OpalData::getInstance()->setPartBunch(new
         /// PartBunch(&ref));
     }
-
-    bunch = OpalData::getInstance()->getPartBunch();
+    // \todo crashes here
+    // bunch = OpalData::getInstance()->getPartBunch();
 }
 
 Track::~Track() {
