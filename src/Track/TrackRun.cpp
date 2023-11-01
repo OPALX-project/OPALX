@@ -223,8 +223,8 @@ void TrackRun::setupTracker() {
     }
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
-    Track::block->bunch->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
-    Track::block->bunch->setPType(beam->getParticleName());
+    // Track::block->bunch->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
+    // Track::block->bunch->setPType(beam->getParticleName());
 
     setBoundaryGeometry();
 
@@ -248,23 +248,23 @@ void TrackRun::setupTracker() {
 
     *gmsg << *this << endl;
 
-    Track::block->bunch->setdT(Track::block->dT.front());
+    // Track::block->bunch->setdT(Track::block->dT.front());
     // ada Track::block->bunch->dtScInit_m = Track::block->dtScInit;
     // ada Track::block->bunch->deltaTau_m = Track::block->deltaTau;
 
-    if (!isFollowupTrack_m && !opal->inRestartRun()) {
-        Track::block->bunch->setT(Track::block->t0_m);
-    }
+    // if (!isFollowupTrack_m && !opal->inRestartRun()) {
+    //     Track::block->bunch->setT(Track::block->t0_m);
+    // }
 
-    Track::block->bunch->setCharge(macrocharge_m);
-    Track::block->bunch->setMass(macromass_m);
+    // Track::block->bunch->setCharge(macrocharge_m);
+    // Track::block->bunch->setMass(macromass_m);
 
     // set coupling constant
     double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
-    Track::block->bunch->setCouplingConstant(coefE);
+    // Track::block->bunch->setCouplingConstant(coefE);
 
     // statistical data are calculated (rms, eps etc.)
-    Track::block->bunch->calcBeamParameters();
+    // Track::block->bunch->calcBeamParameters();
 
     initDataSink();
 
@@ -272,23 +272,23 @@ void TrackRun::setupTracker() {
         *gmsg << std::scientific;
         *gmsg << *dist_m << endl;
     }
+    /*
+        if (Track::block->bunch->getTotalNum() > 0) {
+            double spos = Track::block->zstart;
+            auto& zstop = Track::block->zstop;
+            auto it     = Track::block->dT.begin();
 
-    if (Track::block->bunch->getTotalNum() > 0) {
-        double spos = Track::block->zstart;
-        auto& zstop = Track::block->zstop;
-        auto it     = Track::block->dT.begin();
+            unsigned int i = 0;
+            while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
+                ++i;
+                ++it;
+            }
 
-        unsigned int i = 0;
-        while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
-            ++i;
-            ++it;
+            Track::block->bunch->setdT(*it);
+        } else {
+            Track::block->zstart = 0.0;
         }
-
-        Track::block->bunch->setdT(*it);
-    } else {
-        Track::block->zstart = 0.0;
-    }
-
+    */
     //*gmsg << *beam << endl;
     //*gmsg << *fs_m << endl;
 

@@ -74,7 +74,7 @@ namespace {
         std::string gitRevision = "git rev. " + Util::getGitRevision();
         std::string copyRight   = "(c) PSI, http://amas.web.psi.ch";
         *gmsg << endl
-              << "This is OPAL (Object Oriented Parallel Accelerator Library) Version "
+              << "This is OPAL-X (Object Oriented Parallel Accelerator Library) Version "
               << OPAL_PROJECT_VERSION << "\n"
               << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n"
               << endl

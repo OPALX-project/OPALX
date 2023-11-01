@@ -49,8 +49,8 @@
 #include "Track/TrackCmd.h"
 
 // Table-related commands.
-// #include "Structure/FieldSolver.h"
 #include "Structure/Beam.h"
+#include "Structure/FieldSolver.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -108,7 +108,7 @@ namespace {
         opal->create(new MacroCmd());
 
         opal->create(new Beam());
-        // opal->create(new FieldSolver());
+        opal->create(new FieldSolver());
         opal->create(new Distribution());
     }
 

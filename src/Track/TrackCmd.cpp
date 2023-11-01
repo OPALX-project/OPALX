@@ -215,11 +215,11 @@ void TrackCmd::execute() {
 
     /// \todo track block needs to be removed
     /// \todo here the tracker is constructed
-    /*
-    Track::block = new Track(theLineToTrack, beam->getReference(), dt, maxsteps,
-                             stepsperturn, zstart, zstop,
-                             timeintegrator, t0, dtScInit, deltaTau);
-    */
+
+    Track::block = new Track(
+        theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
+        timeintegrator, t0, dtScInit, deltaTau);
+
     Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
 
     Track::block->parser.run();
