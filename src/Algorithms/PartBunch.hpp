@@ -21,11 +21,11 @@
 
 class Distribution;
 
-#include "Ippl.h"
-#include "OPALtypes.h"
-
+#include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/PartBins.h"
 #include "Algorithms/PartData.h"
+#include "Ippl.h"
+#include "OPALtypes.h"
 #include "Particle/ParticleAttrib.h"
 #include "Particle/ParticleLayout.h"
 
@@ -83,7 +83,7 @@ public:
     Vector_t<T, Dim> RefPartR_m;
     Vector_t<T, Dim> RefPartP_m;
 
-    // CoordinateSystemTrafo toLabTrafo_m;
+    CoordinateSystemTrafo toLabTrafo_m;
 
     // ParticleOrigin refPOrigin_m;
     // ParticleType refPType_m;
@@ -372,10 +372,12 @@ public:
     }
 
     void updateFields(const Vector_t<T, Dim>& /*hr*/, const Vector_t<T, Dim>& origin) {
+        /* \todo
         this->getMesh().set_meshSpacing(&(hr_m[0]));
         this->getMesh().set_origin(origin);
         rho_m.initialize(this->getMesh(), getFieldLayout(), 1);
         eg_m.initialize(this->getMesh(), getFieldLayout(), 1);
+        */
     }
 
     void initializeORB(FieldLayout_t<Dim>& fl, Mesh_t<Dim>& mesh) {
@@ -487,7 +489,7 @@ public:
                 have to set hr completely i.e. x,y and z.
              */
 
-            this->updateDomainLength(nr_m);
+            // \todo this->updateDomainLength(nr_m);
             get_bounds(rmin_m, rmax_m);
             Vector_t<T, Dim> len = rmax_m - rmin_m;
 
@@ -533,7 +535,7 @@ public:
 
     /** This is only temporary in order to get the collimator and pepperpot working */
     size_t boundp_destroyT() {
-        this->updateDomainLength(nr_m);
+        // \todo this->updateDomainLength(nr_m);
 
         std::vector<size_t> tmpbinemitted;
 
@@ -552,7 +554,7 @@ public:
             if (this->Bin(i) < 0) {  // ADA || (Options::remotePartDel > 0
                 // && std::abs(R(i)(2) - rzmean) < Options::remotePartDel * rzrms)) {
                 ne++;
-                this->destroy(1, i);
+                // \todo this->destroy(1, i);
             } else if (haveEnergyBins) {
                 tmpbinemitted[this->Bin(i)]++;
             }
@@ -769,7 +771,7 @@ public:
 
         if (nBins < 2) {
             Vector<int, 3> /*NDIndex<3>*/ grid;
-            this->updateDomainLength(grid);
+            // \todo this->updateDomainLength(grid);
             nBins = grid[2];
         }
 
@@ -861,6 +863,7 @@ public:
     }
 
     */
+
     Inform& print(Inform& os) {
         // if (this->getLocalNum() != 0) {  // to suppress Nans
         Inform::FmtFlags_t ff = os.flags();

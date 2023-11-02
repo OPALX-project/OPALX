@@ -20,6 +20,8 @@
 
 #include "AbstractObjects/Action.h"
 
+#include "Structure/FieldSolver.h"
+
 #include <boost/bimap.hpp>
 
 #include <string>
@@ -29,7 +31,6 @@ class Beam;
 class OpalData;
 class DataSink;
 class Distribution;
-class FieldSolver;
 class H5PartWrapper;
 class Inform;
 class Tracker;

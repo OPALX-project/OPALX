@@ -18,7 +18,7 @@
 #ifndef USEFULFUNCTIONS
 #define USEFULFUNCTIONS
 
-#include "Algorithms/Quaternion.h"
+#include "Algorithms/Quaternion.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -29,6 +29,7 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include "OPALtypes.h"
 
 // ------- DON'T DELETE: start --------
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -40,15 +41,15 @@ namespace Util {
 
     double erfinv(double x);
 
-    inline double getGamma(Vector_t<double, 3> p) {
+    inline double getGamma(ippl::Vector<double, 3> p) {
         return std::sqrt(dot(p, p) + 1.0);
     }
 
-    inline Vector_t<double, 3> getBeta(Vector_t<double, 3> p) {
+    inline ippl::Vector<double, 3> getBeta(ippl::Vector<double, 3> p) {
         return p / getGamma(p);
     }
 
-    inline double getKineticEnergy(Vector_t<double, 3> p, double mass) {
+    inline double getKineticEnergy(ippl::Vector<double, 3> p, double mass) {
         return (getGamma(p) - 1.0) * mass;
     }
 
@@ -105,7 +106,7 @@ namespace Util {
         return positionOutput.str();
     }
 
-    inline std::string getLengthString(Vector_t<double, 3> spos, unsigned int precision = 3) {
+    inline std::string getLengthString(ippl::Vector<double, 3> spos, unsigned int precision = 3) {
         std::string sposUnit(" [m]");
         double maxPos = std::abs(spos(0));
         for (unsigned int i = 1; i < 3u; ++i) {
@@ -183,7 +184,7 @@ namespace Util {
         return chargeOutput.str();
     }
 
-    Vector_t<double, 3> getTaitBryantAngles(
+    ippl::Vector<double, 3> getTaitBryantAngles(
         Quaternion rotation, const std::string& elementName = "");
 
     std::string toUpper(const std::string& str);

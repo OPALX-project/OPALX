@@ -139,7 +139,7 @@ Inform& FieldSolver::printInfo(Inform& os) const {
        << "* N-PROCESSORS " << ippl::Comm->size() << '\n'
        << "* MX           " << Attributes::getReal(itsAttr[MX]) << '\n'
        << "* MY           " << Attributes::getReal(itsAttr[MY]) << '\n'
-       << "* MZ           " << Attributes::getReal(itsAttr[MZ]);
+       << "* MZ           " << Attributes::getReal(itsAttr[MZ]) << '\n';
     os << "* ********************************************************************************** "
        << endl;
     return os;

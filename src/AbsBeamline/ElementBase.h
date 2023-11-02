@@ -65,7 +65,7 @@
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/Quaternion.h"
+#include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "MemoryManagement/RCObject.h"
@@ -481,12 +481,12 @@ inline CoordinateSystemTrafo ElementBase::getCSTrafoGlobal2Local() const {
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
     CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-
     return ret;
 }
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
+    CoordinateSystemTrafo ret(
+        Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
 
     return ret;
 }

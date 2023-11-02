@@ -519,7 +519,8 @@ int main(int argc, char* argv[]) {
             MPI_Abort(MPI_COMM_WORLD, -100);
         }
 
-        opal->printAllNames(std::cout);
+        // print dictionary
+        //        opal->printAllNames(std::cout);
 
         IpplTimings::stopTimer(mainTimer);
 
