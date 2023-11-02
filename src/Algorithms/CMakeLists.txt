@@ -8,13 +8,16 @@ set (_SRCS
     IndexMap.cpp
     OrbitThreader.cpp
     OpalParticle.cpp
+    ParallelTracker.cpp
     PartBins.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
     SplineTimeDependence.cpp
     StepSizeConfig.cpp
     Tracker.cpp
-)   
+    CoordinateSystemTrafo.cpp
+    Quaternion.cpp
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -33,6 +36,7 @@ set (HDRS
     IndexMap.h
     OrbitThreader.h
     OpalParticle.h
+    ParallelTracker.h
     PartBins.h
     PartBunch.hpp
     PartData.h
@@ -41,6 +45,8 @@ set (HDRS
     StepSizeConfig.h
     Tracker.h
     Matrix.h
+    CoordinateSystemTrafo.h
+    Quaternion.hpp
 )
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

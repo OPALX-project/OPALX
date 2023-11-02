@@ -47,7 +47,6 @@ add_subdirectory (BeamlineCore)
 add_subdirectory (BeamlineGeometry)
 add_subdirectory (Beamlines)
 add_subdirectory (Channels)
-add_subdirectory (Classic)
 add_subdirectory (Distribution)
 add_subdirectory (Elements)
 add_subdirectory (Expressions)
@@ -63,6 +62,7 @@ add_subdirectory (Tables)
 add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
+add_subdirectory (MemoryManagement)
 
 include_directories (BEFORE
     ${OPAL_SRC_DIR}
