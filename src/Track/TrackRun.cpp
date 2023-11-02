@@ -16,6 +16,8 @@
 //
 #include "Track/TrackRun.h"
 
+#include "Algorithms/ParallelTracker.h"
+
 #include "AbstractObjects/BeamSequence.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -181,6 +183,7 @@ void TrackRun::execute() {
 
     // Get algorithm to use.
     setRunMethod();
+
     switch (method_m) {
         case RunMethod::PARALLEL: {
             setupTracker();
@@ -299,18 +302,18 @@ void TrackRun::setupTracker() {
 
     */
 
-    /*
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), Track::block->bunch, *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
-    */
 }
 
 void TrackRun::setupFieldsolver() {
-    /*
     fs_m = FieldSolver::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
 
+    *gmsg << *fs_m << endl;
+
+    /*
     if (fs_m->getFieldSolverType() != FieldSolverType::NONE) {
         size_t numGridPoints =
             fs_m->getMX() * fs_m->getMY() * fs_m->getMZ();  // total number of gridpoints

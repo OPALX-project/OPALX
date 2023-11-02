@@ -21,8 +21,8 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/ElementBase.h"
- 
-#include "Algorithms/Quaternion.h"
+
+#include "Algorithms/Quaternion.hpp"
 
 // Class Beamline
 // ------------------------------------------------------------------------
@@ -31,30 +31,28 @@
 //  ElmPtr (``element pointer'') points to a  ElementBase, and may contain
 //  additional data describing the position, like lattice functions etc.
 
-class Beamline: public ElementBase {
-
+class Beamline : public ElementBase {
 public:
-
     /// Constructor with given name.
-    explicit Beamline(const std::string &name);
+    explicit Beamline(const std::string& name);
 
     Beamline();
-    Beamline(const Beamline &);
+    Beamline(const Beamline&);
     virtual ~Beamline();
 
     /// Apply visitor to all elements of the line.
     //  If the parameter [b]reverse[/b] is true, theline is traversed in
     //  reverse direction.  If any error occurs, this method may throw an
     //  exception.
-    virtual void iterate(BeamlineVisitor &, bool reverse) const = 0;
+    virtual void iterate(BeamlineVisitor&, bool reverse) const = 0;
 
     virtual Vector_t<double, 3> getOrigin3D() const;
     virtual Quaternion getInitialDirection() const;
     virtual bool getRelativeFlag() const;
-private:
 
+private:
     // Not implemented.
-    void operator=(const Beamline &);
+    void operator=(const Beamline&);
 };
 
-#endif // CLASSIC_Beamline_HH
+#endif  // CLASSIC_Beamline_HH
