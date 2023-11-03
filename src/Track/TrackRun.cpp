@@ -237,8 +237,7 @@ void TrackRun::execute() {
         }
     }
 
-    /// \todo itsTracker_m->execute();
-
+    itsTracker_m->execute();
     opal->setRestartRun(false);
     opal->bunchIsAllocated();
 
@@ -433,7 +432,7 @@ double TrackRun::setDistributionParallelT(Beam* beam) {
      */
     size_t numberOfParticles = beam->getNumberOfParticles();
 
-    // Track::block->bunch->setDistribution(dist_m, distrs_m, numberOfParticles);
+    // \todo does not exists bunch_m->setDistribution(dist_m, distrs_m, numberOfParticles);
     // Return charge per macroparticle.
     return beam->getChargePerParticle();
 }

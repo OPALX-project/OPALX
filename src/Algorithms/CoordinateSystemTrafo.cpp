@@ -27,9 +27,8 @@ CoordinateSystemTrafo::CoordinateSystemTrafo(
 }
 
 void CoordinateSystemTrafo::invert() {
-    origin_m      = -orientation_m.rotate(origin_m);
-    orientation_m = orientation_m.conjugate();
-    // \todo    rotationMatrix_m = transpose(rotationMatrix_m);
+    origin_m         = -orientation_m.rotate(origin_m);
+    orientation_m    = orientation_m.conjugate();
     rotationMatrix_m = boost::numeric::ublas::trans(rotationMatrix_m);
 }
 
