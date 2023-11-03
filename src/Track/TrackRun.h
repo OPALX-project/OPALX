@@ -19,6 +19,7 @@
 #define OPAL_TrackRun_HH
 
 #include "AbstractObjects/Action.h"
+#include "Algorithms/PartBunch.hpp"
 
 #include "Structure/FieldSolver.h"
 
@@ -84,6 +85,9 @@ private:
     H5PartWrapper* phaseSpaceSink_m;
 
     OpalData* opal;
+
+    using bunch_type = PartBunch_t;
+    std::unique_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
 
