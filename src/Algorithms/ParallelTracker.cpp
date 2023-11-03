@@ -340,10 +340,6 @@ void ParallelTracker::execute() {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
-    /// \todo check this statement:  Because no real bunch is constracted
-
-    itsBunch_m->RefPartP_m[2] = 1.9580e+03;
-
     *gmsg << "itsBunch_m->RefPartR_m " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m " << itsBunch_m->RefPartP_m << endl;
     *gmsg << "rmin " << rmin << endl;

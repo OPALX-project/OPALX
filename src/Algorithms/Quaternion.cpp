@@ -83,7 +83,7 @@ Quaternion& Quaternion::operator*=(const Quaternion& other) {
     ippl::Vector<double, 3> imagThis  = this->imag();
     ippl::Vector<double, 3> imagOther = other.imag();
 
-    /// \todo there is a scope issue w.r.t dot
+    /// \todo there is a scope issue w.r.t dot and ippl::Vector
     double res = 0.0;
     for (unsigned i = 0; i < 3; i++)
         res += imagThis(i) * imagOther(i);

@@ -28,6 +28,7 @@ class Distribution;
 #include "OPALtypes.h"
 #include "Particle/ParticleAttrib.h"
 #include "Particle/ParticleLayout.h"
+#include "Utilities/Util.h"
 
 /*
 
@@ -37,6 +38,7 @@ class Distribution;
 #include "PoissonSolvers/FFTOpenPoissonSolver.h"
 #include "PoissonSolvers/FFTPeriodicPoissonSolver.h"
 #include "PoissonSolvers/P3MSolver.h"
+
 #include "PoissonSolvers/PoissonCG.h"
 
 using ippl::detail::ConditionalType, ippl::detail::VariantFromConditionalTypes;
@@ -875,15 +877,16 @@ public:
         os << "* ************** B U N C H "
               "********************************************************* \n";
         os << "* NP              = " << this->getLocalNum() << "\n";
+
+        // os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q)))
+        //    << "         "
+        // os << "Qi    = " << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
+        // os << "* Ekin            = " << std::setw(17)
+        //   << Util::getEnergyString(get_meanKineticEnergy()) << "         "
+        //   << "dEkin = " << std::setw(17) << Util::getEnergyString(getdE()) << "\n";
+        // os << "* rmax            = " << Util::getLengthString(rmax_m, 5) << "\n";
+        // os << "* rmin            = " << Util::getLengthString(rmin_m, 5) << "\n";
         /*
-        os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q)))
-           << "         "s
-           << "Qi    = " << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
-        os << "* Ekin            = " << std::setw(17)
-           << Util::getEnergyString(get_meanKineticEnergy()) << "         "
-           << "dEkin = " << std::setw(17) << Util::getEnergyString(getdE()) << "\n";
-        os << "* rmax            = " << Util::getLengthString(rmax_m, 5) << "\n";
-        os << "* rmin            = " << Util::getLengthString(rmin_m, 5) << "\n";
         if (this->getTotalNum() >= 2) {  // to suppress Nans
             os << "* rms beam size   = " << Util::getLengthString(get_rrms(), 5) << "\n";
             os << "* rms momenta     = " << std::setw(12) << std::setprecision(5) << get_prms()
@@ -896,6 +899,7 @@ public:
             os << "* rms correlation = " << std::setw(12) << std::setprecision(5) << get_rprms()
                << "\n";
         }
+
         os << "* hr              = " << Util::getLengthString(get_hr(), 5) << "\n";
         os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100
            << " [%]\n";

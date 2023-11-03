@@ -64,12 +64,13 @@ namespace {
         std::string timeStr(simtimer.time());
         std::string mySpace("            ");
 
-        *gmsg << mySpace << "   ____  _____       ___ " << endl;
-        *gmsg << mySpace << "  / __ \\|  __ \\ /\\   | | " << endl;
-        *gmsg << mySpace << " | |  | | |__) /  \\  | |" << endl;
-        *gmsg << mySpace << " | |  | |  ___/ /\\ \\ | |" << endl;
-        *gmsg << mySpace << " | |__| | |  / ____ \\| |____" << endl;
-        *gmsg << mySpace << "  \\____/|_| /_/    \\_\\______|" << endl;
+        *gmsg << mySpace << "  ____  _____        _       __   __" << endl;
+        *gmsg << mySpace << " / __ \|  __ \ /\   | |      \ \ / /" << endl;
+        *gmsg << mySpace << "| |  | | |__) /  \  | |  _____\ V /" << endl;
+        *gmsg << mySpace << "| |  | |  ___/ /\ \ | | |______> <" << endl;
+
+        *gmsg << mySpace << "| |__| | |  / ____ \| |____   / . \\" << endl;
+        *gmsg << mySpace << "\_____/|_| /_/    \_\______| /_/ \_\\" << endl;
 
         std::string gitRevision = "git rev. " + Util::getGitRevision();
         std::string copyRight   = "(c) PSI, http://amas.web.psi.ch";
