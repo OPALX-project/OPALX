@@ -152,47 +152,6 @@ int main(int argc, char* argv[]) {
 
         opal->storeArguments(argc, argv);
 
-        const Vector_t<int, 3> nr(8);
-
-        using bunch_type = PartBunch_t;
-
-        std::unique_ptr<bunch_type> P;
-
-        ippl::NDIndex<3> domain;
-        for (unsigned i = 0; i < 3; i++) {
-            domain[i] = ippl::Index(nr[i]);
-        }
-
-        std::array<bool, 3> isParallel;
-
-        for (unsigned d = 0; d < 3; ++d) {
-            isParallel[d] = true;
-        }
-
-        // create mesh and layout objects for this problem domain
-
-        /*
-        Vector_t<double, 3> kw = 0.5;
-        double alpha           = 0.05;
-        Vector_t<double, 3> rmin(0.0);
-        Vector_t<double, 3> rmax = 2 * Kokkos::numbers::pi / kw;
-
-        Vector_t<double, 3> hr = rmax / nr;
-        double Q = std::reduce(rmax.begin(), rmax.end(), -1., std::multiplies<double>());
-        Vector_t<double, 3> origin = rmin;
-        const double dt            = std::min(.05, 0.5 * *std::min_element(hr.begin(), hr.end()));
-
-        const bool isAllPeriodic = true;
-        Mesh_t<3> mesh(domain, hr, origin);
-        FieldLayout_t<3> FL(domain, isParallel, isAllPeriodic);
-        PLayout_t<double, 3> PL(FL, mesh);
-        std::string solver = "OPEN";
-
-        P = std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParalle, Q);
-
-        std::cout << P->get_sPos() << std::endl;
-        */
-
         try {
             Configure::configure();
             *gmsg << "configure done argc= " << argc << endl;
