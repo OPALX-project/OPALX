@@ -126,6 +126,49 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       macromass_m(0.0),
       macrocharge_m(0.0) {
     opal = OpalData::getInstance();
+
+    const Vector_t<int, 3> nr(8);
+
+    //    using bunch_type = PartBunch_t;
+
+    // std::unique_ptr<bunch_type> P;
+
+    ippl::NDIndex<3> domain;
+    for (unsigned i = 0; i < 3; i++) {
+        domain[i] = ippl::Index(nr[i]);
+    }
+
+    std::array<bool, 3> isParallel;
+
+    for (unsigned d = 0; d < 3; ++d) {
+        isParallel[d] = true;
+    }
+
+    Vector_t<double, 3> kw = 0.5;
+    double alpha           = 0.05;
+    Vector_t<double, 3> rmin(0.0);
+    Vector_t<double, 3> rmax = 2 * Kokkos::numbers::pi / kw;
+
+    Vector_t<double, 3> hr = rmax / nr;
+    double Q               = std::reduce(rmax.begin(), rmax.end(), -1., std::multiplies<double>());
+    Vector_t<double, 3> origin = rmin;
+    const double dt            = std::min(.05, 0.5 * *std::min_element(hr.begin(), hr.end()));
+
+    const bool isAllPeriodic = true;
+    Mesh_t<3> mesh(domain, hr, origin);
+    FieldLayout_t<3> FL(MPI_COMM_WORLD, domain, isParallel, isAllPeriodic);
+    PLayout_t<double, 3> PL(FL, mesh);
+    std::string solver = "OPEN";
+
+    *gmsg << "Make bunch object ... ";
+
+    bunch_m = std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParallel, Q);
+
+    *gmsg << "done" << endl;
+
+    bunch_m->setT(0.005);
+
+    bunch_m->print(*gmsg);
 }
 
 TrackRun::~TrackRun() {
@@ -226,8 +269,8 @@ void TrackRun::setupTracker() {
     }
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
-    // Track::block->bunch->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
-    // Track::block->bunch->setPType(beam->getParticleName());
+    bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
+    bunch_m->setPType(beam->getParticleName());
 
     setBoundaryGeometry();
 
@@ -251,23 +294,23 @@ void TrackRun::setupTracker() {
 
     *gmsg << *this << endl;
 
-    // Track::block->bunch->setdT(Track::block->dT.front());
-    // ada Track::block->bunch->dtScInit_m = Track::block->dtScInit;
-    // ada Track::block->bunch->deltaTau_m = Track::block->deltaTau;
+    bunch_m->setdT(Track::block->dT.front());
+    // \todo needed?? bunch_m->dtScInit_m = Track::block->dtScInit;
+    // bunch_m->deltaTau_m = Track::block->deltaTau;
 
-    // if (!isFollowupTrack_m && !opal->inRestartRun()) {
-    //     Track::block->bunch->setT(Track::block->t0_m);
-    // }
+    if (!isFollowupTrack_m && !opal->inRestartRun()) {
+        bunch_m->setT(Track::block->t0_m);
+    }
 
-    // Track::block->bunch->setCharge(macrocharge_m);
-    // Track::block->bunch->setMass(macromass_m);
+    bunch_m->setCharge(macrocharge_m);
+    bunch_m->setMass(macromass_m);
 
     // set coupling constant
     double coefE = 1.0 / (4 * Physics::pi * Physics::epsilon_0);
-    // Track::block->bunch->setCouplingConstant(coefE);
+    bunch_m->setCouplingConstant(coefE);
 
     // statistical data are calculated (rms, eps etc.)
-    // Track::block->bunch->calcBeamParameters();
+    bunch_m->calcBeamParameters();
 
     initDataSink();
 
@@ -275,25 +318,24 @@ void TrackRun::setupTracker() {
         *gmsg << std::scientific;
         *gmsg << *dist_m << endl;
     }
-    /*
-        if (Track::block->bunch->getTotalNum() > 0) {
-            double spos = Track::block->zstart;
-            auto& zstop = Track::block->zstop;
-            auto it     = Track::block->dT.begin();
 
-            unsigned int i = 0;
-            while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
-                ++i;
-                ++it;
-            }
+    if (bunch_m->getTotalNum() > 0) {
+        double spos = Track::block->zstart;
+        auto& zstop = Track::block->zstop;
+        auto it     = Track::block->dT.begin();
 
-            Track::block->bunch->setdT(*it);
-        } else {
-            Track::block->zstart = 0.0;
+        unsigned int i = 0;
+        while (i + 1 < zstop.size() && zstop[i + 1] < spos) {
+            ++i;
+            ++it;
         }
-    */
-    //*gmsg << *beam << endl;
-    //*gmsg << *fs_m << endl;
+
+        bunch_m->setdT(*it);
+    } else {
+        Track::block->zstart = 0.0;
+    }
+
+    *gmsg << *beam << endl;
 
     /*
       This needs to come back as soon as we have RF
@@ -303,9 +345,10 @@ void TrackRun::setupTracker() {
     */
 
     itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), Track::block->bunch, *ds_m, Track::block->reference, false,
+        *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
+    *gmsg << "Parallel Tracker created ... " << endl;
 }
 
 void TrackRun::setupFieldsolver() {
