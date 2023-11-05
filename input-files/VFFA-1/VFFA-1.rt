@@ -1,0 +1,2 @@
+"One turn tracking in VFFA using single particle; no space charge"
+RINGPROBE01.loss "x" all 1E-9

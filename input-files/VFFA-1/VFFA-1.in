@@ -1,0 +1,451 @@
+Option, ECHO=TRUE;
+//////////////////////////////////////////////////////////////////////////
+// Input file for single particle tracking through VFFA ring            //
+// The input particle should be on a closed orbit; so should return to  //
+// the same point as injected in all the loss files                     //
+//////////////////////////////////////////////////////////////////////////
+Title,string="Small ring using OPAL code";
+Option, ASCIIDUMP=TRUE;
+Option, ENABLEHDF5=FALSE;
+OPTION, PSDUMPFREQ=100000;
+Option, VERSION=10900;
+Option, SPTDUMPFREQ=100;
+Option, STATDUMPFREQ=100000;
+
+////////// CONSTANTS ////////////////////////////////////
+
+REAL DEGREE=PI/180.;
+REAL MM=1000.;
+REAL C_LIGHT=0.3; // m/ns
+
+////////// MODULES ///////////////////////
+BOOL DO_MAGNET_FIELD_MAPS=True;
+BOOL DO_TEST_MAP=True; // lone coil
+
+////////// RING PARAMETERS ///////////////
+REAL R0=14.350158350258441;
+REAL E0=400.0;
+REAL P_MASS=938.2720813;
+REAL P0=((E0+P_MASS)^2-P_MASS^2)^0.5;
+REAL N_CELLS=15;
+REAL RMIN=R0-1.0;
+REAL RMAX=R0+1.0;
+REAL LAT_PHI_INIT=0.0;
+
+////////// TRACKING ///////////////
+REAL STEP_SIZE=0.001; // m
+REAL N_TURNS=2.01;
+REAL N_PARTICLES=1;
+
+////////// MAIN MAGNET PARAMETERS/////////
+REAL M_INDEX=0.87721;
+REAL F_CENTRE_LENGTH=1.2;
+REAL F_END_LENGTH=0.3;
+REAL D_CENTRE_LENGTH=1.2;
+REAL D_END_LENGTH=0.3;
+REAL BF=-4.92;
+REAL BD=1.64;
+REAL MAX_HORIZONTAL_POWER=10;
+REAL NEG_EXTENT=1.0;
+REAL POS_EXTENT=3.0;
+REAL BB_LENGTH=8.0; 
+REAL MAG_WIDTH=10.0;
+
+REAL D_OFFSET=-0.347745;
+REAL F_OFFSET=0.347745;
+
+REAL DRIFT_1=1.8;
+REAL DRIFT_2=1.8;
+
+//////////// FIELD MAPS ///////////////
+REAL MAP_C_X_MIN=-20.0;
+REAL MAP_C_DX=0.04; // 1001 steps
+REAL MAP_C_Y_MIN=-20.0;
+REAL MAP_C_DY=0.04; // 1001 steps
+
+//////////// OUTPUT ///////////////////
+
+BOOL DO_REF_PROBES=True;
+
+REAL REF_PROBE_X_=14219.6/1000.;
+REAL REF_PROBE_Y_=0.0;
+REAL REF_PROBE_X_NORM_=-237.8;
+REAL REF_PROBE_Y_NORM_=924.133;
+
+
+
+start: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=R0,
+                end_position_y=R0,
+                end_normal_x=-sin(360/40*degree),
+                end_normal_y=-cos(360/40*degree); 
+
+
+//////////// MAIN MAGNETS /////////////////////
+magnetF: VERTICALFFAMAGNET,
+          B0=BF,
+          FIELD_INDEX=M_INDEX,
+          MAX_HORIZONTAL_POWER=MAX_HORIZONTAL_POWER,
+          END_LENGTH=F_END_LENGTH,
+          CENTRE_LENGTH=F_CENTRE_LENGTH,
+          HEIGHT_NEG_EXTENT=NEG_EXTENT,
+          HEIGHT_POS_EXTENT=POS_EXTENT,
+          WIDTH=MAG_WIDTH,
+          BB_LENGTH=BB_LENGTH;
+
+magnetD: VERTICALFFAMAGNET,
+          B0=BD,
+          FIELD_INDEX=M_INDEX,
+          MAX_HORIZONTAL_POWER=MAX_HORIZONTAL_POWER,
+          END_LENGTH=D_END_LENGTH,
+          CENTRE_LENGTH=D_CENTRE_LENGTH,
+          HEIGHT_NEG_EXTENT=NEG_EXTENT,
+          HEIGHT_POS_EXTENT=POS_EXTENT,
+          WIDTH=MAG_WIDTH,
+          BB_LENGTH=BB_LENGTH;
+
+
+
+/////////// Transform from beginning of a cell to start of magnet BB //////////
+OFFSET_X(delta_x, delta_y, tilt, bb_length, x_out): MACRO {
+    x_out = delta_x-bb_length*cos(tilt)/2.;
+}
+
+OFFSET_Y(delta_x, delta_y, tilt, bb_length, y_out): MACRO {
+    y_out = delta_y-bb_length*sin(tilt)/2.;
+}
+
+NORM_X(delta_x, delta_y, tilt, bb_length, tx_out): MACRO {
+    tx_out = cos(tilt)/2.;
+}
+
+NORM_Y(delta_x, delta_y, tilt, bb_length, ty_out): MACRO {
+    ty_out = sin(tilt)/2.;
+}
+
+
+
+MAGNET_OFFSET(delta_x, delta_y, tilt, bb_length, x_out, y_out, tx_out, ty_out): MACRO {
+    OFFSET_X(delta_x, delta_y, tilt, bb_length, x_out);
+    OFFSET_Y(delta_x, delta_y, tilt, bb_length, y_out);
+    NORM_X  (delta_x, delta_y, tilt, bb_length, tx_out);
+    NORM_Y  (delta_x, delta_y, tilt, bb_length, ty_out);
+}
+
+/////////// Transform from end of magnet BB to start of cell //////////
+
+R_OFFSET_X(delta_x, delta_y, tilt, bb_length, x_out): MACRO {
+    x_out =-delta_y*sin(tilt)-delta_x*cos(tilt)-bb_length/2.;
+}
+
+R_OFFSET_Y(delta_x, delta_y, tilt, bb_length, y_out): MACRO {
+    y_out = -delta_y*cos(tilt)+delta_x*sin(tilt);
+}
+
+R_NORM_X(delta_x, delta_y, tilt, bb_length, tx_out): MACRO {
+    tx_out = cos(tilt)/2.;
+}
+
+R_NORM_Y(delta_x, delta_y, tilt, bb_length, ty_out): MACRO {
+    ty_out = -sin(tilt)/2.
+}
+
+REVERSE_MAGNET_OFFSET(delta_x, delta_y, tilt, bb_length, x_out, y_out, tx_out, ty_out): MACRO {
+    R_OFFSET_X(delta_x, delta_y, tilt, bb_length, x_out);
+    R_OFFSET_Y(delta_x, delta_y, tilt, bb_length, y_out);
+    R_NORM_X  (delta_x, delta_y, tilt, bb_length, tx_out);
+    R_NORM_Y  (delta_x, delta_y, tilt, bb_length, ty_out);
+}
+
+///////////////////////// PLACEMENTS FOR MAGNET VD1 //////////////////////
+
+REAL VD1_DX=D_CENTRE_LENGTH/2.+DRIFT_1/2.;
+REAL VD1_DY=D_OFFSET;
+REAL VD1_BB=BB_LENGTH;
+REAL VD1_TILT=0;
+
+REAL VD1_X1=0;
+REAL VD1_Y1=0;
+REAL VD1_TX1=0;
+REAL VD1_TY1=0;
+REAL VD1_X2=0;
+REAL VD1_Y2=0;
+REAL VD1_TX2=0;
+REAL VD1_TY2=0;
+
+
+// core dump 
+// MAGNET_OFFSET        (VD1_DX, VD1_DY, VD1_TILT, VD1_BB, VD1_X1, VD1_Y1, VD1_TX1, VD1_TY1);
+// REVERSE_MAGNET_OFFSET(VD1_DX, VD1_DY, VD1_TILT, VD1_BB, VD1_X2, VD1_Y2, VD1_TX2, VD1_TY2);
+
+
+vd_offset_out: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=VD1_X1,
+                end_position_y=VD1_Y1,
+                end_normal_x=VD1_TX1,
+                end_normal_y=VD1_TY1;
+
+vd_offset_back: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=VD1_X2,
+                end_position_y=VD1_Y2,
+                end_normal_x=VD1_TX2,
+                end_normal_y=VD1_TY2;
+
+
+
+
+
+
+///////////////////////////// D_SINGLE ///////////////////////////////
+
+d_single: Line = (vd_offset_out, magnetD, vd_offset_back);
+
+//////////////////////////// DRIFT /////////////////////////////////
+
+
+
+
+REAL D_HALF_CELL_LENGTH=D_CENTRE_LENGTH+DRIFT_1/2.+DRIFT_2/2.;
+REAL D_HALF_CELL_ANGLE=360/N_CELLS/2*DEGREE;
+
+d_half_cell_drift: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=D_HALF_CELL_LENGTH,
+                end_position_y=0,
+                end_normal_x=cos(D_HALF_CELL_ANGLE),
+                end_normal_y=-sin(D_HALF_CELL_ANGLE);
+
+///////////////////////// PLACEMENTS FOR MAGNET VF1 //////////////////////
+
+REAL VF1_DX=F_CENTRE_LENGTH/2.+DRIFT_2/2.;
+REAL VF1_DY=F_OFFSET;
+REAL VF1_BB=BB_LENGTH;
+REAL VF1_TILT=0;
+
+REAL VF1_X1=0;
+REAL VF1_Y1=0;
+REAL VF1_TX1=0;
+REAL VF1_TY1=0;
+REAL VF1_X2=0;
+REAL VF1_Y2=0;
+REAL VF1_TX2=0;
+REAL VF1_TY2=0;
+
+// MAGNET_OFFSET        (VF1_DX, VF1_DY, VF1_TILT, VF1_BB, VF1_X1, VF1_Y1, VF1_TX1, VF1_TY1);
+// REVERSE_MAGNET_OFFSET(VF1_DX, VF1_DY, VF1_TILT, VF1_BB, VF1_X2, VF1_Y2, VF1_TX2, VF1_TY2);
+
+vf_offset_out: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=VF1_X1,
+                end_position_y=VF1_Y1,
+                end_normal_x=VF1_TX1,
+                end_normal_y=VF1_TY1;
+
+vf_offset_back: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=VF1_X2,
+                end_position_y=VF1_Y2,
+                end_normal_x=VF1_TX2,
+                end_normal_y=VF1_TY2;
+
+
+///////////////////////////// F_SINGLE ///////////////////////////////
+
+f_single: Line = (vf_offset_out, magnetF, vf_offset_back);
+
+//////////////////////////// DRIFT /////////////////////////////////
+
+REAL F_HALF_CELL_LENGTH=F_CENTRE_LENGTH+DRIFT_1/2.+DRIFT_2/2.;
+REAL F_HALF_CELL_ANGLE=360/N_CELLS/2*DEGREE;
+
+f_half_cell_drift: LOCAL_CARTESIAN_OFFSET,
+                end_position_x=F_HALF_CELL_LENGTH,
+                end_position_y=0,
+                end_normal_x=cos(F_HALF_CELL_ANGLE),
+                end_normal_y=-sin(F_HALF_CELL_ANGLE);
+
+///////////////////////// MAGNET TEST ///////////////////////////////
+//IF (DO_TEST_MAP) {
+    REAL TEST_DY=0.;
+    REAL TEST_DX=0.;
+    REAL TEST_DTHETA=(360/4/N_CELLS)*DEGREE;
+    // distance between *end* of bounding boxes
+    REAL TEST_GAP=F_CENTRE_LENGTH/2+D_CENTRE_LENGTH/2+DRIFT_1/2+DRIFT_2/2-BB_LENGTH;
+    REAL TEST_BB=TEST_GAP+2*BB_LENGTH;
+
+    REAL TEST_X1=0;
+    REAL TEST_Y1=0;
+    REAL TEST_TX1=0;
+    REAL TEST_TY1=0;
+    REAL TEST_X2=0;
+    REAL TEST_Y2=0;
+    REAL TEST_TX2=0;
+    REAL TEST_TY2=0;
+
+//    MAGNET_OFFSET        (TEST_DX, TEST_DY, TEST_DTHETA, TEST_BB, TEST_X1, TEST_Y1, TEST_TX1, TEST_TY1);
+//    REVERSE_MAGNET_OFFSET(TEST_DX, TEST_DY, TEST_DTHETA, TEST_BB, TEST_X2, TEST_Y2, TEST_TX2, TEST_TY2);
+
+    vtest_offset1_out: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=TEST_X1,
+                    end_position_y=TEST_Y1,
+                    end_normal_x=TEST_TX1,
+                    end_normal_y=TEST_TY1;
+
+    vtest_offset2_out: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=0,
+                    end_position_y=-R0,
+                    end_normal_x=0,
+                    end_normal_y=0;
+
+    vtest_gap: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=TEST_GAP,
+                    end_position_y=0.,
+                    end_normal_x=0,
+                    end_normal_y=0;
+
+    vtest_offset2_back: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=0,
+                    end_position_y=R0,
+                    end_normal_x=0,
+                    end_normal_y=0;
+
+
+    vtest_offset1_back: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=TEST_X2,
+                    end_position_y=TEST_Y2,
+                    end_normal_x=TEST_TX2,
+                    end_normal_y=TEST_TY2;
+
+
+    REAL N_TEST_MAP_STEPS = 4001;
+    //DUMPFIELDS, FILE_NAME="FieldMapTest.dat",
+    //            X_START=-2., X_STEPS=N_TEST_MAP_STEPS, DX=BB_LENGTH/(N_TEST_MAP_STEPS-1),
+    //            Y_START=0., Y_STEPS=1, DY=1e-3,
+    //            Z_START=0, Z_STEPS=1, DZ=1e-3;
+
+    f_test: Line = (vtest_offset1_out, vtest_offset2_out, magnetF, vtest_gap, magnetD, vtest_offset2_back, vtest_offset1_back);
+//} ELSE {
+/*
+dummy_offset: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=0., end_position_y=0.,
+                    end_normal_x=1.0, end_normal_y=0.;
+
+
+    f_test: Line = (dummy_offset);
+*/
+//}
+
+
+////////////////// PROBES
+REAL RING_PROBE_PHI_OFFSET=0.0;
+BUILD_PROBE(NAME, ANGLE): MACRO {
+    NAME: PROBE, xstart=RMIN*1000*cos(ANGLE),  xend=RMAX*1000*cos(ANGLE),
+                 ystart=RMIN*1000*sin(ANGLE),  yend=RMAX*1000*sin(ANGLE);
+}
+
+QUIT;
+
+
+
+REAL THIS_PROBE_PHI=PI/2;
+BUILD_PROBE(RingProbe01, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe02, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe03, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe04, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe05, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe06, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe07, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe08, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe09, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe10, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe11, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe12, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe13, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe14, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+BUILD_PROBE(RingProbe15, THIS_PROBE_PHI);
+THIS_PROBE_PHI = EVAL(THIS_PROBE_PHI+2.*PI/N_CELLS);
+
+
+IF (DO_REF_PROBES) {
+    // build a probe centred on XREF, YREF, Z=0, with normal XNORM, YNORM, ZNORM
+    // then rotated azimuthally by PHI (which sets Z)
+    BUILD_REF_PROBE(NAME, REF_PROBE_X, REF_PROBE_Y, ANGLE, REF_PROBE_X_NORM, REF_PROBE_Y_NORM): MACRO {
+        REAL REF_RN = (REF_PROBE_X_NORM^2+REF_PROBE_Y_NORM^2)^0.5;
+        REAL REF_XN = REF_PROBE_X_NORM/REF_RN;
+        REAL REF_YN = REF_PROBE_Y_NORM/REF_RN;
+        REAL REF_DX = -REF_YN;
+        REAL REF_DY = REF_XN;
+        REAL REF_X0 = (REF_PROBE_X-REF_DX)*1000*cos(ANGLE);
+        REAL REF_X1 = (REF_PROBE_X+REF_DX)*1000*cos(ANGLE);
+        REAL REF_Y0 = (REF_PROBE_Y-REF_DY)*1000*sin(ANGLE);
+        REAL REF_Y1 = (REF_PROBE_Y+REF_DY)*1000*sin(ANGLE);
+
+        VALUE, VALUE={ANGLE, REF_X0, REF_X1, REF_Y0, REF_Y1};
+
+        NAME: PROBE, xstart=REF_X0,  xend=REF_X1, ystart=REF_Y0,  yend=REF_Y1;
+    }
+
+    REAL THIS_PROBE_PHI=PI/2;
+    BUILD_REF_PROBE(RefProbe01, REF_PROBE_X_, REF_PROBE_Y_, THIS_PROBE_PHI, REF_PROBE_X_NORM_, REF_PROBE_Y_NORM_);
+
+    refprobe: Line = (RefProbe01)
+        //, RefProbe02, RefProbe03, RefProbe04, RefProbe05, 
+        //              RefProbe06, RefProbe07, RefProbe08, RefProbe09, RefProbe10,
+        //              RefProbe11, RefProbe12, RefProbe13, RefProbe14, RefProbe15);
+} ELSE {
+    dummy_offset: LOCAL_CARTESIAN_OFFSET,
+                    end_position_x=0., end_position_y=0.,
+                    end_normal_x=1.0, end_normal_y=0.;
+
+    refprobe: Line = (dummy_offset);
+}
+
+ringprobe: Line = (RingProbe01, RingProbe02, RingProbe03, RingProbe04, RingProbe05, 
+                   RingProbe06, RingProbe07, RingProbe08, RingProbe09, RingProbe10,
+                   RingProbe11, RingProbe12, RingProbe13, RingProbe14, RingProbe15);
+
+ringdef: RINGDEFINITION, HARMONIC_NUMBER=1, LAT_RINIT=R0, LAT_PHIINIT=LAT_PHI_INIT,
+         LAT_THETAINIT=180.0-360/4/N_CELLS, BEAM_PHIINIT=90, BEAM_PRINIT=0,
+         BEAM_RINIT=0.0, SYMMETRY=1, RFFREQ=1, IS_CLOSED=false,
+         MIN_R=0., MAX_R=40;
+// magnet_d_placement_in, magnet_d_placement_out, 
+cell: Line = (d_single, d_half_cell_drift, f_single, f_half_cell_drift);
+line1: Line = (ringdef, ringprobe, refprobe, f_test,
+            cell, cell, cell, cell, cell,
+            cell, cell, cell, cell, cell,
+            cell, cell, cell, cell, cell
+           );
+
+Dist1: DISTRIBUTION, TYPE=fromfile, FNAME="disttest.dat", INPUTMOUNITS=NONE;
+
+Fs1:FIELDSOLVER, FSTYPE=None, MX=5, MY=5, MT=5,
+                 PARFFTX=true, PARFFTY=false, PARFFTT=false,
+                 BCFFTX=open, BCFFTY=open, BCFFTT=open,BBOXINCR=2;
+
+//// STEP SIZE ////
+
+REAL B_FREQ=1; // 1 MHz
+REAL SPEED=C_LIGHT*(P0/(E0+P_MASS));
+REAL STEP_SIZE_NS=STEP_SIZE/SPEED;
+REAL STEPS_PER_TURN=1000/STEP_SIZE_NS/B_FREQ; // (this is really steps per B_FREQ)
+REAL MAX_STEPS=2*PI*R0*N_TURNS/STEP_SIZE;
+
+beam1: BEAM, PARTICLE=PROTON, pc=P0/1000., NPART=N_PARTICLES, BCURRENT=1, CHARGE=1.0, BFREQ=B_FREQ;
+
+VALUE, VALUE={E0, P0, P_MASS};
+
+TRACK, LINE=line1, BEAM=beam1, MAXSTEPS=MAX_STEPS, STEPSPERTURN=STEPS_PER_TURN;
+RUN, METHOD="CYCLOTRON-T", BEAM=beam1, FIELDSOLVER=Fs1, DISTRIBUTION=Dist1;
+ENDTRACK;
+STOP;
