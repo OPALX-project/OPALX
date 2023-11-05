@@ -318,10 +318,11 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.activateElements();
 
-    double momentum                     = euclidean_norm(itsBunch_m->get_pmean_Distribution());
+    double momentum = 7.335952e-04;  // \todo euclidean_norm(itsBunch_m->get_pmean_Distribution());
     CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
     itsBunch_m->toLabTrafo_m            = beamlineToLab;
 
+    *gmsg << "ParallelTrack: momentum=  " << momentum << endl;
     itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t<double, 3>(0.0));
     itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t<double, 3>(0, 0, 1));
 
@@ -360,8 +361,6 @@ void ParallelTracker::execute() {
 
     double time = itsBunch_m->getT() - globalTimeShift;
     itsBunch_m->setT(time);
-
-    // *gmsg << level1 << *itsBunch_m << endl;
 
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
