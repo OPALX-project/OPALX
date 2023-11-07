@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef USEFULFUNCTIONS
-#define USEFULFUNCTIONS
+#ifndef UTIL
+#define UTIL
 
 #include "Algorithms/Quaternion.hpp"
 
@@ -42,7 +42,10 @@ namespace Util {
     double erfinv(double x);
 
     inline double getGamma(ippl::Vector<double, 3> p) {
-        return std::sqrt(dot(p, p) + 1.0);
+        double dotP = 0.0;  // \todo dot(p, p);  // .apply();
+        for (unsigned i = 0; i < 3; i++)
+            dotP += p(i) * p(i);
+        return std::sqrt(dotP + 1.0);
     }
 
     inline ippl::Vector<double, 3> getBeta(ippl::Vector<double, 3> p) {

@@ -91,7 +91,7 @@ DR1: DRIFT, L = 0.4, ELEMEDGE = 0.2;
 //----------------------------------------------------------------------------
 // DEFINE BEAM LINE
 
-GS:  Line = (GUN, DR1);
+GS:  Line = (GUN);
 
 
 Dist: DISTRIBUTION, TYPE= GAUSS, SIGMAX=1e-3, SIGMAY=1e-3;
@@ -105,7 +105,7 @@ Fs_SC: FIELDSOLVER, TYPE=NONE, MX=64;
 BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
         BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq * 1E6, CHARGE = -1;
 
-TRACK, LINE = GS, BEAM = BEAM1, MAXSTEPS = 1000000, DT = {dTg}, ZSTOP={.4};
+TRACK, LINE = GS, BEAM = BEAM1, MAXSTEPS = 2, DT = {dTg}, ZSTOP={.4};
 RUN, METHOD = "PARALLEL", BEAM = BEAM1, 
     FIELDSOLVER = FS_SC, DISTRIBUTION = Dist;
 ENDTRACK;
