@@ -322,7 +322,8 @@ void ParallelTracker::execute() {
     CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
     itsBunch_m->toLabTrafo_m            = beamlineToLab;
 
-    *gmsg << "ParallelTrack: momentum=  " << momentum << endl;
+    *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution"
+          << endl;
     itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t<double, 3>(0.0));
     itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t<double, 3>(0, 0, 1));
 
@@ -340,11 +341,6 @@ void ParallelTracker::execute() {
     if (itsBunch_m->getTotalNum() > 0) {
         itsBunch_m->get_bounds(rmin, rmax);
     }
-
-    *gmsg << "itsBunch_m->RefPartR_m " << itsBunch_m->RefPartR_m << endl;
-    *gmsg << "itsBunch_m->RefPartP_m " << itsBunch_m->RefPartP_m << endl;
-    *gmsg << "rmin " << rmin << endl;
-    *gmsg << "rmax " << rmax << endl;
 
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),

@@ -159,7 +159,6 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
     if (bunch == nullptr) {
         startField = startField_m;
         endField   = endField_m;
-
         return;
     }
 
@@ -661,6 +660,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     std::ofstream* out) {
     Vector_t<double, 3> p({0, 0, p0});
     double t = t0;
+
     BorisPusher integrator(*RefPartBunch_m->getReference());
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;

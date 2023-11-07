@@ -294,7 +294,6 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(
 double CavityAutophaser::track(
 
     double t, const double dt, const double phase, std::ofstream* out) const {
-    *gmsg << "in CavityAutophaser::track " << endl;
     const Vector_t<double, 3>& refP = initialP_m;
 
     RFCavity* rfc       = static_cast<RFCavity*>(itsCavity_m.get());

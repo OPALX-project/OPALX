@@ -162,7 +162,8 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 
     *gmsg << "Make bunch object ... ";
 
-    bunch_m = std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParallel, Q);
+    bunch_m =
+        std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParallel, Q, &Track::block->reference);
 
     *gmsg << "done" << endl;
 
@@ -336,7 +337,7 @@ void TrackRun::setupTracker() {
 
     *gmsg << *beam << endl;
 
-    /*
+    /* \todo this is also not unsed in the master.
       This needs to come back as soon as we have RF
 
       findPhasesForMaxEnergy();
