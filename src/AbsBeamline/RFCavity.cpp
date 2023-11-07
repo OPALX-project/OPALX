@@ -698,7 +698,6 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 
     const double beta = std::sqrt(1. - 1 / (dot(p, p) + 1.));
     const double tErr = (z(2) - zend) / (Physics::c * beta);
-
     return std::pair<double, double>(p(2), t - tErr);
 }
 
