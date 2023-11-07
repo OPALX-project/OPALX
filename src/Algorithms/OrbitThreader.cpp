@@ -87,9 +87,7 @@ OrbitThreader::OrbitThreader(
     stepRange_m.enlargeIfOutside(0);
     stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
     distTrackBack_m = std::min(pathLength_m, std::max(0.0, maxDiffZBunch));
-    *gmsg << "OrbitThreader r= " << r_m << "p= " << p_m << "dt= " << dt_m << endl;
     computeBoundingBox();
-    *gmsg << "OrbitThreader r= " << r_m << "p= " << p_m << "dt= " << dt_m << endl;
 }
 
 void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
@@ -129,7 +127,6 @@ void OrbitThreader::execute() {
     Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
     nextR = nextR * Physics::c * dt_m;
-    *gmsg << "OrbitThreader nextR= " << nextR << endl;
     setDesignEnergy(allElements, visitedElements);
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
@@ -452,8 +449,6 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
-
-    *gmsg << "OrbitThreader dR1= " << dR << endl;
 
     /// \todo needs to be fixed
     /*
