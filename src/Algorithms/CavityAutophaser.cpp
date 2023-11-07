@@ -284,8 +284,7 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(
         }
     }
     Phimax = std::fmod(initialPhase + Physics::two_pi, Physics::two_pi);
-
-    E = track(t, dt, Phimax + originalPhase);
+    E      = track(t, dt, Phimax + originalPhase);
     std::pair<double, double> status(Phimax, E);
 
     return status;
@@ -306,6 +305,5 @@ double CavityAutophaser::track(
 
     double finalKineticEnergy = Util::getKineticEnergy(
         Vector_t<double, 3>(0.0, 0.0, pe.first), itsReference_m.getM() * Units::eV2MeV);
-
     return finalKineticEnergy;
 }
