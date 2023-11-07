@@ -140,7 +140,7 @@ public:
     /// Mesh enlargement
     double dh_m;  /// relative enlargement of the mesh
 
-    const PartData* reference;
+    const PartData* reference_m;
 
     double couplingConstant_m;
     double qi_m;
@@ -199,8 +199,14 @@ public:
 public:
     PartBunch(
         PLayout& pl, Vector_t<double, Dim> hr, Vector_t<double, Dim> rmin,
-        Vector_t<double, Dim> rmax, std::array<bool, Dim> decomp, double Qtot)
-        : ippl::ParticleBase<PLayout>(pl), hr_m(hr), rmin_m(rmin), rmax_m(rmax), Q_m(Qtot) {
+        Vector_t<double, Dim> rmax, std::array<bool, Dim> decomp, double Qtot,
+        const PartData* reference)
+        : ippl::ParticleBase<PLayout>(pl),
+          hr_m(hr),
+          rmin_m(rmin),
+          rmax_m(rmax),
+          Q_m(Qtot),
+          reference_m(reference) {
         // register the particle attributes
         this->addAttribute(Q);
         this->addAttribute(M);
@@ -259,9 +265,9 @@ public:
         if (this->getTotalNum() != 0)
             Q = qi_m;
         else
-            *ippl::Warn
-                << "Could not set total charge in PartBunch::setCharge based on this->getTotalNum"
-                << endl;
+            *ippl::Warn << "Could not set total charge in PartBunch::setCharge based on "
+                           "this->getTotalNum"
+                        << endl;
     }
 
     // set the charge per simulation particle when total particle number equals 0
@@ -296,38 +302,38 @@ public:
 
     ///@{ Access to reference data
     double getQ() const {
-        return reference->getQ();
+        return reference_m->getQ();
     }
     double getM() const {
-        return reference->getM();
+        return reference_m->getM();
     }
     double getP() const {
-        return reference->getP();
+        return reference_m->getP();
     }
 
     double getE() const {
-        return reference->getE();
+        return reference_m->getE();
     }
 
     // ParticleOrigin getPOrigin() const;
     // ParticleType getPType() const;
 
     double getInitialBeta() const {
-        return reference->getBeta();
+        return reference_m->getBeta();
     }
 
     double getInitialGamma() const {
-        return reference->getGamma();
+        return reference_m->getGamma();
     }
 
     ///@}
-    ///@{ Set reference data
+    ///@{ Set reference_m data
 
     void resetQ(double q) {
-        const_cast<PartData*>(reference)->setQ(q);
+        const_cast<PartData*>(reference_m)->setQ(q);
     }
     void resetM(double m) {
-        const_cast<PartData*>(reference)->setM(m);
+        const_cast<PartData*>(reference_m)->setM(m);
     }
 
     // void setPOrigin(ParticleOrigin);
@@ -351,7 +357,7 @@ public:
     }
 
     const PartData* getReference() const {
-        return reference;
+        return reference_m;
     }
 
     double getEmissionDeltaT() {
@@ -477,7 +483,8 @@ public:
          */
 
         // if (!R.isDirty() && stateOfLastBoundP_ == unit_state_) return;
-        // if (!(this->R.isDirty() || this->ID.isDirty()) && stateOfLastBoundP_m == unit_state_m)
+        // if (!(this->R.isDirty() || this->ID.isDirty()) && stateOfLastBoundP_m ==
+        // unit_state_m)
         //    return;  //-DW
 
         stateOfLastBoundP_m = unit_state_m;
@@ -878,7 +885,8 @@ public:
               "********************************************************* \n";
         os << "* NP              = " << this->getLocalNum() << "\n";
 
-        // os << "* Qtot            = " << std::setw(17) << Util::getChargeString(std::abs(sum(Q)))
+        // os << "* Qtot            = " << std::setw(17) <<
+        // Util::getChargeString(std::abs(sum(Q)))
         //    << "         "
         // os << "Qi    = " << std::setw(17) << Util::getChargeString(std::abs(qi_m)) << "\n";
         // os << "* Ekin            = " << std::setw(17)
@@ -903,12 +911,14 @@ public:
         os << "* hr              = " << Util::getLengthString(get_hr(), 5) << "\n";
         os << "* dh              = " << std::setw(13) << std::setprecision(5) << dh_m * 100
            << " [%]\n";
-        os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << "         "
+        os << "* t               = " << std::setw(17) << Util::getTimeString(getT()) << " "
            << "dT    = " << std::setw(17) << Util::getTimeString(getdT()) << "\n";
-        os << "* spos            = " << std::setw(17) << Util::getLengthString(pathLength) << "\n";
+        os << "* spos            = " << std::setw(17) << Util::getLengthString(pathLength) <<
+        "\n";
         */
         os << "* "
-              "********************************************************************************** "
+              "********************************************************************************"
+              "** "
            << endl;
         os.flags(ff);
         // }
