@@ -65,13 +65,21 @@ inline double euclidean_norm(const Vector_t<T, D>& v) {
     return std::sqrt(dot(v, v).apply());
 }
 
-// dot product
+// dot products
 template <class T, unsigned D>
 inline double dot(const Vector_t<T, D>& v, const Vector_t<T, D>& w) {
-    T res = 0.0;
+    double res = 0.0;
     for (unsigned i = 0; i < D; i++)
         res += v(i) * w(i);
-    return std::sqrt(res);
+    return res;
+}
+
+template <class T, unsigned D>
+inline double dot(const Vector_t<T, D>& v) {
+    double res = 0.0;
+    for (unsigned i = 0; i < D; i++)
+        res += v(i) * v(i);
+    return res;
 }
 
 #endif
