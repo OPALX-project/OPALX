@@ -56,7 +56,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
             "CavityAutophaser::getPhaseAtMaxEnergy()", "given element is not a cavity");
     }
 
-    initialP_m = Vector_t<double, 3>(0, 0, std::sqrt(dot(P, P)));
+    initialP_m = P;  // \todo need to check ... Vector_t<double, 3>(0, 0, std::sqrt(dot(P, P)));
 
     RFCavity* element    = static_cast<RFCavity*>(itsCavity_m.get());
     bool apVeto          = element->getAutophaseVeto();
@@ -137,6 +137,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                 ++count;
             }
         }
+
         auto status = optimizeCavityPhase(initialPhase, t + tErr, dt);
 
         optimizedPhase = status.first;
@@ -164,7 +165,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
         }
 
         *ippl::Info << level1 << std::fixed << std::setprecision(4) << itsCavity_m->getName()
-                    << "_phi = " << newPhase * Units::rad2deg << " [deg], "
+                    << "_phi1 = " << newPhase * Units::rad2deg << " [deg], "
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
@@ -186,7 +187,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
             *ippl::Info << level1 << ">>>>>> APVETO >>>>>> " << endl;
         }
         *ippl::Info << level1 << std::fixed << std::setprecision(4) << itsCavity_m->getName()
-                    << "_phi = " << originalPhase * Units::rad2deg << " [deg], "
+                    << "_phi2 = " << originalPhase * Units::rad2deg << " [deg], "
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
@@ -241,8 +242,8 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(
     double phi               = initialPhase;
     double dphi              = Physics::pi / 360.0;
     const int numRefinements = Options::autoPhase;
+    int j                    = -1;
 
-    int j       = -1;
     double E    = track(t, dt, phi);
     double Emax = E;
 
@@ -291,7 +292,6 @@ std::pair<double, double> CavityAutophaser::optimizeCavityPhase(
 }
 
 double CavityAutophaser::track(
-
     double t, const double dt, const double phase, std::ofstream* out) const {
     const Vector_t<double, 3>& refP = initialP_m;
 
