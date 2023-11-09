@@ -674,22 +674,24 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
         *out << std::setw(18) << z[2] << std::setw(18) << Util::getKineticEnergy(p, mass)
              << std::endl;
     while (z(2) + dz < zend && z(2) + dz > zbegin) {
-        z = z / cdt;
+        z /= cdt;
         integrator.push(z, p, dt);
-        z = z * cdt;
+        z *= cdt;
 
         Ef = 0.0;
         Bf = 0.0;
         if (z(2) >= zbegin && z(2) <= zend) {
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
+
         integrator.kick(z, p, Ef, Bf, dt);
 
         dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p)) * cdt;
-        z  = z / cdt;
+        z /= cdt;
+
         integrator.push(z, p, dt);
-        z = z * cdt;
-        t = t + dt;
+        z *= cdt;
+        t += dt;
 
         if (out)
             *out << std::setw(18) << z[2] << std::setw(18) << Util::getKineticEnergy(p, mass)

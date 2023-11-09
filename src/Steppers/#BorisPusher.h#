@@ -58,7 +58,7 @@ inline BorisPusher::BorisPusher() : itsReference(nullptr) {
 
 inline void BorisPusher::initialise(const PartData* ref) {
     itsReference = ref;
-}
+  }
 
 inline void BorisPusher::kick(
     const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
@@ -131,8 +131,7 @@ inline void BorisPusher::push(
      * R[i] += 0.5 * P[i] * recpgamma;
      * \endcode
      */
-    const double dp = P(0) * P(0) + P(1) * P(1) + P(2) * P(2);  // \todo dot(P,P) does not work
-    R += 0.5 * P / std::sqrt(1.0 + dp);
+    R += 0.5 * P / sqrt(1.0 + dot(P, P));
 }
 
 #endif
