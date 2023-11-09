@@ -131,8 +131,7 @@ inline void BorisPusher::push(
      * R[i] += 0.5 * P[i] * recpgamma;
      * \endcode
      */
-    const double dp = P(0) * P(0) + P(1) * P(1) + P(2) * P(2);  // \todo dot(P,P) does not work
-    R += 0.5 * P / std::sqrt(1.0 + dp);
+    R += 0.5 * P / std::sqrt(1.0 + dot(P));
 }
 
 #endif
