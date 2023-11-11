@@ -17,6 +17,7 @@ set (_SRCS
     RFCavity.cpp
     Ring.cpp
     ScalingFFAMagnet.cpp        
+    Solenoid.cpp
     TravelingWave.cpp
     Offset.cpp
     VerticalFFAMagnet.cpp
@@ -42,6 +43,7 @@ set (HDRS
     SpecificElementVisitor.h
     ScalingFFAMagnet.h
     Ring.h
+    Solenoid.h
     Offset.h
     VerticalFFAMagnet.h
     Probe.h

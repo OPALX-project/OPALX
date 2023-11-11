@@ -27,10 +27,8 @@
 
 class ElementBase;
 
-class DefaultVisitor: public BeamlineVisitor {
-
+class DefaultVisitor : public BeamlineVisitor {
 public:
-
     /// Constructor.
     //  Arguments:
     //  [ol]
@@ -38,70 +36,72 @@ public:
     //  [li]If true, the beam runs backwards through the line.
     //  [li]If true, we track against the beam.
     //  [/ol]
-    DefaultVisitor(const Beamline &beamline, bool backBeam, bool backTrack);
+    DefaultVisitor(const Beamline& beamline, bool backBeam, bool backTrack);
 
     virtual ~DefaultVisitor() = 0;
 
     /// Apply the algorithm to the top-level beamline.
     virtual void execute();
 
-    virtual void visitComponent(const Component &);
-    
+    virtual void visitComponent(const Component&);
+
     /// Apply the algorithm to a beam line.
-    virtual void visitBeamline(const Beamline &);
-    
+    virtual void visitBeamline(const Beamline&);
+
     /// Apply the algorithm to a drift space.
-    virtual void visitDrift(const Drift &);
+    virtual void visitDrift(const Drift&);
 
     /// Apply the algorithm to a FlaggedElmPtr.
-    virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
+    virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
 
     /// Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker &);
+    virtual void visitMarker(const Marker&);
 
     /// Apply the algorithm to a beam position monitor.
-    virtual void visitMonitor(const Monitor &);
+    virtual void visitMonitor(const Monitor&);
 
     /// Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole &);
+    virtual void visitMultipole(const Multipole&);
 
     /// Apply the algorithm to to an arbitrary multipole.
-    virtual void visitMultipoleT(const MultipoleT &);
+    virtual void visitMultipoleT(const MultipoleT&);
 
     /// Apply the algorithm to an arbitrary straight multipole.
-    virtual void visitMultipoleTStraight(const MultipoleTStraight &);
+    virtual void visitMultipoleTStraight(const MultipoleTStraight&);
 
     /// Apply the algorithm to an arbitrary curved multipole of constant radius.
-    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &);
+    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius&);
 
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
-    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
+    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius&);
 
     /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset &);
+    virtual void visitOffset(const Offset&);
 
     /// Apply the algorithm to a Ring.
-    virtual void visitRing(const Ring &);
-    
+    virtual void visitRing(const Ring&);
+
     /// Apply the algorithm to a RF cavity.
-    virtual void visitRFCavity(const RFCavity &);
+    virtual void visitRFCavity(const RFCavity&);
+
+    /// Apply the algorithm to a Solenoid.
+    virtual void visitSolenoid(const Solenoid&);
 
     /// Apply the algorithm to a traveling wave.
-    virtual void visitTravelingWave(const TravelingWave &);
+    virtual void visitTravelingWave(const TravelingWave&);
 
-    /// Apply the algorithm to a scaling FFA magnet. 
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &spiral);
+    /// Apply the algorithm to a scaling FFA magnet.
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet& spiral);
 
     /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &);
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&);
 
     /// Apply the algorithm to a Probe
-    virtual void visitProbe(const Probe &prob);
+    virtual void visitProbe(const Probe& prob);
 
 protected:
-
     // The top level beamline.
-    const Beamline &itsLine;
+    const Beamline& itsLine;
 
     // The direction flags and corresponding factors.
     bool back_beam;   // true, if beam runs from right (s=C) to left (s=0).
@@ -109,23 +109,22 @@ protected:
     bool back_path;   // true, if tracking from right (s=C) to left (s=0).
     // back_path = back_beam && ! back_track || back_track && ! back_beam.
 
-    double flip_B;    // set to -1.0 to flip B fields, when back_beam is true.
-    double flip_s;    // set to -1.0 to flip direction of s,
+    double flip_B;  // set to -1.0 to flip B fields, when back_beam is true.
+    double flip_s;  // set to -1.0 to flip direction of s,
     // when back_path is true.
 
 private:
-
     // Not implemented.
     DefaultVisitor();
-    DefaultVisitor(const DefaultVisitor &);
-    void operator=(const DefaultVisitor &);
+    DefaultVisitor(const DefaultVisitor&);
+    void operator=(const DefaultVisitor&);
 
     // Default do-nothing routine.
-    virtual void applyDefault(const ElementBase &);
+    virtual void applyDefault(const ElementBase&);
 
     // The element order flag. Initially set to back_path.
     // This flag is reversed locally for reflected beam lines.
     bool local_flip;
 };
 
-#endif // CLASSIC_DefaultVisitor_HH
+#endif  // CLASSIC_DefaultVisitor_HH
