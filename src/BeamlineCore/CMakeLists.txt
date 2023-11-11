@@ -5,6 +5,7 @@ set (_SRCS
     MultipoleRep.cpp
     RFCavityRep.cpp
     TravelingWaveRep.cpp
+    SolenoidRep.cpp
     ProbeRep.cpp
     )
 
@@ -15,6 +16,7 @@ set (HDRS
     MultipoleRep.h
     RFCavityRep.h
     TravelingWaveRep.h
+    SolenoidRep.h
     ProbeRep.h
 )
 

@@ -43,6 +43,7 @@
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -112,6 +113,9 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&);
+
+    /// Apply the algorithm to a RF cavity.
+    virtual void visitSolenoid(const Solenoid&);
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave&);
@@ -273,6 +277,10 @@ inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
 
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+}
+
+inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
+    itsOpalBeamline_m.visit(so, *this, itsBunch_m);
 }
 
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {

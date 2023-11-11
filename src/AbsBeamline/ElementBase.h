@@ -100,6 +100,7 @@ enum class ElementType : unsigned short {
     RING,
     PROBE,
     VACUUM,
+    SOLENOID,
     SOURCE
 };
 

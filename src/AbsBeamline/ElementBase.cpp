@@ -79,6 +79,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::RBEND3D, "RBEND3D"},
     {ElementType::RING, "Ring"},
     {ElementType::SOURCE, "SOURCE"},
+    {ElementType::SOLENOID, "SOLENOID"},
     {ElementType::PROBE, "Probe"},
     {ElementType::VACUUM, "Vacuum"}};
 
@@ -248,8 +249,8 @@ bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
     if (aperture_m.first == ApertureType::CONIC_RECTANGULAR
         || aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
         Vector_t<double, 3> rRelativeToBegin = getEdgeToBegin().transformTo(r);
-        double fractionLength     = rRelativeToBegin(2) / getElementLength();
-        factor                    = fractionLength * aperture_m.second[2];
+        double fractionLength                = rRelativeToBegin(2) / getElementLength();
+        factor                               = fractionLength * aperture_m.second[2];
     }
 
     switch (aperture_m.first) {
@@ -281,7 +282,8 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
         for (int j = -1; j < 2; j += 2) {
             unsigned int idx = (i + 1) / 2 + (j + 1);
             corners[idx]     = toBegin.transformFrom(Vector_t<double, 3>({i * x, j * y, 0.0}));
-            corners[idx + 4] = toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
+            corners[idx + 4] =
+                toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
         }
     }
 
