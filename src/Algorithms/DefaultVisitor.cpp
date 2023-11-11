@@ -22,7 +22,6 @@
 //
 #include "Algorithms/DefaultVisitor.h"
 
-
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Marker.h"
@@ -33,71 +32,66 @@
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/Offset.h"
+#include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
-#include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbsBeamline/Solenoid.h"
+#include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
-#include "AbsBeamline/Probe.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
-
-
-DefaultVisitor::DefaultVisitor(const Beamline &beamline,
-                               bool backBeam, bool backTrack):
-    itsLine(beamline), back_beam(backBeam), back_track(backTrack) {
-    local_flip = back_path =
-        ( back_beam && ! back_track )  ||  ( back_track && ! back_beam );
-    flip_B     = back_beam ? -1.0 : 1.0;
-    flip_s     = back_path ? -1.0 : 1.0;
+DefaultVisitor::DefaultVisitor(const Beamline& beamline, bool backBeam, bool backTrack)
+    : itsLine(beamline), back_beam(backBeam), back_track(backTrack) {
+    local_flip = back_path = (back_beam && !back_track) || (back_track && !back_beam);
+    flip_B                 = back_beam ? -1.0 : 1.0;
+    flip_s                 = back_path ? -1.0 : 1.0;
 }
 
-
-DefaultVisitor::~DefaultVisitor()
-{}
-
+DefaultVisitor::~DefaultVisitor() {
+}
 
 void DefaultVisitor::execute() {
-    local_flip = ( back_beam && ! back_track )  ||  ( back_track && ! back_beam );
+    local_flip = (back_beam && !back_track) || (back_track && !back_beam);
     itsLine.accept(*this);
 }
 
-void DefaultVisitor::visitComponent(const Component &comp) {
+void DefaultVisitor::visitComponent(const Component& comp) {
     applyDefault(comp);
 }
 
-void DefaultVisitor::visitDrift(const Drift &drf) {
+void DefaultVisitor::visitDrift(const Drift& drf) {
     applyDefault(drf);
 }
 
-
-void DefaultVisitor::visitMarker(const Marker &mark) {
+void DefaultVisitor::visitMarker(const Marker& mark) {
     applyDefault(mark);
 }
 
-void DefaultVisitor::visitMonitor(const Monitor &mon) {
+void DefaultVisitor::visitMonitor(const Monitor& mon) {
     applyDefault(mon);
 }
 
-void DefaultVisitor::visitMultipole(const Multipole &mult) {
+void DefaultVisitor::visitMultipole(const Multipole& mult) {
     applyDefault(mult);
 }
 
-void DefaultVisitor::visitMultipoleT(const MultipoleT &multT) {
+void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) {
     applyDefault(multT);
 }
 
-void DefaultVisitor::visitMultipoleTStraight(const MultipoleTStraight &multTstraight) {
+void DefaultVisitor::visitMultipoleTStraight(const MultipoleTStraight& multTstraight) {
     applyDefault(multTstraight);
 }
 
-void DefaultVisitor::visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &multTccurv) {
+void DefaultVisitor::visitMultipoleTCurvedConstRadius(
+    const MultipoleTCurvedConstRadius& multTccurv) {
     applyDefault(multTccurv);
 }
 
-void DefaultVisitor::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &multTvcurv) {
+void DefaultVisitor::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius& multTvcurv) {
     applyDefault(multTvcurv);
 }
 
@@ -105,49 +99,49 @@ void DefaultVisitor::visitOffset(const Offset& off) {
     applyDefault(off);
 }
 
-void DefaultVisitor::visitRing(const Ring &ring) {
-   applyDefault(ring);
+void DefaultVisitor::visitRing(const Ring& ring) {
+    applyDefault(ring);
 }
 
-void DefaultVisitor::visitRFCavity(const RFCavity &cav) {
+void DefaultVisitor::visitRFCavity(const RFCavity& cav) {
     applyDefault(cav);
 }
 
-void DefaultVisitor::visitTravelingWave(const TravelingWave &trw) {
+void DefaultVisitor::visitSolenoid(const Solenoid& so) {
+    applyDefault(so);
+}
+
+void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) {
     applyDefault(trw);
 }
 
-
-void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet &spiral) {
+void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) {
     applyDefault(spiral);
 }
 
-void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet &mag) {
+void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
     applyDefault(mag);
 }
 
-void DefaultVisitor::visitProbe(const Probe &probe) {
+void DefaultVisitor::visitProbe(const Probe& probe) {
     applyDefault(probe);
 }
 
-
-void DefaultVisitor::visitBeamline(const Beamline &bl) {
+void DefaultVisitor::visitBeamline(const Beamline& bl) {
     // Default behaviour: Apply algorithm to all beamline members.
     // If flip_local is true, track from right to left.
     bl.iterate(*this, local_flip);
 }
 
-
-void DefaultVisitor::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
-    if(fep.getReflectionFlag()) {
-        local_flip = ! local_flip;
+void DefaultVisitor::visitFlaggedElmPtr(const FlaggedElmPtr& fep) {
+    if (fep.getReflectionFlag()) {
+        local_flip = !local_flip;
         fep.getElement()->accept(*this);
-        local_flip = ! local_flip;
+        local_flip = !local_flip;
     } else {
         fep.getElement()->accept(*this);
     }
 }
 
-
-void DefaultVisitor::applyDefault(const ElementBase &)
-{}
+void DefaultVisitor::applyDefault(const ElementBase&) {
+}

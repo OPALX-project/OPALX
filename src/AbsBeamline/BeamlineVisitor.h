@@ -52,15 +52,14 @@ class MultipoleTCurvedVarRadius;
 class RFCavity;
 class TravelingWave;
 class Ring;
+class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
 class VerticalFFAMagnet;
 class Probe;
 
 class BeamlineVisitor {
-
 public:
-
     BeamlineVisitor();
     virtual ~BeamlineVisitor();
 
@@ -68,65 +67,65 @@ public:
     virtual void execute() = 0;
 
     /// Apply the algorithm to a beam line.
-    virtual void visitBeamline(const Beamline &) = 0;
-    
+    virtual void visitBeamline(const Beamline&) = 0;
+
     /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component &) = 0;
+    virtual void visitComponent(const Component&) = 0;
 
     /// Apply the algorithm to a drift space.
-    virtual void visitDrift(const Drift &) = 0;
+    virtual void visitDrift(const Drift&) = 0;
 
     /// Apply the algorithm to a FlaggedElmPtr.
-    virtual void visitFlaggedElmPtr(const FlaggedElmPtr &) = 0;
+    virtual void visitFlaggedElmPtr(const FlaggedElmPtr&) = 0;
 
     /// Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker &) = 0;
+    virtual void visitMarker(const Marker&) = 0;
 
     /// Apply the algorithm to a beam position monitor.
-    virtual void visitMonitor(const Monitor &) = 0;
+    virtual void visitMonitor(const Monitor&) = 0;
 
     /// Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole &) = 0;
+    virtual void visitMultipole(const Multipole&) = 0;
 
     /// Apply the algorithm to an arbitrary multipole.
-    virtual void visitMultipoleT(const MultipoleT &) = 0;
+    virtual void visitMultipoleT(const MultipoleT&) = 0;
 
     /// Apply the algorithm to an arbitrary straight multipole.
-    virtual void visitMultipoleTStraight(const MultipoleTStraight &) = 0;
+    virtual void visitMultipoleTStraight(const MultipoleTStraight&) = 0;
 
     /// Apply the algorithm to an arbitrary curved multipole of constant radius.
-    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &) = 0;
+    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius&) = 0;
 
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
-    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &) = 0;
+    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius&) = 0;
 
     /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset &) = 0;
-    
-    /// Apply the algorithm to a RF cavity.
-    virtual void visitRFCavity(const RFCavity &) = 0;
+    virtual void visitOffset(const Offset&) = 0;
 
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &) = 0;
-    
+    /// Apply the algorithm to a RF cavity.
+    virtual void visitRFCavity(const RFCavity&) = 0;
+
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
+
     /// Apply the algorithm to a Ring element.
-    virtual void visitRing(const Ring &) = 0;
-    
+    virtual void visitRing(const Ring&) = 0;
+
+    /// Apply the algorithm to a Solenoid element.
+    virtual void visitSolenoid(const Solenoid&) = 0;
+
     /// Apply the algorithm to a traveling wave.
-    virtual void visitTravelingWave(const TravelingWave &) = 0;
-    
+    virtual void visitTravelingWave(const TravelingWave&) = 0;
+
     /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &) = 0;
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&) = 0;
 
     /// Apply the algorithm to a Probe.
-    virtual void visitProbe(const Probe &) = 0;
+    virtual void visitProbe(const Probe&) = 0;
 
-    
 private:
-
     // Not implemented.
-    BeamlineVisitor(const BeamlineVisitor &);
-    void operator=(const BeamlineVisitor &);
+    BeamlineVisitor(const BeamlineVisitor&);
+    void operator=(const BeamlineVisitor&);
 };
 
-
-#endif // CLASSIC_BeamlineVisitor_HH
+#endif  // CLASSIC_BeamlineVisitor_HH
