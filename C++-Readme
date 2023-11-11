@@ -10,4 +10,29 @@ Expressions.h
     template <class T> using PtrToScalar = std::unique_ptr<Scalar<T>>;
 
 
-Noe: giving up tp replace the Classic/MemoryManagement/OwnPrt.h 
+Noe: giving up tp replace the Classic/MemoryManagement/OwnPrt.h
+
+
+
+
+
+Add new element XXX:
+
+	AbsBeamline/ElementBase.h,cpp
+    Algorithms/DefaultVisitor.h,cpp
+    Algorithms/ParallelTracker.h
+    OpalConfigure/Configure.cpp
+    Algorithms/ParallelTracker.h    
+    AbsBeamline/BeamlineVisitor.h
+
+    AbsBeamline/XXX.cpp
+	AbsBeamline/XXX.h
+    AbsBeamline/CMakeLists.txt
+    BeamlineCore/XXXRep.cpp
+	BeamlineCore/XXXRep.h
+    BeamlineCore/CMakeLists.txt
+    Elements/OpalXXX.cpp
+	Elements/OpalXXX.h
+	Elements/CMakeLists.txt
+
+    
