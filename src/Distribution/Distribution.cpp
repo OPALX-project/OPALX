@@ -96,7 +96,8 @@ Distribution::Distribution(const std::string& name, Distribution* parent)
 }
 
 Distribution::~Distribution() {
-    gsl_rng_free(randGen_m);
+    if (randGen_m)
+        gsl_rng_free(randGen_m);
 }
 
 /**
