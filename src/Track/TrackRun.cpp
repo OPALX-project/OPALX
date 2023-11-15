@@ -129,10 +129,6 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 
     const Vector_t<int, 3> nr(8);
 
-    //    using bunch_type = PartBunch_t;
-
-    // std::unique_ptr<bunch_type> P;
-
     ippl::NDIndex<3> domain;
     for (unsigned i = 0; i < 3; i++) {
         domain[i] = ippl::Index(nr[i]);
