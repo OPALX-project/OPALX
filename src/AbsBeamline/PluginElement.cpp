@@ -19,7 +19,7 @@
 #include "AbsBeamline/PluginElement.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"

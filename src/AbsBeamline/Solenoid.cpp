@@ -20,8 +20,8 @@
 
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.hpp"
 #include "Fields/Fieldmap.h"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 
 #include <fstream>
@@ -77,7 +77,13 @@ bool Solenoid::getFast() const {
 
 bool Solenoid::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview                              = pc->R.getView();
+    auto Pview                              = pc->P.getView();
+
+    const Vector_t<double, 3> R = Rview(i);
+    const Vector_t<double, 3> P = Pview(i);
+    return apply(R, P, t, E, B);
 }
 
 bool Solenoid::apply(

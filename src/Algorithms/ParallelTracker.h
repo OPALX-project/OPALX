@@ -289,18 +289,22 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
 
 inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     int localNum = itsBunch_m->getLocalNum();
+    /* \todo
     for (int i = 0; i < localNum; ++i)
         pusher.kick(
             itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->Ef(i), itsBunch_m->Bf(i),
             itsBunch_m->dt(i));
+    */
 }
 
 inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     itsBunch_m->switchToUnitlessPositions(true);
 
-    for (unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
+    /* \todo
+        for (unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
         pusher.push(itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->dt(i));
     }
+    */
     itsBunch_m->switchOffUnitlessPositions(true);
 }
 

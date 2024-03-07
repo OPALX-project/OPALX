@@ -31,7 +31,7 @@
 #include "AbstractObjects/RangeRep.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/TableRowRep.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "Expressions/ABinary.h"
 #include "Expressions/AColumn.h"
 #include "Expressions/AList.h"

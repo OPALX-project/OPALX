@@ -56,13 +56,13 @@ bool LF2<FieldFunction, Arguments...>::kick_m(
     if (outOfBound)
         return false;
 
-    double const q = bunch->Q(0) / Physics::q_e;  // For now all particles have the same charge
-    double const M =
-        bunch->M(0) * Units::GeV2eV;  // For now all particles have the same rest energy
+    double const q = 1;  // \todo  = bunch->Q(0) / Physics::q_e;
+    double const M = 1;  // \todo  = bunch->M(0) * Units::GeV2eV;
+                         // same rest energy
 
     BorisPusher pusher;
 
-    pusher.kick(bunch->R(i), bunch->P(i), externalE, externalB, h, M, q);
+    // \todo pusher.kick(bunch->R(i), bunch->P(i), externalE, externalB, h, M, q);
 
     return true;
 }

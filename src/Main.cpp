@@ -51,10 +51,6 @@
 #include <iostream>
 #include <set>
 
-#include "OPALtypes.h"
-
-#include "Algorithms/PartBunch.hpp"
-
 Inform* gmsg;
 
 namespace {

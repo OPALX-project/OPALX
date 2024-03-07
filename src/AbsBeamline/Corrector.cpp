@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
