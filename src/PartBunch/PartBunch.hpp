@@ -56,6 +56,8 @@ diagnostics(): calculate statistics and maybee write tp h5 and stat files
 
 #include "Distribution/Distribution.h"
 
+// #include "Structure/FieldSolverCmd.h"
+
 #include "Algorithms/PartData.h"
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
@@ -251,19 +253,23 @@ public:
             this->domain_m[i] = ippl::Index(nr[i]);
         }
 
-        this->decomp_m.fill(true);  // all parallel
-
         /*
           via OPALdist_m we get all information about
           the distribution
+
+          - read fromFile
+          - emmit from cathod
+          - inject
          */
+
         Vector_t<double, 3> sigmaR = OPALdist_m->getSigmaR();
         Vector_t<double, 3> sigmaP = OPALdist_m->getSigmaP();
+        this->decomp_m.fill(true);
 
-        // some fake setup to get things going
+        // some fake setup to get a distribution going
 
         this->rmin_m = 0.0;
-        this->rmax_m = 1.0;
+        this->rmax_m = sigmaR;
 
         Vector_t<double, Dim> length = this->rmax_m - this->rmin_m;
         this->hr_m                   = length / this->nr_m;

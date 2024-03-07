@@ -235,9 +235,9 @@ void TrackRun::execute() {
     *gmsg << *dist_m << endl;
 
     fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
-    *gmsg << *fs_m << endl;
-
+    const Vector_t<bool, 3> domainDecomposition = fs_m->getDomDec();
     const Vector_t<int, 3> nr(fs_m->getNX(), fs_m->getNY(), fs_m->getNZ());
+    *gmsg << *fs_m << endl;
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;
