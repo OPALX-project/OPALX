@@ -38,9 +38,9 @@ using namespace Expressions;
 namespace {
     enum {
         TYPE,  // The field solver name
-        MX,    // mesh sixe in x
-        MY,    // mesh sixe in y
-        MZ,    // mesh sixe in z
+        NX,    // mesh sixe in x
+        NY,    // mesh sixe in y
+        NZ,    // mesh sixe in z
         SIZE
     };
 }
@@ -51,9 +51,9 @@ FieldSolverCmd::FieldSolverCmd()
     itsAttr[TYPE] =
         Attributes::makePredefinedString("TYPE", "Name of the attached field solver.", {"NONE"});
 
-    itsAttr[MX] = Attributes::makeReal("MX", "Meshsize in x");
-    itsAttr[MY] = Attributes::makeReal("MY", "Meshsize in y");
-    itsAttr[MZ] = Attributes::makeReal("MT", "Meshsize in z(t)");
+    itsAttr[NX] = Attributes::makeReal("NX", "Meshsize in x");
+    itsAttr[NY] = Attributes::makeReal("NY", "Meshsize in y");
+    itsAttr[NZ] = Attributes::makeReal("NZ", "Meshsize in z");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -70,8 +70,8 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
 }
 
 void FieldSolverCmd::execute() {
-    //    setFieldSolverCmdType();
-    // update();
+    setFieldSolverCmdType();
+    update();
 }
 
 FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
@@ -87,38 +87,44 @@ std::string FieldSolverCmd::getType() {
     return Attributes::getString(itsAttr[TYPE]);
 }
 
-double FieldSolverCmd::getMX() const {
-    return Attributes::getReal(itsAttr[MX]);
+double FieldSolverCmd::getNX() const {
+    return Attributes::getReal(itsAttr[NX]);
 }
 
-double FieldSolverCmd::getMY() const {
-    return Attributes::getReal(itsAttr[MY]);
+double FieldSolverCmd::getNY() const {
+    return Attributes::getReal(itsAttr[NY]);
 }
 
-double FieldSolverCmd::getMZ() const {
-    return Attributes::getReal(itsAttr[MZ]);
+double FieldSolverCmd::getNZ() const {
+    return Attributes::getReal(itsAttr[NZ]);
 }
 
-void FieldSolverCmd::setMX(double value) {
-    Attributes::setReal(itsAttr[MX], value);
+void FieldSolverCmd::setNX(double value) {
+    Attributes::setReal(itsAttr[NX], value);
 }
 
-void FieldSolverCmd::setMY(double value) {
-    Attributes::setReal(itsAttr[MY], value);
+void FieldSolverCmd::setNY(double value) {
+    Attributes::setReal(itsAttr[NY], value);
 }
 
-void FieldSolverCmd::setMZ(double value) {
-    Attributes::setReal(itsAttr[MZ], value);
+void FieldSolverCmd::setNZ(double value) {
+    Attributes::setReal(itsAttr[NZ], value);
 }
 
 void FieldSolverCmd::update() {
+    if (itsAttr[TYPE]) {
+        fsName_m = getType();
+    }
 }
 
 void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
-        {"NONE", FieldSolverCmdType::NONE}};
+        {"NONE", FieldSolverCmdType::NONE},
+        {"FFT", FieldSolverCmdType::FFT},
+    };
 
     fsName_m = getType();
+
     if (fsName_m.empty()) {
         throw OpalException(
             "FieldSolverCmd::setFieldSolverCmdType",
@@ -138,9 +144,9 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* TYPE         " << fsName_m << '\n'
        << "* N-PROCESSORS " << ippl::Comm->size() << '\n'
-       << "* MX           " << Attributes::getReal(itsAttr[MX]) << '\n'
-       << "* MY           " << Attributes::getReal(itsAttr[MY]) << '\n'
-       << "* MZ           " << Attributes::getReal(itsAttr[MZ]) << '\n';
+       << "* NX           " << Attributes::getReal(itsAttr[NX]) << '\n'
+       << "* NY           " << Attributes::getReal(itsAttr[NY]) << '\n'
+       << "* NZ           " << Attributes::getReal(itsAttr[NZ]) << '\n';
     os << "* ********************************************************************************** "
        << endl;
     return os;

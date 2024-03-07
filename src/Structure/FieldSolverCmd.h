@@ -25,7 +25,7 @@
 #include "Algorithms/PartData.h"
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0 };
 
 class FieldSolverCmd : public Definition {
 public:
@@ -43,22 +43,22 @@ public:
     std::string getType();
 
     /// Return meshsize
-    double getMX() const;
+    double getNX() const;
 
     /// Return meshsize
-    double getMY() const;
+    double getNY() const;
 
     /// Return meshsize
-    double getMZ() const;
+    double getNZ() const;
 
     /// Store emittance for mode 1.
-    void setMX(double);
+    void setNX(double);
 
     /// Store emittance for mode 2.
-    void setMY(double);
+    void setNY(double);
 
     /// Store emittance for mode 3.
-    void setMZ(double);
+    void setNZ(double);
 
     /// Update the field solver data.
     virtual void update();
