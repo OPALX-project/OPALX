@@ -56,7 +56,7 @@ diagnostics(): calculate statistics and maybee write tp h5 and stat files
 
 #include "Distribution/Distribution.h"
 
-// #include "Structure/FieldSolverCmd.h"
+#include "Structure/FieldSolverCmd.h"
 
 #include "Algorithms/PartData.h"
 
@@ -228,15 +228,15 @@ private:
     double periodLength_m;
 
     Distribution* OPALdist_m;
+    FieldSolverCmd* OPALFieldSolver_m;
 
 public:
     PartBunch(
-        double totalCharge, Vector_t<int, Dim> nr, size_t totalP, int nt, double lbt,
-        std::string integration_method, Distribution* OPALdistribution)
+        double totalCharge, size_t totalP, int nt, double lbt, std::string integration_method,
+        Distribution* OPALdistribution, FieldSolverCmd* OPALFieldSolver)
         : ippl::PicManager<
             T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
           time_m(0.0),
-          nr_m(nr),
           totalP_m(totalP),
           nt_m(nt),
           lbt_m(lbt),
@@ -246,12 +246,29 @@ public:
           solver_m(""),
           totalQ_m(totalCharge),
           isFirstRepartition_m(true),
-          OPALdist_m(OPALdistribution) {
+          OPALdist_m(OPALdistribution),
+          OPALFieldSolver_m(OPALFieldSolver) {
         Inform m("PartBunch() ");
 
+        /*
+          get the needed information from OPAL FieldSolver command
+        */
+
+        nr_m = Vector_t<int, Dim>(
+            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+
+        const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
+
         for (unsigned i = 0; i < Dim; i++) {
-            this->domain_m[i] = ippl::Index(nr[i]);
+            this->domain_m[i] = ippl::Index(nr_m[i]);
+            this->decomp_m[i] = domainDecomposition[i];
         }
+
+        bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
+
+        /*
+          get the needed information from OPAL Distribution  command
+        */
 
         /*
           via OPALdist_m we get all information about
@@ -264,7 +281,6 @@ public:
 
         Vector_t<double, 3> sigmaR = OPALdist_m->getSigmaR();
         Vector_t<double, 3> sigmaP = OPALdist_m->getSigmaP();
-        this->decomp_m.fill(true);
 
         // some fake setup to get a distribution going
 
@@ -284,8 +300,6 @@ public:
 
         using ParticleContainer_t = ParticleContainer<T, Dim>;
         using FieldContainer_t    = FieldContainer<T, Dim>;
-
-        bool isAllPeriodic = true;
 
         this->setFieldContainer(std::make_shared<FieldContainer_t>(
             this->hr_m, this->rmin_m, this->rmax_m, this->decomp_m, this->domain_m, this->origin_m,
