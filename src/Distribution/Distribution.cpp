@@ -20,12 +20,11 @@
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
-#include "PartBunch/PartBunch.hpp"
 #include "BasicActions/Option.h"
-// #include "DataSource/DataConnect.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "OPALtypes.h"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
@@ -56,6 +55,10 @@
 extern Inform* gmsg;
 
 constexpr double SMALLESTCUTOFF = 1e-12;
+
+namespace DISTRIBUTION {
+    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE };
+}
 
 namespace {
     matrix_t getUnit6x6() {
@@ -91,13 +94,9 @@ Distribution::Distribution()
 
 Distribution::Distribution(const std::string& name, Distribution* parent)
     : Definition(name, parent) {
-    gsl_rng_env_setup();
-    randGen_m = gsl_rng_alloc(gsl_rng_default);
 }
 
 Distribution::~Distribution() {
-    if (randGen_m)
-        *gmsg << " gsl_rng_free(randGen_m); " << endl;
 }
 
 /**
@@ -130,13 +129,11 @@ Distribution* Distribution::clone(const std::string& name) {
 }
 
 void Distribution::execute() {
+    setAttributes();
+    update();
 }
 
 void Distribution::update() {
-}
-
-void Distribution::createOpalT(
-    PartBunch_t* beam, std::vector<Distribution*> addedDistributions, size_t& numberOfParticles) {
 }
 
 void Distribution::create(size_t& numberOfParticles, double massIneV, double charge) {
@@ -160,8 +157,6 @@ void Distribution::create(size_t& numberOfParticles, double massIneV, double cha
     *gmsg << level2 << "* Generation of distribution with seed = " << mySeed << "\n"
           << "* isn't scalable with number of particles and cores." << endl;
 
-    gsl_rng_set(randGen_m, mySeed);
-
     switch (distrTypeT_m) {
         case DistributionType::GAUSS:
             createDistributionGauss(numberOfLocalParticles, massIneV);
@@ -169,9 +164,6 @@ void Distribution::create(size_t& numberOfParticles, double massIneV, double cha
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
-
-    if (Options::seed != -1)
-        Options::seed = gsl_rng_uniform_int(randGen_m, gsl_rng_max(randGen_m));
 }
 
 Distribution* Distribution::find(const std::string& name) {
@@ -192,8 +184,7 @@ Inform& Distribution::printInfo(Inform& os) const {
     if (OpalData::getInstance()->inRestartRun()) {
         os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
-        printDist(os, 0);
-
+        printDistGauss(os);
         os << "* " << endl;
         os << "* Distribution is injected." << endl;
     }
@@ -212,12 +203,13 @@ void Distribution::setDistParametersGauss(double massIneV) {
      */
 
     /*
-    cutoffP_m = Vector_t<double, 3>(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPX]),
+    cutoffP_m = ippl::Vector<double,
+    3>(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPX]),
                          Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPY]),
                          Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPZ]));
 
 
-    cutoffR_m = Vector_t<double, 3>(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
+    cutoffR_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
                          Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFY]),
                          Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFLONG]));
 
@@ -247,25 +239,9 @@ void Distribution::printDistGauss(Inform& os) const {
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 }
 
-gsl_qrng* Distribution::selectRandomGenerator(std::string, unsigned int dimension) {
-    gsl_qrng* quasiRandGen = nullptr;
-    if (Options::rngtype != std::string("RANDOM")) {
-        *ippl::Info << "RNGTYPE= " << Options::rngtype << endl;
-        if (Options::rngtype == std::string("HALTON")) {
-            quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, dimension);
-        } else if (Options::rngtype == std::string("SOBOL")) {
-            quasiRandGen = gsl_qrng_alloc(gsl_qrng_sobol, dimension);
-        } else if (Options::rngtype == std::string("NIEDERREITER")) {
-            quasiRandGen = gsl_qrng_alloc(gsl_qrng_niederreiter_2, dimension);
-        } else {
-            *ippl::Info << "RNGTYPE= " << Options::rngtype << " not known, using HALTON" << endl;
-            quasiRandGen = gsl_qrng_alloc(gsl_qrng_halton, dimension);
-        }
-    }
-    return quasiRandGen;
-}
-
 void Distribution::setAttributes() {
+    setSigmaR_m();
+    setSigmaP_m();
 }
 
 void Distribution::setDistType() {
@@ -284,14 +260,14 @@ void Distribution::setDistType() {
 }
 
 void Distribution::setSigmaR_m() {
-    sigmaR_m = Vector_t<double, 3>(
+    sigmaR_m = ippl::Vector<double, 3>(
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAX])),
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAY])),
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAZ])));
 }
 
 void Distribution::setSigmaP_m() {
-    sigmaP_m = Vector_t<double, 3>(
+    sigmaP_m = ippl::Vector<double, 3>(
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPX])),
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPY])),
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPZ])));

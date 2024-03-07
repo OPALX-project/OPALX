@@ -51,13 +51,10 @@ public:
     /// Return meshsize
     double getNZ() const;
 
-    /// Store emittance for mode 1.
     void setNX(double);
 
-    /// Store emittance for mode 2.
     void setNY(double);
 
-    /// Store emittance for mode 3.
     void setNZ(double);
 
     /// Update the field solver data.

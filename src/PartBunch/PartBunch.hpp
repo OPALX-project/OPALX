@@ -42,10 +42,9 @@ diagnostics(): calculate statistics and maybee write tp h5 and stat files
 #include <memory>
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-
+#include "Attributes/Attributes.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
-
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
@@ -55,11 +54,11 @@ diagnostics(): calculate statistics and maybee write tp h5 and stat files
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 
+#include "Distribution/Distribution.h"
+
 #include "Algorithms/PartData.h"
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
-// const char* TestName = "OPALTEST";
 
 // define functions used in sampling particles
 struct CustomDistributionFunctions {
@@ -212,7 +211,7 @@ private:
     double centroid_m[2 * Dim];
 
     /// 6x6 matrix of the moments of the beam
-    // matrix_t moments_m;
+    matrix_t moments_m;
 
     /// holds the actual time of the integration
     double t_m;
@@ -226,10 +225,12 @@ private:
     bool dcBeam_m;
     double periodLength_m;
 
+    Distribution* OPALdist_m;
+
 public:
     PartBunch(
         double totalCharge, Vector_t<int, Dim> nr, size_t totalP, int nt, double lbt,
-        std::string integration_method)
+        std::string integration_method, Distribution* OPALdistribution)
         : ippl::PicManager<
             T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
           time_m(0.0),
@@ -242,13 +243,22 @@ public:
           integration_method_m(integration_method),
           solver_m(""),
           totalQ_m(totalCharge),
-          isFirstRepartition_m(true) {
+          isFirstRepartition_m(true),
+          OPALdist_m(OPALdistribution) {
         Inform m("PartBunch() ");
 
         for (unsigned i = 0; i < Dim; i++) {
             this->domain_m[i] = ippl::Index(nr[i]);
         }
+
         this->decomp_m.fill(true);  // all parallel
+
+        /*
+          via OPALdist_m we get all information about
+          the distribution
+         */
+        Vector_t<double, 3> sigmaR = OPALdist_m->getSigmaR();
+        Vector_t<double, 3> sigmaP = OPALdist_m->getSigmaP();
 
         // some fake setup to get things going
 
@@ -265,8 +275,6 @@ public:
 
         this->alpha_m = -0.5 * this->dt_m;
         this->DrInv_m = 1.0 / (1 + (std::pow((this->alpha_m * this->Bext_m), 2)));
-
-        m << "nt " << this->nt_m << " Np= " << this->totalP_m << " grid = " << this->nr_m << endl;
 
         using ParticleContainer_t = ParticleContainer<T, Dim>;
         using FieldContainer_t    = FieldContainer<T, Dim>;
