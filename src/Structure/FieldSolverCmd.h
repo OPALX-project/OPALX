@@ -30,7 +30,7 @@
 enum class FieldSolverCmdType : short { NONE = -1, FFT = 0 };
 
 // The attributes of class FieldSolverCmd.
-namespace {
+namespace FIELDSOLVER {
     enum {
         TYPE,      // The field solver name
         NX,        // mesh sixe in x
@@ -110,8 +110,9 @@ inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
 }
 inline ippl::Vector<bool, 3> FieldSolverCmd::getDomDec() const {
     return ippl::Vector<bool, 3>(
-        Attributes::getBool(itsAttr[PARFFTX]), Attributes::getBool(itsAttr[PARFFTY]),
-        Attributes::getBool(itsAttr[PARFFTZ]));
+        Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
+        Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
+        Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]));
 }
 
 inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) {
