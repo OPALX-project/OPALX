@@ -235,8 +235,6 @@ void TrackRun::execute() {
     *gmsg << *dist_m << endl;
 
     fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
-    const Vector_t<bool, 3> domainDecomposition = fs_m->getDomDec();
-    const Vector_t<int, 3> nr(fs_m->getNX(), fs_m->getNY(), fs_m->getNZ());
     *gmsg << *fs_m << endl;
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
@@ -253,7 +251,7 @@ void TrackRun::execute() {
      */
 
     bunch_m = std::make_unique<bunch_type>(
-        Qtot, nr, beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m);
+        Qtot, beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
 
     bunch_m->setT(0.005);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
@@ -281,10 +279,12 @@ void TrackRun::execute() {
 
     initDataSink();
 
+    /*
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;
         *gmsg << *dist_m << endl;
     }
+    */
 
     if (bunch_m->getTotalNum() > 0) {
         double spos = Track::block->zstart;
