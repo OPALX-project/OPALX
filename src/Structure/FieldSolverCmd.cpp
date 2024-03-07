@@ -34,25 +34,6 @@ using namespace Expressions;
 
 // TODO: o add a FIELD for DISCRETIZATION, MAXITERS, TOL...
 
-// The attributes of class FieldSolverCmd.
-namespace {
-    enum {
-        TYPE,      // The field solver name
-        NX,        // mesh sixe in x
-        NY,        // mesh sixe in y
-        NZ,        // mesh sixe in z
-        PARFFTX,   // parallelized grid in x
-        PARFFTY,   // parallelized grid in y
-        PARFFTZ,   // parallelized grid in z
-        BCFFTX,    // boundary condition in x [FFT + AMR_MG only]
-        BCFFTY,    // boundary condition in y [FFT + AMR_MG only]
-        BCFFTZ,    // boundary condition in z [FFT + AMR_MG only]
-        GREENSF,   // holds greensfunction to be used [FFT + P3M only]
-        BBOXINCR,  // how much the boundingbox is increased
-        SIZE
-    };
-}
-
 FieldSolverCmd::FieldSolverCmd()
     : Definition(
         SIZE, "FIELDSOLVER", "The \"FIELDSOLVER\" statement defines data for a the field solver") {

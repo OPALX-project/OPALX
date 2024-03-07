@@ -23,9 +23,30 @@
 #include <string>
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
+#include "Attributes/Attributes.h"
+
 #include "Ippl.h"
 
 enum class FieldSolverCmdType : short { NONE = -1, FFT = 0 };
+
+// The attributes of class FieldSolverCmd.
+namespace {
+    enum {
+        TYPE,      // The field solver name
+        NX,        // mesh sixe in x
+        NY,        // mesh sixe in y
+        NZ,        // mesh sixe in z
+        PARFFTX,   // parallelized grid in x
+        PARFFTY,   // parallelized grid in y
+        PARFFTZ,   // parallelized grid in z
+        BCFFTX,    // boundary condition in x [FFT + AMR_MG only]
+        BCFFTY,    // boundary condition in y [FFT + AMR_MG only]
+        BCFFTZ,    // boundary condition in z [FFT + AMR_MG only]
+        GREENSF,   // holds greensfunction to be used [FFT + P3M only]
+        BBOXINCR,  // how much the boundingbox is increased
+        SIZE
+    };
+}
 
 class FieldSolverCmd : public Definition {
 public:
@@ -68,6 +89,8 @@ public:
     void setFieldSolverCmdType();
     FieldSolverCmdType getFieldSolverCmdType() const;
 
+    ippl::Vector<bool, 3> getDomDec() const;
+
     Inform& printInfo(Inform& os) const;
 
 private:
@@ -84,6 +107,11 @@ private:
 
 inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
     return fsType_m;
+}
+inline ippl::Vector<bool, 3> FieldSolverCmd::getDomDec() const {
+    return ippl::Vector<bool, 3>(
+        Attributes::getBool(itsAttr[PARFFTX]), Attributes::getBool(itsAttr[PARFFTY]),
+        Attributes::getBool(itsAttr[PARFFTZ]));
 }
 
 inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) {
