@@ -37,10 +37,18 @@ using namespace Expressions;
 // The attributes of class FieldSolverCmd.
 namespace {
     enum {
-        TYPE,  // The field solver name
-        NX,    // mesh sixe in x
-        NY,    // mesh sixe in y
-        NZ,    // mesh sixe in z
+        TYPE,      // The field solver name
+        NX,        // mesh sixe in x
+        NY,        // mesh sixe in y
+        NZ,        // mesh sixe in z
+        PARFFTX,   // parallelized grid in x
+        PARFFTY,   // parallelized grid in y
+        PARFFTZ,   // parallelized grid in z
+        BCFFTX,    // boundary condition in x [FFT + AMR_MG only]
+        BCFFTY,    // boundary condition in y [FFT + AMR_MG only]
+        BCFFTZ,    // boundary condition in z [FFT + AMR_MG only]
+        GREENSF,   // holds greensfunction to be used [FFT + P3M only]
+        BBOXINCR,  // how much the boundingbox is increased
         SIZE
     };
 }
@@ -54,6 +62,29 @@ FieldSolverCmd::FieldSolverCmd()
     itsAttr[NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[NY] = Attributes::makeReal("NY", "Meshsize in y");
     itsAttr[NZ] = Attributes::makeReal("NZ", "Meshsize in z");
+
+    itsAttr[PARFFTX] =
+        Attributes::makeBool("PARFFTX", "True, dimension 0 i.e x is parallelized", false);
+
+    itsAttr[PARFFTY] =
+        Attributes::makeBool("PARFFTY", "True, dimension 1 i.e y is parallelized", false);
+
+    itsAttr[PARFFTZ] =
+        Attributes::makeBool("PARFFTZ", "True, dimension 2 i.e z is parallelized", true);
+
+    itsAttr[BCFFTX] = Attributes::makePredefinedString(
+        "BCFFTX", "Boundary conditions in x.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+
+    itsAttr[BCFFTY] = Attributes::makePredefinedString(
+        "BCFFTY", "Boundary conditions in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+
+    itsAttr[BCFFTZ] = Attributes::makePredefinedString(
+        "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+
+    itsAttr[GREENSF] = Attributes::makePredefinedString(
+        "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"}, "INTEGRATED");
+
+    itsAttr[BBOXINCR] = Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -146,7 +177,28 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* N-PROCESSORS " << ippl::Comm->size() << '\n'
        << "* NX           " << Attributes::getReal(itsAttr[NX]) << '\n'
        << "* NY           " << Attributes::getReal(itsAttr[NY]) << '\n'
-       << "* NZ           " << Attributes::getReal(itsAttr[NZ]) << '\n';
+       << "* NZ           " << Attributes::getReal(itsAttr[NZ]) << '\n'
+       << "* BBOXINCR     " << Attributes::getReal(itsAttr[BBOXINCR]) << '\n'
+       << "* GREENSF      " << Attributes::getString(itsAttr[GREENSF]) << endl;
+
+    if (Attributes::getBool(itsAttr[PARFFTX])) {
+        os << "* XDIM         parallel  " << endl;
+    } else {
+        os << "* XDIM         serial  " << endl;
+    }
+
+    if (Attributes::getBool(itsAttr[PARFFTY])) {
+        os << "* YDIM         parallel  " << endl;
+    } else {
+        os << "* YDIM         serial  " << endl;
+    }
+
+    if (Attributes::getBool(itsAttr[PARFFTZ])) {
+        os << "* ZDIM      parallel  " << endl;
+    } else {
+        os << "* ZDIM      serial  " << endl;
+    }
+
     os << "* ********************************************************************************** "
        << endl;
     return os;

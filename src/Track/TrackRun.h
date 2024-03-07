@@ -66,13 +66,11 @@ private:
     void setRunMethod();
     std::string getRunMethodName() const;
 
-    void setupTracker();
-    void setupFieldsolver();
     void initDataSink();
 
-    void setBoundaryGeometry();
+    void setupBoundaryGeometry();
 
-    double setDistributionParallelT(Beam* beam);
+    double setupDistribution(Beam* beam);
 
     Tracker* itsTracker_m;
 
@@ -86,10 +84,14 @@ private:
 
     H5PartWrapper* phaseSpaceSink_m;
 
-    OpalData* opal;
+    OpalData* opal_m;
+
+    /*
+
+      this is the ippl bunch
+    */
 
     using bunch_type = PartBunch_t;
-
     std::unique_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
@@ -99,7 +101,11 @@ private:
     RunMethod method_m;
     static const boost::bimap<RunMethod, std::string> stringMethod_s;
 
-    // macromass and charge for simulation particles
+    /*
+      \todo this is only for one bunch / beam
+    */
+
+    // macro mass / charge for simulation particles
     double macromass_m;
     double macrocharge_m;
 };
