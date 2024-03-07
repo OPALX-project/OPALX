@@ -19,7 +19,7 @@
 #define CLASSIC_Monitor_HH
 
 #include "AbsBeamline/Component.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Structure/LossDataSink.h"
 

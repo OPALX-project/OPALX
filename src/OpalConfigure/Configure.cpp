@@ -50,7 +50,7 @@
 
 // Table-related commands.
 #include "Structure/Beam.h"
-#include "Structure/FieldSolver.h"
+#include "Structure/FieldSolverCmd.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -110,7 +110,7 @@ namespace {
         opal->create(new MacroCmd());
 
         opal->create(new Beam());
-        opal->create(new FieldSolver());
+        opal->create(new FieldSolverCmd());
         opal->create(new Distribution());
     }
 

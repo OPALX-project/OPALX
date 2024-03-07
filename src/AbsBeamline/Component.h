@@ -26,6 +26,8 @@
 #include "Fields/EMField.h"
 #include "OPALTypes.h"
 
+using ParticleContainer_t = ParticleContainer<double, 3>;
+
 class PartData;
 
 template <class T, int N>

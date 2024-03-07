@@ -20,7 +20,7 @@
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/PartBins.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "BasicActions/Option.h"
 // #include "DataSource/DataConnect.h"
 #include "Distribution/LaserProfile.h"
@@ -97,7 +97,7 @@ Distribution::Distribution(const std::string& name, Distribution* parent)
 
 Distribution::~Distribution() {
     if (randGen_m)
-        gsl_rng_free(randGen_m);
+        *gmsg << " gsl_rng_free(randGen_m); " << endl;
 }
 
 /**

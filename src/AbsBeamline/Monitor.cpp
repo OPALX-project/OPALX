@@ -19,7 +19,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"

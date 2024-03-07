@@ -19,7 +19,7 @@
 #define DISTRIBUTIONMOMENTS_H
 
 #include "AbsBeamline/Component.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 
 // #include "Matrix.h"
 
