@@ -18,17 +18,12 @@
 #ifndef OPAL_Distribution_HH
 #define OPAL_Distribution_HH
 
-#include "PartBunch/PartBunch.hpp"
-#include "OPALtypes.h"
+#include "Ippl.h"
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 
 #include "Attributes/Attributes.h"
-
-#include <gsl/gsl_histogram.h>
-#include <gsl/gsl_qrng.h>
-#include <gsl/gsl_rng.h>
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
@@ -40,17 +35,9 @@
 
 class Beam;
 class Beamline;
-
-// template <class T, unsigned Dim>
-// class PartBunch;
-
 class H5PartWrapper;
 
 enum class DistributionType : short { NODIST = -1, GAUSS };
-
-namespace DISTRIBUTION {
-    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE };
-}
 
 class Distribution : public Definition {
 public:
@@ -67,11 +54,11 @@ public:
 
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
-    void createOpalT(
-        PartBunch_t* beam, std::vector<Distribution*> addedDistributions,
-        size_t& numberOfParticles);
+    // void createOpalT(
+    //     PartBunch_t* beam, std::vector<Distribution*> addedDistributions,
+    //     size_t& numberOfParticles);
 
-    void createOpalT(PartBunch_t* beam, size_t& numberOfParticles);
+    // void createOpalT(PartBunch_t* beam, size_t& numberOfParticles);
 
     static Distribution* find(const std::string& name);
 
@@ -80,8 +67,11 @@ public:
 
     Inform& printInfo(Inform& os) const;
 
-    Vector_t<double, 3> get_pmean() const;
-    Vector_t<double, 3> get_xmean() const;
+    ippl::Vector<double, 3> get_pmean() const;
+    ippl::Vector<double, 3> get_xmean() const;
+
+    ippl::Vector<double, 3> getSigmaR() const;
+    ippl::Vector<double, 3> getSigmaP() const;
 
     void setDistType();
 
@@ -147,11 +137,11 @@ private:
 
     void createDistributionGauss(size_t numberOfParticles, double massIneV);
 
-    void initializeBeam(PartBunch_t* beam);
+    //
+    //
+    // void initializeBeam(PartBunch_t* beam);
     void printDist(Inform& os, size_t numberOfParticles) const;
     void printDistGauss(Inform& os) const;
-
-    gsl_qrng* selectRandomGenerator(std::string, unsigned int dimension);
 
     void setAttributes();
 
@@ -170,11 +160,9 @@ private:
     PartData particleRefData_m;  /// Reference data for particle type (charge,
                                  /// mass etc.)
 
-    gsl_rng* randGen_m;  /// Random number generator
-
     size_t totalNumberParticles_m;
 
-    Vector_t<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
+    ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
 
     DistributionType distrTypeT_m;
 };
@@ -183,11 +171,19 @@ inline Inform& operator<<(Inform& os, const Distribution& d) {
     return d.printInfo(os);
 }
 
-inline Vector_t<double, 3> Distribution::get_pmean() const {
+inline ippl::Vector<double, 3> Distribution::getSigmaR() const {
+    return sigmaR_m;
+}
+
+inline ippl::Vector<double, 3> Distribution::getSigmaP() const {
+    return sigmaP_m;
+}
+
+inline ippl::Vector<double, 3> Distribution::get_pmean() const {
     return pmean_m;
 }
 
-inline Vector_t<double, 3> Distribution::get_xmean() const {
+inline ippl::Vector<double, 3> Distribution::get_xmean() const {
     return xmean_m;
 }
 
@@ -278,8 +274,8 @@ public:
 
     Inform& printInfo(Inform& os) const;
 
-    Vector_t<double, 3> get_pmean() const;
-    Vector_t<double, 3> get_xmean() const;
+    ippl::Vector<double, 3> get_pmean() const;
+    ippl::Vector<double, 3> get_xmean() const;
 
     void setDistType();
 
@@ -372,7 +368,7 @@ private:
 
     size_t totalNumberParticles_m;
 
-    Vector_t<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
+    ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
 
     DistributionType distrTypeT_m;
 };
@@ -381,11 +377,11 @@ inline Inform& operator<<(Inform& os, const Distribution& d) {
     return d.printInfo(os);
 }
 
-inline Vector_t<double, 3> Distribution::get_pmean() const {
+inline ippl::Vector<double, 3> Distribution::get_pmean() const {
     return pmean_m;
 }
 
-inline Vector_t<double, 3> Distribution::get_xmean() const {
+inline ippl::Vector<double, 3> Distribution::get_xmean() const {
     return xmean_m;
 }
 
