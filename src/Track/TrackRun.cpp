@@ -158,8 +158,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 
     *gmsg << "Make bunch object ... ";
 
-    bunch_m =
-        std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParallel, Q, &Track::block->reference);
+    bunch_m = std::make_unique<bunch_type>(Q, nr, 10000, 10, 1.0, "LF2");
 
     *gmsg << "done" << endl;
 
@@ -348,7 +347,7 @@ void TrackRun::setupTracker() {
 }
 
 void TrackRun::setupFieldsolver() {
-    fs_m = FieldSolver::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
+    fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
 
     *gmsg << *fs_m << endl;
 

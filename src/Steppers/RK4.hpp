@@ -29,7 +29,7 @@ bool RK4<FieldFunction, Arguments...>::doAdvance_m(
 
     double x[6];
 
-    this->copyTo(bunch->R(i), bunch->P(i), &x[0]);
+    // \todo this->copyTo(bunch->R(i), bunch->P(i), &x[0]);
 
     double deriv1[6];
     double deriv2[6];
@@ -75,7 +75,7 @@ bool RK4<FieldFunction, Arguments...>::doAdvance_m(
     for (int j = 0; j < 6; ++j)
         x[j] += dt / 6. * (deriv1[j] + deriv4[j] + 2. * (deriv2[j] + deriv3[j]));
 
-    this->copyFrom(bunch->R(i), bunch->P(i), &x[0]);
+    // \todo this->copyFrom(bunch->R(i), bunch->P(i), &x[0]);
 
     return true;
 }
@@ -95,11 +95,11 @@ bool RK4<FieldFunction, Arguments...>::derivate_m(
     for (int j = 0; j < 3; ++j)
         tempR(j) = y[j];
 
-    bunch->R(i) = tempR;
+    // \todo bunch->R(i) = tempR;
 
     bool outOfBound = this->fieldfunc_m(t, i, externalE, externalB, args...);
 
-    double qtom = bunch->Q(i) / (bunch->M(i) * mass_coeff);  // m^2/s^2/GV
+    double qtom;  // \todo  = bunch->Q(i) / (bunch->M(i) * mass_coeff);  // m^2/s^2/GV
 
     double tempgamma = sqrt(1 + (y[3] * y[3] + y[4] * y[4] + y[5] * y[5]));
 

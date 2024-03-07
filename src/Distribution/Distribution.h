@@ -18,7 +18,7 @@
 #ifndef OPAL_Distribution_HH
 #define OPAL_Distribution_HH
 
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "OPALtypes.h"
 
 #include "AbstractObjects/Definition.h"

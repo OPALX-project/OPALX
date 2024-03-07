@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
+#include <Kokkos_Random.hpp>
 #include <csignal>
 #include <random>
 #include <set>
@@ -13,7 +14,22 @@
 #include "Communicate/Operations.h"
 #include "Ippl.h"
 
+#include <chrono>
+#include <iostream>
+#include <string>
+
+#include "PartBunch/datatypes.h"
+
+#include "Utility/IpplTimings.h"
+
+#include "Manager/PicManager.h"
+#include "PartBunch/PartBunch.hpp"
+
+using PartBunch_t = PartBunch<double, 3>;
+
 // some typedefs
+
+/*
 template <unsigned Dim = 3>
 using Mesh_t = ippl::UniformCartesian<double, Dim>;
 
@@ -51,13 +67,17 @@ using Field_t = Field<double, Dim, ViewArgs...>;
 
 template <typename T = double, unsigned Dim = 3, class... ViewArgs>
 using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
+*/
+
+template <typename T, unsigned Dim = 3>
+using Vector_t = ippl::Vector<T, Dim>;
 
 typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
 
 enum UnitState_t { units = 0, unitless = 1 };
 
 /// \todo includes needs to reorganized
-#include "Algorithms/PartBunch.hpp"
+// #include "PartBunch/PartBunch.hpp"
 
 // euclidean norm
 template <class T, unsigned D>

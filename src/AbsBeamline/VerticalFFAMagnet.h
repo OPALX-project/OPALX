@@ -8,9 +8,9 @@
 //
 
 #include "AbsBeamline/Component.h"
-#include "Algorithms/PartBunch.hpp"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
+#include "PartBunch/PartBunch.hpp"
 
 #ifndef ABSBEAMLINE_VerticalFFAMagnet_H
 #define ABSBEAMLINE_VerticalFFAMagnet_H
@@ -247,7 +247,12 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
 
 bool VerticalFFAMagnet::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview                              = pc->R.getView();
+    auto Pview                              = pc->P.getView();
+    const Vector_t<double, 3> R             = Rview(i);
+    const Vector_t<double, 3> P             = Pview(i);
+    return apply(R, P, t, E, B);
 }
 
 bool VerticalFFAMagnet::apply(

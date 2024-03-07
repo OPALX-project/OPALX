@@ -18,8 +18,8 @@
 #include "AbsBeamline/Multipole.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.hpp"
 #include "Fields/Fieldmap.h"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 
@@ -263,7 +263,11 @@ void Multipole::computeField(
 
 bool Multipole::apply(
     const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const Vector_t<double, 3> R = RefPartBunch_m->R(i);
+    //
+    // \todo this is most inefficient
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview                              = pc->R.getView();
+    const Vector_t<double, 3> R             = Rview(i);
 
     if (R(2) < 0.0 || R(2) > getElementLength())
         return false;

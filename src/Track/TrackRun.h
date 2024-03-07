@@ -18,10 +18,12 @@
 #ifndef OPAL_TrackRun_HH
 #define OPAL_TrackRun_HH
 
-#include "AbstractObjects/Action.h"
-#include "Algorithms/PartBunch.hpp"
+#include "OPALtypes.h"
 
-#include "Structure/FieldSolver.h"
+#include "AbstractObjects/Action.h"
+#include "PartBunch/PartBunch.hpp"
+
+#include "Structure/FieldSolverCmd.h"
 
 #include <boost/bimap.hpp>
 
@@ -78,7 +80,7 @@ private:
 
     std::vector<Distribution*> distrs_m;
 
-    FieldSolver* fs_m;
+    FieldSolverCmd* fs_m;
 
     DataSink* ds_m;
 
@@ -87,6 +89,7 @@ private:
     OpalData* opal;
 
     using bunch_type = PartBunch_t;
+
     std::unique_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;

@@ -19,7 +19,7 @@
 #include "StatWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
 

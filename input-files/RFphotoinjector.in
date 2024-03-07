@@ -65,15 +65,18 @@ REAL gun_inj_phase = 0.0;  // Rf injection phase (in degrees) with restpect
                            // to max phase. i.e. 0.0 inj phase corresponds 
                            // to running on crest (max energy).
 
-GUN:    RFCavity, L = 0.2927, VOLT = 60.0, ELEMEDGE = 0.0, TYPE = "STANDING",
+
+GUN1:   RFCavity, L = 0.2927, VOLT = 60.0, ELEMEDGE=0.0, TYPE = "STANDING",
         FMAPFN = "fieldmaps/DriveGun.T7", FREQ = 1300.0, LAG = (gun_inj_phase*Pi)/180.0; 
 
+
+GUN2:   RFCavity, L = 0.2927, VOLT = 60.0, ELEMEDGE=0.3, TYPE = "STANDING",
+        FMAPFN = "fieldmaps/DriveGun.T7", FREQ = 1300.0, LAG = (gun_inj_phase*Pi)/180.0; 
 
 
 REAL KSBF = 0.162544398/1.3528;
 
-// Buck and Focusing Solenoid
-// BF: Solenoid, L = 0.5, ELEMEDGE=0.0, KS = KSBF, FMAPFN = "BF_550.T7";
+BF: Solenoid, L = 0.5, ELEMEDGE=0.0, KS = KSBF, FMAPFN = "fieldmaps/BF_550.T7";
 
 
 REAL I  = 273; //[A]
@@ -91,8 +94,7 @@ DR1: DRIFT, L = 0.4, ELEMEDGE = 0.2;
 //----------------------------------------------------------------------------
 // DEFINE BEAM LINE
 
-GS:  Line = (GUN);
-
+GS:  Line = (BF, GUN1,GUN2);
 
 Dist: DISTRIBUTION, TYPE= GAUSS, SIGMAX=1e-3, SIGMAY=1e-3;
 
@@ -105,7 +107,7 @@ Fs_SC: FIELDSOLVER, TYPE=NONE, MX=64;
 BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
         BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq * 1E6, CHARGE = -1;
 
-TRACK, LINE = GS, BEAM = BEAM1, MAXSTEPS = 2, DT = {dTg}, ZSTOP={.4};
+TRACK, LINE = GS, BEAM = BEAM1, MAXSTEPS = 2, DT = {dTg}, ZSTOP={1.0};
 RUN, METHOD = "PARALLEL", BEAM = BEAM1, 
     FIELDSOLVER = FS_SC, DISTRIBUTION = Dist;
 ENDTRACK;

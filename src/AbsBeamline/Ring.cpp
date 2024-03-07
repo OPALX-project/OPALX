@@ -34,8 +34,8 @@
 #include "Utility/Inform.h"  // ippl
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.hpp"
 #include "Fields/EMField.h"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
 
@@ -108,16 +108,30 @@ Ring::~Ring() {
 
 bool Ring::apply(
     const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    bool flagNeedUpdate = apply(refPartBunch_m->R(id), refPartBunch_m->P(id), t, E, B);
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview                              = pc->R.getView();
+    auto Pview                              = pc->P.getView();
+
+    const Vector_t<double, 3> R = Rview(id);
+    const Vector_t<double, 3> P = Pview(id);
+
+    bool flagNeedUpdate = apply(R, P, t, E, B);
     if (flagNeedUpdate) {
         Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
-        gmsgALL << getName() << ": particle " << id << " at " << refPartBunch_m->R(id)
-                << " m out of the field map boundary" << endl;
-        lossDS_m->addParticle(OpalParticle(
-            id, refPartBunch_m->R(id) * Vector_t<double, 3>(1000.0), refPartBunch_m->P(id), t,
-            refPartBunch_m->Q(id), refPartBunch_m->M(id)));
 
-        refPartBunch_m->Bin(id) = -1;
+        auto Qview   = pc->Q.getView();
+        auto Mview   = pc->M.getView();
+        auto Binview = pc->Bin.getView();
+
+        const double Q      = Qview(id);
+        const double M      = Mview(id);
+        const short int Bin = Binview(id);
+
+        gmsgALL << getName() << ": particle " << id << " at " << R
+                << " m out of the field map boundary" << endl;
+        lossDS_m->addParticle(OpalParticle(id, R * Vector_t<double, 3>(1000.0), P, t, Q, M));
+
+        Binview(id) = -1;
     }
 
     return flagNeedUpdate;

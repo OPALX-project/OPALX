@@ -1,7 +1,7 @@
 //
-// Class FieldSolver
+// Class FieldSolverCmd
 //   The class for the OPAL FIELDSOLVER command.
-//   A FieldSolver definition is used by most physics commands to define the
+//   A FieldSolverCmd definition is used by most physics commands to define the
 //   particle charge and the reference momentum, together with some other data.
 //
 // Copyright (c) 200x - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -18,7 +18,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include "Structure/FieldSolver.h"
+#include "Structure/FieldSolverCmd.h"
 
 #include <map>
 #include "AbstractObjects/Element.h"
@@ -34,7 +34,7 @@ using namespace Expressions;
 
 // TODO: o add a FIELD for DISCRETIZATION, MAXITERS, TOL...
 
-// The attributes of class FieldSolver.
+// The attributes of class FieldSolverCmd.
 namespace {
     enum {
         TYPE,  // The field solver name
@@ -45,7 +45,7 @@ namespace {
     };
 }
 
-FieldSolver::FieldSolver()
+FieldSolverCmd::FieldSolverCmd()
     : Definition(
         SIZE, "FIELDSOLVER", "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[TYPE] =
@@ -58,80 +58,81 @@ FieldSolver::FieldSolver()
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
 
-FieldSolver::FieldSolver(const std::string& name, FieldSolver* parent) : Definition(name, parent) {
+FieldSolverCmd::FieldSolverCmd(const std::string& name, FieldSolverCmd* parent)
+    : Definition(name, parent) {
 }
 
-FieldSolver::~FieldSolver() {
+FieldSolverCmd::~FieldSolverCmd() {
 }
 
-FieldSolver* FieldSolver::clone(const std::string& name) {
-    return new FieldSolver(name, this);
+FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
+    return new FieldSolverCmd(name, this);
 }
 
-void FieldSolver::execute() {
-    //    setFieldSolverType();
+void FieldSolverCmd::execute() {
+    //    setFieldSolverCmdType();
     // update();
 }
 
-FieldSolver* FieldSolver::find(const std::string& name) {
-    FieldSolver* fs = dynamic_cast<FieldSolver*>(OpalData::getInstance()->find(name));
+FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
+    FieldSolverCmd* fs = dynamic_cast<FieldSolverCmd*>(OpalData::getInstance()->find(name));
 
     if (fs == 0) {
-        throw OpalException("FieldSolver::find()", "FieldSolver \"" + name + "\" not found.");
+        throw OpalException("FieldSolverCmd::find()", "FieldSolverCmd \"" + name + "\" not found.");
     }
     return fs;
 }
 
-std::string FieldSolver::getType() {
+std::string FieldSolverCmd::getType() {
     return Attributes::getString(itsAttr[TYPE]);
 }
 
-double FieldSolver::getMX() const {
+double FieldSolverCmd::getMX() const {
     return Attributes::getReal(itsAttr[MX]);
 }
 
-double FieldSolver::getMY() const {
+double FieldSolverCmd::getMY() const {
     return Attributes::getReal(itsAttr[MY]);
 }
 
-double FieldSolver::getMZ() const {
+double FieldSolverCmd::getMZ() const {
     return Attributes::getReal(itsAttr[MZ]);
 }
 
-void FieldSolver::setMX(double value) {
+void FieldSolverCmd::setMX(double value) {
     Attributes::setReal(itsAttr[MX], value);
 }
 
-void FieldSolver::setMY(double value) {
+void FieldSolverCmd::setMY(double value) {
     Attributes::setReal(itsAttr[MY], value);
 }
 
-void FieldSolver::setMZ(double value) {
+void FieldSolverCmd::setMZ(double value) {
     Attributes::setReal(itsAttr[MZ], value);
 }
 
-void FieldSolver::update() {
+void FieldSolverCmd::update() {
 }
 
-void FieldSolver::setFieldSolverType() {
-    static const std::map<std::string, FieldSolverType> stringType_s = {
-        {"NONE", FieldSolverType::NONE}};
+void FieldSolverCmd::setFieldSolverCmdType() {
+    static const std::map<std::string, FieldSolverCmdType> stringType_s = {
+        {"NONE", FieldSolverCmdType::NONE}};
 
     fsName_m = getType();
     if (fsName_m.empty()) {
         throw OpalException(
-            "FieldSolver::setFieldSolverType",
+            "FieldSolverCmd::setFieldSolverCmdType",
             "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
     } else {
         fsType_m = stringType_s.at(fsName_m);
     }
 }
 
-bool FieldSolver::hasValidSolver() {
+bool FieldSolverCmd::hasValidSolver() {
     return false;
 }
 
-Inform& FieldSolver::printInfo(Inform& os) const {
+Inform& FieldSolverCmd::printInfo(Inform& os) const {
     os << "* ************* F I E L D S O L V E R ********************************************** "
        << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'

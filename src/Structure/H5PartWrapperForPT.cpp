@@ -18,7 +18,7 @@
 #include "Structure/H5PartWrapperForPT.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 
 #include "OPALconfig.h"
 #include "Physics/Physics.h"
@@ -164,43 +164,43 @@ void H5PartWrapperForPT::readStepData(
 
     READDATA(Float64, file_m, "x", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->R(n)(0) = f64buffer[n];
-        bunch->Bin(n)  = 0;
+        // \todo bunch->R(n)(0) = f64buffer[n];
+        // bunch->Bin(n)  = 0;
     }
 
     READDATA(Float64, file_m, "y", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->R(n)(1) = f64buffer[n];
+        // bunch->R(n)(1) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "z", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->R(n)(2) = f64buffer[n];
+        // bunch->R(n)(2) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "px", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->P(n)(0) = f64buffer[n];
+        // bunch->P(n)(0) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "py", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->P(n)(1) = f64buffer[n];
+        // bunch->P(n)(1) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "pz", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->P(n)(2) = f64buffer[n];
+        // bunch->P(n)(2) = f64buffer[n];
     }
 
     READDATA(Float64, file_m, "q", f64buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->Q(n) = f64buffer[n];
+        // bunch->Q(n) = f64buffer[n];
     }
 
     READDATA(Int32, file_m, "id", i32buffer);
     for (long int n = 0; n < numParticles; ++n) {
-        bunch->ID(n) = i32buffer[n];
+        // bunch->ID(n) = i32buffer[n];
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));

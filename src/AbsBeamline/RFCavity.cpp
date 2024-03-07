@@ -20,8 +20,8 @@
 #include <boost/assign.hpp>
 #include <boost/filesystem.hpp>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Algorithms/PartBunch.hpp"
 #include "Fields/Fieldmap.h"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
 #include "Utilities/GeneralClassicException.h"
@@ -119,7 +119,14 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
 
 bool RFCavity::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview                              = pc->R.getView();
+    auto Pview                              = pc->P.getView();
+
+    const Vector_t<double, 3> R = Rview(i);
+    const Vector_t<double, 3> P = Pview(i);
+
+    return apply(R(i), P(i), t, E, B);
 }
 
 bool RFCavity::apply(

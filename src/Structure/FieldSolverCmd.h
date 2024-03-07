@@ -25,20 +25,20 @@
 #include "Algorithms/PartData.h"
 #include "Ippl.h"
 
-enum class FieldSolverType : short { NONE = -1 };
+enum class FieldSolverCmdType : short { NONE = -1 };
 
-class FieldSolver : public Definition {
+class FieldSolverCmd : public Definition {
 public:
     /// Exemplar constructor.
-    FieldSolver();
+    FieldSolverCmd();
 
-    virtual ~FieldSolver();
+    virtual ~FieldSolverCmd();
 
     /// Make clone.
-    virtual FieldSolver* clone(const std::string& name);
+    virtual FieldSolverCmd* clone(const std::string& name);
 
-    /// Find named FieldSolver.
-    static FieldSolver* find(const std::string& name);
+    /// Find named FieldSolverCmd.
+    static FieldSolverCmd* find(const std::string& name);
 
     std::string getType();
 
@@ -68,29 +68,29 @@ public:
 
     bool hasValidSolver();
 
-    void setFieldSolverType();
-    FieldSolverType getFieldSolverType() const;
+    void setFieldSolverCmdType();
+    FieldSolverCmdType getFieldSolverCmdType() const;
 
     Inform& printInfo(Inform& os) const;
 
 private:
     // Not implemented.
-    FieldSolver(const FieldSolver&);
-    void operator=(const FieldSolver&);
+    FieldSolverCmd(const FieldSolverCmd&);
+    void operator=(const FieldSolverCmd&);
 
     // Clone constructor.
-    FieldSolver(const std::string& name, FieldSolver* parent);
+    FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
 
     std::string fsName_m;
-    FieldSolverType fsType_m;
+    FieldSolverCmdType fsType_m;
 };
 
-inline FieldSolverType FieldSolver::getFieldSolverType() const {
+inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
     return fsType_m;
 }
 
-inline Inform& operator<<(Inform& os, const FieldSolver& fs) {
+inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) {
     return fs.printInfo(os);
 }
 
-#endif  // OPAL_FieldSolver_HH
+#endif  // OPAL_FieldSolverCmd_HH

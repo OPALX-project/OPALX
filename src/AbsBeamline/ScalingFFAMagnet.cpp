@@ -29,7 +29,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
-#include "Algorithms/PartBunch.hpp"
+#include "PartBunch/PartBunch.hpp"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
     : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {
@@ -80,7 +80,13 @@ const EMField& ScalingFFAMagnet::getField() const {
 
 bool ScalingFFAMagnet::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview                              = pc->R.getView();
+    auto Pview                              = pc->P.getView();
+
+    const Vector_t<double, 3> R = Rview(i);
+    const Vector_t<double, 3> P = Pview(i);
+    return apply(R, P, t, E, B);
 }
 
 void ScalingFFAMagnet::initialise() {
