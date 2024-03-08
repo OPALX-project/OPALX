@@ -4,7 +4,7 @@ set (_SRCS
   BoundaryGeometry.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
-  FieldsolverCmd.cpp
+  FieldSolverCmd.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
   MonitorStatisticsWriter.cpp
