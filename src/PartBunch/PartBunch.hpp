@@ -284,7 +284,7 @@ public:
 
         // some fake setup to get a distribution going
 
-        this->rmin_m = 0.0;
+        this->rmin_m = -sigmaR;
         this->rmax_m = sigmaR;
 
         Vector_t<double, Dim> length = this->rmax_m - this->rmin_m;
@@ -341,8 +341,6 @@ public:
         /// ADA we need to be able to set a load balancer when not having a field solver
         this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
             this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
-
-        m << "\t done!" << endl;
     }
 
     void pre_run() override {
@@ -368,7 +366,6 @@ public:
         IpplTimings::stopTimer(SolveTimer);
 
         this->grid2par();
-        m << "\t done!" << endl;
     }
 
 public:
@@ -921,21 +918,24 @@ public:
             fname << "OPAL-X-STAT";
             fname << ippl::Comm->rank();
             fname << ".csv";
-            Inform csvout(NULL, (fname.str()).c_str(), Inform::OVERWRITE);
-            csvout.precision(5);
-            csvout.setf(std::ios::scientific, std::ios::floatfield);
+            Inform csvout(NULL, (fname.str()).c_str(), Inform::APPEND);
+            csvout.precision(2);
+            // csvout.setf(std::ios::scientific, std::ios::floatfield);
 
-            csvout << "rmsX \t rmsY \t rmsZ" << endl;
-            csvout << rrms(0) << "\t" << rrms(1) << "\t" << rrms(2) << endl;
+            // clang-format off
+
+            csvout << "rmsX \t rmsY \t rmsZ \t rminX \t rminY \t rminZ \t cores" << endl;
+            csvout << rrms(0) << "\t" << rrms(1) << "\t" << rrms(2) << "\t"
+                   << rmin[0] << "\t" << rmin[1] << "\t" << rmin[2] << "\t" << ippl::Comm->size()
+                   << endl;
 
             /*
-
                    << "rmeanX,rmeanY,rmeanZ,"
                    << "vmeanX,vmeanY,vmeanZ,"
                    << "vmaxX,vmaxY,vmaxZ,"
                    << "vminX,vminY,vminZ,"
                    << "rmaxX,rmaxY,rmaxZ,"
-                   << "rminX,rminY,rminZ,"
+
                    << "vrmsX,vrmsY,vrmsZ" << endl;
 
             // clang-format off
