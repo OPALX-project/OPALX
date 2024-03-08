@@ -38,8 +38,8 @@ FieldSolverCmd::FieldSolverCmd()
     : Definition(
         FIELDSOLVER::SIZE, "FIELDSOLVER",
         "The \"FIELDSOLVER\" statement defines data for a the field solver") {
-    itsAttr[FIELDSOLVER::TYPE] =
-        Attributes::makePredefinedString("TYPE", "Name of the attached field solver.", {"NONE"});
+    itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
+        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "CG ", "OPEN", "P3M"});
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");

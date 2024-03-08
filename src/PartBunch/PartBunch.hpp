@@ -43,18 +43,18 @@ diagnostics(): calculate statistics and maybee write tp h5 and stat files
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
+#include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
+#include "Physics/Physics.h"
 #include "Random/Distribution.h"
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
-
-#include "Distribution/Distribution.h"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -307,6 +307,10 @@ public:
 
         this->setParticleContainer(std::make_shared<ParticleContainer_t>(
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+
+        setSolver(OPALFieldSolver_m->getType());
+
+        pre_run();
     }
 
     ~PartBunch() {
@@ -319,10 +323,11 @@ public:
     }
 
     void setSolver(std::string solver) {
-        Inform m("PartBunch pre_run ");
+        Inform m("setSolver  ");
 
         if (this->solver_m != "")
-            m << "Warning solver already initiated" << endl;
+            m << "Warning solver already initiated but overwrite ..." << endl;
+
         this->solver_m = solver;
 
         this->fcontainer_m->initializeFields(this->solver_m);
@@ -336,9 +341,12 @@ public:
         /// ADA we need to be able to set a load balancer when not having a field solver
         this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
             this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+
+        m << "\t done!" << endl;
     }
 
     void pre_run() override {
+        Inform m("warmup  ");
         initializeParticles();
 
         static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
@@ -360,15 +368,16 @@ public:
         IpplTimings::stopTimer(SolveTimer);
 
         this->grid2par();
+        m << "\t done!" << endl;
     }
 
 public:
     size_t getTotalNum() const {
-        return 0;
+        return this->pcontainer_m->getTotalNum();
     }
 
     size_t getLocalNum() const {
-        return 0;
+        return this->pcontainer_m->getLocalNum();
     }
 
     Vector_t<double, Dim> R(size_t i) {
@@ -392,8 +401,6 @@ public:
     }
 
     void initializeParticles() {
-        Inform m("Initialize Particles");
-
         auto* mesh                   = &this->fcontainer_m->getMesh();
         auto* FL                     = &this->fcontainer_m->getFL();
         Vector_t<double, Dim> length = this->rmax_m - this->rmin_m;
@@ -420,7 +427,6 @@ public:
 
         Vector_t<double, Dim> origin = this->origin_m;
         if ((this->lbt_m != 1.0) && (ippl::Comm->size() > 1)) {
-            m << "Starting first repartition" << endl;
             const ippl::NDIndex<Dim>& lDom = FL->getLocalNDIndex();
             const int nghost               = this->fcontainer_m->getRho().getNghost();
             auto rhoview                   = this->fcontainer_m->getRho().getView();
@@ -476,7 +482,6 @@ public:
         ippl::Comm->barrier();
 
         this->pcontainer_m->Q = this->totalQ_m / this->totalP_m;
-        m << "particles created and initial conditions assigned " << endl;
     }
 
     void advance() override {
@@ -605,7 +610,7 @@ public:
         scatter(*q, *rho, *R);
         double relError = std::fabs((Q - (*rho).sum()) / Q);
 
-        m << relError << endl;
+        // m << relError << endl;
 
         size_type TotalParticles = 0;
         size_type localParticles = this->pcontainer_m->getLocalNum();
@@ -668,7 +673,289 @@ public:
     }
     void setCouplingConstant(double c) {
     }
+
     void calcBeamParameters() {
+        // Usefull constants
+        const size_t globNp = getTotalNum();
+
+        const size_type locNp = static_cast<size_type>(this->getLocalNum());
+
+        const double c_inv  = 1.0 / Physics::c;
+        const double c2_inv = c_inv * c_inv;
+
+        std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
+
+        auto Rview = pc->R.getView();
+        auto Pview = pc->P.getView();
+
+        ////////////////////////////////////
+        //// Calculate Moments of R and P //
+        ////////////////////////////////////
+
+        const double zero = 0.0;
+
+        double centroid[2 * Dim]         = {};
+        double moment[2 * Dim][2 * Dim]  = {};
+        double Ncentroid[2 * Dim]        = {};
+        double Nmoment[2 * Dim][2 * Dim] = {};
+
+        double loc_centroid[2 * Dim]        = {};
+        double loc_moment[2 * Dim][2 * Dim] = {};
+
+        for (unsigned i = 0; i < 2 * Dim; i++) {
+            loc_centroid[i] = 0.0;
+            for (unsigned j = 0; j <= i; j++) {
+                loc_moment[i][j] = 0.0;
+                loc_moment[j][i] = 0.0;
+            }
+        }
+
+        for (unsigned i = 0; i < 2 * Dim; ++i) {
+            Kokkos::parallel_reduce(
+                "calc moments of particle distr.", locNp,
+                KOKKOS_LAMBDA(
+                    const int k, double& cent, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0];
+                    part[1] = Pview(k)[0];
+                    part[2] = Rview(k)[1];
+                    part[3] = Pview(k)[1];
+                    part[4] = Rview(k)[2];
+                    part[5] = Pview(k)[2];
+
+                    cent += part[i];
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<double>(loc_centroid[i]), Kokkos::Sum<double>(loc_moment[i][0]),
+                Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
+                Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
+                Kokkos::Sum<double>(loc_moment[i][5]));
+            Kokkos::fence();
+        }
+        ippl::Comm->barrier();
+
+        MPI_Allreduce(
+            loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM,
+            ippl::Comm->getCommunicator());
+        MPI_Allreduce(
+            loc_centroid, centroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+        //////////////////////////////////////
+        //// Calculate Normalized Emittance //
+        //////////////////////////////////////
+
+        for (unsigned i = 0; i < 2 * Dim; i++) {
+            loc_centroid[i] = 0.0;
+            for (unsigned j = 0; j <= i; j++) {
+                loc_moment[i][j] = 0.0;
+                loc_moment[j][i] = 0.0;
+            }
+        }
+
+        for (unsigned i = 0; i < 2 * Dim; ++i) {
+            Kokkos::parallel_reduce(
+                "write Emittance 1 redcution", locNp,
+                KOKKOS_LAMBDA(
+                    const int k, double& cent, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+                    double v2 = Pview(k)[0] * Pview(k)[0] + Pview(k)[1] * Pview(k)[1]
+                                + Pview(k)[2] * Pview(k)[2];
+                    double lorentz = 1.0 / (sqrt(1.0 - v2 * c2_inv));
+
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0];
+                    part[1] = (Pview(k)[0] * c_inv) * lorentz;
+                    part[2] = Rview(k)[1];
+                    part[3] = (Pview(k)[1] * c_inv) * lorentz;
+                    part[4] = Rview(k)[2];
+                    part[5] = (Pview(k)[2] * c_inv) * lorentz;
+
+                    cent += part[i];
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<double>(loc_centroid[i]), Kokkos::Sum<double>(loc_moment[i][0]),
+                Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
+                Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
+                Kokkos::Sum<double>(loc_moment[i][5]));
+            Kokkos::fence();
+        }
+
+        MPI_Allreduce(
+            loc_moment, Nmoment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM,
+            ippl::Comm->getCommunicator());
+        MPI_Allreduce(
+            loc_centroid, Ncentroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+        ippl::Vector<double, 3> eps2, fac;
+        ippl::Vector<double, 3> rsqsum, vsqsum, rvsum;
+        ippl::Vector<double, 3> rmean, vmean, rrms, vrms, eps, rvrms;
+        ippl::Vector<double, 3> norm;
+
+        ippl::Vector<double, 3> Neps2, Nfac;
+        ippl::Vector<double, 3> Nrsqsum, Nvsqsum, Nrvsum;
+        ippl::Vector<double, 3> Nrmean, Nvmean, Nrrms, Nvrms, Neps, Nrvrms;
+        ippl::Vector<double, 3> Nnorm;
+
+        if (ippl::Comm->rank() == 0) {
+            for (unsigned int i = 0; i < Dim; i++) {
+                rmean(i)  = centroid[2 * i] / globNp;
+                vmean(i)  = centroid[(2 * i) + 1] / globNp;
+                rsqsum(i) = moment[2 * i][2 * i] - globNp * rmean(i) * rmean(i);
+                vsqsum(i) = moment[(2 * i) + 1][(2 * i) + 1] - globNp * vmean(i) * vmean(i);
+                if (vsqsum(i) < 0)
+                    vsqsum(i) = 0;
+                rvsum(i) = (moment[(2 * i)][(2 * i) + 1] - globNp * rmean(i) * vmean(i));
+
+                Nrmean(i)  = Ncentroid[2 * i] / globNp;
+                Nvmean(i)  = Ncentroid[(2 * i) + 1] / globNp;
+                Nrsqsum(i) = Nmoment[2 * i][2 * i] - globNp * Nrmean(i) * Nrmean(i);
+                Nvsqsum(i) = Nmoment[(2 * i) + 1][(2 * i) + 1] - globNp * Nvmean(i) * Nvmean(i);
+                if (Nvsqsum(i) < 0)
+                    Nvsqsum(i) = 0;
+                Nrvsum(i) = (Nmoment[(2 * i)][(2 * i) + 1] - globNp * Nrmean(i) * Nvmean(i));
+            }
+
+            // Coefficient wise calculation
+            eps2  = (rsqsum * vsqsum - rvsum * rvsum) / (globNp * globNp);
+            rvsum = rvsum / globNp;
+
+            Neps2  = (Nrsqsum * Nvsqsum - Nrvsum * Nrvsum) / (globNp * globNp);
+            Nrvsum = Nrvsum / globNp;
+
+            for (unsigned int i = 0; i < Dim; i++) {
+                rrms(i) = sqrt(rsqsum(i) / globNp);
+                vrms(i) = sqrt(vsqsum(i) / globNp);
+
+                eps(i)       = std::sqrt(std::max(eps2(i), zero));
+                double tmpry = rrms(i) * vrms(i);
+                fac(i)       = (tmpry == 0.0) ? zero : 1.0 / tmpry;
+
+                Nrrms(i) = sqrt(rsqsum(i) / globNp);
+                Nvrms(i) = sqrt(vsqsum(i) / globNp);
+
+                Neps(i) = std::sqrt(std::max(Neps2(i), zero));
+                tmpry   = Nrrms(i) * Nvrms(i);
+                Nfac(i) = (tmpry == 0.0) ? zero : 1.0 / tmpry;
+            }
+            rvrms  = rvsum * fac;
+            Nrvrms = Nrvsum * Nfac;
+        }
+
+        /////////////////////////////////
+        //// Calculate Velocity Bounds //
+        /////////////////////////////////
+
+        double vmax_loc[Dim];
+        double vmin_loc[Dim];
+        double vmax[Dim];
+        double vmin[Dim];
+
+        for (unsigned d = 0; d < Dim; ++d) {
+            Kokkos::parallel_reduce(
+                "vel max", this->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Pview(i)[d];
+                    mm             = tmp_vel > mm ? tmp_vel : mm;
+                },
+                Kokkos::Max<double>(vmax_loc[d]));
+
+            Kokkos::parallel_reduce(
+                "vel min", this->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Pview(i)[d];
+                    mm             = tmp_vel < mm ? tmp_vel : mm;
+                },
+                Kokkos::Min<double>(vmin_loc[d]));
+        }
+        Kokkos::fence();
+        MPI_Allreduce(vmax_loc, vmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+        MPI_Allreduce(vmin_loc, vmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
+
+        /////////////////////////////////
+        //// Calculate Position Bounds //
+        /////////////////////////////////
+
+        double rmax_loc[Dim];
+        double rmin_loc[Dim];
+        double rmax[Dim];
+        double rmin[Dim];
+
+        for (unsigned d = 0; d < Dim; ++d) {
+            Kokkos::parallel_reduce(
+                "rel max", this->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Rview(i)[d];
+                    mm             = tmp_vel > mm ? tmp_vel : mm;
+                },
+                Kokkos::Max<double>(rmax_loc[d]));
+
+            Kokkos::parallel_reduce(
+                "rel min", this->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Rview(i)[d];
+                    mm             = tmp_vel < mm ? tmp_vel : mm;
+                },
+                Kokkos::Min<double>(rmin_loc[d]));
+        }
+        Kokkos::fence();
+        MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+        MPI_Allreduce(rmin_loc, rmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
+
+        ////////////////////////////
+        //// Write to output file //
+        ////////////////////////////
+
+        if (ippl::Comm->rank() == 0) {
+            std::stringstream fname;
+            fname << "OPAL-X-STAT";
+            fname << ippl::Comm->rank();
+            fname << ".csv";
+            Inform csvout(NULL, (fname.str()).c_str(), Inform::OVERWRITE);
+            csvout.precision(5);
+            csvout.setf(std::ios::scientific, std::ios::floatfield);
+
+            csvout << "rmsX \t rmsY \t rmsZ" << endl;
+            csvout << rrms(0) << "\t" << rrms(1) << "\t" << rrms(2) << endl;
+
+            /*
+
+                   << "rmeanX,rmeanY,rmeanZ,"
+                   << "vmeanX,vmeanY,vmeanZ,"
+                   << "vmaxX,vmaxY,vmaxZ,"
+                   << "vminX,vminY,vminZ,"
+                   << "rmaxX,rmaxY,rmaxZ,"
+                   << "rminX,rminY,rminZ,"
+                   << "vrmsX,vrmsY,vrmsZ" << endl;
+
+            // clang-format off
+
+                    << eps(0) << "," << eps(1) << "," << eps(2) << ","
+                    << eps2(0) << "," << eps2(1) << "," << eps2(2) << ","
+                    << rvrms(0) << "," << rvrms(1) << "," << rvrms(2) << ","
+                    << rrms(0) << "," << rrms(1) << "," << rrms(2) << ","
+                    << rmean(0) << "," << rmean(1) << "," << rmean(2) << ","
+                    << vmean(0) << "," << vmean(1) << "," << vmean(2) << ","
+                    << vmax[0] << "," << vmax[1] << "," << vmax[2] << ","
+                    << vmin[0] << "," << vmin[1] << "," << vmin[2] << "," << rmax[0] << ","
+                    << rmax[1] << "," << rmax[2] << "," << rmin[0] << "," << rmin[1] << ","
+                    << rmin[2] << "," << vrms(0) << "," << vrms(1) << "," << vrms(2) << ","
+                    << endl;
+        endl;
+            */
+            // clang-format on
+        }
+        ippl::Comm->barrier();
     }
 
     void setCharge(double q) {
