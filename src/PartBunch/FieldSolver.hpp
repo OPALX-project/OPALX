@@ -95,7 +95,7 @@ public:
 
     void runSolver() override {
         if (this->getStype() == "CG") {
-            CGSolver_t<T, Dim>& solver = std::get<CGSolver_t<T, Dim>>(this->getSolver());
+            CGSolver_t<T, Dim>& solver = std::get<CGSolver_t<T, Dim>>(this->solver_m);
             solver.solve();
 
             if (ippl::Comm->rank() == 0) {
@@ -118,15 +118,15 @@ public:
             ippl::Comm->barrier();
         } else if (this->getStype() == "FFT") {
             if constexpr (Dim == 2 || Dim == 3) {
-                std::get<FFTSolver_t<T, Dim>>(this->getSolver()).solve();
+                std::get<FFTSolver_t<T, Dim>>(this->solver_m).solve();
             }
         } else if (this->getStype() == "P3M") {
             if constexpr (Dim == 3) {
-                std::get<P3MSolver_t<T, Dim>>(this->getSolver()).solve();
+                std::get<P3MSolver_t<T, Dim>>(this->solver_m).solve();
             }
         } else if (this->getStype() == "OPEN") {
             if constexpr (Dim == 3) {
-                std::get<OpenSolver_t<T, Dim>>(this->getSolver()).solve();
+                std::get<OpenSolver_t<T, Dim>>(this->solver_m).solve();
             }
         } else {
             throw std::runtime_error("Unknown solver type");
@@ -135,8 +135,8 @@ public:
 
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp) {
-        this->getSolver().template emplace<Solver>();
-        Solver& solver = std::get<Solver>(this->getSolver());
+        this->solver_m.template emplace<Solver>();
+        Solver& solver = std::get<Solver>(this->solver_m);
 
         solver.mergeParameters(sp);
 
