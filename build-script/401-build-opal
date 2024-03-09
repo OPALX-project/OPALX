@@ -1,0 +1,192 @@
+#!/bin/bash -l
+
+itb_exit() {
+    local -i ec=$?
+    if [[ -n "${BASH_VERSION}" ]]; then
+        local -i n=${#BASH_SOURCE[@]}
+        local -r recipe_name="${BASH_SOURCE[n]}"
+    else
+        local -r recipe_name="${ZSH_ARGZERO}"
+    fi
+    echo -n "${recipe_name}: "
+    if (( ec == 0 )); then
+        echo "done!"
+    elif (( ec == ITB_ERR_ARG )); then
+        echo "argument error!"
+    elif (( ec == ITB_ERR_SETUP )); then
+        echo "error in setting everything up!"
+    elif (( ec == ITB_ERR_SYSTEM )); then
+        echo "unexpected system error!"
+    elif (( ec == ITB_ERR_DOWNLOAD )); then
+        echo "error in downloading the source file!"
+    elif (( ec == ITB_ERR_UNTAR )); then
+        echo "error in un-taring the source file!"
+    elif (( ec == ITB_ERR_CONFIGURE )); then
+        echo "error in configuring the software!"
+    elif (( ec == ITB_ERR_MAKE )); then
+        echo "error in compiling the software!"
+    elif (( ec == ITB_ERR_PRE_INSTALL )); then
+        echo "error in pre-installing the software!"
+    elif (( ec == ITB_ERR_INSTALL )); then
+        echo "error in installing the software!"
+    elif (( ec == ITB_ERR_POST_INSTALL )); then
+        echo "error in post-installing the software!"
+    else
+        echo "oops, unknown error!!!"
+    fi
+    exit ${ec}
+}
+
+export -f itb_exit > /dev/null
+
+#
+# Can be set from outside 
+export ITB_DOWNLOAD_DIR=/psi/home/adelmann/opal-x
+export ITB_SRC_DIR=${ITB_DOWNLOAD_DIR}
+export ITB_PREFIX=${ITB_DOWNLOAD_DIR}/install
+
+# General build parameters
+export build_type=
+compiler=${compiler:-$(which g++)}
+export compiler
+mode=Release
+
+# Build targets
+build_opalx=true
+
+# OPAL  settings
+export ENABLE_UNIT_TESTS=OFF
+EXPORT_COMMANDS=
+
+function help() {
+    echo "Usage: $0 [flags...]"
+    echo "For long form options, arguments must be given after an equal sign (--opt=arg)."
+    echo "Refer to the comments in this shell script for additional details."
+    echo "Flags:"
+    echo "  -h|--help: show this help"
+
+    echo "  -t|--target target: preset build for target (cuda/openmp/serial) or name for custom build;"
+    echo "                      this flag is REQUIRED as it will be used to identify the build directories"
+
+    # Kokkos configuration
+    echo "  --enable-cuda:   build OPAL-X with CUDA"
+    echo "  --enable-openmp: build OPAL-X with OpenMP"
+    echo "  --enable-serial: build OPAL-X with in serial mode"
+    # Architectures: https://kokkos.github.io/kokkos-core-wiki/keywords.html#keywords-arch
+    echo "  -g|--cudacc capability: set GPU compute capability for Kokkos CUDA (default Ampere 80, written as AMPERE80)"
+    echo "  -c|--cpu arch: set CPU architecture for Kokkos optimizations (default local machine, i.e. NATIVE)"
+
+    # OPAL-X configuration
+     echo "  -u|--nounit: disable OPAL-X unit tests"
+    # LSP: language server protocol (https://en.wikipedia.org/wiki/Language_Server_Protocol)
+    # CMake can be configured to export information that would allow certain editor tools (like clangd)
+    # to provide language- and program-aware diagnostics, such as signature mismatches or other
+    # symbol-related errors.
+    echo "  --export: export OPAL compile commands for LSPs (such as clangd)"
+    
+    # General build configuration
+    echo "  -d|--debug: debug build"
+    echo "  --mode build_mode: set build mode directly (Release, Debug, etc)"
+
+}
+
+# POSIX compliant long options with getopts:
+# https://stackoverflow.com/a/28466267/2773311
+
+die() { echo "$1"; exit 1; }
+needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$opt option"; fi; }
+
+while getopts "ht:dc:ug:-:" opt; do
+    if [ "$opt" = "-" ]; then     # long option: reformulate OPT and OPTARG
+        opt="${OPTARG%%=*}"       # extract long option name
+        OPTARG="${OPTARG#"$opt"}" # extract long option argument (may be empty)
+        OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
+    fi
+    case $opt in
+        h | help) help; exit 0 ;;
+        t | target) needs_arg; build_type=$OPTARG ;;
+
+        d | debug) mode=Debug ;;
+        mode) mode=$OPTARG ;;
+
+        u | nounit) ENABLE_UNIT_TESTS=OFF ;;
+        export) EXPORT_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=1" ;;
+
+        g | cudacc) needs_arg; GPU_ARCH=$OPTARG ;;
+        c | cpu) needs_arg; CPU_ARCH=$OPTARG ;;
+        enable-cuda) CUDA=ON ;;
+        enable-openmp) OPENMP=ON ;;
+        enable-serial) SERIAL=ON ;;
+
+        ?) exit 1 ;;
+    esac
+done
+
+if [ -z "$build_type" ]; then
+    echo "No build target specified. Run $0 --help for more details."
+    exit 1
+fi
+
+export ITB_PREFIX=${ITB_PREFIX}_${build_type}
+
+P=opal-x
+NJOBS=8
+
+trap "itb_exit" EXIT
+
+CXXFLAGS=""
+
+build_mode=${build_mode:-Release}
+
+compiler=${compiler:-"$(which gcc)"}
+
+if [[ "$build_type" == "cuda" ]]; then
+    echo "Build Cuda mode."
+    compiler="${Kokkos_DIR:?Kokkos install directory must be provided}/bin/nvcc_wrapper"
+    CXXFLAGS="--expt-relaxed-constexpr"
+elif [[ "$build_type" == "serial" ]]; then
+    echo "Build serial mode."
+elif [[ "$build_type" == "openmp" ]]; then
+    echo "Build OpenMP mode."
+else
+    echo "Wrong build type."
+fi
+
+cd "${ITB_SRC_DIR}" || exit "${ITB_ARG_ERR}"
+
+if [ -d "opal-x" ] 
+then
+    echo "Found existing OPAL-X source directory"
+else
+    echo "Clone OPAL-X repo ... "
+    if [ -n "$USE_SSH" ]; then
+      git clone git@gitlab.psi.ch:OPAL/opal-x/src.git opal-x
+    else
+      git clone https://gitlab.psi.ch/OPAL/opal-x/src.git opal-x
+    fi
+fi
+
+#
+# maybe as argument
+#
+export Kokkos_DIR=${ITB_DOWNLOAD_DIR}/install_${build_type}
+export Heffte_DIR=${ITB_DOWNLOAD_DIR}/install_${build_type}
+export HEFFTE_LIBRARY=${Heffte_DIR}
+
+mkdir -p "${ITB_SRC_DIR}"/$P/"build_${build_type}" && cd "$_" || exit "${ITB_ARG_ERR}"
+
+cmake \
+    -DCMAKE_BUILD_TYPE="${build_mode}" \
+    -DCMAKE_INSTALL_PREFIX="${ITB_PREFIX}" \
+    -DCMAKE_Fortran_COMPILER_WORKS=OFF \
+    -DUSE_STATIC_LIBRARIES=ON \
+    -DBUILD_OPAL_UNIT_TESTS="${ENABLE_UNIT_TESTS}" \
+    -DCMAKE_CXX_FLAGS="$CXXFLAGS -w -I/psi/home/adelmann/opal-x/install_openmp/include/ -fopenmp" \
+    -DOPAL_CXX_FLAGS="-w" \
+    -DIPPL_INCLUDE_DIR="/psi/home/adelmann/opal-x/downloads/ippl/src" \
+    ..
+# compile & install
+make -j ${NJOBS}
+#make install
+
+
