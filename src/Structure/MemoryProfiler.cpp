@@ -162,15 +162,18 @@ void MemoryProfiler::compute(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg) {
         return;
     }
 
-    new_reduce(vmem_m.data(), vmAvg.data(), vmem_m.size(), std::plus<double>());
+    // \fixme  new_reduce(vmem_m.data(), vmAvg.data(), vmem_m.size(), std::plus<double>());
+    reduce(vmem_m.data(), vmAvg.data(), vmem_m.size(), std::plus<double>());
 
     double inodes = 1.0 / double(ippl::Comm->size());
     for (auto& vm : vmAvg) {
         vm *= inodes;
     }
 
-    new_reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
-    new_reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
+    //new_reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
+    //new_reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
+    reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
+    reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
 }
 
 void MemoryProfiler::write(const PartBunch_t* beam) {

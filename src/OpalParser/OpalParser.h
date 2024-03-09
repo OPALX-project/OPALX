@@ -21,6 +21,7 @@
 #include "OpalParser/Parser.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 class Object;
 class Token;
