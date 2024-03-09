@@ -72,16 +72,12 @@ include_directories (BEFORE
     ${H5Hut_INCLUDE_DIR}
     ${HDF5_INCLUDE_DIR}
     ${GSL_INCLUDE_DIR}
-    ${Trilinos_INCLUDE_DIRS}
-    ${Trilinos_TPL_INCLUDE_DIRS}
     ${IPPL_SOURCE_DIRS}
     ${GTEST_INCLUDE_DIRS}
     )
 
 link_directories (
     ${IPPL_LIBRARY_DIR}
-    ${Trilinos_LIBRARY_DIRS}
-    ${Trilinos_TPL_LIBRARY_DIRS}
     )
 
 #
@@ -98,7 +94,7 @@ target_link_libraries (libOPAL
 
 add_executable (opal Main.cpp)
 target_link_libraries( opal
-    /Users/adelmann/OPAL/tmp/src/OPAL/opal-x-src/build/src/libOPAL.a
+    /psi/home/adelmann/opal-x/opal-x/build_openmp/src/libOPAL.a
     ${KOKKOS_LIBRARY1}
     ${KOKKOS_LIBRARY2}
     ${KOKKOS_LIBRARY3}
@@ -114,18 +110,14 @@ target_link_libraries( opal
     m
     z
     ${CMAKE_DL_LIBS}
+    ${MPI_CXX_LIBRARIES}
     )
 
 message (STATUS "src/CmakeLists IPPL_LIBRARY : ${IPPL_LIBRARY}")
 message (STATUS "src/CmakeLists GSL_LIBRARY : ${GSL_LIBRARY}")
 message (STATUS "src/CmakeLists Kokkos_LIBRARY : ${KOKKOS_LIBRARY1}")
 message (STATUS "src/CmakeLists HEFFTE_LIBRARY : ${HEFFTE_LIBRARY}")
-
-
-if (ENABLE_OPAL_FEL)
-    include_directories (${MITHRA_INCLUDE_DIR})
-    target_link_libraries(libOPAL ${MITHRA_LIBRARY_DIR}/libmithra.a)
-endif()
+message (STATUS "src/CmakeLists MPI_CXX : ${MPI_CXX_LIBRARIES}")
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")

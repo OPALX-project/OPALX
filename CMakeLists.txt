@@ -31,6 +31,12 @@ set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g -fsanitize=address -fno-omit-frame-p
 set (CMAKE_CXX_FLAGS_RELEASE "-O0 -g")
 set (CMAKE_CXX_FLAGS_DEBUG  "-O1 -g -fsanitize=address -fno-omit-frame-pointer")
 
+if ("${Kokkos_DEVICES}" MATCHES "CUDA")
+    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
+endif()
+
+
+
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 #add_compile_options (-Wno-nonportable-include-path)
@@ -69,14 +75,14 @@ message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
 endif()
-find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS /Users/adelmann/OPAL/lib)
-find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS /Users/adelmann/OPAL/lib)
-find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS /Users/adelmann/OPAL/lib)
+find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS /psi/home/adelmann/opal-x/install_openmp/lib64)
+find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS /psi/home/adelmann/opal-x/install_openmp/lib64)
+find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS /psi/home/adelmann/opal-x/install_openmp/lib64)
 message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
 
 find_package(Heffte 2.2.0 REQUIRED)
 message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")  
-find_library(HEFFTE_LIBRARY heffte HINTS /Users/adelmann/OPAL/lib)
+find_library(HEFFTE_LIBRARY heffte HINTS /psi/home/adelmann/opal-x/install_openmp/lib)
 message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 
 message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")  
@@ -84,8 +90,8 @@ message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")
 message (STATUS "MPI lib(s): ${OPAL_MPI_LIBS}")
 
 find_package (Ippl REQUIRED)
-add_compile_options("-I/Users/adelmann/git/ippl/src")
-find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR})
+add_compile_options("-I/psi/home/adelmann/opal-x/downloads/ippl/build_openmp/src")
+find_library(IPPL_LIBRARY ippl HINTS /psi/home/adelmann/opal-x/install_openmp/lib)
 message (STATUS "Found IPPL lib: ${IPPL_LIBRAR}")
 
 find_package (H5Hut REQUIRED)
