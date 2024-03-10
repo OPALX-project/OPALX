@@ -39,12 +39,6 @@ itb_exit() {
 
 export -f itb_exit > /dev/null
 
-#
-# Can be set from outside 
-export ITB_DOWNLOAD_DIR=/psi/home/adelmann/opal-x
-export ITB_SRC_DIR=${ITB_DOWNLOAD_DIR}
-export ITB_PREFIX=${ITB_DOWNLOAD_DIR}/install
-
 # General build parameters
 export build_type=
 compiler=${compiler:-$(which g++)}
@@ -127,10 +121,30 @@ if [ -z "$build_type" ]; then
     exit 1
 fi
 
-export ITB_PREFIX=${ITB_PREFIX}_${build_type}
+#export ITB_PREFIX=${ITB_PREFIX}_${build_type}
+#
+# Can be set from outside 
+#
+if [ ! -z $ITB_DOWNLOAD_DIR ]; then
+    echo "Note ITB_DOWNLOAD_DIR was to: $ITB_DOWNLOAD_DIR"
+fi
+
+if [ ! -z $ITB_DOWNLOAD_DIR ]; then
+    echo "Note IPPL_DIR was to: $IPPL_DIR"
+fi
+
+export ITB_DOWNLOAD_DIR=${ITB_DOWNLOAD_DIR:-"/psi/home/adelmann/opal-x"} 
+export ITB_SRC_DIR=${ITB_SRC_DIR:-"${ITB_DOWNLOAD_DIR}"}
+export ITB_PREFIX=${ITB_PREFIX:-"${ITB_DOWNLOAD_DIR}/install"}
+export Kokkos_DIR=${Kokkos_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
+export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
+export IPPL_DIR=${IPPL_DIR:-"/psi/home/adelmann/opal-x/downloads/ippl/src"}
+export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
+export HEFFTE_LIBRARY=${Heffte_DIR}
+export INCLUDE_ALL=${INCLUDE_ALL:-"${ITB_DOWNLOAD_DIR}/install_${build_type}/include/"}
 
 P=opal-x
-NJOBS=8
+NJOBS=10
 
 trap "itb_exit" EXIT
 
@@ -148,6 +162,7 @@ elif [[ "$build_type" == "serial" ]]; then
     echo "Build serial mode."
 elif [[ "$build_type" == "openmp" ]]; then
     echo "Build OpenMP mode."
+    CXXFLAGS="-fopenmp -w "
 else
     echo "Wrong build type."
 fi
@@ -166,13 +181,6 @@ else
     fi
 fi
 
-#
-# maybe as argument
-#
-export Kokkos_DIR=${ITB_DOWNLOAD_DIR}/install_${build_type}
-export Heffte_DIR=${ITB_DOWNLOAD_DIR}/install_${build_type}
-export HEFFTE_LIBRARY=${Heffte_DIR}
-
 mkdir -p "${ITB_SRC_DIR}"/$P/"build_${build_type}" && cd "$_" || exit "${ITB_ARG_ERR}"
 
 cmake \
@@ -181,12 +189,9 @@ cmake \
     -DCMAKE_Fortran_COMPILER_WORKS=OFF \
     -DUSE_STATIC_LIBRARIES=ON \
     -DBUILD_OPAL_UNIT_TESTS="${ENABLE_UNIT_TESTS}" \
-    -DCMAKE_CXX_FLAGS="$CXXFLAGS -w -I/psi/home/adelmann/opal-x/install_openmp/include/ -fopenmp" \
+    -DCMAKE_CXX_FLAGS="${CXXFLAGS} -I${INCLUDE_ALL}" \
     -DOPAL_CXX_FLAGS="-w" \
-    -DIPPL_INCLUDE_DIR="/psi/home/adelmann/opal-x/downloads/ippl/src" \
+    -DIPPL_INCLUDE_DIR="${IPPL_DIR}" \
     ..
 # compile & install
 make -j ${NJOBS}
-#make install
-
-
