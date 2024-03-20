@@ -30,7 +30,7 @@
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 class ParticleMatterInteractionHandler;
 class BoundaryGeometry;

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"

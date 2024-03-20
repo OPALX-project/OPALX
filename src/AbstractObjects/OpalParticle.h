@@ -19,7 +19,7 @@
 #define CLASSIC_OpalParticle_HH
 
 #include "Ippl.h"
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 //  
 #include <Kokkos_MathematicalConstants.hpp>

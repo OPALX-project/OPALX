@@ -29,7 +29,7 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 // ------- DON'T DELETE: start --------
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)

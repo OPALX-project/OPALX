@@ -23,7 +23,7 @@
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 #include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"

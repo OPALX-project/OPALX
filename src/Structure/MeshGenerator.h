@@ -14,7 +14,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 class ElementBase;
 

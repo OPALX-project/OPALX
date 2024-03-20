@@ -2,7 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include "Algorithms/BoostMatrix.h"
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 
