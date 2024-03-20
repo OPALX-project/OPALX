@@ -94,7 +94,7 @@ target_link_libraries (libOPAL
 
 add_executable (opal Main.cpp)
 target_link_libraries( opal
-    /psi/home/adelmann/opal-x/opal-x/build_openmp/src/libOPAL.a
+   /psi/home/adelmann/opal-x/downloads/ippl/build_serial/src/libippl.a 
     ${KOKKOS_LIBRARY1}
     ${KOKKOS_LIBRARY2}
     ${KOKKOS_LIBRARY3}
