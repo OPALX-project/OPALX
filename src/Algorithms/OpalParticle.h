@@ -19,7 +19,7 @@
 #define CLASSIC_OpalParticle_HH
 
 #include <cstddef>
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 class OpalParticle {
 public:

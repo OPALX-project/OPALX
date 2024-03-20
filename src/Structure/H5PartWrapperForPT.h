@@ -18,7 +18,7 @@
 #ifndef OPAL_H5PARTWRAPPERFORPT_H
 #define OPAL_H5PARTWRAPPERFORPT_H
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 #include "Structure/H5PartWrapper.h"
 
 #include "H5hut.h"

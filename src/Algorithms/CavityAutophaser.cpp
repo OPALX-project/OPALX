@@ -20,7 +20,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Ippl.h"
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"

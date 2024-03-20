@@ -18,7 +18,7 @@
 #ifndef STEPPER_H
 #define STEPPER_H
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include "PartBunch/PartBunch.hpp"
 

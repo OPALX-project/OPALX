@@ -28,7 +28,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include <boost/filesystem.hpp>
 

@@ -23,7 +23,7 @@
 #ifndef BOUNDINGBOX_H
 #define BOUNDINGBOX_H
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include "boost/optional.hpp"
 

@@ -22,7 +22,7 @@
 #ifndef PEAKFINDER_H
 #define PEAKFINDER_H
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include <fstream>
 #include <list>
