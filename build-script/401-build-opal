@@ -138,8 +138,13 @@ export ITB_SRC_DIR=${ITB_SRC_DIR:-"${ITB_DOWNLOAD_DIR}"}
 export ITB_PREFIX=${ITB_PREFIX:-"${ITB_DOWNLOAD_DIR}/install"}
 export Kokkos_DIR=${Kokkos_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
 export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
-export IPPL_DIR=${IPPL_DIR:-"/psi/home/adelmann/opal-x/downloads/ippl/src"}
-export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
+
+export Ippl_DIR=${Ippl_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"} 
+
+export IPPL_INCLUDE_PATH=/data/project/general/isodarUQ/adelmann/downloads/ippl/src/
+export IPPL_LIBRARY_PATH=/data/project/general/isodarUQ/adelmann/downloads/ippl/build_${build_type}/src/
+
+
 export HEFFTE_LIBRARY=${Heffte_DIR}
 export INCLUDE_ALL=${INCLUDE_ALL:-"${ITB_DOWNLOAD_DIR}/install_${build_type}/include/"}
 
@@ -171,7 +176,7 @@ cd "${ITB_SRC_DIR}" || exit "${ITB_ARG_ERR}"
 
 if [ -d "opal-x" ] 
 then
-    echo "Found existing OPAL-X source directory"
+    echo "Found existing OPAL-X source directory in ${ITB_SRC_DIR}"
 else
     echo "Clone OPAL-X repo ... "
     if [ -n "$USE_SSH" ]; then
