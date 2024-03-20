@@ -47,9 +47,12 @@ add_definitions (-DNOCTAssert)
 #add_compile_options (-Wno-unused)
 #add_compile_options (-Wextra)
 #add_compile_options (-Wno-unused-parameter)
+add_compile_options (-Wno-cpp)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 add_compile_options (-DKOKKOS_DEPENDENCE)
+add_compile_options (-Wno-return-type)
+add_compile_options (-gdwarf-2)                           # avoid dwarf errors on merlin
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 if (uppercase_CMAKE_BUILD_TYPE MATCHES "^(DEBUG|RELWITHDEBINFO)$")
@@ -69,30 +72,46 @@ message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
 option (ENABLE_OpWenMP "Use hybrid parallelism MPI-OpenMP" OFF)
 
+
+
+## Kokkos
+
 find_package(Kokkos REQUIRED)
 message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
 
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
 endif()
-find_library(KOKKOS_LIBRARY1 NAMES kokkoscore)
-find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers)
-find_library(KOKKOS_LIBRARY3 NAMES kokkossimd)
+find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS ${Kokkos_DIR}/../..)
+find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS ${Kokkos_DIR}/../..)
+find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS ${Kokkos_DIR}/../..)
 message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
+
+
+## Heffte
 
 find_package(Heffte 2.2.0 REQUIRED)
 message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")  
-find_library(HEFFTE_LIBRARY heffte)
+find_library(HEFFTE_LIBRARY heffte HINTS ${Heffte_DIR}/../..)
 message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 
 message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")  
 
 message (STATUS "MPI lib(s): ${OPAL_MPI_LIBS}")
 
+
+## Ippl
+## Ippl.h is not found this is why we set -I
 find_package (Ippl REQUIRED)
-add_compile_options("-I/psi/home/adelmann/opal-x/downloads/ippl/build_openmp/src")
-find_library(IPPL_LIBRARY ippl HINTS /psi/home/adelmann/opal-x/install_openmp/lib)
-message (STATUS "Found IPPL lib: ${IPPL_LIBRAR}")
+message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
+message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY_DIR}")
+  
+add_compile_options("-I$ENV{IPPL_INCLUDE_PATH}")
+find_library(IPPL_LIBRARY ippl HINTS $ENV{IPPL_LIBRARY_PATH})
+message (STATUS "Found IPPL lib: ${IPPL_LIBRARY}")
+message (STATUS "IPPL include path: $ENV{IPPL_INCLUDE_PATH}")
+
+## 
 
 find_package (H5Hut REQUIRED)
 
@@ -246,10 +265,10 @@ endif ()
 #
 #
 
-add_custom_target(always_rebuild ALL
-    DEPENDS
-    src/OPALrevision.h
-    )
+#add_custom_target(always_rebuild ALL
+#    DEPENDS
+#    src/OPALrevision.h
+#    )
 
 add_custom_command(
     OUTPUT src/OPALrevision.h
