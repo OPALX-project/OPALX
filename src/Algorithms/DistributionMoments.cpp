@@ -17,7 +17,7 @@
 //
 
 #include "DistributionMoments.h"
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"

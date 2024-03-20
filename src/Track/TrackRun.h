@@ -18,7 +18,7 @@
 #ifndef OPAL_TrackRun_HH
 #define OPAL_TrackRun_HH
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include "AbstractObjects/Action.h"
 #include "PartBunch/PartBunch.hpp"

@@ -21,7 +21,7 @@
 #ifndef MSLANG_BOUNDINGBOX_H
 #define MSLANG_BOUNDINGBOX_H
 
-#include "OPALtypes.h"
+#include "OPALTypes.h"
 
 #include <fstream>
 #include <iostream>
