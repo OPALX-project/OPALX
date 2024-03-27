@@ -48,7 +48,6 @@ set (_SRCS
     SDDSParser/include.cpp
     SDDSParser/parameter.cpp
     SDDSParser/version.cpp
-#
     EarlyLeaveException.cpp
     OpalException.cpp
     OpalFilter.cpp
