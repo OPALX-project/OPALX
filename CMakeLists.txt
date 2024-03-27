@@ -1,14 +1,8 @@
-cmake_minimum_required (VERSION 3.12)
-cmake_policy(VERSION 3.12)
-
-project (OPAL VERSION 2023.9.99)
+cmake_minimum_required (VERSION 3.20.3)
+project (OPALX VERSION 2024.1.00 LANGUAGES C CXX)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
-string (REGEX REPLACE "\\.([0-9])\\." ".0\\1." PACKAGE_VERSION ${PROJECT_VERSION})
-string (REGEX REPLACE "\\.([0-9])$" ".0\\1" PACKAGE_VERSION ${PACKAGE_VERSION})
-string (REGEX REPLACE "\\." "" PACKAGE_VERSION ${PACKAGE_VERSION})
-
-message (STATUS PACKAGE_VERSION=${PACKAGE_VERSION})
+set (OPALX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
@@ -17,49 +11,57 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
         )
 endif ()
 
-cmake_host_system_information (RESULT HOSTNAME QUERY HOSTNAME)
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    add_definitions (-DNOPAssert)
+endif ()
+
+add_compile_options (-Wall)
+add_compile_options (-Wunused)
+add_compile_options (-Wextra)
+add_compile_options (-Werror)
+add_compile_options (-Wno-unused-parameter)
+add_compile_options (-Wno-error=unused-variable)
+
+# allow deprecated functions
+add_compile_options (-Wno-deprecated-declarations)
+
+option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 
 message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
-message (STATUS "Host OS System: ${CMAKE_HOST_SYSTEM}")
-message (STATUS "Hostname: ${HOSTNAME}")
 
 # Select flags.
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g -fsanitize=address -fno-omit-frame-pointer")
-set (CMAKE_CXX_FLAGS_RELEASE "-O0 -g")
-set (CMAKE_CXX_FLAGS_DEBUG  "-O1 -g -fsanitize=address -fno-omit-frame-pointer")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
+set (CMAKE_CXX_FLAGS_RELEASE "-O3")
+set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+
 
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
 endif()
 
-
-
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
-#add_compile_options (-Wno-nonportable-include-path)
+
 #add_compile_options (-ferror-limit=1)
 #add_compile_options (-fsanitize=undefined,address)
-#add_compile_options (-Wno-error)
 #add_compile_options (-Wno-deprecated-declarations)
 #add_compile_options (-Wno-unused)
 #add_compile_options (-Wextra)
-#add_compile_options (-Wno-unused-parameter)
+add_compile_options (-Wno-error=uninitialized)
+add_compile_options (-Wno-error=restrict)
+add_compile_options (-Wno-error=unused-function)
+add_compile_options (-Wno-unused-parameter)
+add_compile_options (-Wno-error=unused-but-set-variable)
+add_compile_options (-Wno-error=maybe-uninitialized)
+add_compile_options (-Wno-error=reorder)
 add_compile_options (-Wno-cpp)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 add_compile_options (-DKOKKOS_DEPENDENCE)
 add_compile_options (-Wno-return-type)
 add_compile_options (-gdwarf-2)                           # avoid dwarf errors on merlin
-
-string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-if (uppercase_CMAKE_BUILD_TYPE MATCHES "^(DEBUG|RELWITHDEBINFO)$")
-    option (BUILD_FOR_PRODUCTION "Disable all assertion checks; Only use for production" OFF)
-else()
-    option (BUILD_FOR_PRODUCTION "Disable all assertion checks; Only use for production" ON)
-endif()
 
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -70,15 +72,14 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-option (ENABLE_OpWenMP "Use hybrid parallelism MPI-OpenMP" OFF)
+find_package(Heffte 2.2.0 REQUIRED)
+message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")
+find_library(HEFFTE_LIBRARY heffte HINTS ${Heffte_DIR}/../..)
+message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 
-
-
-## Kokkos
 
 find_package(Kokkos REQUIRED)
 message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
-
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
 endif()
@@ -87,31 +88,17 @@ find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS ${Kokkos_DIR}/../..)
 find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS ${Kokkos_DIR}/../..)
 message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
 
+find_package (Ippl REQUIRED)
+message (STATUS "Found IPPL_DIR: ${IPPL_DIR}")
 
-## Heffte
+find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR}) 
 
-find_package(Heffte 2.2.0 REQUIRED)
-message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")  
-find_library(HEFFTE_LIBRARY heffte HINTS ${Heffte_DIR}/../..)
-message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
+message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
+message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
 
 message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")  
-
 message (STATUS "MPI lib(s): ${OPAL_MPI_LIBS}")
 
-
-## Ippl
-## Ippl.h is not found this is why we set -I
-find_package (Ippl REQUIRED)
-message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
-message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY_DIR}")
-  
-add_compile_options("-I$ENV{IPPL_INCLUDE_PATH}")
-find_library(IPPL_LIBRARY ippl HINTS $ENV{IPPL_LIBRARY_PATH})
-message (STATUS "Found IPPL lib: ${IPPL_LIBRARY}")
-message (STATUS "IPPL include path: $ENV{IPPL_INCLUDE_PATH}")
-
-## 
 
 find_package (H5Hut REQUIRED)
 
@@ -146,17 +133,14 @@ message (STATUS "Found Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message (STATUS "Found Boost libraries: ${Boost_LIBRARIES}")
 include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
 
-#
-# Resolve all library dependencies
-#
 
-set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
 option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 if (NOT ${USE_STATIC_LIBRARIES})
     add_compile_options (-fPIE -fPIC)
     add_link_options (-pie)
 endif ()
+
 
 #
 # compiler dependent flags
@@ -233,6 +217,7 @@ else ()
     endif ()
 endif ()
 
+
 #
 # Handle options
 #
@@ -262,20 +247,19 @@ if (DBG_SCALARFIELD)
 endif ()
 
 #
+# Create build targets
 #
-#
-
-#add_custom_target(always_rebuild ALL
-#    DEPENDS
-#    src/OPALrevision.h
-#    )
+add_custom_target(always_rebuild ALL
+    DEPENDS
+    src/OPALrevision.h
+    )
 
 add_custom_command(
     OUTPUT src/OPALrevision.h
     COMMAND ./gen_OPALrevision
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS
-    always_rebuild
+#    always_rebuild
     )
 
 add_subdirectory (src)
@@ -289,7 +273,9 @@ if (BUILD_OPAL_UNIT_TESTS)
     add_subdirectory (tests)
 endif ()
 
+#
 # make variables visible in other CMakeLists files
+#
 set (OPAL_CXX_FLAGS ${OPAL_CXX_FLAGS}
     CACHE INTERNAL "" FORCE
     )
@@ -303,7 +289,14 @@ set (OPAL_LIBS ${OPAL_LIBS}
     CACHE INTERNAL "" FORCE
     )
 
-# configure file
+#
+# configure files
+#
+
+message (STATUS "Project Name ${PROJECT_NAME}")
+message (STATUS "CMAKE_CURRENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}")
+message (STATUS "CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}")
+
 configure_file (
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config_install.cmake
@@ -314,3 +307,13 @@ install (
     DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/${PROJECT_NAME}"
     RENAME ${PROJECT_NAME}Config.cmake
     )
+
+# vi: set et ts=4 sw=4 sts=4:
+
+# Local Variables:
+# mode: cmake
+# cmake-tab-width: 4
+# indent-tabs-mode: nil
+# require-final-newline: nil
+# End:
+
