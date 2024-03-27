@@ -204,3 +204,4 @@ CXX=mpicxx CC=mpicc cmake \
 #
 # compile & install
 make -j ${NJOBS}
+make 
