@@ -1,10 +1,5 @@
 #!/bin/bash -l
-export ITB_DOWNLOAD_DIR="/psi/home/adelmann/opal-x"} 
-export ITB_SRC_DIR=${ITB_SRC_DIR:-"${ITB_DOWNLOAD_DIR}"}
-export ITB_PREFIX=${ITB_PREFIX:-"${ITB_DOWNLOAD_DIR}/install"}
-export Kokkos_DIR=${Kokkos_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
-export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
-export IPPL_DIR=${IPPL_DIR:-"/psi/home/adelmann/opal-x/downloads/ippl/src"}
-export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
-export HEFFTE_LIBRARY=${Heffte_DIR}
-export INCLUDE_ALL=${INCLUDE_ALL:-"${ITB_DOWNLOAD_DIR}/install_${build_type}/include/"}
+export OTB_SRC_DIR=/psi/home/adelmann/opal-x/downloads
+# the build type will be appended by 401-build-opal 
+export OTB_PREFIX=/psi/home/adelmann/opal-x/install
+export HIK_INSTALL_DIR=$HOME/opal-x/ippl-build-scripts
