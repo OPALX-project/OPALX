@@ -636,7 +636,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         // \todo
         // else {
         //    ne = itsBunch_m->destroyT();
-         //}                                                     \
+        // }
         numParticlesInSimulation_m = itsBunch_m->getTotalNum();
         deletedParticles_m = true;
     }

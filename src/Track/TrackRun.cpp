@@ -164,8 +164,11 @@ TrackRun* TrackRun::clone(const std::string& name) {
 }
 
 void TrackRun::execute() {
-    const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
-    if (Options::version < currentVersion) {
+    /* \todo check version
+   const int currentVersion = 1.0 // \todo ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
+    
+
+   if (Options::version < currentVersion) {
         unsigned int fileVersion = Options::version / 100;
         bool newerChanges        = false;
         for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++it) {
@@ -195,6 +198,7 @@ void TrackRun::execute() {
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
     }
+    */
 
     isFollowupTrack_m = opal_m->hasBunchAllocated();
     if (!itsAttr[TRACKRUN::DISTRIBUTION] && !isFollowupTrack_m) {
