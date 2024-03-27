@@ -53,7 +53,7 @@
 
 Inform* gmsg;
 
-namespace {
+namespace OPALXMAIN {
     void printStdoutHeader() {
         OPALTimer::Timer simtimer;
         std::string dateStr(simtimer.date());
@@ -61,13 +61,17 @@ namespace {
         std::string mySpace("            ");
 
         *gmsg << mySpace << "  ____  _____        _       __   __" << endl;
-        *gmsg << mySpace << " / __ \|  __ \ /\   | |      \ \ / /" << endl;
+
+        /* \todo fix OPAL
+        *gmsg << mySpace << " // __ \|  __ \ /\   | |      \ \ // // " << endl;
+
         *gmsg << mySpace << "| |  | | |__) /  \  | |  _____\ V /" << endl;
         *gmsg << mySpace << "| |  | |  ___/ /\ \ | | |______> <" << endl;
 
         *gmsg << mySpace << "| |__| | |  / ____ \| |____   / . \\" << endl;
         *gmsg << mySpace << "\_____/|_| /_/    \_\______| /_/ \_\\" << endl;
 
+        */
         std::string gitRevision = "git rev. " + Util::getGitRevision();
         std::string copyRight   = "(c) PSI, http://amas.web.psi.ch";
         *gmsg << endl
@@ -88,7 +92,7 @@ namespace {
     }
 
     void printHelp() {
-        ::printStdoutHeader();
+        OPALXMAIN::printStdoutHeader();
 
         *ippl::Info << "\n";
         *ippl::Info << "Usage: opal [<option> <option> ...]\n";
@@ -183,7 +187,7 @@ int main(int argc, char* argv[]) {
             }
 
             if (argc <= 1) {
-                ::printHelp();
+                OPALXMAIN::printHelp();
                 exit(1);
             }
             int inputFileArgument = -1;
@@ -193,14 +197,14 @@ int main(int argc, char* argv[]) {
                 std::string argStr = std::string(argv[ii]);
                 if (argStr == std::string("-h") || argStr == std::string("-help")
                     || argStr == std::string("--help")) {
-                    ::printHelp();
+                    OPALXMAIN::printHelp();
                     exit(0);
                 } else if (argStr == std::string("--help-command")) {
                     if (argc < ii + 2) {
-                        ::printHelp();
+                        OPALXMAIN::printHelp();
                         exit(1);
                     }
-                    ::printStdoutHeader();
+                    OPALXMAIN::printStdoutHeader();
                     const std::string cmdName = Util::toUpper(argv[ii + 1]);
                     Object* object            = OpalData::getInstance()->find(cmdName);
 
@@ -219,7 +223,7 @@ int main(int argc, char* argv[]) {
                     }
                     exit(0);
                 } else if (argStr == std::string("--version-full")) {
-                    ::printStdoutHeader();
+                    OPALXMAIN::printStdoutHeader();
                     *ippl::Info << "OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. "
                                 << Util::getGitRevision() << endl;
                     IpplInfo::printVersion();
@@ -280,13 +284,13 @@ int main(int argc, char* argv[]) {
                         continue;
                     } else {
                         *gmsg << "Unknown argument \"" << argStr << "\"" << endl;
-                        ::printHelp();
+                        OPALXMAIN::printHelp();
                         exit(1);
                     }
                 }
             }
 
-            ::printStdoutHeader();
+            OPALXMAIN::printStdoutHeader();
             if (inputFileArgument == -1) {
                 *ippl::Info << "No input file provided!" << endl;
                 exit(1);
