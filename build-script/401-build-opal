@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-itb_exit() {
+otb_exit() {
     local -i ec=$?
     if [[ -n "${BASH_VERSION}" ]]; then
         local -i n=${#BASH_SOURCE[@]}
@@ -11,25 +11,25 @@ itb_exit() {
     echo -n "${recipe_name}: "
     if (( ec == 0 )); then
         echo "done!"
-    elif (( ec == ITB_ERR_ARG )); then
+    elif (( ec == OTB_ERR_ARG )); then
         echo "argument error!"
-    elif (( ec == ITB_ERR_SETUP )); then
+    elif (( ec == OTB_ERR_SETUP )); then
         echo "error in setting everything up!"
-    elif (( ec == ITB_ERR_SYSTEM )); then
+    elif (( ec == OTB_ERR_SYSTEM )); then
         echo "unexpected system error!"
-    elif (( ec == ITB_ERR_DOWNLOAD )); then
+    elif (( ec == OTB_ERR_DOWNLOAD )); then
         echo "error in downloading the source file!"
-    elif (( ec == ITB_ERR_UNTAR )); then
+    elif (( ec == OTB_ERR_UNTAR )); then
         echo "error in un-taring the source file!"
-    elif (( ec == ITB_ERR_CONFIGURE )); then
+    elif (( ec == OTB_ERR_CONFIGURE )); then
         echo "error in configuring the software!"
-    elif (( ec == ITB_ERR_MAKE )); then
+    elif (( ec == OTB_ERR_MAKE )); then
         echo "error in compiling the software!"
-    elif (( ec == ITB_ERR_PRE_INSTALL )); then
+    elif (( ec == OTB_ERR_PRE_INSTALL )); then
         echo "error in pre-installing the software!"
-    elif (( ec == ITB_ERR_INSTALL )); then
+    elif (( ec == OTB_ERR_INSTALL )); then
         echo "error in installing the software!"
-    elif (( ec == ITB_ERR_POST_INSTALL )); then
+    elif (( ec == OTB_ERR_POST_INSTALL )); then
         echo "error in post-installing the software!"
     else
         echo "oops, unknown error!!!"
@@ -37,7 +37,7 @@ itb_exit() {
     exit ${ec}
 }
 
-export -f itb_exit > /dev/null
+export -f otb_exit > /dev/null
 
 # General build parameters
 export build_type=
@@ -121,37 +121,24 @@ if [ -z "$build_type" ]; then
     exit 1
 fi
 
-#export ITB_PREFIX=${ITB_PREFIX}_${build_type}
 #
 # Can be set from outside 
 #
-if [ ! -z $ITB_DOWNLOAD_DIR ]; then
-    echo "Note ITB_DOWNLOAD_DIR was to: $ITB_DOWNLOAD_DIR"
+if [ ! -z $OTB_DOWNLOAD_DIR ]; then
+    echo "Note OTB_DOWNLOAD_DIR was to: $OTB_DOWNLOAD_DIR"
 fi
 
-if [ ! -z $ITB_DOWNLOAD_DIR ]; then
+if [ ! -z $OTB_DOWNLOAD_DIR ]; then
     echo "Note IPPL_DIR was to: $IPPL_DIR"
 fi
 
-export ITB_DOWNLOAD_DIR=${ITB_DOWNLOAD_DIR:-"/psi/home/adelmann/opal-x"} 
-export ITB_SRC_DIR=${ITB_SRC_DIR:-"${ITB_DOWNLOAD_DIR}"}
-export ITB_PREFIX=${ITB_PREFIX:-"${ITB_DOWNLOAD_DIR}/install"}
-export Kokkos_DIR=${Kokkos_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
-export Heffte_DIR=${Heffte_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"}
 
-export Ippl_DIR=${Ippl_DIR:-"${ITB_DOWNLOAD_DIR}/install_${build_type}"} 
+export OTB_SRC_DIR=/psi/home/adelmann/opal-x/downloads
+export OTB_PREFIX=/psi/home/adelmann/opal-x/install_${build_type}
 
-export IPPL_INCLUDE_PATH=/data/project/general/isodarUQ/adelmann/downloads/ippl/src/
-export IPPL_LIBRARY_PATH=/data/project/general/isodarUQ/adelmann/downloads/ippl/build_${build_type}/src/
+NJOBS=15
 
-
-export HEFFTE_LIBRARY=${Heffte_DIR}
-export INCLUDE_ALL=${INCLUDE_ALL:-"${ITB_DOWNLOAD_DIR}/install_${build_type}/include/"}
-
-P=opal-x
-NJOBS=10
-
-trap "itb_exit" EXIT
+trap "otb_exit" EXIT
 
 CXXFLAGS=""
 
@@ -172,11 +159,11 @@ else
     echo "Wrong build type."
 fi
 
-cd "${ITB_SRC_DIR}" || exit "${ITB_ARG_ERR}"
+cd "${OTB_SRC_DIR}" || exit "${OTB_ARG_ERR}"
 
 if [ -d "opal-x" ] 
 then
-    echo "Found existing OPAL-X source directory in ${ITB_SRC_DIR}"
+    echo "Found existing OPAL-X source directory in ${OTB_SRC_DIR}"
 else
     echo "Clone OPAL-X repo ... "
     if [ -n "$USE_SSH" ]; then
@@ -186,17 +173,19 @@ else
     fi
 fi
 
-mkdir -p "${ITB_SRC_DIR}"/$P/"build_${build_type}" && cd "$_" || exit "${ITB_ARG_ERR}"
+mkdir -p "${OTB_SRC_DIR}/opal-x/build_${build_type}" && cd "$_" || exit "${OTB_ARG_ERR}"
 
-cmake \
-    -DCMAKE_BUILD_TYPE="${build_mode}" \
-    -DCMAKE_INSTALL_PREFIX="${ITB_PREFIX}" \
-    -DCMAKE_Fortran_COMPILER_WORKS=OFF \
-    -DUSE_STATIC_LIBRARIES=ON \
-    -DBUILD_OPAL_UNIT_TESTS="${ENABLE_UNIT_TESTS}" \
-    -DCMAKE_CXX_FLAGS="${CXXFLAGS} -I${INCLUDE_ALL}" \
-    -DOPAL_CXX_FLAGS="-w" \
-    -DIPPL_INCLUDE_DIR="${IPPL_DIR}" \
-    ..
+CXX=mpicxx CC=mpicc cmake \
+-DCMAKE_BUILD_TYPE="${build_mode}" \
+-DHeffte_DIR=$HOME/opal-x/ippl-build-scripts_${build_type}/lib/cmake/Heffte \
+-DKokkos_DIR=$HOME/opal-x/ippl-build-scripts_${build_type}/lib64/cmake/Kokkos \
+-DIPPL_DIR=$HOME/opal-x/ippl-build-scripts_${build_type} \
+-DCMAKE_CXX_EXTENSIONS=Off \
+-DCMAKE_INSTALL_PREFIX=${OTB_PREFIX} \
+-DCMAKE_Fortran_COMPILER_WORKS=OFF \
+-DUSE_STATIC_LIBRARIES=ON \
+-DENABLE_OpenMP=ON \
+..
+
 # compile & install
 make -j ${NJOBS}
