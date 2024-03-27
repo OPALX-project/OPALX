@@ -1,5 +1,11 @@
 #!/bin/bash -l
-
+#
+function echocolor() { # $1 = string
+    COLOR='\033[1;33m'
+    NC='\033[0m'
+    printf "${COLOR}$1${NC}\n"
+}
+#
 otb_exit() {
     local -i ec=$?
     if [[ -n "${BASH_VERSION}" ]]; then
@@ -36,7 +42,6 @@ otb_exit() {
     fi
     exit ${ec}
 }
-
 export -f otb_exit > /dev/null
 
 # General build parameters
@@ -121,22 +126,32 @@ if [ -z "$build_type" ]; then
     exit 1
 fi
 
+
 #
 # Can be set from outside 
 #
-if [ ! -z $OTB_DOWNLOAD_DIR ]; then
-    echo "Note OTB_DOWNLOAD_DIR was to: $OTB_DOWNLOAD_DIR"
+if [ ! -z $OTB_SRC_DIR ]; then
+    echocolor "Note: OTB_SRC_DIR was inherited and set to $OTB_SRC_DIR"
+else
+    export OTB_SRC_DIR=/psi/home/adelmann/opal-x/downloads
 fi
 
-if [ ! -z $OTB_DOWNLOAD_DIR ]; then
-    echo "Note IPPL_DIR was to: $IPPL_DIR"
+if [ ! -z $OTB_PREFIX ]; then
+    OTB_PREFIX="${OTB_PREFIX}_${build_type}"
+    echocolor "Note: OTB_PREFIX was inherited and set to $OTB_PREFIX"
+else
+    export OTB_PREFIX=/psi/home/adelmann/opal-x/install_${build_type}   
 fi
 
-
-export OTB_SRC_DIR=/psi/home/adelmann/opal-x/downloads
-export OTB_PREFIX=/psi/home/adelmann/opal-x/install_${build_type}
-
-NJOBS=15
+# Heffte Ippl Kokkos (HEK) 
+if [ ! -z $HIK_INSTALL_DIR ]; then
+    HIK_INSTALL_DIR="${HIK_INSTALL_DIR}_${build_type}"
+    echocolor "Note: HIK_INSTALL_DIR was inherited and set to $HIK_INSTALL_DIR"
+else
+    export HIK_INSTALL_DIR=$HOME/opal-x/ippl-build-scripts_${build_type}      
+fi
+#
+export NJOBS=15
 
 trap "otb_exit" EXIT
 
@@ -174,18 +189,18 @@ else
 fi
 
 mkdir -p "${OTB_SRC_DIR}/opal-x/build_${build_type}" && cd "$_" || exit "${OTB_ARG_ERR}"
-
+#
 CXX=mpicxx CC=mpicc cmake \
 -DCMAKE_BUILD_TYPE="${build_mode}" \
--DHeffte_DIR=$HOME/opal-x/ippl-build-scripts_${build_type}/lib/cmake/Heffte \
--DKokkos_DIR=$HOME/opal-x/ippl-build-scripts_${build_type}/lib64/cmake/Kokkos \
--DIPPL_DIR=$HOME/opal-x/ippl-build-scripts_${build_type} \
+-DHeffte_DIR=$HIK_INSTALL_DIR/lib/cmake/Heffte \
+-DKokkos_DIR=$HIK_INSTALL_DIR/lib64/cmake/Kokkos \
+-DIPPL_DIR=$HIK_INSTALL_DIR \
 -DCMAKE_CXX_EXTENSIONS=Off \
 -DCMAKE_INSTALL_PREFIX=${OTB_PREFIX} \
 -DCMAKE_Fortran_COMPILER_WORKS=OFF \
 -DUSE_STATIC_LIBRARIES=ON \
 -DENABLE_OpenMP=ON \
 ..
-
+#
 # compile & install
 make -j ${NJOBS}

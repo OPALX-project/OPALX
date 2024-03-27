@@ -92,9 +92,11 @@ target_link_libraries (libOPAL
     ${MPI_CXX_LIBRARIES}
     )
 
-add_executable (opal Main.cpp)
-target_link_libraries( opal
-   /psi/home/adelmann/opal-x/downloads/ippl/build_serial/src/libippl.a 
+message (STATUS "OPAL_LIBS is: " ${CMAKE_BINARY_DIR})
+
+add_executable (opalx Main.cpp)
+target_link_libraries( opalx
+    ${CMAKE_BINARY_DIR}/src/libOPAL.a
     ${KOKKOS_LIBRARY1}
     ${KOKKOS_LIBRARY2}
     ${KOKKOS_LIBRARY3}
@@ -120,7 +122,7 @@ message (STATUS "src/CmakeLists HEFFTE_LIBRARY : ${HEFFTE_LIBRARY}")
 message (STATUS "src/CmakeLists MPI_CXX : ${MPI_CXX_LIBRARIES}")
 
 install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-install (TARGETS opal RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+install (TARGETS opalx RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
 install (TARGETS libOPAL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 set (HDRS
