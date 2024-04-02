@@ -20,10 +20,10 @@
 #include "parameter.hpp"
 
 #include <boost/phoenix/core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/phoenix_fusion.hpp>
-#include <boost/spirit/include/phoenix_object.hpp>
-#include <boost/spirit/include/phoenix_bind.hpp>
+#include <boost/phoenix/operator.hpp>
+#include <boost/phoenix/fusion.hpp>
+#include <boost/phoenix/object.hpp>
+#include <boost/phoenix/bind.hpp>
 
 namespace SDDS { namespace parser
 {
