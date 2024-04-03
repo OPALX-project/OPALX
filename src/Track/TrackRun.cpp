@@ -142,8 +142,8 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
         isParallel[d] = true;
     }
 
+    /*
     Vector_t<double, 3> kw = 0.5;
-    double alpha           = 0.05;
     Vector_t<double, 3> rmin(0.0);
     Vector_t<double, 3> rmax = 2 * Kokkos::numbers::pi / kw;
 
@@ -151,8 +151,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     double Q               = std::reduce(rmax.begin(), rmax.end(), -1., std::multiplies<double>());
     Vector_t<double, 3> origin = rmin;
     const double dt            = std::min(.05, 0.5 * *std::min_element(hr.begin(), hr.end()));
-
-    const bool isAllPeriodic = true;
+    */
 }
 
 TrackRun::~TrackRun() {
@@ -232,6 +231,9 @@ void TrackRun::execute() {
         Attributes::getStringArray(itsAttr[TRACKRUN::DISTRIBUTION]);
     const size_t numberOfDistributions = distributionArray.size();
 
+    *gmsg << "* Number of distributions  " << numberOfDistributions << endl;
+
+
     // \todo here we can look over several distributions
     dist_m = Distribution::find(distributionArray[0]);
     *gmsg << *dist_m << endl;
@@ -251,6 +253,7 @@ void TrackRun::execute() {
       Here we can allocate the bunch
 
      */
+
 
     bunch_m = std::make_unique<bunch_type>(
         Qtot, beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
@@ -275,6 +278,20 @@ void TrackRun::execute() {
             throw OpalException("TrackRun::execute", "Unknown \"METHOD\" for the \"RUN\" command");
         }
     }
+
+
+    /*
+      \todo Mohsen here we need to create the particles based on dist_m
+      
+
+      We have 3 main modes: emit particles, inject particles or get particles from a restart run
+
+      Lets start with the inject particles.
+
+      
+      Note: in the pre_run (bunch_m) I disables the particle generation.
+
+     */
 
     // initial statistical data are calculated (rms, eps etc.)
     bunch_m->calcBeamParameters();
@@ -318,11 +335,14 @@ void TrackRun::execute() {
 
     *gmsg << "Parallel Tracker created ... " << endl;
 
+
+    /*
     itsTracker_m->execute();
 
     opal_m->setRestartRun(false);
 
     opal_m->bunchIsAllocated();
+    */
 
     /// \todo do we delete here itsTracker_m;
 }
