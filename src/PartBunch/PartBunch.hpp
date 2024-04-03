@@ -406,86 +406,32 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
-    void initializeParticles() {
-        auto* mesh                   = &this->fcontainer_m->getMesh();
-        auto* FL                     = &this->fcontainer_m->getFL();
-        Vector_t<double, Dim> length = this->rmax_m - this->rmin_m;
-
-        Vector_t<double, Dim> mu, sd;
-        for (unsigned d = 0; d < Dim; d++) {
-            mu[d] = 0.5 * length[d] + this->origin_m[d];
-        }
-        sd[0] = 0.15 * length[0];
-        sd[1] = 0.05 * length[1];
-        sd[2] = 0.20 * length[2];
-
-        using DistR_t =
-            ippl::random::Distribution<double, Dim, 2 * Dim, CustomDistributionFunctions>;
-
-        double* parR = new double[2 * Dim];
-        parR[0]      = mu[0];
-        parR[1]      = sd[0];
-        parR[2]      = mu[1];
-        parR[3]      = sd[1];
-        parR[4]      = mu[2];
-        parR[5]      = sd[2];
-        DistR_t distR(parR);
-
-        Vector_t<double, Dim> origin = this->origin_m;
-        if ((this->lbt_m != 1.0) && (ippl::Comm->size() > 1)) {
-            const ippl::NDIndex<Dim>& lDom = FL->getLocalNDIndex();
-            const int nghost               = this->fcontainer_m->getRho().getNghost();
-            auto rhoview                   = this->fcontainer_m->getRho().getView();
-
-            using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
-
-            const auto hr = this->hr_m;
-            ippl::parallel_for(
-                "Assign initial rho based on PDF",
-                this->fcontainer_m->getRho().getFieldRangePolicy(),
-                KOKKOS_LAMBDA(const index_array_type& args) {
-                    // local to global index conversion
-                    Vector_t<double, Dim> xvec = (args + lDom.first() - nghost + 0.5) * hr + origin;
-
-                    // ippl::apply accesses the view at the given indices and obtains a
-                    // reference; see src/Expression/IpplOperations.h
-                    ippl::apply(rhoview, args) = distR.getFullPdf(xvec);
-                });
-
-            Kokkos::fence();
-
-            this->loadbalancer_m->initializeORB(FL, mesh);
-            this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
-            isFirstRepartition_m = false;
-        }
-
-        // Sample particle positions:
-        ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>> rlayout;
-        rlayout = ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>>(*FL, *mesh);
-
+    void initializeTestParticles() {
+        Inform m("Initialize Test Particles");  
         int seed        = 42;
+        size_type       nlocal = this->totalP_m / ippl::Comm->size();
         using size_type = ippl::detail::size_type;
         Kokkos::Random_XorShift64_Pool<> rand_pool64((size_type)(seed + 100 * ippl::Comm->rank()));
 
-        using samplingR_t = ippl::random::InverseTransformSampling<
-            double, Dim, Kokkos::DefaultExecutionSpace, DistR_t>;
-        samplingR_t samplingR(distR, this->rmax_m, this->rmin_m, rlayout, this->totalP_m);
-
-        size_type nlocal = samplingR.getLocalSamplesNum();
-
         this->pcontainer_m->create(nlocal);
 
-        view_type* R_m = &this->pcontainer_m->R.getView();
-        samplingR.generate(*R_m, rand_pool64);
-
-        view_type* P_m = &this->pcontainer_m->P.getView();
+        view_type* Rview = &this->pcontainer_m->R.getView();
+        view_type* Pview = &this->pcontainer_m->P.getView();
 
         double muP[Dim] = {0.0, 0.0, 0.0};
         double sdP[Dim] = {1.0, 1.0, 1.0};
-        Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(*P_m, rand_pool64, muP, sdP));
 
+        Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(*Pview, rand_pool64, muP, sdP));
+        Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(*Rview, rand_pool64, muP, sdP));
         Kokkos::fence();
         ippl::Comm->barrier();
+
+        this->pcontainer_m->update();
+        
+        if (this->pcontainer_m->getTotalNum() == 0)
+            m << "Initialize Particles did not create particles, reqyested are " << this->totalP_m  << endl;
+
+        this->totalP_m = this->getTotalNum();
 
         this->pcontainer_m->Q = this->totalQ_m / this->totalP_m;
     }
@@ -655,7 +601,7 @@ public:
         os << level1 << "\n";
         os << "* ************** B U N C H "
               "********************************************************* \n";
-        os << "* PARTICLES       = " << this->pcontainer_m->getLocalNum() << "\n";
+        os << "* PARTICLES       = " << this->getTotalNum() << "\n";
         os << "* CORES           = " << ippl::Comm->size() << "\n";
         os << "* FIELD SOLVER    = " << solver_m << "\n";
         os << "* INTEGRATOR      = " << integration_method_m << "\n";

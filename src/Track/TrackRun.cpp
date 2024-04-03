@@ -263,7 +263,6 @@ void TrackRun::execute() {
     bunch_m->setPType(beam->getParticleName());
     bunch_m->setCharge(macrocharge_m);
     bunch_m->setMass(macromass_m);
-    bunch_m->print(*gmsg);
 
     setupBoundaryGeometry();
 
@@ -294,6 +293,10 @@ void TrackRun::execute() {
      */
 
     // initial statistical data are calculated (rms, eps etc.)
+
+    bunch_m->initializeTestParticles();
+    bunch_m->print(*gmsg);
+
     bunch_m->calcBeamParameters();
 
     initDataSink();
@@ -333,7 +336,7 @@ void TrackRun::execute() {
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
-    *gmsg << "Parallel Tracker created ... " << endl;
+    *gmsg << "* Parallel Tracker created ... " << endl;
 
 
     /*
