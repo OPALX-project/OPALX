@@ -294,7 +294,23 @@ void TrackRun::execute() {
 
     // initial statistical data are calculated (rms, eps etc.)
 
-    bunch_m->initializeTestParticles();
+    Vector_t<double, 3> sigmaR = dist_m->getSigmaR();
+    Vector_t<double, 3> sigmaP = dist_m->getSigmaP();
+
+    
+    double muR[Dim] = {0.0, 0.0, 0.0}; 
+    double muP[Dim] = {0.0, 0.0, 0.0}; 
+                         
+    double sdR[Dim]; 
+    double sdP[Dim];
+
+    for (unsigned int i=0; i<Dim; i++) {
+        sdR[i] = sigmaR(i);
+        sdP[i] = sigmaP(i);
+    } 
+
+
+    bunch_m->initializeTestParticles(muR,muP,sdR,sdP);
     bunch_m->print(*gmsg);
 
     bunch_m->calcBeamParameters();
@@ -338,10 +354,9 @@ void TrackRun::execute() {
 
     *gmsg << "* Parallel Tracker created ... " << endl;
 
-
-    /*
     itsTracker_m->execute();
 
+    /*
     opal_m->setRestartRun(false);
 
     opal_m->bunchIsAllocated();

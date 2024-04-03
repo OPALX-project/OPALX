@@ -406,11 +406,12 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
-    void initializeTestParticles() {
-        Inform m("Initialize Test Particles");  
+    void initializeTestParticles( double muR[Dim], double muP[Dim],
+                                  double sdR[Dim], double sdP[Dim]) {
+
         int seed        = 42;
-        size_type       nlocal = this->totalP_m / ippl::Comm->size();
         using size_type = ippl::detail::size_type;
+        size_type       nlocal = this->totalP_m / ippl::Comm->size();
         Kokkos::Random_XorShift64_Pool<> rand_pool64((size_type)(seed + 100 * ippl::Comm->rank()));
 
         this->pcontainer_m->create(nlocal);
@@ -418,19 +419,13 @@ public:
         view_type* Rview = &this->pcontainer_m->R.getView();
         view_type* Pview = &this->pcontainer_m->P.getView();
 
-        double muP[Dim] = {0.0, 0.0, 0.0};
-        double sdP[Dim] = {1.0, 1.0, 1.0};
-
         Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(*Pview, rand_pool64, muP, sdP));
-        Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(*Rview, rand_pool64, muP, sdP));
+        Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(*Rview, rand_pool64, muR, sdR));
         Kokkos::fence();
         ippl::Comm->barrier();
 
         this->pcontainer_m->update();
         
-        if (this->pcontainer_m->getTotalNum() == 0)
-            m << "Initialize Particles did not create particles, reqyested are " << this->totalP_m  << endl;
-
         this->totalP_m = this->getTotalNum();
 
         this->pcontainer_m->Q = this->totalQ_m / this->totalP_m;
@@ -864,6 +859,11 @@ public:
         MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
         MPI_Allreduce(rmin_loc, rmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
 
+        // \todo can we do this nicer? 
+        for (unsigned int i=0; i<Dim; i++) {
+            rmax_m(i) = rmax[i];
+            rmin_m(i) = rmin[i];
+        }
         ////////////////////////////
         //// Write to output file //
         ////////////////////////////
@@ -1110,6 +1110,8 @@ public:
     }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
+        rmin = rmin_m;
+        rmax = rmax_m;
     }
 
     void getLocalBounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {

@@ -321,14 +321,14 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.activateElements();
 
-    double momentum = 7.335952e-04;  // \todo euclidean_norm(itsBunch_m->get_pmean_Distribution());
+    double momentum = 1.9580e+03;  // \todo euclidean_norm(itsBunch_m->get_pmean_Distribution());
     CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
 
     /* \todo
     itsBunch_m->toLabTrafo_m            = beamlineToLab;
     */
-    *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution"
-          << endl;
+
+
     itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t<double, 3>(0.0));
     itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t<double, 3>(0, 0, 1));
 
@@ -347,12 +347,22 @@ void ParallelTracker::execute() {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
+    *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution" << endl;
+    *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;                                                                                      *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;  
+    *gmsg << "rmin=  " << rmin << " rmax= " << rmax << endl;
+    *gmsg << "About to start OrbitThreader ... " << endl;
+    *gmsg << "pathLength_m=  " << pathLength_m << endl;
+    *gmsg << "-rmin(2)=  " << -rmin(2) << endl;
+    *gmsg << "itsBunch_m->getT()=  " << itsBunch_m->getT() << endl;
+    *gmsg << "minTimeStep=  " << minTimeStep << endl;
+
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
-
+    *gmsg << "OrbitThreader created" << endl;
     oth.execute();
+    *gmsg << "OrbitThreader execution done ... " << endl;
 
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
