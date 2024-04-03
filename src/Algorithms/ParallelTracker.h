@@ -288,7 +288,9 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
 }
 
 inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
-    int localNum = itsBunch_m->getLocalNum();
+    Inform m("ParallelTracker:kickParticles ", INFORM_ALL_NODES);
+    const int localNum = itsBunch_m->getLocalNum();
+    m << "localNum " << localNum << endl;
     /* \todo
     for (int i = 0; i < localNum; ++i)
         pusher.kick(
@@ -298,6 +300,7 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
 }
 
 inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
+
     itsBunch_m->switchToUnitlessPositions(true);
 
     /* \todo
