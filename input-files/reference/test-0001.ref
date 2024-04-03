@@ -1,0 +1,135 @@
+Warning: Option 'test-0001.in' is not parsed by Ippl.
+OPAL> configure done argc= 4
+OPAL> Reading startup file '/psi/home/adelmann/init.opal'
+OPAL> 
+OPAL> value: {TESTVAL} = {1.23457}
+OPAL> 
+OPAL> Finished reading startup file.
+OPAL>               ____  _____        _       __   __
+OPAL> 
+OPAL> This is OPAL-X (Object Oriented Parallel Accelerator Library) Version 2024.1.00
+OPAL>             git rev. 640dbb1f34e2dc23314bad26c94148a0e578fe17
+OPAL> 
+OPAL> 
+OPAL>                      (c) PSI, http://amas.web.psi.ch
+OPAL> 
+OPAL> 
+OPAL> This is the performance portable version of OPAL
+OPAL> 
+OPAL> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL> to the OPAL developers opal@lists.psi.ch
+OPAL> 
+OPAL> Time: 10:27:14 date: 03/04/2024
+OPAL> 
+OPAL> * Reading input stream 'test-0001.in'
+OPAL> 
+OPAL> value: {OPALVERSION} = {2.02401e+07}
+OPAL> 
+OPAL> 
+OPAL> value: {EDES,P0} = {1, 1.00051}
+OPAL> 
+OPAL> * Number of distributions  1
+OPAL> 
+OPAL> * ************* D I S T R I B U T I O N ********************************************
+OPAL> * 
+OPAL> * Distribution type: GAUSS
+OPAL> * 
+OPAL> * SIGMAX     = 0.001 [m]
+OPAL> * SIGMAY     = 0.001 [m]
+OPAL> * SIGMAZ     = 1e-05 [m]
+OPAL> * SIGMAPX    = 1e-06 [Beta Gamma]
+OPAL> * SIGMAPY    = 1e-06 [Beta Gamma]
+OPAL> * SIGMAPZ    = 1e-06 [Beta Gamma]
+OPAL> * 
+OPAL> * Distribution is injected.
+OPAL> * 
+OPAL> * **********************************************************************************
+OPAL> 
+OPAL> * ************* F I E L D S O L V E R ********************************************** 
+OPAL> * FIELDSOLVER  FS1
+OPAL> * TYPE         FFT
+OPAL> * N-PROCESSORS 1
+OPAL> * NX           8
+OPAL> * NY           8
+OPAL> * NZ           8
+OPAL> * BBOXINCR     1
+OPAL> * GREENSF      INTEGRATED
+OPAL> * XDIM         parallel  
+OPAL> * YDIM         parallel  
+OPAL> * ZDIM      serial  
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * ************* B E A M ************************************************************ 
+OPAL> * BEAM        BEAM1
+OPAL> * PARTICLE    ELECTRON
+OPAL> * REST MASS   0.000510999 [GeV]
+OPAL> * CHARGE      -e * 1 
+OPAL> * MOMENTUM    1.00051e+09 [eV/c]
+OPAL> * CURRENT     1.3e+06 [A]
+OPAL> * FREQUENCY   1.3e+09 [MHz]
+OPAL> * NPART       10
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> 
+OPAL> * ************** B U N C H ********************************************************* 
+OPAL> * PARTICLES       = 0
+OPAL> * CORES           = 1
+OPAL> * FIELD SOLVER    = FFT
+OPAL> * INTEGRATOR      = LF2
+OPAL> * MESH SPACIN     = ( 2.500000e-04 , 2.500000e-04 , 2.500000e-06 )
+OPAL> * FIELD LAYOUT    = Domain = {[0:7:1],[0:7:1],[0:7:1]}
+OPAL> Total number of boxes = 1
+OPAL>     Box 0 {[0:7:1],[0:7:1],[0:7:1]}
+OPAL> 
+OPAL> * ********************************************************************************** 
+Ippl> * Creating new file for data: 'test-0001.stat'
+Ippl> * Creating new file for data: 'test-0001.lbal'
+OPAL> Parallel Tracker created ... 
+PartBunch Destructor > Finished time step: 0 time: 0
+OPAL> * End of input stream 'test-0001.in'
+Timings> ---------------------------------------------
+Timings>      Timing results for 1 nodes:
+Timings> ---------------------------------------------
+Timings> mainTimer........... Wall tot =    10.7011
+Timings> 
+Timings> gatherInfoPartBunch. Wall max =    1.78314
+Timings>                      Wall avg =    1.78314
+Timings>                      Wall min =    1.78314
+Timings> 
+Timings> setSolver........... Wall max =    2.30042
+Timings>                      Wall avg =    2.30042
+Timings>                      Wall min =    2.30042
+Timings> 
+Timings> prerun.............. Wall max =    4.49939
+Timings>                      Wall avg =    4.49939
+Timings>                      Wall min =    4.49939
+Timings> 
+Timings> solveWarmup......... Wall max =    4.49938
+Timings>                      Wall avg =    4.49938
+Timings>                      Wall min =    4.49938
+Timings> 
+Timings> Write Stat.......... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> Write H5-File....... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> TIntegration1....... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> TIntegration2....... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> External field eval. Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> Binaryrepart........ Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> ---------------------------------------------
