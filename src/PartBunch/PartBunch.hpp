@@ -62,6 +62,10 @@ diagnostics(): calculate statistics and maybee write tp h5 and stat files
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
+
+// \todo Mohsen CDF etc needs to go out of this
+
+
 // define functions used in sampling particles
 struct CustomDistributionFunctions {
     struct CDF {
@@ -362,13 +366,6 @@ public:
           should be created or maybe even not disttribution at all
          */
 
-        /*
-        static IpplTimings::TimerRef initPartTimer = IpplTimings::getTimer("initializeParticles");
-        IpplTimings::startTimer(initPartTimer);
-        initializeParticles();
-        IpplTimings::stopTimer(initPartTimer);
-        */
-
         static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
 
@@ -378,18 +375,6 @@ public:
 
         IpplTimings::stopTimer(DummySolveTimer);
 
-        /*
-        this->par2grid();
-
-        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
-        IpplTimings::startTimer(SolveTimer);
-
-        this->fsolver_m->runSolver();
-
-        IpplTimings::stopTimer(SolveTimer);
-
-        this->grid2par();
-        */
     }
 
 public:
