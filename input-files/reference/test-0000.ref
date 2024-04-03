@@ -1,0 +1,37 @@
+Warning: Option 'test-0000.in' is not parsed by Ippl.
+OPAL> configure done argc= 4
+OPAL> Reading startup file '/psi/home/adelmann/init.opal'
+OPAL> 
+OPAL> value: {TESTVAL} = {1.23457}
+OPAL> 
+OPAL> Finished reading startup file.
+OPAL>               ____  _____        _       __   __
+OPAL> 
+OPAL> This is OPAL-X (Object Oriented Parallel Accelerator Library) Version 2024.1.00
+OPAL>             git rev. 640dbb1f34e2dc23314bad26c94148a0e578fe17
+OPAL> 
+OPAL> 
+OPAL>                      (c) PSI, http://amas.web.psi.ch
+OPAL> 
+OPAL> 
+OPAL> This is the performance portable version of OPAL
+OPAL> 
+OPAL> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL> to the OPAL developers opal@lists.psi.ch
+OPAL> 
+OPAL> Time: 10:26:42 date: 03/04/2024
+OPAL> 
+OPAL> * Reading input stream 'test-0000.in'
+OPAL> 
+OPAL> value: {OPALVERSION} = {2.02401e+07}
+OPAL> 
+OPAL> 
+OPAL> value: {EDES,P0} = {1, 1.00051}
+OPAL> 
+OPAL> * End of input stream 'test-0000.in'
+Timings> ---------------------------------------------
+Timings>      Timing results for 1 nodes:
+Timings> ---------------------------------------------
+Timings> mainTimer........... Wall tot =   0.105903
+Timings> 
+Timings> ---------------------------------------------
