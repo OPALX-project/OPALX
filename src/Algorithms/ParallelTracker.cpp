@@ -348,7 +348,7 @@ void ParallelTracker::execute() {
     }
 
     *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution" << endl;
-    *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;                                                                                      *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;  
+    *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;                                                                       *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;  
     *gmsg << "rmin=  " << rmin << " rmax= " << rmax << endl;
     *gmsg << "About to start OrbitThreader ... " << endl;
     *gmsg << "pathLength_m=  " << pathLength_m << endl;
@@ -360,9 +360,8 @@ void ParallelTracker::execute() {
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
-    *gmsg << "OrbitThreader created" << endl;
+
     oth.execute();
-    *gmsg << "OrbitThreader execution done ... " << endl;
 
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
@@ -699,7 +698,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     }
 
     // \todo itsBunch_m->calcEMean();
-    size_t totalParticles_f = numParticlesInSimulation_m;
+    //    size_t totalParticles_f = numParticlesInSimulation_m;
     if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
         throw OpalException(
             "ParallelTracker::dumpStats()",
@@ -961,10 +960,13 @@ void ParallelTracker::findStartPosition(const BorisPusher& pusher) {
         Vector_t<double, 3> oldR = itsBunch_m->RefPartR_m;
         updateReferenceParticle(pusher);
 
-        // \todo pathLength_m += euclidean_norm(itsBunch_m->RefPartR_m - oldR);
+        // \todo should not need the tmp
+        Vector_t<double, 3> tmp = itsBunch_m->RefPartR_m - oldR;
+        pathLength_m += euclidean_norm(tmp);
 
-        double speed;  // \todo = euclidean_norm(itsBunch_m->RefPartP_m * Physics::c /
-                       // Util::getGamma(itsBunch_m->RefPartP_m));
+        tmp = itsBunch_m->RefPartP_m * Physics::c / Util::getGamma(itsBunch_m->RefPartP_m);
+        double speed = euclidean_norm(tmp);
+                                      
 
         if (pathLength_m > stepSizesCopy.getZStop()) {
             ++stepSizesCopy;

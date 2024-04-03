@@ -258,7 +258,7 @@ void TrackRun::execute() {
     bunch_m = std::make_unique<bunch_type>(
         Qtot, beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
 
-    bunch_m->setT(0.005);
+    bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
     bunch_m->setPType(beam->getParticleName());
     bunch_m->setCharge(macrocharge_m);
