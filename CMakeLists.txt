@@ -249,7 +249,8 @@ endif ()
 #
 # Create build targets
 #
-add_custom_target(always_rebuild ALL
+#add_custom_target(always_rebuild ALL
+add_custom_target(
     DEPENDS
     src/OPALrevision.h
     )
