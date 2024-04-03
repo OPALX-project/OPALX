@@ -48,7 +48,7 @@ export -f otb_exit > /dev/null
 export build_type=
 compiler=${compiler:-$(which g++)}
 export compiler
-mode=Release
+mode=Debug     #Release
 
 # Build targets
 build_opalx=true
@@ -157,7 +157,7 @@ trap "otb_exit" EXIT
 
 CXXFLAGS=""
 
-build_mode=${build_mode:-Release}
+build_mode=${build_mode:-Debug}
 
 compiler=${compiler:-"$(which gcc)"}
 
