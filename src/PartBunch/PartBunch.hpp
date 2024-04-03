@@ -250,6 +250,10 @@ public:
           OPALFieldSolver_m(OPALFieldSolver) {
         Inform m("PartBunch() ");
 
+
+        static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
+        IpplTimings::startTimer(gatherInfoPartBunch);
+
         /*
           get the needed information from OPAL FieldSolver command
         */
@@ -308,9 +312,17 @@ public:
         this->setParticleContainer(std::make_shared<ParticleContainer_t>(
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
 
-        setSolver(OPALFieldSolver_m->getType());
+        IpplTimings::stopTimer(gatherInfoPartBunch);
 
+        static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
+        IpplTimings::startTimer(setSolverT);
+        setSolver(OPALFieldSolver_m->getType());
+        IpplTimings::stopTimer(setSolverT);
+
+        static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
+        IpplTimings::startTimer(prerun);
         pre_run();
+        IpplTimings::stopTimer(prerun);
     }
 
     ~PartBunch() {
@@ -344,8 +356,18 @@ public:
     }
 
     void pre_run() override {
-        Inform m("warmup  ");
+
+        /*
+          \todo pre_run is taking to long to execute. In pre_run only a unoform distribution
+          should be created or maybe even not disttribution at all
+         */
+
+        /*
+        static IpplTimings::TimerRef initPartTimer = IpplTimings::getTimer("initializeParticles");
+        IpplTimings::startTimer(initPartTimer);
         initializeParticles();
+        IpplTimings::stopTimer(initPartTimer);
+        */
 
         static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
@@ -356,6 +378,7 @@ public:
 
         IpplTimings::stopTimer(DummySolveTimer);
 
+        /*
         this->par2grid();
 
         static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
@@ -366,6 +389,7 @@ public:
         IpplTimings::stopTimer(SolveTimer);
 
         this->grid2par();
+        */
     }
 
 public:
