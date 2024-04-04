@@ -326,7 +326,7 @@ void ParallelTracker::execute() {
     /* \todo
     itsBunch_m->toLabTrafo_m            = beamlineToLab;
     */
-
+    itsBunch_m->toLabTrafo_m            = beamlineToLab;
 
     itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t<double, 3>(0.0));
     itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(momentum * Vector_t<double, 3>(0, 0, 1));
