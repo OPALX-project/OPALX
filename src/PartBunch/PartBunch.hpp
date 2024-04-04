@@ -253,9 +253,9 @@ public:
           solver_m(""),
           totalQ_m(totalCharge),
           isFirstRepartition_m(true),
-          OPALdist_m(OPALdistribution),
           localTrackStep_m(0),
           globalTrackStep_m(0),
+          OPALdist_m(OPALdistribution),
           OPALFieldSolver_m(OPALFieldSolver) {
         Inform m("PartBunch() ");
 
@@ -917,6 +917,24 @@ public:
         }
         ippl::Comm->barrier();
     }
+
+
+    void do_binaryRepart()
+    {
+        using FieldContainer_t    = FieldContainer<T, Dim>;
+        std::shared_ptr<FieldContainer_t> fc    = this->fcontainer_m; 
+
+        size_type totalP = this->getTotalNum() ;
+        int it           = this->it_m;
+        if (this->loadbalancer_m->balance(totalP, it + 1)) {
+            auto* mesh = &fc->getRho().get_mesh();
+            auto* FL   = &fc->getFL();
+            this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
+        }
+
+
+    }
+
 
     void setCharge(double q) {
     }
