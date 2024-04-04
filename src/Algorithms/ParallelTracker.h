@@ -295,15 +295,27 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
 }
 
 inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
-    Inform m("ParallelTracker:kickParticles ", INFORM_ALL_NODES);
-    const int localNum = itsBunch_m->getLocalNum();
-    m << "localNum " << localNum << endl;
-    /* \todo
-    for (int i = 0; i < localNum; ++i)
-        pusher.kick(
-            itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->Ef(i), itsBunch_m->Bf(i),
-            itsBunch_m->dt(i));
-    */
+
+    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    auto Efview = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
+
+    Kokkos::parallel_for(
+                         "kickParticles", ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int i) {
+                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+
+                             Vector_t<double, 3> e = {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
+                             Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
+                             double dt = dtview(i);
+                             pusher.kick(x,p,e,b,dt);
+                         });
+
+    itsBunch_m->getParticleContainer()->update();
+    ippl::Comm->barrier();
 }
 
 inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
@@ -323,7 +335,10 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
                              pusher.push(x,p,dt);
                          });
 
+
     itsBunch_m->switchOffUnitlessPositions(true);
+    itsBunch_m->getParticleContainer()->update();
+    ippl::Comm->barrier();
 }
 
 #endif  // OPAL_ParallelTracker_HH

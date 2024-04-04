@@ -402,24 +402,24 @@ void ParallelTracker::execute() {
 
             timeIntegration1(pusher);
 
-        }
+            // computeSpaceChargeFields(step);
+            
+            // computeExternalFields(oth);
 
+            timeIntegration2(pusher);
+
+        }
             /*
 
 
             // \todo ADA
-            // itsBunch_m->Ef = Vector_t<double, 3>(0.0);
-            // itsBunch_m->Bf = Vector_t<double, 3>(0.0);
 
-            computeSpaceChargeFields(step);
 
             selectDT(back_track);
 
             selectDT(back_track);
 
-            //            computeExternalFields(oth);
 
-            timeIntegration2(pusher);
 
             itsBunch_m->incrementT();
 
@@ -523,10 +523,14 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     // switchElements();
     pushParticles(pusher);
 
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
-        // itsBunch_m->dt[i] = itsBunch_m->getdT();
-    }
+    auto dtview  = itsBunch_m->getParticleContainer()->dt.getView();
+    double newdT = itsBunch_m->getdT();
+
+    Kokkos::parallel_for(
+                         "changeDT", ippl::getRangePolicy(dtview),
+                         KOKKOS_LAMBDA(const int i) {
+                             dtview(i) = newdT;
+                         });                     
 
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -541,14 +545,22 @@ void ParallelTracker::selectDT(bool backTrack) {
 }
 
 void ParallelTracker::changeDT(bool backTrack) {
+
     selectDT(backTrack);
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
-        // itsBunch_m->dt[i] = itsBunch_m->getdT();
-    }
+
+    auto dtview  = itsBunch_m->getParticleContainer()->dt.getView();
+    double newdT = itsBunch_m->getdT();
+
+    Kokkos::parallel_for(
+                         "changeDT", ippl::getRangePolicy(dtview),
+                         KOKKOS_LAMBDA(const int i) {
+                             dtview(i) = newdT;
+                         });                     
+    
 }
 
 void ParallelTracker::emitParticles(long long step) {
+
 }
 
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
@@ -557,11 +569,15 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     }
 
     itsBunch_m->calcBeamParameters();
+
     Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
+
     CoordinateSystemTrafo beamToReferenceCSTrafo(
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
+
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
     const unsigned int localNum1                 = itsBunch_m->getLocalNum();
+
     for (unsigned int i = 0; i < localNum1; ++i) {
         // itsBunch_m->R[i] = referenceToBeamCSTrafo.transformTo(itsBunch_m->R[i]);
     }
@@ -573,6 +589,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     }
 
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
+
     itsBunch_m->computeSelfFields();
 
     const unsigned int localNum2 = itsBunch_m->getLocalNum();
@@ -604,12 +621,10 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     const IndexMap::value_t::const_iterator end = elements.end();
 
     for (; it != end; ++it) {
-        /// \todo
-        CoordinateSystemTrafo refToLocalCSTrafo;
 
-        //=
-        //    (itsOpalBeamline_m.getMisalignment((*it))
-        //     * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * itsBunch_m->toLabTrafo_m));
+        CoordinateSystemTrafo refToLocalCSTrafo = (itsOpalBeamline_m.getMisalignment((*it)) 
+                                                   * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) 
+                                                   * itsBunch_m->toLabTrafo_m));
 
         CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
@@ -674,8 +689,7 @@ void ParallelTracker::doBinaryRepartition() {
         *ippl::Info << "*****************************************************************" << endl;
         *ippl::Info << "do repartition because of repartFreq_m" << endl;
         *ippl::Info << "*****************************************************************" << endl;
-        IpplTimings::startTimer(BinRepartTimer_m);
-        // itsBunch_m->do_binaryRepart();
+        itsBunch_m->do_binaryRepart();
         ippl::Comm->barrier();
         IpplTimings::stopTimer(BinRepartTimer_m);
         *ippl::Info << "*****************************************************************" << endl;
@@ -911,9 +925,9 @@ void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
-    // \todo itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
     Vector_t<double, 3> R = itsBunch_m->RefPartR_m;
-    // \todo itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
+    itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
     Vector_t<double, 3> P = itsBunch_m->RefPartP_m;
 
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
@@ -922,8 +936,7 @@ void ParallelTracker::updateRefToLabCSTrafo() {
 
     transformBunch(update);
 
-    // \todo
-    // itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
+    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
 }
 
 void ParallelTracker::applyFractionalStep(const BorisPusher& pusher, double tau) {
@@ -938,12 +951,12 @@ void ParallelTracker::applyFractionalStep(const BorisPusher& pusher, double tau)
     itsBunch_m->RefPartR_m *= (Physics::c * 2 * tau);
 
     pathLength_m = zstart_m;
-    // \todo itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
     Vector_t<double, 3> R = itsBunch_m->RefPartR_m;
-    // \itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
+    itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
     Vector_t<double, 3> P = itsBunch_m->RefPartP_m;
     CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
-    // \todo itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
+    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
 }
 
 void ParallelTracker::findStartPosition(const BorisPusher& pusher) {
