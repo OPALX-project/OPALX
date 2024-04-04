@@ -54,6 +54,12 @@
 
 extern Inform* gmsg;
 
+using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
+
+using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
+
 constexpr double SMALLESTCUTOFF = 1e-12;
 
 namespace DISTRIBUTION {
@@ -136,7 +142,7 @@ void Distribution::execute() {
 void Distribution::update() {
 }
 
-void Distribution::create(size_t& numberOfParticles, double massIneV, double charge) {
+void Distribution::create(size_t& numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P) {
     /*
      * If Options::cZero is true than we reflect generated distribution
      * to ensure that the transverse averages are 0.0.
@@ -159,7 +165,7 @@ void Distribution::create(size_t& numberOfParticles, double massIneV, double cha
 
     switch (distrTypeT_m) {
         case DistributionType::GAUSS:
-            createDistributionGauss(numberOfLocalParticles, massIneV);
+            createDistributionGauss(numberOfLocalParticles, massIneV, R, P);
             break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -220,9 +226,33 @@ void Distribution::setDistParametersGauss(double massIneV) {
     */
 
     setSigmaR_m();
+    setSigmaP_m();
 }
-void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P) {
+    GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+
     setDistParametersGauss(massIneV);
+    double mu[3], sd[3];
+
+    // sample R
+    for(int i=0; i<3; i++){
+        mu[i] = 0.0;
+        sd[i] = sigmaR_m[i];
+    }
+    view_type* Rview = &(R.getView());
+    Kokkos::parallel_for(
+            numberOfParticles, ippl::random::randn<double, 3>(*Rview, rand_pool64, mu, sd)
+    );
+
+    // sample P
+    for(int i=0; i<3; i++){
+        mu[i] = 0.0;
+        sd[i] = sigmaP_m[i];
+    }
+    view_type* Pview = &(P.getView());
+    Kokkos::parallel_for(
+            numberOfParticles, ippl::random::randn<double, 3>(*Pview, rand_pool64, mu, sd)
+    );
 }
 
 void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
@@ -272,3 +302,4 @@ void Distribution::setSigmaP_m() {
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPY])),
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPZ])));
 }
+

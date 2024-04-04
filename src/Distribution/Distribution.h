@@ -50,7 +50,7 @@ public:
     virtual void execute();
     virtual void update();
 
-    // void create(size_t &numberOfParticles, double massIneV, double charge);
+    void create(size_t &numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P);
 
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
@@ -100,7 +100,7 @@ private:
      * @param massIneV particle charge in eV
      * @param charge of the particle type in elementary charge
      */
-    void create(size_t& numberOfParticles, double massIneV, double charge);
+    //void create(size_t& numberOfParticles, double massIneV, double charge, auto R);
     void calcPartPerDist(size_t numberOfParticles);
     void checkParticleNumber(size_t& numberOfParticles);
 
@@ -135,7 +135,7 @@ private:
         virtual double get(double rand);
     };
 
-    void createDistributionGauss(size_t numberOfParticles, double massIneV);
+    void createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P);
 
     //
     //
