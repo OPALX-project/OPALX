@@ -147,8 +147,11 @@ public:
     Vector_t<double, Dim> RefPartR_m;
     Vector_t<double, Dim> RefPartP_m;
 
+    CoordinateSystemTrafo toLabTrafo_m; 
+
+
 private:
-    CoordinateSystemTrafo toLabTrafo_m;
+
 
     // ParticleOrigin refPOrigin_m;
     // ParticleType refPType_m;
