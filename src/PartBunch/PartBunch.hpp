@@ -254,6 +254,8 @@ public:
           totalQ_m(totalCharge),
           isFirstRepartition_m(true),
           OPALdist_m(OPALdistribution),
+          localTrackStep_m(0),
+          globalTrackStep_m(0),
           OPALFieldSolver_m(OPALFieldSolver) {
         Inform m("PartBunch() ");
 
