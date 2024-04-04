@@ -386,14 +386,14 @@ void ParallelTracker::execute() {
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
 
-    /// \todo why do I put a return here ?
-    return;
-
     while (!stepSizes_m.reachedEnd()) {
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
         changeDT(back_track);
 
+        *gmsg << "dtCurrentTrack_m= " << dtCurrentTrack_m << " trackSteps= " << trackSteps << endl;
+
+        /*
         for (; step < trackSteps; ++step) {
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
@@ -447,12 +447,17 @@ void ParallelTracker::execute() {
                 break;
             }
         }
+        */
 
         if (globalEOL_m)
             break;
 
         ++stepSizes_m;
-    }
+    
+}
+
+    return;
+
 
     itsBunch_m->set_sPos(pathLength_m);
 
