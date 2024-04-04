@@ -263,7 +263,7 @@ void TrackRun::execute() {
     bunch_m->setPType(beam->getParticleName());
     bunch_m->setCharge(macrocharge_m);
     bunch_m->setMass(macromass_m);
-    bunch_m->print(*gmsg);
+    //bunch_m->print(*gmsg); // call print of bunch after particle generation
 
     setupBoundaryGeometry();
 
@@ -292,6 +292,19 @@ void TrackRun::execute() {
       Note: in the pre_run (bunch_m) I disables the particle generation.
 
      */
+
+    /*
+      MS: First attempt to generate particles using opalx distribution class and ippl::random.
+          The particle container needs to call create(nparticles) to allocate memory (from IPPL)!
+          Not sure where to put it. For now, I call it here.
+          Alternatively, we can pass pointer to particle container as argument to the opalx's distribution::create, and access R,P,.create() via that
+    */
+    size_t nlocal = dist_m->getNumOfLocalParticlesToCreate( beam->getNumberOfParticles() );
+    dist_m->setDistType();
+    bunch_m->getParticleContainer()->create(nlocal); // this would allocate memory, etc (from IPPL)
+    dist_m->create(nlocal, 1, 1, bunch_m->getParticleContainer()->R, bunch_m->getParticleContainer()->P); // this would sample particles
+
+    bunch_m->print(*gmsg);
 
     // initial statistical data are calculated (rms, eps etc.)
     bunch_m->calcBeamParameters();
