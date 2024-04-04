@@ -386,21 +386,26 @@ void ParallelTracker::execute() {
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
 
+    stepSizes_m.printDirect(*gmsg);
+
     while (!stepSizes_m.reachedEnd()) {
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
         changeDT(back_track);
 
-        *gmsg << "dtCurrentTrack_m= " << dtCurrentTrack_m << " trackSteps= " << trackSteps << endl;
-
-        /*
         for (; step < trackSteps; ++step) {
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
             }
+            *gmsg << rmin << " " << rmax << endl; 
 
             timeIntegration1(pusher);
+
+        }
+
+            /*
+
 
             // \todo ADA
             // itsBunch_m->Ef = Vector_t<double, 3>(0.0);
