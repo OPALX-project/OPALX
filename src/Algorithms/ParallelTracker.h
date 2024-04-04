@@ -57,6 +57,60 @@ class ParticleMatterInteractionHandler;
 class PluginElement;
 
 class ParallelTracker : public Tracker {
+
+    DataSink* itsDataSink_m;
+
+    OpalBeamline itsOpalBeamline_m;
+
+    /*
+      Ring specifics
+    */
+
+    // we store a pointer explicitly to the Ring
+    Ring* opalRing_m;
+
+    bool globalEOL_m;
+
+    bool wakeStatus_m;
+
+    bool deletedParticles_m;
+
+    WakeFunction* wakeFunction_m;
+
+    double pathLength_m;
+
+    /// where to start
+    double zstart_m;
+
+    /// stores informations where to change the time step and
+    /// where to stop the simulation,
+    /// the time step sizes and
+    /// the number of time steps with each configuration
+    StepSizeConfig stepSizes_m;
+
+    double dtCurrentTrack_m;
+
+    // This variable controls the minimal number of steps of emission (using bins)
+    // before we can merge the bins
+    int minStepforReBin_m;
+
+    // this variable controls the minimal number of steps until we repartition the particles
+    unsigned int repartFreq_m;
+
+    unsigned int emissionSteps_m;
+
+    size_t numParticlesInSimulation_m;
+
+    IpplTimings::TimerRef timeIntegrationTimer1_m;
+    IpplTimings::TimerRef timeIntegrationTimer2_m;
+    IpplTimings::TimerRef fieldEvaluationTimer_m;
+    IpplTimings::TimerRef WakeFieldTimer_m;
+    IpplTimings::TimerRef PluginElemTimer_m;
+    IpplTimings::TimerRef BinRepartTimer_m;
+
+    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
+    bool particleMatterStatus_m;
+
 public:
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -136,9 +190,6 @@ private:
       Ring specifics
     */
 
-    // we store a pointer explicitly to the Ring
-    Ring* opalRing_m;
-
     unsigned turnnumber_m;
 
     std::list<Component*> myElements;
@@ -164,53 +215,9 @@ private:
 
     std::vector<PluginElement*> pluginElements_m;
 
-    /******************** STATE VARIABLES ***********************************/
 
-    DataSink* itsDataSink_m;
 
-    OpalBeamline itsOpalBeamline_m;
 
-    bool globalEOL_m;
-
-    bool wakeStatus_m;
-
-    bool deletedParticles_m;
-
-    WakeFunction* wakeFunction_m;
-
-    double pathLength_m;
-
-    /// where to start
-    double zstart_m;
-
-    /// stores informations where to change the time step and
-    /// where to stop the simulation,
-    /// the time step sizes and
-    /// the number of time steps with each configuration
-    StepSizeConfig stepSizes_m;
-
-    double dtCurrentTrack_m;
-
-    // This variable controls the minimal number of steps of emission (using bins)
-    // before we can merge the bins
-    int minStepforReBin_m;
-
-    // this variable controls the minimal number of steps until we repartition the particles
-    unsigned int repartFreq_m;
-
-    unsigned int emissionSteps_m;
-
-    size_t numParticlesInSimulation_m;
-
-    IpplTimings::TimerRef timeIntegrationTimer1_m;
-    IpplTimings::TimerRef timeIntegrationTimer2_m;
-    IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef BinRepartTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
-    IpplTimings::TimerRef PluginElemTimer_m;
-
-    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
-    bool particleMatterStatus_m;
 
     /********************** END VARIABLES ***********************************/
 

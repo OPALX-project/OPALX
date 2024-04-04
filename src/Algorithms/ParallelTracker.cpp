@@ -38,7 +38,6 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 #include "Distribution/Distribution.h"
-#include "Elements/OpalBeamline.h"
 #include "Physics/Units.h"
 
 #include "Structure/BoundaryGeometry.h"
@@ -638,6 +637,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
     // \todo reduce(locPartOutOfBounds, globPartOutOfBounds, OpOrAssign());
+    ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
 
     size_t ne = 0;
     if (globPartOutOfBounds) {
