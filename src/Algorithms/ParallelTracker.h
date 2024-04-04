@@ -310,11 +310,19 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
     itsBunch_m->switchToUnitlessPositions(true);
 
-    /* \todo
-        for (unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
-        pusher.push(itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->dt(i));
-    }
-    */
+    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+
+    Kokkos::parallel_for(
+                         "pushParticles", ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int i) {
+                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+                             double dt = dtview(i);
+                             pusher.push(x,p,dt);
+                         });
+
     itsBunch_m->switchOffUnitlessPositions(true);
 }
 
