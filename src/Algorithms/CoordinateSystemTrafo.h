@@ -27,6 +27,8 @@ public:
     ippl::Vector<double, 3> getOrigin() const;
     Quaternion getRotation() const;
 
+    matrix_t getRotationMatrix() const;
+
     void print(std::ostream&) const;
 
 private:
@@ -57,6 +59,11 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::getOrigin() const {
 
 inline Quaternion CoordinateSystemTrafo::getRotation() const {
     return orientation_m;
+}
+
+
+inline matrix_t CoordinateSystemTrafo::getRotationMatrix() const {
+    return rotationMatrix_m;
 }
 
 inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
