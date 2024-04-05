@@ -437,102 +437,7 @@ public:
     }
 
     void advance() override {
-        if (this->integration_method_m == "LeapFrog") {
-            LeapFrogStep();
-        }
-    }
-    void LeapFrogStep() {
-        // LeapFrog time stepping https://en.wikipedia.org/wiki/Leapfrog_integration
-        // Here, we assume a constant charge-to-mass ratio of -1 for
-        // all the particles hence eliminating the need to store mass as
-        // an attribute
-        Inform m("LeapFrog");
-        Vector_t<double, Dim> len = this->rmax_m - this->rmin_m;
-        const double alpha        = this->alpha_m;
-        const double Bext         = this->Bext_m;
-        const double DrInv        = this->DrInv_m;
-        const double V0           = 30 * len[2];
-
-        const auto ori = this->origin_m;
-
-        std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
-        std::shared_ptr<FieldContainer_t> fc    = this->fcontainer_m;
-
-        auto Rview = pc->R.getView();
-        auto Pview = pc->P.getView();
-        auto Eview = pc->E.getView();
-
-        Kokkos::parallel_for(
-            "Kick1", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
-                double Eext_x =
-                    -(Rview(j)[0] - ori[0] - 0.5 * len[0]) * (V0 / (2 * Kokkos::pow(len[2], 2)));
-                double Eext_y =
-                    -(Rview(j)[1] - ori[1] - 0.5 * len[1]) * (V0 / (2 * Kokkos::pow(len[2], 2)));
-                double Eext_z =
-                    (Rview(j)[2] - ori[2] - 0.5 * len[2]) * (V0 / (Kokkos::pow(len[2], 2)));
-
-                Eext_x += Eview(j)[0];
-                Eext_y += Eview(j)[1];
-                Eext_z += Eview(j)[2];
-
-                Pview(j)[0] += alpha * (Eext_x + Pview(j)[1] * Bext);
-                Pview(j)[1] += alpha * (Eext_y - Pview(j)[0] * Bext);
-                Pview(j)[2] += alpha * Eext_z;
-            });
-        Kokkos::fence();
-        ippl::Comm->barrier();
-
-        // drift
-        pc->R = pc->R + dt_m * pc->P;
-
-        // Since the particles have moved spatially update them to correct processors
-        pc->update();
-
-        size_type totalP = this->totalP_m;
-        int it           = this->it_m;
-
-        if (this->loadbalancer_m->balance(totalP, it + 1)) {
-            auto* mesh = &fc->getRho().get_mesh();
-            auto* FL   = &fc->getFL();
-            this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
-        }
-
-        // scatter the charge onto the underlying grid
-        this->par2grid();
-
-        // Field solve
-        this->fsolver_m->runSolver();
-
-        // gather E field
-        this->grid2par();
-
-        auto R2view = pc->R.getView();
-        auto P2view = pc->P.getView();
-        auto E2view = pc->E.getView();
-
-        Kokkos::parallel_for(
-            "Kick2", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
-                double Eext_x =
-                    -(R2view(j)[0] - ori[0] - 0.5 * len[0]) * (V0 / (2 * Kokkos::pow(len[2], 2)));
-                double Eext_y =
-                    -(R2view(j)[1] - ori[1] - 0.5 * len[1]) * (V0 / (2 * Kokkos::pow(len[2], 2)));
-                double Eext_z =
-                    (R2view(j)[2] - ori[2] - 0.5 * len[2]) * (V0 / (Kokkos::pow(len[2], 2)));
-
-                Eext_x += E2view(j)[0];
-                Eext_y += E2view(j)[1];
-                Eext_z += E2view(j)[2];
-
-                P2view(j)[0] = DrInv
-                               * (P2view(j)[0]
-                                  + alpha * (Eext_x + P2view(j)[1] * Bext + alpha * Bext * Eext_y));
-                P2view(j)[1] = DrInv
-                               * (P2view(j)[1]
-                                  + alpha * (Eext_y - P2view(j)[0] * Bext - alpha * Bext * Eext_x));
-                P2view(j)[2] += alpha * Eext_z;
-            });
-        Kokkos::fence();
-        ippl::Comm->barrier();
+        // \todo needs to go
     }
 
     void par2grid() override {
@@ -623,6 +528,7 @@ public:
     double getCouplingConstant() const {
         return 1.0;
     }
+
     void setCouplingConstant(double c) {
     }
 
@@ -1047,10 +953,7 @@ public:
     Vector_t<double, Dim> getEExtrema() {
     }
 
-    void computeSelfFields() {
-    }
-    void computeSelfFields(int b) {
-    }
+    void computeSelfFields();
 
     bool hasFieldSolver() {
         return true;
@@ -1218,7 +1121,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_pmean() const {
-        return Vector_t<double, Dim>(0.0);
+        return Vector_t<double, Dim>({0.0,0.0,1958.});
     }
     Vector_t<double, Dim> get_pmean_Distribution() const {
         return Vector_t<double, Dim>(0.0);
