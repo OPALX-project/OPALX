@@ -347,12 +347,6 @@ void ParallelTracker::execute() {
 
     *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution" << endl;
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;                                                                       *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;  
-    *gmsg << "rmin=  " << rmin << " rmax= " << rmax << endl;
-    *gmsg << "About to start OrbitThreader ... " << endl;
-    *gmsg << "pathLength_m=  " << pathLength_m << endl;
-    *gmsg << "-rmin(2)=  " << -rmin(2) << endl;
-    *gmsg << "itsBunch_m->getT()=  " << itsBunch_m->getT() << endl;
-    *gmsg << "minTimeStep=  " << minTimeStep << endl;
 
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),

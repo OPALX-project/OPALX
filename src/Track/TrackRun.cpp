@@ -142,16 +142,6 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
         isParallel[d] = true;
     }
 
-    /*
-    Vector_t<double, 3> kw = 0.5;
-    Vector_t<double, 3> rmin(0.0);
-    Vector_t<double, 3> rmax = 2 * Kokkos::numbers::pi / kw;
-
-    Vector_t<double, 3> hr = rmax / nr;
-    double Q               = std::reduce(rmax.begin(), rmax.end(), -1., std::multiplies<double>());
-    Vector_t<double, 3> origin = rmin;
-    const double dt            = std::min(.05, 0.5 * *std::min_element(hr.begin(), hr.end()));
-    */
 }
 
 TrackRun::~TrackRun() {
@@ -234,7 +224,8 @@ void TrackRun::execute() {
     *gmsg << "* Number of distributions  " << numberOfDistributions << endl;
 
 
-    // \todo here we can look over several distributions
+    // \todo here we can loop over several distributions
+
     dist_m = Distribution::find(distributionArray[0]);
     *gmsg << *dist_m << endl;
 
@@ -292,28 +283,28 @@ void TrackRun::execute() {
 
      */
 
-    // initial statistical data are calculated (rms, eps etc.)
+    /*
+      MS: First attempt to generate particles using opalx distribution class and ippl::random.
+          The particle container needs to call create(nparticles) to allocate memory (from IPPL)!
+          Not sure where to put it. For now, I call it here.
+          Alternatively, we can pass pointer to particle container as argument to the opalx's distribution::create, and access R,P,.create() via that
+    */
+    size_t nlocal = dist_m->getNumOfLocalParticlesToCreate(beam->getNumberOfParticles() );
+    dist_m->setDistType();
 
-    Vector_t<double, 3> sigmaR = dist_m->getSigmaR();
-    Vector_t<double, 3> sigmaP = dist_m->getSigmaP();
-
-    
-    double muR[Dim] = {0.0, 0.0, 0.0}; 
-    double muP[Dim] = {0.0, 0.0, 0.0}; 
-                         
-    double sdR[Dim]; 
-    double sdP[Dim];
-
-    for (unsigned int i=0; i<Dim; i++) {
-        sdR[i] = sigmaR(i);
-        sdP[i] = sigmaP(i);
-    } 
-
-
-    bunch_m->initializeTestParticles(muR,muP,sdR,sdP);
-    bunch_m->print(*gmsg);
-
+    bunch_m->getParticleContainer()->create(nlocal); // this would allocate memory, etc (from IPPL)
+    dist_m->create(nlocal, 1, Qtot/beam->getNumberOfParticles(), 
+                   bunch_m->getParticleContainer()->R, 
+                   bunch_m->getParticleContainer()->P); // this would sample particles
     bunch_m->calcBeamParameters();
+
+    /* 
+       reset the fieldsolver with correct hr_m
+       based on the distribution
+    */
+    bunch_m->print(*gmsg);
+    bunch_m->resetFieldSolver();
+    bunch_m->print(*gmsg);
 
     initDataSink();
 
