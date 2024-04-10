@@ -78,6 +78,8 @@ public:
 
     void setNZ(double);
 
+    double getBoxIncr() const;
+
     /// Update the field solver data.
     virtual void update();
 
