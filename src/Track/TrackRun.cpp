@@ -246,15 +246,14 @@ void TrackRun::execute() {
      */
 
 
-    bunch_m = std::make_unique<bunch_type>(
-        Qtot, beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
+    bunch_m = std::make_unique<bunch_type>(beam->getChargePerParticle(),
+                                           beam->getMassPerParticle(), 
+                                           beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
 
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
     bunch_m->setPType(beam->getParticleName());
-    bunch_m->setCharge(macrocharge_m);
-    bunch_m->setMass(macromass_m);
-
+    
     setupBoundaryGeometry();
 
     // Get algorithm to use.
@@ -293,17 +292,20 @@ void TrackRun::execute() {
     dist_m->setDistType();
 
     bunch_m->getParticleContainer()->create(nlocal); // this would allocate memory, etc (from IPPL)
+
     dist_m->create(nlocal, 1, Qtot/beam->getNumberOfParticles(), 
                    bunch_m->getParticleContainer()->R, 
                    bunch_m->getParticleContainer()->P); // this would sample particles
-    bunch_m->calcBeamParameters();
 
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
     */
-    bunch_m->print(*gmsg);
-    bunch_m->resetFieldSolver();
+
+    bunch_m->setCharge();
+    bunch_m->setMass();
+    bunch_m->bunchUpdate();
+
     bunch_m->print(*gmsg);
 
     initDataSink();

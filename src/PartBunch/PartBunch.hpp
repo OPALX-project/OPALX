@@ -95,9 +95,6 @@ public:
     /// mesh size [m]
     Vector_t<double, Dim> hr_m;
 
-    /// total charge in the bunch [Cb]
-    double totalQ_m;
-
     // Landau damping specific
     double Bext_m;
     double alpha_m;
@@ -180,7 +177,7 @@ private:
 
     double couplingConstant_m;
     double qi_m;
-    double massPerParticle_m;
+    double mi_m;
 
     // unit state of PartBunch
     // UnitState_t unit_state_m;
@@ -209,7 +206,7 @@ private:
 
 public:
     PartBunch(
-        double totalCharge, size_t totalP, int nt, double lbt, std::string integration_method,
+              double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
         Distribution* OPALdistribution, FieldSolverCmd* OPALFieldSolver)
         : ippl::PicManager<
             T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
@@ -221,12 +218,13 @@ public:
           it_m(0),
           integration_method_m(integration_method),
           solver_m(""),
-          totalQ_m(totalCharge),
+          qi_m(qi),
           isFirstRepartition_m(true),
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
           OPALFieldSolver_m(OPALFieldSolver) {
+        
         Inform m("PartBunch() ");
 
 
@@ -283,8 +281,7 @@ public:
         moments_m.resize(2*Dim,2*Dim);
     }
 
-    void resetFieldSolver(); 
-
+    void bunchUpdate();
 
     ~PartBunch() {
         Inform m("PartBunch Destructor ");
@@ -410,10 +407,12 @@ public:
 
     }
 
-
-    void setCharge(double q) {
+    void setCharge() {
+        this->getParticleContainer()->Q = qi_m;
     }
-    void setMass(double mass) {
+    
+    void setMass() {
+        this->getParticleContainer()->M = mi_m;
     }
 
     double getCharge() const {
