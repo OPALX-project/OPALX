@@ -31,11 +31,11 @@ Main loop
      updateExternalFields()
      update()
 
-updateExternalFields(): check if bunch has access to the fields of eternal elements. Maybee phase
+updateExternalFields(): check if bunch has access to the fields of eternal elements. Maybe phase
 out some elements and read in new elements
 
 
-diagnostics(): calculate statistics and maybee write tp h5 and stat files
+diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 */
 
@@ -691,8 +691,8 @@ public:
 
         std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
 
-        auto Rview = pc->R.getView();
-        auto Pview = pc->P.getView();
+        auto &Rview = pc->R.getView();
+        auto &Pview = pc->P.getView();
 
         ////////////////////////////////////
         //// Calculate Moments of R and P //
@@ -710,9 +710,10 @@ public:
 
         for (unsigned i = 0; i < 2 * Dim; i++) {
             loc_centroid[i] = 0.0;
-            for (unsigned j = 0; j <= i; j++) {
+            centroid[i] = 0.0;
+            for (unsigned j = 0; j < 2 * Dim; j++) {
                 loc_moment[i][j] = 0.0;
-                loc_moment[j][i] = 0.0;
+                moment[i][j] = 0.0;
             }
         }
 
@@ -751,6 +752,13 @@ public:
             ippl::Comm->getCommunicator());
         MPI_Allreduce(
             loc_centroid, centroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+        for (unsigned i = 0; i < 2 * Dim; i++) {
+            centroid[i] /= globNp;
+            for (unsigned j = 0; j < 2 * Dim; j++) {
+                moment[i][j] /= globNp;
+            }
+        }
 
         //////////////////////////////////////
         //// Calculate Normalized Emittance //
@@ -937,6 +945,37 @@ public:
             csvout << rrms(0) << "\t" << rrms(1) << "\t" << rrms(2) << "\t"
                    << rmin[0] << "\t" << rmin[1] << "\t" << rmin[2] << "\t" << ippl::Comm->size()
                    << endl;
+            csvout.flush();
+
+            // write the means
+            std::stringstream fname_means;
+            fname_means << "OPAL-X-MEANS";
+            fname_means << ippl::Comm->rank();
+            fname_means << ".csv";
+            Inform csvout_means(NULL, (fname_means.str()).c_str(), Inform::APPEND);
+            csvout_means.precision(6);
+            for(unsigned int i=0; i<2*Dim; i++){
+                csvout_means << centroid[i] << " ";
+            }
+            csvout_means.flush();
+
+            // write the 2nd order moments
+            std::stringstream fname_moments;
+            fname_moments.str(std::string());
+            fname_moments << "OPAL-X-MOMENTS";
+            fname_moments << ippl::Comm->rank();
+            fname_moments << ".csv";
+            Inform csvout_moments(NULL, (fname_moments.str()).c_str(), Inform::APPEND);
+            csvout_moments.precision(6);
+            for(unsigned int i=0; i<2*Dim; i++){
+                for(unsigned int j=0; j<2*Dim; j++){
+                    csvout_moments << moment[i][j] << " ";
+                }
+                csvout_moments << endl;
+            }
+            csvout_moments.flush();
+
+            // write the covariance matrix
 
             /*
                    << "rmeanX,rmeanY,rmeanZ,"
@@ -968,8 +1007,10 @@ public:
     }
 
     void setCharge(double q) {
+         this->pcontainer_m->Q = q;
     }
     void setMass(double mass) {
+         this->pcontainer_m->M = mass;
     }
 
     double getCharge() const {

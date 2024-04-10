@@ -261,8 +261,8 @@ void TrackRun::execute() {
     bunch_m->setT(0.005);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
     bunch_m->setPType(beam->getParticleName());
-    bunch_m->setCharge(macrocharge_m);
-    bunch_m->setMass(macromass_m);
+    //bunch_m->setCharge(macrocharge_m); //call after creating particles
+    //bunch_m->setMass(macromass_m); //call after creating particles
     //bunch_m->print(*gmsg); // call print of bunch after particle generation
 
     setupBoundaryGeometry();
@@ -299,11 +299,19 @@ void TrackRun::execute() {
           Not sure where to put it. For now, I call it here.
           Alternatively, we can pass pointer to particle container as argument to the opalx's distribution::create, and access R,P,.create() via that
     */
+    // find local number of particles
     size_t nlocal = dist_m->getNumOfLocalParticlesToCreate( beam->getNumberOfParticles() );
+    // allocate memory from IPPL
+    bunch_m->getParticleContainer()->create(nlocal);
+    // set distribution type
     dist_m->setDistType();
-    bunch_m->getParticleContainer()->create(nlocal); // this would allocate memory, etc (from IPPL)
-    dist_m->create(nlocal, 1, 1, bunch_m->getParticleContainer()->R, bunch_m->getParticleContainer()->P); // this would sample particles
+    // sample particles
+    dist_m->create(nlocal, 1, 1, bunch_m->getParticleContainer()->R, bunch_m->getParticleContainer()->P);
+    // set the charge and mass of each particle
+    bunch_m->setCharge(macrocharge_m);
+    bunch_m->setMass(macromass_m);
 
+    dist_m->printInfo(*gmsg);
     bunch_m->print(*gmsg);
 
     // initial statistical data are calculated (rms, eps etc.)

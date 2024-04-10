@@ -17,7 +17,7 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 public:
-    /// charge in [Cb[
+    /// charge in [Cb]
     ippl::ParticleAttrib<double> Q;
 
     /// mass
