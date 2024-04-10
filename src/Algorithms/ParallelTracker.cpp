@@ -787,14 +787,16 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
 }
 
 void ParallelTracker::setOptionalVariables() {
-    Inform msg("ParallelTracker ", *gmsg);
 
+    Inform msg("ParallelTracker ", *gmsg);
+    /*
     minStepforReBin_m = Options::minStepForRebin;
     RealVariable* br =
         dynamic_cast<RealVariable*>(OpalData::getInstance()->find("MINSTEPFORREBIN"));
     if (br)
         minStepforReBin_m = static_cast<int>(br->getReal());
     msg << level2 << "MINSTEPFORREBIN " << minStepforReBin_m << endl;
+    */
 
     // there is no point to do repartitioning with one node
     if (ippl::Comm->size() == 1) {

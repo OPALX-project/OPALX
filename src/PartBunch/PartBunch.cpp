@@ -101,9 +101,9 @@ void PartBunch<double,3>::calcBeamParameters() {
         }
 
         for (unsigned int i=0; i<2*Dim; i++) {
-            centroid_m[i] = centroid[i];
+            centroid_m[i] = centroid[i]/this->getTotalNum();
             for (unsigned int j=0; j<2*Dim; j++) {
-                moments_m(i,j) = moment[i][j];
+                moments_m(i,j) = moment[i][j]/this->getTotalNum();
             }
         }
 
@@ -120,7 +120,7 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* ************** B U N C H "
               "********************************************************* \n";
         os << "* PARTICLES       = " << this->getTotalNum() << "\n";
-        os << "* CHARGE          = " << this->totalQ_m << "\n";
+        os << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n";
         os << "* CORES           = " << ippl::Comm->size() << "\n";
         os << "* FIELD SOLVER    = " << solver_m << "\n";
         os << "* INTEGRATOR      = " << integration_method_m << "\n";
@@ -129,6 +129,7 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* RMS R           = " << this->get_rrms() << "\n";
         os << "* RMS P           = " << this->get_prms() << "\n";
         os << "* MESH SPACING    = " << this->fcontainer_m->getMesh().getMeshSpacing() << "\n";
+        os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
         os << "* "
               "********************************************************************************"
@@ -140,40 +141,33 @@ Inform& PartBunch<double,3>::print(Inform& os) {
     }
 
 template <>
-void PartBunch<double,3>::resetFieldSolver() {
+void PartBunch<double,3>::bunchUpdate() {
+    /* \frief
+      1. calculates and set hr
+      2. do repartitioning
+     */
+
 
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL = &this->fcontainer_m->getFL();
 
-    // assume o < 0.0
-    ippl::Vector<double, 3> o = this->get_origin();
-
+    /* 
+       This needs to go 
     auto Rview  = this->getParticleContainer()->R.getView();
     Kokkos::parallel_for(
                          "shift r to 0,0", ippl::getRangePolicy(Rview),
                          KOKKOS_LAMBDA(const int i) {
                              Rview(i) = Rview(i) - o ;
                          });
+    */
 
-    auto Qview  = this->getParticleContainer()->Q.getView();
-    double q = totalQ_m / totalP_m;
-    Kokkos::parallel_for(
-                         "set q", ippl::getRangePolicy(Qview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Qview(i) = q;
-                         });
-
-    ippl::Comm->barrier();
     this->calcBeamParameters();
 
-    o = this->get_origin();
-
-    Vector_t<double, 3> e = this->get_maxExtent(); 
-
-    // assume e > o
-
-    Vector_t<double, 3> l = e - o; 
-    hr_m = 1.2*(l / this->nr_m);
+    /// \brief assume o < 0.0
+    ippl::Vector<double, 3> o = this->get_origin();
+    ippl::Vector<double, 3> e = this->get_maxExtent(); 
+    ippl::Vector<double, 3> l = e - o; 
+    hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr())*(l / this->nr_m);
 
     mesh->setMeshSpacing(hr_m);
 
@@ -182,7 +176,7 @@ void PartBunch<double,3>::resetFieldSolver() {
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
-
+    this->calcBeamParameters();
 }
 
 template <>
@@ -191,7 +185,6 @@ void PartBunch<double,3>::computeSelfFields() {
         IpplTimings::startTimer(SolveTimer);
         this->par2grid();
         this->fsolver_m->runSolver();        
-        // gather E / B field
         this->grid2par();
         IpplTimings::stopTimer(SolveTimer);
 }
@@ -205,14 +198,12 @@ void PartBunch<double,3>::scatterCIC() {
         ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
         typename Base::particle_position_type* R = &this->pcontainer_m->R;
         Field_t<3>* rho                          = &this->fcontainer_m->getRho();
-        double Q                                 = this->totalQ_m;
+        double Q                                 = this->qi_m * this->getTotalNum();
         Vector_t<double, 3> rmin                 = rmin_m;
         Vector_t<double, 3> rmax                 = rmax_m;
         Vector_t<double, 3> hr                   = hr_m;
 
         scatter(*q, *rho, *R);
-
-        m << "final rho sum = " << (*rho).sum() << endl;
 
         double relError = std::fabs((Q - (*rho).sum()) / Q);
         size_type TotalParticles = 0;

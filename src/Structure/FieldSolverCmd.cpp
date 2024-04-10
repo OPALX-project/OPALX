@@ -125,6 +125,11 @@ void FieldSolverCmd::setNZ(double value) {
     Attributes::setReal(itsAttr[FIELDSOLVER::NZ], value);
 }
 
+double FieldSolverCmd::getBoxIncr() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
+}
+
+
 void FieldSolverCmd::update() {
     if (itsAttr[FIELDSOLVER::TYPE]) {
         fsName_m = getType();
