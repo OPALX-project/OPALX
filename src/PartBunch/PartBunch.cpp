@@ -173,7 +173,7 @@ void PartBunch<double,3>::resetFieldSolver() {
     // assume e > o
 
     Vector_t<double, 3> l = e - o; 
-    hr_m = l / this->nr_m;
+    hr_m = 1.2*(l / this->nr_m);
 
     mesh->setMeshSpacing(hr_m);
 
@@ -187,7 +187,6 @@ void PartBunch<double,3>::resetFieldSolver() {
 
 template <>
 void PartBunch<double,3>::computeSelfFields() {
-
         static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");    
         IpplTimings::startTimer(SolveTimer);
         this->par2grid();
@@ -199,28 +198,23 @@ void PartBunch<double,3>::computeSelfFields() {
 
 template <>
 void PartBunch<double,3>::scatterCIC() {
-        Inform m("scatter ");
+        Inform m("scatterCIC ");
 
         this->fcontainer_m->getRho() = 0.0;
 
         ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
         typename Base::particle_position_type* R = &this->pcontainer_m->R;
-        Field_t<3>* rho                        = &this->fcontainer_m->getRho();
+        Field_t<3>* rho                          = &this->fcontainer_m->getRho();
         double Q                                 = this->totalQ_m;
-        Vector_t<double, 3> rmin               = rmin_m;
-        Vector_t<double, 3> rmax               = rmax_m;
-        Vector_t<double, 3> hr                 = hr_m;
-
-        m << "initial rho sum = " << (*rho).sum() << endl;
+        Vector_t<double, 3> rmin                 = rmin_m;
+        Vector_t<double, 3> rmax                 = rmax_m;
+        Vector_t<double, 3> hr                   = hr_m;
 
         scatter(*q, *rho, *R);
 
         m << "final rho sum = " << (*rho).sum() << endl;
 
         double relError = std::fabs((Q - (*rho).sum()) / Q);
-
-        // m << relError << endl;
-
         size_type TotalParticles = 0;
         size_type localParticles = this->pcontainer_m->getLocalNum();
 
@@ -239,7 +233,7 @@ void PartBunch<double,3>::scatterCIC() {
         double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
         (*rho)            = (*rho) / cellVolume;
 
-        //        double rhoNorm = norm(*rho);
+        // double rhoNorm = norm(*rho);
         // rho = rho_e - rho_i (only if periodic BCs)
         if (this->fsolver_m->getStype() != "OPEN") {
             double size = 1;
