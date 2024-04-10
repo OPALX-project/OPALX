@@ -147,10 +147,8 @@ void Distribution::create(size_t& numberOfParticles, double massIneV, double cha
      * If Options::cZero is true than we reflect generated distribution
      * to ensure that the transverse averages are 0.0.
      *
-     * For now we just cut the number of generated particles in half.
+     * For now we just substract mean to make sure of averages are 0.0
      */
-    size_t numberOfLocalParticles = numberOfParticles;
-    numberOfLocalParticles        = (numberOfParticles + 1) / 2;
 
     size_t mySeed = Options::seed;
 
@@ -165,7 +163,7 @@ void Distribution::create(size_t& numberOfParticles, double massIneV, double cha
 
     switch (distrTypeT_m) {
         case DistributionType::GAUSS:
-            createDistributionGauss(numberOfLocalParticles, massIneV, R, P);
+            createDistributionGauss(numberOfParticles, massIneV, R, P);
             break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -239,20 +237,91 @@ void Distribution::createDistributionGauss(size_t numberOfParticles, double mass
         mu[i] = 0.0;
         sd[i] = sigmaR_m[i];
     }
-    view_type* Rview = &(R.getView());
+    view_type Rview = R.getView();
     Kokkos::parallel_for(
-            numberOfParticles, ippl::random::randn<double, 3>(*Rview, rand_pool64, mu, sd)
+            numberOfParticles, ippl::random::randn<double, 3>(Rview, rand_pool64, mu, sd)
     );
+
+    double meanR[3], loc_meanR[3];
+    for(int i=0; i<3; i++){
+       meanR[i] = 0.0;
+       loc_meanR[i] = 0.0;
+    }
+    Kokkos::parallel_reduce(
+        "calc moments of particle distr.", numberOfParticles,
+        KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Rview(k)[0];
+                    cent1 += Rview(k)[1];
+                    cent2 += Rview(k)[2];
+        },
+        Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    for(int i=0; i<3; i++){
+       meanR[i] = meanR[i]/(1.*numberOfParticles);
+    }
+
+    Kokkos::parallel_for(
+            numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Rview(k)[0] -= meanR[0];
+                    Rview(k)[1] -= meanR[1];
+                    Rview(k)[2] -= meanR[2];
+        }
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
 
     // sample P
     for(int i=0; i<3; i++){
         mu[i] = 0.0;
         sd[i] = sigmaP_m[i];
     }
-    view_type* Pview = &(P.getView());
+    view_type Pview = P.getView();
     Kokkos::parallel_for(
-            numberOfParticles, ippl::random::randn<double, 3>(*Pview, rand_pool64, mu, sd)
+            numberOfParticles, ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
     );
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    double meanP[3], loc_meanP[3];
+    for(int i=0; i<3; i++){
+       meanP[i] = 0.0;
+       loc_meanP[i] = 0.0;
+    }
+    Kokkos::parallel_reduce(
+        "calc moments of particle distr.", numberOfParticles,
+        KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Pview(k)[0];
+                    cent1 += Pview(k)[1];
+                    cent2 += Pview(k)[2];
+        },
+	Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    for(int i=0; i<3; i++){
+       meanP[i] = meanP[i]/(1.*numberOfParticles);
+    }
+
+    Kokkos::parallel_for(
+            numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Pview(k)[0] -= meanP[0];
+                    Pview(k)[1] -= meanP[1];
+                    Pview(k)[2] -= meanP[2];
+        }
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
 }
 
 void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
