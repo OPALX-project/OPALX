@@ -133,6 +133,9 @@ void OrbitThreader::execute() {
     std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
 
+    *gmsg << "OrbitThreader dt_m= " << dt_m << endl;
+
+
     do {
         checkElementLengths(elementSet);
         if (containsCavity(elementSet)) {

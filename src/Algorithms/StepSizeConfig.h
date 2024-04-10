@@ -73,7 +73,8 @@ public:
 
     double getFinalZStop() const;
 
-    void print(Inform &out) const;
+    Inform& print(Inform &out) const;
+    void printDirect(Inform &out) const;
 
     ValueRange<double> getPathLengthRange() const;
 
@@ -84,6 +85,11 @@ private:
     container_t configurations_m;
     container_t::iterator it_m;
 };
+
+//Inform& operator<<(Inform& os, StepSizeConfig& s) {
+//    return s.print(os);
+//}
+
 
 inline
 StepSizeConfig::StepSizeConfig():

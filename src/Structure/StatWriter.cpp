@@ -245,9 +245,9 @@ void StatWriter::write(
     columns_m.addColumnValue("max_s", beam->get_maxExtent()(2));  // 26
 
     // Write out Courant Snyder parameters.
-    columns_m.addColumnValue("xpx", beam->get_rprms()(0));  // 27
-    columns_m.addColumnValue("ypy", beam->get_rprms()(1));  // 28
-    columns_m.addColumnValue("zpz", beam->get_rprms()(2));  // 29
+    columns_m.addColumnValue("xpx", beam->get_prms()(0));  // 27
+    columns_m.addColumnValue("ypy", beam->get_prms()(1));  // 28
+    columns_m.addColumnValue("zpz", beam->get_prms()(2));  // 29
 
     // Write out dispersion.
     columns_m.addColumnValue("Dx", beam->get_Dx());    // 30
