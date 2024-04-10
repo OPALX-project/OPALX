@@ -1,4 +1,5 @@
 set (_SRCS
+    PartBunch.cpp
 )
 
 include_directories (
