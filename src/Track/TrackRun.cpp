@@ -83,9 +83,8 @@ TrackRun::TrackRun()
       ds_m(nullptr),
       phaseSpaceSink_m(nullptr),
       isFollowupTrack_m(false),
-      method_m(RunMethod::NONE),
-      macromass_m(0.0),
-      macrocharge_m(0.0) {
+      method_m(RunMethod::NONE)
+     {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
         "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
@@ -120,9 +119,8 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       ds_m(nullptr),
       phaseSpaceSink_m(nullptr),
       isFollowupTrack_m(false),
-      method_m(RunMethod::NONE),
-      macromass_m(0.0),
-      macrocharge_m(0.0) {
+      method_m(RunMethod::NONE)
+{
     /*
       the opal dictionary
     */
@@ -235,24 +233,19 @@ void TrackRun::execute() {
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;
 
-    macrocharge_m = beam->getChargePerParticle();
-    macromass_m   = beam->getMassPerParticle();
-
-    double Qtot = macrocharge_m * beam->getNumberOfParticles();
-
     /*
       Here we can allocate the bunch
 
      */
 
-
     bunch_m = std::make_unique<bunch_type>(beam->getChargePerParticle(),
                                            beam->getMassPerParticle(), 
                                            beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
-
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
-    bunch_m->setPType(beam->getParticleName());
+
+    double cc = 1.0 / (4 * Physics::pi * Physics::epsilon_0);  
+    bunch_m->setCouplingConstant(cc);
     
     setupBoundaryGeometry();
 
@@ -293,10 +286,11 @@ void TrackRun::execute() {
 
     bunch_m->getParticleContainer()->create(nlocal); // this would allocate memory, etc (from IPPL)
 
-    dist_m->create(nlocal, 1, Qtot/beam->getNumberOfParticles(), 
+    dist_m->create(nlocal, 1, beam->getChargePerParticle(), 
                    bunch_m->getParticleContainer()->R, 
                    bunch_m->getParticleContainer()->P); // this would sample particles
 
+    *gmsg << "dist_m->get_pmean()= " << dist_m->get_pmean() << endl;
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
@@ -468,8 +462,8 @@ Inform& TrackRun::print(Inform& os) const {
        << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n'
-       << "* Mass of simulation particle   = " << macromass_m << " [GeV/c^2]" << '\n'
-       << "* Charge of simulation particle = " << macrocharge_m << " [C]" << '\n';
+       << "* Mass of simulation particle   = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getChargePerParticle() << " [GeV/c^2]" << '\n'
+       << "* Charge of simulation particle = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getMassPerParticle() << " [C]" << '\n';
     os << "* ********************************************************************************** ";
     return os;
 }

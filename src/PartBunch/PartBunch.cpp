@@ -181,10 +181,12 @@ void PartBunch<double,3>::bunchUpdate() {
     ippl::Vector<double, 3> o = this->get_origin();
     ippl::Vector<double, 3> e = this->get_maxExtent(); 
     ippl::Vector<double, 3> l = e - o; 
+
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
 
     mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
+    mesh->setOrigin(o-0.5*hr_m);
+    //    mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
 
     this->getParticleContainer()->getLayout().updateLayout(*FL, *mesh);
     this->getParticleContainer()->update();
