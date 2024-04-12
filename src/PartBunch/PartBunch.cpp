@@ -1,5 +1,7 @@
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
+#include "Algorithms/DistributionMoments.h"
+
 template<>
 void PartBunch<double,3>::calcBeamParameters() {
         // Usefull constants
@@ -176,10 +178,12 @@ void PartBunch<double,3>::bunchUpdate() {
     */
 
     this->calcBeamParameters();
-
+    DistributionMoments dist_mom;
+    dist_mom.computeMinMaxPosition(*this);
+    std::cout << "Rmin: " << dist_mom.getMinPosition() << "Rmax: " << dist_mom.getMaxPosition() << std::endl;
     /// \brief assume o < 0.0?
-    ippl::Vector<double, 3> o = this->get_origin();
-    ippl::Vector<double, 3> e = this->get_maxExtent(); 
+    ippl::Vector<double, 3> o = dist_mom.getMinPosition(); // this->get_origin();
+    ippl::Vector<double, 3> e = dist_mom.getMaxPosition(); //this->get_maxExtent();
     ippl::Vector<double, 3> l = e - o; 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
 
@@ -192,6 +196,9 @@ void PartBunch<double,3>::bunchUpdate() {
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+
+    dist_mom.computeMoments(*this);
+    std::cout << "cov. " << dist_mom.getMoments6x6();
     this->calcBeamParameters();
 }
 
