@@ -37,7 +37,8 @@ public:
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
-    void compute(PartBunch_t const&);
+    void computeMoments(PartBunch_t &);
+    void computeMinMaxPosition(PartBunch_t &);
     void computeMeanKineticEnergy(PartBunch_t const&);
     void computeDebyeLength(PartBunch_t const&, double density);
     void computePlasmaParameter(double);
@@ -50,6 +51,8 @@ public:
     Vector_t<double, 3> getGeometricEmittance() const;
     Vector_t<double, 3> getStandardDeviationRP() const;
     Vector_t<double, 3> getHalo() const;
+    Vector_t<double, 3> getMinPosition() const;
+    Vector_t<double, 3> getMaxPosition() const;
     Vector_t<double, 3> getMaxR() const;
 
     Vector_t<double, 3> get68Percentile() const;
@@ -171,6 +174,14 @@ inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const {
 
 inline Vector_t<double, 3> DistributionMoments::getHalo() const {
     return halo_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getMinPosition() const {
+    return minR_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getMaxPosition() const {
+    return maxR_m;
 }
 
 inline double DistributionMoments::getMeanTime() const {
