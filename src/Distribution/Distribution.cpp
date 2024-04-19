@@ -24,7 +24,6 @@
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "OPALTypes.h"
-#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
@@ -199,6 +198,10 @@ Inform& Distribution::printInfo(Inform& os) const {
     return os;
 }
 
+void Distribution::setAvrgPz(double avrgpz){
+    avrgpz_m = avrgpz;
+}
+
 void Distribution::setDistParametersGauss(double massIneV) {
     /*
      * Set distribution parameters. Do all the necessary checks depending
@@ -322,6 +325,17 @@ void Distribution::createDistributionGauss(size_t numberOfParticles, double mass
     Kokkos::fence();
     ippl::Comm->barrier();
 
+
+    // correct the mean
+    double avrgpz = avrgpz_m;
+    Kokkos::parallel_for(
+            numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Pview(k)[2] += avrgpz;
+        }
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
 }
 
 void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
@@ -339,6 +353,7 @@ void Distribution::printDistGauss(Inform& os) const {
 }
 
 void Distribution::setAttributes() {
+
     setSigmaR_m();
     setSigmaP_m();
 }

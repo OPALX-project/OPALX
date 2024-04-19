@@ -117,6 +117,9 @@ public:
 
     CoordinateSystemTrafo toLabTrafo_m; 
 
+    // point to the class for computing moments
+    //DistributionMoments *distMoments_m;
+
 private:
 
 
@@ -223,7 +226,7 @@ public:
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
-          OPALFieldSolver_m(OPALFieldSolver) {
+          OPALFieldSolver_m(OPALFieldSolver){
         
         Inform m("PartBunch() ");
 

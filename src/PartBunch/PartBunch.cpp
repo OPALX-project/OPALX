@@ -180,7 +180,6 @@ void PartBunch<double,3>::bunchUpdate() {
     this->calcBeamParameters();
     DistributionMoments dist_mom;
     dist_mom.computeMinMaxPosition(*this);
-    std::cout << "Rmin: " << dist_mom.getMinPosition() << "Rmax: " << dist_mom.getMaxPosition() << std::endl;
     /// \brief assume o < 0.0?
     ippl::Vector<double, 3> o = dist_mom.getMinPosition(); // this->get_origin();
     ippl::Vector<double, 3> e = dist_mom.getMaxPosition(); //this->get_maxExtent();
@@ -198,7 +197,6 @@ void PartBunch<double,3>::bunchUpdate() {
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
     dist_mom.computeMoments(*this);
-    std::cout << "cov. " << dist_mom.getMoments6x6();
     this->calcBeamParameters();
 }
 

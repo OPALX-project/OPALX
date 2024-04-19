@@ -85,7 +85,8 @@ TrackRun::TrackRun()
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0) {
+      macrocharge_m(0.0),
+      distMoments_m() {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
         "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
@@ -122,7 +123,8 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0) {
+      macrocharge_m(0.0),
+      distMoments_m() {
     /*
       the opal dictionary
     */
@@ -288,16 +290,28 @@ void TrackRun::execute() {
           Not sure where to put it. For now, I call it here.
           Alternatively, we can pass pointer to particle container as argument to the opalx's distribution::create, and access R,P,.create() via that
     */
+
+    //double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
+    //if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
+    //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
+    //}
+
     // find local number of particles
     size_t nlocal = dist_m->getNumOfLocalParticlesToCreate(beam->getNumberOfParticles() );
     // set distribution type
     dist_m->setDistType();
+    dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
     // allocate memory from IPPL
     bunch_m->getParticleContainer()->create(nlocal);
     // sample particles
     dist_m->create(nlocal, 1, Qtot/beam->getNumberOfParticles(),
                    bunch_m->getParticleContainer()->R,
                    bunch_m->getParticleContainer()->P);
+
+    distMoments_m.computeMoments(*bunch_m);
+    *gmsg << "distMoments_m.getMeanMomentum()= " << distMoments_m.getMeanMomentum() << endl;
+
+    //*gmsg << "dist_m->get_pmean()= " << dist_m->get_pmean() << endl;
 
     /* 
        reset the fieldsolver with correct hr_m
