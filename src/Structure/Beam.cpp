@@ -167,6 +167,10 @@ double Beam::getMass() const {
     return Attributes::getReal(itsAttr[MASS]);
 }
 
+double Beam::getMomentum() const {
+    return reference.getP()/1.e9;
+}
+
 std::string Beam::getParticleName() const {
     return Attributes::getString(itsAttr[PARTICLE]);
 }
@@ -235,6 +239,7 @@ void Beam::print(std::ostream& os) const {
        << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " [GeV]\n"
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
        << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
+       << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
        << "* CURRENT     " << Attributes::getReal(itsAttr[BCURRENT]) << " [A]\n"
        << "* FREQUENCY   " << Attributes::getReal(itsAttr[BFREQ]) << " [MHz]\n"
        << "* NPART       " << Attributes::getReal(itsAttr[NPART]) << '\n';
