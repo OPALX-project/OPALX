@@ -85,8 +85,7 @@ TrackRun::TrackRun()
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0),
-      distMoments_m() {
+      macrocharge_m(0.0){
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
         "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
@@ -123,8 +122,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0),
-      distMoments_m() {
+      macrocharge_m(0.0){
     /*
       the opal dictionary
     */
@@ -308,8 +306,7 @@ void TrackRun::execute() {
                    bunch_m->getParticleContainer()->R,
                    bunch_m->getParticleContainer()->P);
 
-    distMoments_m.computeMoments(*bunch_m);
-    *gmsg << "distMoments_m.getMeanMomentum()= " << distMoments_m.getMeanMomentum() << endl;
+    *gmsg << "= " << bunch_m->getParticleContainer()->get_pmean() << endl;
 
     //*gmsg << "dist_m->get_pmean()= " << dist_m->get_pmean() << endl;
 
