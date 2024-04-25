@@ -16,15 +16,14 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-#include "DistributionMoments.h"
-#include "OPALTypes.h"
+#include "Algorithms/DistributionMoments.h"
 
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include "Utility/Inform.h"
 
-#include "OpalParticle.h"
+#include "AbstractObjects/OpalParticle.h"
 
 #include <gsl/gsl_histogram.h>
 
@@ -44,13 +43,8 @@ DistributionMoments::DistributionMoments() {
     moments_m.resize(6, 6, false);
 }
 
-void DistributionMoments::computeMoments(PartBunch_t & bunch) {
+void DistributionMoments::computeMoments(auto &Rview, auto &Pview) {
     const int Dim = 3;
-
-    std::shared_ptr<ParticleContainer_t> pc = bunch.getParticleContainer();
-
-    auto Rview = pc->R.getView();
-    auto Pview = pc->P.getView();
 
     double loc_centroid[2 * Dim]        = {};
     double loc_moment[2 * Dim][2 * Dim] = {};
@@ -102,9 +96,9 @@ void DistributionMoments::computeMoments(PartBunch_t & bunch) {
             loc_centroid, centroid_m, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
-            centroid_m[i] = centroid_m[i] / bunch.getTotalNum();
+            centroid_m[i] = centroid_m[i] / Rview.getTotalNum();
             for (unsigned j = 0; j < 2 * Dim; j++) {
-                moments_m(i,j)   = moment[i][j]/bunch.getTotalNum();
+                moments_m(i,j)   = moment[i][j]/Rview.getTotalNum();
             }
      }
     // store mean R, mean P, std R, std P in class member variables
@@ -116,11 +110,8 @@ void DistributionMoments::computeMoments(PartBunch_t & bunch) {
     }
 }
 
-void DistributionMoments::computeMinMaxPosition(PartBunch_t & bunch) {
+void DistributionMoments::computeMinMaxPosition(auto &Rview){
     const int Dim = 3;
-
-    std::shared_ptr<ParticleContainer_t> pc = bunch.getParticleContainer();
-    auto Rview = pc->R.getView();
 
     double rmax_loc[Dim];
     double rmin_loc[Dim];
@@ -129,7 +120,7 @@ void DistributionMoments::computeMinMaxPosition(PartBunch_t & bunch) {
 
     for (unsigned d = 0; d < Dim; ++d) {
             Kokkos::parallel_reduce(
-                "rel max", pc->getLocalNum(),
+                "rel max", ippl::getRangePolicy(Rview),
                 KOKKOS_LAMBDA(const int i, double& mm) {
                     double tmp_vel = Rview(i)[d];
                     mm             = tmp_vel > mm ? tmp_vel : mm;
@@ -137,7 +128,7 @@ void DistributionMoments::computeMinMaxPosition(PartBunch_t & bunch) {
                 Kokkos::Max<double>(rmax_loc[d]));
 
             Kokkos::parallel_reduce(
-                "rel min", pc->getLocalNum(),
+                "rel min", ippl::getRangePolicy(Rview),
                 KOKKOS_LAMBDA(const int i, double& mm) {
                     double tmp_vel = Rview(i)[d];
                     mm             = tmp_vel < mm ? tmp_vel : mm;
@@ -539,7 +530,8 @@ void DistributionMoments::fillMembers(std::vector<double>& localMoments) {
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
 }
 
-void DistributionMoments::computeMeanKineticEnergy(PartBunch_t const& bunch) {
+void DistributionMoments::computeMeanKineticEnergy() {
+/*
     double data[] = {0.0, 0.0};
     // ada    for (OpalParticle const& particle : bunch) {
     //    data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
@@ -548,9 +540,11 @@ void DistributionMoments::computeMeanKineticEnergy(PartBunch_t const& bunch) {
     ippl::Comm->allreduce(data, 2, std::plus<double>());
 
     meanKineticEnergy_m = data[0] / data[1];
+*/
 }
 
-void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double density) {
+//void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double density) {
+void DistributionMoments::computeDebyeLength(double N, double density) {
     resetPlasmaParameters();
     double avgVel[3] = {0.0, 0.0, 0.0};
 
@@ -566,7 +560,7 @@ void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double 
     */
     ippl::Comm->allreduce(avgVel, 3, std::plus<double>());
 
-    const double N = static_cast<double>(bunch_r.getTotalNum());
+    //const double N = static_cast<double>(bunch_r.getTotalNum());
     for (unsigned i = 0; i < 3; i++) {
         avgVel[i] = avgVel[i] / N;
     }

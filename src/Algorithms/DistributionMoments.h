@@ -18,15 +18,20 @@
 #ifndef DISTRIBUTIONMOMENTS_H
 #define DISTRIBUTIONMOMENTS_H
 
-#include "AbsBeamline/Component.h"
-#include "PartBunch/PartBunch.hpp"
+#include "Ippl.h"
 
-// #include "Matrix.h"
-
+#include "Algorithms/BoostMatrix.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
 #include <vector>
+
+template <typename T, unsigned Dim = 3>
+using Vector_t = ippl::Vector<T, Dim>;
+
+typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
+
+typedef boost::numeric::ublas::matrix<double> matrix_t;
 
 class OpalParticle;
 
@@ -37,10 +42,10 @@ public:
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
-    void computeMoments(PartBunch_t &);
-    void computeMinMaxPosition(PartBunch_t &);
-    void computeMeanKineticEnergy(PartBunch_t const&);
-    void computeDebyeLength(PartBunch_t const&, double density);
+    void computeMoments(auto &Rview, auto &Pview);
+    void computeMinMaxPosition(auto &Rview);
+    void computeMeanKineticEnergy();
+    void computeDebyeLength(double N, double density);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;

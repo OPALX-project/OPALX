@@ -6,6 +6,8 @@
 
 #include "Manager/BaseManager.h"
 
+#include "Algorithms/DistributionMoments.h"
+
 template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
 
@@ -47,7 +49,7 @@ public:
     /// magnetic field at particle position
     typename Base::particle_position_type B;
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL) : pl_m(FL, mesh) {
+    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL) : pl_m(FL, mesh), distMoments_m() {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();
@@ -77,12 +79,34 @@ public:
         return pl_m;
     }
 
+    void updateMoments(){
+         distMoments_m.computeMoments(this->R.getView(), this->P.getView());
+    }
+
+    Vector_t<double, 3> get_pmean(){
+         return distMoments_m.getMeanMomentum();
+    }
+
+    void computeMinMaxR(){
+        distMoments_m.computeMinMaxPosition(this->R.getView());
+    }
+
+    Vector_t<double, 3> getMinR() const {
+         return distMoments_m.getMinPosition();
+    };
+
+    Vector_t<double, 3> getMaxR() const {
+         return distMoments_m.getMaxPosition();
+    }
+
 private:
     void setBCAllPeriodic() {
         this->setParticleBC(ippl::BC::PERIODIC);
     }
 
     PLayout_t<T, Dim> pl_m;
+
+    DistributionMoments distMoments_m;
 };
 
 #endif
