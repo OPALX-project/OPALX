@@ -19,7 +19,7 @@
 #define DISTRIBUTIONMOMENTS_H
 
 #include "Ippl.h"
-
+#include <Kokkos_Core.hpp>
 #include "Algorithms/BoostMatrix.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -38,12 +38,13 @@ class OpalParticle;
 class DistributionMoments {
 public:
     DistributionMoments();
-
+    void foo();
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
-    void computeMoments(auto &Rview, auto &Pview);
-    void computeMinMaxPosition(auto &Rview);
+    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview, size_t Np);
+    void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview);
     void computeMeanKineticEnergy();
     void computeDebyeLength(double N, double density);
     void computePlasmaParameter(double);

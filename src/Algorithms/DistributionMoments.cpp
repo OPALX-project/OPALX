@@ -43,7 +43,11 @@ DistributionMoments::DistributionMoments() {
     moments_m.resize(6, 6, false);
 }
 
-void DistributionMoments::computeMoments(auto &Rview, auto &Pview) {
+
+
+void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+                                         size_t Np) {
     const int Dim = 3;
 
     double loc_centroid[2 * Dim]        = {};
@@ -96,9 +100,9 @@ void DistributionMoments::computeMoments(auto &Rview, auto &Pview) {
             loc_centroid, centroid_m, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
-            centroid_m[i] = centroid_m[i] / Rview.getTotalNum();
+        centroid_m[i] = centroid_m[i] / Np;
             for (unsigned j = 0; j < 2 * Dim; j++) {
-                moments_m(i,j)   = moment[i][j]/Rview.getTotalNum();
+                moments_m(i,j)   = moment[i][j] / Np;
             }
      }
     // store mean R, mean P, std R, std P in class member variables
@@ -110,7 +114,7 @@ void DistributionMoments::computeMoments(auto &Rview, auto &Pview) {
     }
 }
 
-void DistributionMoments::computeMinMaxPosition(auto &Rview){
+void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview){
     const int Dim = 3;
 
     double rmax_loc[Dim];
