@@ -80,7 +80,8 @@ public:
     }
 
     void updateMoments(){
-         distMoments_m.computeMoments(this->R.getView(), this->P.getView());
+        size_t Np = this->getTotalNum();
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), Np);
     }
 
     Vector_t<double, 3> get_pmean(){
