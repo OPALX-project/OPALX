@@ -21,7 +21,6 @@
 #include "OPALTypes.h"
 
 #include "AbstractObjects/Action.h"
-#include "Algorithms/DistributionMoments.h"
 #include "PartBunch/PartBunch.hpp"
 
 #include "Structure/FieldSolverCmd.h"
@@ -76,8 +75,6 @@ private:
     Tracker* itsTracker_m;
 
     Distribution* dist_m;
-
-    DistributionMoments distMoments_m;
 
     std::vector<Distribution*> distrs_m;
 

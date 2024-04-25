@@ -1,6 +1,5 @@
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
-#include "Algorithms/DistributionMoments.h"
 
 template<>
 void PartBunch<double,3>::calcBeamParameters() {
@@ -167,6 +166,9 @@ void PartBunch<double,3>::bunchUpdate() {
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL = &this->fcontainer_m->getFL();
 
+    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+    pc->computeMinMaxR();
+
     /* 
        This needs to go 
     auto Rview  = this->getParticleContainer()->R.getView();
@@ -177,27 +179,23 @@ void PartBunch<double,3>::bunchUpdate() {
                          });
     */
 
-    this->calcBeamParameters();
-    DistributionMoments dist_mom;
-    dist_mom.computeMinMaxPosition(*this);
     /// \brief assume o < 0.0?
-    ippl::Vector<double, 3> o = dist_mom.getMinPosition(); // this->get_origin();
-    ippl::Vector<double, 3> e = dist_mom.getMaxPosition(); //this->get_maxExtent();
+    ippl::Vector<double, 3> o = pc->getMinR();
+    ippl::Vector<double, 3> e = pc->getMaxR();
     ippl::Vector<double, 3> l = e - o; 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
 
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
 
-    this->getParticleContainer()->getLayout().updateLayout(*FL, *mesh);
-    this->getParticleContainer()->update();
+    pc->getLayout().updateLayout(*FL, *mesh);
+    pc->update();
 
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
-    dist_mom.computeMoments(*this);
-    this->calcBeamParameters();
+    pc->updateMoments();
 }
 
 template <>
