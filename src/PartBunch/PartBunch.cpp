@@ -130,8 +130,8 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* INTEGRATOR      = " << integration_method_m << "\n";
         os << "* MIN R (origin)  = " << this->pcontainer_m->getMinR() << "\n";
         os << "* MAX R (max ext) = " << this->pcontainer_m->getMaxR() << "\n";
-        os << "* RMS R           = " << this->get_rrms() << "\n";
-        os << "* RMS P           = " << this->get_prms() << "\n";
+        os << "* RMS R           = " << this->pcontainer_m->getRmsR() << "\n";
+        os << "* RMS P           = " << this->pcontainer_m->getRmsP() << "\n";
         os << "* MESH SPACING    = " << this->fcontainer_m->getMesh().getMeshSpacing() << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";

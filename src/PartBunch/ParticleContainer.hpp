@@ -88,8 +88,16 @@ public:
          return distMoments_m.getMeanMomentum();
     }
 
+    Vector_t<double, 3> getRmsP() const{
+         return distMoments_m.getStandardDeviationMomentum();
+    }
+
     Vector_t<double, 3> getMeanR() const{
          return distMoments_m.getMeanPosition();
+    }
+
+    Vector_t<double, 3> getRmsR() const{
+         return distMoments_m.getStandardDeviationPosition();
     }
 
     void computeMinMaxR(){
