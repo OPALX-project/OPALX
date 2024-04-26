@@ -128,21 +128,21 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* CORES           = " << ippl::Comm->size() << "\n";
         os << "* FIELD SOLVER    = " << solver_m << "\n";
         os << "* INTEGRATOR      = " << integration_method_m << "\n";
-        os << "* MIN R (origin)  = " << this->get_origin() << "\n";
-        os << "* MAX R (max ext) = " << this->get_maxExtent() << "\n";
+        os << "* MIN R (origin)  = " << this->pcontainer_m->getMinR() << "\n";
+        os << "* MAX R (max ext) = " << this->pcontainer_m->getMaxR() << "\n";
         os << "* RMS R           = " << this->get_rrms() << "\n";
         os << "* RMS P           = " << this->get_prms() << "\n";
         os << "* MESH SPACING    = " << this->fcontainer_m->getMesh().getMeshSpacing() << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
-        os << "* Means : \n* ";
-        for (unsigned int i=0; i<2*Dim; i++) {
-            os << centroid_m[i] << " ";
-        }
+        os << "* Mean P: \n";
+        os << "* " << this->pcontainer_m->getMeanP() << "\n";
+        os << "* Mean R: \n";
+        os << "* " << this->pcontainer_m->getMeanR() << "\n";
 	os << endl << "* Cov Matrix : \n* ";
         for (unsigned int i=0; i<2*Dim; i++) {
             for (unsigned int j=0; j<2*Dim; j++) {
-                os << moments_m(i,j) << " ";
+                os << this->pcontainer_m->getCovMatrix()(i,j) << " ";
             }
             os << "\n* ";
         }
@@ -184,7 +184,6 @@ void PartBunch<double,3>::bunchUpdate() {
     ippl::Vector<double, 3> e = pc->getMaxR();
     ippl::Vector<double, 3> l = e - o; 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
-
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
 
