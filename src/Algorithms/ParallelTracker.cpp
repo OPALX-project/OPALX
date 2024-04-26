@@ -322,7 +322,8 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.activateElements();
 
-    double momentum = 1.9580e+03;  // \todo euclidean_norm(itsBunch_m->get_pmean_Distribution());
+    //double momentum = 1.9580e+03;  // \todo euclidean_norm(itsBunch_m->get_pmean_Distribution());
+    double momentum = itsBunch_m->getParticleContainer()->getMeanP()(2); // z component of mean p
     CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
 
     itsBunch_m->toLabTrafo_m = beamlineToLab;
@@ -345,7 +346,7 @@ void ParallelTracker::execute() {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
-    *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution" << endl;
+    *gmsg << "ParallelTrack: momentum=  " << momentum << " :todo: needs to come from Distribution -> Now reads from particle container" << endl;
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;                                                                       *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;  
 
     OrbitThreader oth(

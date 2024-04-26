@@ -306,10 +306,6 @@ void TrackRun::execute() {
                    bunch_m->getParticleContainer()->R,
                    bunch_m->getParticleContainer()->P);
 
-    *gmsg << "= " << bunch_m->getParticleContainer()->get_pmean() << endl;
-
-    //*gmsg << "dist_m->get_pmean()= " << dist_m->get_pmean() << endl;
-
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
@@ -320,6 +316,8 @@ void TrackRun::execute() {
     bunch_m->bunchUpdate();
 
     bunch_m->print(*gmsg);
+
+    *gmsg << "MeanP = " << bunch_m->getParticleContainer()->getMeanP() << endl;
 
     initDataSink();
 
