@@ -84,8 +84,12 @@ public:
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), Np);
     }
 
-    Vector_t<double, 3> get_pmean(){
+    Vector_t<double, 3> getMeanP() const{
          return distMoments_m.getMeanMomentum();
+    }
+
+    Vector_t<double, 3> getMeanR() const{
+         return distMoments_m.getMeanPosition();
     }
 
     void computeMinMaxR(){
@@ -94,10 +98,14 @@ public:
 
     Vector_t<double, 3> getMinR() const {
          return distMoments_m.getMinPosition();
-    };
+    }
 
     Vector_t<double, 3> getMaxR() const {
          return distMoments_m.getMaxPosition();
+    }
+
+    matrix_t getCovMatrix() const {
+         return distMoments_m.getMoments6x6();
     }
 
 private:
