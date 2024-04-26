@@ -108,9 +108,9 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     // store mean R, mean P, std R, std P in class member variables
     for (unsigned i = 0; i < Dim; i++) {
         meanR_m(i) = centroid_m[2*i];
-        stdR_m(i) = moments_m(2*i,2*i) - meanR_m(i)*meanR_m(i);
+        stdR_m(i) = sqrt( moments_m(2*i,2*i) - meanR_m(i)*meanR_m(i) );
         meanP_m(i) = centroid_m[2*i+1];
-        stdP_m(i) = moments_m(2*i+1,2*i+1) - meanP_m(i)*meanP_m(i);
+        stdP_m(i) = sqrt( moments_m(2*i+1,2*i+1) - meanP_m(i)*meanP_m(i) );
     }
 }
 
