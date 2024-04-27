@@ -1,5 +1,6 @@
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
+#include "Utilities/Util.h"
 
 template<>
 void PartBunch<double,3>::calcBeamParameters() {
@@ -128,17 +129,15 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* CORES           = " << ippl::Comm->size() << "\n";
         os << "* FIELD SOLVER    = " << solver_m << "\n";
         os << "* INTEGRATOR      = " << integration_method_m << "\n";
-        os << "* MIN R (origin)  = " << this->pcontainer_m->getMinR() << "\n";
-        os << "* MAX R (max ext) = " << this->pcontainer_m->getMaxR() << "\n";
-        os << "* RMS R           = " << this->pcontainer_m->getRmsR() << "\n";
-        os << "* RMS P           = " << this->pcontainer_m->getRmsP() << "\n";
-        os << "* MESH SPACING    = " << this->fcontainer_m->getMesh().getMeshSpacing() << "\n";
+        os << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n";
+        os << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n";
+        os << "* RMS R           = " << Util::getLengthString( this->pcontainer_m->getRmsR(), 5) << "\n";
+        os << "* RMS P           = " << this->pcontainer_m->getRmsP() << " [beta gamma]\n";
+        os << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
-        os << "* Mean P: \n";
-        os << "* " << this->pcontainer_m->getMeanP() << "\n";
-        os << "* Mean R: \n";
-        os << "* " << this->pcontainer_m->getMeanR() << "\n";
+        os << "* Mean P: " << this->pcontainer_m->getMeanP() << "[beta gamma]\n";
+        os << "* Mean R: " << this->pcontainer_m->getMeanR() << "[m]\n";
 	os << endl << "* Cov Matrix : \n* ";
         for (unsigned int i=0; i<2*Dim; i++) {
             for (unsigned int j=0; j<2*Dim; j++) {
