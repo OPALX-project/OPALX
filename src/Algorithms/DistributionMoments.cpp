@@ -108,10 +108,46 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     // store mean R, mean P, std R, std P in class member variables
     for (unsigned i = 0; i < Dim; i++) {
         meanR_m(i) = centroid_m[2*i];
-        stdR_m(i) = sqrt( moments_m(2*i,2*i) - meanR_m(i)*meanR_m(i) );
         meanP_m(i) = centroid_m[2*i+1];
-        stdP_m(i) = sqrt( moments_m(2*i+1,2*i+1) - meanP_m(i)*meanP_m(i) );
     }
+
+    double stdR[Dim]            = {};
+    double stdR_loc[Dim]        = {};
+    double meanR_loc[Dim]       = {};
+    double stdP[Dim]            = {};
+    double stdP_loc[Dim]        = {};
+    double meanP_loc[Dim]       = {};
+    for (unsigned i = 0; i < Dim; i++) {
+        stdR_loc[i] = 0.0;
+        meanR_loc[i] = meanR_m[i];
+        stdP_loc[i] = 0.0;
+        meanP_loc[i] = meanP_m[i];
+    }
+    for (unsigned i = 0; i < Dim; ++i) {
+            Kokkos::parallel_reduce(
+                                    "calc moments of particle distr.", ippl::getRangePolicy(Pview),
+                KOKKOS_LAMBDA(
+                    const int k, double& momR2, double& momP2) {
+                    momR2 += ( Rview(k)[i] - meanR_loc[i] ) * ( Rview(k)[i] - meanR_loc[i] );
+                    momP2 += ( Pview(k)[i] - meanP_loc[i] ) * ( Pview(k)[i] - meanP_loc[i] );
+                },
+                Kokkos::Sum<double>(stdR_loc[i]), Kokkos::Sum<double>(stdP_loc[i]));
+            Kokkos::fence();
+    }
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(
+            stdR_loc, stdR, Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    MPI_Allreduce(
+            stdP_loc, stdP, Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    // compute standard deviation with Bessel's correction
+    for (unsigned i = 0; i < Dim; i++) {
+        stdR_m(i) = std::sqrt( stdR[i] / (Np-1) );
+        stdP_m(i) = std::sqrt( stdP[i] / (Np-1) );
+    }
+
 }
 
 void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview){
