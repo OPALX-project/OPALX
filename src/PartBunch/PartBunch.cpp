@@ -118,7 +118,6 @@ template<>
 Inform& PartBunch<double,3>::print(Inform& os) {
         // if (this->getLocalNum() != 0) {  // to suppress Nans
         Inform::FmtFlags_t ff = os.flags();
-        const int Dim = 3;
 
         os << std::scientific;
         os << level1 << "\n";
@@ -133,18 +132,11 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n";
         os << "* RMS R           = " << Util::getLengthString( this->pcontainer_m->getRmsR(), 5) << "\n";
         os << "* RMS P           = " << this->pcontainer_m->getRmsP() << " [beta gamma]\n";
+        os << "* Mean R: " << this->pcontainer_m->getMeanR() << " [m]\n";
+        os << "* Mean P: " << this->pcontainer_m->getMeanP() << " [beta gamma]\n";
         os << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
-        os << "* Mean P: " << this->pcontainer_m->getMeanP() << "[beta gamma]\n";
-        os << "* Mean R: " << this->pcontainer_m->getMeanR() << "[m]\n";
-	os << endl << "* Cov Matrix : \n* ";
-        for (unsigned int i=0; i<2*Dim; i++) {
-            for (unsigned int j=0; j<2*Dim; j++) {
-                os << this->pcontainer_m->getCovMatrix()(i,j) << " ";
-            }
-            os << "\n* ";
-        }
         os << "* "
               "********************************************************************************"
               "** "
