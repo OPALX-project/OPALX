@@ -57,6 +57,60 @@ class ParticleMatterInteractionHandler;
 class PluginElement;
 
 class ParallelTracker : public Tracker {
+
+    DataSink* itsDataSink_m;
+
+    OpalBeamline itsOpalBeamline_m;
+
+    /*
+      Ring specifics
+    */
+
+    // we store a pointer explicitly to the Ring
+    Ring* opalRing_m;
+
+    bool globalEOL_m;
+
+    bool wakeStatus_m;
+
+    bool deletedParticles_m;
+
+    WakeFunction* wakeFunction_m;
+
+    double pathLength_m;
+
+    /// where to start
+    double zstart_m;
+
+    /// stores informations where to change the time step and
+    /// where to stop the simulation,
+    /// the time step sizes and
+    /// the number of time steps with each configuration
+    StepSizeConfig stepSizes_m;
+
+    double dtCurrentTrack_m;
+
+    // This variable controls the minimal number of steps of emission (using bins)
+    // before we can merge the bins
+    int minStepforReBin_m;
+
+    // this variable controls the minimal number of steps until we repartition the particles
+    unsigned int repartFreq_m;
+
+    unsigned int emissionSteps_m;
+
+    size_t numParticlesInSimulation_m;
+
+    IpplTimings::TimerRef timeIntegrationTimer1_m;
+    IpplTimings::TimerRef timeIntegrationTimer2_m;
+    IpplTimings::TimerRef fieldEvaluationTimer_m;
+    IpplTimings::TimerRef WakeFieldTimer_m;
+    IpplTimings::TimerRef PluginElemTimer_m;
+    IpplTimings::TimerRef BinRepartTimer_m;
+
+    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
+    bool particleMatterStatus_m;
+
 public:
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -136,9 +190,6 @@ private:
       Ring specifics
     */
 
-    // we store a pointer explicitly to the Ring
-    Ring* opalRing_m;
-
     unsigned turnnumber_m;
 
     std::list<Component*> myElements;
@@ -164,53 +215,9 @@ private:
 
     std::vector<PluginElement*> pluginElements_m;
 
-    /******************** STATE VARIABLES ***********************************/
 
-    DataSink* itsDataSink_m;
 
-    OpalBeamline itsOpalBeamline_m;
 
-    bool globalEOL_m;
-
-    bool wakeStatus_m;
-
-    bool deletedParticles_m;
-
-    WakeFunction* wakeFunction_m;
-
-    double pathLength_m;
-
-    /// where to start
-    double zstart_m;
-
-    /// stores informations where to change the time step and
-    /// where to stop the simulation,
-    /// the time step sizes and
-    /// the number of time steps with each configuration
-    StepSizeConfig stepSizes_m;
-
-    double dtCurrentTrack_m;
-
-    // This variable controls the minimal number of steps of emission (using bins)
-    // before we can merge the bins
-    int minStepforReBin_m;
-
-    // this variable controls the minimal number of steps until we repartition the particles
-    unsigned int repartFreq_m;
-
-    unsigned int emissionSteps_m;
-
-    size_t numParticlesInSimulation_m;
-
-    IpplTimings::TimerRef timeIntegrationTimer1_m;
-    IpplTimings::TimerRef timeIntegrationTimer2_m;
-    IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef BinRepartTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
-    IpplTimings::TimerRef PluginElemTimer_m;
-
-    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
-    bool particleMatterStatus_m;
 
     /********************** END VARIABLES ***********************************/
 
@@ -288,27 +295,50 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
 }
 
 inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
-    Inform m("ParallelTracker:kickParticles ", INFORM_ALL_NODES);
-    const int localNum = itsBunch_m->getLocalNum();
-    m << "localNum " << localNum << endl;
-    /* \todo
-    for (int i = 0; i < localNum; ++i)
-        pusher.kick(
-            itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->Ef(i), itsBunch_m->Bf(i),
-            itsBunch_m->dt(i));
-    */
+
+    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    auto Efview = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
+
+    Kokkos::parallel_for(
+                         "kickParticles", ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int i) {
+                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+
+                             Vector_t<double, 3> e = {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
+                             Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
+                             double dt = dtview(i);
+                             pusher.kick(x,p,e,b,dt);
+                         });
+
+    itsBunch_m->getParticleContainer()->update();
+    ippl::Comm->barrier();
 }
 
 inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
     itsBunch_m->switchToUnitlessPositions(true);
 
-    /* \todo
-        for (unsigned int i = 0; i < itsBunch_m->getLocalNum(); ++i) {
-        pusher.push(itsBunch_m->R(i), itsBunch_m->P(i), itsBunch_m->dt(i));
-    }
-    */
+    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+
+    Kokkos::parallel_for(
+                         "pushParticles", ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int i) {
+                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+                             double dt = dtview(i);
+                             pusher.push(x,p,dt);
+                         });
+
+
     itsBunch_m->switchOffUnitlessPositions(true);
+    itsBunch_m->getParticleContainer()->update();
+    ippl::Comm->barrier();
 }
 
 #endif  // OPAL_ParallelTracker_HH

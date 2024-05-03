@@ -70,6 +70,9 @@ public:
     /// Return Particle's rest mass in GeV
     double getMass() const;
 
+    // Returns Momentum in GeV/c
+    double getMomentum() const;
+
     /// Charge per macro particle in C
     double getChargePerParticle() const;
 

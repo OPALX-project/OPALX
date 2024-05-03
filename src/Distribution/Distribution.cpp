@@ -24,7 +24,6 @@
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
 #include "OPALTypes.h"
-#include "PartBunch/PartBunch.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
@@ -53,6 +52,12 @@
 #include <numeric>
 
 extern Inform* gmsg;
+
+using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
+
+using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
 constexpr double SMALLESTCUTOFF = 1e-12;
 
@@ -136,15 +141,13 @@ void Distribution::execute() {
 void Distribution::update() {
 }
 
-void Distribution::create(size_t& numberOfParticles, double massIneV, double charge) {
+void Distribution::create(size_t& numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P) {
     /*
      * If Options::cZero is true than we reflect generated distribution
      * to ensure that the transverse averages are 0.0.
      *
-     * For now we just cut the number of generated particles in half.
+     * For now we just substract mean to make sure of averages are 0.0
      */
-    size_t numberOfLocalParticles = numberOfParticles;
-    numberOfLocalParticles        = (numberOfParticles + 1) / 2;
 
     size_t mySeed = Options::seed;
 
@@ -159,7 +162,7 @@ void Distribution::create(size_t& numberOfParticles, double massIneV, double cha
 
     switch (distrTypeT_m) {
         case DistributionType::GAUSS:
-            createDistributionGauss(numberOfLocalParticles, massIneV);
+            createDistributionGauss(numberOfParticles, massIneV, R, P);
             break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -195,6 +198,10 @@ Inform& Distribution::printInfo(Inform& os) const {
     return os;
 }
 
+void Distribution::setAvrgPz(double avrgpz){
+    avrgpz_m = avrgpz;
+}
+
 void Distribution::setDistParametersGauss(double massIneV) {
     /*
      * Set distribution parameters. Do all the necessary checks depending
@@ -220,9 +227,115 @@ void Distribution::setDistParametersGauss(double massIneV) {
     */
 
     setSigmaR_m();
+    setSigmaP_m();
 }
-void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV) {
+void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P) {
+    GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+
     setDistParametersGauss(massIneV);
+    double mu[3], sd[3];
+
+    // sample R
+    for(int i=0; i<3; i++){
+        mu[i] = 0.0;
+        sd[i] = sigmaR_m[i];
+    }
+    view_type Rview = R.getView();
+    Kokkos::parallel_for(
+            numberOfParticles, ippl::random::randn<double, 3>(Rview, rand_pool64, mu, sd)
+    );
+
+    double meanR[3], loc_meanR[3];
+    for(int i=0; i<3; i++){
+       meanR[i] = 0.0;
+       loc_meanR[i] = 0.0;
+    }
+    Kokkos::parallel_reduce(
+        "calc moments of particle distr.", numberOfParticles,
+        KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Rview(k)[0];
+                    cent1 += Rview(k)[1];
+                    cent2 += Rview(k)[2];
+        },
+        Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    for(int i=0; i<3; i++){
+       meanR[i] = meanR[i]/(1.*numberOfParticles);
+    }
+
+    Kokkos::parallel_for(
+            numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Rview(k)[0] -= meanR[0];
+                    Rview(k)[1] -= meanR[1];
+                    Rview(k)[2] -= meanR[2];
+        }
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    // sample P
+    for(int i=0; i<3; i++){
+        mu[i] = 0.0;
+        sd[i] = sigmaP_m[i];
+    }
+    view_type Pview = P.getView();
+    Kokkos::parallel_for(
+            numberOfParticles, ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    double meanP[3], loc_meanP[3];
+    for(int i=0; i<3; i++){
+       meanP[i] = 0.0;
+       loc_meanP[i] = 0.0;
+    }
+    Kokkos::parallel_reduce(
+        "calc moments of particle distr.", numberOfParticles,
+        KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Pview(k)[0];
+                    cent1 += Pview(k)[1];
+                    cent2 += Pview(k)[2];
+        },
+	Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    for(int i=0; i<3; i++){
+       meanP[i] = meanP[i]/(1.*numberOfParticles);
+    }
+
+    Kokkos::parallel_for(
+            numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Pview(k)[0] -= meanP[0];
+                    Pview(k)[1] -= meanP[1];
+                    Pview(k)[2] -= meanP[2];
+        }
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+
+    // correct the mean
+    double avrgpz = avrgpz_m;
+    Kokkos::parallel_for(
+            numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Pview(k)[2] += avrgpz;
+        }
+    );
+    Kokkos::fence();
+    ippl::Comm->barrier();
 }
 
 void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
@@ -240,6 +353,7 @@ void Distribution::printDistGauss(Inform& os) const {
 }
 
 void Distribution::setAttributes() {
+
     setSigmaR_m();
     setSigmaP_m();
 }
@@ -272,3 +386,4 @@ void Distribution::setSigmaP_m() {
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPY])),
         std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPZ])));
 }
+
