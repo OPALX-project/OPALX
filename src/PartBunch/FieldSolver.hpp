@@ -15,6 +15,11 @@ template <typename T = double, unsigned Dim = 3>
 using FFTSolver_t = ConditionalType<
     Dim == 2 || Dim == 3, ippl::FFTPeriodicPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
 
+// \fixme NullSolver
+//template <typename T = double, unsigned Dim = 3>
+//using NullSolver_t = ConditionalType<
+//    Dim == 2 || Dim == 3, ippl::NullSolver<VField_t<T, Dim>, Field_t<Dim>>>;
+
 template <typename T = double, unsigned Dim = 3>
 using P3MSolver_t = ConditionalType<Dim == 3, ippl::P3MSolver<VField_t<T, Dim>, Field_t<Dim>>>;
 
@@ -75,8 +80,11 @@ public:
             initP3MSolver();
         } else if (this->getStype() == "OPEN") {
             initOpenSolver();
-        } else {
-            m << "No solver matches the argument" << endl;
+        } else if (this->getStype() == "NONE") {
+            initNullSolver();
+        }
+        else {
+            m << "No solver matches the argument: " << this->getStype() << endl;
         }
     }
 
@@ -151,6 +159,15 @@ public:
             // The periodic Poisson solver, Open boundaries solver,
             // and the P3M solver compute the electric field directly
             solver.setLhs(*E_m);
+        }
+    }
+
+    void initNullSolver() {
+        if constexpr (Dim == 2 || Dim == 3) {
+            ippl::ParameterList sp;
+            throw std::runtime_error("Not implemented Null solver");
+        } else {
+            throw std::runtime_error("Unsupported dimensionality for Null solver");
         }
     }
 
