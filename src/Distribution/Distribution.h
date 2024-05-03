@@ -22,7 +22,6 @@
 
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
-
 #include "Attributes/Attributes.h"
 
 #ifdef WITH_UNIT_TESTS
@@ -50,7 +49,7 @@ public:
     virtual void execute();
     virtual void update();
 
-    // void create(size_t &numberOfParticles, double massIneV, double charge);
+    void create(size_t &numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P);
 
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
@@ -74,6 +73,10 @@ public:
     ippl::Vector<double, 3> getSigmaP() const;
 
     void setDistType();
+
+    void setAvrgPz(double avrgpz);
+
+    double avrgpz_m;
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
@@ -100,7 +103,7 @@ private:
      * @param massIneV particle charge in eV
      * @param charge of the particle type in elementary charge
      */
-    void create(size_t& numberOfParticles, double massIneV, double charge);
+    //void create(size_t& numberOfParticles, double massIneV, double charge, auto R);
     void calcPartPerDist(size_t numberOfParticles);
     void checkParticleNumber(size_t& numberOfParticles);
 
@@ -135,7 +138,7 @@ private:
         virtual double get(double rand);
     };
 
-    void createDistributionGauss(size_t numberOfParticles, double massIneV);
+    void createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P);
 
     //
     //
@@ -165,6 +168,8 @@ private:
     ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
 
     DistributionType distrTypeT_m;
+
+    //double avrgpz_m;
 };
 
 inline Inform& operator<<(Inform& os, const Distribution& d) {
@@ -279,6 +284,8 @@ public:
 
     void setDistType();
 
+    void setAvrgPz(double avrgpz);
+
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
 
@@ -355,6 +362,7 @@ private:
 
     void setSigmaP_m();
 
+
     /*
       private member of Distribution
     */
@@ -371,6 +379,8 @@ private:
     ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
 
     DistributionType distrTypeT_m;
+
+    //double avrgpz_m;
 };
 
 inline Inform& operator<<(Inform& os, const Distribution& d) {
@@ -384,6 +394,7 @@ inline ippl::Vector<double, 3> Distribution::get_pmean() const {
 inline ippl::Vector<double, 3> Distribution::get_xmean() const {
     return xmean_m;
 }
+
 
 inline DistributionType Distribution::getType() const {
     return distrTypeT_m;

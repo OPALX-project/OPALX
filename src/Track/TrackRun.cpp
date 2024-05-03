@@ -85,7 +85,7 @@ TrackRun::TrackRun()
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0) {
+      macrocharge_m(0.0){
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
         "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
@@ -122,7 +122,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0) {
+      macrocharge_m(0.0){
     /*
       the opal dictionary
     */
@@ -142,16 +142,6 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
         isParallel[d] = true;
     }
 
-    /*
-    Vector_t<double, 3> kw = 0.5;
-    Vector_t<double, 3> rmin(0.0);
-    Vector_t<double, 3> rmax = 2 * Kokkos::numbers::pi / kw;
-
-    Vector_t<double, 3> hr = rmax / nr;
-    double Q               = std::reduce(rmax.begin(), rmax.end(), -1., std::multiplies<double>());
-    Vector_t<double, 3> origin = rmin;
-    const double dt            = std::min(.05, 0.5 * *std::min_element(hr.begin(), hr.end()));
-    */
 }
 
 TrackRun::~TrackRun() {
@@ -234,7 +224,8 @@ void TrackRun::execute() {
     *gmsg << "* Number of distributions  " << numberOfDistributions << endl;
 
 
-    // \todo here we can look over several distributions
+    // \todo here we can loop over several distributions
+
     dist_m = Distribution::find(distributionArray[0]);
     *gmsg << *dist_m << endl;
 
@@ -255,16 +246,14 @@ void TrackRun::execute() {
      */
 
 
-    bunch_m = std::make_unique<bunch_type>(
-        Qtot, beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
+    bunch_m = std::make_unique<bunch_type>(beam->getChargePerParticle(),
+                                           beam->getMassPerParticle(), 
+                                           beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
 
-    bunch_m->setT(0.005);
+    bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
     bunch_m->setPType(beam->getParticleName());
-    bunch_m->setCharge(macrocharge_m);
-    bunch_m->setMass(macromass_m);
-    bunch_m->print(*gmsg);
-
+    
     setupBoundaryGeometry();
 
     // Get algorithm to use.
@@ -293,8 +282,42 @@ void TrackRun::execute() {
 
      */
 
-    // initial statistical data are calculated (rms, eps etc.)
-    bunch_m->calcBeamParameters();
+    /*
+      MS: First attempt to generate particles using opalx distribution class and ippl::random.
+          The particle container needs to call create(nparticles) to allocate memory (from IPPL)!
+          Not sure where to put it. For now, I call it here.
+          Alternatively, we can pass pointer to particle container as argument to the opalx's distribution::create, and access R,P,.create() via that
+    */
+
+    //double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
+    //if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
+    //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
+    //}
+
+    // find local number of particles
+    size_t nlocal = dist_m->getNumOfLocalParticlesToCreate(beam->getNumberOfParticles() );
+    // set distribution type
+    dist_m->setDistType();
+    dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
+    // allocate memory from IPPL
+    bunch_m->getParticleContainer()->create(nlocal);
+    // sample particles
+    dist_m->create(nlocal, 1, Qtot/beam->getNumberOfParticles(),
+                   bunch_m->getParticleContainer()->R,
+                   bunch_m->getParticleContainer()->P);
+
+    /* 
+       reset the fieldsolver with correct hr_m
+       based on the distribution
+    */
+
+    bunch_m->setCharge();
+    bunch_m->setMass();
+    bunch_m->bunchUpdate();
+
+    bunch_m->print(*gmsg);
+
+    *gmsg << "MeanP = " << bunch_m->getParticleContainer()->getMeanP() << endl;
 
     initDataSink();
 
@@ -333,12 +356,11 @@ void TrackRun::execute() {
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
-    *gmsg << "Parallel Tracker created ... " << endl;
+    *gmsg << "* Parallel Tracker created ... " << endl;
 
-
-    /*
     itsTracker_m->execute();
 
+    /*
     opal_m->setRestartRun(false);
 
     opal_m->bunchIsAllocated();

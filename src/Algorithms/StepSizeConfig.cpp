@@ -176,7 +176,7 @@ double StepSizeConfig::getFinalZStop() const {
     return std::get<1>(configurations_m.back());
 }
 
-void StepSizeConfig::print(Inform &out) const {
+Inform& StepSizeConfig::print(Inform &out) const {
     out << std::scientific << "   "
         << std::setw(20) << "dt [ns] "
         << std::setw(20) << "zStop [m] "
@@ -197,7 +197,31 @@ void StepSizeConfig::print(Inform &out) const {
             << std::setw(20) << std::get<2>(*it)
             << endl;
     }
+    return out;
 }
+
+void StepSizeConfig::printDirect(Inform &out) const {
+    out << std::scientific << "   "
+        << std::setw(20) << "dt [ns] "
+        << std::setw(20) << "zStop [m] "
+        << std::setw(20) << "num Steps [1]"
+        << endl;
+
+    for (auto it = configurations_m.begin();
+         it != configurations_m.end();
+         ++ it) {
+        if (it_m == it) {
+            out << "-> ";
+        } else {
+            out << "   ";
+        }
+
+        out << std::setw(20) << std::get<0>(*it)
+            << std::setw(20) << std::get<1>(*it)
+            << std::setw(20) << std::get<2>(*it)
+            << endl;
+    }
+ }
 
 ValueRange<double> StepSizeConfig::getPathLengthRange() const {
     ValueRange<double> result;

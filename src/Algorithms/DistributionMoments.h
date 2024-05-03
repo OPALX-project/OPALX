@@ -18,28 +18,35 @@
 #ifndef DISTRIBUTIONMOMENTS_H
 #define DISTRIBUTIONMOMENTS_H
 
-#include "AbsBeamline/Component.h"
-#include "PartBunch/PartBunch.hpp"
-
-// #include "Matrix.h"
-
+#include "Ippl.h"
+#include <Kokkos_Core.hpp>
+#include "Algorithms/BoostMatrix.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
 #include <vector>
+
+template <typename T, unsigned Dim = 3>
+using Vector_t = ippl::Vector<T, Dim>;
+
+typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
+
+typedef boost::numeric::ublas::matrix<double> matrix_t;
 
 class OpalParticle;
 
 class DistributionMoments {
 public:
     DistributionMoments();
-
+    void foo();
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
-    void compute(PartBunch_t const&);
-    void computeMeanKineticEnergy(PartBunch_t const&);
-    void computeDebyeLength(PartBunch_t const&, double density);
+    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview, size_t Np);
+    void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview);
+    void computeMeanKineticEnergy();
+    void computeDebyeLength(double N, double density);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;
@@ -50,6 +57,8 @@ public:
     Vector_t<double, 3> getGeometricEmittance() const;
     Vector_t<double, 3> getStandardDeviationRP() const;
     Vector_t<double, 3> getHalo() const;
+    Vector_t<double, 3> getMinPosition() const;
+    Vector_t<double, 3> getMaxPosition() const;
     Vector_t<double, 3> getMaxR() const;
 
     Vector_t<double, 3> get68Percentile() const;
@@ -171,6 +180,14 @@ inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const {
 
 inline Vector_t<double, 3> DistributionMoments::getHalo() const {
     return halo_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getMinPosition() const {
+    return minR_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getMaxPosition() const {
+    return maxR_m;
 }
 
 inline double DistributionMoments::getMeanTime() const {

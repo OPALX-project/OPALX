@@ -6,6 +6,8 @@
 
 #include "Manager/BaseManager.h"
 
+#include "Algorithms/DistributionMoments.h"
+
 template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
 
@@ -17,7 +19,7 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 public:
-    /// charge in [Cb[
+    /// charge in [Cb]
     ippl::ParticleAttrib<double> Q;
 
     /// mass
@@ -47,7 +49,7 @@ public:
     /// magnetic field at particle position
     typename Base::particle_position_type B;
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL) : pl_m(FL, mesh) {
+    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL) : pl_m(FL, mesh), distMoments_m() {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();
@@ -77,12 +79,51 @@ public:
         return pl_m;
     }
 
+    void updateMoments(){
+        size_t Np = this->getTotalNum();
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), Np);
+    }
+
+    Vector_t<double, 3> getMeanP() const{
+         return distMoments_m.getMeanMomentum();
+    }
+
+    Vector_t<double, 3> getRmsP() const{
+         return distMoments_m.getStandardDeviationMomentum();
+    }
+
+    Vector_t<double, 3> getMeanR() const{
+         return distMoments_m.getMeanPosition();
+    }
+
+    Vector_t<double, 3> getRmsR() const{
+         return distMoments_m.getStandardDeviationPosition();
+    }
+
+    void computeMinMaxR(){
+        distMoments_m.computeMinMaxPosition(this->R.getView());
+    }
+
+    Vector_t<double, 3> getMinR() const {
+         return distMoments_m.getMinPosition();
+    }
+
+    Vector_t<double, 3> getMaxR() const {
+         return distMoments_m.getMaxPosition();
+    }
+
+    matrix_t getCovMatrix() const {
+         return distMoments_m.getMoments6x6();
+    }
+
 private:
     void setBCAllPeriodic() {
         this->setParticleBC(ippl::BC::PERIODIC);
     }
 
     PLayout_t<T, Dim> pl_m;
+
+    DistributionMoments distMoments_m;
 };
 
 #endif
