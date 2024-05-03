@@ -191,6 +191,8 @@ void StatWriter::fillHeader(const losses_t& losses) {
 void StatWriter::write(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
     const size_t npOutside) {
+    using ParticleContainer_t = ParticleContainer<T, Dim>;
+    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
     double Ekin = beam->get_meanKineticEnergy();
 
     double pathLength = beam->get_sPos();
@@ -210,44 +212,87 @@ void StatWriter::write(
 
     this->writeHeader();
 
+    std::cout << "t" << beam->getT() * Units::s2ns << std::endl;
+    std::cout << "s" << pathLength << std::endl;
+    std::cout << "numParticles" << beam->getTotalNum() << std::endl;
+    std::cout << "charge" << Q << std::endl;
+    std::cout << "energy" << Ekin << std::endl;
+
     columns_m.addColumnValue("t", beam->getT() * Units::s2ns);      // 1
     columns_m.addColumnValue("s", pathLength);                      // 2
     columns_m.addColumnValue("numParticles", beam->getTotalNum());  // 3
     columns_m.addColumnValue("charge", Q);                          // 4
     columns_m.addColumnValue("energy", Ekin);                       // 5
 
-    columns_m.addColumnValue("rms_x", beam->get_rrms()(0));  // 6
-    columns_m.addColumnValue("rms_y", beam->get_rrms()(1));  // 7
-    columns_m.addColumnValue("rms_s", beam->get_rrms()(2));  // 8
+    std::cout << "rms_x" << pc->getRmsR()(0) << std::endl;
+    std::cout << "rms_y" << pc->getRmsR()(1) << std::endl;
+    std::cout << "rms_s" << pc->getRmsR()(2) << std::endl;
 
-    columns_m.addColumnValue("rms_px", beam->get_prms()(0));  // 9
-    columns_m.addColumnValue("rms_py", beam->get_prms()(1));  // 10
-    columns_m.addColumnValue("rms_ps", beam->get_prms()(2));  // 11
+    columns_m.addColumnValue("rms_x", pc->getRmsR()(0));  // 6
+    columns_m.addColumnValue("rms_y", pc->getRmsR()(1));  // 7
+    columns_m.addColumnValue("rms_s", pc->getRmsR()(2));  // 8
+
+    std::cout << "rms_px" << pc->getRmsP()(0) << std::endl;
+    std::cout << "rms_py" << pc->getRmsP()(1) << std::endl;
+    std::cout << "rms_ps" << pc->getRmsP()(2) << std::endl;
+
+    columns_m.addColumnValue("rms_px", pc->getRmsP()(0));  // 9
+    columns_m.addColumnValue("rms_py", pc->getRmsP()(1));  // 10
+    columns_m.addColumnValue("rms_ps", pc->getRmsP()(2));  // 11
+
+    std::cout << "emit_x" << beam->get_norm_emit()(0) << std::endl;
+    std::cout << "emit_y" << beam->get_norm_emit()(1) << std::endl;
+    std::cout << "emit_s" << beam->get_norm_emit()(2) << std::endl;
 
     columns_m.addColumnValue("emit_x", beam->get_norm_emit()(0));  // 12
     columns_m.addColumnValue("emit_y", beam->get_norm_emit()(1));  // 13
     columns_m.addColumnValue("emit_s", beam->get_norm_emit()(2));  // 14
 
-    columns_m.addColumnValue("mean_x", beam->get_rmean()(0));  // 15
-    columns_m.addColumnValue("mean_y", beam->get_rmean()(1));  // 16
-    columns_m.addColumnValue("mean_s", beam->get_rmean()(2));  // 17
+    std::cout << "mean_x" << pc->getMeanR()(0) << std::endl;
+    std::cout << "mean_y" << pc->getMeanR()(1) << std::endl;
+    std::cout << "mean_s" << pc->getMeanR()(2) << std::endl;
+
+    columns_m.addColumnValue("mean_x", pc->getMeanR()(0));  // 15
+    columns_m.addColumnValue("mean_y", pc->getMeanR()(1));  // 16
+    columns_m.addColumnValue("mean_s", pc->getMeanR()(2));  // 17
+
+    std::cout << "ref_x" << beam->RefPartR_m(0) << std::endl;
+    std::cout << "ref_y" << beam->RefPartR_m(1) << std::endl;
+    std::cout << "ref_z" << beam->RefPartR_m(2) << std::endl;
 
     columns_m.addColumnValue("ref_x", beam->RefPartR_m(0));  // 18
     columns_m.addColumnValue("ref_y", beam->RefPartR_m(1));  // 19
     columns_m.addColumnValue("ref_z", beam->RefPartR_m(2));  // 20
 
+    std::cout << "ref_px" << beam->RefPartP_m(0) << std::endl;
+    std::cout << "ref_py" << beam->RefPartP_m(1) << std::endl;
+    std::cout << "ref_pz" << beam->RefPartP_m(2) << std::endl;
+
     columns_m.addColumnValue("ref_px", beam->RefPartP_m(0));  // 21
     columns_m.addColumnValue("ref_py", beam->RefPartP_m(1));  // 22
     columns_m.addColumnValue("ref_pz", beam->RefPartP_m(2));  // 23
 
-    columns_m.addColumnValue("max_x", beam->get_maxExtent()(0));  // 24
-    columns_m.addColumnValue("max_y", beam->get_maxExtent()(1));  // 25
-    columns_m.addColumnValue("max_s", beam->get_maxExtent()(2));  // 26
+    std::cout << "max_x" << pc->getMaxR()(0) << std::endl;
+    std::cout << "max_y" << pc->getMaxR()(1) << std::endl;
+    std::cout << "max_s" << pc->getMaxR()(2) << std::endl;
+
+    columns_m.addColumnValue("max_x", pc->getMaxR()(0));  // 24
+    columns_m.addColumnValue("max_y", pc->getMaxR()(1));  // 25
+    columns_m.addColumnValue("max_s", pc->getMaxR()(2));  // 26
+
+    std::cout << "xpx" << beam->get_prms()(0) << std::endl;
+    std::cout << "ypy" << beam->get_prms()(1) << std::endl;
+    std::cout << "zpz" << beam->get_prms()(2) << std::endl;
 
     // Write out Courant Snyder parameters.
     columns_m.addColumnValue("xpx", beam->get_prms()(0));  // 27
     columns_m.addColumnValue("ypy", beam->get_prms()(1));  // 28
     columns_m.addColumnValue("zpz", beam->get_prms()(2));  // 29
+
+    std::cout << "Dx" << beam->get_Dx() << std::endl;
+    std::cout << "DDx" << beam->get_DDx() << std::endl;
+    std::cout << "Dy" << beam->get_Dy() << std::endl;
+    std::cout << "DDy" << beam->get_DDy() << std::endl;
 
     // Write out dispersion.
     columns_m.addColumnValue("Dx", beam->get_Dx());    // 30
@@ -255,14 +300,26 @@ void StatWriter::write(
     columns_m.addColumnValue("Dy", beam->get_Dy());    // 32
     columns_m.addColumnValue("DDy", beam->get_DDy());  // 33
 
+    std::cout << "Bx_ref" << FDext[0](0) << std::endl;
+    std::cout << "By_ref" << FDext[0](1) << std::endl;
+    std::cout << "Bz_ref" << FDext[0](2) << std::endl;
+
     // Write head/reference particle/tail field information.
     columns_m.addColumnValue("Bx_ref", FDext[0](0));  // 34 B-ref x
     columns_m.addColumnValue("By_ref", FDext[0](1));  // 35 B-ref y
     columns_m.addColumnValue("Bz_ref", FDext[0](2));  // 36 B-ref z
 
+    std::cout << "Ex_ref" << FDext[1](0) << std::endl;
+    std::cout << "Ey_ref" << FDext[1](1) << std::endl;
+    std::cout << "Ez_ref" << FDext[1](2) << std::endl;
+
     columns_m.addColumnValue("Ex_ref", FDext[1](0));  // 37 E-ref x
     columns_m.addColumnValue("Ey_ref", FDext[1](1));  // 38 E-ref y
     columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
+
+    std::cout << "dE" << beam->getdE() << std::endl;
+    std::cout << "dt" << beam->getdT() * Units::s2ns << std::endl;
+    std::cout << "partsOutside" << npOutside << std::endl;
 
     columns_m.addColumnValue("dE", beam->getdE());                // 40 dE energy spread
     columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns);  // 41 dt time step size
