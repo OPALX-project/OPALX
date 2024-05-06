@@ -224,6 +224,7 @@ public:
           integration_method_m(integration_method),
           solver_m(""),
           qi_m(qi),
+          mi_m(mi),
           isFirstRepartition_m(true),
           localTrackStep_m(0),
           globalTrackStep_m(0),
@@ -337,6 +338,10 @@ public:
     }
 
 public:
+    void updateMoments(){
+        this->pcontainer_m->updateMoments();
+    }
+
     size_t getTotalNum() const {
         return this->pcontainer_m->getTotalNum();
     }
@@ -424,10 +429,10 @@ public:
         return 1.0;
     }
     double getChargePerParticle() const {
-        return 1.0;
+        return qi_m;
     }
     double getMassPerParticle() const {
-        return 1.0;
+        return mi_m;
     }
 
     double getQ() const {

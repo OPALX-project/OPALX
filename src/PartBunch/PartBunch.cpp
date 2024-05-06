@@ -185,7 +185,7 @@ void PartBunch<double,3>::bunchUpdate() {
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
-    pc->updateMoments();
+    this->updateMoments();
 }
 
 template <>
