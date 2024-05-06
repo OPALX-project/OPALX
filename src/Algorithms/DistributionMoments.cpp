@@ -47,6 +47,7 @@ DistributionMoments::DistributionMoments() {
 
 void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
                                          ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+                                         ippl::ParticleAttrib<double>::view_type&  Mview,
                                          size_t Np) {
     const int Dim = 3;
 
@@ -64,13 +65,16 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
             }
      }
 
+     double loc_Ekin;
+
      for (unsigned i = 0; i < 2 * Dim; ++i) {
             Kokkos::parallel_reduce(
                                     "calc moments of particle distr.", ippl::getRangePolicy(Rview),
                 KOKKOS_LAMBDA(
                     const int k, double& cent, double& mom0, double& mom1, double& mom2,
-                    double& mom3, double& mom4, double& mom5) {
+                    double& mom3, double& mom4, double& mom5, double& ekin) {
                     double part[2 * Dim];
+                    double gamma = 0.;
                     part[0] = Rview(k)[0];
                     part[1] = Pview(k)[0];
                     part[2] = Rview(k)[1];
@@ -85,11 +89,16 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                     mom3 += part[i] * part[3];
                     mom4 += part[i] * part[4];
                     mom5 += part[i] * part[5];
+                    for(unsigned j=0; j<Dim; j++){
+                        gamma += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma = Kokkos::sqrt(gamma+1.0);
+                    ekin += (gamma-1.0) * Mview(k);
                 },
                 Kokkos::Sum<double>(loc_centroid[i]), Kokkos::Sum<double>(loc_moment[i][0]),
                 Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
                 Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
-                Kokkos::Sum<double>(loc_moment[i][5]));
+                Kokkos::Sum<double>(loc_moment[i][5]), Kokkos::Sum<double>(loc_Ekin));
             Kokkos::fence();
         }
     ippl::Comm->barrier();
@@ -98,6 +107,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
             loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
     MPI_Allreduce(
             loc_centroid, centroid_m, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    MPI_Allreduce(
+            &loc_Ekin, &meanKineticEnergy_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
         centroid_m[i] = centroid_m[i] / Np;
@@ -105,6 +116,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                 moments_m(i,j)   = moment[i][j] / Np;
             }
      }
+     meanKineticEnergy_m = meanKineticEnergy_m / Np;
+
     // store mean R, mean P, std R, std P in class member variables
     for (unsigned i = 0; i < Dim; i++) {
         meanR_m(i) = centroid_m[2*i];

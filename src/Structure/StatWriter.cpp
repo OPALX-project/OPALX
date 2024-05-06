@@ -193,7 +193,7 @@ void StatWriter::write(
     const size_t npOutside) {
     using ParticleContainer_t = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
-    double Ekin = beam->get_meanKineticEnergy();
+    double Ekin = pc->getMeanKineticEnergy();
 
     double pathLength = beam->get_sPos();
 
