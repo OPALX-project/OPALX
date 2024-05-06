@@ -43,7 +43,9 @@ public:
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
     void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
-                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview, size_t Np);
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview,
+                        ippl::ParticleAttrib<double>::view_type& Mview,
+                        size_t Np);
     void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview);
     void computeMeanKineticEnergy();
     void computeDebyeLength(double N, double density);

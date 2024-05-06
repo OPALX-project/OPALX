@@ -81,7 +81,7 @@ public:
 
     void updateMoments(){
         size_t Np = this->getTotalNum();
-        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), Np);
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np);
     }
 
     Vector_t<double, 3> getMeanP() const{
@@ -115,6 +115,11 @@ public:
     matrix_t getCovMatrix() const {
          return distMoments_m.getMoments6x6();
     }
+
+    double getMeanKineticEnergy() const {
+          return distMoments_m.getMeanKineticEnergy();
+    }
+
 
 private:
     void setBCAllPeriodic() {
