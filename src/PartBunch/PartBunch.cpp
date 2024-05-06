@@ -118,6 +118,7 @@ template<>
 Inform& PartBunch<double,3>::print(Inform& os) {
         // if (this->getLocalNum() != 0) {  // to suppress Nans
         Inform::FmtFlags_t ff = os.flags();
+        const int Dim = 3;
 
         os << std::scientific;
         os << level1 << "\n";
@@ -137,6 +138,17 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
+        os << "* Means : \n* ";
+        for (unsigned int i=0; i<2*Dim; i++) {
+            os << centroid_m[i] << " ";
+        }
+	os << endl << "* Cov Matrix : \n* ";
+        for (unsigned int i=0; i<2*Dim; i++) {
+            for (unsigned int j=0; j<2*Dim; j++) {
+                os << moments_m(i,j) << " ";
+            }
+            os << "\n* ";
+        }
         os << "* "
               "********************************************************************************"
               "** "
@@ -180,6 +192,23 @@ void PartBunch<double,3>::bunchUpdate() {
 
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
+
+    /* old Tracker 
+    this->calcBeamParameters();
+
+
+    ippl::Vector<double, 3> o = this->get_origin();
+    ippl::Vector<double, 3> e = this->get_maxExtent(); 
+    ippl::Vector<double, 3> l = e - o; 
+
+    hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
+
+    mesh->setMeshSpacing(hr_m);
+    mesh->setOrigin(o-0.5*hr_m);
+
+    this->getParticleContainer()->getLayout().updateLayout(*FL, *mesh);
+    this->getParticleContainer()->update();
+    */
 
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);

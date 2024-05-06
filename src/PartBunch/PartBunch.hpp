@@ -175,8 +175,6 @@ private:
     int SteptoLastInj_m;
 
     bool fixed_grid;
-    /// Mesh enlargement
-    double dh_m;  /// relative enlargement of the mesh
 
     PartData* reference_m;
 
@@ -223,8 +221,8 @@ public:
           it_m(0),
           integration_method_m(integration_method),
           solver_m(""),
+          isFirstRepartition_m(true),        
           qi_m(qi),
-          isFirstRepartition_m(true),
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
@@ -253,7 +251,9 @@ public:
         bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
 
         /*
-          set stuff for pre_run
+          set stuff for pre_run i.e. warmup
+          this will be reset when the correct computational
+          domain is set
         */
 
         Vector_t<double, Dim> length (1.0);
@@ -282,6 +282,10 @@ public:
         IpplTimings::startTimer(prerun);
         pre_run();
         IpplTimings::stopTimer(prerun);
+
+        /*
+          end wrmup 
+        */
 
         moments_m.resize(2*Dim,2*Dim);
     }
@@ -319,12 +323,6 @@ public:
     }
 
     void pre_run() override {
-
-        /*
-          \todo pre_run is taking to long to execute. In pre_run only a unoform distribution
-          should be created or maybe even not disttribution at all
-         */
-
         static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
 
@@ -408,8 +406,6 @@ public:
             auto* FL   = &fc->getFL();
             this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
         }
-
-
     }
 
     void setCharge() {
@@ -421,23 +417,21 @@ public:
     }
 
     double getCharge() const {
-        return 1.0;
+        return qi_m*this->getTotalNum();
     }
+
     double getChargePerParticle() const {
-        return 1.0;
+        return qi_m;
     }
     double getMassPerParticle() const {
-        return 1.0;
+        return mi_m;
     }
 
     double getQ() const {
-        return 1.0;
+        return this->getCharge();
     }
     double getM() const {
-        return 1.0;
-    }
-
-    void setPType(const std::string& type) {
+        return  mi_m*this->getTotalNum();
     }
 
     double getdE() const {
@@ -470,12 +464,17 @@ public:
     void resizeMesh() {
     }
 
+    /*
+
     Mesh_t<Dim>& getMesh() {
     }
 
     FieldLayout_t<Dim>& getFieldLayout() {
         return nullptr;
     }
+    */
+
+
 
     bool isGridFixed() {
     }
@@ -487,11 +486,14 @@ public:
         return 1;
     }
 
+    /*
     void setTotalNum(size_t newTotalNum) {
     }
 
     void set_meshEnlargement(double dh) {
     }
+    */
+
     void setBCAllOpen() {
     }
     void setBCForDCBeam() {
@@ -513,6 +515,7 @@ public:
     }
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
     }
+
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
     }
 

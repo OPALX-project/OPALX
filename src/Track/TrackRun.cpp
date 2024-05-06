@@ -86,6 +86,7 @@ TrackRun::TrackRun()
       method_m(RunMethod::NONE),
       macromass_m(0.0),
       macrocharge_m(0.0){
+
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
         "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
@@ -245,14 +246,14 @@ void TrackRun::execute() {
 
      */
 
-
     bunch_m = std::make_unique<bunch_type>(beam->getChargePerParticle(),
                                            beam->getMassPerParticle(), 
                                            beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
-
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
-    bunch_m->setPType(beam->getParticleName());
+
+    double cc = 1.0 / (4 * Physics::pi * Physics::epsilon_0);  
+    bunch_m->setCouplingConstant(cc);
     
     setupBoundaryGeometry();
 
@@ -316,8 +317,6 @@ void TrackRun::execute() {
     bunch_m->bunchUpdate();
 
     bunch_m->print(*gmsg);
-
-    *gmsg << "MeanP = " << bunch_m->getParticleContainer()->getMeanP() << endl;
 
     initDataSink();
 
@@ -479,8 +478,8 @@ Inform& TrackRun::print(Inform& os) const {
        << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n'
-       << "* Mass of simulation particle   = " << macromass_m << " [GeV/c^2]" << '\n'
-       << "* Charge of simulation particle = " << macrocharge_m << " [C]" << '\n';
+       << "* Mass of simulation particle   = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getChargePerParticle() << " [GeV/c^2]" << '\n'
+       << "* Charge of simulation particle = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getMassPerParticle() << " [C]" << '\n';
     os << "* ********************************************************************************** ";
     return os;
 }
