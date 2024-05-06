@@ -101,13 +101,11 @@ private:
     RunMethod method_m;
     static const boost::bimap<RunMethod, std::string> stringMethod_s;
 
-    /*
-      \todo this is only for one bunch / beam
-    */
-
     // macro mass / charge for simulation particles
     double macromass_m;
     double macrocharge_m;
+
+    
 };
 
 inline Inform& operator<<(Inform& os, const TrackRun& b) {
