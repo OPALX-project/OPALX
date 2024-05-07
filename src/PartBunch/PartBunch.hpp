@@ -186,12 +186,6 @@ private:
     // UnitState_t unit_state_m;
     // UnitState_t stateOfLastBoundP_m;
 
-    /// holds the centroid of the beam
-    double centroid_m[2 * Dim];
-
-    /// 6x6 matrix of the moments of the beam
-    matrix_t moments_m;
-
     /// holds the actual time of the integration
     double t_m;
 
@@ -287,7 +281,6 @@ public:
           end wrmup 
         */
 
-        moments_m.resize(2*Dim,2*Dim);
     }
 
     void bunchUpdate();
@@ -685,23 +678,23 @@ public:
     }
 
     Vector_t<double, Dim> get_centroid() const {
-        return Vector_t<double, Dim>(centroid_m[0],centroid_m[2],centroid_m[4]);
+        return this->pcontainer_m->getMeanR();
     }
+
     Vector_t<double, Dim> get_rrms() const {
-        return Vector_t<double, Dim>(moments_m(0,0),moments_m(2,2),moments_m(4,4));
+        return this->pcontainer_m->getRmsR();
     }
 
     Vector_t<double, Dim> get_prms() const {
-        return Vector_t<double, Dim>(moments_m(1,1),moments_m(3,3),moments_m(5,5));        
+        return this->pcontainer_m->getRmsP();
     }
 
-
     Vector_t<double, Dim> get_rmean() const {
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->getMeanR();
     }
 
     Vector_t<double, Dim> get_pmean() const {
-        return Vector_t<double, Dim>({0.0,0.0,1958.});
+        return this->pcontainer_m->getMeanP();
     }
     Vector_t<double, Dim> get_pmean_Distribution() const {
         return Vector_t<double, Dim>(0.0);

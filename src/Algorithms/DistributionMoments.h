@@ -82,6 +82,7 @@ public:
     double getDDx() const;
     double getDy() const;
     double getDDy() const;
+    Vector_t<double, 6> getMeans() const;
     matrix_t getMoments6x6() const;
     double getTotalCharge() const;
     double getTotalMass() const;
@@ -137,7 +138,8 @@ private:
     double stdKineticEnergy_m;
     double meanGamma_m;
 
-    double centroid_m[6];
+    double centroid_m[6];// centroid needs to be Vector_t, we use means_m for now
+    Vector_t<double, 6> means_m;
     matrix_t moments_m;
 
     double totalCharge_m;
@@ -235,6 +237,10 @@ inline double DistributionMoments::getDy() const {
 
 inline double DistributionMoments::getDDy() const {
     return moments_m(3, 5);
+}
+
+inline Vector_t<double, 6> DistributionMoments::getMeans() const {
+    return means_m;
 }
 
 inline matrix_t DistributionMoments::getMoments6x6() const {
