@@ -68,8 +68,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
             Kokkos::parallel_reduce(
                                     "calc moments of particle distr.", ippl::getRangePolicy(Rview),
                 KOKKOS_LAMBDA(
-                    const int k, double& cent, double& mom0, double& mom1, double& mom2,
-                    double& mom3, double& mom4, double& mom5) {
+                    const int k, double& cent) {
                     double part[2 * Dim];
                     part[0] = Rview(k)[0];
                     part[1] = Pview(k)[0];
@@ -79,6 +78,47 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                     part[5] = Pview(k)[2];
 
                     cent += part[i];
+                },
+                Kokkos::Sum<double>(loc_centroid[i]));
+            Kokkos::fence();
+        }
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(
+            loc_centroid, centroid_m, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    for (unsigned i = 0; i < 2 * Dim; i++) {
+        centroid_m[i] = centroid_m[i] / Np;
+        means_m(i) = centroid_m[i];
+     }
+
+    // store mean R, mean P, std R, std P in class member variables
+    for (unsigned i = 0; i < Dim; i++) {
+        meanR_m(i) = centroid_m[2*i];
+        meanP_m(i) = centroid_m[2*i+1];
+    }
+
+    double meanR_loc[Dim]	= {};
+    double meanP_loc[Dim]	= {};
+    for (unsigned i = 0; i < Dim; i++) {
+        meanR_loc[i] = meanR_m[i];
+        meanP_loc[i] = meanP_m[i];
+    }
+
+    for (unsigned i = 0; i < 2 * Dim; ++i) {
+            Kokkos::parallel_reduce(
+                                    "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0]-meanR_loc[0];
+                    part[1] = Pview(k)[0]-meanP_loc[0];
+                    part[2] = Rview(k)[1]-meanR_loc[1];
+                    part[3] = Pview(k)[1]-meanP_loc[1];
+                    part[4] = Rview(k)[2]-meanR_loc[2];
+                    part[5] = Pview(k)[2]-meanP_loc[2];
+
                     mom0 += part[i] * part[0];
                     mom1 += part[i] * part[1];
                     mom2 += part[i] * part[2];
@@ -86,68 +126,27 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                     mom4 += part[i] * part[4];
                     mom5 += part[i] * part[5];
                 },
-                Kokkos::Sum<double>(loc_centroid[i]), Kokkos::Sum<double>(loc_moment[i][0]),
+                Kokkos::Sum<double>(loc_moment[i][0]),
                 Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
                 Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
                 Kokkos::Sum<double>(loc_moment[i][5]));
             Kokkos::fence();
-        }
+     }
     ippl::Comm->barrier();
 
     MPI_Allreduce(
             loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    MPI_Allreduce(
-            loc_centroid, centroid_m, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
-        centroid_m[i] = centroid_m[i] / Np;
             for (unsigned j = 0; j < 2 * Dim; j++) {
-                moments_m(i,j)   = moment[i][j] / Np;
+                moments_m(i,j)   = moment[i][j] / (Np-1);
             }
      }
-    // store mean R, mean P, std R, std P in class member variables
+
     for (unsigned i = 0; i < Dim; i++) {
-        meanR_m(i) = centroid_m[2*i];
-        meanP_m(i) = centroid_m[2*i+1];
+        stdR_m(i) = std::sqrt( moments_m(2*i, 2*i) );
+        stdP_m(i) = std::sqrt( moments_m(2*i+1, 2*i+1) );
     }
-
-    double stdR[Dim]            = {};
-    double stdR_loc[Dim]        = {};
-    double meanR_loc[Dim]       = {};
-    double stdP[Dim]            = {};
-    double stdP_loc[Dim]        = {};
-    double meanP_loc[Dim]       = {};
-    for (unsigned i = 0; i < Dim; i++) {
-        stdR_loc[i] = 0.0;
-        meanR_loc[i] = meanR_m[i];
-        stdP_loc[i] = 0.0;
-        meanP_loc[i] = meanP_m[i];
-    }
-    for (unsigned i = 0; i < Dim; ++i) {
-            Kokkos::parallel_reduce(
-                                    "calc moments of particle distr.", ippl::getRangePolicy(Pview),
-                KOKKOS_LAMBDA(
-                    const int k, double& momR2, double& momP2) {
-                    momR2 += ( Rview(k)[i] - meanR_loc[i] ) * ( Rview(k)[i] - meanR_loc[i] );
-                    momP2 += ( Pview(k)[i] - meanP_loc[i] ) * ( Pview(k)[i] - meanP_loc[i] );
-                },
-                Kokkos::Sum<double>(stdR_loc[i]), Kokkos::Sum<double>(stdP_loc[i]));
-            Kokkos::fence();
-    }
-    ippl::Comm->barrier();
-
-    MPI_Allreduce(
-            stdR_loc, stdR, Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-
-    MPI_Allreduce(
-            stdP_loc, stdP, Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-
-    // compute standard deviation with Bessel's correction
-    for (unsigned i = 0; i < Dim; i++) {
-        stdR_m(i) = std::sqrt( stdR[i] / (Np-1) );
-        stdP_m(i) = std::sqrt( stdP[i] / (Np-1) );
-    }
-
 }
 
 void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview){
