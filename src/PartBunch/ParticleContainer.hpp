@@ -116,6 +116,10 @@ public:
          return distMoments_m.getMoments6x6();
     }
 
+    Vector_t<double, 6> getCentroid() const {
+        return distMoments_m.getMeans();
+    }
+
 private:
     void setBCAllPeriodic() {
         this->setParticleBC(ippl::BC::PERIODIC);

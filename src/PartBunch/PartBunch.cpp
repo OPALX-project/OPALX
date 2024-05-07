@@ -25,13 +25,9 @@ void PartBunch<double,3>::calcBeamParameters() {
 
         for (unsigned i = 0; i < 2 * Dim; i++) {
             loc_centroid[i] = 0.0;
-            centroid_m[i] = 0.0;
             for (unsigned j = 0; j <= i; j++) {
                 loc_moment[i][j] = 0.0;
                 loc_moment[j][i] = 0.0;
-                moments_m(i,j)   = 0.0;
-                moments_m(j,i)   = 0.0;
-
             }
         }
 
@@ -102,13 +98,6 @@ void PartBunch<double,3>::calcBeamParameters() {
             rmin_m(i) = rmin[i];
         }
 
-        for (unsigned int i=0; i<2*Dim; i++) {
-            centroid_m[i] = centroid[i]/this->getTotalNum();
-            for (unsigned int j=0; j<2*Dim; j++) {
-                moments_m(i,j) = moment[i][j]/this->getTotalNum();
-            }
-        }
-
         ippl::Comm->barrier();
 
 
@@ -140,12 +129,12 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
         os << "* Means : \n* ";
         for (unsigned int i=0; i<2*Dim; i++) {
-            os << centroid_m[i] << " ";
+            os << this->pcontainer_m->getCentroid()[i] << " ";
         }
 	os << endl << "* Cov Matrix : \n* ";
         for (unsigned int i=0; i<2*Dim; i++) {
             for (unsigned int j=0; j<2*Dim; j++) {
-                os << moments_m(i,j) << " ";
+                os << this->pcontainer_m->getCovMatrix()(i,j) << " ";
             }
             os << "\n* ";
         }
