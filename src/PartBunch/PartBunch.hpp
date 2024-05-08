@@ -175,8 +175,6 @@ private:
     int SteptoLastInj_m;
 
     bool fixed_grid;
-    /// Mesh enlargement
-    double dh_m;  /// relative enlargement of the mesh
 
     PartData* reference_m;
 
@@ -187,12 +185,6 @@ private:
     // unit state of PartBunch
     // UnitState_t unit_state_m;
     // UnitState_t stateOfLastBoundP_m;
-
-    /// holds the centroid of the beam
-    double centroid_m[2 * Dim];
-
-    /// 6x6 matrix of the moments of the beam
-    matrix_t moments_m;
 
     /// holds the actual time of the integration
     double t_m;
@@ -223,9 +215,9 @@ public:
           it_m(0),
           integration_method_m(integration_method),
           solver_m(""),
+          isFirstRepartition_m(true),        
           qi_m(qi),
           mi_m(mi),
-          isFirstRepartition_m(true),
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
@@ -254,7 +246,9 @@ public:
         bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
 
         /*
-          set stuff for pre_run
+          set stuff for pre_run i.e. warmup
+          this will be reset when the correct computational
+          domain is set
         */
 
         Vector_t<double, Dim> length (1.0);
@@ -284,7 +278,10 @@ public:
         pre_run();
         IpplTimings::stopTimer(prerun);
 
-        moments_m.resize(2*Dim,2*Dim);
+        /*
+          end wrmup 
+        */
+
     }
 
     void bunchUpdate();
@@ -320,12 +317,6 @@ public:
     }
 
     void pre_run() override {
-
-        /*
-          \todo pre_run is taking to long to execute. In pre_run only a unoform distribution
-          should be created or maybe even not disttribution at all
-         */
-
         static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
 
@@ -413,8 +404,6 @@ public:
             auto* FL   = &fc->getFL();
             this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
         }
-
-
     }
 
     void setCharge() {
@@ -426,8 +415,9 @@ public:
     }
 
     double getCharge() const {
-        return 1.0;
+        return qi_m*this->getTotalNum();
     }
+
     double getChargePerParticle() const {
         return qi_m;
     }
@@ -436,13 +426,10 @@ public:
     }
 
     double getQ() const {
-        return 1.0;
+        return this->getCharge();
     }
     double getM() const {
-        return 1.0;
-    }
-
-    void setPType(const std::string& type) {
+        return  mi_m*this->getTotalNum();
     }
 
     double getdE() const {
@@ -475,12 +462,17 @@ public:
     void resizeMesh() {
     }
 
+    /*
+
     Mesh_t<Dim>& getMesh() {
     }
 
     FieldLayout_t<Dim>& getFieldLayout() {
         return nullptr;
     }
+    */
+
+
 
     bool isGridFixed() {
     }
@@ -492,11 +484,14 @@ public:
         return 1;
     }
 
+    /*
     void setTotalNum(size_t newTotalNum) {
     }
 
     void set_meshEnlargement(double dh) {
     }
+    */
+
     void setBCAllOpen() {
     }
     void setBCForDCBeam() {
@@ -518,6 +513,7 @@ public:
     }
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
     }
+
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
     }
 
@@ -687,23 +683,23 @@ public:
     }
 
     Vector_t<double, Dim> get_centroid() const {
-        return Vector_t<double, Dim>(centroid_m[0],centroid_m[2],centroid_m[4]);
+        return this->pcontainer_m->getMeanR();
     }
+
     Vector_t<double, Dim> get_rrms() const {
-        return Vector_t<double, Dim>(moments_m(0,0),moments_m(2,2),moments_m(4,4));
+        return this->pcontainer_m->getRmsR();
     }
 
     Vector_t<double, Dim> get_prms() const {
-        return Vector_t<double, Dim>(moments_m(1,1),moments_m(3,3),moments_m(5,5));        
+        return this->pcontainer_m->getRmsP();
     }
 
-
     Vector_t<double, Dim> get_rmean() const {
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->getMeanR();
     }
 
     Vector_t<double, Dim> get_pmean() const {
-        return Vector_t<double, Dim>({0.0,0.0,1958.});
+        return this->pcontainer_m->getMeanP();
     }
     Vector_t<double, Dim> get_pmean_Distribution() const {
         return Vector_t<double, Dim>(0.0);

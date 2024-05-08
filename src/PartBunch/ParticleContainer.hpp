@@ -120,6 +120,9 @@ public:
           return distMoments_m.getMeanKineticEnergy();
     }
 
+    Vector_t<double, 6> getCentroid() const {
+        return distMoments_m.getMeans();
+    }
 
 private:
     void setBCAllPeriodic() {
