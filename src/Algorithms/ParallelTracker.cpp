@@ -855,8 +855,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (statDump) {
-        std::vector<std::pair<std::string, unsigned int> > collimatorLosses;
-        itsDataSink_m->dumpSDDS(itsBunch_m, FDext, collimatorLosses);
+        itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
         msg << level3 << "* Wrote beam statistics." << endl;
     }
 
