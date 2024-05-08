@@ -127,7 +127,7 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
-        os << "* Means : \n* ";
+        os << "* Centroid : \n* ";
         for (unsigned int i=0; i<2*Dim; i++) {
             os << this->pcontainer_m->getCentroid()[i] << " ";
         }

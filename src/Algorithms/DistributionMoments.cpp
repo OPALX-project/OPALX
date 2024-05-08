@@ -53,14 +53,10 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
     const int Dim = 3;
 
     double loc_centroid[2 * Dim]        = {};
+    double centroid[2 * Dim]        = {};
+    double loc_Ekin, loc_gamma;
 
-    for (unsigned i = 0; i < 2 * Dim; i++) {
-            loc_centroid[i] = 0.0;
-     }
-
-     double loc_Ekin, loc_gamma;
-
-     for (unsigned i = 0; i < 2 * Dim; ++i) {
+    for (unsigned i = 0; i < 2 * Dim; ++i) {
             Kokkos::parallel_reduce(
                                     "calc moments of particle distr.", ippl::getRangePolicy(Rview),
                 KOKKOS_LAMBDA(
@@ -87,17 +83,18 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                 },
                 Kokkos::Sum<double>(loc_centroid[i]), Kokkos::Sum<double>(loc_Ekin), Kokkos::Sum<double>(loc_gamma));
             Kokkos::fence();
-        }
+    }
     ippl::Comm->barrier();
 
     MPI_Allreduce(
-            loc_centroid, centroid_m, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+            loc_centroid, centroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
     MPI_Allreduce(
             &loc_Ekin, &meanKineticEnergy_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
     MPI_Allreduce(
             &loc_gamma, &meanGamma_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
+        centroid_m(i) = centroid[i];
         means_m(i) = centroid_m[i]/Np;
      }
 
@@ -624,6 +621,7 @@ double DistributionMoments::computeNormalizedEmittance(
 }
 
 void DistributionMoments::fillMembers(std::vector<double>& localMoments) {
+    /*
     Vector_t<double, 3> squaredEps, fac, sumRP;
     double perParticle = 1.0 / totalNumParticles_m;
 
@@ -667,6 +665,7 @@ void DistributionMoments::fillMembers(std::vector<double>& localMoments) {
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
+    */
 }
 
 void DistributionMoments::computeMeanKineticEnergy() {

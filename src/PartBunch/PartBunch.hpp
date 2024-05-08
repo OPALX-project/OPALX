@@ -682,12 +682,17 @@ public:
         return rmax_m;
     }
 
-    Vector_t<double, Dim> get_centroid() const {
-        return this->pcontainer_m->getMeanR();
+    // in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
+    Vector_t<double, 2*Dim> get_centroid() const {
+        return this->pcontainer_m->getCentroid();
     }
 
     Vector_t<double, Dim> get_rrms() const {
         return this->pcontainer_m->getRmsR();
+    }
+
+    Vector_t<double, Dim> get_rprms() const {
+        return this->pcontainer_m->getRmsRP();
     }
 
     Vector_t<double, Dim> get_prms() const {
@@ -751,7 +756,7 @@ public:
         return this->pcontainer_m->getDDx();
     }
     double get_DDy() const {
-        return this->pcontainer_m->getDDx();
+        return this->pcontainer_m->getDDy();
     }
 
     /*
