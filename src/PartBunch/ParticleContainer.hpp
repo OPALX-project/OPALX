@@ -100,6 +100,10 @@ public:
          return distMoments_m.getStandardDeviationPosition();
     }
 
+    Vector_t<double, 3> getRmsRP() const{
+         return distMoments_m.getStandardDeviationRP();
+    }
+
     void computeMinMaxR(){
         distMoments_m.computeMinMaxPosition(this->R.getView());
     }
@@ -120,8 +124,12 @@ public:
           return distMoments_m.getMeanKineticEnergy();
     }
 
-    Vector_t<double, 6> getCentroid() const {
+    Vector_t<double, 6> getMeans() const {
         return distMoments_m.getMeans();
+    }
+
+    Vector_t<double, 6> getCentroid() const {
+        return distMoments_m.getCentroid();
     }
 
     Vector_t<double, 3> getNormEmit() const {
