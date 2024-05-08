@@ -708,7 +708,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_norm_emit() const {
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->getNormEmit();
     }
     Vector_t<double, Dim> get_halo() const {
         return Vector_t<double, Dim>(0.0);
@@ -742,16 +742,16 @@ public:
     }
 
     double get_Dx() const {
-        return 0.0;
+        return this->pcontainer_m->getDx();
     }
     double get_Dy() const {
-        return 0.0;
+        return this->pcontainer_m->getDy();
     }
     double get_DDx() const {
-        return 0.0;
+        return this->pcontainer_m->getDDx();
     }
     double get_DDy() const {
-        return 0.0;
+        return this->pcontainer_m->getDDx();
     }
 
     /*

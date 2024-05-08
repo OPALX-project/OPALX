@@ -124,6 +124,27 @@ public:
         return distMoments_m.getMeans();
     }
 
+    Vector_t<double, 3> getNormEmit() const {
+        return distMoments_m.getNormalizedEmittance();
+    }
+
+   double getDx() const {
+       return distMoments_m.getDx();
+   }
+
+   double getDDx() const {
+       return distMoments_m.getDDx();
+   }
+
+   double getDy() const {
+       return distMoments_m.getDy();
+   }
+
+   double getDDy() const {
+       return distMoments_m.getDDy();
+   }
+
+
 private:
     void setBCAllPeriodic() {
         this->setParticleBC(ippl::BC::PERIODIC);

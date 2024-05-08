@@ -92,8 +92,13 @@ public:
 
 private:
     bool isParticleExcluded(const OpalParticle&) const;
-    template <class InputIt>
-    void computeMeans(const InputIt&, const InputIt&);
+    void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+                                         ippl::ParticleAttrib<double>::view_type&  Mview,
+                                         size_t Np);
+
+    //template <class InputIt>
+    //void computeMeans(const InputIt&, const InputIt&);
     // template <class InputIt>
     // void computeStatistics(const InputIt&, const InputIt&);
     template <class InputIt>
@@ -143,6 +148,7 @@ private:
     double centroid_m[6];// centroid needs to be Vector_t, we use means_m for now
     Vector_t<double, 6> means_m;
     matrix_t moments_m;
+    matrix_t notCentMoments_m;
 
     double totalCharge_m;
     double totalMass_m;
