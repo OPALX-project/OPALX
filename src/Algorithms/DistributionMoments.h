@@ -48,7 +48,10 @@ public:
                         size_t Np);
     void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview);
     void computeMeanKineticEnergy();
-    void computeDebyeLength(double N, double density);
+    void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview,
+                        size_t Np,
+                        double density);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;

@@ -171,14 +171,19 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
         stdP_m(i) = std::sqrt( moments_m(2*i+1, 2*i+1) );
     }
 
+    double mekin = meanKineticEnergy_m;
+    double loc_std_mekin;
+
    // compute non-central moments
    for (unsigned i = 0; i < 2 * Dim; ++i) {
             Kokkos::parallel_reduce(
                                     "calc moments of particle distr.", ippl::getRangePolicy(Rview),
                 KOKKOS_LAMBDA(
                     const int k, double& mom0, double& mom1, double& mom2,
-                    double& mom3, double& mom4, double& mom5) {
+                    double& mom3, double& mom4, double& mom5, double& ekin) {
                     double part[2 * Dim];
+                    double gamma0 = 0;
+                    double ekin0 = 0.0;
                     part[0] = Rview(k)[0];
                     part[1] = Pview(k)[0];
                     part[2] = Rview(k)[1];
@@ -192,17 +197,30 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                     mom3 += part[i] * part[3];
                     mom4 += part[i] * part[4];
                     mom5 += part[i] * part[5];
+
+                    for(unsigned j=0; j<Dim; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+                    ekin0  = (gamma0-1.0) * Mview(k);
+
+                    ekin += (ekin0-mekin)*(ekin0-mekin);
                 },
                 Kokkos::Sum<double>(loc_moment_ncent[i][0]),
                 Kokkos::Sum<double>(loc_moment_ncent[i][1]), Kokkos::Sum<double>(loc_moment_ncent[i][2]),
                 Kokkos::Sum<double>(loc_moment_ncent[i][3]), Kokkos::Sum<double>(loc_moment_ncent[i][4]),
-                Kokkos::Sum<double>(loc_moment_ncent[i][5]));
+                Kokkos::Sum<double>(loc_moment_ncent[i][5]), loc_std_mekin);
             Kokkos::fence();
      }
     ippl::Comm->barrier();
 
     MPI_Allreduce(
             loc_moment_ncent, moment_ncent, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    MPI_Allreduce(
+            &loc_std_mekin, &stdKineticEnergy_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+    stdKineticEnergy_m = std::sqrt(stdKineticEnergy_m);
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
             for (unsigned j = 0; j < 2 * Dim; j++) {
@@ -232,7 +250,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
     for (unsigned int i = 0; i < 3; ++ i) {
         // I think the following is wrong (taken from opal). moments_m is already central moments, doesn't need the second term
-        sumRP(i) = moments_m(2 * i, 2 * i + 1) -  meanR_m(i) * meanP_m(i);
+        sumRP(i) = moments_m(2 * i, 2 * i + 1);// -  meanR_m(i) * meanP_m(i);
         stdRP_m(i) = sumRP(i) / (stdR_m(i) * stdP_m(i));
         squaredEps(i) = std::pow(stdR_m(i) * stdP_m(i), 2) - std::pow(sumRP(i), 2);
         normalizedEps_m(i) = std::sqrt(std::max(squaredEps(i), 0.0));
@@ -681,29 +699,46 @@ void DistributionMoments::computeMeanKineticEnergy() {
 */
 }
 
-//void DistributionMoments::computeDebyeLength(PartBunch_t const& bunch_r, double density) {
-void DistributionMoments::computeDebyeLength(double N, double density) {
+void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+                                         size_t Np,
+                                         double density){
     resetPlasmaParameters();
-    double avgVel[3] = {0.0, 0.0, 0.0};
+    double loc_avgVel[3] = {};
+    double avgVel[3] = {};
+    double c = Physics::c;
 
     // From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
-    /// \todo check with opal
-    /*
-    for (OpalParticle const& particle_r : bunch_r) {
-        for (unsigned i = 0; i < 3; i++) {
-            avgVel[i] +=
-                ((particle_r.getP()[i] * Physics::c) / (Util::getGamma(particle_r.getP())));
-        }
-    }
-    */
-    ippl::Comm->allreduce(avgVel, 3, std::plus<double>());
+    Kokkos::parallel_reduce(
+                "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0, double& mom1, double& mom2){
 
-    //const double N = static_cast<double>(bunch_r.getTotalNum());
+                    double gamma0 = 0.0;
+                    for(unsigned j=0; j<3; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+
+                    mom0 += Pview(k)[0] * c / gamma0;
+                    mom1 += Pview(k)[1] * c / gamma0;
+                    mom2 += Pview(k)[2] * c / gamma0;
+                },
+                Kokkos::Sum<double>(loc_avgVel[0]),
+                Kokkos::Sum<double>(loc_avgVel[1]),
+                Kokkos::Sum<double>(loc_avgVel[2]));
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(
+            loc_avgVel, avgVel, Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
     for (unsigned i = 0; i < 3; i++) {
-        avgVel[i] = avgVel[i] / N;
+        avgVel[i] = avgVel[i] / Np;
     }
 
-    double tempAvg = 0.0;
+    double tempAvg=0;
+    double loc_tempAvg = 0.0;
     /// \todo check with opal
     /*
     for (OpalParticle const& particle_r : bunch_r) {
@@ -715,11 +750,31 @@ void DistributionMoments::computeDebyeLength(double N, double density) {
         }
     }*/
 
-    ippl::Comm->allreduce(tempAvg, 1, std::plus<double>());
+    Kokkos::parallel_reduce(
+                "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0){
+
+                    double gamma0 = 0.0;
+                    for(unsigned j=0; j<3; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+
+                    mom0 += Kokkos::pow( Pview(k)[0] * c / gamma0 - avgVel[0], 2);
+                    mom0 += Kokkos::pow( Pview(k)[1] * c / gamma0 - avgVel[1], 2);
+                    mom0 += Kokkos::pow( Pview(k)[2] * c / gamma0 - avgVel[2], 2);
+                },
+                Kokkos::Sum<double>(loc_tempAvg));
+    Kokkos::fence();
+    ippl::Comm->barrier();
+
+    MPI_Allreduce(
+            &loc_tempAvg, &tempAvg, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is
     // Boltzmann constant
-    temperature_m = (1.0 / 3.0) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (tempAvg / N);
+    temperature_m = (1.0 / 3.0) * Units::eV2kg * Units::GeV2eV * Physics::m_e * (tempAvg / Np);
 
     debyeLength_m =
         std::sqrt((temperature_m * Physics::epsilon_0) / (density * std::pow(Physics::q_e, 2)));
