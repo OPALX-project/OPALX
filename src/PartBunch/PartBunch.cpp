@@ -204,6 +204,8 @@ void PartBunch<double,3>::bunchUpdate() {
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
     this->updateMoments();
+
+    this->calcDebyeLength();
 }
 
 template <>
