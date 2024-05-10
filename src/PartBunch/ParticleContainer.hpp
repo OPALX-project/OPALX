@@ -124,6 +124,10 @@ public:
           return distMoments_m.getMeanKineticEnergy();
     }
 
+    double getStdKineticEnergy() const {
+          return distMoments_m.getStdKineticEnergy();
+    }
+
     Vector_t<double, 6> getMeans() const {
         return distMoments_m.getMeans();
     }
@@ -152,6 +156,14 @@ public:
        return distMoments_m.getDDy();
    }
 
+   double getDebyeLength() const {
+        return distMoments_m.getDebyeLength();
+   }
+
+   double computeDebyeLength(double density){
+        size_t Np = this->getTotalNum();
+        distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, density);
+   }
 
 private:
     void setBCAllPeriodic() {

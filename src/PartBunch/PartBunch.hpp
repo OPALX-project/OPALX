@@ -119,9 +119,6 @@ public:
 
     CoordinateSystemTrafo toLabTrafo_m; 
 
-    // point to the class for computing moments
-    //DistributionMoments *distMoments_m;
-
 private:
 
 
@@ -181,6 +178,7 @@ private:
     double couplingConstant_m;
     double qi_m;
     double mi_m;
+    double rmsDensity_m;
 
     // unit state of PartBunch
     // UnitState_t unit_state_m;
@@ -218,6 +216,7 @@ public:
           isFirstRepartition_m(true),        
           qi_m(qi),
           mi_m(mi),
+          rmsDensity_m(0.0),
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
@@ -326,6 +325,9 @@ public:
 
         IpplTimings::stopTimer(DummySolveTimer);
 
+        //double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+        //rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m / Physics::q_e) * (rho_m / Physics::q_e)));
+
     }
 
 public:
@@ -433,7 +435,7 @@ public:
     }
 
     double getdE() const {
-        return 1.0;
+        return this->pcontainer_m->getStdKineticEnergy();
     }
 
     double getGamma(int i) const {
@@ -757,6 +759,26 @@ public:
     }
     double get_DDy() const {
         return this->pcontainer_m->getDDy();
+    }
+
+    double get_temperature() const {
+        return 0.0;
+    }
+
+    void calcDebyeLength() {
+         this->pcontainer_m->computeDebyeLength(rmsDensity_m);
+    }
+
+    double get_debyeLength() const {
+        return this->pcontainer_m->getDebyeLength();
+    }
+
+    double get_plasmaParameter() const {
+        return 0.0;
+    }
+
+    double get_rmsDensity() const {
+        return rmsDensity_m;
     }
 
     /*
