@@ -325,9 +325,6 @@ public:
 
         IpplTimings::stopTimer(DummySolveTimer);
 
-        //double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
-        //rmsDensity_m = std::sqrt((1.0 /Npoints) * sum((rho_m / Physics::q_e) * (rho_m / Physics::q_e)));
-
     }
 
 public:
@@ -762,7 +759,7 @@ public:
     }
 
     double get_temperature() const {
-        return 0.0;
+        return this->pcontainer_m->getTemperature();
     }
 
     void calcDebyeLength() {
@@ -774,7 +771,7 @@ public:
     }
 
     double get_plasmaParameter() const {
-        return 0.0;
+        return this->pcontainer_m->getPlasmaParameter();
     }
 
     double get_rmsDensity() const {
