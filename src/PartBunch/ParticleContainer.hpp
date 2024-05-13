@@ -157,13 +157,25 @@ public:
    }
 
    double getDebyeLength() const {
-        return distMoments_m.getDebyeLength();
+       return distMoments_m.getDebyeLength();
    }
 
-   double computeDebyeLength(double density){
+   double getMeanGammaZ() const {
+       return distMoments_m.getMeanGammaZ();
+   }
+
+    double getTemperature() const {
+        return distMoments_m.getTemperature();
+    }
+
+    double getPlasmaParameter() const {
+        return distMoments_m.getPlasmaParameter();
+    }
+
+    double computeDebyeLength(double density){
         size_t Np = this->getTotalNum();
         distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, density);
-   }
+    }
 
 private:
     void setBCAllPeriodic() {

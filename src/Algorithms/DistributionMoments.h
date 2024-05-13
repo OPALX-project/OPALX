@@ -78,6 +78,7 @@ public:
     double getMeanTime() const;
     double getStdTime() const;
     double getMeanGamma() const;
+    double getMeanGammaZ() const;
     double getMeanKineticEnergy() const;
     double getTemperature() const;
     double getDebyeLength() const;
@@ -148,6 +149,7 @@ private:
     double plasmaParameter_m;
     double stdKineticEnergy_m;
     double meanGamma_m;
+    double meanGammaZ_m;
 
     Vector_t<double, 6> centroid_m;
     Vector_t<double, 6> means_m;
@@ -214,6 +216,10 @@ inline double DistributionMoments::getStdTime() const {
 
 inline double DistributionMoments::getMeanGamma() const {
     return meanGamma_m;
+}
+
+inline double DistributionMoments::getMeanGammaZ() const {
+    return meanGammaZ_m;
 }
 
 inline double DistributionMoments::getMeanKineticEnergy() const {
