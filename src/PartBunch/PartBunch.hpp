@@ -250,9 +250,9 @@ public:
           domain is set
         */
 
-        Vector_t<double, Dim> length (1.0);
+        Vector_t<double, Dim> length (6.0);
         this->hr_m = length / this->nr_m;
-        this->origin_m(0.0);
+        this->origin_m = -3.0;
         this->dt_m = 0.5 / this->nr_m[2];
 
         using ParticleContainer_t = ParticleContainer<T, Dim>;
