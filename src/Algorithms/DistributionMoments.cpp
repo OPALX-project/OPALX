@@ -272,8 +272,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     //totalMass_m = localMoments[l++];
 
     for (unsigned int i = 0; i < 3; ++ i) {
-        // I think the following is wrong (taken from opal). moments_m is already central moments, doesn't need the second term
-        sumRP(i) = moments_m(2 * i, 2 * i + 1);// -  meanR_m(i) * meanP_m(i);
+        sumRP(i) = notCentMoments_m(2 * i, 2 * i + 1) * perParticle - meanR_m(i) * meanP_m(i);
         stdRP_m(i) = sumRP(i) / (stdR_m(i) * stdP_m(i));
         squaredEps(i) = std::pow(stdR_m(i) * stdP_m(i), 2) - std::pow(sumRP(i), 2);
         normalizedEps_m(i) = std::sqrt(std::max(squaredEps(i), 0.0));
