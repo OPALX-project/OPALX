@@ -855,6 +855,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (statDump) {
+        itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
         msg << level3 << "* Wrote beam statistics." << endl;
     }
 
