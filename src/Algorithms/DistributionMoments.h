@@ -43,10 +43,15 @@ public:
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
     void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
-                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview, size_t Np);
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview,
+                        ippl::ParticleAttrib<double>::view_type& Mview,
+                        size_t Np);
     void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview);
     void computeMeanKineticEnergy();
-    void computeDebyeLength(double N, double density);
+    void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview,
+                        size_t Np,
+                        double density);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;
@@ -73,6 +78,7 @@ public:
     double getMeanTime() const;
     double getStdTime() const;
     double getMeanGamma() const;
+    double getMeanGammaZ() const;
     double getMeanKineticEnergy() const;
     double getTemperature() const;
     double getDebyeLength() const;
@@ -83,6 +89,7 @@ public:
     double getDy() const;
     double getDDy() const;
     Vector_t<double, 6> getMeans() const;
+    Vector_t<double, 6> getCentroid() const;
     matrix_t getMoments6x6() const;
     double getTotalCharge() const;
     double getTotalMass() const;
@@ -90,8 +97,13 @@ public:
 
 private:
     bool isParticleExcluded(const OpalParticle&) const;
-    template <class InputIt>
-    void computeMeans(const InputIt&, const InputIt&);
+    void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+                                         ippl::ParticleAttrib<double>::view_type&  Mview,
+                                         size_t Np);
+
+    //template <class InputIt>
+    //void computeMeans(const InputIt&, const InputIt&);
     // template <class InputIt>
     // void computeStatistics(const InputIt&, const InputIt&);
     template <class InputIt>
@@ -137,10 +149,12 @@ private:
     double plasmaParameter_m;
     double stdKineticEnergy_m;
     double meanGamma_m;
+    double meanGammaZ_m;
 
-    double centroid_m[6];// centroid needs to be Vector_t, we use means_m for now
+    Vector_t<double, 6> centroid_m;
     Vector_t<double, 6> means_m;
     matrix_t moments_m;
+    matrix_t notCentMoments_m;
 
     double totalCharge_m;
     double totalMass_m;
@@ -204,6 +218,10 @@ inline double DistributionMoments::getMeanGamma() const {
     return meanGamma_m;
 }
 
+inline double DistributionMoments::getMeanGammaZ() const {
+    return meanGammaZ_m;
+}
+
 inline double DistributionMoments::getMeanKineticEnergy() const {
     return meanKineticEnergy_m;
 }
@@ -237,6 +255,10 @@ inline double DistributionMoments::getDy() const {
 
 inline double DistributionMoments::getDDy() const {
     return moments_m(3, 5);
+}
+
+inline Vector_t<double, 6> DistributionMoments::getCentroid() const {
+    return centroid_m;
 }
 
 inline Vector_t<double, 6> DistributionMoments::getMeans() const {

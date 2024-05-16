@@ -81,7 +81,7 @@ public:
 
     void updateMoments(){
         size_t Np = this->getTotalNum();
-        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), Np);
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np);
     }
 
     Vector_t<double, 3> getMeanP() const{
@@ -100,6 +100,10 @@ public:
          return distMoments_m.getStandardDeviationPosition();
     }
 
+    Vector_t<double, 3> getRmsRP() const{
+         return distMoments_m.getStandardDeviationRP();
+    }
+
     void computeMinMaxR(){
         distMoments_m.computeMinMaxPosition(this->R.getView());
     }
@@ -116,8 +120,61 @@ public:
          return distMoments_m.getMoments6x6();
     }
 
-    Vector_t<double, 6> getCentroid() const {
+    double getMeanKineticEnergy() const {
+          return distMoments_m.getMeanKineticEnergy();
+    }
+
+    double getStdKineticEnergy() const {
+          return distMoments_m.getStdKineticEnergy();
+    }
+
+    Vector_t<double, 6> getMeans() const {
         return distMoments_m.getMeans();
+    }
+
+    Vector_t<double, 6> getCentroid() const {
+        return distMoments_m.getCentroid();
+    }
+
+    Vector_t<double, 3> getNormEmit() const {
+        return distMoments_m.getNormalizedEmittance();
+    }
+
+   double getDx() const {
+       return distMoments_m.getDx();
+   }
+
+   double getDDx() const {
+       return distMoments_m.getDDx();
+   }
+
+   double getDy() const {
+       return distMoments_m.getDy();
+   }
+
+   double getDDy() const {
+       return distMoments_m.getDDy();
+   }
+
+   double getDebyeLength() const {
+       return distMoments_m.getDebyeLength();
+   }
+
+   double getMeanGammaZ() const {
+       return distMoments_m.getMeanGammaZ();
+   }
+
+    double getTemperature() const {
+        return distMoments_m.getTemperature();
+    }
+
+    double getPlasmaParameter() const {
+        return distMoments_m.getPlasmaParameter();
+    }
+
+    double computeDebyeLength(double density){
+        size_t Np = this->getTotalNum();
+        distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, density);
     }
 
 private:

@@ -98,8 +98,8 @@ void DataSink::dumpSDDS(
 
     beam->gatherLoadBalanceStatistics();
 
-    for (size_t i = 0; i < sddsWriter_m.size(); ++i)
-        sddsWriter_m[i]->write(beam);
+    //for (size_t i = 0; i < sddsWriter_m.size(); ++i)
+    //    sddsWriter_m[i]->write(beam);
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }

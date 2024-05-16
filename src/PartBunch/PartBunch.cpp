@@ -127,7 +127,7 @@ Inform& PartBunch<double,3>::print(Inform& os) {
         os << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n";
         os << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n";
         os << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n";
-        os << "* Means : \n* ";
+        os << "* Centroid : \n* ";
         for (unsigned int i=0; i<2*Dim; i++) {
             os << this->pcontainer_m->getCentroid()[i] << " ";
         }
@@ -182,6 +182,10 @@ void PartBunch<double,3>::bunchUpdate() {
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
 
+    this->getFieldContainer()->setRMin(o);
+    this->getFieldContainer()->setRMax(e);
+    this->getFieldContainer()->setHr(hr_m);
+
     /* old Tracker 
     this->calcBeamParameters();
 
@@ -203,16 +207,59 @@ void PartBunch<double,3>::bunchUpdate() {
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
-    pc->updateMoments();
+    this->updateMoments();
+
 }
 
 template <>
 void PartBunch<double,3>::computeSelfFields() {
-        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");    
+        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
         IpplTimings::startTimer(SolveTimer);
-        this->par2grid();
-        this->fsolver_m->runSolver();        
-        this->grid2par();
+
+        Field_t<3>& rho                          = this->fcontainer_m->getRho();
+        ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
+        typename Base::particle_position_type& R = this->pcontainer_m->R;
+
+        rho = 0.0;
+        Q = Q*this->pcontainer_m->dt;
+        this->qi_m  = this->qi_m * getdT();
+        scatter(Q, rho, R);
+        Q = Q/this->pcontainer_m->dt;
+        this->qi_m  = this->qi_m / getdT();
+        rho = rho/getdT();
+
+        double gammaz = this->pcontainer_m->getMeanGammaZ();
+        double scaleFactor = 1;
+        // double scaleFactor = Physics::c * getdT();
+        //and get meshspacings in real units [m]
+        Vector_t<double, 3> hr_scaled = hr_m * scaleFactor;
+        hr_scaled[2] *= gammaz;
+
+        double localDensity2 = 0, Density2=0;
+        double tmp2 = 1 / hr_scaled[0] * 1 / hr_scaled[1] * 1 / hr_scaled[2];
+
+        using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
+
+        //divide charge by a 'grid-cube' volume to get [C/m^3]
+        rho = rho *tmp2;
+
+        double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+
+        auto rhoView = rho.getView();
+        localDensity2 = 0.;
+        ippl::parallel_reduce(
+            "Density stats", ippl::getRangePolicy(rhoView),
+            KOKKOS_LAMBDA(const index_array_type& args, double& den) {
+                double val = ippl::apply(rhoView, args);
+                den  += Kokkos::pow(val, 2);
+            },
+            Kokkos::Sum<double>(localDensity2) );
+        ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
+
+        rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
+
+        this->calcDebyeLength();
+
         IpplTimings::stopTimer(SolveTimer);
 }
 

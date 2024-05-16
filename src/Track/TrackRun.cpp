@@ -246,8 +246,9 @@ void TrackRun::execute() {
 
      */
 
-    bunch_m = std::make_unique<bunch_type>(beam->getChargePerParticle(),
-                                           beam->getMassPerParticle(), 
+    // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
+    bunch_m = std::make_unique<bunch_type>(macrocharge_m,
+                                           beam->getMass()*1e9*Units::eV2MeV,
                                            beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);

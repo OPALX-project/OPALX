@@ -119,9 +119,6 @@ public:
 
     CoordinateSystemTrafo toLabTrafo_m; 
 
-    // point to the class for computing moments
-    //DistributionMoments *distMoments_m;
-
 private:
 
 
@@ -181,6 +178,7 @@ private:
     double couplingConstant_m;
     double qi_m;
     double mi_m;
+    double rmsDensity_m;
 
     // unit state of PartBunch
     // UnitState_t unit_state_m;
@@ -217,6 +215,8 @@ public:
           solver_m(""),
           isFirstRepartition_m(true),        
           qi_m(qi),
+          mi_m(mi),
+          rmsDensity_m(0.0),
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
@@ -250,9 +250,9 @@ public:
           domain is set
         */
 
-        Vector_t<double, Dim> length (1.0);
+        Vector_t<double, Dim> length (6.0);
         this->hr_m = length / this->nr_m;
-        this->origin_m(0.0);
+        this->origin_m = -3.0;
         this->dt_m = 0.5 / this->nr_m[2];
 
         using ParticleContainer_t = ParticleContainer<T, Dim>;
@@ -328,6 +328,10 @@ public:
     }
 
 public:
+    void updateMoments(){
+        this->pcontainer_m->updateMoments();
+    }
+
     size_t getTotalNum() const {
         return this->pcontainer_m->getTotalNum();
     }
@@ -428,7 +432,7 @@ public:
     }
 
     double getdE() const {
-        return 1.0;
+        return this->pcontainer_m->getStdKineticEnergy();
     }
 
     double getGamma(int i) const {
@@ -677,12 +681,17 @@ public:
         return rmax_m;
     }
 
-    Vector_t<double, Dim> get_centroid() const {
-        return this->pcontainer_m->getMeanR();
+    // in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
+    Vector_t<double, 2*Dim> get_centroid() const {
+        return this->pcontainer_m->getCentroid();
     }
 
     Vector_t<double, Dim> get_rrms() const {
         return this->pcontainer_m->getRmsR();
+    }
+
+    Vector_t<double, Dim> get_rprms() const {
+        return this->pcontainer_m->getRmsRP();
     }
 
     Vector_t<double, Dim> get_prms() const {
@@ -703,7 +712,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_norm_emit() const {
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->getNormEmit();
     }
     Vector_t<double, Dim> get_halo() const {
         return Vector_t<double, Dim>(0.0);
@@ -737,16 +746,36 @@ public:
     }
 
     double get_Dx() const {
-        return 0.0;
+        return this->pcontainer_m->getDx();
     }
     double get_Dy() const {
-        return 0.0;
+        return this->pcontainer_m->getDy();
     }
     double get_DDx() const {
-        return 0.0;
+        return this->pcontainer_m->getDDx();
     }
     double get_DDy() const {
-        return 0.0;
+        return this->pcontainer_m->getDDy();
+    }
+
+    double get_temperature() const {
+        return this->pcontainer_m->getTemperature();
+    }
+
+    void calcDebyeLength() {
+         this->pcontainer_m->computeDebyeLength(rmsDensity_m);
+    }
+
+    double get_debyeLength() const {
+        return this->pcontainer_m->getDebyeLength();
+    }
+
+    double get_plasmaParameter() const {
+        return this->pcontainer_m->getPlasmaParameter();
+    }
+
+    double get_rmsDensity() const {
+        return rmsDensity_m;
     }
 
     /*
