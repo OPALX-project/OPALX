@@ -88,6 +88,12 @@ void StatWriter::fillHeader(const losses_t& losses) {
     columns_m.addColumn("dt", "double", "ns", "time step size");
     columns_m.addColumn("partsOutside", "double", "1", "outside n*sigma of the beam");
 
+    columns_m.addColumn("DebyeLength", "double",  "m", "Debye length in the boosted frame");
+    columns_m.addColumn("plasmaParameter", "double",  "1", "Plasma parameter that gives no. of particles in a Debye sphere");
+    columns_m.addColumn("temperature", "double",  "K", "Temperature of the beam");
+    columns_m.addColumn("rmsDensity", "double",  "1", "RMS number density of the beam");
+
+
     /// \todo Options::computePercentiles needs to be brought back
     /*
     if (Options::computePercentiles) {
@@ -191,7 +197,9 @@ void StatWriter::fillHeader(const losses_t& losses) {
 void StatWriter::write(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
     const size_t npOutside) {
-    double Ekin = beam->get_meanKineticEnergy();
+    using ParticleContainer_t = ParticleContainer<T, Dim>;
+    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
+    double Ekin = pc->getMeanKineticEnergy();
 
     double pathLength = beam->get_sPos();
 
@@ -216,21 +224,21 @@ void StatWriter::write(
     columns_m.addColumnValue("charge", Q);                          // 4
     columns_m.addColumnValue("energy", Ekin);                       // 5
 
-    columns_m.addColumnValue("rms_x", beam->get_rrms()(0));  // 6
-    columns_m.addColumnValue("rms_y", beam->get_rrms()(1));  // 7
-    columns_m.addColumnValue("rms_s", beam->get_rrms()(2));  // 8
+    columns_m.addColumnValue("rms_x", pc->getRmsR()(0));  // 6
+    columns_m.addColumnValue("rms_y", pc->getRmsR()(1));  // 7
+    columns_m.addColumnValue("rms_s", pc->getRmsR()(2));  // 8
 
-    columns_m.addColumnValue("rms_px", beam->get_prms()(0));  // 9
-    columns_m.addColumnValue("rms_py", beam->get_prms()(1));  // 10
-    columns_m.addColumnValue("rms_ps", beam->get_prms()(2));  // 11
+    columns_m.addColumnValue("rms_px", pc->getRmsP()(0));  // 9
+    columns_m.addColumnValue("rms_py", pc->getRmsP()(1));  // 10
+    columns_m.addColumnValue("rms_ps", pc->getRmsP()(2));  // 11
 
     columns_m.addColumnValue("emit_x", beam->get_norm_emit()(0));  // 12
     columns_m.addColumnValue("emit_y", beam->get_norm_emit()(1));  // 13
     columns_m.addColumnValue("emit_s", beam->get_norm_emit()(2));  // 14
 
-    columns_m.addColumnValue("mean_x", beam->get_rmean()(0));  // 15
-    columns_m.addColumnValue("mean_y", beam->get_rmean()(1));  // 16
-    columns_m.addColumnValue("mean_s", beam->get_rmean()(2));  // 17
+    columns_m.addColumnValue("mean_x", pc->getMeanR()(0));  // 15
+    columns_m.addColumnValue("mean_y", pc->getMeanR()(1));  // 16
+    columns_m.addColumnValue("mean_s", pc->getMeanR()(2));  // 17
 
     columns_m.addColumnValue("ref_x", beam->RefPartR_m(0));  // 18
     columns_m.addColumnValue("ref_y", beam->RefPartR_m(1));  // 19
@@ -240,14 +248,14 @@ void StatWriter::write(
     columns_m.addColumnValue("ref_py", beam->RefPartP_m(1));  // 22
     columns_m.addColumnValue("ref_pz", beam->RefPartP_m(2));  // 23
 
-    columns_m.addColumnValue("max_x", beam->get_maxExtent()(0));  // 24
-    columns_m.addColumnValue("max_y", beam->get_maxExtent()(1));  // 25
-    columns_m.addColumnValue("max_s", beam->get_maxExtent()(2));  // 26
+    columns_m.addColumnValue("max_x", pc->getMaxR()(0));  // 24
+    columns_m.addColumnValue("max_y", pc->getMaxR()(1));  // 25
+    columns_m.addColumnValue("max_s", pc->getMaxR()(2));  // 26
 
     // Write out Courant Snyder parameters.
-    columns_m.addColumnValue("xpx", beam->get_prms()(0));  // 27
-    columns_m.addColumnValue("ypy", beam->get_prms()(1));  // 28
-    columns_m.addColumnValue("zpz", beam->get_prms()(2));  // 29
+    columns_m.addColumnValue("xpx", beam->get_rprms()(0));  // 27
+    columns_m.addColumnValue("ypy", beam->get_rprms()(1));  // 28
+    columns_m.addColumnValue("zpz", beam->get_rprms()(2));  // 29
 
     // Write out dispersion.
     columns_m.addColumnValue("Dx", beam->get_Dx());    // 30
@@ -267,6 +275,12 @@ void StatWriter::write(
     columns_m.addColumnValue("dE", beam->getdE());                // 40 dE energy spread
     columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
+
+    columns_m.addColumnValue("DebyeLength", beam->get_debyeLength()); // 43 Debye length in the boosted frame
+    columns_m.addColumnValue("plasmaParameter", beam->get_plasmaParameter()); // 43 plasma parameter
+    columns_m.addColumnValue("temperature", beam->get_temperature()); // 44 Temperature 
+    columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity()); // 45 RMS number density
+
     /*
     if (Options::computePercentiles) {
         columns_m.addColumnValue("68_Percentile_x", beam->get_68Percentile()[0]);
