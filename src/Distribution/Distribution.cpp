@@ -62,7 +62,7 @@ using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>:
 constexpr double SMALLESTCUTOFF = 1e-12;
 
 namespace DISTRIBUTION {
-    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE };
+    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG };
 }
 
 namespace {
@@ -141,32 +141,8 @@ void Distribution::execute() {
 void Distribution::update() {
 }
 
-void Distribution::create(size_t& numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P) {
-    /*
-     * If Options::cZero is true than we reflect generated distribution
-     * to ensure that the transverse averages are 0.0.
-     *
-     * For now we just substract mean to make sure of averages are 0.0
-     */
-
-    size_t mySeed = Options::seed;
-
-    if (Options::seed == -1) {
-        struct timeval tv;
-        gettimeofday(&tv, 0);
-        mySeed = tv.tv_sec + tv.tv_usec;
-    }
-
-    *gmsg << level2 << "* Generation of distribution with seed = " << mySeed << "\n"
-          << "* isn't scalable with number of particles and cores." << endl;
-
-    switch (distrTypeT_m) {
-        case DistributionType::GAUSS:
-            createDistributionGauss(numberOfParticles, massIneV, R, P);
-            break;
-        default:
-            throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
-    }
+void Distribution::create(size_t& numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
+// moved to SamplingBase
 }
 
 Distribution* Distribution::find(const std::string& name) {
@@ -202,140 +178,37 @@ void Distribution::setAvrgPz(double avrgpz){
     avrgpz_m = avrgpz;
 }
 
-void Distribution::setDistParametersGauss(double massIneV) {
+void Distribution::setDistParametersGauss() {
     /*
      * Set distribution parameters. Do all the necessary checks depending
      * on the input attributes.
      * In case of DistributionType::MATCHEDGAUSS we only need to set the cutoff parameters
      */
 
+    cutoffR_m = 3.;
+    cutoffP_m = 3.;
     /*
-    cutoffP_m = ippl::Vector<double,
-    3>(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPX]),
-                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPY]),
-                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFPZ]));
+    cutoffP_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPX]),
+                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPY]),
+                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPZ]));
 
 
-    cutoffR_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
-                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFY]),
-                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFLONG]));
-
-    if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
-        cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
-        cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
-    }
+    cutoffR_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFX]),
+                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFY]),
+                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG]));
     */
+
+    //if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
+    //    cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
+    //    cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
+    //}
 
     setSigmaR_m();
     setSigmaP_m();
+    avrgpz_m = 0.0;
 }
-void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P) {
-    GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
-
-    setDistParametersGauss(massIneV);
-    double mu[3], sd[3];
-
-    // sample R
-    for(int i=0; i<3; i++){
-        mu[i] = 0.0;
-        sd[i] = sigmaR_m[i];
-    }
-    view_type Rview = R.getView();
-    Kokkos::parallel_for(
-            numberOfParticles, ippl::random::randn<double, 3>(Rview, rand_pool64, mu, sd)
-    );
-
-    double meanR[3], loc_meanR[3];
-    for(int i=0; i<3; i++){
-       meanR[i] = 0.0;
-       loc_meanR[i] = 0.0;
-    }
-    Kokkos::parallel_reduce(
-        "calc moments of particle distr.", numberOfParticles,
-        KOKKOS_LAMBDA(
-                    const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Rview(k)[0];
-                    cent1 += Rview(k)[1];
-                    cent2 += Rview(k)[2];
-        },
-        Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
-    Kokkos::fence();
-    ippl::Comm->barrier();
-
-    MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-
-    for(int i=0; i<3; i++){
-       meanR[i] = meanR[i]/(1.*numberOfParticles);
-    }
-
-    Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
-                    const int k) {
-                    Rview(k)[0] -= meanR[0];
-                    Rview(k)[1] -= meanR[1];
-                    Rview(k)[2] -= meanR[2];
-        }
-    );
-    Kokkos::fence();
-    ippl::Comm->barrier();
-
-    // sample P
-    for(int i=0; i<3; i++){
-        mu[i] = 0.0;
-        sd[i] = sigmaP_m[i];
-    }
-    view_type Pview = P.getView();
-    Kokkos::parallel_for(
-            numberOfParticles, ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
-    );
-    Kokkos::fence();
-    ippl::Comm->barrier();
-
-    double meanP[3], loc_meanP[3];
-    for(int i=0; i<3; i++){
-       meanP[i] = 0.0;
-       loc_meanP[i] = 0.0;
-    }
-    Kokkos::parallel_reduce(
-        "calc moments of particle distr.", numberOfParticles,
-        KOKKOS_LAMBDA(
-                    const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Pview(k)[0];
-                    cent1 += Pview(k)[1];
-                    cent2 += Pview(k)[2];
-        },
-	Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
-    Kokkos::fence();
-    ippl::Comm->barrier();
-
-    MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-
-    for(int i=0; i<3; i++){
-       meanP[i] = meanP[i]/(1.*numberOfParticles);
-    }
-
-    Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
-                    const int k) {
-                    Pview(k)[0] -= meanP[0];
-                    Pview(k)[1] -= meanP[1];
-                    Pview(k)[2] -= meanP[2];
-        }
-    );
-    Kokkos::fence();
-    ippl::Comm->barrier();
-
-
-    // correct the mean
-    double avrgpz = avrgpz_m;
-    Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
-                    const int k) {
-                    Pview(k)[2] += avrgpz;
-        }
-    );
-    Kokkos::fence();
-    ippl::Comm->barrier();
+void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
+    // moved to Gaussian.hpp
 }
 
 void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
@@ -353,9 +226,21 @@ void Distribution::printDistGauss(Inform& os) const {
 }
 
 void Distribution::setAttributes() {
-
     setSigmaR_m();
     setSigmaP_m();
+}
+
+void Distribution::setDist() {
+    // set distribution type
+    setDistType();
+    // set distribution parameters
+    switch (distrTypeT_m) {
+        case DistributionType::GAUSS:
+            setDistParametersGauss();
+            break;
+        default:
+            throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
+    }
 }
 
 void Distribution::setDistType() {
