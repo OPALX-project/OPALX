@@ -24,6 +24,19 @@
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
 
+#include <memory>
+
+#include "Algorithms/BoostMatrix.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
+#include "Attributes/Attributes.h"
+#include "Distribution/Distribution.h"
+#include "Manager/BaseManager.h"
+#include "Manager/PicManager.h"
+#include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/FieldSolver.hpp"
+#include "PartBunch/LoadBalancer.hpp"
+#include "PartBunch/ParticleContainer.hpp"
+
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
 #endif
@@ -38,6 +51,9 @@ class H5PartWrapper;
 
 enum class DistributionType : short { NODIST = -1, GAUSS };
 
+using ParticleContainer_t = ParticleContainer<double, 3>;
+using FieldContainer_t = FieldContainer<double, 3>;
+
 class Distribution : public Definition {
 public:
     Distribution();
@@ -49,7 +65,7 @@ public:
     virtual void execute();
     virtual void update();
 
-    void create(size_t &numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P);
+    void create(size_t &numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer<double, 3>> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr);
 
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
@@ -74,9 +90,14 @@ public:
 
     void setDistType();
 
+    void setDist();
+
     void setAvrgPz(double avrgpz);
 
-    double avrgpz_m;
+    double getAvrgpz() const;
+
+    ippl::Vector<double, 3> getCutoffR() const;
+    ippl::Vector<double, 3> getCutoffP() const;
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
@@ -138,7 +159,7 @@ private:
         virtual double get(double rand);
     };
 
-    void createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P);
+    void createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer<double, 3>> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr);
 
     //
     //
@@ -148,7 +169,7 @@ private:
 
     void setAttributes();
 
-    void setDistParametersGauss(double massIneV);
+    void setDistParametersGauss();
 
     void setSigmaR_m();
 
@@ -165,11 +186,11 @@ private:
 
     size_t totalNumberParticles_m;
 
-    ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m;
+    ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m, cutoffR_m, cutoffP_m;
 
     DistributionType distrTypeT_m;
 
-    //double avrgpz_m;
+    double avrgpz_m;
 };
 
 inline Inform& operator<<(Inform& os, const Distribution& d) {
@@ -192,15 +213,29 @@ inline ippl::Vector<double, 3> Distribution::get_xmean() const {
     return xmean_m;
 }
 
+inline ippl::Vector<double, 3> Distribution::getCutoffR() const {
+    return cutoffR_m;
+}
+
+inline ippl::Vector<double, 3> Distribution::getCutoffP() const {
+    return cutoffP_m;
+}
+
 inline DistributionType Distribution::getType() const {
     return distrTypeT_m;
+}
+
+inline double Distribution::getAvrgpz() const {
+    return avrgpz_m;
 }
 
 inline std::string Distribution::getTypeofDistribution() {
     return distT_m;
 }
 
-#endif  // OPAL_Distribution_HH
+#endif  
+/*
+// OPAL_Distribution_HH
 //
 // Class Distribution
 //   This class defines the initial beam that is injected or emitted into the simulation.
@@ -249,7 +284,7 @@ class H5PartWrapper;
 enum class DistributionType : short { NODIST = -1, GAUSS };
 
 namespace DISTRIBUTION {
-    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE };
+    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFR };
 }
 
 class Distribution : public Definition {
@@ -305,12 +340,12 @@ private:
 
     void addDistributions();
 
-    /*!
-     * Create the particle distribution.
-     * @param numberOfParticles to create
-     * @param massIneV particle charge in eV
-     * @param charge of the particle type in elementary charge
-     */
+    ///!
+     // Create the particle distribution.
+     // @param numberOfParticles to create
+     // @param massIneV particle charge in eV
+     // @param charge of the particle type in elementary charge
+     ///
     void create(size_t& numberOfParticles, double massIneV, double charge);
     void calcPartPerDist(size_t numberOfParticles);
     void checkParticleNumber(size_t& numberOfParticles);
@@ -363,9 +398,9 @@ private:
     void setSigmaP_m();
 
 
-    /*
-      private member of Distribution
-    */
+    
+      //private member of Distribution
+    
 
     std::string distT_m;  /// Distribution type strings.
 
@@ -405,3 +440,4 @@ inline std::string Distribution::getTypeofDistribution() {
 }
 
 #endif  // OPAL_Distribution_HH
+*/
