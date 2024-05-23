@@ -30,6 +30,8 @@
 
 #include "Distribution/Distribution.h"
 
+#include "Distribution/Gaussian.hpp"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -142,7 +144,6 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     for (unsigned d = 0; d < 3; ++d) {
         isParallel[d] = true;
     }
-
 }
 
 TrackRun::~TrackRun() {
@@ -284,29 +285,32 @@ void TrackRun::execute() {
 
      */
 
-    /*
-      MS: First attempt to generate particles using opalx distribution class and ippl::random.
-          The particle container needs to call create(nparticles) to allocate memory (from IPPL)!
-          Not sure where to put it. For now, I call it here.
-          Alternatively, we can pass pointer to particle container as argument to the opalx's distribution::create, and access R,P,.create() via that
-    */
-
     //double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
     //if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
     //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
     //}
 
-    // find local number of particles
-    size_t nlocal = dist_m->getNumOfLocalParticlesToCreate(beam->getNumberOfParticles() );
     // set distribution type
-    dist_m->setDistType();
+    dist_m->setDist();
     dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
-    // allocate memory from IPPL
-    bunch_m->getParticleContainer()->create(nlocal);
+
     // sample particles
-    dist_m->create(nlocal, 1, Qtot/beam->getNumberOfParticles(),
-                   bunch_m->getParticleContainer()->R,
-                   bunch_m->getParticleContainer()->P);
+    auto pc = bunch_m->getParticleContainer();
+    auto fc = bunch_m->getFieldContainer();
+    size_type Np = beam->getNumberOfParticles();
+    Vector_t<int, Dim> nr = bunch_m->nr_m;
+
+    std::shared_ptr<Distribution> opalDist(dist_m);
+
+    switch (opalDist->getType()){
+        case DistributionType::GAUSS:
+            sampler_m = std::make_shared<Gaussian>(pc, fc, opalDist);
+            break;
+        default:
+            throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
+    }
+
+    sampler_m->generateParticles(Np, nr);
 
     /* 
        reset the fieldsolver with correct hr_m
