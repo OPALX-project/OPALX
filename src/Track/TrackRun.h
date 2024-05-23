@@ -22,6 +22,7 @@
 
 #include "AbstractObjects/Action.h"
 #include "PartBunch/PartBunch.hpp"
+#include "Distribution/SamplingBase.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -77,6 +78,8 @@ private:
     Distribution* dist_m;
 
     std::vector<Distribution*> distrs_m;
+
+    std::shared_ptr<SamplingBase> sampler_m;
 
     FieldSolverCmd* fs_m;
 
