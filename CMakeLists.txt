@@ -31,6 +31,7 @@ message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 
 # Select flags.
 set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CUDA_EXTENSIONS OFF)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
 set (CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -38,7 +39,7 @@ set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
 
 
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
-    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
+    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --extended-lambda")
 endif()
 
 # Disable compile time assert (used by IPPL)
@@ -81,8 +82,14 @@ message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
 find_package(Kokkos REQUIRED)
 message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
 if ("${Kokkos_DEVICES}" MATCHES "CUDA")
-    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
+    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --extended-lambda")
 endif()
+
+if("${Kokkos_DEVICES}" STREQUAL "CUDA")
+    set(Kokkos_ENABLE_CUDA ON CACHE BOOL "Enable Kokkos CUDA Backend")
+    set(Heffte_ENABLE_CUDA ON CACHE BOOL "Set Heffte CUDA Backend")
+endif()
+
 find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS ${Kokkos_DIR}/../..)
 find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS ${Kokkos_DIR}/../..)
 find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS ${Kokkos_DIR}/../..)
