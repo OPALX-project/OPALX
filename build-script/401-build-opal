@@ -161,6 +161,10 @@ build_mode=${build_mode:-Debug}
 
 compiler=${compiler:-"$(which gcc)"}
 
+Kokkos_DIR=${ITB_PREFIX}${build_type}
+
+echo ${Kokkos_DIR}
+
 if [[ "$build_type" == "cuda" ]]; then
     echo "Build Cuda mode."
     compiler="${Kokkos_DIR:?Kokkos install directory must be provided}/bin/nvcc_wrapper"
@@ -173,6 +177,8 @@ elif [[ "$build_type" == "openmp" ]]; then
 else
     echo "Wrong build type."
 fi
+
+echo ${compiler}
 
 cd "${OTB_SRC_DIR}" || exit "${OTB_ARG_ERR}"
 
@@ -200,6 +206,8 @@ CXX=mpicxx CC=mpicc cmake \
 -DCMAKE_Fortran_COMPILER_WORKS=OFF \
 -DUSE_STATIC_LIBRARIES=ON \
 -DENABLE_OpenMP=ON \
+-DCMAKE_CXX_COMPILER="${compiler}" \
+-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
 ..
 #
 # compile & install
