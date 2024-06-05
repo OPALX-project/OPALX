@@ -279,7 +279,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     }
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
-    geometricEps_m = normalizedEps_m / Vector_t(betaGamma);
+    geometricEps_m = normalizedEps_m / Vector_t<double,3>(betaGamma);
 
 }
 
