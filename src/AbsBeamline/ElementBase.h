@@ -63,6 +63,29 @@
 #ifndef CLASSIC_ElementBase_HH
 #define CLASSIC_ElementBase_HH
 
+#ifdef __CUDACC__
+#pragma push_macro("__cpp_consteval")
+#pragma push_macro("_NODISCARD")
+#pragma push_macro("__builtin_LINE")
+
+#define __cpp_consteval 201811L
+
+#ifdef _NODISCARD
+    #undef _NODISCARD
+    #define _NODISCARD
+#endif
+
+#define consteval constexpr
+
+#include <source_location>
+
+#undef consteval
+#pragma pop_macro("__cpp_consteval")
+#pragma pop_macro("_NODISCARD")
+#else
+#include <source_location>
+#endif
+
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
@@ -72,57 +95,11 @@
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralClassicException.h"
 
-#ifdef __CUDACC__
-#pragma push_macro("__cpp_consteval")
-#pragma push_macro("_NODISCARD")
-#pragma push_macro("__builtin_LINE")
-
-#define __cpp_consteval 201811L
-
-#ifdef _NODISCARD
-    #undef _NODISCARD
-    #define _NODISCARD
-#endif
-
-#define consteval constexpr
-
-#include <source_location>
-
-#undef consteval
-#pragma pop_macro("__cpp_consteval")
-#pragma pop_macro("_NODISCARD")
-#else
-#include <source_location>
-#endif
-
 #include <boost/optional.hpp>
 
 #include <map>
 #include <queue>
 #include <string>
-
-#ifdef __CUDACC__
-#pragma push_macro("__cpp_consteval")
-#pragma push_macro("_NODISCARD")
-#pragma push_macro("__builtin_LINE")
-
-#define __cpp_consteval 201811L
-
-#ifdef _NODISCARD
-    #undef _NODISCARD
-    #define _NODISCARD
-#endif
-
-#define consteval constexpr
-
-#include <source_location>
-
-#undef consteval
-#pragma pop_macro("__cpp_consteval")
-#pragma pop_macro("_NODISCARD")
-#else
-#include <source_location>
-#endif
 
 class BeamlineVisitor;
 class BoundaryGeometry;
