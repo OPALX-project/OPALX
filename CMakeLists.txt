@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.20.3)
 project (OPALX VERSION 2024.1.00 LANGUAGES C CXX)
+include(FetchContent)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
 set (OPALX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -73,32 +74,36 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-find_package(Heffte 2.2.0 REQUIRED)
-message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")
-find_library(HEFFTE_LIBRARY heffte HINTS ${Heffte_DIR}/../..)
-message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
+#find_package(Heffte 2.2.0 REQUIRED)
+#message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")
+#find_library(HEFFTE_LIBRARY heffte HINTS ${Heffte_DIR}/../..)
+#message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
+#
+#
+#find_package(Kokkos REQUIRED)
+#message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
+#if ("${Kokkos_DEVICES}" MATCHES "CUDA")
+#    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
+#endif()
+#find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS ${Kokkos_DIR}/../..)
+#find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS ${Kokkos_DIR}/../..)
+#find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS ${Kokkos_DIR}/../..)
+#message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
 
-
-find_package(Kokkos REQUIRED)
-message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
-if ("${Kokkos_DEVICES}" MATCHES "CUDA")
-    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --extended-lambda")
-endif()
-
-if("${Kokkos_DEVICES}" STREQUAL "CUDA")
-    set(Kokkos_ENABLE_CUDA ON CACHE BOOL "Enable Kokkos CUDA Backend")
-    set(Heffte_ENABLE_CUDA ON CACHE BOOL "Set Heffte CUDA Backend")
-endif()
-
-find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS ${Kokkos_DIR}/../..)
-find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS ${Kokkos_DIR}/../..)
-find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS ${Kokkos_DIR}/../..)
-message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
-
-find_package (Ippl REQUIRED)
 message (STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-
-find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR}) 
+if(NOT IPPL_VERSION)
+    set(IPPL_VERSION "3.2.0")
+    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
+endif()
+FetchContent_Declare(ippl
+    #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
+    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_SHALLOW True
+    DOWNLOAD_EXTRACT_TIMESTAMP True
+)
+FetchContent_MakeAvailable(ippl)
+include_directories("${IPPL_SOURCE_DIR}/src")
+#find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR}) 
 
 message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
 message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
