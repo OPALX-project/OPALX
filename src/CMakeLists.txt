@@ -89,14 +89,18 @@ add_library (libOPAL ${OPAL_SRCS})
 set_target_properties (libOPAL PROPERTIES OUTPUT_NAME OPAL)
 
 target_link_libraries (libOPAL
+    PUBLIC
     ${MPI_CXX_LIBRARIES}
-    )
+    ippl
+    Heffte
+)
 
 message (STATUS "OPAL_LIBS is: " ${CMAKE_BINARY_DIR})
 
 add_executable (opalx Main.cpp)
 target_link_libraries( opalx
-    ${CMAKE_BINARY_DIR}/src/libOPAL.a
+    PUBLIC
+    libOPAL
     ${KOKKOS_LIBRARY1}
     ${KOKKOS_LIBRARY2}
     ${KOKKOS_LIBRARY3}
