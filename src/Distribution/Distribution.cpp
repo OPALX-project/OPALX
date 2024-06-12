@@ -59,21 +59,9 @@ using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
-constexpr double SMALLESTCUTOFF = 1e-12;
-
 namespace DISTRIBUTION {
     enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG };
 }
-
-namespace {
-    matrix_t getUnit6x6() {
-        matrix_t unit6x6(6, 6, 0.0);  // Initialize a 6x6 matrix with all elements as 0.0
-        for (unsigned int i = 0; i < 6u; ++i) {
-            unit6x6(i, i) = 1.0;  // Set diagonal elements to 1.0
-        }
-        return unit6x6;
-    }
-}  // namespace
 
 Distribution::Distribution()
     : Definition(

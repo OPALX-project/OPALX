@@ -78,17 +78,42 @@ public:
 
     double time_m;
 
-    Vector_t<int, Dim> nr_m;
-
     size_type totalP_m;
 
     int nt_m;
+
     double lbt_m;
+
     double dt_m;
+
     int it_m;
 
     std::string integration_method_m;
+
     std::string solver_m;
+
+    bool isFirstRepartition_m;
+
+private:
+    double qi_m;
+
+    double mi_m;
+
+    double rmsDensity_m;
+
+    /// step in a TRACK command
+    long long localTrackStep_m;
+
+    /// if multiple TRACK commands
+    long long globalTrackStep_m;
+
+
+    std::shared_ptr<Distribution> OPALdist_m;
+
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
+
+public:
+    Vector_t<int, Dim> nr_m;
 
     Vector_t<double, Dim> origin_m;
     Vector_t<double, Dim> rmin_m;
@@ -104,7 +129,6 @@ public:
 
     ippl::NDIndex<Dim> domain_m;
     std::array<bool, Dim> decomp_m;
-    bool isFirstRepartition_m;
 
     /*
       Up to here it is like the opaltest
@@ -153,12 +177,6 @@ private:
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
 
-    /// step in a TRACK command
-    long long localTrackStep_m;
-
-    /// if multiple TRACK commands
-    long long globalTrackStep_m;
-
     /// current bunch number
     short numBunch_m;
 
@@ -176,9 +194,6 @@ private:
     PartData* reference_m;
 
     double couplingConstant_m;
-    double qi_m;
-    double mi_m;
-    double rmsDensity_m;
 
     // unit state of PartBunch
     // UnitState_t unit_state_m;
@@ -196,13 +211,11 @@ private:
     bool dcBeam_m;
     double periodLength_m;
 
-    Distribution* OPALdist_m;
-    FieldSolverCmd* OPALFieldSolver_m;
-
 public:
     PartBunch(
               double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
-        Distribution* OPALdistribution, FieldSolverCmd* OPALFieldSolver)
+        std::shared_ptr<Distribution> &OPALdistribution,
+        std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
         : ippl::PicManager<
             T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
           time_m(0.0),
@@ -221,7 +234,6 @@ public:
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
           OPALFieldSolver_m(OPALFieldSolver){
-        
         Inform m("PartBunch() ");
 
 
@@ -553,59 +565,79 @@ public:
     void setEnergyBins(int numberOfEnergyBins) {
     }
     bool weHaveEnergyBins() {
+        return false;
     }
     void setTEmission(double t) {
     }
     double getTEmission() {
+         return 0.0;
     }
     bool weHaveBins() {
+          return false;
     }
     // void setPBins(PartBins* pbin) {}
     size_t emitParticles(double eZ) {
+           return 0;
     }
     void updateNumTotal() {
     }
     void rebin() {
     }
     int getLastemittedBin() {
+        return 0;
     }
     void setLocalBinCount(size_t num, int bin) {
     }
     void calcGammas() {
     }
     double getBinGamma(int bin) {
+        return 0.0;
     }
     bool hasBinning() {
+        return false;
     }
     void setBinCharge(int bin, double q) {
     }
     void setBinCharge(int bin) {
     }
     double calcMeanPhi() {
+        return 0.0;
     }
     bool resetPartBinID2(const double eta) {
+        return false;
     }
     bool resetPartBinBunch() {
+        return false;
     }
     double getPx(int i) {
+        return 0.0;
     }
     double getPy(int i) {
+        return 0.0;
     }
     double getPz(int i) {
+        return 0.0;
     }
     double getPx0(int i) {
+        return 0.0;
     }
     double getPy0(int i) {
+        return 0.0;
     }
     double getX(int i) {
+        return 0.0;
     }
     double getY(int i) {
+        return 0.0;
     }
     double getZ(int i) {
+        return 0.0;
     }
     double getX0(int i) {
+        return 0.0;
     }
     double getY0(int i) {
+        return 0.0;
     }
 
     void setZ(int i, double zcoo) {
