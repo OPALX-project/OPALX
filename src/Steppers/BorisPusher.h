@@ -112,7 +112,7 @@ KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
     P +=  cross(P, t);
     */
 
-    double gamma                = sqrt(1.0 + dot(P, P));
+    double gamma                = Kokkos::sqrt(1.0 + dot(P, P));
     Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * Bf;
     Vector_t<double, 3> const w = P + cross(P, t);
     Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
@@ -135,7 +135,7 @@ KOKKOS_INLINE_FUNCTION void BorisPusher::push(
      * R[i] += 0.5 * P[i] * recpgamma;
      * \endcode
      */
-    R += 0.5 * P / std::sqrt(1.0 + dot(P));
+    R += 0.5 * P / Kokkos::sqrt(1.0 + dot(P));
 }
 
 #endif
