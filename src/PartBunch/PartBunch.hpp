@@ -234,8 +234,8 @@ public:
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
           OPALFieldSolver_m(OPALFieldSolver){
-        Inform m("PartBunch() ");
 
+        Inform m("PartBunch() ");
 
         static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
         IpplTimings::startTimer(gatherInfoPartBunch);
@@ -266,9 +266,6 @@ public:
         this->hr_m = length / this->nr_m;
         this->origin_m = -3.0;
         this->dt_m = 0.5 / this->nr_m[2];
-
-        using ParticleContainer_t = ParticleContainer<T, Dim>;
-        using FieldContainer_t    = FieldContainer<T, Dim>;
 
         this->setFieldContainer(std::make_shared<FieldContainer_t>(
             this->hr_m, this->rmin_m, this->rmax_m, this->decomp_m, this->domain_m, this->origin_m,
@@ -448,8 +445,10 @@ public:
     }
 
     double getGamma(int i) const {
+        return 0.0;
     }
     double getBeta(int i) const {
+        return 0.0;
     }
 
     void actT() {
@@ -486,6 +485,7 @@ public:
 
 
     bool isGridFixed() {
+        return false;
     }
 
     void boundp() {
@@ -526,6 +526,7 @@ public:
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
+        return 0;
     }
 
     void calcLineDensity(
@@ -536,6 +537,7 @@ public:
     }
 
     Vector_t<double, Dim> getEExtrema() {
+       return Vector_t<double, Dim>(0);
     }
 
     void computeSelfFields();
@@ -548,15 +550,20 @@ public:
     }
 
     bool getFieldSolverType() {
+        return false;
     }
 
     bool getIfBeamEmitting() {
+        return false;
     }
     int getLastEmittedEnergyBin() {
+        return 0;
     }
     size_t getNumberOfEmissionSteps() {
+        return 0;
     }
     int getNumberOfEnergyBins() {
+        return 0;
     }
 
     void Rebin() {
