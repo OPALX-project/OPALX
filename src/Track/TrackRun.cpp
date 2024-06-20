@@ -360,8 +360,6 @@ void TrackRun::execute() {
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
-    *gmsg << "* Parallel Tracker created ... " << endl;
-
     itsTracker_m->execute();
 
     /*

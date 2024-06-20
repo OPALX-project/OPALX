@@ -390,7 +390,6 @@ void ParallelTracker::execute() {
         changeDT(back_track);
 
         for (; step < trackSteps; ++step) {
-            *gmsg << "at the beginning of loop " << endl;
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
@@ -442,7 +441,6 @@ void ParallelTracker::execute() {
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
                 break;
             }
-            *gmsg << "at the end of loop pathLength_m= " << pathLength_m << endl;
         }
 
         if (globalEOL_m)
