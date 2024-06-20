@@ -213,54 +213,103 @@ void PartBunch<double,3>::bunchUpdate() {
 
 template <>
 void PartBunch<double,3>::computeSelfFields() {
-        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
-        IpplTimings::startTimer(SolveTimer);
+    Inform m("INFORM_ALL_NODES");
+    static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
+    IpplTimings::startTimer(SolveTimer);
 
-        Field_t<3>& rho                          = this->fcontainer_m->getRho();
-        ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
-        typename Base::particle_position_type& R = this->pcontainer_m->R;
+    Field_t<3>& rho                          = this->fcontainer_m->getRho();
+    ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
+    typename Base::particle_position_type& R = this->pcontainer_m->R;
 
-        rho = 0.0;
-        Q = Q*this->pcontainer_m->dt;
-        this->qi_m  = this->qi_m * getdT();
-        scatter(Q, rho, R);
-        Q = Q/this->pcontainer_m->dt;
-        this->qi_m  = this->qi_m / getdT();
-        rho = rho/getdT();
+    rho = 0.0;
+    Q = Q*this->pcontainer_m->dt;
+    this->qi_m  = this->qi_m * getdT();
+    scatter(Q, rho, R);
+    Q = Q/this->pcontainer_m->dt;
+    this->qi_m  = this->qi_m / getdT();
+    rho = rho/getdT();
 
-        double gammaz = this->pcontainer_m->getMeanGammaZ();
-        double scaleFactor = 1;
-        // double scaleFactor = Physics::c * getdT();
-        //and get meshspacings in real units [m]
-        Vector_t<double, 3> hr_scaled = hr_m * scaleFactor;
-        hr_scaled[2] *= gammaz;
 
-        double localDensity2 = 0, Density2=0;
-        double tmp2 = 1 / hr_scaled[0] * 1 / hr_scaled[1] * 1 / hr_scaled[2];
+    // some debug output ------------------------------------------------------------
+    //
+    /*
+    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
+                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
+                             if (i<5){
+                                 double myQ = Qview(i);
+                                 std::cout << "qi= " << myQ << std::endl;
+                             }
+                         }); 
+    */
+    
+    auto rhoView = rho.getView();
+    using index_array_type_3d = typename ippl::RangePolicy<Dim>::index_array_type;
+    const index_array_type_3d& args3d = {8,8,8};
+    auto res3d = ippl::apply(rhoView,args3d);
+    m << "Type of variable: " << typeid(res3d).name() << " rho[8,8,8]= " << res3d << endl;
 
-        using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
+    double qsum = 0.0;
+    for (int i=0; i<nr_m[0]; i++) {
+        for (int j=0; j<nr_m[1]; j++) {
+            for (int k=0; k<nr_m[2]; k++) {
+                const index_array_type_3d& args3d = {i,j,k};
+                qsum += ippl::apply(rhoView,args3d);
+            }
+        }
+    }
 
-        //divide charge by a 'grid-cube' volume to get [C/m^3]
-        rho = rho *tmp2;
+    m << "sum(rho_m)= " << qsum << endl;
 
-        double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+    
+    auto Qview =  this->pcontainer_m->Q.getView();
+    using index_array_type_1d = typename ippl::RangePolicy<1>::index_array_type;
+    const index_array_type_1d& args1d = {0}; 
+    auto res1d = ippl::apply(Qview,args1d);
+    m << "Type of variable: " << typeid(res1d).name() << " value " << res1d << endl;
+    //
+    // -------------------------------------------------------------------------------
 
-        auto rhoView = rho.getView();
-        localDensity2 = 0.;
-        ippl::parallel_reduce(
-            "Density stats", ippl::getRangePolicy(rhoView),
-            KOKKOS_LAMBDA(const index_array_type& args, double& den) {
-                double val = ippl::apply(rhoView, args);
-                den  += Kokkos::pow(val, 2);
-            },
-            Kokkos::Sum<double>(localDensity2) );
-        ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
+    
+    double gammaz = this->pcontainer_m->getMeanGammaZ();
+    double scaleFactor = 1;
+    // double scaleFactor = Physics::c * getdT();
+    //and get meshspacings in real units [m]
+    Vector_t<double, 3> hr_scaled = hr_m * scaleFactor;
+    hr_scaled[2] *= gammaz;
 
-        rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
+    double localDensity2 = 0, Density2=0;
+    double tmp2 = 1 / hr_scaled[0] * 1 / hr_scaled[1] * 1 / hr_scaled[2];
+    
+    using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
 
-        this->calcDebyeLength();
+    //divide charge by a 'grid-cube' volume to get [C/m^3]
+    rho = rho *tmp2;
+        
+    double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
 
-        IpplTimings::stopTimer(SolveTimer);
+    // auto rhoView = rho.getView();
+    localDensity2 = 0.;
+    ippl::parallel_reduce(
+                          "Density stats", ippl::getRangePolicy(rhoView),
+                          KOKKOS_LAMBDA(const index_array_type& args, double& den) {
+                              double val = ippl::apply(rhoView, args);
+                              den  += Kokkos::pow(val, 2);
+                          },
+                          Kokkos::Sum<double>(localDensity2) );
+    ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
+    
+    rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
+
+    this->calcDebyeLength();
+
+    m << "gammaz = "  << gammaz << endl;
+    m << "hr_scaled = " << hr_scaled << endl;
+
+    this->fsolver_m->runSolver();    
+
+    gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
+    
+    IpplTimings::stopTimer(SolveTimer);
 }
 
 template <>
@@ -279,10 +328,14 @@ void PartBunch<double,3>::scatterCIC() {
 
         scatter(*q, *rho, *R);
 
+        m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
+        
         double relError = std::fabs((Q - (*rho).sum()) / Q);
         size_type TotalParticles = 0;
         size_type localParticles = this->pcontainer_m->getLocalNum();
 
+        m << "computeSelfFields sum rho " << (*rho).sum() << endl;
+        
         ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
         if (ippl::Comm->rank() == 0) {
