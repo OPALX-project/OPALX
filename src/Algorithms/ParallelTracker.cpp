@@ -551,6 +551,11 @@ void ParallelTracker::emitParticles(long long step) {
 }
 
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
+
+    Inform m("INFORM_ALL_NODES");
+
+    m << "in ParallelTracker::computeSpaceChargeFields" << endl;
+    
     if (!itsBunch_m->hasFieldSolver()) {
         return;
     }
