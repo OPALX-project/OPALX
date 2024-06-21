@@ -114,7 +114,7 @@ namespace OPALXMAIN {
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
-        gmsg         = new Inform("OPAL");
+        gmsg         = new Inform("OPAL-X");
         namespace fs = boost::filesystem;
 
         H5SetVerbosityLevel(1);  // 65535);
