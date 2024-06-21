@@ -62,6 +62,14 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/PartData.h"
 
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
+    return sqrt(dot(x, x).apply());
+}
+
+
+
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 
@@ -383,10 +391,11 @@ public:
     */
 
     double getCouplingConstant() const {
-        return 1.0;
+        return couplingConstant_m;
     }
-
+    
     void setCouplingConstant(double c) {
+        couplingConstant_m = c;
     }
 
     void calcBeamParameters();
@@ -850,6 +859,10 @@ public:
     double calculateAngle(double x, double y) {
         return 0.0;
     }
+
+    // Sanity check functions
+    void spaceChargeEFieldCheck();
+
 };
 
 /* \todo
