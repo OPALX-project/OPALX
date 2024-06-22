@@ -70,77 +70,14 @@ public:
         phi_m = phi;
     }
 
-    void initSolver() override {
-        Inform m("solver ");
-        if (this->getStype() == "FFT") {
-            initFFTSolver();
-        } else if (this->getStype() == "CG") {
-            initCGSolver();
-        } else if (this->getStype() == "P3M") {
-            initP3MSolver();
-        } else if (this->getStype() == "OPEN") {
-            initOpenSolver();
-        } else if (this->getStype() == "NONE") {
-            initNullSolver();
-        }
-        else {
-            m << "No solver matches the argument: " << this->getStype() << endl;
-        }
-    }
+    void initOpenSolver();
 
-    void setPotentialBCs() {
-        // CG requires explicit periodic boundary conditions while the periodic Poisson solver
-        // simply assumes them
-        if (this->getStype() == "CG") {
-            typedef ippl::BConds<Field<T, Dim>, Dim> bc_type;
-            bc_type allPeriodic;
-            for (unsigned int i = 0; i < 2 * Dim; ++i) {
-                allPeriodic[i] = std::make_shared<ippl::PeriodicFace<Field<T, Dim>>>(i);
-            }
-            phi_m->setFieldBC(allPeriodic);
-        }
-    }
+    void initSolver() override ;
 
-    void runSolver() override {
-        if (this->getStype() == "CG") {
-            CGSolver_t<T, Dim>& solver = std::get<CGSolver_t<T, Dim>>(this->getSolver());
-            solver.solve();
+    void setPotentialBCs();
 
-            if (ippl::Comm->rank() == 0) {
-                std::stringstream fname;
-                fname << "data/CG_";
-                fname << ippl::Comm->size();
-                fname << ".csv";
-
-                Inform log(NULL, fname.str().c_str(), Inform::APPEND);
-                int iterations = solver.getIterationCount();
-                // Assume the dummy solve is the first call
-                if (iterations == 0) {
-                    log << "residue,iterations" << endl;
-                }
-                // Don't print the dummy solve
-                if (iterations > 0) {
-                    log << solver.getResidue() << "," << iterations << endl;
-                }
-            }
-            ippl::Comm->barrier();
-        } else if (this->getStype() == "FFT") {
-            if constexpr (Dim == 2 || Dim == 3) {
-                std::get<FFTSolver_t<T, Dim>>(this->getSolver()).solve();
-            }
-        } else if (this->getStype() == "P3M") {
-            if constexpr (Dim == 3) {
-                std::get<P3MSolver_t<T, Dim>>(this->getSolver()).solve();
-            }
-        } else if (this->getStype() == "OPEN") {
-            if constexpr (Dim == 3) {
-                std::get<OpenSolver_t<T, Dim>>(this->getSolver()).solve();
-            }
-        } else {
-            throw std::runtime_error("Unknown solver type");
-        }
-    }
-
+    void runSolver() override;
+    
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp) {
         this->getSolver().template emplace<Solver>();
@@ -162,74 +99,23 @@ public:
         }
     }
 
-    void initNullSolver() {
-        if constexpr (Dim == 2 || Dim == 3) {
-            ippl::ParameterList sp;
-            throw std::runtime_error("Not implemented Null solver");
-        } else {
-            throw std::runtime_error("Unsupported dimensionality for Null solver");
-        }
-    }
-
+    void initNullSolver() { }
+    
     void initFFTSolver() {
-        if constexpr (Dim == 2 || Dim == 3) {
-            ippl::ParameterList sp;
-            sp.add("output_type", FFTSolver_t<T, Dim>::GRAD);
-            sp.add("use_heffte_defaults", false);
-            sp.add("use_pencils", true);
-            sp.add("use_reorder", false);
-            sp.add("use_gpu_aware", true);
-            sp.add("comm", ippl::p2p_pl);
-            sp.add("r2c_direction", 0);
-
-            initSolverWithParams<FFTSolver_t<T, Dim>>(sp);
-        } else {
-            throw std::runtime_error("Unsupported dimensionality for FFT solver");
-        }
+    ippl::ParameterList sp;
+    sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
+    sp.add("use_heffte_defaults", false);
+    sp.add("use_pencils", true);
+    sp.add("use_reorder", false);
+    sp.add("use_gpu_aware", true);
+    sp.add("comm", ippl::p2p_pl);
+    sp.add("r2c_direction", 0);
+    initSolverWithParams<FFTSolver_t<double, 3>>(sp);
     }
+    
+    void initCGSolver() { }
 
-    void initCGSolver() {
-        ippl::ParameterList sp;
-        sp.add("output_type", CGSolver_t<T, Dim>::GRAD);
-        // Increase tolerance in the 1D case
-        sp.add("tolerance", 1e-10);
+    void initP3MSolver() { }
 
-        initSolverWithParams<CGSolver_t<T, Dim>>(sp);
-    }
-
-    void initP3MSolver() {
-        if constexpr (Dim == 3) {
-            ippl::ParameterList sp;
-            sp.add("output_type", P3MSolver_t<T, Dim>::GRAD);
-            sp.add("use_heffte_defaults", false);
-            sp.add("use_pencils", true);
-            sp.add("use_reorder", false);
-            sp.add("use_gpu_aware", true);
-            sp.add("comm", ippl::p2p_pl);
-            sp.add("r2c_direction", 0);
-
-            initSolverWithParams<P3MSolver_t<T, Dim>>(sp);
-        } else {
-            throw std::runtime_error("Unsupported dimensionality for P3M solver");
-        }
-    }
-
-    void initOpenSolver() {
-        if constexpr (Dim == 3) {
-            ippl::ParameterList sp;
-            sp.add("output_type", OpenSolver_t<T, Dim>::GRAD);
-            sp.add("use_heffte_defaults", false);
-            sp.add("use_pencils", true);
-            sp.add("use_reorder", false);
-            sp.add("use_gpu_aware", true);
-            sp.add("comm", ippl::p2p_pl);
-            sp.add("r2c_direction", 0);
-            sp.add("algorithm", OpenSolver_t<T, Dim>::HOCKNEY);
-
-            initSolverWithParams<OpenSolver_t<T, Dim>>(sp);
-        } else {
-            throw std::runtime_error("Unsupported dimensionality for OPEN solver");
-        }
-    }
 };
 #endif
