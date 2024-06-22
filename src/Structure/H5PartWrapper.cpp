@@ -484,7 +484,7 @@ void H5PartWrapper::copyStepData(h5_file_t source) {
 
 void H5PartWrapper::sendFailureMessage(
     bool failed, const std::string& where, const std::string& what) {
-    int tag = 101;
+    // int tag = 101;
     /* \todo  Message* mess = new Message();
     putMessage(*mess, failed);
     Ippl::Comm->broadcast_all(mess, tag);
@@ -496,8 +496,8 @@ void H5PartWrapper::sendFailureMessage(
 
 void H5PartWrapper::receiveFailureMessage(
     int sourceNode, const std::string& where, const std::string& what) {
-    int tag = 101;
-    bool failed;
+    //    int tag = 101;
+    bool failed=false;
     /* \todo
     Message* mess = Ippl::Comm->receive_block(sourceNode, tag);
     getMessage(*mess, failed);
