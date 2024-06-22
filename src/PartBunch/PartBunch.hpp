@@ -62,6 +62,14 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/PartData.h"
 
+
+template <typename T>
+KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
+    return sqrt(dot(x, x).apply());
+}
+
+
+
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 
@@ -276,11 +284,6 @@ public:
         IpplTimings::startTimer(prerun);
         pre_run();
         IpplTimings::stopTimer(prerun);
-
-        /*
-          end wrmup 
-        */
-
     }
 
     void bunchUpdate();
@@ -294,39 +297,10 @@ public:
         return this->pcontainer_m;
     }
 
-    void setSolver(std::string solver) {
-        Inform m("setSolver  ");
+    void setSolver(std::string solver);
 
-        if (this->solver_m != "")
-            m << "Warning solver already initiated but overwrite ..." << endl;
-
-        this->solver_m = solver;
-
-        this->fcontainer_m->initializeFields(this->solver_m);
-
-        this->setFieldSolver(std::make_shared<FieldSolver_t>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi()));
-
-        this->fsolver_m->initSolver();
-
-        /// ADA we need to be able to set a load balancer when not having a field solver
-        this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
-            this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
-    }
-
-    void pre_run() override {
-        static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
-        IpplTimings::startTimer(DummySolveTimer);
-
-        this->fcontainer_m->getRho() = 0.0;
-
-        this->fsolver_m->runSolver();
-
-        IpplTimings::stopTimer(DummySolveTimer);
-
-    }
-
+    void pre_run() override ;
+    
 public:
     void updateMoments(){
         this->pcontainer_m->updateMoments();
@@ -383,10 +357,11 @@ public:
     */
 
     double getCouplingConstant() const {
-        return 1.0;
+        return couplingConstant_m;
     }
-
+    
     void setCouplingConstant(double c) {
+        couplingConstant_m = c;
     }
 
     void calcBeamParameters();
@@ -850,6 +825,10 @@ public:
     double calculateAngle(double x, double y) {
         return 0.0;
     }
+
+    // Sanity check functions
+    void spaceChargeEFieldCheck();
+
 };
 
 /* \todo
