@@ -176,7 +176,8 @@ int main(int argc, char* argv[]) {
 
                 if (is) {
                     *gmsg << "Reading startup file '" << startup << "'" << endl;
-                    parser.run(is);
+                    parser.
+                        run(is);
                     *gmsg << "Finished reading startup file." << endl;
                 }
                 FileStream::setEcho(Options::echo);
@@ -379,7 +380,9 @@ int main(int argc, char* argv[]) {
 
         } catch (EarlyLeaveException& ex) {
             // do nothing here
-        } catch (OpalException& ex) {
+        }
+
+        catch (OpalException& ex) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
             errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
             // stat->printWhere(errorMsg, true);
@@ -489,10 +492,14 @@ int main(int argc, char* argv[]) {
         IpplTimings::print(
             std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues());
 
+        
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
-        OpalData::deleteInstance();
+
+        // \todo we should not need this OpalData::deleteInstance();
+
         delete gmsg;
+        ippl::finalize();
         return 0;
     }
 }
