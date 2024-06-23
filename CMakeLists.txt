@@ -15,6 +15,15 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
     add_definitions (-DNOPAssert)
 endif ()
 
+
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    add_compile_options (-fsanitize=undefined,address)
+    add_link_options (-fsanitize=undefined,address)
+endif ()
+
+
+
+
 add_compile_options (-Wall)
 add_compile_options (-Wunused)
 add_compile_options (-Wextra)
@@ -45,7 +54,7 @@ endif()
 add_definitions (-DNOCTAssert)
 
 #add_compile_options (-ferror-limit=1)
-#add_compile_options (-fsanitize=undefined,address)
+
 #add_compile_options (-Wno-deprecated-declarations)
 #add_compile_options (-Wno-unused)
 #add_compile_options (-Wextra)
@@ -61,7 +70,7 @@ add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 add_compile_options (-DKOKKOS_DEPENDENCE)
 add_compile_options (-Wno-return-type)
-add_compile_options (-gdwarf-2)                           # avoid dwarf errors on merlin
+add_compile_options (-gdwarf-4)                           # avoid dwarf errors on merlin
 
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
