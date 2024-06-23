@@ -39,7 +39,7 @@ IpplInfoWrapper::IpplInfoWrapper(
     arg_m[5] = buffer_m + warn_m;
     arg_m[6] = buffer_m + warnLevel_m;
 
-    int narg = 5;
+    // int narg = 5;
     // instance_m = new Ippl(narg, arg_m, Ippl::KEEP, comm);
 }
 
