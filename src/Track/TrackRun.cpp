@@ -155,7 +155,7 @@ TrackRun* TrackRun::clone(const std::string& name) {
 }
 
 void TrackRun::execute() {
-
+   
    const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
 
    if (Options::version < currentVersion) {
@@ -240,13 +240,14 @@ void TrackRun::execute() {
     macrocharge_m = beam->getChargePerParticle();
     macromass_m   = beam->getMassPerParticle();
 
-    double Qtot = macrocharge_m * beam->getNumberOfParticles();
+    // double Qtot = macrocharge_m * beam->getNumberOfParticles();
 
     /*
       Here we can allocate the bunch
 
      */
-
+    
+    
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     bunch_m = std::make_unique<bunch_type>(macrocharge_m,
                                            beam->getMass()*1e9*Units::eV2MeV,
