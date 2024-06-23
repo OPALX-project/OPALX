@@ -175,6 +175,7 @@ public:
     double computeDebyeLength(double density){
         size_t Np = this->getTotalNum();
         distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, density);
+        return distMoments_m.getDebyeLength();
     }
 
 private:
