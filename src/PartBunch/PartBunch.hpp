@@ -161,12 +161,6 @@ private:
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
 
-    /// step in a TRACK command
-    long long localTrackStep_m;
-
-    /// if multiple TRACK commands
-    long long globalTrackStep_m;
-
     /// current bunch number
     short numBunch_m;
 
@@ -188,6 +182,12 @@ private:
     double mi_m;
     double rmsDensity_m;
 
+    /// step in a TRACK command
+    long long localTrackStep_m;
+
+    /// if multiple TRACK commands
+    long long globalTrackStep_m;
+    
     // unit state of PartBunch
     // UnitState_t unit_state_m;
     // UnitState_t stateOfLastBoundP_m;
@@ -449,6 +449,7 @@ public:
 
 
     bool isGridFixed() {
+                return false;
     }
 
     void boundp() {
@@ -528,15 +529,19 @@ public:
     void setEnergyBins(int numberOfEnergyBins) {
     }
     bool weHaveEnergyBins() {
+        return false;
     }
     void setTEmission(double t) {
     }
     double getTEmission() {
+        return 0.0;
     }
     bool weHaveBins() {
+        return false;
     }
     // void setPBins(PartBins* pbin) {}
     size_t emitParticles(double eZ) {
+        return 0;
     }
     void updateNumTotal() {
     }
@@ -551,6 +556,7 @@ public:
     double getBinGamma(int bin) {
     }
     bool hasBinning() {
+        return false;
     }
     void setBinCharge(int bin, double q) {
     }
@@ -559,6 +565,7 @@ public:
     double calcMeanPhi() {
     }
     bool resetPartBinID2(const double eta) {
+        return false;
     }
     bool resetPartBinBunch() {
     }
