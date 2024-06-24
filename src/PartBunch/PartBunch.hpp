@@ -109,12 +109,6 @@ private:
 
     double rmsDensity_m;
 
-    /// step in a TRACK command
-    long long localTrackStep_m;
-
-    /// if multiple TRACK commands
-    long long globalTrackStep_m;
-
 
     std::shared_ptr<Distribution> OPALdist_m;
 
