@@ -311,8 +311,12 @@ void TrackRun::execute() {
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
+    *gmsg << "* About to create particles ..." << endl;
+    
     sampler_m->generateParticles(Np, nr);
 
+    *gmsg << "* Particle creation done" << endl;
+    
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
