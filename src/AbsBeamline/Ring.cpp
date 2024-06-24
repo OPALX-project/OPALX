@@ -125,7 +125,7 @@ bool Ring::apply(
 
         const double Q      = Qview(id);
         const double M      = Mview(id);
-        const short int Bin = Binview(id);
+        //        const short int Bin = Binview(id);
 
         gmsgALL << getName() << ": particle " << id << " at " << R
                 << " m out of the field map boundary" << endl;

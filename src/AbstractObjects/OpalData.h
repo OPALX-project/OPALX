@@ -281,7 +281,7 @@ public:
 
 private:
     static bool isInstantiated;
-    static OpalData* instance;
+    static OpalData* instance;             // \todo should be a smart pointer and we then should get ridd of deleteInstance
     static std::stack<OpalData*> stashedInstances;
 
     OpalData();

@@ -1,0 +1,304 @@
+SDDS1
+&description
+        text="Statistics data '../input-files/test-0002.in' 20/06/2024 23:23:03",
+        contents="stat parameters"
+&end
+&parameter
+        name=processors,
+        type=long,
+        description="Number of Cores used"
+&end
+&parameter
+        name=revision,
+        type=string,
+        description="git revision of opal"
+&end
+&parameter
+        name=flavor,
+        type=string,
+        description="OPAL flavor that wrote file"
+&end
+&column
+        name=t,
+        type=double,
+        units=ns,
+        description="1 Time"
+&end
+&column
+        name=s,
+        type=double,
+        units=m,
+        description="2 Path length"
+&end
+&column
+        name=numParticles,
+        type=long,
+        units=1,
+        description="3 Number of Macro Particles"
+&end
+&column
+        name=charge,
+        type=double,
+        units=1,
+        description="4 Bunch Charge"
+&end
+&column
+        name=energy,
+        type=double,
+        units=MeV,
+        description="5 Mean Bunch Energy"
+&end
+&column
+        name=rms_x,
+        type=double,
+        units=m,
+        description="6 RMS Beamsize in x"
+&end
+&column
+        name=rms_y,
+        type=double,
+        units=m,
+        description="7 RMS Beamsize in y"
+&end
+&column
+        name=rms_s,
+        type=double,
+        units=m,
+        description="8 RMS Beamsize in s"
+&end
+&column
+        name=rms_px,
+        type=double,
+        units=1,
+        description="9 RMS Normalized Momenta in x"
+&end
+&column
+        name=rms_py,
+        type=double,
+        units=1,
+        description="10 RMS Normalized Momenta in y"
+&end
+&column
+        name=rms_ps,
+        type=double,
+        units=1,
+        description="11 RMS Normalized Momenta in s"
+&end
+&column
+        name=emit_x,
+        type=double,
+        units=m,
+        description="12 Normalized Emittance x"
+&end
+&column
+        name=emit_y,
+        type=double,
+        units=m,
+        description="13 Normalized Emittance y"
+&end
+&column
+        name=emit_s,
+        type=double,
+        units=m,
+        description="14 Normalized Emittance s"
+&end
+&column
+        name=mean_x,
+        type=double,
+        units=m,
+        description="15 Mean Beam Position in x"
+&end
+&column
+        name=mean_y,
+        type=double,
+        units=m,
+        description="16 Mean Beam Position in y"
+&end
+&column
+        name=mean_s,
+        type=double,
+        units=m,
+        description="17 Mean Beam Position in s"
+&end
+&column
+        name=ref_x,
+        type=double,
+        units=m,
+        description="18 x coordinate of reference particle in lab cs"
+&end
+&column
+        name=ref_y,
+        type=double,
+        units=m,
+        description="19 y coordinate of reference particle in lab cs"
+&end
+&column
+        name=ref_z,
+        type=double,
+        units=m,
+        description="20 z coordinate of reference particle in lab cs"
+&end
+&column
+        name=ref_px,
+        type=double,
+        units=1,
+        description="21 x momentum of reference particle in lab cs"
+&end
+&column
+        name=ref_py,
+        type=double,
+        units=1,
+        description="22 y momentum of reference particle in lab cs"
+&end
+&column
+        name=ref_pz,
+        type=double,
+        units=1,
+        description="23 z momentum of reference particle in lab cs"
+&end
+&column
+        name=max_x,
+        type=double,
+        units=m,
+        description="24 Max Beamsize in x"
+&end
+&column
+        name=max_y,
+        type=double,
+        units=m,
+        description="25 Max Beamsize in y"
+&end
+&column
+        name=max_s,
+        type=double,
+        units=m,
+        description="26 Max Beamsize in s"
+&end
+&column
+        name=xpx,
+        type=double,
+        units=1,
+        description="27 Correlation xpx"
+&end
+&column
+        name=ypy,
+        type=double,
+        units=1,
+        description="28 Correlation ypy"
+&end
+&column
+        name=zpz,
+        type=double,
+        units=1,
+        description="29 Correlation zpz"
+&end
+&column
+        name=Dx,
+        type=double,
+        units=m,
+        description="30 Dispersion in x"
+&end
+&column
+        name=DDx,
+        type=double,
+        units=1,
+        description="31 Derivative of dispersion in x"
+&end
+&column
+        name=Dy,
+        type=double,
+        units=m,
+        description="32 Dispersion in y"
+&end
+&column
+        name=DDy,
+        type=double,
+        units=1,
+        description="33 Derivative of dispersion in y"
+&end
+&column
+        name=Bx_ref,
+        type=double,
+        units=T,
+        description="34 Bx-Field component of ref particle"
+&end
+&column
+        name=By_ref,
+        type=double,
+        units=T,
+        description="35 By-Field component of ref particle"
+&end
+&column
+        name=Bz_ref,
+        type=double,
+        units=T,
+        description="36 Bz-Field component of ref particle"
+&end
+&column
+        name=Ex_ref,
+        type=double,
+        units=MV/m,
+        description="37 Ex-Field component of ref particle"
+&end
+&column
+        name=Ey_ref,
+        type=double,
+        units=MV/m,
+        description="38 Ey-Field component of ref particle"
+&end
+&column
+        name=Ez_ref,
+        type=double,
+        units=MV/m,
+        description="39 Ez-Field component of ref particle"
+&end
+&column
+        name=dE,
+        type=double,
+        units=MeV,
+        description="40 energy spread of the beam"
+&end
+&column
+        name=dt,
+        type=double,
+        units=ns,
+        description="41 time step size"
+&end
+&column
+        name=partsOutside,
+        type=double,
+        units=1,
+        description="42 outside n*sigma of the beam"
+&end
+&column
+        name=DebyeLength,
+        type=double,
+        units=m,
+        description="43 Debye length in the boosted frame"
+&end
+&column
+        name=plasmaParameter,
+        type=double,
+        units=1,
+        description="44 Plasma parameter that gives no. of particles in a Debye sphere"
+&end
+&column
+        name=temperature,
+        type=double,
+        units=K,
+        description="45 Temperature of the beam"
+&end
+&column
+        name=rmsDensity,
+        type=double,
+        units=1,
+        description="46 RMS number density of the beam"
+&end
+&data
+        mode=ascii,
+        no_row_counts=1
+&end
+1
+OPALX 2024.1.00 git rev. #640dbb1f34e2dc23314bad26c94148a0e578fe17
+opal-t
+1.000000000000000e-03         	2.997924188990765e-04         	100000         	-1.000000000000000e-09         	9.999999999999980e+02         	9.886771617229491e-04         	9.900456978581636e-04         	9.861933284523727e-04         	9.970719439431197e-07         	9.971772595976683e-07         	1.003251673042217e-06         	9.857814897437524e-10         	9.872476063403890e-10         	9.893927462964761e-10         	1.695475357332832e-20         	1.706100538623190e-20         	4.746420270707041e-20         	1.695475356915250e-20         	1.706100538100345e-20         	2.997924188990765e-04         	-2.727234331922033e-23         	-3.414707447737305e-23         	1.957950928190183e+03         	3.000478311466378e-03         	2.999914659247034e-03         	2.996972298154323e-03         	-1.249744196182289e-03         	2.643507480662082e-03         	3.857264382145191e-03         	-7.000706356679798e-13         	4.605817787904672e-15         	3.761377802323194e-12         	-1.333863982837420e-16         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	0.000000000000000e+00         	1.621166691380730e-04         	1.000000000000000e-03         	0         	3.883428884728593e-10         	7.942613332657146e-15         	1.025293560371121e-09         	3.237641375683589e+13         	

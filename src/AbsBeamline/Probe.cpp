@@ -99,8 +99,8 @@ bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double t, co
         // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
         double dist1 = (A_m * bunch->R(i)(0) + B_m * bunch->R(i)(1) + C_m) / R_m;  // [m]
         double dist2 = dist1 * std::sqrt(1.0 + 1.0 / tangle / tangle);
-        double dt =
-            dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P(i), bunch->P(i)))) * Physics::c);
+        //double dt =
+        //  dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P(i), bunch->P(i)))) * Physics::c);
 
         // ADA probepoint = bunch->R(i) + dist2 * bunch->P(i) / euclidean_norm(bunch->P(i));
         probepoint = bunch->R(i) + dist2 * bunch->P(i) / std::sqrt(dot(bunch->P(i), bunch->P(i)));

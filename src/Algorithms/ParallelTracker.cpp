@@ -390,7 +390,6 @@ void ParallelTracker::execute() {
         changeDT(back_track);
 
         for (; step < trackSteps; ++step) {
-            *gmsg << "at the beginning of loop " << endl;
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
@@ -442,7 +441,6 @@ void ParallelTracker::execute() {
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
                 break;
             }
-            *gmsg << "at the end of loop pathLength_m= " << pathLength_m << endl;
         }
 
         if (globalEOL_m)
@@ -551,10 +549,12 @@ void ParallelTracker::emitParticles(long long step) {
 }
 
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
+
     if (!itsBunch_m->hasFieldSolver()) {
+        *gmsg << "no solver avaidable " << endl;
         return;
     }
-
+        
     itsBunch_m->calcBeamParameters();
 
     Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
@@ -586,7 +586,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             h_Rot( i, j ) = rot(i, j);
         }
     }
+    
     Kokkos::deep_copy( Rot, h_Rot );
+
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
