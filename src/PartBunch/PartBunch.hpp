@@ -226,7 +226,7 @@ public:
           it_m(0),
           integration_method_m(integration_method),
           solver_m(""),
-          isFirstRepartition_m(true),        
+          isFirstRepartition_m(true),
           qi_m(qi),
           mi_m(mi),
           rmsDensity_m(0.0),
@@ -267,9 +267,10 @@ public:
         this->origin_m = -3.0;
         this->dt_m = 0.5 / this->nr_m[2];
 
-        this->setFieldContainer(std::make_shared<FieldContainer_t>(
-            this->hr_m, this->rmin_m, this->rmax_m, this->decomp_m, this->domain_m, this->origin_m,
-            isAllPeriodic));
+        rmin_m = origin_m;
+        rmax_m = origin_m + length;
+
+        this->setFieldContainer( std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
 
         this->setParticleContainer(std::make_shared<ParticleContainer_t>(
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
@@ -382,7 +383,13 @@ public:
     }
 
     void gatherCIC() {
-        gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
+/*
+        using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+        typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
+        typename Base::particle_position_type* R = &this->pcontainer_m->R;
+        VField_t<T, Dim>* Ef = &this->fcontainer_m->getE();
+        gather(*Ep, *Ef, *R);
+*/
     }
 
     void scatterCIC(); 
