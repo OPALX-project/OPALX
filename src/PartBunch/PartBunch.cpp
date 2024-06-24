@@ -1,13 +1,26 @@
+    // some debug output ------------------------------------------------------------
+    //
+    /*
+    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
+                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
+                             if (i<5){
+                                 double myQ = Qview(i);
+                                 std::cout << "qi= " << myQ << std::endl;
+                             }
+                         }); 
+    */
+
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
 
+extern Inform* gmsg;
+
 template<>
 void PartBunch<double,3>::setSolver(std::string solver) {
-        Inform m("setSolver  ");
 
         if (this->solver_m != "")
-            m << "Warning solver already initiated but overwrite ..." << endl;
+            *gmsg << "* Warning solver already initiated but overwrite ..." << endl;
 
         this->solver_m = solver;
 
@@ -18,15 +31,12 @@ void PartBunch<double,3>::setSolver(std::string solver) {
             &this->fcontainer_m->getPhi()));
 
         this->fsolver_m->initSolver();
-
-
-        m << "Solver initialized" << endl;
         
         /// ADA we need to be able to set a load balancer when not having a field solver
         this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
             this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
 
-        m << "Load Balancer set" << endl;
+        *gmsg << "* Solver and Load Balancer set" << endl;
 }
 
 template<>
@@ -185,18 +195,9 @@ void PartBunch<double,3>::calcBeamParameters() {
 
 template<>
 void PartBunch<double,3>::pre_run() {
-    Inform m("pre_run ");
-    
-    static IpplTimings::TimerRef DummySolveTimer = IpplTimings::getTimer("solveWarmup");
-    IpplTimings::startTimer(DummySolveTimer);
-
-    m << " init rho" << endl;
     this->fcontainer_m->getRho() = 0.0;
-    m << " init rho done " << endl;
-    
     this->fsolver_m->runSolver();
-    m << " solve done " << endl;
-    IpplTimings::stopTimer(DummySolveTimer);
+    *gmsg << "* Solver warmup done" << endl;
 }
 
 template<>
@@ -245,18 +246,18 @@ Inform& PartBunch<double,3>::print(Inform& os) {
 
 template <>
 void PartBunch<double,3>::bunchUpdate() {
-    /* \frief
+
+    /* \brief
       1. calculates and set hr
       2. do repartitioning
      */
 
 
     auto *mesh = &this->fcontainer_m->getMesh();
-    auto *FL = &this->fcontainer_m->getFL();
+    auto *FL   = &this->fcontainer_m->getFL();
 
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
     pc->computeMinMaxR();
-
     /* 
        This needs to go 
     auto Rview  = this->getParticleContainer()->R.getView();
@@ -268,20 +269,21 @@ void PartBunch<double,3>::bunchUpdate() {
     */
 
     /// \brief assume o < 0.0?
+
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
     ippl::Vector<double, 3> l = e - o; 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
-
+    
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
 
     this->getFieldContainer()->setRMin(o);
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
-
+    
     /* old Tracker 
     this->calcBeamParameters();
 
@@ -301,43 +303,14 @@ void PartBunch<double,3>::bunchUpdate() {
 
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
-    this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
+    // \fixme with the OPEN solver repartion does not work.
+    // this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
     this->updateMoments();
-
 }
 
-template <>
-void PartBunch<double,3>::computeSelfFields() {
-    Inform m("INFORM_ALL_NODES");
-    static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
-    IpplTimings::startTimer(SolveTimer);
+/*
 
-    Field_t<3>& rho                          = this->fcontainer_m->getRho();
-    ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
-    typename Base::particle_position_type& R = this->pcontainer_m->R;
-
-    rho = 0.0;
-    Q = Q*this->pcontainer_m->dt;
-    this->qi_m  = this->qi_m * getdT();
-    scatter(Q, rho, R);
-    Q = Q/this->pcontainer_m->dt;
-    this->qi_m  = this->qi_m / getdT();
-    rho = rho/getdT();
-
-
-    // some debug output ------------------------------------------------------------
-    //
-    /*
-    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
-                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
-                             if (i<5){
-                                 double myQ = Qview(i);
-                                 std::cout << "qi= " << myQ << std::endl;
-                             }
-                         }); 
-    */
-    
     auto rhoView = rho.getView();
     using index_array_type_3d = typename ippl::RangePolicy<Dim>::index_array_type;
     const index_array_type_3d& args3d = {8,8,8};
@@ -362,18 +335,45 @@ void PartBunch<double,3>::computeSelfFields() {
     const index_array_type_1d& args1d = {0}; 
     auto res1d = ippl::apply(Qview,args1d);
     m << "Type of variable: " << typeid(res1d).name() << " value " << res1d << endl;
-    //
-    // -------------------------------------------------------------------------------
 
+
+    
+ */
+
+
+
+// ADA
+template <>
+void PartBunch<double,3>::computeSelfFields() {
+    Inform m("computeSelfFields ");
+    static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
+    IpplTimings::startTimer(SolveTimer);
+
+    Field_t<3>& rho                          = this->fcontainer_m->getRho();
+    auto rhoView                             = rho.getView();
+    ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
+    typename Base::particle_position_type& R = this->pcontainer_m->R;
+
+    rho = 0.0;
+
+    Q           = Q*this->pcontainer_m->dt;
+    this->qi_m  = this->qi_m * getdT();
+
+    scatter(Q, rho, R);
+
+    Q           = Q/this->pcontainer_m->dt;
+    this->qi_m  = this->qi_m / getdT();
+    rho         = rho/getdT();
     
     double gammaz = this->pcontainer_m->getMeanGammaZ();
     double scaleFactor = 1;
     // double scaleFactor = Physics::c * getdT();
     //and get meshspacings in real units [m]
+
     Vector_t<double, 3> hr_scaled = hr_m * scaleFactor;
     hr_scaled[2] *= gammaz;
 
-    double localDensity2 = 0, Density2=0;
+
     double tmp2 = 1 / hr_scaled[0] * 1 / hr_scaled[1] * 1 / hr_scaled[2];
     
     using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
@@ -381,8 +381,9 @@ void PartBunch<double,3>::computeSelfFields() {
     //divide charge by a 'grid-cube' volume to get [C/m^3]
     rho = rho *tmp2;
         
+    double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
 
-    localDensity2 = 0.;
+    double localDensity2 = 0.0, Density2=0.0;
     ippl::parallel_reduce(
                           "Density stats", ippl::getRangePolicy(rhoView),
                           KOKKOS_LAMBDA(const index_array_type& args, double& den) {
@@ -390,9 +391,9 @@ void PartBunch<double,3>::computeSelfFields() {
                               den  += Kokkos::pow(val, 2);
                           },
                           Kokkos::Sum<double>(localDensity2) );
+    
     ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
-
-    double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+    
     rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
 
     this->calcDebyeLength();
