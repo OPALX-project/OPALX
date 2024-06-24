@@ -550,14 +550,11 @@ void ParallelTracker::emitParticles(long long step) {
 
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
-    Inform m("INFORM_ALL_NODES");
-
-    m << "in ParallelTracker::computeSpaceChargeFields" << endl;
-    
     if (!itsBunch_m->hasFieldSolver()) {
+        *gmsg << "no solver avaidable " << endl;
         return;
     }
-
+        
     itsBunch_m->calcBeamParameters();
 
     Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
@@ -589,7 +586,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             h_Rot( i, j ) = rot(i, j);
         }
     }
+    
     Kokkos::deep_copy( Rot, h_Rot );
+
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
