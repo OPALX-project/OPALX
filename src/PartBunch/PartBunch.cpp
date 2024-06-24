@@ -202,11 +202,11 @@ void PartBunch<double,3>::bunchUpdate() {
     this->getParticleContainer()->getLayout().updateLayout(*FL, *mesh);
     this->getParticleContainer()->update();
     */
-
+/*
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
-
+*/
     this->updateMoments();
 
 }
