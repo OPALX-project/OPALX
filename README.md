@@ -7,14 +7,23 @@
 ## Modules needed OPENMP build
 
 cmake/3.25.2
+
 openmpi/4.1.5_slurm
+
 fftw/3.3.10_merlin6    
+
 gsl/2.7                
+
 H5hut/2.0.0rc6_slurm
+
 gcc/12.3.0             
+
 boost/1.82.0_slurm     
+
 gtest/1.13.0-1         
+
 hdf5/1.10.8_slurm     
+
 gnutls/3.5.19
 
 
