@@ -1,5 +1,6 @@
 set (_SRCS
     PartBunch.cpp
+    FieldSolver.cpp
 )
 
 include_directories (

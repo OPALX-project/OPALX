@@ -155,7 +155,7 @@ TrackRun* TrackRun::clone(const std::string& name) {
 }
 
 void TrackRun::execute() {
-
+   
    const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
 
    if (Options::version < currentVersion) {
@@ -241,13 +241,14 @@ void TrackRun::execute() {
     macrocharge_m = beam->getChargePerParticle();
     macromass_m   = beam->getMassPerParticle();
 
-    double Qtot = macrocharge_m * beam->getNumberOfParticles();
+    // double Qtot = macrocharge_m * beam->getNumberOfParticles();
 
     /*
       Here we can allocate the bunch
 
      */
-
+    
+    
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     bunch_m = std::make_shared<bunch_type>(macrocharge_m,
                                            beam->getMass()*1e9*Units::eV2MeV,
@@ -311,9 +312,13 @@ void TrackRun::execute() {
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
+    *gmsg << "* About to create particles ..." << endl;
+    
     sampler_m->generateParticles(Np, nr);
 
-    /*
+    *gmsg << "* Particle creation done" << endl;
+    
+    /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
     */
@@ -360,8 +365,6 @@ void TrackRun::execute() {
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
-
-    *gmsg << "* Parallel Tracker created ... " << endl;
 
     itsTracker_m->execute();
 
