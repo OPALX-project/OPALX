@@ -1,5 +1,7 @@
 #include "PartBunch/FieldSolver.hpp"
 
+extern Inform* gmsg;
+
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
     //      if constexpr (Dim == 3) {
@@ -22,7 +24,7 @@ template <>
 void FieldSolver<double,3>::initSolver() {
     Inform m;
     if (this->getStype() == "FFT") {
-        initFFTSolver();
+        initOpenSolver();
     } else if (this->getStype() == "CG") {
         initCGSolver();
     } else if (this->getStype() == "P3M") {
@@ -53,10 +55,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
 
 template<>
 void FieldSolver<double,3>::runSolver() {
-    Inform m("runSolver  ");
     constexpr int Dim = 3;
-
-    m << "solver type= " << this->getStype() << endl;
     
     if (this->getStype() == "CG") {
             CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
@@ -82,7 +81,7 @@ void FieldSolver<double,3>::runSolver() {
             ippl::Comm->barrier();
         } else if (this->getStype() == "FFT") {
             if constexpr (Dim == 2 || Dim == 3) {
-                std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
+                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
             }
         } else if (this->getStype() == "P3M") {
             if constexpr (Dim == 3) {
@@ -90,15 +89,11 @@ void FieldSolver<double,3>::runSolver() {
             }
         } else if (this->getStype() == "FFTOPEN") {
             if constexpr (Dim == 3) {
-                m << " about to open.solve " << endl;
                 std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
-                m << " done open.solve " << endl;
             }
         } else {
             throw std::runtime_error("Unknown solver type");
         }
-
-    m << " done xx.solve() " << endl;
 }
 
 /*
