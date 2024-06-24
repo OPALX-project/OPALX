@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.20.3)
 project (OPALX VERSION 2024.1.00 LANGUAGES C CXX)
+include(FetchContent)
+link_directories(LINK_DIRECTORIES)
 set (PROJECT_BUGREPORT opal@lists.psi.ch)
 
 set (OPALX_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -27,7 +29,7 @@ endif ()
 add_compile_options (-Wall)
 add_compile_options (-Wunused)
 add_compile_options (-Wextra)
-add_compile_options (-Werror)
+# add_compile_options (-Werror)
 add_compile_options (-Wno-unused-parameter)
 add_compile_options (-Wno-error=unused-variable)
 
@@ -40,24 +42,27 @@ message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 
 # Select flags.
 set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CUDA_EXTENSIONS OFF)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g ")
-set (CMAKE_CXX_FLAGS_RELEASE "-O3")
-set (CMAKE_CXX_FLAGS_DEBUG  "-O0 -g")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g  -O3")
+set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
+set (CMAKE_CXX_FLAGS_DEBUG  "-g")
 
+if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # Use sanitizer flags for GCC or Clang only
+     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
+endif ()
 
-if ("${Kokkos_DEVICES}" MATCHES "CUDA")
-    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
-endif()
+#if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
+#    set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G") #-diag-suppress=611")
+#endif()
+
+message (STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
 
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
 #add_compile_options (-ferror-limit=1)
-
-#add_compile_options (-Wno-deprecated-declarations)
-#add_compile_options (-Wno-unused)
-#add_compile_options (-Wextra)
 add_compile_options (-Wno-error=uninitialized)
 add_compile_options (-Wno-error=restrict)
 add_compile_options (-Wno-error=unused-function)
@@ -81,26 +86,19 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-find_package(Heffte 2.2.0 REQUIRED)
-message (STATUS "Found Heffte_DIR: ${Heffte_DIR}")
-find_library(HEFFTE_LIBRARY heffte HINTS ${Heffte_DIR}/../..)
-message (STATUS "Found HEFFTE lib: ${HEFFTE_LIBRARY}")
-
-
-find_package(Kokkos REQUIRED)
-message (STATUS "Found Kokkos_DIR: ${Kokkos_DIR}")
-if ("${Kokkos_DEVICES}" MATCHES "CUDA")
-    set (CMAKE_CXX_FLAGS_DEBUG "-O0 -g -G --diag-suppress=20011")
-endif()
-find_library(KOKKOS_LIBRARY1 NAMES kokkoscore HINTS ${Kokkos_DIR}/../..)
-find_library(KOKKOS_LIBRARY2 NAMES kokkoscontainers HINTS ${Kokkos_DIR}/../..)
-find_library(KOKKOS_LIBRARY3 NAMES kokkossimd HINTS ${Kokkos_DIR}/../..)
-message (STATUS "Found Kokkos lib: ${KOKKOS_LIBRARY1}:${KOKKOS_LIBRARY2}:${KOKKOS_LIBRARY3}")
-
-find_package (Ippl REQUIRED)
 message (STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-
-find_library(IPPL_LIBRARY ippl HINTS ${IPPL_LIBRARY_DIR}) 
+if(NOT IPPL_VERSION)
+    set(IPPL_VERSION "3.2.0")
+    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
+endif()
+FetchContent_Declare(ippl
+    #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
+    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_SHALLOW True
+    DOWNLOAD_EXTRACT_TIMESTAMP True
+)
+FetchContent_MakeAvailable(ippl)
+include_directories("${IPPL_SOURCE_DIR}/src")
 
 message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
 message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
