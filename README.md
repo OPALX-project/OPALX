@@ -4,54 +4,40 @@
 # BUILDING OPAL-X on Merlin
 
 
-## Modules needed
+## Modules needed OPENMP build
 
-load_ipplomp() { 
-module purge
-module use unstable
-module load cmake/3.25.2
-module load gcc/11.4.0      # does not work for openmp and mixed module load gcc/12.3.0
-module load openmpi
-module load boost
-module load fftw
-module load gtest
-module load gsl
-module load hdf5
-module load H5hut
-module load boost
-module load cuda/12.1.1
-export BOOST_ROOT=$BOOST_DIR
-export OMP_PROC_BIND=spread
-}
+cmake/3.25.2
 
-## build for Kokkos, FEFFTe and IPPL
+openmpi/4.1.5_slurm
 
-% git clone git@github.com:IPPL-framework/ippl-build-scripts.git
+fftw/3.3.10_merlin6    
 
-set the correct environment, adjust the path in ITB_DOWNLOAD_DIR
+gsl/2.7                
 
-% export ITB_DOWNLOAD_DIR=/data/project/general/isodarUQ/adelmann
-% export ITB_SRC_DIR=${ITB_DOWNLOAD_DIR}/downloads
-% export ITB_PREFIX=${ITB_DOWNLOAD_DIR}/install
-% mkdir -p ${ITB_SRC_DIR}
-% mkdir -p ${ITB_PREFIX}
+H5hut/2.0.0rc6_slurm
 
-Now you can build serial and with openmp
+gcc/12.3.0             
 
-% ./999-build-everything -t serial  --kokkos --heffte --ippl --export -u
-% ./999-build-everything -t openmp --enable-openmp --kokkos --heffte --ippl --export -u
+boost/1.82.0_slurm     
+
+gtest/1.13.0-1         
+
+hdf5/1.10.8_slurm     
+
+gnutls/3.5.19
 
 
-here is still a problem with cuda (./999-build-everything -t mixed --enable-cuda --enable-openmp --kokkos --heffte --ippl --export --arch=PASCAL6 -u)
+## Clone repo and build opal-x with OPENMP 
 
-## Checkout OPAL-X
+% git clone git@gitlab.psi.ch:OPAL/opal-x/src.git opal-x
 
-% git clone git@gitlab.psi.ch:OPAL/opal-x/src.git 
+% cd opal-x
 
-Change to build-script
+% ./gen_OPALrevision
 
-401-build-opal -r openmp --export -u 
+% mkdir build_openmp && cd build_openmp
 
+% cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=20  -DENABLE_SOLVERS=ON  -DENABLE_FFT=ON -DIPPL_PLATFORMS=openmp
 
 
 
