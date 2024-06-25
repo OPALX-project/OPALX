@@ -75,13 +75,13 @@ private:
 
     Tracker* itsTracker_m;
 
-    Distribution* dist_m;
+    std::shared_ptr<Distribution> dist_m;
 
     std::vector<Distribution*> distrs_m;
 
     std::shared_ptr<SamplingBase> sampler_m;
 
-    FieldSolverCmd* fs_m;
+    std::shared_ptr<FieldSolverCmd> fs_m;
 
     DataSink* ds_m;
 
@@ -95,7 +95,7 @@ private:
     */
 
     using bunch_type = PartBunch_t;
-    std::unique_ptr<bunch_type> bunch_m;
+    std::shared_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
 

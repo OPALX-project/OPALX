@@ -69,7 +69,7 @@ template <typename T = double, unsigned Dim = 3, class... ViewArgs>
 using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
 */
 
-template <typename T, unsigned Dim = 3>
+template <typename T, unsigned Dim>
 using Vector_t = ippl::Vector<T, Dim>;
 
 typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
@@ -81,13 +81,13 @@ enum UnitState_t { units = 0, unitless = 1 };
 
 // euclidean norm
 template <class T, unsigned D>
-inline double euclidean_norm(const Vector_t<T, D>& v) {
-    return std::sqrt(dot(v, v).apply());
+KOKKOS_INLINE_FUNCTION double euclidean_norm(const Vector_t<T, D>& v) {
+    return Kokkos::sqrt(dot(v, v).apply());
 }
 
 // dot products
 template <class T, unsigned D>
-inline double dot(const Vector_t<T, D>& v, const Vector_t<T, D>& w) {
+KOKKOS_INLINE_FUNCTION double dot(const Vector_t<T, D>& v, const Vector_t<T, D>& w) {
     double res = 0.0;
     for (unsigned i = 0; i < D; i++)
         res += v(i) * w(i);
@@ -95,7 +95,7 @@ inline double dot(const Vector_t<T, D>& v, const Vector_t<T, D>& w) {
 }
 
 template <class T, unsigned D>
-inline double dot(const Vector_t<T, D>& v) {
+KOKKOS_INLINE_FUNCTION double dot(const Vector_t<T, D>& v) {
     double res = 0.0;
     for (unsigned i = 0; i < D; i++)
         res += v(i) * v(i);

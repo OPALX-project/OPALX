@@ -228,11 +228,12 @@ void TrackRun::execute() {
 
     // \todo here we can loop over several distributions
 
-    dist_m = Distribution::find(distributionArray[0]);
+    dist_m = std::shared_ptr<Distribution>(Distribution::find(distributionArray[0]));
     *gmsg << *dist_m << endl;
 
-    fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
+    fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << *fs_m << endl;
+
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;
@@ -249,7 +250,7 @@ void TrackRun::execute() {
     
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
-    bunch_m = std::make_unique<bunch_type>(macrocharge_m,
+    bunch_m = std::make_shared<bunch_type>(macrocharge_m,
                                            beam->getMass()*1e9*Units::eV2MeV,
                                            beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);

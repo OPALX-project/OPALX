@@ -32,6 +32,8 @@
 //  by the compiler perform the correct operation.  For speed reasons
 //  they are not implemented.
 
+#include <Kokkos_Core.hpp>
+
 class PartData {
 
 public:
@@ -48,10 +50,10 @@ public:
     PartData();
 
     /// The constant charge per particle.
-    double getQ() const;
+    KOKKOS_INLINE_FUNCTION double getQ() const;
 
     /// The constant mass per particle.
-    double getM() const;
+    KOKKOS_INLINE_FUNCTION double getM() const;
 
     /// The constant reference momentum per particle.
     double getP() const;
@@ -101,12 +103,12 @@ protected:
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline double PartData::getQ() const {
+KOKKOS_INLINE_FUNCTION double PartData::getQ() const {
     return charge;
 }
 
 
-inline double PartData::getM() const {
+KOKKOS_INLINE_FUNCTION double PartData::getM() const {
     return mass;
 }
 
