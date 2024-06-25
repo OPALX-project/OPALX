@@ -43,7 +43,6 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/BoostMatrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
-//#include "Algorithms/DistributionMoments.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
@@ -109,10 +108,6 @@ private:
 
     double rmsDensity_m;
 
-
-    std::shared_ptr<Distribution> OPALdist_m;
-
-    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
 
 public:
     Vector_t<int, Dim> nr_m;
@@ -202,6 +197,11 @@ private:
 
     /// if multiple TRACK commands
     long long globalTrackStep_m;
+
+
+    std::shared_ptr<Distribution> OPALdist_m;
+
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
     
     // unit state of PartBunch
     // UnitState_t unit_state_m;
