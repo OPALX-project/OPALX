@@ -333,28 +333,67 @@ void PartBunch<double,3>::bunchUpdate() {
 // ADA
 template <>
 void PartBunch<double,3>::computeSelfFields() {
-    Inform m("computeSelfFields ");
+    Inform m("computeSelfFields w CICScatter ");
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
 
-    Field_t<3>& rho                          = this->fcontainer_m->getRho();
-    auto rhoView                             = rho.getView();
-    ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
-    typename Base::particle_position_type& R = this->pcontainer_m->R;
+    /*
 
-    rho = 0.0;
+     scatterCIC start
 
-    Q           = Q*this->pcontainer_m->dt;
-    this->qi_m  = this->qi_m * getdT();
+    */
 
-    scatter(Q, rho, R);
+    this->fcontainer_m->getRho() = 0.0;
 
-    Q           = Q/this->pcontainer_m->dt;
-    this->qi_m  = this->qi_m / getdT();
-    rho         = rho/getdT();
+    ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
+    typename Base::particle_position_type* R = &this->pcontainer_m->R;
+    Field_t<3>* rho                          = &this->fcontainer_m->getRho();
+    auto rhoView                             = rho->getView();
+    double Q                                 = this->qi_m * this->getTotalNum();
+    Vector_t<double, 3> rmin                 = rmin_m;
+    Vector_t<double, 3> rmax                 = rmax_m;
+    Vector_t<double, 3> hr                   = hr_m;
     
+    scatter(*q, *rho, *R);
+
+    double relError = std::fabs((Q - (*rho).sum()) / Q);
+    size_type TotalParticles = 0;
+    size_type localParticles = this->pcontainer_m->getLocalNum();
+    
+    m << "computeSelfFields sum rho " << (*rho).sum() << endl;
+        
+    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
+    
+    if (ippl::Comm->rank() == 0) {
+            m << "Time step: " << it_m
+              << " total particles in the sim. " << totalP_m 
+              << " missing : " << totalP_m-TotalParticles 
+              << " rel. error in charge conservation: " << relError << endl;
+    }
+    
+    //    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
+    //(*rho)            = (*rho) / cellVolume;
+
+    double rhoNorm = norm(*rho);
+    m << "rhoNorm= " << rhoNorm << endl;
+
+    if (this->fsolver_m->getStype() != "OPEN") {
+        double size = 1;
+        for (unsigned d = 0; d < 3; d++) {
+            size *= rmax[d] - rmin[d];
+        }
+        *rho = *rho - (Q / size);
+    }
+    
+    /*
+
+     scatterCIC end
+
+    */
+
     double gammaz = this->pcontainer_m->getMeanGammaZ();
     double scaleFactor = 1;
+
     // double scaleFactor = Physics::c * getdT();
     //and get meshspacings in real units [m]
 
@@ -367,7 +406,7 @@ void PartBunch<double,3>::computeSelfFields() {
     using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
 
     //divide charge by a 'grid-cube' volume to get [C/m^3]
-    rho = rho *tmp2;
+    *rho = *rho * tmp2;
         
     double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
 
