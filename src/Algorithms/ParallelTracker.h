@@ -180,6 +180,18 @@ public:
     /// Apply the algorithm to a vertical FFA magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
 
+    // made following public: __host__ __device__ lambda cannot have private or protected access within its class
+    void kickParticles(const BorisPusher& pusher);
+
+    void pushParticles(const BorisPusher& pusher);
+
+    void timeIntegration2(BorisPusher& pusher);
+
+    void changeDT(bool backTrack = false);
+
+    void computeSpaceChargeFields(unsigned long long step);
+
+    void setTime();
 private:
     // Not implemented.
     ParallelTracker();
@@ -221,8 +233,6 @@ private:
 
     /********************** END VARIABLES ***********************************/
 
-    void kickParticles(const BorisPusher& pusher);
-    void pushParticles(const BorisPusher& pusher);
     void updateReferenceParticle(const BorisPusher& pusher);
 
     void writePhaseSpace(const long long step, bool psDump, bool statDump);
@@ -237,22 +247,18 @@ private:
     void prepareSections();
 
     void timeIntegration1(BorisPusher& pusher);
-    void timeIntegration2(BorisPusher& pusher);
     void selectDT(bool backTrack = false);
-    void changeDT(bool backTrack = false);
     void emitParticles(long long step);
     void computeExternalFields(OrbitThreader& oth);
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
 
-    void computeSpaceChargeFields(unsigned long long step);
     // void prepareOpalBeamlineSections();
     void dumpStats(long long step, bool psDump, bool statDump);
     void setOptionalVariables();
     bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
     void handleRestartRun();
 
-    void setTime();
     void doBinaryRepartition();
 
     void transformBunch(const CoordinateSystemTrafo& trafo);
