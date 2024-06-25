@@ -26,7 +26,6 @@
  */
 
 #include <cmath>
-
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "PartBunch/PartBunch.hpp"

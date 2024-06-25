@@ -59,8 +59,6 @@ using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
-constexpr double SMALLESTCUTOFF = 1e-12;
-
 namespace DISTRIBUTION {
     enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG };
 }

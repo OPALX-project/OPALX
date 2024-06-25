@@ -43,7 +43,6 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/BoostMatrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
-//#include "Algorithms/DistributionMoments.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
@@ -86,17 +85,32 @@ public:
 
     double time_m;
 
-    Vector_t<int, Dim> nr_m;
-
     size_type totalP_m;
 
     int nt_m;
+
     double lbt_m;
+
     double dt_m;
+
     int it_m;
 
     std::string integration_method_m;
+
     std::string solver_m;
+
+    bool isFirstRepartition_m;
+
+private:
+    double qi_m;
+
+    double mi_m;
+
+    double rmsDensity_m;
+
+
+public:
+    Vector_t<int, Dim> nr_m;
 
     Vector_t<double, Dim> origin_m;
     Vector_t<double, Dim> rmin_m;
@@ -112,7 +126,6 @@ public:
 
     ippl::NDIndex<Dim> domain_m;
     std::array<bool, Dim> decomp_m;
-    bool isFirstRepartition_m;
 
     /*
       Up to here it is like the opaltest
@@ -178,15 +191,17 @@ private:
     PartData* reference_m;
 
     double couplingConstant_m;
-    double qi_m;
-    double mi_m;
-    double rmsDensity_m;
 
     /// step in a TRACK command
     long long localTrackStep_m;
 
     /// if multiple TRACK commands
     long long globalTrackStep_m;
+
+
+    std::shared_ptr<Distribution> OPALdist_m;
+
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
     
     // unit state of PartBunch
     // UnitState_t unit_state_m;
@@ -204,13 +219,11 @@ private:
     bool dcBeam_m;
     double periodLength_m;
 
-    Distribution* OPALdist_m;
-    FieldSolverCmd* OPALFieldSolver_m;
-
 public:
     PartBunch(
               double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
-        Distribution* OPALdistribution, FieldSolverCmd* OPALFieldSolver)
+        std::shared_ptr<Distribution> &OPALdistribution,
+        std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
         : ippl::PicManager<
             T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
           time_m(0.0),
@@ -221,7 +234,7 @@ public:
           it_m(0),
           integration_method_m(integration_method),
           solver_m(""),
-          isFirstRepartition_m(true),        
+          isFirstRepartition_m(true),
           qi_m(qi),
           mi_m(mi),
           rmsDensity_m(0.0),
@@ -229,9 +242,8 @@ public:
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
           OPALFieldSolver_m(OPALFieldSolver){
-        
-        Inform m("PartBunch() ");
 
+        Inform m("PartBunch() ");
 
         static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
         IpplTimings::startTimer(gatherInfoPartBunch);
@@ -263,12 +275,10 @@ public:
         this->origin_m = -3.0;
         this->dt_m = 0.5 / this->nr_m[2];
 
-        using ParticleContainer_t = ParticleContainer<T, Dim>;
-        using FieldContainer_t    = FieldContainer<T, Dim>;
+        rmin_m = origin_m;
+        rmax_m = origin_m + length;
 
-        this->setFieldContainer(std::make_shared<FieldContainer_t>(
-            this->hr_m, this->rmin_m, this->rmax_m, this->decomp_m, this->domain_m, this->origin_m,
-            isAllPeriodic));
+        this->setFieldContainer( std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
 
         this->setParticleContainer(std::make_shared<ParticleContainer_t>(
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
@@ -347,7 +357,13 @@ public:
     }
 
     void gatherCIC() {
-        gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
+/*
+        using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+        typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
+        typename Base::particle_position_type* R = &this->pcontainer_m->R;
+        VField_t<T, Dim>* Ef = &this->fcontainer_m->getE();
+        gather(*Ep, *Ef, *R);
+*/
     }
 
     void scatterCIC(); 
@@ -411,8 +427,10 @@ public:
     }
 
     double getGamma(int i) const {
+        return 0.0;
     }
     double getBeta(int i) const {
+        return 0.0;
     }
 
     void actT() {
@@ -449,7 +467,7 @@ public:
 
 
     bool isGridFixed() {
-                return false;
+        return false;
     }
 
     void boundp() {
@@ -490,6 +508,7 @@ public:
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
+        return 0;
     }
 
     void calcLineDensity(
@@ -500,6 +519,7 @@ public:
     }
 
     Vector_t<double, Dim> getEExtrema() {
+       return Vector_t<double, Dim>(0);
     }
 
     void computeSelfFields();
@@ -512,15 +532,20 @@ public:
     }
 
     bool getFieldSolverType() {
+        return false;
     }
 
     bool getIfBeamEmitting() {
+        return false;
     }
     int getLastEmittedEnergyBin() {
+        return 0;
     }
     size_t getNumberOfEmissionSteps() {
+        return 0;
     }
     int getNumberOfEnergyBins() {
+        return 0;
     }
 
     void Rebin() {
@@ -548,12 +573,14 @@ public:
     void rebin() {
     }
     int getLastemittedBin() {
+        return 0;
     }
     void setLocalBinCount(size_t num, int bin) {
     }
     void calcGammas() {
     }
     double getBinGamma(int bin) {
+        return 0.0;
     }
     bool hasBinning() {
         return false;
@@ -563,31 +590,43 @@ public:
     void setBinCharge(int bin) {
     }
     double calcMeanPhi() {
+        return 0.0;
     }
     bool resetPartBinID2(const double eta) {
         return false;
     }
     bool resetPartBinBunch() {
+        return false;
     }
     double getPx(int i) {
+        return 0.0;
     }
     double getPy(int i) {
+        return 0.0;
     }
     double getPz(int i) {
+        return 0.0;
     }
     double getPx0(int i) {
+        return 0.0;
     }
     double getPy0(int i) {
+        return 0.0;
     }
     double getX(int i) {
+        return 0.0;
     }
     double getY(int i) {
+        return 0.0;
     }
     double getZ(int i) {
+        return 0.0;
     }
     double getX0(int i) {
+        return 0.0;
     }
     double getY0(int i) {
+        return 0.0;
     }
 
     void setZ(int i, double zcoo) {
