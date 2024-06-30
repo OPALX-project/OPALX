@@ -297,7 +297,8 @@ public:
     }
 
     void bunchUpdate();
-
+    void bunchUpdate(ippl::Vector<double, 3> hr);
+    
     ~PartBunch() {
         Inform m("PartBunch Destructor ");
         m << "Finished time step: " << this->it_m << " time: " << this->time_m << endl;
@@ -873,7 +874,7 @@ public:
     }
 
     // Sanity check functions
-    void spaceChargeEFieldCheck();
+    void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
 
 };
 
