@@ -1,3 +1,35 @@
+    // some debug output ------------------------------------------------------------
+    //
+    /*
+    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
+                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
+                             if (i<5){
+                                 double myQ = Qview(i);
+                                 std::cout << "qi= " << myQ << std::endl;
+                             }
+                         }); 
+
+
+
+
+
+
+    double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
+    double localDensity2 = 0.0, Density2=0.0;
+    ippl::parallel_reduce(
+                          "Density stats", ippl::getRangePolicy(rhoView),
+                          KOKKOS_LAMBDA(const index_array_type& args, double& den) {
+                              double val = ippl::apply(rhoView, args);
+                              den  += Kokkos::pow(val, 2);
+                          },
+                          Kokkos::Sum<double>(localDensity2) );
+    ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
+    rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
+    this->calcDebyeLength();
+
+
+    */
+
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
@@ -28,7 +60,7 @@ void PartBunch<double,3>::setSolver(std::string solver) {
 }
 
 template<>
-void PartBunch<double,3>::spaceChargeEFieldCheck() {
+void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
 
  Inform msg("EParticleStats");
 
@@ -39,17 +71,19 @@ void PartBunch<double,3>::spaceChargeEFieldCheck() {
  double maxEComponent = std::numeric_limits<double>::min();
  double minE          = std::numeric_limits<double>::max();
  double maxE          = std::numeric_limits<double>::min();
- double cc            = getCouplingConstant();
  
  int myRank = ippl::Comm->rank();
  Kokkos::parallel_reduce(
                          "check e-field", this->getLocalNum(),
                          KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
                                        double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
-                             double EX    = pE_view[i][0]*cc;
-                             double EY    = pE_view[i][1]*cc;
-                             double EZ    = pE_view[i][2]*cc;
+                             double EX    = pE_view[i][0]*efScale[0];
+                             double EY    = pE_view[i][1]*efScale[1];
+                             double EZ    = pE_view[i][2]*efScale[2];
 
+                             if ((i<5) || (i>this->getLocalNum()-4))
+                                 std::cout << "E[" << i << "]= (" << EX << "," << EY << "," << EZ << ")" << std::endl;
+                             
                              double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
                              
                              loc_avgE += ENorm;
@@ -233,22 +267,69 @@ Inform& PartBunch<double,3>::print(Inform& os) {
     }
 
 template <>
+void PartBunch<double,3>::bunchUpdate(ippl::Vector<double, 3> hr) {
+    /* \brief
+      1. calculates and set hr
+      2. do repartitioning
+     */
+    
+    Inform m ("bunchUpdate ");
+ 
+    auto *mesh = &this->fcontainer_m->getMesh();
+    auto *FL   = &this->fcontainer_m->getFL();
+
+    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+
+    pc->computeMinMaxR();
+
+    /// \brief assume o < 0.0?
+
+    ippl::Vector<double, 3> o = pc->getMinR();
+    ippl::Vector<double, 3> e = pc->getMaxR();
+    ippl::Vector<double, 3> l = e - o;
+    
+    mesh->setMeshSpacing(hr);
+    
+    mesh->setOrigin(o-0.5*hr*this->OPALFieldSolver_m->getBoxIncr()/100.);
+    
+    pc->getLayout().updateLayout(*FL, *mesh);
+    pc->update();
+
+    this->getFieldContainer()->setRMin(o);
+    this->getFieldContainer()->setRMax(e);
+    this->getFieldContainer()->setHr(hr);
+    
+    this->isFirstRepartition_m = true;
+    this->loadbalancer_m->initializeORB(FL, mesh);
+
+    // \fixme with the OPEN solver repartion does not work.
+    // this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+    this->updateMoments();
+    
+
+
+}
+
+template <>
 void PartBunch<double,3>::bunchUpdate() {
 
     /* \brief
       1. calculates and set hr
       2. do repartitioning
      */
-
-
+    
+    Inform m ("bunchUpdate ");
+ 
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
 
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+
     pc->computeMinMaxR();
+    
     /* 
        This needs to go 
-    auto Rview  = this->getParticleContainer()->R.getView();
+ "   auto Rview  = this->getParticleContainer()->R.getView();
     Kokkos::parallel_for(
                          "shift r to 0,0", ippl::getRangePolicy(Rview),
                          KOKKOS_LAMBDA(const int i) {
@@ -260,9 +341,11 @@ void PartBunch<double,3>::bunchUpdate() {
 
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
-    ippl::Vector<double, 3> l = e - o; 
+    ippl::Vector<double, 3> l = e - o;
+    
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
     mesh->setMeshSpacing(hr_m);
+    
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
     
     pc->getLayout().updateLayout(*FL, *mesh);
@@ -344,24 +427,19 @@ void PartBunch<double,3>::computeSelfFields() {
     */
 
     this->fcontainer_m->getRho() = 0.0;
-
-    ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
+    size_type TotalParticles     = 0;
+    size_type localParticles      = this->pcontainer_m->getLocalNum();
+    const double qtot                        = this->qi_m * this->getTotalNum();
+    
+    ippl::ParticleAttrib<double>* Q          = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     Field_t<3>* rho                          = &this->fcontainer_m->getRho();
-    auto rhoView                             = rho->getView();
-    double Q                                 = this->qi_m * this->getTotalNum();
-    Vector_t<double, 3> rmin                 = rmin_m;
-    Vector_t<double, 3> rmax                 = rmax_m;
-    Vector_t<double, 3> hr                   = hr_m;
     
-    scatter(*q, *rho, *R);
+    scatter(*Q, *rho, *R);
 
-    double relError = std::fabs((Q - (*rho).sum()) / Q);
-    size_type TotalParticles = 0;
-    size_type localParticles = this->pcontainer_m->getLocalNum();
+
+    double relError = std::fabs((qtot - (*rho).sum()) / qtot);
     
-    m << "computeSelfFields sum rho " << (*rho).sum() << endl;
-        
     ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
     
     if (ippl::Comm->rank() == 0) {
@@ -370,70 +448,37 @@ void PartBunch<double,3>::computeSelfFields() {
               << " missing : " << totalP_m-TotalParticles 
               << " rel. error in charge conservation: " << relError << endl;
     }
-    
-    //    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
-    //(*rho)            = (*rho) / cellVolume;
 
-    double rhoNorm = norm(*rho);
-    m << "rhoNorm= " << rhoNorm << endl;
+    m << "1: sum(rhs) = " << std::scientific << std::setprecision(3) << (*rho).sum() << endl;
 
-    if (this->fsolver_m->getStype() != "OPEN") {
-        double size = 1;
-        for (unsigned d = 0; d < 3; d++) {
-            size *= rmax[d] - rmin[d];
-        }
-        *rho = *rho - (Q / size);
-    }
+
+
     
-    /*
+   /*
 
      scatterCIC end
 
     */
 
     double gammaz = this->pcontainer_m->getMeanGammaZ();
-    double scaleFactor = 1;
+    gammaz *= gammaz;
+    gammaz = std::sqrt(gammaz + 1.0);
 
-    // double scaleFactor = Physics::c * getdT();
-    //and get meshspacings in real units [m]
-
-    Vector_t<double, 3> hr_scaled = hr_m * scaleFactor;
+    Vector_t<double, 3> hr_scaled = hr_m;
     hr_scaled[2] *= gammaz;
 
-
-    double tmp2 = 1 / hr_scaled[0] * 1 / hr_scaled[1] * 1 / hr_scaled[2];
-    
-    using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type;
-
-    //divide charge by a 'grid-cube' volume to get [C/m^3]
-    *rho = *rho * tmp2;
-        
-    double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
-
-    double localDensity2 = 0.0, Density2=0.0;
-    ippl::parallel_reduce(
-                          "Density stats", ippl::getRangePolicy(rhoView),
-                          KOKKOS_LAMBDA(const index_array_type& args, double& den) {
-                              double val = ippl::apply(rhoView, args);
-                              den  += Kokkos::pow(val, 2);
-                          },
-                          Kokkos::Sum<double>(localDensity2) );
-    
-    ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
-    
-    rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
-
-    this->calcDebyeLength();
-
-    m << "gammaz = "  << gammaz << endl;
-    m << "hr_scaled = " << hr_scaled << endl;
-    m << "coupling constant= " << getCouplingConstant() << endl;
+    hr_m = hr_scaled;    
+    this->bunchUpdate(hr_m);
     
     this->fsolver_m->runSolver();    
 
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
-    spaceChargeEFieldCheck();
+    const double cc = getCouplingConstant();
+    Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
+    m << "efScale = " << efScale << endl;
+    
+    spaceChargeEFieldCheck(efScale);
 
     IpplTimings::stopTimer(SolveTimer);
 }
