@@ -37,19 +37,21 @@ class FieldSolver : public ippl::FieldSolverBase<T, Dim> {
 private:
     Field_t<Dim>* rho_m;
     VField_t<T, Dim>* E_m;
-    Field<T, Dim>* phi_m;
-
+    Field_t<Dim>* phi_m;
+    unsigned int call_counter;
 public:
     FieldSolver(std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field<T, Dim>* phi)
-        : ippl::FieldSolverBase<T, Dim>(solver), rho_m(rho), E_m(E), phi_m(phi) {
-        // solverType_m(solver) {
+        : ippl::FieldSolverBase<T, Dim>(solver), rho_m(rho), E_m(E), phi_m(phi), call_counter(0) {
         setPotentialBCs();
     }
 
     ~FieldSolver() {
     }
 
-    Field_t<Dim>* getRho() const {
+    void dumpScalField(std::string what);
+    void dumpVectField(std::string what);
+
+    Field_t<Dim>* getRho() {
         return rho_m;
     }
     void setRho(Field_t<Dim>* rho) {

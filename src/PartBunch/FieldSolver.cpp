@@ -1,12 +1,215 @@
 #include "PartBunch/FieldSolver.hpp"
 
+#include <iomanip>
+#include <fstream>
+
+#include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+
+#include "Utilities/Util.h"
+#include "AbstractObjects/OpalData.h"
+
+
 extern Inform* gmsg;
 
 template <>
+void FieldSolver<double,3>::dumpVectField(std::string what) {
+    /*
+      what == ef
+     */
+
+    Inform m("FS::dumpScalField() ");
+
+    //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
+
+    if (ippl::Comm->size() > 1) {
+        return;
+    }
+
+    m << "*** START DUMPING VECTOR FIELD ***" << endl;
+
+/*
+    constexpr bool isVectorField = std::is_same<VField_t, FieldType>::value;
+    std::string type = (isVectorField) ? "field" : "scalar";
+    
+    
+*/
+
+/* Save the files in the output directory of the simulation. The file
+ * name of vector fields is
+ *
+ * 'basename'-'name'_field-'******'.dat
+ *
+ * and of scalar fields
+ *
+ * 'basename'-'name'_scalar-'******'.dat
+ *
+ * with
+ *   'basename': OPAL input file name (*.in)
+ *   'name':     field name (input argument of function)
+ *   '******':   step padded with zeros to 6 digits
+ */
+    
+    std::string dirname = "";
+
+    std::string type;
+    std::string unit;
+    bool isVectorField;
+
+    if (Util::toUpper(what) == "EF") {
+        type = "vector";
+        unit = "";
+        isVectorField = true;
+        //    field = this->getE();
+    }
+
+
+    boost::filesystem::path file(dirname);
+    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::string basename = OpalData::getInstance()->getInputBasename();
+    filename % basename % (what + std::string("_") + type) % call_counter;
+    file /= filename.str();
+    m << "*** FILE NAME " + file.string() << endl;
+    std::ofstream fout(file.string(), std::ios::out);
+    fout.precision(9);
+
+    fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
+         << "#"
+         << std::setw(4)  << "i"
+         << std::setw(5)  << "j"
+         << std::setw(5)  << "k"
+         << std::setw(17) << "x [m]"
+         << std::setw(17) << "y [m]"
+         << std::setw(17) << "z [m]";
+
+    if (isVectorField) {
+        fout << std::setw(10) << what << "x [" << unit << "]"
+             << std::setw(10) << what << "y [" << unit << "]"
+             << std::setw(10) << what << "z [" << unit << "]";
+    } else {
+        fout << std::setw(13) << what << " [" << unit << "]";
+    }
+
+    fout << std::endl;
+
+    fout.close();
+    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD ***" << endl;
+}
+
+template <>
+void FieldSolver<double,3>::dumpScalField(std::string what) {
+    /*
+      what == phi | rho
+     */
+
+    Inform m("FS::dumpScalField() ");
+
+    //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
+
+    if (ippl::Comm->size() > 1) {
+        return;
+    }
+
+    m << "*** START DUMPING SCALAR FIELD ***" << endl;
+
+/* Save the files in the output directory of the simulation. The file
+ * name of vector fields is
+ *
+ * 'basename'-'name'_field-'******'.dat
+ *
+ * and of scalar fields
+ *
+ * 'basename'-'name'_scalar-'******'.dat
+ *
+ * with
+ *   'basename': OPAL input file name (*.in)
+ *   'name':     field name (input argument of function)
+ *   '******':   step padded with zeros to 6 digits
+ */
+    
+    int step = 0;
+    std::string dirname = "";
+
+    std::string type;
+    std::string unit;
+    bool isVectorField = false;
+    
+    if (Util::toUpper(what) == "RHO") {
+        type = "scalar";
+        unit = "Cb/m^3";
+    } else if (Util::toUpper(what) == "PHI") {
+        type = "scalar";
+        unit = "V";
+    }
+
+    Field_t<3>* field = this->getRho();   // both rho and phi are in the same variable (in place computation)
+    
+    auto localIdx = field->getOwned();
+    auto mesh_mp  = &(field->get_mesh());
+    auto spacing  = mesh_mp->getMeshSpacing();
+    auto origin   = mesh_mp->getOrigin();
+
+    auto fieldV      = field->getView();
+    auto field_hostV = field->getHostMirror();
+    Kokkos::deep_copy(field_hostV, fieldV);     
+
+    boost::filesystem::path file(dirname);
+    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::string basename = OpalData::getInstance()->getInputBasename();
+    filename % basename % (what + std::string("_") + type) % step;
+    file /= filename.str();
+    m << "*** FILE NAME " + file.string() << endl;
+    std::ofstream fout(file.string(), std::ios::out);
+    fout.precision(9);
+
+    fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
+         << "# origin= " << origin << " h= " << spacing << std::endl 
+         << std::setw(4)  << "i"
+         << std::setw(5)  << "j"
+         << std::setw(5)  << "k"
+         << std::setw(17) << "x [m]"
+         << std::setw(17) << "y [m]"
+         << std::setw(17) << "z [m]";
+
+    if (isVectorField) {
+        fout << std::setw(10) << what << "x [" << unit << "]"
+             << std::setw(10) << what << "y [" << unit << "]"
+             << std::setw(10) << what << "z [" << unit << "]";
+    } else {
+        fout << std::setw(13) << what << " [" << unit << "]";
+    }
+
+    fout << std::endl;
+
+    for (int i = localIdx[0].first(); i <= localIdx[0].last(); i++) {
+        for (int j = localIdx[1].first(); j <= localIdx[1].last(); j++) {
+            for (int k = localIdx[2].first(); k <= localIdx[2].last(); k++) {
+
+                // define the physical points (cell-centered)
+                double x = i * spacing[0] + origin[0];        
+                double y = j * spacing[1] + origin[1];        
+                double z = k * spacing[2] + origin[2];     
+                
+                fout << std::setw(5) << i + 1
+                     << std::setw(5) << j + 1
+                     << std::setw(5) << k + 1
+                     << std::setw(17) << x
+                     << std::setw(17) << y
+                     << std::setw(17) << z
+                     << std::setw(17) << field_hostV(i,j,k)                             
+                     << std::endl;
+            }
+        }
+    }
+    
+    fout.close();
+    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD ***" << endl;
+}
+
+template <>
 void FieldSolver<double,3>::initOpenSolver() {
-    //      if constexpr (Dim == 3) {
         ippl::ParameterList sp;
-        sp.add("output_type", OpenSolver_t<double, 3>::GRAD);
+        sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
         sp.add("use_heffte_defaults", false);
         sp.add("use_pencils", true);
         sp.add("use_reorder", false);
@@ -15,9 +218,6 @@ void FieldSolver<double,3>::initOpenSolver() {
         sp.add("r2c_direction", 0);
         sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
         initSolverWithParams<OpenSolver_t<double, 3>>(sp);
-        // } else {
-        //throw std::runtime_error("Unsupported dimensionality for OPEN solver");
-        //}
 }
 
 template <>
@@ -81,7 +281,10 @@ void FieldSolver<double,3>::runSolver() {
             ippl::Comm->barrier();
         } else if (this->getStype() == "FFT") {
             if constexpr (Dim == 2 || Dim == 3) {
+                this->dumpScalField("rho");
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+                this->dumpScalField("phi");
+                call_counter++;
             }
         } else if (this->getStype() == "P3M") {
             if constexpr (Dim == 3) {
@@ -89,11 +292,17 @@ void FieldSolver<double,3>::runSolver() {
             }
         } else if (this->getStype() == "FFTOPEN") {
             if constexpr (Dim == 3) {
-                std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
+                this->dumpScalField("rho");
+                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+                this->dumpScalField("phi");
             }
         } else {
             throw std::runtime_error("Unknown solver type");
         }
+
+
+
+
 }
 
 /*
