@@ -241,7 +241,7 @@ void TrackRun::execute() {
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;
 
-    macrocharge_m = beam->getChargePerParticle();
+    macrocharge_m = beam->getChargePerParticle()*1000000.;
     macromass_m   = beam->getMassPerParticle();
 
     // double Qtot = macrocharge_m * beam->getNumberOfParticles();

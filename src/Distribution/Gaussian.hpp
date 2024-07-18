@@ -33,6 +33,8 @@ public:
         // sample R
         Vector_t<double, 3> rmin = -opalDist_m->getCutoffR();
         Vector_t<double, 3> rmax =  opalDist_m->getCutoffR();
+        Vector_t<double, 3> hr;
+
         for(int i=0; i<3; i++){
             mu[i] = 0.0;
        	    sd[i] = opalDist_m->getSigmaR()[i];
@@ -63,6 +65,43 @@ public:
         nlocal = sampling.getLocalSamplesNum();
         pc_m->create(nlocal);
         sampling.generate(Rview, rand_pool64);
+
+        double meanR[3], loc_meanR[3];
+        for(int i=0; i<3; i++){
+           meanR[i] = 0.0;
+           loc_meanR[i] = 0.0;
+        }
+
+        Kokkos::parallel_reduce(
+            "calc moments of particle distr.", numberOfParticles,
+            KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Rview(k)[0];
+                    cent1 += Rview(k)[1];
+                    cent2 += Rview(k)[2];
+            },
+            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+        Kokkos::fence();
+        ippl::Comm->barrier();
+
+        MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+
+        for(int i=0; i<3; i++){
+           meanR[i] = meanR[i]/(1.*numberOfParticles);
+        }
+
+        Kokkos::parallel_for(
+                numberOfParticles,KOKKOS_LAMBDA(
+                    const int k) {
+                    Rview(k)[0] -= meanR[0];
+                    Rview(k)[1] -= meanR[1];
+                    Rview(k)[2] -= meanR[2];
+                    if (Rview(k)[2] < 0.0)
+                        Rview(k)[2] = 0.0;
+                }
+        );
+        Kokkos::fence();
+        ippl::Comm->barrier();
 
         // sample P
         for(int i=0; i<3; i++){

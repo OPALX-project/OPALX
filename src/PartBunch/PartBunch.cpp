@@ -1,35 +1,3 @@
-    // some debug output ------------------------------------------------------------
-    //
-    /*
-    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
-                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
-                             if (i<5){
-                                 double myQ = Qview(i);
-                                 std::cout << "qi= " << myQ << std::endl;
-                             }
-                         }); 
-
-
-
-
-
-
-    double Npoints = nr_m[0] * nr_m[1] * nr_m[2];
-    double localDensity2 = 0.0, Density2=0.0;
-    ippl::parallel_reduce(
-                          "Density stats", ippl::getRangePolicy(rhoView),
-                          KOKKOS_LAMBDA(const index_array_type& args, double& den) {
-                              double val = ippl::apply(rhoView, args);
-                              den  += Kokkos::pow(val, 2);
-                          },
-                          Kokkos::Sum<double>(localDensity2) );
-    ippl::Comm->reduce(localDensity2, Density2, 1, std::plus<double>());
-    rmsDensity_m = std::sqrt( (1.0 /Npoints) * Density2 / Physics::q_e / Physics::q_e );
-    this->calcDebyeLength();
-
-
-    */
-
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
@@ -64,57 +32,51 @@ void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
 
  Inform msg("EParticleStats");
 
- auto pE_view = this->pcontainer_m->E.getView();
- 
+ auto pE_view   = this->pcontainer_m->E.getView();
+ auto fphi_view = this->fcontainer_m->getPhi().getView();
+
+
  double avgE          = 0.0;
- double minEComponent = std::numeric_limits<double>::max();
- double maxEComponent = std::numeric_limits<double>::min();
- double minE          = std::numeric_limits<double>::max();
- double maxE          = std::numeric_limits<double>::min();
- 
+ double avgphi        = 0.0;
+
  int myRank = ippl::Comm->rank();
+
+ size_t nloc = this->getLocalNum();
+ 
  Kokkos::parallel_reduce(
-                         "check e-field", this->getLocalNum(),
-                         KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                                       double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+                         "check e-field", nloc,
+                         KOKKOS_LAMBDA(const size_t i, double& loc_avgE) {
                              double EX    = pE_view[i][0]*efScale[0];
                              double EY    = pE_view[i][1]*efScale[1];
                              double EZ    = pE_view[i][2]*efScale[2];
 
-                             if ((i<5) || (i>this->getLocalNum()-4))
-                                 std::cout << "E[" << i << "]= (" << EX << "," << EY << "," << EZ << ")" << std::endl;
+                             //                             if ((i<5) || (i>nloc-4))
+                             //    std::cout << "E[" << i << "]= (" << EX << "," << EY << "," << EZ << ")" << std::endl;
                              
                              double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
                              
                              loc_avgE += ENorm;
 
-                             loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-                             loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-                             loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
-                             
-                             loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-                             loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-                             loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
-
-                             loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-                             loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
                          },
-                         Kokkos::Sum<double>(avgE), Kokkos::Min<double>(minEComponent),
-                         Kokkos::Max<double>(maxEComponent), Kokkos::Min<double>(minE),
-                         Kokkos::Max<double>(maxE));
-
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+                         Kokkos::Sum<double>(avgE));
  
+ MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
  avgE /= this->getTotalNum();
  msg << "avgENorm = " << avgE << endl;
- msg << "minEComponent = " << minEComponent << endl;
- msg << "maxEComponent = " << maxEComponent << endl;
- msg << "minE = " << minE << endl;
- msg << "maxE = " << maxE << endl;
+
+ using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+ Kokkos::parallel_reduce(
+                         "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
+                         KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
+                             double phi = fphi_view(i,j,k);
+                             loc_avgphi += phi;
+                         },
+                         Kokkos::Sum<double>(avgphi));
+
+ MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
+ avgphi /= this->getTotalNum(); 
+ msg << "avgphi = " << avgphi << endl;
+ 
 }
 
 template<>
@@ -219,7 +181,6 @@ template<>
 void PartBunch<double,3>::pre_run() {
     this->fcontainer_m->getRho() = 0.0;
     this->fsolver_m->runSolver();
-    *gmsg << "* Solver warmup done" << endl;
 }
 
 template<>
@@ -327,16 +288,6 @@ void PartBunch<double,3>::bunchUpdate() {
 
     pc->computeMinMaxR();
     
-    /* 
-       This needs to go 
- "   auto Rview  = this->getParticleContainer()->R.getView();
-    Kokkos::parallel_for(
-                         "shift r to 0,0", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Rview(i) = Rview(i) - o ;
-                         });
-    */
-
     /// \brief assume o < 0.0?
 
     ippl::Vector<double, 3> o = pc->getMinR();
@@ -355,22 +306,11 @@ void PartBunch<double,3>::bunchUpdate() {
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
     
-    /* old Tracker 
-    this->calcBeamParameters();
-
-
-    ippl::Vector<double, 3> o = this->get_origin();
-    ippl::Vector<double, 3> e = this->get_maxExtent(); 
-    ippl::Vector<double, 3> l = e - o; 
-
-    hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
-
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o-0.5*hr_m);
 
     this->getParticleContainer()->getLayout().updateLayout(*FL, *mesh);
     this->getParticleContainer()->update();
-    */
 
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
@@ -379,38 +319,6 @@ void PartBunch<double,3>::bunchUpdate() {
     // this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
     this->updateMoments();
 }
-
-/*
-
-    auto rhoView = rho.getView();
-    using index_array_type_3d = typename ippl::RangePolicy<Dim>::index_array_type;
-    const index_array_type_3d& args3d = {8,8,8};
-    auto res3d = ippl::apply(rhoView,args3d);
-    m << "Type of variable: " << typeid(res3d).name() << " rho[8,8,8]= " << res3d << endl;
-
-    double qsum = 0.0;
-    for (int i=0; i<nr_m[0]; i++) {
-        for (int j=0; j<nr_m[1]; j++) {
-            for (int k=0; k<nr_m[2]; k++) {
-                const index_array_type_3d& args3d = {i,j,k};
-                qsum += ippl::apply(rhoView,args3d);
-            }
-        }
-    }
-
-    m << "sum(rho_m)= " << qsum << endl;
-
-    
-    auto Qview =  this->pcontainer_m->Q.getView();
-    using index_array_type_1d = typename ippl::RangePolicy<1>::index_array_type;
-    const index_array_type_1d& args1d = {0}; 
-    auto res1d = ippl::apply(Qview,args1d);
-    m << "Type of variable: " << typeid(res1d).name() << " value " << res1d << endl;
-
-
-    
- */
-
 
 
 // ADA
@@ -428,21 +336,20 @@ void PartBunch<double,3>::computeSelfFields() {
 
     this->fcontainer_m->getRho() = 0.0;
     size_type TotalParticles     = 0;
-    size_type localParticles      = this->pcontainer_m->getLocalNum();
-    const double qtot                        = this->qi_m * this->getTotalNum();
+    size_type localParticles     = this->pcontainer_m->getLocalNum();
+    const double qtot            = this->qi_m * this->getTotalNum();
     
     ippl::ParticleAttrib<double>* Q          = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     Field_t<3>* rho                          = &this->fcontainer_m->getRho();
-    
-    scatter(*Q, *rho, *R);
 
+    scatter(*Q, *rho, *R);
 
     double relError = std::fabs((qtot - (*rho).sum()) / qtot);
     
     ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
     
-    if (ippl::Comm->rank() == 0) {
+    if ((ippl::Comm->rank() == 0) && (relError > 1.0E-13)) {
             m << "Time step: " << it_m
               << " total particles in the sim. " << totalP_m 
               << " missing : " << totalP_m-TotalParticles 
@@ -450,8 +357,6 @@ void PartBunch<double,3>::computeSelfFields() {
     }
 
     m << "1: sum(rhs) = " << std::scientific << std::setprecision(3) << (*rho).sum() << endl;
-
-
 
     
    /*
@@ -465,20 +370,28 @@ void PartBunch<double,3>::computeSelfFields() {
     gammaz = std::sqrt(gammaz + 1.0);
 
     Vector_t<double, 3> hr_scaled = hr_m;
-    hr_scaled[2] *= gammaz;
+    //    hr_scaled[2] *= gammaz;
 
     hr_m = hr_scaled;    
     this->bunchUpdate(hr_m);
     
     this->fsolver_m->runSolver();    
 
+    //    FieldWriter fwriter;                                                                                  |
+    // fwriter.dumpField(rho, "rho", "C/m^3", localTrackStep_m);
+
+    
+    // this->pcontainer_m->E = 1.0;
+    // spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
+
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
-    const double cc = getCouplingConstant();
-    Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
-    m << "efScale = " << efScale << endl;
+    //const double cc = getCouplingConstant();
+    //Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
+    // m << "efScale = " << efScale << endl;
     
-    spaceChargeEFieldCheck(efScale);
+    spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
+    //    spaceChargeEFieldCheck(efScale);
 
     IpplTimings::stopTimer(SolveTimer);
 }

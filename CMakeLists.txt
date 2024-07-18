@@ -49,6 +49,10 @@ if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "G
      set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
 endif ()
 
+if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
+    set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
+endif()
+
 message (STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
 
 # Disable compile time assert (used by IPPL)
