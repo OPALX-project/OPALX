@@ -60,6 +60,8 @@ public:
 
     virtual ~Distribution();
 
+    using Matrix_t = ippl::Vector< ippl::Vector<double, 6>, 6>;
+
     virtual bool canReplaceBy(Object* object);
     virtual Distribution* clone(const std::string& name);
     virtual void execute();
@@ -98,6 +100,8 @@ public:
 
     ippl::Vector<double, 3> getCutoffR() const;
     ippl::Vector<double, 3> getCutoffP() const;
+
+    matrix_t correlationMatrix_m;
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
