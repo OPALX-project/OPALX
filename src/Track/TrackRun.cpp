@@ -32,6 +32,8 @@
 
 #include "Distribution/Gaussian.hpp"
 
+#include "Distribution/MultiVariateGaussian.hpp"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
