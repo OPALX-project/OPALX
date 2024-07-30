@@ -310,6 +310,9 @@ void TrackRun::execute() {
         case DistributionType::GAUSS:
             sampler_m = std::make_shared<Gaussian>(pc, fc, opalDist);
             break;
+        case DistributionType::MULTIVARIATEGAUSS:
+            sampler_m = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
+            break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }

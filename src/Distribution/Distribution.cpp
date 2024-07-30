@@ -60,7 +60,7 @@ using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
 namespace DISTRIBUTION {
-    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG };
+    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, CORR, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG };
 }
 
 /*
@@ -93,6 +93,8 @@ Distribution::Distribution()
     itsAttr[DISTRIBUTION::SIGMAPX] = Attributes::makeReal("SIGMAPX", "SIGMApx", 0.0);
     itsAttr[DISTRIBUTION::SIGMAPY] = Attributes::makeReal("SIGMAPY", "SIGMApy", 0.0);
     itsAttr[DISTRIBUTION::SIGMAPZ] = Attributes::makeReal("SIGMAPZ", "SIGMApz", 0.0);
+
+    itsAttr[DISTRIBUTION::CORR] = Attributes::makeRealArray("CORR", "r correlation");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -205,8 +207,45 @@ void Distribution::setDistParametersGauss() {
 
     setSigmaR_m();
     setSigmaP_m();
+
     avrgpz_m = 0.0;
 }
+
+void Distribution::setDistParametersMultiVariateGauss() {
+
+    cutoffR_m = 3.;
+    cutoffP_m = 3.;
+
+    std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
+
+    if (!cr.empty()) {
+            if (cr.size() == 15) {
+                *gmsg << "* Use r to specify correlations" << endl;
+                unsigned int k = 0;
+                for (unsigned int i = 0; i < 5; ++ i) {
+                    for (unsigned int j = i + 1; j < 6; ++ j, ++ k) {
+                        correlationMatrix_m(j, i) = cr.at(k);
+                    }
+                }
+            }
+            else {
+                throw OpalException("Distribution::SetDistParametersGauss",
+                                    "Inconsistent set of correlations specified, check manual");
+            }
+    }
+
+    avrgpz_m = 0.0;
+
+    std::cout << "\n";
+    for (unsigned int i = 0; i < 5; ++ i) {
+        for (unsigned int j = i + 1; j < 6; ++ j) {
+            std::cout << " " << correlationMatrix_m(j, i);
+        }
+	std::cout << "\n";
+    }
+
+}
+
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
     // moved to Gaussian.hpp
 }
@@ -237,6 +276,9 @@ void Distribution::setDist() {
     switch (distrTypeT_m) {
         case DistributionType::GAUSS:
             setDistParametersGauss();
+            break;
+        case DistributionType::MULTIVARIATEGAUSS:
+            setDistParametersMultiVariateGauss();
             break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
