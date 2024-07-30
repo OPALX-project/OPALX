@@ -49,7 +49,7 @@ class Beam;
 class Beamline;
 class H5PartWrapper;
 
-enum class DistributionType : short { NODIST = -1, GAUSS };
+enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t = FieldContainer<double, 3>;
@@ -174,6 +174,8 @@ private:
     void setAttributes();
 
     void setDistParametersGauss();
+
+    void setDistParametersMultiVariateGauss();
 
     void setSigmaR_m();
 
