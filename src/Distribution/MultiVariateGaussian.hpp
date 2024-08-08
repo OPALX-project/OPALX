@@ -48,16 +48,13 @@ public:
             for (unsigned int i = 0; i < 6; i++) {
                for (unsigned int j = 0; j <= i; j++) {
                   sum = 0.0;
+                  for (unsigned int k = 0; k < j; k++) {
+                      sum += L_m[i][k] * L_m[j][k];
+                  }
                   if (j == i) {
-                     for (unsigned int k = 0; k < j; k++) {
-                        sum += L_m[j][k] * L_m[j][k];
-                     }
                      L_m[j][j] = Kokkos::sqrt(cov_m[j][j] - sum);
                   }
                   else {
-                     for (unsigned int k = 0; k < j; k++) {
-                        sum += L_m[i][k] * L_m[j][k];
-                     }
                      L_m[i][j] = (cov_m[i][j] - sum) / L_m[j][j];
                   }
                }
@@ -97,10 +94,15 @@ public:
         }
 
         for(int i=0; i<3; i++){
-            normRmin_m(i) = min_m(2*i);
-            normRmax_m(i) = max_m(2*i);
-            normPmin_m(i) = min_m(2*i+1);
-            normPmax_m(i) = max_m(2*i+1);
+            normRmin_m(i) = min_m(2*i)/opalDist_m->getSigmaR()[i];
+            normRmax_m(i) = max_m(2*i)/opalDist_m->getSigmaR()[i];
+            normPmin_m(i) = min_m(2*i+1)/opalDist_m->getSigmaP()[i];
+            normPmax_m(i) = max_m(2*i+1)/opalDist_m->getSigmaP()[i];
+
+            rmin_m(i) /= opalDist_m->getSigmaR()[i];
+            rmax_m(i) /= opalDist_m->getSigmaR()[i];
+            pmin_m(i) /= opalDist_m->getSigmaP()[i];
+            pmax_m(i) /= opalDist_m->getSigmaP()[i];
         }
     }
 
@@ -163,26 +165,26 @@ public:
         samplingP.generate(Pview, rand_pool64);
 
         Matrix_t L;
-        for (unsigned int i = 0; i < 6; i++) {
-            for (unsigned int j = 0; j < 6; j++) {
+        for (unsigned i = 0; i < 6; ++i){
+            for (unsigned j = 0; j < 6; ++j){
                 L[i][j] = L_m[i][j];
             }
-	}
+        }
 
-        // correlate samples by multiplying them into L
         Kokkos::parallel_for( nlocal,KOKKOS_LAMBDA(const int k) {
-                    double vec_old[6], vec[6];
+                    double vec_old[6], vec[6] = {0.0};
+
                     for (unsigned i = 0; i < 3; ++i){
                         vec_old[2*i] = Rview(k)[i];
                         vec_old[2*i+1] = Pview(k)[i];
-                        vec[2*i] = 0.0;
-                        vec[2*i+1] = 0.0;
                     }
+
                     for (unsigned i = 0; i < 6; ++i){
-                        for (unsigned j = 0; j < 6; ++j){
+                        for (unsigned j = 0; j < i+1; ++j){
                             vec[i] += L[i][j]*vec_old[j];
                         }
                     }
+
                     for (unsigned i = 0; i < 3; ++i){
                        Rview(k)[i] = vec[2*i];
                        Pview(k)[i] = vec[2*i+1];

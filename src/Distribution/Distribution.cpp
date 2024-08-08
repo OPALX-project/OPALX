@@ -225,10 +225,7 @@ void Distribution::setDistParametersMultiVariateGauss() {
     cutoffR_m = 3.;
     cutoffP_m = 3.;
 
-    setSigmaR_m();
-    setSigmaP_m();
-
-    std::cout << "\n";
+    // initialize the covariance matrix to identity
     for (unsigned int i = 0; i < 6; ++ i) {
         for (unsigned int j = 0; j < 6; ++ j) {
             if (i==j)
@@ -243,8 +240,8 @@ void Distribution::setDistParametersMultiVariateGauss() {
     setSigmaP_m();
 
     for (unsigned int i = 0; i < 3; ++ i){
-        correlationMatrix_m[2*i  ][2*i  ] = sigmaR_m[i];
-        correlationMatrix_m[2*i+1][2*i+1] = sigmaP_m[i];
+        correlationMatrix_m[2*i  ][2*i  ] = sigmaR_m[i]*sigmaR_m[i];
+        correlationMatrix_m[2*i+1][2*i+1] = sigmaP_m[i]*sigmaP_m[i];
     }
 
     std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
@@ -266,20 +263,8 @@ void Distribution::setDistParametersMultiVariateGauss() {
                                     "Inconsistent set of correlations specified, check manual");
             }
     }
-    else{
-
-    }
 
     avrgpz_m = 0.0;
-
-    std::cout << "\n";
-    for (unsigned int i = 0; i < 6; ++ i) {
-        for (unsigned int j = 0; j < 6; ++ j) {
-            std::cout << " " << correlationMatrix_m[i][j];
-        }
-	std::cout << "\n";
-    }
-
 }
 
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
@@ -309,11 +294,20 @@ void Distribution::printDistMultiVariateGauss(Inform& os)  const {
     os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
     os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+
+    os << "* input cov matrix = ";
+    for (unsigned int i = 0; i < 6; ++ i) {
+        for (unsigned int j = 0; j < 6; ++ j) {
+            os << correlationMatrix_m[i][j] << " ";
+        }
+        os << endl << "                     ";
+    }
 }
 
 void Distribution::setAttributes() {
-    setSigmaR_m();
-    setSigmaP_m();
+//    setSigmaR_m();
+//    setSigmaP_m();
+    setDist();
 }
 
 void Distribution::setDist() {
