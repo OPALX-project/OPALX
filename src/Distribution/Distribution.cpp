@@ -81,7 +81,7 @@ Distribution::Distribution()
         "The DISTRIBUTION statement defines data for the 6D particle distribution."),
       distrTypeT_m(DistributionType::NODIST) {
     itsAttr[DISTRIBUTION::TYPE] =
-        Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "FROMFILE"});
+        Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
         Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
@@ -165,7 +165,16 @@ Inform& Distribution::printInfo(Inform& os) const {
     if (OpalData::getInstance()->inRestartRun()) {
         os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
-        printDistGauss(os);
+        switch (distrTypeT_m) {
+            case DistributionType::GAUSS:
+                printDistGauss(os);
+                break;
+            case DistributionType::MULTIVARIATEGAUSS:
+                printDistMultiVariateGauss(os);
+                break;
+            default:
+                throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
+         }
         os << "* " << endl;
         os << "* Distribution is injected." << endl;
     }
@@ -216,15 +225,39 @@ void Distribution::setDistParametersMultiVariateGauss() {
     cutoffR_m = 3.;
     cutoffP_m = 3.;
 
+    setSigmaR_m();
+    setSigmaP_m();
+
+    std::cout << "\n";
+    for (unsigned int i = 0; i < 6; ++ i) {
+        for (unsigned int j = 0; j < 6; ++ j) {
+            if (i==j)
+               correlationMatrix_m[i][j] = 1.0;
+            else
+               correlationMatrix_m[i][j] = 0.0;
+        }
+    }
+
+    // set diagonal elements first
+    setSigmaR_m();
+    setSigmaP_m();
+
+    for (unsigned int i = 0; i < 3; ++ i){
+        correlationMatrix_m[2*i  ][2*i  ] = sigmaR_m[i];
+        correlationMatrix_m[2*i+1][2*i+1] = sigmaP_m[i];
+    }
+
     std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
 
     if (!cr.empty()) {
+            // read off-diagonal correlation matrix from input file
             if (cr.size() == 15) {
                 *gmsg << "* Use r to specify correlations" << endl;
                 unsigned int k = 0;
                 for (unsigned int i = 0; i < 5; ++ i) {
                     for (unsigned int j = i + 1; j < 6; ++ j, ++ k) {
-                        correlationMatrix_m(j, i) = cr.at(k);
+                        correlationMatrix_m[j][i] = cr.at(k);
+                        correlationMatrix_m[i][j] = cr.at(k); // impose symmetry
                     }
                 }
             }
@@ -233,13 +266,16 @@ void Distribution::setDistParametersMultiVariateGauss() {
                                     "Inconsistent set of correlations specified, check manual");
             }
     }
+    else{
+
+    }
 
     avrgpz_m = 0.0;
 
     std::cout << "\n";
-    for (unsigned int i = 0; i < 5; ++ i) {
-        for (unsigned int j = i + 1; j < 6; ++ j) {
-            std::cout << " " << correlationMatrix_m(j, i);
+    for (unsigned int i = 0; i < 6; ++ i) {
+        for (unsigned int j = 0; j < 6; ++ j) {
+            std::cout << " " << correlationMatrix_m[i][j];
         }
 	std::cout << "\n";
     }
@@ -255,6 +291,17 @@ void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
 
 void Distribution::printDistGauss(Inform& os) const {
     os << "* Distribution type: GAUSS" << endl;
+    os << "* " << endl;
+    os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
+    os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
+    os << "* SIGMAZ     = " << sigmaR_m[2] << " [m]" << endl;
+    os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+}
+
+void Distribution::printDistMultiVariateGauss(Inform& os)  const {
+    os << "* Distribution type: MULTIVARIATEGAUSS" << endl;
     os << "* " << endl;
     os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
@@ -287,7 +334,7 @@ void Distribution::setDist() {
 
 void Distribution::setDistType() {
     static const std::map<std::string, DistributionType> typeStringToDistType_s = {
-        {"NODIST", DistributionType::NODIST}, {"GAUSS", DistributionType::GAUSS}};
+        {"NODIST", DistributionType::NODIST}, {"GAUSS", DistributionType::GAUSS}, {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS} };
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);
 
