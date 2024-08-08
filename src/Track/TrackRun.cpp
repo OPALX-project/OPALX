@@ -231,6 +231,7 @@ void TrackRun::execute() {
     // \todo here we can loop over several distributions
 
     dist_m = std::shared_ptr<Distribution>(Distribution::find(distributionArray[0]));
+    dist_m->setDistType();
     *gmsg << *dist_m << endl;
 
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));

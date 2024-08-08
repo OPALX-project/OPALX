@@ -110,7 +110,7 @@ public:
         // read the input covariance matrix from opal dist
         for (unsigned int i = 0; i < 6; i++) {
             for (unsigned int j = 0; j < 6; j++) {
-                cov_m[i][j] = opalDist_m->correlationMatrix_m(i,j);
+                cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j];
             }
         }
 
@@ -120,7 +120,7 @@ public:
         // compute boundaries of random numbers
         ComputeCenteredBounds();
 
-        Vector_t<double, 3> hr;
+        Vector_t<double, 3> hr, hp;
 
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
@@ -147,7 +147,18 @@ public:
         pc_m->create(nlocal);
         samplingR.generate(Rview, rand_pool64);
 
-        sampling_t samplingP(dist, normPmax_m, normPmin_m, rlayout, numberOfParticles);
+
+        auto meshP = fc_m->getMesh();
+        auto FLP = fc_m->getFL();
+
+        hp = (pmax_m-pmin_m) / nr;
+        meshP.setMeshSpacing(hp);
+        meshP.setOrigin(pmin_m);
+
+        ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>> playout;
+        playout = ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>>(FLP, meshP);
+
+        sampling_t samplingP(dist, normPmax_m, normPmin_m, playout, numberOfParticles);
         //samplingP.setLocalSamplesNum( nlocal );
         samplingP.generate(Pview, rand_pool64);
 

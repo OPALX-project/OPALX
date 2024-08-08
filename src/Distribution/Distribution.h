@@ -101,7 +101,7 @@ public:
     ippl::Vector<double, 3> getCutoffR() const;
     ippl::Vector<double, 3> getCutoffP() const;
 
-    matrix_t correlationMatrix_m;
+    Matrix_t correlationMatrix_m;
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
@@ -170,6 +170,7 @@ private:
     // void initializeBeam(PartBunch_t* beam);
     void printDist(Inform& os, size_t numberOfParticles) const;
     void printDistGauss(Inform& os) const;
+    void printDistMultiVariateGauss(Inform& os) const;
 
     void setAttributes();
 
