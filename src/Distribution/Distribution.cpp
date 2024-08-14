@@ -81,7 +81,7 @@ Distribution::Distribution()
         "The DISTRIBUTION statement defines data for the 6D particle distribution."),
       distrTypeT_m(DistributionType::NODIST) {
     itsAttr[DISTRIBUTION::TYPE] =
-        Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FROMFILE"});
+        Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "FROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
         Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
@@ -171,6 +171,9 @@ Inform& Distribution::printInfo(Inform& os) const {
                 break;
             case DistributionType::MULTIVARIATEGAUSS:
                 printDistMultiVariateGauss(os);
+                break;
+            case DistributionType::FLATTOP:
+                printDistFlatTop(os);
                 break;
             default:
                 throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -267,6 +270,16 @@ void Distribution::setDistParametersMultiVariateGauss() {
     avrgpz_m = 0.0;
 }
 
+void Distribution::setDistParametersFlatTop() {
+
+    cutoffR_m = 3.;
+    cutoffP_m = 3.;
+
+    // set diagonal elements first
+    setSigmaR_m();
+    setSigmaP_m();
+}
+
 void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
     // moved to Gaussian.hpp
 }
@@ -304,6 +317,17 @@ void Distribution::printDistMultiVariateGauss(Inform& os)  const {
     }
 }
 
+void Distribution::printDistFlatTop(Inform& os)  const {
+    os << "* Distribution type: FLATTOP" << endl;
+    os << "* " << endl;
+    os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
+    os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
+    os << "* SIGMAZ     = " << sigmaR_m[2] << " [m]" << endl;
+    os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
+    os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+}
+
 void Distribution::setAttributes() {
 //    setSigmaR_m();
 //    setSigmaP_m();
@@ -321,6 +345,9 @@ void Distribution::setDist() {
         case DistributionType::MULTIVARIATEGAUSS:
             setDistParametersMultiVariateGauss();
             break;
+        case DistributionType::FLATTOP:
+            setDistParametersFlatTop();
+            break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
@@ -328,7 +355,11 @@ void Distribution::setDist() {
 
 void Distribution::setDistType() {
     static const std::map<std::string, DistributionType> typeStringToDistType_s = {
-        {"NODIST", DistributionType::NODIST}, {"GAUSS", DistributionType::GAUSS}, {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS} };
+        {"NODIST", DistributionType::NODIST},
+        {"GAUSS", DistributionType::GAUSS},
+        {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
+        {"FLATTOP", DistributionType::FLATTOP}
+    };
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);
 
