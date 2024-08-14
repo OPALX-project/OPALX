@@ -90,6 +90,10 @@ public:
     ippl::Vector<double, 3> getSigmaR() const;
     ippl::Vector<double, 3> getSigmaP() const;
 
+    double getSigmaTRise() const;
+    double getSigmaTFall_m() const;
+    double getTPulseLengthFWHM() const;
+
     void setDistType();
 
     void setDist();
@@ -102,6 +106,9 @@ public:
     ippl::Vector<double, 3> getCutoffP() const;
 
     Matrix_t correlationMatrix_m;
+
+    bool emitting_m;                     /// Distribution is an emitted, and is currently
+                                         /// emitting, rather than an injected, beam.
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
@@ -198,6 +205,10 @@ private:
 
     ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m, cutoffR_m, cutoffP_m;
 
+    double sigmaTRise_m;
+    double sigmaTFall_m;
+    double tPulseLengthFWHM_m;
+
     DistributionType distrTypeT_m;
 
     double avrgpz_m;
@@ -229,6 +240,18 @@ inline ippl::Vector<double, 3> Distribution::getCutoffR() const {
 
 inline ippl::Vector<double, 3> Distribution::getCutoffP() const {
     return cutoffP_m;
+}
+
+inline double Distribution::getSigmaTRise() const {
+    return sigmaTRise_m;
+}
+
+inline double Distribution::getSigmaTFall_m() const {
+    return sigmaTFall_m;
+}
+
+inline double Distribution::getTPulseLengthFWHM() const {
+    return tPulseLengthFWHM_m;
 }
 
 inline DistributionType Distribution::getType() const {
