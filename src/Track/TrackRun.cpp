@@ -58,6 +58,8 @@
 #include <fstream>
 #include <iomanip>
 
+#include <unistd.h>
+
 extern Inform* gmsg;
 
 namespace TRACKRUN {
@@ -297,6 +299,18 @@ void TrackRun::execute() {
     //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
     //}
 
+    long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
+    std::cout << "number_of_processors " << number_of_processors << std::endl;
+
+    std::cout << "omp_get_max_threads() " << omp_get_max_threads() << std::endl;
+
+    int world_size;
+    MPI_Comm_size( MPI_COMM_WORLD, &world_size );
+    std::cout<< "MPI_Comm_size " << world_size << std::endl;
+
+    static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
+    IpplTimings::startTimer(samplingTime);
+
     // set distribution type
     dist_m->setDist();
     dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
@@ -330,6 +344,8 @@ void TrackRun::execute() {
 
     *gmsg << "* Particle creation done" << endl;
     
+    IpplTimings::stopTimer(samplingTime);
+
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
@@ -341,7 +357,7 @@ void TrackRun::execute() {
 
     bunch_m->print(*gmsg);
 
-    initDataSink();
+//    initDataSink();
 
     /*
     if (!isFollowupTrack_m) {
@@ -350,6 +366,7 @@ void TrackRun::execute() {
     }
     */
 
+/*
     if (bunch_m->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
@@ -365,7 +382,7 @@ void TrackRun::execute() {
     } else {
         Track::block->zstart = 0.0;
     }
-
+*/
     /* \todo this is also not unsed in the master.
        This needs to come back as soon as we have RF
 
@@ -373,13 +390,14 @@ void TrackRun::execute() {
 
     */
 
+/*
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
     itsTracker_m->execute();
-
+*/
     /*
     opal_m->setRestartRun(false);
 

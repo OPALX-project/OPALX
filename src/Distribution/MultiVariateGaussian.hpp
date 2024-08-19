@@ -202,7 +202,7 @@ public:
         }
 
         Kokkos::parallel_reduce(
-            "calc moments of particle distr.", numberOfParticles,
+            "calc moments of particle distr.", nlocal,
             KOKKOS_LAMBDA(
                     const int k, double& cent0, double& cent1, double& cent2) {
                     cent0 += Rview(k)[0];
@@ -220,7 +220,7 @@ public:
         }
 
         Kokkos::parallel_for(
-                numberOfParticles,KOKKOS_LAMBDA(
+                nlocal,KOKKOS_LAMBDA(
                     const int k) {
                     Rview(k)[0] -= meanR[0];
                     Rview(k)[1] -= meanR[1];
@@ -255,7 +255,7 @@ public:
         }
 
         Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
+            nlocal,KOKKOS_LAMBDA(
                     const int k) {
                     Pview(k)[0] -= meanP[0];
                     Pview(k)[1] -= meanP[1];
@@ -268,7 +268,7 @@ public:
         // correct the means of R and P
         double avrgpz = opalDist_m->getAvrgpz();
         Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
+            nlocal,KOKKOS_LAMBDA(
                     const int k) {
                     Pview(k)[2] += avrgpz;
             }
