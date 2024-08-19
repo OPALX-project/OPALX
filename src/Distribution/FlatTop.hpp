@@ -48,6 +48,19 @@ public:
        // TODO: then, scale Rx and Ry with sigmaR_m[0] and sigmaR_m[1]
        // TODO: set Px=Py=0
 
+/*
+        double rmin[3] = {0.0,   0.0, 0.0};
+        double rmax[3] = {1.0, 2.*pi, 0.0};
+
+        ippl::random::randu<double, 3> randu_instance(Rview, rand_pool64, rmin, rmax);
+
+        Kokkos::parallel_for(nlocal, ippl::random::randn<double, Dim>(position, rand_pool64, mu, sd)
+        );
+
+        Kokkos::fence();
+        ippl::Comm->barrier();
+*/
+
     }
 
     void generateLongFlattopT(size_t& numberOfParticles){
