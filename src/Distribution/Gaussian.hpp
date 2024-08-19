@@ -63,7 +63,7 @@ public:
         }
 
         Kokkos::parallel_reduce(
-            "calc moments of particle distr.", numberOfParticles,
+            "calc moments of particle distr.", nlocal,
             KOKKOS_LAMBDA(
                     const int k, double& cent0, double& cent1, double& cent2) {
                     cent0 += Rview(k)[0];
@@ -72,16 +72,16 @@ public:
             },
             Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        ippl::Comm->barrier();
 
         for(int i=0; i<3; i++){
            meanR[i] = meanR[i]/(1.*numberOfParticles);
         }
 
         Kokkos::parallel_for(
-                numberOfParticles,KOKKOS_LAMBDA(
+                nlocal, KOKKOS_LAMBDA(
                     const int k) {
                     Rview(k)[0] -= meanR[0];
                     Rview(k)[1] -= meanR[1];
@@ -118,16 +118,16 @@ public:
             },
 	    Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        ippl::Comm->barrier();
 
         for(int i=0; i<3; i++){
            meanP[i] = meanP[i]/(1.*numberOfParticles);
         }
 
         Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
+            nlocal, KOKKOS_LAMBDA(
                     const int k) {
                     Pview(k)[0] -= meanP[0];
                     Pview(k)[1] -= meanP[1];
@@ -140,7 +140,7 @@ public:
         // correct the mean
         double avrgpz = opalDist_m->getAvrgpz();
         Kokkos::parallel_for(
-            numberOfParticles,KOKKOS_LAMBDA(
+            nlocal, KOKKOS_LAMBDA(
                     const int k) {
                     Pview(k)[2] += avrgpz;
             }
