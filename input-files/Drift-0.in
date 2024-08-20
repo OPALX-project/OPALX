@@ -36,7 +36,7 @@ D1: DRIFT, L = 1.0, ELEMEDGE = 0.0;
 myLine: Line = (D1);
 
 BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
-        BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq * 1E6, CHARGE = -1;
+        BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq, CHARGE = -1;
 
 
 FS1: Fieldsolver, NX=32, NY=32, NZ=32, TYPE=FFT, PARFFTX = true, PARFFTY = true, PARFFTZ = false,
