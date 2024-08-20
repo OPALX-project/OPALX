@@ -87,6 +87,7 @@ if(NOT IPPL_VERSION)
     set(IPPL_VERSION "3.2.0")
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
+
 FetchContent_Declare(ippl
     #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
@@ -94,6 +95,23 @@ FetchContent_Declare(ippl
     DOWNLOAD_EXTRACT_TIMESTAMP True
 )
 set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
+
+set(IPPL_GIT_TAG "" CACHE STRING "Optional branch or tag for IPPL")
+#URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
+if(IPPL_GIT_TAG)
+    FetchContent_Declare(ippl
+        GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+        GIT_TAG ${IPPL_GIT_TAG}
+        GIT_SHALLOW True
+        DOWNLOAD_EXTRACT_TIMESTAMP True
+    )
+else()
+    FetchContent_Declare(ippl
+        GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+        GIT_SHALLOW True
+        DOWNLOAD_EXTRACT_TIMESTAMP True
+    )
+endif()
 
 FetchContent_MakeAvailable(ippl)
 include_directories("${IPPL_SOURCE_DIR}/src")

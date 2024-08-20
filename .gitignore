@@ -5,6 +5,8 @@
 *.a
 *.aux
 *.h5
+#*#
+*.dat
 optimizer/Tests/*.exe
 build
 data
