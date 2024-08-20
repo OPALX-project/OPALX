@@ -22,10 +22,11 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
-    if (ippl::Comm->size() > 1) {
+    if (ippl::Comm->size() > 1 || call_counter<2) {
         return;
     }
 
+    
     m << "*** START DUMPING VECTOR FIELD ***" << endl;
 
 /*
@@ -75,7 +76,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
          << "#"
-         << std::setw(4)  << "i"
+         << std::setw(5)  << "i"
          << std::setw(5)  << "j"
          << std::setw(5)  << "k"
          << std::setw(17) << "x [m]"
@@ -106,7 +107,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
-    if (ippl::Comm->size() > 1) {
+    if (ippl::Comm->size() > 1 || call_counter<2) {
         return;
     }
 
@@ -160,11 +161,12 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     file /= filename.str();
     m << "*** FILE NAME " + file.string() << endl;
     std::ofstream fout(file.string(), std::ios::out);
-    fout.precision(9);
+
+    fout << std::setprecision(9);
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
-         << "# origin= " << origin << " h= " << spacing << std::endl 
-         << std::setw(4)  << "i"
+         << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing << std::endl 
+         << std::setw(5)  << "i"
          << std::setw(5)  << "j"
          << std::setw(5)  << "k"
          << std::setw(17) << "x [m]"
@@ -196,7 +198,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
                      << std::setw(17) << x
                      << std::setw(17) << y
                      << std::setw(17) << z
-                     << std::setw(17) << field_hostV(i,j,k)                             
+                     << std::scientific << "\t" << field_hostV(i,j,k)                             
                      << std::endl;
             }
         }
@@ -222,9 +224,12 @@ void FieldSolver<double,3>::initOpenSolver() {
 
 template <>
 void FieldSolver<double,3>::initSolver() {
+
+    initOpenSolver();
+    /*
     Inform m;
     if (this->getStype() == "FFT") {
-        initOpenSolver();
+    
     } else if (this->getStype() == "CG") {
         initCGSolver();
     } else if (this->getStype() == "P3M") {
@@ -237,6 +242,7 @@ void FieldSolver<double,3>::initSolver() {
     else {
         m << "No solver matches the argument: " << this->getStype() << endl;
     }
+    */
 }
 
 template <>
@@ -282,6 +288,7 @@ void FieldSolver<double,3>::runSolver() {
         } else if (this->getStype() == "FFT") {
             if constexpr (Dim == 2 || Dim == 3) {
                 this->dumpScalField("rho");
+                call_counter++;
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
                 this->dumpScalField("phi");
                 call_counter++;
@@ -293,15 +300,14 @@ void FieldSolver<double,3>::runSolver() {
         } else if (this->getStype() == "FFTOPEN") {
             if constexpr (Dim == 3) {
                 this->dumpScalField("rho");
+                call_counter++;
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
                 this->dumpScalField("phi");
+                call_counter++;
             }
         } else {
             throw std::runtime_error("Unknown solver type");
         }
-
-
-
 
 }
 
