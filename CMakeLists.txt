@@ -278,12 +278,10 @@ add_custom_target(
     src/OPALrevision.h
     )
 
-add_custom_command(
-    OUTPUT src/OPALrevision.h
-    COMMAND ./gen_OPALrevision
+add_custom_target(makeOPALrevision
+#    OUTPUT src/OPALrevision.h
+    COMMAND ${CMAKE_SOURCE_DIR}/gen_OPALrevision
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    DEPENDS
-#    always_rebuild
     )
 
 add_subdirectory (src)
