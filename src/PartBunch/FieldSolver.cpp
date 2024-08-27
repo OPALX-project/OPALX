@@ -183,9 +183,9 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 
     fout << std::endl;
 
-    for (int i = localIdx[0].first(); i <= localIdx[0].last(); i++) {
-        for (int j = localIdx[1].first(); j <= localIdx[1].last(); j++) {
-            for (int k = localIdx[2].first(); k <= localIdx[2].last(); k++) {
+    for (int i = localIdx[0].first() +1; i <= localIdx[0].last() +1; i++) {
+        for (int j = localIdx[1].first() +1; j <= localIdx[1].last() +1; j++) {
+            for (int k = localIdx[2].first() +1; k <= localIdx[2].last() +1; k++) {
 
                 // define the physical points (cell-centered)
                 double x = i * spacing[0] + origin[0];        
