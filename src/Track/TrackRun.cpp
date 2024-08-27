@@ -299,14 +299,16 @@ void TrackRun::execute() {
     //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
     //}
 
-    long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
-    std::cout << "number_of_processors " << number_of_processors << std::endl;
+    if (ippl::Comm->rank() == 0) {
+        long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
+        *gmsg << "number_of_processors " << number_of_processors << endl;
 
-    std::cout << "omp_get_max_threads() " << omp_get_max_threads() << std::endl;
+//        *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
 
-    int world_size;
-    MPI_Comm_size( MPI_COMM_WORLD, &world_size );
-    std::cout<< "MPI_Comm_size " << world_size << std::endl;
+        int world_size;
+        MPI_Comm_size( MPI_COMM_WORLD, &world_size );
+        *gmsg << "MPI_Comm_size " << world_size << endl;
+    }
 
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
     IpplTimings::startTimer(samplingTime);
