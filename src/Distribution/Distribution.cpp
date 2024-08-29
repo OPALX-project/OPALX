@@ -276,8 +276,8 @@ void Distribution::setDistParametersMultiVariateGauss() {
                 unsigned int k = 0;
                 for (unsigned int i = 0; i < 5; ++ i) {
                     for (unsigned int j = i + 1; j < 6; ++ j, ++ k) {
-                        correlationMatrix_m[j][i] = cr.at(k);
-                        correlationMatrix_m[i][j] = cr.at(k); // impose symmetry
+                        correlationMatrix_m[j][i] = cr.at(k)*cr.at(k);
+                        correlationMatrix_m[i][j] = correlationMatrix_m[j][i]; // impose symmetry
                     }
                 }
             }
