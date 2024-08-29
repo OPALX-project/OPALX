@@ -19,7 +19,7 @@ Value,{OPALVERSION};
 // Global Parameters
 
 REAL rf_freq             = 1.3e9;    // RF frequency. (Hz)
-REAL n_particles         = 1E6;      // Number of particles in simulation.
+REAL n_particles         = 1E7;      // Number of particles in simulation.
 REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
 
 //----------------------------------------------------------------------------
@@ -49,7 +49,7 @@ FS1: Fieldsolver, NX=8, NY=8, NZ=8, TYPE=FFT, PARFFTX = true, PARFFTY = true, PA
                   BCFFTX=OPEN, BCFFTY=OPEN, BCFFTZ=OPEN,
                   BBOXINCR = 1, GREENSF = INTEGRATED;
 
-Dist1: DISTRIBUTION, TYPE= MULTIVARIATEGAUSS, SIGMAX=1e-1, SIGMAY=1e-2, SIGMAZ=1e-3, SIGMAPX=1e-2, SIGMAPY=1e-3, SIGMAPZ=2e-3, CORR = {1e-5,2e-5,0,0,0,0,0,0,0,0,0,0,0,0,0};
+Dist1: DISTRIBUTION, TYPE= MULTIVARIATEGAUSS, SIGMAX=1e-1, SIGMAY=1e-2, SIGMAZ=1e-3, SIGMAPX=1e-2, SIGMAPY=1e-3, SIGMAPZ=2e-3, CORR = {1e-2,2e-2,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 myLine: Line = (D1,D2,D3,D4);
 
