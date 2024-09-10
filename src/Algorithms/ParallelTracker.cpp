@@ -394,7 +394,7 @@ void ParallelTracker::execute() {
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
             }
-
+            // ADA
             timeIntegration1(pusher);
 
             computeSpaceChargeFields(step);
@@ -572,6 +572,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
      */
 
+    
+    /*
+    
     const matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
@@ -614,7 +617,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     }
 
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
-
+    */
+    
     itsBunch_m->computeSelfFields();
 
     /**
@@ -627,7 +631,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m)
 
      */
-
+    /*
     Kokkos::parallel_for(
                          "CSTrafo:transformTo", ippl::getRangePolicy(Rview),
                          KOKKOS_LAMBDA(const int i) {                           
@@ -651,6 +655,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                              }
                          });         
 
+
+    */
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
