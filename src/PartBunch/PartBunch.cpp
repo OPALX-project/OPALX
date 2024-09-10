@@ -2,6 +2,9 @@
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
 
+#undef doDEBUG
+
+
 extern Inform* gmsg;
 
 template<>
@@ -356,9 +359,6 @@ void PartBunch<double,3>::computeSelfFields() {
               << " rel. error in charge conservation: " << relError << endl;
     }
 
-    m << "1: sum(rhs) = " << std::scientific << std::setprecision(3) << (*rho).sum() << endl;
-
-    
    /*
 
      scatterCIC end
@@ -374,23 +374,25 @@ void PartBunch<double,3>::computeSelfFields() {
 
     hr_m = hr_scaled;    
     this->bunchUpdate(hr_m);
-    
+
     this->fsolver_m->runSolver();    
-
-    //    FieldWriter fwriter;                                                                                  |
-    // fwriter.dumpField(rho, "rho", "C/m^3", localTrackStep_m);
-
     
     // this->pcontainer_m->E = 1.0;
     // spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
 
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
+#ifdef doDEBUG
+    double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
+    m << "cellVolume= " << cellVolume << endl;
+    m << "Sum over E-field after gather = " << this->fcontainer_m->getE().sum() << endl;
+#endif
+    
     //const double cc = getCouplingConstant();
     //Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
     // m << "efScale = " << efScale << endl;
     
-    spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
+    // spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
     //    spaceChargeEFieldCheck(efScale);
 
     IpplTimings::stopTimer(SolveTimer);
@@ -398,9 +400,9 @@ void PartBunch<double,3>::computeSelfFields() {
 
 template <>
 void PartBunch<double,3>::scatterCIC() {
-        Inform m("scatterCIC ");
 
-        this->fcontainer_m->getRho() = 0.0;
+    Inform m("scatterCIC ");
+    this->fcontainer_m->getRho() = 0.0;
 
         ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
         typename Base::particle_position_type* R = &this->pcontainer_m->R;
@@ -412,14 +414,12 @@ void PartBunch<double,3>::scatterCIC() {
 
         scatter(*q, *rho, *R);
 
-        m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
+        // m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
         
         double relError = std::fabs((Q - (*rho).sum()) / Q);
         size_type TotalParticles = 0;
         size_type localParticles = this->pcontainer_m->getLocalNum();
 
-        m << "computeSelfFields sum rho " << (*rho).sum() << endl;
-        
         ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
         if (ippl::Comm->rank() == 0) {
@@ -433,6 +433,9 @@ void PartBunch<double,3>::scatterCIC() {
         }
 
         double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
+        
+        m << "cellVolume= " << cellVolume << endl;
+
         (*rho)            = (*rho) / cellVolume;
 
         // double rhoNorm = norm(*rho);

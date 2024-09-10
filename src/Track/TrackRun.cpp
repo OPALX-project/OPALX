@@ -337,7 +337,6 @@ void TrackRun::execute() {
     bunch_m->setCharge();
     bunch_m->setMass();
     bunch_m->bunchUpdate();
-
     bunch_m->print(*gmsg);
 
     initDataSink();

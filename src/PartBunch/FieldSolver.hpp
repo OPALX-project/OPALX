@@ -38,10 +38,10 @@ private:
     Field_t<Dim>* rho_m;
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
-    unsigned int call_counter;
+    unsigned int call_counter_m;
 public:
     FieldSolver(std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field<T, Dim>* phi)
-        : ippl::FieldSolverBase<T, Dim>(solver), rho_m(rho), E_m(E), phi_m(phi), call_counter(0) {
+        : ippl::FieldSolverBase<T, Dim>(solver), rho_m(rho), E_m(E), phi_m(phi), call_counter_m(0) {
         setPotentialBCs();
     }
 
@@ -99,6 +99,7 @@ public:
             // and the P3M solver compute the electric field directly
             solver.setLhs(*E_m);
         }
+        call_counter_m = 0;
     }
 
     void initNullSolver() { }

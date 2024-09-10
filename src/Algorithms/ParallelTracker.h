@@ -301,12 +301,13 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
 }
 
 inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
-
+    
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
+
 
     Kokkos::parallel_for(
                          "kickParticles", ippl::getRangePolicy(Rview),
@@ -318,6 +319,9 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
                              Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
                              double dt = dtview(i);
                              pusher.kick(x,p,e,b,dt);
+                             Rview(i) = x;
+                             Pview(i) = p;
+                                 
                          });
 
     itsBunch_m->getParticleContainer()->update();
@@ -339,6 +343,8 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
                              Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
                              double dt = dtview(i);
                              pusher.push(x,p,dt);
+                             Rview(i) = x;
+                             Pview(i) = p;
                          });
 
 
