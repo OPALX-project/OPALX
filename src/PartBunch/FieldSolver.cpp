@@ -300,7 +300,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
 template<>
 void FieldSolver<double,3>::runSolver() {
     constexpr int Dim = 3;
-    
+
     if (this->getStype() == "CG") {
             CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
             solver.solve();
