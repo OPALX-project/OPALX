@@ -324,13 +324,32 @@ void PartBunch<double,3>::bunchUpdate() {
 }
 
 
-// ADA
 template <>
 void PartBunch<double,3>::computeSelfFields() {
     Inform m("computeSelfFields w CICScatter ");
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
 
+    /*
+      \todo check if Lorentz transform is needed
+
+    double gammaz = this->pcontainer_m->getMeanGammaZ();
+    gammaz *= gammaz;
+    gammaz = std::sqrt(gammaz + 1.0);
+
+    Vector_t<double, 3> hr_scaled = hr_m;
+    //    hr_scaled[2] *= gammaz;
+
+    hr_m = hr_scaled;    
+
+    */
+
+    /*
+      particles have moved need to adjust grid
+    */
+    
+    this->bunchUpdate();
+    
     /*
 
      scatterCIC start
@@ -365,21 +384,8 @@ void PartBunch<double,3>::computeSelfFields() {
 
     */
 
-    double gammaz = this->pcontainer_m->getMeanGammaZ();
-    gammaz *= gammaz;
-    gammaz = std::sqrt(gammaz + 1.0);
-
-    Vector_t<double, 3> hr_scaled = hr_m;
-    //    hr_scaled[2] *= gammaz;
-
-    hr_m = hr_scaled;    
-    this->bunchUpdate(hr_m);
-
     this->fsolver_m->runSolver();    
     
-    // this->pcontainer_m->E = 1.0;
-    // spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
-
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
 #ifdef doDEBUG
@@ -388,13 +394,13 @@ void PartBunch<double,3>::computeSelfFields() {
     m << "Sum over E-field after gather = " << this->fcontainer_m->getE().sum() << endl;
 #endif
     
-    //const double cc = getCouplingConstant();
-    //Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
-    // m << "efScale = " << efScale << endl;
+    /*
+      const double cc = getCouplingConstant();
+      Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
+      m << "efScale = " << efScale << endl;    
+      spaceChargeEFieldCheck(efScale);
+    */
     
-    // spaceChargeEFieldCheck(Vector_t<double,3>(1.0));
-    //    spaceChargeEFieldCheck(efScale);
-
     IpplTimings::stopTimer(SolveTimer);
 }
 
