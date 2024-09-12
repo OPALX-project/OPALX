@@ -112,14 +112,15 @@ public:
     }
 
     void generateLongFlattopT(size_t& numberOfParticles){
-
+        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
-        auto &Dtview = pc_m->dt.getView();
+        using view_type_sc = typename ippl::ParticleAttrib<double>::view_type;
+///typename ippl::detail::ViewType<ippl::Vector<double, 1>, 1>::view_type;
+        view_type_sc &Dtview = pc_m->dt.getView();
 
        // TODO: sample particle time according to the flat top profile
        // TODO: set Rz=Pz to zero
-
 
         double flattopTime = opalDist_m->getTPulseLengthFWHM()
              - std::sqrt(2.0 * std::log(2.0)) * (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall());
@@ -129,7 +130,7 @@ public:
 
         double normalizedFlankArea = 0.5 * std::sqrt(Physics::two_pi) * gsl_sf_erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
         double distArea = flattopTime
-                + (getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
+                + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
 
         // Find number of particles in rise, fall and flat top.
         size_t numRise = numberOfParticles * opalDist_m->getSigmaTRise() * normalizedFlankArea / distArea;
@@ -137,34 +138,24 @@ public:
         size_t numFlat = numberOfParticles - numRise - numFall;
 
         // Generate particles in tail.
-        int saveProcessor = -1;
-        const int myNode = Ippl::myNode();
-        const int numNodes = Ippl::getNodes();
-        const bool scalable = Attributes::getBool(itsAttr[Attrib::Distribution::SCALABLE]);
-/*
-        for (size_t partIndex = 0; partIndex < numFall; partIndex++) {
+        const double par[2] = {0.0, opalDist_m->getSigmaTFall() };
+        using Dist_t = ippl::random::NormalDistribution<double, 1>;
+        using sampling_t = ippl::random::InverseTransformSampling<double, 1, Kokkos::DefaultExecutionSpace, Dist_t>;
+        Dist_t dist(par);
+        double tmin = 0.0;
+        double tmax = opalDist_m->getSigmaTFall() * opalDist_m->getCutoffR()[2];
 
-           double t = 0.0;
-           double pz = 0.0;
+        sampling_t sampling(dist, tmax, tmin, floor(numFall));
+        sampling.generate(Dtview, rand_pool64);
 
-          bool allow = false;
-          while (!allow) {
-              t = gsl_ran_gaussian_tail(randGen_m, 0, sigmaTFall_m);
-              if (t <= sigmaTFall_m * cutoffR_m[2]) {
-                  t = -t + sigmaTFall_m * cutoffR_m[2];
-                  allow = true;
-              }
-          }
+        double sigmaTFall = opalDist_m->getSigmaTFall();
+        Vector_t<double, 3> cutoffR = opalDist_m->getCutoffR();
+        Kokkos::parallel_for(
+               "falltime", pc_m->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
+               Dtview(j) = -Dtview(j) + sigmaTFall * cutoffR[2];
+        });
+	Kokkos::fence();
 
-          // Save to each processor in turn.
-          saveProcessor++;
-          if (saveProcessor >= numNodes)
-              saveProcessor = 0;
-
-          if (scalable || myNode == saveProcessor) {
-              tOrZDist_m.push_back(t);
-          }
-*/
     }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {

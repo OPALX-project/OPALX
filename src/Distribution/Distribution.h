@@ -91,7 +91,7 @@ public:
     ippl::Vector<double, 3> getSigmaP() const;
 
     double getSigmaTRise() const;
-    double getSigmaTFall_m() const;
+    double getSigmaTFall() const;
     double getTPulseLengthFWHM() const;
 
     void setDistType();
@@ -246,7 +246,7 @@ inline double Distribution::getSigmaTRise() const {
     return sigmaTRise_m;
 }
 
-inline double Distribution::getSigmaTFall_m() const {
+inline double Distribution::getSigmaTFall() const {
     return sigmaTFall_m;
 }
 
