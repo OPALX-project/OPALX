@@ -62,7 +62,7 @@ using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>:
 namespace DISTRIBUTION {
     enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, CORR,
            CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG, CORRX, CORRY,
-           CORRZ, CORRT, SIGMAT, TPULSEFWHM, TRISE, TFALL, SIZE };
+           CORRZ, CORRT, SIGMAT, TPULSEFWHM, TRISE, TFALL, FTOSCAMPLITUDE, FTOSCPERIODS, SIZE };
 }
 
 /*
@@ -115,6 +115,17 @@ Distribution::Distribution()
     itsAttr[DISTRIBUTION::TPULSEFWHM] = Attributes::makeReal("TPULSEFWHM", "Pulse FWHM for emitted distribution.", 0.0);
     itsAttr[DISTRIBUTION::TRISE] = Attributes::makeReal("TRISE", "Rise time for emitted distribution.", 0.0);
     itsAttr[DISTRIBUTION::TFALL] = Attributes::makeReal("TFALL", "Fall time for emitted distribution.", 0.0);
+
+    itsAttr[DISTRIBUTION::FTOSCAMPLITUDE]
+        = Attributes::makeReal("FTOSCAMPLITUDE", "Amplitude of oscillations superimposed "
+                               "on flat top portion of emitted GAUSS "
+                               "distribtuion (in percent of flat top "
+                               "amplitude)",0.0);
+
+    itsAttr[DISTRIBUTION::FTOSCPERIODS]
+        = Attributes::makeReal("FTOSCPERIODS", "Number of oscillations superimposed on "
+                               "flat top portion of emitted GAUSS "
+                               "distribution", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -327,6 +338,9 @@ void Distribution::setDistParametersFlatTop() {
         sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAT]));
         sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAT]));
         tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TPULSEFWHM]));
+
+        FTOSCAmplitude_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCAMPLITUDE]));
+        FTOSCPeriods_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCPERIODS]));
 
         // If TRISE and TFALL are defined > 0.0 then these attributes
         // override SIGMAT.

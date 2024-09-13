@@ -333,8 +333,7 @@ void TrackRun::execute() {
             sampler_m = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
             break;
         case DistributionType::FLATTOP:
-            // TODO: call FLATTOP sampler here!
-            sampler_m = std::make_shared<Gaussian>(pc, fc, opalDist);
+            sampler_m = std::make_shared<FlatTop>(pc, fc, opalDist);
             break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
