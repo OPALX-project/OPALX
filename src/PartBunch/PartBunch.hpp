@@ -693,7 +693,7 @@ public:
     }
 
     double get_meanKineticEnergy() {
-        return 0.0;
+        return this->pcontainer_m->getMeanKineticEnergy();
     }
 
     Vector_t<double, Dim> get_origin() const {
