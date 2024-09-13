@@ -42,8 +42,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
  *   '******':   call_counter_m padded with zeros to 6 digits
  */
 
-
-    std::string dirname = "";
+    std::string dirname = "data/";
 
     std::string type;
     std::string unit;
@@ -144,7 +143,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
  */
     
 
-    std::string dirname = "";
+    std::string dirname = "data/";
 
     std::string type;
     std::string unit;
@@ -325,13 +324,13 @@ void FieldSolver<double,3>::runSolver() {
             ippl::Comm->barrier();
         } else if (this->getStype() == "FFT") {
             if constexpr (Dim == 2 || Dim == 3) {
-#ifdef DUMPFIELDS
+#ifdef OPAL_FIELD_DEBUG
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
 
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
-#ifdef DUMPFIELDS
+#ifdef OPAL_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
                 call_counter_m++;
@@ -343,12 +342,12 @@ void FieldSolver<double,3>::runSolver() {
             }
         } else if (this->getStype() == "FFTOPEN") {
             if constexpr (Dim == 3) {
-#ifdef DUMPFIELDS
+#ifdef OPAL_FIELD_DEBUG
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
-#ifdef DUMPFIELDS
+#ifdef OPAL_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
                 call_counter_m++;
