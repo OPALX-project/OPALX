@@ -13,6 +13,8 @@ using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
 
+//using view_type_1d = typename ippl::detail::ViewType<Vector<double, 1>;
+
 // Define the ParticlesContainer class
 template <typename T, unsigned Dim = 3>
 class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
@@ -27,6 +29,10 @@ public:
 
     /// timestep in [s]
     ippl::ParticleAttrib<double> dt;
+
+    // time [s]
+    //ippl::ParticleAttrib<double> t;
+    ippl::ParticleAttrib<ippl::Vector<double, 1>> t;
 
     /// the scalar potential in [Cb/s]
     ippl::ParticleAttrib<double> Phi;
