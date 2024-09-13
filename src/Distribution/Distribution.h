@@ -94,6 +94,9 @@ public:
     double getSigmaTFall() const;
     double getTPulseLengthFWHM() const;
 
+    double getFTOSCAmplitude() const;
+    double getFTOSCPeriods() const;
+
     void setDistType();
 
     void setDist();
@@ -212,6 +215,9 @@ private:
     DistributionType distrTypeT_m;
 
     double avrgpz_m;
+
+    double FTOSCAmplitude_m;
+    double FTOSCPeriods_m;
 };
 
 inline Inform& operator<<(Inform& os, const Distribution& d) {
@@ -252,6 +258,14 @@ inline double Distribution::getSigmaTFall() const {
 
 inline double Distribution::getTPulseLengthFWHM() const {
     return tPulseLengthFWHM_m;
+}
+
+inline double Distribution::getFTOSCAmplitude() const {
+    return FTOSCAmplitude_m;
+}
+
+inline double Distribution::getFTOSCPeriods() const {
+    return FTOSCPeriods_m;
 }
 
 inline DistributionType Distribution::getType() const {
