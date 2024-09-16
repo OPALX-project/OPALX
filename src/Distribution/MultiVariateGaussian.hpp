@@ -134,35 +134,18 @@ public:
 
         auto& mesh = fc_m->getMesh();
         auto& FL = fc_m->getFL();
-
         hr = (rmax_m-rmin_m) / nr;
         mesh.setMeshSpacing(hr);
         mesh.setOrigin(rmin_m);
-        pc_m->getLayout().updateLayout(FL, mesh);
-
         ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>> rlayout;
         rlayout = ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>>(FL, mesh);
-
-        sampling_t samplingR(dist, normRmax_m, normRmin_m, rlayout, numberOfParticles);
-
-        size_type nlocal = samplingR.getLocalSamplesNum();
+        sampling_t samplingN(dist, normRmax_m, normRmin_m, rlayout, numberOfParticles);
+        size_type nlocal = samplingN.getLocalSamplesNum();
         pc_m->create(nlocal);
-        samplingR.generate(Rview, rand_pool64);
+        samplingN.generate(Rview, rand_pool64);
 
-
-        auto meshP = fc_m->getMesh();
-        auto FLP = fc_m->getFL();
-
-        hp = (pmax_m-pmin_m) / nr;
-        meshP.setMeshSpacing(hp);
-        meshP.setOrigin(pmin_m);
-
-        ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>> playout;
-        playout = ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>>(FLP, meshP);
-
-        sampling_t samplingP(dist, normPmax_m, normPmin_m, playout, numberOfParticles);
-        //samplingP.setLocalSamplesNum( nlocal );
-        samplingP.generate(Pview, rand_pool64);
+        samplingN.updateBounds(normPmax_m, normPmin_m);
+        samplingN.generate(Pview, rand_pool64);
 
         Matrix_t L;
         for (unsigned i = 0; i < 6; ++i){
