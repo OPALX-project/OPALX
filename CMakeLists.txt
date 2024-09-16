@@ -17,10 +17,10 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
     add_definitions (-DNOPAssert)
 endif ()
 
-if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    add_compile_options (-fsanitize=undefined,address)
-    add_link_options (-fsanitize=undefined,address)
-endif ()
+#if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+#    add_compile_options (-fsanitize=undefined,address)
+#    add_link_options (-fsanitize=undefined,address)
+#endif ()
 
 add_compile_options (-Wall)
 add_compile_options (-Wunused)
@@ -44,10 +44,10 @@ set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
 set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
 set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
 
-if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # Use sanitizer flags for GCC or Clang only
-     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
-endif ()
+#if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+#    # Use sanitizer flags for GCC or Clang only
+#     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
+#endif ()
 
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
