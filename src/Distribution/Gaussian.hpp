@@ -17,7 +17,11 @@ public:
         : SamplingBase(pc, fc, opalDist) {}
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
-        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+        GeneratorPool rand_pool64(
+            (Options::seed == -1)
+            ? (size_t)1234567
+            : (size_t)(Options::seed + 100 * ippl::Comm->rank())
+        );
 
         double mu[3], sd[3];
 
