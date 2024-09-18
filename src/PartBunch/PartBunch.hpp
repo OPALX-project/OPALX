@@ -39,6 +39,8 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 */
 
+
+
 #include <memory>
 
 #include "Algorithms/BoostMatrix.h"
@@ -62,15 +64,14 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 #include "Algorithms/PartData.h"
 
 
+extern Inform* gmsg;
+
 template <typename T>
 KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
     return sqrt(dot(x, x).apply());
 }
 
-
-
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
 
 template <typename T, unsigned Dim>
 class PartBunch
@@ -300,8 +301,7 @@ public:
     void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
-        Inform m("PartBunch Destructor ");
-        m << "Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
