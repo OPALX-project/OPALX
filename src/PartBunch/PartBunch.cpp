@@ -4,9 +4,6 @@
 
 #undef doDEBUG
 
-
-extern Inform* gmsg;
-
 template<>
 void PartBunch<double,3>::setSolver(std::string solver) {
 
@@ -265,13 +262,8 @@ void PartBunch<double,3>::bunchUpdate(ippl::Vector<double, 3> hr) {
     
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
-
-    // \fixme with the OPEN solver repartion does not work.
-    // this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+    this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
     this->updateMoments();
-    
-
-
 }
 
 template <>
@@ -326,7 +318,7 @@ void PartBunch<double,3>::bunchUpdate() {
 
 template <>
 void PartBunch<double,3>::computeSelfFields() {
-    Inform m("computeSelfFields w CICScatter ");
+
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
 
@@ -360,7 +352,7 @@ void PartBunch<double,3>::computeSelfFields() {
     size_type TotalParticles     = 0;
     size_type localParticles     = this->pcontainer_m->getLocalNum();
     const double qtot            = this->qi_m * this->getTotalNum();
-    
+
     ippl::ParticleAttrib<double>* Q          = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     Field_t<3>* rho                          = &this->fcontainer_m->getRho();
@@ -372,6 +364,7 @@ void PartBunch<double,3>::computeSelfFields() {
     ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
     
     if ((ippl::Comm->rank() == 0) && (relError > 1.0E-13)) {
+            Inform m("computeSelfFields w CICScatter ", INFORM_ALL_NODES);
             m << "Time step: " << it_m
               << " total particles in the sim. " << totalP_m 
               << " missing : " << totalP_m-TotalParticles 
@@ -389,6 +382,7 @@ void PartBunch<double,3>::computeSelfFields() {
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
 #ifdef doDEBUG
+    Inform m("computeSelfFields w CICScatter ", INFORM_ALL_NODES);
     double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
     m << "cellVolume= " << cellVolume << endl;
     m << "Sum over E-field after gather = " << this->fcontainer_m->getE().sum() << endl;
