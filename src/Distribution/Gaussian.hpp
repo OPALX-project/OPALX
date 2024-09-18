@@ -46,47 +46,17 @@ public:
         using sampling_t = ippl::random::InverseTransformSampling<double, Dim, Kokkos::DefaultExecutionSpace, Dist_t>;
         Dist_t dist(par);
 
-        sampling_t sampling(dist, rmax, rmin, rmax, rmin, numberOfParticles);
+        MPI_Comm comm = MPI_COMM_WORLD;
+        int nranks = 0;
+        MPI_Comm_size(comm, &nranks);
 
-        size_type nlocal = sampling.getLocalSamplesNum();
+        size_type nlocal = floor(numberOfParticles/nranks);
+        sampling_t sampling(dist, rmax, rmin, rmax, rmin, nlocal);
+        nlocal = sampling.getLocalSamplesNum();
+
         pc_m->create(nlocal);
 
         sampling.generate(Rview, rand_pool64);
-
-        double meanR[3], loc_meanR[3];
-        for(int i=0; i<3; i++){
-           meanR[i] = 0.0;
-           loc_meanR[i] = 0.0;
-        }
-
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(
-                    const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Rview(k)[0];
-                    cent1 += Rview(k)[1];
-                    cent2 += Rview(k)[2];
-            },
-            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
-        Kokkos::fence();
-
-        MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-        ippl::Comm->barrier();
-
-        for(int i=0; i<3; i++){
-           meanR[i] = meanR[i]/(1.*numberOfParticles);
-        }
-
-        Kokkos::parallel_for(
-                nlocal, KOKKOS_LAMBDA(
-                    const int k) {
-                    Rview(k)[0] -= meanR[0];
-                    Rview(k)[1] -= meanR[1];
-                    Rview(k)[2] -= meanR[2];
-            }
-        );
-        Kokkos::fence();
-        ippl::Comm->barrier();
 
         // sample P
         for(int i=0; i<3; i++){
@@ -96,40 +66,6 @@ public:
         view_type &Pview = pc_m->P.getView();
         Kokkos::parallel_for(
             nlocal, ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
-        );
-        Kokkos::fence();
-        ippl::Comm->barrier();
-
-        double meanP[3], loc_meanP[3];
-        for(int i=0; i<3; i++){
-           meanP[i] = 0.0;
-           loc_meanP[i] = 0.0;
-        }
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(
-                    const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Pview(k)[0];
-                    cent1 += Pview(k)[1];
-                    cent2 += Pview(k)[2];
-            },
-	    Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
-        Kokkos::fence();
-
-        MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-        ippl::Comm->barrier();
-
-        for(int i=0; i<3; i++){
-           meanP[i] = meanP[i]/(1.*numberOfParticles);
-        }
-
-        Kokkos::parallel_for(
-            nlocal, KOKKOS_LAMBDA(
-                    const int k) {
-                    Pview(k)[0] -= meanP[0];
-                    Pview(k)[1] -= meanP[1];
-                    Pview(k)[2] -= meanP[2];
-            }
         );
         Kokkos::fence();
         ippl::Comm->barrier();
