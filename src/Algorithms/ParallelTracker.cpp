@@ -459,7 +459,7 @@ void ParallelTracker::execute() {
 
     writePhaseSpace((step + 1), psDump, statDump);
 
-    msg << level2 << "Dump phase space of last step" << endl;
+    *gmsg << "* Dump phase space of last step" << endl;
 
     itsOpalBeamline_m.switchElementsOff();
 
@@ -754,18 +754,19 @@ void ParallelTracker::doBinaryRepartition() {
 
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
-    Inform msg("ParallelTracker ", *gmsg);
 
+    /*
     if (itsBunch_m->getGlobalTrackStep() % 1000 + 1 == 1000) {
-        msg << level1;
+        *gmsg << level1;
     } else if (itsBunch_m->getGlobalTrackStep() % 100 + 1 == 100) {
-        msg << level2;
+        *gmsg << level2;
     } else {
-        msg << level3;
+        *gmsg << level3;
     }
-
+    */
+    
     if (numParticlesInSimulation_m == 0) {
-        msg << myt2.time() << " "
+        *gmsg << "* " << myt2.time() << " "
             << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
             << "   -- no emission yet --     "
             << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
@@ -779,7 +780,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             "ParallelTracker::dumpStats()",
             "there seems to be something wrong with the position of the bunch!");
     } else {
-        msg << myt2.time() << " "
+        *gmsg << "* " << myt2.time() << " "
             << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
             << "at " << Util::getLengthString(pathLength_m) << ", "
             << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
@@ -791,7 +792,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
 void ParallelTracker::setOptionalVariables() {
 
-    Inform msg("ParallelTracker ", *gmsg);
     /*
     minStepforReBin_m = Options::minStepForRebin;
     RealVariable* br =
@@ -810,7 +810,7 @@ void ParallelTracker::setOptionalVariables() {
             dynamic_cast<RealVariable*>(OpalData::getInstance()->find("REPARTFREQ"));
         if (rep)
             repartFreq_m = static_cast<int>(rep->getReal());
-        msg << level2 << "REPARTFREQ " << repartFreq_m << endl;
+        *gmsg  << "* REPARTFREQ " << repartFreq_m << endl;
     }
 }
 
@@ -834,8 +834,6 @@ void ParallelTracker::setTime() {
 }
 
 void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
-    extern Inform* gmsg;
-    Inform msg("OPAL ", *gmsg);
     Vector_t<double, 3> externalE, externalB;
     Vector_t<double, 3> FDext[2];  // FDext = {BHead, EHead, BRef, ERef, BTail, ETail}.
 
@@ -859,7 +857,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
     if (statDump) {
         itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
-        msg << level3 << "* Wrote beam statistics." << endl;
+        *gmsg << "* Wrote beam statistics." << endl;
     }
 
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
