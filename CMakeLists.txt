@@ -89,6 +89,8 @@ FetchContent_Declare(ippl
     GIT_SHALLOW True
     DOWNLOAD_EXTRACT_TIMESTAMP True
 )
+set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
+
 FetchContent_MakeAvailable(ippl)
 include_directories("${IPPL_SOURCE_DIR}/src")
 
