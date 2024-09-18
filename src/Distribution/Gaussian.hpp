@@ -33,7 +33,6 @@ public:
         // sample R
         Vector_t<double, 3> rmin = -opalDist_m->getCutoffR();
         Vector_t<double, 3> rmax =  opalDist_m->getCutoffR();
-        Vector_t<double, 3> hr;
         for(int i=0; i<3; i++){
             mu[i] = 0.0;
        	    sd[i] = opalDist_m->getSigmaR()[i];
@@ -47,18 +46,7 @@ public:
         using sampling_t = ippl::random::InverseTransformSampling<double, Dim, Kokkos::DefaultExecutionSpace, Dist_t>;
         Dist_t dist(par);
 
-        auto& mesh = fc_m->getMesh();
-        auto& FL = fc_m->getFL();
-
-        hr = (rmax-rmin) / nr;
-        mesh.setMeshSpacing(hr);
-        mesh.setOrigin(rmin);
-        pc_m->getLayout().updateLayout(FL, mesh);
-
-        ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>> rlayout;
-        rlayout = ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>>(FL, mesh);
-
-        sampling_t sampling(dist, rmax, rmin, rlayout, numberOfParticles);
+        sampling_t sampling(dist, rmax, rmin, rmax, rmin, numberOfParticles);
 
         size_type nlocal = sampling.getLocalSamplesNum();
         pc_m->create(nlocal);
