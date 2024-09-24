@@ -36,6 +36,35 @@ option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 
 message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 
+# Check the compiler type
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(STATUS "Using GCC")
+    add_compile_options(-Wno-overloaded-virtual)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "Using Clang")
+    add_compile_options(-Wno-overloaded-virtual)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    message(STATUS "Using Intel Compiler")
+    add_compile_options(-diag-disable 611)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "ARM")
+    message(STATUS "Using ARM Compiler")
+    add_compile_options(--diag_suppress=611)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "AMD")
+    message(STATUS "Using AMD Compiler")
+    add_compile_options(-Wno-overloaded-virtual)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "NVIDIA")
+    message(STATUS "Using NVIDIA CUDA Compiler")
+    add_compile_options(-Xcudafe --diag_suppress=611)
+
+else()
+    message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
+endif()
+
 # Select flags.
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CUDA_EXTENSIONS OFF)
@@ -67,6 +96,7 @@ add_compile_options (-Wno-error=unused-but-set-variable)
 add_compile_options (-Wno-error=maybe-uninitialized)
 add_compile_options (-Wno-error=reorder)
 add_compile_options (-Wno-cpp)
+add_compile_options (-Wno-overloaded-virtual)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 add_compile_options (-DKOKKOS_DEPENDENCE)
