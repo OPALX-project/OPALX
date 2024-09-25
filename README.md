@@ -80,4 +80,46 @@ and release (optimized) mode:
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DENABLE_FFT=ON  -DENABLE_SOLVERS=ON
 ```
 
+### Submitting jobs on Gwendolen and Merlin GPUs
+To execute opal-x on merlin's gpus (compile for PASCAL61), the job script should looks like
+```
+#!/bin/bash
+#SBATCH --error=merlin.error
+#SBATCH --output=merlin.out
+#SBATCH --time=00:10:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=2
+#SBATCH --cluster=gmerlin6
+#SBATCH --partition=gpu-short
+#SBATCH --account=merlin
+##SBATCH --exclusive
+#SBATCH --gpus=2
+#SBATCH --nodelist=merlin-g-001
+
+##unlink core
+ulimit -c unlimited
+
+srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
+```
+
+and for Gwendolen (compile for AMPERE80)
+```
+#!/bin/bash
+#SBATCH --error=gwendolen.error
+#SBATCH --output=gwendolen.out
+#SBATCH --time=00:02:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=2
+#SBATCH --clusters=gmerlin6
+#SBATCH --partition=gwendolen # Mandatory, as gwendolen is not the default partition
+#SBATCH --account=gwendolen   # Mandatory, as gwendolen is not the default account
+##SBATCH --exclusive
+#SBATCH --gpus=2
+
+##unlink core
+ulimit -c unlimited
+
+srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
+```
+
 The documentation has been moved to the [Wiki](https://gitlab.psi.ch/OPAL/src/wikis/home).
