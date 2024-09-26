@@ -33,7 +33,7 @@
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
 
-#define OPAL_FIELD_DEBUG
+#undef OPAL_FIELD_DEBUG
 
 extern Inform* gmsg;
 

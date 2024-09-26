@@ -383,8 +383,9 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setInPrepState(false);
 
     stepSizes_m.printDirect(*gmsg);
-
+    
     while (!stepSizes_m.reachedEnd()) {
+
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
         changeDT(back_track);
@@ -396,14 +397,14 @@ void ParallelTracker::execute() {
             }
             // ADA
             timeIntegration1(pusher);
-
+            
             computeSpaceChargeFields(step);
             
             // \todo for a drift we can neglect that 
             // computeExternalFields(oth);
 
             timeIntegration2(pusher);
-
+            
             selectDT(back_track);
             // \todo emitParticles(step);
             //selectDT(back_track);
@@ -508,6 +509,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     // switchElements();
     pushParticles(pusher);
 
+    
     auto dtview  = itsBunch_m->getParticleContainer()->dt.getView();
     double newdT = itsBunch_m->getdT();
 
@@ -516,7 +518,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                          KOKKOS_LAMBDA(const int i) {
                              dtview(i) = newdT;
                          });                     
-
+    
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
