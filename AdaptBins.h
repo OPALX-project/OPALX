@@ -143,6 +143,11 @@ public:
         // Putting the same to-reduce variable as an argument ensures that every node gets the correct min/max and not just the root node!
         ippl::Comm->reduce(&xMax_m, &xMax_m, 1, std::greater<value_type>());
         ippl::Comm->reduce(&xMin_m, &xMin_m, 1, std::less<value_type>());
+
+        // Add broadcast here!! TODO
+        ippl::Comm->broadcast(&xMin_m);
+        ippl::Comm->broadcast(&xMax_m);
+
         
         msg << "Initialized limits for bins... " << xMin_m << " - " << xMax_m << ", " << localMinMax.min_val << " - " << localMinMax.max_val << endl;
 
