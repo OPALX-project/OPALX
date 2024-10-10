@@ -23,7 +23,7 @@
 
 #include "Utility/IpplTimings.h"
 
-#include <AdaptBins.h>
+#include "AdaptBins.h"
 
 #define str(x)  #x
 #define xstr(x) str(x)
@@ -401,7 +401,7 @@ int main(int argc, char* argv[]) {
     {
         Inform msg(PROG_NAME);
         Inform msg2all(argv[0], INFORM_ALL_NODES);
-        msg << "This is a test :)" << endl;
+        //msg << "This is a test :)" << endl;
         ippl::Comm->setDefaultOverallocation(3.0);
 
         int arg = 1;
@@ -430,7 +430,8 @@ int main(int argc, char* argv[]) {
 
         using bunch_type = ChargedParticles<PLayout_t>;
 
-        std::unique_ptr<bunch_type> P;
+        std::shared_ptr<bunch_type> P; // use shared, since it will be stored inside AdaptBins
+        std::unique_ptr<AdaptBins<bunch_type>> bins;
 
         Vector_t rmin(0.0);
         Vector_t rmax(1.0);
@@ -459,7 +460,8 @@ int main(int argc, char* argv[]) {
         msg << FL << endl;
 
         double Q = 1.0;
-        P        = std::make_unique<bunch_type>(PL, hr, rmin, rmax, isParallel, Q);
+        P        = std::make_shared<bunch_type>(PL, hr, rmin, rmax, isParallel, Q);
+        bins     = std::make_unique<AdaptBins<bunch_type>>(P, 10);
 
         unsigned long int nloc = totalP / ippl::Comm->size();
 
@@ -478,6 +480,10 @@ int main(int argc, char* argv[]) {
         ippl::Comm->reduce(&localParticles, &totalParticles, 1, std::plus<double>());
         msg << "Total particles: " << totalParticles << endl;
         P->initPositions(FL, hr, nloc, 2);
+
+        //Kokkos::fence();
+        ippl::Comm->barrier(); 
+        bins->initLimits();
 
         P->qm = P->Q_m / totalP;
         P->P  = 0.0;
