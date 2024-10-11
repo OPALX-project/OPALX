@@ -102,6 +102,7 @@ add_compile_options (-fstrict-aliasing)
 add_compile_options (-DKOKKOS_DEPENDENCE)
 add_compile_options (-Wno-return-type)
 add_compile_options (-gdwarf-4)                           # avoid dwarf errors on merlin
+add_compile_options (-Wdangling-reference)                # need for G&H
 
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
