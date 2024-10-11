@@ -70,6 +70,10 @@ Euclid3D Euclid3DGeometry::getTransform(double /*fromS*/, double /*toS*/) const 
     throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
 }
 
+Euclid3D Euclid3DGeometry::getTransform(double /*fromS*/) const {
+    throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
+}
+
 Euclid3D Euclid3DGeometry::getTotalTransform() const {
     return transformation_m;
 }

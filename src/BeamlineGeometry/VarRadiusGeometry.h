@@ -116,6 +116,13 @@ public:
      *  to the entrance of the element
      *  Equivalent to getTransform(0.0, getEntrance())
      */
+    
+    virtual Euclid3D getTransform(double fromS) const;
+    /** Transform of the local coordinate system from the origin
+     *  to the entrance of the element
+     *  Equivalent to getTransform(0.0, getEntrance())
+     */
+    
     virtual Euclid3D getEntranceFrame() const;
     /** Transform of the local coordinate system from the origin
      *  to the exit of the element
