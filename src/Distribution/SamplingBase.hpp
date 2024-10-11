@@ -9,18 +9,20 @@ using FieldContainer_t = FieldContainer<double, 3>;
 using Distribution_t = Distribution;
 
 class SamplingBase{
-    protected:
-        std::shared_ptr<ParticleContainer_t> pc_m;
-        std::shared_ptr<FieldContainer_t> fc_m;
-        std::shared_ptr<Distribution_t> opalDist_m;
-        std::string samplingMethod_m;
-    public:
-        SamplingBase(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &dist)
-           : pc_m(pc), fc_m(fc), opalDist_m(dist) {}
+protected:
+    std::shared_ptr<ParticleContainer_t> pc_m;
+    std::shared_ptr<FieldContainer_t> fc_m;
+    std::shared_ptr<Distribution_t> opalDist_m;
+    std::string samplingMethod_m;
+public:
+    
+    SamplingBase(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &dist)
+        : pc_m(pc), fc_m(fc), opalDist_m(dist) {
+    }
+    
+    virtual ~SamplingBase() {}
 
-       virtual ~SamplingBase() {}
-
-       virtual void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {}
+    virtual void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {}
 };
 #endif
 
