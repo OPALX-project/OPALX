@@ -162,7 +162,7 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* TYPE         " << fsName_m << '\n'
-       << "* #RANKS       " << ippl::Comm->size() << '\n'
+       << "* RANKS       " << ippl::Comm->size() << '\n'
        << "* NX           " << Attributes::getReal(itsAttr[FIELDSOLVER::NX]) << '\n'
        << "* NY           " << Attributes::getReal(itsAttr[FIELDSOLVER::NY]) << '\n'
        << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
