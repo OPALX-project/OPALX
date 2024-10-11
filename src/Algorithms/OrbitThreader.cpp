@@ -134,8 +134,9 @@ void OrbitThreader::execute() {
     errorFlag_m = EVERYTHINGFINE;
 
     *gmsg << "OrbitThreader dt_m= " << dt_m << endl;
-
-
+    *gmsg << "OrbitThreader has problems .... exit in execute" << endl;
+    return;
+    
     do {
         checkElementLengths(elementSet);
         if (containsCavity(elementSet)) {
