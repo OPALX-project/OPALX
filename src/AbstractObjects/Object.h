@@ -48,7 +48,6 @@
 #include <source_location>
 #endif
 
-
 class Invalidator;
 class Parser;
 class Statement;
@@ -141,7 +140,7 @@ public:
 
     /// Print the object.
     //  Print a OPAL-readable image of [b]this[/b] on the given output stream.
-    virtual void print(std::ostream &) const;
+    virtual void print(std::ostream  &) const;
 
     virtual void printValue(std::ostream &) const;
 
