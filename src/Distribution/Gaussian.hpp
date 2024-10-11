@@ -13,10 +13,18 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
 class Gaussian : public SamplingBase {
 public:
+    
+    IpplTimings::TimerRef samperTimer_m; 
+    
     Gaussian(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
-        : SamplingBase(pc, fc, opalDist) {}
+        : SamplingBase(pc, fc, opalDist) {
+        
+        samperTimer_m = IpplTimings::getTimer("SamplingTimer");
+    }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
+
+        IpplTimings::startTimer(samperTimer_m);
 
         size_t randInit;
         if (Options::seed == -1) {
@@ -125,6 +133,7 @@ public:
         );
         Kokkos::fence();
         ippl::Comm->barrier();
+        IpplTimings::stopTimer(samperTimer_m);
     }
 };
 #endif
