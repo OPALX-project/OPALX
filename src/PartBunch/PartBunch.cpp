@@ -195,8 +195,6 @@ Inform& PartBunch<double,3>::print(Inform& os) {
               "********************************************************* \n";
         os << "* PARTICLES       = " << this->getTotalNum() << "\n";
         os << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n";
-        os << "* CORES           = " << ippl::Comm->size() << "\n";
-        os << "* FIELD SOLVER    = " << solver_m << "\n";
         os << "* INTEGRATOR      = " << integration_method_m << "\n";
         os << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n";
         os << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n";
