@@ -71,14 +71,15 @@ ParallelTracker::ParallelTracker(
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
-      repartFreq_m(-1),
+      repartFreq_m(0),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
-      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")) {
+      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -96,22 +97,23 @@ ParallelTracker::ParallelTracker(
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
-      repartFreq_m(-1),
+      repartFreq_m(0),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")) {
+      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+    
+      *gmsg << "* ParallelTracker zstop.size()= " << zstop.size() << endl;
 
-    *gmsg << "* ParallelTracker zstop.size()= " << zstop.size() << endl;
+      for (unsigned int i = 0; i < zstop.size(); ++i) {
+          stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
+      }
 
-    for (unsigned int i = 0; i < zstop.size(); ++i) {
-        stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
-    }
-
-    stepSizes_m.sortAscendingZStop();
-    stepSizes_m.resetIterator();
+      stepSizes_m.sortAscendingZStop();
+      stepSizes_m.resetIterator();
 }
 
 ParallelTracker::~ParallelTracker() {
@@ -348,13 +350,14 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
+    IpplTimings::startTimer(OrbThreader_m);
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
-
     oth.execute();
-
+    IpplTimings::stopTimer(OrbThreader_m);
+    
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
@@ -805,7 +808,7 @@ void ParallelTracker::setOptionalVariables() {
 
     // there is no point to do repartitioning with one node
     if (ippl::Comm->size() == 1) {
-        repartFreq_m = std::numeric_limits<unsigned int>::max();
+        repartFreq_m = std::numeric_limits<unsigned long long>::max();
     } else {
         repartFreq_m = Options::repartFreq * 100;
         RealVariable* rep =
