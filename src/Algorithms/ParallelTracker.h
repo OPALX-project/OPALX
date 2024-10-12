@@ -95,7 +95,7 @@ class ParallelTracker : public Tracker {
     int minStepforReBin_m;
 
     // this variable controls the minimal number of steps until we repartition the particles
-    unsigned int repartFreq_m;
+    unsigned long long repartFreq_m;
 
     unsigned int emissionSteps_m;
 
@@ -107,7 +107,8 @@ class ParallelTracker : public Tracker {
     IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
-
+    IpplTimings::TimerRef OrbThreader_m;
+    
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
 
@@ -393,10 +394,11 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
                                   * R[i] += 0.5 * P[i] * recpgamma;
                                   * \endcode
                                   */
-
+                             // \TODO check +-
+                             
                              // pusher.push(x,p,dt);
                              x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
-                             Rview(i) = x;
+                             Rview(i) += x;
                          });
 
 
