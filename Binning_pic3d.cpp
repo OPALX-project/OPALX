@@ -81,6 +81,8 @@ public:
     typename ippl::ParticleBase<PLayout>::particle_position_type
         E;  // electric field at particle position
 
+    typename ippl::ParticleAttrib<uint8_t> bin;
+
     ChargedParticles(PLayout& pl, Vector_t hr, Vector_t rmin, Vector_t rmax,
                      std::array<bool, Dim> isParallel, double Q)
         : ippl::ParticleBase<PLayout>(pl)
@@ -93,6 +95,9 @@ public:
         this->addAttribute(qm);
         this->addAttribute(P);
         this->addAttribute(E);
+
+        this->addAttribute(bin);
+        
         setupBCs();
     }
 
@@ -484,6 +489,8 @@ int main(int argc, char* argv[]) {
         //Kokkos::fence();
         ippl::Comm->barrier(); 
         bins->initLimits();
+        bins->assignBinsToParticles();
+        msg << bins << endl; // Output histogram
 
         P->qm = P->Q_m / totalP;
         P->P  = 0.0;
