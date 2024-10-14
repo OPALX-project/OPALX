@@ -134,15 +134,13 @@ void OrbitThreader::execute() {
     errorFlag_m = EVERYTHINGFINE;
 
     *gmsg << "OrbitThreader dt_m= " << dt_m << endl;
-    *gmsg << "OrbitThreader has problems .... exit in execute" << endl;
-    return;
     
     do {
         checkElementLengths(elementSet);
         if (containsCavity(elementSet)) {
             autophaseCavities(elementSet, visitedElements);
         }
-
+        
         double initialS              = pathLength_m;
         Vector_t<double, 3> initialR = r_m;
         Vector_t<double, 3> initialP = p_m;
@@ -252,6 +250,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         const Vector<double, 3> d = r_m - oldR;
 
         pathLength_m += std::copysign(euclidean_norm(d), dt_m);
+
         ++currentStep_m;
         time_m += dt_m;
 
@@ -453,26 +452,25 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
-
-    /// \todo needs to be fixed
-    /*
-      for (const Vector_t<double, 3>& pos : {r_m - 10 * dR, r_m + 10 * dR}) {
+    std::array<Vector_t<double, 3>, 2> positions = {r_m - 10 * dR, r_m + 10 * dR};
+   
+    for (const Vector_t<double, 3>& pos : positions) {
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
-    */
+    
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
     const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
     const Vector_t<double, 3>& direction) const {
-    /*
+
     if (elements.empty()
         || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
         boost::optional<Vector_t<double, 3>> intersectionPoint =
             globalBoundingBox_m.getIntersectionPoint(position, direction);
-
-        return intersectionPoint ? euclidean_norm(intersectionPoint.get() - position) : 10.0;
+        const Vector_t<double, 3> r = intersectionPoint.get() - position;
+        return intersectionPoint ? euclidean_norm(r) : 10.0;
     }
-    */
+
     return std::numeric_limits<double>::max();
 }
