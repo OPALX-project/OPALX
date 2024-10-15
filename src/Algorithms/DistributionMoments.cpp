@@ -178,7 +178,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
             for (unsigned j = 0; j < 2 * Dim; j++) {
-                moments_m(i,j) = moment[i][j] / (Np-1);
+                moments_m(i,j) = moment[i][j] / Np;
             }
      }
 
