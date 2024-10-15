@@ -143,6 +143,7 @@ public:
 
 private:
 
+    std::unique_ptr<size_t[]> globalPartPerNode_m;   
 
     // ParticleOrigin refPOrigin_m;
     // ParticleType refPType_m;
@@ -295,6 +296,9 @@ public:
         IpplTimings::startTimer(prerun);
         pre_run();
         IpplTimings::stopTimer(prerun);
+
+        globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+
     }
 
     void bunchUpdate();
@@ -446,10 +450,13 @@ public:
     }
 
     void gatherLoadBalanceStatistics() {
+        std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros        
+        globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
+        // \fixme ippl::Comm->allreduce(globalPartPerNode_m, ippl::Comm->size(), std::plus<size_type>());
     }
 
     size_t getLoadBalance(int p) {
-        return 0;
+        return globalPartPerNode_m[p];
     }
 
     void resizeMesh() {
