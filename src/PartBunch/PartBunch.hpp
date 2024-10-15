@@ -452,7 +452,7 @@ public:
     void gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros        
         globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
-        // \fixme ippl::Comm->allreduce(globalPartPerNode_m, ippl::Comm->size(), std::plus<size_type>());
+        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
     }
 
     size_t getLoadBalance(int p) {
