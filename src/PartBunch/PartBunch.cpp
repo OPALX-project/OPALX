@@ -278,7 +278,7 @@ void PartBunch<double,3>::bunchUpdate() {
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
     
     pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
+    //pc->update();
 
     this->getFieldContainer()->setRMin(o);
     this->getFieldContainer()->setRMax(e);
