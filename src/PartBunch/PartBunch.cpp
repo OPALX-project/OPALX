@@ -1,15 +1,3 @@
-    // some debug output ------------------------------------------------------------
-    //
-    /*
-    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
-                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
-                             if (i<5){
-                                 double myQ = Qview(i);
-                                 std::cout << "qi= " << myQ << std::endl;
-                             }
-                         }); 
-    */
-
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
@@ -278,7 +266,7 @@ void PartBunch<double,3>::bunchUpdate() {
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
     
     pc->getLayout().updateLayout(*FL, *mesh);
-    //pc->update();
+    pc->update();
 
     this->getFieldContainer()->setRMin(o);
     this->getFieldContainer()->setRMax(e);
