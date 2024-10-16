@@ -437,7 +437,6 @@ int main(int argc, char* argv[]) {
         using bunch_type = ChargedParticles<PLayout_t>;
 
         std::shared_ptr<bunch_type> P; // use shared, since it will be stored inside AdaptBins
-        std::unique_ptr<AdaptBins<bunch_type>> bins;  // TODO
 
         Vector_t rmin(0.0);
         Vector_t rmax(1.0);
@@ -467,7 +466,6 @@ int main(int argc, char* argv[]) {
 
         double Q = 1.0;
         P        = std::make_shared<bunch_type>(PL, hr, rmin, rmax, isParallel, Q);
-        bins     = std::make_unique<AdaptBins<bunch_type>>(P, 10);  // TODO
 
         unsigned long int nloc = totalP / ippl::Comm->size();
 
@@ -488,14 +486,16 @@ int main(int argc, char* argv[]) {
         P->initPositions(FL, hr, nloc, 2);
 
         
-        //Kokkos::fence();
-        //ippl::Comm->barrier(); 
+        std::unique_ptr<AdaptBins<bunch_type>> bins = std::make_unique<AdaptBins<bunch_type>>(P, 10);
         bins->initLimits(); // TODO
+
         bins->assignBinsToParticles(); // TODO
+        bins->print();
+
+        bins->doFullRebin(8);
+        bins->print();
         
-        Inform msghist("PHisto");
-        bins->print(msghist); //msg << bins << endl; // Output histogram // TODO
-        
+
         P->qm = P->Q_m / totalP;
         P->P  = 0.0;
         IpplTimings::stopTimer(particleCreation);

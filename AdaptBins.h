@@ -104,6 +104,12 @@ public:
         return currentBins_m;
     }
 
+    void setCurrentBinCount(bin_index_type nBins) {
+        // Set the number of current bins to the new value!
+        currentBins_m = (nBins > maxBins_m) ? maxBins_m : nBins; 
+        binWidth_m    = (xMax_m - xMin_m) / currentBins_m; // assuming particles did not change!
+    }
+
     void initializeHistogram() {
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
@@ -144,14 +150,14 @@ public:
             value_type v = localData(i)[2];  // Assuming z-axis is the third dimension
             binIndex(i) = getBin(v, xMin, xMax, binWidth, numBins);
         });*/
+        
+        // This means that new particles were added, not that there was a rebin (yet!)
         initializeHistogram();
         msg << "Histogram initialized..." << endl;
         bin_histo_type localBinHisto = localBinHisto_m; // use copy of histo... view to avoid implicit "this" capture in Kokkos:parallel_for
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
-        value_type xMin = xMin_m;
-        value_type xMax = xMax_m;
-        value_type binWidth = binWidth_m;
+        value_type xMin = xMin_m, xMax = xMax_m, binWidth = binWidth_m;
         bin_index_type numBins = currentBins_m;
         // Alternatively explicit capture: [xMin = xMin_m, xMax = xMax_m, binWidth = binWidth_m, numBins = currentBins_m, localData = localData, binIndex = binIndex]
 
@@ -159,22 +165,28 @@ public:
         static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
         IpplTimings::startTimer(assignParticleBins);
         Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
-            // Access the z-axis position of the i-th particle
-            value_type v = localData(i)[2];  
-            
-            // Assign the bin index to the particle (directly on device)
-            bin_index_type bin = getBin(v, xMin, xMax, binWidth, numBins);
-            binIndex(i)        = bin;
-            //localBinHisto(bin) += 1;
-            //Kokkos::atomic_fetch_add(&localBinHisto(bin), static_cast<bin_index_type>(1)); // since "Kokkos::atomic_add" might not support unsigned long, only int?!
-            //Kokkos::atomic_add(&localBinHisto(bin), 1);
-            Kokkos::atomic_increment(&localBinHisto(bin));
+                // Access the z-axis position of the i-th particle
+                value_type v = localData(i)[2];  
+                
+                // Assign the bin index to the particle (directly on device)
+                bin_index_type bin = getBin(v, xMin, xMax, binWidth, numBins);
+                binIndex(i)        = bin;
+                //localBinHisto(bin) += 1;
+                //Kokkos::atomic_fetch_add(&localBinHisto(bin), static_cast<bin_index_type>(1)); // since "Kokkos::atomic_add" might not support unsigned long, only int?!
+                //Kokkos::atomic_add(&localBinHisto(bin), 1);
+                Kokkos::atomic_increment(&localBinHisto(bin));
         });
         IpplTimings::stopTimer(assignParticleBins);
 
         // Ensure all bins are assigned before further calculations!
-        Kokkos::fence();   
+        // Kokkos::fence();   
         msg << "All bins assigned." << endl; 
+    }
+
+    void doFullRebin(bin_index_type nBins) {
+        // Sets number of bins, assigns bin numbers and initializes histogram
+        setCurrentBinCount(nBins);
+        assignBinsToParticles();
     }
 
     bin_histo_type getGlobalHistogram() {
@@ -204,7 +216,8 @@ public:
     }
 
 
-    Inform& print(Inform& os) {
+    void print() {
+        Inform os("PHisto");
         // Only works correct for rank 0
         os << "-----------------------------------------" << endl;
         os << "     Output Global Binning Structure     " << endl;
@@ -221,7 +234,6 @@ public:
         }
 
         os << "-----------------------------------------" << endl;
-        return os;
     }
 };
 
