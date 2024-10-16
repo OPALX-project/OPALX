@@ -23,7 +23,7 @@
 
 #include "Utility/IpplTimings.h"
 
-#include "AdaptBins.h"
+#include "AdaptBins.h" // TODO
 
 #define str(x)  #x
 #define xstr(x) str(x)
@@ -81,7 +81,8 @@ public:
     typename ippl::ParticleBase<PLayout>::particle_position_type
         E;  // electric field at particle position
 
-    typename ippl::ParticleAttrib<uint8_t> bin;
+    using bin_index_type = int; // may also be uint8_t
+    typename ippl::ParticleAttrib<bin_index_type> bin; // TODO
 
     ChargedParticles(PLayout& pl, Vector_t hr, Vector_t rmin, Vector_t rmax,
                      std::array<bool, Dim> isParallel, double Q)
@@ -96,7 +97,7 @@ public:
         this->addAttribute(P);
         this->addAttribute(E);
 
-        this->addAttribute(bin);
+        this->addAttribute(bin); // TODO
         
         setupBCs();
     }
@@ -436,7 +437,7 @@ int main(int argc, char* argv[]) {
         using bunch_type = ChargedParticles<PLayout_t>;
 
         std::shared_ptr<bunch_type> P; // use shared, since it will be stored inside AdaptBins
-        std::unique_ptr<AdaptBins<bunch_type>> bins;
+        std::unique_ptr<AdaptBins<bunch_type>> bins;  // TODO
 
         Vector_t rmin(0.0);
         Vector_t rmax(1.0);
@@ -466,7 +467,7 @@ int main(int argc, char* argv[]) {
 
         double Q = 1.0;
         P        = std::make_shared<bunch_type>(PL, hr, rmin, rmax, isParallel, Q);
-        bins     = std::make_unique<AdaptBins<bunch_type>>(P, 10);
+        bins     = std::make_unique<AdaptBins<bunch_type>>(P, 10);  // TODO
 
         unsigned long int nloc = totalP / ippl::Comm->size();
 
@@ -486,12 +487,15 @@ int main(int argc, char* argv[]) {
         msg << "Total particles: " << totalParticles << endl;
         P->initPositions(FL, hr, nloc, 2);
 
+        
         //Kokkos::fence();
-        ippl::Comm->barrier(); 
-        bins->initLimits();
-        bins->assignBinsToParticles();
-        msg << bins << endl; // Output histogram
-
+        //ippl::Comm->barrier(); 
+        bins->initLimits(); // TODO
+        bins->assignBinsToParticles(); // TODO
+        
+        Inform msghist("PHisto");
+        bins->print(msghist); //msg << bins << endl; // Output histogram // TODO
+        
         P->qm = P->Q_m / totalP;
         P->P  = 0.0;
         IpplTimings::stopTimer(particleCreation);

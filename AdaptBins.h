@@ -29,63 +29,6 @@
 
 #include "Ippl.h"
 
-/*
-// Define a functor for finding min and max values of the third component
-struct MinMaxFunctor {
-    Kokkos::View<double**> particles; // Assuming particles is a 2D view [N][3]
-
-    MinMaxFunctor(Kokkos::View<double**> particles) : particles(particles) {}
-
-    // The functor operator for the reduction
-    KOKKOS_INLINE_FUNCTION
-    void operator()(const int i, double& minValue, double& maxValue) const {
-        // Update the min and max with the third component
-        double component = particles(i, 2); // Accessing the third component (index 2)
-        minValue = Kokkos::min(minValue, component);
-        maxValue = Kokkos::max(maxValue, component);
-    }
-};*/
-
-// The following custom struct is used to find the Nd minimum and maximum simultaneously in a Kokkos:view
-/*template<typename T, int Dim>
-struct MinMaxVectorReducer {
-    Vector_t<T, Dim> min_val;
-    Vector_t<T, Dim> max_val;
-
-    // Constructor initializes the min and max values
-    KOKKOS_INLINE_FUNCTION
-    MinMaxReducer() {
-        for (int d = 0; d < Dim; ++d) {
-            min_val[d] = std::numeric_limits<T>::max();
-            max_val[d] = std::numeric_limits<T>::lowest();
-        }
-    }
-
-    // Update min/max values during the reduction operation
-    KOKKOS_INLINE_FUNCTION
-    void operator()(const int i, MinMaxReducer& update) const {
-        for (int d = 0; d < Dim; ++d) {
-            // Compare the current thread's min/max with the global update
-            update.min_val[d] = std::min(update.min_val[d], min_val[d]);
-            update.max_val[d] = std::max(update.max_val[d], min_val[d]);
-        }
-    }
-
-    // Combine the results from different threads
-    KOKKOS_INLINE_FUNCTION
-    void join(const MinMaxReducer& update) {
-        for (int d = 0; d < Dim; ++d) {
-            min_val[d] = std::min(min_val[d], update.min_val[d]);
-            max_val[d] = std::max(max_val[d], update.max_val[d]);
-        }
-    }
-
-    // For OpenMP or reduction operations, we overload the += operator
-    KOKKOS_INLINE_FUNCTION
-    void operator+=(const MinMaxReducer& update) {
-        join(update);
-    }
-};*/
 
 template <typename BunchType>
 class AdaptBins {
@@ -99,19 +42,23 @@ public:
     //using value_view_type        = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
     // New bin_type representing the bin index data type
-    using bin_type               = typename ippl::ParticleAttrib<uint8_t>;
+    using bin_index_type         = typename BunchType::bin_index_type; // has to be initialized over there...
+    using bin_type               = typename ippl::ParticleAttrib<bin_index_type>;
     using bin_view_type          = typename bin_type::view_type; 
 
+    using bin_histo_type         = typename Kokkos::View<size_type*>; // ippl::Vector<size_type*, 1>;
+    //using bin_histo_view_type    = typename bin_histo_type::view_type;
+
     std::shared_ptr<BunchType> bunch_m;  // Shared pointer to the particle container
-    size_type maxBins_m;  // Maximum number of bins
-    size_type currentBins_m; // Current number of bins
+    bin_index_type maxBins_m;  // Maximum number of bins
+    bin_index_type currentBins_m; // Current number of bins
     value_type xMin_m;
     value_type xMax_m;
     value_type binWidth_m;
-    ippl::Vector<size_type*, 1> binHisto_m;
+    bin_histo_type localBinHisto_m;
 
     // Constructor to initialize with a shared pointer to the particle container
-    AdaptBins(std::shared_ptr<BunchType> bunch, size_type maxBins = 10)
+    AdaptBins(std::shared_ptr<BunchType> bunch, bin_index_type maxBins = 10)
         : bunch_m(bunch)
         , maxBins_m(maxBins) {
         
@@ -152,19 +99,26 @@ public:
         msg << "Initialized limits. Min: " << xMin_m << ", max: " << xMax_m << ", binWidth: " << binWidth_m << endl;
     }
 
-    void initializeHistogram(size_type numBins) {
+    // Get the current number of bins
+    bin_index_type getCurrentBinCount() const {
+        return currentBins_m;
+    }
+
+    void initializeHistogram() {
         // Reinitialize the histogram view with the new size (numBins)
-        binHisto_m = ippl::Vector<size_type*, 1>(numBins);
+        const bin_index_type numBins = getCurrentBinCount();
+        localBinHisto_m = bin_histo_type("binHisto_m", numBins);
+        bin_histo_type localBinHisto = localBinHisto_m; // avoid implicit "this" capture
 
         // Optionally, initialize the histogram to zero
-        Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const int i) {
-            binHisto_m(i) = 0;
+        Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
+            localBinHisto(i) = 0;
         });
         Kokkos::fence();  // Ensure initialization is done before proceeding
     }
 
     KOKKOS_INLINE_FUNCTION
-    static int getBin(value_type x, value_type xMin, value_type xMax, value_type binWidth, int numBins) {
+    static bin_index_type getBin(value_type x, value_type xMin, value_type xMax, value_type binWidth, bin_index_type numBins) {
         // Explanation: Don't access xMin, binWidth, ... through the members to avoid implicit
         // variable capture by Kokkos and potential copying overhead. Instead, pass them as an 
         // argument, s.t. Kokkos can capture them explicitly!
@@ -174,7 +128,7 @@ public:
         x = (x < xMin) ? xMin : ((x > xMax) ? xMax : x);
         
         // Compute the bin index (ensuring it's within [0, numBins-1])
-        int bin = (x - xMin) / binWidth;
+        bin_index_type bin = (x - xMin) / binWidth;
         return (bin >= numBins) ? (numBins - 1) : bin;  // Clamp to the maximum bin
     }
 
@@ -190,51 +144,84 @@ public:
             value_type v = localData(i)[2];  // Assuming z-axis is the third dimension
             binIndex(i) = getBin(v, xMin, xMax, binWidth, numBins);
         });*/
-        initializeHistogram(currentBins_m);
+        initializeHistogram();
+        msg << "Histogram initialized..." << endl;
+        bin_histo_type localBinHisto = localBinHisto_m; // use copy of histo... view to avoid implicit "this" capture in Kokkos:parallel_for
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
         value_type xMin = xMin_m;
         value_type xMax = xMax_m;
         value_type binWidth = binWidth_m;
-        int numBins = currentBins_m;
+        bin_index_type numBins = currentBins_m;
         // Alternatively explicit capture: [xMin = xMin_m, xMax = xMax_m, binWidth = binWidth_m, numBins = currentBins_m, localData = localData, binIndex = binIndex]
 
         // Capture variables explicitly...
-        Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const int i) {
+        static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
+        IpplTimings::startTimer(assignParticleBins);
+        Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
             // Access the z-axis position of the i-th particle
             value_type v = localData(i)[2];  
             
             // Assign the bin index to the particle (directly on device)
-            int bin     = getBin(v, xMin, xMax, binWidth, numBins);
-            binIndex(i) = bin;
-            Kokkos::atomic_increment(&binHisto_m(bin));
+            bin_index_type bin = getBin(v, xMin, xMax, binWidth, numBins);
+            binIndex(i)        = bin;
+            //localBinHisto(bin) += 1;
+            //Kokkos::atomic_fetch_add(&localBinHisto(bin), static_cast<bin_index_type>(1)); // since "Kokkos::atomic_add" might not support unsigned long, only int?!
+            //Kokkos::atomic_add(&localBinHisto(bin), 1);
+            Kokkos::atomic_increment(&localBinHisto(bin));
         });
+        IpplTimings::stopTimer(assignParticleBins);
 
         // Ensure all bins are assigned before further calculations!
         Kokkos::fence();   
         msg << "All bins assigned." << endl; 
     }
 
-    // Get the current number of bins
-    size_type getCurrentBinCount() const {
-        return currentBins_m;
+    bin_histo_type getGlobalHistogram() {
+        Inform msg("GetGlobalHistogram");
+        // Get the current number of bins
+        bin_index_type numBins = getCurrentBinCount(); // number of local bins = number of global bins!
+        //msg << "1" << endl;
+        // Create a view to hold the global histogram on all ranks
+        bin_histo_type globalBinHisto("globalBinHisto", numBins);
+        //msg << "2" << endl;
+        // Loop through each bin and reduce its value across all nodes
+        for (bin_index_type i = 0; i < numBins; ++i) {
+            //msg << "3 - " << i << endl;
+            size_type localValue = localBinHisto_m(i);
+            size_type globalValue = 0;
+
+            // Perform the reduction to sum the values across all nodes
+            ippl::Comm->allreduce(localValue, globalValue, 1, std::plus<size_type>());  // Reduce to root node
+            //msg << "4 - " << i << endl;
+            // Store the global value only on rank 0
+            globalBinHisto(i) = globalValue; // Saves global histogram on ALL ranks...
+            //msg << "5 - " << i << endl;
+        }
+
+        // Return the global histogram (note: only meaningful on rank 0)
+        return globalBinHisto;
     }
 
-    // Access bin attribute for a specific particle
-    /*bin_type getBinForParticle(size_type particleIndex) const {
-        return bunch_m.bin(particleIndex);
-    }*/
 
     Inform& print(Inform& os) {
+        // Only works correct for rank 0
         os << "-----------------------------------------" << endl;
-        os << "        Output Binning Structure         " << endl;
+        os << "     Output Global Binning Structure     " << endl;
 
-        os << "Bins = " << getCurrentBinCount() << " hBin = " << binWidth_m << " Particle vector length " << endl;
+        os << "Bins = " << getCurrentBinCount() << " hBin = " << binWidth_m << endl;
         os << "Bin #;Val" << endl;
 
-        for (size_type i = 0; i < getCurrentBinCount(); ++i) {
-            os << i << ";" << binHisto_m(i) << endl;
+        // Get the global histogram (reduced across all nodes)
+        bin_histo_type globalBinHisto = getGlobalHistogram();
+
+        // Only rank 0 prints the global histogram
+        for (bin_index_type i = 0; i < getCurrentBinCount(); ++i) {
+            os << i << ";" << globalBinHisto(i) << endl;
         }
+
+        os << "-----------------------------------------" << endl;
+        return os;
     }
 };
 

@@ -3,8 +3,9 @@
 #SBATCH --error=output/bins_%j.err
 #SBATCH --output=output/bins_%j.out
 #SBATCH --time=00:01:00
-#SBATCH --nodes=1                  # Request 2 nodes
-#SBATCH --ntasks-per-node=4         # 1 core per node
+#SBATCH --nodes=1                   # Request node
+#SBATCH --ntasks-per-node=4         # cores per node
+#SBATCH --cpus-per-task=1           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6
 #SBATCH --partition=hourly           # Non-GPU partition, check cluster for correct partition
 #SBATCH --account=merlin
@@ -21,7 +22,8 @@ export OMP_PROC_BIND=spread # I guess?
 export OMP_PLACES=threads
 
 cd /data/user/liemen_a/build_ippl/test/binning/
-mpirun ./Binning_pic3d 32 32 32 1000 3 --info 10
+## ./Binning_pic3d 32 32 32 1000 10 --info 10
+mpirun ./Binning_pic3d 32 32 32 1000 1 --info 10
 
 
 
