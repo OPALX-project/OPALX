@@ -26,7 +26,7 @@ export OMP_PLACES=threads
 
 cd /data/user/liemen_a/build_ippl/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-mpirun ./Binning_pic3d 32 32 32 1000000 1 --info 10
+mpirun ./Binning_pic3d 32 32 32 100000 1 --info 10
 
 
 
