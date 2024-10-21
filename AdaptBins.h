@@ -29,6 +29,7 @@
 
 #include "Ippl.h"
 
+/*
 template<typename SizeType, typename IndexType>
 struct HistogramReducer {
     using bin_histo_type = typename Kokkos::View<SizeType*>; // long int
@@ -76,13 +77,158 @@ struct HistogramReducer {
     }
 
     // This operator is used during parallel_reduce to update the histogram
-    /*KOKKOS_INLINE_FUNCTION
-    void operator()(const SizeType i, HistogramReducer& update) const {
+    //KOKKOS_INLINE_FUNCTION
+    //void operator()(const SizeType i, HistogramReducer& update) const {
         // Increment the count in the histogram for that bin
 
-        global_histogram(binIndex(i))++;
-    }*/
+    //    global_histogram(binIndex(i))++;
+    //}
+};*/
+/*
+// Define the custom scalar type for the reduction
+template<typename SizeType, typename IndexType>
+struct HistogramStruct {
+    using bin_histo_type = typename Kokkos::View<SizeType*>;
+
+    bin_histo_type bins;  // Histogram with bin counts
+
+    // Default constructor (required for Kokkos)
+    KOKKOS_INLINE_FUNCTION
+    HistogramStruct();
+
+    // Constructor to allocate histogram with a given number of bins
+    HistogramStruct(IndexType num_bins) : bins("histogram", num_bins) {}
+
+    // Merge two histograms (for parallel reduction)
+    KOKKOS_INLINE_FUNCTION
+    void operator+=(const HistogramStruct& other) {
+        for (IndexType i = 0; i < bins.extent(0); ++i) {
+            bins(i) += other.bins(i);
+        }
+    }
 };
+
+// Custom reducer to manage the histogram reductions
+template<typename SizeType, typename IndexType>
+struct HistogramReducer {
+    using value_type = HistogramStruct<SizeType, IndexType>;
+
+    IndexType numBins;  // Number of bins (runtime value)
+
+    // Constructor: set the number of bins (provided at runtime)
+    HistogramReducer(IndexType num_bins) : numBins(num_bins) {}
+
+    // Initializes the local histogram to zero
+    KOKKOS_INLINE_FUNCTION
+    void init(value_type& histogram) const {
+        histogram = value_type(numBins);  // Allocate bins and initialize to 0
+        Kokkos::deep_copy(histogram.bins, 0);  // Initialize to 0
+    }
+
+    // Reduces (joins) two histograms by adding their bin counts
+    KOKKOS_INLINE_FUNCTION
+    void join(value_type& dest, const value_type& src) const {
+        dest += src;
+    }
+
+    // Finalize the reduction: accumulate local histogram to the global histogram
+    KOKKOS_INLINE_FUNCTION
+    void final(value_type& local, value_type& global) const {
+        for (IndexType i = 0; i < numBins; ++i) {
+            Kokkos::atomic_add(&global.bins(i), local.bins(i));
+        }
+    }
+};*/
+
+template<typename SizeType, typename IndexType, IndexType N>
+struct ViewReducer {
+    SizeType the_array[N];
+
+    KOKKOS_INLINE_FUNCTION   // Default constructor - Initialize to 0's
+    ViewReducer() { 
+        for (IndexType i = 0; i < N; i++ ) { the_array[i] = 0; }
+    }
+    
+    KOKKOS_INLINE_FUNCTION   // Copy Constructor
+    ViewReducer(const ViewReducer& rhs) { 
+        for (IndexType i = 0; i < N; i++ ){
+            the_array[i] = rhs.the_array[i];
+        }
+    }
+    
+    KOKKOS_INLINE_FUNCTION   // add operator
+    ViewReducer& operator+= (const ViewReducer& src) {
+        for ( IndexType i = 0; i < N; i++ ) {
+            the_array[i]+=src.the_array[i];
+        }
+        return *this;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    ViewReducer& operator=(const ViewReducer& rhs) {
+        if (this != &rhs) { 
+            for (IndexType i = 0; i < N; i++) {
+                the_array[i] = rhs.the_array[i]; 
+            }
+        }
+        return *this;
+    }
+};
+
+
+
+/*struct ViewReducer {
+    using value_type = typename Kokkos::View<SizeType*>;
+
+    value_type bins = value_type("local_histogram", N);
+
+    KOKKOS_INLINE_FUNCTION   // Default constructor - Initialize to 0's
+    ViewReducer() {
+        for (IndexType i = 0; i < N; ++i) {
+            bins(i) = 0.0;
+        }
+    }
+
+    KOKKOS_INLINE_FUNCTION   // Copy Constructor
+    ViewReducer(const ViewReducer& rhs) { 
+        bins = rhs.bins;
+    }
+
+    KOKKOS_INLINE_FUNCTION   // add operator
+    ViewReducer& operator+=(const ViewReducer& src) {
+        for (IndexType i = 0; i < N; ++i) {
+            bins(i) += src.bins(i);
+        }
+        return *this;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    ViewReducer& operator=(const ViewReducer& rhs) {
+        if (this != &rhs) {  // Prevent self-assignment
+            bins = rhs.bins;
+            //Kokkos::deep_copy(bins, rhs.bins);  // Deep copy the bins
+            //Kokkos::fence();
+        }
+        return *this;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()(const IndexType& idx) {
+        ++bins(idx);
+    }
+};*/
+//typedef array_type<int,4> ValueType;  // used to simplify code below
+
+namespace Kokkos {
+    // Specialize the reduction_identity for ViewReducer
+    template<typename SizeType, typename IndexType, IndexType N>
+    struct reduction_identity<ViewReducer<SizeType, IndexType, N>> {
+        KOKKOS_FORCEINLINE_FUNCTION
+        static ViewReducer<SizeType, IndexType, N> sum() {
+            return ViewReducer<SizeType, IndexType, N>(); // Return a ViewReducer initialized to zero
+        }
+    };
+}
 
 
 
@@ -105,7 +251,8 @@ public:
 
     using bin_histo_type         = typename Kokkos::View<size_type*>; // ippl::Vector<size_type*, 1>;
     
-    using reducer_type =  HistogramReducer<size_type, bin_index_type>;
+    //using reducer_type =  HistogramReducer<size_type, bin_index_type>;
+    using reducer_type = ViewReducer<size_type, bin_index_type, 10>;
 
     //using bin_histo_view_type    = typename bin_histo_type::view_type;
 
@@ -174,13 +321,14 @@ public:
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
         localBinHisto_m = bin_histo_type("binHisto_m", numBins);
-        //bin_histo_type localBinHisto = localBinHisto_m; // avoid implicit "this" capture
+        bin_histo_type localBinHisto = localBinHisto_m; // avoid implicit "this" capture
 
         // Optionally, initialize the histogram to zero
-        /*Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
+        Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
             localBinHisto(i) = 0;
-        });*/
-        Kokkos::deep_copy(localBinHisto_m, 0);
+        });
+        
+        //Kokkos::deep_copy(localBinHisto_m, 0);
         //Kokkos::fence();  // Ensure initialization is done before proceeding
     }
 
@@ -252,15 +400,46 @@ public:
         Inform msg("AdaptBins");
         initializeHistogram(); // Initialize all bin counts to 0 --> not necessary when using parallel_reduce!
         msg << "Histogram initialized to 0" << endl;
+        //for (size_type i = 0; i < 10; ++i) {
+            //msg << "Hey" << endl;
+        //    msg << localBinHisto_m(i) << " " << endl;
+        //}
 
         bin_view_type binIndex       = bunch_m->bin.getView();
-        bin_histo_type localBinHisto = localBinHisto_m;
-        bin_index_type binCount      = getCurrentBinCount();
+        //bin_histo_type localBinHisto = localBinHisto_m;
+        //bin_index_type binCount      = getCurrentBinCount();
+        reducer_type tr; 
 
-        reducer_type reducer(localBinHisto, binCount);
+        //reducer_type reducer = reducer_type();
+        //msg << "HEY1" << endl;
+        //for (int i = 0; i < 10; ++i) {
+        //    msg << reducer.bins(i) << endl;
+        //}
 
-        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
-        IpplTimings::startTimer(initLocalHisto);
+        //static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
+        //IpplTimings::startTimer(initLocalHisto);
+        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+            KOKKOS_LAMBDA(const size_type& i, reducer_type& update) {
+                //msg << binIndex(i) << endl;
+                bin_index_type ndx = binIndex(i);  // sum all of the i%4 entries (divide total by 4)
+                //update(ndx);
+                update.the_array[ndx]++; 
+            }, Kokkos::Sum<reducer_type>(tr));
+
+        //Kokkos::deep_copy(localBinHisto_m, tr.the_array);
+        //msg << "HEY2" << endl;
+        for (int i = 0; i < 10; ++i) {
+            //msg << tr.the_array[i] << endl;
+            localBinHisto_m(i) = tr.the_array[i];
+        }
+        //localBinHisto_m = reducer.bins;
+        /*Kokkos::parallel_reduce("initLocalHisto", bunch_m->getLocalNum(),
+            KOKKOS_LAMBDA(const size_type i, reducer_type::value_type& local_histogram) {
+                size_type bin_idx = binIndex(i);  // Get bin index for this particle
+                //if (bin_idx >= 0 && bin_idx < num_bins) {
+                local_histogram.bins(bin_idx)++;
+                //}
+            }, reducer);*/
         /*Kokkos::parallel_reduce("EnergyHistogram", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type i, bin_histo_type& local_histogram) {
                 bin_index_type bin_idx = binIndex(i);
@@ -280,7 +459,7 @@ public:
             }, localBinHisto);*/
         // Perform the reduction, bin counts will be updated in localBinHisto
         //Kokkos::parallel_reduce("initLocalHisto", bunch_m->getLocalNum(), reducer);
-        Kokkos::parallel_reduce("initLocalHisto", bunch_m->getLocalNum(), 
+        /*Kokkos::parallel_reduce("initLocalHisto", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type i, reducer_type& reducer) {
                 bin_index_type bin_idx = binIndex(i);
                 // Ensure bin_idx is within bounds
@@ -289,7 +468,7 @@ public:
                 //}
                 //reducer(i, reducer.global_histogram);
                 reducer.global_histogram(bin_idx)++;
-            }, reducer);
+            }, reducer);*/
         /*Kokkos::parallel_reduce("initLocalHisto", Kokkos::RangePolicy<>(0, bunch_m->getLocalNum()),
         KOKKOS_LAMBDA(const size_type i, HistogramReducer<size_type, bin_index_type>::bin_histo_type& local_histogram) {
             bin_index_type bin_idx = binIndex(i);
@@ -298,7 +477,7 @@ public:
             }
         },
         Kokkos::Sum<bin_histo_type>(reducer.global_histogram));*/
-        IpplTimings::stopTimer(initLocalHisto);
+        //IpplTimings::stopTimer(initLocalHisto);
     }
 
     void doFullRebin(bin_index_type nBins) {
