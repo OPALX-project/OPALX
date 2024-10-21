@@ -47,15 +47,21 @@ public:
         Dist_t dist(par);
 
         MPI_Comm comm = MPI_COMM_WORLD;
-        int nranks = 0;
+        int nranks;
+        int rank;
         MPI_Comm_size(comm, &nranks);
+        MPI_Comm_rank(comm, &rank);
 
         size_type nlocal = floor(numberOfParticles/nranks);
+
+        // if nlocal*nranks > numberOfParticles, put the remaining in rank 0
+        size_t remaining = numberOfParticles - nlocal*nranks;
+        if(remaining>0 && rank==0){
+            nlocal += remaining;
+        }
         sampling_t sampling(dist, rmax, rmin, rmax, rmin, nlocal);
         nlocal = sampling.getLocalSamplesNum();
-
         pc_m->create(nlocal);
-
         sampling.generate(Rview, rand_pool64);
 
         // sample P
