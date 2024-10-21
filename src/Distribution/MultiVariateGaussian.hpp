@@ -132,20 +132,26 @@ public:
         using sampling_t = ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
         Dist_t dist(par);
 
-        auto& mesh = fc_m->getMesh();
-        auto& FL = fc_m->getFL();
-        hr = (rmax_m-rmin_m) / nr;
-        mesh.setMeshSpacing(hr);
-        mesh.setOrigin(rmin_m);
-        ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>> rlayout;
-        rlayout = ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>>(FL, mesh);
-        sampling_t samplingN(dist, normRmax_m, normRmin_m, rlayout, numberOfParticles);
-        size_type nlocal = samplingN.getLocalSamplesNum();
-        pc_m->create(nlocal);
-        samplingN.generate(Rview, rand_pool64);
+        MPI_Comm comm = MPI_COMM_WORLD;
+        int nranks;
+        int rank;
+        MPI_Comm_size(comm, &nranks);
+        MPI_Comm_rank(comm, &rank);
 
-        samplingN.updateBounds(normPmax_m, normPmin_m);
-        samplingN.generate(Pview, rand_pool64);
+        size_type nlocal = floor(numberOfParticles/nranks);
+
+        // if nlocal*nranks > numberOfParticles, put the remaining in rank 0
+        size_t remaining = numberOfParticles - nlocal*nranks;
+        if(remaining>0 && rank==0){
+            nlocal += remaining;
+        }
+
+        sampling_t sampling(dist, normRmax_m, normRmin_m, normRmax_m, normRmin_m, nlocal);
+        pc_m->create(nlocal);
+        sampling.generate(Rview, rand_pool64);
+
+        sampling.updateBounds(normPmax_m, normPmin_m, normPmax_m, normPmin_m);
+        sampling.generate(Pview, rand_pool64);
 
         Matrix_t L;
         for (unsigned i = 0; i < 6; ++i){
