@@ -17,14 +17,10 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
     add_definitions (-DNOPAssert)
 endif ()
 
-
-if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_compile_options (-fsanitize=undefined,address)
     add_link_options (-fsanitize=undefined,address)
 endif ()
-
-
-
 
 add_compile_options (-Wall)
 add_compile_options (-Wunused)
@@ -44,18 +40,14 @@ message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CUDA_EXTENSIONS OFF)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g  -O3")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
 set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
-set (CMAKE_CXX_FLAGS_DEBUG  "-g")
+set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
 
 if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # Use sanitizer flags for GCC or Clang only
      set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
 endif ()
-
-#if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
-#    set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G") #-diag-suppress=611")
-#endif()
 
 message (STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
 
@@ -97,6 +89,8 @@ FetchContent_Declare(ippl
     GIT_SHALLOW True
     DOWNLOAD_EXTRACT_TIMESTAMP True
 )
+set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
+
 FetchContent_MakeAvailable(ippl)
 include_directories("${IPPL_SOURCE_DIR}/src")
 
