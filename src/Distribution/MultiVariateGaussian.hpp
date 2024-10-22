@@ -107,7 +107,15 @@ public:
     }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
-        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+        size_t randInit;
+        if (Options::seed == -1) {
+            randInit = 1234567;
+            *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
+        }
+	else
+            randInit = (size_t)(Options::seed + 100 * ippl::Comm->rank());
+
+        GeneratorPool rand_pool64(randInit);
 
         // read the input covariance matrix from opal dist
         for (unsigned int i = 0; i < 6; i++) {
