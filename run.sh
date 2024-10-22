@@ -5,7 +5,7 @@
 #SBATCH --time=00:01:00
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1         # cores per node
-##SBATCH --mem-per-cpu=4G
+##SBATCH --mem-per-cpu=16G
 #SBATCH --cpus-per-task=1           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
 #SBATCH --partition=hourly #gpu-short #              # Non-GPU partition, check cluster for correct partition
@@ -26,7 +26,7 @@ export OMP_PLACES=threads
 
 cd /data/user/liemen_a/build_ippl/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-mpirun ./Binning_pic3d 32 32 32 1000 1 --info 10
+mpirun ./Binning_pic3d 32 32 32 100 1 --info 10
 
 
 
