@@ -1,15 +1,3 @@
-    // some debug output ------------------------------------------------------------
-    //
-    /*
-    Kokkos::parallel_for("print q", ippl::getRangePolicy(Qview),                                                                                                                                                                                                         
-                         KOKKOS_LAMBDA(const int i) {                                                                                                                                                                                                                          
-                             if (i<5){
-                                 double myQ = Qview(i);
-                                 std::cout << "qi= " << myQ << std::endl;
-                             }
-                         }); 
-    */
-
 #include "PartBunch/PartBunch.hpp"
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
