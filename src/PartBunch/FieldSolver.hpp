@@ -120,6 +120,7 @@ public:
             // The periodic Poisson solver, Open boundaries solver,
             // and the P3M solver compute the electric field directly
             solver.setLhs(*E_m);
+            solver.setGradFD();
         }
         call_counter_m = 0;
     }
