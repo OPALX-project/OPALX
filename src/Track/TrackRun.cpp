@@ -32,6 +32,8 @@
 
 #include "Distribution/Gaussian.hpp"
 
+#include "Distribution/MultiVariateGaussian.hpp"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -229,6 +231,7 @@ void TrackRun::execute() {
     // \todo here we can loop over several distributions
 
     dist_m = std::shared_ptr<Distribution>(Distribution::find(distributionArray[0]));
+    dist_m->setDistType();
     *gmsg << *dist_m << endl;
 
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
@@ -307,6 +310,9 @@ void TrackRun::execute() {
     switch (opalDist->getType()){
         case DistributionType::GAUSS:
             sampler_m = std::make_shared<Gaussian>(pc, fc, opalDist);
+            break;
+        case DistributionType::MULTIVARIATEGAUSS:
+            sampler_m = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
             break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");

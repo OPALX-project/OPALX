@@ -49,7 +49,7 @@ class Beam;
 class Beamline;
 class H5PartWrapper;
 
-enum class DistributionType : short { NODIST = -1, GAUSS };
+enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t = FieldContainer<double, 3>;
@@ -59,6 +59,8 @@ public:
     Distribution();
 
     virtual ~Distribution();
+
+    using Matrix_t = ippl::Vector< ippl::Vector<double, 6>, 6>;
 
     virtual bool canReplaceBy(Object* object);
     virtual Distribution* clone(const std::string& name);
@@ -98,6 +100,8 @@ public:
 
     ippl::Vector<double, 3> getCutoffR() const;
     ippl::Vector<double, 3> getCutoffP() const;
+
+    Matrix_t correlationMatrix_m;
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
@@ -166,10 +170,13 @@ private:
     // void initializeBeam(PartBunch_t* beam);
     void printDist(Inform& os, size_t numberOfParticles) const;
     void printDistGauss(Inform& os) const;
+    void printDistMultiVariateGauss(Inform& os) const;
 
     void setAttributes();
 
     void setDistParametersGauss();
+
+    void setDistParametersMultiVariateGauss();
 
     void setSigmaR_m();
 
