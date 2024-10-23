@@ -41,7 +41,6 @@ public:
         // sample R
         Vector_t<double, 3> rmin = -opalDist_m->getCutoffR();
         Vector_t<double, 3> rmax =  opalDist_m->getCutoffR();
-        Vector_t<double, 3> hr;
 
         for(int i=0; i<3; i++){
             mu[i] = 0.0;
@@ -98,6 +97,7 @@ public:
            meanR[i] = meanR[i]/(1.*numberOfParticles);
         }
 
+<<<<<<< HEAD
         Kokkos::parallel_for(
                 numberOfParticles,KOKKOS_LAMBDA(
                     const int k) {
@@ -111,6 +111,8 @@ public:
         Kokkos::fence();
         ippl::Comm->barrier();
 
+=======
+>>>>>>> remove shift to zero in z
         // sample P
         for(int i=0; i<3; i++){
             mu[i] = 0.0;
