@@ -459,6 +459,8 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
 
+    /*   
+
     auto idViewDevice  = bunch->getParticleContainer()->ID.getView();
     auto idView = Kokkos::create_mirror_view(idViewDevice);
     Kokkos::deep_copy(idView,idViewDevice);
@@ -466,7 +468,6 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     for (long unsigned i = 0; i < numLocalParticles; i++)
         i64buffer[i] = idView(i);
     WRITEDATA(Int64, file_m, "id", i64buffer);
-
     */
     
     auto binViewDevice  = bunch->getParticleContainer()->Bin.getView();
@@ -483,6 +484,10 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     Kokkos::deep_copy(spView,spViewDevice);
 
 
+=======
+    */
+    
+>>>>>>>  circumvent issue #11
     auto binViewDevice  = bunch->getParticleContainer()->Bin.getView();
     auto binView = Kokkos::create_mirror_view(binViewDevice);
     Kokkos::deep_copy(binView,binViewDevice);
