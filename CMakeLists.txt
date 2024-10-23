@@ -285,6 +285,7 @@ endif ()
 #
 # Handle options
 #
+
 option (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 if (BUILD_OPAL_UNIT_TESTS)
     find_package (GTest REQUIRED HINT $ENV{GTEST_PREFIX})
@@ -304,10 +305,10 @@ if (ENABLE_DOXYDOC)
         )
 endif ()
 
-option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
-if (DBG_SCALARFIELD)
-    message (STATUS "Write scalar rho_m field is enabled ")
-    add_definitions (-DDBG_SCALARFIELD)
+option (OPALX_FIELD_DEBUG "Enable dump of scalar and vector fields (only one rank for now)" OFF)
+if (OPALX_FIELD_DEBUG)
+    message (STATUS "Write scalar/vector field enabled ")
+    add_definitions (-DOPALX_FIELD_DEBUG)
 endif ()
 
 #

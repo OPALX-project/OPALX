@@ -33,8 +33,6 @@
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
 
-#undef OPAL_FIELD_DEBUG
-
 extern Inform* gmsg;
 
 template <>
@@ -348,13 +346,13 @@ void FieldSolver<double,3>::runSolver() {
             ippl::Comm->barrier();
         } else if (this->getStype() == "FFT") {
             if constexpr (Dim == 2 || Dim == 3) {
-#ifdef OPAL_FIELD_DEBUG
+#ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
 
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
-#ifdef OPAL_FIELD_DEBUG
+#ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
                 call_counter_m++;
@@ -366,12 +364,12 @@ void FieldSolver<double,3>::runSolver() {
             }
         } else if (this->getStype() == "FFTOPEN") {
             if constexpr (Dim == 3) {
-#ifdef OPAL_FIELD_DEBUG
+#ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
-#ifdef OPAL_FIELD_DEBUG
+#ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
                 call_counter_m++;
