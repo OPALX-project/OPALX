@@ -487,6 +487,7 @@ int main(int argc, char* argv[]) {
 
         
         std::unique_ptr<AdaptBins<bunch_type>> bins = std::make_unique<AdaptBins<bunch_type>>(P, 10);
+        bins->debug();
         bins->initLimits(); // TODO
 
         bins->assignBinsToParticles(); // TODO
