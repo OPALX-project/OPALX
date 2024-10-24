@@ -6,7 +6,7 @@
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1         # cores per node
 ##SBATCH --mem-per-cpu=16G
-#SBATCH --cpus-per-task=32           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
+#SBATCH --cpus-per-task=17           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
 #SBATCH --partition=hourly #gpu-short #              # Non-GPU partition, check cluster for correct partition
 #SBATCH --account=merlin
@@ -23,7 +23,7 @@
 
 export OMP_PROC_BIND=spread # I guess?
 export OMP_PLACES=threads
-export OMP_NUM_THREADS=$(nproc)
+export OMP_NUM_THREADS=8 # $(nproc) # set this for different number of threads in program
 
 echo "Number of threads: $(nproc)"
 
@@ -32,14 +32,16 @@ echo "Number of threads: $(nproc)"
 #module clear && module use unstable && module load cmake/3.20.5 gcc/12.3.0 gtest/1.13.0-1 openmpi/4.1.5_slurm cuda/12.1.1
 #module clear && module use unstable && module load gcc/12.3.0 gtest/1.13.0-1 openmpi/4.1.5_slurm && module use Libraries && module load ucx/1.14.1_slurm fftw/3.3.10_merlin6 boost gsl hdf5 H5hut cuda/12.1.1 cmake/3.25.2
 
-cd /data/user/liemen_a/build_ippl/
-cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS="OPENMP;CUDA" -DKokkos_ARCH_AMPERE80=ON -DENABLE_TESTS=on -DENABLE_SOLVERS=OFF -DENABLE_FFT=OFF -DONLY_BINNING=ON
-make -j $(nproc)
+cd /data/user/liemen_a/build_ippl_openmp/
+#cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS=OPENMP -DENABLE_TESTS=ON -DENABLE_SOLVERS=ON -DENABLE_FFT=ON -DONLY_BINNING=ON
+#make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
-cd /data/user/liemen_a/build_ippl/test/binning/
+cd /data/user/liemen_a/build_ippl_openmp/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
+srun ./Binning_pic3d 8 8 8 10000000 1 --info 10
+
+# srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
 
 
 

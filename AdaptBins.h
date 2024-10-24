@@ -730,13 +730,17 @@ public:
 
         int rank = ippl::Comm->rank();
 
+        // Check number of CPU threads
+        #ifdef KOKKOS_ENABLE_OPENMP
+        int num_threads = Kokkos::OpenMP::concurrency();
+        msg << "Number of CPU threads: " << num_threads << endl;
+        #endif  
+
         // Check number of GPUs (CUDA devices)
         #ifdef KOKKOS_ENABLE_CUDA
         int num_gpus = Kokkos::Cuda::detect_device_count();
         msg << "Rank " << rank << " sees " << num_gpus << " GPUs available." << endl;
         #else
-        int num_threads = Kokkos::Threads::impl_thread_pool_size();
-        msg << "Rank " << rank << " can use " << num_threads << " threads." << endl;
         msg << "Rank " << rank << ": Kokkos is not using CUDA (GPU support disabled)." << endl;
         #endif
     
