@@ -431,6 +431,7 @@ public:
     using bin_view_type          = typename bin_type::view_type; 
 
     using bin_histo_type         = typename Kokkos::View<size_type*>; // ippl::Vector<size_type*, 1>;
+    using bin_host_histo_type    = typename Kokkos::View<size_type*, Kokkos::HostSpace>; // ippl::Vector<size_type*, 1>;
     
     //using reducer_type =  HistogramReducer<size_type, bin_index_type>;
     //using reducer_type = ViewReducer<size_type, bin_index_type>;
@@ -474,8 +475,8 @@ public:
         
         Kokkos::parallel_reduce("localBinLimitReduction", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const int i, Kokkos::MinMaxScalar<value_type>& update) {
             value_type val = localData(i)[2]; // use z axis for binning!
-            update.min_val = std::min(update.min_val, val);
-            update.max_val = std::max(update.max_val, val);
+            update.min_val = Kokkos::min(update.min_val, val);
+            update.max_val = Kokkos::max(update.max_val, val);
         }, Kokkos::MinMax<value_type>(localMinMax));
 
         xMin_m = localMinMax.min_val;
@@ -550,7 +551,6 @@ public:
         });*/
         
         // This means that new particles were added, not that there was a rebin (yet!)
-        //bin_histo_type localBinHisto = localBinHisto_m; // use copy of histo... view to avoid implicit "this" capture in Kokkos:parallel_for
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
         value_type xMin = xMin_m, xMax = xMax_m, binWidthInv = 1.0/binWidth_m;
@@ -560,6 +560,9 @@ public:
         // Capture variables explicitly...
         static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
         IpplTimings::startTimer(assignParticleBins);
+        initializeHistogram();
+        bin_histo_type localBinHisto = localBinHisto_m; // use copy of histo... view to avoid implicit "this" capture in Kokkos:parallel_for
+
         Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
                 // Access the z-axis position of the i-th particle
                 value_type v = localData(i)[2];  
@@ -570,12 +573,13 @@ public:
                 //localBinHisto(bin) += 1;
                 //Kokkos::atomic_fetch_add(&localBinHisto(bin), static_cast<bin_index_type>(1)); // since "Kokkos::atomic_add" might not support unsigned long, only int?!
                 //Kokkos::atomic_add(&localBinHisto(bin), 1);
-                // Kokkos::atomic_increment(&localBinHisto(bin)); // Not needed with parallel_reduce
+                Kokkos::atomic_increment(&localBinHisto(bin)); // Not needed with parallel_reduce
         });
+        Kokkos::fence();  
         IpplTimings::stopTimer(assignParticleBins);
         msg << "All bins assigned." << endl; 
 
-        initLocalHisto();
+        //initLocalHisto();
         msg << "Local Histogram initialized." << endl;
         // Ensure all bins are assigned before further calculations!
         // Kokkos::fence();   
@@ -623,7 +627,7 @@ public:
                 //update.bins(ndx)++;
             }, Kokkos::Sum<reducer_type>(resultReducer));*/
 
-        Kokkos::Experimental::ScatterView<size_type*> scatter_view("scatter_view", binCount);
+        /*Kokkos::Experimental::ScatterView<size_type*> scatter_view("scatter_view", binCount);
 
         // Usage with parallel_for
         Kokkos::parallel_for("initLocalHist", bunch_m->getLocalNum(), 
@@ -637,7 +641,7 @@ public:
         Kokkos::parallel_for("finalize_histogram", binCount, KOKKOS_LAMBDA(const size_type i) {
             localBinHisto(i) = hist_view(i);
         });
-        Kokkos::fence();
+        Kokkos::fence();*/
 
 
 
@@ -666,24 +670,29 @@ public:
         assignBinsToParticles();
     }
 
-    bin_histo_type getGlobalHistogram() {
+    bin_host_histo_type getGlobalHistogram() {
         Inform msg("GetGlobalHistogram");
         // Get the current number of bins
         bin_index_type numBins = getCurrentBinCount(); // number of local bins = number of global bins!
         //msg << "1" << endl;
         // Create a view to hold the global histogram on all ranks
-        bin_histo_type globalBinHisto("globalBinHisto", numBins);
-        //msg << "2" << endl;
+        bin_host_histo_type globalBinHisto("globalBinHisto", numBins);
+
+        // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
+        auto localBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
+        // Kokkos::deep_copy(localBinHistoHost, localBinHisto_m);
+        
         // Loop through each bin and reduce its value across all nodes
         for (bin_index_type i = 0; i < numBins; ++i) {
             //msg << "3 - " << i << endl;
-            size_type localValue = localBinHisto_m(i);
+            size_type localValue = localBinHistoHost(i);
             size_type globalValue = 0;
-
+            //msg << "4 - " << i << endl;
             // Perform the reduction to sum the values across all nodes
             ippl::Comm->allreduce(localValue, globalValue, 1, std::plus<size_type>());  // Reduce to root node
             //msg << "4 - " << i << endl;
             // Store the global value only on rank 0
+            //msg << "5 - " << i << endl;
             globalBinHisto(i) = globalValue; // Saves global histogram on ALL ranks...
             //msg << "5 - " << i << endl;
         }
@@ -692,33 +701,45 @@ public:
         return globalBinHisto;
     }
 
-
     void print() {
         Inform os("PHisto");
         // Only works correct for rank 0
         os << "-----------------------------------------" << endl;
         os << "     Output Global Binning Structure     " << endl;
 
-        os << "Bins = " << getCurrentBinCount() << " hBin = " << binWidth_m << endl;
+        bin_index_type numBins = getCurrentBinCount();
+        os << "Bins = " << numBins << " hBin = " << binWidth_m << endl;
         os << "Bin #;Val" << endl;
 
         // Get the global histogram (reduced across all nodes)
-        bin_histo_type globalBinHisto = getGlobalHistogram();
+        bin_host_histo_type globalBinHisto = getGlobalHistogram();
 
         // Only rank 0 prints the global histogram
-        for (bin_index_type i = 0; i < getCurrentBinCount(); ++i) {
-            os << i << ";" << globalBinHisto(i) << endl;
-        }
-
         size_type total = 0;
-        // Compute the sum of all elements in the histogram
-        Kokkos::parallel_reduce("sum_histogram", globalBinHisto.extent(0), 
-            KOKKOS_LAMBDA(const size_type i, size_type& localSum) {
-                localSum += globalBinHisto(i);
-            }, total);
-
+        for (bin_index_type i = 0; i < numBins; ++i) {
+            size_type val = globalBinHisto(i);
+            os << i << ";" << val << endl;
+            total += val;
+        }   
         os << "Total = " << total << endl;
         os << "-----------------------------------------" << endl;
+    }
+
+    void debug() {
+        Inform msg("KOKKOS DEBUG", INFORM_ALL_NODES);
+
+        int rank = ippl::Comm->rank();
+
+        // Check number of GPUs (CUDA devices)
+        #ifdef KOKKOS_ENABLE_CUDA
+        int num_gpus = Kokkos::Cuda::detect_device_count();
+        msg << "Rank " << rank << " sees " << num_gpus << " GPUs available." << endl;
+        #else
+        int num_threads = Kokkos::Threads::impl_thread_pool_size();
+        msg << "Rank " << rank << " can use " << num_threads << " threads." << endl;
+        msg << "Rank " << rank << ": Kokkos is not using CUDA (GPU support disabled)." << endl;
+        #endif
+    
     }
 };
 
