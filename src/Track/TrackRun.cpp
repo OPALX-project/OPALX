@@ -241,16 +241,13 @@ void TrackRun::execute() {
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;
 
-    macrocharge_m = beam->getChargePerParticle()*1000000.;
+    macrocharge_m = beam->getChargePerParticle();
     macromass_m   = beam->getMassPerParticle();
-
-    // double Qtot = macrocharge_m * beam->getNumberOfParticles();
 
     /*
       Here we can allocate the bunch
 
      */
-    
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     bunch_m = std::make_shared<bunch_type>(macrocharge_m,
