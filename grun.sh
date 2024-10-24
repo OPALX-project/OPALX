@@ -5,14 +5,14 @@
 #SBATCH --time=00:15:00
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1        # cores per node
-#SBATCH --mem-per-cpu=4G
-#SBATCH --cpus-per-task=8           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
+#SBATCH --mem-per-cpu=16G
+#SBATCH --cpus-per-task=2           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=gmerlin6 # gmerlin6
 #SBATCH --partition=gwendolen # Mandatory, as gwendolen is not the default partition
 #SBATCH --account=gwendolen   # Mandatory, as gwendolen is not the default account
 ##SBATCH --exclusive
 ##SBATCH --nodelist=merlin-c-001   # Modify node list if needed for non-GPU nodes
-#SBATCH --gpus=4
+#SBATCH --gpus=1
 
 # for gpu: use "--gpus=1", "--cluster=gmerlin6" and "--partition=gpu-short" instead of "--cluster=merlin6", "--partition=hourly"
 
@@ -35,7 +35,7 @@ echo "Finished compiling. Now running the program..."
 
 cd /data/user/liemen_a/build_ippl_cuda/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-srun ./Binning_pic3d 8 8 8 1000000 1 --info 10 
+srun ./Binning_pic3d 8 8 8 10000000 1 --info 10 
 # srun ./Binning_pic3d 8 8 8 1000000 1 --info 10 --kokkos-disable-cuda # use this to run ONLY on CPU
 
 
