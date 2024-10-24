@@ -5,8 +5,8 @@
 #SBATCH --time=00:05:00
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1         # cores per node
-##SBATCH --mem-per-cpu=16G
-#SBATCH --cpus-per-task=17           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
+##SBATCH --mem-per-cpu=4G
+#SBATCH --cpus-per-task=2           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
 #SBATCH --partition=hourly #gpu-short #              # Non-GPU partition, check cluster for correct partition
 #SBATCH --account=merlin
@@ -23,7 +23,7 @@
 
 export OMP_PROC_BIND=spread # I guess?
 export OMP_PLACES=threads
-export OMP_NUM_THREADS=8 # $(nproc) # set this for different number of threads in program
+export OMP_NUM_THREADS=1 # $(nproc) # set this for different number of threads in program
 
 echo "Number of threads: $(nproc)"
 
