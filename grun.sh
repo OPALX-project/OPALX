@@ -19,10 +19,11 @@
 
 export OMP_PROC_BIND=spread # I guess?
 export OMP_PLACES=threads
+export OMP_NUM_THREADS=$(nproc) # use all available threads automatically
 
 cd /data/user/liemen_a/build_ippl/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-mpirun ./Binning_pic3d 32 32 32 100000 1 --info 10
+mpirun ./Binning_pic3d 8 8 8 1000000 1 --info 10
 
 
 

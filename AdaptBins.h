@@ -548,9 +548,8 @@ public:
             value_type v = localData(i)[2];  // Assuming z-axis is the third dimension
             binIndex(i) = getBin(v, xMin, xMax, binWidth, numBins);
         });*/
-        
-        // This means that new particles were added, not that there was a rebin (yet!)
-        //bin_histo_type localBinHisto = localBinHisto_m; // use copy of histo... view to avoid implicit "this" capture in Kokkos:parallel_for
+
+        bin_histo_type localBinHisto = localBinHisto_m; // use copy of histo... view to avoid implicit "this" capture in Kokkos:parallel_for
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
         value_type xMin = xMin_m, xMax = xMax_m, binWidthInv = 1.0/binWidth_m;
@@ -560,6 +559,9 @@ public:
         // Capture variables explicitly...
         static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
         IpplTimings::startTimer(assignParticleBins);
+        //initializeHistogram();
+        // This means that new particles were added, not that there was a rebin (yet!)
+        
         Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
                 // Access the z-axis position of the i-th particle
                 value_type v = localData(i)[2];  
@@ -570,7 +572,7 @@ public:
                 //localBinHisto(bin) += 1;
                 //Kokkos::atomic_fetch_add(&localBinHisto(bin), static_cast<bin_index_type>(1)); // since "Kokkos::atomic_add" might not support unsigned long, only int?!
                 //Kokkos::atomic_add(&localBinHisto(bin), 1);
-                // Kokkos::atomic_increment(&localBinHisto(bin)); // Not needed with parallel_reduce
+                //Kokkos::atomic_increment(&localBinHisto(bin)); // Not needed with parallel_reduce
         });
         IpplTimings::stopTimer(assignParticleBins);
         msg << "All bins assigned." << endl; 
@@ -610,8 +612,8 @@ public:
         /*for (int i = 0; i < 10; ++i) {
             msg << to_reduce.bins(i) << endl;
         }*/
-        //static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
-        //IpplTimings::startTimer(initLocalHisto);
+        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
+        IpplTimings::startTimer(initLocalHisto);
         msg << "Starting reducer." << endl;
 
         //Kokkos::parallel_reduce("custom_reduce", Kokkos::RangePolicy<>(0, bunch_m->getLocalNum()), functor, resultReducer);
@@ -633,13 +635,9 @@ public:
                 scatter(ndx)++;
             });
 
-        auto hist_view = scatter_view.subview();
-        Kokkos::parallel_for("finalize_histogram", binCount, KOKKOS_LAMBDA(const size_type i) {
-            localBinHisto(i) = hist_view(i);
-        });
-        Kokkos::fence();
+        scatter_view.contribute_into(localBinHisto);
 
-
+        IpplTimings::stopTimer(initLocalHisto);
 
         /*Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type i, reducer_type& update) {
