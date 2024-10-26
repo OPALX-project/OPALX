@@ -142,7 +142,75 @@ struct HistogramReducer {
     }
 };*/
 
+// Copied and modified Sum reducer from Kokkos library
 template<typename SizeType, typename IndexType>
+struct HistogramReducer {
+public:
+    // Required
+    using reducer    = HistogramReducer<SizeType, IndexType>;
+    using value_type = typename Kokkos::View<SizeType*>;
+    // static_assert(!std::is_pointer_v<value_type> && !std::is_array_v<value_type>);
+    // SizeType numCalls;
+    using result_view_type = typename Kokkos::View<value_type>;
+
+private:
+    result_view_type value; // = result_view_type(value_type("localHistogramReductionIdentity", 10));
+    IndexType numBins;
+    // result_view_type value;
+    // bool references_scalar_v;
+
+public:
+    //KOKKOS_INLINE_FUNCTION
+    //HistogramReducer(value_type& value_) : value(&value_), references_scalar_v(true) {} 
+
+    KOKKOS_INLINE_FUNCTION
+    HistogramReducer(value_type& value_, IndexType& numBins_) : value(&value_), numBins(numBins_) {}
+
+    KOKKOS_INLINE_FUNCTION
+    HistogramReducer(const result_view_type& value_, IndexType& numBins_) : value(value_), numBins(numBins_) {}
+
+    //KOKKOS_INLINE_FUNCTION
+    //HistogramReducer(const result_view_type& value_) : value(value_), references_scalar_v(false) {}
+
+    // Required
+    KOKKOS_INLINE_FUNCTION
+    void join(value_type& dest, const value_type& src) const { 
+        // NO parallel_for, since nestes parallelism is not recommended/handled by Kokkos!
+        for (IndexType i = 0; i < numBins; ++i) {
+            dest(i) += src(i);
+        }
+    }
+
+    // Host-only helper to create an identity view
+    /*KOKKOS_INLINE_FUNCTION
+    static value_type create_identity_view(const IndexType numBins) {
+        value_type identity_view("localHistogramReductionIdentity", numBins);
+        Kokkos::deep_copy(identity_view, 0);
+        return identity_view;
+    }*/
+
+    KOKKOS_INLINE_FUNCTION
+    void init(value_type& val) const {
+        // TODO: Illegal memory access here!
+        // Since val is basically not initialized, problem with dynamic initialization...
+
+        //Kokkos::atomic_increment(&numCalls);
+        // val = create_identity_view(numBins);
+        // val = reduction_identity<value_type>::sum();
+        // std::cout << val << " - " << val(0)  << std::endl;
+        for (IndexType i = 0; i < numBins; i++) { val(i) = 0; }
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    value_type& reference() const { return *value.data(); }
+
+    KOKKOS_INLINE_FUNCTION
+    result_view_type view() const { return value; } // result_view_type
+};
+
+
+
+/*template<typename SizeType, typename IndexType>
 struct ViewReducer {
     //using value_type = Kokkos::View<SizeType*>;
     //SizeType the_array[N];
@@ -184,7 +252,7 @@ namespace Kokkos {
             return ViewReducer<SizeType, IndexType>(); // Pass N for initialization
         }
     };
-}
+}*/
 
 /*template<typename SizeType, typename IndexType>
 struct ViewReducer {
@@ -437,7 +505,7 @@ public:
     using bin_host_histo_type    = typename Kokkos::View<size_type*, Kokkos::HostSpace>; // ippl::Vector<size_type*, 1>;
     
     //using reducer_type =  HistogramReducer<size_type, bin_index_type>;
-    using reducer_type = ViewReducer<size_type, bin_index_type>;
+    using reducer_type = HistogramReducer<size_type, bin_index_type>;
 
 
     //template<typename SizeType, typename IndexType>
@@ -602,14 +670,14 @@ public:
                 //update.bins(ndx)++;
             }, Kokkos::Sum<reducer_type>(resultReducer));*/
 
-        reducer_type to_reduce;
-        to_reduce.init(binCount);
+        reducer_type reducer(localBinHisto, binCount);
+        // to_reduce.init(binCount);
         msg << "Starting reducer." << endl;
 
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
         IpplTimings::startTimer(initLocalHisto);
 
-        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+        /*Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type i, reducer_type& update) {
                 if (!update.bins) {
                     update.init(binCount);
@@ -617,16 +685,21 @@ public:
         
                 bin_index_type ndx = binIndex(i);  // Get the bin index for the particle
                 update.bins[ndx]++;  // Update the appropriate bin count
-            }, Kokkos::Sum<reducer_type>(to_reduce));
+            }, Kokkos::Sum<reducer_type>(to_reduce));*/
+        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+            KOKKOS_LAMBDA(const size_type& i, reducer_type::value_type& update) {
+                bin_index_type ndx = binIndex(i);  // Get the bin index for the particle
+                update(ndx)++;  // reducer_type::value_type is the same as Kokkos::View<size_type*>
+            }, reducer);
 
         IpplTimings::stopTimer(initLocalHisto);
 
-        Kokkos::parallel_for("UpdateHistogram", binCount, 
+        /*Kokkos::parallel_for("UpdateHistogram", binCount, 
             [bins = to_reduce.bins, localBinHisto = localBinHisto](const bin_index_type& i) {
                 // Update localBinHisto_m with the result from resultReducer
                 // Do it like this to avoid copying the resultReducer object to the host
                 localBinHisto(i) = bins[i];
-            });
+            });*/
         /*Kokkos::Experimental::ScatterView<size_type*> scatter_view("scatter_view", binCount);
         Kokkos::parallel_for("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type i) {
@@ -649,7 +722,10 @@ public:
             }, Kokkos::Sum<reducer_type>(to_reduce)  // Pass the custom reducer
         );*/
         //Kokkos::fence();
-        msg << "Reducer ran without error." << endl;
+
+
+        // msg << "Reducer ran without error. Created " << reducer.numCalls << " instances." << endl;
+
 
         //Kokkos::deep_copy(localBinHisto_m, tr.the_array);
         //msg << "HEY2" << endl;

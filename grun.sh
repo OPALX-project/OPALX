@@ -2,10 +2,10 @@
 #SBATCH --job-name=adapt_bins_test_gpu
 #SBATCH --error=output/bins_%j.err
 #SBATCH --output=output/bins_%j.out
-#SBATCH --time=00:15:00
+#SBATCH --time=00:05:00
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1        # cores per node
-#SBATCH --mem-per-cpu=16G
+#SBATCH --mem-per-cpu=32G
 #SBATCH --cpus-per-task=2           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=gmerlin6 # gmerlin6
 #SBATCH --partition=gwendolen # Mandatory, as gwendolen is not the default partition
@@ -30,12 +30,12 @@ echo "Number of threads: $(nproc)"
 
 cd /data/user/liemen_a/build_ippl_cuda/
 #cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS="CUDA;OPENMP" -DKokkos_ARCH_AMPERE80=ON -DUSE_ALTERNATIVE_VARIANT=ON -DENABLE_TESTS=ON -DENABLE_SOLVERS=ON -DENABLE_FFT=ON -DONLY_BINNING=ON
-#make -j $(nproc)
+make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
 cd /data/user/liemen_a/build_ippl_cuda/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-srun ./Binning_pic3d 8 8 8 10000000 1 --info 10 
+srun ./Binning_pic3d 8 8 8 1000000 1 --info 10 
 # srun ./Binning_pic3d 8 8 8 1000000 1 --info 10 --kokkos-disable-cuda # use this to run ONLY on CPU
 
 
