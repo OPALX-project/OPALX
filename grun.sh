@@ -29,7 +29,7 @@ echo "Number of threads: $(nproc)"
 #module clear && module use unstable && module load gcc/12.3.0 gtest/1.13.0-1 openmpi/4.1.5_slurm && module use Libraries && module load ucx/1.14.1_slurm fftw/3.3.10_merlin6 boost gsl hdf5 H5hut cuda/12.1.1 cmake/3.25.2
 
 cd /data/user/liemen_a/build_ippl_cuda/
-cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS="CUDA;OPENMP" -DKokkos_ARCH_AMPERE80=ON -DUSE_ALTERNATIVE_VARIANT=ON -DENABLE_TESTS=ON -DENABLE_SOLVERS=ON -DENABLE_FFT=ON -DONLY_BINNING=ON
+#cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS="CUDA;OPENMP" -DKokkos_ARCH_AMPERE80=ON -DUSE_ALTERNATIVE_VARIANT=ON -DENABLE_TESTS=ON -DENABLE_SOLVERS=ON -DENABLE_FFT=ON -DONLY_BINNING=ON
 make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
