@@ -486,7 +486,7 @@ int main(int argc, char* argv[]) {
         P->initPositions(FL, hr, nloc, 2);
 
         
-        std::unique_ptr<AdaptBins<bunch_type>> bins = std::make_unique<AdaptBins<bunch_type>>(P, 10);
+        std::unique_ptr<ParticleBinning::AdaptBins<bunch_type>> bins = std::make_unique<ParticleBinning::AdaptBins<bunch_type>>(P, 10);
         bins->debug();
         bins->initLimits(); // TODO
 
