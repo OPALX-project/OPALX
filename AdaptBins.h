@@ -208,27 +208,28 @@ public:
 
     void initLocalHisto() {
         Inform msg("AdaptBins");
-        initializeHistogram(false); // Init histogram (no need to set to 0, since contribute_into overwrites values...)
+        initializeHistogram(); // Init histogram (no need to set to 0, since contribute_into overwrites values...)
         msg << "Histogram initialized to 0" << endl;
 
         bin_view_type binIndex       = bunch_m->bin.getView();
         bin_histo_type localBinHisto = localBinHisto_m;
-        bin_index_type binCount      = getCurrentBinCount();
+        //bin_index_type binCount      = getCurrentBinCount();
         
         msg << "Starting reducer." << endl;
 
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
         IpplTimings::startTimer(initLocalHisto);
 
-        Kokkos::Experimental::ScatterView<size_type*> scatter_view("scatter_view", binCount);
+        //Kokkos::Experimental::ScatterView<size_type*> scatter_view("scatter_view", binCount);
+        Kokkos::Experimental::ScatterView<size_type*> scatter_view(localBinHisto); // does not contribute if not done like this...
         Kokkos::parallel_for("initLocalHist", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
                 auto scatter = scatter_view.access();
                 bin_index_type ndx = binIndex(i);
-                scatter(ndx)++;
+                scatter(ndx)++; // scatter(ndx)++;
             });
 
         msg << "Reduced, now contributing." << endl;
-        scatter_view.contribute_into(localBinHisto);
+        scatter_view.contribute_into(localBinHisto); // does nothing if "scatter_view.subview().data() == localBinHisto_m.data()", so can as well remain just in case
         
         IpplTimings::stopTimer(initLocalHisto);
 
