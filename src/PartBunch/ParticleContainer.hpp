@@ -87,7 +87,8 @@ public:
 
     void updateMoments(){
         size_t Np = this->getTotalNum();
-        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np);
+        size_t Nlocal = this->getLocalNum();
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
     }
 
     Vector_t<double, 3> getMeanP() const{
@@ -111,7 +112,8 @@ public:
     }
 
     void computeMinMaxR(){
-        distMoments_m.computeMinMaxPosition(this->R.getView());
+        size_t Nlocal = this->getLocalNum();
+        distMoments_m.computeMinMaxPosition(this->R.getView(), Nlocal);
     }
 
     Vector_t<double, 3> getMinR() const {
@@ -180,7 +182,8 @@ public:
 
     double computeDebyeLength(double density){
         size_t Np = this->getTotalNum();
-        distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, density);
+        size_t Nlocal = this->getLocalNum();
+        distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, Nlocal, density);
         return distMoments_m.getDebyeLength();
     }
 
