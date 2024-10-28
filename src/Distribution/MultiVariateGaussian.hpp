@@ -107,7 +107,15 @@ public:
     }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
-        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+        size_t randInit;
+        if (Options::seed == -1) {
+            randInit = 1234567;
+            *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
+        }
+	else
+            randInit = (size_t)(Options::seed + 100 * ippl::Comm->rank());
+
+        GeneratorPool rand_pool64(randInit);
 
         // read the input covariance matrix from opal dist
         for (unsigned int i = 0; i < 6; i++) {
@@ -132,20 +140,26 @@ public:
         using sampling_t = ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
         Dist_t dist(par);
 
-        auto& mesh = fc_m->getMesh();
-        auto& FL = fc_m->getFL();
-        hr = (rmax_m-rmin_m) / nr;
-        mesh.setMeshSpacing(hr);
-        mesh.setOrigin(rmin_m);
-        ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>> rlayout;
-        rlayout = ippl::detail::RegionLayout<double, 3, Mesh_t<Dim>>(FL, mesh);
-        sampling_t samplingN(dist, normRmax_m, normRmin_m, rlayout, numberOfParticles);
-        size_type nlocal = samplingN.getLocalSamplesNum();
-        pc_m->create(nlocal);
-        samplingN.generate(Rview, rand_pool64);
+        MPI_Comm comm = MPI_COMM_WORLD;
+        int nranks;
+        int rank;
+        MPI_Comm_size(comm, &nranks);
+        MPI_Comm_rank(comm, &rank);
 
-        samplingN.updateBounds(normPmax_m, normPmin_m);
-        samplingN.generate(Pview, rand_pool64);
+        size_type nlocal = floor(numberOfParticles/nranks);
+
+        // if nlocal*nranks > numberOfParticles, put the remaining in rank 0
+        size_t remaining = numberOfParticles - nlocal*nranks;
+        if(remaining>0 && rank==0){
+            nlocal += remaining;
+        }
+
+        sampling_t sampling(dist, normRmax_m, normRmin_m, normRmax_m, normRmin_m, nlocal);
+        pc_m->create(nlocal);
+        sampling.generate(Rview, rand_pool64);
+
+        sampling.updateBounds(normPmax_m, normPmin_m, normPmax_m, normPmin_m);
+        sampling.generate(Pview, rand_pool64);
 
         Matrix_t L;
         for (unsigned i = 0; i < 6; ++i){
@@ -175,7 +189,6 @@ public:
             }
 	);
 	Kokkos::fence();
-        ippl::Comm->barrier();
 
         // zero mean of R
         double meanR[3], loc_meanR[3];
@@ -194,16 +207,16 @@ public:
             },
             Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        ippl::Comm->barrier();
 
         for(int i=0; i<3; i++){
            meanR[i] = meanR[i]/(1.*numberOfParticles);
         }
 
         Kokkos::parallel_for(
-                nlocal,KOKKOS_LAMBDA(
+                nlocal, KOKKOS_LAMBDA(
                     const int k) {
                     Rview(k)[0] -= meanR[0];
                     Rview(k)[1] -= meanR[1];
@@ -211,7 +224,6 @@ public:
             }
         );
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         // zero mean of P
         double meanP[3], loc_meanP[3];
@@ -229,16 +241,16 @@ public:
             },
 	    Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        ippl::Comm->barrier();
 
         for(int i=0; i<3; i++){
            meanP[i] = meanP[i]/(1.*numberOfParticles);
         }
 
         Kokkos::parallel_for(
-            nlocal,KOKKOS_LAMBDA(
+            nlocal, KOKKOS_LAMBDA(
                     const int k) {
                     Pview(k)[0] -= meanP[0];
                     Pview(k)[1] -= meanP[1];
@@ -246,18 +258,16 @@ public:
             }
         );
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         // correct the means of R and P
         double avrgpz = opalDist_m->getAvrgpz();
         Kokkos::parallel_for(
-            nlocal,KOKKOS_LAMBDA(
+            nlocal, KOKKOS_LAMBDA(
                     const int k) {
                     Pview(k)[2] += avrgpz;
             }
         );
         Kokkos::fence();
-        ippl::Comm->barrier();
     }
 };
 #endif

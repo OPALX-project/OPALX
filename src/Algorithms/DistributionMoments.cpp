@@ -44,20 +44,21 @@ DistributionMoments::DistributionMoments() {
     notCentMoments_m.resize(6, 6, false);
 }
 
-
-
 void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
                                          ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
                                          ippl::ParticleAttrib<double>::view_type&  Mview,
-                                         size_t Np) {
+                                         size_t Np,
+                                         size_t Nlocal) {
     const int Dim = 3;
-
     double loc_centroid[2 * Dim]        = {};
     double centroid[2 * Dim]        = {};
     double loc_Ekin, loc_gamma, loc_gammaz, gammaz;
 
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     Kokkos::parallel_reduce(
-                                    "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                                    "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& ekin, double& gamma, double& gammaz) {
                     double gamma0 = 0.0;
@@ -78,7 +79,7 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
             Kokkos::parallel_reduce(
-                                    "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                                    "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& cent) {
                     double part[2 * Dim];
@@ -126,9 +127,10 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
 void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
                                          ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
                                          ippl::ParticleAttrib<double>::view_type&  Mview,
-                                         size_t Np) {
+                                         size_t Np,
+                                         size_t Nlocal) {
     reset();
-    computeMeans(Rview, Pview, Mview, Np);
+    computeMeans(Rview, Pview, Mview, Np, Nlocal);
 
     double meanR_loc[Dim]       = {};
     double meanP_loc[Dim]       = {};
@@ -146,7 +148,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
             Kokkos::parallel_reduce(
-                                    "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                                    "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& mom0, double& mom1, double& mom2,
                     double& mom3, double& mom4, double& mom5) {
@@ -171,14 +173,13 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                 Kokkos::Sum<double>(loc_moment[i][5]));
             Kokkos::fence();
      }
-    ippl::Comm->barrier();
 
     MPI_Allreduce(
             loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
             for (unsigned j = 0; j < 2 * Dim; j++) {
-                moments_m(i,j) = moment[i][j] / (Np-1);
+                moments_m(i,j) = moment[i][j] / Np;
             }
      }
 
@@ -193,7 +194,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
    // compute non-central moments
    for (unsigned i = 0; i < 2 * Dim; ++i) {
             Kokkos::parallel_reduce(
-                                    "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                                    "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& mom0, double& mom1, double& mom2,
                     double& mom3, double& mom4, double& mom5) {
@@ -221,7 +222,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     ippl::Comm->barrier();
 
     Kokkos::parallel_reduce(
-                "calc moments of particle distr.", ippl::getRangePolicy(Pview),
+                "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& ekin) {
                     double gamma0 = 0;
@@ -283,7 +284,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
 }
 
-void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview){
+void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview, size_t Nlocal)
+{
     const int Dim = 3;
 
     double rmax_loc[Dim];
@@ -293,7 +295,7 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
 
     for (unsigned d = 0; d < Dim; ++d) {
             Kokkos::parallel_reduce(
-                "rel max", ippl::getRangePolicy(Rview),
+                "rel max", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
                     double tmp_vel = Rview(i)[d];
                     mm             = tmp_vel > mm ? tmp_vel : mm;
@@ -724,6 +726,7 @@ void DistributionMoments::computeMeanKineticEnergy() {
 void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
                                          ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
                                          size_t Np,
+                                         size_t Nlocal,
                                          double density){
     resetPlasmaParameters();
     double loc_avgVel[3] = {};
@@ -732,7 +735,7 @@ void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<doubl
 
     // From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
     Kokkos::parallel_reduce(
-                "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& mom0, double& mom1, double& mom2){
 
@@ -773,7 +776,7 @@ void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<doubl
     }*/
 
     Kokkos::parallel_reduce(
-                "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                "calc moments of particle distr.", Nlocal,
                 KOKKOS_LAMBDA(
                     const int k, double& mom0){
 
